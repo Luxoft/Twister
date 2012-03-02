@@ -22,22 +22,15 @@ import pickle
 import xmlrpclib
 from threading import Timer
 
-
-# Using folder UTILS, file Constants.py
-"""
-__file__ = os.path.abspath(__file__)
-DIR = os.path.split(__file__)[0]
-UPPER_DIR = os.sep.join(DIR.split(os.sep)[:-1])
-sys.path.append(UPPER_DIR)
-from utils.Constants import *
-"""
-TWISTER_PATH=os.getenv('TWISTER_PATH')
-if(not TWISTER_PATH):
-    print 'TWISTER_PATH environment variable  is not set'
-    exit(1)    
+TWISTER_PATH = os.getenv('TWISTER_PATH')
+if not TWISTER_PATH:
+    print('TWISTER_PATH environment variable is not set! Exiting!')
+    exit(1)
 sys.path.append(TWISTER_PATH)
+
 from common.constants import *
 from TestCaseRunnerClasses import *
+
 #
 
 def loadConfig():
@@ -233,7 +226,7 @@ if __name__=='__main__':
             print('TC error: File list file `{0}` does not exist! Exiting!')
             exit(1)
         runOffline(filelist[0])
-        exit() # Exit code ??
+        exit(0) # Exit code 0 ??
 
     CONFIG = loadConfig()
 

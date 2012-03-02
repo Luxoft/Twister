@@ -5,11 +5,10 @@ import md5
 import time
 from collections import OrderedDict
 
-TWISTER_PATH=os.getenv('TWISTER_PATH')
-if(not TWISTER_PATH):
-    print 'TWISTER_PATH environment variable  is not set'
-    exit(1)    
-    
+TWISTER_PATH = os.getenv('TWISTER_PATH')
+if not TWISTER_PATH:
+    print('TWISTER_PATH environment variable is not set! Exiting!')
+    exit(1)
 sys.path.append(TWISTER_PATH)
 
 from trd_party.BeautifulSoup import BeautifulStoneSoup
@@ -54,6 +53,8 @@ class TSCParser:
         '''
         # Path of TestSuite/ Master XML
         config_ts = str(self.xmlDict.root.masterxmltestsuite.text)
+        if config_ts.startswith('~'):
+            config_ts = os.getenv('HOME') + config_ts[1:]
         if not os.path.isfile(config_ts):
             print('TSCParser: Test Suite Config file `%s` does not exist!' % config_ts)
             return -1
@@ -69,15 +70,24 @@ class TSCParser:
 
 
     def getTestSuitePath(self):
-        return str(self.xmlDict.root.masterxmltestsuite.text)
+        res = str(self.xmlDict.root.masterxmltestsuite.text)
+        if res.startswith('~'):
+            res = os.getenv('HOME') + res[1:]
+        return res
 
 
     def getLogsPath(self):
-        return str(self.xmlDict.root.logspath.text)
+        res = str(self.xmlDict.root.logspath.text)
+        if res.startswith('~'):
+            res = os.getenv('HOME') + res[1:]
+        return res
 
 
     def getReportsPath(self):
-        return str(self.xmlDict.root.reportspath.text)
+        res = str(self.xmlDict.root.reportspath.text)
+        if res.startswith('~'):
+            res = os.getenv('HOME') + res[1:]
+        return res
 
 
     def getLogTypes(self):
@@ -154,13 +164,15 @@ class TSCParser:
         '''
         Returns a list with all available EP-IDs.
         '''
-        c = str(self.xmlDict.root.epidsfile.text)
-        if not os.path.isfile(c):
-            print('TSCParser: EpIds file `%s` does not exist!' % c)
+        res = str(self.xmlDict.root.epidsfile.text)
+        if res.startswith('~'):
+            res = os.getenv('HOME') + res[1:]
+        if not os.path.isfile(res):
+            print('TSCParser: EpIds file `%s` does not exist!' % res)
             return None
 
         self.epids = []
-        for line in open(c).readlines():
+        for line in open(res).readlines():
             self.epids.append(line.strip())
         return self.epids
 
@@ -222,6 +234,7 @@ class TSCParser:
         tcNames = []
         for tcName in ts:
             tcNames += [fname.text for fname in tcName('tcname')]
+
         print('TSCParser: Parsing file fist (%s files) for `%s` took %.4f seconds.' % (len(tcNames), epid, (time.clock()-ti)))
         return tcNames
 

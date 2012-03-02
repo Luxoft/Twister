@@ -1,6 +1,6 @@
 
 import os, sys, time
-sys.path.append(os.getenv('HOME') + '/.twister_cache/')
+sys.path.append(os.getenv('TWISTER_PATH') + '/.twister_cache/')
 
 #
 

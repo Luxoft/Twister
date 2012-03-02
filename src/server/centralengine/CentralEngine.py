@@ -15,15 +15,16 @@ import struct
 from SimpleXMLRPCServer import SimpleXMLRPCServer
 from SimpleXMLRPCServer import SimpleXMLRPCRequestHandler
 
-TWISTER_PATH=os.getenv('TWISTER_PATH')
-if(not TWISTER_PATH):
-    print 'TWISTER_PATH environment variable  is not set'
-    exit(1)    
+TWISTER_PATH = os.getenv('TWISTER_PATH')
+if not TWISTER_PATH:
+    print('TWISTER_PATH environment variable is not set! Exiting!')
+    exit(1)
 sys.path.append(TWISTER_PATH)
 
 from server.centralengine.CentralEngineClasses import *
 from common.tsclogging import *
 from common.xmlparser import *
+
 CLIENTS_IP = []
 
 #
@@ -47,11 +48,8 @@ class rpcRequestHandler(SimpleXMLRPCRequestHandler):
 
 if __name__ == "__main__":
 
-    # Initialization    
-    logDebug("CE: TWISTER_PATH: `%s`." % TWISTER_PATH)
-
     # Read XML configuration file
-    FMW_PATH = TWISTER_PATH + os.sep + "config/fwmconfig.xml"
+    FMW_PATH = TWISTER_PATH + '/config/fwmconfig.xml'
     if not os.path.exists(FMW_PATH):
         logCritical("CE: Invalid path for config file: `%s` !" % FMW_PATH)
         exit(1)

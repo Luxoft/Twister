@@ -7,10 +7,10 @@ import os, sys
 import platform
 import xmlrpclib
 
-TWISTER_PATH=os.getenv('TWISTER_PATH')
-if(not TWISTER_PATH):
-    print 'TWISTER_PATH environment variable  is not set'
-    exit(1)    
+TWISTER_PATH = os.getenv('TWISTER_PATH')
+if not TWISTER_PATH:
+    print('TWISTER_PATH environment variable is not set! Exiting!')
+    exit(1)
 sys.path.append(TWISTER_PATH)
 
 platform_sys = platform.system().lower()
@@ -19,9 +19,8 @@ platform_sys = platform.system().lower()
 
 # If this computer is Linux
 if platform_sys=='linux' or platform_sys=='sunos':
+
     # This is executed in TEMP
-    #sys.path.append(os.getenv('HOME') + '/twister/Sources/Python')
-    
     from client.resourceallocator.ResourceAllocatorClient import *
     from __init__ import PROXY
 

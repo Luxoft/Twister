@@ -22,17 +22,10 @@ import binascii
 import threading
 import subprocess
 
-# Using folder UTILS, file Constants.py
-"""
-__file__ = os.path.abspath(__file__)
-DIR = os.path.split(__file__)[0]
-UPPER_DIR = os.sep.join(DIR.split(os.sep)[:-1])
-sys.path.append(UPPER_DIR)
-"""
-TWISTER_PATH=os.getenv('TWISTER_PATH')
-if(not TWISTER_PATH):
-    print 'TWISTER_PATH environment variable  is not set'
-    exit(1)    
+TWISTER_PATH = os.getenv('TWISTER_PATH')
+if not TWISTER_PATH:
+    print('TWISTER_PATH environment variable is not set! Exiting!')
+    exit(1)
 sys.path.append(TWISTER_PATH)
 
 from common.constants import *
@@ -79,11 +72,8 @@ def saveLibraries(proxy):
     '''
     global TWISTER_PATH
     libs_list = proxy.getLibrariesList()
-    """
-    libs_path = os.getenv('HOME') + '/.twister_cache/ce_libs/'
-    """
     libs_path = TWISTER_PATH + '/.twister_cache/ce_libs/'
-    
+
     try: os.makedirs(libs_path)
     except: pass
 
@@ -112,8 +102,7 @@ def saveTests(proxy):
     Saves all test files from CE.
     Not used in offline mode.
     '''
-    global globEpId
-    global TWISTER_PATH
+    global globEpId, TWISTER_PATH
     tests_list = proxy.getTestSuiteFileList(globEpId, False)
     tests_path = TWISTER_PATH + '/.twister_cache/to_execute/'
 
@@ -216,10 +205,11 @@ class threadCheckLog(threading.Thread):
 
     def run(self):
         #
-        global globEpId, programExit
+        global globEpId, TWISTER_PATH, programExit
+
         while not programExit:
             #
-            vString = self.tail('{0}/{1}_LIVE.log'.format(os.getenv('HOME'), globEpId))
+            vString = self.tail('{0}/{1}_LIVE.log'.format(TWISTER_PATH, globEpId))
 
             try:
                 # Send log to CE server.
@@ -285,7 +275,7 @@ if __name__=='__main__':
                 #saveTests(proxy)
             print('EP debug: Received start signal from CE!')
 
-            # The same Python interpreter that started EP, will be used to start the Runner            
+            # The same Python interpreter that started EP, will be used to start the Runner
             tcr_fname = TWISTER_PATH + os.sep + 'client/executionprocess/TestCaseRunner.py'
             tcr_proc = subprocess.Popen([sys.executable, '-u', tcr_fname, globEpId, filelist], shell=False)
             tcr_pid = tcr_proc.pid

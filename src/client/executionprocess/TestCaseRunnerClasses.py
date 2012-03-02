@@ -12,11 +12,13 @@ import subprocess
 import imp  # For PYC / PYO files
 from collections import OrderedDict # For dumping TCL
 
-TWISTER_PATH=os.getenv('TWISTER_PATH')
-if(not TWISTER_PATH):
-    print 'TWISTER_PATH environment variable  is not set'
-    exit(1)    
+TWISTER_PATH = os.getenv('TWISTER_PATH')
+if not TWISTER_PATH:
+    print('TWISTER_PATH environment variable is not set! Exiting!')
+    exit(1)
+
 sys.path.append(TWISTER_PATH)
+sys.path.append(TWISTER_PATH + '/.twister_cache/')
 
 #
 
@@ -24,6 +26,7 @@ class TCRunTcl:
 
     def __init__(self):
         global TWISTER_PATH
+
         try:
             import Tkinter
         except:
@@ -49,7 +52,6 @@ class TCRunTcl:
         self.all_procs = 0
         self.all_procs_values = 0
 
-        sys.path.append(TWISTER_PATH + os.sep+ '.twister_cache/')
         import ce_libs
 
         self.tcl = Tkinter.Tcl()

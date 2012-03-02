@@ -15,7 +15,7 @@
             <propValue>ads</propValue>
         </UserDefined>
         <TestCase>
-            <tcName>/home/dancioata/twister2/demo/testsuite-tcl/init.tcl</tcName>
+            <tcName>~/twister_rel1/demo/testsuite-python/init.py</tcName>
             <tcID>1000</tcID>
             <Title/>
             <Summary/>
@@ -27,7 +27,7 @@
             </Property>
         </TestCase>
         <TestCase>
-            <tcName>/home/dancioata/twister2/demo/testsuite-tcl/test001.tcl</tcName>
+            <tcName>~/twister_rel1/demo/testsuite-python/test001.py</tcName>
             <tcID>1001</tcID>
             <Title/>
             <Summary/>
@@ -39,7 +39,7 @@
             </Property>
         </TestCase>
         <TestCase>
-            <tcName>/home/dancioata/twister2/demo/testsuite-tcl/test002.tcl</tcName>
+            <tcName>~/twister_rel1/demo/testsuite-python/test002.py</tcName>
             <tcID>1002</tcID>
             <Title/>
             <Summary/>
@@ -51,7 +51,7 @@
             </Property>
         </TestCase>
         <TestCase>
-            <tcName>/home/dancioata/twister2/demo/testsuite-tcl/test003.tcl</tcName>
+            <tcName>~/twister_rel1/demo/testsuite-python/test003.py</tcName>
             <tcID>1003</tcID>
             <Title/>
             <Summary/>
@@ -63,7 +63,7 @@
             </Property>
         </TestCase>
         <TestCase>
-            <tcName>/home/dancioata/twister2/demo/testsuite-tcl/test004.tcl</tcName>
+            <tcName>~/twister_rel1/demo/testsuite-python/test004.py</tcName>
             <tcID>1004</tcID>
             <Title/>
             <Summary/>
@@ -75,7 +75,7 @@
             </Property>
         </TestCase>
         <TestCase>
-            <tcName>/home/dancioata/twister2/demo/testsuite-tcl/test005.tcl</tcName>
+            <tcName>~/twister_rel1/demo/testsuite-python/test005.py</tcName>
             <tcID>1005</tcID>
             <Title/>
             <Summary/>

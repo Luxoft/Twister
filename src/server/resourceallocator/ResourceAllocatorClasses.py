@@ -4,12 +4,11 @@ import sys
 import re
 import pickle
 
-TWISTER_PATH=os.getenv('TWISTER_PATH')
-if(not TWISTER_PATH):
-    print 'TWISTER_PATH environment variable  is not set'
-    exit(1)        
+TWISTER_PATH = os.getenv('TWISTER_PATH')
+if not TWISTER_PATH:
+    print('TWISTER_PATH environment variable  is not set! Exiting!')
+    exit(1)
 sys.path.append(TWISTER_PATH)
-
 
 from trd_party.BeautifulSoup import *
 from common.tsclogging import *

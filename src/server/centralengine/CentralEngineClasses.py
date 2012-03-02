@@ -20,15 +20,15 @@ import MySQLdb
 from collections import OrderedDict
 from email.mime.text import MIMEText
 
-TWISTER_PATH=os.getenv('TWISTER_PATH')
-if(not TWISTER_PATH):
-    print 'TWISTER_PATH environment variable  is not set'
-    exit(1)    
+TWISTER_PATH = os.getenv('TWISTER_PATH')
+if not TWISTER_PATH:
+    print('TWISTER_PATH environment variable is not set! Exiting!')
+    exit(1)
 sys.path.append(TWISTER_PATH)
 
+from common.constants import *
 from common.tsclogging import *
 from common.xmlparser import *
-from common.constants import *
 
 dictStatus = {'stopped':STATUS_STOP, 'paused':STATUS_PAUSED, 'running':STATUS_RUNNING, 'resume':STATUS_RESUME}
 
@@ -706,6 +706,9 @@ class CentralEngine:
             logError('CE ERROR! EpId `%s` is not in the list of defined EpIds: `%s`!' % \
                 (str(epid), str(self.EpIds)) )
             return False
+
+        if filename.startswith('~'):
+            filename = os.getenv('HOME') + filename[1:]
 
         if not os.path.isfile(filename):
             logError('CE ERROR! TestCase file: `%s` does not exist!' % filename)
