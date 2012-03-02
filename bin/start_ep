@@ -1,0 +1,18 @@
+#!/bin/bash
+PYTHON=/usr/bin/python
+CE_PORT=8000
+
+EPID='EPID-1001'
+#CE_HOST=11.126.32.9		# Tsc Server
+CE_HOST=11.126.32.12	# Dan Ubuntu
+#CE_HOST=10.0.2.15		# OpenSUSE VM
+CE_PORT=8000
+
+if [ -n "$TWISTER_PATH" ]
+then
+	echo TWISTER_PATH set to: $TWISTER_PATH
+	$PYTHON $TWISTER_PATH/client/executionprocess/ExecutionProcess.py $EPID "$CE_HOST:$CE_PORT" | tee $TWISTER_PATH/$EPID"_LIVE.log"
+else
+	echo TWISTER_PATH variable enviroment is not defined.
+fi
+

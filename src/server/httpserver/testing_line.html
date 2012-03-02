@@ -1,0 +1,46 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+ <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>Flot Lines</title>
+    <!--[if lte IE 8]><script language="javascript" type="text/javascript" src="static/js/excanvas.min.js"></script><![endif]-->
+    <script language="javascript" type="text/javascript" src="static/js/jquery.min.js"></script>
+    <script language="javascript" type="text/javascript" src="static/js/jquery.flot.min.js"></script>
+ </head>
+<body>
+
+<h1>Flot Lines</h1>
+<div id="placeholder" style="width:800px;height:400px"></div>
+
+<script type="text/javascript">
+$(function () {
+
+    var data1 = [];
+    for (var i = 0; i < 14; i += 0.5)
+        data1.push([i, Math.random()*10]);
+
+    var data2 = [];
+    for (var i = 0; i < 14; i += 0.5)
+        data2.push([i, Math.random()*10]);
+
+    $.plot($("#placeholder"), [
+        {
+            data: data1,
+            label: "Passed",
+            color: "#3333f0",
+            lines: { show: true, fill: 0.1 },
+            points: { show: true }
+        },
+        {
+            data: data2,
+            label: "Failed",
+            color: "#f03333",
+            lines: { show: true, fill: 0.1 },
+            points: { show: true }
+        }
+    ]);
+});
+</script>
+
+</body>
+</html>

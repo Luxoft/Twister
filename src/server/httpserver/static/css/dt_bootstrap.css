@@ -1,0 +1,104 @@
+
+div.dataTables_length label {
+	float: left;
+	text-align: left;
+}
+div.dataTables_length select {
+	width: 95px;
+}
+div.dataTables_filter label {
+	float: right;
+}
+div.dataTables_info {
+	padding-top: 8px;
+}
+div.dataTables_paginate {
+	float: right;
+	margin: 0;
+}
+table.table {
+	clear: both;
+	margin-bottom: 6px !important;
+}
+table.table thead .sorting,
+table.table thead .sorting_asc,
+table.table thead .sorting_desc,
+table.table thead .sorting_asc_disabled,
+table.table thead .sorting_desc_disabled {
+	cursor: pointer;
+	*cursor: hand;
+}
+table.table thead .sorting {
+	background: url('images/sort_both.png') no-repeat center right;
+}
+table.table thead .sorting_asc {
+	background: url('images/sort_asc.png') no-repeat center right;
+}
+table.table thead .sorting_desc {
+	background: url('images/sort_desc.png') no-repeat center right;
+}
+table.table thead .sorting_asc_disabled {
+	background: url('images/sort_asc_disabled.png') no-repeat center right;
+}
+table.table thead .sorting_desc_disabled {
+	background: url('images/sort_desc_disabled.png') no-repeat center right;
+}
+table.dataTable th:active {
+	outline: none;
+}
+
+table tr.odd.gradeA {
+	background-color: #ddffdd;
+}
+table tr.even.gradeA {
+	background-color: #eeffee;
+}
+table tr.odd.gradeA {
+	background-color: #ddffdd;
+}
+table tr.even.gradeA {
+	background-color: #eeffee;
+}
+table tr.odd.gradeC {
+	background-color: #ddddff;
+}
+table tr.even.gradeC {
+	background-color: #eeeeff;
+}
+table tr.odd.gradeX {
+	background-color: #ffdddd;
+}
+table tr.even.gradeX {
+	background-color: #ffeeee;
+}
+table tr.odd.gradeU {
+	background-color: #ddd;
+}
+table tr.even.gradeU {
+	background-color: #eee;
+}
+
+.table tbody tr.even:hover td {
+	background-color: #ECFFB3;
+}
+table tr.even:hover td.sorting_1 {
+	background-color: #DDFF75;
+}
+table tr.even:hover td.sorting_2 {
+	background-color: #E7FF9E;
+}
+table tr.even:hover td.sorting_3 {
+	background-color: #E2FF89;
+}
+.table tbody tr.odd:hover td {
+	background-color: #E6FF99;
+}
+table tr.odd:hover td.sorting_1 {
+	background-color: #D6FF5C;
+}
+table tr.odd:hover td.sorting_2 {
+	background-color: #E0FF84;
+}
+table tr.odd:hover td.sorting_3 {
+	background-color: #DBFF70;
+}

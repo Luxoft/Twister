@@ -1,0 +1,13 @@
+#!/bin/bash
+PYTHON=/usr/bin/python
+HTTP_PORT=8080
+
+#echo $TWISTER_PATH
+if [ -n "$TWISTER_PATH" ]
+then
+	echo TWISTER_PATH set to: $TWISTER_PATH
+	$PYTHON $TWISTER_PATH/server/httpserver/httpserver.py $HTTP_PORT
+else
+	echo TWISTER_PATH variable enviroment is not defined.
+fi
+

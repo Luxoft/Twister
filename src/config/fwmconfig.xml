@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+Master config file for TSC.
+
+Logs Path: Where CE and PE write their logs.
+Reports Path: Where all reports are saved.
+Test Suite Config: All info about the current Test Suite (Test Plan).
+-->
+<root>
+    <FileType>Config</FileType>
+    <TestCaseSourcePath>/home/dancioata/twister2/demo/</TestCaseSourcePath>
+    <MasterXMLTestSuite>/home/dancioata/twister2/src/config/testsuites.xml</MasterXMLTestSuite>
+    <UsersPath>/home/dancioata/twister2/src/users/</UsersPath>
+    <ReportsDetailsStructureXML>/home/dancioata/twister2/src/config/</ReportsDetailsStructureXML>
+    <LogsPath>/home/dancioata/twister2/src/logs/</LogsPath>
+    <ReportsPath>/home/dancioata/twister2/src/reports/</ReportsPath>
+    <EPIdsFile>/home/dancioata/twister2/src/config/epid.txt</EPIdsFile>    
+    <HardwareConfig>/home/dancioata/twister2/src/config/hwconfig/</HardwareConfig>    
+    <LogFiles>
+        <logRunning>log_running.log</logRunning>
+        <logDebug>log_debug.log</logDebug>
+        <logSummary>log_summary.log</logSummary>
+        <logTest>log_test.log</logTest>
+        <logCli>CLI.log</logCli>
+    </LogFiles>    
+</root>

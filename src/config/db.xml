@@ -1,0 +1,215 @@
+<?xml version="1.0"?>
+<root>
+<mysqldump xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+<database name="avaya">
+	<table_structure name="app">
+		<field Field="id" Type="int(10) unsigned" Null="NO" Key="PRI" Extra="" />
+		<field Field="name" Type="varchar(80)" Null="NO" Key="" Extra="" />
+		<field Field="version" Type="varchar(45)" Null="NO" Key="" Extra="" />
+		<key Table="app" Non_unique="0" Key_name="PRIMARY" Seq_in_index="1" Column_name="id" Collation="A" Cardinality="0" Null="" Index_type="BTREE" Comment="" />
+		<options Name="app" Engine="MyISAM" Version="10" Row_format="Dynamic" Rows="0" Avg_row_length="0" Data_length="0" Max_data_length="281474976710655" Index_length="1024" Data_free="0" Create_time="2012-01-30 14:55:02" Update_time="2012-01-30 14:55:02" Collation="latin1_swedish_ci" Create_options="" Comment="" />
+	</table_structure>
+	<table_data name="app">
+	</table_data>
+	<table_structure name="compas">
+		<field Field="id" Type="int(11)" Null="NO" Key="PRI" Extra="" />
+		<field Field="code" Type="varchar(255)" Null="NO" Key="" Extra="" />
+		<field Field="description" Type="text" Null="NO" Key="" Extra="" />
+		<key Table="compas" Non_unique="0" Key_name="PRIMARY" Seq_in_index="1" Column_name="id" Collation="A" Cardinality="0" Null="" Index_type="BTREE" Comment="" />
+		<options Name="compas" Engine="MyISAM" Version="10" Row_format="Dynamic" Rows="0" Avg_row_length="0" Data_length="0" Max_data_length="281474976710655" Index_length="1024" Data_free="0" Create_time="2012-01-30 14:53:02" Update_time="2012-01-30 14:53:02" Collation="latin1_swedish_ci" Create_options="" Comment="" />
+	</table_structure>
+	<table_data name="compas">
+	</table_data>
+	<table_structure name="globalVars">
+		<field Field="id" Type="int(11)" Null="NO" Key="PRI" Extra="" />
+		<field Field="name" Type="varchar(255)" Null="NO" Key="" Extra="" />
+		<field Field="value" Type="varchar(255)" Null="NO" Key="" Extra="" />
+		<key Table="globalVars" Non_unique="0" Key_name="PRIMARY" Seq_in_index="1" Column_name="id" Collation="A" Cardinality="0" Null="" Index_type="BTREE" Comment="" />
+		<options Name="globalVars" Engine="MyISAM" Version="10" Row_format="Dynamic" Rows="0" Avg_row_length="0" Data_length="0" Max_data_length="281474976710655" Index_length="1024" Data_free="0" Create_time="2012-01-30 15:00:51" Update_time="2012-01-30 15:00:51" Collation="latin1_swedish_ci" Create_options="" Comment="" />
+	</table_structure>
+	<table_data name="globalVars">
+	</table_data>
+	<table_structure name="ipo">
+		<field Field="id" Type="int(10) unsigned" Null="NO" Key="PRI" Extra="" />
+		<field Field="name" Type="varchar(80)" Null="NO" Key="" Extra="" />
+		<field Field="version" Type="varchar(45)" Null="NO" Key="" Extra="" />
+		<key Table="ipo" Non_unique="0" Key_name="PRIMARY" Seq_in_index="1" Column_name="id" Collation="A" Cardinality="0" Null="" Index_type="BTREE" Comment="" />
+		<options Name="ipo" Engine="MyISAM" Version="10" Row_format="Dynamic" Rows="0" Avg_row_length="0" Data_length="0" Max_data_length="281474976710655" Index_length="1024" Data_free="0" Create_time="2012-01-30 14:58:11" Update_time="2012-01-30 14:58:11" Collation="latin1_swedish_ci" Create_options="" Comment="" />
+	</table_structure>
+	<table_data name="ipo">
+	</table_data>
+	<table_structure name="logs">
+		<field Field="id" Type="bigint(20) unsigned" Null="NO" Key="PRI" Extra="" />
+		<field Field="logfile_ref" Type="varchar(255)" Null="NO" Key="" Extra="" />
+		<field Field="logfile_archive" Type="longblob" Null="NO" Key="" Extra="" />
+		<key Table="logs" Non_unique="0" Key_name="PRIMARY" Seq_in_index="1" Column_name="id" Collation="A" Cardinality="0" Null="" Index_type="BTREE" Comment="" />
+		<options Name="logs" Engine="MyISAM" Version="10" Row_format="Dynamic" Rows="0" Avg_row_length="0" Data_length="0" Max_data_length="281474976710655" Index_length="1024" Data_free="0" Create_time="2012-01-30 14:39:59" Update_time="2012-01-30 14:39:59" Collation="latin1_swedish_ci" Create_options="" Comment="" />
+	</table_structure>
+	<table_data name="logs">
+	</table_data>
+	<table_structure name="os">
+		<field Field="id" Type="int(10) unsigned" Null="NO" Key="PRI" Extra="" />
+		<field Field="name_vers" Type="varchar(255)" Null="NO" Key="" Extra="" />
+		<key Table="os" Non_unique="0" Key_name="PRIMARY" Seq_in_index="1" Column_name="id" Collation="A" Cardinality="0" Null="" Index_type="BTREE" Comment="" />
+		<options Name="os" Engine="MyISAM" Version="10" Row_format="Dynamic" Rows="0" Avg_row_length="0" Data_length="0" Max_data_length="281474976710655" Index_length="1024" Data_free="0" Create_time="2012-01-30 14:59:20" Update_time="2012-01-30 14:59:20" Collation="latin1_swedish_ci" Create_options="" Comment="" />
+	</table_structure>
+	<table_data name="os">
+	</table_data>
+	<table_structure name="pri">
+		<field Field="id" Type="smallint(2) unsigned" Null="NO" Key="PRI" Extra="" />
+		<field Field="name" Type="varchar(128)" Null="NO" Key="" Extra="" />
+		<key Table="pri" Non_unique="0" Key_name="PRIMARY" Seq_in_index="1" Column_name="id" Collation="A" Cardinality="0" Null="" Index_type="BTREE" Comment="" />
+		<options Name="pri" Engine="MyISAM" Version="10" Row_format="Dynamic" Rows="0" Avg_row_length="0" Data_length="0" Max_data_length="281474976710655" Index_length="1024" Data_free="0" Create_time="2012-01-30 14:50:49" Update_time="2012-01-30 14:50:49" Collation="latin1_swedish_ci" Create_options="" Comment="" />
+	</table_structure>
+	<table_data name="pri">
+	</table_data>
+	<table_structure name="results">
+		<field Field="id" Type="bigint(20) unsigned" Null="NO" Key="PRI" Extra="" />
+		<field Field="test_id" Type="bigint(20) unsigned" Null="NO" Key="" Extra="" />
+		<field Field="suite_id" Type="bigint(20) unsigned" Null="NO" Key="" Extra="" />
+		<field Field="sut_id" Type="bigint(20) unsigned" Null="NO" Key="" Extra="" />
+		<field Field="site_id" Type="int(10) unsigned" Null="NO" Key="" Extra="" />
+		<field Field="log_id" Type="bigint(20) unsigned" Null="NO" Key="" Extra="" />
+		<field Field="pri_id" Type="smallint(2) unsigned" Null="NO" Key="" Extra="" />
+		<field Field="res_val" Type="char(1)" Null="NO" Key="" Extra="" />
+		<field Field="test_starttime" Type="timestamp" Null="NO" Key="" Default="CURRENT_TIMESTAMP" Extra="on update CURRENT_TIMESTAMP" />
+		<field Field="test_duration" Type="time" Null="NO" Key="" Extra="" />
+		<field Field="regressionType" Type="tinyint(4)" Null="NO" Key="" Extra="" />
+		<field Field="issueAttest" Type="tinyint(1)" Null="NO" Key="" Extra="" />
+		<field Field="issueIpoffice" Type="tinyint(1)" Null="NO" Key="" Extra="" />
+		<field Field="comments" Type="varchar(1024)" Null="NO" Key="" Extra="" />
+		<field Field="actionWho" Type="varchar(30)" Null="NO" Key="" Extra="" />
+		<field Field="hashCode" Type="bigint(20)" Null="NO" Key="" Extra="" />
+		<field Field="hashMessage" Type="char(40)" Null="NO" Key="" Extra="" />
+		<field Field="crashDetected" Type="tinyint(3) unsigned" Null="NO" Key="" Extra="" />
+		<field Field="syncronized" Type="tinyint(3) unsigned" Null="NO" Key="" Extra="" />
+		<key Table="results" Non_unique="0" Key_name="PRIMARY" Seq_in_index="1" Column_name="id" Collation="A" Cardinality="0" Null="" Index_type="BTREE" Comment="" />
+		<options Name="results" Engine="MyISAM" Version="10" Row_format="Dynamic" Rows="0" Avg_row_length="0" Data_length="0" Max_data_length="281474976710655" Index_length="1024" Data_free="0" Create_time="2012-01-30 14:02:36" Update_time="2012-01-30 14:02:36" Collation="latin1_swedish_ci" Create_options="" Comment="" />
+	</table_structure>
+	<table_data name="results">
+	</table_data>
+	<table_structure name="sequence">
+		<field Field="name" Type="varchar(50)" Null="NO" Key="" Extra="" />
+		<field Field="value" Type="bigint(20) unsigned" Null="NO" Key="" Extra="" />
+		<options Name="sequence" Engine="MyISAM" Version="10" Row_format="Dynamic" Rows="0" Avg_row_length="0" Data_length="0" Max_data_length="281474976710655" Index_length="1024" Data_free="0" Create_time="2012-01-30 15:02:02" Update_time="2012-01-30 15:02:02" Collation="latin1_swedish_ci" Create_options="" Comment="" />
+	</table_structure>
+	<table_data name="sequence">
+	</table_data>
+	<table_structure name="sites">
+		<field Field="id" Type="int(10) unsigned" Null="NO" Key="PRI" Extra="" />
+		<field Field="name" Type="varchar(45)" Null="NO" Key="" Extra="" />
+		<key Table="sites" Non_unique="0" Key_name="PRIMARY" Seq_in_index="1" Column_name="id" Collation="A" Cardinality="0" Null="" Index_type="BTREE" Comment="" />
+		<options Name="sites" Engine="MyISAM" Version="10" Row_format="Dynamic" Rows="0" Avg_row_length="0" Data_length="0" Max_data_length="281474976710655" Index_length="1024" Data_free="0" Create_time="2012-01-30 14:36:52" Update_time="2012-01-30 14:36:52" Collation="latin1_swedish_ci" Create_options="" Comment="" />
+	</table_structure>
+	<table_data name="sites">
+	</table_data>
+	<table_structure name="steps">
+		<field Field="id" Type="bigint(20) unsigned" Null="NO" Key="PRI" Extra="" />
+		<field Field="fkresultId" Type="bigint(20) unsigned" Null="NO" Key="" Extra="" />
+		<field Field="stepNumber" Type="tinyint(4)" Null="NO" Key="" Extra="" />
+		<field Field="stepDescrition" Type="varchar(1024)" Null="NO" Key="" Extra="" />
+		<field Field="returnValue" Type="char(2)" Null="NO" Key="" Extra="" />
+		<key Table="steps" Non_unique="0" Key_name="PRIMARY" Seq_in_index="1" Column_name="id" Collation="A" Cardinality="0" Null="" Index_type="BTREE" Comment="" />
+		<options Name="steps" Engine="MyISAM" Version="10" Row_format="Dynamic" Rows="0" Avg_row_length="0" Data_length="0" Max_data_length="281474976710655" Index_length="1024" Data_free="0" Create_time="2012-01-30 14:17:14" Update_time="2012-01-30 14:17:14" Collation="latin1_swedish_ci" Create_options="" Comment="" />
+	</table_structure>
+	<table_data name="steps">
+	</table_data>
+	<table_structure name="suites">
+		<field Field="id" Type="bigint(20) unsigned" Null="NO" Key="PRI" Extra="" />
+		<field Field="starttime" Type="timestamp" Null="NO" Key="" Default="CURRENT_TIMESTAMP" Extra="on update CURRENT_TIMESTAMP" />
+		<field Field="duration" Type="time" Null="NO" Key="" Extra="" />
+		<field Field="description" Type="varchar(255)" Null="NO" Key="" Extra="" />
+		<field Field="comment" Type="varchar(255)" Null="NO" Key="" Extra="" />
+		<key Table="suites" Non_unique="0" Key_name="PRIMARY" Seq_in_index="1" Column_name="id" Collation="A" Cardinality="0" Null="" Index_type="BTREE" Comment="" />
+		<options Name="suites" Engine="MyISAM" Version="10" Row_format="Dynamic" Rows="0" Avg_row_length="0" Data_length="0" Max_data_length="281474976710655" Index_length="1024" Data_free="0" Create_time="2012-01-30 14:26:18" Update_time="2012-01-30 14:26:18" Collation="latin1_swedish_ci" Create_options="" Comment="" />
+	</table_structure>
+	<table_data name="suites">
+	</table_data>
+	<table_structure name="suts">
+		<field Field="id" Type="bigint(20) unsigned" Null="NO" Key="PRI" Extra="" />
+		<field Field="app_id" Type="int(10) unsigned" Null="NO" Key="" Extra="" />
+		<field Field="ipo_id" Type="int(10) unsigned" Null="NO" Key="" Extra="" />
+		<field Field="os_id" Type="int(10) unsigned" Null="NO" Key="" Extra="" />
+		<key Table="suts" Non_unique="0" Key_name="PRIMARY" Seq_in_index="1" Column_name="id" Collation="A" Cardinality="0" Null="" Index_type="BTREE" Comment="" />
+		<options Name="suts" Engine="MyISAM" Version="10" Row_format="Fixed" Rows="0" Avg_row_length="0" Data_length="0" Max_data_length="5910974510923775" Index_length="1024" Data_free="0" Create_time="2012-01-30 14:30:05" Update_time="2012-01-30 14:30:05" Collation="latin1_swedish_ci" Create_options="" Comment="" />
+	</table_structure>
+	<table_data name="suts">
+	</table_data>
+	<table_structure name="tests">
+		<field Field="id" Type="bigint(20) unsigned" Null="NO" Key="PRI" Extra="" />
+		<field Field="compas_id" Type="int(11)" Null="NO" Key="" Extra="" />
+		<field Field="dev_code" Type="bigint(20)" Null="NO" Key="" Extra="" />
+		<field Field="suite_path" Type="varchar(2048)" Null="NO" Key="" Extra="" />
+		<field Field="date_created" Type="datetime" Null="NO" Key="" Extra="" />
+		<field Field="description" Type="varchar(2048)" Null="NO" Key="" Extra="" />
+		<field Field="developer" Type="varchar(64)" Null="NO" Key="" Extra="" />
+		<key Table="tests" Non_unique="0" Key_name="PRIMARY" Seq_in_index="1" Column_name="id" Collation="A" Cardinality="0" Null="" Index_type="BTREE" Comment="" />
+		<options Name="tests" Engine="MyISAM" Version="10" Row_format="Dynamic" Rows="0" Avg_row_length="0" Data_length="0" Max_data_length="281474976710655" Index_length="1024" Data_free="0" Create_time="2012-01-30 14:23:15" Update_time="2012-01-30 14:23:15" Collation="latin1_swedish_ci" Create_options="" Comment="" />
+	</table_structure>
+	<table_data name="tests">
+	</table_data>
+</database>
+</mysqldump>
+
+<twister_user_defined>
+<field_section>
+	<field ID="res_id" Type="DbSelect" FieldName="id" FromTable="results" SQLQuery="select MAX(id)+1 from results" Label="" GUIDefined="false" Mandatory="true" />
+	<field ID="log_id" Type="DbSelect" FieldName="id" FromTable="logs"    SQLQuery="select MAX(id)+1 from logs" Label="" GUIDefined="false" Mandatory="true" />
+
+	<field ID="test_id"  FieldName="id" FromTable="tests" SQLQuery="select DISTINCT id from tests" Label="Test:" Type="UserSelect" GUIDefined="true" Mandatory="true" />
+	<field ID="suite_id" FieldName="id" FromTable="suite" SQLQuery="select DISTINCT id from suite" Label="Suite:" Type="UserSelect" GUIDefined="true" Mandatory="true" />
+	<field ID="site_id"  FieldName="id" FromTable="sites" SQLQuery="select DISTINCT id from sites" Label="Site:" Type="UserSelect" GUIDefined="true" Mandatory="true" />
+	<field ID="sut_id"   FieldName="id" FromTable="suts" SQLQuery="select suts.id, app.name, ipo.name, os.name_vers from suts,app,ipo,os where (suts.app_id = app.id and suts.app_id = ipo.id and suts.os_id = os.id)" Label="SUT:" Type="UserSelect" GUIDefined="true" Mandatory="true" />
+	<field ID="pri_id"   FieldName="id" FromTable="pri" SQLQuery="select DISTINCT id from pri" Label="PRI:" Type="UserSelect" GUIDefined="true" Mandatory="true" />
+	<field ID="regression" SQLQuery="SELECT UNIQUE regressionType FROM results" Label="Regression Type:" Type="UserSelect" GUIDefined="true" Mandatory="true" />
+
+	<field ID="issueAttest"   FieldName="" FromTable="" Label="Set ATTEST issue" Type="UserText" GUIDefined="false" Mandatory="false" />
+	<field ID="issueIpOffice" FieldName="" FromTable="" Label="Set IPOFFICE issue" Type="UserText" GUIDefined="false" Mandatory="false" />
+	<field ID="comments"  FieldName="" FromTable="" Label="Set comments" Type="UserText" GUIDefined="false" Mandatory="false" />
+	<field ID="actionWho" FieldName="" FromTable="" Label="Tester Name" Type="UserText" GUIDefined="true" Mandatory="true" />
+	<field ID="hashCode"  FieldName="" FromTable="" Label="Set hash code" Type="UserText" GUIDefined="true" Mandatory="false" />
+	<field ID="hashMessage"  FieldName="" FromTable="" Label="Set hash message" Type="UserText" GUIDefined="true" Mandatory="false" />
+	<field ID="synchronized" FieldName="" FromTable="" Label="Synchronized" Type="UserText" GUIDefined="true" Mandatory="false" />
+</field_section>
+
+<insert_section>
+	<sql_statement>INSERT INTO logs(id, logfile_ref, logfile_archive) VALUES ( @log_id@, '{twister_tc_name}', '{twister_tc_log}' )</sql_statement>
+	<sql_statement>INSERT INTO results VALUES( @res_id@, {test_id}, {suite_id}, {sut_id}, {site_id}, @log_id@-1, {pri_id}, '{twister_tc_status}', '{twister_tc_date_started}', {twister_tc_time_elapsed}, {regression}, {issueAttest}, {issueIpOffice}, '{comments}', '{actionWho}', '{hashCode}', '{hashMessage}', {twister_tc_crash_detected}, {synchronized} )</sql_statement>
+</insert_section>
+
+<reports_section>
+	<field ID="Other" Type="UserText" Label="Other filters" SQLQuery="" />
+	<field ID="Date" Type="UserSelect" Label="Select date" SQLQuery="SELECT DISTINCT tdate FROM repo_test_view ORDER BY tdate" />
+	<field ID="DateStart" Label="Select date Start" Type="UserSelect" SQLQuery="SELECT DISTINCT tdate FROM repo_test_view ORDER BY tdate" />
+	<field ID="zDateEnd" Label="Select date End" Type="UserSelect" SQLQuery="SELECT DISTINCT tdate FROM repo_test_view ORDER BY tdate" />
+	<field ID="TestStatus" Label="Select test status" Type="UserSelect" SQLQuery="SELECT DISTINCT status FROM repo_test_view ORDER BY status" />
+	<field ID="Release" Label="Select release" Type="UserSelect" SQLQuery="SELECT id,name FROM repo_release" />
+	<field ID="Build" Label="Select build" Type="UserSelect" SQLQuery="SELECT id,name FROM repo_build" />
+	<field ID="Suite" Label="Select suite" Type="UserSelect" SQLQuery="SELECT id,name FROM repo_suite" />
+	<field ID="Station" Label="Select station" Type="UserSelect" SQLQuery="SELECT id,name FROM repo_station" />
+
+	<report ID="Total" Type="Table"
+		SQLQuery="SELECT * FROM repo_test_view WHERE station_id = '@Station@'"
+		/>
+	<report ID="Details" Type="Table"
+		SQLQuery="SELECT * FROM repo_test_view WHERE release_id = '@Release@' AND build_id = '@Build@' "
+		/>
+	<report ID="History" Type="BarChart"
+		SQLQuery="SELECT build_id AS 'Build', status AS 'Percent (%)' FROM (SELECT build_id, COUNT(status) as status FROM repo_test_view WHERE release_id='@Release@' AND status='@TestStatus@' GROUP BY build_id) v RIGHT JOIN repo_build b ON b.id = v.build_id"
+		SQLTotal="SELECT build_id AS 'Build', status AS 'Percent (%)' FROM (SELECT build_id, COUNT(status) as status FROM repo_test_view WHERE release_id='@Release@' GROUP BY build_id) v RIGHT JOIN repo_build b ON b.id = v.build_id"
+		/>
+	<report ID="Summary Pie" Type="PieChart"
+		SQLQuery="SELECT status AS 'Status',COUNT(status) AS 'Count' FROM repo_test_view  WHERE (release_id = '@Release@' AND build_id = '@Build@') group by status"
+		/>
+	<report ID="Pass Rate" Type="LineChart"
+		SQLQuery="SELECT tdate AS 'Date', COUNT(status) AS 'Pass Rate (%)' FROM repo_test_view WHERE tdate &gt;= '@DateStart@' AND tdate &lt;= '@zDateEnd@' AND status='Pass' @Other@ GROUP BY tdate"
+		SQLTotal="SELECT tdate AS 'Date', COUNT(status) AS 'Pass Rate (%)' FROM repo_test_view WHERE tdate &gt;= '@DateStart@' AND tdate &lt;= '@zDateEnd@' @Other@ GROUP BY tdate"
+		/>
+
+	<redirect ID="goto Yahoo" Path="http://ro.yahoo.com" />
+	<redirect ID="goto Google" Path="http://www.google.ro" />
+</reports_section>
+
+</twister_user_defined>
+
+</root>

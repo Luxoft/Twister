@@ -1,0 +1,90 @@
+<Root>
+    <TestSuite>
+        <tsName>demo2</tsName>
+        <EpId>EPID-1001</EpId>
+        <UserDefined>
+            <propName>id</propName>
+            <propValue>asd</propValue>
+        </UserDefined>
+        <UserDefined>
+            <propName>build</propName>
+            <propValue>asd</propValue>
+        </UserDefined>
+        <UserDefined>
+            <propName>release</propName>
+            <propValue>ads</propValue>
+        </UserDefined>
+        <TestCase>
+            <tcName>/home/dancioata/twister2/demo/testsuite-tcl/init.tcl</tcName>
+            <tcID>1000</tcID>
+            <Title/>
+            <Summary/>
+            <Priority>Medium</Priority>
+            <Dependancy> </Dependancy>
+            <Property>
+                <propName>Runnable</propName>
+                <propValue>true</propValue>
+            </Property>
+        </TestCase>
+        <TestCase>
+            <tcName>/home/dancioata/twister2/demo/testsuite-tcl/test001.tcl</tcName>
+            <tcID>1001</tcID>
+            <Title/>
+            <Summary/>
+            <Priority>Medium</Priority>
+            <Dependancy> </Dependancy>
+            <Property>
+                <propName>Runnable</propName>
+                <propValue>true</propValue>
+            </Property>
+        </TestCase>
+        <TestCase>
+            <tcName>/home/dancioata/twister2/demo/testsuite-tcl/test002.tcl</tcName>
+            <tcID>1002</tcID>
+            <Title/>
+            <Summary/>
+            <Priority>Medium</Priority>
+            <Dependancy> </Dependancy>
+            <Property>
+                <propName>Runnable</propName>
+                <propValue>true</propValue>
+            </Property>
+        </TestCase>
+        <TestCase>
+            <tcName>/home/dancioata/twister2/demo/testsuite-tcl/test003.tcl</tcName>
+            <tcID>1003</tcID>
+            <Title/>
+            <Summary/>
+            <Priority>Medium</Priority>
+            <Dependancy> </Dependancy>
+            <Property>
+                <propName>Runnable</propName>
+                <propValue>true</propValue>
+            </Property>
+        </TestCase>
+        <TestCase>
+            <tcName>/home/dancioata/twister2/demo/testsuite-tcl/test004.tcl</tcName>
+            <tcID>1004</tcID>
+            <Title/>
+            <Summary/>
+            <Priority>Medium</Priority>
+            <Dependancy> </Dependancy>
+            <Property>
+                <propName>Runnable</propName>
+                <propValue>true</propValue>
+            </Property>
+        </TestCase>
+        <TestCase>
+            <tcName>/home/dancioata/twister2/demo/testsuite-tcl/test005.tcl</tcName>
+            <tcID>1005</tcID>
+            <Title/>
+            <Summary/>
+            <Priority>Medium</Priority>
+            <Dependancy> </Dependancy>
+            <Property>
+                <propName>Runnable</propName>
+                <propValue>true</propValue>
+            </Property>
+        </TestCase>
+    </TestSuite>
+</Root>
