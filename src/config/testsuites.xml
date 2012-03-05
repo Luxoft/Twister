@@ -2,18 +2,28 @@
     <TestSuite>
         <tsName>demo2</tsName>
         <EpId>EPID-1001</EpId>
+
         <UserDefined>
-            <propName>id</propName>
-            <propValue>asd</propValue>
+            <propName>release_id</propName>
+            <propValue>1</propValue>
         </UserDefined>
         <UserDefined>
-            <propName>build</propName>
-            <propValue>asd</propValue>
+            <propName>build_id</propName>
+            <propValue>2</propValue>
         </UserDefined>
         <UserDefined>
-            <propName>release</propName>
-            <propValue>ads</propValue>
+            <propName>suite_id</propName>
+            <propValue>3</propValue>
         </UserDefined>
+        <UserDefined>
+            <propName>station_id</propName>
+            <propValue>4</propValue>
+        </UserDefined>
+        <UserDefined>
+            <propName>comments</propName>
+            <propValue>some comment</propValue>
+        </UserDefined>
+
         <TestCase>
             <tcName>~/twister_rel1/demo/testsuite-python/init.py</tcName>
             <tcID>1000</tcID>

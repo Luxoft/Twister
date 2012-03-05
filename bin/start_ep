@@ -2,9 +2,9 @@
 
 PYTHON=/usr/bin/python
 EPID='EPID-1001'
-#CE_HOST=11.126.32.9	# Tsc Server
+CE_HOST=11.126.32.9		# Tsc Server
 #CE_HOST=11.126.32.12	# Dan Ubuntu
-CE_HOST=127.0.1.1		# Virtual Machine
+#CE_HOST=127.0.1.1		# Virtual Machine
 CE_PORT=8000
 
 if [ -n "$TWISTER_PATH" ]

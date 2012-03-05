@@ -3,28 +3,19 @@
 <twister_user_defined>
 
 <field_section>
-	<field ID="res_id" Type="DbSelect" FieldName="id" FromTable="results" SQLQuery="select MAX(id)+1 from results" Label="" GUIDefined="false" Mandatory="true" />
+	<field ID="res_id" Type="DbSelect" FieldName="id" FromTable="results" SQLQuery="select MAX(id)+1 from repo_test_view" Label="" GUIDefined="false" Mandatory="true" />
 	<field ID="log_id" Type="DbSelect" FieldName="id" FromTable="logs"    SQLQuery="select MAX(id)+1 from logs" Label="" GUIDefined="false" Mandatory="true" />
 
-	<field ID="test_id"  FieldName="id" FromTable="tests" SQLQuery="select DISTINCT id from tests" Label="Test:" Type="UserSelect" GUIDefined="true" Mandatory="true" />
-	<field ID="suite_id" FieldName="id" FromTable="suite" SQLQuery="select DISTINCT id from suite" Label="Suite:" Type="UserSelect" GUIDefined="true" Mandatory="true" />
-	<field ID="site_id"  FieldName="id" FromTable="sites" SQLQuery="select DISTINCT id from sites" Label="Site:" Type="UserSelect" GUIDefined="true" Mandatory="true" />
-	<field ID="sut_id"   FieldName="id" FromTable="suts" SQLQuery="select suts.id, app.name, ipo.name, os.name_vers from suts,app,ipo,os where (suts.app_id = app.id and suts.app_id = ipo.id and suts.os_id = os.id)" Label="SUT:" Type="UserSelect" GUIDefined="true" Mandatory="true" />
-	<field ID="pri_id"   FieldName="id" FromTable="pri" SQLQuery="select DISTINCT id from pri" Label="PRI:" Type="UserSelect" GUIDefined="true" Mandatory="true" />
-	<field ID="regression" SQLQuery="SELECT UNIQUE regressionType FROM results" Label="Regression Type:" Type="UserSelect" GUIDefined="true" Mandatory="true" />
+	<field ID="release_id"  FieldName="id" FromTable="sites" SQLQuery="select DISTINCT id from repo_release" Label="Release:" Type="UserSelect" GUIDefined="true" Mandatory="true" />
+	<field ID="build_id" FieldName="id" FromTable="suite" SQLQuery="select DISTINCT id from repo_build" Label="Build:" Type="UserSelect" GUIDefined="true" Mandatory="true" />
+	<field ID="suite_id"   FieldName="id" FromTable="pri" SQLQuery="select DISTINCT id from repo_suite" Label="Suite:" Type="UserSelect" GUIDefined="true" Mandatory="true" />
+	<field ID="station_id"   FieldName="id" FromTable="suts" SQLQuery="select DISTINCT id from repo_station" Label="Station:" Type="UserSelect" GUIDefined="true" Mandatory="true" />
 
-	<field ID="issueAttest"   FieldName="" FromTable="" Label="Set ATTEST issue" Type="UserText" GUIDefined="false" Mandatory="false" />
-	<field ID="issueIpOffice" FieldName="" FromTable="" Label="Set IPOFFICE issue" Type="UserText" GUIDefined="false" Mandatory="false" />
-	<field ID="comments"  FieldName="" FromTable="" Label="Set comments" Type="UserText" GUIDefined="false" Mandatory="false" />
-	<field ID="actionWho" FieldName="" FromTable="" Label="Tester Name" Type="UserText" GUIDefined="true" Mandatory="true" />
-	<field ID="hashCode"  FieldName="" FromTable="" Label="Set hash code" Type="UserText" GUIDefined="true" Mandatory="false" />
-	<field ID="hashMessage"  FieldName="" FromTable="" Label="Set hash message" Type="UserText" GUIDefined="true" Mandatory="false" />
-	<field ID="synchronized" FieldName="" FromTable="" Label="Synchronized" Type="UserText" GUIDefined="true" Mandatory="false" />
+	<field ID="comments"  FieldName="" FromTable="" Label="Set comments:" Type="UserText" GUIDefined="false" Mandatory="false" />
 </field_section>
 
 <insert_section>
-	<sql_statement>INSERT INTO logs(id, logfile_ref, logfile_archive) VALUES ( @log_id@, '{twister_tc_name}', '{twister_tc_log}' )</sql_statement>
-	<sql_statement>INSERT INTO results VALUES( @res_id@, {test_id}, {suite_id}, {sut_id}, {site_id}, @log_id@-1, {pri_id}, '{twister_tc_status}', '{twister_tc_date_started}', {twister_tc_time_elapsed}, {regression}, {issueAttest}, {issueIpOffice}, '{comments}', '{actionWho}', '{hashCode}', '{hashMessage}', {twister_tc_crash_detected}, {synchronized} )</sql_statement>
+	<sql_statement>INSERT INTO repo_test_view VALUES( @release_id@, @build_id@, @suite_id@, @station_id@, '{twister_tc_status}', '{twister_tc_date_finished}', @comments@ )</sql_statement>
 </insert_section>
 
 <reports_section>
