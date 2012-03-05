@@ -86,7 +86,7 @@ class TestFile:
         return reversed[new_status]
 
 
-    def saveToDatabase(self, fields, queries):
+    def saveToDatabase(self, db_config, fields, queries):
         '''
         This function will populate user query with data collected from:
         Master XML, Central Engine, or from SQL Queries.
@@ -111,7 +111,8 @@ class TestFile:
         twister_tc_log             # parsed from logs
         '''
 
-        conn = MySQLdb.connect(host="11.126.32.9", user="tsc", passwd="tsc", db="avaya")
+        conn = MySQLdb.connect(host=db_config.get('server'), db=db_config.get('database'),
+            user=db_config.get('user'), passwd=db_config.get('password'))
         curs = conn.cursor()
 
         for query in queries:
@@ -278,7 +279,7 @@ class EpId:
         Save all files into database.
         '''
         for filename in self.tfList:
-            self.tfList[filename].saveToDatabase(self.fields, self.queries)
+            self.tfList[filename].saveToDatabase(self.db_config, self.fields, self.queries)
         return True
 
 
@@ -327,14 +328,16 @@ class CentralEngine:
         self.all_test_files = self.parser.getAllTestFiles()
 
         # Database parser, fields, queries
-        self.db_path = os.path.split(self.config_path)[0] + os.sep + 'db.xml'
+        self.db_path = self.parser.getDbConfigPath()
         dbparser = DBParser(self.db_path)
+        db_config = dbparser.db_config
         queries = dbparser.getQueries()
         fields = dbparser.getFields()
         del dbparser
 
         for ep in self.EpIds:
             # Add queries for each EP
+            ep.db_config = db_config # DB.XML connections
             ep.queries = queries # DB.XML insert queries
             ep.fields = fields # DB.XML field queries
 
@@ -414,10 +417,12 @@ class CentralEngine:
         '''
         dbparser = DBParser(self.db_path)
         query = dbparser.getQuery(field_id)
+        db_config = dbparser.db_config
         del dbparser
 
         try:
-            conn = MySQLdb.connect(host="11.126.32.9", user="tsc", passwd="tsc", db="avaya")
+            conn = MySQLdb.connect(host=db_config.get('server'), db=db_config.get('database'),
+                user=db_config.get('user'), passwd=db_config.get('password'))
             curs = conn.cursor()
             curs.execute(query)
         except MySQLdb.Error, e:

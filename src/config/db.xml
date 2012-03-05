@@ -1,7 +1,13 @@
 <?xml version="1.0"?>
 <root>
-<twister_user_defined>
+<db_config>
+	<server>tsc-server</server>
+	<database>testdb</database>
+	<user>tsc</user>
+	<password>tsc<password>
+</db_config>
 
+<twister_user_defined>
 <field_section>
 	<field ID="res_id" Type="DbSelect" FieldName="id" FromTable="results" SQLQuery="select MAX(id)+1 from repo_test_view" Label="" GUIDefined="false" Mandatory="true" />
 	<field ID="log_id" Type="DbSelect" FieldName="id" FromTable="logs"    SQLQuery="select MAX(id)+1 from logs" Label="" GUIDefined="false" Mandatory="true" />
@@ -15,7 +21,7 @@
 </field_section>
 
 <insert_section>
-	<sql_statement>INSERT INTO repo_test_view VALUES( @release_id@, @build_id@, @suite_id@, @station_id@, '{twister_tc_status}', '{twister_tc_date_finished}', @comments@ )</sql_statement>
+	<sql_statement>INSERT INTO repo_test_view VALUES( @res_id@,{release_id},{build_id},{suite_id},{station_id}, '{twister_tc_date_finished}','{twister_tc_status}','{comments}' )</sql_statement>
 </insert_section>
 
 <reports_section>
@@ -50,6 +56,5 @@
 	<redirect ID="goto Yahoo" Path="http://ro.yahoo.com" />
 	<redirect ID="goto Google" Path="http://www.google.ro" />
 </reports_section>
-
 </twister_user_defined>
 </root>

@@ -14,7 +14,7 @@ Test Suite Config: All info about the current Test Suite (Test Plan).
     <LogsPath>~/twister_rel1/src/logs</LogsPath>
     <ReportsPath>~/twister_rel1/src/reports</ReportsPath>
     <EPIdsFile>~/twister_rel1/src/config/epid.txt</EPIdsFile>
-    <DbConfigFile>~/twister_rel1/src/config/</DbConfigFile>
+    <DbConfigFile>~/twister_rel1/src/config/db.xml</DbConfigFile>
     <HardwareConfig>~/twister_rel1/src/config/hwconfig.xml</HardwareConfig>
     <LogFiles>
         <logRunning>log_running.log</logRunning>

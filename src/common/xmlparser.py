@@ -76,6 +76,13 @@ class TSCParser:
         return res
 
 
+    def getDbConfigPath(self):
+        res = str(self.xmlDict.root.dbconfigfile.text)
+        if res.startswith('~'):
+            res = os.getenv('HOME') + res[1:]
+        return res
+
+
     def getLogsPath(self):
         res = str(self.xmlDict.root.logspath.text)
         if res.startswith('~'):
@@ -258,22 +265,29 @@ class DBParser():
         else:
             raise Exception('DBParser: Invalid config data type: `%s`!' % type(config_data))
 
+        self.db_config = {}
+        if self.xmlDict.db_config:
+            if self.xmlDict.db_config.server:
+                self.db_config['server']    = self.xmlDict.db_config.server.text
+            if self.xmlDict.db_config.database:
+                self.db_config['database']  = self.xmlDict.db_config.database.text
+            if self.xmlDict.db_config.user:
+                self.db_config['user']      = self.xmlDict.db_config.user.text
+            if self.xmlDict.db_config.password:
+                self.db_config['password']  = self.xmlDict.db_config.password.text
+
 # --------------------------------------------------------------------------------------------------
 #           USED BY CENTRAL ENGINE
 # --------------------------------------------------------------------------------------------------
 
     def getFields(self):
-        '''
-        Used by Central Engine.
-        '''
+        ''' Used by Central Engine. '''
         res = self.xmlDict.field_section('field', type="DbSelect")
         return {field['id']:field['sqlquery'] for field in res}
 
 
     def getQuery(self, field_id):
-        '''
-        Used by Central Engine.
-        '''
+        ''' Used by Central Engine. '''
         res = self.xmlDict.field_section('field', id=field_id)
         if not res:
             print('DBParser: Cannot find field ID `%s`!' % field_id)
@@ -283,9 +297,7 @@ class DBParser():
 
 
     def getQueries(self):
-        '''
-        Used by Central Engine.
-        '''
+        ''' Used by Central Engine. '''
         res = self.xmlDict('sql_statement')
         return [field.text for field in res]
 
@@ -294,9 +306,7 @@ class DBParser():
 # --------------------------------------------------------------------------------------------------
 
     def getReportFields(self):
-        '''
-        Used by Bottle Web Server.
-        '''
+        ''' Used by Bottle Web Server. '''
         fields = self.xmlDict.reports_section('field')
         res = OrderedDict()
 
@@ -312,9 +322,7 @@ class DBParser():
 
 
     def getReports(self):
-        '''
-        Used by Bottle Web Server.
-        '''
+        ''' Used by Bottle Web Server. '''
         reports = self.xmlDict.reports_section('report')
         res = OrderedDict()
 
@@ -331,9 +339,7 @@ class DBParser():
 
 
     def getRedirects(self):
-        '''
-        Used by Bottle Web Server.
-        '''
+        ''' Used by Bottle Web Server. '''
         reports = self.xmlDict.reports_section('redirect')
         res = OrderedDict()
 
