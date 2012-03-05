@@ -8,34 +8,27 @@ import json
 import binascii
 import MySQLdb
 
-"""
-__file__ = os.path.abspath(__file__)
-DIR = os.path.split(__file__)[0]
-UPPER_DIR = os.sep.join(DIR.split(os.sep)[:-1])
-sys.path.append(UPPER_DIR)
-"""
-TWISTER_PATH=os.getenv('TWISTER_PATH')
-if(not TWISTER_PATH):
-    print 'TWISTER_PATH environment variable  is not set'
+TWISTER_PATH = os.getenv('TWISTER_PATH')
+if not TWISTER_PATH:
+    print('TWISTER_PATH environment variable is not set! Exiting!')
     exit(1)
-sys.path.append(TWISTER_PATH)
+sys.path.insert(0, TWISTER_PATH)
 
-#from trd_party.bottle import run, route, get, error, redirect
 from common.xmlparser import *
 from trd_party.bottle import *
 from trd_party import bottle
 
-#from bottle import static_file, template, response, request
-
 #
-conn = MySQLdb.connect(host="11.126.32.9", user="tsc", passwd="tsc", db="testdb")
-curs = conn.cursor()
 dbparser = DBParser(TWISTER_PATH + os.sep + 'config/db.xml')
-#dbparser = DBParser('d:/Projects/twister/Config/db.xml')
+db_config = dbparser.db_config
 glob_fields = dbparser.getReportFields()
 glob_reports = dbparser.getReports()
 glob_redirects = dbparser.getRedirects()
 glob_links = ['Home'] + glob_reports.keys() + glob_redirects.keys() + ['Help']
+#
+conn = MySQLdb.connect(host=db_config.get('server'), db=db_config.get('database'),
+        user=db_config.get('user'), passwd=db_config.get('password'))
+curs = conn.cursor()
 #
 
 # --------------------------------------------------------------------------------------------------
@@ -257,12 +250,12 @@ def xhr_report(report):
     else:
         calc_rows = rows
 
-    if isinstance(calc_rows[0][0], datetime.datetime):
+    if isinstance(calc_rows[0][0], datetime):
         isDate = True
     else:
         isDate = False
 
-    dthandler = lambda obj: obj.strftime('%Y-%m-%d %H:%M:%S') if isinstance(obj, datetime.datetime) else None
+    dthandler = lambda obj: obj.strftime('%Y-%m-%d %H:%M:%S') if isinstance(obj, datetime) else None
     return json.dumps({'headers':headers, 'type':report_dict['type'], 'isDate':isDate, 'aaData':calc_rows},
         indent=2, default=dthandler)
 
@@ -297,7 +290,5 @@ def err404(code):
 if __name__ == '__main__':
 
     serverIP = socket.gethostbyname(socket.gethostname())
-    #serverIP = '11.126.32.14'
-
     bottle.debug(True)
     run(host=serverIP, port=8080, reloader=True)
