@@ -141,7 +141,7 @@ class TSCParser:
         if file_info:
             TestCase = file_info[0].parent.parent
         else:
-            print('TSCParser: Cannot find File `%s`! Exiting!' % filename)
+            print('TSCParser: Cannot find Info for `%s`! Exiting!' % filename)
             return {}
 
         try:

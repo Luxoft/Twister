@@ -707,13 +707,6 @@ class CentralEngine:
                 (str(epid), str(self.EpIds)) )
             return False
 
-        if filename.startswith('~'):
-            filename = os.getenv('HOME') + filename[1:]
-
-        if not os.path.isfile(filename):
-            logError('CE ERROR! TestCase file: `%s` does not exist!' % filename)
-            return False
-
         for ep in self.EpIds:
             if ep.id == epid:
                 if not ep.executionStatus:
@@ -722,8 +715,16 @@ class CentralEngine:
                 break
 
         runnable = self.parser.getFileInfo(epid, filename).get('Runnable', 'not set')
+
         if runnable=='true' or runnable=='not set':
+            if filename.startswith('~'):
+                filename = os.getenv('HOME') + filename[1:]
+            if not os.path.isfile(filename):
+                logError('CE ERROR! TestCase file: `%s` does not exist!' % filename)
+                return False
+
             logDebug('CE: Station {0} requested file `{1}`'.format(epid, filename))
+
             with open(filename, 'rb') as handle:
                 return xmlrpclib.Binary(handle.read())
         else:
@@ -914,7 +915,11 @@ class CentralEngine:
         try:
             f = open(logPath, 'a')
         except:
-            logError("CE ERROR! Log file `%s` cannot be written!" % logPath)
+            logFolder = os.path.split(logPath)[0]
+            try:
+                os.mkdir(logFolder)
+            except:
+                logError("CE ERROR! Log file `%s` cannot be written!" % logPath)
             return False
         f.write(logMessage)
         f.close()
@@ -933,7 +938,11 @@ class CentralEngine:
         try:
             f = open(logPath, 'a')
         except:
-            logError("CE ERROR! Log file `%s` cannot be written!" % logPath)
+            logFolder = os.path.split(logPath)[0]
+            try:
+                os.mkdir(logFolder)
+            except:
+                logError("CE ERROR! Log file `%s` cannot be written!" % logPath)
             return False
 
         f.write(binascii.a2b_base64(logMessage))

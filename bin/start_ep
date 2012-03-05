@@ -10,7 +10,7 @@ CE_PORT=8000
 if [ -n "$TWISTER_PATH" ]
 then
 	echo TWISTER_PATH set to: "$TWISTER_PATH".
-	$PYTHON -u $TWISTER_PATH/client/executionprocess/ExecutionProcess.py $EPID "$CE_HOST:$CE_PORT" | tee $TWISTER_PATH/$EPID"_LIVE.log"
+	$PYTHON -u $TWISTER_PATH/client/executionprocess/ExecutionProcess.py $EPID "$CE_HOST:$CE_PORT" | tee $TWISTER_PATH/.twister_cache/$EPID"_LIVE.log"
 else
 	echo TWISTER_PATH variable enviroment is not defined!
 fi

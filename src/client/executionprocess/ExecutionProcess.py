@@ -209,7 +209,7 @@ class threadCheckLog(threading.Thread):
 
         while not programExit:
             #
-            vString = self.tail('{0}/{1}_LIVE.log'.format(TWISTER_PATH, globEpId))
+            vString = self.tail('{0}/.twister_cache/{1}_LIVE.log'.format(TWISTER_PATH, globEpId))
 
             try:
                 # Send log to CE server.
