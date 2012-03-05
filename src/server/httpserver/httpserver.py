@@ -17,7 +17,7 @@ sys.path.append(UPPER_DIR)
 TWISTER_PATH=os.getenv('TWISTER_PATH')
 if(not TWISTER_PATH):
     print 'TWISTER_PATH environment variable  is not set'
-    exit(1)        
+    exit(1)
 sys.path.append(TWISTER_PATH)
 
 #from trd_party.bottle import run, route, get, error, redirect
@@ -266,41 +266,6 @@ def xhr_report(report):
     return json.dumps({'headers':headers, 'type':report_dict['type'], 'isDate':isDate, 'aaData':calc_rows},
         indent=2, default=dthandler)
 
-
-# --------------------------------------------------------------------------------------------------
-#           S E R V E    L O G S
-# --------------------------------------------------------------------------------------------------
-
-# Ex: http://hostname/getlog?fstart=1&fend=100&filename=log_summary
-@get('/getlog')
-@get('/getlog/')
-def getlogfile():
-    global ce_logs_path
-
-    if request.GET.get('fstart') is None:
-        return '*ERROR!* Parameter FSTART is NULL!'
-    if request.GET.get('fend') is None:
-        return '*ERROR!* Parameter FEND is NULL!'
-    if request.GET.get('filename') is None:
-        return '*ERROR!* Parameter FILENAME is NULL!'
-
-    fstart = int(request.GET.get('fstart'))
-    fend   = int(request.GET.get('fend'))
-    filename = ce_logs_path + os.sep + request.GET.get('filename')
-
-    if not os.path.exists(filename):
-        return '*ERROR!* File %s does not exist!' % filename
-
-    if fstart > 0 and fend > 0:
-        f = open(filename)
-        f.seek(fend)
-        data = f.read()
-        f.close()
-        return data
-
-    return str(os.path.getsize(filename))
-
-
 # --------------------------------------------------------------------------------------------------
 #           O T H E R    P A G E S
 # --------------------------------------------------------------------------------------------------
@@ -333,15 +298,6 @@ if __name__ == '__main__':
 
     serverIP = socket.gethostbyname(socket.gethostname())
     #serverIP = '11.126.32.14'
-
-    '''
-    try:
-        proxy = xmlrpclib.ServerProxy('http://'+serverIP+':8000/')
-        ce_logs_path = proxy.getLogsPath()
-    except:
-        print('HTTPServer warning: Central engine is not started!')
-        ce_logs_path = os.getenv('HOME')+'/twister/logs'
-    '''
 
     bottle.debug(True)
     run(host=serverIP, port=8080, reloader=True)

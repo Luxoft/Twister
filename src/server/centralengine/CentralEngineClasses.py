@@ -761,6 +761,42 @@ class CentralEngine:
             return False
 
 
+    def getTestDescription(self, fname):
+
+        from xml.dom.minidom import parseString
+        s = ''
+        c = ''
+        a = False
+        b = False
+
+        for line in open(fname,'r'):
+            if "<description>" in line:
+                a = True
+            if "<title>" in line:
+                b = True
+            if a:
+                s += line.replace('#','')
+            if b:
+                c += line.replace('#','')
+            if "</description>" in line:
+                a = False
+            if "</title>" in line:
+                b = False
+            if len(s)>0 and len(c)>0 and not a and not b:
+                break
+
+        if len(s) > 0:
+            source = parseString(s)
+            element = source.getElementsByTagName('description')
+            s = element[0].childNodes[0].nodeValue
+        if len(c) > 0:
+            source = parseString(c)
+            element = source.getElementsByTagName('title')
+            c = element[0].childNodes[0].nodeValue
+
+        return '-'+c+'-;--'+s
+
+
 # --------------------------------------------------------------------------------------------------
 #           T E S T   F I L E   S T A T U S E S
 # --------------------------------------------------------------------------------------------------
@@ -891,6 +927,31 @@ class CentralEngine:
 # --------------------------------------------------------------------------------------------------
 #           L O G S
 # --------------------------------------------------------------------------------------------------
+
+    def getlogfile(self, fstart, fend, filename):
+
+        if fstart is None:
+            return '*ERROR!* Parameter FSTART is NULL!'
+        if fend is None:
+            return '*ERROR!* Parameter FEND is NULL!'
+        if not filename:
+            return '*ERROR!* Parameter FILENAME is NULL!'
+
+        fstart = int(fstart)
+        fend   = int(fend)
+        filename = self.parser.getLogsPath() + os.sep + filename
+
+        if not os.path.exists(filename):
+            return '*ERROR!* File `%s` does not exist!' % filename
+
+        if fstart > 0 and fend > 0:
+            f = open(filename)
+            f.seek(fend)
+            data = f.read()
+            f.close()
+            return data
+
+        return os.path.getsize(filename)
 
 
     def logMessage(self, logType, logMessage):
