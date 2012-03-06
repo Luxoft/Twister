@@ -181,10 +181,20 @@ def runOffline(filelist):
         timer_f = time.time() - timer_i
         # --------------------------------------------------
 
-        if str(result).upper() == 'PASS':
-            proxySetTestStatus(globEpId, filename, 2, timer_f) # Status PASS
+        if result==STATUS_PASS or result in ['pass', 'PASS']:
+            proxySetTestStatus(globEpId, filename, STATUS_PASS, timer_f) # File status PASS
+        elif result==STATUS_SKIPPED or result in ['skip', 'skipped', 'SKIP', 'SKIPPED']:
+            proxySetTestStatus(globEpId, filename, STATUS_SKIPPED, timer_f) # File status SKIPPED
+        elif result==STATUS_ABORTED or result in ['abort', 'aborted', 'ABORT', 'ABORTED']:
+            proxySetTestStatus(globEpId, filename, STATUS_ABORTED, timer_f) # File status ABORTED
+        elif result==STATUS_NOT_EXEC or result in ['not-exec', 'not exec', 'NOT-EXEC', 'NOT EXEC']:
+            proxySetTestStatus(globEpId, filename, STATUS_NOT_EXEC, timer_f) # File status NOT_EXEC
+        elif result==STATUS_TIMEOUT or result in ['timeout', 'TIMEOUT']:
+            proxySetTestStatus(globEpId, filename, STATUS_TIMEOUT, timer_f) # File status TIMEOUT
+        elif result==STATUS_INVALID or result in ['invalid', 'INVALID']:
+            proxySetTestStatus(globEpId, filename, STATUS_INVALID, timer_f) # File status INVALID
         else:
-            proxySetTestStatus(globEpId, filename, 3, timer_f) # Status FAIL
+            proxySetTestStatus(globEpId, filename, STATUS_FAIL, timer_f) # File status FAIL
 
         sys.stdout.flush() # Just in case
 
@@ -403,8 +413,18 @@ if __name__=='__main__':
         timer_f = time.time() - timer_i
         # --------------------------------------------------
 
-        if result=='pass' or result=='PASS':
+        if result==STATUS_PASS or result in ['pass', 'PASS']:
             proxySetTestStatus(globEpId, filename, STATUS_PASS, timer_f) # File status PASS
+        elif result==STATUS_SKIPPED or result in ['skip', 'skipped', 'SKIP', 'SKIPPED']:
+            proxySetTestStatus(globEpId, filename, STATUS_SKIPPED, timer_f) # File status SKIPPED
+        elif result==STATUS_ABORTED or result in ['abort', 'aborted', 'ABORT', 'ABORTED']:
+            proxySetTestStatus(globEpId, filename, STATUS_ABORTED, timer_f) # File status ABORTED
+        elif result==STATUS_NOT_EXEC or result in ['not-exec', 'not exec', 'NOT-EXEC', 'NOT EXEC']:
+            proxySetTestStatus(globEpId, filename, STATUS_NOT_EXEC, timer_f) # File status NOT_EXEC
+        elif result==STATUS_TIMEOUT or result in ['timeout', 'TIMEOUT']:
+            proxySetTestStatus(globEpId, filename, STATUS_TIMEOUT, timer_f) # File status TIMEOUT
+        elif result==STATUS_INVALID or result in ['invalid', 'INVALID']:
+            proxySetTestStatus(globEpId, filename, STATUS_INVALID, timer_f) # File status INVALID
         else:
             proxySetTestStatus(globEpId, filename, STATUS_FAIL, timer_f) # File status FAIL
 

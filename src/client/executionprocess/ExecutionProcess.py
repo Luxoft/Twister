@@ -231,6 +231,9 @@ if __name__=='__main__':
     programExit = False
     OFFLINE = False
 
+    try: os.mkdir(TWISTER_PATH + '/.twister_cache/')
+    except: pass
+
     if len(sys.argv) != 3:
         print('EP error: must supply 2 parameters!')
         print('usage:  python ExecutionProcess.py Ep_Id_Name Host:Port')

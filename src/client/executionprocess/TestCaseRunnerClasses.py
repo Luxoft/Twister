@@ -173,8 +173,9 @@ class TCRunPython:
         _RESULT = None
         to_execute = str_to_execute.data
         #
+        # *.pyc or *.pyo files
         if to_execute[:4] == '\x03\xf3\r\n':
-            print 'TC Python: Binary Python file detected!'
+            print('TC Python: Binary Python file detected!')
             f = open('__to_execute.pyc', 'wb')
             f.write(to_execute)
             f.close() ; del f
@@ -182,9 +183,11 @@ class TCRunPython:
             imp.load_module('__main__', fp, pathname, description)
             os.remove('__to_execute.pyc')
         #
+        # *.py files
         else:
             exec(to_execute)
         #
+        # The _RESULT must be injected from within the python script
         return _RESULT
         #
 
@@ -209,6 +212,7 @@ class TCRunPerl:
         time.sleep(0.5)
         #
         os.remove('__to_execute.plx')
+        # The _RESULT must be injected from within the perl script
         return _RESULT
         #
 
