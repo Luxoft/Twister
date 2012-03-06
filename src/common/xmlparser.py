@@ -36,7 +36,7 @@ class TSCParser:
     def __init__(self, config_data):
         if os.path.isfile(config_data):
             self.xmlDict = BeautifulStoneSoup(open(config_data))
-        elif type(config_data)==type('') or type(config_data)==type(u''):
+        elif config_data and type(config_data)==type('') or type(config_data)==type(u''):
             self.xmlDict = BeautifulStoneSoup(config_data)
         else:
             raise Exception('TSCParser: Invalid config data type: `%s`!' % type(config_data))
@@ -134,20 +134,23 @@ class TSCParser:
         '''
         res = {}
 
-        info = self.configTS(text=epid)
+        # All suites for this EPID
+        suites = self.configTS(text=epid)
+        TestCase = None
 
-        if info:
-            TestSuite = info[0].parent.parent
+        if suites:
+            TestSuites = [suite.parent.parent for suite in suites]
         else:
             print('TSCParser: Cannot find EPID `%s`! Exiting!' % epid)
             return {}
 
-        res.update(self.getSuiteInfo(TestSuite))
-        file_info = TestSuite(text=filename)
+        for TestSuite in TestSuites:
+            file_info = TestSuite(text=filename)
+            if file_info:
+                TestCase = file_info[0].parent.parent
+                res.update(self.getSuiteInfo(TestSuite))
 
-        if file_info:
-            TestCase = file_info[0].parent.parent
-        else:
+        if not TestCase:
             print('TSCParser: Cannot find Info for `%s`! Exiting!' % filename)
             return {}
 
@@ -260,7 +263,7 @@ class DBParser():
     def __init__(self, config_data):
         if os.path.isfile(config_data):
             self.xmlDict = BeautifulStoneSoup(open(config_data))
-        elif type(config_data)==type('') or type(config_data)==type(u''):
+        elif config_data and type(config_data)==type('') or type(config_data)==type(u''):
             self.xmlDict = BeautifulStoneSoup(config_data)
         else:
             raise Exception('DBParser: Invalid config data type: `%s`!' % type(config_data))
@@ -282,7 +285,11 @@ class DBParser():
 
     def getFields(self):
         ''' Used by Central Engine. '''
-        res = self.xmlDict.field_section('field', type="DbSelect")
+        try:
+            res = self.xmlDict.field_section('field', type="DbSelect")
+        except:
+            print('DBParser: Cannot find field_section in DB config!')
+            return {}
         return {field['id']:field['sqlquery'] for field in res}
 
 

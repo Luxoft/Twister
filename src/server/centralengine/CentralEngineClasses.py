@@ -817,7 +817,7 @@ class CentralEngine:
             return ''
 
         o_fnames = self.all_test_files   # Ordered list with all filenames
-        u_statuses = OrderedDict()       # Unordered file + status
+        u_statuses = OrderedDict()       # Ordered file + status
         fin_statuses = []                # Final statuses, ordered
         ti = time.clock()
 
@@ -839,7 +839,7 @@ class CentralEngine:
             if s: fin_statuses.append(str(s))
 
         #print('Get Test Status All took %.4f seconds.' % (time.clock()-ti))
-        #import random
+        #import random # For testing random statuses
         #fin_statuses[random.randrange(0,len(fin_statuses)-1,1)] = random.choice(['2','3','4','10'])
         return ','.join(fin_statuses)
         #
@@ -933,30 +933,27 @@ class CentralEngine:
 #           L O G S
 # --------------------------------------------------------------------------------------------------
 
-    def getlogfile(self, fstart, fend, filename):
+    def getLogFile(self, read, fstart, filename):
 
         if fstart is None:
-            return '*ERROR!* Parameter FSTART is NULL!'
-        if fend is None:
             return '*ERROR!* Parameter FEND is NULL!'
         if not filename:
             return '*ERROR!* Parameter FILENAME is NULL!'
 
-        fstart = int(fstart)
-        fend   = int(fend)
         filename = self.parser.getLogsPath() + os.sep + filename
 
         if not os.path.exists(filename):
             return '*ERROR!* File `%s` does not exist!' % filename
 
-        if fstart > 0 and fend > 0:
-            f = open(filename)
-            f.seek(fend)
-            data = f.read()
-            f.close()
-            return data
+        if not read or read=='0':
+            return os.path.getsize(filename)
 
-        return os.path.getsize(filename)
+        fstart = int(fstart)
+        f = open(filename)
+        f.seek(fstart)
+        data = f.read()
+        f.close()
+        return data
 
 
     def logMessage(self, logType, logMessage):
