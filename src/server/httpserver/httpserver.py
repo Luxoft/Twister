@@ -17,19 +17,8 @@ sys.path.insert(0, TWISTER_PATH)
 from common.xmlparser import *
 from trd_party.bottle import *
 from trd_party import bottle
+from trd_party.BeautifulSoup import BeautifulStoneSoup
 
-#
-dbparser = DBParser(TWISTER_PATH + os.sep + 'config/db.xml')
-db_config = dbparser.db_config
-glob_fields = dbparser.getReportFields()
-glob_reports = dbparser.getReports()
-glob_redirects = dbparser.getRedirects()
-glob_links = ['Home'] + glob_reports.keys() + glob_redirects.keys() + ['Help']
-#
-conn = MySQLdb.connect(host=db_config.get('server'), db=db_config.get('database'),
-        user=db_config.get('user'), passwd=db_config.get('password'))
-curs = conn.cursor()
-#
 
 # --------------------------------------------------------------------------------------------------
 #           I N D E X
@@ -285,10 +274,39 @@ def err404(code):
         msg='Sorry, this page does not exist!')
     return output
 
+# --------------------------------------------------------------------------------------------------
+#           S T A R T
+# --------------------------------------------------------------------------------------------------
+
+# Read XML configuration file
+FMW_PATH = TWISTER_PATH + '/config/fwmconfig.xml'
+if not os.path.exists(FMW_PATH):
+    logCritical("HTTP Server: Invalid path for config file: `%s` !" % FMW_PATH)
+    exit(1)
+else:
+    soup = BeautifulStoneSoup(open(FMW_PATH))
+
+DB_CFG = soup.dbconfigfile.text
+if DB_CFG.startswith('~'):
+    DB_CFG = os.getenv('HOME') + DB_CFG[1:]
+
+# Read DB Config File
+dbparser =  DBParser(DB_CFG)
+db_config = dbparser.db_config
+glob_fields = dbparser.getReportFields()
+glob_reports = dbparser.getReports()
+glob_redirects = dbparser.getRedirects()
+glob_links = ['Home'] + glob_reports.keys() + glob_redirects.keys() + ['Help']
 #
+conn = MySQLdb.connect(host=db_config.get('server'), db=db_config.get('database'),
+                       user=db_config.get('user'), passwd=db_config.get('password'))
+curs = conn.cursor()
 
-if __name__ == '__main__':
+# Find server IP
+serverIP = socket.gethostbyname(socket.gethostname())
+# Find server PORT
+serverPort = int(soup.httpserverport.text)
+del soup
 
-    serverIP = socket.gethostbyname(socket.gethostname())
-    bottle.debug(True)
-    run(host=serverIP, port=8080, reloader=True)
+bottle.debug(True)
+run(host=serverIP, port=serverPort, reloader=False)

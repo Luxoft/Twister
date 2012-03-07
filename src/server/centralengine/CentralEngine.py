@@ -21,6 +21,7 @@ if not TWISTER_PATH:
     exit(1)
 sys.path.append(TWISTER_PATH)
 
+from trd_party.BeautifulSoup import BeautifulStoneSoup
 from server.centralengine.CentralEngineClasses import *
 from common.tsclogging import *
 from common.xmlparser import *
@@ -55,13 +56,16 @@ if __name__ == "__main__":
         exit(1)
     else:
         logDebug("CE: XML Config File: `%s`." % FMW_PATH)
+        soup = BeautifulStoneSoup(open(FMW_PATH))
 
     # Server and Port
     try:
         serverIP = socket.gethostbyname(socket.gethostname())
     except:
         serverIP = get_ip_address('eth0')
-    serverPort = 8000
+
+    serverPort = int(soup.centralengineport.text)
+    del soup
 
     # Start server
     server = SimpleXMLRPCServer((serverIP, serverPort), requestHandler=rpcRequestHandler, logRequests=False)
