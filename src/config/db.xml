@@ -4,7 +4,7 @@
 	<server>tsc-server</server>
 	<database>testdb</database>
 	<user>tsc</user>
-	<password>tsc<password>
+	<password>tsc</password>
 </db_config>
 
 <twister_user_defined>
