@@ -8,9 +8,11 @@ When it receives START from CE, it will downloads all necessary libraries,
   start the Runner that will execute all test files from suite, send all Runner logs to CE
   and after the execution, it will wait for another START to repeat the cycle.
 EP is basically a simple service, designed to start and stop the Runner.
+All the hard work is made by the Runner.
 
 EP can also start "offline" (without a connection to CE). This mode is used for debug,
-but it requires that EP was already started "online" once before (has downloaded the required libraries).
+but it requires that EP was already started "online" once before, because it needs one or more libraries.
+Alternatively, the required libraries can be manually copied in "src/.twister_cache/ce_libs".
 '''
 
 import os

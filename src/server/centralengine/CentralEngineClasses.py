@@ -1,10 +1,11 @@
 
 '''
-REQUIRES Python 2.7
+REQUIRES Python 2.7!
 This file contains 3 classes: EpId, Test File and Central Engine.
 All functions from CentralEngine are EXPOSED and can be accesed via RPC.
 The CE and each EP have a status that can be: start/ stop/ paused.
 Each test file has a status that can be: pending, working, pass, fail, skip, etc.
+All the statuses are defined in "constants.py".
 '''
 
 import os
@@ -17,12 +18,16 @@ import smtplib
 import xmlrpclib
 import MySQLdb
 
+if not sys.version.startswith('2.7'):
+    print('Python version error! Central Engine must run on Python 2.7!')
+    exit(1)
+
 from collections import OrderedDict
 from email.mime.text import MIMEText
 
 TWISTER_PATH = os.getenv('TWISTER_PATH')
 if not TWISTER_PATH:
-    print('TWISTER_PATH environment variable is not set! Exiting!')
+    print('$TWISTER_PATH environment variable is not set! Exiting!')
     exit(1)
 sys.path.append(TWISTER_PATH)
 
