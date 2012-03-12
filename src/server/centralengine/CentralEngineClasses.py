@@ -824,7 +824,7 @@ class CentralEngine:
         o_fnames = self.all_test_files   # Ordered list with all filenames
         u_statuses = OrderedDict()       # Ordered file + status
         fin_statuses = []                # Final statuses, ordered
-        ti = time.clock()
+        #ti = time.clock()
 
         # Collect file statuses from each EP
         for ep in self.EpIds:
@@ -1058,7 +1058,7 @@ class CentralEngine:
                 for ep in self.EpIds:
                     logPath = self.parser.getLogsPath() + os.sep + ep.id + '_CLI.log'
                     try:
-                        f = open(logPath, 'w').close()
+                        open(logPath, 'w').close()
                     except:
                         logError("CE ERROR! Log file `%s` cannot be reset!" % logPath)
                         vError = True
@@ -1067,7 +1067,7 @@ class CentralEngine:
                 logPath = self.parser.getLogFileForType(logType)
             #
             try:
-                f = open(logPath, 'w').close()
+                open(logPath, 'w').close()
             except:
                 logError("CE ERROR! Log file `%s` cannot be reset!" % logPath)
                 vError = True
@@ -1087,7 +1087,7 @@ class CentralEngine:
         logPath = self.parser.getLogsPath() + logName
 
         try:
-            f = open(logPath, 'w').close()
+            open(logPath, 'w').close()
         except:
             logError("CE ERROR! Log file `%s` cannot be reset!" % logPath)
             return False
