@@ -329,7 +329,12 @@ if __name__ == '__main__':
 
     cherrypy.config.update({'server.socket_host': '11.126.32.20', 'server.socket_port': serverPort})
 
-    conf = {'/static': {
+    conf = {
+            '/': {
+                'tools.caching.on': True,
+                'tools.caching.delay': 3600,
+                },
+            '/static': {
                 'tools.staticdir.on': True,
                 'tools.staticdir.dir': TWISTER_PATH + '/server/httpserver/static',
                 },
