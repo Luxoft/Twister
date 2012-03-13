@@ -59,8 +59,7 @@ import java.awt.BorderLayout;
 
 public class ConfigFiles extends JPanel{
     VFSJFileChooser fileChooser;
-    JTextField ttcpath,tMasterXML,tUsers,tepid,tlog,trunning,tname,thardwareconfig,tdebug,tsummary,tinfo,tcli,tdbfile;
-//     treposrtsstructure
+    private static JTextField ttcpath,tMasterXML,tUsers,tepid,tlog,trunning,tname,thardwareconfig,tdebug,tsummary,tinfo,tcli,tdbfile,tceport,traPort,thttpPort;
     JPanel paths;
     
     
@@ -68,7 +67,7 @@ public class ConfigFiles extends JPanel{
         paths = new JPanel();
         paths.setBackground(Color.WHITE);
         paths.setLayout(null);
-        paths.setPreferredSize(new Dimension(970,750));
+        paths.setPreferredSize(new Dimension(970,930));
         paths.setBorder(BorderFactory.createBevelBorder(BevelBorder.LOWERED));
         setLayout(null);        
         JPanel p1 = new JPanel();
@@ -224,58 +223,7 @@ public class ConfigFiles extends JPanel{
         p32.setMaximumSize(new Dimension(700,25));
         p32.setPreferredSize(new Dimension(700,25));
         p3.add(p31);
-        p3.add(p32);                     
-//         JPanel p4 = new JPanel();
-//         p4.setBackground(Color.WHITE);
-//         TitledBorder border4 = BorderFactory.createTitledBorder("Reports Table Structure");
-//         border4.setTitleFont(new Font("Arial",Font.PLAIN,14));
-//         border4.setBorder(BorderFactory.createLineBorder(new Color(150,150,150), 1));
-//         p4.setBorder(border4);
-//         p4.setLayout(new BoxLayout(p4, BoxLayout.Y_AXIS));    
-//         p4.setBounds(80,194,800,63);
-//         paths.add(p4);    
-//         JTextArea reposrtsstructure = new JTextArea("Location of the file that configurates the details table in the configuration tab");
-//         reposrtsstructure.setWrapStyleWord(true);
-//         reposrtsstructure.setLineWrap(true);
-//         reposrtsstructure.setEditable(false);        
-//         reposrtsstructure.setCursor(null);  
-//         reposrtsstructure.setOpaque(false);  
-//         reposrtsstructure.setFocusable(false);         
-//         reposrtsstructure.setFont(new Font("Arial",Font.PLAIN,12));
-//         reposrtsstructure.setBackground(getBackground());
-//         reposrtsstructure.setMaximumSize(new Dimension(170,20));
-//         reposrtsstructure.setPreferredSize(new Dimension(170,20));   
-//         JPanel p41 = new JPanel();
-//         p41.setBackground(Color.WHITE);
-//         p41.setLayout(new GridLayout());
-//         p41.add(reposrtsstructure);   
-//         p41.setMaximumSize(new Dimension(700,13));
-//         p41.setPreferredSize(new Dimension(700,13));
-//         treposrtsstructure = new JTextField();
-//         treposrtsstructure.setMaximumSize(new Dimension(340,20));
-//         treposrtsstructure.setPreferredSize(new Dimension(340,20));   
-//         treposrtsstructure.setText(Repository.REPORTSDETAILSSTRUCTUREXML);
-//         JButton b4 = new JButton("...");
-//         b4.addActionListener(new ActionListener(){
-//             public void actionPerformed(ActionEvent ev){
-//                 if(fileChooser==null)initializeFileBrowser();
-//                 try{if(fileChooser.showOpenDialog(Repository.f)==VFSJFileChooser.RETURN_TYPE.CANCEL){
-//                          FileObject aFileObject = fileChooser.getSelectedFile();
-//                          if(aFileObject!=null)treposrtsstructure.setText(aFileObject.toString().substring(aFileObject.toString().indexOf("@")).substring(aFileObject.toString().substring(aFileObject.toString().indexOf("@")).indexOf("/")));}
-//                          fileChooser=null;}
-//                  catch(Exception e){
-//                      fileChooser=null;
-//                      e.printStackTrace();}}});
-//         b4.setMaximumSize(new Dimension(50,20));
-//         b4.setPreferredSize(new Dimension(50,20));
-//         JPanel p42 = new JPanel();
-//         p42.setBackground(Color.WHITE);
-//         p42.add(treposrtsstructure);
-//         p42.add(b4);
-//         p42.setMaximumSize(new Dimension(700,25));
-//         p42.setPreferredSize(new Dimension(700,25));
-//         p4.add(p41);
-//         p4.add(p42);                     
+        p3.add(p32);               
         JPanel p5 = new JPanel();
         p5.setBackground(Color.WHITE);
         TitledBorder border5 = BorderFactory.createTitledBorder("EPIds File");
@@ -537,7 +485,7 @@ public class ConfigFiles extends JPanel{
         border9.setBorder(BorderFactory.createLineBorder(new Color(150,150,150), 1));
         p9.setBorder(border9);
         p9.setLayout(new BoxLayout(p9, BoxLayout.Y_AXIS));    
-        p9.setBounds(80,612,800,63);
+        p9.setBounds(80,801,800,63);
         paths.add(p9);          
         JTextArea name = new JTextArea("File name to store this configuration");
         name.setWrapStyleWord(true);
@@ -564,70 +512,7 @@ public class ConfigFiles extends JPanel{
         createXML.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 if(!tname.getText().equals("")){
-                    try{DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
-                        DocumentBuilder documentBuilder = documentBuilderFactory.newDocumentBuilder();
-                        Document document = documentBuilder.newDocument();
-                        TransformerFactory transformerFactory = TransformerFactory.newInstance();
-                        Transformer transformer = transformerFactory.newTransformer();
-                        transformer.setOutputProperty(OutputKeys.INDENT, "yes");
-                        transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "4");
-                        DOMSource source = new DOMSource(document);                    
-                        Comment simpleComment = document.createComment("\n Master config file for TSC.\n \n Logs Path: Where CE and PE write their logs. Reports Path: Where all reports are saved.\n Test Suite Config: All info about the current Test Suite (Test Plan).\n");
-                        document.appendChild(simpleComment);
-                        Element root = document.createElement("Root");
-                        document.appendChild(root);
-                        Element rootElement = document.createElement("FileType");
-                        root.appendChild(rootElement);
-                        rootElement.appendChild(document.createTextNode("config"));
-                        rootElement = document.createElement("TestCaseSourcePath");
-                        root.appendChild(rootElement);
-                        rootElement.appendChild(document.createTextNode(ttcpath.getText()));
-                        rootElement = document.createElement("MasterXMLTestSuite");
-                        root.appendChild(rootElement);
-                        rootElement.appendChild(document.createTextNode(tMasterXML.getText()));
-                        rootElement = document.createElement("UsersPath");
-                        root.appendChild(rootElement);
-                        rootElement.appendChild(document.createTextNode(tUsers.getText())); 
-                        rootElement = document.createElement("LogsPath");
-                        root.appendChild(rootElement);
-                        rootElement.appendChild(document.createTextNode(tlog.getText()));
-                        rootElement = document.createElement("LogFiles");
-                        root.appendChild(rootElement);
-                        String [] logs = trunning.getText().split(";");
-                        Element subRootElement = document.createElement("logRunning");
-                        subRootElement.appendChild(document.createTextNode(trunning.getText()));
-                        rootElement.appendChild(subRootElement);
-                        subRootElement = document.createElement("logDebug");
-                        subRootElement.appendChild(document.createTextNode(tdebug.getText()));
-                        rootElement.appendChild(subRootElement);
-                        subRootElement = document.createElement("logSummary");
-                        subRootElement.appendChild(document.createTextNode(tsummary.getText()));
-                        rootElement.appendChild(subRootElement);
-                        subRootElement = document.createElement("logTest");
-                        subRootElement.appendChild(document.createTextNode(tinfo.getText()));
-                        rootElement.appendChild(subRootElement);
-                        subRootElement = document.createElement("logCli");
-                        subRootElement.appendChild(document.createTextNode(tcli.getText()));
-                        rootElement.appendChild(subRootElement);
-                        rootElement = document.createElement("DbConfigFile");
-                        root.appendChild(rootElement);
-                        rootElement.appendChild(document.createTextNode(tdbfile.getText()));
-                        rootElement = document.createElement("EPIdsFile");
-                        root.appendChild(rootElement);
-                        rootElement.appendChild(document.createTextNode(tepid.getText()));
-                        rootElement = document.createElement("HardwareConfig");
-                        root.appendChild(rootElement);
-                        rootElement.appendChild(document.createTextNode(thardwareconfig.getText()));
-                        File file = new File(Repository.temp+Repository.getBar()+"Twister"+Repository.getBar()+tname.getText()+".xml");
-                        Result result = new StreamResult(file);
-                        transformer.transform(source, result);
-                        Repository.c.cd(Repository.USERHOME+"/twister/config/");
-                        FileInputStream in = new FileInputStream(file);
-                        Repository.c.put(in, file.getName());
-                        in.close();}
-                    catch(ParserConfigurationException e){System.out.println("DocumentBuilder cannot be created which satisfies the configuration requested");}
-                    catch(TransformerConfigurationException e){System.out.println("Could not create transformer");}
-                    catch(Exception e){e.printStackTrace();}}
+                    saveXML(false);}
                 else{JOptionPane.showMessageDialog(Repository.f, "No file name given", "Filename missing", JOptionPane.WARNING_MESSAGE);}}});
         createXML.setMaximumSize(new Dimension(70,20));
         createXML.setPreferredSize(new Dimension(70,20));
@@ -691,6 +576,127 @@ public class ConfigFiles extends JPanel{
         p102.add(b8);
         p10.add(p101);
         p10.add(p102);
+        JPanel p41 = new JPanel();
+        p41.setBackground(Color.WHITE);
+        TitledBorder border11 = BorderFactory.createTitledBorder("Central Engine Port");
+        border11.setTitleFont(new Font("Arial",Font.PLAIN,14));
+        border11.setBorder(BorderFactory.createLineBorder(new Color(150,150,150), 1));
+        p41.setBorder(border11);
+        p41.setLayout(new BoxLayout(p41, BoxLayout.Y_AXIS));    
+        p41.setBounds(80,612,800,63);
+        paths.add(p41);          
+        JTextArea ceport = new JTextArea("Central Engine port");
+        ceport.setWrapStyleWord(true);
+        ceport.setLineWrap(true);
+        ceport.setEditable(false);        
+        ceport.setCursor(null);  
+        ceport.setOpaque(false);  
+        ceport.setFocusable(false);         
+        ceport.setFont(new Font("Arial",Font.PLAIN,12));
+        ceport.setBackground(getBackground());
+        ceport.setMaximumSize(new Dimension(170,20));
+        ceport.setPreferredSize(new Dimension(170,20));   
+        JPanel p411 = new JPanel();
+        p411.setBackground(Color.WHITE);
+        p411.setBackground(Color.WHITE);
+        p411.setLayout(new GridLayout());
+        p411.setMaximumSize(new Dimension(700,13));
+        p411.setPreferredSize(new Dimension(700,13));
+        p411.add(ceport);
+        tceport = new JTextField();
+        tceport.setMaximumSize(new Dimension(340,20));
+        tceport.setPreferredSize(new Dimension(340,20)); 
+        tceport.setText(Repository.getCentralEnginePort());
+        JPanel p412 = new JPanel();
+        p412.setBackground(Color.WHITE);
+        p412.setMaximumSize(new Dimension(700,25));
+        p412.setPreferredSize(new Dimension(700,25));
+        p412.add(tceport);
+        p41.add(p411);
+        p41.add(p412);
+        JPanel rapanel = new JPanel();
+        rapanel.setBackground(Color.WHITE);
+        TitledBorder border12 = BorderFactory.createTitledBorder("Resource Allocator Port");
+        border12.setTitleFont(new Font("Arial",Font.PLAIN,14));
+        border12.setBorder(BorderFactory.createLineBorder(new Color(150,150,150), 1));
+        rapanel.setBorder(border12);
+        rapanel.setLayout(new BoxLayout(rapanel, BoxLayout.Y_AXIS));    
+        rapanel.setBounds(80,675,800,63);
+        paths.add(rapanel);          
+        JTextArea raPort = new JTextArea("Resource Allocator Port");
+        raPort.setWrapStyleWord(true);
+        raPort.setLineWrap(true);
+        raPort.setEditable(false);        
+        raPort.setCursor(null);  
+        raPort.setOpaque(false);  
+        raPort.setFocusable(false);         
+        raPort.setFont(new Font("Arial",Font.PLAIN,12));
+        raPort.setBackground(getBackground());
+        raPort.setMaximumSize(new Dimension(170,20));
+        raPort.setPreferredSize(new Dimension(170,20));   
+        JPanel rapanel1 = new JPanel();
+        rapanel1.setBackground(Color.WHITE);
+        rapanel1.setBackground(Color.WHITE);
+        rapanel1.setLayout(new GridLayout());
+        rapanel1.setMaximumSize(new Dimension(700,13));
+        rapanel1.setPreferredSize(new Dimension(700,13));
+        rapanel1.add(raPort);
+        traPort = new JTextField();
+        traPort.setMaximumSize(new Dimension(340,20));
+        traPort.setPreferredSize(new Dimension(340,20)); 
+        traPort.setText(Repository.getResourceAllocatorPort());
+        JPanel rapanel2 = new JPanel();
+        rapanel2.setBackground(Color.WHITE);
+        rapanel2.setMaximumSize(new Dimension(700,25));
+        rapanel2.setPreferredSize(new Dimension(700,25));
+        rapanel2.add(traPort);
+        rapanel.add(rapanel1);
+        rapanel.add(rapanel2);
+        JPanel httppanel = new JPanel();
+        httppanel.setBackground(Color.WHITE);
+        TitledBorder border13 = BorderFactory.createTitledBorder("HTTP Server Port");
+        border13.setTitleFont(new Font("Arial",Font.PLAIN,14));
+        border13.setBorder(BorderFactory.createLineBorder(new Color(150,150,150), 1));
+        httppanel.setBorder(border13);
+        httppanel.setLayout(new BoxLayout(httppanel, BoxLayout.Y_AXIS));    
+        httppanel.setBounds(80,738,800,63);
+        paths.add(httppanel);          
+        JTextArea httpPort = new JTextArea("HTTP Server Port");
+        httpPort.setWrapStyleWord(true);
+        httpPort.setLineWrap(true);
+        httpPort.setEditable(false);        
+        httpPort.setCursor(null);  
+        httpPort.setOpaque(false);  
+        httpPort.setFocusable(false);         
+        httpPort.setFont(new Font("Arial",Font.PLAIN,12));
+        httpPort.setBackground(getBackground());
+        httpPort.setMaximumSize(new Dimension(170,20));
+        httpPort.setPreferredSize(new Dimension(170,20));   
+        JPanel httppanel1 = new JPanel();
+        httppanel1.setBackground(Color.WHITE);
+        httppanel1.setBackground(Color.WHITE);
+        httppanel1.setLayout(new GridLayout());
+        httppanel1.setMaximumSize(new Dimension(700,13));
+        httppanel1.setPreferredSize(new Dimension(700,13));
+        httppanel1.add(httpPort);
+        thttpPort = new JTextField();
+        thttpPort.setMaximumSize(new Dimension(340,20));
+        thttpPort.setPreferredSize(new Dimension(340,20)); 
+        thttpPort.setText(Repository.getHTTPServerPort());
+        JPanel httppanel2 = new JPanel();
+        httppanel2.setBackground(Color.WHITE);
+        httppanel2.setMaximumSize(new Dimension(700,25));
+        httppanel2.setPreferredSize(new Dimension(700,25));
+        httppanel2.add(thttpPort);
+        httppanel.add(httppanel1);
+        httppanel.add(httppanel2);
+        
+        
+        
+        
+        
+        
+        
         JButton loadXML = new JButton("Load Config");
         loadXML.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){            
@@ -751,7 +757,6 @@ public class ConfigFiles extends JPanel{
                                     ttcpath.setText(Repository.TESTSUITEPATH);
                                     tMasterXML.setText(Repository.XMLREMOTEDIR);
                                     tUsers.setText(Repository.REMOTEUSERSDIRECTORY);
-                                    //treposrtsstructure.setText(Repository.REPORTSDETAILSSTRUCTUREXML);
                                     tepid.setText(Repository.REMOTEEPIDDIR);
                                     tlog.setText(Repository.LOGSPATH);
                                     thardwareconfig.setText(Repository.REMOTEHARDWARECONFIGDIRECTORY);
@@ -762,17 +767,129 @@ public class ConfigFiles extends JPanel{
                                     tinfo.setText(Repository.logs.get(3));
                                     tcli.setText(Repository.logs.get(4));
                                     thardwareconfig.setText(Repository.REMOTEHARDWARECONFIGDIRECTORY);
-                                    tdbfile.setText(Repository.REMOTEDATABASECONFIGPATH+Repository.REMOTEDATABASECONFIGFILE);}
+                                    tdbfile.setText(Repository.REMOTEDATABASECONFIGPATH+Repository.REMOTEDATABASECONFIGFILE);
+                                    thttpPort.setText(Repository.getHTTPServerPort());
+                                    traPort.setText(Repository.getResourceAllocatorPort());
+                                    tceport.setText(Repository.getCentralEnginePort());}
                                 else JOptionPane.showMessageDialog(Repository.f, "This is not a config file", "WARNING", JOptionPane.WARNING_MESSAGE);}}
                         else JOptionPane.showMessageDialog(Repository.f, "Could not find Config tab", "WARNING", JOptionPane.WARNING_MESSAGE);}}
                 catch(Exception e){e.printStackTrace();}}});
-        loadXML.setBounds(760,680,120,20);
+        loadXML.setBounds(760,870,120,20);
         paths.add(loadXML);}
+        
+        
+    public static void saveXML(boolean blank){
+        try{
+            System.out.println("Starting saveXML");
+            DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
+            DocumentBuilder documentBuilder = documentBuilderFactory.newDocumentBuilder();
+            Document document = documentBuilder.newDocument();
+            TransformerFactory transformerFactory = TransformerFactory.newInstance();
+            Transformer transformer = transformerFactory.newTransformer();
+            transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+            transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "4");
+            DOMSource source = new DOMSource(document);                    
+            Comment simpleComment = document.createComment("\n Master config file for TSC.\n \n Logs Path: Where CE and PE write their logs. Reports Path: Where all reports are saved.\n Test Suite Config: All info about the current Test Suite (Test Plan).\n");
+            document.appendChild(simpleComment);
+            Element root = document.createElement("Root");
+            document.appendChild(root);
+            Element rootElement = document.createElement("FileType");
+            root.appendChild(rootElement);
+            rootElement.appendChild(document.createTextNode("config"));
+            rootElement = document.createElement("CentralEnginePort");
+            root.appendChild(rootElement);
+            String temp;
+            if(blank) temp ="";
+            else temp = tceport.getText();
+            rootElement.appendChild(document.createTextNode(temp));
+            rootElement = document.createElement("ResourceAllocatorPort");
+            root.appendChild(rootElement);
+            if(blank) temp ="";
+            else temp = traPort.getText();
+            rootElement.appendChild(document.createTextNode(temp));
+            rootElement = document.createElement("HttpServerPort");
+            root.appendChild(rootElement);
+            if(blank) temp ="";
+            else temp = thttpPort.getText();
+            rootElement.appendChild(document.createTextNode(temp));
+            rootElement = document.createElement("TestCaseSourcePath");
+            root.appendChild(rootElement);
+            if(blank) temp ="";
+            else temp = ttcpath.getText();
+            rootElement.appendChild(document.createTextNode(temp));
+            rootElement = document.createElement("MasterXMLTestSuite");
+            root.appendChild(rootElement);
+            if(blank) temp ="";
+            else temp = tMasterXML.getText();
+            rootElement.appendChild(document.createTextNode(temp));
+            rootElement = document.createElement("UsersPath");
+            root.appendChild(rootElement);
+            if(blank) temp ="";
+            else temp = tUsers.getText();
+            rootElement.appendChild(document.createTextNode(temp)); 
+            rootElement = document.createElement("LogsPath");
+            root.appendChild(rootElement);
+            if(blank) temp ="";
+            else temp = tlog.getText();
+            rootElement.appendChild(document.createTextNode(temp));
+            rootElement = document.createElement("LogFiles");
+            root.appendChild(rootElement);
+            Element subRootElement = document.createElement("logRunning");
+            if(blank) temp ="";
+            else temp = trunning.getText();
+            subRootElement.appendChild(document.createTextNode(temp));
+            rootElement.appendChild(subRootElement);
+            subRootElement = document.createElement("logDebug");
+            if(blank) temp ="";
+            else temp = tdebug.getText();
+            subRootElement.appendChild(document.createTextNode(temp));
+            rootElement.appendChild(subRootElement);
+            subRootElement = document.createElement("logSummary");
+            if(blank) temp ="";
+            else temp = tsummary.getText();
+            subRootElement.appendChild(document.createTextNode(temp));
+            rootElement.appendChild(subRootElement);
+            subRootElement = document.createElement("logTest");
+            if(blank) temp ="";
+            else temp = tinfo.getText();
+            subRootElement.appendChild(document.createTextNode(temp));
+            rootElement.appendChild(subRootElement);
+            subRootElement = document.createElement("logCli");
+            if(blank) temp ="";
+            else temp = tcli.getText();
+            subRootElement.appendChild(document.createTextNode(temp));
+            rootElement.appendChild(subRootElement);
+            rootElement = document.createElement("DbConfigFile");
+            root.appendChild(rootElement);
+            if(blank) temp ="";
+            else temp = tdbfile.getText();
+            rootElement.appendChild(document.createTextNode(temp));
+            rootElement = document.createElement("EPIdsFile");
+            root.appendChild(rootElement);
+            if(blank) temp ="";
+            else temp = tepid.getText();
+            rootElement.appendChild(document.createTextNode(temp));
+            rootElement = document.createElement("HardwareConfig");
+            root.appendChild(rootElement);
+            if(blank) temp ="";
+            else temp = thardwareconfig.getText();
+            rootElement.appendChild(document.createTextNode(temp));
+            if(blank) temp ="fwmconfig";
+            else temp = tname.getText();
+            File file = new File(Repository.temp+Repository.getBar()+"Twister"+Repository.getBar()+temp+".xml");
+            Result result = new StreamResult(file);
+            transformer.transform(source, result);
+            Repository.c.cd(Repository.USERHOME+"/twister/config/");
+            System.out.println("Saving to: "+Repository.USERHOME+"/twister/config/");
+            FileInputStream in = new FileInputStream(file);
+            Repository.c.put(in, file.getName());
+            in.close();}
+        catch(ParserConfigurationException e){System.out.println("DocumentBuilder cannot be created which satisfies the configuration requested");}
+        catch(TransformerConfigurationException e){System.out.println("Could not create transformer");}
+        catch(Exception e){e.printStackTrace();}}
         
     public void initializeFileBrowser(){
         fileChooser = new VFSJFileChooser("sftp://"+Repository.user+":"+Repository.password+"@"+Repository.host+"/home/"+Repository.user+"/twister/config/");        
         fileChooser.setFileHidingEnabled(true);
         fileChooser.setMultiSelectionEnabled(false);
-        fileChooser.setFileSelectionMode(VFSJFileChooser.SELECTION_MODE.DIRECTORIES_ONLY);
-    
-    }}
+        fileChooser.setFileSelectionMode(VFSJFileChooser.SELECTION_MODE.DIRECTORIES_ONLY);}}

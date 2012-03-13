@@ -59,7 +59,9 @@ public class JEditTextArea extends JComponent{
      * Creates a new JEditTextArea with the default settings.
      */
     public JEditTextArea(){
-        this(TextAreaDefaults.getDefaults());}
+        this(TextAreaDefaults.getDefaults());
+        setFocusCycleRoot(false);
+    }
 
     /**
      * Creates a new JEditTextArea with the specified settings.
@@ -108,12 +110,12 @@ public class JEditTextArea extends JComponent{
         // We don't seem to get the initial focus event?
         focusedComponent = this;}
 
-    /**
-     * Returns if this component can be traversed by pressing
-     * the Tab key. This returns false.
-     */
-    public final boolean isManagingFocus(){
-        return true;}
+//     /**
+//      * Returns if this component can be traversed by pressing
+//      * the Tab key. This returns false.
+//      */
+//     public final boolean isManagingFocus(){
+//         return true;}
 
     /**
      * Returns the object responsible for painting this text area.

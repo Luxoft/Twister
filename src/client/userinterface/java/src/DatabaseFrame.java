@@ -63,12 +63,9 @@ public class DatabaseFrame extends JFrame{
 
         fieldsCombo.setModel(new DefaultComboBoxModel(new String[] {}));
         fieldsCombo.setPreferredSize(new Dimension(100, 20));
-
         fileddescription.setBackground(new Color(240, 240, 240));
-        
         fileddescription.setLineWrap(true);
         fileddescription.setWrapStyleWord(true);
-        
         JScrollPane jScrollPane1 = new JScrollPane();
         jScrollPane1.setBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(new java.awt.Color(0, 0, 0)), "Description"));
         jScrollPane1.setViewportView(fileddescription);

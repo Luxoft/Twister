@@ -45,7 +45,7 @@ public class Repository{
     public static String[] columnNames;
     public static Fereastra f;
     public static ChannelSftp c;
-    public static String temp, USERHOME, HTTPSERVERPORT, CENTRALENGINEPORT, REMOTEDATABASECONFIGPATH, REMOTEDATABASECONFIGFILE, CONFIGDIRECTORY, USERSDIRECTORY, XMLDIRECTORY, TCDIRECTORY, TESTSUITEPATH, LOGSPATH ,XMLREMOTEDIR, REMOTEUSERSDIRECTORY, REMOTEEPIDDIR, REMOTEHARDWARECONFIGDIRECTORY;
+    public static String temp, USERHOME, HTTPSERVERPORT, CENTRALENGINEPORT, RESOURCEALLOCATORPORT, REMOTEDATABASECONFIGPATH, REMOTEDATABASECONFIGFILE, CONFIGDIRECTORY, USERSDIRECTORY, XMLDIRECTORY, TCDIRECTORY, TESTSUITEPATH, LOGSPATH ,XMLREMOTEDIR, REMOTEUSERSDIRECTORY, REMOTEEPIDDIR, REMOTEHARDWARECONFIGDIRECTORY;
     public static Image porticon,suitaicon, tcicon, propicon, failicon, passicon, playicon, stopicon, pauseicon, background,notexecicon,pendingicon,skipicon,stoppedicon,timeouticon,waiticon,workingicon,moduleicon,deviceicon;
     public static boolean run = true;
     public static boolean applet;
@@ -170,12 +170,12 @@ public class Repository{
                 Object[] message = new Object[] {"User: ", user1, "Password: ", password1};
                 int r = JOptionPane.showConfirmDialog(intro, message, "User&Password", JOptionPane.OK_CANCEL_OPTION);
                 if(r == JOptionPane.OK_OPTION){
-                    System.out.println("Attempting to connect to: "+host+" with user: "+user1.getText()+" and password: "+password1.getText());
+                    System.out.println("Attempting to connect to: "+host+" with user: "+user1.getText()+" and password: "+password1.getPassword());
                     JSch jsch = new JSch();
                     user = user1.getText();
                     Session session = jsch.getSession(user, host, 22);
-                    Repository.password = password1.getText();
-                    session.setPassword(password1.getText());
+                    Repository.password = new String(password1.getPassword());
+                    session.setPassword(new String(password1.getPassword()));
                     Properties config = new Properties();
                     config.put("StrictHostKeyChecking", "no");
                     session.setConfig(config);
@@ -206,25 +206,25 @@ public class Repository{
             InputStream in = null;
             try{c.cd(Repository.REMOTEDATABASECONFIGPATH);}
             catch(Exception e){System.out.println("Could not get :"+Repository.REMOTEDATABASECONFIGPATH);}
-            System.out.print("Getting "+name+" ....");
-            try{in = c.get(name);}
-            catch(Exception e){System.out.println("Could not get :"+name+" from: "+Repository.REMOTEDATABASECONFIGPATH);}
-            InputStreamReader inputStreamReader = new InputStreamReader(in);
-            BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
-            BufferedWriter writer = null;
-            String line;
-            try{writer = new BufferedWriter(new FileWriter(file));
-                while ((line=bufferedReader.readLine())!= null){
-                    writer.write(line);
-                    writer.newLine();}
-                bufferedReader.close();
-                writer.close();
-                inputStreamReader.close();
-                in.close();
-                System.out.println("successfull");}
-            catch(Exception e){
-                System.out.println("failed");
-                e.printStackTrace();}}
+            System.out.print("Getting "+name+" as database config file.... ");
+            try{in = c.get(name);
+                InputStreamReader inputStreamReader = new InputStreamReader(in);
+                BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
+                BufferedWriter writer = null;
+                String line;
+                try{writer = new BufferedWriter(new FileWriter(file));
+                    while ((line=bufferedReader.readLine())!= null){
+                        writer.write(line);
+                        writer.newLine();}
+                    bufferedReader.close();
+                    writer.close();
+                    inputStreamReader.close();
+                    in.close();
+                    System.out.println("successfull");}
+                catch(Exception e){
+                    System.out.println("failed");
+                    e.printStackTrace();}}
+            catch(Exception e){System.out.println("Could not get :"+name+" from: "+Repository.REMOTEDATABASECONFIGPATH+" as database config file");}}
         return file;}
         
     public static DefaultMutableTreeNode parseDBConfig(String name,boolean fromServer){
@@ -293,10 +293,20 @@ public class Repository{
             String line = null;
             String name = null;
             try{c.cd(USERHOME+"/twister/config/");}
-            catch(Exception e){System.out.println("Could not get :"+USERHOME+"/twister/config/");}
+            catch(Exception e){System.out.println("Could not get :"+USERHOME+"/twister/config/");
+                JOptionPane.showMessageDialog(Repository.f, "Could not get :"+USERHOME+"/twister/config/");
+                if(Fereastra.deleteTemp(new File(Repository.temp+bar+"Twister")))System.out.println(Repository.temp+bar+"Twister deleted successfull");
+                else System.out.println("Could not delete: "+Repository.temp+bar+"Twister");
+                intro.dispose();
+                run = false;
+                if(!applet)System.exit(0);}
             try{System.out.println("fwmconfig.xml size on sftp: "+c.lstat("fwmconfig.xml").getSize()+" bytes");
                 in = c.get("fwmconfig.xml");}
-            catch(Exception e){System.out.println("Could not get fwmconfig.xml from "+c.pwd());}
+            catch(Exception e){
+                JOptionPane.showMessageDialog(Repository.f, "Could not get fwmconfig.xml from "+c.pwd()+" creating a blank one.");
+                System.out.println("Could not get fwmconfig.xml from "+c.pwd()+" creating a blank one.");
+                ConfigFiles.saveXML(true);
+                in = c.get("fwmconfig.xml");}
             inputStreamReader = new InputStreamReader(in);
             bufferedReader = new BufferedReader(inputStreamReader);  
             file = new File(temp+bar+"Twister"+bar+"config"+bar+"fwmconfig.xml");
@@ -323,7 +333,10 @@ public class Repository{
                 Node fstNode = nodeLst.item(0);
                 Element fstElmnt = (Element)fstNode;
                 NodeList fstNm = fstElmnt.getChildNodes();
-                LOGSPATH = fstNm.item(0).getNodeValue().toString();
+                try{LOGSPATH = fstNm.item(0).getNodeValue().toString();}
+                catch(Exception e){
+                    System.out.println("LogsPath empty");
+                    LOGSPATH = "";}
                 nodeLst = doc.getElementsByTagName("LogFiles");
                 if(nodeLst.getLength()==0)System.out.println("LogFiles tag not found in fwmconfig");
                 fstNode = nodeLst.item(0);                
@@ -332,73 +345,111 @@ public class Repository{
                 fstNode = nodeLst.item(0);
                 fstElmnt = (Element)fstNode;
                 fstNm = fstElmnt.getChildNodes();                    
-                logs.add(fstNm.item(0).getNodeValue().toString());
+                try{logs.add(fstNm.item(0).getNodeValue().toString());}
+                catch(Exception e){
+                    System.out.println("logRunning empty");
+                    logs.add("");}
                 nodeLst = doc.getElementsByTagName("logDebug");
                 if(nodeLst.getLength()==0)System.out.println("logDebug tag not found in fwmconfig");
                 fstNode = nodeLst.item(0);
                 fstElmnt = (Element)fstNode;
                 fstNm = fstElmnt.getChildNodes();                    
-                logs.add(fstNm.item(0).getNodeValue().toString());
+                try{logs.add(fstNm.item(0).getNodeValue().toString());}
+                catch(Exception e){
+                    System.out.println("logDebug empty");
+                    logs.add("");}
                 nodeLst = doc.getElementsByTagName("logSummary");
                 if(nodeLst.getLength()==0)System.out.println("logSummary tag not found in fwmconfig");
                 fstNode = nodeLst.item(0);
                 fstElmnt = (Element)fstNode;
                 fstNm = fstElmnt.getChildNodes();                    
                 try{logs.add(fstNm.item(0).getNodeValue().toString());}
-                catch(Exception e){logs.add("");}
+                catch(Exception e){
+                    System.out.println("logSummary empty");
+                    logs.add("");}
                 nodeLst = doc.getElementsByTagName("logTest");
                 if(nodeLst.getLength()==0)System.out.println("logTest tag not found in fwmconfig");
                 fstNode = nodeLst.item(0);
                 fstElmnt = (Element)fstNode;
                 fstNm = fstElmnt.getChildNodes();                    
-                logs.add(fstNm.item(0).getNodeValue().toString());
+                try{logs.add(fstNm.item(0).getNodeValue().toString());}
+                catch(Exception e){
+                    System.out.println("logTest empty");
+                    logs.add("");}
                 nodeLst = doc.getElementsByTagName("logCli");
                 if(nodeLst.getLength()==0)System.out.println("logCli tag not found in fwmconfig");
                 fstNode = nodeLst.item(0);
                 fstElmnt = (Element)fstNode;
                 fstNm = fstElmnt.getChildNodes();                    
-                logs.add(fstNm.item(0).getNodeValue().toString());
-                
+                try{logs.add(fstNm.item(0).getNodeValue().toString());}
+                catch(Exception e){
+                    System.out.println("logCli empty");
+                    logs.add("");}
                 nodeLst = doc.getElementsByTagName("HttpServerPort");
                 if(nodeLst.getLength()==0)System.out.println("CentralEnginePort tag not found in fwmconfig");
                 fstNode = nodeLst.item(0);
                 fstElmnt = (Element)fstNode;
                 fstNm = fstElmnt.getChildNodes();
-                HTTPSERVERPORT = fstNm.item(0).getNodeValue().toString(); 
-                
-                
+                try{HTTPSERVERPORT = fstNm.item(0).getNodeValue().toString();}
+                catch(Exception e){
+                    System.out.println("HTTPSERVERPORT empty");
+                    HTTPSERVERPORT = "";}
                 nodeLst = doc.getElementsByTagName("CentralEnginePort");
                 if(nodeLst.getLength()==0)System.out.println("CentralEnginePort tag not found in fwmconfig");
                 fstNode = nodeLst.item(0);
                 fstElmnt = (Element)fstNode;
                 fstNm = fstElmnt.getChildNodes();
-                CENTRALENGINEPORT = fstNm.item(0).getNodeValue().toString(); 
+                try{CENTRALENGINEPORT = fstNm.item(0).getNodeValue().toString();}
+                catch(Exception e){
+                    System.out.println("CENTRALENGINEPORT empty");
+                    CENTRALENGINEPORT = "";}
+                nodeLst = doc.getElementsByTagName("ResourceAllocatorPort");
+                if(nodeLst.getLength()==0)System.out.println("ResourceAllocatorPort tag not found in fwmconfig");
+                fstNode = nodeLst.item(0);
+                fstElmnt = (Element)fstNode;
+                fstNm = fstElmnt.getChildNodes();
+                try{RESOURCEALLOCATORPORT = fstNm.item(0).getNodeValue().toString();}
+                catch(Exception e){
+                    System.out.println("RESOURCEALLOCATORPORT empty");
+                    RESOURCEALLOCATORPORT = "";}
                 nodeLst = doc.getElementsByTagName("UsersPath");
                 if(nodeLst.getLength()==0)System.out.println("UsersPath tag not found in fwmconfig");
                 fstNode = nodeLst.item(0);
                 fstElmnt = (Element)fstNode;
                 fstNm = fstElmnt.getChildNodes();
-                usersdir = fstNm.item(0).getNodeValue().toString();                
+                try{usersdir = fstNm.item(0).getNodeValue().toString();}
+                catch(Exception e){
+                    System.out.println("UsersPath empty");
+                    usersdir = "";}
                 REMOTEUSERSDIRECTORY = usersdir;
                 nodeLst = doc.getElementsByTagName("MasterXMLTestSuite");
                 if(nodeLst.getLength()==0)System.out.println("MasterXMLTestSuite tag not found in fwmconfig");
                 fstNode = nodeLst.item(0);
                 fstElmnt = (Element)fstNode;
-                fstNm = fstElmnt.getChildNodes();
-                XMLREMOTEDIR = fstNm.item(0).getNodeValue().toString();
+                fstNm = fstElmnt.getChildNodes();                
+                try{XMLREMOTEDIR = fstNm.item(0).getNodeValue().toString();}
+                catch(Exception e){
+                    System.out.println("MasterXMLTestSuite empty");
+                    XMLREMOTEDIR = "";}
                 XMLDIRECTORY = Repository.temp+bar+"Twister"+bar+"XML"+bar+XMLREMOTEDIR.split("/")[XMLREMOTEDIR.split("/").length-1];
                 nodeLst = doc.getElementsByTagName("EPIdsFile");
                 if(nodeLst.getLength()==0)System.out.println("EPIdsFile tag not found in fwmconfig");
                 fstNode = nodeLst.item(0);
                 fstElmnt = (Element)fstNode;
                 fstNm = fstElmnt.getChildNodes();
-                REMOTEEPIDDIR = fstNm.item(0).getNodeValue().toString();
+                try{REMOTEEPIDDIR = fstNm.item(0).getNodeValue().toString();}
+                catch(Exception e){
+                    System.out.println("EPIdsFile empty");
+                    REMOTEEPIDDIR = "";}
                 nodeLst = doc.getElementsByTagName("DbConfigFile");
                 if(nodeLst.getLength()==0)System.out.println("DbConfigFile tag not found in fwmconfig");
                 fstNode = nodeLst.item(0);
                 fstElmnt = (Element)fstNode;
                 fstNm = fstElmnt.getChildNodes();
-                REMOTEDATABASECONFIGFILE = fstNm.item(0).getNodeValue().toString();
+                try{REMOTEDATABASECONFIGFILE = fstNm.item(0).getNodeValue().toString();}
+                catch(Exception e){
+                    System.out.println("DbConfigFile empty");
+                    REMOTEDATABASECONFIGFILE = "";}
                 String [] path = REMOTEDATABASECONFIGFILE.split("/");
                 StringBuffer result = new StringBuffer();
                 if (path.length > 0) {
@@ -407,42 +458,40 @@ public class Repository{
                         result.append("/");}}
                 REMOTEDATABASECONFIGPATH = result.toString();
                 REMOTEDATABASECONFIGFILE = path[path.length-1];
-//                 nodeLst = doc.getElementsByTagName("ReportsDetailsStructureXML");
-//                 if(nodeLst.getLength()==0)System.out.println("ReportsDetailsStructureXML tag not found in fwmconfig");
-//                 fstNode = nodeLst.item(0);
-//                 fstElmnt = (Element)fstNode;
-//                 fstNm = fstElmnt.getChildNodes();
-//                 REPORTSDETAILSSTRUCTUREXML = fstNm.item(0).getNodeValue().toString();
                 nodeLst = doc.getElementsByTagName("TestCaseSourcePath");
                 if(nodeLst.getLength()==0)System.out.println("TestCaseSourcePath tag not found in fwmconfig");
                 fstNode = nodeLst.item(0);
                 fstElmnt = (Element)fstNode;
                 fstNm = fstElmnt.getChildNodes();
-                TESTSUITEPATH = fstNm.item(0).getNodeValue().toString();
+                try{TESTSUITEPATH = fstNm.item(0).getNodeValue().toString();}
+                catch(Exception e){
+                    System.out.println("TestCaseSourcePath empty");
+                    TESTSUITEPATH = "";}
                 nodeLst = doc.getElementsByTagName("HardwareConfig");
                 if(nodeLst.getLength()==0)System.out.println("HardwareConfig tag not found in fwmconfig");
                 fstNode = nodeLst.item(0);
                 fstElmnt = (Element)fstNode;
-                fstNm = fstElmnt.getChildNodes();                
-                REMOTEHARDWARECONFIGDIRECTORY = fstNm.item(0).getNodeValue().toString();}
+                fstNm = fstElmnt.getChildNodes();
+                try{REMOTEHARDWARECONFIGDIRECTORY = fstNm.item(0).getNodeValue().toString();}
+                catch(Exception e){
+                    System.out.println("HardwareConfig empty");
+                    REMOTEHARDWARECONFIGDIRECTORY = "";}}
             catch(Exception e){e.printStackTrace();}
 //             System.out.println("Finished variable initialization: "+System.currentTimeMillis());
             intro.text = "Finished initializing variables fwmconfig";
             intro.percent+=0.035;
             intro.repaint();
-//             XMLTableStructure parser = new XMLTableStructure(Repository.getTableXMLStream());
-//             editable = parser.getEditableColumns();
-//             ArrayList<String>temporary = parser.parseXML();
-//             columnNames = new String[temporary.size()];
-//             temporary.toArray(columnNames);
-//             System.out.println("Started writing users xml: "+System.currentTimeMillis());
             intro.text = "Started getting users xml";
             intro.percent+=0.035;
             intro.repaint();
             try{c.cd(usersdir);}
             catch(Exception e){System.out.println("Could not get to "+usersdir+"on sftp");}
             int subdirnr = usersdir.split("/").length-1;
-            int size = c.ls(usersdir).size();
+            int size ;
+            try{size= c.ls(usersdir).size();}
+            catch(Exception e){
+                System.out.println("No suites xml");
+                size=0;}
             for(int i=0;i<size;i++){
                 name = ((LsEntry)c.ls(usersdir).get(i)).getFilename();
                 if(name.split("\\.").length==0)continue; 
@@ -478,7 +527,7 @@ public class Repository{
             intro.repaint();
             int length = 0;
             try{length = c.ls(result.toString()+path[path.length-2]).size();}
-            catch(Exception e){System.out.println("Could not get "+result.toString()+path[path.length-2]);}
+            catch(Exception e){System.out.println("Could not get "+result.toString()+dir);}
             if(length>2){
 //                 System.out.println("Started looking for xml file: "+System.currentTimeMillis());
                 intro.text = "Started looking for xml file";
@@ -520,18 +569,6 @@ public class Repository{
         
     public static int getSuiteNr(){
         return suite.size();}
-        
-//     public static InputStream getTableXMLStream(){
-//         InputStream in=null;
-//         try{c.cd(Repository.getReportsDetailsStructureXML());
-//             in = c.get("table.xml");}
-//         catch(Exception e){
-//             System.out.println("Could not get table.xml from : "+Repository.getReportsDetailsStructureXML());
-//             e.printStackTrace();}
-//         try{return in;}
-//         catch(Exception e){
-//             e.printStackTrace();
-//             return null;}}
             
     public static ArrayList<String[]> getDatabaseUserFields(){
         return databaseUserFields;}
@@ -556,6 +593,10 @@ public class Repository{
         
     public static String getCentralEnginePort(){
         return CENTRALENGINEPORT;}
+        
+        
+    public static String getResourceAllocatorPort(){
+        return RESOURCEALLOCATORPORT;}
         
     public static String getXMLRemoteDir(){
         return XMLREMOTEDIR;}

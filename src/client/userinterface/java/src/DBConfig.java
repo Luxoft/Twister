@@ -142,7 +142,7 @@ public class DBConfig extends JPanel{
                     nodeLst = doc.getElementsByTagName("user");
                     nodeLst.item(0).getChildNodes().item(0).setNodeValue(tuser.getText());
                     nodeLst = doc.getElementsByTagName("password");
-                    nodeLst.item(0).getChildNodes().item(0).setNodeValue(tpassword.getText());
+                    nodeLst.item(0).getChildNodes().item(0).setNodeValue(new String(tpassword.getPassword()));
                     Result result = new StreamResult(theone); 
                     try{DOMSource source = new DOMSource(doc);
                         TransformerFactory transformerFactory = TransformerFactory.newInstance();
