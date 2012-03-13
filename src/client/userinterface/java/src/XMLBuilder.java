@@ -74,18 +74,13 @@ public class XMLBuilder{
                 rootElement.appendChild(EP);}
             for(int j=0;j<suite.get(i).getUserDefNr();j++){
                 Element userdef = document.createElement("UserDefined");
-                
                 Element pname = document.createElement("propName");
                 pname.appendChild(document.createTextNode(suite.get(i).getUserDef(j)[0]));
                 userdef.appendChild(pname);
-                
                 Element pvalue = document.createElement("propValue");
                 pvalue.appendChild(document.createTextNode(suite.get(i).getUserDef(j)[1]));
                 userdef.appendChild(pvalue);
-                
-                rootElement.appendChild(userdef);
-                
-            }
+                rootElement.appendChild(userdef);}
             for(int j=0;j<nrtc;j++){                
                 addSubElement(rootElement,Repository.getSuita(i).getSubItem(j),skip);}}}
                 

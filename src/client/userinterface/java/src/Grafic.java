@@ -148,7 +148,11 @@ public class Grafic extends JPanel{
         addMouseListener(new MouseAdapter(){
             public void mousePressed(MouseEvent ev){}
             public void mouseEntered(MouseEvent ev){
-                if(canrequestfocus)requestFocus();
+                if(canrequestfocus)new Thread(){
+                    public void run(){
+                        try{Thread.sleep(300);
+                            Repository.f.p.p1.sc.g.requestFocus();}
+                        catch(Exception e){e.printStackTrace();}}}.start();
                 dragscroll = true;}
             public void mouseExited(MouseEvent ev){
                 dragscroll = false;
