@@ -47,37 +47,6 @@ table.dataTable th:active {
 	outline: none;
 }
 
-table tr.odd.gradeA {
-	background-color: #ddffdd;
-}
-table tr.even.gradeA {
-	background-color: #eeffee;
-}
-table tr.odd.gradeA {
-	background-color: #ddffdd;
-}
-table tr.even.gradeA {
-	background-color: #eeffee;
-}
-table tr.odd.gradeC {
-	background-color: #ddddff;
-}
-table tr.even.gradeC {
-	background-color: #eeeeff;
-}
-table tr.odd.gradeX {
-	background-color: #ffdddd;
-}
-table tr.even.gradeX {
-	background-color: #ffeeee;
-}
-table tr.odd.gradeU {
-	background-color: #ddd;
-}
-table tr.even.gradeU {
-	background-color: #eee;
-}
-
 .table tbody tr.even:hover td {
 	background-color: #ECFFB3;
 }

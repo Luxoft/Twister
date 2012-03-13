@@ -42,7 +42,7 @@ class Root:
     # Reporting link
     @cherrypy.expose
     def rep(self, report, **args):
-        global glob_fields, glob_reports, glob_links
+        global glob_fields, glob_reports, glob_links, conn, curs
 
         if report in glob_redirects:
             redirect_dict = glob_redirects[report]
@@ -95,19 +95,25 @@ class Root:
                     try:
                         curs.execute(u_query)
                     except MySQLdb.Error, e:
-                        output = Template(filename=TWISTER_PATH + '/server/httpserver/template/error.htm')
-                        return output.render(links=glob_links, title=report,
-                            msg='Error in query `{0}`!<br><br><b>MySQL Error {1}</b>: {2}!'.format(u_query, e.args[0], e.args[1]))
+                        try:
+                            connect_db()
+                        except:
+                            output = Template(filename=TWISTER_PATH + '/server/httpserver/template/error.htm')
+                            return output.render(links=glob_links, title=report,
+                                msg='Error in query `{0}`!<br><br><b>MySQL Error {1}</b>: {2}!'.format(u_query, e.args[0], e.args[1]))
 
                     u_vals = curs.fetchall()
 
+                    # No data available
                     if not u_vals:
                         this_option['data'] = []
+                    # Data has one column
                     elif len(u_vals[0]) == 1:
                         field_data = [ (val[0], val[0]) for val in u_vals ]
                         this_option['data'] = field_data
+                    # Data has 2 or more columns
                     else:
-                        field_data = [ (val[0], str(val[0])+': '+'| '.join(val[1:])) for val in u_vals ]
+                        field_data = [ ( str(val[0]), str(val[0])+': '+'| '.join(val[1:]) ) for val in u_vals ]
                         this_option['data'] = field_data
 
                 # Field type : User Text
@@ -146,9 +152,12 @@ class Root:
         try:
             curs.execute(query)
         except MySQLdb.Error, e:
-            output = Template(filename=TWISTER_PATH + '/server/httpserver/template/error.htm')
-            return output.render(title=report, links=glob_links,
-                msg='Error in query `{0}`!<br><br><b>MySQL Error {1}</b>: {2}!'.format(query, e.args[0], e.args[1]))
+            try:
+                connect_db()
+            except:
+                output = Template(filename=TWISTER_PATH + '/server/httpserver/template/error.htm')
+                return output.render(title=report, links=glob_links,
+                    msg='Error in query `{0}`!<br><br><b>MySQL Error {1}</b>: {2}!'.format(query, e.args[0], e.args[1]))
 
         descr = [desc[0] for desc in curs.description]
 
@@ -160,7 +169,7 @@ class Root:
     # JSON link
     @cherrypy.expose
     def json(self, report, **args):
-        global glob_reports
+        global glob_reports, conn, curs
 
         cherrypy.response.headers['Content-Type'] = 'application/json; charset=utf-8'
 
@@ -184,8 +193,11 @@ class Root:
         try:
             curs.execute(query)
         except MySQLdb.Error, e:
-            output = {'aaData':[], 'error':'Error in query `{0}`! MySQL Error {1}: {2}!'.format(query, e.args[0], e.args[1])}
-            return json.dumps(output, indent=2)
+            try:
+                connect_db()
+            except:
+                output = {'aaData':[], 'error':'Error in query `{0}`! MySQL Error {1}: {2}!'.format(query, e.args[0], e.args[1])}
+                return json.dumps(output, indent=2)
 
         headers = [desc[0] for desc in curs.description]
         rows = curs.fetchall()
@@ -206,8 +218,11 @@ class Root:
             try:
                 curs.execute(query_total)
             except MySQLdb.Error, e:
-                output = {'aaData':[], 'error':'Error in query `{0}`! MySQL Error {1}: {2}!'.format(query_total, e.args[0], e.args[1])}
-                return json.dumps(output, indent=2)
+                try:
+                    connect_db()
+                except:
+                    output = {'aaData':[], 'error':'Error in query `{0}`! MySQL Error {1}: {2}!'.format(query_total, e.args[0], e.args[1])}
+                    return json.dumps(output, indent=2)
 
             headers_tot = [desc[0] for desc in curs.description]
             rows_tot = curs.fetchall()
@@ -236,8 +251,12 @@ class Root:
 
         else:
             calc_rows = rows
+            del rows
 
-        #if isinstance(calc_rows[0][0], datetime):
+        if (not calc_rows) or (not calc_rows[0:1]):
+            output = {'aaData':[], 'error':'The select is empty!'}
+            return json.dumps(output, indent=2)
+
         if isinstance(calc_rows[0][0], datetime.datetime):
             isDate = True
         else:
@@ -254,6 +273,14 @@ class Root:
         global glob_links
         output = Template(filename=TWISTER_PATH + '/server/httpserver/template/error.htm')
         return output.render(title='Error 404', links=glob_links, msg='Sorry, this page does not exist!')
+
+#
+
+def connect_db():
+    global conn, curs
+    conn = MySQLdb.connect(host=db_config.get('server'), db=db_config.get('database'),
+                           user=db_config.get('user'), passwd=db_config.get('password'))
+    curs = conn.cursor()
 
 #
 
@@ -287,10 +314,10 @@ if __name__ == '__main__':
     glob_reports = dbparser.getReports()
     glob_redirects = dbparser.getRedirects()
     glob_links = ['Home'] + glob_reports.keys() + glob_redirects.keys() + ['Help']
-    #
-    conn = MySQLdb.connect(host=db_config.get('server'), db=db_config.get('database'),
-                           user=db_config.get('user'), passwd=db_config.get('password'))
-    curs = conn.cursor()
+
+    conn = None
+    curs = None
+    connect_db()
 
     # Find server IP
     serverIP = socket.gethostbyname(socket.gethostname())
@@ -300,11 +327,15 @@ if __name__ == '__main__':
 
     root = Root()
 
-    cherrypy.config.update({'server.socket_host': '127.0.0.1', 'server.socket_port': serverPort})
+    cherrypy.config.update({'server.socket_host': '11.126.32.20', 'server.socket_port': serverPort})
 
     conf = {'/static': {
                 'tools.staticdir.on': True,
                 'tools.staticdir.dir': TWISTER_PATH + '/server/httpserver/static',
+                },
+            '/jar': {
+                'tools.staticdir.on': True,
+                'tools.staticdir.dir': TWISTER_PATH + '/client/userinterface/ui',
                 },
             }
 

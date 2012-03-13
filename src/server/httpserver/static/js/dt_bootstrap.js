@@ -50,8 +50,7 @@ $.extend( $.fn.dataTableExt.oPagination, {
 			if ( oPaging.iTotalPages < iListLength) {
 				iStart = 1;
 				iEnd = oPaging.iTotalPages;
-			}
-			else if ( oPaging.iPage <= iHalf ) {
+			} else if ( oPaging.iPage <= iHalf ) {
 				iStart = 1;
 				iEnd = iListLength;
 			} else if ( oPaging.iPage >= (oPaging.iTotalPages-iHalf) ) {

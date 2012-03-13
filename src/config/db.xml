@@ -49,8 +49,8 @@
 		SQLQuery="SELECT status AS 'Status',COUNT(status) AS 'Count' FROM repo_test_view  WHERE (release_id = '@Release@' AND build_id = '@Build@') group by status"
 		/>
 	<report ID="Pass Rate" Type="LineChart"
-		SQLQuery="SELECT tdate AS 'Date', COUNT(status) AS 'Pass Rate (%)' FROM repo_test_view WHERE tdate &gt;= '@DateStart@' AND tdate &lt;= '@zDateEnd@' AND status='Pass' @Other@ GROUP BY tdate"
-		SQLTotal="SELECT tdate AS 'Date', COUNT(status) AS 'Pass Rate (%)' FROM repo_test_view WHERE tdate &gt;= '@DateStart@' AND tdate &lt;= '@zDateEnd@' @Other@ GROUP BY tdate"
+		SQLQuery="SELECT tdate AS 'Date', COUNT(status) AS 'Pass Rate (%)' FROM repo_test_view WHERE tdate &gt;='@DateStart@' AND tdate &lt;='@zDateEnd@' AND status='Pass' @Other@ GROUP BY tdate"
+		SQLTotal="SELECT tdate AS 'Date', COUNT(status) AS 'Pass Rate (%)' FROM repo_test_view WHERE tdate &gt;='@DateStart@' AND tdate &lt;='@zDateEnd@' @Other@ GROUP BY tdate"
 		/>
 
 	<redirect ID="goto Yahoo" Path="http://ro.yahoo.com" />

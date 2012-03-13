@@ -18,7 +18,7 @@ def populate():
     #
     for i in range(1, 11):
         curs.execute('INSERT INTO repo_station (name, ip, description) VALUES (%s, %s, %s)',
-            ['Gigi computer %i' % i, '192.168.1.%i' % i, 'Computerul lui gigi'])
+            ['Workstation %i' % i, '192.168.1.%i' % i, 'Some Workstation'])
     #
     for i in range(1, 21): # Suite
         #
@@ -49,7 +49,7 @@ def populate():
                 # Pass, fail, skip, abort, not exec, timeout
                 rnd_status = random.choice(['Pass','Pass','Pass','Pass','Pass','Pass',  'Fail','Fail','Fail','Fail',  'Skip','Abort','Not-exec','Timeout'])
                 rnd_suite = str(random.randrange(0, 20))
-                rnd_station = str(random.randrange(0, 10))
+                rnd_station = str(random.randrange(1, 11))
                 #
                 curs.execute('INSERT INTO repo_test_view (release_id, build_id, suite_id, station_id, tdate, status) VALUES (%s, %s, %s, %s, %s, %s)',
                     [str(r), str(b), rnd_suite, rnd_station, datetime.datetime(2012, month, day), rnd_status])

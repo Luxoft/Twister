@@ -43,7 +43,7 @@
 			% else:
 			<li><a href="/rep/${link}"><i class="icon-arrow-right"></i> ${link}</a></li>
 			% endif
-		% endfor ### End for ###
+		% endfor
 		</ul>
 		</div> <!-- /span 2 -->
 
@@ -65,7 +65,7 @@
 
 		<h2>${title} Report</h2><h4>for ${user_choices}</h4><br>
 
-		<table cellpadding="0" cellspacing="0" border="0" class="table table-striped table-bordered" id="table1">
+		<table cellpadding="0" cellspacing="0" border="0" class="table table-bordered" id="table1">
 			<thead>
 				<tr>
 					% for header in report:
@@ -116,7 +116,7 @@
 		</form>
 		</div>
 
-	% else: ### If no report or option is defined => Home page ###
+	% else:  # # #  If no report or option is defined, this is the Home Page  # # #
 
 		<div class="hero-unit">
 			<h2>Twister reporting</h2><br><br>
@@ -126,7 +126,7 @@
 			</div>
 		</div>
 
-	% endif ### End of big IF ###
+	% endif  # # #  End of big IF  # # #
 
 		</div> <!-- /span 8 -->
 
@@ -143,64 +143,121 @@
 <script type="text/javascript" src="/static/js/jquery.flot.min.js"></script>
 <script type="text/javascript" src="/static/js/jquery.flot.pie.min.js"></script>
 
-% if chart == 'PieChart':
+<script type="text/javascript" charset="utf-8" src="/static/js/jquery.dataTables.js"></script>
+<script type="text/javascript" charset="utf-8" src="/static/js/dt_bootstrap.js"></script>
 
-<!-- ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== =====
-     PIE CHART SCRIPT
-===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== -->
+<script type="text/javascript" charset="utf-8">
 
-<script type="text/javascript">
-$(function () {
+var dChart = [];
+var asInitVals = new Array();
 
-	var dChart = [];
+$(document).ready(function() {
 
 	// Generate the dataset
 	$.getJSON("${ajax_link}",
+		// On success, execute the following :
 		function(jdata) {
-			$.each(jdata['aaData'], function(i, item){
-				if ( i > 0 ) { dChart[i-1] = { label: item[0], data: item[1] } };
-			});
 
-	$.plot($("#piegraph"), dChart,
-	{
-		series: {
-			pie: { show: true, radius:145,
-				//innerRadius: 0.25,
-				label: { show: true, radius: 2/3,
-					formatter: function(label, series){
-						return '<div style="font-size:12pt;text-align:center;padding:2px;color:white;">'+label+'<br/>'+Math.round(series.percent)+'%</div>';
-					}, threshold: 0.1,
+		// Table initialisation
+		oTable = $('#table1').dataTable({
+			"sDom": "<'row'<'span6'l><'span6'f>r>t<'row'<'span6'i><'span6'p>>",
+			"sPaginationType": "bootstrap",
+			"bProcessing": true,
+			"bDeferRender": true,
+			"aaData": jdata['aaData'],
+			"oLanguage": {"sLengthMenu": "_MENU_ records per page"},
+
+			"fnRowCallback": function( nRow, aData, iDisplayIndex ) {
+					// For each column from this row, if...
+					for (var i=0 ; i<aData.length ; i++) {
+						if ( aData[i] == "Pass" ) {
+							$('td:eq('+i+')', nRow).closest("tr").css("background-color", "#e1ffe1");
+							break;
+						} else if ( aData[i] == "Fail" ) {
+							$('td:eq('+i+')', nRow).closest("tr").css("background-color", "#ffecec");
+							break;
+						} else if ( aData[i] == "Timeout" ) {
+							$('td:eq('+i+')', nRow).closest("tr").css("background-color", "#eee");
+							break;
+						}
+					}
 				},
+
+		});
+
+		$("tfoot input").keyup( function () {
+			oTable.fnFilter( this.value, $("tfoot input").index(this) );
+		});
+
+		$("tfoot input").each( function (i) {
+			asInitVals[i] = this.value;
+		});
+
+		$("tfoot input").focus( function () {
+			if ( this.className == "search_init" )
+			{
+				this.className = "";
+				this.value = "";
 			}
-		},
-		grid: { hoverable: true, },
-		legend: { show: false },
-	});
+		});
 
-	$("#piegraph").bind("plothover", function(event, pos, obj) {
-		if (!obj) return;
-		percent = parseFloat(obj.series.percent).toFixed(2);
-		$("#hover").html('<span style="font-size:12pt;font-weight:bold;color:'+obj.series.color+'">'+obj.series.label+' ('+percent+'%)</span>');
-	});
+		$("tfoot input").blur( function (i) {
+			if ( this.value == "" )
+			{
+				this.className = "search_init";
+				this.value = asInitVals[$("tfoot input").index(this)];
+			}
+		});
 
-	});
 
-});
-</script>
+% if chart == 'PieChart':
+
+/* ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== =====
+     PIE CHART SCRIPT
+===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== */
+
+		$.each(jdata['aaData'], function(i, item) {
+			if ( item[0] == "Pass" ) {
+				if ( i > 0 ) { dChart[i-1] = { label: item[0], data: item[1], color: "#00611c" } };
+			} else if ( item[0] == "Fail" ) {
+				if ( i > 0 ) { dChart[i-1] = { label: item[0], data: item[1], color: "#cd1111" } };
+			} else if ( item[0] == "Timeout" ) {
+				if ( i > 0 ) { dChart[i-1] = { label: item[0], data: item[1], color: "#3e3e3e" } };
+			} else {
+				if ( i > 0 ) { dChart[i-1] = { label: item[0], data: item[1], color: "#fcd116" } };
+			}
+		});
+
+		$.plot($("#piegraph"), dChart,
+		{
+			series: {
+				pie: {
+					show: true,
+					radius:145,
+					threshold: 0.1,
+					label: { show: true, radius: 2/3,
+						formatter: function(label, series) {
+							return '<div style="font-size:12pt;text-align:center;padding:2px;color:white;">'+label+'<br/>'+Math.round(series.percent)+'%</div>';
+						}
+					},
+				} // End of pie
+			},
+			grid: { hoverable: true, },
+			legend: { show: false },
+		});
+
+		$("#piegraph").bind("plothover", function(event, pos, obj) {
+			if (!obj) return;
+			percent = parseFloat(obj.series.percent).toFixed(2);
+			$("#hover").html('<span style="font-size:12pt;font-weight:bold;color:'+obj.series.color+'">'+obj.series.label+' ('+percent+'%)</span>');
+		});
+
 
 % elif chart == 'LineChart' or chart == 'BarChart':
 
-<!-- ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== =====
+/* ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== =====
      LINE CHART   AND   BAR CHART SCRIPTS
-===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== -->
-
-<script type="text/javascript">
-
-	var dChart = [];
-
-	// Generate the dataset
-	$.getJSON("${ajax_link}",
-		function(jdata) {
+===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== */
 
 		$.each(jdata['aaData'], function(i, item) {
 			// Date must be transformed into big number
@@ -247,55 +304,15 @@ $(function () {
 			xaxis: { mode: "time", minTickSize: [1, "day"], },
 		});
 
-});
+% endif  # # #  End of charts scripts  # # #
+
+}); // End of ajax
+
+}); // End of document ready
+
 </script>
 
-% endif ### End of charts scripts ###
-
-<script type="text/javascript" src="/static/js/jquery.dataTables.js"></script>
-<script type="text/javascript" charset="utf-8" src="/static/js/dt_bootstrap.js"></script>
-
-<script type="text/javascript" charset="utf-8">
-var asInitVals = new Array();
-
-/* Table initialisation */
-$(document).ready(function() {
-	oTable = $('#table1').dataTable({
-		"sDom": "<'row'<'span6'l><'span6'f>r>t<'row'<'span6'i><'span6'p>>",
-		"sPaginationType": "bootstrap",
-		"bProcessing": true,
-		"bDeferRender": true,
-		"sAjaxSource": "${ajax_link}",
-		"oLanguage": {"sLengthMenu": "_MENU_ records per page"},
-	} );
-
-	$("tfoot input").keyup( function () {
-		oTable.fnFilter( this.value, $("tfoot input").index(this) );
-	} );
-
-	$("tfoot input").each( function (i) {
-		asInitVals[i] = this.value;
-	} );
-
-	$("tfoot input").focus( function () {
-		if ( this.className == "search_init" )
-		{
-			this.className = "";
-			this.value = "";
-		}
-	} );
-
-	$("tfoot input").blur( function (i) {
-		if ( this.value == "" )
-		{
-			this.className = "search_init";
-			this.value = asInitVals[$("tfoot input").index(this)];
-		}
-	} );
-} );
-</script>
-
-% endif ### End of reports ###
+% endif  # # #  End of reports  # # #
 
 </body>
 </html>
