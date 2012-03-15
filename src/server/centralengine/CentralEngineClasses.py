@@ -302,6 +302,9 @@ class CentralEngine:
         # String status values
         self.executionStatus = STATUS_STOP
         self.config_path = config_path
+        # Central engine timers
+        self.start_time = 0
+        self.elapsed_time = 0
         # Build all Parsers + EP + Files structure
         logDebug('CE: Starting Central Engine...') ; ti = time.clock()
         self._initialize(reset=True)
@@ -498,7 +501,7 @@ class CentralEngine:
         exactly as the user defined them.
         '''
 
-        print('Will commit to database in 3 seconds...')
+        logDebug('CE: Preparing to save into database...')
         time.sleep(3)
 
         # Inject extra information, then commit
@@ -510,7 +513,8 @@ class CentralEngine:
 
             ep.toDatabase()
 
-        print('Ok, done saving to database!')
+        logDebug('CE: Ok, done saving to database!')
+        return 1
 
 
 # --------------------------------------------------------------------------------------------------
@@ -538,11 +542,20 @@ class CentralEngine:
     def getExecStatusAll(self):
         '''
         Return execution status for all EPs. (stopped, paused, running)
+        Used in the GUI.
         '''
         reversed = dict((v,k) for k,v in dictStatus.iteritems())
         # Will return a string: stopped, paused, OR running
         status = reversed[self.executionStatus]
-        return status
+        if self.start_time:
+            start_time = self.start_time.strftime('%Y-%m-%d %H:%M:%S')
+        else:
+            start_time = 'xxxx-xx-xx'
+        # If the engine is not stopped, update elapsed time
+        if self.executionStatus != STATUS_STOP:
+            self.elapsed_time = str(datetime.datetime.today() - self.start_time).split('.')[0]
+        # Status + start time + elapsed time
+        return '{0};{1};{2}'.format(status, start_time, self.elapsed_time)
 
 
     def setExecStatus(self, epid, new_status, msg=''):
@@ -621,6 +634,9 @@ class CentralEngine:
             self._initialize(reset=False)
             self.resetLogs()
             logWarning('CE: RESET operation took %.4f seconds.' % (time.clock()-ti))
+            # Central engine start time and elapsed time
+            self.start_time = datetime.datetime.today() # strftime('%Y-%m-%d %H:%M:%S')
+            self.elapsed_time = 0
 
         # Change test status to PENDING, for all files, on status START, from status STOP
         if new_status == STATUS_RUNNING and self.executionStatus == STATUS_STOP:
@@ -920,6 +936,7 @@ class CentralEngine:
         '''
         Set extra information for EpId > Filename.
         Information like Crash detected, OS, IP.
+        This can be called from the Runner.
         '''
         if not self.searchEP(epid):
             logError('CE ERROR! EpId `%s` is not in the list of defined EpIds: `%s`!' % \
