@@ -115,6 +115,25 @@ class TSCParser:
         return baseLogsPath + os.sep + str(logFile.text)
 
 
+    def getEmailConfig(self):
+        '''
+        Returns the e-mail configuration.
+        After Central Engine stops, an e-mail must be sent to the people interested.
+        '''
+        # Read email.xml
+        # ...
+
+        res = {}
+        res['Enabled'] = ''
+        res['SMTPPath'] = ''
+        res['SMTPUser'] = ''
+        res['SMTPPwd'] = ''
+        res['From'] = ''
+        res['To'] = ''
+        res['Message'] = ''
+        return res
+
+
     def getSuiteInfo(self, suite):
         '''
         Returns a list with information about all available Suites from Master XML.

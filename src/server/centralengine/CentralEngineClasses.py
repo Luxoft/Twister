@@ -447,30 +447,38 @@ class CentralEngine:
         return msg_str
 
 
-    def sendMail(self, smtp_server, username, password, message):
+    def sendMail(self):
         '''
         Send e-mail.
         Server must be in the form `adress:port`.
         Username and password are used for autentification.
         '''
 
+        eMailConfig = self.parser.getEmailConfig()
+
+        if (not eMailConfig['Enabled']) or (eMailConfig['Enabled'] in ['0', 'false']):
+            return
+
+        logPath = self.parser.getLogFileForType('logSummary')
+        logSummary = open(logPath).read()
+
         head = ''
-        head += 'Tests executed: %i\n' % len(message.strip().splitlines())
-        head += 'Tests passed: %i\n' % message.count('*PASS*')
-        head += 'Tests failed: %i\n' % message.count('*FAIL*')
-        head += 'Tests aborted: %i\n' % message.count('*ABORTED*')
-        head += 'Tests not exec: %i\n' % message.count('*NO EXEC*')
-        head += 'Tests timeout: %i\n' % message.count('*TIMEOUT*')
-        head += 'Pass rate: %.2f%%\n\nDetails:\n\n' % (float(message.count('*PASS*'))/ len(message.strip().splitlines())* 100)
+        head += 'Tests executed: %i\n' % len(logSummary.strip().splitlines())
+        head += 'Tests passed: %i\n' % logSummary.count('*PASS*')
+        head += 'Tests failed: %i\n' % logSummary.count('*FAIL*')
+        head += 'Tests aborted: %i\n' % logSummary.count('*ABORTED*')
+        head += 'Tests not exec: %i\n' % logSummary.count('*NO EXEC*')
+        head += 'Tests timeout: %i\n' % logSummary.count('*TIMEOUT*')
+        head += 'Pass rate: %.2f%%\n\nDetails:\n\n' % (float(logSummary.count('*PASS*'))/ len(logSummary.strip().splitlines())* 100)
         head += ' Suite :: Ep :: Test file                       |   Status    |  Elapsed   |      Date  Time\n'
 
-        msg = MIMEText(head + message)
-        msg['From'] = 'Cristi Constantin <CrConstantin@luxoft.com>'
-        msg['To'] = 'TSC Twister List <tsc_twister_list@itcnetworks.ro>'
+        msg = MIMEText(head + logSummary + eMailConfig['Message'])
+        msg['From'] = eMailConfig['From']
+        msg['To'] = eMailConfig['To']
         msg['Subject'] = 'Central Engine status [{0}]'.format(time.strftime("%Y.%m.%d %H.%M"))
 
         try:
-            server = smtplib.SMTP(smtpserver)
+            server = smtplib.SMTP(eMailConfig['SMTPPath'])
         except:
             logError('SMTP: Cannot connect to SMTP server!')
             return False
@@ -479,7 +487,7 @@ class CentralEngine:
             server.ehlo()
             server.starttls()
             server.ehlo()
-            server.login(username, password)
+            server.login(eMailConfig['SMTPUser'], eMailConfig['SMTPPwd'])
             logDebug('SMTP connect success!')
         except:
             logError('SMTP: Cannot autentificate to SMTP server!')
@@ -587,13 +595,6 @@ class CentralEngine:
                 else:
                     logError('Cannot change status for EpId %s!' % epid)
 
-        # If CE is running and all Stations are stopped (they have status 0)...
-        # This function is called for each EP, but the e-mail will be sent only when all EPs are stopped
-        #if self.executionStatus == STATUS_RUNNING and \
-        #    not sum([ep.executionStatus for ep in self.EpIds if ep.id in self.parser.getActiveEpIds()]):
-        #    #self.SendMail(...)
-        #    print '... I should send the Status E-mail...'
-
         # If all Stations are stopped, the Central Engine must also stop!
         # This is important, so that in the Java interface, the buttons will change to [Play | Stop]
         if not sum([ep.executionStatus for ep in self.EpIds if ep.id in self.parser.getActiveEpIds()]):
@@ -602,10 +603,8 @@ class CentralEngine:
                 self.executionStatus = STATUS_STOP
                 logDebug('CE: All stations stopped! Central engine will also stop.')
 
-                # !!! Commit all information
-                # In the FUTURE, this will happen from the GUI
-                import thread
-                thread.start_new_thread(self.commitToDatabase, ())
+                # !!! Send mail
+                # self.SendMail(...)
 
         return ret
 

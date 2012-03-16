@@ -33,9 +33,11 @@ Twister has the following dependencies:
 
 import os, sys
 import glob
-
+import urllib2
 import tarfile
 import subprocess
+import platform
+
 from distutils import file_util
 from distutils import dir_util
 
@@ -55,7 +57,7 @@ GROUP = ''
 # Python executable. Alternatively, it can be "python2.7".
 PYTHON_EXE = sys.executable
 # The proxy is used only if `setuptools` is not installed, or some dependencies are missing
-HTTP_PROXY = 'http://CrConstantin:1XXX@http-proxy.itcnetworks:3128/'
+HTTP_PROXY = 'http://CrConstantin:1XXX@http-proxy.itcnetworks:3128'
 
 
 # If installer was run with parameter "--server"
@@ -99,32 +101,44 @@ try:
     users.pop(i)
 except: pass
 
-while 1:
-    print('Please select the user you are installing for:')
-    for i in range(1, len(users)+1):
-        print('[%i] : %s' % (i, users[i-1]))
+# If there are more users, choose
+if len(users) > 1:
 
-    selected = raw_input('Your choice: ')
-    try:
-        usr = int(selected)
-    except:
-        usr = None
-        print('`%s` is not a valid choice!' % selected)
-        continue
-    if usr not in range(1, len(users)+1):
-        print('`%s` is not a valid choice!' % selected)
-        continue
+    while 1:
+        print('Please select the user you are installing for:')
+        for i in range(1, len(users)+1):
+            print('[%i] : %s' % (i, users[i-1]))
 
-    USER = users[usr - 1]
+        selected = raw_input('Your choice: ')
+        try:
+            usr = int(selected)
+        except:
+            usr = None
+            print('`%s` is not a valid choice!' % selected)
+            continue
+        if usr not in range(1, len(users)+1):
+            print('`%s` is not a valid choice!' % selected)
+            continue
+
+        USER = users[usr - 1]
+        g = subprocess.check_output(['groups', USER])
+        GROUP = ''.join(g.split()[:3])
+
+        selected = raw_input('\nYou selected user `%s` from group `%s`.\nIs that correct? (yes/no): ' % \
+            (USER, GROUP))
+        if selected.lower() == 'yes':
+            break
+        else:
+            continue
+
+# For 1 user, use that user
+else:
+
+    USER = users[0]
     g = subprocess.check_output(['groups', USER])
     GROUP = ''.join(g.split()[:3])
 
-    selected = raw_input('\nYou selected user `%s` from group `%s`.\nIs that correct? (yes/no): ' % \
-        (USER, GROUP))
-    if selected.lower() == 'yes':
-        break
-    else:
-        continue
+del users
 
 
 if TO_INSTALL == 'server':
@@ -180,6 +194,27 @@ else:
     ]
 
 
+# Using HTTP_PROXY environment variable?
+if HTTP_PROXY:
+    os.putenv('HTTP_PROXY', HTTP_PROXY)
+    proxy_support = urllib2.ProxyHandler({'http': HTTP_PROXY})
+    opener = urllib2.build_opener(proxy_support, urllib2.HTTPHandler)
+    urllib2.install_opener(opener)
+
+# Checking internet connection and Pypi availability
+try:
+    pypi = urllib2.urlopen('http://pypi.python.org/simple/')
+    if pypi.read(255):
+        INTERNET = True
+        print('\nInternet connection is available.\n')
+    else:
+        INTERNET = False
+        print('\nNo internet connection available!\n')
+except:
+    INTERNET = False
+    print('\nNo internet connection available!\n')
+
+
 # --------------------------------------------------------------------------------------------------
 # Starting the install process
 # --------------------------------------------------------------------------------------------------
@@ -187,10 +222,6 @@ else:
 root_folder = os.sep.join( os.getcwd().split(os.sep)[:-1] )
 cwd_path = os.getcwd() + os.sep
 pkg_path = cwd_path + 'packages/'
-
-# Using HTTP_PROXY environment variable?
-if HTTP_PROXY:
-    os.putenv('HTTP_PROXY', HTTP_PROXY)
 
 try:
     import setuptools
@@ -206,6 +237,7 @@ except:
     if distribute_file:
         try: os.remove(distribute_file[0])
         except: print('Installer cannot delete file `%s`! You must delete it yourself!' % distribute_file[0])
+    del distribute_file
 
 print('')
 
@@ -239,22 +271,38 @@ for i in range(len(dependencies)):
     # Internet connection available
     # ----------------------------------------------------------------------------------------------
 
-    if distribute_file:
+    if INTERNET:
 
-        print('\n~~~ Internet connection available, installing `%s` from Python repositories ~~~\n' % lib_name)
+        # MySQL Python requires Python-DEV and must be installed from repositories
+        if lib_name == 'MySQL-python':
+            print('\n~~~ Installing `%s` from System repositories ~~~\n' % lib_name)
 
-        tcr_proc = subprocess.Popen(['easy_install', lib_name], cwd=pkg_path)
-        tcr_proc.wait()
-        del tcr_proc
+            if platform.dist()[0] == 'SuSE':
+                tcr_proc = subprocess.Popen(['zypper', 'install', 'python-mysql'], cwd=pkg_path)
+            if platform.dist()[0] == 'fedora':
+                tcr_proc = subprocess.Popen(['yum', '-y', 'install', 'python-mysql'], cwd=pkg_path)
+            else:
+                tcr_proc = subprocess.Popen(['apt-get', 'install', 'python-mysqldb', '--yes'], cwd=pkg_path)
 
-        print('\n~~~ Successfully installed %s ~~~\n' % lib_name)
+            tcr_proc.wait()
+
+        # All other packages are installed with easy_install
+        else:
+            print('\n~~~ Installing `%s` from Python repositories ~~~\n' % lib_name)
+            tcr_proc = subprocess.Popen(['easy_install', lib_name], cwd=pkg_path)
+            tcr_proc.wait()
+
+        if tcr_proc.returncode:
+            print('\n~~~ `%s` cannot be installed! It MUST be installed manually! ~~~\n' % lib_name)
+        else:
+            print('\n~~~ Successfully installed %s ~~~\n' % lib_name)
 
     # ----------------------------------------------------------------------------------------------
     # No internet connection
     # ----------------------------------------------------------------------------------------------
 
     else:
-        print('\n~~~ No internet connection, installing `%s` from tar files ~~~\n' % lib_name)
+        print('\n~~~ Installing `%s` from tar files ~~~\n' % lib_name)
 
         p_library = glob.glob(pkg_path + lib_name + '*.tar.gz')
 
