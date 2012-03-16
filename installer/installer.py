@@ -1,34 +1,11 @@
 
 '''
-Twister has the following dependencies:
-
-- Python 2.7	: The Central Engine, the Execution Process, the Test Runner, the Resource Allocator
-		: and the reporting framework are all written in Python.
-
-- BeautifulSoup	: www.crummy.com/software/BeautifulSoup/
-		: Parses XML and HTML documents easily
-		: (BeautifulSoup is included in `trd_party` folder and should not be installed)
-
-- MySQL-python	: mysql-python.sourceforge.net/
-		: Connects to MySQL databases
-		: (MySQL-python requires the python2.7-dev headers in order to compile)
-
-- CherryPy	: www.cherrypy.org/
-		: High performance, minimalist Python web framework
-		: (CherryPy is used to serve the reports and the Java Applet)
-
-- Mako		: www.makotemplates.org/
-		: Hyperfast and lightweight templating for the Python platform
-		: (Mako is used for the reports)
-
-- Beaker	: beaker.readthedocs.org/
-		: Library for caching and sessions, in web applications and stand-alone Python scripts
-		: (Beaker is optional; it is used by Mako, to cache the pages for better performance)
-
-- pExpect	: sourceforge.net/projects/pexpect/
-		: Spawn child applications, control them, respond to expected patterns in their output
-		: (pExpect is optional; it is used by the Python test cases, to connect to FTP/ Telnet)
-
+Twister Installer
+Requires Python 2.7 and must be run as ROOT.
+If you are installing the Twister Server, it is strongly recommended
+to have an internet connection, or else, you must manually install :
+ - Python-DEV and
+ - python-mysql.
 '''
 
 import os, sys
@@ -41,12 +18,12 @@ import platform
 from distutils import file_util
 from distutils import dir_util
 
-if not subprocess.check_output('id').startswith('uid=0(root)'):
-    print('Installer must be run as ROOT! Exiting!\n')
-    exit(1)
-
 if sys.version_info[0] != 2 and sys.version_info[1] != 7:
     print('Python version must be 2.7! Exiting!\n')
+    exit(1)
+
+if not subprocess.check_output('id').startswith('uid=0(root)'):
+    print('Installer must be run as ROOT! Exiting!\n')
     exit(1)
 
 
@@ -56,9 +33,15 @@ GROUP = ''
 
 # Python executable. Alternatively, it can be "python2.7".
 PYTHON_EXE = sys.executable
-# The proxy is used only if `setuptools` is not installed, or some dependencies are missing
+
+# The proxy is used only if you need a proxy to connect to internet,
+# And `setuptools` is not installed, or some dependencies are missing
 HTTP_PROXY = 'http://CrConstantin:1XXX@http-proxy.itcnetworks:3128'
 
+
+# --------------------------------------------------------------------------------------------------
+# Install  Server  or  Client ?
+# --------------------------------------------------------------------------------------------------
 
 # If installer was run with parameter "--server"
 if sys.argv[1:2] == ['--server']:
@@ -91,6 +74,10 @@ else:
             print('`%s` is not a valid choice!' % selected)
         del selected
 
+
+# --------------------------------------------------------------------------------------------------
+# For what user will you install ?
+# --------------------------------------------------------------------------------------------------
 
 # Find the users
 users = os.listdir('/home/')
@@ -131,7 +118,7 @@ if len(users) > 1:
         else:
             continue
 
-# For 1 user, use that user
+# If there's only 1 user, no need to choose
 else:
 
     USER = users[0]
@@ -140,6 +127,10 @@ else:
 
 del users
 
+
+# --------------------------------------------------------------------------------------------------
+# Dependencies lists and configs
+# --------------------------------------------------------------------------------------------------
 
 if TO_INSTALL == 'server':
     # The dependencies must be installed in this exact order:
@@ -179,11 +170,13 @@ if TO_INSTALL == 'server':
         'src/lib/',
         'src/trd_party/',
     ]
+
 else:
     # The client doesn't have important dependencies
     dependencies = ['pexpect']
     library_names = ['pexpect']
     library_versions = ['2.3']
+
     # Files to move in twister folder
     to_copy = [
         'bin/start_ep',
@@ -210,6 +203,7 @@ try:
     else:
         INTERNET = False
         print('\nNo internet connection available!\n')
+    del pypi
 except:
     INTERNET = False
     print('\nNo internet connection available!\n')
@@ -328,12 +322,15 @@ for i in range(len(dependencies)):
         else:
             print('\n~~~ Successfully installed `%s` ~~~\n' % lib_name)
 
-#
+
+# --------------------------------------------------------------------------------------------------
+# Start copying files
+# --------------------------------------------------------------------------------------------------
 
 INSTALL_PATH = '/home/%s/twister/' % USER
 print('')
 
-# Delete previous version of Twister!
+# This will DELETE previous versions of Twister!
 try: dir_util.remove_tree(INSTALL_PATH)
 except: pass
 try: os.mkdir(INSTALL_PATH)
