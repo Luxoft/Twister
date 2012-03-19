@@ -10,6 +10,7 @@ to have an internet connection, or else, you must manually install :
 
 import os, sys
 import glob
+import shutil
 import urllib2
 import tarfile
 import subprocess
@@ -51,11 +52,16 @@ if sys.argv[1:2] == ['--server']:
 elif sys.argv[1:2] == ['--client']:
     TO_INSTALL = 'client'
 
+# If installer was run with parameter "--both"
+elif sys.argv[1:2] == ['--both']:
+    TO_INSTALL = 'both'
+
 else:
     while 1:
         print('\nPlease select what you wish to install:')
         print('[1] the Twister clients')
         print('[2] the Twister servers')
+        print('[3] both client and server')
         print('[0] exit, don\'t install anything')
 
         selected = raw_input('Your choice: ')
@@ -66,6 +72,10 @@ else:
         elif selected == '2':
             print('Will install servers.\n')
             TO_INSTALL = 'server'
+            break
+        elif selected == '3':
+            print('Will install both client and server.\n')
+            TO_INSTALL = 'both'
             break
         elif selected in ['0', 'q', 'x']:
             print('Ok, exiting!\n')
@@ -113,9 +123,10 @@ if len(users) > 1:
 
         selected = raw_input('\nYou selected user `%s` from group `%s`.\nIs that correct? (yes/no): ' % \
             (USER, GROUP))
-        if selected.lower() == 'yes':
+        if selected.strip().lower() == 'yes':
             break
         else:
+            print('Canceling...')
             continue
 
 # If there's only 1 user, no need to choose
@@ -127,6 +138,38 @@ else:
 
 del users
 
+
+# --------------------------------------------------------------------------------------------------
+# Previous installations of Twister
+# --------------------------------------------------------------------------------------------------
+
+INSTALL_PATH = '/home/%s/twister/' % USER
+
+if os.path.exists(INSTALL_PATH):
+    print('WARNING! Another version of Twister is installed at `%s`!' % INSTALL_PATH)
+    print('If you continue, all files from that folder will be DELETED,')
+    print('Only the `config` folder will be saved!')
+    selected = raw_input('Are you sure you want to continue? (yes/no): ')
+
+    if selected.strip().lower() == 'yes':
+
+        if os.path.exists(INSTALL_PATH + 'config'):
+            print('Back-up `config` folder...')
+            shutil.move(INSTALL_PATH + 'config', os.getcwd())
+
+        # Deleting previous versions of Twister
+        try: dir_util.remove_tree(INSTALL_PATH)
+        except: pass
+        try: os.mkdir(INSTALL_PATH)
+        except: pass
+
+        if os.path.exists(os.getcwd() + '/config'):
+            print('Moving `config` folder back...')
+            shutil.move(os.getcwd() + '/config', INSTALL_PATH)
+    else:
+        print('\nPlease backup all your data, then restart the installer.')
+        print('Exiting.\n')
+        exit(0)
 
 # --------------------------------------------------------------------------------------------------
 # Dependencies lists and configs
@@ -171,7 +214,7 @@ if TO_INSTALL == 'server':
         'src/trd_party/',
     ]
 
-else:
+elif TO_INSTALL == 'client':
     # The client doesn't have important dependencies
     dependencies = ['pexpect']
     library_names = ['pexpect']
@@ -184,6 +227,50 @@ else:
         'src/client/',
         'src/common/__init__.py',
         'src/common/constants.py',
+    ]
+
+else:
+    # Client + Server
+    dependencies = [
+        'pexpect',
+        'Beaker',
+        'Mako',
+        'CherryPy',
+        'MySQL-python',
+    ]
+
+    # Import names used for testing
+    library_names = [
+        'pexpect',
+        'beaker',
+        'mako',
+        'cherrypy',
+        'MySQLdb',
+    ]
+
+    # Versions
+    library_versions = [
+        '2.3',
+        '1.6',
+        '0.6',
+        '3.2',
+        '1.2',
+    ]
+
+    # Files to move in twister folder
+    to_copy = [
+        'bin/start_ep',
+        'bin/start_ce',
+        'bin/start_ra',
+        'bin/start_httpserver',
+        'demo/',
+        'doc/',
+        'src/client/',
+        'src/server/',
+        'src/common/',
+        'src/config/',
+        'src/lib/',
+        'src/trd_party/',
     ]
 
 
@@ -221,17 +308,18 @@ try:
     import setuptools
     print('Python setuptools is installed. Ok.')
 except:
-    # Try to install python distribute (the new version of setuptools)
-    tcr_proc = subprocess.Popen([PYTHON_EXE, '-u', (pkg_path+'distribute_setup.py')], cwd=cwd_path)
-    tcr_proc.wait()
-    del tcr_proc
+    if INTERNET:
+        # Try to install python distribute (the new version of setuptools)
+        tcr_proc = subprocess.Popen([PYTHON_EXE, '-u', (pkg_path+'distribute_setup.py')], cwd=cwd_path)
+        tcr_proc.wait()
+        del tcr_proc
 
-    # Remove the downloaded file
-    distribute_file = glob.glob('distribute*.tar.gz')
-    if distribute_file:
-        try: os.remove(distribute_file[0])
-        except: print('Installer cannot delete `distribute*.tar.gz`! You must delete it yourself!')
-    del distribute_file
+        # Remove the downloaded file
+        distribute_file = glob.glob('distribute*.tar.gz')
+        if distribute_file:
+            try: os.remove(distribute_file[0])
+            except: print('Installer cannot delete `distribute*.tar.gz`! You must delete it yourself!')
+        del distribute_file
 
 print('')
 
@@ -327,20 +415,15 @@ for i in range(len(dependencies)):
 # Start copying files
 # --------------------------------------------------------------------------------------------------
 
-INSTALL_PATH = '/home/%s/twister/' % USER
 print('')
-
-# This will DELETE previous versions of Twister!
-try: dir_util.remove_tree(INSTALL_PATH)
-except: pass
-try: os.mkdir(INSTALL_PATH)
-except: pass
-
-#
 
 for fname in to_copy:
     fpath = root_folder + os.sep + fname
     dpath = os.path.dirname(fname)
+
+    # Copy into folder without `src`
+    if dpath.startswith('src/'):
+        dpath = dpath[4:]
 
     if dpath:
         try:
@@ -357,6 +440,8 @@ for fname in to_copy:
             print('Cannot copy dir `%s` to `%s`!' % (fpath, INSTALL_PATH+dpath))
 
     elif os.path.isfile(fpath):
+        if fname.startswith('src/'):
+            fname = fname[4:]
         try:
             file_util.copy_file(fpath, INSTALL_PATH + dpath)
             print('Copied file `%s` to `%s`.' % (fpath, INSTALL_PATH+dpath))
@@ -372,6 +457,18 @@ tcr_proc = subprocess.Popen(['chown', GROUP, INSTALL_PATH, '-R'],)
 tcr_proc.wait()
 tcr_proc = subprocess.Popen(['chmod', '774', INSTALL_PATH, '-R'],)
 tcr_proc.wait()
-del tcr_proc
+
+os.system('chown %s %s -R' % (GROUP, INSTALL_PATH))
+os.system('chmod 774 %s -R' % INSTALL_PATH)
+os.system('find %s -name "*.xml" -exec chmod 664 {} \;' % INSTALL_PATH)
+os.system('find %s -name "*.py" -exec chmod 664 {} \;' % INSTALL_PATH)
+os.system('find %s -name "*.tcl" -exec chmod 664 {} \;' % INSTALL_PATH)
+
+#
+
+for fname in glob.glob(INSTALL_PATH + 'bin/*'):
+    lines = open(fname).readlines()
+    lines.insert(4, ('export TWISTER_PATH=%s\n' % INSTALL_PATH))
+    open(fname, 'w').write(''.join(lines))
 
 print('Twister installation done!\n')
