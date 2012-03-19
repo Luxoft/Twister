@@ -1,8 +1,9 @@
 
 '''
-REQUIRES Python 2.7!
+Requires Python 2.7 !
+
 This file contains 3 classes: EpId, Test File and Central Engine.
-All functions from CentralEngine are EXPOSED and can be accesed via RPC.
+All functions from Central Engine are EXPOSED and can be accesed via RPC.
 The CE and each EP have a status that can be: start/ stop/ paused.
 Each test file has a status that can be: pending, working, pass, fail, skip, etc.
 All the statuses are defined in "constants.py".
@@ -414,7 +415,7 @@ class CentralEngine:
         Search one EpId and return True or False.
         '''
         for ep in self.EpIds:
-            if(ep.id==epid):
+            if ep.id==epid:
                 return True
         return False
 
@@ -449,9 +450,9 @@ class CentralEngine:
 
     def sendMail(self):
         '''
-        Send e-mail.
+        Send e-mail after the suites are run.
         Server must be in the form `adress:port`.
-        Username and password are used for autentification.
+        Username and password are used for authentication.
         '''
 
         eMailConfig = self.parser.getEmailConfig()
@@ -506,10 +507,10 @@ class CentralEngine:
     def commitToDatabase(self):
         '''
         For each EP, for each File, the results of the tests are saved to database,
-        exactly as the user defined them.
+        exactly as the user defined them in db.xml.
         '''
 
-        logDebug('CE: Preparing to save into database...')
+        logDebug('CE: Preparing to save into database... 3... 2... 1...')
         time.sleep(3)
 
         # Inject extra information, then commit
@@ -540,7 +541,7 @@ class CentralEngine:
             return False
         reversed = dict((v,k) for k,v in dictStatus.iteritems())
         for ep in self.EpIds:
-            if(ep.id==epid):
+            if ep.id==epid:
                 # Will return a string: stopped, paused, OR running
                 status = reversed[ep.executionStatus]
                 return status

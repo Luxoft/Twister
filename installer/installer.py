@@ -1,7 +1,7 @@
 
 '''
 Twister Installer
-Requires Python 2.7 and must be run as ROOT.
+Requires Python 2.7 and must run as ROOT.
 If you are installing the Twister Server, it is strongly recommended
 to have an internet connection, or else, you must manually install :
  - Python-DEV and
@@ -230,7 +230,7 @@ except:
     distribute_file = glob.glob('distribute*.tar.gz')
     if distribute_file:
         try: os.remove(distribute_file[0])
-        except: print('Installer cannot delete file `%s`! You must delete it yourself!' % distribute_file[0])
+        except: print('Installer cannot delete `distribute*.tar.gz`! You must delete it yourself!')
     del distribute_file
 
 print('')

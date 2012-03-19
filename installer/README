@@ -32,23 +32,25 @@ Twister has the following dependencies:
     - Spawn child applications, control them, respond to expected patterns in their output;
     - pExpect is optional; it is used by the Python test cases to connect to FTP/ Telnet;
 
-~~~ ~~~
+~~~ ~~~ ~~~ ~~~
 
-The installer must run with Python 2.7 and must run as ROOT.
+The installer must run as ROOT, with Python 2.7.
 
-If you are installing the Twister Server, it is strongly recommended to have
-an internet connection, or else, you must manually install :
+If you are installing the Twister Server, you should be connected to internet,
+or ELSE, before running the installer, you must manually install :
  - Python-DEV and
  - python-mysql.
 
 The Twister Client doesn't have any required dependencies; pExpect is optional.
 
+The installer will guide you through all the steps, in order.
+
 There are two steps :
- - Select what you wish to install (client or server)
- - Select the user you want to install for (if there's only 1 user, this step is skipped)
+1 - Select what you wish to install (client or server)
+2 - Select the user you want to install for (if there's only 1 user, this step is skipped)
 
 Twister will be installed in the home of the selected user, in folder `twister`.
 This folder should not be renamed.
 
-The installer will download and install any missing, or old dependencies.
+Any dependencies that are missing, or very old versions, will be downloaded and installed.
 If the requirements are met, all the files are copied, but nothing is installed.
