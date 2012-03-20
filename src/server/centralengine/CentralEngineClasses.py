@@ -540,7 +540,8 @@ class CentralEngine:
         This function is called from the Java Interface.
         '''
 
-        self.vars['started_by_user'] = user
+        logDebug('CE: Started by user `%s`.' % str(user))
+        self.vars['started_by_user'] = str(user)
         return 1
 
 
@@ -574,15 +575,16 @@ class CentralEngine:
         reversed = dict((v,k) for k,v in dictStatus.iteritems())
         # Will return a string: stopped, paused, OR running
         status = reversed[self.executionStatus]
-        if self.start_time:
-            start_time = self.start_time.strftime('%Y-%m-%d %H:%M:%S')
+        if self.vars['start_time']:
+            start_time = self.vars['start_time'].strftime('%Y-%m-%d %H:%M:%S')
         else:
             start_time = 'xxxx-xx-xx'
         # If the engine is not stopped, update elapsed time
         if self.executionStatus != STATUS_STOP:
-            self.elapsed_time = str(datetime.datetime.today() - self.start_time).split('.')[0]
+            self.vars['elapsed_time'] = str(datetime.datetime.today() - self.vars['start_time']).split('.')[0]
+
         # Status + start time + elapsed time
-        return '{0};{1};{2};{3}'.format(status, start_time, self.elapsed_time, self.vars.get('started_by_user'))
+        return '{0};{1};{2};{3}'.format(status, start_time, self.vars['elapsed_time'], self.vars.get('started_by_user'))
 
 
     def setExecStatus(self, epid, new_status, msg=''):
@@ -653,7 +655,7 @@ class CentralEngine:
             self.resetLogs()
             logWarning('CE: RESET operation took %.4f seconds.' % (time.clock()-ti))
             # Central engine start time and elapsed time
-            self.start_time = datetime.datetime.today() # strftime('%Y-%m-%d %H:%M:%S')
+            self.vars['start_time'] = datetime.datetime.today() # strftime('%Y-%m-%d %H:%M:%S')
             self.elapsed_time = 0
 
         # Change test status to PENDING, for all files, on status START, from status STOP
