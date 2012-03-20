@@ -303,9 +303,14 @@ class CentralEngine:
         # String status values
         self.executionStatus = STATUS_STOP
         self.config_path = config_path
-        # Central engine timers
-        self.start_time = 0
-        self.elapsed_time = 0
+
+        # Central engine variables
+        # Can be used to store start time, elapsed time, users, etc
+        self.vars = {}
+        self.vars['start_time'] = 0
+        self.vars['elapsed_time'] = 0
+        self.vars['started_by_user'] = ''
+
         # Build all Parsers + EP + Files structure
         logDebug('CE: Starting Central Engine...') ; ti = time.clock()
         self._initialize(reset=True)
@@ -423,6 +428,7 @@ class CentralEngine:
     def runDBSelect(self, field_id):
         '''
         Selects from database.
+        This function is called from the Java Interface.
         '''
         dbparser = DBParser(self.db_path)
         query = dbparser.getQuery(field_id)
@@ -453,6 +459,7 @@ class CentralEngine:
         Send e-mail after the suites are run.
         Server must be in the form `adress:port`.
         Username and password are used for authentication.
+        This function is called every time the Central Engine stops.
         '''
 
         eMailConfig = self.parser.getEmailConfig()
@@ -508,6 +515,7 @@ class CentralEngine:
         '''
         For each EP, for each File, the results of the tests are saved to database,
         exactly as the user defined them in db.xml.
+        This function is called from the Java Interface.
         '''
 
         logDebug('CE: Preparing to save into database... 3... 2... 1...')
@@ -523,6 +531,16 @@ class CentralEngine:
             ep.toDatabase()
 
         logDebug('CE: Ok, done saving to database!')
+        return 1
+
+
+    def setStartedBy(self, user):
+        '''
+        Remember the user that started the Central Engine.
+        This function is called from the Java Interface.
+        '''
+
+        self.vars['started_by_user'] = user
         return 1
 
 
@@ -564,7 +582,7 @@ class CentralEngine:
         if self.executionStatus != STATUS_STOP:
             self.elapsed_time = str(datetime.datetime.today() - self.start_time).split('.')[0]
         # Status + start time + elapsed time
-        return '{0};{1};{2}'.format(status, start_time, self.elapsed_time)
+        return '{0};{1};{2};{3}'.format(status, start_time, self.elapsed_time, self.vars.get('started_by_user'))
 
 
     def setExecStatus(self, epid, new_status, msg=''):
