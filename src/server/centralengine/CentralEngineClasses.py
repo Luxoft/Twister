@@ -467,23 +467,52 @@ class CentralEngine:
         if (not eMailConfig['Enabled']) or (eMailConfig['Enabled'] in ['0', 'false']):
             return
 
+        # Information that will be mapped into subject or message of the e-mail
+        map_info = {'date': time.strftime("%Y.%m.%d %H.%M")}
+        suites = self.parser.configTS('testsuite')
+
+        for suite in suites:
+            # All information for one suite
+            suite_info = self.parser.getSuiteInfo(suite)
+
+            for k in suite_info:
+                # If the information is already in the mapping info
+                if k in map_info:
+                    map_info[k] += ', ' + suite_info[k]
+                    map_info[k] = ', '.join( list(set( map_info[k].split(', ') )) )
+                    #map_info[k] = ', '.join(sorted( list(set(map_info[k].split(', '))) )) # Sorted ?
+                else:
+                    map_info[k] = suite_info[k]
+
+        try:
+            eMailConfig['Subject'] = eMailConfig['Subject'].format(**map_info)
+        except Exception, e:
+            logError('CE: Cannot build e-mail subject! Key error: {1}!'.format(e))
+            return False
+
+        try:
+            eMailConfig['Message'] = eMailConfig['Message'].format(**map_info)
+        except Exception, e:
+            logError('CE: Cannot build e-mail message! Key error: {1}!'.format(e))
+            return False
+
         logPath = self.parser.getLogFileForType('logSummary')
         logSummary = open(logPath).read()
 
         head = ''
         head += 'Tests executed: %i\n' % len(logSummary.strip().splitlines())
-        head += 'Tests passed: %i\n' % logSummary.count('*PASS*')
-        head += 'Tests failed: %i\n' % logSummary.count('*FAIL*')
-        head += 'Tests aborted: %i\n' % logSummary.count('*ABORTED*')
+        head += 'Tests passed:   %i\n' % logSummary.count('*PASS*')
+        head += 'Tests failed:   %i\n' % logSummary.count('*FAIL*')
+        head += 'Tests aborted:  %i\n' % logSummary.count('*ABORTED*')
         head += 'Tests not exec: %i\n' % logSummary.count('*NO EXEC*')
-        head += 'Tests timeout: %i\n' % logSummary.count('*TIMEOUT*')
+        head += 'Tests timeout:  %i\n' % logSummary.count('*TIMEOUT*')
         head += 'Pass rate: %.2f%%\n\nDetails:\n\n' % (float(logSummary.count('*PASS*'))/ len(logSummary.strip().splitlines())* 100)
         head += ' Suite :: Ep :: Test file                       |   Status    |  Elapsed   |      Date  Time\n'
 
-        msg = MIMEText(head + logSummary + eMailConfig['Message'])
+        msg = MIMEText(eMailConfig['Message'] + '\n\n' + head + logSummary)
         msg['From'] = eMailConfig['From']
         msg['To'] = eMailConfig['To']
-        msg['Subject'] = 'Central Engine status [{0}]'.format(time.strftime("%Y.%m.%d %H.%M"))
+        msg['Subject'] = eMailConfig['Subject']
 
         try:
             server = smtplib.SMTP(eMailConfig['SMTPPath'])
@@ -624,8 +653,8 @@ class CentralEngine:
                 self.executionStatus = STATUS_STOP
                 logDebug('CE: All stations stopped! Central engine will also stop.')
 
-                # !!! Send mail
-                # self.SendMail(...)
+                # Send e-mail
+                #self.sendMail()
 
         return ret
 
@@ -662,6 +691,10 @@ class CentralEngine:
         if new_status == STATUS_RUNNING and self.executionStatus == STATUS_STOP:
             for ep in self.EpIds:
                 ep.setTfStatusAll(10)
+        # For status STOP, send e-mail ?
+        #elif new_status == STATUS_STOP:
+        #    # Send e-mail
+        #    self.sendMail()
 
         # Status resume => start running. The logs must not reset on resume
         if new_status == STATUS_RESUME:

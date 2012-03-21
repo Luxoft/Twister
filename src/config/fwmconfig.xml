@@ -19,6 +19,7 @@ Test Suite Config: All info about the current Test Suite (Test Plan).
     <EPIdsFile>~/twister_rel1/src/config/epid.txt</EPIdsFile>
     <DbConfigFile>~/twister_rel1/src/config/db.xml</DbConfigFile>
     <HardwareConfig>~/twister_rel1/src/config/hwconfig.xml</HardwareConfig>
+    <EmailConfigFile>~/twister_rel1/src/config/email.xml</EmailConfigFile>
     <LogFiles>
         <logRunning>log_running.log</logRunning>
         <logDebug>log_debug.log</logDebug>

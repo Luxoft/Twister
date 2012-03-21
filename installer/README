@@ -1,7 +1,31 @@
 
-~~~ Twister installer README ~~~
 
-Twister has the following dependencies:
+~~~ ~~~ Running the installer ~~~ ~~~
+
+The installer must run as ROOT, with Python 2.7.
+
+If you are installing the Twister Server, you should be connected to internet,
+or ELSE, before running the installer, you must manually install :
+ - Python-DEV and
+ - python-mysql.
+
+The Twister Client doesn't have any required dependencies; pExpect is optional.
+
+The installer will guide you through all the steps, in order.
+
+These are the steps :
+1 - Select what you wish to install (client, server, or both)
+2 - Select the user you want to install for (if there's only 1 user, this step is skipped)
+
+Twister will be installed in the home of the selected user, in the folder `twister`.
+If the folder is already present, you are asked to backup your data in order to continue,
+because everything is DELETED, excepting the `config` folder.
+
+Any dependencies that are old, or missing, will be downloaded and installed.
+If all the requirements are met, the client or server files are copied, but nothing is installed.
+
+
+~~~ Twister Framework dependencies ~~~
 
 - Python 2.7 : (www.python.org/)
     - The Central Engine, the Execution Process, the Test Runner, the Resource Allocator
@@ -31,27 +55,3 @@ Twister has the following dependencies:
 - pExpect : (sourceforge.net/projects/pexpect/)
     - Spawn child applications, control them, respond to expected patterns in their output;
     - pExpect is optional; it is used by the Python test cases to connect to FTP/ Telnet;
-
-~~~ ~~~ ~~~ ~~~
-
-The installer must run as ROOT, with Python 2.7.
-
-If you are installing the Twister Server, you should be connected to internet,
-or ELSE, before running the installer, you must manually install :
- - Python-DEV and
- - python-mysql.
-
-The Twister Client doesn't have any required dependencies; pExpect is optional.
-
-The installer will guide you through all the steps, in order.
-
-These are the steps :
-1 - Select what you wish to install (client or server)
-2 - Select the user you want to install for (if there's only 1 user, this step is skipped)
-
-Twister will be installed in the home of the selected user, in folder `twister`.
-If the folder is already present, you are asked to backup your data in order to continue,
-because everything is deleted, excepting the `config` folder.
-
-Any dependencies that are missing, or very old versions, will be downloaded and installed.
-If the requirements are met, all the files are copied, but nothing is installed.

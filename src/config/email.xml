@@ -1,0 +1,10 @@
+<Root>
+    <Enabled>true</Enabled>
+    <SMTPPath>tsc-server:54000</SMTPPath>
+    <SMTPUser>MyUser</SMTPUser>
+    <SMTPPwd></SMTPPwd>
+    <From>From Xxx</From>
+    <To>email@yahoo.com</To>
+    <Subject>Report for {release_id} {build_id} [{date}]</Subject>
+    <Message>Comments: {comments}</Message>
+</Root>

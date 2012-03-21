@@ -66,7 +66,7 @@ class TSCParser:
             # Use the new hash
             self.configHash = newConfigHash
             # Create Beautiful Soup class from the new XML file
-            self.configTS = BeautifulStoneSoup(open(config_ts).read())
+            self.configTS = BeautifulStoneSoup(open(config_ts))
 
 
     def getTestSuitePath(self):
@@ -121,7 +121,14 @@ class TSCParser:
         After Central Engine stops, an e-mail must be sent to the people interested.
         '''
         # Read email.xml
-        # ...
+        e_file = str(self.xmlDict.root.emailconfigfile.text)
+        if e_file.startswith('~'):
+            e_file = os.getenv('HOME') + e_file[1:]
+        if not os.path.isfile(e_file):
+            print('TSCParser: E-mail Config file `%s` does not exist!' % e_file)
+            return -1
+
+        econfig = BeautifulStoneSoup(open(e_file))
 
         res = {}
         res['Enabled'] = ''
@@ -130,7 +137,25 @@ class TSCParser:
         res['SMTPPwd'] = ''
         res['From'] = ''
         res['To'] = ''
+        res['Subject'] = ''
         res['Message'] = ''
+
+        if econfig.enabled:
+            res['Enabled'] = econfig.enabled.text
+        if econfig.smtppath:
+            res['SMTPPath'] = econfig.smtppath.text
+        if econfig.smtpuser:
+            res['SMTPUser'] = econfig.smtpuser.text
+        if econfig.smtppwd:
+            res['SMTPPwd'] = econfig.smtppwd.text
+        if econfig('from'):
+            res['From'] = econfig('from')[0].text
+        if econfig('to'):
+            res['To'] = econfig('to')[0].text
+        if econfig.subject:
+            res['Subject'] = econfig.subject.text
+        if econfig.message:
+            res['Message'] = econfig.message.text
         return res
 
 
