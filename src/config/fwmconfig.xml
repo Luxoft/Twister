@@ -11,15 +11,15 @@ Test Suite Config: All info about the current Test Suite (Test Plan).
     <CentralEnginePort>8000</CentralEnginePort>
     <ResourceAllocatorPort>8001</ResourceAllocatorPort>
     <HttpServerPort>8080</HttpServerPort>
-    <TestCaseSourcePath>~/twister_rel1/demo/</TestCaseSourcePath>
-    <MasterXMLTestSuite>~/twister_rel1/src/config/testsuites.xml</MasterXMLTestSuite>
-    <UsersPath>~/twister_rel1/src/users/</UsersPath>
-    <LogsPath>~/twister_rel1/src/logs</LogsPath>
-    <ReportsPath>~/twister_rel1/src/reports</ReportsPath>
-    <EPIdsFile>~/twister_rel1/src/config/epid.txt</EPIdsFile>
-    <DbConfigFile>~/twister_rel1/src/config/db.xml</DbConfigFile>
-    <HardwareConfig>~/twister_rel1/src/config/hwconfig.xml</HardwareConfig>
-    <EmailConfigFile>~/twister_rel1/src/config/email.xml</EmailConfigFile>
+    <TestCaseSourcePath>/home/tscguest/twister/demo/</TestCaseSourcePath>
+    <MasterXMLTestSuite>/home/tscguest/twister/src/config/testsuites.xml</MasterXMLTestSuite>
+    <UsersPath>/home/tscguest/twister/src/users/</UsersPath>
+    <LogsPath>/home/tscguest/twister/src/logs</LogsPath>
+    <ReportsPath>/home/tscguest/twister/src/reports</ReportsPath>
+    <EPIdsFile>/home/tscguest/twister/src/config/epid.txt</EPIdsFile>
+    <DbConfigFile>/home/tscguest/twister/src/config/db.xml</DbConfigFile>
+    <HardwareConfig>/home/tscguest/twister/src/config/hwconfig.xml</HardwareConfig>
+    <EmailConfigFile>/home/tscguest/twister/src/config/email.xml</EmailConfigFile>
     <LogFiles>
         <logRunning>log_running.log</logRunning>
         <logDebug>log_debug.log</logDebug>

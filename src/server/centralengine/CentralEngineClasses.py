@@ -464,8 +464,15 @@ class CentralEngine:
 
         eMailConfig = self.parser.getEmailConfig()
 
-        if (not eMailConfig['Enabled']) or (eMailConfig['Enabled'] in ['0', 'false']):
+        logPath = self.parser.getLogFileForType('logSummary')
+        logSummary = open(logPath).read()
+
+        if not logSummary:
+            logDebug('E-mail: Nothing to send!')
             return
+
+        logDebug('E-mail preparing... Server `{SMTPPath}`, user `{SMTPUser}`, from `{From}`, to `{To}`...'
+            ''.format(**eMailConfig))
 
         # Information that will be mapped into subject or message of the e-mail
         map_info = {'date': time.strftime("%Y.%m.%d %H.%M")}
@@ -487,17 +494,14 @@ class CentralEngine:
         try:
             eMailConfig['Subject'] = eMailConfig['Subject'].format(**map_info)
         except Exception, e:
-            logError('CE: Cannot build e-mail subject! Key error: {1}!'.format(e))
+            logError('CE: Cannot build e-mail subject! Key error: {0}!'.format(e))
             return False
 
         try:
             eMailConfig['Message'] = eMailConfig['Message'].format(**map_info)
         except Exception, e:
-            logError('CE: Cannot build e-mail message! Key error: {1}!'.format(e))
+            logError('CE: Cannot build e-mail message! Key error: {0}!'.format(e))
             return False
-
-        logPath = self.parser.getLogFileForType('logSummary')
-        logSummary = open(logPath).read()
 
         head = ''
         head += 'Tests executed: %i\n' % len(logSummary.strip().splitlines())
@@ -507,12 +511,17 @@ class CentralEngine:
         head += 'Tests not exec: %i\n' % logSummary.count('*NO EXEC*')
         head += 'Tests timeout:  %i\n' % logSummary.count('*TIMEOUT*')
         head += 'Pass rate: %.2f%%\n\nDetails:\n\n' % (float(logSummary.count('*PASS*'))/ len(logSummary.strip().splitlines())* 100)
-        head += ' Suite :: Ep :: Test file                       |   Status    |  Elapsed   |      Date  Time\n'
+        head += '    EP    ::  Suite  ::         Test File           |    Status   |  Elapsed   |       Date  Time\n'
 
         msg = MIMEText(eMailConfig['Message'] + '\n\n' + head + logSummary)
         msg['From'] = eMailConfig['From']
         msg['To'] = eMailConfig['To']
         msg['Subject'] = eMailConfig['Subject']
+
+        if (not eMailConfig['Enabled']) or (eMailConfig['Enabled'] in ['0', 'false']):
+            open('e-mail.txt', 'w').write(msg.as_string())
+            logDebug('E-mail.txt file written. The message will NOT be sent.')
+            return
 
         try:
             server = smtplib.SMTP(eMailConfig['SMTPPath'])
@@ -521,17 +530,18 @@ class CentralEngine:
             return False
 
         try:
+            logDebug('SMTP: Preparing to login...')
             server.ehlo()
             server.starttls()
             server.ehlo()
             server.login(eMailConfig['SMTPUser'], eMailConfig['SMTPPwd'])
-            logDebug('SMTP connect success!')
+            logDebug('SMTP: Connect success!')
         except:
             logError('SMTP: Cannot autentificate to SMTP server!')
             return False
 
         try:
-            server.sendmail(msg['From'], msg['To'], msg.as_string())
+            server.sendmail(eMailConfig['From'], eMailConfig['To'], msg.as_string())
             logDebug('SMTP: E-mail sent successfully!')
             server.quit()
             return True
@@ -654,7 +664,7 @@ class CentralEngine:
                 logDebug('CE: All stations stopped! Central engine will also stop.')
 
                 # Send e-mail
-                #self.sendMail()
+                self.sendMail()
 
         return ret
 
@@ -975,7 +985,7 @@ class CentralEngine:
 
                     with open(logPath, 'a') as status_file:
                         status_file.write(' {ep}::{suite}::{file} | {status} | {elapsed} | {date}\n'.format(\
-                            ep = epid.ljust(9), suite = suite, file = os.path.split(filename)[1].ljust(28),
+                            ep = epid.center(9), suite = suite.center(9), file = os.path.split(filename)[1].center(28),
                             status = status_str.center(11),
                             elapsed = ('%.2fs' % time_elapsed).center(10),
                             date = now.strftime('%a %b %d, %H:%M:%S')))
@@ -1028,7 +1038,8 @@ class CentralEngine:
         f.seek(fstart)
         data = f.read()
         f.close()
-        return data
+
+        return binascii.b2a_base64(data)
 
 
     def logMessage(self, logType, logMessage):
