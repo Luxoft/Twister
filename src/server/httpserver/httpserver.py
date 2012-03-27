@@ -41,8 +41,11 @@ class Root:
 
     # Reporting link
     @cherrypy.expose
-    def rep(self, report, **args):
+    def rep(self, report=None, **args):
         global glob_fields, glob_reports, glob_links, conn, curs
+
+        if not report:
+            raise cherrypy.HTTPRedirect('/home')
 
         if report in glob_redirects:
             redirect_dict = glob_redirects[report]
@@ -98,11 +101,18 @@ class Root:
                         try:
                             connect_db()
                         except:
-                            output = Template(filename=TWISTER_PATH + '/server/httpserver/template/error.htm')
-                            return output.render(links=glob_links, title=report,
-                                msg='Error in query `{0}`!<br><br><b>MySQL Error {1}</b>: {2}!'.format(u_query, e.args[0], e.args[1]))
+                            pass
 
-                    u_vals = curs.fetchall()
+                        output = Template(filename=TWISTER_PATH + '/server/httpserver/template/error.htm')
+                        return output.render(links=glob_links, title=report,
+                            msg='Error in query `{0}`!<br><br><b>MySQL Error {1}</b>: {2}!'.format(u_query, e.args[0], e.args[1]))
+
+                    try:
+                        u_vals = curs.fetchall()
+                    except Exception, e:
+                        output = Template(filename=TWISTER_PATH + '/server/httpserver/template/error.htm')
+                        return output.render(links=glob_links, title=report,
+                            msg='Error in query `{0}`!<br><br><b>Exception</b>: {1}!'.format(u_query, e))
 
                     # No data available
                     if not u_vals:
@@ -155,9 +165,11 @@ class Root:
             try:
                 connect_db()
             except:
-                output = Template(filename=TWISTER_PATH + '/server/httpserver/template/error.htm')
-                return output.render(title=report, links=glob_links,
-                    msg='Error in query `{0}`!<br><br><b>MySQL Error {1}</b>: {2}!'.format(query, e.args[0], e.args[1]))
+                pass
+
+            output = Template(filename=TWISTER_PATH + '/server/httpserver/template/error.htm')
+            return output.render(title=report, links=glob_links,
+                msg='Error in query `{0}`!<br><br><b>MySQL Error {1}</b>: {2}!'.format(query, e.args[0], e.args[1]))
 
         descr = [desc[0] for desc in curs.description]
 
@@ -196,8 +208,10 @@ class Root:
             try:
                 connect_db()
             except:
-                output = {'aaData':[], 'error':'Error in query `{0}`! MySQL Error {1}: {2}!'.format(query, e.args[0], e.args[1])}
-                return json.dumps(output, indent=2)
+                pass
+
+            output = {'aaData':[], 'error':'Error in query `{0}`! MySQL Error {1}: {2}!'.format(query, e.args[0], e.args[1])}
+            return json.dumps(output, indent=2)
 
         headers = [desc[0] for desc in curs.description]
         rows = curs.fetchall()
@@ -221,8 +235,10 @@ class Root:
                 try:
                     connect_db()
                 except:
-                    output = {'aaData':[], 'error':'Error in query `{0}`! MySQL Error {1}: {2}!'.format(query_total, e.args[0], e.args[1])}
-                    return json.dumps(output, indent=2)
+                    pass
+
+                output = {'aaData':[], 'error':'Error in query `{0}`! MySQL Error {1}: {2}!'.format(query_total, e.args[0], e.args[1])}
+                return json.dumps(output, indent=2)
 
             headers_tot = [desc[0] for desc in curs.description]
             rows_tot = curs.fetchall()
@@ -327,7 +343,7 @@ if __name__ == '__main__':
 
     root = Root()
 
-    cherrypy.config.update({'server.socket_host': '11.126.32.20', 'server.socket_port': serverPort})
+    cherrypy.config.update({'server.socket_host': '11.126.32.9', 'server.socket_port': serverPort})
 
     conf = {
             '/': {
@@ -338,10 +354,10 @@ if __name__ == '__main__':
                 'tools.staticdir.on': True,
                 'tools.staticdir.dir': TWISTER_PATH + '/server/httpserver/static',
                 },
-            '/jar': {
-                'tools.staticdir.on': True,
-                'tools.staticdir.dir': TWISTER_PATH + '/client/userinterface/ui',
-                },
+            #'/jar': {
+            #    'tools.staticdir.on': True,
+            #    'tools.staticdir.dir': TWISTER_PATH + '/client/userinterface/ui',
+            #    },
             }
 
     cherrypy.quickstart(root, '/', config=conf)

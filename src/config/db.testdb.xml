@@ -1,0 +1,60 @@
+<?xml version="1.0"?>
+<root>
+<db_config>
+	<server>tsc-server</server>
+	<database>testdb</database>
+	<user>tsc</user>
+	<password>tsc</password>
+</db_config>
+
+<twister_user_defined>
+<field_section>
+	<field ID="res_id" Type="DbSelect" FieldName="id" FromTable="results" SQLQuery="select MAX(id)+1 from repo_test_view" Label="" GUIDefined="false" Mandatory="true" />
+	<field ID="log_id" Type="DbSelect" FieldName="id" FromTable="logs"    SQLQuery="select MAX(id)+1 from logs" Label="" GUIDefined="false" Mandatory="true" />
+
+	<field ID="release_id"  FieldName="id" FromTable="sites" SQLQuery="select DISTINCT id from repo_release" Label="Release:" Type="UserSelect" GUIDefined="true" Mandatory="true" />
+	<field ID="build_id" FieldName="id" FromTable="suite" SQLQuery="select DISTINCT id from repo_build" Label="Build:" Type="UserSelect" GUIDefined="true" Mandatory="true" />
+	<field ID="suite_id"   FieldName="id" FromTable="pri" SQLQuery="select DISTINCT id from repo_suite" Label="Suite:" Type="UserSelect" GUIDefined="true" Mandatory="true" />
+	<field ID="station_id"   FieldName="id" FromTable="suts" SQLQuery="select DISTINCT id from repo_station" Label="Station:" Type="UserSelect" GUIDefined="true" Mandatory="true" />
+
+	<field ID="comments"  FieldName="" FromTable="" Label="Set comments:" Type="UserText" GUIDefined="true" Mandatory="false" />
+</field_section>
+
+<insert_section>
+	<sql_statement>INSERT INTO repo_test_view VALUES( @res_id@,{release_id},{build_id},{suite_id},{station_id}, '{twister_tc_date_finished}','{twister_tc_status}','{comments}' )</sql_statement>
+</insert_section>
+
+<reports_section>
+	<field ID="Other" Type="UserText" Label="Other filters" SQLQuery="" />
+	<field ID="Date" Type="UserSelect" Label="Select date" SQLQuery="SELECT DISTINCT tdate FROM repo_test_view ORDER BY tdate" />
+	<field ID="DateStart" Label="Select date Start" Type="UserSelect" SQLQuery="SELECT DISTINCT tdate FROM repo_test_view ORDER BY tdate" />
+	<field ID="zDateEnd" Label="Select date End" Type="UserSelect" SQLQuery="SELECT DISTINCT tdate FROM repo_test_view ORDER BY tdate" />
+	<field ID="TestStatus" Label="Select test status" Type="UserSelect" SQLQuery="SELECT DISTINCT status FROM repo_test_view ORDER BY status" />
+	<field ID="Release" Label="Select release" Type="UserSelect" SQLQuery="SELECT id,name FROM repo_release" />
+	<field ID="Build" Label="Select build" Type="UserSelect" SQLQuery="SELECT id,name FROM repo_build" />
+	<field ID="Suite" Label="Select suite" Type="UserSelect" SQLQuery="SELECT id,name FROM repo_suite" />
+	<field ID="Station" Label="Select station" Type="UserSelect" SQLQuery="SELECT id,name FROM repo_station" />
+
+	<report ID="Total" Type="Table"
+		SQLQuery="SELECT * FROM repo_test_view WHERE station_id = '@Station@'"
+		/>
+	<report ID="Details" Type="Table"
+		SQLQuery="SELECT * FROM repo_test_view WHERE release_id = '@Release@' AND build_id = '@Build@' "
+		/>
+	<report ID="History" Type="BarChart"
+		SQLQuery="SELECT build_id AS 'Build', status AS 'Percent (%)' FROM (SELECT build_id, COUNT(status) as status FROM repo_test_view WHERE release_id='@Release@' AND status='@TestStatus@' GROUP BY build_id) v RIGHT JOIN repo_build b ON b.id = v.build_id"
+		SQLTotal="SELECT build_id AS 'Build', status AS 'Percent (%)' FROM (SELECT build_id, COUNT(status) as status FROM repo_test_view WHERE release_id='@Release@' GROUP BY build_id) v RIGHT JOIN repo_build b ON b.id = v.build_id"
+		/>
+	<report ID="Summary" Type="PieChart"
+		SQLQuery="SELECT status AS 'Status',COUNT(status) AS 'Count' FROM repo_test_view  WHERE (release_id = '@Release@' AND build_id = '@Build@') group by status"
+		/>
+	<report ID="Pass Rate" Type="LineChart"
+		SQLQuery="SELECT tdate AS 'Date', COUNT(status) AS 'Pass Rate (%)' FROM repo_test_view WHERE tdate &gt;='@DateStart@' AND tdate &lt;='@zDateEnd@' AND status='Pass' @Other@ GROUP BY tdate"
+		SQLTotal="SELECT tdate AS 'Date', COUNT(status) AS 'Pass Rate (%)' FROM repo_test_view WHERE tdate &gt;='@DateStart@' AND tdate &lt;='@zDateEnd@' @Other@ GROUP BY tdate"
+		/>
+
+	<redirect ID="goto Yahoo" Path="http://ro.yahoo.com" />
+	<redirect ID="goto Google" Path="http://www.google.ro" />
+</reports_section>
+</twister_user_defined>
+</root>
