@@ -3,6 +3,9 @@ import os, sys, time
 sys.path.append(os.getenv('TWISTER_PATH') + '/.twister_cache/')
 
 #
+# <title>test 001</title>
+# <description>This test doesn't do anything spectacular, it just counts to 10, in 10 seconds.</description>
+#
 
 def test002():
 	from ce_libs import logMsg

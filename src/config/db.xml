@@ -9,16 +9,13 @@
 
 <twister_user_defined>
 <field_section>
-	<field ID="res_id" Type="DbSelect" FieldName="id" FromTable="results" SQLQuery="select MAX(id)+1 from gg_regression" Label="" GUIDefined="false" Mandatory="true" />
-	<field ID="log_id" Type="DbSelect" FieldName="id" FromTable="logs"    SQLQuery="select MAX(id)+1 from gg_logfiles" Label="" GUIDefined="false" Mandatory="true" />
-
-	<field ID="release_id"  FieldName="id" FromTable="sites" SQLQuery="SELECT DISTINCT SUBSTRING(build, 2, 5) FROM `gg_regression`" Label="Release:" Type="UserSelect" GUIDefined="true" Mandatory="true" />
-	<field ID="build_id" FieldName="id" FromTable="suite" SQLQuery="SELECT DISTINCT build FROM `gg_regression`" Label="Build:" Type="UserSelect" GUIDefined="true" Mandatory="true" />
-	<field ID="suite_id"   FieldName="id" FromTable="pri" SQLQuery="SELECT DISTINCT suite_name FROM `gg_regression`" Label="Suite:" Type="UserSelect" GUIDefined="true" Mandatory="true" />
+	<field ID="release"  FieldName="" FromTable="" SQLQuery="" Label="Release:" Type="UserText" GUIDefined="true" Mandatory="true" />
+	<field ID="build" FieldName="" FromTable="" SQLQuery="" Label="Build:" Type="UserText" GUIDefined="true" Mandatory="true" />
 </field_section>
 
 <insert_section>
-	<sql_statement>INSERT INTO gg_regression VALUES( @res_id@,{release_id},{build_id},{suite_id},{station_id}, '{twister_tc_date_finished}','{twister_tc_status}','{comments}' )</sql_statement>
+	<sql_statement>INSERT INTO gg_regression (suite_name, test_name, status, date, build, run_no, logfilename)
+		VALUES ('{twister_suite_name}','{twister_tc_name}','{twister_tc_status}','{twister_tc_date_finished}','{release}.{build}',1,'log')</sql_statement>
 </insert_section>
 
 <reports_section>
@@ -31,8 +28,12 @@
 	<field ID="Build" Label="Select build" Type="UserSelect" SQLQuery="SELECT DISTINCT build FROM `gg_regression` ORDER BY build" />
 	<field ID="Suite" Label="Select suite" Type="UserSelect" SQLQuery="SELECT DISTINCT suite_name FROM `gg_regression` ORDER BY suite_name" />
 
-	<report ID="Details" Type="Table"
+	<report ID="Details (build)" Type="Table"
 		SQLQuery="SELECT * FROM gg_regression WHERE build = '@Build@' "
+		/>
+
+	<report ID="Details (suite)" Type="Table"
+		SQLQuery="SELECT * FROM gg_regression WHERE build = '@Build@' AND suite_name = '@Suite@' "
 		/>
 
 	<report ID="History" Type="BarChart"

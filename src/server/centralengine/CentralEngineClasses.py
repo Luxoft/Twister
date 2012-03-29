@@ -70,7 +70,8 @@ class TestFile:
 
         self.data['twister_ep_name'] = self.epid
         self.data['twister_suite_name'] = self.suite
-        self.data['twister_tc_name'] = self.name
+        self.data['twister_tc_name'] = os.path.split(self.name)[1]
+        self.data['twister_tc_full_path'] = self.name
 
 
     def __repr__(self):
@@ -106,6 +107,7 @@ class TestFile:
         twister_ep_name            # from master XML
         twister_suite_name         # suite from master XML
         twister_tc_name            # test case name from master XML
+        twister_tc_full_path       # test case full path from master XML
         twister_tc_title           # from ...?
         twister_tc_description     # from ...?
 
@@ -382,6 +384,7 @@ class CentralEngine:
         twister_ep_name
         twister_suite_name
         twister_tc_name
+        twister_tc_full_path
         twister_tc_title
         twister_tc_description
         twister_tc_status
@@ -1165,10 +1168,12 @@ class CentralEngine:
         '''
         Resets one log.
         '''
-        logPath = self.parser.getLogsPath() + logName
+        logPath = self.parser.getLogsPath() + os.sep + logName
 
         try:
             open(logPath, 'w').close()
+            logDebug('Cleaned log `%s`.' % logPath)
+            return True
         except:
             logError("CE ERROR! Log file `%s` cannot be reset!" % logPath)
             return False

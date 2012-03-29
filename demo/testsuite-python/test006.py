@@ -3,6 +3,9 @@ import os, sys, time
 sys.path.append(os.getenv('TWISTER_PATH') + '/.twister_cache/')
 
 #
+# <title>test 001</title>
+# <description>This test is checking the Resource Allocator.</description>
+#
 
 def test006():
 

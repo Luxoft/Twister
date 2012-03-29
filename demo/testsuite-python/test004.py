@@ -3,6 +3,9 @@ import os, sys, time
 sys.path.append(os.getenv('TWISTER_PATH') + '/.twister_cache/')
 
 #
+# <title>test 001</title>
+# <description>This test is connecting to a FTP host.</description>
+#
 
 def test004():
 	'''
