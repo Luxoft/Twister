@@ -294,22 +294,22 @@ if __name__ == '__main__':
     ra.dumpConfig()
 
     query_list=[
-    'tbname:TB-001,devicename:DUT3||DUT2||DUT1',
-    'tbname:?,devicename:DUT5||DUT6,moduletype:?',
-    'tbname:?,devicetype:Contivity&&devicefamily:27XX&&devicemodel:2750SY',
-    'tbname:?,devicevendor:Avaya&&devicetype:PBX,moduletype:?',
-    'tbname:?,devicevendor:Avaya,moduletype:DS32',
+    'testbedname:TB-001,devicename:DUT3||DUT2||DUT1',
+    'testbedname:?,devicename:DUT5||DUT6,moduletype:?',
+    'testbedname:?,devicetype:Contivity&&devicefamily:27XX&&devicemodel:2750SY',
+    'testbedname:?,devicevendor:Avaya&&devicetype:PBX,moduletype:?',
+    'testbedname:?,devicevendor:Avaya,moduletype:DS32',
 
-    'tbid:?,devicename:?,moduletype:ATM',
-    'tbid:?,devicefamily:?,moduletype:DS32',
-    'tbid:?,devicefamily:ip500,moduletype:ETR||ATM||DS32,port:3',
-    'tbid:?,devicetype:?,moduletype:?,port:103',
-    'tbid:?,devicename:foo_PBX,moduletype:ETR,port:?',
-    'tbid:?,devicetype:PBX,moduletype:ETR,port:201',
-    'tbid:?,devicename:foo_PBX,moduletype:?,port:201',
-    'tbid:?,devicetype:?,moduletype:?,port:207',
-    'tbid:?,devicetype:?,moduletype:?,porttype:Phone',
-    'tbid:?,devicetype:?,moduletype:?,hasspeaker:True',
+    'testbedid:?,devicename:?,moduletype:ATM',
+    'testbedid:?,devicefamily:?,moduletype:DS32',
+    'testbedid:?,devicefamily:ip500,moduletype:ETR||ATM||DS32,port:3',
+    'testbedid:?,devicetype:?,moduletype:?,port:103',
+    'testbedid:?,devicename:foo_PBX,moduletype:ETR,port:?',
+    'testbedid:?,devicetype:PBX,moduletype:ETR,port:201',
+    'testbedid:?,devicename:foo_PBX,moduletype:?,port:201',
+    'testbedid:?,devicetype:?,moduletype:?,port:207',
+    'testbedid:?,devicetype:?,moduletype:?,porttype:Phone',
+    'testbedid:?,devicetype:?,moduletype:?,hasspeaker:True',
     ]
 
     test = True

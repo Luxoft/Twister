@@ -1,8 +1,9 @@
 <root>
 <!-- ******* START TEST BED ******* -->
 	<testbed>
-		<tbid>001</tbid>
-		<tbname>TB-001</tbname>
+		<testbedid>001</testbedid>
+		<testbedname>TB-001</testbedname>
+		<testbeddesc>...</testbeddesc>
 
 <!-- ******* START DEVICE ******* -->
 		<device>
@@ -45,8 +46,9 @@
 	</testbed>
 
 	<testbed>
-		<tbid>002</tbid>
-		<tbname>TB-002</tbname>
+		<testbedid>002</testbedid>
+		<testbedname>TB-002</testbedname>
+		<testbeddesc>some descr</testbeddesc>
 
 <!-- *** PBX EXAMPLE START ****-->
 		<device>
