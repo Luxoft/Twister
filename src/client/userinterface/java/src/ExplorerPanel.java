@@ -71,6 +71,13 @@ import org.apache.xmlrpc.client.XmlRpcClient;
 import org.apache.xmlrpc.client.XmlRpcClientConfigImpl;
 import java.awt.event.MouseMotionAdapter;
 import javax.swing.text.PlainDocument;
+import java.io.FileReader;
+import javax.swing.InputMap;
+import javax.swing.JComponent;
+import javax.swing.KeyStroke;
+import java.awt.event.KeyEvent;
+import java.awt.event.InputEvent;
+import java.awt.event.KeyAdapter;
 
 
 public class ExplorerPanel extends JPanel {
@@ -80,6 +87,7 @@ public class ExplorerPanel extends JPanel {
     private boolean dragging;
     private TreePath [] selected;
     private DefaultMutableTreeNode child2;
+    private JEditTextArea textarea;
   
     public ExplorerPanel(int x, int y, TreeDropTargetListener tdtl, boolean applet, ChannelSftp c){
 //         System.out.println("Started Explorer initialization: "+System.currentTimeMillis());
@@ -131,16 +139,9 @@ public class ExplorerPanel extends JPanel {
                                 XmlRpcClient client = new XmlRpcClient();
                                 client.setConfig(config);
                                 String result= client.execute("getTestDescription",new Object[]{thefile})+"";
-//                                 String endpoint = "http://"+Repository.host+"/pythontest/index2.py";
-//                                 URL url = new URL(endpoint+"?"+"file="+thefile);
-//                                 URLConnection conn = url.openConnection ();
-//                                 Scanner scanner = new Scanner(new InputStreamReader(conn.getInputStream()));
-//                                 StringBuffer buf = new StringBuffer();
-//                                 while (scanner.hasNextLine()){buf.append(scanner.nextLine());}
-//                                 scanner.close();
                                 System.out.println("result: "+result);
                                 String [] cont = result.split("-;-");
-                                Container pan1 = (Container)Repository.f.p.p1.splitPane.getComponent(1);
+                                Container pan1 = (Container)Repository.frame.mainpanel.p1.splitPane.getComponent(1);
                                 TCDetails pan2 = (TCDetails)pan1.getComponents()[1];
                                 if(cont[1].length()>1)pan2.text.setText(cont[1].substring(1));
                                 else pan2.text.setText("Not Available");
@@ -178,34 +179,66 @@ public class ExplorerPanel extends JPanel {
             p.add(item);
             item.addActionListener(new ActionListener(){
                 public void actionPerformed(ActionEvent ev){
-                    //System.out.println(tree.getSelectionPath().getPathComponent(tree.getSelectionPath().getPathCount()-2)+"/"+tree.getSelectionPath().getLastPathComponent());                    
                     final JFrame f = new JFrame();
-                    //f.setLayout(new BorderLayout());
-                    //Repository.f.setEnabled(false);
+                    
+                    
+//                     f.addKeyListener(new KeyAdapter() {
+// //                         public void keyTyped(KeyEvent e) {}
+//                         
+//                         public void keyPressed(KeyEvent e) {
+//                             System.out.println("pressed");
+//                             if ((e.getKeyCode() == KeyEvent.VK_C) && ((e.getModifiers() & KeyEvent.CTRL_MASK) != 0)) {
+//                                 textarea.copy();}
+//                             else if ((e.getKeyCode() == KeyEvent.VK_X) && ((e.getModifiers() & KeyEvent.CTRL_MASK) != 0)) {
+//                                 textarea.cut();}
+//                             else if ((e.getKeyCode() == KeyEvent.VK_V) && ((e.getModifiers() & KeyEvent.CTRL_MASK) != 0)) {
+//                                 textarea.paste();}
+//                             }
+//                                 
+// //                         public void keyReleased(KeyEvent e) {}
+//                     });
+
+                    
+                    
+                    
+                    
                     tree.setEnabled(false);
-                    Repository.f.p.p1.sc.g.setCanRequestFocus(false);
-                    //Repository.f.p.p1.sc.g.setEnabled(false);
+                    Repository.frame.mainpanel.p1.sc.g.setCanRequestFocus(false);
                     f.setVisible(true);
                     f.setBounds(200,100,500,600);
-                    final JEditTextArea textarea = new JEditTextArea();
+                    textarea = new JEditTextArea();
+                    f.setFocusTraversalKeysEnabled(false);
+                    textarea.setFocusTraversalKeysEnabled(false);
+                    JPopupMenu p = new JPopupMenu();
+                    JMenuItem item ;
+                    item = new JMenuItem("Copy");
+                    item.addActionListener(new ActionListener(){
+                        public void actionPerformed(ActionEvent ev){
+                            textarea.copy();}});
+                    p.add(item);
+                    item = new JMenuItem("Cut");
+                    item.addActionListener(new ActionListener(){
+                        public void actionPerformed(ActionEvent ev){
+                            textarea.cut();}});
+                    p.add(item);
+                    item = new JMenuItem("Paste");
+                    item.addActionListener(new ActionListener(){
+                        public void actionPerformed(ActionEvent ev){
+                            textarea.paste();}});
+                    p.add(item);
+                    textarea.setRightClickPopup(p);
                     textarea.getDocument().putProperty(PlainDocument.tabSizeAttribute, 4);
                     if(editable.indexOf(".tcl")!=-1)textarea.setTokenMarker(new TCLTokenMarker());
                     else if(editable.indexOf(".py")!=-1)textarea.setTokenMarker(new PythonTokenMarker());
                     else if(editable.indexOf(".pl")!=-1)textarea.setTokenMarker(new PerlTokenMarker());
-                    
-//                     f.add(textarea,BorderLayout.CENTER);
                     f.add(textarea);
                     JButton save = new JButton("Save");
                     save.setPreferredSize(new Dimension(70,20));
                     save.setMaximumSize(new Dimension(70,20));
-//                     f.add(save,BorderLayout.PAGE_END);
                     final String filename = tree.getSelectionPath().getPathComponent(tree.getSelectionPath().getPathCount()-2)+"/"+tree.getSelectionPath().getLastPathComponent();                    
                     final File file = new File(Repository.temp+Repository.getBar()+"Twister"+Repository.getBar()+tree.getSelectionPath().getLastPathComponent());
                     JMenuBar menu = new JMenuBar();
-                    //menu.setLayout(null);
-                    //menu.setBounds(0, 0, width, 20);
                     JMenu filemenu = new JMenu("File");
-                    //filemenu.setBounds(10,0,40,20);
                     JMenuItem saveuser = new JMenuItem("Save");
                     saveuser.addActionListener(new ActionListener() {
                         public void actionPerformed(ActionEvent ev){
@@ -220,40 +253,48 @@ public class ExplorerPanel extends JPanel {
                     filemenu.add(saveuser);
                     menu.add(filemenu);
                     f.setJMenuBar(menu);
-//                     save.addActionListener(
-//                         new ActionListener(){
-//                             public void actionPerformed(ActionEvent ev){
-//                                 try{BufferedWriter out = new BufferedWriter(new FileWriter(file));
-//                                     out.write(textarea.getText());
-//                                     out.close();
-//                                     FileInputStream in = new FileInputStream(file);
-//                                     Repository.c.put(in, filename);}
-//                                 catch(Exception e){
-//                                     e.printStackTrace();
-//                                     System.out.println("There was a problem in saving file "+file.getName()+" on hdd ad uploading it to "+filename);}}});
                     InputStream in = null;
                     System.out.print("Getting "+filename+" ....");
                     try{in = Repository.c.get(filename);}
-                    catch(Exception e){System.out.println("Could not get :"+filename);}
+                    catch(Exception e){System.out.println("Could not get :"+filename);
+                        e.printStackTrace();}
                     InputStreamReader inputStreamReader = new InputStreamReader(in);
                     BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
+                    BufferedWriter writer = null;
                     String line;
-                    try{while ((line=bufferedReader.readLine())!= null){
-                            textarea.appendText(line+"\n");}
+                    File file2 = new File(Repository.temp+Repository.getBar()+"temp");
+                    try{writer = new BufferedWriter(new FileWriter(file2));
+                        while ((line=bufferedReader.readLine())!= null){
+                            writer.write(line);
+                            writer.newLine();}
+                        writer.flush();
                         bufferedReader.close();
+                        writer.close();
                         inputStreamReader.close();
                         in.close();
-                        textarea.setCaretPosition(0);
                         System.out.println("successfull");}
                     catch(Exception e){
                         System.out.println("failed");
                         e.printStackTrace();}
+                    try{bufferedReader = new BufferedReader(new FileReader(file2));}
+                    catch(Exception e){e.printStackTrace();}
+                    line=null;
+                    try{
+                        StringBuffer buf = new StringBuffer();
+                        while ((line=bufferedReader.readLine())!= null){
+                            buf.append(line+"\n");}
+                        textarea.setText(buf.toString());
+                        bufferedReader.close();
+                        inputStreamReader.close();
+                        in.close();
+                        textarea.setCaretPosition(0);}
+                    catch(Exception e){
+                        System.out.println("failed to read file localy");
+                        e.printStackTrace();}
                     f.addWindowListener(new WindowAdapter(){
                         public void windowClosing(WindowEvent ev){
                             tree.setEnabled(true);
-                            //Repository.f.p.p1.sc.g.setEnabled(true);
-                            Repository.f.p.p1.sc.g.setCanRequestFocus(true);
-                            //Repository.f.setEnabled(true);
+                            Repository.frame.mainpanel.p1.sc.g.setCanRequestFocus(true);
                             file.delete();
                             textarea.setText("");
                             f.dispose();}});}});}

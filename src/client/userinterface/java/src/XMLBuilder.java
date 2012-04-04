@@ -49,7 +49,7 @@ public class XMLBuilder{
                 if(getRunning(item.getSubItem(i)))return true;}
             return false;}}
         
-    public void createXML(boolean skip){//skip verificare daca e user xml sau xml final
+    public void createXML(boolean skip){//skip verifica daca e user xml sau xml final
         this.skip = skip;
         Element root = document.createElement("Root");
         document.appendChild(root);
@@ -156,28 +156,31 @@ public class XMLBuilder{
         try{transformer.transform(source, result);}
         catch(Exception e){System.out.println("Could not write standard output stream");}}
         
-    public void writeXMLFile(String filename){
+    public void writeXMLFile(String filename, boolean local){
         File file = new File(filename);
         Result result = new StreamResult(file);
         try{transformer.transform(source, result);}
-        catch(Exception e){e.printStackTrace();
+        catch(Exception e){
+            e.printStackTrace();
             System.out.println("Could not write to file");}
-        try{if(skip){
-                String dir = Repository.getXMLRemoteDir();
-                String [] path = dir.split("/");
-                StringBuffer result2 = new StringBuffer();
-                if (path.length > 0){
-                    for (int i=0; i<path.length-1; i++){
-                        result2.append(path[i]);
-                        result2.append("/");}}
-                Repository.c.cd(result2.toString());
-                FileInputStream in = new FileInputStream(file);
-                Repository.c.put(in, file.getName());
-                in.close();}
-            else{
-                Repository.c.cd(Repository.getRemoteUsersDirectory());
-                FileInputStream in = new FileInputStream(file);
-                Repository.c.put(in, file.getName());
-                in.close();}}
-        catch(Exception e){e.printStackTrace();
-            System.out.println("Could not get XML file to upload on sever");}}}
+        if(!local){
+            try{
+                if(skip){
+                    String dir = Repository.getXMLRemoteDir();
+                    String [] path = dir.split("/");
+                    StringBuffer result2 = new StringBuffer();
+                    if (path.length > 0){
+                        for (int i=0; i<path.length-1; i++){
+                            result2.append(path[i]);
+                            result2.append("/");}}
+                    Repository.c.cd(result2.toString());
+                    FileInputStream in = new FileInputStream(file);
+                    Repository.c.put(in, file.getName());
+                    in.close();}
+                else{
+                    Repository.c.cd(Repository.getRemoteUsersDirectory());
+                    FileInputStream in = new FileInputStream(file);
+                    Repository.c.put(in, file.getName());
+                    in.close();}}
+            catch(Exception e){e.printStackTrace();
+                System.out.println("Could not get XML file to upload on sever");}}}}

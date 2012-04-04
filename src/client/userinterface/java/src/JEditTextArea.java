@@ -412,6 +412,7 @@ public class JEditTextArea extends JComponent{
      */
     public int lineToY(int line)
     {
+        if(painter.getFontMetrics()==null) return 0;
         FontMetrics fm = painter.getFontMetrics();
         return (line - firstLine) * fm.getHeight()
             - (fm.getLeading() + fm.getMaxDescent());
@@ -423,6 +424,7 @@ public class JEditTextArea extends JComponent{
      */
     public int yToLine(int y)
     {
+        if(painter.getFontMetrics()==null) return 0;
         FontMetrics fm = painter.getFontMetrics();
         int height = fm.getHeight();
         return Math.max(0,Math.min(getLineCount() - 1,
@@ -497,8 +499,13 @@ public class JEditTextArea extends JComponent{
 
                 if(id == Token.NULL)
                     fm = painter.getFontMetrics();
-                else
-                    fm = styles[id].getFontMetrics(defaultFont);
+                else{
+                    new Thread(){
+                        public void run(){
+                            while(getGraphics()==null){
+                                try{Thread.sleep(10);}
+                                catch(Exception e){e.printStackTrace();}}}}.start();
+                    fm = styles[id].getFontMetrics(getGraphics(),defaultFont);}
 
                 int length = tokens.length;
 
@@ -594,8 +601,14 @@ public class JEditTextArea extends JComponent{
 
                 if(id == Token.NULL)
                     fm = painter.getFontMetrics();
-                else
-                    fm = styles[id].getFontMetrics(defaultFont);
+                else{
+                    new Thread(){
+                        public void run(){
+                            while(getGraphics()==null){
+                                try{Thread.sleep(10);}
+                                catch(Exception e){e.printStackTrace();}}}}.start();
+                    fm = styles[id].getFontMetrics(getGraphics(),defaultFont);
+                }
 
                 int length = tokens.length;
 
@@ -779,26 +792,6 @@ public class JEditTextArea extends JComponent{
     /**
      * Sets the entire text of this text area.
      */
-    
-    public void appendText(String text)
-    {
-        try
-        {
-            document.beginCompoundEdit();
-            //document.remove(0,document.getLength());
-            document.insertString(document.getLength(),text,null);
-        }
-        catch(BadLocationException bl)
-        {
-            bl.printStackTrace();
-        }
-        finally
-        {
-            document.endCompoundEdit();
-        }
-    }
-    
-    
     public void setText(String text)
     {
         try
@@ -806,6 +799,7 @@ public class JEditTextArea extends JComponent{
             document.beginCompoundEdit();
             document.remove(0,document.getLength());
             document.insertString(0,text,null);
+            document.endCompoundEdit();
         }
         catch(BadLocationException bl)
         {
@@ -1528,7 +1522,7 @@ public class JEditTextArea extends JComponent{
      * because some Swing overhead is avoided.
      */
     public void processKeyEvent(KeyEvent evt)
-    {
+    {        
         if(inputHandler == null)
             return;
         switch(evt.getID())
@@ -1540,6 +1534,15 @@ public class JEditTextArea extends JComponent{
             inputHandler.keyPressed(evt);
             break;
         case KeyEvent.KEY_RELEASED:
+            if ((evt.getKeyCode() == KeyEvent.VK_C) &&
+            ((evt.getModifiers() & KeyEvent.CTRL_MASK) != 0)) {
+                copy();}
+            else if ((evt.getKeyCode() == KeyEvent.VK_X) &&
+            ((evt.getModifiers() & KeyEvent.CTRL_MASK) != 0)) {
+                cut();}
+            else if ((evt.getKeyCode() == KeyEvent.VK_V) &&
+            ((evt.getModifiers() & KeyEvent.CTRL_MASK) != 0)) {
+                paste();}
             inputHandler.keyReleased(evt);
             break;
         }

@@ -20,12 +20,18 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import javax.swing.text.Element;
 import javax.swing.text.BadLocationException;
+import javax.swing.text.Highlighter.HighlightPainter;
 import javax.swing.text.Highlighter;
 import javax.swing.text.DefaultHighlighter;
 import javax.swing.JButton;
 import javax.swing.BorderFactory;
 import org.apache.xmlrpc.client.XmlRpcClient;
 import org.apache.xmlrpc.client.XmlRpcClientConfigImpl;
+import java.io.FileInputStream;
+import java.io.FileWriter;
+import javax.swing.JFileChooser;
+import sun.misc.BASE64Decoder;
+import javax.swing.text.DefaultCaret;
 
 public class Log extends JPanel{
     private static final long serialVersionUID = 1L;
@@ -44,6 +50,7 @@ public class Log extends JPanel{
         size = 0;
         line = 0;
         textarea = new JTextArea();
+        ((DefaultCaret)textarea.getCaret()).setUpdatePolicy(DefaultCaret.ALWAYS_UPDATE);
         scroll = new JScrollPane(textarea);
         scroll.setSize(450, 600);
         scroll.setVerticalScrollBarPolicy(22);
@@ -57,11 +64,10 @@ public class Log extends JPanel{
         final JTextField find = new JTextField();
         next.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
-                textarea.getHighlighter().removeAllHighlights();
                 String toFind = find.getText();
                 Element paragraph = textarea.getDocument().getDefaultRootElement();
                 int contentCount = paragraph.getElementCount();
-                Highlighter.HighlightPainter myHighlighter = new MyHighlightPainter(Color.RED);
+                HighlightPainter myHighlighter = new MyHighlightPainter(Color.RED);
                 for (int i=lastIndexFound+1; i<contentCount; i++){
                     Element e = paragraph.getElement(i);
                     int rangeStart = e.getStartOffset();
@@ -86,11 +92,10 @@ public class Log extends JPanel{
         prev.setFont(new Font("TimesRoman", Font.PLAIN, 10));
         prev.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
-                textarea.getHighlighter().removeAllHighlights();
                 String toFind = find.getText();
                 Element paragraph = textarea.getDocument().getDefaultRootElement();
                 int contentCount = paragraph.getElementCount();    
-                Highlighter.HighlightPainter myHighlighter = new MyHighlightPainter(Color.RED);
+                HighlightPainter myHighlighter = new MyHighlightPainter(Color.RED);
                 if(lastIndexFound==-1)lastIndexFound=0;
                 for (int i=lastIndexFound-1; i>=-1; i--){
                     if(i==-1){i=contentCount-1;}
@@ -110,8 +115,20 @@ public class Log extends JPanel{
                             break;}}
                     catch (BadLocationException ex){i=contentCount-1;}                    
                     if(i==(lastIndexFound+1))break;}}});
+        JButton savelog = new JButton("Save log");
+        savelog.setFont(new Font("TimesRoman", Font.PLAIN, 10));
+        savelog.addActionListener(new ActionListener(){
+            public void actionPerformed(ActionEvent ev){
+                saveLog();}});
+        JButton clearlog = new JButton("Clear log");
+        clearlog.setFont(new Font("TimesRoman", Font.PLAIN, 10));
+        clearlog.addActionListener(new ActionListener(){
+            public void actionPerformed(ActionEvent ev){
+            clearLog();}});
         findpanel.add(next);
         findpanel.add(prev);
+        findpanel.add(savelog);
+        findpanel.add(clearlog);
         container.add(scroll,BorderLayout.CENTER);
         container.add(findpanel,BorderLayout.PAGE_END);
         textarea.setEditable(false);
@@ -143,7 +160,7 @@ public class Log extends JPanel{
                                 for(int i=0;i<Repository.getSuiteNr();i++){
                                     for(int j=0;j<Repository.getSuita(i).getSubItemsNr();j++){
                                         Repository.getTestSuita(i).getSubItem(j).getSubItem(0).setValue("");
-                                        Repository.f.p.p2.sc.g.repaint();}}}}
+                                        Repository.frame.mainpanel.p2.sc.g.repaint();}}}}
                         catch (Exception e){
                             e.printStackTrace();
                             clearScreen();
@@ -153,6 +170,31 @@ public class Log extends JPanel{
         textarea.setText("");
         length = 0;
         response = 0;}
+        
+    public void saveLog(){
+        JFileChooser chooser = new JFileChooser(); 
+        chooser.setApproveButtonText("Save");
+        chooser.setCurrentDirectory(new java.io.File("."));
+        chooser.setDialogTitle("Choose Location");
+        chooser.setAcceptAllFileFilterUsed(false);    
+        if (chooser.showOpenDialog(Repository.frame) == JFileChooser.APPROVE_OPTION) {
+            File theone = new File(chooser.getSelectedFile()+"");
+            try{theone.createNewFile();
+                FileWriter writer = new FileWriter(theone);
+                writer.write(textarea.getText());
+                writer.flush();
+                writer.close();}
+            catch(Exception e){}}}
+        
+    public void clearLog(){
+        clearScreen();
+        XmlRpcClientConfigImpl config = new XmlRpcClientConfigImpl();
+        try{config.setServerURL(new URL("http://"+Repository.host+":"+Repository.getCentralEnginePort()));}
+        catch(Exception e){System.out.println("Could not connect to "+Repository.host+" on port "+Repository.getCentralEnginePort());}//!!! NU uita sa updatezi portul in mesajul de eroare                          
+        XmlRpcClient client = new XmlRpcClient();
+        client.setConfig(config);
+        try{String result = client.execute("resetLog",new Object[]{log})+"";}
+        catch(Exception e){e.printStackTrace();}}
         
     public Item getSubTC(Item item,String name){
         String name1 = item.getName().split("/")[item.getName().split("/").length-1].toLowerCase();        
@@ -165,8 +207,12 @@ public class Log extends JPanel{
         return null;}
                         
     public void readText(String content){
-        textarea.append(content);
-        textarea.setCaretPosition(textarea.getText().length() - 1);}}
+        BASE64Decoder base64 = new BASE64Decoder();
+        byte mydata[]=null;
+        try{mydata = base64.decodeBuffer(content);}
+        catch(Exception e){e.printStackTrace();}
+        textarea.append(new String(mydata));
+        scroll.getHorizontalScrollBar().setValue(0);}}
         
 class MyHighlightPainter extends DefaultHighlighter.DefaultHighlightPainter {          
       public MyHighlightPainter(Color color) {             

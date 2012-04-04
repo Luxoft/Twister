@@ -43,9 +43,9 @@ public class Repository{
     public static ArrayList<String> logs = new ArrayList<String>();
     public static ArrayList<Integer>editable;
     public static String[] columnNames;
-    public static Fereastra f;
+    public static Fereastra frame;
     public static ChannelSftp c;
-    public static String temp, USERHOME, HTTPSERVERPORT, CENTRALENGINEPORT, RESOURCEALLOCATORPORT, REMOTEDATABASECONFIGPATH, REMOTEDATABASECONFIGFILE, CONFIGDIRECTORY, USERSDIRECTORY, XMLDIRECTORY, TCDIRECTORY, TESTSUITEPATH, LOGSPATH ,XMLREMOTEDIR, REMOTEUSERSDIRECTORY, REMOTEEPIDDIR, REMOTEHARDWARECONFIGDIRECTORY;
+    public static String temp, USERHOME, REMOTECONFIGDIRECTORY, HTTPSERVERPORT, CENTRALENGINEPORT, RESOURCEALLOCATORPORT, REMOTEDATABASECONFIGPATH, REMOTEDATABASECONFIGFILE, REMOTEEMAILCONFIGPATH, REMOTEEMAILCONFIGFILE,CONFIGDIRECTORY, USERSDIRECTORY, XMLDIRECTORY, TCDIRECTORY, TESTSUITEPATH, LOGSPATH ,XMLREMOTEDIR, REMOTEUSERSDIRECTORY, REMOTEEPIDDIR, REMOTEHARDWARECONFIGDIRECTORY;
     public static Image porticon,suitaicon, tcicon, propicon, failicon, passicon, playicon, stopicon, pauseicon, background,notexecicon,pendingicon,skipicon,stoppedicon,timeouticon,waiticon,workingicon,moduleicon,deviceicon;
     public static boolean run = true;
     public static boolean applet;
@@ -57,7 +57,6 @@ public class Repository{
     public static int SELECTED = 2;
     public static int MANDATORY = 3;
     public static int ELEMENTSNR = 4;
-    public static String REMOTECONFIGDIRECTORY;
     
     public static void initialize(final boolean applet,String host,Applet container){
         try{File g = File.createTempFile("tmp","");
@@ -151,7 +150,8 @@ public class Repository{
                 intro.percent+=0.035;
                 intro.repaint();
                 parseDBConfig(Repository.REMOTEDATABASECONFIGFILE,true);
-                f = new Fereastra(applet,container);
+                frame = new Fereastra(applet,container);
+                parseEmailConfig(Repository.REMOTEEMAILCONFIGFILE,true);                
 //                 System.out.println("Finished initialization: "+System.currentTimeMillis());
             }
             else{
@@ -198,7 +198,11 @@ public class Repository{
         databaseUserFields.clear();
         System.out.println("Reparsing "+filename);
         parseDBConfig(filename,server);
-        f.p.p1.suitaDetails.restart(databaseUserFields);}
+        frame.mainpanel.p1.suitaDetails.restart(databaseUserFields);}
+        
+    public static void resetEmailConf(String filename,boolean server){
+        System.out.println("Reparsing "+filename);
+        parseEmailConfig(filename,server);}
         
     public static File getDBConfFile(String name,boolean fromServer){
         File file = new File(temp+bar+"Twister"+bar+"config"+bar+name);
@@ -225,6 +229,33 @@ public class Repository{
                     System.out.println("failed");
                     e.printStackTrace();}}
             catch(Exception e){System.out.println("Could not get :"+name+" from: "+Repository.REMOTEDATABASECONFIGPATH+" as database config file");}}
+        return file;}
+        
+    public static File getEmailConfFile(String name,boolean fromServer){
+        File file = new File(temp+bar+"Twister"+bar+"config"+bar+name);
+        if(fromServer){
+            InputStream in = null;
+            try{c.cd(Repository.REMOTEEMAILCONFIGPATH);}
+            catch(Exception e){System.out.println("Could not get :"+Repository.REMOTEEMAILCONFIGPATH);}
+            System.out.print("Getting "+name+" as email config file.... ");
+            try{in = c.get(name);
+                InputStreamReader inputStreamReader = new InputStreamReader(in);
+                BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
+                BufferedWriter writer = null;
+                String line;
+                try{writer = new BufferedWriter(new FileWriter(file));
+                    while ((line=bufferedReader.readLine())!= null){
+                        writer.write(line);
+                        writer.newLine();}
+                    bufferedReader.close();
+                    writer.close();
+                    inputStreamReader.close();
+                    in.close();
+                    System.out.println("successfull");}
+                catch(Exception e){
+                    System.out.println("failed");
+                    e.printStackTrace();}}
+            catch(Exception e){System.out.println("Could not get :"+name+" from: "+Repository.REMOTEEMAILCONFIGPATH+" as email config file");}}
         return file;}
         
     public static DefaultMutableTreeNode parseDBConfig(String name,boolean fromServer){
@@ -280,6 +311,23 @@ public class Repository{
             e.printStackTrace();}
         return root;}
         
+    public static void parseEmailConfig(String name,boolean fromServer){
+        File dbConf = getEmailConfFile(name,fromServer);
+        DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+        try{DocumentBuilder db = dbf.newDocumentBuilder();
+            Document doc = db.parse(dbConf);
+            doc.getDocumentElement().normalize();                
+            frame.mainpanel.p4.emails.setCheck(Boolean.parseBoolean(getTagContent(doc, "Enabled")));
+            String smtppath = getTagContent(doc, "SMTPPath");
+            frame.mainpanel.p4.emails.setIPName(smtppath.split(":")[0]);
+            frame.mainpanel.p4.emails.setPort(smtppath.split(":")[1]);
+            frame.mainpanel.p4.emails.setUser(getTagContent(doc, "SMTPUser"));
+            frame.mainpanel.p4.emails.setFrom(getTagContent(doc, "From"));
+            frame.mainpanel.p4.emails.setEmails(getTagContent(doc, "To"));
+             frame.mainpanel.p4.emails.setMessage(getTagContent(doc, "Message"));
+            frame.mainpanel.p4.emails.setSubject(getTagContent(doc, "Subject"));}
+        catch(Exception e){e.printStackTrace();}}
+        
     public static void parseConfig(){ 
         try{InputStream in = null;
             byte[] data = new byte[100]; 
@@ -294,16 +342,16 @@ public class Repository{
             String name = null;
             try{c.cd(USERHOME+"/twister/config/");}
             catch(Exception e){System.out.println("Could not get :"+USERHOME+"/twister/config/");
-                JOptionPane.showMessageDialog(Repository.f, "Could not get :"+USERHOME+"/twister/config/");
-                if(Fereastra.deleteTemp(new File(Repository.temp+bar+"Twister")))System.out.println(Repository.temp+bar+"Twister deleted successfull");
-                else System.out.println("Could not delete: "+Repository.temp+bar+"Twister");
-                intro.dispose();
-                run = false;
-                if(!applet)System.exit(0);}
+            JOptionPane.showMessageDialog(Repository.frame, "Could not get :"+USERHOME+"/twister/config/");
+            if(Fereastra.deleteTemp(new File(Repository.temp+bar+"Twister")))System.out.println(Repository.temp+bar+"Twister deleted successfull");
+            else System.out.println("Could not delete: "+Repository.temp+bar+"Twister");
+            intro.dispose();
+            run = false;
+            if(!applet)System.exit(0);}
             try{System.out.println("fwmconfig.xml size on sftp: "+c.lstat("fwmconfig.xml").getSize()+" bytes");
                 in = c.get("fwmconfig.xml");}
             catch(Exception e){
-                JOptionPane.showMessageDialog(Repository.f, "Could not get fwmconfig.xml from "+c.pwd()+" creating a blank one.");
+                JOptionPane.showMessageDialog(Repository.frame, "Could not get fwmconfig.xml from "+c.pwd()+" creating a blank one.");
                 System.out.println("Could not get fwmconfig.xml from "+c.pwd()+" creating a blank one.");
                 ConfigFiles.saveXML(true);
                 in = c.get("fwmconfig.xml");}
@@ -327,129 +375,23 @@ public class Repository{
             DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
             try{DocumentBuilder db = dbf.newDocumentBuilder();
                 Document doc = db.parse(Repository.getFwmConfig());
-                doc.getDocumentElement().normalize();                
-                NodeList nodeLst = doc.getElementsByTagName("LogsPath");
-                if(nodeLst.getLength()==0)System.out.println("LogsPath tag not found in fwmconfig");
-                Node fstNode = nodeLst.item(0);
-                Element fstElmnt = (Element)fstNode;
-                NodeList fstNm = fstElmnt.getChildNodes();
-                try{LOGSPATH = fstNm.item(0).getNodeValue().toString();}
-                catch(Exception e){
-                    System.out.println("LogsPath empty");
-                    LOGSPATH = "";}
-                nodeLst = doc.getElementsByTagName("LogFiles");
-                if(nodeLst.getLength()==0)System.out.println("LogFiles tag not found in fwmconfig");
-                fstNode = nodeLst.item(0);                
-                nodeLst = doc.getElementsByTagName("logRunning");
-                if(nodeLst.getLength()==0)System.out.println("logRunning tag not found in fwmconfig");
-                fstNode = nodeLst.item(0);
-                fstElmnt = (Element)fstNode;
-                fstNm = fstElmnt.getChildNodes();                    
-                try{logs.add(fstNm.item(0).getNodeValue().toString());}
-                catch(Exception e){
-                    System.out.println("logRunning empty");
-                    logs.add("");}
-                nodeLst = doc.getElementsByTagName("logDebug");
-                if(nodeLst.getLength()==0)System.out.println("logDebug tag not found in fwmconfig");
-                fstNode = nodeLst.item(0);
-                fstElmnt = (Element)fstNode;
-                fstNm = fstElmnt.getChildNodes();                    
-                try{logs.add(fstNm.item(0).getNodeValue().toString());}
-                catch(Exception e){
-                    System.out.println("logDebug empty");
-                    logs.add("");}
-                nodeLst = doc.getElementsByTagName("logSummary");
-                if(nodeLst.getLength()==0)System.out.println("logSummary tag not found in fwmconfig");
-                fstNode = nodeLst.item(0);
-                fstElmnt = (Element)fstNode;
-                fstNm = fstElmnt.getChildNodes();                    
-                try{logs.add(fstNm.item(0).getNodeValue().toString());}
-                catch(Exception e){
-                    System.out.println("logSummary empty");
-                    logs.add("");}
-                nodeLst = doc.getElementsByTagName("logTest");
-                if(nodeLst.getLength()==0)System.out.println("logTest tag not found in fwmconfig");
-                fstNode = nodeLst.item(0);
-                fstElmnt = (Element)fstNode;
-                fstNm = fstElmnt.getChildNodes();                    
-                try{logs.add(fstNm.item(0).getNodeValue().toString());}
-                catch(Exception e){
-                    System.out.println("logTest empty");
-                    logs.add("");}
-                nodeLst = doc.getElementsByTagName("logCli");
-                if(nodeLst.getLength()==0)System.out.println("logCli tag not found in fwmconfig");
-                fstNode = nodeLst.item(0);
-                fstElmnt = (Element)fstNode;
-                fstNm = fstElmnt.getChildNodes();                    
-                try{logs.add(fstNm.item(0).getNodeValue().toString());}
-                catch(Exception e){
-                    System.out.println("logCli empty");
-                    logs.add("");}
-                nodeLst = doc.getElementsByTagName("HttpServerPort");
-                if(nodeLst.getLength()==0)System.out.println("CentralEnginePort tag not found in fwmconfig");
-                fstNode = nodeLst.item(0);
-                fstElmnt = (Element)fstNode;
-                fstNm = fstElmnt.getChildNodes();
-                try{HTTPSERVERPORT = fstNm.item(0).getNodeValue().toString();}
-                catch(Exception e){
-                    System.out.println("HTTPSERVERPORT empty");
-                    HTTPSERVERPORT = "";}
-                nodeLst = doc.getElementsByTagName("CentralEnginePort");
-                if(nodeLst.getLength()==0)System.out.println("CentralEnginePort tag not found in fwmconfig");
-                fstNode = nodeLst.item(0);
-                fstElmnt = (Element)fstNode;
-                fstNm = fstElmnt.getChildNodes();
-                try{CENTRALENGINEPORT = fstNm.item(0).getNodeValue().toString();}
-                catch(Exception e){
-                    System.out.println("CENTRALENGINEPORT empty");
-                    CENTRALENGINEPORT = "";}
-                nodeLst = doc.getElementsByTagName("ResourceAllocatorPort");
-                if(nodeLst.getLength()==0)System.out.println("ResourceAllocatorPort tag not found in fwmconfig");
-                fstNode = nodeLst.item(0);
-                fstElmnt = (Element)fstNode;
-                fstNm = fstElmnt.getChildNodes();
-                try{RESOURCEALLOCATORPORT = fstNm.item(0).getNodeValue().toString();}
-                catch(Exception e){
-                    System.out.println("RESOURCEALLOCATORPORT empty");
-                    RESOURCEALLOCATORPORT = "";}
-                nodeLst = doc.getElementsByTagName("UsersPath");
-                if(nodeLst.getLength()==0)System.out.println("UsersPath tag not found in fwmconfig");
-                fstNode = nodeLst.item(0);
-                fstElmnt = (Element)fstNode;
-                fstNm = fstElmnt.getChildNodes();
-                try{usersdir = fstNm.item(0).getNodeValue().toString();}
-                catch(Exception e){
-                    System.out.println("UsersPath empty");
-                    usersdir = "";}
+                doc.getDocumentElement().normalize();    
+                LOGSPATH = getTagContent(doc,"LogsPath");
+                if(doc.getElementsByTagName("LogFiles").getLength()==0)System.out.println("LogFiles tag not found in fwmconfig");
+                else{logs.add(getTagContent(doc,"logRunning"));
+                    logs.add(getTagContent(doc,"logDebug"));
+                    logs.add(getTagContent(doc,"logSummary"));
+                    logs.add(getTagContent(doc,"logTest"));
+                    logs.add(getTagContent(doc,"logCli"));}
+                HTTPSERVERPORT = getTagContent(doc,"HttpServerPort");
+                CENTRALENGINEPORT = getTagContent(doc,"CentralEnginePort");
+                RESOURCEALLOCATORPORT = getTagContent(doc,"ResourceAllocatorPort");
+                usersdir = getTagContent(doc,"UsersPath");
                 REMOTEUSERSDIRECTORY = usersdir;
-                nodeLst = doc.getElementsByTagName("MasterXMLTestSuite");
-                if(nodeLst.getLength()==0)System.out.println("MasterXMLTestSuite tag not found in fwmconfig");
-                fstNode = nodeLst.item(0);
-                fstElmnt = (Element)fstNode;
-                fstNm = fstElmnt.getChildNodes();                
-                try{XMLREMOTEDIR = fstNm.item(0).getNodeValue().toString();}
-                catch(Exception e){
-                    System.out.println("MasterXMLTestSuite empty");
-                    XMLREMOTEDIR = "";}
+                XMLREMOTEDIR = getTagContent(doc,"MasterXMLTestSuite");
                 XMLDIRECTORY = Repository.temp+bar+"Twister"+bar+"XML"+bar+XMLREMOTEDIR.split("/")[XMLREMOTEDIR.split("/").length-1];
-                nodeLst = doc.getElementsByTagName("EPIdsFile");
-                if(nodeLst.getLength()==0)System.out.println("EPIdsFile tag not found in fwmconfig");
-                fstNode = nodeLst.item(0);
-                fstElmnt = (Element)fstNode;
-                fstNm = fstElmnt.getChildNodes();
-                try{REMOTEEPIDDIR = fstNm.item(0).getNodeValue().toString();}
-                catch(Exception e){
-                    System.out.println("EPIdsFile empty");
-                    REMOTEEPIDDIR = "";}
-                nodeLst = doc.getElementsByTagName("DbConfigFile");
-                if(nodeLst.getLength()==0)System.out.println("DbConfigFile tag not found in fwmconfig");
-                fstNode = nodeLst.item(0);
-                fstElmnt = (Element)fstNode;
-                fstNm = fstElmnt.getChildNodes();
-                try{REMOTEDATABASECONFIGFILE = fstNm.item(0).getNodeValue().toString();}
-                catch(Exception e){
-                    System.out.println("DbConfigFile empty");
-                    REMOTEDATABASECONFIGFILE = "";}
+                REMOTEEPIDDIR = getTagContent(doc,"EPIdsFile");
+                REMOTEDATABASECONFIGFILE = getTagContent(doc,"DbConfigFile");
                 String [] path = REMOTEDATABASECONFIGFILE.split("/");
                 StringBuffer result = new StringBuffer();
                 if (path.length > 0) {
@@ -458,24 +400,17 @@ public class Repository{
                         result.append("/");}}
                 REMOTEDATABASECONFIGPATH = result.toString();
                 REMOTEDATABASECONFIGFILE = path[path.length-1];
-                nodeLst = doc.getElementsByTagName("TestCaseSourcePath");
-                if(nodeLst.getLength()==0)System.out.println("TestCaseSourcePath tag not found in fwmconfig");
-                fstNode = nodeLst.item(0);
-                fstElmnt = (Element)fstNode;
-                fstNm = fstElmnt.getChildNodes();
-                try{TESTSUITEPATH = fstNm.item(0).getNodeValue().toString();}
-                catch(Exception e){
-                    System.out.println("TestCaseSourcePath empty");
-                    TESTSUITEPATH = "";}
-                nodeLst = doc.getElementsByTagName("HardwareConfig");
-                if(nodeLst.getLength()==0)System.out.println("HardwareConfig tag not found in fwmconfig");
-                fstNode = nodeLst.item(0);
-                fstElmnt = (Element)fstNode;
-                fstNm = fstElmnt.getChildNodes();
-                try{REMOTEHARDWARECONFIGDIRECTORY = fstNm.item(0).getNodeValue().toString();}
-                catch(Exception e){
-                    System.out.println("HardwareConfig empty");
-                    REMOTEHARDWARECONFIGDIRECTORY = "";}}
+                REMOTEEMAILCONFIGFILE = getTagContent(doc,"EmailConfigFile");
+                path = REMOTEEMAILCONFIGFILE.split("/");
+                result = new StringBuffer();
+                if (path.length > 0) {
+                    for (int i=0; i<path.length-1; i++){
+                        result.append(path[i]);
+                        result.append("/");}}
+                REMOTEEMAILCONFIGPATH = result.toString();
+                REMOTEEMAILCONFIGFILE = path[path.length-1];
+                TESTSUITEPATH = getTagContent(doc,"TestCaseSourcePath");
+                REMOTEHARDWARECONFIGDIRECTORY = getTagContent(doc,"HardwareConfig");}
             catch(Exception e){e.printStackTrace();}
 //             System.out.println("Finished variable initialization: "+System.currentTimeMillis());
             intro.text = "Finished initializing variables fwmconfig";
@@ -537,7 +472,8 @@ public class Repository{
                 intro.text = "Started getting xml file";
                 intro.percent+=0.035;
                 intro.repaint();
-                in = c.get(XMLREMOTEDIR);
+                System.out.println("XMLREMOTEDIR: "+XMLREMOTEDIR);
+                in = c.get(XMLREMOTEDIR);                
                 data = new byte[900];
                 buffer = new ByteArrayOutputStream();
                 while ((nRead = in.read(data, 0, data.length)) != -1){buffer.write(data, 0, nRead);}
@@ -560,6 +496,19 @@ public class Repository{
             intro.percent+=0.035;
             intro.repaint();}
         catch(Exception e){e.printStackTrace();}}
+        
+    public static String getTagContent(Document doc, String tag){
+        NodeList nodeLst = doc.getElementsByTagName(tag);
+        if(nodeLst.getLength()==0)System.out.println("tag "+tag+" not found in "+doc.getDocumentURI());
+        Node fstNode = nodeLst.item(0);
+        Element fstElmnt = (Element)fstNode;
+        NodeList fstNm = fstElmnt.getChildNodes();
+        String temp;
+        try{temp = fstNm.item(0).getNodeValue().toString();}
+        catch(Exception e){
+            System.out.println(tag+" empty");
+            temp = "";}
+        return temp;}
     
     public static void addSuita(Item s){
         suite.add(s);}
@@ -593,7 +542,6 @@ public class Repository{
         
     public static String getCentralEnginePort(){
         return CENTRALENGINEPORT;}
-        
         
     public static String getResourceAllocatorPort(){
         return RESOURCEALLOCATORPORT;}
@@ -674,7 +622,7 @@ public class Repository{
         return passicon;}
         
     public static Image getTCIcon(){
-        return tcicon;}        
+        return tcicon;}
         
     public static Image getPlayIcon(){
         return playicon;}
@@ -683,4 +631,7 @@ public class Repository{
         return bar;}
         
     public static Image getPropertyIcon(){
-        return propicon;}}
+        return propicon;}
+
+    public static String getUser(){
+        return user;}}

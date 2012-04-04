@@ -42,10 +42,10 @@ public class DatabaseFrame extends JFrame{
     
     public DatabaseFrame(DefPanel userDefinition){
         setTitle(userDefinition.getDescription());
-        Repository.f.setEnabled(false);
+        Repository.frame.setEnabled(false);
         addWindowListener(new WindowAdapter(){
             public void windowClosing(WindowEvent e){
-                Repository.f.setEnabled(true);
+                Repository.frame.setEnabled(true);
                 dispose();}});
         initComponents();
         this.userDefinition = userDefinition;}
@@ -109,7 +109,7 @@ public class DatabaseFrame extends JFrame{
         ok.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 userDefinition.setParentField((String)fieldsCombo.getSelectedItem(),true);
-                Repository.f.setEnabled(true);
+                Repository.frame.setEnabled(true);
                 dispose();}});
         pack();}    
     

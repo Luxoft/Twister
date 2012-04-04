@@ -68,11 +68,11 @@ public class GraficTest extends JPanel{
             int index = selected2.get(0);
             selected2.remove(0);
             for(int i=index;i<Repository.getTestSuiteNr();i++){   
-                Repository.f.p.p2.sc.g.iterateThrough(Repository.getTestSuita(i),selected2);
+                Repository.frame.mainpanel.p2.sc.g.iterateThrough(Repository.getTestSuita(i),selected2);
                 selected2 = null;}}
         else if(selected2.size()==1){
             for(int i=selected2.get(0);i<Repository.getTestSuiteNr();i++){
-                Repository.f.p.p2.sc.g.iterateThrough(Repository.getTestSuita(i),null);}}
+                Repository.frame.mainpanel.p2.sc.g.iterateThrough(Repository.getTestSuita(i),null);}}
         y=10;
         foundfirstitem=false;
         updateScroll();}
@@ -111,21 +111,6 @@ public class GraficTest extends JPanel{
                 iterateThrough(item.getSubItem(i),null);}}}
 
     public void updateScroll(){
-//         int y = (int)Repository.getTestSuita(Repository.getTestSuiteNr() - 1).getRectangle().getY() + 25;
-//         if(Repository.getTestSuita(Repository.getTestSuiteNr() - 1).isVisible()){
-//             y = (int)Repository.getTestSuita(Repository.getTestSuiteNr() - 1).getSubItem(Repository.getTestSuita(Repository.getTestSuiteNr() - 1).getSubItemsNr() - 1).getRectangle().getY() + 25;
-//             if(Repository.getTestSuita(Repository.getTestSuiteNr() - 1).getSubItem(Repository.getTestSuita(Repository.getTestSuiteNr() - 1).getSubItemsNr() - 1).isVisible())
-//                 y = (int)(Repository.getTestSuita(Repository.getTestSuiteNr() - 1).getSubItem(Repository.getTestSuita(Repository.getTestSuiteNr() - 1).getSubItemsNr() - 1).getRectangle().getY() + Repository.getTestSuita(Repository.getTestSuiteNr() - 1).getSubItem(Repository.getTestSuita(Repository.getTestSuiteNr() - 1).getSubItemsNr() - 1).getRectangle().getHeight());}
-//         if(y > getHeight()-15){
-//             setPreferredSize(new Dimension(425,y+25));
-//             revalidate();}
-//         if(getHeight() > 595){
-//             if(y < getHeight() - 15){
-//                 setPreferredSize(new Dimension(425,y+25));
-//                 revalidate();}
-//             if(y < 595){
-//                 setPreferredSize(new Dimension(445,595));
-//                 revalidate();}}
             int y1=0;
             for(int i=0;i<Repository.getTestSuiteNr();i++){
                 if(Repository.getTestSuita(i).isVisible())y1 = getLastY(Repository.getTestSuita(i),y1);}
@@ -138,12 +123,7 @@ public class GraficTest extends JPanel{
                     revalidate();}
                 if(y1<595){
                     setPreferredSize(new Dimension(445,595));
-                    revalidate();}}
-            
-            
-            
-            
-            }
+                    revalidate();}}}
             
             
     public int getLastY(Item item, int height){
@@ -179,15 +159,16 @@ public class GraficTest extends JPanel{
             if(!item.isRunnable())g.setColor(Color.GRAY);
             g.drawString(item.getName(),(int)item.getRectangle().getX()+30,(int)item.getRectangle().getY()+15);
             g.setColor(Color.BLACK);
-            if(item.getSubItem(0).getValue().toUpperCase().equals("FAIL")) g.drawImage(Repository.getFailIcon(), (int)item.getRectangle().getX()+5,(int)item.getRectangle().getY()+1,null);
-            else if(item.getSubItem(0).getValue().toUpperCase().equals("PENDING")) g.drawImage(Repository.getPendingIcon(), (int)item.getRectangle().getX()+5,(int)item.getRectangle().getY()+1,null);
-            else if(item.getSubItem(0).getValue().toUpperCase().equals("WORKING")) g.drawImage(Repository.getWorkingIcon(), (int)item.getRectangle().getX()+5,(int)item.getRectangle().getY()+1,null);
-            else if(item.getSubItem(0).getValue().toUpperCase().equals("SKIPPED")) g.drawImage(Repository.getSkippedIcon(), (int)item.getRectangle().getX()+5,(int)item.getRectangle().getY()+1,null);
-            else if(item.getSubItem(0).getValue().toUpperCase().equals("STOPPED")) g.drawImage(Repository.getStoppedIcon(), (int)item.getRectangle().getX()+5,(int)item.getRectangle().getY()+1,null);
-            else if(item.getSubItem(0).getValue().toUpperCase().equals("NOT EXECUTED")) g.drawImage(Repository.getNotExecIcon(), (int)item.getRectangle().getX()+5,(int)item.getRectangle().getY()+1,null);
-            else if(item.getSubItem(0).getValue().toUpperCase().equals("TIMEOUT")) g.drawImage(Repository.getTimeoutIcon(), (int)item.getRectangle().getX()+5,(int)item.getRectangle().getY()+1,null);
-            else if(item.getSubItem(0).getValue().toUpperCase().equals("WAITING")) g.drawImage(Repository.getWaitingIcon(), (int)item.getRectangle().getX()+5,(int)item.getRectangle().getY()+1,null);
-            else if(item.getSubItem(0).getValue().toUpperCase().equals("PASS")) g.drawImage(Repository.getPassIcon(), (int)item.getRectangle().getX()+5,(int)item.getRectangle().getY()+1,null);
+            String value = item.getSubItem(0).getValue().toUpperCase();
+            if(value.equals("FAIL")) g.drawImage(Repository.getFailIcon(), (int)item.getRectangle().getX()+5,(int)item.getRectangle().getY()+1,null);
+            else if(value.equals("PENDING")) g.drawImage(Repository.getPendingIcon(), (int)item.getRectangle().getX()+5,(int)item.getRectangle().getY()+1,null);
+            else if(value.equals("RUNNING")) g.drawImage(Repository.getWorkingIcon(), (int)item.getRectangle().getX()+5,(int)item.getRectangle().getY()+1,null);
+            else if(value.equals("SKIPPED")) g.drawImage(Repository.getSkippedIcon(), (int)item.getRectangle().getX()+5,(int)item.getRectangle().getY()+1,null);
+            else if(value.equals("STOPPED")) g.drawImage(Repository.getStoppedIcon(), (int)item.getRectangle().getX()+5,(int)item.getRectangle().getY()+1,null);
+            else if(value.equals("NOT EXECUTED")) g.drawImage(Repository.getNotExecIcon(), (int)item.getRectangle().getX()+5,(int)item.getRectangle().getY()+1,null);
+            else if(value.equals("TIMEOUT")) g.drawImage(Repository.getTimeoutIcon(), (int)item.getRectangle().getX()+5,(int)item.getRectangle().getY()+1,null);
+            else if(value.equals("WAITING")) g.drawImage(Repository.getWaitingIcon(), (int)item.getRectangle().getX()+5,(int)item.getRectangle().getY()+1,null);
+            else if(value.equals("PASS")) g.drawImage(Repository.getPassIcon(), (int)item.getRectangle().getX()+5,(int)item.getRectangle().getY()+1,null);
             else g.drawImage(Repository.getTCIcon(),(int)item.getRectangle().getX()+5,(int)item.getRectangle().getY()+1,null);}
         else{if(item.getPos().get(item.getPos().size()-1).intValue()==0)g.drawImage(Repository.getPropertyIcon(),(int)item.getRectangle().getX()+2,(int)item.getRectangle().getY()+1,null);
             g.drawString(item.getName()+" : "+item.getValue(),(int)item.getRectangle().getX()+25,(int)item.getRectangle().getY()+15);}

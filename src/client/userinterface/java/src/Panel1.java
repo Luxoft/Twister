@@ -24,6 +24,7 @@ import javax.swing.JInternalFrame;
 import java.awt.Container;
 import java.awt.DefaultKeyboardFocusManager;
 import javax.swing.JLabel;
+import javax.swing.JFileChooser;
 
 
 public class Panel1 extends JPanel{
@@ -42,85 +43,100 @@ public class Panel1 extends JPanel{
         Repository.intro.percent+=0.035;
         Repository.intro.repaint();
         openedfile = new JLabel();
-        openedfile.setBounds(110,23,250,20);
+        openedfile.setBounds(210,23,250,20);
         add(openedfile);
+        JButton addsuite = new JButton("Add Suite");
+        addsuite.setBounds(10,23,100,20);
+        add(addsuite);
+        addsuite.addActionListener(new ActionListener(){
+            public void actionPerformed(ActionEvent ev){
+                sc.g.addSuiteFromButton();}});
         JButton generate = new JButton("Generate");
-        generate.setBounds(10,23,90,20);
+        generate.setBounds(115,23,90,20);
         add(generate);
         suitaDetails = new SuitaDetails(Repository.getDatabaseUserFields());
         generate.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 String result="";
-                try{result = (String)Repository.f.p.p2.client.execute("getExecStatusAll",new Object[]{});}
+                try{result = (String)Repository.frame.mainpanel.p2.client.execute("getExecStatusAll",new Object[]{});}
                 catch(Exception e){System.out.println("Could not connect to server");}
                 int defsNr = suitaDetails.getDefsNr();
                 boolean execute=true;
                 for(int i=0;i<Repository.getSuiteNr();i++){
                     if(Repository.getSuita(i).getUserDefNr()<defsNr){
-                        JOptionPane.showMessageDialog(Repository.f, "Please set user defined fields for: "+Repository.getSuita(i).getName());
+                        JOptionPane.showMessageDialog(Repository.frame, "Please set user defined fields for: "+Repository.getSuita(i).getName());
                         execute = false;
                         break;}
                     for(int j=0;j<defsNr;j++){
                         if(Repository.getSuita(i).getUserDef(j)[1].length()==0&&Repository.getDatabaseUserFields().get(j)[Repository.MANDATORY].equals("true")){
-                            JOptionPane.showMessageDialog(Repository.f, "Please set user defined field at "+Repository.getDatabaseUserFields().get(j)[Repository.LABEL]+" for: "+Repository.getSuita(i).getName());
+                            JOptionPane.showMessageDialog(Repository.frame, "Please set user defined field at "+Repository.getDatabaseUserFields().get(j)[Repository.LABEL]+" for: "+Repository.getSuita(i).getName());
                             execute = false;
                             break;}}
                     if(!execute)break;}                
                 if(execute){
                     if(!result.equals("running")){
-                        sc.g.printXML(Repository.getTestXMLDirectory(),true);
+                        sc.g.printXML(Repository.getTestXMLDirectory(),true,false);
                         Repository.emptyTestRepository();
                         File xml = new File(Repository.getTestXMLDirectory());    
                         int size = Repository.logs.size();
                         for(int i=5;i<size;i++){Repository.logs.remove(5);}
                         new XMLReader(xml).parseXML(sc.g.getGraphics(), true);
-                        Repository.f.p.p2.updateTabs();
-                        JOptionPane.showMessageDialog(Repository.f, "File successfully generated ");}
-                    else{JOptionPane.showMessageDialog(Repository.f, "Please close Central Engine before generating");}}}});
+                        Repository.frame.mainpanel.p2.updateTabs();
+                        JOptionPane.showMessageDialog(Repository.frame, "File successfully generated ");}
+                    else{JOptionPane.showMessageDialog(Repository.frame, "Please close Central Engine before generating");}}}});
         this.applet = applet;
         JMenuBar menu = new JMenuBar();
         menu.setLayout(null);
         menu.setBounds(0, 0, width, 20);
         JMenu filemenu = new JMenu("File");
         filemenu.setBounds(10,0,40,20);
-        JMenuItem saveuser = new JMenuItem("Save suite XML");
-        saveuser.addActionListener(new ActionListener() {
+        JMenuItem newuser = new JMenuItem("New suite file");
+        newuser.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
-                if(!sc.g.getUser().equals(""))sc.g.printXML(sc.g.getUser(), false);}});
-        filemenu.add(saveuser);
-//         JMenuItem createXML = new JMenuItem("Create XML");
-//         createXML.addActionListener(new ActionListener() {
-//             public void actionPerformed(ActionEvent ev){
-//                 if(!sc.g.getUser().equals(""))sc.g.printXML(Repository.getTestXMLDirectory(), true);}});
-//         filemenu.add(createXML);
-        menu.add(filemenu);
-        JMenu usermenu = new JMenu("Suite");
-        usermenu.setBounds(50,0,40,20);
-        JMenuItem changeuser = new JMenuItem("Change suite file");
+                String user ="";
+                Repository.emptyRepository();
+                try{user = JOptionPane.showInputDialog(null, "Please enter file name", "File Name", -1).toUpperCase();}
+                catch(NullPointerException e){}
+                (new XMLBuilder(Repository.getSuite())).writeXMLFile(Repository.getUsersDirectory()+System.getProperty("file.separator")+user+".xml",false);
+                Repository.frame.mainpanel.p1.sc.g.setUser(Repository.getUsersDirectory()+System.getProperty("file.separator")+user+".xml");
+                sc.g.printXML(sc.g.getUser(),false,false);
+                sc.g.updateScroll();
+                sc.g.repaint();}});
+        filemenu.add(newuser);
+        JMenuItem changeuser = new JMenuItem("Open suite file");
         changeuser.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 File usersdirectory = new File(Repository.getUsersDirectory());
-                String users[] = new String[usersdirectory.list().length + 1];
+//                 String users[] = new String[usersdirectory.list().length + 1];
+                String users[] = new String[usersdirectory.list().length];
                 System.arraycopy(usersdirectory.list(), 0, users, 0, usersdirectory.list().length);
-                users[users.length - 1] = "New File";
+//                 users[users.length - 1] = "New File";
                 String user = (String)JOptionPane.showInputDialog(null, "Select suite file", "Suite File", 1, null, users, "Suite File");
-                if(user!=null && user.equals("New File")){
+//                 if(user!=null && user.equals("New File")){
+//                     Repository.emptyRepository();
+//                     try{user = JOptionPane.showInputDialog(null, "Please enter file name", "File Name", -1).toUpperCase();}
+//                     catch(NullPointerException e){}
+//                     (new XMLBuilder(Repository.getSuite())).writeXMLFile(Repository.getUsersDirectory()+System.getProperty("file.separator")+user+".xml",false);
+//                     Repository.frame.mainpanel.p1.sc.g.setUser(Repository.getUsersDirectory()+System.getProperty("file.separator")+user+".xml");
+//                     sc.g.printXML(sc.g.getUser(),false,false);
+//                     sc.g.updateScroll();}
+//                 else 
+                if(user != null){
                     Repository.emptyRepository();
-                    try{user = JOptionPane.showInputDialog(null, "Please enter file name", "File Name", -1).toUpperCase();}
-                    catch(NullPointerException e){}
-                    (new XMLBuilder(Repository.getSuite())).writeXMLFile(Repository.getUsersDirectory()+System.getProperty("file.separator")+user+".xml");
-                    Repository.f.p.p1.sc.g.setUser(Repository.getUsersDirectory()+System.getProperty("file.separator")+user+".xml");
-                    sc.g.printXML(sc.g.getUser(),false);
-                    sc.g.updateScroll();}
-                else if(user != null){
-                    Repository.emptyRepository();
-                    Repository.f.p.p1.sc.g.setUser(Repository.getUsersDirectory()+System.getProperty("file.separator")+user);
-                    Repository.f.p.p1.sc.g.parseXML(new File(Repository.getUsersDirectory()+System.getProperty("file.separator")+user));}
+                    Repository.frame.mainpanel.p1.sc.g.setUser(Repository.getUsersDirectory()+Repository.getBar()+user);
+                    Repository.frame.mainpanel.p1.sc.g.parseXML(new File(Repository.getUsersDirectory()+System.getProperty("file.separator")+user));}
                 if(Repository.getSuiteNr() > 0){
-                    Repository.f.p.p1.sc.g.updateLocations(Repository.getSuita(0));}
-                Repository.f.p.p1.sc.g.repaint();}});
+                    Repository.frame.mainpanel.p1.sc.g.updateLocations(Repository.getSuita(0));}
+                Repository.frame.mainpanel.p1.sc.g.repaint();}});
         filemenu.add(changeuser);
-        JMenuItem deleteuser = new JMenuItem("Delete file");
+        JMenuItem saveuser = new JMenuItem("Save suite file");
+        saveuser.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent ev){
+                if(!sc.g.getUser().equals("")){
+                    if(sc.g.printXML(sc.g.getUser(), false,false)) JOptionPane.showMessageDialog(Repository.frame, "File successfully saved ");
+                    else JOptionPane.showMessageDialog(Repository.frame, "Warning, file not saved.");}}});
+        filemenu.add(saveuser);
+        JMenuItem deleteuser = new JMenuItem("Delete suite file");
         deleteuser.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent ev){
                 int r = JOptionPane.showConfirmDialog(null, "Delete file "+new File(sc.g.getUser()).getName()+" ?", "Delete", 0);
@@ -142,30 +158,55 @@ public class Panel1 extends JPanel{
                         if(user.equals("New File")){
                             Repository.emptyRepository();
                             user = JOptionPane.showInputDialog(null, "Please enter file name", "File Name", -1).toUpperCase();
-                            (new XMLBuilder(Repository.getSuite())).writeXMLFile((new StringBuilder()).append(Repository.getUsersDirectory()).append(System.getProperty("file.separator")).append(user).append(".xml").toString());
-                            Repository.f.p.p1.sc.g.setUser((new StringBuilder()).append(Repository.getUsersDirectory()).append(System.getProperty("file.separator")).append(user).append(".xml").toString());}
+                            (new XMLBuilder(Repository.getSuite())).writeXMLFile((new StringBuilder()).append(Repository.getUsersDirectory()).append(System.getProperty("file.separator")).append(user).append(".xml").toString(),false);
+                            Repository.frame.mainpanel.p1.sc.g.setUser((new StringBuilder()).append(Repository.getUsersDirectory()).append(System.getProperty("file.separator")).append(user).append(".xml").toString());}
                         else if(user != null){
-                            Repository.f.p.p1.sc.g.setUser((new StringBuilder()).append(Repository.getUsersDirectory()).append(System.getProperty("file.separator")).append(user).toString());
-                            Repository.f.p.p1.sc.g.parseXML(new File((new StringBuilder()).append(Repository.getUsersDirectory()).append(System.getProperty("file.separator")).append(user).toString()));}}
-                    else Repository.f.p.p1.sc.g.setUser("");
-                    if(Repository.getSuiteNr() > 0)Repository.f.p.p1.sc.g.updateLocations(Repository.getSuita(0));
-                    Repository.f.p.p1.sc.g.repaint();
-                    Repository.f.p.p1.sc.g.repaint();}}});
+                            Repository.frame.mainpanel.p1.sc.g.setUser((new StringBuilder()).append(Repository.getUsersDirectory()).append(System.getProperty("file.separator")).append(user).toString());
+                            Repository.frame.mainpanel.p1.sc.g.parseXML(new File((new StringBuilder()).append(Repository.getUsersDirectory()).append(System.getProperty("file.separator")).append(user).toString()));}}
+                    else Repository.frame.mainpanel.p1.sc.g.setUser("");
+                    if(Repository.getSuiteNr() > 0)Repository.frame.mainpanel.p1.sc.g.updateLocations(Repository.getSuita(0));
+                    Repository.frame.mainpanel.p1.sc.g.repaint();
+                    Repository.frame.mainpanel.p1.sc.g.repaint();}}});
         filemenu.add(deleteuser);
-        //menu.add(usermenu);
+        JMenuItem openlocalXML = new JMenuItem("Open from local");
+        openlocalXML.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent ev){
+                JFileChooser chooser = new JFileChooser(); 
+                chooser.setFileFilter(new XMLFilter());
+                chooser.setCurrentDirectory(new java.io.File("."));
+                chooser.setDialogTitle("Select XML File"); 
+                if (chooser.showOpenDialog(Repository.frame) == JFileChooser.APPROVE_OPTION) {                    
+                    Repository.emptyRepository();
+                    sc.g.setUser(Repository.getUsersDirectory()+Repository.getBar()+chooser.getSelectedFile().getName());
+                    sc.g.parseXML(chooser.getSelectedFile());
+                    if(Repository.getSuiteNr() > 0)sc.g.updateLocations(Repository.getSuita(0));
+                    sc.g.repaint();}}});
+        filemenu.add(openlocalXML);
+        JMenuItem savelocalXML = new JMenuItem("Save to local");
+        savelocalXML.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent ev){
+                if(!sc.g.getUser().equals("")){
+                    try{JFileChooser chooser = new JFileChooser(); 
+                        chooser.setApproveButtonText("Save");
+                        chooser.setCurrentDirectory(new java.io.File("."));
+                        chooser.setDialogTitle("Choose Location");         
+                        chooser.setAcceptAllFileFilterUsed(false);    
+                        if (chooser.showOpenDialog(Panel1.this) == JFileChooser.APPROVE_OPTION) {
+                            if(sc.g.printXML(chooser.getSelectedFile()+".xml", false,true)) JOptionPane.showMessageDialog(Repository.frame, "File successfully saved ");
+                            else JOptionPane.showMessageDialog(Repository.frame, "Warning, file not saved.");}
+                        else {System.out.println("No Selection");}}
+                    catch(Exception e){
+                        JOptionPane.showMessageDialog(Repository.frame, "Warning, file not saved.");
+                        System.out.println("There was a problem in writing xml file, make sure file it is not in use.");
+                        e.printStackTrace();}}}});
+        filemenu.add(savelocalXML);
+        menu.add(filemenu);
         add(menu);
         tdtl = new TreeDropTargetListener(applet);        
         sc = new ScrollGrafic(10, 32, tdtl, user, applet);
         ep = new ExplorerPanel(470, 32, tdtl, applet, Repository.c);
         setLayout(null);    
         JSplitPane splitPane2 = new JSplitPane(JSplitPane.VERTICAL_SPLIT,new JScrollPane(ep.tree),new TCDetails());
-        splitPane2.setFocusTraversalKeysEnabled(false);
-        splitPane2.setFocusTraversalPolicyProvider(false);
-        splitPane2.setFocusCycleRoot(false);
-        splitPane2.setFocusTraversalKeys(DefaultKeyboardFocusManager.BACKWARD_TRAVERSAL_KEYS,null);
-        splitPane2.setFocusTraversalKeys(DefaultKeyboardFocusManager.DOWN_CYCLE_TRAVERSAL_KEYS,null);
-        splitPane2.setFocusTraversalKeys(DefaultKeyboardFocusManager.FORWARD_TRAVERSAL_KEYS,null);
-        splitPane2.setFocusTraversalKeys(DefaultKeyboardFocusManager.UP_CYCLE_TRAVERSAL_KEYS,null);
         splitPane2.setDividerLocation(0.5);        
         JSplitPane splitPane3 = new JSplitPane(JSplitPane.VERTICAL_SPLIT,sc.pane,suitaDetails);
         splitPane3.setDividerLocation(0.5);        
@@ -188,10 +229,10 @@ class TreeDropTargetListener implements DropTargetListener {
     public void dragEnter(DropTargetDragEvent dropTargetDragEvent){}
     public void dragExit(DropTargetEvent dropTargetEvent){}
     public void dragOver(DropTargetDragEvent dropTargetDragEvent) {
-        Repository.f.p.p1.sc.g.handleDraggingLine((int)dropTargetDragEvent.getLocation().getX(),(int)dropTargetDragEvent.getLocation().getY());}
+        Repository.frame.mainpanel.p1.sc.g.handleDraggingLine((int)dropTargetDragEvent.getLocation().getX(),(int)dropTargetDragEvent.getLocation().getY());}
     public void dropActionChanged(DropTargetDragEvent dropTargetDragEvent) {}
     public synchronized void drop(DropTargetDropEvent dropTargetDropEvent) {
-        try{Repository.f.p.p1.sc.g.clearDraggingLine();
-            Repository.f.p.p1.sc.g.drop((int)dropTargetDropEvent.getLocation().getX(),(int)dropTargetDropEvent.getLocation().getY());}
+        try{Repository.frame.mainpanel.p1.sc.g.clearDraggingLine();
+            Repository.frame.mainpanel.p1.sc.g.drop((int)dropTargetDropEvent.getLocation().getX(),(int)dropTargetDropEvent.getLocation().getY());}
             catch(Exception e){e.printStackTrace();
                 System.out.println("Could not get folder location");}}}

@@ -172,14 +172,14 @@ public class XMLReader{
                 Repository.logs.add(suitatemp.getEpId()+"_"+Repository.logs.get(4));}}}
         if(!test){
             if(Repository.getSuiteNr()>0){
-                while(Repository.f.p.p1.sc.g==null){
+                while(Repository.frame.mainpanel.p1.sc.g==null){
                     try{Thread.sleep(10);}
                     catch(Exception e){e.printStackTrace();}}
-                Repository.f.p.p1.sc.g.updateLocations(Repository.getSuita(0));
-                Repository.f.p.p1.sc.g.repaint();}}
+                Repository.frame.mainpanel.p1.sc.g.updateLocations(Repository.getSuita(0));
+                Repository.frame.mainpanel.p1.sc.g.repaint();}}
         else{if(Repository.getTestSuiteNr()>0){
-                while(Repository.f==null||Repository.f.p==null||Repository.f.p.p2==null||Repository.f.p.p2.sc==null||Repository.f.p.p2.sc.g==null){
+                while(Repository.frame==null||Repository.frame.mainpanel==null||Repository.frame.mainpanel.p2==null||Repository.frame.mainpanel.p2.sc==null||Repository.frame.mainpanel.p2.sc.g==null){
                     try{Thread.sleep(10);}
                     catch(Exception e){e.printStackTrace();}}
-                Repository.f.p.p2.sc.g.updateLocations(Repository.getTestSuita(0));
-                Repository.f.p.p2.sc.g.repaint();}}}}
+                Repository.frame.mainpanel.p2.sc.g.updateLocations(Repository.getTestSuita(0));
+                Repository.frame.mainpanel.p2.sc.g.repaint();}}}}

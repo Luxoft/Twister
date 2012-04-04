@@ -346,12 +346,15 @@ public class TextAreaPainter extends JComponent implements TabExpander
      * cached font metrics and to recalculate which lines are visible.
      * @param font The font
      */
-    public void setFont(Font font)
-    {
+    public void setFont(final Font font){
         super.setFont(font);
-        fm = Toolkit.getDefaultToolkit().getFontMetrics(font);
-        textArea.recalculateVisibleLines();
-    }
+        new Thread(){
+            public void run(){
+                while(getGraphics()==null){
+                    try{Thread.sleep(10);}
+                    catch(Exception e){e.printStackTrace();}}
+                fm = getGraphics().getFontMetrics(font);
+                textArea.recalculateVisibleLines();}}.start();}
 
     /**
      * Repaints the text.

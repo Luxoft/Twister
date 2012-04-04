@@ -19,7 +19,6 @@ public class MainPanel extends JTabbedPane{
     private static final long serialVersionUID = 1L;
     public Panel1 p1;
     public Panel2 p2;
-    public Panel3 p3;
     public Panel4 p4;
     private boolean applet;
 
@@ -34,13 +33,12 @@ public class MainPanel extends JTabbedPane{
         Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
         this.applet = applet;
         p1 = new Panel1("", applet,(int)screenSize.getWidth());
-        p2 = new Panel2(applet);        
-        p3 = new Panel3();        
+        p2 = new Panel2(applet);    
         p4 = new Panel4();        
         setBounds(5, 5, (int)screenSize.getWidth()-50, 672);
         addTab("Suites", new ImageIcon(), p1);
         add("Monitoring", p2);
-        add("Reports", p3);
+        add("Reports", null);
         add("Configuration", p4);
         new Thread(){
             public void run(){
@@ -54,23 +52,24 @@ public class MainPanel extends JTabbedPane{
                 try{String user = (String)JOptionPane.showInputDialog(p1, "Select Suite file", "Suite File", 1, null, users, "Suite File");
                     if(user.equals("New File")){
                         user = JOptionPane.showInputDialog(null, "Please enter file name", "File Name", -1).toUpperCase();
-                        (new XMLBuilder(Repository.getSuite())).writeXMLFile((new StringBuilder()).append(Repository.getUsersDirectory()).append(Repository.getBar()).append(user).append(".XML").toString());
+                        (new XMLBuilder(Repository.getSuite())).writeXMLFile((new StringBuilder()).append(Repository.getUsersDirectory()).append(Repository.getBar()).append(user).append(".XML").toString(),false);
                         p1.sc.g.setUser((new StringBuilder()).append(Repository.getUsersDirectory()).append(Repository.getBar()).append(user).append(".XML").toString());
-                        p1.sc.g.printXML(p1.sc.g.getUser(),false);}
+                        p1.sc.g.printXML(p1.sc.g.getUser(),false,false);}
                     else if(user != null){
                         p1.sc.g.setUser((new StringBuilder()).append(Repository.getUsersDirectory()).append(Repository.getBar()).append(user).toString());
                         p1.sc.g.parseXML(new File((new StringBuilder()).append(Repository.getUsersDirectory()).append(Repository.getBar()).append(user).toString()));}}
                 catch(NullPointerException e){}}}.start();
-//         if(applet){
-//             addChangeListener(new ChangeListener(){
-//                 public void stateChanged(ChangeEvent e){
-//                     if(getSelectedIndex()==2){
-//                         try{Repository.f.container.getAppletContext().showDocument(new URL("http://www.google.com"), "_blank");}
-//                         catch(Exception ex){ex.printStackTrace();}}}});}
+        if(applet){
+            addChangeListener(new ChangeListener(){
+                public void stateChanged(ChangeEvent e){
+                    if(getSelectedIndex()==2){
+                        try{Repository.frame.container.getAppletContext().showDocument(new URL("http://"+Repository.host+":"+Repository.getHTTPServerPort()), "_blank");}
+                        catch(Exception ex){ex.printStackTrace();}
+                        setSelectedIndex(1);}}});}
         Repository.intro.text = "Finished Main initialization";
         Repository.intro.percent+=0.035;
         Repository.intro.repaint();}
  
     public void saveUserXML(){
         if(!p1.sc.g.getUser().equals("")){
-            p1.sc.g.printXML(p1.sc.g.getUser(), false);}}}
+            p1.sc.g.printXML(p1.sc.g.getUser(), false,false);}}}

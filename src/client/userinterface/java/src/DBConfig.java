@@ -29,6 +29,7 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.dom.DOMSource;
+import javax.swing.JOptionPane;
 
 public class DBConfig extends JPanel{
     Document doc=null;
@@ -55,7 +56,7 @@ public class DBConfig extends JPanel{
                 chooser.setFileFilter(new XMLFilter());
                 chooser.setCurrentDirectory(new java.io.File("."));
                 chooser.setDialogTitle("Select XML File"); 
-                if (chooser.showOpenDialog(Repository.f) == JFileChooser.APPROVE_OPTION) {                     
+                if (chooser.showOpenDialog(Repository.frame) == JFileChooser.APPROVE_OPTION) {                     
                     File f = chooser.getSelectedFile();
                     try{tfile.setText(f.getCanonicalPath());}
                     catch(Exception e){e.printStackTrace();}}}});
@@ -98,52 +99,32 @@ public class DBConfig extends JPanel{
         final JPasswordField tpassword = new JPasswordField();
         tpassword.setBounds(80,130,170,20);
         add(tpassword);
-        InputStream in = null;
-        try{Repository.c.cd(Repository.REMOTEDATABASECONFIGPATH);
-            System.out.println("changed to:"+ Repository.REMOTEDATABASECONFIGPATH);
-            in = Repository.c.get(Repository.REMOTEDATABASECONFIGFILE);}
-        catch(Exception e){e.printStackTrace();
-            System.out.println("Could not get: "+Repository.REMOTEDATABASECONFIGFILE);}
-        byte [] data = new byte[100];
-        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-        int nRead;
-        theone = new File(Repository.temp+Repository.getBar()+"Twister"+Repository.getBar()+"config"+Repository.getBar()+new File(Repository.REMOTEDATABASECONFIGFILE).getName());
-        try{while ((nRead = in.read(data, 0, data.length)) != -1){buffer.write(data, 0, nRead);}
-            buffer.flush();
-            FileOutputStream out = new FileOutputStream(theone);
-            buffer.writeTo(out);
-            out.close();
-            buffer.close();
-            in.close();}
-        catch(Exception e){e.printStackTrace();
-            System.out.println("Could not write "+Repository.REMOTEDATABASECONFIGFILE+" on local hdd");}
-        try{DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-            DocumentBuilder db = dbf.newDocumentBuilder();                                        
-            doc = db.parse(theone);
-            doc.getDocumentElement().normalize();
-            NodeList nodeLst = doc.getElementsByTagName("server");
-            tserver.setText(nodeLst.item(0).getChildNodes().item(0).getNodeValue());
-            nodeLst = doc.getElementsByTagName("database");
-            tdatabase.setText(nodeLst.item(0).getChildNodes().item(0).getNodeValue());
-            nodeLst = doc.getElementsByTagName("user");
-            tuser.setText(nodeLst.item(0).getChildNodes().item(0).getNodeValue());}
-        catch(Exception e){
-            e.printStackTrace();
-            System.out.println(Repository.temp+Repository.getBar()+"Twister"+Repository.getBar()+"Config"+Repository.getBar()+new File(Repository.REMOTEDATABASECONFIGFILE).getName()+" is corrupted or incomplete");}
+        refresh();
         JButton save = new JButton("Save");
         save.setBounds(180,155,70,20);
         save.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 if(doc!=null){
-                    NodeList nodeLst = doc.getElementsByTagName("server");
-                    nodeLst.item(0).getChildNodes().item(0).setNodeValue(tserver.getText());
-                    nodeLst = doc.getElementsByTagName("database");
-                    nodeLst.item(0).getChildNodes().item(0).setNodeValue(tdatabase.getText());
-                    nodeLst = doc.getElementsByTagName("user");
-                    nodeLst.item(0).getChildNodes().item(0).setNodeValue(tuser.getText());
-                    nodeLst = doc.getElementsByTagName("password");
-                    nodeLst.item(0).getChildNodes().item(0).setNodeValue(new String(tpassword.getPassword()));
-                    Result result = new StreamResult(theone); 
+                    if(tpassword.getPassword().length == 0){JOptionPane.showMessageDialog(DBConfig.this, "Warning, password not set, will be used the old one", "Warning", JOptionPane.WARNING_MESSAGE);}
+//                     else{
+                    theone = new File(Repository.temp+Repository.getBar()+"Twister"+Repository.getBar()+"config"+Repository.getBar()+new File(Repository.REMOTEDATABASECONFIGFILE).getName());
+                    try{NodeList nodeLst = doc.getElementsByTagName("server");
+                        if(nodeLst.item(0).getChildNodes().getLength()>0)nodeLst.item(0).getChildNodes().item(0).setNodeValue(tserver.getText());
+                        else nodeLst.item(0).appendChild(doc.createTextNode(tserver.getText()));
+                        nodeLst = doc.getElementsByTagName("database");
+                        if(nodeLst.item(0).getChildNodes().getLength()>0)nodeLst.item(0).getChildNodes().item(0).setNodeValue(tdatabase.getText());
+                        else nodeLst.item(0).appendChild(doc.createTextNode(tdatabase.getText()));
+                        nodeLst = doc.getElementsByTagName("user");
+                        if(nodeLst.item(0).getChildNodes().getLength()>0)nodeLst.item(0).getChildNodes().item(0).setNodeValue(tuser.getText());
+                        else nodeLst.item(0).appendChild(doc.createTextNode(tuser.getText()));
+                        if(tpassword.getPassword().length != 0){
+                            nodeLst = doc.getElementsByTagName("password");
+                            if(nodeLst.item(0).getChildNodes().getLength()>0)nodeLst.item(0).getChildNodes().item(0).setNodeValue(new String(tpassword.getPassword()));
+                            else nodeLst.item(0).appendChild(doc.createTextNode(new String(tpassword.getPassword())));}
+                    
+                    }
+                    catch(Exception e){System.out.println(doc.getDocumentURI()+" may not be properly formatted");}
+                    Result result = new StreamResult(theone);
                     try{DOMSource source = new DOMSource(doc);
                         TransformerFactory transformerFactory = TransformerFactory.newInstance();
                         Transformer transformer = transformerFactory.newTransformer();
@@ -158,7 +139,9 @@ public class DBConfig extends JPanel{
                         Repository.c.put(input, theone.getName());
                         input.close();}
                     catch(Exception e){e.printStackTrace();
-                    System.out.println("Could not save in file : "+Repository.temp+Repository.getBar()+"Twister"+Repository.getBar()+"Config"+Repository.getBar()+Repository.REMOTEDATABASECONFIGFILE+" and send to "+Repository.REMOTEDATABASECONFIGPATH);}}}});
+                    System.out.println("Could not save in file : "+Repository.temp+Repository.getBar()+"Twister"+Repository.getBar()+"Config"+Repository.getBar()+Repository.REMOTEDATABASECONFIGFILE+" and send to "+Repository.REMOTEDATABASECONFIGPATH);}}
+//                     }
+                }});
         add(save);}
     
     public void refresh(){

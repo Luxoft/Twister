@@ -2,18 +2,14 @@ import javax.swing.JPanel;
 import java.awt.Color;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.awt.event.KeyListener;
-import java.awt.event.KeyEvent;
 import java.awt.Rectangle;
 import java.awt.Graphics;
 import javax.swing.JPopupMenu;
 import javax.swing.JMenuItem;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Arrays;
 import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
-import javax.swing.JTextField;
 import javax.swing.JOptionPane;
 import javax.swing.JFrame;
 import javax.swing.JButton;
@@ -24,22 +20,15 @@ import javax.swing.JTextField;
 import java.io.InputStreamReader;
 import java.io.InputStream;
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.FileWriter;
 import javax.swing.JComboBox;
-import java.awt.event.KeyAdapter;
 import java.awt.event.KeyListener;
 import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
 import javax.swing.SwingUtilities;
 import java.awt.FontMetrics;
 import java.awt.dnd.DropTarget;
-import javax.swing.tree.TreeModel;
 import javax.swing.tree.TreeNode;
 import javax.swing.tree.TreePath;
 import java.awt.Dimension;
-import javax.swing.JFileChooser;
-import java.awt.Component;
 import javax.swing.filechooser.FileFilter;
 import javax.swing.InputMap;
 import javax.swing.ComponentInputMap;
@@ -49,16 +38,12 @@ import javax.swing.plaf.ActionMapUIResource;
 import javax.swing.Action;
 import javax.swing.AbstractAction;
 import javax.swing.JComponent;
-import java.util.Set;
-import java.util.HashSet;
 import java.awt.Cursor;
 import java.awt.dnd.DragSource;
-import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.util.Collections;
 import java.awt.event.WindowFocusListener;
 import java.awt.event.WindowEvent;
-import java.awt.DefaultKeyboardFocusManager;
 import java.util.Comparator;
 import java.awt.event.InputEvent;
 import java.awt.event.MouseMotionAdapter;
@@ -66,7 +51,7 @@ import java.awt.event.MouseMotionAdapter;
 public class Grafic extends JPanel{
     private static final long serialVersionUID = 1L;
     private ArrayList <Integer> selected;
-    private ArrayList <int []> selectedcolection = new ArrayList<int []>();
+    private ArrayList <int []> selectedcollection = new ArrayList<int []>();
     private byte keypress;
     private JPopupMenu p = new JPopupMenu();
     private boolean foundfirstitem;
@@ -81,22 +66,23 @@ public class Grafic extends JPanel{
     private boolean scrollup = false;
     private int[] line = {-1,-1,-1,-1,-1};
     private boolean canrequestfocus = true;
+    private int xStart, yStart;
     
     public Grafic(TreeDropTargetListener tdtl, String user){
         this.user=user;
         setFocusable(true);
-        if(!user.equals("")){Repository.f.p.setTitleAt(0,(user.split("\\\\")[user.split("\\\\").length-1]).split("\\.")[0]);}
+        if(!user.equals("")){Repository.frame.mainpanel.setTitleAt(0,(user.split("\\\\")[user.split("\\\\").length-1]).split("\\.")[0]);}
         add(p);
         DropTarget dropTarget = new DropTarget(this, tdtl);
         new Thread(){
             public void run(){
                 while(Repository.run){
                     if(scrolldown){
-                        int scrollvalue = Repository.f.p.p1.sc.pane.getVerticalScrollBar().getValue();
-                        Repository.f.p.p1.sc.pane.getVerticalScrollBar().setValue(scrollvalue-10);}
+                        int scrollvalue = Repository.frame.mainpanel.p1.sc.pane.getVerticalScrollBar().getValue();
+                        Repository.frame.mainpanel.p1.sc.pane.getVerticalScrollBar().setValue(scrollvalue-10);}
                     else if(scrollup){
-                        int scrollvalue = Repository.f.p.p1.sc.pane.getVerticalScrollBar().getValue();
-                        Repository.f.p.p1.sc.pane.getVerticalScrollBar().setValue(scrollvalue+10);}
+                        int scrollvalue = Repository.frame.mainpanel.p1.sc.pane.getVerticalScrollBar().getValue();
+                        Repository.frame.mainpanel.p1.sc.pane.getVerticalScrollBar().setValue(scrollvalue+10);}
                     try{Thread.sleep(60);}
                     catch(Exception e){e.printStackTrace();}}}}.start();
         addMouseMotionListener(new MouseMotionAdapter(){
@@ -104,10 +90,12 @@ public class Grafic extends JPanel{
                 if((ev.getModifiers() & InputEvent.BUTTON1_MASK) != 0){
                     if(dragging){handleDraggingLine(ev.getX(),ev.getY());}
                     else{//first time
-                        if(dragammount<1)dragammount++;
-                        else{
-                            dragammount=0;
-                            getClickedItem(ev.getX(),ev.getY());
+                        if(dragammount==0){
+                            xStart = ev.getX();
+                            yStart = ev.getY();}
+                        if(dragammount<3)dragammount++;
+                        else{dragammount=0;
+                            getClickedItem(xStart,yStart);
                             if(selected.size()>0){
                                 if(getItem(selected,false).getType()!=0){
                                     setCursor(DragSource.DefaultCopyDrop);
@@ -115,14 +103,14 @@ public class Grafic extends JPanel{
                                         deselectAll();
                                         int [] temporary = new int[selected.size()];
                                         for(int m=0;m<temporary.length;m++)temporary[m]=selected.get(m).intValue();
-                                        selectedcolection.add(temporary);}
+                                        selectedcollection.add(temporary);}
                                     ArrayList <Integer> temp = new ArrayList <Integer>();
-                                    for(int i=selectedcolection.size()-1;i>=0;i--){
-                                        for(int j=0;j<selectedcolection.get(i).length;j++){temp.add(new Integer(selectedcolection.get(i)[j]));}
+                                    for(int i=selectedcollection.size()-1;i>=0;i--){
+                                        for(int j=0;j<selectedcollection.get(i).length;j++){temp.add(new Integer(selectedcollection.get(i)[j]));}
                                         Item theone2 = getItem(temp,false).clone();  
                                         if(theone2.getType()==0){
                                             getItem(temp,false).select(false);
-                                            selectedcolection.remove(i);
+                                            selectedcollection.remove(i);
                                             temp.clear();
                                             continue;}
                                         clone.add(theone2);
@@ -151,7 +139,7 @@ public class Grafic extends JPanel{
                 if(canrequestfocus)new Thread(){
                     public void run(){
                         try{Thread.sleep(300);
-                            Repository.f.p.p1.sc.g.requestFocus();}
+                            Grafic.this.requestFocus();}
                         catch(Exception e){e.printStackTrace();}}}.start();
                 dragscroll = true;}
             public void mouseExited(MouseEvent ev){
@@ -161,8 +149,8 @@ public class Grafic extends JPanel{
                 clearDraggingLine();
                 scrolldown = false;
                 scrollup = false; 
-                Repository.f.p.p1.suitaDetails.clearDefs();
-                Repository.f.p.p1.suitaDetails.setParent(null);
+                Repository.frame.mainpanel.p1.suitaDetails.clearDefs();
+                Repository.frame.mainpanel.p1.suitaDetails.setParent(null);
                 dragammount=0;
                 if(dragging){handleMouseDroped(ev.getY());}
                 else handleClick(ev);}});
@@ -173,8 +161,8 @@ public class Grafic extends JPanel{
                 if(ev.getKeyCode()==KeyEvent.VK_DELETE){removeSelected();}
                 if(ev.getKeyCode()==KeyEvent.VK_UP){
                     ArrayList <Integer> temp = new ArrayList <Integer>();  
-                    int last = selectedcolection.size()-1;
-                    for(int j=0;j<selectedcolection.get(last).length;j++){temp.add(new Integer(selectedcolection.get(last)[j]));}
+                    int last = selectedcollection.size()-1;
+                    for(int j=0;j<selectedcollection.get(last).length;j++){temp.add(new Integer(selectedcollection.get(last)[j]));}
                     Item next = prevInLine(getItem(temp,false));
                     if(next!=null&&keypress!=2){
                         if(keypress!=1){
@@ -182,30 +170,30 @@ public class Grafic extends JPanel{
                             selectItem(next.getPos());
                             if(next.getType()==2&&next.getPos().size()==1){
                                 int userDefNr = next.getUserDefNr();
-                                Repository.f.p.p1.suitaDetails.setParent(next);
-                                if(userDefNr!=Repository.f.p.p1.suitaDetails.getDefsNr())System.out.println("Warning, suite "+next.getName()+" has "+userDefNr+" fields while in bd.xml are defined "+Repository.f.p.p1.suitaDetails.getDefsNr()+" fields");
-                                try{for(int i=0;i<userDefNr;i++){Repository.f.p.p1.suitaDetails.getDefPanel(i).setDecription(next.getUserDef(i)[1]);}}
+                                Repository.frame.mainpanel.p1.suitaDetails.setParent(next);
+                                if(userDefNr!=Repository.frame.mainpanel.p1.suitaDetails.getDefsNr())System.out.println("Warning, suite "+next.getName()+" has "+userDefNr+" fields while in bd.xml are defined "+Repository.frame.mainpanel.p1.suitaDetails.getDefsNr()+" fields");
+                                try{for(int i=0;i<userDefNr;i++){Repository.frame.mainpanel.p1.suitaDetails.getDefPanel(i).setDecription(next.getUserDef(i)[1]);}}
                                 catch(Exception e){e.printStackTrace();}}
                             else{
-                                Repository.f.p.p1.suitaDetails.clearDefs();
-                                Repository.f.p.p1.suitaDetails.setParent(null);}}
+                                Repository.frame.mainpanel.p1.suitaDetails.clearDefs();
+                                Repository.frame.mainpanel.p1.suitaDetails.setParent(null);}}
                         else{
                             if(!clearedSelection){
                                 deselectAll();
                                 clearedSelection = true;
                                 selectItem(getItem(temp,false).getPos());}
                             if(next.isSelected()){                            
-                                int [] itemselected = selectedcolection.get(selectedcolection.size()-1);
+                                int [] itemselected = selectedcollection.get(selectedcollection.size()-1);
                                 Item theone = Repository.getSuita(itemselected[0]);
                                 for(int j=1;j<itemselected.length;j++){theone = theone.getSubItem(itemselected[j]);}
                                 theone.select(false);
-                                selectedcolection.remove(selectedcolection.size()-1);}
+                                selectedcollection.remove(selectedcollection.size()-1);}
                             else selectItem(next.getPos());}
                         repaint();}}
                 if(ev.getKeyCode()==KeyEvent.VK_DOWN){
                     ArrayList <Integer> temp = new ArrayList <Integer>();  
-                    int last = selectedcolection.size()-1;
-                    for(int j=0;j<selectedcolection.get(last).length;j++){temp.add(new Integer(selectedcolection.get(last)[j]));}
+                    int last = selectedcollection.size()-1;
+                    for(int j=0;j<selectedcollection.get(last).length;j++){temp.add(new Integer(selectedcollection.get(last)[j]));}
                     Item next = nextInLine(getItem(temp,false));
                     if(next!=null&&keypress!=2){
                         if(keypress!=1){
@@ -213,24 +201,24 @@ public class Grafic extends JPanel{
                             selectItem(next.getPos());
                             if(next.getType()==2&&next.getPos().size()==1){
                                 int userDefNr = next.getUserDefNr();
-                                Repository.f.p.p1.suitaDetails.setParent(next);
-                                if(userDefNr!=Repository.f.p.p1.suitaDetails.getDefsNr())System.out.println("Warning, suite "+next.getName()+" has "+userDefNr+" fields while in bd.xml are defined "+Repository.f.p.p1.suitaDetails.getDefsNr()+" fields");
-                                try{for(int i=0;i<userDefNr;i++){Repository.f.p.p1.suitaDetails.getDefPanel(i).setDecription(next.getUserDef(i)[1]);}}
+                                Repository.frame.mainpanel.p1.suitaDetails.setParent(next);
+                                if(userDefNr!=Repository.frame.mainpanel.p1.suitaDetails.getDefsNr())System.out.println("Warning, suite "+next.getName()+" has "+userDefNr+" fields while in bd.xml are defined "+Repository.frame.mainpanel.p1.suitaDetails.getDefsNr()+" fields");
+                                try{for(int i=0;i<userDefNr;i++){Repository.frame.mainpanel.p1.suitaDetails.getDefPanel(i).setDecription(next.getUserDef(i)[1]);}}
                                 catch(Exception e){e.printStackTrace();}}
                             else{
-                                Repository.f.p.p1.suitaDetails.clearDefs();
-                                Repository.f.p.p1.suitaDetails.setParent(null);}}
+                                Repository.frame.mainpanel.p1.suitaDetails.clearDefs();
+                                Repository.frame.mainpanel.p1.suitaDetails.setParent(null);}}
                         else{
                             if(!clearedSelection){
                                 deselectAll();
                                 clearedSelection = true;
                                 selectItem(getItem(temp,false).getPos());}
                             if(next.isSelected()){                            
-                                int [] itemselected = selectedcolection.get(selectedcolection.size()-1);
+                                int [] itemselected = selectedcollection.get(selectedcollection.size()-1);
                                 Item theone = Repository.getSuita(itemselected[0]);
                                 for(int j=1;j<itemselected.length;j++){theone = theone.getSubItem(itemselected[j]);}
                                 theone.select(false);
-                                selectedcolection.remove(selectedcolection.size()-1);}
+                                selectedcollection.remove(selectedcollection.size()-1);}
                             else selectItem(next.getPos());}
                         repaint();}}}
             public void keyReleased(KeyEvent ev){
@@ -289,20 +277,23 @@ public class Grafic extends JPanel{
                     int Y = mouseY;
                     if((upper.getSubItemsNr()>0&&upper.getSubItem(0).isVisible())){//suita este expanded sau nu are copii si trebuie bagat in ea
                         dropFirstInSuita(upper);}//Should be inserted in suita
-                    else if(Y<upper.getRectangle().y+upper.getRectangle().getHeight()+5){
+                    else if(Y<upper.getRectangle().y+upper.getRectangle().getHeight()+5||//este mai sus mai aproape de 5 pixeli fata de suita
+                    (Y>upper.getRectangle().y+upper.getRectangle().getHeight()+5&&upper.getPos().size()>1 //este mai departe de 5 pixeli fata de suita dar suita nu e ultima din parent
+                    &&upper.getFirstSuitaParent(false).getSubItemsNr()-1>upper.getPos().get(upper.getPos().size()-1))){//trebuie bagat la rand dupa suita
                         int position = upper.getPos().size();                                
                         int temp1 = upper.getPos().get(position-1);
                         if(upper.getPos().size()==1){dropOnFirstLevel(upper);}//Suita din repo pe nivelul 0
-                        else{int index = upper.getPos().get(upper.getPos().size()-1).intValue();
+                        else{int index = upper.getPos().get(upper.getPos().size()-1).intValue();//suita nu e pe nivelul 0
                             position = upper.getPos().size()-1;
                             ArrayList<Integer> temp = (ArrayList<Integer>)upper.getPos().clone();
                             if(temp.size()>1)temp.remove(temp.size()-1);
                             Item parent = getItem(temp,false);                                        
                             dropNextInLine(upper, parent, index, position);}}
-                    else{//suita nu este expanded sau nu are copii si nu sa facut drop aproape de ea , Should be inserted after suita
-                        upper = upper.getFirstSuitaParent(false);                                    
-                        if(upper.getPos().size()>1) dropOnUpperLevel(upper);
-                        else dropOnFirstLevel(upper);}}//Suita cu parent suita
+                    else{//suita nu este expanded sau nu are copii si nu sa facut drop aproape de ea , Should be inserted after suita parent(exit one level)
+                        if(upper.getPos().size()==1) dropOnFirstLevel(upper);//suita e pe nivelul 0
+                        else{//suita nu e pe nivelul 0
+                            if(upper.getFirstSuitaParent(false).getPos().size()>1)dropOnUpperLevel(upper.getFirstSuitaParent(false)); //parentul suitei nu e pe nivelul 0
+                            else dropOnFirstLevel(upper.getFirstSuitaParent(false));}}} //parentul e pe nivelul 0
                 else if(upper.getType()==0){
                     int Y = mouseY;//se face ca upper sa devina parentul acestui prop si se copiaza metodele de la drop sub tc, se face ca 
                     Y-=upper.getRectangle().y+upper.getRectangle().getHeight();
@@ -497,10 +488,10 @@ public class Grafic extends JPanel{
         line[3] = line[1];
         line[4] = line[1];}
         
-    public void lineUnderTc(Item item, int X){
+    public void lineUnderItem(Item item, int X){
         line[0] = (int)(item.getRectangle().x-25);
         line[2] = X;
-        if(item.getSubItem(0).isVisible()){line[1] = (int)(item.getSubItem(item.getSubItemsNr()-1).getRectangle().y+item.getSubItem(item.getSubItemsNr()-1).getRectangle().getHeight()+5);}
+        if(item.getType()==1&&item.getSubItem(0).isVisible()){line[1] = (int)(item.getSubItem(item.getSubItemsNr()-1).getRectangle().y+item.getSubItem(item.getSubItemsNr()-1).getRectangle().getHeight()+5);}
         else{line[1] = (int)(item.getRectangle().y+item.getRectangle().getHeight()+5);}
         line[3] = line[1];
         line[4] = (int)(item.getRectangle().y+item.getRectangle().getHeight()/2);}
@@ -541,18 +532,20 @@ public class Grafic extends JPanel{
                     if(item.getSubItemsNr()>0&&item.getSubItem(0).isVisible()){lineInsideSuita(item,X);}//daca aceasta e expanded
                     else{lineOnSuita(item,X);}}//daca aceasta nu e expanded
                 else if (item.getSubItemsNr()>0&&item.getSubItem(0).isVisible()){lineInsideSuita(item,X);}//daca nu atinge suita dar aceasta e expanded
-                else if(item.getRectangle().y+item.getRectangle().getHeight()+5<=Y){lineAfterUpperParent(item,X);} //este mai jos de 5 pixeli cat sa bage sub suita
-                else{lineUnderSuita(item,X);}}//este mai sus de 5 pixeli cat sa bage in suita                
+                else if(item.getRectangle().y+item.getRectangle().getHeight()+5<=Y){//este mai jos de 5 pixeli cat sa bage la un nivel deasupra la suita
+                    if(item.getPos().size()==1||item.getFirstSuitaParent(false).getSubItemsNr()-1>item.getPos().get(item.getPos().size()-1)){lineUnderItem(item,X);}//este pe nivelul 0
+                    else lineAfterUpperParent(item, X);}//nu e pe nivelul 0                    
+                else{lineUnderSuita(item,X);}}//este mai sus de 5 pixeli cat sa bage dupa suita                
             else if(item.getType()==1){//este un tc
                 if(item.getRectangle().intersects(new Rectangle(0,Y-1,getWidth(),2))){//daca atinge tc-ul
                     boolean up = isUpperHalf(item,Y);
                     if(up){lineAboveTc(item,X);}//atinge si este in partea de deasupra deasupra tc-ului
-                    else{lineUnderTc(item,X);}}//atinge si este in partea de jos a tc
+                    else{lineUnderItem(item,X);}}//atinge si este in partea de jos a tc
                 else{//nu a atins tc-ul
                     if(item.getFirstSuitaParent(false)!=null&&item.getFirstSuitaParent(false).getSubItemsNr()-1==item.getPos().get(item.getPos().size()-1)){//daca tc-ul are parent si e ultimul din parent
-                        if(Y<item.getRectangle().y+item.getRectangle().getHeight()+5){lineUnderTc(item, X);}//5 e jumatate din distante dintre elemente System.out.println("Should be inserted in upper parent");
+                        if(Y<item.getRectangle().y+item.getRectangle().getHeight()+5){lineUnderItem(item, X);}//5 e jumatate din distante dintre elemente System.out.println("Should be inserted in upper parent");
                         else if(!item.getSubItem(0).isVisible()){lineAfterUpperParent(item,X);}}//trebuie inserat dupa parentul tc-ului de deasupra
-                    else{lineUnderTc(item,X);}}}//nu e ultimul tc sau e pe nivelul 0 trebuie inserat in acelasi nivel                        
+                    else{lineUnderItem(item,X);}}}//nu e ultimul tc sau e pe nivelul 0 trebuie inserat in acelasi nivel                        
             else{//este un prop
                 if(item.getTcParent(false).getFirstSuitaParent(false)!=null && item.getTcParent(false).getSubItemsNr()-1==item.getPos().get(item.getPos().size()-1) && item.getTcParent(false).getFirstSuitaParent(false).getSubItemsNr()-1==item.getTcParent(false).getPos().get(item.getTcParent(false).getPos().size()-1) && Y>item.getRectangle().y+item.getRectangle().getHeight()+5){//daca prop-ul e ultimul din tc si tc-ul e ultimul din suita si mouseul e mai jos de 5 px fata de prop                                 
                     lineAfterSuitaParent(item,X);}
@@ -561,14 +554,14 @@ public class Grafic extends JPanel{
         if(dragscroll){
             scrolldown = false;
             scrollup = false; 
-            if(Y-Repository.f.p.p1.sc.pane.getVerticalScrollBar().getValue()<10){
-                int scrollvalue = Repository.f.p.p1.sc.pane.getVerticalScrollBar().getValue();
+            if(Y-Repository.frame.mainpanel.p1.sc.pane.getVerticalScrollBar().getValue()<10){
+                int scrollvalue = Repository.frame.mainpanel.p1.sc.pane.getVerticalScrollBar().getValue();
                 scrolldown = true;
-                Repository.f.p.p1.sc.pane.getVerticalScrollBar().setValue(scrollvalue-10);}
-            else if(Y-Repository.f.p.p1.sc.pane.getVerticalScrollBar().getValue()>Repository.f.p.p1.sc.pane.getSize().getHeight()-15){
-                int scrollvalue = Repository.f.p.p1.sc.pane.getVerticalScrollBar().getValue();
+                Repository.frame.mainpanel.p1.sc.pane.getVerticalScrollBar().setValue(scrollvalue-10);}
+            else if(Y-Repository.frame.mainpanel.p1.sc.pane.getVerticalScrollBar().getValue()>Repository.frame.mainpanel.p1.sc.pane.getSize().getHeight()-15){
+                int scrollvalue = Repository.frame.mainpanel.p1.sc.pane.getVerticalScrollBar().getValue();
                 scrollup = true; 
-                Repository.f.p.p1.sc.pane.getVerticalScrollBar().setValue(scrollvalue+10);}}}
+                Repository.frame.mainpanel.p1.sc.pane.getVerticalScrollBar().setValue(scrollvalue+10);}}}
             
     public String getArrayString(ArrayList<Integer> selected2){
         StringBuffer string = new StringBuffer();
@@ -636,11 +629,14 @@ public class Grafic extends JPanel{
         return item;}
             
     public void printPos(Item item){
-        if(item.getType()==1||item.getType()==2){
+        if(item.getType()==0||item.getType()==1||item.getType()==2){
             System.out.print(item.getName()+" - ");
             for(int i=0;i<item.getPos().size();i++){
                 System.out.print(item.getPos().get(i));}
             System.out.println();}
+        if(item.getType()==1){
+            for(int i=0;i<item.getSubItemsNr();i++){
+                printPos(item.getSubItem(i));}}
         if(item.getType()==2){
             for(int i=0;i<item.getSubItemsNr();i++){
                 printPos(item.getSubItem(i));}}}
@@ -663,15 +659,15 @@ public class Grafic extends JPanel{
                     if(getItem(selected,false).getType()==2&&getItem(selected,false).getPos().size()==1){
                         Item temp = getItem(selected,false);
                         int userDefNr = temp.getUserDefNr();
-                        Repository.f.p.p1.suitaDetails.setParent(temp);
-                        if(userDefNr!=Repository.f.p.p1.suitaDetails.getDefsNr()){
-                            System.out.println("Warning, suite "+temp.getName()+" has "+userDefNr+" fields while in bd.xml are defined "+Repository.f.p.p1.suitaDetails.getDefsNr()+" fields");
-                            if(Repository.f.p.p1.suitaDetails.getDefsNr()<userDefNr){
-                                temp.getUserDefs().subList(Repository.f.p.p1.suitaDetails.getDefsNr(),userDefNr).clear();}}
+                        Repository.frame.mainpanel.p1.suitaDetails.setParent(temp);
+                        if(userDefNr!=Repository.frame.mainpanel.p1.suitaDetails.getDefsNr()){
+                            System.out.println("Warning, suite "+temp.getName()+" has "+userDefNr+" fields while in bd.xml are defined "+Repository.frame.mainpanel.p1.suitaDetails.getDefsNr()+" fields");
+                            if(Repository.frame.mainpanel.p1.suitaDetails.getDefsNr()<userDefNr){
+                                temp.getUserDefs().subList(Repository.frame.mainpanel.p1.suitaDetails.getDefsNr(),userDefNr).clear();}}
                         try{    
-                            for(int i=0;i<Repository.f.p.p1.suitaDetails.getDefsNr();i++){
+                            for(int i=0;i<Repository.frame.mainpanel.p1.suitaDetails.getDefsNr();i++){
                                 if(temp.getUserDefNr()==i)break;
-                                Repository.f.p.p1.suitaDetails.getDefPanel(i).setDecription(temp.getUserDef(i)[1]);}}
+                                Repository.frame.mainpanel.p1.suitaDetails.getDefPanel(i).setDecription(temp.getUserDef(i)[1]);}}
                         catch(Exception e){e.printStackTrace();}}
                     if(getItem(selected,false).getCheckRectangle().intersects(new Rectangle(ev.getX()-1,ev.getY()-1,2,2))){
                         getItem(selected,false).setCheck(!getItem(selected,false).getCheck());}
@@ -686,11 +682,11 @@ public class Grafic extends JPanel{
                 for(int i=0;i<selected.size();i++){theone[i]= selected.get(i).intValue();}
                 Item theone1 = getItem(selected,false);
                 theone1.select(!theone1.isSelected());
-                if(theone1.isSelected())selectedcolection.add(theone);
+                if(theone1.isSelected())selectedcollection.add(theone);
                 else{
-                    for(int m=0;m<selectedcolection.size();m++){
-                        if(Arrays.equals(selectedcolection.get(m),theone)){
-                            selectedcolection.remove(m);
+                    for(int m=0;m<selectedcollection.size();m++){
+                        if(Arrays.equals(selectedcollection.get(m),theone)){
+                            selectedcollection.remove(m);
                             break;}}}
                 repaint();}
             else{// selectia in caz ca are shift
@@ -720,7 +716,7 @@ public class Grafic extends JPanel{
                                 parent.getSubItem(i).select(true);
                                 int [] temporary = new int[parent.getSubItem(i).getPos().size()];
                                 for(int m=0;m<temporary.length;m++)temporary[m]=parent.getSubItem(i).getPos().get(m).intValue();
-                                selectedcolection.add(temporary);}}}
+                                selectedcollection.add(temporary);}}}
                     else{
                         int first,second;
                         if(theone1[0]>=theone2[0]){
@@ -731,7 +727,7 @@ public class Grafic extends JPanel{
                             first = theone2[0];}
                         for(int m=second;m<first+1;m++){
                             Repository.getSuita(m).select(true);
-                            selectedcolection.add(new int[]{m});}}}
+                            selectedcollection.add(new int[]{m});}}}
             repaint();}}
         if(ev.getButton()==3){ 
             getClickedItem(ev.getX(),ev.getY());            
@@ -739,70 +735,100 @@ public class Grafic extends JPanel{
                 if(Repository.getSuiteNr()>0){
                     deselectAll();                    
                     repaint();}
-                noSelectionPopUp(ev);}
+//                 noSelectionPopUp(ev);
+            }
             else{if(!getItem(selected,false).isSelected()){
                     deselectAll();
                     selectItem(selected);
                     repaint();
-                    if(getItem(selected,false).getType()==0) propertyPopUp(ev);
+                    if(getItem(selected,false).getType()==0) propertyPopUp(ev,getItem(selected,false));
                     else if(getItem(selected,false).getType()==1) tcPopUp(ev,getItem(selected,false));
                     else suitaPopUp(ev,getItem(selected,false));}
-                else{if(selectedcolection.size()==1){
-                        if(getItem(selected,false).getType()==0) propertyPopUp(ev);
+                else{if(selectedcollection.size()==1){
+                        if(getItem(selected,false).getType()==0) propertyPopUp(ev,getItem(selected,false));
                         else if(getItem(selected,false).getType()==1) tcPopUp(ev,getItem(selected,false));
                         else suitaPopUp(ev,getItem(selected,false));}
                     else{multipleSelectionPopUp(ev);}}}}}    
                     
-    public void noSelectionPopUp(final MouseEvent ev){ //poup in caz ca nu s-a selectat nimic, pozitia unde s-a facut click
-        p.removeAll();
-        JMenuItem item = new JMenuItem("Add Suite");        
-        p.add(item);
-        item.addActionListener(new ActionListener(){
-            public void actionPerformed(ActionEvent ev2){
-                int y1 = ev.getY();
-                Item upper=null;
-                while(y1>0){
-                    y1-=5;
-                    getClickedItem(ev.getX(),y1);
-                    if(selected.size()>0){
-                            upper=getItem(selected,false);
-                        if(upper!=null){
-                            break;}}}
-                if(upper!=null&&upper.getType()==1){
-                    int index = upper.getPos().get(upper.getPos().size()-1).intValue();
-                    int position = upper.getPos().size()-1;
-                    ArrayList<Integer> temp = (ArrayList<Integer>)upper.getPos().clone();
-                    if(temp.size()>1)temp.remove(temp.size()-1);
-                    Item parent = getItem(temp,false);
-                    for(int j = upper.getPos().get(upper.getPos().size()-1).intValue()+1;j<parent.getSubItemsNr();j++){   
-                        parent.getSubItem(j).updatePos(position,new Integer(parent.getSubItem(j).getPos().get(position).intValue()+1));}
-                    (new AddSuiteFrame(Repository.f.p.p1.sc.g, parent,index+1)).setLocation(ev.getX()-50,ev.getY()-50);}
-                else (new AddSuiteFrame(Repository.f.p.p1.sc.g, null,0)).setLocation((int)ev.getLocationOnScreen().getX()-50,(int)ev.getLocationOnScreen().getY()-50);}});// adauga suita           
-        item = new JMenuItem("Open XML");
-        p.add(item);
-        item.addActionListener(new ActionListener(){
-            public void actionPerformed(ActionEvent ev){
-                JFileChooser chooser = new JFileChooser(); 
-                chooser.setFileFilter(new XMLFilter());
-                chooser.setCurrentDirectory(new java.io.File("."));
-                chooser.setDialogTitle("Select XML File"); 
-                if (chooser.showOpenDialog(Repository.f) == JFileChooser.APPROVE_OPTION) {                     
-                    Repository.emptyRepository();
-                    parseXML(chooser.getSelectedFile());}}});// de deschis local un xml                
-        item = new JMenuItem("Save suite XML");
-        p.add(item);        
-        item.addActionListener(new ActionListener(){
-            public void actionPerformed(ActionEvent ev){
-                if(!user.equals(""))printXML(user,false);}});//de salvat xml user         
-        p.show(this,ev.getX(),ev.getY());}
+//     public void noSelectionPopUp(final MouseEvent ev){ //poup in caz ca nu s-a selectat nimic, pozitia unde s-a facut click
+//         p.removeAll();
+//         JMenuItem item = new JMenuItem("Add Suite");        
+//         p.add(item);
+//         item.addActionListener(new ActionListener(){
+//             public void actionPerformed(ActionEvent ev2){
+//                 int y1 = ev.getY();
+//                 Item upper=null;
+//                 while(y1>0){
+//                     y1-=5;
+//                     getClickedItem(ev.getX(),y1);
+//                     if(selected.size()>0){
+//                             upper=getItem(selected,false);
+//                         if(upper!=null){
+//                             break;}}}
+//                 if(upper!=null&&upper.getType()==1){
+//                     int index = upper.getPos().get(upper.getPos().size()-1).intValue();
+//                     int position = upper.getPos().size()-1;
+//                     ArrayList<Integer> temp = (ArrayList<Integer>)upper.getPos().clone();
+//                     if(temp.size()>1)temp.remove(temp.size()-1);
+//                     Item parent = getItem(temp,false);
+//                     for(int j = upper.getPos().get(upper.getPos().size()-1).intValue()+1;j<parent.getSubItemsNr();j++){   
+//                         parent.getSubItem(j).updatePos(position,new Integer(parent.getSubItem(j).getPos().get(position).intValue()+1));}
+//                     (new AddSuiteFrame(Grafic.this, parent,index+1)).setLocation(ev.getX()-50,ev.getY()-50);}
+//                 else (new AddSuiteFrame(Grafic.this, null,0)).setLocation((int)ev.getLocationOnScreen().getX()-50,(int)ev.getLocationOnScreen().getY()-50);}});// adauga suita           
+//         item = new JMenuItem("Open XML");
+//         p.add(item);
+//         item.addActionListener(new ActionListener(){
+//             public void actionPerformed(ActionEvent ev){
+//                 JFileChooser chooser = new JFileChooser(); 
+//                 chooser.setFileFilter(new XMLFilter());
+//                 chooser.setCurrentDirectory(new java.io.File("."));
+//                 chooser.setDialogTitle("Select XML File"); 
+//                 if (chooser.showOpenDialog(Repository.frame) == JFileChooser.APPROVE_OPTION) {                    
+//                     Repository.emptyRepository();
+//                     setUser(Repository.getUsersDirectory()+Repository.getBar()+chooser.getSelectedFile().getName());
+//                     parseXML(chooser.getSelectedFile());
+//                     if(Repository.getSuiteNr() > 0)updateLocations(Repository.getSuita(0));
+//                     repaint();}}});// de deschis local un xml                
+//         item = new JMenuItem("Save suite XML");
+//         p.add(item);        
+//         item.addActionListener(new ActionListener(){
+//             public void actionPerformed(ActionEvent ev){
+//                 if(!user.equals(""))printXML(user,false);}});//de salvat xml user         
+//         p.show(this,ev.getX(),ev.getY());}
         
-    public void propertyPopUp(MouseEvent ev){//popup pentru click pe property, locatia unde s-a facut click
-        p.removeAll();        
-        JMenuItem item = new JMenuItem("Redefine Propertie");
-        p.add(item);
-        item.addActionListener(new ActionListener(){
-            public void actionPerformed(ActionEvent ev){}});     
-            p.show(this,ev.getX(),ev.getY());}            
+    public void propertyPopUp(MouseEvent ev,final Item prop){//popup pentru click pe property, locatia unde s-a facut click
+        if(prop.getPos().get(prop.getPos().size()-1)!=0){
+            p.removeAll();        
+            JMenuItem item = new JMenuItem("Redefine Property");
+            p.add(item);
+            item.addActionListener(new ActionListener(){
+                public void actionPerformed(ActionEvent ev){
+                    JTextField name = new JTextField(prop.getName());   
+                    JTextField value = new JTextField(prop.getValue());
+                    Object[] message = new Object[] {"Name", name, "Value", value};
+                    int r = JOptionPane.showConfirmDialog(Grafic.this, message, "Property: value", JOptionPane.OK_CANCEL_OPTION);
+                    if(r == JOptionPane.OK_OPTION&&(!(name.getText()+value.getText()).equals(""))){
+                        FontMetrics metrics = getGraphics().getFontMetrics(new Font("TimesRoman", 0, 11));
+                        int width = metrics.stringWidth(name.getText()+":  "+value.getText()) + 40;
+                        prop.setName(name.getText());
+                        prop.setValue(value.getText());
+                        prop.getRectangle().setSize(width, (int)(prop.getRectangle().getHeight()));
+                        repaint();}}});
+            item = new JMenuItem("Remove Property");
+            p.add(item);
+            item.addActionListener(new ActionListener(){
+                public void actionPerformed(ActionEvent ev){
+                    int index = prop.getPos().get(prop.getPos().size()-1);
+                    if(prop.getTcParent(false).getSubItemsNr()-1>index){
+                        for(int i=index+1;i<prop.getTcParent(false).getSubItemsNr();i++){
+                            Item temporaryprop = prop.getTcParent(false).getSubItem(i);
+                            temporaryprop.updatePos(prop.getPos().size()-1,temporaryprop.getPos().get(prop.getPos().size()-1)-1);}}
+                    prop.getTcParent(false).getSubItems().remove(prop);
+                    selectedcollection.clear();
+                    updateLocations(prop.getTcParent(false));
+                    repaint();
+                    }});
+            p.show(this,ev.getX(),ev.getY());}}    
            
     public void multipleSelectionPopUp(MouseEvent ev){//popup pentru click pe property, locatia unde s-a facut click
         p.removeAll();        
@@ -823,13 +849,13 @@ public class Grafic extends JPanel{
                 JTextField name = new JTextField();   
                 JTextField value = new JTextField();
                 Object[] message = new Object[] {"Name", name, "Value", value};
-            int r = JOptionPane.showConfirmDialog(Repository.f.p.p1.sc.g, message, "Property: value", JOptionPane.OK_CANCEL_OPTION);
-                if(r == JOptionPane.OK_OPTION){
+                int r = JOptionPane.showConfirmDialog(Grafic.this, message, "Property: value", JOptionPane.OK_CANCEL_OPTION);
+                if(r == JOptionPane.OK_OPTION&&(!(name.getText()+value.getText()).equals(""))){
                     ArrayList <Integer> indexpos3 = (ArrayList <Integer>)tc.getPos().clone();
                     indexpos3.add(new Integer(tc.getSubItemsNr()));
                     FontMetrics metrics = getGraphics().getFontMetrics(new Font("TimesRoman", 0, 11));
-                    int width = metrics.stringWidth(name.getText()+":  "+value.getText()) + 8;
-                    Item property = new Item(name.getText(),0,-1,-1,width+30,20,indexpos3);
+                    int width = metrics.stringWidth(name.getText()+":  "+value.getText()) + 38;
+                    Item property = new Item(name.getText(),0,-1,-1,width,20,indexpos3);
                     property.setValue(value.getText());
                     if(!tc.getSubItem(0).isVisible())property.setSubItemVisible(false);
                     tc.addSubItem(property);
@@ -839,7 +865,7 @@ public class Grafic extends JPanel{
         p.add(item);
         item.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
-                String name = JOptionPane.showInputDialog(Repository.f.p.p1.sc.g,"Please enter the TC name","Suite Name",  JOptionPane.PLAIN_MESSAGE);
+                String name = JOptionPane.showInputDialog(Grafic.this,"Please enter the TC name","Suite Name",  JOptionPane.PLAIN_MESSAGE);
                 FontMetrics metrics = getGraphics().getFontMetrics(new Font("TimesRoman", Font.BOLD, 13));
                 int width = metrics.stringWidth(name);
                 tc.setName(name);
@@ -871,16 +897,16 @@ public class Grafic extends JPanel{
         item.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 removeTC(tc);
-                selectedcolection.clear();}});
+                selectedcollection.clear();}});
         p.show(this,ev.getX(),ev.getY());}        
         
     public void suitaPopUp(MouseEvent ev,final Item suita){
         p.removeAll();
         JMenuItem item ;
-        item = new JMenuItem("add Suita");
+        item = new JMenuItem("add Suite");
         item.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
-                new AddSuiteFrame(Repository.f.p.p1.sc.g, suita,0);}});
+                new AddSuiteFrame(Grafic.this, suita,0);}});
         p.add(item);        
         if(suita.getPos().size()==1){
             item = new JMenuItem("EpID");
@@ -899,7 +925,7 @@ public class Grafic extends JPanel{
                         in.close();
                         String result = b.toString();
                         String  [] vecresult = result.split(";");
-                        try{String ID = (String)JOptionPane.showInputDialog(Repository.f.p.p1.sc.g,"Please select an EpID","EpID's", JOptionPane.INFORMATION_MESSAGE,null, vecresult,"EpID's");
+                        try{String ID = (String)JOptionPane.showInputDialog(Grafic.this,"Please select an EpID","EpID's", JOptionPane.INFORMATION_MESSAGE,null, vecresult,"EpID's");
                             suita.setEpId(ID);
                             for(int i=0;i<suita.getSubItemsNr();i++){
                                 assignEpID(suita.getSubItem(i),ID);}
@@ -910,7 +936,7 @@ public class Grafic extends JPanel{
         p.add(item);
         item.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){                
-            String name = JOptionPane.showInputDialog(Repository.f.p.p1.sc.g,"Please enter the suite name","Suite Name",  JOptionPane.PLAIN_MESSAGE).toUpperCase();
+            String name = JOptionPane.showInputDialog(Grafic.this,"Please enter the suite name","Suite Name",  JOptionPane.PLAIN_MESSAGE).toUpperCase();
             FontMetrics metrics = getGraphics().getFontMetrics(new Font("TimesRoman", Font.BOLD, 14));
             int width = metrics.stringWidth(name)+140;
             suita.setName(name);
@@ -947,7 +973,7 @@ public class Grafic extends JPanel{
                         Repository.getSuita(0).setLocation(new int[]{5,10});
                         updateLocations(Repository.getSuita(0));}
                     repaint();
-                    selectedcolection.clear();}}
+                    selectedcollection.clear();}}
                 else{int index = suita.getPos().get(suita.getPos().size()-1).intValue();//nu e pe nivelul 0
                     int position = suita.getPos().size()-1;
                     ArrayList<Integer> temp = (ArrayList<Integer>)suita.getPos().clone();
@@ -959,26 +985,23 @@ public class Grafic extends JPanel{
                             parent.getSubItem(i).updatePos(position,new Integer(parent.getSubItem(i).getPos().get(position).intValue()-1));}}
                     updateLocations(parent);
                     repaint();
-                    selectedcolection.clear();}}});     
+                    selectedcollection.clear();}}});     
         p.show(this,ev.getX(),ev.getY());} 
         
     public void setCanRequestFocus(boolean canrequestfocus){
         this.canrequestfocus = canrequestfocus;}
-        
-        
-        
-//         de vazut sa nu stearga propurile
-        
-    public void removeSelected(){        
-        if(selectedcolection.size()>0){
+           
+    public void removeSelected(){      
+        if(selectedcollection.size()>0){
             ArrayList<Item> fordeletion = new ArrayList<Item>();                
-            int selectednr = selectedcolection.size();
+            int selectednr = selectedcollection.size();
             for(int i=0;i<selectednr;i++){
                 ArrayList<Integer> temp = new ArrayList<Integer>();
-                int indexsize = selectedcolection.get(i).length;
-                for(int j=0;j<indexsize;j++){temp.add(new Integer(selectedcolection.get(i)[j]));}
+                int indexsize = selectedcollection.get(i).length;
+                for(int j=0;j<indexsize;j++){temp.add(new Integer(selectedcollection.get(i)[j]));}
                 Item theone = getItem(temp,false);
-                if(theone.getType()!=0)fordeletion.add(theone);}
+                if(theone.getType()!=0)fordeletion.add(theone);
+                else theone.select(false);}
             ArrayList<Item> unnecessary = new ArrayList<Item>();
             for(int i=0;i<fordeletion.size();i++){
                 Item one = fordeletion.get(i);
@@ -995,9 +1018,9 @@ public class Grafic extends JPanel{
                     int index = theone.getPos().get(0).intValue();
                     Repository.getSuite().remove(theone);                    
                     if(Repository.getSuiteNr()>=index){
-                        for(int k= index;k<Repository.getSuiteNr();k++){
+                        for(int k = index;k<Repository.getSuiteNr();k++){
                             Repository.getSuita(k).updatePos(0,new Integer(Repository.getSuita(k).getPos().get(0).intValue()-1));}}}
-                else{            
+                else{
                     int index = theone.getPos().get(theone.getPos().size()-1).intValue();
                     int position = theone.getPos().size()-1;
                     ArrayList<Integer> temporary = (ArrayList<Integer>)theone.getPos().clone();
@@ -1010,8 +1033,11 @@ public class Grafic extends JPanel{
             if(Repository.getSuiteNr()>0){
                 Repository.getSuita(0).setLocation(new int[]{5,10});
                 updateLocations(Repository.getSuita(0));}
-            repaint();
-            selectedcolection.clear();}}
+            selectedcollection.clear();
+            deselectAll();
+            Repository.frame.mainpanel.p1.suitaDetails.clearDefs();
+            Repository.frame.mainpanel.p1.suitaDetails.setParent(null);
+            repaint();}}
         
     public void assignEpID(Item item,String ID){
         if(item.getType()==2){
@@ -1041,22 +1067,22 @@ public class Grafic extends JPanel{
                 Repository.getSuita(0).setLocation(new int[]{5,10});
                 updateLocations(Repository.getSuita(0));}
             repaint();
-            selectedcolection.clear();}}}
+            selectedcollection.clear();}}}
         
     public void deselectAll(){
-        int selectednr = selectedcolection.size()-1;
+        int selectednr = selectedcollection.size()-1;
         for(int i=selectednr ; i>=0 ; i--){
-            int [] itemselected = selectedcolection.get(i);
+            int [] itemselected = selectedcollection.get(i);
             Item theone = Repository.getSuita(itemselected[0]);
             for(int j=1;j<itemselected.length;j++){theone = theone.getSubItem(itemselected[j]);}
             theone.select(false);
-            selectedcolection.remove(i);}}
+            selectedcollection.remove(i);}}
             
     public void selectItem(ArrayList <Integer> pos){
         getItem(pos,false).select(true);
         int [] theone1 = new int[pos.size()];
         for(int i=0;i<pos.size();i++){theone1[i]= pos.get(i).intValue();}
-        selectedcolection.add(theone1);}
+        selectedcollection.add(theone1);}
     
     public void getClickedItem(int x, int y){
         Rectangle r = new Rectangle(x-1,y-1,2,2);
@@ -1091,11 +1117,11 @@ public class Grafic extends JPanel{
             int index = selected2.get(0);
             selected2.remove(0);
             for(int i=index;i<Repository.getSuiteNr();i++){  
-                Repository.f.p.p1.sc.g.iterateThrough(Repository.getSuita(i),selected2);
+                Grafic.this.iterateThrough(Repository.getSuita(i),selected2);
                 selected2 = null;}}
         else if(selected2.size()==1){
             for(int i=selected2.get(0);i<Repository.getSuiteNr();i++){
-                Repository.f.p.p1.sc.g.iterateThrough(Repository.getSuita(i),null);}}
+                Grafic.this.iterateThrough(Repository.getSuita(i),null);}}
         y=10;
         foundfirstitem=false;
         updateScroll();}
@@ -1195,9 +1221,9 @@ public class Grafic extends JPanel{
             g.drawString(" - "+item.getEpId(),(int)(item.getRectangle().getX()+item.getRectangle().getWidth()-100),(int)(item.getRectangle().getY()+18));}}
         
     public void setUser(String user){//schimba userul si modifica numele din tab conform cu cel al userului
-        Repository.f.p.p1.setOpenedfile(new File(user).getName());
-        Repository.f.p.p1.suitaDetails.clearDefs();
-        Repository.f.p.p1.suitaDetails.setParent(null);
+        Repository.frame.mainpanel.p1.setOpenedfile(new File(user).getName());
+        Repository.frame.mainpanel.p1.suitaDetails.clearDefs();
+        Repository.frame.mainpanel.p1.suitaDetails.setParent(null);
         this.user = user;}
     
     public String getUser(){// metoda pentru aflarea path-ului fisierului xml pentru user
@@ -1206,14 +1232,18 @@ public class Grafic extends JPanel{
     public void parseXML(File file){//citeste xml si il reprezinta grafic
         new XMLReader(file).parseXML(getGraphics(),false);}
         
-    public void printXML(String user, boolean skip){//scrie xml-ul in fisier , in caz ca e skip true e vorba de xml-ul final, in caz contrar
-        XMLBuilder xml = new XMLBuilder(Repository.getSuite());//e xml-ul userului
-        xml.createXML(skip);
-        xml.writeXMLFile(user);}
+    public boolean printXML(String user, boolean skip, boolean local){//scrie xml-ul in fisier , in caz ca e skip true e vorba de xml-ul final, in caz contrar
+        try{XMLBuilder xml = new XMLBuilder(Repository.getSuite());//e xml-ul userului
+            xml.createXML(skip);
+            xml.writeXMLFile(user,local);
+            return true;}
+        catch(Exception e){
+            e.printStackTrace();
+            return false;}}
         
     public int countSubtreeNr(int nr, Object child){
         boolean cond; //tine cont daca e un director sau un fisier
-        cond = Repository.f.p.p1.ep.tree.getModel().isLeaf((TreeNode)child);
+        cond = Repository.frame.mainpanel.p1.ep.tree.getModel().isLeaf((TreeNode)child);
         ArrayList <TreeNode>list = new ArrayList<TreeNode>();        
         while ((TreeNode)child != null) {
             list.add((TreeNode)child);
@@ -1221,20 +1251,20 @@ public class Grafic extends JPanel{
         Collections.reverse(list);
         child = new TreePath(list.toArray());
         if(cond){return nr+1;}
-        else{int nr1 = Repository.f.p.p1.ep.tree.getModel().getChildCount(((TreePath)child).getLastPathComponent());
+        else{int nr1 = Repository.frame.mainpanel.p1.ep.tree.getModel().getChildCount(((TreePath)child).getLastPathComponent());
             for(int j=0;j<nr1;j++){
-                nr = countSubtreeNr(nr,Repository.f.p.p1.ep.tree.getModel().getChild((TreeNode)((TreePath)child).getLastPathComponent(),j));}
+                nr = countSubtreeNr(nr,Repository.frame.mainpanel.p1.ep.tree.getModel().getChild((TreeNode)((TreePath)child).getLastPathComponent(),j));}
         return nr;}}
         
     public void drop(int x, int y){
         deselectAll();
         requestFocus();
-        int max = Repository.f.p.p1.ep.getSelected().length;
+        int max = Repository.frame.mainpanel.p1.ep.getSelected().length;
         if(max>0){
             for(int i=0;i<max;i++){
-                boolean cond = Repository.f.p.p1.ep.tree.getModel().isLeaf((TreeNode)Repository.f.p.p1.ep.getSelected()[i].getLastPathComponent());//nu are copii                
+                boolean cond = Repository.frame.mainpanel.p1.ep.tree.getModel().isLeaf((TreeNode)Repository.frame.mainpanel.p1.ep.getSelected()[i].getLastPathComponent());//nu are copii                
                 if(cond){
-                    String name = Repository.f.p.p1.ep.getSelected()[i].getPath()[Repository.f.p.p1.ep.getSelected()[i].getPathCount()-2]+"/"+Repository.f.p.p1.ep.getSelected()[i].getPath()[Repository.f.p.p1.ep.getSelected()[i].getPathCount()-1];
+                    String name = Repository.frame.mainpanel.p1.ep.getSelected()[i].getPath()[Repository.frame.mainpanel.p1.ep.getSelected()[i].getPathCount()-2]+"/"+Repository.frame.mainpanel.p1.ep.getSelected()[i].getPath()[Repository.frame.mainpanel.p1.ep.getSelected()[i].getPathCount()-1];
                     name = name.split(Repository.getTestSuitePath())[1];
                     FontMetrics metrics = getGraphics().getFontMetrics(new Font("TimesRoman", Font.PLAIN, 13));
                     Item newItem = new Item(name,1, -1, -1, metrics.stringWidth(name)+48, 20, null);
@@ -1248,87 +1278,13 @@ public class Grafic extends JPanel{
                     newItem.setVisible(false);
                     clone.add(newItem);}
                 else{
-                    subtreeTC((TreeNode)Repository.f.p.p1.ep.getSelected()[i].getLastPathComponent(),null,0);}}
+                    subtreeTC((TreeNode)Repository.frame.mainpanel.p1.ep.getSelected()[i].getLastPathComponent(),null,0);}}
             handleMouseDroped(y);
-            clone.clear();}
-//         int max = Repository.f.p.p1.ep.getSelected().length;
-//         deselectAll();
-//         requestFocus();
-//         getClickedItem(x,y);  
-//         Item item=null;
-//         if(selected.size()!=0)item = getItem(selected,false);
-//         if(item!=null&&item.getType()==2){
-//             String f,tcf;
-//             //int max = Repository.f.p.p1.ep.getSelected().length;  
-//             for(int i=0;i<max;i++){
-//                 boolean cond = Repository.f.p.p1.ep.tree.getModel().isLeaf((TreeNode)Repository.f.p.p1.ep.getSelected()[i].getLastPathComponent());                
-//                 if(cond){
-//                     int position = item.getPos().size();
-//                     for(int j = 0;j<item.getSubItemsNr();j++){
-//                         item.getSubItem(j).updatePos(position,new Integer(item.getSubItem(j).getPos().get(position).intValue()+1));}
-//                     ArrayList<Integer> selected2 = (ArrayList<Integer>)item.getPos().clone();
-//                     selected2.add(new Integer(0));
-//                     insertNewTC(Repository.f.p.p1.ep.getSelected()[i].getPath()[Repository.f.p.p1.ep.getSelected()[i].getPathCount()-2]+"/"+Repository.f.p.p1.ep.getSelected()[i].getPath()[Repository.f.p.p1.ep.getSelected()[i].getPathCount()-1],selected2,item,null);}
-//                 else{
-//                     int nr = countSubtreeNr(0,(TreeNode)Repository.f.p.p1.ep.getSelected()[i].getLastPathComponent());
-//                     int position = item.getPos().size();
-//                     for(int j = 0;j<item.getSubItemsNr();j++){
-//                         item.getSubItem(j).updatePos(position,new Integer(item.getSubItem(j).getPos().get(position).intValue()+nr));}
-//                     subtreeTC((TreeNode)Repository.f.p.p1.ep.getSelected()[i].getLastPathComponent(),item,0);
-//                     updateLocations(item);}}
-//             updateLocations(getItem(selected,false));
-//             repaint();}
-//         else if(item!=null&&item.getType()==1){
-//             boolean upper = isUpperHalf(item, y);
-//             int y1=y;
-//             while(true){
-//                 if(upper)y1-=2;
-//                 else y1+=2;
-//                 getClickedItem(x,y1);
-//                 if(selected.size()==0){
-//                     drop(x,y1);
-//                     break;}}}
-//         else{
-//             if(item==null){
-//                 int y1=y;
-//                 Item upper=null;
-//                 while(y1>0){
-//                     y1-=5;
-//                     getClickedItem(x,y1);
-//                     if(selected.size()>0){
-//                         upper=getItem(selected,false);
-//                         if(upper!=null){break;}}}
-//                 if(upper!=null){
-//                     int index = upper.getPos().get(upper.getPos().size()-1).intValue();
-//                     int position = upper.getPos().size()-1;
-//                     ArrayList<Integer> temp = (ArrayList<Integer>)upper.getPos().clone();
-//                     if(temp.size()>1)temp.remove(temp.size()-1);
-//                     Item parent = getItem(temp,false);                    
-//                     //int max = Repository.f.p.p1.ep.getSelected().length;
-//                     if(upper.getType()!=0){
-//                         if(upper.getPos().size()>1){
-//                             for(int i=0;i<max;i++){
-//                                 boolean cond = Repository.f.p.p1.ep.tree.getModel().isLeaf((TreeNode)Repository.f.p.p1.ep.getSelected()[i].getLastPathComponent());
-//                                 if(cond){
-//                                     int temp1 = index+1;
-//                                     for(int j = temp1;j<parent.getSubItemsNr();j++){parent.getSubItem(j).updatePos(position,new Integer(parent.getSubItem(j).getPos().get(position).intValue()+1));}
-//                                     ArrayList<Integer> selected2 = (ArrayList<Integer>)upper.getPos().clone();
-//                                     selected2.set(selected2.size()-1,new Integer(selected2.get(selected.size()-1).intValue()+1));
-//                                     insertNewTC(Repository.f.p.p1.ep.getSelected()[i].getPath()[Repository.f.p.p1.ep.getSelected()[i].getPathCount()-2]+"/"+Repository.f.p.p1.ep.getSelected()[i].getPath()[Repository.f.p.p1.ep.getSelected()[i].getPathCount()-1],selected2,parent,null);}
-//                                 else{int nr = countSubtreeNr(0,(TreeNode)Repository.f.p.p1.ep.getSelected()[i].getLastPathComponent());
-//                                     int temp1 = index+1;                                   
-//                                     for(int j = temp1;j<parent.getSubItemsNr();j++){
-//                                         parent.getSubItem(j).updatePos(position,new Integer(parent.getSubItem(j).getPos().get(position).intValue()+nr));}
-//                                     subtreeTC((TreeNode)Repository.f.p.p1.ep.getSelected()[i].getLastPathComponent(),parent,upper.getPos().get(upper.getPos().size()-1).intValue()+1+i);}}
-//                                updateLocations(parent);}
-//                         else{drop((int)upper.getLocation()[0]+2,(int)upper.getLocation()[1]+2);}}
-//                     repaint();}}}
-                
-                }
+            clone.clear();}}
         
     public int subtreeTC(Object child, Item parent, int location){
         boolean cond; //tine cont daca e un director sau un fisier
-        cond = Repository.f.p.p1.ep.tree.getModel().isLeaf((TreeNode)child);
+        cond = Repository.frame.mainpanel.p1.ep.tree.getModel().isLeaf((TreeNode)child);
         ArrayList <TreeNode>list = new ArrayList<TreeNode>();        
         while ((TreeNode)child != null){
             list.add((TreeNode)child);
@@ -1353,9 +1309,9 @@ public class Grafic extends JPanel{
                 return 0;}
             addNewTC(((TreePath)child).getPath()[((TreePath)child).getPathCount()-2]+"/"+((TreePath)child).getPath()[((TreePath)child).getPathCount()-1],parent,location);
             return location+1;}
-        else{int nr = Repository.f.p.p1.ep.tree.getModel().getChildCount(((TreePath)child).getLastPathComponent());
+        else{int nr = Repository.frame.mainpanel.p1.ep.tree.getModel().getChildCount(((TreePath)child).getLastPathComponent());
             for(int j=0;j<nr;j++){
-                location = subtreeTC(Repository.f.p.p1.ep.tree.getModel().getChild((TreeNode)((TreePath)child).getLastPathComponent(),j),parent,location);}
+                location = subtreeTC(Repository.frame.mainpanel.p1.ep.tree.getModel().getChild((TreeNode)((TreePath)child).getLastPathComponent(),j),parent,location);}
             return location;}}
         
     public void addNewTC(String file,Item parent,int location){// adauga un nou tc, accepta un file care este tc-ul si pozitia suitei in vector
@@ -1415,6 +1371,15 @@ public class Grafic extends JPanel{
             if(y1<595){
                 setPreferredSize(new Dimension(445,595));
                 revalidate();}}}
+              
+    public void addSuiteFromButton(){
+        if(selectedcollection.size()==0)new AddSuiteFrame(Grafic.this, null,0);
+        else{
+            ArrayList <Integer> temp = new ArrayList <Integer>();
+            for(int j=0;j<selectedcollection.get(0).length;j++){temp.add(new Integer(selectedcollection.get(0)[j]));}
+            if(selectedcollection.size()>1||getItem(temp,false).getType()!=2){
+                JOptionPane.showMessageDialog(Grafic.this, "Please select only one suite.", "Warning", JOptionPane.WARNING_MESSAGE);}
+            else new AddSuiteFrame(Grafic.this, getItem(temp,false),0);}}
         
     class AddSuiteFrame extends JFrame{
         private static final long serialVersionUID = 1L;
@@ -1435,35 +1400,31 @@ public class Grafic extends JPanel{
                     Item item = new Item(namefield.getText(),2, -1,5, width+140,25 , indexpos);
                     item.setEpId(suita.getEpId());
                     suita.insertSubItem(item,0);
-                    Repository.f.p.p1.sc.g.updateLocations(suita);
-                    Repository.f.p.p1.sc.g.repaint();}
+                    Grafic.this.updateLocations(suita);
+                    Grafic.this.repaint();}
                 else{ArrayList <Integer> indexpos = (ArrayList <Integer>)suita.getPos().clone();
                     indexpos.add(new Integer(pos));
                     Item item = new Item(namefield.getText(),2, -1,5, width+140,25 , indexpos);
                     item.setEpId(suita.getEpId());
                     suita.insertSubItem(item,pos);
-                    Repository.f.p.p1.sc.g.updateLocations(suita);
-                    Repository.f.p.p1.sc.g.repaint();}}
+                    Grafic.this.updateLocations(suita);
+                    Grafic.this.repaint();}}
             else{ArrayList <Integer> indexpos = new ArrayList <Integer>();
                 indexpos.add(new Integer(Repository.getSuiteNr()));
                 Item item = new Item(namefield.getText(),2, -1, 5, width+140,25 , indexpos);
                 item.setEpId(epidfield.getSelectedItem().toString());
                 Repository.addSuita(item);
-                Repository.f.p.p1.sc.g.updateLocations(Repository.getSuita(0));
-                Repository.f.p.p1.sc.g.repaint();}
-            //mainframe.setEnabled(true);
-            //Repository.f.setEnabled(true);
-            Repository.f.p.p1.sc.g.setCanRequestFocus(true);
+                Grafic.this.updateLocations(Repository.getSuita(0));
+                Grafic.this.repaint();}
+            Grafic.this.setCanRequestFocus(true);
             (SwingUtilities.getWindowAncestor(ok)).dispose();
-            Repository.f.p.p1.sc.g.repaint();}
+            Grafic.this.repaint();}
         
         public AddSuiteFrame(final JComponent mainframe,final Item suita,final int pos){
-            //this.mainframe = mainframe;
             addWindowFocusListener(new WindowFocusListener(){
                 public void windowLostFocus(WindowEvent ev){
                     toFront();}
                     public void windowGainedFocus(WindowEvent ev){}});
-            //mainframe.setEnabled(false);
             setLayout(null);
             setResizable(false);
             setBounds(400,300,200,110);   
@@ -1504,7 +1465,7 @@ public class Grafic extends JPanel{
             add(namefield);
             add(EPId);
             add(epidfield);   
-            Repository.f.p.p1.sc.g.setCanRequestFocus(false);
+            Grafic.this.setCanRequestFocus(false);
             setVisible(true);
             ok = new JButton("OK");
             ok.setBounds(130,55,60,20);
@@ -1514,7 +1475,7 @@ public class Grafic extends JPanel{
             addWindowListener(new WindowAdapter(){
                 public void windowClosing(WindowEvent e){
                     //mainframe.setEnabled(true);
-                    Repository.f.p.p1.sc.g.setCanRequestFocus(true);
+                    Grafic.this.setCanRequestFocus(true);
                     (SwingUtilities.getWindowAncestor(ok)).dispose();}});
             Action actionListener = new AbstractAction(){
                 public void actionPerformed(ActionEvent actionEvent){

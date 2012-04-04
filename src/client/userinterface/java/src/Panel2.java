@@ -62,38 +62,38 @@ public class Panel2 extends JPanel{
         Repository.intro.repaint();
         sc = new ScrollGraficTest(0, 0,applet);
         tabbed = new JTabbedPane();
-        tabbed.addMouseListener(new MouseAdapter(){
-            public void mouseReleased(MouseEvent ev){
-                if(ev.getButton()==3){
-                    JPopupMenu p = new JPopupMenu();
-                    JMenuItem item = new JMenuItem("Clear "+tabbed.getTitleAt(tabbed.getSelectedIndex()));        
-                    p.add(item);
-                    item.addActionListener(new ActionListener(){
-                        public void actionPerformed(ActionEvent ev2){
-                            logs.get(tabbed.getSelectedIndex()).clearScreen();
-                            try{File theone = new File(Repository.temp+System.getProperty("file.separator")+logs.get(tabbed.getSelectedIndex()).log);
-                                theone.createNewFile();
-                                FileInputStream in = new FileInputStream(theone);
-                                Repository.c.put(in,Repository.LOGSPATH+logs.get(tabbed.getSelectedIndex()).log);}
-                            catch(Exception e){e.printStackTrace();}}});
-                    item = new JMenuItem("Save "+tabbed.getTitleAt(tabbed.getSelectedIndex()));        
-                    p.add(item);
-                    item.addActionListener(new ActionListener(){
-                        public void actionPerformed(ActionEvent ev2){
-                            JFileChooser chooser = new JFileChooser(); 
-                            chooser.setApproveButtonText("Save");
-                            chooser.setCurrentDirectory(new java.io.File("."));
-                            chooser.setDialogTitle("Choose Location");
-                            chooser.setAcceptAllFileFilterUsed(false);    
-                            if (chooser.showOpenDialog(Repository.f) == JFileChooser.APPROVE_OPTION) {
-                                File theone = new File(chooser.getSelectedFile()+"");
-                                try{theone.createNewFile();
-                                    FileWriter writer = new FileWriter(theone);
-                                    writer.write(logs.get(tabbed.getSelectedIndex()).textarea.getText());
-                                    writer.flush();
-                                    writer.close();}
-                                catch(Exception e){}}}});
-                    p.show(tabbed,ev.getX(),ev.getY());}}});
+//         tabbed.addMouseListener(new MouseAdapter(){
+//             public void mouseReleased(MouseEvent ev){
+//                 if(ev.getButton()==3){
+//                     JPopupMenu p = new JPopupMenu();
+//                     JMenuItem item = new JMenuItem("Clear "+tabbed.getTitleAt(tabbed.getSelectedIndex()));        
+//                     p.add(item);
+//                     item.addActionListener(new ActionListener(){
+//                         public void actionPerformed(ActionEvent ev2){
+//                             logs.get(tabbed.getSelectedIndex()).clearScreen();
+//                             try{File theone = new File(Repository.temp+System.getProperty("file.separator")+logs.get(tabbed.getSelectedIndex()).log);
+//                                 theone.createNewFile();
+//                                 FileInputStream in = new FileInputStream(theone);
+//                                 Repository.c.put(in,Repository.LOGSPATH+logs.get(tabbed.getSelectedIndex()).log);}
+//                             catch(Exception e){e.printStackTrace();}}});
+//                     item = new JMenuItem("Save "+tabbed.getTitleAt(tabbed.getSelectedIndex()));        
+//                     p.add(item);
+//                     item.addActionListener(new ActionListener(){
+//                         public void actionPerformed(ActionEvent ev2){
+//                             JFileChooser chooser = new JFileChooser(); 
+//                             chooser.setApproveButtonText("Save");
+//                             chooser.setCurrentDirectory(new java.io.File("."));
+//                             chooser.setDialogTitle("Choose Location");
+//                             chooser.setAcceptAllFileFilterUsed(false);    
+//                             if (chooser.showOpenDialog(Repository.frame) == JFileChooser.APPROVE_OPTION) {
+//                                 File theone = new File(chooser.getSelectedFile()+"");
+//                                 try{theone.createNewFile();
+//                                     FileWriter writer = new FileWriter(theone);
+//                                     writer.write(logs.get(tabbed.getSelectedIndex()).textarea.getText());
+//                                     writer.flush();
+//                                     writer.close();}
+//                                 catch(Exception e){}}}});
+//                     p.show(tabbed,ev.getX(),ev.getY());}}});
         splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,sc.pane,tabbed);
         Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
         splitPane.setBounds(10,45,(int)screenSize.getWidth()-80,600);
@@ -108,8 +108,9 @@ public class Panel2 extends JPanel{
                 try{String status="";
                     if(play.getText().equals("Run")){
                         for(int i=0;i<Repository.getTestSuiteNr();i++){clearProp(Repository.getTestSuita(i));}
-                        Repository.f.p.p2.sc.g.repaint();
+                        Repository.frame.mainpanel.p2.sc.g.repaint();
                         status = (String)client.execute("setExecStatusAll",new Object[]{2});                    
+                        client.execute("setStartedBy",new Object[]{Repository.getUser()});
                         play.setText("Pause");
                         play.setIcon(new ImageIcon(Repository.pauseicon));}
                     else if(play.getText().equals("Resume")){
@@ -134,7 +135,7 @@ public class Panel2 extends JPanel{
         stop.setBounds(121,5,95,25);
         add(stop);
         cestatus = new JLabel("CE status: ");
-        cestatus.setBounds(225,12,200,25);
+        cestatus.setBounds(225,12,550,25);
         cestatus.setForeground(new Color(100,100,100));
         add(cestatus);
     try{new Thread(){
@@ -147,9 +148,13 @@ public class Panel2 extends JPanel{
                         String result;
                         while(Repository.run){
                             Thread.sleep(1000);
-                            result = (String)client.execute("getExecStatusAll",new Object[]{});    
+                            result = client.execute("getExecStatusAll",new Object[]{})+" ";
+                            String startedtime = "   Started : "+result.split(";")[1];
+                            String elapsedtime = "   Elapsed time: "+result.split(";")[2];
+                            String user = "   Started by: "+result.split(";")[3];
+                            result = result.split(";")[0];
                             if(result.equals("paused")){
-                                cestatus.setText("CE status: paused");
+                                cestatus.setText("CE status: paused"+startedtime+elapsedtime+user);
                                 cleared=false;
                                 play.setText("Resume");
                                 play.setIcon(new ImageIcon(Repository.playicon));}
@@ -161,9 +166,11 @@ public class Panel2 extends JPanel{
                                 if(runned){
                                     System.out.println("Just Stopped");
                                     String[] buttons = {"Save to DB","Export to excel","Cancel"};
-                                    int rc = JOptionPane.showOptionDialog(Repository.f,"Generate statistics?","Confirmation",JOptionPane.DEFAULT_OPTION,JOptionPane.QUESTION_MESSAGE,null,buttons,buttons[2]);
+                                    int rc = JOptionPane.showOptionDialog(Repository.frame,"Generate statistics?","Confirmation",JOptionPane.DEFAULT_OPTION,JOptionPane.QUESTION_MESSAGE,null,buttons,buttons[2]);
                                     if (rc!=-1) {
-                                        if(rc==0){System.out.println("Saving to DB");}
+                                        if(rc==0){
+                                            System.out.println("Saving to DB");
+                                            client.execute("commitToDatabase",new Object[]{});}
                                         else if(rc==1){
                                             System.out.println("Exporting to excel..");
                                             generateExcel();}}
@@ -174,7 +181,7 @@ public class Panel2 extends JPanel{
                             else if(result.equals("running")){  
                                 stoppushed = false;
                                 runned = true;
-                                cestatus.setText("CE status: running");
+                                cestatus.setText("CE status: running"+startedtime+elapsedtime+user);
                                 stop.setEnabled(true);
                                 cleared=false;
                                 play.setText("Pause");
@@ -214,26 +221,22 @@ public class Panel2 extends JPanel{
         Repository.intro.percent+=0.035;
         Repository.intro.repaint();}
         
-        
-    public void generateExcel(){   
+    public boolean generateExcel(){   
         try{JFileChooser chooser = new JFileChooser(); 
             chooser.setApproveButtonText("Save");
             chooser.setCurrentDirectory(new java.io.File("."));
-            chooser.setDialogTitle("Choose Location");
-//             chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);            
+            chooser.setDialogTitle("Choose Location");         
             chooser.setAcceptAllFileFilterUsed(false);    
             if (chooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
                 WritableWorkbook workbook = Workbook.createWorkbook(new File(chooser.getSelectedFile()+".xls")); 
                 WritableSheet sheet = workbook.createSheet("First Sheet",0);
                 int columns = 4+Repository.getTestSuita(0).getUserDefNr();
-                
-                
                 Label label;
                 String titles []= new String[columns];
                 titles[0] = "Suite";
                 titles[1] = "TC";
-                titles[2] = "Status";
-                titles[3] = "EPId";
+                titles[2] = "EPId";
+                titles[3] = "Status";
                 for(int i=4;i<columns;i++){
                     titles[i]=Repository.getTestSuita(0).getUserDef(i-4)[0];}
                 for(int i=0;i<columns;i++){
@@ -242,32 +245,24 @@ public class Panel2 extends JPanel{
                 int index = 1;
                 for(int i=0;i<Repository.getTestSuiteNr();i++){
                     Item suita = Repository.getTestSuita(i);
-                    index = addToExcel(sheet,suita,index,columns);
-                }
-                    
-//                 int rows = tabel.getModel().getRowCount();
-//                 for(int i=0;i<columns;i++){
-//                     for(int j=0;j<rows;j++){
-//                         label = new Label(i, j+1,""+tabel.getModel().getValueAt(j,i));
-//                         sheet.addCell(label);}}
-                        
-                        
-                        
+                    index = addToExcel(sheet,suita,index,columns);}
                 CellView view = new CellView();
                 view.setAutosize(true);
                 for(int i=0;i<columns;i++)sheet.setColumnView(i,view);
                 sheet.getSettings().setVerticalFreeze(1);
-                workbook.write();  
-
-
-
-
-          
-                workbook.close();}
-            else {System.out.println("No Selection");}}
+                workbook.write();
+                workbook.close();
+                return false;}
+            else {System.out.println("No Selection");
+                return false;}}
         catch(Exception e){
-            System.out.println("There was a problem in writing to file, make sure file is not in use.");
-            e.printStackTrace();}}
+            System.out.println("There was a problem in writing excel file, make sure file it is not in use.");
+            e.printStackTrace();
+            boolean continua = true;
+            while(continua){
+                continua = generateExcel();
+                if(!continua)return continua;}
+            return false;}}
         
     public int addToExcel(WritableSheet sheet,Item element,int index,int columns){
         if(element.getType()==1){
@@ -281,7 +276,6 @@ public class Panel2 extends JPanel{
                 label = new Label(3, index,element.getSubItem(0).getValue());
                 sheet.addCell(label);
                 for(int i=4;i<columns;i++){
-                    System.out.println(element.getParent(true).getName());
                     label = new Label(i, index,element.getParent(true).getUserDef(i-4)[1]);
                     sheet.addCell(label);}
                 index++;}
@@ -309,13 +303,13 @@ public class Panel2 extends JPanel{
         int index = 0;
         for(int i=0;i<Repository.getTestSuiteNr();i++){
             index = manageSubchildren(Repository.getTestSuita(i),statuses,index);}
-            Repository.f.p.p2.sc.g.repaint();}
+            Repository.frame.mainpanel.p2.sc.g.repaint();}
             
     public int manageSubchildren(Item item, String[]statuses, int index){
         int index2 = index;
         if(item.getType()==1&&statuses.length>index2){
             if(statuses[index2].equals("10"))item.getSubItem(0).setValue("pending");
-            else if(statuses[index2].equals("1"))item.getSubItem(0).setValue("working");
+            else if(statuses[index2].equals("1"))item.getSubItem(0).setValue("running");
             else if(statuses[index2].equals("2"))item.getSubItem(0).setValue("pass");
             else if(statuses[index2].equals("3"))item.getSubItem(0).setValue("fail");
             else if(statuses[index2].equals("4"))item.getSubItem(0).setValue("skipped");

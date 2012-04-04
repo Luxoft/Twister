@@ -85,8 +85,7 @@ public class SyntaxStyle
 	/**
 	 * Returns the font metrics for the styled font.
 	 */
-	public FontMetrics getFontMetrics(Font font)
-	{
+	public FontMetrics getFontMetrics(Graphics g, Font font){
 		if(font == null)
 			throw new NullPointerException("font param must not"
 				+ " be null");
@@ -97,10 +96,9 @@ public class SyntaxStyle
 			(bold ? Font.BOLD : 0)
 			| (italic ? Font.ITALIC : 0),
 			font.getSize());
-		fontMetrics = Toolkit.getDefaultToolkit().getFontMetrics(
+		fontMetrics = g.getFontMetrics(
 			lastStyledFont);
-		return fontMetrics;
-	}
+		return fontMetrics;}
 
 	/**
 	 * Sets the foreground color and font of the specified graphics

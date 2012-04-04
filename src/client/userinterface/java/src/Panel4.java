@@ -7,36 +7,39 @@ import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
 import javax.swing.BorderFactory;
 import javax.swing.JScrollPane;
+import java.awt.FlowLayout;
 
 import javax.swing.border.TitledBorder;
 
 public class Panel4 extends JPanel{
-    DUT dut;
+    //DUT dut;
     ConfigFiles config;
     DBConfig dbconfig;
     Emails emails;
     JPanel main;    
     JScrollPane scroll = new JScrollPane();
+    Dut dut = new Dut();
     
 
     public Panel4(){
         setLayout(null);
         Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize(); 
-        dut = new DUT();
-        config = new ConfigFiles(screenSize,dut);
+        //dut = new DUT();
+        config = new ConfigFiles(screenSize);
         dbconfig = new DBConfig();
         emails = new Emails();
         main = new JPanel();
         main.setLayout(null);
         main.setBounds(240,10,(int)screenSize.getWidth()-320,(int)screenSize.getHeight()-320);
-        //main.setBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(Color.BLACK, 1), "TEST"));
         add(main);   
         RoundButton bpaths = new RoundButton("Paths");
         bpaths.setBounds(20,40,200,25);
         bpaths.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 main.removeAll();
+                main.setLayout(null);
                 scroll = new JScrollPane(config.paths);
+                scroll.getVerticalScrollBar().setUnitIncrement(16);
                 scroll.setBounds(5,15,main.getWidth()-10,main.getHeight()-20);
                 main.add(scroll);
                 main.repaint();
@@ -47,6 +50,7 @@ public class Panel4 extends JPanel{
         bemails.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 main.removeAll();
+                main.setLayout(null);
                 scroll = new JScrollPane(emails);
                 scroll.setBounds(5,15,main.getWidth()-10,main.getHeight()-20);
                 main.add(scroll);
@@ -58,6 +62,7 @@ public class Panel4 extends JPanel{
         database.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 main.removeAll();
+                main.setLayout(null);
                 scroll = new JScrollPane(dbconfig);
                 scroll.setBounds(5,15,main.getWidth()-10,main.getHeight()-20);
                 main.add(scroll);
@@ -69,12 +74,13 @@ public class Panel4 extends JPanel{
         duts.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 main.removeAll();
-                scroll = new JScrollPane(dut.config);
-                scroll.setBounds(5,15,main.getWidth()-10,main.getHeight()-20);
-                main.add(scroll);
+                main.setLayout(new FlowLayout());
+                //scroll = new JScrollPane(dut.config);
+                //scroll.setBounds(5,15,main.getWidth()-10,main.getHeight()-20);
+                //scroll.getVerticalScrollBar().setUnitIncrement(16);
+                //main.add(scroll);
+                dut.setPreferredSize(new Dimension(main.getWidth()-5,main.getHeight()-5));
+                main.add(dut);
                 main.repaint();
                 main.revalidate();}});
-        add(duts);
-        
-        
-    }}
+        add(duts);}}
