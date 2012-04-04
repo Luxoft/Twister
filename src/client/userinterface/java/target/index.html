@@ -1,31 +1,24 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
-<html>  
-<BODY onResize="resize()" onLoad="resize()"topmargin="0" leftmargin="0" marginwidth="0" marginheight="0">
-    <SCRIPT LANGUAGE="JavaScript">
-    	function resize() {
-		var w_newWidth,w_newHeight;
-		var w_maxWidth=1920 , w_maxHeight=1200;
-    	 	if (navigator.appName.indexOf("Microsoft") != -1){
-	 		w_newWidth=document.body.clientWidth;
-		       w_newHeight=document.body.clientHeight;}
-		else{
-        		var netscapeScrollWidth=15;
-		       w_newWidth=window.innerWidth-netscapeScrollWidth;
-       		w_newHeight=window.innerHeight-netscapeScrollWidth;}
-		if (w_newWidth>w_maxWidth) w_newWidth=w_maxWidth;
-		if (w_newHeight>w_maxHeight) w_newHeight=w_maxHeight;
-		document.myApplet.setSize(w_newWidth,w_newHeight);
-		window.scroll(0,0);
-		document.getElementsByName('myApplet')[0].style.height = w_newHeight + "px";
-		document.getElementsByName('myApplet')[0].style.width = w_newWidth + "px";}
-	window.onResize = resize;
-   	window.onLoad = resize;
-   </SCRIPT> 
-   <applet NAME="myApplet" width=1920 height=1080 code="applet.class" 
-	archive="xmlrpc-common-3.1.3.jar,xmlrpc-client-3.1.3.jar,ws-commons-util-1.0.2.jar,VFSJFileChooser-0.0.3.jar,jxl.jar,jsch-0.1.44.jar,jcommon-1.0.16.jar,commons-vfs-1.0.jar,commons-logging-1.1.1.jar,test.jar" 
-	alt="Your browser understands the &lt;APPLET&gt; tag but isn't running the applet, for some reason.">
-       Your browser is ignoring the &lt;APPLET&gt; tag!      
-    </applet>
-    </body>
+<html>
+<body>
+<script type="text/javascript" src="jquery.min.js"></script>
+<script type="text/javascript">
+var resize = function(){
+	var width = $(window).width();
+	var height = $(window).height();
+	if ($.browser.msie){
+		width*=1.2;
+		height*=1.2;}
+	$("#myApplet")[0].setSize(width,height);
+	$("#myApplet").css("width", $(window).width()-20);
+	$("#myApplet").css("height",$(window).height()-30);}
+$(document).ready(function() {resize();});
+$(window).resize(function() {resize();});
+</script>
+<applet id="myApplet" name="myApplet" code="applet.class"
+archive="xmlrpc-common-3.1.3.jar,xmlrpc-client-3.1.3.jar,ws-commons-util-1.0.2.jar,VFSJFileChooser-0.0.3.jar,jxl.jar,jsch-0.1.44.jar,jcommon-1.0.16.jar,commons-vfs-1.0.jar,commons-logging-1.1.1.jar,applet.jar"
+alt="Your browser understands the &lt;APPLET&gt; tag but isn't running the applet, for some reason.">
+	Your browser is ignoring the &lt;APPLET&gt; tag!
+</applet>
+</body>
 </html>
-<!--<body bgcolor="SILVER">-->
