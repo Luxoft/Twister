@@ -3,11 +3,11 @@ import json
 import time
 from oflib import *
 
-switch_3="00:00:00:00:00:00:00:03"
-switch_4="00:00:00:00:00:00:00:04"
+switch_3="00:0a:08:17:f4:32:a5:00"
+switch_4="00:0a:08:17:f4:5c:ac:00"
 switch_5="00:00:00:00:00:00:00:05"
 
-
+single_switch_flow=[(switch_3,1,2),(switch_3,2,1)]
 initial_flow_path=[(switch_3,1,2),(switch_3,2,1),(switch_4,1,2),(switch_4,2,1)]
 changed_flow_path=[(switch_3,1,3),(switch_3,3,1),(switch_5,1,2),(switch_5,2,1),(switch_4,1,3),(switch_4,3,1)]
 
@@ -118,9 +118,7 @@ def of_floodlight_6():
         fl_name="flow-mod-%i" % fl_nr        
         fl_dict={"switch":ifp[0],"name":fl_name,"cookie":"0","priority":"32768","ingress-port":str(ifp[1]),"active":"true","actions":"output=%i" % ifp[2]}        
         fl_list.append(fl_dict);
-    log_debug("Done.\n")
-    
-    
+    log_debug("Done.\n")        
     log_debug("Getting flows from controller")
     of_floodlight_4()            
     log_debug("Push new flow to controler")
@@ -174,18 +172,54 @@ def of_floodlight_7():
         flowpusher.remove(None,fl)
         log_debug("Flow removed:\n %s"% str(fl)) 
     log_debug("Getting flows from controller")
-    of_floodlight_4()  
-
+    of_floodlight_4() 
+    
+#add single flow to switch     
+def of_floodlight_8():
+    print "Starting openflow controller test 7"
+    fl_switches=restapi.get_switches()
+    for s in fl_switches:
+       print "DPID: %s" % s['dpid']   
+    log_debug("Add flows to single switch")
+    fl_list=[]
+    fl_nr=0
+    for ifp in single_switch_flow: 
+        fl_nr+=1
+        fl_name="flow-mod-%i" % fl_nr
+        fl_dict={"switch":ifp[0],"name":fl_name,"cookie":"0","priority":"32768",
+        "ingress-port":str(ifp[1]),"active":"true","actions":"output=%i" % ifp[2]}        
+        fl_list.append(fl_dict);
+    log_debug("Done.\n")
+    log_debug("Getting flows from controller")
+    of_floodlight_4()            
+    log_debug("Push new flow to controler")
+    for fl in fl_list:
+        flowpusher.set(fl)
+        log_debug("Flow added:\n %s"% str(fl))                
+    log_debug("Getting flows from controller")
+    of_floodlight_4()
+    tm_wait=30
+    log_debug ("\nSleep %i seconds before removing the flows\n" % tm_wait)
+    time.sleep(tm_wait)    
+    log_debug ("Removing datapath flows \n")
+    
+    for fl in fl_list:
+        flowpusher.remove(None,fl)
+        log_debug("Flow removed:\n %s"% str(fl)) 
+    log_debug("Getting flows from controller")
+    of_floodlight_4() 
+    
 restapi= RestApiTest('11.126.32.12',8080)
 flowpusher = StaticFlowPusher('11.126.32.12')
           
-#of_floodlight_1()
+of_floodlight_1()
 #of_floodlight_2()
 #of_floodlight_3()
 #of_floodlight_4()
-#of_floodlight_5()
+of_floodlight_5()
 #of_floodlight_6()
-of_floodlight_7()
+#of_floodlight_7()
+#of_floodlight_8()
 
 
 
