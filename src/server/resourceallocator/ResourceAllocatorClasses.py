@@ -4,13 +4,14 @@ import sys
 import re
 import pickle
 
-TWISTER_PATH = r'd:\Projects\twister_rel1\src' #os.getenv('TWISTER_PATH')
+#TWISTER_PATH = r'd:\Projects\twister_rel1\src'
+TWISTER_PATH = os.getenv('TWISTER_PATH')
 if not TWISTER_PATH:
     print('TWISTER_PATH environment variable is not set! Exiting!')
     exit(1)
 sys.path.append(TWISTER_PATH)
 
-from trd_party.BeautifulSoup import *
+from trd_party.BeautifulSoup import BeautifulStoneSoup
 from common.tsclogging import *
 
 RESOURCE_FREE     = 0
@@ -88,7 +89,9 @@ class ResourceAllocator:
         '''
         if os.path.exists(cfgfile):
             with open(cfgfile, 'r') as f :
-                self.xmldoc = BeautifulStoneSoup(f.read())
+                txt = re.sub('<(?P<m>[\S]+)/>\n', '<\g<m>></\g<m>>', f.read())
+                self.xmldoc = BeautifulStoneSoup(txt)
+                del txt
         else:
             logCritical('Devices config file not found:', cfgfile)
             exit(1)
@@ -289,11 +292,13 @@ class ResourceAllocator:
 #
 
 if __name__ == '__main__':
-    #ra = ResourceAllocator('/home/dancioata/tscproject/twister/Config/testbeds.xml')
-    ra = ResourceAllocator(r'd:\Projects\twister_rel1\src\config\hwconfig.xml')
-    ra.dumpConfig()
 
-    query_list=[
+    #ra = ResourceAllocator(r'd:\Projects\twister_rel1\src\config\hwconfig_x.xml')
+    ra = ResourceAllocator('/home/cro/twister_rel1/src/config/hwconfig_x.xml')
+    ra.dumpConfig()
+    test = True
+
+    query_list = [
     'testbedname:TB-001,devicename:DUT3||DUT2||DUT1',
     'testbedname:?,devicename:DUT5||DUT6,moduletype:?',
     'testbedname:?,devicetype:Contivity&&devicefamily:27XX&&devicemodel:2750SY',
@@ -312,8 +317,16 @@ if __name__ == '__main__':
     'testbedid:?,devicetype:?,moduletype:?,hasspeaker:True',
     ]
 
-    test = True
-    for query in query_list:
+    query_list_x = [
+    'testbedname:TB-001,devicename:Dev 003||Dev 002||Dev 001',
+    'testbedid:002,devicename:?,moduletype:m',
+    'testbedname:?,devicetype:C&&devicefamily:C&&devicemodel:C',
+    'testbedname:?,devicetype:C&&devicefamily:C,moduletype:?',
+    'testbedname:?,devicemodel:C,moduletype:m',
+    ]
+
+    for query in query_list_x:
+
         print('\n####################')
         res = ra.deviceQuery(query)
         print 'ID:', res
