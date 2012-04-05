@@ -34,9 +34,8 @@ import javax.swing.JOptionPane;
 public class DBConfig extends JPanel{
     Document doc=null;
     File theone;
-    JTextField tdatabase;
-    JTextField tserver;
-    JTextField tuser;
+    JTextField tdatabase,tserver,tuser;
+    JPasswordField tpassword;
 
     public DBConfig(){
         setLayout(null);
@@ -96,7 +95,7 @@ public class DBConfig extends JPanel{
         JLabel password = new JLabel("Password: ");
         password.setBounds(15,130,70,20);
         add(password);
-        final JPasswordField tpassword = new JPasswordField();
+        tpassword = new JPasswordField();
         tpassword.setBounds(80,130,170,20);
         add(tpassword);
         refresh();
@@ -105,8 +104,7 @@ public class DBConfig extends JPanel{
         save.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 if(doc!=null){
-                    if(tpassword.getPassword().length == 0){JOptionPane.showMessageDialog(DBConfig.this, "Warning, password not set, will be used the old one", "Warning", JOptionPane.WARNING_MESSAGE);}
-//                     else{
+                    if(tpassword.getPassword().length == 0){JOptionPane.showMessageDialog(DBConfig.this, "Warning, password not set", "Warning", JOptionPane.WARNING_MESSAGE);}
                     theone = new File(Repository.temp+Repository.getBar()+"Twister"+Repository.getBar()+"config"+Repository.getBar()+new File(Repository.REMOTEDATABASECONFIGFILE).getName());
                     try{NodeList nodeLst = doc.getElementsByTagName("server");
                         if(nodeLst.item(0).getChildNodes().getLength()>0)nodeLst.item(0).getChildNodes().item(0).setNodeValue(tserver.getText());
@@ -117,12 +115,10 @@ public class DBConfig extends JPanel{
                         nodeLst = doc.getElementsByTagName("user");
                         if(nodeLst.item(0).getChildNodes().getLength()>0)nodeLst.item(0).getChildNodes().item(0).setNodeValue(tuser.getText());
                         else nodeLst.item(0).appendChild(doc.createTextNode(tuser.getText()));
-                        if(tpassword.getPassword().length != 0){
+                        if(tpassword.getPassword().length != 0 && !(new String(tpassword.getPassword()).equals("****"))){
                             nodeLst = doc.getElementsByTagName("password");
                             if(nodeLst.item(0).getChildNodes().getLength()>0)nodeLst.item(0).getChildNodes().item(0).setNodeValue(new String(tpassword.getPassword()));
-                            else nodeLst.item(0).appendChild(doc.createTextNode(new String(tpassword.getPassword())));}
-                    
-                    }
+                            else nodeLst.item(0).appendChild(doc.createTextNode(new String(tpassword.getPassword())));}}
                     catch(Exception e){System.out.println(doc.getDocumentURI()+" may not be properly formatted");}
                     Result result = new StreamResult(theone);
                     try{DOMSource source = new DOMSource(doc);
@@ -139,9 +135,7 @@ public class DBConfig extends JPanel{
                         Repository.c.put(input, theone.getName());
                         input.close();}
                     catch(Exception e){e.printStackTrace();
-                    System.out.println("Could not save in file : "+Repository.temp+Repository.getBar()+"Twister"+Repository.getBar()+"Config"+Repository.getBar()+Repository.REMOTEDATABASECONFIGFILE+" and send to "+Repository.REMOTEDATABASECONFIGPATH);}}
-//                     }
-                }});
+                    System.out.println("Could not save in file : "+Repository.temp+Repository.getBar()+"Twister"+Repository.getBar()+"Config"+Repository.getBar()+Repository.REMOTEDATABASECONFIGFILE+" and send to "+Repository.REMOTEDATABASECONFIGPATH);}}}});
         add(save);}
     
     public void refresh(){
@@ -172,6 +166,9 @@ public class DBConfig extends JPanel{
             tserver.setText(nodeLst.item(0).getChildNodes().item(0).getNodeValue());
             nodeLst = doc.getElementsByTagName("database");
             tdatabase.setText(nodeLst.item(0).getChildNodes().item(0).getNodeValue());
+            nodeLst = doc.getElementsByTagName("password");
+            tpassword.setText(nodeLst.item(0).getChildNodes().item(0).getNodeValue());
+            if(!tpassword.getPassword().equals(""))tpassword.setText("****");
             nodeLst = doc.getElementsByTagName("user");
             tuser.setText(nodeLst.item(0).getChildNodes().item(0).getNodeValue());}
         catch(Exception e){System.out.println(Repository.temp+Repository.getBar()+"Twister"+Repository.getBar()+"Config"+Repository.getBar()+new File(Repository.REMOTEDATABASECONFIGFILE).getName()+" is corrupted or incomplete");}}}

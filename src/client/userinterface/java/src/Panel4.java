@@ -12,7 +12,6 @@ import java.awt.FlowLayout;
 import javax.swing.border.TitledBorder;
 
 public class Panel4 extends JPanel{
-    //DUT dut;
     ConfigFiles config;
     DBConfig dbconfig;
     Emails emails;
@@ -23,8 +22,7 @@ public class Panel4 extends JPanel{
 
     public Panel4(){
         setLayout(null);
-        Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize(); 
-        //dut = new DUT();
+        Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
         config = new ConfigFiles(screenSize);
         dbconfig = new DBConfig();
         emails = new Emails();
@@ -75,10 +73,6 @@ public class Panel4 extends JPanel{
             public void actionPerformed(ActionEvent ev){
                 main.removeAll();
                 main.setLayout(new FlowLayout());
-                //scroll = new JScrollPane(dut.config);
-                //scroll.setBounds(5,15,main.getWidth()-10,main.getHeight()-20);
-                //scroll.getVerticalScrollBar().setUnitIncrement(16);
-                //main.add(scroll);
                 dut.setPreferredSize(new Dimension(main.getWidth()-5,main.getHeight()-5));
                 main.add(dut);
                 main.repaint();

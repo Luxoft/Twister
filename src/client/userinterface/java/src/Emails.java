@@ -105,7 +105,6 @@ public class Emails extends JPanel{
         emails.setLineWrap(true);
         emails.setWrapStyleWord(true);
         JScrollPane scroll = new JScrollPane(emails);
-        //scroll.setBorder(null);
         scroll.setBounds(7,18,336,45);
         p3.add(scroll);        
         add(p3);
@@ -121,7 +120,6 @@ public class Emails extends JPanel{
         subject.setLineWrap(true);
         subject.setWrapStyleWord(true);
         JScrollPane scroll3 = new JScrollPane(subject);
-        //scroll3.setBorder(null);
         scroll3.setBounds(7,18,336,35);
         p5.add(scroll3);        
         add(p5);
@@ -137,7 +135,6 @@ public class Emails extends JPanel{
         message.setLineWrap(true);
         message.setWrapStyleWord(true);
         JScrollPane scroll2 = new JScrollPane(message);
-        //scroll2.setBorder(null);
         scroll2.setBounds(7,18,336,85);
         p4.add(scroll2);        
         add(p4);
@@ -155,8 +152,7 @@ public class Emails extends JPanel{
         save.setBounds(352,435,80,20);
         save.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
-                if(tpass.getPassword().length == 0){JOptionPane.showMessageDialog(Emails.this, "Warning, password not set, will be used the old one.", "Warning", JOptionPane.WARNING_MESSAGE);}
-//                 else{
+                if(tpass.getPassword().length == 0){JOptionPane.showMessageDialog(Emails.this, "Warning, password not set.", "Warning", JOptionPane.WARNING_MESSAGE);}
                 try{
                     File theone = new File(Repository.temp+Repository.getBar()+"Twister"+Repository.getBar()+"Config"+Repository.getBar()+new File(Repository.REMOTEEMAILCONFIGFILE).getName());
                     DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
@@ -174,7 +170,7 @@ public class Emails extends JPanel{
                         nodeLst = doc.getElementsByTagName("SMTPUser");
                         if(nodeLst.item(0).getChildNodes().getLength()>0)nodeLst.item(0).getChildNodes().item(0).setNodeValue(tuser.getText());
                         else nodeLst.item(0).appendChild(doc.createTextNode(tuser.getText()));
-                        if(tpass.getPassword().length != 0){
+                        if(tpass.getPassword().length != 0 && !(new String(tpass.getPassword()).equals("****"))){
                             nodeLst = doc.getElementsByTagName("SMTPPwd");
                             if(nodeLst.item(0).getChildNodes().getLength()>0)nodeLst.item(0).getChildNodes().item(0).setNodeValue(new String(tpass.getPassword()));
                             else nodeLst.item(0).appendChild(doc.createTextNode(new String(tpass.getPassword())));}
@@ -207,13 +203,14 @@ public class Emails extends JPanel{
                         input.close();}
                     catch(Exception e){e.printStackTrace();
                     System.out.println("Could not save in file : "+Repository.temp+Repository.getBar()+"Twister"+Repository.getBar()+"Config"+Repository.getBar()+Repository.REMOTEEMAILCONFIGFILE+" and send to "+Repository.REMOTEEMAILCONFIGPATH);}}
-                catch(Exception e){e.printStackTrace();}}
-//             }
-        });
+                catch(Exception e){e.printStackTrace();}}});
         add(save);}
     
     public void setIPName(String ipname){
         tipname.setText(ipname);}
+        
+    public void setPassword(String password){
+        tpass.setText(password);}
     
     public void setPort(String port){
         tport.setText(port);}

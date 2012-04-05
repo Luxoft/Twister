@@ -72,7 +72,6 @@ public class ConfigFiles extends JPanel{
         addPanel("EPIds File","Location of the file that contains the EpID list",tepid,Repository.REMOTEEPIDDIR,194,true,null);
         tlog = new JTextField();
         addPanel("Logs Path","Location of the directory that stores the logs that will be monitored",tlog,Repository.LOGSPATH,257,true,null);
-        
         JPanel p7 = new JPanel();
         p7.setBackground(Color.WHITE);
         TitledBorder border7 = BorderFactory.createTitledBorder("Log Files");

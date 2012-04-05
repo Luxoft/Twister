@@ -326,7 +326,8 @@ public class Repository{
             frame.mainpanel.p4.emails.setUser(getTagContent(doc, "SMTPUser"));
             frame.mainpanel.p4.emails.setFrom(getTagContent(doc, "From"));
             frame.mainpanel.p4.emails.setEmails(getTagContent(doc, "To"));
-             frame.mainpanel.p4.emails.setMessage(getTagContent(doc, "Message"));
+            if(!getTagContent(doc, "SMTPPwd").equals("")){frame.mainpanel.p4.emails.setPassword("****");}
+            frame.mainpanel.p4.emails.setMessage(getTagContent(doc, "Message"));
             frame.mainpanel.p4.emails.setSubject(getTagContent(doc, "Subject"));}
         catch(Exception e){e.printStackTrace();}}
         
