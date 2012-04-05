@@ -57,12 +57,17 @@ public class DUTExplorer extends JPanel{
                             tree.addSelectionPath(tp);
                             Repository.frame.mainpanel.p4.dut.nodetemp3 = (DefaultMutableTreeNode)tp.getLastPathComponent();
                             refreshPopup((DefaultMutableTreeNode)tp.getLastPathComponent(),ev,0);}
+                        else if(((DefaultMutableTreeNode)tp.getLastPathComponent()).getUserObject() instanceof TestBed){
+                            tree.addSelectionPath(tp);
+                            Repository.frame.mainpanel.p4.dut.nodetemp0 = (DefaultMutableTreeNode)tp.getLastPathComponent();
+                            refreshPopup((DefaultMutableTreeNode)tp.getLastPathComponent(),ev,3);}
                         else{
                             Repository.frame.mainpanel.p4.dut.clearSelection();}}
                     else if(ev.getButton() == MouseEvent.BUTTON1){
                         if(((DefaultMutableTreeNode)tp.getLastPathComponent()).getUserObject() instanceof Device){
                             Repository.frame.mainpanel.p4.dut.nodetemp1 = (DefaultMutableTreeNode)tp.getLastPathComponent();
                             if(Repository.frame.mainpanel.p4.dut.SettingsPanel.getComponentZOrder(Repository.frame.mainpanel.p4.dut.p2)==-1){
+                                Repository.frame.mainpanel.p4.dut.SettingsPanel.remove(Repository.frame.mainpanel.p4.dut.p1);
                                 Repository.frame.mainpanel.p4.dut.SettingsPanel.remove(Repository.frame.mainpanel.p4.dut.p3);
                                 Repository.frame.mainpanel.p4.dut.SettingsPanel.remove(Repository.frame.mainpanel.p4.dut.p4);
                                 Repository.frame.mainpanel.p4.dut.jScrollPane4.remove(Repository.frame.mainpanel.p4.dut.propertys2);
@@ -75,6 +80,7 @@ public class DUTExplorer extends JPanel{
                         else if(((DefaultMutableTreeNode)tp.getLastPathComponent()).getUserObject() instanceof DeviceModule){
                             Repository.frame.mainpanel.p4.dut.nodetemp2 = (DefaultMutableTreeNode)tp.getLastPathComponent();
                             if(Repository.frame.mainpanel.p4.dut.SettingsPanel.getComponentZOrder(Repository.frame.mainpanel.p4.dut.p3)==-1){
+                                Repository.frame.mainpanel.p4.dut.SettingsPanel.remove(Repository.frame.mainpanel.p4.dut.p1);
                                 Repository.frame.mainpanel.p4.dut.SettingsPanel.remove(Repository.frame.mainpanel.p4.dut.p2);
                                 Repository.frame.mainpanel.p4.dut.SettingsPanel.remove(Repository.frame.mainpanel.p4.dut.p4);
                                 Repository.frame.mainpanel.p4.dut.jScrollPane4.remove(Repository.frame.mainpanel.p4.dut.propertys);
@@ -84,9 +90,23 @@ public class DUTExplorer extends JPanel{
                                 Repository.frame.mainpanel.p4.dut.SettingsPanel.revalidate();
                                 Repository.frame.mainpanel.p4.dut.SettingsPanel.repaint();}    
                             ((DeviceModule)((DefaultMutableTreeNode)tp.getLastPathComponent()).getUserObject()).updateInfo();}
+                        else if(((DefaultMutableTreeNode)tp.getLastPathComponent()).getUserObject() instanceof TestBed){
+                            Repository.frame.mainpanel.p4.dut.nodetemp0 = (DefaultMutableTreeNode)tp.getLastPathComponent();
+                            if(Repository.frame.mainpanel.p4.dut.SettingsPanel.getComponentZOrder(Repository.frame.mainpanel.p4.dut.p1)==-1){
+                                Repository.frame.mainpanel.p4.dut.SettingsPanel.remove(Repository.frame.mainpanel.p4.dut.p2);
+                                Repository.frame.mainpanel.p4.dut.SettingsPanel.remove(Repository.frame.mainpanel.p4.dut.p4);
+                                Repository.frame.mainpanel.p4.dut.SettingsPanel.remove(Repository.frame.mainpanel.p4.dut.p3);
+                                Repository.frame.mainpanel.p4.dut.jScrollPane4.remove(Repository.frame.mainpanel.p4.dut.propertys);
+                                Repository.frame.mainpanel.p4.dut.jScrollPane4.remove(Repository.frame.mainpanel.p4.dut.propertys3);
+                                Repository.frame.mainpanel.p4.dut.SettingsPanel.add(Repository.frame.mainpanel.p4.dut.p1);
+                                Repository.frame.mainpanel.p4.dut.jScrollPane4.setViewportView(null);
+                                Repository.frame.mainpanel.p4.dut.SettingsPanel.revalidate();
+                                Repository.frame.mainpanel.p4.dut.SettingsPanel.repaint();}    
+                            ((TestBed)((DefaultMutableTreeNode)tp.getLastPathComponent()).getUserObject()).updateInfo();}
                         else if(((DefaultMutableTreeNode)tp.getLastPathComponent()).getUserObject() instanceof DevicePort){{
                             Repository.frame.mainpanel.p4.dut.nodetemp3 = (DefaultMutableTreeNode)tp.getLastPathComponent();
                             if(Repository.frame.mainpanel.p4.dut.SettingsPanel.getComponentZOrder(Repository.frame.mainpanel.p4.dut.p4)==-1){
+                                Repository.frame.mainpanel.p4.dut.SettingsPanel.remove(Repository.frame.mainpanel.p4.dut.p1);
                                 Repository.frame.mainpanel.p4.dut.SettingsPanel.remove(Repository.frame.mainpanel.p4.dut.p3);
                                 Repository.frame.mainpanel.p4.dut.SettingsPanel.remove(Repository.frame.mainpanel.p4.dut.p2);
                                 Repository.frame.mainpanel.p4.dut.jScrollPane4.remove(Repository.frame.mainpanel.p4.dut.propertys);
@@ -106,10 +126,21 @@ public class DUTExplorer extends JPanel{
         JPopupMenu p = new JPopupMenu();
         JMenuItem item;
         if(element == null){
-            item = new JMenuItem("Add device");        
+            item = new JMenuItem("Add TestBed");        
             item.addActionListener(new ActionListener(){
                 public void actionPerformed(ActionEvent ev){
-                    addDevice();}});
+                    addTestBed();}});
+            p.add(item);}
+        else if(type == 3){
+            item = new JMenuItem("Add Device");        
+            item.addActionListener(new ActionListener(){
+                public void actionPerformed(ActionEvent ev){
+                    addDevice(element);}});
+            p.add(item);
+            item = new JMenuItem("Remove TestBed");        
+            item.addActionListener(new ActionListener(){
+                public void actionPerformed(ActionEvent ev){
+                    removeElement(element);}});
             p.add(item);}
         else if(type == 2){
             item = new JMenuItem("Add Module");        
@@ -131,19 +162,40 @@ public class DUTExplorer extends JPanel{
             item = new JMenuItem("Remove module");        
             item.addActionListener(new ActionListener(){
                 public void actionPerformed(ActionEvent ev){
-                    ((DefaultTreeModel)tree.getModel()).removeNodeFromParent(element);}});
+                    removeElement(element);
+//                     ((DefaultTreeModel)tree.getModel()).removeNodeFromParent(element);
+                }});
             p.add(item);}
         else{item = new JMenuItem("Remove port");        
             item.addActionListener(new ActionListener(){
                 public void actionPerformed(ActionEvent ev){
-                    ((DefaultTreeModel)tree.getModel()).removeNodeFromParent(element);}});
+                    removeElement(element);
+//                     ((DefaultTreeModel)tree.getModel()).removeNodeFromParent(element);
+                }});
             p.add(item);}
         p.show(this.tree,ev.getX(),ev.getY());}
         
     public void removeElement(DefaultMutableTreeNode element){
-        ((DefaultTreeModel)tree.getModel()).removeNodeFromParent(element);}
+        ((DefaultTreeModel)tree.getModel()).removeNodeFromParent(element);
+        Repository.frame.mainpanel.p4.dut.clearSelection();
+    }
+        
+    public void addTestBed(){    
+        JTextField name = new JTextField("");
+        Object configs = new Object[]{"Name: ",name};
+        int r = JOptionPane.showConfirmDialog(null, configs, "Add testbed", JOptionPane.OK_CANCEL_OPTION);  
+        if (r == JOptionPane.OK_OPTION){
+            TestBed d = new TestBed();
+            d.setName(name.getText());
+            DefaultMutableTreeNode child = new DefaultMutableTreeNode(d);
+            DefaultMutableTreeNode child2 = new DefaultMutableTreeNode("Id: "+d.id,false);
+            child.add(child2);
+            DefaultMutableTreeNode child3 = new DefaultMutableTreeNode("Description: "+d.description,false);
+            child.add(child3);
+            ((DefaultTreeModel)tree.getModel()).insertNodeInto(child, root,root.getChildCount());
+            ((DefaultTreeModel)tree.getModel()).reload();}}
     
-    public void addDevice(){    
+    public void addDevice(DefaultMutableTreeNode element){    
         JTextField name = new JTextField("");
         Object configs = new Object[]{"Name: ",name};
         int r = JOptionPane.showConfirmDialog(null, configs, "Add device", JOptionPane.OK_CANCEL_OPTION);  
@@ -163,7 +215,7 @@ public class DUTExplorer extends JPanel{
             child.add(child6);
             DefaultMutableTreeNode child7 = new DefaultMutableTreeNode("Model: "+d.model,false);
             child.add(child7);
-            ((DefaultTreeModel)tree.getModel()).insertNodeInto(child, root,root.getChildCount());}}
+            ((DefaultTreeModel)tree.getModel()).insertNodeInto(child, element,element.getChildCount());}}
             
     public void addModule(DefaultMutableTreeNode element){
         JTextField name = new JTextField("");
