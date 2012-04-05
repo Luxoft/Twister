@@ -6,7 +6,7 @@
         <device>
             <deviceid>d#1</deviceid>
             <devicename>Dev 001</devicename>
-            <devicedesc/>
+            <devicedesc></devicedesc>
             <devicevendor/>
             <devicetype/>
             <devicefamily/>
