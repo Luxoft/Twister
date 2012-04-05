@@ -1,0 +1,162 @@
+<Root>
+    <testbed>
+        <testbedid>001</testbedid>
+        <testbedname>TB-001</testbedname>
+        <testbeddesc>descr 1</testbeddesc>
+        <device>
+            <deviceid>d#1</deviceid>
+            <devicename>Dev 001</devicename>
+            <devicedesc/>
+            <devicevendor/>
+            <devicetype/>
+            <devicefamily/>
+            <devicemodel/>
+            <devicemodule>
+                <moduletype>Mod 91</moduletype>
+            </devicemodule>
+            <devicemodule>
+                <moduletype>Mod 92</moduletype>
+            </devicemodule>
+            <devicemodule>
+                <moduletype>Mod 93</moduletype>
+            </devicemodule>
+        </device>
+        <device>
+            <deviceid>d#2</deviceid>
+            <devicename>Dev 002</devicename>
+            <devicedesc/>
+            <devicevendor/>
+            <devicetype/>
+            <devicefamily/>
+            <devicemodel/>
+            <devicemodule>
+                <moduletype>Mod 81</moduletype>
+            </devicemodule>
+            <devicemodule>
+                <moduletype>Mod 82</moduletype>
+            </devicemodule>
+            <devicemodule>
+                <moduletype>Mod 83</moduletype>
+            </devicemodule>
+        </device>
+        <device>
+            <deviceid>d#3</deviceid>
+            <devicename>Dev 003</devicename>
+            <devicedesc/>
+            <devicevendor/>
+            <devicetype/>
+            <devicefamily/>
+            <devicemodel/>
+            <devicemodule>
+                <moduletype>Mod 71</moduletype>
+            </devicemodule>
+            <devicemodule>
+                <moduletype>Mod 72</moduletype>
+            </devicemodule>
+            <devicemodule>
+                <moduletype>Mod 73</moduletype>
+            </devicemodule>
+        </device>
+    </testbed>
+    <testbed>
+        <testbedid>002</testbedid>
+        <testbedname>TB-002</testbedname>
+        <testbeddesc>descr 2</testbeddesc>
+        <device>
+            <deviceid>4001</deviceid>
+            <devicename>C 4001</devicename>
+            <devicedesc></devicedesc>
+            <devicevendor></devicevendor>
+            <devicetype>C</devicetype>
+            <devicefamily>C</devicefamily>
+            <devicemodel>C</devicemodel>
+            <devicemodule>
+                <moduletype>m</moduletype>
+                <deviceport>
+                    <port>101</port>
+                    <portType>-</portType>
+                </deviceport>
+                <deviceport>
+                    <port>102</port>
+                    <portType>-</portType>
+                </deviceport>
+                <deviceport>
+                    <port>103</port>
+                    <portType>-</portType>
+                </deviceport>
+            </devicemodule>
+        </device>
+        <device>
+            <deviceid>4002</deviceid>
+            <devicename>C 4002</devicename>
+            <devicedesc/>
+            <devicevendor/>
+            <devicetype>C</devicetype>
+            <devicefamily>C</devicefamily>
+            <devicemodel>C</devicemodel>
+            <devicemodule>
+                <moduletype>m</moduletype>
+                <deviceport>
+                    <port>101</port>
+                    <portType/>
+                </deviceport>
+                <deviceport>
+                    <port>102</port>
+                    <portType/>
+                </deviceport>
+                <deviceport>
+                    <port>103</port>
+                    <portType/>
+                </deviceport>
+            </devicemodule>
+        </device>
+        <device>
+            <deviceid>4003</deviceid>
+            <devicename>C 4003</devicename>
+            <devicedesc/>
+            <devicevendor/>
+            <devicetype>C</devicetype>
+            <devicefamily>C</devicefamily>
+            <devicemodel>C</devicemodel>
+            <devicemodule>
+                <moduletype>m</moduletype>
+                <deviceport>
+                    <port>101</port>
+                    <portType/>
+                </deviceport>
+                <deviceport>
+                    <port>102</port>
+                    <portType/>
+                </deviceport>
+                <deviceport>
+                    <port>103</port>
+                    <portType/>
+                </deviceport>
+            </devicemodule>
+        </device>
+        <device>
+            <deviceid>4004</deviceid>
+            <devicename>C 4004</devicename>
+            <devicedesc/>
+            <devicevendor/>
+            <devicetype>C</devicetype>
+            <devicefamily>C</devicefamily>
+            <devicemodel>C</devicemodel>
+            <devicemodule>
+                <moduletype>m</moduletype>
+                <deviceport>
+                    <port>101</port>
+                    <portType/>
+                </deviceport>
+                <deviceport>
+                    <port>102</port>
+                    <portType/>
+                </deviceport>
+                <deviceport>
+                    <port>103</port>
+                    <portType/>
+                </deviceport>
+            </devicemodule>
+        </device>
+    </testbed>
+</Root>
