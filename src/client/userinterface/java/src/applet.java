@@ -42,7 +42,8 @@ public class applet extends Applet{
             Repository.stopicon = loadIcon("stop.png");
             Repository.playicon = loadIcon("play.png");
             Repository.pauseicon = loadIcon("pause.png");
-            Repository.porticon = loadIcon("port.png");}
+            Repository.porticon = loadIcon("port.png");
+            Repository.testbedicon = loadIcon("testbed.png");}
         catch(Exception e){e.printStackTrace();}
         setLayout(null);
         System.out.println("Size is: "+getSize().getWidth()+" - "+getSize().getHeight());

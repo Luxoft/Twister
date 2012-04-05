@@ -5,14 +5,13 @@ import java.awt.Component;
 import javax.swing.tree.DefaultMutableTreeNode;
 
 class CustomIconRenderer extends DefaultTreeCellRenderer {
-    ImageIcon port;
-    ImageIcon device;
-    ImageIcon module;
+    ImageIcon port,device,module,testbed;
      
     public CustomIconRenderer() {
         port = new ImageIcon(Repository.porticon);
         device = new ImageIcon(Repository.deviceicon);
         module = new ImageIcon(Repository.moduleicon);
+        testbed = new ImageIcon(Repository.testbedicon);
 //         specialIcon = new ImageIcon(CustomIconRenderer.class.getResource("/images/specialIcon.gif"));
     }
      
@@ -20,11 +19,8 @@ class CustomIconRenderer extends DefaultTreeCellRenderer {
         super.getTreeCellRendererComponent(tree, value, sel,expanded, leaf, row, hasFocus);
         Object nodeObj = ((DefaultMutableTreeNode)value).getUserObject();
         // check whatever you need to on the node user object
-        if (nodeObj instanceof DevicePort) {
-            setIcon(port);}
-        else if (nodeObj instanceof Device) {
-            setIcon(device);}
-        else if (nodeObj instanceof DeviceModule) {
-            setIcon(module);}
-//         else setIcon(defaultIcon);
+        if (nodeObj instanceof DevicePort) setIcon(port);
+        else if (nodeObj instanceof Device) setIcon(device);
+        else if (nodeObj instanceof DeviceModule) setIcon(module);
+        else if (nodeObj instanceof TestBed) setIcon(testbed);
         return this;}}

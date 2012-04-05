@@ -46,7 +46,7 @@ public class Repository{
     public static Fereastra frame;
     public static ChannelSftp c;
     public static String temp, USERHOME, REMOTECONFIGDIRECTORY, HTTPSERVERPORT, CENTRALENGINEPORT, RESOURCEALLOCATORPORT, REMOTEDATABASECONFIGPATH, REMOTEDATABASECONFIGFILE, REMOTEEMAILCONFIGPATH, REMOTEEMAILCONFIGFILE,CONFIGDIRECTORY, USERSDIRECTORY, XMLDIRECTORY, TCDIRECTORY, TESTSUITEPATH, LOGSPATH ,XMLREMOTEDIR, REMOTEUSERSDIRECTORY, REMOTEEPIDDIR, REMOTEHARDWARECONFIGDIRECTORY;
-    public static Image porticon,suitaicon, tcicon, propicon, failicon, passicon, playicon, stopicon, pauseicon, background,notexecicon,pendingicon,skipicon,stoppedicon,timeouticon,waiticon,workingicon,moduleicon,deviceicon;
+    public static Image testbedicon,porticon,suitaicon, tcicon, propicon, failicon, passicon, playicon, stopicon, pauseicon, background,notexecicon,pendingicon,skipicon,stoppedicon,timeouticon,waiticon,workingicon,moduleicon,deviceicon;
     public static boolean run = true;
     public static boolean applet;
     public static IntroScreen intro;
@@ -124,6 +124,8 @@ public class Repository{
                 Repository.workingicon = new ImageIcon(ImageIO.read(in)).getImage();                
                 in = Repository.class.getResourceAsStream("Icons"+bar+"pause.png");
                 Repository.pauseicon = new ImageIcon(ImageIO.read(in)).getImage();
+                in = Repository.class.getResourceAsStream("Icons"+bar+"testbed.png");
+                Repository.testbedicon = new ImageIcon(ImageIO.read(in)).getImage();
                 in.close();}
             if(userpassword()){
                 System.out.println("Authentication succeeded");
@@ -614,6 +616,9 @@ public class Repository{
         
     public static Image getStopIcon(){
         return stopicon;}
+        
+    public static Image getTestBedIcon(){
+        return testbedicon;}
         
      public static Image getStoppedIcon(){
         return stoppedicon;}

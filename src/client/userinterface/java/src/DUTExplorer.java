@@ -162,23 +162,18 @@ public class DUTExplorer extends JPanel{
             item = new JMenuItem("Remove module");        
             item.addActionListener(new ActionListener(){
                 public void actionPerformed(ActionEvent ev){
-                    removeElement(element);
-//                     ((DefaultTreeModel)tree.getModel()).removeNodeFromParent(element);
-                }});
+                    removeElement(element);}});
             p.add(item);}
         else{item = new JMenuItem("Remove port");        
             item.addActionListener(new ActionListener(){
                 public void actionPerformed(ActionEvent ev){
-                    removeElement(element);
-//                     ((DefaultTreeModel)tree.getModel()).removeNodeFromParent(element);
-                }});
+                    removeElement(element);}});
             p.add(item);}
         p.show(this.tree,ev.getX(),ev.getY());}
         
     public void removeElement(DefaultMutableTreeNode element){
         ((DefaultTreeModel)tree.getModel()).removeNodeFromParent(element);
-        Repository.frame.mainpanel.p4.dut.clearSelection();
-    }
+        Repository.frame.mainpanel.p4.dut.clearSelection();}
         
     public void addTestBed(){    
         JTextField name = new JTextField("");
