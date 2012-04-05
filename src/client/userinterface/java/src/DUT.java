@@ -68,13 +68,14 @@ public class Dut extends JPanel {
     JButton additem;
     JButton remitem;
     int x1,y1;
-    JPanel p2,propertys,propertys2,propertys3,p3,p4;;
+    JPanel p2,propertys,propertys2,propertys3,p3,p4,p1;
+    TestBed temp0;
     Device temp;
     DeviceModule temp2; 
     DevicePort temp3; 
-    DefaultMutableTreeNode nodetemp1,nodetemp2,nodetemp3;
-    JTextArea tdescription;
-    JTextField propvalue,propvalue2,tname,tname2,tname3,tname4,propname,propvalue3,propname2,propname3,tid,tvendor,ttype,tfamily,tmodel;
+    DefaultMutableTreeNode nodetemp1,nodetemp2,nodetemp3,nodetemp0;
+    JTextArea tdescription,tdescription0;
+    JTextField propvalue,propvalue2,tname0,tname,tname2,tname3,tname4,propname,propvalue3,propname2,propname3,tid0,tid,tvendor,ttype,tfamily,tmodel;
     
     public Dut(){
         initComponents();
@@ -179,16 +180,48 @@ public class Dut extends JPanel {
                     ((DefaultTreeModel)explorer.tree.getModel()).nodeChanged(nodetemp2.getChildAt(0));}}});
         tname2.setBounds(90,5,200,20);
         p3.add(tname2);
-        JPanel fpropertys2 = new JPanel();
-        fpropertys2.setLayout(null);
-        fpropertys2.setBorder(BorderFactory.createTitledBorder("Properties"));
-        fpropertys2.setBounds(2,95,388,540);
         propertys2 = new JPanel();
         propertys2.setLayout(null);
-        JScrollPane scrollPane4 = new JScrollPane(propertys2);
-        scrollPane4.setBounds(3,17,382,310);
-        scrollPane4.setBorder(null);
-        fpropertys2.add(scrollPane4);
+        p1 = new JPanel();
+        p1.setLayout(null);
+        p1.setPreferredSize(new Dimension(400,170));       
+        JLabel id0 = new JLabel("ID: ");
+        id0.setBounds(5,5,50,20);
+        p1.add(id0);
+        JLabel name0 = new JLabel("Name: ");
+        name0.setBounds(5,30,50,20);
+        p1.add(name0);
+        tname0 = new JTextField();
+        tname0.addKeyListener(new KeyAdapter(){
+            public void keyReleased(KeyEvent ev){
+                if(temp0!=null){
+                    temp0.setName(tname0.getText());
+                    ((DefaultTreeModel)explorer.tree.getModel()).nodeChanged(nodetemp0);}}});
+        tname0.setBounds(90,30,200,20);
+        p1.add(tname0);
+        tid0 = new JTextField();
+        tid0.addKeyListener(new KeyAdapter(){
+            public void keyReleased(KeyEvent ev){
+                if(temp0!=null){
+                    temp0.setID(tid0.getText());
+                    ((DefaultMutableTreeNode)nodetemp0.getChildAt(0)).setUserObject("Id: "+tid0.getText());
+                    ((DefaultTreeModel)explorer.tree.getModel()).nodeChanged(nodetemp0.getChildAt(0));}}});
+        tid0.setBounds(90,5,200,20);
+        p1.add(tid0);
+        JLabel description0 = new JLabel("Description: ");
+        description0.setBounds(5,55,90,20);
+        p1.add(description0);
+        tdescription0 = new JTextArea();
+        tdescription0.setLineWrap(true);
+        tdescription0.setWrapStyleWord(true);
+        tdescription0.setBounds(90,55,200,50);
+        tdescription0.addKeyListener(new KeyAdapter(){
+            public void keyReleased(KeyEvent ev){
+                if(temp0!=null){
+                    temp0.setDescription(tdescription0.getText());
+                    ((DefaultMutableTreeNode)nodetemp0.getChildAt(1)).setUserObject("Description: "+tdescription0.getText());
+                    ((DefaultTreeModel)explorer.tree.getModel()).nodeChanged(nodetemp0.getChildAt(1));}}});
+        p1.add(tdescription0);
         p2 = new JPanel();
         p2.setLayout(null);
         p2.setPreferredSize(new Dimension(400,270));       
@@ -316,7 +349,7 @@ public class Dut extends JPanel {
         save.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 save();}});
-        additem = new JButton("Add device");
+        additem = new JButton("Add testbed");
         additem.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 addItem();}});
@@ -411,7 +444,7 @@ public class Dut extends JPanel {
                 Element root = document.createElement("root");
                 document.appendChild(root);
                 for(int i=0;i<((TreeNode)explorer.tree.getModel().getRoot()).getChildCount();i++){
-                    Element em = document.createElement("device");
+                    Element em = document.createElement("testbed");
                     root.appendChild(em);
                     traverseTree(((TreeNode)explorer.tree.getModel().getRoot()).getChildAt(i),em,document);}
                 File file = new File(Repository.temp+Repository.getBar()+"Twister"+Repository.getBar()+"HardwareConfig"+Repository.getBar()+name+".xml");
@@ -427,20 +460,28 @@ public class Dut extends JPanel {
             catch(Exception e) {e.printStackTrace();}}}
         
     public void addItem(){
-        if(additem.getText().equals("Add device")){
-            explorer.addDevice();}
+        if(additem.getText().equals("Add testbed")){
+            explorer.addTestBed();}
+        else if(additem.getText().equals("Add device")){
+            explorer.addDevice(nodetemp0);}
         else if(additem.getText().equals("Add module")){
             explorer.addModule(nodetemp1);}
         else if(additem.getText().equals("Add port")){
             explorer.addPort(nodetemp2);}}
         
     public void removeItem(){
-        if(remitem.getText().equals("Remove device")){
-            explorer.removeElement(nodetemp1);}
+        if(remitem.getText().equals("Remove testbed")){
+            explorer.removeElement(nodetemp0);
+            nodetemp0=null;}
+        else if(remitem.getText().equals("Remove device")){
+            explorer.removeElement(nodetemp1);
+            nodetemp1=null;}
         else if(remitem.getText().equals("Remove module")){
-            explorer.removeElement(nodetemp2);}
+            explorer.removeElement(nodetemp2);
+            nodetemp2=null;}
         else if(remitem.getText().equals("Remove port")){
-            explorer.removeElement(nodetemp3);}
+            explorer.removeElement(nodetemp3);
+            nodetemp3=null;}
         clearSelection();}
         
     public void generate(){
@@ -460,7 +501,7 @@ public class Dut extends JPanel {
                 Element root = document.createElement("Root");
                 document.appendChild(root);
                 for(int i=0;i<((TreeNode)explorer.tree.getModel().getRoot()).getChildCount();i++){
-                    Element em = document.createElement("device");
+                    Element em = document.createElement("testbed");
                     root.appendChild(em);
                     traverseTree(((TreeNode)explorer.tree.getModel().getRoot()).getChildAt(i),em,document);}
                 File file = new File(Repository.temp+Repository.getBar()+"Twister"+Repository.getBar()+"HardwareConfig"+Repository.getBar()+"hwconfig.xml");
@@ -514,109 +555,130 @@ public class Dut extends JPanel {
                 try{doc = db.parse(theone);}
                 catch(Exception e){System.out.println(theone.getCanonicalPath()+" is corrupted or incomplete");}
                 if(doc!=null){
-                    doc.getDocumentElement().normalize();                
-                    NodeList nodeLst = doc.getElementsByTagName("device");
+                    doc.getDocumentElement().normalize(); 
+                    NodeList nodeLst = doc.getElementsByTagName("testbed");
                     int childsnr = nodeLst.getLength();
                     if(childsnr>0){
                         while(((DefaultMutableTreeNode)explorer.tree.getModel().getRoot()).getChildCount()>0){
                             ((DefaultTreeModel)explorer.tree.getModel()).removeNodeFromParent((DefaultMutableTreeNode)(((DefaultMutableTreeNode)explorer.tree.getModel().getRoot()).getChildAt(0)));}
-                        for(int i = 0;i<childsnr;i++){
-                            Node node = nodeLst.item(i);
-                            Device d = new Device();
-                            try{d.setName(((Element)node).getElementsByTagName("devicename").item(0).getChildNodes().item(0).getNodeValue());}
-                            catch(Exception e){d.setName("");}
-                            DefaultMutableTreeNode child = new DefaultMutableTreeNode(d);
-                            ((DefaultMutableTreeNode)(explorer.tree.getModel().getRoot())).add(child);                                    
-                            try{d.setID(((Element)node).getElementsByTagName("deviceid").item(0).getChildNodes().item(0).getNodeValue());}
-                            catch(Exception e){d.setID("");}
-                            DefaultMutableTreeNode child3 = new DefaultMutableTreeNode("Id: "+d.id,false);
-                            child.add(child3);                                    
-                            try{d.setDescription(((Element)node).getElementsByTagName("devicedesc").item(0).getChildNodes().item(0).getNodeValue());}
-                            catch(Exception e){d.setDescription("");}
-                            DefaultMutableTreeNode child2 = new DefaultMutableTreeNode("Description: "+d.description,false);
-                            child.add(child2);
-                            try{d.setVendor(((Element)node).getElementsByTagName("devicevendor").item(0).getChildNodes().item(0).getNodeValue());}
-                            catch(Exception e){d.setVendor("");}
-                            DefaultMutableTreeNode child4 = new DefaultMutableTreeNode("Vendor: "+d.vendor,false);
-                            child.add(child4);
-                            try{d.setType(((Element)node).getElementsByTagName("devicetype").item(0).getChildNodes().item(0).getNodeValue());}
-                            catch(Exception e){d.setType("");}
-                            DefaultMutableTreeNode child5 = new DefaultMutableTreeNode("Type: "+d.type,false);
-                            child.add(child5);
-                            try{d.setFamily(((Element)node).getElementsByTagName("devicefamily").item(0).getChildNodes().item(0).getNodeValue());}
-                            catch(Exception e){d.setFamily("");}
-                            DefaultMutableTreeNode child6 = new DefaultMutableTreeNode("Family: "+d.family,false);
-                            child.add(child6);
-                            try{d.setModel(((Element)node).getElementsByTagName("devicemodel").item(0).getChildNodes().item(0).getNodeValue());}
-                            catch(Exception e){d.setModel("");}
-                            DefaultMutableTreeNode child7 = new DefaultMutableTreeNode("Model: "+d.model,false);
-                            child.add(child7);
-                            if(((Element)node).getChildNodes().getLength()>15){
-                                for(int j=15;j<((Element)node).getChildNodes().getLength();j++){
-                                    if(((Element)node).getChildNodes().item(j).getNodeName().equals("devicemodule"))break;
-                                    d.propertys.add(new String[]{((Element)node).getChildNodes().item(j).getNodeName(),((Element)node).getChildNodes().item(j).getChildNodes().item(0).getNodeValue()});
-                                    DefaultMutableTreeNode child8 = new DefaultMutableTreeNode(((Element)node).getChildNodes().item(j).getNodeName()+" - "+((Element)node).getChildNodes().item(j).getChildNodes().item(0).getNodeValue(),false);
-                                    child.add(child8);
-                                    j++;}}
-                            if(((Element)node).getElementsByTagName("devicemodule").getLength()>0){
-                                NodeList listamodule = ((Element)node).getElementsByTagName("devicemodule");
-                                for(int k=0;k<listamodule.getLength();k++){
-                                    DeviceModule dmodul = new DeviceModule("");
-                                    d.addModule(dmodul);
-                                    DefaultMutableTreeNode child8 = new DefaultMutableTreeNode(dmodul);
-                                    child.add(child8);
-                                    Node modul = listamodule.item(k);
-                                    if(((Element)modul).getElementsByTagName("moduletype").getLength()>0){
-                                            try{dmodul.setName(((Element)node).getElementsByTagName("moduletype").item(0).getChildNodes().item(0).getNodeValue());}
-                                            catch(Exception e){dmodul.setName("");}
-                                            DefaultMutableTreeNode child9 = new DefaultMutableTreeNode("Module Type: "+dmodul.name,false);
-                                            child8.add(child9);}
-                                    else{DefaultMutableTreeNode child9 = new DefaultMutableTreeNode("Module Type: ",false);// in cazul in care nu are tag modultype
-                                        child8.add(child9);}
-                                    for(int l=3;l<((Element)modul).getChildNodes().getLength();l++){
-                                        if(((Element)modul).getChildNodes().item(l).getNodeName().equals("deviceport"))break;
-                                        else{dmodul.propertys.add(new String[]{((Element)modul).getChildNodes().item(l).getNodeName(),((Element)modul).getChildNodes().item(l).getChildNodes().item(0).getNodeValue()});
-                                            DefaultMutableTreeNode child10 = new DefaultMutableTreeNode(((Element)modul).getChildNodes().item(l).getNodeName()+" - "+((Element)modul).getChildNodes().item(l).getChildNodes().item(0).getNodeValue(),false);
-                                            child8.add(child10);}
-                                        l++;}
-                                    if(((Element)modul).getElementsByTagName("deviceport").getLength()>0){
-                                        NodeList listaporturi = ((Element)modul).getElementsByTagName("deviceport");
-                                        for(int l=0;l<listaporturi.getLength();l++){
-                                            Node port = listaporturi.item(l);
-                                            DevicePort dport = null;
-                                            try{dport = new DevicePort(((Element)port).getElementsByTagName("port").item(0).getChildNodes().item(0).getNodeValue(),((Element)port).getElementsByTagName("portType").item(0).getChildNodes().item(0).getNodeValue());}
-                                            catch(Exception e){dport = new DevicePort("","");}
-                                            dmodul.addPort(dport);
-                                            DefaultMutableTreeNode child11 = new DefaultMutableTreeNode(dport,true);
-                                            child8.add(child11);                                                    
-                                            DefaultMutableTreeNode child13 = new DefaultMutableTreeNode("Port type: "+dport.portType,false);
-                                            child11.add(child13);
-                                            for(int m=5;m<((Element)port).getChildNodes().getLength();m++){
-                                                Node prop = ((Element)port).getChildNodes().item(m);
-                                                dport.propertys.add(new String[]{((Element)prop).getNodeName(),((Element)prop).getChildNodes().item(0).getNodeValue()});
-                                                DefaultMutableTreeNode child14 = new DefaultMutableTreeNode(((Element)prop).getNodeName()+" - "+((Element)prop).getChildNodes().item(0).getNodeValue(),false);
-                                                child11.add(child14);
-                                                m++;}}}}}
+                        for(int j = 0;j<childsnr;j++){                            
+                            Node tbnode = nodeLst.item(j);
+                            TestBed t = new TestBed();
+                            try{t.setName(((Element)tbnode).getElementsByTagName("testbedname").item(0).getChildNodes().item(0).getNodeValue());}
+                            catch(Exception e){t.setName("");}
+                            DefaultMutableTreeNode child0 = new DefaultMutableTreeNode(t);
+                            ((DefaultMutableTreeNode)(explorer.tree.getModel().getRoot())).add(child0); 
+                            try{t.setID(((Element)tbnode).getElementsByTagName("testbedid").item(0).getChildNodes().item(0).getNodeValue());}
+                            catch(Exception e){t.setID("");}
+                            DefaultMutableTreeNode child03 = new DefaultMutableTreeNode("Id: "+t.id,false);
+                            child0.add(child03);                                    
+                            try{t.setDescription(((Element)tbnode).getElementsByTagName("testbeddesc").item(0).getChildNodes().item(0).getNodeValue());}
+                            catch(Exception e){t.setDescription("");}
+                            DefaultMutableTreeNode child02 = new DefaultMutableTreeNode("Description: "+t.description,false);
+                            child0.add(child02);
+                            if(((Element)tbnode).getElementsByTagName("device").getLength()>0){
+                                NodeList deviceLst = ((Element)tbnode).getElementsByTagName("device");
+                                int devicenr = deviceLst.getLength();
+                                if(devicenr>0){
+                                    for(int i = 0;i<devicenr;i++){
+                                        Node node = deviceLst.item(i);
+                                        Device d = new Device();
+                                        try{d.setName(((Element)node).getElementsByTagName("devicename").item(0).getChildNodes().item(0).getNodeValue());}
+                                        catch(Exception e){d.setName("");}
+                                        DefaultMutableTreeNode child = new DefaultMutableTreeNode(d);
+                                        child0.add(child);                                    
+                                        try{d.setID(((Element)node).getElementsByTagName("deviceid").item(0).getChildNodes().item(0).getNodeValue());}
+                                        catch(Exception e){d.setID("");}
+                                        DefaultMutableTreeNode child3 = new DefaultMutableTreeNode("Id: "+d.id,false);
+                                        child.add(child3);                                    
+                                        try{d.setDescription(((Element)node).getElementsByTagName("devicedesc").item(0).getChildNodes().item(0).getNodeValue());}
+                                        catch(Exception e){d.setDescription("");}
+                                        DefaultMutableTreeNode child2 = new DefaultMutableTreeNode("Description: "+d.description,false);
+                                        child.add(child2);
+                                        try{d.setVendor(((Element)node).getElementsByTagName("devicevendor").item(0).getChildNodes().item(0).getNodeValue());}
+                                        catch(Exception e){d.setVendor("");}
+                                        DefaultMutableTreeNode child4 = new DefaultMutableTreeNode("Vendor: "+d.vendor,false);
+                                        child.add(child4);
+                                        try{d.setType(((Element)node).getElementsByTagName("devicetype").item(0).getChildNodes().item(0).getNodeValue());}
+                                        catch(Exception e){d.setType("");}
+                                        DefaultMutableTreeNode child5 = new DefaultMutableTreeNode("Type: "+d.type,false);
+                                        child.add(child5);
+                                        try{d.setFamily(((Element)node).getElementsByTagName("devicefamily").item(0).getChildNodes().item(0).getNodeValue());}
+                                        catch(Exception e){d.setFamily("");}
+                                        DefaultMutableTreeNode child6 = new DefaultMutableTreeNode("Family: "+d.family,false);
+                                        child.add(child6);
+                                        try{d.setModel(((Element)node).getElementsByTagName("devicemodel").item(0).getChildNodes().item(0).getNodeValue());}
+                                        catch(Exception e){d.setModel("");}
+                                        DefaultMutableTreeNode child7 = new DefaultMutableTreeNode("Model: "+d.model,false);
+                                        child.add(child7);
+                                        if(((Element)node).getChildNodes().getLength()>15){
+                                            for(int k=15;k<((Element)node).getChildNodes().getLength();k++){
+                                                if(((Element)node).getChildNodes().item(k).getNodeName().equals("devicemodule"))break;
+                                                d.propertys.add(new String[]{((Element)node).getChildNodes().item(k).getNodeName(),((Element)node).getChildNodes().item(k).getChildNodes().item(0).getNodeValue()});
+                                                DefaultMutableTreeNode child8 = new DefaultMutableTreeNode(((Element)node).getChildNodes().item(k).getNodeName()+" - "+((Element)node).getChildNodes().item(k).getChildNodes().item(0).getNodeValue(),false);
+                                                child.add(child8);
+                                                k++;}}
+                                        if(((Element)node).getElementsByTagName("devicemodule").getLength()>0){
+                                            NodeList listamodule = ((Element)node).getElementsByTagName("devicemodule");
+                                            for(int k=0;k<listamodule.getLength();k++){
+                                                DeviceModule dmodul = new DeviceModule("");
+                                                d.addModule(dmodul);
+                                                DefaultMutableTreeNode child8 = new DefaultMutableTreeNode(dmodul);
+                                                child.add(child8);
+                                                Node modul = listamodule.item(k);
+                                                if(((Element)modul).getElementsByTagName("moduletype").getLength()>0){
+                                                        try{dmodul.setName(((Element)node).getElementsByTagName("moduletype").item(0).getChildNodes().item(0).getNodeValue());}
+                                                        catch(Exception e){dmodul.setName("");}
+                                                        DefaultMutableTreeNode child9 = new DefaultMutableTreeNode("Module Type: "+dmodul.name,false);
+                                                        child8.add(child9);}
+                                                else{DefaultMutableTreeNode child9 = new DefaultMutableTreeNode("Module Type: ",false);// in cazul in care nu are tag modultype
+                                                    child8.add(child9);}
+                                                for(int l=3;l<((Element)modul).getChildNodes().getLength();l++){
+                                                    if(((Element)modul).getChildNodes().item(l).getNodeName().equals("deviceport"))break;
+                                                    else{dmodul.propertys.add(new String[]{((Element)modul).getChildNodes().item(l).getNodeName(),((Element)modul).getChildNodes().item(l).getChildNodes().item(0).getNodeValue()});
+                                                        DefaultMutableTreeNode child10 = new DefaultMutableTreeNode(((Element)modul).getChildNodes().item(l).getNodeName()+" - "+((Element)modul).getChildNodes().item(l).getChildNodes().item(0).getNodeValue(),false);
+                                                        child8.add(child10);}
+                                                    l++;}
+                                                if(((Element)modul).getElementsByTagName("deviceport").getLength()>0){
+                                                    NodeList listaporturi = ((Element)modul).getElementsByTagName("deviceport");
+                                                    for(int l=0;l<listaporturi.getLength();l++){
+                                                        Node port = listaporturi.item(l);
+                                                        DevicePort dport = null;
+                                                        try{dport = new DevicePort(((Element)port).getElementsByTagName("port").item(0).getChildNodes().item(0).getNodeValue(),((Element)port).getElementsByTagName("portType").item(0).getChildNodes().item(0).getNodeValue());}
+                                                        catch(Exception e){dport = new DevicePort("","");}
+                                                        dmodul.addPort(dport);
+                                                        DefaultMutableTreeNode child11 = new DefaultMutableTreeNode(dport,true);
+                                                        child8.add(child11);                                                    
+                                                        DefaultMutableTreeNode child13 = new DefaultMutableTreeNode("Port type: "+dport.portType,false);
+                                                        child11.add(child13);
+                                                        for(int m=5;m<((Element)port).getChildNodes().getLength();m++){
+                                                            Node prop = ((Element)port).getChildNodes().item(m);
+                                                            dport.propertys.add(new String[]{((Element)prop).getNodeName(),((Element)prop).getChildNodes().item(0).getNodeValue()});
+                                                            DefaultMutableTreeNode child14 = new DefaultMutableTreeNode(((Element)prop).getNodeName()+" - "+((Element)prop).getChildNodes().item(0).getNodeValue(),false);
+                                                            child11.add(child14);
+                                                            m++;}}}}}}}}
                             ((DefaultTreeModel)explorer.tree.getModel()).reload();}
                         clearSelection();}
-                else System.out.println(theone.getCanonicalPath()+" has no devices");}}}
+                    else System.out.println(theone.getCanonicalPath()+" has no devices");}}}
         catch(Exception e){e.printStackTrace();}}
         
     public void clearSelection(){
         nodetemp3 = null; 
         nodetemp2 = null; 
         nodetemp1 = null; 
+        nodetemp0 = null;
         remitem.setEnabled(false);
         additem.setEnabled(true);
-        additem.setText("Add device");
+        additem.setText("Add testbed");
         remitem.setText("Remove item");
+        SettingsPanel.remove(p1);
         SettingsPanel.remove(p2);
         SettingsPanel.remove(p3);
         SettingsPanel.remove(p4);
-        jScrollPane4.setViewportView(null);}        
+        jScrollPane4.setViewportView(null);
+        repaint();}
         
     public void traverseTree(TreeNode t,Element root,Document document){
-        System.out.println(t.toString());
         Element theone = root;
         if(((DefaultMutableTreeNode)t).getUserObject() instanceof DeviceModule){
             theone = document.createElement("devicemodule");
@@ -627,26 +689,39 @@ public class Dut extends JPanel {
             System.out.println("deviceport");
             root.appendChild(theone);}
         else if(((DefaultMutableTreeNode)t).getUserObject() instanceof Device){
-            System.out.println("device");}
+            theone = document.createElement("device");
+            System.out.println("device");
+            root.appendChild(theone);}
+        else if(((DefaultMutableTreeNode)t).getUserObject() instanceof TestBed){
+            System.out.println("testbed");}
         else{
-            if(root.getNodeName().equals("device")){
+            if(root.getNodeName().equals("testbed")){
                 if(((String)((DefaultMutableTreeNode)t).getUserObject()).indexOf("Id: ")!=-1){
-                    Element em = addElement(document, t, root,"deviceid","Id: ", 1);
-                    Element em2 = document.createElement("devicename");                    
-                    try{em2.appendChild(document.createTextNode(((DefaultMutableTreeNode)((DefaultMutableTreeNode)t).getParent()).getUserObject().toString().split("Device: ")[1]));}
+                    Element em = addElement(document, t, root,"testbedid","Id: ", 1);
+                    Element em2 = document.createElement("testbedname");                    
+                    try{em2.appendChild(document.createTextNode(((DefaultMutableTreeNode)((DefaultMutableTreeNode)t).getParent()).getUserObject().toString().split("TestBed: ")[1]));}
                     catch(Exception e){em.appendChild(document.createTextNode(""));}
                     root.appendChild(em2);}
                 else if(((String)((DefaultMutableTreeNode)t).getUserObject()).indexOf("Description: ")!=-1){
-                    addElement(document, t, root,"devicedesc","Description: ", 1);}
-                else if(((String)((DefaultMutableTreeNode)t).getUserObject()).indexOf("Vendor: ")!=-1){
-                    addElement(document, t, root,"devicevendor","Vendor: ", 1);}
-                else if(((String)((DefaultMutableTreeNode)t).getUserObject()).indexOf("Type: ")!=-1){
-                    addElement(document, t, root,"devicetype","Type: ", 1);}
-                else if(((String)((DefaultMutableTreeNode)t).getUserObject()).indexOf("Family: ")!=-1){
-                    addElement(document, t, root,"devicefamily","Family: ", 1);}
-                else if(((String)((DefaultMutableTreeNode)t).getUserObject()).indexOf("Model: ")!=-1){
-                    addElement(document, t, root,"devicemodel","Model: ", 1);}
-                else{getProp(t,document,root);}}
+                    addElement(document, t, root,"testbeddesc","Description: ", 1);}}
+            if(root.getNodeName().equals("device")){
+                    if(((String)((DefaultMutableTreeNode)t).getUserObject()).indexOf("Id: ")!=-1){
+                        Element em = addElement(document, t, root,"deviceid","Id: ", 1);
+                        Element em2 = document.createElement("devicename");                    
+                        try{em2.appendChild(document.createTextNode(((DefaultMutableTreeNode)((DefaultMutableTreeNode)t).getParent()).getUserObject().toString().split("Device: ")[1]));}
+                        catch(Exception e){em.appendChild(document.createTextNode(""));}
+                        root.appendChild(em2);}
+                    else if(((String)((DefaultMutableTreeNode)t).getUserObject()).indexOf("Description: ")!=-1){
+                        addElement(document, t, root,"devicedesc","Description: ", 1);}
+                    else if(((String)((DefaultMutableTreeNode)t).getUserObject()).indexOf("Vendor: ")!=-1){
+                        addElement(document, t, root,"devicevendor","Vendor: ", 1);}
+                    else if(((String)((DefaultMutableTreeNode)t).getUserObject()).indexOf("Type: ")!=-1){
+                        addElement(document, t, root,"devicetype","Type: ", 1);}
+                    else if(((String)((DefaultMutableTreeNode)t).getUserObject()).indexOf("Family: ")!=-1){
+                        addElement(document, t, root,"devicefamily","Family: ", 1);}
+                    else if(((String)((DefaultMutableTreeNode)t).getUserObject()).indexOf("Model: ")!=-1){
+                        addElement(document, t, root,"devicemodel","Model: ", 1);}
+                    else{getProp(t,document,root);}}
             if(root.getNodeName().equals("devicemodule")){
                 if(((String)((DefaultMutableTreeNode)t).getUserObject()).indexOf("Module Type: ")!=-1){
                     Element em2 = document.createElement("moduletype");                    
