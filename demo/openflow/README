@@ -1,9 +1,7 @@
+
 How to run floodlight restapi tests
 1. Upload twister_topo.py and run_mn script in openflow virtual machine
-2. Change remote ip in run_mn 
-3. Start flootlight controller, the remote ip 
+2. Change remote ip in run_mn
+3. Start flootlight controller, the remote ip
    in run_mn should be the same as fifloodlight controller host ip
 4. To run python tests.py
-
-
-
