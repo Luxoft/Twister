@@ -209,15 +209,15 @@ def of_floodlight_8():
     log_debug("Getting flows from controller")
     of_floodlight_4() 
     
-restapi= RestApiTest('11.126.32.12',8080)
-flowpusher = StaticFlowPusher('11.126.32.12')
+restapi= RestApiTest('10.9.6.220',8080)
+flowpusher = StaticFlowPusher('10.9.6.220')
           
 of_floodlight_1()
 #of_floodlight_2()
 #of_floodlight_3()
 #of_floodlight_4()
 of_floodlight_5()
-#of_floodlight_6()
+of_floodlight_6()
 #of_floodlight_7()
 #of_floodlight_8()
 

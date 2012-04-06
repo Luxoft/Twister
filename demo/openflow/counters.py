@@ -70,7 +70,7 @@ def of_floodlight_3():
             """                
     return True;
 
-restapi= RestApiTest('11.126.32.12',8080)
+restapi= RestApiTest('10.9.6.220',8080)
 while True:
     of_floodlight_3()
     time.sleep(1)
