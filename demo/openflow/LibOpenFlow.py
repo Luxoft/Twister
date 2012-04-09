@@ -5,13 +5,27 @@ import httplib
 
 #
 
+switch_1 = "00:0a:08:17:f4:32:a5:00"
+switch_2 = "00:0a:08:17:f4:5c:ac:00"
+switch_3 = "00:00:00:00:00:00:00:05"
+
+single_switch_flow = [(switch_2,1,2),(switch_2,2,1)]
+initial_flow_path  = [(switch_1,1,2),(switch_1,2,1), (switch_2,1,2),(switch_2,2,1)]
+changed_flow_path  = [(switch_1,1,3),(switch_1,3,1), (switch_3,1,2),(switch_3,2,1), (switch_2,1,3),(switch_2,3,1)]
+
+#
+
 def log_debug(msg):
     print(msg)
     time.sleep(0.5)
 
 #
 
-class RestApiTest():
+class FloodLiteControl():
+
+    '''
+    This is a helper for connecting the the FloodLite controller.
+    '''
 
     def __init__(self, server, port):
         self.server = server
@@ -129,5 +143,37 @@ class StaticFlowPusher(object):
         ret = (response.status, response.reason, response.read())
         conn.close()
         return ret
+
+#
+
+def show_switches():
+
+    restapi= FloodLiteControl('10.9.6.220', 8080)
+    fl_switches = restapi.get_switches()
+    log_debug('\n~~ Getting flows from floodlight controller ~~\n')
+
+    for sw in fl_switches:
+        switch_dpid = sw['dpid']
+        log_debug('Swich DPID: %s' % switch_dpid)
+        fl_dict = restapi.get_switch_statistics(switch_dpid, 'flow')
+
+        if not fl_dict[switch_dpid]:
+            print '\nMatch:  None!\n'
+            return False
+
+        if fl_dict:
+            for fl in fl_dict[switch_dpid]:
+                print "\nMatch:"
+                for key,value in fl['match'].items():
+                    print "  %s : %s" % (key.ljust(24), value)
+
+                for act in fl['actions']:
+                    print "\nAction:"
+                    for key,value in act.items():
+                        print "  %s : %s" % (key.ljust(24), value)
+        else:
+            return False
+
+    return True
 
 #
