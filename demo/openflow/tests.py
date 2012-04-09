@@ -1,9 +1,8 @@
 
 import time
 import json
-import pprint
 
-from oflib import *
+from LibOpenFlow import *
 
 switch_3 = "00:0a:08:17:f4:32:a5:00"
 switch_4 = "00:0a:08:17:f4:5c:ac:00"
@@ -109,7 +108,7 @@ def of_floodlight_4():
             switch_dpid = sw['dpid']
             log_debug("\nSwich DPID: %s" % switch_dpid)
             fl_dict = restapi.get_switch_statistics(switch_dpid, statsType)
-            print 'debug:', fl_dict
+            #print 'debug:', fl_dict
 
             if fl_dict:
                 flows = fl_dict[switch_dpid]
@@ -130,10 +129,10 @@ def of_floodlight_4():
 #
 
 def of_floodlight_5():
+
     log_debug("\n=== Starting openflow controller test 5 ===")
     log_debug("Getting topology links from floodlight controler...\n")
     topo_links = restapi.get_topology_links()
-    #print 'Topo links:', topo_links, '\n'
 
     for tl in topo_links:
         log_debug("src-swich: %s -> dst-switch: %s" %   (tl['src-switch'], tl['dst-switch']))
@@ -141,10 +140,12 @@ def of_floodlight_5():
 
 #
 
-# Adding flow path to controler, wait 10 secons
-# then remove flow path, the flow path should be added on both swiches
-# Assume that the topology is known
 def of_floodlight_6():
+    '''
+    Add flow path to controler, then remove flow path.
+    The flow path will be added on both swiches.
+    Assume that the topology is known.
+    '''
 
     log_debug("\n=== Starting openflow controller test 6 ===")
     log_debug("Adding initial flows path")
@@ -192,6 +193,10 @@ def of_floodlight_6():
 #
 
 def of_floodlight_7():
+    '''
+    Change flow path.
+    '''
+
     log_debug("\n=== Starting openflow controller test 7 ===")
     log_debug("Change flows path")
     fl_switches = restapi.get_switches()
@@ -235,8 +240,11 @@ def of_floodlight_7():
 
 #
 
-# Add single flow to switch
 def of_floodlight_8():
+    '''
+    Add single flow to switch.
+    '''
+
     log_debug("Starting openflow controller test 8")
     log_debug("Add flows to single switch")
     fl_switches = restapi.get_switches()
