@@ -41,6 +41,7 @@ public class applet extends Applet{
             Repository.passicon = loadIcon("pass.png");
             Repository.stopicon = loadIcon("stop.png");
             Repository.playicon = loadIcon("play.png");
+            Repository.addsuitaicon = loadIcon("addsuita.png");
             Repository.pauseicon = loadIcon("pause.png");
             Repository.porticon = loadIcon("port.png");
             Repository.testbedicon = loadIcon("testbed.png");}
@@ -86,4 +87,4 @@ public class applet extends Applet{
         System.exit(0);}
         
     public void start(){
-        System.out.println("applt starting");}}
+        System.out.println("applet starting");}}

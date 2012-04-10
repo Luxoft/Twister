@@ -110,7 +110,9 @@ public class Item implements Cloneable{
         return EpID;}
         
     public void setEpId(String EpID){
-        this.EpID = EpID;}
+        this.EpID = EpID;
+        for(Item item:subitems){
+            if(item.getType()==2)item.setEpId(EpID);}}
     
     public void setCheck(boolean check){
         this.check = check;

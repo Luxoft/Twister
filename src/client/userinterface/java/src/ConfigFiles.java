@@ -271,7 +271,7 @@ public class ConfigFiles extends JPanel{
                     public void actionPerformed(ActionEvent ev){
                         if(fileChooser==null)initializeFileBrowser();
                         try{if(fileChooser.showOpenDialog(Repository.frame)==VFSJFileChooser.RETURN_TYPE.CANCEL){
-                                 FileObject aFileObject = fileChooser.getSelectedFile();
+                                 FileObject aFileObject = fileChooser.getCurrentDirectory();
                                  if(aFileObject!=null)textfield.setText(aFileObject.toString().substring(aFileObject.toString().indexOf("@")).substring(aFileObject.toString().substring(aFileObject.toString().indexOf("@")).indexOf("/")));}
                                  fileChooser=null;}
                          catch(Exception e){
@@ -342,7 +342,7 @@ public class ConfigFiles extends JPanel{
         
     public static void addTag(String tagname, String tagcontent ,Element root,boolean blank,Document document){
         Element rootElement = document.createElement(tagname);
-        root.appendChild(rootElement);  
+        root.appendChild(rootElement);
         String temp;
         if(blank) temp ="";
         else temp = tagcontent;            

@@ -153,14 +153,12 @@ public class Emails extends JPanel{
         save.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 if(tpass.getPassword().length == 0){JOptionPane.showMessageDialog(Emails.this, "Warning, password not set.", "Warning", JOptionPane.WARNING_MESSAGE);}
-                try{
-                    File theone = new File(Repository.temp+Repository.getBar()+"Twister"+Repository.getBar()+"Config"+Repository.getBar()+new File(Repository.REMOTEEMAILCONFIGFILE).getName());
+                try{File theone = new File(Repository.temp+Repository.getBar()+"Twister"+Repository.getBar()+"Config"+Repository.getBar()+new File(Repository.REMOTEEMAILCONFIGFILE).getName());
                     DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
                     DocumentBuilder db = dbf.newDocumentBuilder();                                        
                     Document doc = db.parse(theone);
                     doc.getDocumentElement().normalize();
-                    try{
-                        NodeList nodeLst = doc.getElementsByTagName("Enabled");
+                    try{NodeList nodeLst = doc.getElementsByTagName("Enabled");
                         if(nodeLst.item(0).getChildNodes().getLength()>0)nodeLst.item(0).getChildNodes().item(0).setNodeValue(check.isSelected()+"");
                         else nodeLst.item(0).appendChild(doc.createTextNode(check.isSelected()+""));
                         nodeLst = doc.getElementsByTagName("SMTPPath");
