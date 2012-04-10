@@ -45,12 +45,12 @@ def openflow_test():
 
     show_switches()
 
-    log_debug ('\nSleep %i seconds before removing the flows...\n' % tm_wait)
+    log_debug ('\nSleep a little, before removing the flows...\n')
     time.sleep(tm_wait)
     log_debug('Removing datapath flows...\n')
 
     for fl in fl_list:
-        flowpusher.remove(None, fl)
+        flowpusher.remove(fl)
         time.sleep(1)
         log_debug('Flow removed:\n %s' % str(fl))
 

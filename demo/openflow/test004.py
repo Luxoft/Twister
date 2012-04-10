@@ -10,7 +10,7 @@ def openflow_test_4():
     '''
 
     log_debug('\n=== Starting openflow controller test 4 ===')
-    restapi= FloodLiteControl('10.9.6.220', 8080)
+    restapi = FloodLiteControl('10.9.6.220', 8080)
 
     log_debug('Getting topology links from floodlight controler...\n')
     topo_links = restapi.get_topology_links()

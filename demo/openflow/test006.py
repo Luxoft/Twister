@@ -13,7 +13,7 @@ def openflow_test():
     </description>
     '''
 
-    log_debug('\n=== Starting openflow controller test 6 ===')
+    log_debug('\n=== Starting openflow controller test 6 ===\n')
     log_debug('Descr: Add single flow to switch, then remove it.')
 
     restapi = FloodLiteControl('10.9.6.220', 8080)
@@ -24,7 +24,6 @@ def openflow_test():
        print 'DPID: %s' % s['dpid']
 
     fl_nr = 0
-    tm_wait = 10
     fl_list = []
 
     for ifp in single_switch_flow:
@@ -45,12 +44,12 @@ def openflow_test():
 
     show_switches()
 
-    log_debug ('\nSleep %i seconds before removing the flows...\n' % tm_wait)
-    time.sleep(tm_wait)
+    log_debug ('\nSleep a little, before removing the flows...\n')
+    time.sleep(10)
     log_debug('Removing datapath flows...\n')
 
     for fl in fl_list:
-        flowpusher.remove(None, fl)
+        flowpusher.remove(fl)
         time.sleep(1)
         log_debug('Flow removed:\n %s' % str(fl))
 
