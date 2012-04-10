@@ -17,18 +17,20 @@ def openflow_test_5():
     flowpusher = StaticFlowPusher('10.9.6.220')
     switches = restapi.get_switches()
 
-    DPID = switches[0]['dpid']
-    PORT = '18'
+    log_debug('Found %i devices.' % len(switches))
 
-    log_debug('Found %i devices. Will disable port %s for switch `%s`.' %
-        ( len(switches), PORT, DPID))
+    for s in switches:
+        DPID = s['dpid']
+        PORT = '18'
 
-    # Specifying no actions will cause the packets to be dropped
-    fl_dict = {'switch':DPID, 'name':'flow-mod-1', 'cookie':'0', 'priority':'32768',
-            'ingress-port':PORT, 'active':'true', 'actions':''}
+        log_debug('Will disable port %s for switch `%s`.' % (PORT, DPID))
 
-    flowpusher.set(fl_dict)
-    log_debug('Port `%s` is now disabled.' % PORT)
+        # Specifying no actions will cause the packets to be dropped
+        fl_dict = {'switch':DPID, 'name':'flow-mod-1', 'cookie':'0', 'priority':'32768',
+                'ingress-port':PORT, 'active':'true', 'actions':''}
+
+        flowpusher.set(fl_dict)
+        log_debug('Port `%s` is now disabled.' % PORT)
 
     show_switches()
 
@@ -36,9 +38,7 @@ def openflow_test_5():
     time.sleep(10)
 
     flowpusher.remove(fl_dict)
-
     show_switches()
-
     return 'PASS'
 
 #

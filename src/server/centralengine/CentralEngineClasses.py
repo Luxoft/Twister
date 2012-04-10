@@ -371,6 +371,18 @@ class CentralEngine:
         return 'CE reply: ' + msg
 
 
+    def ofDataPath(self):
+        '''
+        THIS FUNCTION WILL BE REMOVED AFTER THE InterOp DEMO.
+        This shows the datapath : 1 = path 1 ; 2 = path 2.
+        '''
+        from lib.LibOpenFlow import FloodLiteControl
+        restapi = FloodLiteControl('10.9.6.220', 8080)
+        switches = restapi.get_switches()
+        logDebug('FloodLite: Found %i switches.' % len(switches))
+        return '1'
+
+
     def getAllVars():
         '''
         Returns available variables from CE, used in Java interface.

@@ -65,7 +65,7 @@ def of_floodlight_3():
 
 #
 
-restapi= RestApiTest('10.9.6.220',8080)
+restapi= FloodLiteControl('10.9.6.220',8080)
 
 #
 
