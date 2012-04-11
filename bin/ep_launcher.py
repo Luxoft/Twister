@@ -18,7 +18,7 @@ for val in eps:
 
     if val['ENABLED']:
 
-        str_exec = 'nohup python -u {twister_path}/client/executionprocess/ExecutionProcess.py {ep} '
+        str_exec = 'nohup python -u {twister_path}/client/executionprocess/ExecutionProcess.py {ep} '\
             '"{ip}:{port}" > "{twister_path}/.twister_cache/{ep}_LIVE.log" &'.format(
             twister_path = os.getenv('TWISTER_PATH'),
             ep = val['ID'],

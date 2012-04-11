@@ -1,4 +1,8 @@
 
+import sys
+
+sys.path.append(os.getenv('TWISTER_PATH') + '/.twister_cache/')
+
 from LibOpenFlow import *
 
 #

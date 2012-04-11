@@ -1,5 +1,7 @@
 
-import time
+import sys, time
+
+sys.path.append(os.getenv('TWISTER_PATH') + '/.twister_cache/')
 
 from LibOpenFlow import *
 
