@@ -1,7 +1,7 @@
 
-import sys
+import os, sys
 
-sys.path.append(os.getenv('TWISTER_PATH') + '/.twister_cache/')
+sys.path.append(os.getenv('TWISTER_PATH') + '/.twister_cache/ce_libs/')
 
 from LibOpenFlow import *
 
