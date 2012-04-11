@@ -1,7 +1,8 @@
 
 import os, sys, time
 
-sys.path.append(os.getenv('TWISTER_PATH') + '/.twister_cache/ce_libs/')
+if os.getenv('TWISTER_PATH'):
+    sys.path.append(os.getenv('TWISTER_PATH') + '/.twister_cache/ce_libs/')
 
 #
 
@@ -21,14 +22,14 @@ def openflow_test_5():
 
     log_debug('Found %i devices.' % len(switches))
 
-    PORT = '34'
+    PORT = '64'
 
     for s in switches:
         DPID = s['dpid']
         log_debug('Will disable port %s for switch `%s`.' % (PORT, DPID))
 
         # Specifying no actions will cause the packets to be dropped
-        fl_dict = {'switch':DPID,'ingress-port':PORT,'name':'disable-34','cookie':'0','priority':'32768','actions':''}
+        fl_dict = {'switch':DPID,'ingress-port':PORT,'name':'disable-64','cookie':'0','priority':'32768','actions':''}
 
         flowpusher.set(fl_dict)
         log_debug('Port `%s` is now disabled.' % PORT)
@@ -40,7 +41,7 @@ def openflow_test_5():
 
     for s in switches:
         DPID = s['dpid']
-        fl_dict = {'switch':DPID,'ingress-port':PORT,'name':'disable-34','cookie':'0','priority':'32768','actions':''}
+        fl_dict = {'switch':DPID,'ingress-port':PORT,'name':'disable-64','cookie':'0','priority':'32768','actions':''}
 
         flowpusher.remove(fl_dict)
         log_debug('Port `%s` for switch `%s` is now enabled.' % (PORT, DPID))

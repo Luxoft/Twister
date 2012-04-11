@@ -1,7 +1,8 @@
 
 import os, sys, time
 
-sys.path.append(os.getenv('TWISTER_PATH') + '/.twister_cache/ce_libs/')
+if os.getenv('TWISTER_PATH'):
+    sys.path.append(os.getenv('TWISTER_PATH') + '/.twister_cache/ce_libs/')
 
 #
 
@@ -13,7 +14,7 @@ def openflow_test():
     </description>
     '''
 
-    from LibOpenFlow import log_debug, show_switches, FloodLiteControl, StaticFlowPusher
+    from LibOpenFlow import log_debug, show_switches, FloodLiteControl, StaticFlowPusher, initial_flow_path
 
     log_debug('\n=== Starting openflow controller test 7 ===')
     log_debug('Descr: Add short path to floodlight controller.')
@@ -34,12 +35,11 @@ def openflow_test():
 
     for ifp in initial_flow_path:
         fl_nr += 1
-        fl_name='flow-mod-%i' % fl_nr
         if ifp[2]:
-            fl_dict={'switch':ifp[0], 'name':fl_name, 'cookie':'0', 'priority':'32768',
+            fl_dict={'switch':ifp[0], 'name':'flow-mod-%i' % fl_nr, 'cookie':'0', 'priority':'32768',
                 'ingress-port':str(ifp[1]), 'active':'true', 'actions':'output=%i' % ifp[2]}
         else:
-            fl_dict={'switch':ifp[0], 'name':fl_name, 'cookie':'0', 'priority':'32768',
+            fl_dict={'switch':ifp[0], 'name':'disable-%s' % str(ifp[1]), 'cookie':'0', 'priority':'32768',
                 'ingress-port':str(ifp[1]), 'active':'true', 'actions':''}
         fl_list.append(fl_dict)
 
