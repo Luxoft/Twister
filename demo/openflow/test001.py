@@ -13,20 +13,20 @@ def openflow_test_1():
 
     restapi= FloodLiteControl('10.9.6.220', 8080)
     switches = restapi.get_switches_info()
+    result = 'PASS'
 
     log_debug('Found %i devices.' % len(switches))
 
     if len(switches) != 2:
-        print('Error! Must have 2 switches! Exiting!')
-        return 'FAIL'
+        print('Error! Must have 2 switches!')
+        result = 'FAIL'
 
     for sid in switches:
         print('\n~~ Switch ID: {0} ~~'.format(sid))
         for key, value in switches[sid][0].items():
             print key.ljust(18), ':', value
 
-    print
-    return 'PASS'
+    return result
 
 #
 

@@ -5,13 +5,12 @@ import httplib
 
 #
 
-switch_1 = "00:0a:08:17:f4:32:a5:00"
-switch_2 = "00:0a:08:17:f4:5c:ac:00"
+switch_1 = "00:0a:08:17:f4:5c:ac:00" # Serial 00DR, IP 10.9.6.151
+switch_2 = "00:0a:08:17:f4:32:a5:00" # Serial 003B, IP 10.9.6.150
 switch_3 = "00:00:00:00:00:00:00:05"
 
-single_switch_flow = [(switch_2,1,2),(switch_2,2,1)]
-initial_flow_path  = [(switch_1,1,2),(switch_1,2,1), (switch_2,1,2),(switch_2,2,1)]
-changed_flow_path  = [(switch_1,1,3),(switch_1,3,1), (switch_3,1,2),(switch_3,2,1), (switch_2,1,3),(switch_2,3,1)]
+initial_flow_path  = [(switch_1,18,8),(switch_1,8,18),(switch_1,34,0), (switch_2,28,18),(switch_2,18,28),(switch_2,34,0)]
+changed_flow_path  = [(switch_1,18,34),(switch_1,34,18),(switch_1,8,0), (switch_2,34,18),(switch_2,18,34),(switch_2,28,0)]
 
 #
 
@@ -150,30 +149,39 @@ def show_switches():
 
     restapi= FloodLiteControl('10.9.6.220', 8080)
     fl_switches = restapi.get_switches()
-    log_debug('\n~~ Getting flows from floodlight controller ~~\n')
+    log_debug('\n~~ Getting flows from floodlight controller ~~')
 
     for sw in fl_switches:
         switch_dpid = sw['dpid']
-        log_debug('Swich DPID: %s' % switch_dpid)
+        log_debug('\n< Swich DPID: %s >' % switch_dpid)
         fl_dict = restapi.get_switch_statistics(switch_dpid, 'flow')
 
         if not fl_dict[switch_dpid]:
             print '\nMatch:  None!\n'
-            return False
+            continue
 
         if fl_dict:
             for fl in fl_dict[switch_dpid]:
                 print "\nMatch:"
                 for key,value in fl['match'].items():
+                    if key=='dataLayerVirtualLanPriorityCodePoint': continue
                     print "  %s : %s" % (key.ljust(24), value)
+
+                if not fl['actions']:
+                    print "\nAction:\n  DROP"
 
                 for act in fl['actions']:
                     print "\nAction:"
                     for key,value in act.items():
+                        if key=='length': continue
+                        if key=='lengthU': continue
+                        if key=='maxLength': continue
                         print "  %s : %s" % (key.ljust(24), value)
         else:
+            print
             return False
 
+    print
     return True
 
 #

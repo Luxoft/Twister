@@ -9,12 +9,12 @@ def openflow_test():
     '''
     <title>OpenFlow: 007</title>
     <description>Testing Flow Pusher.
-    Add initial flow path to controler (for 2 switches), then remove it.
+    Add short path to floodlight controller.
     </description>
     '''
 
     log_debug('\n=== Starting openflow controller test 7 ===')
-    log_debug('Descr: Add initial flow path to controler (for 2 switches), then remove it.')
+    log_debug('Descr: Add short path to floodlight controller.')
 
     restapi = FloodLiteControl('10.9.6.220', 8080)
     flowpusher = StaticFlowPusher('10.9.6.220')
@@ -23,6 +23,9 @@ def openflow_test():
     for s in fl_switches:
        print 'DPID: %s' % s['dpid']
 
+    # ----------------------------------------------------------------------------------------------
+    # Add settings for SHORT DATAPATH
+    # ----------------------------------------------------------------------------------------------
     fl_nr = 0
     tm_wait = 30
     fl_list = []
@@ -30,13 +33,15 @@ def openflow_test():
     for ifp in initial_flow_path:
         fl_nr += 1
         fl_name='flow-mod-%i' % fl_nr
-        fl_dict={'switch':ifp[0], 'name':fl_name, 'cookie':'0', 'priority':'32768',
-            'ingress-port':str(ifp[1]), 'active':'true', 'actions':'output=%i' % ifp[2]}
+        if ifp[2]:
+            fl_dict={'switch':ifp[0], 'name':fl_name, 'cookie':'0', 'priority':'32768',
+                'ingress-port':str(ifp[1]), 'active':'true', 'actions':'output=%i' % ifp[2]}
+        else:
+            fl_dict={'switch':ifp[0], 'name':fl_name, 'cookie':'0', 'priority':'32768',
+                'ingress-port':str(ifp[1]), 'active':'true', 'actions':''}
         fl_list.append(fl_dict)
 
-    log_debug('Done.\n')
-    show_switches()
-    log_debug('Push new flow to controler...')
+    log_debug('\nAdding short datapath settings...\n')
 
     for fl in fl_list:
         flowpusher.set(fl)
@@ -45,16 +50,9 @@ def openflow_test():
 
     show_switches()
 
-    log_debug ('\nSleep a little, before removing the flows...\n')
-    time.sleep(tm_wait)
-    log_debug('Removing datapath flows...\n')
+    print 'Waiting a little before moving to the next test...\n'
+    time.sleep(60)
 
-    for fl in fl_list:
-        flowpusher.remove(fl)
-        time.sleep(1)
-        log_debug('Flow removed:\n %s' % str(fl))
-
-    show_switches()
     return 'PASS'
 
 #
