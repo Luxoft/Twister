@@ -3,8 +3,6 @@ import os, sys
 
 sys.path.append(os.getenv('TWISTER_PATH') + '/.twister_cache/ce_libs/')
 
-from LibOpenFlow import *
-
 #
 
 def openflow_test_4():
@@ -12,6 +10,8 @@ def openflow_test_4():
     <title>OpenFlow: 004</title>
     <description>This test shows topology lings for devices registered in the FloodLite controller.</description>
     '''
+
+    from LibOpenFlow import log_debug, show_switches, FloodLiteControl, StaticFlowPusher
 
     log_debug('\n=== Starting openflow controller test 4 ===\n')
     restapi = FloodLiteControl('10.9.6.220', 8080)

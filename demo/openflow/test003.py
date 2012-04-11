@@ -3,8 +3,6 @@ import os, sys
 
 sys.path.append(os.getenv('TWISTER_PATH') + '/.twister_cache/ce_libs/')
 
-from LibOpenFlow import *
-
 #
 
 def openflow_test_3():
@@ -15,6 +13,8 @@ def openflow_test_3():
     </description>
     '''
 
+    from LibOpenFlow import log_debug, show_switches, FloodLiteControl, StaticFlowPusher
+
     log_debug('\n=== Starting openflow controller test 3 ===\n')
 
     restapi= FloodLiteControl('10.9.6.220', 8080)
@@ -23,7 +23,7 @@ def openflow_test_3():
 
     for sw in fl_switches:
         switch_dpid = sw['dpid']
-        log_debug("\nSwich DPID: %s" % switch_dpid)
+        log_debug('\n< Swich DPID : %s >\n' % switch_dpid)
         of_dict = restapi.get_switch_statistics(switch_dpid, 'port')
         #print 'debug:', of_dict
 

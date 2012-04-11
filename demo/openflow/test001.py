@@ -3,8 +3,6 @@ import os, sys
 
 sys.path.append(os.getenv('TWISTER_PATH') + '/.twister_cache/ce_libs/')
 
-from LibOpenFlow import *
-
 #
 
 def openflow_test_1():
@@ -12,6 +10,8 @@ def openflow_test_1():
     <title>OpenFlow: 001</title>
     <description>This test shows all the devices registered in the FloodLite controller.</description>
     '''
+
+    from LibOpenFlow import log_debug, show_switches, FloodLiteControl, StaticFlowPusher
 
     log_debug('\n=== Starting openflow controller test 1 ===\n')
 

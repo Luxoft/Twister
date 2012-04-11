@@ -3,8 +3,6 @@ import os, sys, time
 
 sys.path.append(os.getenv('TWISTER_PATH') + '/.twister_cache/ce_libs/')
 
-from LibOpenFlow import *
-
 #
 
 def openflow_test_5():
@@ -13,6 +11,8 @@ def openflow_test_5():
     <description>Testing Flow Pusher.
     Disable one port.</description>
     '''
+
+    from LibOpenFlow import log_debug, show_switches, FloodLiteControl, StaticFlowPusher
 
     log_debug('\n=== Starting openflow controller test 5 ===\n')
     restapi = FloodLiteControl('10.9.6.220', 8080)

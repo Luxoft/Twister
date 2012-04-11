@@ -3,8 +3,6 @@ import os, sys, time
 
 sys.path.append(os.getenv('TWISTER_PATH') + '/.twister_cache/ce_libs/')
 
-from LibOpenFlow import *
-
 #
 
 def openflow_test():
@@ -14,6 +12,8 @@ def openflow_test():
     Remove changed path from floodlight controler.
     </description>
     '''
+
+    from LibOpenFlow import log_debug, show_switches, FloodLiteControl, StaticFlowPusher
 
     log_debug('\n=== Starting openflow controller test 6 ===')
     log_debug('Descr: Remove changed path from floodlight controler.')
