@@ -53,7 +53,7 @@ def openflow_test():
     show_switches()
 
     print 'Waiting a little before moving to the next test...\n'
-    time.sleep(60)
+    time.sleep(100)
 
     return 'PASS'
 

@@ -1,53 +1,53 @@
 <?xml version="1.0"?>
 <root>
 <db_config>
-	<server>tsc-server</server>
-	<database>contivity</database>
+	<server>11.126.32.9</server>
+	<database>interop</database>
 	<user>tsc</user>
 	<password>tsc</password>
 </db_config>
 
 <twister_user_defined>
 <field_section>
-	<field ID="release"  FieldName="" FromTable="" SQLQuery="" Label="Release:" Type="UserText" GUIDefined="true" Mandatory="true" />
-	<field ID="build" FieldName="" FromTable="" SQLQuery="" Label="Build:" Type="UserText" GUIDefined="true" Mandatory="true" />
+	<field ID="Run_Number"  FieldName="" FromTable="" SQLQuery="" Label="Run Number:" Type="UserText" GUIDefined="true" Mandatory="true" />
 </field_section>
 
 <insert_section>
-	<sql_statement>INSERT INTO gg_regression (suite_name, test_name, status, date, build, run_no, logfilename)
-		VALUES ('{twister_suite_name}','{twister_tc_name}','{twister_tc_status}','{twister_tc_date_finished}','{release}.{build}',1,'log')</sql_statement>
+	<sql_statement>INSERT INTO Results ( run_nr, workstation, suite, test_name, datetime_started, datetime_finished, status )
+		VALUES ({Run_Number},'{twister_ep_name}','{twister_suite_name}','{twister_tc_name}',
+		'{twister_tc_date_started}','{twister_tc_date_finished}','{twister_tc_status}')</sql_statement>
 </insert_section>
 
 <reports_section>
 	<field ID="Other" Type="UserText" Label="Other filters" SQLQuery="" />
-	<field ID="Date" Type="UserSelect" Label="Select date" SQLQuery="SELECT DISTINCT date FROM gg_regression ORDER BY date" />
-	<field ID="DateStart" Label="Select date Start" Type="UserSelect" SQLQuery="SELECT DISTINCT date FROM gg_regression ORDER BY date" />
-	<field ID="zDateEnd" Label="Select date End" Type="UserSelect" SQLQuery="SELECT DISTINCT date FROM gg_regression ORDER BY date" />
-	<field ID="TestStatus" Label="Select test status" Type="UserSelect" SQLQuery="SELECT DISTINCT status FROM gg_regression ORDER BY status" />
-	<field ID="Release" Label="Select release" Type="UserSelect" SQLQuery="SELECT DISTINCT SUBSTRING(build, 1, 6) AS X FROM gg_regression ORDER BY X" />
-	<field ID="Build" Label="Select build" Type="UserSelect" SQLQuery="SELECT DISTINCT build FROM `gg_regression` ORDER BY build" />
-	<field ID="Suite" Label="Select suite" Type="UserSelect" SQLQuery="SELECT DISTINCT suite_name FROM `gg_regression` ORDER BY suite_name" />
+	<field ID="Date" Type="UserSelect" Label="Select date" SQLQuery="SELECT DISTINCT date FROM Results ORDER BY date" />
+	<field ID="DateStart" Label="Select date Start" Type="UserSelect" SQLQuery="SELECT DISTINCT date FROM Results ORDER BY date" />
+	<field ID="zDateEnd" Label="Select date End" Type="UserSelect" SQLQuery="SELECT DISTINCT date FROM Results ORDER BY date" />
+	<field ID="TestStatus" Label="Select test status" Type="UserSelect" SQLQuery="SELECT DISTINCT status FROM Results ORDER BY status" />
+	<field ID="Release" Label="Select release" Type="UserSelect" SQLQuery="SELECT DISTINCT SUBSTRING(build, 1, 6) AS X FROM Results ORDER BY X" />
+	<field ID="Build" Label="Select build" Type="UserSelect" SQLQuery="SELECT DISTINCT build FROM `Results` ORDER BY build" />
+	<field ID="Suite" Label="Select suite" Type="UserSelect" SQLQuery="SELECT DISTINCT suite_name FROM `Results` ORDER BY suite_name" />
 
 	<report ID="Details (build)" Type="Table"
-		SQLQuery="SELECT * FROM gg_regression WHERE build = '@Build@' "
+		SQLQuery="SELECT * FROM Results WHERE build = '@Build@' "
 		/>
 
 	<report ID="Details (suite)" Type="Table"
-		SQLQuery="SELECT * FROM gg_regression WHERE build = '@Build@' AND suite_name = '@Suite@' "
+		SQLQuery="SELECT * FROM Results WHERE build = '@Build@' AND suite_name = '@Suite@' "
 		/>
 
 	<report ID="History" Type="BarChart"
-		SQLQuery="SELECT build AS Build, COUNT(status) AS 'Percent (%)' FROM gg_regression WHERE Build LIKE '@Release@%' AND status='@TestStatus@' GROUP BY build"
-		SQLTotal="SELECT build AS Build, COUNT(status) AS 'Percent (%)' FROM gg_regression WHERE Build LIKE '@Release@%'                           GROUP BY build"
+		SQLQuery="SELECT build AS Build, COUNT(status) AS 'Percent (%)' FROM Results WHERE Build LIKE '@Release@%' AND status='@TestStatus@' GROUP BY build"
+		SQLTotal="SELECT build AS Build, COUNT(status) AS 'Percent (%)' FROM Results WHERE Build LIKE '@Release@%'                           GROUP BY build"
 		/>
 
 	<report ID="Summary" Type="PieChart"
-		SQLQuery="SELECT status AS 'Status',COUNT(status) AS 'Count' FROM gg_regression  WHERE build = '@Build@' group by status "
+		SQLQuery="SELECT status AS 'Status',COUNT(status) AS 'Count' FROM Results  WHERE build = '@Build@' group by status "
 		/>
 
 	<report ID="Pass Rate" Type="LineChart"
-		SQLQuery="SELECT Build, COUNT(status) AS 'Pass Rate (%)' FROM gg_regression WHERE Build LIKE '@Release@%' AND status='Pass' GROUP BY Build"
-		SQLTotal="SELECT Build, COUNT(status) AS 'Pass Rate (%)' FROM gg_regression WHERE Build LIKE '@Release@%'                   GROUP BY Build"
+		SQLQuery="SELECT Build, COUNT(status) AS 'Pass Rate (%)' FROM Results WHERE Build LIKE '@Release@%' AND status='Pass' GROUP BY Build"
+		SQLTotal="SELECT Build, COUNT(status) AS 'Pass Rate (%)' FROM Results WHERE Build LIKE '@Release@%'                   GROUP BY Build"
 		/>
 
 	<redirect ID="goto Yahoo" Path="http://ro.yahoo.com" />
