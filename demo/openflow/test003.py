@@ -20,6 +20,8 @@ def openflow_test_3():
 
     restapi= FloodLiteControl('10.9.6.220', 8080)
     fl_switches = restapi.get_switches()
+
+    log_debug('Found %i devices.' % len(fl_switches))
     log_debug('Getting port statistics from floodlight controller...\n')
 
     for sw in fl_switches:
@@ -30,7 +32,10 @@ def openflow_test_3():
 
         if of_dict:
             for ps in of_dict[switch_dpid]:
+
                 if ps['portNumber'] < 0:
+                    continue
+                if not ps['transmitPackets']:
                     continue
 
                 print "portNumber:      %s" % ps['portNumber']

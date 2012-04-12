@@ -47,7 +47,7 @@ def openflow_test():
 
     for fl in fl_list:
         flowpusher.remove(fl)
-        time.sleep(2)
+        time.sleep(1)
         log_debug('Flow removed:\n %s' % str(fl))
 
     show_switches()
