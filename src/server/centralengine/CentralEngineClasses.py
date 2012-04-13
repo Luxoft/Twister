@@ -520,7 +520,6 @@ class CentralEngine:
 
                     inputPort = str(actions['match'].get('inputPort'))
                     if inputPort not in valid_ports[switch_name]:
-                        print 'Get flows: Invalid port `%s` !' % inputPort
                         continue
 
                     if not actions['actions']:
