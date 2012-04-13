@@ -33,13 +33,13 @@
 		SQLQuery="SELECT * FROM results ORDER BY id"
 		/>
 
-	<report ID="History" Type="BarChart"
-		SQLQuery="SELECT run_nr AS Run_Number, COUNT(status) AS 'Percent (%)' FROM results WHERE run_nr = '@Run_Number@' AND status='@TestStatus@' GROUP BY run_nr"
-		SQLTotal="SELECT run_nr AS Run_Number, COUNT(status) AS 'Percent (%)' FROM results WHERE run_nr = '@Run_Number@'                           GROUP BY run_nr"
+	<report ID="History" Type="LineChart"
+		SQLQuery="SELECT CONCAT('Run ',CAST(run_nr AS CHAR))  AS Run_Number,COUNT(status) AS 'Success rate (%)' FROM results WHERE status = 'PASS' GROUP BY run_nr"
+		SQLTotal="SELECT CONCAT('Run ',CAST(run_nr AS CHAR))  AS Run_Number,COUNT(status) AS 'Success rate (%)' FROM results                       GROUP BY run_nr"
 		/>
 
-	<report ID="Summary" Type="PieChart"
-		SQLQuery="SELECT CAST(run_nr AS CHAR) AS Run_Number,COUNT(status) AS 'Pass Count' FROM results WHERE status = 'PASS' GROUP BY run_nr "
+	<report ID="Summary" Type="BarChart"
+		SQLQuery="SELECT CONCAT('Run ',CAST(run_nr AS CHAR))  AS Run_Number,COUNT(status) AS 'Nr of tests' FROM results   GROUP BY run_nr "
 		/>
 
 	<redirect ID="goto Yahoo" Path="http://ro.yahoo.com" />
