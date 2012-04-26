@@ -336,14 +336,14 @@ if __name__ == '__main__':
     connect_db()
 
     # Find server IP
-    serverIP = socket.gethostbyname(socket.gethostname())
+    serverIP = '11.126.32.9' # '10.9.6.220' # socket.gethostbyname(socket.gethostname())
     # Find server PORT
     serverPort = int(soup.httpserverport.text)
     del soup
 
     root = Root()
 
-    cherrypy.config.update({'server.socket_host': '11.126.32.9', 'server.socket_port': serverPort})
+    cherrypy.config.update({'server.socket_host': serverIP, 'server.socket_port': serverPort})
 
     conf = {
             '/': {

@@ -21,6 +21,7 @@ import time
 import csv
 import pickle
 import xmlrpclib
+import traceback
 from threading import Timer
 
 TWISTER_PATH = os.getenv('TWISTER_PATH')
@@ -402,7 +403,8 @@ if __name__=='__main__':
 
         except Exception, e:
             # On error, print the error message, but don't exit
-            print('Exception: `%s` !' % e)
+            print('\nException:')
+            print(traceback.format_exc())
             print('\n>>> File `%s` returned `FAIL`. <<<\n' % filename)
 
             proxy.echo('TC error: Error executing file `%s`!' % filename)

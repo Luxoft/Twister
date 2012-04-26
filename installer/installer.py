@@ -23,7 +23,7 @@ if sys.version_info[0] != 2 and sys.version_info[1] != 7:
     print('Python version must be 2.7! Exiting!\n')
     exit(1)
 
-if not subprocess.check_output('id').startswith('uid=0(root)'):
+if os.getuid() != 0:
     print('Installer must be run as ROOT! Exiting!\n')
     exit(1)
 
