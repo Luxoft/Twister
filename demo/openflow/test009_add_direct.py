@@ -27,7 +27,7 @@ def openflow_test():
        print 'DPID: %s' % s['dpid']
 
     # ----------------------------------------------------------------------------------------------
-    # Add settings for SHORT DATAPATH
+    # Add settings for DIRECT DATAPATH
     # ----------------------------------------------------------------------------------------------
     fl_nr = 0
     tm_wait = 30
@@ -53,7 +53,7 @@ def openflow_test():
     show_switches()
 
     print 'Waiting a little before moving to the next test...\n'
-    time.sleep(100)
+    time.sleep(30)
 
     return 'PASS'
 

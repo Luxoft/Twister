@@ -27,7 +27,7 @@ def openflow_test():
        print 'DPID: %s' % s['dpid']
 
     # ----------------------------------------------------------------------------------------------
-    # Removing settings for CHANGED DATAPATH
+    # Removing settings for DIVERTED DATAPATH
     # ----------------------------------------------------------------------------------------------
     fl_nr = 0
     tm_wait = 30

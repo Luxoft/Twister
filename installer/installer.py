@@ -222,7 +222,8 @@ elif TO_INSTALL == 'client':
 
     # Files to move in twister folder
     to_copy = [
-        'bin/start_ep',
+        'bin/start_ep.py',
+        'bin/config_ep.json',
         'doc/',
         'src/client/',
         'src/common/__init__.py',
@@ -259,7 +260,8 @@ else:
 
     # Files to move in twister folder
     to_copy = [
-        'bin/start_ep',
+        'bin/start_ep.py',
+        'bin/config_ep.json',
         'bin/start_ce',
         'bin/start_ra',
         'bin/start_httpserver',
@@ -289,11 +291,11 @@ try:
         print('\nInternet connection is available.\n')
     else:
         INTERNET = False
-        print('\nNo internet connection available!\n')
+        print('\nCannot connect! Check the internet connection, or the Proxy settings!\n')
     del pypi
 except:
     INTERNET = False
-    print('\nNo internet connection available!\n')
+    print('\nCannot connect! Check the internet connection, or the Proxy settings!\n')
 
 
 # --------------------------------------------------------------------------------------------------
@@ -449,7 +451,7 @@ for fname in to_copy:
             print('Cannot copy file `%s` to `%s`!' % (fpath, INSTALL_PATH+dpath))
 
     else:
-        print('Path `%s` does not exist and will not be copied!' % dpath)
+        print('Path `%s` does not exist and will not be copied!' % fpath)
 
 #
 

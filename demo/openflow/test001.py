@@ -1,5 +1,5 @@
 
-import os, sys
+import os, sys, time
 
 if os.getenv('TWISTER_PATH'):
     sys.path.append(os.getenv('TWISTER_PATH') + '/.twister_cache/ce_libs/')
@@ -11,6 +11,8 @@ def openflow_test_1():
     <title>OpenFlow: 001</title>
     <description>This test shows all the devices registered in the FloodLite controller.</description>
     '''
+
+    time.sleep(60)
 
     from LibOpenFlow import log_debug, show_switches, FloodLiteControl
 

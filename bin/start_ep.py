@@ -10,7 +10,7 @@ if not sys.version.startswith('2.7'):
 
 os.environ['TWISTER_PATH'] = os.getenv('HOME') + '/twister/src'
 
-eps = json.load(open('config.json'))
+eps = json.load(open('config_ep.json'))
 
 #
 

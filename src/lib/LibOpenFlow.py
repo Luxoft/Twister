@@ -7,7 +7,7 @@ import httplib
 
 switch_1 = "00:0a:08:17:f4:5c:ac:00" # Serial 00DR, IP 10.9.6.151
 switch_2 = "00:0a:08:17:f4:32:a5:00" # Serial 003B, IP 10.9.6.150
-switch_3 = "00:00:00:00:00:00:00:05"
+#switch_3 = "00:00:00:00:00:00:00:05"
 
 initial_flow_path  = [(switch_1,18,8),(switch_1,8,18),(switch_1,34,0), (switch_2,28,18),(switch_2,18,28),(switch_2,34,0)]
 changed_flow_path  = [(switch_1,18,34),(switch_1,34,18),(switch_1,8,0), (switch_2,34,18),(switch_2,18,34),(switch_2,28,0)]
