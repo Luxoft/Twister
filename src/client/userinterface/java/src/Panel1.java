@@ -48,6 +48,7 @@ public class Panel1 extends JPanel{
     public JSplitPane splitPane;    
     public SuitaDetails suitaDetails;
     private JLabel openedfile;
+    public JButton remove;
     
     public Panel1(String user, final boolean applet, int width){
 //         System.out.println("Started Panel1 initialization: "+System.currentTimeMillis());
@@ -64,9 +65,17 @@ public class Panel1 extends JPanel{
         add(addsuite);
         addsuite.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
-                sc.g.addSuiteFromButton();}});
+                sc.g.addSuiteFromButton();}});        
+        remove = new JButton(new ImageIcon(Repository.removeicon));
+        remove.setToolTipText("Remove");
+        remove.setBounds(52,20,40,25);
+        remove.setEnabled(false);
+        add(remove);
+        remove.addActionListener(new ActionListener(){
+            public void actionPerformed(ActionEvent ev){
+                sc.g.removeSelected();}});
         JButton generate = new JButton("Generate");
-        generate.setBounds(52,20,90,25);
+        generate.setBounds(94,20,90,25);
         add(generate);
         suitaDetails = new SuitaDetails(Repository.getDatabaseUserFields());
         generate.addActionListener(new ActionListener(){
@@ -101,8 +110,7 @@ public class Panel1 extends JPanel{
         this.applet = applet;
         JMenuBar menu = new JMenuBar();
         menu.setLayout(null);
-        menu.setBounds(0, 0, width, 20);
-        
+        menu.setBounds(0, 0, width, 20);        
         final JMenu suitemenu = new JMenu("Suite");
         suitemenu.setBounds(50,0,50,20);
         menu.add(suitemenu);
@@ -359,8 +367,6 @@ public class Panel1 extends JPanel{
             tcmenu.getMenuComponent(j).setEnabled(false);}
         
         
-        
-        
         tcmenu.addMenuListener(new MenuListener(){
             public void menuCanceled(MenuEvent ev){
                 for(int j=0;j<tcmenu.getMenuComponentCount();j++){
@@ -381,9 +387,6 @@ public class Panel1 extends JPanel{
                         if(theone.getType()==1){
                             for(int j=0;j<tcmenu.getMenuComponentCount();j++){
                                 tcmenu.getMenuComponent(j).setEnabled(true);}}}}}});
-                    
-        
-        
         
         JMenu filemenu = new JMenu("File");
         filemenu.setBounds(10,0,40,20);
@@ -404,20 +407,9 @@ public class Panel1 extends JPanel{
         changeuser.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 File usersdirectory = new File(Repository.getUsersDirectory());
-//                 String users[] = new String[usersdirectory.list().length + 1];
                 String users[] = new String[usersdirectory.list().length];
                 System.arraycopy(usersdirectory.list(), 0, users, 0, usersdirectory.list().length);
-//                 users[users.length - 1] = "New File";
                 String user = (String)JOptionPane.showInputDialog(null, "Select suite file", "Suite File", 1, null, users, "Suite File");
-//                 if(user!=null && user.equals("New File")){
-//                     Repository.emptyRepository();
-//                     try{user = JOptionPane.showInputDialog(null, "Please enter file name", "File Name", -1).toUpperCase();}
-//                     catch(NullPointerException e){}
-//                     (new XMLBuilder(Repository.getSuite())).writeXMLFile(Repository.getUsersDirectory()+System.getProperty("file.separator")+user+".xml",false);
-//                     Repository.frame.mainpanel.p1.sc.g.setUser(Repository.getUsersDirectory()+System.getProperty("file.separator")+user+".xml");
-//                     sc.g.printXML(sc.g.getUser(),false,false);
-//                     sc.g.updateScroll();}
-//                 else 
                 if(user != null){
                     Repository.emptyRepository();
                     Repository.frame.mainpanel.p1.sc.g.setUser(Repository.getUsersDirectory()+Repository.getBar()+user);

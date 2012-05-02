@@ -50,7 +50,9 @@ public class Fereastra extends JFrame{
                         mainpanel.setSize(Repository.frame.getWidth()-28,Repository.frame.getHeight()-50);
                         mainpanel.p4.scroll.setSize(Repository.frame.getWidth()-310,Repository.frame.getHeight()-150);
                         mainpanel.p4.main.setSize(Repository.frame.getWidth()-300,Repository.frame.getHeight()-130);
-                        mainpanel.p4.dut.setPreferredSize(new Dimension(getWidth()-300,getHeight()-150));}}});
+                        mainpanel.p4.dut.setPreferredSize(new Dimension(getWidth()-300,getHeight()-150));
+                        //Repository.frame.mainpanel.p5.nettop.setPreferredSize(new Dimension(getWidth()-50,672));
+                    }}});
             setVisible(true);}
         Repository.intro.text = "Starting applet";
         Repository.intro.percent = 1;

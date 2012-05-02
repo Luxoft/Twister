@@ -34,14 +34,7 @@ public class Panel4 extends JPanel{
         bpaths.setBounds(20,40,200,25);
         bpaths.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
-                main.removeAll();
-                main.setLayout(null);
-                scroll = new JScrollPane(config.paths);
-                scroll.getVerticalScrollBar().setUnitIncrement(16);
-                scroll.setBounds(5,15,main.getWidth()-10,main.getHeight()-20);
-                main.add(scroll);
-                main.repaint();
-                main.revalidate();}});
+                setPaths();}});
         add(bpaths);  
         RoundButton bemails = new RoundButton("Email");
         bemails.setBounds(20,70,200,25);
@@ -77,4 +70,16 @@ public class Panel4 extends JPanel{
                 main.add(dut);
                 main.repaint();
                 main.revalidate();}});
-        add(duts);}}
+        add(duts);
+        setPaths();}
+    
+    public void setPaths(){
+        main.removeAll();
+        main.setLayout(null);
+        scroll = new JScrollPane(config.paths);
+        scroll.getVerticalScrollBar().setUnitIncrement(16);
+        scroll.setBounds(5,15,main.getWidth()-10,main.getHeight()-20);
+        scroll.getVerticalScrollBar().setValue(0);
+        main.add(scroll);
+        main.repaint();
+        main.revalidate();}}

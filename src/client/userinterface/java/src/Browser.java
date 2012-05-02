@@ -20,14 +20,4 @@ public class Browser{
                 if (eventType == HyperlinkEvent.EventType.ACTIVATED) {
                     if (!(e instanceof HTMLFrameHyperlinkEvent)){
                         try{displayEditorPane.setPage(e.getURL());}
-                        catch(Exception ex){System.out.println("Could not get to:"+e.getURL());}
-//                         HTMLFrameHyperlinkEvent linkEvent = (HTMLFrameHyperlinkEvent) event;
-//                         HTMLDocument document = (HTMLDocument) displayEditorPane.getDocument();
-//                         document.processHTMLFrameHyperlinkEvent(linkEvent);
-                    }
-//                     else {displayEditorPane.setPage(event.getURL());}
-                }
-            }
-            
-        });
-    }}
+                        catch(Exception ex){System.out.println("Could not get to:"+e.getURL());}}}}});}}

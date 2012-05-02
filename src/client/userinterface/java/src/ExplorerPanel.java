@@ -180,28 +180,6 @@ public class ExplorerPanel extends JPanel {
             item.addActionListener(new ActionListener(){
                 public void actionPerformed(ActionEvent ev){
                     final JFrame f = new JFrame();
-                    
-                    
-//                     f.addKeyListener(new KeyAdapter() {
-// //                         public void keyTyped(KeyEvent e) {}
-//                         
-//                         public void keyPressed(KeyEvent e) {
-//                             System.out.println("pressed");
-//                             if ((e.getKeyCode() == KeyEvent.VK_C) && ((e.getModifiers() & KeyEvent.CTRL_MASK) != 0)) {
-//                                 textarea.copy();}
-//                             else if ((e.getKeyCode() == KeyEvent.VK_X) && ((e.getModifiers() & KeyEvent.CTRL_MASK) != 0)) {
-//                                 textarea.cut();}
-//                             else if ((e.getKeyCode() == KeyEvent.VK_V) && ((e.getModifiers() & KeyEvent.CTRL_MASK) != 0)) {
-//                                 textarea.paste();}
-//                             }
-//                                 
-// //                         public void keyReleased(KeyEvent e) {}
-//                     });
-
-                    
-                    
-                    
-                    
                     tree.setEnabled(false);
                     Repository.frame.mainpanel.p1.sc.g.setCanRequestFocus(false);
                     f.setVisible(true);

@@ -98,7 +98,6 @@ public class DatabaseFrame extends JFrame{
                     .addContainerGap()
                     .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 44, Short.MAX_VALUE)
                     .addContainerGap())));
-
         pack();
         
         fieldsCombo.addItemListener(new ItemListener() {

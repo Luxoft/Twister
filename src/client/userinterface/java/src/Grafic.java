@@ -756,7 +756,8 @@ public class Grafic extends JPanel{
                         if(getItem(selected,false).getType()==0) propertyPopUp(ev,getItem(selected,false));
                         else if(getItem(selected,false).getType()==1) tcPopUp(ev,getItem(selected,false));
                         else suitaPopUp(ev,getItem(selected,false));}
-                    else{multipleSelectionPopUp(ev);}}}}}
+                    else{multipleSelectionPopUp(ev);}}}}
+        if(selectedcollection.size()>0)Repository.frame.mainpanel.p1.remove.setEnabled(true);}
                     
     public void noSelectionPopUp(final MouseEvent ev){ //poup in caz ca nu s-a selectat nimic, pozitia unde s-a facut click
         p.removeAll();
@@ -783,25 +784,25 @@ public class Grafic extends JPanel{
                         parent.getSubItem(j).updatePos(position,new Integer(parent.getSubItem(j).getPos().get(position).intValue()+1));}
                     (new AddSuiteFrame(Grafic.this, parent,index+1)).setLocation(ev.getX()-50,ev.getY()-50);}
                 else (new AddSuiteFrame(Grafic.this, null,0)).setLocation((int)ev.getLocationOnScreen().getX()-50,(int)ev.getLocationOnScreen().getY()-50);}});// adauga suita           
-//         item = new JMenuItem("Open XML");
-//         p.add(item);
-//         item.addActionListener(new ActionListener(){
-//             public void actionPerformed(ActionEvent ev){
-//                 JFileChooser chooser = new JFileChooser(); 
-//                 chooser.setFileFilter(new XMLFilter());
-//                 chooser.setCurrentDirectory(new java.io.File("."));
-//                 chooser.setDialogTitle("Select XML File"); 
-//                 if (chooser.showOpenDialog(Repository.frame) == JFileChooser.APPROVE_OPTION) {                    
-//                     Repository.emptyRepository();
-//                     setUser(Repository.getUsersDirectory()+Repository.getBar()+chooser.getSelectedFile().getName());
-//                     parseXML(chooser.getSelectedFile());
-//                     if(Repository.getSuiteNr() > 0)updateLocations(Repository.getSuita(0));
-//                     repaint();}}});// de deschis local un xml                
-//         item = new JMenuItem("Save suite XML");
-//         p.add(item);        
-//         item.addActionListener(new ActionListener(){
-//             public void actionPerformed(ActionEvent ev){
-//                 if(!user.equals(""))printXML(user,false);}});//de salvat xml user         
+/*         item = new JMenuItem("Open XML");
+         p.add(item);
+         item.addActionListener(new ActionListener(){
+             public void actionPerformed(ActionEvent ev){
+                 JFileChooser chooser = new JFileChooser(); 
+                 chooser.setFileFilter(new XMLFilter());
+                 chooser.setCurrentDirectory(new java.io.File("."));
+                 chooser.setDialogTitle("Select XML File"); 
+                 if (chooser.showOpenDialog(Repository.frame) == JFileChooser.APPROVE_OPTION) {                    
+                     Repository.emptyRepository();
+                     setUser(Repository.getUsersDirectory()+Repository.getBar()+chooser.getSelectedFile().getName());
+                     parseXML(chooser.getSelectedFile());
+                     if(Repository.getSuiteNr() > 0)updateLocations(Repository.getSuita(0));
+                     repaint();}}});// de deschis local un xml                
+         item = new JMenuItem("Save suite XML");
+         p.add(item);        
+         item.addActionListener(new ActionListener(){
+             public void actionPerformed(ActionEvent ev){
+                 if(!user.equals(""))printXML(user,false);}});*/
         p.show(this,ev.getX(),ev.getY());}
         
     public void propertyPopUp(MouseEvent ev,final Item prop){//popup pentru click pe property, locatia unde s-a facut click
@@ -834,18 +835,48 @@ public class Grafic extends JPanel{
                     prop.getTcParent(false).getSubItems().remove(prop);
                     selectedcollection.clear();
                     updateLocations(prop.getTcParent(false));
-                    repaint();
-                    }});
-            p.show(this,ev.getX(),ev.getY());}}    
+                    repaint();}});
+            p.show(this,ev.getX(),ev.getY());}}
            
-    public void multipleSelectionPopUp(MouseEvent ev){//popup pentru click pe property, locatia unde s-a facut click
+    public void multipleSelectionPopUp(MouseEvent ev){//popup pentru click pe property
         p.removeAll();        
-        JMenuItem item = new JMenuItem("Remove");
-        p.add(item);
-        item.addActionListener(new ActionListener(){
+        JMenuItem menuitem = new JMenuItem("Remove");
+        p.add(menuitem);
+        menuitem.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 removeSelected();}});
-            p.show(this,ev.getX(),ev.getY());}  
+        final int nr = selectedcollection.size();
+        final ArrayList<Integer>temp = new ArrayList<Integer>();
+        byte type = areTheSame(nr);
+        if(type!=-1){
+            if(type!=0){
+                menuitem = new JMenuItem("Switch Check");
+                p.add(menuitem);
+                menuitem.addActionListener(new ActionListener(){
+                        public void actionPerformed(ActionEvent ev){
+                            Item item=null;
+                            for(int i=0;i<nr;i++){
+                                temp.clear();
+                                int [] indices = selectedcollection.get(i);
+                                for(int j=0;j<indices.length;j++)temp.add(new Integer(indices[j]));
+                                item = getItem(temp,false);
+                                System.out.println("Item: "+item.getName());
+                                item.setCheck(!item.getCheck());}
+                            repaint();}});}
+            if(type==1){
+                menuitem = new JMenuItem("Switch Runnable");
+                p.add(menuitem);
+                menuitem.addActionListener(new ActionListener(){
+                    public void actionPerformed(ActionEvent ev){
+                        Item item=null;
+                        for(int i=0;i<nr;i++){
+                            temp.clear();
+                            int [] indices = selectedcollection.get(i);
+                            for(int j=0;j<indices.length;j++)temp.add(new Integer(indices[j]));
+                            item = getItem(temp,false);
+                            item.switchRunnable();}
+                        repaint();}});}}
+        p.show(this,ev.getX(),ev.getY());}
             
     public void tcPopUp(MouseEvent ev, final Item tc){
         p.removeAll();
@@ -921,7 +952,7 @@ public class Grafic extends JPanel{
             p.add(item);
             item.addActionListener(new ActionListener(){
                 public void actionPerformed(ActionEvent ev){
-                    try{File f = new File(Repository.temp+System.getProperty("file.separator")+"Twister"+System.getProperty("file.separator")+"EpID.txt");
+                    try{File f = new File(Repository.temp+System.getProperty("file.separator")+"Twister"+System.getProperty("file.separator")+"Epname.txt");
                         String line = null;  
                         InputStream in = Repository.c.get(Repository.REMOTEEPIDDIR);
                         InputStreamReader inputStreamReader = new InputStreamReader(in);
@@ -933,7 +964,7 @@ public class Grafic extends JPanel{
                         in.close();
                         String result = b.toString();
                         String  [] vecresult = result.split(";");
-                        try{String ID = (String)JOptionPane.showInputDialog(Grafic.this,"Please select an EpID","EpID's", JOptionPane.INFORMATION_MESSAGE,null, vecresult,"EpID's");
+                        try{String ID = (String)JOptionPane.showInputDialog(Grafic.this,"Please select an Epname","Epnames", JOptionPane.INFORMATION_MESSAGE,null, vecresult,"Epname");
                             suita.setEpId(ID);
                             for(int i=0;i<suita.getSubItemsNr();i++){
                                 assignEpID(suita.getSubItem(i),ID);}
@@ -1078,6 +1109,7 @@ public class Grafic extends JPanel{
             selectedcollection.clear();}}}
         
     public void deselectAll(){
+        Repository.frame.mainpanel.p1.remove.setEnabled(false);
         int selectednr = selectedcollection.size()-1;
         for(int i=selectednr ; i>=0 ; i--){
             int [] itemselected = selectedcollection.get(i);
@@ -1359,6 +1391,23 @@ public class Grafic extends JPanel{
         updateLocations(parent);
         repaint();}
         
+    public byte areTheSame(int nr){
+        final ArrayList<Integer>temp = new ArrayList<Integer>();
+        Item item;
+        boolean same = true;
+        byte type = 3;
+        for(int i=0;i<nr;i++){
+            temp.clear();
+            int [] indices = selectedcollection.get(i);
+            for(int j=0;j<indices.length;j++)temp.add(new Integer(indices[j]));
+            item = getItem(temp,false);
+            if(type!=3&&type!=item.getType()){
+                same = false;
+                break;}
+            else if(type==3)type = (byte)item.getType();}
+        if(same)return type;
+        else return -1;}
+        
     public int getLastY(Item item, int height){
         if(height<=(item.getRectangle().getY()+item.getRectangle().getHeight())){
             height=(int)(item.getRectangle().getY()+item.getRectangle().getHeight());        
@@ -1425,7 +1474,8 @@ public class Grafic extends JPanel{
                 Item item = new Item(namefield.getText(),2, -1, 5, width+140,25 , indexpos);
                 item.setEpId(epidfield.getSelectedItem().toString());
                 Repository.addSuita(item);
-                Grafic.this.updateLocations(Repository.getSuita(Repository.getSuiteNr()-2));}
+                if(Repository.getSuiteNr()>1)Grafic.this.updateLocations(Repository.getSuita(Repository.getSuiteNr()-2));
+                else Grafic.this.updateLocations(Repository.getSuita(0));}
             Grafic.this.setCanRequestFocus(true);
             (SwingUtilities.getWindowAncestor(ok)).dispose();
             Grafic.this.repaint();}
@@ -1441,12 +1491,12 @@ public class Grafic extends JPanel{
             JLabel name = new JLabel("Suite Name:");
             name.setBounds(5,5,80,20);
             name.setFont(new Font("TimesRoman", Font.PLAIN, 14));
-            JLabel EPId = new JLabel("EpId:");
+            JLabel EPId = new JLabel("Epname:");
             EPId.setBounds(5,30,80,20);
             EPId.setFont(new Font("TimesRoman", Font.PLAIN, 14));
             namefield = new JTextField(30);
-            namefield.setBounds(90,5,100,20);        
-            File f = new File(Repository.temp+System.getProperty("file.separator")+"Twister"+System.getProperty("file.separator")+"EpID.txt");
+            namefield.setBounds(90,2,100,25);        
+            File f = new File(Repository.temp+System.getProperty("file.separator")+"Twister"+System.getProperty("file.separator")+"Epname.txt");
             String line = null;                             
             InputStream in = null;
             try{String dir = Repository.getRemoteEpIdDir();

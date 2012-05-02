@@ -70,10 +70,10 @@ public class DUTExplorer extends JPanel{
                                 Repository.frame.mainpanel.p4.dut.SettingsPanel.remove(Repository.frame.mainpanel.p4.dut.p1);
                                 Repository.frame.mainpanel.p4.dut.SettingsPanel.remove(Repository.frame.mainpanel.p4.dut.p3);
                                 Repository.frame.mainpanel.p4.dut.SettingsPanel.remove(Repository.frame.mainpanel.p4.dut.p4);
-                                Repository.frame.mainpanel.p4.dut.jScrollPane4.remove(Repository.frame.mainpanel.p4.dut.propertys2);
-                                Repository.frame.mainpanel.p4.dut.jScrollPane4.remove(Repository.frame.mainpanel.p4.dut.propertys3);
+                                Repository.frame.mainpanel.p4.dut.jScrollPane4.remove(Repository.frame.mainpanel.p4.dut.properties2);
+                                Repository.frame.mainpanel.p4.dut.jScrollPane4.remove(Repository.frame.mainpanel.p4.dut.properties3);
                                 Repository.frame.mainpanel.p4.dut.SettingsPanel.add(Repository.frame.mainpanel.p4.dut.p2);
-                                Repository.frame.mainpanel.p4.dut.jScrollPane4.setViewportView(Repository.frame.mainpanel.p4.dut.propertys);
+                                Repository.frame.mainpanel.p4.dut.jScrollPane4.setViewportView(Repository.frame.mainpanel.p4.dut.properties);
                                 Repository.frame.mainpanel.p4.dut.SettingsPanel.revalidate();
                                 Repository.frame.mainpanel.p4.dut.SettingsPanel.repaint();}
                             ((Device)((DefaultMutableTreeNode)tp.getLastPathComponent()).getUserObject()).updateInfo();}
@@ -83,10 +83,10 @@ public class DUTExplorer extends JPanel{
                                 Repository.frame.mainpanel.p4.dut.SettingsPanel.remove(Repository.frame.mainpanel.p4.dut.p1);
                                 Repository.frame.mainpanel.p4.dut.SettingsPanel.remove(Repository.frame.mainpanel.p4.dut.p2);
                                 Repository.frame.mainpanel.p4.dut.SettingsPanel.remove(Repository.frame.mainpanel.p4.dut.p4);
-                                Repository.frame.mainpanel.p4.dut.jScrollPane4.remove(Repository.frame.mainpanel.p4.dut.propertys);
-                                Repository.frame.mainpanel.p4.dut.jScrollPane4.remove(Repository.frame.mainpanel.p4.dut.propertys3);
+                                Repository.frame.mainpanel.p4.dut.jScrollPane4.remove(Repository.frame.mainpanel.p4.dut.properties);
+                                Repository.frame.mainpanel.p4.dut.jScrollPane4.remove(Repository.frame.mainpanel.p4.dut.properties3);
                                 Repository.frame.mainpanel.p4.dut.SettingsPanel.add(Repository.frame.mainpanel.p4.dut.p3);
-                                Repository.frame.mainpanel.p4.dut.jScrollPane4.setViewportView(Repository.frame.mainpanel.p4.dut.propertys2);
+                                Repository.frame.mainpanel.p4.dut.jScrollPane4.setViewportView(Repository.frame.mainpanel.p4.dut.properties2);
                                 Repository.frame.mainpanel.p4.dut.SettingsPanel.revalidate();
                                 Repository.frame.mainpanel.p4.dut.SettingsPanel.repaint();}    
                             ((DeviceModule)((DefaultMutableTreeNode)tp.getLastPathComponent()).getUserObject()).updateInfo();}
@@ -96,8 +96,8 @@ public class DUTExplorer extends JPanel{
                                 Repository.frame.mainpanel.p4.dut.SettingsPanel.remove(Repository.frame.mainpanel.p4.dut.p2);
                                 Repository.frame.mainpanel.p4.dut.SettingsPanel.remove(Repository.frame.mainpanel.p4.dut.p4);
                                 Repository.frame.mainpanel.p4.dut.SettingsPanel.remove(Repository.frame.mainpanel.p4.dut.p3);
-                                Repository.frame.mainpanel.p4.dut.jScrollPane4.remove(Repository.frame.mainpanel.p4.dut.propertys);
-                                Repository.frame.mainpanel.p4.dut.jScrollPane4.remove(Repository.frame.mainpanel.p4.dut.propertys3);
+                                Repository.frame.mainpanel.p4.dut.jScrollPane4.remove(Repository.frame.mainpanel.p4.dut.properties);
+                                Repository.frame.mainpanel.p4.dut.jScrollPane4.remove(Repository.frame.mainpanel.p4.dut.properties3);
                                 Repository.frame.mainpanel.p4.dut.SettingsPanel.add(Repository.frame.mainpanel.p4.dut.p1);
                                 Repository.frame.mainpanel.p4.dut.jScrollPane4.setViewportView(null);
                                 Repository.frame.mainpanel.p4.dut.SettingsPanel.revalidate();
@@ -109,10 +109,10 @@ public class DUTExplorer extends JPanel{
                                 Repository.frame.mainpanel.p4.dut.SettingsPanel.remove(Repository.frame.mainpanel.p4.dut.p1);
                                 Repository.frame.mainpanel.p4.dut.SettingsPanel.remove(Repository.frame.mainpanel.p4.dut.p3);
                                 Repository.frame.mainpanel.p4.dut.SettingsPanel.remove(Repository.frame.mainpanel.p4.dut.p2);
-                                Repository.frame.mainpanel.p4.dut.jScrollPane4.remove(Repository.frame.mainpanel.p4.dut.propertys);
-                                Repository.frame.mainpanel.p4.dut.jScrollPane4.remove(Repository.frame.mainpanel.p4.dut.propertys2);
+                                Repository.frame.mainpanel.p4.dut.jScrollPane4.remove(Repository.frame.mainpanel.p4.dut.properties);
+                                Repository.frame.mainpanel.p4.dut.jScrollPane4.remove(Repository.frame.mainpanel.p4.dut.properties2);
                                 Repository.frame.mainpanel.p4.dut.SettingsPanel.add(Repository.frame.mainpanel.p4.dut.p4);
-                                Repository.frame.mainpanel.p4.dut.jScrollPane4.setViewportView(Repository.frame.mainpanel.p4.dut.propertys3);
+                                Repository.frame.mainpanel.p4.dut.jScrollPane4.setViewportView(Repository.frame.mainpanel.p4.dut.properties3);
                                 Repository.frame.mainpanel.p4.dut.SettingsPanel.revalidate();
                                 Repository.frame.mainpanel.p4.dut.SettingsPanel.repaint();}
                             ((DevicePort)((DefaultMutableTreeNode)tp.getLastPathComponent()).getUserObject()).updateInfo();}}

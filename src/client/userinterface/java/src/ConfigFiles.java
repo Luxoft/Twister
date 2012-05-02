@@ -59,19 +59,19 @@ public class ConfigFiles extends JPanel{
         paths = new JPanel();
         paths.setBackground(Color.WHITE);
         paths.setLayout(null);
-        paths.setPreferredSize(new Dimension(970,1000));
+        paths.setPreferredSize(new Dimension(970,1060));
         paths.setBorder(BorderFactory.createBevelBorder(BevelBorder.LOWERED));
         setLayout(null);
         ttcpath = new JTextField();
         addPanel("TestCase Source Path","Master directory with the test cases that can be run by the framework",ttcpath,Repository.TESTSUITEPATH,5,true,null);
         tMasterXML = new JTextField();
-        addPanel("Master XML TestSuite","Location of the XML that is generated from the user interface to run on Central Engine",tMasterXML,Repository.XMLREMOTEDIR,68,true,null);
+        addPanel("Master XML TestSuite","Location of the XML that is generated from the user interface to run on Central Engine",tMasterXML,Repository.XMLREMOTEDIR,73,true,null);
         tUsers = new JTextField();
-        addPanel("Users Path","Location of users XML files",tUsers,Repository.REMOTEUSERSDIRECTORY,131,true,null);
+        addPanel("Users Path","Location of users XML files",tUsers,Repository.REMOTEUSERSDIRECTORY,141,true,null);
         tepid = new JTextField();
-        addPanel("EPIds File","Location of the file that contains the EpID list",tepid,Repository.REMOTEEPIDDIR,194,true,null);
+        addPanel("EP name File","Location of the file that contains the Ep name list",tepid,Repository.REMOTEEPIDDIR,209,true,null);
         tlog = new JTextField();
-        addPanel("Logs Path","Location of the directory that stores the logs that will be monitored",tlog,Repository.LOGSPATH,257,true,null);
+        addPanel("Logs Path","Location of the directory that stores the logs that will be monitored",tlog,Repository.LOGSPATH,277,true,null);
         JPanel p7 = new JPanel();
         p7.setBackground(Color.WHITE);
         TitledBorder border7 = BorderFactory.createTitledBorder("Log Files");
@@ -79,7 +79,7 @@ public class ConfigFiles extends JPanel{
         border7.setBorder(BorderFactory.createLineBorder(new Color(150,150,150), 1));
         p7.setBorder(border7);
         p7.setLayout(new BoxLayout(p7, BoxLayout.Y_AXIS));    
-        p7.setBounds(80,320,800,165);
+        p7.setBounds(80,345,800,190);
         paths.add(p7);              
         JTextArea log2 = new JTextArea("All the log files that will be monitored");
         log2.setWrapStyleWord(true);
@@ -87,11 +87,12 @@ public class ConfigFiles extends JPanel{
         log2.setEditable(false);        
         log2.setCursor(null);  
         log2.setOpaque(false);  
-        log2.setFocusable(false);         
+        log2.setFocusable(false);   
+        log2.setBorder(null);
         log2.setFont(new Font("Arial",Font.PLAIN,12));
         log2.setBackground(getBackground());
-        log2.setMaximumSize(new Dimension(170,20));
-        log2.setPreferredSize(new Dimension(170,20));   
+        log2.setMaximumSize(new Dimension(170,25));
+        log2.setPreferredSize(new Dimension(170,25));   
         JPanel p71 = new JPanel();
         p71.setBackground(Color.WHITE);
         p71.setLayout(new GridLayout());
@@ -113,26 +114,25 @@ public class ConfigFiles extends JPanel{
         p72.add(addField(tcli,"Cli: ",4));        
         p7.add(p71);
         p7.add(p72);
-        
         thardwareconfig = new JTextField();
-        addPanel("Hardware Config XML","Location of the XML file that contains the devices configuration",thardwareconfig,Repository.REMOTEHARDWARECONFIGDIRECTORY,485,true,null);
+        addPanel("Hardware Config XML","Location of the XML file that contains the devices configuration",thardwareconfig,Repository.REMOTEHARDWARECONFIGDIRECTORY,535,true,null);
         ActionListener actionlistener = new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 if(!tname.getText().equals("")){
                     saveXML(false);}
                 else{JOptionPane.showMessageDialog(Repository.frame, "No file name given", "Filename missing", JOptionPane.WARNING_MESSAGE);}}};        
         tname = new JTextField();
-        addPanel("File name","File name to store this configuration",tname,"",864,true,actionlistener);
+        addPanel("File name","File name to store this configuration",tname,"",944,true,actionlistener);
         tdbfile = new JTextField();
-        addPanel("Database XML path","File location for database configuration",tdbfile,Repository.REMOTEDATABASECONFIGPATH+Repository.REMOTEDATABASECONFIGFILE,549,true,null);
+        addPanel("Database XML path","File location for database configuration",tdbfile,Repository.REMOTEDATABASECONFIGPATH+Repository.REMOTEDATABASECONFIGFILE,604,true,null);
         temailfile = new JTextField();
-        addPanel("Email XML path","File location for email configuration",temailfile,Repository.REMOTEEMAILCONFIGPATH+Repository.REMOTEEMAILCONFIGFILE,612,true,null);
+        addPanel("Email XML path","File location for email configuration",temailfile,Repository.REMOTEEMAILCONFIGPATH+Repository.REMOTEEMAILCONFIGFILE,672,true,null);
         tceport = new JTextField();
-        addPanel("Central Engine Port","Central Engine port",tceport,Repository.getCentralEnginePort(),675,false,null);
+        addPanel("Central Engine Port","Central Engine port",tceport,Repository.getCentralEnginePort(),740,false,null);
         traPort = new JTextField();
-        addPanel("Resource Allocator Port","Resource Allocator Port",traPort,Repository.getResourceAllocatorPort(),738,false,null);
+        addPanel("Resource Allocator Port","Resource Allocator Port",traPort,Repository.getResourceAllocatorPort(),808,false,null);
         thttpPort = new JTextField();
-        addPanel("HTTP Server Port","HTTP Server Port",thttpPort,Repository.getHTTPServerPort(),801,false,null);
+        addPanel("HTTP Server Port","HTTP Server Port",thttpPort,Repository.getHTTPServerPort(),876,false,null);
         
         JButton loadXML = new JButton("Load Config");
         loadXML.addActionListener(new ActionListener(){
@@ -213,12 +213,12 @@ public class ConfigFiles extends JPanel{
                                 else JOptionPane.showMessageDialog(Repository.frame, "This is not a config file", "WARNING", JOptionPane.WARNING_MESSAGE);}}
                         else JOptionPane.showMessageDialog(Repository.frame, "Could not find Config tab", "WARNING", JOptionPane.WARNING_MESSAGE);}}
                 catch(Exception e){e.printStackTrace();}}});
-        loadXML.setBounds(760,930,120,20);
+        loadXML.setBounds(760,1020,120,20);
         paths.add(loadXML);}   
         
     public JPanel addField(JTextField textfield,String text,int nr){
-        textfield.setMaximumSize(new Dimension(340,20));
-        textfield.setPreferredSize(new Dimension(340,20)); 
+        textfield.setMaximumSize(new Dimension(340,25));
+        textfield.setPreferredSize(new Dimension(340,25)); 
         if(Repository.logs.size()>0)textfield.setText(Repository.logs.get(nr));
         JLabel l1 = new JLabel(text);
         l1.setMaximumSize(new Dimension(65,20));
@@ -227,8 +227,8 @@ public class ConfigFiles extends JPanel{
         p721.setBackground(Color.WHITE);
         p721.add(l1);
         p721.add(textfield);
-        p721.setMaximumSize(new Dimension(800,25));
-        p721.setPreferredSize(new Dimension(800,25)); 
+        p721.setMaximumSize(new Dimension(800,28));
+        p721.setPreferredSize(new Dimension(800,28)); 
         return p721;}
         
     public void addPanel(String title, String description, final JTextField textfield, String fieldtext, int Y, boolean withbutton,ActionListener actionlistener){
@@ -239,7 +239,7 @@ public class ConfigFiles extends JPanel{
         border.setBorder(BorderFactory.createLineBorder(new Color(150,150,150), 1));
         p1.setBorder(border);         
         p1.setLayout(new BoxLayout(p1, BoxLayout.Y_AXIS));    
-        p1.setBounds(80,Y,800,63);
+        p1.setBounds(80,Y,800,70);
         paths.add(p1);
         JTextArea tcpath = new JTextArea(description);
         tcpath.setWrapStyleWord(true);
@@ -250,16 +250,17 @@ public class ConfigFiles extends JPanel{
         tcpath.setFocusable(false);         
         tcpath.setFont(new Font("Arial",Font.PLAIN,12));
         tcpath.setBackground(getBackground());
-        tcpath.setMaximumSize(new Dimension(170,20));        
-        tcpath.setPreferredSize(new Dimension(170,20));
+        tcpath.setMaximumSize(new Dimension(170,18));        
+        tcpath.setPreferredSize(new Dimension(170,18));
+        tcpath.setBorder(null);
         JPanel p11 = new JPanel();
         p11.setBackground(Color.WHITE);
         p11.setLayout(new GridLayout());
         p11.add(tcpath);
         p11.setMaximumSize(new Dimension(700,13));
         p11.setPreferredSize(new Dimension(700,13));
-        textfield.setMaximumSize(new Dimension(340,20));
-        textfield.setPreferredSize(new Dimension(340,20));
+        textfield.setMaximumSize(new Dimension(340,27));
+        textfield.setPreferredSize(new Dimension(340,27));
         textfield.setText(fieldtext);
         JButton b = null;
         if(withbutton){
@@ -285,8 +286,8 @@ public class ConfigFiles extends JPanel{
         p12.setBackground(Color.WHITE);
         p12.add(textfield);
         if(withbutton)p12.add(b);
-        p12.setMaximumSize(new Dimension(700,25));
-        p12.setPreferredSize(new Dimension(700,25));
+        p12.setMaximumSize(new Dimension(700,32));
+        p12.setPreferredSize(new Dimension(700,32));
         p1.add(p11);
         p1.add(p12);}
         

@@ -11,6 +11,7 @@ import javax.imageio.ImageIO;
 import java.awt.Font;
 import java.awt.Graphics2D;
 import java.awt.AlphaComposite;
+import java.awt.Frame;
 
 public class IntroScreen extends JFrame{
     String text = "";
