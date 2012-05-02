@@ -1,0 +1,1 @@
+After compile, copy all the JAR files and "sig.x509" here.

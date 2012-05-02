@@ -31,6 +31,12 @@ class Root:
     def home(self):
         return self.index()
 
+    # Java User Interface
+    @cherrypy.expose
+    def gui(self):
+        output = open(TWISTER_PATH + '/server/httpserver/template/ui.htm', 'r')
+        return output.read()
+
     # Help link
     @cherrypy.expose
     def help(self):
@@ -354,10 +360,10 @@ if __name__ == '__main__':
                 'tools.staticdir.on': True,
                 'tools.staticdir.dir': TWISTER_PATH + '/server/httpserver/static',
                 },
-            #'/jar': {
-            #    'tools.staticdir.on': True,
-            #    'tools.staticdir.dir': TWISTER_PATH + '/client/userinterface/ui',
-            #    },
+            '/gui': {
+                'tools.staticdir.on': True,
+                'tools.staticdir.dir': TWISTER_PATH + '/server/httpserver/gui',
+                },
             }
 
     cherrypy.quickstart(root, '/', config=conf)
