@@ -357,8 +357,12 @@ class DBParser():
 # --------------------------------------------------------------------------------------------------
 
     def getReportFields(self):
-        ''' Used by Bottle Web Server. '''
-        fields = self.xmlDict.reports_section('field')
+        ''' Used by HTTP Server. '''
+        try:
+            fields = self.xmlDict.reports_section('field')
+        except:
+            print('DBParser: Cannot load the database reports section!')
+            return {}
         res = OrderedDict()
 
         for field in fields:
@@ -373,8 +377,12 @@ class DBParser():
 
 
     def getReports(self):
-        ''' Used by Bottle Web Server. '''
-        reports = self.xmlDict.reports_section('report')
+        ''' Used by HTTP Server. '''
+        try:
+            reports = self.xmlDict.reports_section('report')
+        except:
+            print('DBParser: Cannot load the database fields section!')
+            return {}
         res = OrderedDict()
 
         for report in reports:
@@ -390,8 +398,12 @@ class DBParser():
 
 
     def getRedirects(self):
-        ''' Used by Bottle Web Server. '''
-        reports = self.xmlDict.reports_section('redirect')
+        ''' Used by HTTP Server. '''
+        try:
+            reports = self.xmlDict.reports_section('redirect')
+        except:
+            print('DBParser: Cannot load the database redirect section!')
+            return {}
         res = OrderedDict()
 
         for redirect in reports:
@@ -411,7 +423,7 @@ if __name__ == '__main__':
     print t.getLogTypes()
     print t.getReportsPath()
     print t.getEpIdsList()
-    for l in t.getTestSuiteFileList('EPId-1001'):
+    for l in t.getTestSuiteFileList('EP-1001'):
         print 'Found file:', l
 
 #

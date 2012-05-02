@@ -17,19 +17,6 @@ from mako.template import Template
 
 #
 
-def load_config():
-    '''
-    Read DB Config File
-    '''
-    dbparser =  DBParser(DB_CFG)
-    db_config = dbparser.db_config
-    glob_fields = dbparser.getReportFields()
-    glob_reports = dbparser.getReports()
-    glob_redirects = dbparser.getRedirects()
-    glob_links = ['Home'] + glob_reports.keys() + glob_redirects.keys() + ['Help']
-
-#
-
 class Root:
 
     # Java User Interface 1
@@ -46,6 +33,8 @@ class Root:
     # Report link 1
     @cherrypy.expose
     def report(self):
+        global dbparser, db_config
+        if not dbparser: load_config()
         global glob_links
         output = Template(filename=TWISTER_PATH + '/server/httpserver/template/base.htm')
         return output.render(title='Home', links=glob_links)
@@ -58,6 +47,8 @@ class Root:
     # Help link
     @cherrypy.expose
     def help(self):
+        global dbparser, db_config
+        if not dbparser: load_config()
         global glob_links
         output = Template(filename=TWISTER_PATH + '/server/httpserver/template/help.htm')
         return output.render(title='Help', links=glob_links)
@@ -66,7 +57,11 @@ class Root:
     # Reporting link
     @cherrypy.expose
     def rep(self, report=None, **args):
-        global glob_fields, glob_reports, glob_links, conn, curs
+        global dbparser, db_config
+        if not dbparser: load_config()
+        global conn, curs
+        if not conn: connect_db()
+        global glob_fields, glob_reports, glob_links
 
         if not report:
             raise cherrypy.HTTPRedirect('/home')
@@ -205,7 +200,11 @@ class Root:
     # JSON link
     @cherrypy.expose
     def json(self, report, **args):
-        global glob_reports, conn, curs
+        global dbparser, db_config
+        if not dbparser: load_config()
+        global conn, curs
+        if not conn: connect_db()
+        global glob_reports
 
         cherrypy.response.headers['Content-Type'] = 'application/json; charset=utf-8'
 
@@ -310,14 +309,31 @@ class Root:
     # Error page
     @cherrypy.expose
     def default(self, code):
-        global glob_links
+        global dbparser, db_config, glob_links
         output = Template(filename=TWISTER_PATH + '/server/httpserver/template/error.htm')
         return output.render(title='Error 404', links=glob_links, msg='Sorry, this page does not exist!')
 
 #
 
+def load_config():
+    '''
+    Read DB Config File
+    '''
+    global dbparser, db_config
+    global glob_fields, glob_reports, glob_redirects, glob_links
+    print 'Parsing the config for the first time...\n'
+    dbparser =  DBParser(DB_CFG)
+    db_config = dbparser.db_config
+    glob_fields = dbparser.getReportFields()
+    glob_reports = dbparser.getReports()
+    glob_redirects = dbparser.getRedirects()
+    glob_links = ['Home'] + glob_reports.keys() + glob_redirects.keys() + ['Help']
+
+#
+
 def connect_db():
     global conn, curs
+    print 'Connecting to the database for the first time...\n'
     conn = MySQLdb.connect(host=db_config.get('server'), db=db_config.get('database'),
                            user=db_config.get('user'), passwd=db_config.get('password'))
     curs = conn.cursor()
@@ -347,19 +363,14 @@ if __name__ == '__main__':
     if DB_CFG.startswith('~'):
         DB_CFG = os.getenv('HOME') + DB_CFG[1:]
 
-    # Read DB Config File
-    dbparser =  DBParser(DB_CFG)
-    db_config = dbparser.db_config
-    glob_fields = dbparser.getReportFields()
-    glob_reports = dbparser.getReports()
-    glob_redirects = dbparser.getRedirects()
-    glob_links = ['Home'] + glob_reports.keys() + glob_redirects.keys() + ['Help']
-
     dbparser =  None
     db_config = None
+    glob_fields  = None
+    glob_reports = None
+    glob_redirects = None
+    glob_links   = None
     conn = None
     curs = None
-    connect_db()
 
     # Find server IP
     serverIP = '11.126.32.9' # '10.9.6.220' # socket.gethostbyname(socket.gethostname())
