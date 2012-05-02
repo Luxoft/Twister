@@ -1,20 +1,20 @@
 [
     {
-        "ID": "EPID-1001",
+        "ID": "EP-1001",
         "CE_IP": "11.126.32.9",
         "CE_PORT": 8000,
         "ENABLED": 1
     },
     {
-        "ID": "EPID-1002",
+        "ID": "EP-1002",
         "CE_IP": "11.126.32.9",
         "CE_PORT": 8000,
         "ENABLED": 0
     },
     {
-        "ID": "EPID-1003",
+        "ID": "EP-1003",
         "CE_IP": "11.126.32.9",
         "CE_PORT": 8000,
-        "ENABLED": 1
+        "ENABLED": 0
     }
 ]

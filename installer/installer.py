@@ -23,7 +23,7 @@ if sys.version_info[0] != 2 and sys.version_info[1] != 7:
     print('Python version must be 2.7! Exiting!\n')
     exit(1)
 
-if not subprocess.check_output('id').startswith('uid=0(root)'):
+if os.getuid() != 0:
     print('Installer must be run as ROOT! Exiting!\n')
     exit(1)
 
@@ -222,7 +222,8 @@ elif TO_INSTALL == 'client':
 
     # Files to move in twister folder
     to_copy = [
-        'bin/start_ep',
+        'bin/start_ep.py',
+        'bin/config_ep.json',
         'doc/',
         'src/client/',
         'src/common/__init__.py',
@@ -259,7 +260,8 @@ else:
 
     # Files to move in twister folder
     to_copy = [
-        'bin/start_ep',
+        'bin/start_ep.py',
+        'bin/config_ep.json',
         'bin/start_ce',
         'bin/start_ra',
         'bin/start_httpserver',
@@ -289,11 +291,11 @@ try:
         print('\nInternet connection is available.\n')
     else:
         INTERNET = False
-        print('\nNo internet connection available!\n')
+        print('\nCannot connect! Check the internet connection, or the Proxy settings!\n')
     del pypi
 except:
     INTERNET = False
-    print('\nNo internet connection available!\n')
+    print('\nCannot connect! Check the internet connection, or the Proxy settings!\n')
 
 
 # --------------------------------------------------------------------------------------------------
@@ -425,7 +427,7 @@ for fname in to_copy:
     if dpath.startswith('src/'):
         dpath = dpath[4:]
 
-    if dpath:
+    if dpath and ( not os.path.exists(INSTALL_PATH+dpath) ):
         try:
             dir_util.mkpath(INSTALL_PATH + dpath)
             print('Created folder structure `%s`.' % (INSTALL_PATH+dpath))
@@ -449,7 +451,7 @@ for fname in to_copy:
             print('Cannot copy file `%s` to `%s`!' % (fpath, INSTALL_PATH+dpath))
 
     else:
-        print('Path `%s` does not exist and will not be copied!' % dpath)
+        print('Path `%s` does not exist and will not be copied!' % fpath)
 
 #
 
@@ -464,6 +466,9 @@ os.system('find %s -name "*.xml" -exec chmod 664 {} \;' % INSTALL_PATH)
 os.system('find %s -name "*.py" -exec chmod 664 {} \;' % INSTALL_PATH)
 os.system('find %s -name "*.tcl" -exec chmod 664 {} \;' % INSTALL_PATH)
 
+#
+try: os.mkdir(INSTALL_PATH + 'src/.twister_cache')
+except: pass
 #
 
 for fname in glob.glob(INSTALL_PATH + 'bin/*'):

@@ -1,4 +1,0 @@
-#!/bin/bash
-
-sudo mn --custom twister/twister_topo.py --mac --topo twistertopo --controller=remote --ip=11.126.32.12 --topo twistertopo
-

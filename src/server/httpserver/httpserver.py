@@ -31,6 +31,12 @@ class Root:
     def home(self):
         return self.index()
 
+    # Java User Interface
+    @cherrypy.expose
+    def gui(self):
+        output = open(TWISTER_PATH + '/server/httpserver/template/ui.htm', 'r')
+        return output.read()
+
     # Help link
     @cherrypy.expose
     def help(self):
@@ -336,14 +342,14 @@ if __name__ == '__main__':
     connect_db()
 
     # Find server IP
-    serverIP = socket.gethostbyname(socket.gethostname())
+    serverIP = '11.126.32.9' # '10.9.6.220' # socket.gethostbyname(socket.gethostname())
     # Find server PORT
     serverPort = int(soup.httpserverport.text)
     del soup
 
     root = Root()
 
-    cherrypy.config.update({'server.socket_host': '11.126.32.9', 'server.socket_port': serverPort})
+    cherrypy.config.update({'server.socket_host': serverIP, 'server.socket_port': serverPort})
 
     conf = {
             '/': {
@@ -354,10 +360,10 @@ if __name__ == '__main__':
                 'tools.staticdir.on': True,
                 'tools.staticdir.dir': TWISTER_PATH + '/server/httpserver/static',
                 },
-            #'/jar': {
-            #    'tools.staticdir.on': True,
-            #    'tools.staticdir.dir': TWISTER_PATH + '/client/userinterface/ui',
-            #    },
+            '/gui': {
+                'tools.staticdir.on': True,
+                'tools.staticdir.dir': TWISTER_PATH + '/server/httpserver/gui',
+                },
             }
 
     cherrypy.quickstart(root, '/', config=conf)

@@ -82,11 +82,12 @@ def saveLibraries(proxy):
     __init = open(libs_path + '/__init__.py', 'w')
     __init.write('\nPROXY = "%s"\n' % CEProxy)
     all_libs = [os.path.splitext(lib)[0] for lib in libs_list]
-    __init.write('\nall = ["%s"]\n' % ('", "'.join(all_libs)))
+    __init.write('\nall = ["%s"]\n\n' % ('", "'.join(all_libs)))
 
     for filename in libs_list:
         # Write in __init__ file.
-        __init.write('from %s import *\n' % os.path.splitext(filename)[0])
+        __init.write('import %s\n' % os.path.splitext(filename)[0])
+        __init.write('from %s import *\n\n' % os.path.splitext(filename)[0])
 
         lib_pth = libs_path + os.sep + filename
         print('Downloading library `{0}` ...'.format(lib_pth))

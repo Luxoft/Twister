@@ -222,13 +222,13 @@ $(document).ready(function() {
 			if ( typeof(item[0]) != "string" ) return;
 			var str = item[0].toLowerCase();
 			if ( str == "pass" ) {
-				if ( i > 0 ) { dChart[i-1] = { label: item[0], data: item[1], color: "#00611c" } };
+				dChart[i] = { label: item[0], data: item[1], color: "#00611c" };
 			} else if ( str == "fail" ) {
-				if ( i > 0 ) { dChart[i-1] = { label: item[0], data: item[1], color: "#cd1111" } };
-			} else if ( str == "Timeout" ) {
-				if ( i > 0 ) { dChart[i-1] = { label: item[0], data: item[1], color: "#3e3e3e" } };
+				dChart[i] = { label: item[0], data: item[1], color: "#cd1111" };
+			} else if ( str == "timeout" ) {
+				dChart[i] = { label: item[0], data: item[1], color: "#3e3e3e" };
 			} else {
-				if ( i > 0 ) { dChart[i-1] = { label: item[0], data: item[1], color: "#fcd116" } };
+				dChart[i] = { label: item[0], data: item[1] };
 			}
 		});
 
