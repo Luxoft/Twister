@@ -17,25 +17,43 @@ from mako.template import Template
 
 #
 
+def load_config():
+    '''
+    Read DB Config File
+    '''
+    dbparser =  DBParser(DB_CFG)
+    db_config = dbparser.db_config
+    glob_fields = dbparser.getReportFields()
+    glob_reports = dbparser.getReports()
+    glob_redirects = dbparser.getRedirects()
+    glob_links = ['Home'] + glob_reports.keys() + glob_redirects.keys() + ['Help']
+
+#
+
 class Root:
 
-    # Home link 1
+    # Java User Interface 1
     @cherrypy.expose
     def index(self):
-        global glob_links
-        output = Template(filename=TWISTER_PATH + '/server/httpserver/template/base.htm')
-        return output.render(title='Home', links=glob_links)
+        output = open(TWISTER_PATH + '/server/httpserver/template/ui.htm', 'r')
+        return output.read()
 
-    # Home link 2
+    # Java User Interface 2
     @cherrypy.expose
     def home(self):
         return self.index()
 
-    # Java User Interface
+    # Report link 1
     @cherrypy.expose
-    def gui(self):
-        output = open(TWISTER_PATH + '/server/httpserver/template/ui.htm', 'r')
-        return output.read()
+    def report(self):
+        global glob_links
+        output = Template(filename=TWISTER_PATH + '/server/httpserver/template/base.htm')
+        return output.render(title='Home', links=glob_links)
+
+    # Report link 2
+    @cherrypy.expose
+    def reporting(self):
+        return self.report()
 
     # Help link
     @cherrypy.expose
@@ -337,6 +355,8 @@ if __name__ == '__main__':
     glob_redirects = dbparser.getRedirects()
     glob_links = ['Home'] + glob_reports.keys() + glob_redirects.keys() + ['Help']
 
+    dbparser =  None
+    db_config = None
     conn = None
     curs = None
     connect_db()
