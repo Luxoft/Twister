@@ -12,7 +12,7 @@ public class Browser{
         displayEditorPane = new JEditorPane();
         displayEditorPane.setContentType("text/html");
         displayEditorPane.setEditable(false);
-        try{displayEditorPane.setPage(new URL("http://"+Repository.host+":"+Repository.getHTTPServerPort()));}
+        try{displayEditorPane.setPage(new URL("http://"+Repository.host+":"+Repository.getHTTPServerPort()+"/report"));}
         catch(Exception e){System.out.println("could not get "+Repository.host+":"+Repository.getHTTPServerPort());}
         displayEditorPane.addHyperlinkListener(new HyperlinkListener(){
             public void hyperlinkUpdate(HyperlinkEvent e){
