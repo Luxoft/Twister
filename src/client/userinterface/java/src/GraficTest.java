@@ -111,19 +111,19 @@ public class GraficTest extends JPanel{
                 iterateThrough(item.getSubItem(i),null);}}}
 
     public void updateScroll(){
-            int y1=0;
-            for(int i=0;i<Repository.getTestSuiteNr();i++){
-                if(Repository.getTestSuita(i).isVisible())y1 = getLastY(Repository.getTestSuita(i),y1);}
-            if(y1>getHeight()){
+        int y1=0;
+        for(int i=0;i<Repository.getTestSuiteNr();i++){
+            if(Repository.getTestSuita(i).isVisible())y1 = getLastY(Repository.getTestSuita(i),y1);}
+        if(y1>getHeight()){
+            setPreferredSize(new Dimension(425,y1+10));
+            revalidate();}
+        if(getHeight()>595){
+            if(y1<getHeight()-10){
                 setPreferredSize(new Dimension(425,y1+10));
                 revalidate();}
-            if(getHeight()>595){
-                if(y1<getHeight()-10){
-                    setPreferredSize(new Dimension(425,y1+10));
-                    revalidate();}
-                if(y1<595){
-                    setPreferredSize(new Dimension(445,595));
-                    revalidate();}}}
+            if(y1<595){
+                setPreferredSize(new Dimension(445,595));
+                revalidate();}}}
             
             
     public int getLastY(Item item, int height){

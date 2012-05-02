@@ -16,11 +16,17 @@ import java.io.ByteArrayOutputStream;
 import java.io.ByteArrayInputStream;
 import java.awt.image.BufferedImage;
 import java.awt.Image;
+import javax.swing.UIManager;
+import javax.swing.SwingUtilities;
 
 public class applet extends Applet{ 
     private static final long serialVersionUID = 1L;
      
     public void init(){
+        SwingUtilities.invokeLater(new Runnable(){
+          public void run(){
+            try{UIManager.setLookAndFeel("javax.swing.plaf.nimbus.NimbusLookAndFeel");}
+            catch(Exception e){e.printStackTrace();}}});
         try{System.out.println("Current version: ");
             System.out.println("OS current temporary directory is : "+System.getProperty("java.io.tmpdir"));
             Repository.tcicon = loadIcon("tc.png");
@@ -37,13 +43,26 @@ public class applet extends Applet{
             Repository.workingicon = loadIcon("working.png");
             Repository.suitaicon = loadIcon("suita.png");
             Repository.propicon = loadIcon("prop.png");
+            Repository.vlcclient = loadIcon("vlcclient.png");
             Repository.failicon = loadIcon("fail.png");
             Repository.passicon = loadIcon("pass.png");
             Repository.stopicon = loadIcon("stop.png");
+            Repository.switche = loadIcon("switch.png");
+            Repository.switche2 = loadIcon("switch.jpg");
+            Repository.flootw = loadIcon("twisterfloodlight.png");
+            Repository.rack150 = loadIcon("150.png");
+            Repository.rack151 = loadIcon("151.png");
+            Repository.rack152 = loadIcon("152.png");
+            Repository.vlcserver = loadIcon("vlcserver.png");
             Repository.playicon = loadIcon("play.png");
+            Repository.addsuitaicon = loadIcon("addsuita.png");
+            Repository.removeicon = loadIcon("deleteicon.png");
             Repository.pauseicon = loadIcon("pause.png");
             Repository.porticon = loadIcon("port.png");
-            Repository.testbedicon = loadIcon("testbed.png");}
+            Repository.testbedicon = loadIcon("testbed.png");
+            Repository.inicon = loadIcon("in.png");
+            Repository.outicon = loadIcon("out.png");
+            Repository.baricon = loadIcon("bar.png");}
         catch(Exception e){e.printStackTrace();}
         setLayout(null);
         System.out.println("Size is: "+getSize().getWidth()+" - "+getSize().getHeight());
@@ -71,6 +90,7 @@ public class applet extends Applet{
         Repository.frame.mainpanel.p4.scroll.setSize(width-310,height-150);
         Repository.frame.mainpanel.p4.main.setSize(width-300,height-130);
         Repository.frame.mainpanel.p4.dut.setPreferredSize(new Dimension(width-300,height-150));
+        //Repository.frame.mainpanel.p5.nettop.setPreferredSize(new Dimension(getWidth()-50,672));
         System.out.println("Resizing to: "+width+" - "+height);
         validate();}
     
@@ -86,4 +106,4 @@ public class applet extends Applet{
         System.exit(0);}
         
     public void start(){
-        System.out.println("applt starting");}}
+        System.out.println("applet starting");}}

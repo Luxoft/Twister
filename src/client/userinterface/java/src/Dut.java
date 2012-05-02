@@ -68,7 +68,11 @@ public class Dut extends JPanel {
     JButton additem;
     JButton remitem;
     int x1,y1;
-    JPanel p2,propertys,propertys2,propertys3,p3,p4,p1;
+    JPanel p1;//testbed Panel
+    JPanel p2;//device Panel
+    JPanel p3;//module Panel
+    JPanel p4;//port Panel
+    JPanel properties,properties2,properties3;
     TestBed temp0;
     Device temp;
     DeviceModule temp2; 
@@ -103,7 +107,7 @@ public class Dut extends JPanel {
         add3.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 if(temp3!=null&&!propname3.getText().equals("")&&!propvalue3.getText().equals("")&&!checkForNumber(propname3.getText().charAt(0))){
-                    temp3.propertys.add(new String[]{propname3.getText(),propvalue3.getText()});
+                    temp3.properties.add(new String[]{propname3.getText(),propvalue3.getText()});
                     propname3.setText("");
                     propvalue3.setText("");
                     temp3.updatePropertys();}}});
@@ -116,7 +120,7 @@ public class Dut extends JPanel {
                 if(temp3!=null){
                     temp3.setPort(tname3.getText());
                     ((DefaultTreeModel)explorer.tree.getModel()).nodeChanged(nodetemp3);}}});
-        tname3.setBounds(90,5,200,20);
+        tname3.setBounds(90,5,200,25);
         p4.add(id3);
         p4.add(tname3);        
         JLabel id4 = new JLabel("Port Type: ");
@@ -129,19 +133,19 @@ public class Dut extends JPanel {
                     temp3.setPortType(tname4.getText());
                     ((DefaultMutableTreeNode)nodetemp3.getChildAt(0)).setUserObject("Port type: "+tname4.getText());
                     ((DefaultTreeModel)explorer.tree.getModel()).nodeChanged(nodetemp3.getChildAt(0));}}});
-        tname4.setBounds(90,30,200,20);
+        tname4.setBounds(90,30,200,25);
         p4.add(id4);
         p4.add(tname4); 
-        JPanel fpropertys3 = new JPanel();
-        fpropertys3.setLayout(null);
-        fpropertys3.setBorder(BorderFactory.createTitledBorder("Properties"));
-        fpropertys3.setBounds(2,105,388,530);
-        propertys3 = new JPanel();
-        propertys3.setLayout(null);
-        JScrollPane scrollPane7 = new JScrollPane(propertys3);
+        JPanel fproperties3 = new JPanel();
+        fproperties3.setLayout(null);
+        fproperties3.setBorder(BorderFactory.createTitledBorder("Properties"));
+        fproperties3.setBounds(2,105,388,530);
+        properties3 = new JPanel();
+        properties3.setLayout(null);
+        JScrollPane scrollPane7 = new JScrollPane(properties3);
         scrollPane7.setBounds(3,17,382,310);
         scrollPane7.setBorder(null);
-        fpropertys3.add(scrollPane7);
+        fproperties3.add(scrollPane7);
         p3 = new JPanel();
         p3.setLayout(null);
         p3.setPreferredSize(new Dimension(400,110));
@@ -162,7 +166,7 @@ public class Dut extends JPanel {
         add2.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 if(temp2!=null&&!propname2.getText().equals("")&&!propvalue2.getText().equals("")&&!checkForNumber(propname2.getText().charAt(0))){
-                    temp2.propertys.add(new String[]{propname2.getText(),propvalue2.getText()});
+                    temp2.properties.add(new String[]{propname2.getText(),propvalue2.getText()});
                     propname2.setText("");
                     propvalue2.setText("");
                     temp2.updatePropertys();}}});
@@ -178,10 +182,10 @@ public class Dut extends JPanel {
                     ((DefaultTreeModel)explorer.tree.getModel()).nodeChanged(nodetemp2);
                     ((DefaultMutableTreeNode)nodetemp2.getChildAt(0)).setUserObject("Module Type: "+tname2.getText());
                     ((DefaultTreeModel)explorer.tree.getModel()).nodeChanged(nodetemp2.getChildAt(0));}}});
-        tname2.setBounds(90,5,200,20);
+        tname2.setBounds(90,5,200,25);
         p3.add(tname2);
-        propertys2 = new JPanel();
-        propertys2.setLayout(null);
+        properties2 = new JPanel();
+        properties2.setLayout(null);
         p1 = new JPanel();
         p1.setLayout(null);
         p1.setPreferredSize(new Dimension(400,170));       
@@ -197,7 +201,7 @@ public class Dut extends JPanel {
                 if(temp0!=null){
                     temp0.setName(tname0.getText());
                     ((DefaultTreeModel)explorer.tree.getModel()).nodeChanged(nodetemp0);}}});
-        tname0.setBounds(90,30,200,20);
+        tname0.setBounds(90,30,200,25);
         p1.add(tname0);
         tid0 = new JTextField();
         tid0.addKeyListener(new KeyAdapter(){
@@ -206,7 +210,7 @@ public class Dut extends JPanel {
                     temp0.setID(tid0.getText());
                     ((DefaultMutableTreeNode)nodetemp0.getChildAt(0)).setUserObject("Id: "+tid0.getText());
                     ((DefaultTreeModel)explorer.tree.getModel()).nodeChanged(nodetemp0.getChildAt(0));}}});
-        tid0.setBounds(90,5,200,20);
+        tid0.setBounds(90,5,200,25);
         p1.add(tid0);
         JLabel description0 = new JLabel("Description: ");
         description0.setBounds(5,55,90,20);
@@ -225,8 +229,8 @@ public class Dut extends JPanel {
         p2 = new JPanel();
         p2.setLayout(null);
         p2.setPreferredSize(new Dimension(400,270));       
-        propertys = new JPanel();
-        propertys.setLayout(null);
+        properties = new JPanel();
+        properties.setLayout(null);
         JLabel id = new JLabel("ID: ");
         id.setBounds(5,5,50,20);
         p2.add(id);
@@ -262,7 +266,7 @@ public class Dut extends JPanel {
         add.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 if(temp!=null&&!propname.getText().equals("")&&!propvalue.getText().equals("")&&!checkForNumber(propname.getText().charAt(0))){
-                    temp.propertys.add(new String[]{propname.getText(),propvalue.getText()});
+                    temp.properties.add(new String[]{propname.getText(),propvalue.getText()});
                     propname.setText("");
                     propvalue.setText("");
                     temp.updatePropertys();}}});
@@ -273,7 +277,7 @@ public class Dut extends JPanel {
                 if(temp!=null){
                     temp.setName(tname.getText());
                     ((DefaultTreeModel)explorer.tree.getModel()).nodeChanged(nodetemp1);}}});
-        tname.setBounds(90,30,200,20);
+        tname.setBounds(90,30,200,25);
         p2.add(tname);
         tid = new JTextField();
         tid.addKeyListener(new KeyAdapter(){
@@ -282,7 +286,7 @@ public class Dut extends JPanel {
                     temp.setID(tid.getText());
                     ((DefaultMutableTreeNode)nodetemp1.getChildAt(0)).setUserObject("Id: "+tid.getText());
                     ((DefaultTreeModel)explorer.tree.getModel()).nodeChanged(nodetemp1.getChildAt(0));}}});
-        tid.setBounds(90,5,200,20);
+        tid.setBounds(90,5,200,25);
         p2.add(tid);
         tvendor = new JTextField();
         tvendor.addKeyListener(new KeyAdapter(){
@@ -291,7 +295,7 @@ public class Dut extends JPanel {
                     temp.setVendor(tvendor.getText());                    
                     ((DefaultMutableTreeNode)nodetemp1.getChildAt(2)).setUserObject("Vendor: "+tvendor.getText());
                     ((DefaultTreeModel)explorer.tree.getModel()).nodeChanged(nodetemp1.getChildAt(2));}}});
-        tvendor.setBounds(90,110,200,20);
+        tvendor.setBounds(90,110,200,25);
         p2.add(tvendor);
         ttype = new JTextField();
         ttype.addKeyListener(new KeyAdapter(){
@@ -299,7 +303,7 @@ public class Dut extends JPanel {
                 if(temp!=null){temp.setType(ttype.getText());
                 ((DefaultMutableTreeNode)nodetemp1.getChildAt(3)).setUserObject("Type: "+ttype.getText());
                 ((DefaultTreeModel)explorer.tree.getModel()).nodeChanged(nodetemp1.getChildAt(3));}}});
-        ttype.setBounds(90,135,200,20);
+        ttype.setBounds(90,135,200,25);
         p2.add(ttype);
         tfamily = new JTextField();
         tfamily.addKeyListener(new KeyAdapter(){
@@ -308,7 +312,7 @@ public class Dut extends JPanel {
                     temp.setFamily(tfamily.getText());
                     ((DefaultMutableTreeNode)nodetemp1.getChildAt(4)).setUserObject("Family: "+tfamily.getText());
                     ((DefaultTreeModel)explorer.tree.getModel()).nodeChanged(nodetemp1.getChildAt(4));}}});
-        tfamily.setBounds(90,160,200,20);
+        tfamily.setBounds(90,160,200,25);
         p2.add(tfamily);
         tmodel = new JTextField();
         tmodel.addKeyListener(new KeyAdapter(){
@@ -317,7 +321,7 @@ public class Dut extends JPanel {
                     temp.setModel(tmodel.getText());
                     ((DefaultMutableTreeNode)nodetemp1.getChildAt(5)).setUserObject("Model: "+tmodel.getText());
                     ((DefaultTreeModel)explorer.tree.getModel()).nodeChanged(nodetemp1.getChildAt(5));}}});
-        tmodel.setBounds(90,185,200,20);
+        tmodel.setBounds(90,185,200,25);
         p2.add(tmodel);
         JLabel description = new JLabel("Description: ");
         description.setBounds(5,55,90,20);
@@ -614,7 +618,7 @@ public class Dut extends JPanel {
                                         if(((Element)node).getChildNodes().getLength()>15){
                                             for(int k=15;k<((Element)node).getChildNodes().getLength();k++){
                                                 if(((Element)node).getChildNodes().item(k).getNodeName().equals("devicemodule"))break;
-                                                d.propertys.add(new String[]{((Element)node).getChildNodes().item(k).getNodeName(),((Element)node).getChildNodes().item(k).getChildNodes().item(0).getNodeValue()});
+                                                d.properties.add(new String[]{((Element)node).getChildNodes().item(k).getNodeName(),((Element)node).getChildNodes().item(k).getChildNodes().item(0).getNodeValue()});
                                                 DefaultMutableTreeNode child8 = new DefaultMutableTreeNode(((Element)node).getChildNodes().item(k).getNodeName()+" - "+((Element)node).getChildNodes().item(k).getChildNodes().item(0).getNodeValue(),false);
                                                 child.add(child8);
                                                 k++;}}
@@ -635,7 +639,7 @@ public class Dut extends JPanel {
                                                     child8.add(child9);}
                                                 for(int l=3;l<((Element)modul).getChildNodes().getLength();l++){
                                                     if(((Element)modul).getChildNodes().item(l).getNodeName().equals("deviceport"))break;
-                                                    else{dmodul.propertys.add(new String[]{((Element)modul).getChildNodes().item(l).getNodeName(),((Element)modul).getChildNodes().item(l).getChildNodes().item(0).getNodeValue()});
+                                                    else{dmodul.properties.add(new String[]{((Element)modul).getChildNodes().item(l).getNodeName(),((Element)modul).getChildNodes().item(l).getChildNodes().item(0).getNodeValue()});
                                                         DefaultMutableTreeNode child10 = new DefaultMutableTreeNode(((Element)modul).getChildNodes().item(l).getNodeName()+" - "+((Element)modul).getChildNodes().item(l).getChildNodes().item(0).getNodeValue(),false);
                                                         child8.add(child10);}
                                                     l++;}
@@ -653,7 +657,7 @@ public class Dut extends JPanel {
                                                         child11.add(child13);
                                                         for(int m=5;m<((Element)port).getChildNodes().getLength();m++){
                                                             Node prop = ((Element)port).getChildNodes().item(m);
-                                                            dport.propertys.add(new String[]{((Element)prop).getNodeName(),((Element)prop).getChildNodes().item(0).getNodeValue()});
+                                                            dport.properties.add(new String[]{((Element)prop).getNodeName(),((Element)prop).getChildNodes().item(0).getNodeValue()});
                                                             DefaultMutableTreeNode child14 = new DefaultMutableTreeNode(((Element)prop).getNodeName()+" - "+((Element)prop).getChildNodes().item(0).getNodeValue(),false);
                                                             child11.add(child14);
                                                             m++;}}}}}}}}

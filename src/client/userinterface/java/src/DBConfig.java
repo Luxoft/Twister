@@ -46,7 +46,7 @@ public class DBConfig extends JPanel{
         file.setBounds(15,10,50,20);
         add(file);
         final JTextField tfile = new JTextField();
-        tfile.setBounds(80,10,170,20);
+        tfile.setBounds(80,10,170,25);
         add(tfile);
         JButton browse = new JButton("Browse");
         browse.addActionListener(new ActionListener(){
@@ -59,10 +59,10 @@ public class DBConfig extends JPanel{
                     File f = chooser.getSelectedFile();
                     try{tfile.setText(f.getCanonicalPath());}
                     catch(Exception e){e.printStackTrace();}}}});
-        browse.setBounds(255,10,90,20);
+        browse.setBounds(255,13,90,20);
         add(browse);
         JButton upload = new JButton("Upload");
-        upload.setBounds(355,10,90,20);
+        upload.setBounds(355,13,90,20);
         upload.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 try{File f = new File(tfile.getText());
@@ -75,28 +75,28 @@ public class DBConfig extends JPanel{
                 catch(Exception e){e.printStackTrace();}}});
         add(upload);
         JLabel database = new JLabel("Database: ");
-        database.setBounds(15,55,50,20);
+        database.setBounds(15,55,65,20);
         add(database);
         tdatabase = new JTextField();
-        tdatabase.setBounds(80,55,170,20);
+        tdatabase.setBounds(80,55,170,25);
         add(tdatabase);
         JLabel server = new JLabel("Server: ");
         server.setBounds(15,80,50,20);
         add(server);
         tserver = new JTextField();
-        tserver.setBounds(80,80,170,20);
+        tserver.setBounds(80,80,170,25);
         add(tserver);
         JLabel user = new JLabel("User: ");
         user.setBounds(15,105,50,20);
         add(user);
         tuser = new JTextField();
-        tuser.setBounds(80,105,170,20);
+        tuser.setBounds(80,105,170,25);
         add(tuser);
         JLabel password = new JLabel("Password: ");
         password.setBounds(15,130,70,20);
         add(password);
         tpassword = new JPasswordField();
-        tpassword.setBounds(80,130,170,20);
+        tpassword.setBounds(80,130,170,25);
         add(tpassword);
         refresh();
         JButton save = new JButton("Save");

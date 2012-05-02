@@ -12,7 +12,7 @@ public class Browser{
         displayEditorPane = new JEditorPane();
         displayEditorPane.setContentType("text/html");
         displayEditorPane.setEditable(false);
-        try{displayEditorPane.setPage(new URL("http://"+Repository.host+":"+Repository.getHTTPServerPort()));}
+        try{displayEditorPane.setPage(new URL("http://"+Repository.host+":"+Repository.getHTTPServerPort()+"/report"));}
         catch(Exception e){System.out.println("could not get "+Repository.host+":"+Repository.getHTTPServerPort());}
         displayEditorPane.addHyperlinkListener(new HyperlinkListener(){
             public void hyperlinkUpdate(HyperlinkEvent e){
@@ -20,14 +20,4 @@ public class Browser{
                 if (eventType == HyperlinkEvent.EventType.ACTIVATED) {
                     if (!(e instanceof HTMLFrameHyperlinkEvent)){
                         try{displayEditorPane.setPage(e.getURL());}
-                        catch(Exception ex){System.out.println("Could not get to:"+e.getURL());}
-//                         HTMLFrameHyperlinkEvent linkEvent = (HTMLFrameHyperlinkEvent) event;
-//                         HTMLDocument document = (HTMLDocument) displayEditorPane.getDocument();
-//                         document.processHTMLFrameHyperlinkEvent(linkEvent);
-                    }
-//                     else {displayEditorPane.setPage(event.getURL());}
-                }
-            }
-            
-        });
-    }}
+                        catch(Exception ex){System.out.println("Could not get to:"+e.getURL());}}}}});}}

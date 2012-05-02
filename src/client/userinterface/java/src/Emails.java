@@ -54,16 +54,16 @@ public class Emails extends JPanel{
         p1.setLayout(null);    
         p1.setBounds(80,5,350,68);
         JLabel ipname = new JLabel("IP/Name: ");
-        ipname.setBounds(60,15,60,20);
+        ipname.setBounds(60,18,60,20);
         p1.add(ipname);
         tipname = new JTextField();
-        tipname.setBounds(125,15,150,20);
+        tipname.setBounds(125,17,150,25);
         p1.add(tipname);
         JLabel port = new JLabel("Port: ");
         port.setBounds(60,40,60,20);
         p1.add(port);
         tport = new JTextField();
-        tport.setBounds(125,40,150,20);
+        tport.setBounds(125,40,150,25);
         p1.add(tport);
         add(p1);
         border = BorderFactory.createTitledBorder("Authentication");
@@ -75,22 +75,22 @@ public class Emails extends JPanel{
         p2.setLayout(null);    
         p2.setBounds(80,73,350,93);
         JLabel user = new JLabel("User: ");
-        user.setBounds(60,15,60,20);
+        user.setBounds(60,18,60,20);
         p2.add(user);
         tuser = new JTextField();
-        tuser.setBounds(125,15,150,20);
+        tuser.setBounds(125,17,150,25);
         p2.add(tuser);
         JLabel pass = new JLabel("Password: ");
         pass.setBounds(60,40,80,20);
         p2.add(pass);
         tpass = new JPasswordField();
-        tpass.setBounds(125,40,150,20);
+        tpass.setBounds(125,40,150,25);
         p2.add(tpass);
         JLabel from = new JLabel("From: ");
         from.setBounds(60,65,60,20);
         p2.add(from);
         tfrom = new JTextField();
-        tfrom.setBounds(125,65,150,20);
+        tfrom.setBounds(125,65,150,25);
         p2.add(tfrom);
         add(p2);
         border = BorderFactory.createTitledBorder("Email List");
@@ -153,14 +153,12 @@ public class Emails extends JPanel{
         save.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 if(tpass.getPassword().length == 0){JOptionPane.showMessageDialog(Emails.this, "Warning, password not set.", "Warning", JOptionPane.WARNING_MESSAGE);}
-                try{
-                    File theone = new File(Repository.temp+Repository.getBar()+"Twister"+Repository.getBar()+"Config"+Repository.getBar()+new File(Repository.REMOTEEMAILCONFIGFILE).getName());
+                try{File theone = new File(Repository.temp+Repository.getBar()+"Twister"+Repository.getBar()+"Config"+Repository.getBar()+new File(Repository.REMOTEEMAILCONFIGFILE).getName());
                     DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
                     DocumentBuilder db = dbf.newDocumentBuilder();                                        
                     Document doc = db.parse(theone);
                     doc.getDocumentElement().normalize();
-                    try{
-                        NodeList nodeLst = doc.getElementsByTagName("Enabled");
+                    try{NodeList nodeLst = doc.getElementsByTagName("Enabled");
                         if(nodeLst.item(0).getChildNodes().getLength()>0)nodeLst.item(0).getChildNodes().item(0).setNodeValue(check.isSelected()+"");
                         else nodeLst.item(0).appendChild(doc.createTextNode(check.isSelected()+""));
                         nodeLst = doc.getElementsByTagName("SMTPPath");

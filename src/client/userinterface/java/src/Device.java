@@ -27,7 +27,7 @@ public class Device{
     String type="";
     String family="";
     String model="";
-    ArrayList <String[]> propertys =  new ArrayList <String[]>();
+    ArrayList <String[]> properties =  new ArrayList <String[]>();
     ArrayList <DeviceModule> modules =  new ArrayList <DeviceModule>();
     Device reference;
     
@@ -51,15 +51,15 @@ public class Device{
         updatePropertys();}
         
     public void updatePropertys(){
-        Repository.frame.mainpanel.p4.dut.propertys.removeAll();
+        Repository.frame.mainpanel.p4.dut.properties.removeAll();
         if(Repository.frame.mainpanel.p4.dut.nodetemp1.getChildAt(Repository.frame.mainpanel.p4.dut.nodetemp1.getChildCount()-1).isLeaf()){
             while(Repository.frame.mainpanel.p4.dut.nodetemp1.getChildCount()>6){
                 ((DefaultTreeModel)Repository.frame.mainpanel.p4.dut.explorer.tree.getModel()).removeNodeFromParent(((DefaultMutableTreeNode)Repository.frame.mainpanel.p4.dut.nodetemp1.getChildAt(6)));}}
         else{
             while(Repository.frame.mainpanel.p4.dut.nodetemp1.getChildAt(6).isLeaf()){
                 ((DefaultTreeModel)Repository.frame.mainpanel.p4.dut.explorer.tree.getModel()).removeNodeFromParent(((DefaultMutableTreeNode)Repository.frame.mainpanel.p4.dut.nodetemp1.getChildAt(6)));}}
-        for(int i =0;i<propertys.size();i++){
-            DefaultMutableTreeNode child2 = new DefaultMutableTreeNode(propertys.get(i)[0]+" - "+propertys.get(i)[1],false);
+        for(int i =0;i<properties.size();i++){
+            DefaultMutableTreeNode child2 = new DefaultMutableTreeNode(properties.get(i)[0]+" - "+properties.get(i)[1],false);
             if(Repository.frame.mainpanel.p4.dut.nodetemp1.getChildAt(Repository.frame.mainpanel.p4.dut.nodetemp1.getChildCount()-1).isLeaf()){
                 ((DefaultTreeModel)Repository.frame.mainpanel.p4.dut.explorer.tree.getModel()).insertNodeInto(child2,Repository.frame.mainpanel.p4.dut.nodetemp1,Repository.frame.mainpanel.p4.dut.nodetemp1.getChildCount());}
             else{
@@ -68,30 +68,30 @@ public class Device{
             b.setBounds(280,i*23+18,78,19);
             b.addActionListener(new ActionListener(){
                 public void actionPerformed(ActionEvent ev){
-                    propertys.remove(Repository.frame.mainpanel.p4.dut.propertys.getComponentZOrder(b)/3);
+                    properties.remove(Repository.frame.mainpanel.p4.dut.properties.getComponentZOrder(b)/3);
                     updatePropertys();}});
-            Repository.frame.mainpanel.p4.dut.propertys.add(b);
+            Repository.frame.mainpanel.p4.dut.properties.add(b);
             final JTextField text1 = new JTextField();
-            text1.setText(propertys.get(i)[0]);
-            text1.setBounds(6,i*23+18,135,20);
+            text1.setText(properties.get(i)[0]);
+            text1.setBounds(6,i*23+18,135,25);
             text1.addKeyListener(new KeyAdapter(){
                 public void keyReleased(KeyEvent ev){
-                    propertys.get(Repository.frame.mainpanel.p4.dut.propertys.getComponentZOrder(text1)/3)[0]=text1.getText();
-                    ((DefaultMutableTreeNode)Repository.frame.mainpanel.p4.dut.nodetemp1.getChildAt(6+(Repository.frame.mainpanel.p4.dut.propertys.getComponentZOrder(text1)/3))).setUserObject(text1.getText()+" - "+propertys.get(Repository.frame.mainpanel.p4.dut.propertys.getComponentZOrder(text1)/3)[1]);
-                    ((DefaultTreeModel)Repository.frame.mainpanel.p4.dut.explorer.tree.getModel()).nodeChanged(Repository.frame.mainpanel.p4.dut.nodetemp1.getChildAt(6+(Repository.frame.mainpanel.p4.dut.propertys.getComponentZOrder(text1)/3)));}});
+                    properties.get(Repository.frame.mainpanel.p4.dut.properties.getComponentZOrder(text1)/3)[0]=text1.getText();
+                    ((DefaultMutableTreeNode)Repository.frame.mainpanel.p4.dut.nodetemp1.getChildAt(6+(Repository.frame.mainpanel.p4.dut.properties.getComponentZOrder(text1)/3))).setUserObject(text1.getText()+" - "+properties.get(Repository.frame.mainpanel.p4.dut.properties.getComponentZOrder(text1)/3)[1]);
+                    ((DefaultTreeModel)Repository.frame.mainpanel.p4.dut.explorer.tree.getModel()).nodeChanged(Repository.frame.mainpanel.p4.dut.nodetemp1.getChildAt(6+(Repository.frame.mainpanel.p4.dut.properties.getComponentZOrder(text1)/3)));}});
             final JTextField text2 = new JTextField();
-            text2.setText(propertys.get(i)[1]);
-            text2.setBounds(143,i*23+18,135,20);    
+            text2.setText(properties.get(i)[1]);
+            text2.setBounds(143,i*23+18,135,25);    
             text2.addKeyListener(new KeyAdapter(){
                 public void keyReleased(KeyEvent ev){
-                    propertys.get(Repository.frame.mainpanel.p4.dut.propertys.getComponentZOrder(text1)/3)[1]=text2.getText();
-                    ((DefaultMutableTreeNode)Repository.frame.mainpanel.p4.dut.nodetemp1.getChildAt(6+(Repository.frame.mainpanel.p4.dut.propertys.getComponentZOrder(text1)/3))).setUserObject(propertys.get(Repository.frame.mainpanel.p4.dut.propertys.getComponentZOrder(text1)/3)[0]+" - "+text2.getText());
-                    ((DefaultTreeModel)Repository.frame.mainpanel.p4.dut.explorer.tree.getModel()).nodeChanged(Repository.frame.mainpanel.p4.dut.nodetemp1.getChildAt(6+(Repository.frame.mainpanel.p4.dut.propertys.getComponentZOrder(text1)/3)));}});
-            Repository.frame.mainpanel.p4.dut.propertys.add(text2);
-            Repository.frame.mainpanel.p4.dut.propertys.add(text1);}
-        Repository.frame.mainpanel.p4.dut.propertys.setPreferredSize(new Dimension(Repository.frame.mainpanel.p4.dut.propertys.getWidth(),propertys.size()*23+18));
-        Repository.frame.mainpanel.p4.dut.propertys.revalidate();
-        Repository.frame.mainpanel.p4.dut.propertys.repaint();}
+                    properties.get(Repository.frame.mainpanel.p4.dut.properties.getComponentZOrder(text1)/3)[1]=text2.getText();
+                    ((DefaultMutableTreeNode)Repository.frame.mainpanel.p4.dut.nodetemp1.getChildAt(6+(Repository.frame.mainpanel.p4.dut.properties.getComponentZOrder(text1)/3))).setUserObject(properties.get(Repository.frame.mainpanel.p4.dut.properties.getComponentZOrder(text1)/3)[0]+" - "+text2.getText());
+                    ((DefaultTreeModel)Repository.frame.mainpanel.p4.dut.explorer.tree.getModel()).nodeChanged(Repository.frame.mainpanel.p4.dut.nodetemp1.getChildAt(6+(Repository.frame.mainpanel.p4.dut.properties.getComponentZOrder(text1)/3)));}});
+            Repository.frame.mainpanel.p4.dut.properties.add(text2);
+            Repository.frame.mainpanel.p4.dut.properties.add(text1);}
+        Repository.frame.mainpanel.p4.dut.properties.setPreferredSize(new Dimension(Repository.frame.mainpanel.p4.dut.properties.getWidth(),properties.size()*23+18));
+        Repository.frame.mainpanel.p4.dut.properties.revalidate();
+        Repository.frame.mainpanel.p4.dut.properties.repaint();}
         
     public void setDescription(String description){
         this.description = description;}

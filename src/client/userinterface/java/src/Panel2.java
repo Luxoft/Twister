@@ -42,6 +42,7 @@ import jxl.write.WritableSheet;
 import java.io.File;
 import jxl.Workbook;
 import jxl.CellView;
+import javax.swing.SwingUtilities;
 
 public class Panel2 extends JPanel{
     private static final long serialVersionUID = 1L;
@@ -62,38 +63,6 @@ public class Panel2 extends JPanel{
         Repository.intro.repaint();
         sc = new ScrollGraficTest(0, 0,applet);
         tabbed = new JTabbedPane();
-//         tabbed.addMouseListener(new MouseAdapter(){
-//             public void mouseReleased(MouseEvent ev){
-//                 if(ev.getButton()==3){
-//                     JPopupMenu p = new JPopupMenu();
-//                     JMenuItem item = new JMenuItem("Clear "+tabbed.getTitleAt(tabbed.getSelectedIndex()));        
-//                     p.add(item);
-//                     item.addActionListener(new ActionListener(){
-//                         public void actionPerformed(ActionEvent ev2){
-//                             logs.get(tabbed.getSelectedIndex()).clearScreen();
-//                             try{File theone = new File(Repository.temp+System.getProperty("file.separator")+logs.get(tabbed.getSelectedIndex()).log);
-//                                 theone.createNewFile();
-//                                 FileInputStream in = new FileInputStream(theone);
-//                                 Repository.c.put(in,Repository.LOGSPATH+logs.get(tabbed.getSelectedIndex()).log);}
-//                             catch(Exception e){e.printStackTrace();}}});
-//                     item = new JMenuItem("Save "+tabbed.getTitleAt(tabbed.getSelectedIndex()));        
-//                     p.add(item);
-//                     item.addActionListener(new ActionListener(){
-//                         public void actionPerformed(ActionEvent ev2){
-//                             JFileChooser chooser = new JFileChooser(); 
-//                             chooser.setApproveButtonText("Save");
-//                             chooser.setCurrentDirectory(new java.io.File("."));
-//                             chooser.setDialogTitle("Choose Location");
-//                             chooser.setAcceptAllFileFilterUsed(false);    
-//                             if (chooser.showOpenDialog(Repository.frame) == JFileChooser.APPROVE_OPTION) {
-//                                 File theone = new File(chooser.getSelectedFile()+"");
-//                                 try{theone.createNewFile();
-//                                     FileWriter writer = new FileWriter(theone);
-//                                     writer.write(logs.get(tabbed.getSelectedIndex()).textarea.getText());
-//                                     writer.flush();
-//                                     writer.close();}
-//                                 catch(Exception e){}}}});
-//                     p.show(tabbed,ev.getX(),ev.getY());}}});
         splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,sc.pane,tabbed);
         Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
         splitPane.setBounds(10,45,(int)screenSize.getWidth()-80,600);
@@ -292,11 +261,14 @@ public class Panel2 extends JPanel{
     public void updateTabs(){
         tabbed.removeAll();
         logs.clear();
-        for(int i=0;i<Repository.logs.size();i++){
-            if(i==4)continue;
-            Log log = new Log(500,0,Repository.logs.get(i));
-            logs.add(log);
-            tabbed.addTab(Repository.logs.get(i),log.container);}
+        SwingUtilities.invokeLater(new Runnable() { 
+          public void run(){
+            try{for(int i=0;i<Repository.logs.size();i++){
+                    if(i==4)continue;
+                    Log log = new Log(500,0,Repository.logs.get(i));
+                    logs.add(log);
+                    tabbed.addTab(Repository.logs.get(i),log.container);}}
+            catch(Exception e){e.printStackTrace();}}});
         TabsReorder.enableReordering(tabbed);} 
 
     public void updateStatuses(String [] statuses){
