@@ -427,7 +427,7 @@ for fname in to_copy:
     if dpath.startswith('src/'):
         dpath = dpath[4:]
 
-    if dpath:
+    if dpath and ( not os.path.exists(INSTALL_PATH+dpath) ):
         try:
             dir_util.mkpath(INSTALL_PATH + dpath)
             print('Created folder structure `%s`.' % (INSTALL_PATH+dpath))
