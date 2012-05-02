@@ -340,6 +340,15 @@ def connect_db():
 
 #
 
+def get_ip_address(ifname):
+    try: import fcntl
+    except: print('Fatal Error get IP adress!') ; exit(1)
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    return socket.inet_ntoa(fcntl.ioctl(
+        s.fileno(), 0x8915, struct.pack('256s', ifname[:15]) )[20:24])
+
+#
+
 if __name__ == '__main__':
 
     TWISTER_PATH = os.getenv('TWISTER_PATH')
@@ -373,7 +382,10 @@ if __name__ == '__main__':
     curs = None
 
     # Find server IP
-    serverIP = '11.126.32.9' # '10.9.6.220' # socket.gethostbyname(socket.gethostname())
+    try:
+        serverIP = socket.gethostbyname(socket.gethostname())
+    except:
+        serverIP = get_ip_address('eth0')
     # Find server PORT
     serverPort = int(soup.httpserverport.text)
     del soup
