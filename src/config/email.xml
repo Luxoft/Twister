@@ -1,10 +1,10 @@
 <Root>
-    <Enabled>true</Enabled>
+    <Enabled>false</Enabled>
     <SMTPPath>smtp.itcnetworks:25</SMTPPath>
     <SMTPUser>atoma</SMTPUser>
     <SMTPPwd>XXX</SMTPPwd>
     <From>atoma@luxoft.com</From>
     <To>Atoma@luxoft.com, CrConstantin@luxoft.com</To>
-    <Subject>Report for {release_id} {build_id} [{date}]</Subject>
+    <Subject>Report for $release_id $build_id [$date]</Subject>
     <Message></Message>
 </Root>

@@ -8,7 +8,10 @@ if not sys.version.startswith('2.7'):
     print('Python version error! Central Engine must run on Python 2.7!')
     exit(1)
 
-os.environ['TWISTER_PATH'] = os.getenv('HOME') + '/twister/src'
+if os.path.exists(os.getenv('HOME') + '/twister/src'):
+    os.environ['TWISTER_PATH'] = os.getenv('HOME') + '/twister/src'
+else:
+    os.environ['TWISTER_PATH'] = os.getenv('HOME') + '/twister'
 
 eps = json.load(open('config_ep.json'))
 

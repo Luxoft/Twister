@@ -12,16 +12,17 @@
 	<field ID="res_id" Type="DbSelect" FieldName="id" FromTable="results" SQLQuery="select MAX(id)+1 from repo_test_view" Label="" GUIDefined="false" Mandatory="true" />
 	<field ID="log_id" Type="DbSelect" FieldName="id" FromTable="logs"    SQLQuery="select MAX(id)+1 from logs" Label="" GUIDefined="false" Mandatory="true" />
 
-	<field ID="release_id"  FieldName="id" FromTable="sites" SQLQuery="select DISTINCT id from repo_release" Label="Release:" Type="UserSelect" GUIDefined="true" Mandatory="true" />
-	<field ID="build_id" FieldName="id" FromTable="suite" SQLQuery="select DISTINCT id from repo_build" Label="Build:" Type="UserSelect" GUIDefined="true" Mandatory="true" />
-	<field ID="suite_id"   FieldName="id" FromTable="pri" SQLQuery="select DISTINCT id from repo_suite" Label="Suite:" Type="UserSelect" GUIDefined="true" Mandatory="true" />
-	<field ID="station_id"   FieldName="id" FromTable="suts" SQLQuery="select DISTINCT id from repo_station" Label="Station:" Type="UserSelect" GUIDefined="true" Mandatory="true" />
+	<field ID="release_id"  FieldName="id" FromTable="sites" SQLQuery="select DISTINCT id from repo_release" Label="Release: (int)" Type="UserSelect" GUIDefined="true" Mandatory="true" />
+	<field ID="build_id" FieldName="id" FromTable="suite" SQLQuery="select DISTINCT id from repo_build" Label="Build: (int)" Type="UserSelect" GUIDefined="true" Mandatory="true" />
+	<field ID="suite_id"   FieldName="id" FromTable="pri" SQLQuery="select DISTINCT id from repo_suite" Label="Suite: (int)" Type="UserSelect" GUIDefined="true" Mandatory="true" />
+	<field ID="station_id"   FieldName="id" FromTable="suts" SQLQuery="select DISTINCT id from repo_station" Label="Station: (int)" Type="UserSelect" GUIDefined="true" Mandatory="true" />
 
 	<field ID="comments"  FieldName="" FromTable="" Label="Set comments:" Type="UserText" GUIDefined="true" Mandatory="false" />
 </field_section>
 
 <insert_section>
-	<sql_statement>INSERT INTO repo_test_view VALUES( @res_id@,{release_id},{build_id},{suite_id},{station_id}, '{twister_tc_date_finished}','{twister_tc_status}','{comments}' )</sql_statement>
+	<sql_statement>INSERT INTO repo_test_view VALUES( @res_id@, $release_id, $build_id, $suite_id, $station_id,
+		'$twister_tc_date_finished', '$twister_tc_status', '$comments' )</sql_statement>
 </insert_section>
 
 <reports_section>
