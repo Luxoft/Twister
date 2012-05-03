@@ -67,7 +67,7 @@ public class ConfigFiles extends JPanel{
         tMasterXML = new JTextField();
         addPanel("Master XML TestSuite","Location of the XML that is generated from the user interface to run on Central Engine",tMasterXML,Repository.XMLREMOTEDIR,73,true,null);
         tUsers = new JTextField();
-        addPanel("Users Path","Location of users XML files",tUsers,Repository.REMOTEUSERSDIRECTORY,141,true,null);
+        addPanel("Suites Path","Location of suites XML files",tUsers,Repository.REMOTEUSERSDIRECTORY,141,true,null);
         tepid = new JTextField();
         addPanel("EP name File","Location of the file that contains the Ep name list",tepid,Repository.REMOTEEPIDDIR,209,true,null);
         tlog = new JTextField();
