@@ -284,18 +284,19 @@ if HTTP_PROXY:
     urllib2.install_opener(opener)
 
 # Checking internet connection and Pypi availability
+print('\nChecking internet connection...')
 try:
     pypi = urllib2.urlopen('http://pypi.python.org/simple/')
     if pypi.read(255):
         INTERNET = True
-        print('\nInternet connection is available.\n')
+        print('Internet connection available.\n')
     else:
         INTERNET = False
-        print('\nCannot connect! Check the internet connection, or the Proxy settings!\n')
+        print('Cannot connect! Check the internet connection, or the Proxy settings!\n')
     del pypi
 except:
     INTERNET = False
-    print('\nCannot connect! Check the internet connection, or the Proxy settings!\n')
+    print('Cannot connect! Check the internet connection, or the Proxy settings!\n')
 
 
 # --------------------------------------------------------------------------------------------------
