@@ -79,7 +79,6 @@ import java.awt.event.KeyEvent;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyAdapter;
 
-
 public class ExplorerPanel extends JPanel {
     private static final long serialVersionUID = 1L;
     JTree tree;
@@ -257,8 +256,7 @@ public class ExplorerPanel extends JPanel {
                     try{bufferedReader = new BufferedReader(new FileReader(file2));}
                     catch(Exception e){e.printStackTrace();}
                     line=null;
-                    try{
-                        StringBuffer buf = new StringBuffer();
+                    try{StringBuffer buf = new StringBuffer();
                         while ((line=bufferedReader.readLine())!= null){
                             buf.append(line+"\n");}
                         textarea.setText(buf.toString());
