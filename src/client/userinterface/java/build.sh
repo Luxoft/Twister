@@ -33,4 +33,4 @@ $JDK_PATH/jarsigner ../extlibs/xmlrpc-common-3.1.3.jar Twister -storepass passwo
 
 
 # Export the keystore as X509
-$JDK_PATH/keytool  -export -alias Twister -rfc -file target/sig.x509 -storepass password
+$JDK_PATH/keytool  -export -alias Twister -rfc -file ../target/sig.x509 -storepass password
