@@ -48,7 +48,7 @@ public class MainPanel extends JTabbedPane{
         new Thread(){
             public void run(){
                 
-                SwingUtilities.invokeLater(new Runnable() { 
+                SwingUtilities.invokeLater(new Runnable(){
                     public void run(){
                         try{
                             while(p1.sc.g.getGraphics() == null) 
@@ -72,7 +72,7 @@ public class MainPanel extends JTabbedPane{
             addChangeListener(new ChangeListener(){
                 public void stateChanged(ChangeEvent e){
                     if(getSelectedIndex()==2){
-                        try{Repository.frame.container.getAppletContext().showDocument(new URL("http://"+Repository.host+":"+Repository.getHTTPServerPort()), "_blank");}
+                        try{Repository.frame.container.getAppletContext().showDocument(new URL("http://"+Repository.host+":"+Repository.getHTTPServerPort()+"/report"), "_blank");}
                         catch(Exception ex){ex.printStackTrace();}
                         setSelectedIndex(1);}}});}
         Repository.intro.text = "Finished Main initialization";
