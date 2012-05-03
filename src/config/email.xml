@@ -1,5 +1,5 @@
 <Root>
-    <Enabled>true</Enabled>
+    <Enabled>false</Enabled>
     <SMTPPath>smtp.itcnetworks:25</SMTPPath>
     <SMTPUser>atoma</SMTPUser>
     <SMTPPwd>XXX</SMTPPwd>
