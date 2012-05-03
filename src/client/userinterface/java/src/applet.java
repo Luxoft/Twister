@@ -23,10 +23,11 @@ public class applet extends Applet{
     private static final long serialVersionUID = 1L;
      
     public void init(){
-        SwingUtilities.invokeLater(new Runnable(){
-          public void run(){
-            try{UIManager.setLookAndFeel("javax.swing.plaf.nimbus.NimbusLookAndFeel");}
-            catch(Exception e){e.printStackTrace();}}});
+//         SwingUtilities.invokeLater(new Runnable(){
+//           public void run(){
+// //             try{UIManager.setLookAndFeel("javax.swing.plaf.nimbus.NimbusLookAndFeel");}
+// //             catch(Exception e){e.printStackTrace();}
+// }});
         try{System.out.println("Current version: ");
             System.out.println("OS current temporary directory is : "+System.getProperty("java.io.tmpdir"));
             Repository.tcicon = loadIcon("tc.png");
