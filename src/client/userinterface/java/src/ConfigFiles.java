@@ -272,7 +272,8 @@ public class ConfigFiles extends JPanel{
                     public void actionPerformed(ActionEvent ev){
                         if(fileChooser==null)initializeFileBrowser();
                         try{if(fileChooser.showOpenDialog(Repository.frame)==VFSJFileChooser.RETURN_TYPE.CANCEL){
-                                 FileObject aFileObject = fileChooser.getCurrentDirectory();
+                                FileObject aFileObject = fileChooser.getSelectedFile();
+//                                  FileObject aFileObject = fileChooser.getCurrentDirectory();
                                  if(aFileObject!=null)textfield.setText(aFileObject.toString().substring(aFileObject.toString().indexOf("@")).substring(aFileObject.toString().substring(aFileObject.toString().indexOf("@")).indexOf("/")));}
                                  fileChooser=null;}
                          catch(Exception e){
@@ -353,4 +354,5 @@ public class ConfigFiles extends JPanel{
         fileChooser = new VFSJFileChooser("sftp://"+Repository.user+":"+Repository.password+"@"+Repository.host+"/home/"+Repository.user+"/twister/config/");        
         fileChooser.setFileHidingEnabled(true);
         fileChooser.setMultiSelectionEnabled(false);
-        fileChooser.setFileSelectionMode(VFSJFileChooser.SELECTION_MODE.DIRECTORIES_ONLY);}}
+        fileChooser.setFileSelectionMode(VFSJFileChooser.SELECTION_MODE.FILES_AND_DIRECTORIES);
+    }}
