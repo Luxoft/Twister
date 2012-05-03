@@ -168,6 +168,8 @@ public class Panel2 extends JPanel{
                                     String[] result2 = {(String)result1};
                                     updateStatuses(result2);}}}}
                 catch(Exception e){
+                    try{Thread.sleep(1000);}
+                    catch(Exception ex){ex.printStackTrace();}
                     System.out.println("Could not connect to: "+Repository.host+" on port"+Repository.getCentralEnginePort());
                     e.printStackTrace();
                     if(play.isEnabled()){
