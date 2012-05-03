@@ -49,8 +49,7 @@ public class DevicePort{
             DefaultMutableTreeNode child2 = new DefaultMutableTreeNode(properties.get(i)[0]+" - "+properties.get(i)[1],false);
             if(Repository.frame.mainpanel.p4.dut.nodetemp3.getChildAt(Repository.frame.mainpanel.p4.dut.nodetemp3.getChildCount()-1).isLeaf()){
                 ((DefaultTreeModel)Repository.frame.mainpanel.p4.dut.explorer.tree.getModel()).insertNodeInto(child2,Repository.frame.mainpanel.p4.dut.nodetemp3,Repository.frame.mainpanel.p4.dut.nodetemp3.getChildCount());}
-            else{
-                ((DefaultTreeModel)Repository.frame.mainpanel.p4.dut.explorer.tree.getModel()).insertNodeInto(child2,Repository.frame.mainpanel.p4.dut.nodetemp3,1+i);}
+            else{((DefaultTreeModel)Repository.frame.mainpanel.p4.dut.explorer.tree.getModel()).insertNodeInto(child2,Repository.frame.mainpanel.p4.dut.nodetemp3,1+i);}
             final JButton b = new JButton("remove");
             b.setBounds(280,i*23+18,78,19);
             b.addActionListener(new ActionListener(){
