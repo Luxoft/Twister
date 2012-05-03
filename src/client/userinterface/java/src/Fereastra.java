@@ -11,9 +11,9 @@ import java.awt.Container;
 import java.awt.Color;
 import javax.swing.JDesktopPane;
 import javax.swing.JInternalFrame;
-import javax.swing.UIManager.*;
 import javax.swing.UIManager;
 import java.awt.DefaultKeyboardFocusManager;
+import javax.swing.JPanel;
 
 public class Fereastra extends JFrame{
     MainPanel mainpanel ;
@@ -28,6 +28,8 @@ public class Fereastra extends JFrame{
         Repository.intro.percent+=0.035;
         Repository.intro.repaint();
         mainpanel = new MainPanel(applet);
+//         JPanel p = new JPanel();
+//         p.add();
         if(container!=null)container.add(mainpanel);
         else{
             setLayout(null);

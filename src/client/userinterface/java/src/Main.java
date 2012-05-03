@@ -55,11 +55,12 @@ public class Main{
 //         catch(Exception e){
 //             e.printStackTrace();
 //             System.out.println("Could not load look and feel");}
-       SwingUtilities.invokeLater(new Runnable(){
-          public void run(){
-            try{UIManager.setLookAndFeel("javax.swing.plaf.nimbus.NimbusLookAndFeel");
-                Repository.initialize(false,"tsc-server",null);}
-            catch(Exception e){e.printStackTrace();}}});
+//        SwingUtilities.invokeLater(new Runnable(){
+//           public void run(){
+//             try{UIManager.setLookAndFeel("javax.swing.plaf.nimbus.NimbusLookAndFeel");
+                Repository.initialize(false,"tsc-server",null);
+//             }
+//             catch(Exception e){e.printStackTrace();}}});
         
 //         for(LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
 //                 System.out.println(info.getName());
