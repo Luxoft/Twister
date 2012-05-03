@@ -565,7 +565,7 @@ public class Dut extends JPanel {
                     if(childsnr>0){
                         while(((DefaultMutableTreeNode)explorer.tree.getModel().getRoot()).getChildCount()>0){
                             ((DefaultTreeModel)explorer.tree.getModel()).removeNodeFromParent((DefaultMutableTreeNode)(((DefaultMutableTreeNode)explorer.tree.getModel().getRoot()).getChildAt(0)));}
-                        for(int j = 0;j<childsnr;j++){                            
+                        for(int j = 0;j<childsnr;j++){
                             Node tbnode = nodeLst.item(j);
                             TestBed t = new TestBed();
                             try{t.setName(((Element)tbnode).getElementsByTagName("testbedname").item(0).getChildNodes().item(0).getNodeValue());}
