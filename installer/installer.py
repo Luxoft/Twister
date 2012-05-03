@@ -37,7 +37,7 @@ PYTHON_EXE = sys.executable
 
 # The proxy is used only if you need a proxy to connect to internet,
 # And `setuptools` is not installed, or some dependencies are missing
-HTTP_PROXY = 'http://CrConstantin:1XXX@http-proxy.itcnetworks:3128'
+HTTP_PROXY = 'http://UserName:PassWord@http-proxy.itcnetworks:3128'
 
 
 # --------------------------------------------------------------------------------------------------
@@ -154,17 +154,17 @@ if os.path.exists(INSTALL_PATH):
     if selected.strip().lower() == 'yes':
 
         if os.path.exists(INSTALL_PATH + 'config'):
-            print('Back-up `config` folder...')
+            print('Back-up `config` folder (from `{0}` to `{1}`)...'.format(INSTALL_PATH+'config', os.getcwd()))
             shutil.move(INSTALL_PATH + 'config', os.getcwd())
 
         # Deleting previous versions of Twister
         try: dir_util.remove_tree(INSTALL_PATH)
-        except: pass
+        except: print('Error! Cannot delete Twister dir `{0}` !'.format(INSTALL_PATH))
         try: os.mkdir(INSTALL_PATH)
-        except: pass
+        except: print('Error! Cannot create Twister dir `{0}` !'.format(INSTALL_PATH))
 
         if os.path.exists(os.getcwd() + '/config'):
-            print('Moving `config` folder back...')
+            print('Moving `config` folder back (from `{0}` to `{1}`)...'.format(os.getcwd() + '/config', INSTALL_PATH))
             shutil.move(os.getcwd() + '/config', INSTALL_PATH)
     else:
         print('\nPlease backup all your data, then restart the installer.')
@@ -456,6 +456,11 @@ for fname in to_copy:
 
 #
 
+try: os.mkdir(INSTALL_PATH +os.sep+ '.twister_cache')
+except: pass
+try: os.mkdir(INSTALL_PATH +os.sep+ 'logs')
+except: pass
+
 tcr_proc = subprocess.Popen(['chown', GROUP, INSTALL_PATH, '-R'],)
 tcr_proc.wait()
 tcr_proc = subprocess.Popen(['chmod', '774', INSTALL_PATH, '-R'],)
@@ -466,13 +471,6 @@ os.system('chmod 774 %s -R' % INSTALL_PATH)
 os.system('find %s -name "*.xml" -exec chmod 664 {} \;' % INSTALL_PATH)
 os.system('find %s -name "*.py" -exec chmod 664 {} \;' % INSTALL_PATH)
 os.system('find %s -name "*.tcl" -exec chmod 664 {} \;' % INSTALL_PATH)
-
-#
-try: os.mkdir(INSTALL_PATH +os.sep+ '.twister_cache')
-except: pass
-try: os.mkdir(INSTALL_PATH +os.sep+ 'logs')
-except: pass
-#
 
 # Add twister path export
 for fname in glob.glob(INSTALL_PATH + 'bin/*'):
