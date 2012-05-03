@@ -468,7 +468,9 @@ os.system('find %s -name "*.py" -exec chmod 664 {} \;' % INSTALL_PATH)
 os.system('find %s -name "*.tcl" -exec chmod 664 {} \;' % INSTALL_PATH)
 
 #
-try: os.mkdir(INSTALL_PATH + 'src/.twister_cache')
+try: os.mkdir(INSTALL_PATH +os.sep+ '.twister_cache')
+except: pass
+try: os.mkdir(INSTALL_PATH +os.sep+ 'logs')
 except: pass
 #
 
