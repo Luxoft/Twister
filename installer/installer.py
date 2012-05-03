@@ -37,7 +37,7 @@ PYTHON_EXE = sys.executable
 
 # The proxy is used only if you need a proxy to connect to internet,
 # And `setuptools` is not installed, or some dependencies are missing
-HTTP_PROXY = 'http://CrConstantin:1XXX@http-proxy.itcnetworks:3128'
+HTTP_PROXY = 'http://UserName:PassWord@http-proxy.itcnetworks:3128'
 
 
 # --------------------------------------------------------------------------------------------------
@@ -456,6 +456,11 @@ for fname in to_copy:
 
 #
 
+try: os.mkdir(INSTALL_PATH +os.sep+ '.twister_cache')
+except: pass
+try: os.mkdir(INSTALL_PATH +os.sep+ 'logs')
+except: pass
+
 tcr_proc = subprocess.Popen(['chown', GROUP, INSTALL_PATH, '-R'],)
 tcr_proc.wait()
 tcr_proc = subprocess.Popen(['chmod', '774', INSTALL_PATH, '-R'],)
@@ -466,13 +471,6 @@ os.system('chmod 774 %s -R' % INSTALL_PATH)
 os.system('find %s -name "*.xml" -exec chmod 664 {} \;' % INSTALL_PATH)
 os.system('find %s -name "*.py" -exec chmod 664 {} \;' % INSTALL_PATH)
 os.system('find %s -name "*.tcl" -exec chmod 664 {} \;' % INSTALL_PATH)
-
-#
-try: os.mkdir(INSTALL_PATH +os.sep+ '.twister_cache')
-except: pass
-try: os.mkdir(INSTALL_PATH +os.sep+ 'logs')
-except: pass
-#
 
 # Add twister path export
 for fname in glob.glob(INSTALL_PATH + 'bin/*'):
