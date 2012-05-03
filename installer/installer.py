@@ -163,9 +163,6 @@ if os.path.exists(INSTALL_PATH):
         try: os.mkdir(INSTALL_PATH)
         except: print('Error! Cannot create Twister dir `{0}` !'.format(INSTALL_PATH))
 
-        if os.path.exists(os.getcwd() + '/config'):
-            print('Moving `config` folder back (from `{0}` to `{1}`)...'.format(os.getcwd() + '/config', INSTALL_PATH))
-            shutil.move(os.getcwd() + '/config', INSTALL_PATH)
     else:
         print('\nPlease backup all your data, then restart the installer.')
         print('Exiting.\n')
@@ -456,6 +453,12 @@ for fname in to_copy:
 
 #
 
+# Restore Config folder
+if os.path.exists(os.getcwd() + '/config'):
+    print('Moving `config` folder back (from `{0}` to `{1}`)...'.format(os.getcwd() + '/config', INSTALL_PATH))
+    shutil.move(os.getcwd() + '/config', INSTALL_PATH)
+
+# Create cache and logs folders
 try: os.mkdir(INSTALL_PATH +os.sep+ '.twister_cache')
 except: pass
 try: os.mkdir(INSTALL_PATH +os.sep+ 'logs')
