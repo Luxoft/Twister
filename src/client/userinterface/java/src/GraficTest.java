@@ -125,7 +125,6 @@ public class GraficTest extends JPanel{
                 setPreferredSize(new Dimension(445,595));
                 revalidate();}}}
             
-            
     public int getLastY(Item item, int height){
         if(height<=(item.getRectangle().getY()+item.getRectangle().getHeight())){
             height=(int)(item.getRectangle().getY()+item.getRectangle().getHeight());        
