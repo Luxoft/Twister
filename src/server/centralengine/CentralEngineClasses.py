@@ -9,8 +9,12 @@ Each test file has a status that can be: pending, working, pass, fail, skip, etc
 All the statuses are defined in "constants.py".
 '''
 
-import os
-import sys
+import os, sys
+
+if not sys.version.startswith('2.7'):
+    print('Python version error! Central Engine must run on Python 2.7!')
+    exit(1)
+
 import re
 import glob
 import time
@@ -21,10 +25,7 @@ import smtplib
 import xmlrpclib
 import MySQLdb
 
-if not sys.version.startswith('2.7'):
-    print('Python version error! Central Engine must run on Python 2.7!')
-    exit(1)
-
+from string import Template
 from collections import OrderedDict
 from email.mime.text import MIMEText
 
@@ -37,6 +38,7 @@ sys.path.append(TWISTER_PATH)
 from common.constants import *
 from common.tsclogging import *
 from common.xmlparser import *
+
 
 dictStatus = {'stopped':STATUS_STOP, 'paused':STATUS_PAUSED, 'running':STATUS_RUNNING, 'resume':STATUS_RESUME}
 
@@ -131,6 +133,7 @@ class TestFile:
             vars_to_replace = re.findall('(@.+?@)', query)
 
             for field in vars_to_replace:
+                # Delete the @ character
                 u_query = fields.get(field.replace('@', ''))
 
                 if not u_query:
@@ -143,15 +146,20 @@ class TestFile:
                 # Replace @variables@ with real Database values
                 query = query.replace(field, str(q_value))
 
+            # String Template
+            tmpl = Template(query)
+
+            # Build complete query
             try:
-                query = query.format(**self.data)
+                query = tmpl.substitute(self.data)
             except Exception, e:
-                logError('File: {0}, cannot build query! Key error: {1}!'.format(self.name, str(e)))
+                logError('File: {0}, cannot build query! Error: {1}!'.format(self.name, str(e)))
                 return False
 
-            # For DEBUG ::
-            open(os.getenv('HOME')+os.sep+'Query.debug', 'a').write('File Query:: `{0}` ::\n{1}\n\n\n'.format(self.name, query))
+            # :: For DEBUG ::
+            #open(TWISTER_PATH + os.sep + 'Query.debug', 'a').write('File Query:: `{0}` ::\n{1}\n\n\n'.format(self.name, query))
 
+            # Execute MySQL Query
             try:
                 curs.execute(query)
             except MySQLdb.Error, e:
@@ -374,189 +382,6 @@ class CentralEngine:
         logInfo('Echo: %s' % str(msg))
         return 'CE reply: ' + msg
 
-# # #
-
-    def ofDataPath(self):
-        '''
-        THIS FUNCTION WILL BE REMOVED AFTER THE InterOp DEMO.
-        This shows the datapath : 1 = path 1 ; 2 = path 2.
-        '''
-
-        from lib.LibOpenFlow import FloodLiteControl
-        try:
-            restapi = FloodLiteControl('10.9.6.220', 8080)
-            switches = restapi.get_switches()
-        except:
-            logError('FloodLite: Cannot connect to the controller!')
-            return 'x'
-
-        valid_ports = { '00:0a:08:17:f4:32:a5:00': ['18', '28', '34'], '00:0a:08:17:f4:5c:ac:00': ['8', '18', '34'] }
-        actions_d = { # Direct path
-            '00:0a:08:17:f4:32:a5:00': {'18':'OUTPUT', '28':'OUTPUT', '34':'DROP'},
-            '00:0a:08:17:f4:5c:ac:00': {'8':'OUTPUT', '18':'OUTPUT', '34':'DROP'},
-            }
-        actions_c = { # Changed path
-            '00:0a:08:17:f4:32:a5:00': {'18':'OUTPUT', '28':'DROP', '34':'OUTPUT'},
-            '00:0a:08:17:f4:5c:ac:00': {'18':'OUTPUT', '8':'DROP',  '34':'OUTPUT'},
-            }
-        current_actions = {}
-
-        for sw in switches:
-
-            switch_dpid = sw['dpid']
-            flow_dict = restapi.get_switch_statistics(switch_dpid, 'flow')
-            sw_actions = {}
-
-            if (not flow_dict) or (not flow_dict[switch_dpid]):
-                print 'OpenFlow DataPath :: Cannot find any flows for `%s`!' % switch_dpid
-                return 'x'
-
-            # FLOWS info
-            for action in flow_dict[switch_dpid]:
-
-                aPort = str(action['match'].get('inputPort'))
-
-                if aPort not in valid_ports[switch_dpid]:
-                    continue
-
-                if not action['actions']:
-                    aAction = 'DROP'
-                else:
-                    aAction = action['actions'][0]['type']
-
-                sw_actions[aPort] = aAction
-
-            # Setup actions
-            current_actions[switch_dpid] = sw_actions
-
-        json.dump( current_actions, open('openflow_datapath.json','w'), indent=2, sort_keys=True )
-
-        if current_actions == actions_d:
-            return 'd'
-        elif current_actions == actions_c:
-            return 'c'
-        else:
-            return 'x'
-
-
-    def ofStatistics(self):
-        '''
-        THIS FUNCTION WILL BE REMOVED AFTER THE InterOp DEMO.
-        This returns :
-        - ingres port
-        - action
-        - output port
-        - r packets
-        - t packets
-        - bitrate
-        '''
-
-        from lib.LibOpenFlow import FloodLiteControl
-        try:
-            restapi = FloodLiteControl('10.9.6.220', 8080)
-            switches = restapi.get_switches()
-        except:
-            logError('FloodLite: Cannot connect to the controller!')
-            return False
-
-        valid_switches = ['00:0a:08:17:f4:5c:ac:00', '00:0a:08:17:f4:32:a5:00']
-        valid_ports = { '10.9.6.150': ['18', '28', '34'], '10.9.6.151': ['8', '18', '34'] }
-
-        # OF_Switch_1 = 10.9.6.150
-        # OF_Switch_2 = 10.9.6.151
-        result_templ = 'OF_Switch_1,'\
-                '18,{s1-a18},{s1-o18},'\
-                '28,{s1-a28},{s1-o28},'\
-                '34,{s1-a34},{s1-o34},'\
-                '{s1-r18},{s1-t18},{s1-b18},'\
-                '{s1-r28},{s1-t28},{s1-b28},'\
-                '{s1-r34},{s1-t34},{s1-b34},'\
-                'OF_Switch_2,'\
-                '8,{s2-a8},{s2-o8},'\
-                '18,{s2-a18},{s2-o18},'\
-                '34,{s2-a34},{s2-o34},'\
-                '{s2-r8},{s2-t8},{s2-b8},'\
-                '{s2-r18},{s2-t18},{s2-b18},'\
-                '{s2-r34},{s2-t34},{s2-b34}'
-        result_dict = {
-                's1-a18':'-','s1-o18':' ',
-                's1-a28':'-','s1-o28':' ',
-                's1-a34':'-','s1-o34':' ',
-                's1-r18':'x','s1-t18':'x','s1-b18':'x b/s',
-                's1-r28':'x','s1-t28':'x','s1-b28':'x b/s',
-                's1-r34':'x','s1-t34':'x','s1-b34':'x b/s',
-                's2-a8' :'-','s2-o8' :' ',
-                's2-a18':'-','s2-o18':' ',
-                's2-a34':'-','s2-o34':' ',
-                's2-r8' :'x','s2-t8' :'x','s2-b8' :'x b/s',
-                's2-r18':'x','s2-t18':'x','s2-b18':'x b/s',
-                's2-r34':'x','s2-t34':'x','s2-b34':'x b/s',
-            }
-
-        # Cycling over valid switches, instead of the returned switches
-        for sw in switches:
-
-            switch_dpid = sw['dpid']
-
-            if switch_dpid == "00:0a:08:17:f4:32:a5:00":
-                switch_x = 's1'
-                switch_name = '10.9.6.150'
-            elif switch_dpid == "00:0a:08:17:f4:5c:ac:00":
-                switch_x = 's2'
-                switch_name = '10.9.6.151'
-            else:
-                print 'FloodLite Error! Unknown switch id `%s` !!!' % switch_dpid
-                return False
-
-            p_dict = restapi.get_switch_statistics(switch_dpid, 'port')
-            f_dict = restapi.get_switch_statistics(switch_dpid, 'flow')
-
-            current_actions = [switch_name]
-            current_ports = []
-
-            # FLOWS info
-            if f_dict:
-                for actions in f_dict[switch_dpid]:
-
-                    inputPort = str(actions['match'].get('inputPort'))
-                    if inputPort not in valid_ports[switch_name]:
-                        continue
-
-                    if not actions['actions']:
-                        aAction = 'DROP'
-                        aPort = ' '
-                    else:
-                        aAction = actions['actions'][0]['type']
-                        aPort = str(actions['actions'][0]['port'])
-
-                    result_dict[switch_x +'-a'+ inputPort] = aAction
-                    result_dict[switch_x +'-o'+ inputPort] = aPort
-
-            # PORTS info
-            if p_dict and p_dict[switch_dpid]:
-                for port in p_dict[switch_dpid]:
-
-                    portNumber = str(port['portNumber'])
-                    if portNumber not in valid_ports[switch_name]:
-                        continue
-
-                    rx_packets =  str( port['receivePackets']   - self.open_flow_bit_rate.get(switch_name+':r'+portNumber, 0) )
-                    tx_packets =  str( port['transmitPackets']  - self.open_flow_bit_rate.get(switch_name+':t'+portNumber, 0) )
-                    bit_rate =    str( port['transmitBytes']    - self.open_flow_bit_rate.get(switch_name+':'+portNumber, 0) ) + ' b/s'
-
-                    self.open_flow_bit_rate[switch_name+':r'+portNumber] = port['receivePackets']
-                    self.open_flow_bit_rate[switch_name+':t'+portNumber] = port['transmitPackets']
-                    self.open_flow_bit_rate[switch_name+':'+portNumber]  = port['transmitBytes']
-
-                    result_dict[switch_x +'-r'+ portNumber] = rx_packets
-                    result_dict[switch_x +'-t'+ portNumber] = tx_packets
-                    result_dict[switch_x +'-b'+ portNumber] = bit_rate
-
-        json.dump( result_dict, open('openflow_statistics.json','w'), indent=2, sort_keys=True )
-
-        return result_templ.format(**result_dict)
-
-# # #
 
     def getAllVars():
         '''
@@ -681,17 +506,21 @@ class CentralEngine:
                 else:
                     map_info[k] = suite_info[k]
 
+        tmpl = Template(eMailConfig['Subject'])
         try:
-            eMailConfig['Subject'] = eMailConfig['Subject'].format(**map_info)
+            eMailConfig['Subject'] = tmpl.substitute(map_info)
         except Exception, e:
-            logError('CE: Cannot build e-mail subject! Key error: {0}!'.format(e))
+            logError('CE: Cannot build e-mail subject! Error: {0}!'.format(e))
             return False
+        del tmpl
 
+        tmpl = Template(eMailConfig['Message'])
         try:
-            eMailConfig['Message'] = eMailConfig['Message'].format(**map_info)
+            eMailConfig['Message'] = tmpl.substitute(map_info)
         except Exception, e:
-            logError('CE: Cannot build e-mail message! Key error: {0}!'.format(e))
+            logError('CE: Cannot build e-mail message! Error: {0}!'.format(e))
             return False
+        del tmpl
 
         head = ''
         head += 'Tests executed: %i\n' % len(logSummary.strip().splitlines())
@@ -744,7 +573,7 @@ class CentralEngine:
         '''
         For each EP, for each File, the results of the tests are saved to database,
         exactly as the user defined them in db.xml.
-        This function is called from the Java Interface.
+        This function is called from the Java Interface, or from an EP.
         '''
 
         logDebug('CE: Preparing to save into database... 3... 2... 1...')

@@ -15,7 +15,7 @@
 
 <insert_section>
 	<sql_statement>INSERT INTO gg_regression (suite_name, test_name, status, date, build, run_no, logfilename)
-		VALUES ('{twister_suite_name}','{twister_tc_name}','{twister_tc_status}','{twister_tc_date_finished}','{release}.{build}',1,'log')</sql_statement>
+		VALUES ('$twister_suite_name','$twister_tc_name','$twister_tc_status','$twister_tc_date_finished','$release.$build',1,'log')</sql_statement>
 </insert_section>
 
 <reports_section>

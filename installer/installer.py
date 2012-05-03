@@ -472,7 +472,11 @@ try: os.mkdir(INSTALL_PATH + 'src/.twister_cache')
 except: pass
 #
 
+# Add twister path export
 for fname in glob.glob(INSTALL_PATH + 'bin/*'):
+    # Ignore python and config files
+    if os.path.splitext(fname)[1]: continue
+
     lines = open(fname).readlines()
     lines.insert(4, ('export TWISTER_PATH=%s\n' % INSTALL_PATH))
     open(fname, 'w').write(''.join(lines))
