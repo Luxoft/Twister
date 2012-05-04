@@ -615,13 +615,15 @@ class CentralEngine:
                 (str(epid), str(self.EpIds)) )
             return False
 
-        logDebug('CE: Station `{0}`: setting variable `{1}` = `{2}`.'.format(epid, variable, value))
-
         # Inject extra information, for each file
         for ep in self.EpIds:
             if ep.id != epid: continue
             for filename in ep.tfList:
                 ep.addFileInfo(filename, variable, value)
+
+        logDebug('CE: Station `{0}`: variable set `{1}` = `{2}`.'.format(epid, variable, value))
+
+        return True
 
 
 # --------------------------------------------------------------------------------------------------
