@@ -607,14 +607,21 @@ class CentralEngine:
         '''
         This function is called from the Execution Process,
         to inject values inside the EP classes.
-        The values will can saved in the Database, when commiting.
+        The values can saved in the Database, when commiting.
         Eg: the OS, the IP, or other information can be added this way.
         '''
+        if not self.searchEP(epid):
+            logError('CE ERROR! EpId `%s` is not in the list of defined EpIds: `%s`!' % \
+                (str(epid), str(self.EpIds)) )
+            return False
 
         logDebug('CE: Station `{0}`: setting variable `{1}` = `{2}`.'.format(epid, variable, value))
 
-        # Inject extra information, then commit
-        # ...
+        # Inject extra information, for each file
+        for ep in self.EpIds:
+            if ep.id != epid: continue
+            for filename in ep.tfList:
+                ep.addFileInfo(filename, variable, value)
 
 
 # --------------------------------------------------------------------------------------------------
