@@ -14,7 +14,7 @@ Test Suite Config: All info about the current Test Suite (Test Plan).
     <TestCaseSourcePath>/home/tscguest/twister/demo/</TestCaseSourcePath>
     <MasterXMLTestSuite>/home/tscguest/twister/src/config/testsuites.xml</MasterXMLTestSuite>
     <UsersPath>/home/tscguest/twister/src/users/</UsersPath>
-    <LogsPath>/home/tscguest/twister/src/logs</LogsPath>
+    <LogsPath>/home/tscguest/twister/logs</LogsPath>
     <ReportsPath>/home/tscguest/twister/src/reports</ReportsPath>
     <EpIdsFile>/home/tscguest/twister/src/config/epname.txt</EpIdsFile>
     <DbConfigFile>/home/tscguest/twister/src/config/db.xml</DbConfigFile>
