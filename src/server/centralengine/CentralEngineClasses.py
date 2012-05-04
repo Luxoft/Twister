@@ -603,6 +603,21 @@ class CentralEngine:
         return 1
 
 
+    def setEpVariable(self, epid, variable, value):
+        '''
+        This function is called from the Execution Process,
+        to inject values inside the EP classes.
+        The values will can saved in the Database, when commiting.
+        Eg: the OS, the IP, or other information can be added this way.
+        '''
+
+        logDebug('CE: Station `{0}`: setting variable `{1}` = `{2}`.'.format(epid, variable, value))
+
+        # Inject extra information, then commit
+        for ep in self.EpIds:
+            ep.
+
+
 # --------------------------------------------------------------------------------------------------
 #           E X E C U T I O N   S T A T U S
 # --------------------------------------------------------------------------------------------------
