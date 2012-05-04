@@ -1,12 +1,11 @@
 #!/bin/bash
 
 PYTHON=/usr/bin/python
-CE_PORT=8000
 
 if [ -n "$TWISTER_PATH" ]
 then
 	echo TWISTER_PATH set to: "$TWISTER_PATH".
-	$PYTHON $TWISTER_PATH/server/centralengine/CentralEngine.py $CE_PORT
+	$PYTHON $TWISTER_PATH/server/centralengine/CentralEngine.py
 else
 	echo TWISTER_PATH variable enviroment is not defined!
 fi
