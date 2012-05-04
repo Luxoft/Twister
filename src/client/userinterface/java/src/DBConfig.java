@@ -31,172 +31,267 @@ import javax.xml.transform.OutputKeys;
 import javax.xml.transform.dom.DOMSource;
 import javax.swing.JOptionPane;
 
-public class DBConfig extends JPanel{
-    Document doc=null;
-    File theone;
-    JTextField tdatabase,tserver,tuser;
-    JPasswordField tpassword;
+public class DBConfig extends JPanel {
 
-    public DBConfig(){
-        setLayout(null);
-        setPreferredSize(new Dimension(450,480));
-        setBorder(BorderFactory.createBevelBorder(BevelBorder.LOWERED));
-        setBackground(Color.WHITE);
-        JLabel file = new JLabel("File: ");
-        file.setBounds(15,10,50,20);
-        add(file);
-        final JTextField tfile = new JTextField();
-        tfile.setBounds(80,10,170,25);
-        add(tfile);
-        JButton browse = new JButton("Browse");
-        browse.addActionListener(new ActionListener(){
-            public void actionPerformed(ActionEvent ev){
-                JFileChooser chooser = new JFileChooser(); 
-                chooser.setFileFilter(new XMLFilter());
-                chooser.setCurrentDirectory(new java.io.File("."));
-                chooser.setDialogTitle("Select XML File"); 
-                if (chooser.showOpenDialog(Repository.frame) == JFileChooser.APPROVE_OPTION) {                     
-                    File f = chooser.getSelectedFile();
-                    try{tfile.setText(f.getCanonicalPath());}
-                    catch(Exception e){e.printStackTrace();}}}});
-        browse.setBounds(255,13,90,20);
-        add(browse);
-        JButton upload = new JButton("Upload");
-        upload.setBounds(355,10,90,20);
-        upload.addActionListener(new ActionListener(){
-            public void actionPerformed(ActionEvent ev){
-                try{File f = new File(tfile.getText());
-                    Repository.c.cd(Repository.REMOTEDATABASECONFIGPATH);
-                    FileInputStream stream = new FileInputStream(f);
-                    Repository.c.put(stream,f.getName());
-                    stream.close();
-                    Files.copy(f.toPath(), new File(Repository.getConfigDirectory()+
-                    Repository.getBar()+f.getName()).toPath(), REPLACE_EXISTING);
-                    Repository.resetDBConf(f.getName(),false);}
-                catch(Exception e){e.printStackTrace();}}});
-        add(upload);
-        JLabel database = new JLabel("Database: ");
-        database.setBounds(15,55,65,20);
-        add(database);
-        tdatabase = new JTextField();
-        tdatabase.setBounds(80,55,170,25);
-        add(tdatabase);
-        JLabel server = new JLabel("Server: ");
-        server.setBounds(15,80,50,20);
-        add(server);
-        tserver = new JTextField();
-        tserver.setBounds(80,80,170,25);
-        add(tserver);
-        JLabel user = new JLabel("User: ");
-        user.setBounds(15,105,50,20);
-        add(user);
-        tuser = new JTextField();
-        tuser.setBounds(80,105,170,25);
-        add(tuser);
-        JLabel password = new JLabel("Password: ");
-        password.setBounds(15,130,70,20);
-        add(password);
-        tpassword = new JPasswordField();
-        tpassword.setBounds(80,130,170,25);
-        add(tpassword);
-        refresh();
-        JButton save = new JButton("Save");
-        save.setBounds(180,155,70,20);
-        save.addActionListener(new ActionListener(){
-            public void actionPerformed(ActionEvent ev){
-                if(doc!=null){
-                    if(tpassword.getPassword().length == 0){JOptionPane.showMessageDialog(
-                    DBConfig.this, "Warning, password not set", "Warning", JOptionPane.WARNING_MESSAGE);}
-                    theone = new File(Repository.temp+Repository.getBar()+"Twister"+
-                    Repository.getBar()+"config"+Repository.getBar()+new File(
-                    Repository.REMOTEDATABASECONFIGFILE).getName());
-                    try{NodeList nodeLst = doc.getElementsByTagName("server");
-                        if(nodeLst.item(0).getChildNodes().getLength()>0)nodeLst.
-                        item(0).getChildNodes().item(0).setNodeValue(tserver.getText());
-                        else nodeLst.item(0).appendChild(doc.createTextNode(
-                        tserver.getText()));
-                        nodeLst = doc.getElementsByTagName("database");
-                        if(nodeLst.item(0).getChildNodes().getLength()>0)nodeLst.
-                        item(0).getChildNodes().item(0).setNodeValue(tdatabase.
-                        getText());
-                        else nodeLst.item(0).appendChild(doc.createTextNode(tdatabase.
-                        getText()));
-                        nodeLst = doc.getElementsByTagName("user");
-                        if(nodeLst.item(0).getChildNodes().getLength()>0)nodeLst.
-                        item(0).getChildNodes().item(0).setNodeValue(tuser.getText());
-                        else nodeLst.item(0).appendChild(doc.createTextNode(tuser.
-                        getText()));
-                        if(tpassword.getPassword().length != 0 && !(new String(
-                        tpassword.getPassword()).equals("****"))){
-                            nodeLst = doc.getElementsByTagName("password");
-                            if(nodeLst.item(0).getChildNodes().getLength()>0)nodeLst.
-                            item(0).getChildNodes().item(0).setNodeValue(new String(
-                            tpassword.getPassword()));
-                            else nodeLst.item(0).appendChild(doc.createTextNode(
-                            new String(tpassword.getPassword())));}}
-                    catch(Exception e){System.out.println(doc.getDocumentURI()+
-                    " may not be properly formatted");}
-                    Result result = new StreamResult(theone);
-                    try{DOMSource source = new DOMSource(doc);
-                        TransformerFactory transformerFactory = TransformerFactory.
-                        newInstance();
-                        Transformer transformer = transformerFactory.newTransformer();
-                        transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
-                        transformer.setOutputProperty(OutputKeys.INDENT, "yes");
-                        transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "4");                        
-                        transformer.transform(source, result);  
-                        try{Repository.c.cd(Repository.REMOTEDATABASECONFIGPATH);}
-                        catch(Exception e){System.out.println("could not get "+
-                        Repository.REMOTEDATABASECONFIGPATH);
-                            e.printStackTrace();}
-                        FileInputStream input = new FileInputStream(theone);
-                        Repository.c.put(input, theone.getName());
-                        input.close();}
-                    catch(Exception e){e.printStackTrace();
-                    System.out.println("Could not save in file : "+Repository.
-                    temp+Repository.getBar()+"Twister"+Repository.getBar()+"Config"+
-                    Repository.getBar()+Repository.REMOTEDATABASECONFIGFILE+" and send to "+
-                    Repository.REMOTEDATABASECONFIGPATH);}}}});
-        add(save);}
-    
-    public void refresh(){
-        try{
-            InputStream in = null;
-            try{Repository.c.cd(Repository.REMOTEDATABASECONFIGPATH);
-                System.out.println("changed to:"+ Repository.REMOTEDATABASECONFIGPATH);
-                in = Repository.c.get(Repository.REMOTEDATABASECONFIGFILE);}
-            catch(Exception e){e.printStackTrace();
-                System.out.println("Could not get: "+Repository.REMOTEDATABASECONFIGFILE);}
-            byte [] data = new byte[100];
-            ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-            int nRead;
-            theone = new File(Repository.temp+Repository.getBar()+"Twister"+Repository.
-            getBar()+"Config"+Repository.getBar()+new File(Repository.REMOTEDATABASECONFIGFILE).getName());
-            try{while ((nRead = in.read(data, 0, data.length)) != -1){buffer.write(data, 0, nRead);}
-                buffer.flush();
-                FileOutputStream out = new FileOutputStream(theone);
-                buffer.writeTo(out);
-                out.close();
-                buffer.close();
-                in.close();}
-            catch(Exception e){e.printStackTrace();
-                System.out.println("Could not write "+Repository.REMOTEDATABASECONFIGFILE+" on local hdd");}
-            try{DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-                DocumentBuilder db = dbf.newDocumentBuilder();                                        
-                doc = db.parse(theone);
-                doc.getDocumentElement().normalize();
-                NodeList nodeLst = doc.getElementsByTagName("server");
-                tserver.setText(nodeLst.item(0).getChildNodes().item(0).getNodeValue());
-                nodeLst = doc.getElementsByTagName("database");
-                tdatabase.setText(nodeLst.item(0).getChildNodes().item(0).getNodeValue());
-                nodeLst = doc.getElementsByTagName("password");
-                tpassword.setText(nodeLst.item(0).getChildNodes().item(0).getNodeValue());
-                if(!tpassword.getPassword().equals(""))tpassword.setText("****");
-                nodeLst = doc.getElementsByTagName("user");
-                tuser.setText(nodeLst.item(0).getChildNodes().item(0).getNodeValue());}
-            catch(Exception e){System.out.println(Repository.temp+Repository.getBar()+
-            "Twister"+Repository.getBar()+"Config"+Repository.getBar()+new File(Repository.
-            REMOTEDATABASECONFIGFILE).getName()+" is corrupted or incomplete");}}
-        catch(Exception e){
-            e.printStackTrace();
-            System.out.println("Could not refresh dbconfig structure");}}}
+	Document doc = null;
+	File theone;
+	JTextField tdatabase, tserver, tuser;
+	JPasswordField tpassword;
+
+	public DBConfig() {
+		setLayout(null);
+		setPreferredSize(new Dimension(450, 480));
+		setBorder(BorderFactory.createBevelBorder(BevelBorder.LOWERED));
+		setBackground(Color.WHITE);
+		JLabel file = new JLabel("File: ");
+		file.setBounds(15, 10, 50, 20);
+		add(file);
+		final JTextField tfile = new JTextField();
+		tfile.setBounds(80, 10, 170, 25);
+		add(tfile);
+		JButton browse = new JButton("Browse");
+		browse.addActionListener(new ActionListener() {
+
+			public void actionPerformed(ActionEvent ev) {
+				JFileChooser chooser = new JFileChooser();
+				chooser.setFileFilter(new XMLFilter());
+				chooser.setCurrentDirectory(new java.io.File("."));
+				chooser.setDialogTitle("Select XML File");
+				if (chooser.showOpenDialog(Repository.frame) == JFileChooser.APPROVE_OPTION) {
+					File f = chooser.getSelectedFile();
+					try {
+						tfile.setText(f.getCanonicalPath());
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+				}
+			}
+		});
+		browse.setBounds(255, 13, 90, 20);
+		add(browse);
+		JButton upload = new JButton("Upload");
+		upload.setBounds(355, 10, 90, 20);
+		upload.addActionListener(new ActionListener() {
+
+			public void actionPerformed(ActionEvent ev) {
+				try {
+					File f = new File(tfile.getText());
+					Repository.c.cd(Repository.REMOTEDATABASECONFIGPATH);
+					FileInputStream stream = new FileInputStream(f);
+					Repository.c.put(stream, f.getName());
+					stream.close();
+					Files.copy(f.toPath(),
+							new File(Repository.getConfigDirectory()
+									+ Repository.getBar() + f.getName())
+									.toPath(), REPLACE_EXISTING);
+					Repository.resetDBConf(f.getName(), false);
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+		});
+		add(upload);
+		JLabel database = new JLabel("Database: ");
+		database.setBounds(15, 55, 65, 20);
+		add(database);
+		tdatabase = new JTextField();
+		tdatabase.setBounds(80, 55, 170, 25);
+		add(tdatabase);
+		JLabel server = new JLabel("Server: ");
+		server.setBounds(15, 80, 50, 20);
+		add(server);
+		tserver = new JTextField();
+		tserver.setBounds(80, 80, 170, 25);
+		add(tserver);
+		JLabel user = new JLabel("User: ");
+		user.setBounds(15, 105, 50, 20);
+		add(user);
+		tuser = new JTextField();
+		tuser.setBounds(80, 105, 170, 25);
+		add(tuser);
+		JLabel password = new JLabel("Password: ");
+		password.setBounds(15, 130, 70, 20);
+		add(password);
+		tpassword = new JPasswordField();
+		tpassword.setBounds(80, 130, 170, 25);
+		add(tpassword);
+		refresh();
+		JButton save = new JButton("Save");
+		save.setBounds(180, 155, 70, 20);
+		save.addActionListener(new ActionListener() {
+
+			public void actionPerformed(ActionEvent ev) {
+				if (doc != null) {
+					if (tpassword.getPassword().length == 0) {
+						JOptionPane.showMessageDialog(DBConfig.this,
+								"Warning, password not set", "Warning",
+								JOptionPane.WARNING_MESSAGE);
+					}
+					theone = new File(Repository.temp
+							+ Repository.getBar()
+							+ "Twister"
+							+ Repository.getBar()
+							+ "config"
+							+ Repository.getBar()
+							+ new File(Repository.REMOTEDATABASECONFIGFILE)
+									.getName());
+					try {
+						NodeList nodeLst = doc.getElementsByTagName("server");
+						if (nodeLst.item(0).getChildNodes().getLength() > 0) {
+							nodeLst.item(0).getChildNodes().item(0)
+									.setNodeValue(tserver.getText());
+						} else {
+							nodeLst.item(0).appendChild(
+									doc.createTextNode(tserver.getText()));
+						}
+						nodeLst = doc.getElementsByTagName("database");
+						if (nodeLst.item(0).getChildNodes().getLength() > 0) {
+							nodeLst.item(0).getChildNodes().item(0)
+									.setNodeValue(tdatabase.getText());
+						} else {
+							nodeLst.item(0).appendChild(
+									doc.createTextNode(tdatabase.getText()));
+						}
+						nodeLst = doc.getElementsByTagName("user");
+						if (nodeLst.item(0).getChildNodes().getLength() > 0) {
+							nodeLst.item(0).getChildNodes().item(0)
+									.setNodeValue(tuser.getText());
+						} else {
+							nodeLst.item(0).appendChild(
+									doc.createTextNode(tuser.getText()));
+						}
+						if (tpassword.getPassword().length != 0
+								&& !(new String(tpassword.getPassword())
+										.equals("****"))) {
+							nodeLst = doc.getElementsByTagName("password");
+							if (nodeLst.item(0).getChildNodes().getLength() > 0) {
+								nodeLst.item(0)
+										.getChildNodes()
+										.item(0)
+										.setNodeValue(
+												new String(tpassword
+														.getPassword()));
+							} else {
+								nodeLst.item(0).appendChild(
+										doc.createTextNode(new String(tpassword
+												.getPassword())));
+							}
+						}
+					} catch (Exception e) {
+						System.out.println(doc.getDocumentURI()
+								+ " may not be properly formatted");
+					}
+					Result result = new StreamResult(theone);
+					try {
+						DOMSource source = new DOMSource(doc);
+						TransformerFactory transformerFactory = TransformerFactory
+								.newInstance();
+						Transformer transformer = transformerFactory
+								.newTransformer();
+						transformer.setOutputProperty(
+								OutputKeys.OMIT_XML_DECLARATION, "yes");
+						transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+						transformer.setOutputProperty(
+								"{http://xml.apache.org/xslt}indent-amount",
+								"4");
+						transformer.transform(source, result);
+						try {
+							Repository.c
+									.cd(Repository.REMOTEDATABASECONFIGPATH);
+						} catch (Exception e) {
+							System.out.println("could not get "
+									+ Repository.REMOTEDATABASECONFIGPATH);
+							e.printStackTrace();
+						}
+						FileInputStream input = new FileInputStream(theone);
+						Repository.c.put(input, theone.getName());
+						input.close();
+					} catch (Exception e) {
+						e.printStackTrace();
+						System.out.println("Could not save in file : "
+								+ Repository.temp + Repository.getBar()
+								+ "Twister" + Repository.getBar() + "Config"
+								+ Repository.getBar()
+								+ Repository.REMOTEDATABASECONFIGFILE
+								+ " and send to "
+								+ Repository.REMOTEDATABASECONFIGPATH);
+					}
+				}
+			}
+		});
+		add(save);
+	}
+
+	public void refresh() {
+		try {
+			InputStream in = null;
+			try {
+				Repository.c.cd(Repository.REMOTEDATABASECONFIGPATH);
+				System.out.println("changed to:"
+						+ Repository.REMOTEDATABASECONFIGPATH);
+				in = Repository.c.get(Repository.REMOTEDATABASECONFIGFILE);
+			} catch (Exception e) {
+				e.printStackTrace();
+				System.out.println("Could not get: "
+						+ Repository.REMOTEDATABASECONFIGFILE);
+			}
+			byte[] data = new byte[100];
+			ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+			int nRead;
+			theone = new File(Repository.temp + Repository.getBar() + "Twister"
+					+ Repository.getBar() + "Config" + Repository.getBar()
+					+ new File(Repository.REMOTEDATABASECONFIGFILE).getName());
+			try {
+				while ((nRead = in.read(data, 0, data.length)) != -1) {
+					buffer.write(data, 0, nRead);
+				}
+				buffer.flush();
+				FileOutputStream out = new FileOutputStream(theone);
+				buffer.writeTo(out);
+				out.close();
+				buffer.close();
+				in.close();
+			} catch (Exception e) {
+				e.printStackTrace();
+				System.out
+						.println("Could not write "
+								+ Repository.REMOTEDATABASECONFIGFILE
+								+ " on local hdd");
+			}
+			try {
+				DocumentBuilderFactory dbf = DocumentBuilderFactory
+						.newInstance();
+				DocumentBuilder db = dbf.newDocumentBuilder();
+				doc = db.parse(theone);
+				doc.getDocumentElement().normalize();
+				NodeList nodeLst = doc.getElementsByTagName("server");
+				tserver.setText(nodeLst.item(0).getChildNodes().item(0)
+						.getNodeValue());
+				nodeLst = doc.getElementsByTagName("database");
+				tdatabase.setText(nodeLst.item(0).getChildNodes().item(0)
+						.getNodeValue());
+				nodeLst = doc.getElementsByTagName("password");
+				tpassword.setText(nodeLst.item(0).getChildNodes().item(0)
+						.getNodeValue());
+				if (!tpassword.getPassword().equals("")) {
+					tpassword.setText("****");
+				}
+				nodeLst = doc.getElementsByTagName("user");
+				tuser.setText(nodeLst.item(0).getChildNodes().item(0)
+						.getNodeValue());
+			} catch (Exception e) {
+				System.out.println(Repository.temp
+						+ Repository.getBar()
+						+ "Twister"
+						+ Repository.getBar()
+						+ "Config"
+						+ Repository.getBar()
+						+ new File(Repository.REMOTEDATABASECONFIGFILE)
+								.getName() + " is corrupted or incomplete");
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+			System.out.println("Could not refresh dbconfig structure");
+		}
+	}
+}
