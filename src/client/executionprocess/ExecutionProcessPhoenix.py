@@ -11,24 +11,45 @@ import MySQLdb
 from subprocess import Popen
 from zipfile import ZipFile
 
-# -------------------------------------------------------
-globEpId = 'EP-1001'
-PHOENIX_ROOT = r'C:\Simulations' + os.sep
-proxy = xmlrpclib.ServerProxy('http://11.126.32.9:8000/')   # Tsc Server
-# -------------------------------------------------------
+
+# --- Configuration information --------------------------------------------------------------------
+globEpId     =  r'EP-1001'
+PHOENIX_ROOT =  r'C:\Simulations' + os.sep
+PHOENIX_IP   =  r'11.126.32.81'
+# --------------------------------------------------------------------------------------------------
+
+#
 
 try:
+    proxy = xmlrpclib.ServerProxy('http://'+PHOENIX_IP+':8000/')
     print 'Central Engine Status:', proxy.getExecStatus(globEpId)
     print 'You can start the test from user interface!\n'
-except: print 'Cannot connect to Central Engine!'
+except:
+    print 'Cannot connect to Central Engine at `%s`!' % PHOENIX_IP
+    os.system('pause')
+    exit(1)
+
+#
+
+try:
+    conn = MySQLdb.connect(host=PHOENIX_IP, db='phoenix', user='usr', passwd='pwd')
+    curs = conn.cursor()
+    errMsg = True
+except:
+    print 'Cannot connect to MySQL Server at `%s`!' % PHOENIX_IP
+    os.system('pause')
+    exit(1)
 
 #
 
 def RUN(tList):
 
+    global conn, curs
+
     for tcName in tList:
 
         timer_i = time.time()
+        now = datetime.datetime.today().isoformat()
 
         STATUS = proxy.getExecStatus(globEpId)
 
@@ -39,7 +60,7 @@ def RUN(tList):
         elif STATUS == 'paused': # On pause, freeze cycle and wait for Resume or Stop
             print('EP::Windows: Paused!... Press RESUME to continue, or STOP to exit test suite...')
             while 1:
-                time.sleep(0.5)
+                time.sleep(1)
                 STATUS = proxy.getExecStatus(globEpId)
                 # On resume, stop waiting
                 if STATUS == 'running' or STATUS == 'resume':
@@ -72,12 +93,12 @@ def RUN(tList):
         # ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
         # Must start the logging,
         # then write the TST file to be executed into the config,
-        # then start Simulator.exe.
-        # Find the latest log and parse it
+        # then start Simulator.exe ...
 
         # Parse the TST test files
         tst_data = open(PHOENIX_ROOT + r'TestNetwork\twister' +os.sep+ outFile, 'rb').read()
         test_cases = re.findall('(TestCase\d+) STARTED', tst_data)
+        test_descrip = '... description ...'
         for tcase in test_cases:
             if tcase + ' COMPLETED' not in tst_data:
                 print('ERROR! `%s` is started, but not completed in the test file `%s` !' % (tcase, outFile))
@@ -89,6 +110,35 @@ def RUN(tList):
         log_name = PHOENIX_ROOT + time.strftime('%Y-%m-%d %H.%M.%S.log')
         plog = Popen([PHOENIX_ROOT + 'SysMonitor.exe', '192.168.42.122', 'password', 'C:/Simulations', log_name],
             cwd='C:/Simulations')
+
+
+        # --------- Saving to database ---------
+
+        # # Save in config table. The filename must be unique in the table, so i'll use INSERT OR IGNORE.
+        # curs.execute( "SELECT id FROM conf_file ORDER BY id DESC " )
+        # conf_id = curs.fetchone()[0] + 1
+        # curs.execute( "INSERT IGNORE INTO conf_file (id,file) VALUES (%i,'%s')" % (conf_id, ...) )
+        # curs.execute( "SELECT id FROM conf_file WHERE file = '%s' " % ... )
+        # conf_id = curs.fetchone()[0]
+
+        # # Save in ipo table. The IP + build_ver are unique together, so i'll use INSERT OR IGNORE.
+        # curs.execute( "SELECT id FROM ipo ORDER BY id DESC " )
+        # ipo_id = curs.fetchone()[0] + 1
+        # r = curs.execute( "INSERT IGNORE INTO ipo (id,ip,build_ver) VALUES (%i,'%s','%s')" %\
+        #     (ipo_id, ..., ...) )
+        # curs.execute( "SELECT id FROM ipo WHERE ip='%s' AND build_ver='%s' " % (..., ...) )
+        # ipo_id = curs.fetchone()[0]
+
+        conf_id = proxy.getEpVariable(globEpId, 'conf_id')
+        ipo_id  = proxy.getEpVariable(globEpId, 'ipo_id')
+
+        # Save in log table.
+        curs.execute( "INSERT INTO log (file) VALUES ('%s')" % log_name )
+        curs.execute( "SELECT id FROM log ORDER BY id DESC " )
+        log_id = curs.lastrowid
+
+        conn.commit()
+        # --------- End of saving ---------
 
 
         cfg_lines = open(PHOENIX_ROOT + 'TestNetwork/config.txt', 'r').readlines()
@@ -149,27 +199,34 @@ def RUN(tList):
         try: os.remove(toExecute)
         except: print 'EP::Python: Cannot cleanup %s!' % toExecute
 
-        global curs
-        now = datetime.datetime.today().isoformat()
 
+        # --------- Saving to database ---------
+
+        # Save into `suite` table :
+        r = curs.execute( "INSERT INTO suite (suite_name, start_time, duration, description, conf_id, ipo_id, log_id) "\
+            " VALUES ('{suite_name}', '{start_time}', {duration}, '{description}', {conf_id}, {ipo_id}, {log_id} )".format(
+                suite_name  = outFile,
+                start_time  = now,
+                duration    = timer_f,
+                description = test_descrip,
+                conf_id     = conf_id,
+                ipo_id      = ipo_id,
+                log_id      = log_id,
+                ))
+
+        # Save into `results` table.
         for tcase in test_cases:
-            curs.execute("INSERT INTO results ( build, station, suite, test_case, date_started, duration, status ) "
-                " VALUES ('{build}', '{station}', '{suite}', '{test_case}', '{date_started}', {duration}, '{status}')".format(
-                    build = 'b1',
-                    station = globEpId,
-                    suite = os.path.split(outFile)[0],
-                    test_case = tcase,
+            curs.execute("INSERT INTO results ( suite_id, res_value, test_starttime, test_duration ) "
+                " VALUES ('{suite_id}', '{res_value}', '{date_started}', {duration}, )".format(
+                    suite_id  = 0,
+                    res_value = results[tcase],
                     date_started = now,
-                    duration = 1,
-                    status = results[tcase]
+                    duration  = 1,
                     ))
-        #
+
+        # --------- End of saving ---------
 
 #
-
-errMsg = True
-conn = MySQLdb.connect(host='11.126.32.9', db='phoenix',user='tsc', passwd='tsc')
-curs = conn.cursor()
 
 # Run forever
 while 1:
@@ -185,18 +242,20 @@ while 1:
         if errMsg:
             print('EP warning: Central Engine is down. Trying to reconnect...')
             errMsg = False
+
         # Wait and retry...
-        time.sleep(2)
+        time.sleep(3)
         continue
 
     if STATUS == 'running':
-        print('EP debug: Starting the runner!!!')
+        print('EP debug: Starting the runner !')
         tList = proxy.getTestSuiteFileList(globEpId)
         RUN(tList)
         proxy.setExecStatus(globEpId, 0) # Set EpId status STOP
 
-    time.sleep(1)
+    time.sleep(2)
 
 curs.close()
 conn.close()
-del errMsg
+
+# Eof()
