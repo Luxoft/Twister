@@ -47,10 +47,10 @@ testStatus = {'pending':STATUS_PENDING, 'working':STATUS_WORKING, 'pass':STATUS_
     'invalid':STATUS_INVALID, 'waiting':STATUS_WAITING}
 
 
-# --------------------------------------------------------------------------------------------------
-# # # # # # # # # # # # # # # # # #
-# --------------------------------------------------------------------------------------------------
 
+# --------------------------------------------------------------------------------------------------
+# # # #    C L A S S    T e s t F i l e    # # #
+# --------------------------------------------------------------------------------------------------
 
 class TestFile:
 
@@ -167,6 +167,7 @@ class TestFile:
                 logError('MySQL Error %d: %s!' % (e.args[0], e.args[1]))
                 return False
 
+        conn.commit()
         curs.close()
         conn.close()
 
@@ -175,10 +176,10 @@ class TestFile:
         pass
 
 
-# --------------------------------------------------------------------------------------------------
-# # # # # # # # # # # # # # # # # #
-# --------------------------------------------------------------------------------------------------
 
+# --------------------------------------------------------------------------------------------------
+# # # #    C L A S S    E p I d    # # #
+# --------------------------------------------------------------------------------------------------
 
 class EpId:
 
@@ -301,10 +302,10 @@ class EpId:
         return True
 
 
-# --------------------------------------------------------------------------------------------------
-# # # # # # # # # # # # # # # # # #
-# --------------------------------------------------------------------------------------------------
 
+# --------------------------------------------------------------------------------------------------
+# # # #    C L A S S    C e n t r a l-E n g i n e    # # #
+# --------------------------------------------------------------------------------------------------
 
 class CentralEngine:
 
@@ -350,6 +351,7 @@ class CentralEngine:
                 logCritical('CE: Cannot load the list of EPs !')
                 return -1
             else:
+                # A list with Ep classes that store information about each remote process
                 self.EpIds = [EpId(id) for id in epList]
 
         # The list with all test files defined in Test Suite XML, in order
@@ -371,8 +373,10 @@ class CentralEngine:
 
             # Populate files inside each EP
             fileList = self.parser.getTestSuiteFileList(ep.id)
-            ep.tfList = OrderedDict([ (filename, TestFile(self.parser.getFileInfo(ep.id, filename))) \
-                for filename in fileList ])
+            ep.tfList = OrderedDict([
+                    (filename, TestFile(self.parser.getFileInfo(ep.id, filename))) \
+                    for filename in fileList \
+                    ])
 
 
     def echo(self, msg):
@@ -425,7 +429,8 @@ class CentralEngine:
 
     def getLogTypes(self):
         '''
-        All types of logs defined in Master config file will be exposed in TCL environment.
+        All types of logs defined in Master config file will be exposed
+        in the testing environment.
         '''
         return self.parser.getLogTypes()
 
@@ -601,6 +606,35 @@ class CentralEngine:
         logDebug('CE: Started by user `%s`.' % str(user))
         self.vars['started_by_user'] = str(user)
         return 1
+
+
+    def getEpVariable(self, epid, variable):
+        '''
+        This function is called from the Execution Process,
+        to get information that is available only here, or are hard to get:
+        - what the user selected in the Java interface (release, build, comments)
+        - the name of the suite, the test files, etc.
+        '''
+        if not self.searchEP(epid):
+            logError('CE ERROR! EpId `%s` is not in the list of defined EpIds: `%s`!' % \
+                (str(epid), str(self.EpIds)) )
+            return False
+
+        ep = None
+        files = None
+
+        # Get information about the first file
+        for ep in self.EpIds:
+            if ep.id != epid: continue
+            files = ep.tfList.keys()
+            break
+
+        if files:
+            info = ep.getFileInfo(files[0])
+            return info.get(variable, False)
+        else:
+            logDebug('CE: EpId `%s` does not have any files.' % epid)
+            return False
 
 
     def setEpVariable(self, epid, variable, value):

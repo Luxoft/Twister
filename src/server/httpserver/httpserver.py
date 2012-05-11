@@ -341,6 +341,7 @@ def connect_db():
 #
 
 def get_ip_address(ifname):
+    import struct
     try: import fcntl
     except: print('Fatal Error get IP adress!') ; exit(1)
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
