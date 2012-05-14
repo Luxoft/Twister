@@ -154,7 +154,7 @@ class threadCheckStatus(threading.Thread):
                     print('EP warning: Central Engine is down. Trying to reconnect...')
                     self.errMsg = False
                 # Wait and retry...
-                time.sleep(2)
+                time.sleep(3)
                 continue
 
             # If status changed
@@ -176,7 +176,7 @@ class threadCheckStatus(threading.Thread):
                     except:
                         pass
 
-            time.sleep(1)
+            time.sleep(3)
             #
 
 #
@@ -219,10 +219,10 @@ class threadCheckLog(threading.Thread):
                 self.proxy.logLIVE(globEpId, binascii.b2a_base64(vString))
             except:
                 # Wait and retry...
-                time.sleep(2)
+                time.sleep(3)
                 continue
 
-            time.sleep(1)
+            time.sleep(3)
             #
 
 #
@@ -307,7 +307,7 @@ if __name__=='__main__':
         if OFFLINE:
             break
         else:
-            time.sleep(1)
+            time.sleep(3)
 
     # If the cicle is broken, try to kill the threads...!
     programExit = True

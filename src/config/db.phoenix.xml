@@ -28,23 +28,25 @@
 	<field ID="zDateEnd" Label="Select date End" Type="UserSelect"
 		SQLQuery="SELECT DISTINCT datetime_started FROM results ORDER BY datetime_started" />
 	<field ID="TestStatus" Label="Select test status" Type="UserSelect" SQLQuery="SELECT DISTINCT status FROM results ORDER BY status" />
-	<field ID="Run_Number" Label="Select build" Type="UserSelect" SQLQuery="SELECT DISTINCT run_nr FROM `results` ORDER BY run_nr" />
+	<field ID="Suite" Label="Select suite" Type="UserSelect" SQLQuery="SELECT DISTINCT suite_name FROM `suite` ORDER BY suite_name" />
 
-	<report ID="Details" Type="Table"
-		SQLQuery="SELECT * FROM results ORDER BY id"
+	<report ID="Details (tests)" Type="Table"
+		SQLQuery="SELECT suite_name, test_name, res_value, test_starttime, test_duration FROM results, suite
+		WHERE results.suite_id = suite.suite_id
+		ORDER BY test_id"
 		/>
 
-	<report ID="History" Type="LineChart"
-		SQLQuery="SELECT CONCAT('Run ',CAST(run_nr AS CHAR))  AS Run_Number,COUNT(status) AS 'Success rate (%)' FROM results WHERE status = 'PASS' GROUP BY run_nr"
-		SQLTotal="SELECT CONCAT('Run ',CAST(run_nr AS CHAR))  AS Run_Number,COUNT(status) AS 'Success rate (%)' FROM results                       GROUP BY run_nr"
+	<report ID="Details (suites)" Type="Table"
+		SQLQuery="SELECT suite_name, start_time, duration, description, conf_file.file, ipo.ip, ipo.build_ver, log.file FROM
+		suite, conf_file, ipo, log WHERE
+		suite_name = '@Suite@'
+		AND suite.conf_id = conf_file.id
+		AND suite.ipo_id = ipo.id
+		AND log_id = log.id "
 		/>
 
-	<report ID="Summary" Type="BarChart"
-		SQLQuery="SELECT CONCAT('Run ',CAST(run_nr AS CHAR))  AS Run_Number,COUNT(status) AS 'Nr of tests' FROM results   GROUP BY run_nr "
-		/>
+	<redirect ID="goto PHP My Admin" Path="http://11.126.32.81/phpmyadmin" />
 
-	<redirect ID="goto Yahoo" Path="http://ro.yahoo.com" />
-	<redirect ID="goto Google" Path="http://www.google.ro" />
 </reports_section>
 </twister_user_defined>
 </root>
