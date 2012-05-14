@@ -22,6 +22,7 @@ PHOENIX_IP   =  r'11.126.32.81'
 
 try:
     proxy = xmlrpclib.ServerProxy('http://'+PHOENIX_IP+':8000/')
+    print 'Central Engine started on:', PHOENIX_IP
     print 'Central Engine Status:', proxy.getExecStatus(globEpId)
     print 'You can start the test from user interface!\n'
 except:
@@ -60,7 +61,7 @@ def RUN(tList):
         elif STATUS == 'paused': # On pause, freeze cycle and wait for Resume or Stop
             print('EP::Windows: Paused!... Press RESUME to continue, or STOP to exit test suite...')
             while 1:
-                time.sleep(1)
+                time.sleep(3)
                 STATUS = proxy.getExecStatus(globEpId)
                 # On resume, stop waiting
                 if STATUS == 'running' or STATUS == 'resume':
@@ -86,6 +87,11 @@ def RUN(tList):
         toExecute = PHOENIX_ROOT + r'TestNetwork\twister' + os.sep + outFile
         # Download the file from the Central Engine
         with open(toExecute, "wb") as handle:
+            if not proxy.getTestCaseFile(globEpId, tcName):
+                print 'EP::Windows: File `%s` will be skipped...' % tcName
+                proxy.setTestStatus(globEpId, tcName, 4, 0) # Status SKIP
+                continue
+            # If the file is not SKIP...
             handle.write(proxy.getTestCaseFile(globEpId, tcName).data)
 
         proxy.logMessage('logRunning', 'EP::Windows: Downloading file `%s`...\n' % toExecute)
@@ -99,6 +105,7 @@ def RUN(tList):
         tst_data = open(PHOENIX_ROOT + r'TestNetwork\twister' +os.sep+ outFile, 'rb').read()
         test_cases = re.findall('(TestCase\d+) STARTED', tst_data)
         test_descrip = '... description ...'
+
         for tcase in test_cases:
             if tcase + ' COMPLETED' not in tst_data:
                 print('ERROR! `%s` is started, but not completed in the test file `%s` !' % (tcase, outFile))
@@ -133,7 +140,7 @@ def RUN(tList):
         ipo_id  = proxy.getEpVariable(globEpId, 'ipo_id')
 
         # Save in log table.
-        curs.execute( "INSERT INTO log (file) VALUES ('%s')" % log_name )
+        curs.execute( "INSERT INTO log (file) VALUES ('%s')" % log_name.replace('\\', '/') )
         curs.execute( "SELECT id FROM log ORDER BY id DESC " )
         log_id = curs.lastrowid
 
@@ -203,7 +210,7 @@ def RUN(tList):
         # --------- Saving to database ---------
 
         # Save into `suite` table :
-        r = curs.execute( "INSERT INTO suite (suite_name, start_time, duration, description, conf_id, ipo_id, log_id) "\
+        curs.execute( "INSERT INTO suite (suite_name, start_time, duration, description, conf_id, ipo_id, log_id) "\
             " VALUES ('{suite_name}', '{start_time}', {duration}, '{description}', {conf_id}, {ipo_id}, {log_id} )".format(
                 suite_name  = outFile,
                 start_time  = now,
@@ -213,17 +220,20 @@ def RUN(tList):
                 ipo_id      = ipo_id,
                 log_id      = log_id,
                 ))
+        suite_id = curs.lastrowid
 
-        # Save into `results` table.
+        # # Save into `results` table.
         for tcase in test_cases:
-            curs.execute("INSERT INTO results ( suite_id, res_value, test_starttime, test_duration ) "
-                " VALUES ('{suite_id}', '{res_value}', '{date_started}', {duration}, )".format(
-                    suite_id  = 0,
+            curs.execute("INSERT INTO results ( suite_id, test_name, res_value, test_starttime, test_duration ) "
+                " VALUES ('{suite_id}', '{test_name}', '{res_value}', '{date_started}', {duration} )".format(
+                    suite_id  = suite_id,
+                    test_name = tcase,
                     res_value = results[tcase],
-                    date_started = now,
-                    duration  = 1,
+                    date_started = now, # TO CHANGE LATER
+                    duration     = 1,
                     ))
 
+        conn.commit()
         # --------- End of saving ---------
 
 #
@@ -253,7 +263,7 @@ while 1:
         RUN(tList)
         proxy.setExecStatus(globEpId, 0) # Set EpId status STOP
 
-    time.sleep(2)
+    time.sleep(3)
 
 curs.close()
 conn.close()
