@@ -45,7 +45,7 @@
 		AND log_id = log.id "
 		/>
 
-	<redirect ID="goto PHP My Admin" Path="http://11.126.32.81/phpmyadmin" />
+	<redirect ID="goto PHP MyAdmin" Path="http://11.126.32.81/phpmyadmin" />
 
 </reports_section>
 </twister_user_defined>

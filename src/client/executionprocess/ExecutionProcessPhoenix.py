@@ -4,18 +4,21 @@ import sys
 import re
 import time
 import datetime
-import shutil
+import json
 import xmlrpclib
 import MySQLdb
 
 from subprocess import Popen
-from zipfile import ZipFile
 
+try: CONFIG = json.load(open('phoenix_ep.config'))
+except:
+    print 'Cannot load Phoenix EP Config !!!'
+    print 'The file is corrupted, or it does not exits!'
+    exit(1)
 
 # --- Configuration information --------------------------------------------------------------------
-globEpId     =  r'EP-1001'
-PHOENIX_ROOT =  r'C:\Simulations' + os.sep
-PHOENIX_IP   =  r'11.126.32.81'
+globEpId     =  CONFIG['EP']
+PHOENIX_IP   =  CONFIG['server']
 # --------------------------------------------------------------------------------------------------
 
 #
@@ -84,7 +87,8 @@ def RUN(tList):
             proxy.setTestStatus(globEpId, tcName, 1) # Send status WORKING
 
         # The file that will be executed
-        toExecute = PHOENIX_ROOT + r'TestNetwork\twister' + os.sep + outFile
+        toExecute = CONFIG['cfg_path'] +os.sep+ outFile
+
         # Download the file from the Central Engine
         with open(toExecute, "wb") as handle:
             if not proxy.getTestCaseFile(globEpId, tcName):
@@ -102,7 +106,7 @@ def RUN(tList):
         # then start Simulator.exe ...
 
         # Parse the TST test files
-        tst_data = open(PHOENIX_ROOT + r'TestNetwork\twister' +os.sep+ outFile, 'rb').read()
+        tst_data = open(CONFIG['tests_path'] +os.sep+ outFile, 'rb').read()
         test_cases = re.findall('(TestCase\d+) STARTED', tst_data)
         test_descrip = '... description ...'
 
@@ -114,8 +118,8 @@ def RUN(tList):
 
         # Open Phoenix sys monitor
         proxy.logMessage('logRunning', 'EP::Windows: Opened sys monitor...\n')
-        log_name = PHOENIX_ROOT + time.strftime('%Y-%m-%d %H.%M.%S.log')
-        plog = Popen([PHOENIX_ROOT + 'SysMonitor.exe', '192.168.42.122', 'password', 'C:/Simulations', log_name],
+        log_name = CONFIG['logs_path'] +os.sep+ time.strftime('%Y-%m-%d %H.%M.%S.log')
+        plog = Popen([CONFIG['sys_mon_exe'], '192.168.42.122', 'password', 'C:/Simulations', log_name],
             cwd='C:/Simulations')
 
 
@@ -137,6 +141,8 @@ def RUN(tList):
         # ipo_id = curs.fetchone()[0]
 
         conf_id = proxy.getEpVariable(globEpId, 'conf_id')
+        #curs.execute( "SELECT file FROM conf_file WHERE id = %s " % conf_id )
+        #conf_file = curs.fetchone()[0]   # User chosen config file
         ipo_id  = proxy.getEpVariable(globEpId, 'ipo_id')
 
         # Save in log table.
@@ -147,20 +153,23 @@ def RUN(tList):
         conn.commit()
         # --------- End of saving ---------
 
+        # Config file path, chosen by user
+        #conf_file_path = CONFIG['cfg_path'] +os.sep+ conf_file
+        conf_file_path = CONFIG['cfg_path'] +os.sep+ 'config.txt'
 
-        cfg_lines = open(PHOENIX_ROOT + 'TestNetwork/config.txt', 'r').readlines()
+        cfg_lines = open(conf_file_path, 'r').readlines()
         proxy.logMessage('logRunning', 'EP::Windows: Preparing config file...\n')
         for i in range(len(cfg_lines)):
             line = cfg_lines[i]
             if line.strip().startswith('(script2)'):
                 cfg_lines[i] = '    (script2)' + toExecute + '\n'
-        open('C:/Simulations/TestNetwork/config.txt', 'w').write(''.join(cfg_lines))
+        open(conf_file_path, 'w').write(''.join(cfg_lines))
         del cfg_lines
 
 
         # Open Avaya simulator
         proxy.logMessage('logRunning', 'EP::Windows: Executing test file `%s`...\nRunning...\n\n' % toExecute)
-        Popen([PHOENIX_ROOT + 'Simulator/Debug/Simulator.exe', '-iC:\Simulations\TestNetwork\config.txt'],
+        Popen([CONFIG['simulator_exe'], '-i' + conf_file_path],
             cwd='C:/Simulations/Simulator/Debug').wait()
         # The simulator should EXIT after each test suite
 
@@ -230,7 +239,7 @@ def RUN(tList):
                     test_name = tcase,
                     res_value = results[tcase],
                     date_started = now, # TO CHANGE LATER
-                    duration     = 1,
+                    duration     = 0,   # TO CHANGE LATER
                     ))
 
         conn.commit()
