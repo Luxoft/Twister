@@ -28,21 +28,21 @@ class Root:
     # Java User Interface 2
     @cherrypy.expose
     def home(self):
-        return self.index()
-
-    # Report link 1
-    @cherrypy.expose
-    def report(self):
         global dbparser, db_config
         if not dbparser: load_config()
         global glob_links
         output = Template(filename=TWISTER_PATH + '/server/httpserver/template/base.htm')
         return output.render(title='Home', links=glob_links)
 
+    # Report link 1
+    @cherrypy.expose
+    def report(self):
+        return self.home()
+
     # Report link 2
     @cherrypy.expose
     def reporting(self):
-        return self.report()
+        return self.home()
 
     # Help link
     @cherrypy.expose
@@ -166,6 +166,7 @@ class Root:
 
         ajax_links = []
 
+        # ... For normal Queries ...
         for field in vars_to_replace:
             # The value chosen by the user
             u_select = cherrypy.request.params.get(field)
@@ -173,6 +174,7 @@ class Root:
             # Replace @variables@ with user chosen value
             query = query.replace(field, str(u_select))
 
+        ajax_links = sorted( list(set(ajax_links)) )
         ajax_link = '/json/' + report + '?' + '&'.join(ajax_links)
         user_choices = ('", '.join(ajax_links))
         user_choices = user_choices.replace('@', '').replace('=', '="')+'"'
@@ -185,12 +187,44 @@ class Root:
                 connect_db()
             except:
                 pass
-
+            #
             output = Template(filename=TWISTER_PATH + '/server/httpserver/template/error.htm')
             return output.render(title=report, links=glob_links,
                 msg='Error in query `{0}`!<br><br><b>MySQL Error {1}</b>: {2}!'.format(query, e.args[0], e.args[1]))
 
         descr = [desc[0] for desc in curs.description]
+
+
+        # ... For Query Compare side by side, the table is double ...
+        query_compr = report_dict['sqlcompr']
+
+        if query_compr:
+            # All variables that must be replaced in Query
+            vars_to_replace = re.findall('(@.+?@)', query_compr)
+
+            for field in vars_to_replace:
+                # The value chosen by the user
+                u_select = cherrypy.request.params.get(field)
+                # Replace @variables@ with user chosen value
+                query_compr = query_compr.replace(field, str(u_select))
+
+            try:
+                curs.execute(query_compr)
+            except MySQLdb.Error, e:
+                try:
+                    connect_db()
+                except:
+                    pass
+                #
+                output = Template(filename=TWISTER_PATH + '/server/httpserver/template/error.htm')
+                return output.render(title=report, links=glob_links,
+                msg='Error in query `{0}`!<br><br><b>MySQL Error {1}</b>: {2}!'.format(query_compr, e.args[0], e.args[1]))
+
+            headers_tot = [desc[0] for desc in curs.description]
+
+            # Update headers: must contain both headers.
+            descr = descr + ['vs.'] + headers_tot
+
 
         output = Template(filename=TWISTER_PATH + '/server/httpserver/template/base.htm')
         return output.render(title=report, links=glob_links, ajax_link=ajax_link, user_choices=user_choices,
@@ -241,7 +275,10 @@ class Root:
         del query
 
         query_total = report_dict['sqltotal']
+        query_compr = report_dict['sqlcompr']
 
+
+        # ... Calculate SQL Query Total ...
         if query_total:
             # All variables that must be replaced in Query
             vars_to_replace = re.findall('(@.+?@)', query_total)
@@ -259,8 +296,8 @@ class Root:
                     connect_db()
                 except:
                     pass
-
-                output = {'aaData':[], 'error':'Error in query `{0}`! MySQL Error {1}: {2}!'.format(query_total, e.args[0], e.args[1])}
+                #
+                output = {'aaData':[], 'error':'Error in query total `{0}`! MySQL Error {1}: {2}!'.format(query_total, e.args[0], e.args[1])}
                 return json.dumps(output, indent=2)
 
             headers_tot = [desc[0] for desc in curs.description]
@@ -288,9 +325,57 @@ class Root:
                 # Using the header from Total, because it might be Null in the first query
                 calc_rows.append([rows_tot[i][0], float(percent)])
 
+
+        # ... SQL Query Compare side by side ...
+        elif query_compr:
+            # All variables that must be replaced in Query
+            vars_to_replace = re.findall('(@.+?@)', query_compr)
+
+            for field in vars_to_replace:
+                # The value chosen by the user
+                u_select = cherrypy.request.params.get(field)
+                # Replace @variables@ with user chosen value
+                query_compr = query_compr.replace(field, str(u_select))
+
+            try:
+                curs.execute(query_compr)
+            except MySQLdb.Error, e:
+                try:
+                    connect_db()
+                except:
+                    pass
+                #
+                output = {'aaData':[], 'error':'Error in query compare `{0}`! MySQL Error {1}: {2}!'.format(query_total, e.args[0], e.args[1])}
+                return json.dumps(output, indent=2)
+
+            headers_tot = [desc[0] for desc in curs.description]
+            rows_tot = curs.fetchall()
+
+            if len(headers) != len(headers_tot): # Must be the same number of columns
+                output = {'aaData':[], 'error':'The first query has {0} columns and the second has {1} columns!'.format(len(headers), len(headers_tot))}
+                return json.dumps(output, indent=2)
+
+            headers_len = len(headers)
+            rows_max_size = max(len(rows), len(rows_tot))
+            calc_rows = []
+
+            for i in range(rows_max_size):
+                r1 = rows[i:i+1]
+                r2 = rows_tot[i:i+1]
+                if not r1: r1 = [' ' for i in range(headers_len)]
+                else: r1 = r1[0]
+                if not r2: r2 = [' ' for i in range(headers_len)]
+                else: r2 = r2[0]
+                calc_rows.append( tuple(r1) +(' <---> ',)+ tuple(r2) )
+
+            # Update headers: must contain both headers.
+            headers = headers + ['vs.'] + headers_tot
+
+        # ... Normal Query ...
         else:
             calc_rows = rows
             del rows
+
 
         if (not calc_rows) or (not calc_rows[0:1]):
             output = {'aaData':[], 'error':'The select is empty!'}

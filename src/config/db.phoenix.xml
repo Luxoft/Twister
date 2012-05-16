@@ -20,7 +20,6 @@
 </insert_section>
 
 <reports_section>
-	<field ID="Other" Type="UserText" Label="Other filters" SQLQuery="" />
 	<field ID="Date" Type="UserSelect" Label="Select date"
 		SQLQuery="SELECT DISTINCT datetime_started FROM results ORDER BY datetime_started" />
 	<field ID="DateStart" Label="Select date Start" Type="UserSelect"
@@ -29,20 +28,48 @@
 		SQLQuery="SELECT DISTINCT datetime_started FROM results ORDER BY datetime_started" />
 	<field ID="TestStatus" Label="Select test status" Type="UserSelect" SQLQuery="SELECT DISTINCT status FROM results ORDER BY status" />
 	<field ID="Suite" Label="Select suite" Type="UserSelect" SQLQuery="SELECT DISTINCT suite_name FROM `suite` ORDER BY suite_name" />
+	<field ID="IPO_IP" Label="Select IP" Type="UserSelect" SQLQuery="SELECT DISTINCT ip FROM `ipo` ORDER BY ip" />
+	<field ID="Build_Ver" Label="Build version" Type="UserSelect" SQLQuery="SELECT DISTINCT build_ver FROM `ipo` ORDER BY build_ver" />
 
-	<report ID="Details (tests)" Type="Table"
+	<report ID="Details Tests" Type="Table"
 		SQLQuery="SELECT suite_name, test_name, res_value, test_starttime, test_duration FROM results, suite
 		WHERE results.suite_id = suite.suite_id
 		ORDER BY test_id"
 		/>
 
-	<report ID="Details (suites)" Type="Table"
-		SQLQuery="SELECT suite_name, start_time, duration, description, conf_file.file, ipo.ip, ipo.build_ver, log.file FROM
-		suite, conf_file, ipo, log WHERE
+	<report ID="Details Suites" Type="Table"
+		SQLQuery="SELECT suite_name, start_time, duration, description, conf_file.file AS 'config_file', ipo.ip AS 'ipo_ip', ipo.build_ver FROM
+		suite, conf_file, ipo WHERE
 		suite_name = '@Suite@'
 		AND suite.conf_id = conf_file.id
-		AND suite.ipo_id = ipo.id
-		AND log_id = log.id "
+		AND suite.ipo_id = ipo.id "
+		/>
+
+	<report ID="Summary by Ipo" Type="Table"
+		SQLQuery="SELECT  *  from results where suite_id IN
+		(SELECT suite_id from suite where ipo_id =
+		(SELECT id from ipo where ip like '@IPO_IP@' and build_ver=@Build_Ver@))"
+		/>
+
+	<report ID="Summary Count" Type="PieChart"
+		SQLQuery="SELECT  res_value AS Status, count(*) AS Number  from results where suite_id IN
+		(SELECT suite_id from suite where ipo_id =
+		(SELECT id from ipo where ip like '@IPO_IP@' and build_ver=@Build_Ver@))
+		group by res_value "
+		/>
+
+	<report ID="Compare builds" Type="Table"
+		SQLQuery = "SELECT  suite_name AS 'Suite - Build @Build_Ver@', test_name, res_value  FROM results, suite
+		WHERE results.suite_id = ( SELECT suite_id FROM
+		( SELECT * FROM suite WHERE suite_name = '@Suite@' AND
+		ipo_id = (SELECT id from ipo where ip = '@IPO_IP@' AND build_ver = @Build_Ver@)
+		ORDER BY suite_id DESC LIMIT 1) t1 ) AND results.suite_id = suite.suite_id "
+
+		SQLCompare="SELECT  suite_name AS 'Suite - Latest build', test_name, res_value  FROM results, suite
+		WHERE results.suite_id = ( SELECT suite_id FROM
+		( SELECT * FROM suite WHERE suite_name = '@Suite@' AND
+		ipo_id = (SELECT id from ipo where ip = '@IPO_IP@' ORDER BY build_ver DESC LIMIT 1)
+		ORDER BY suite_id DESC LIMIT 1) t1 ) AND results.suite_id = suite.suite_id "
 		/>
 
 	<redirect ID="goto PHP MyAdmin" Path="http://11.126.32.81/phpmyadmin" />

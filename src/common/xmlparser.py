@@ -391,7 +391,8 @@ class DBParser():
             d['type']     = report.get('type', '')
             d['path']     = report.get('path', '')
             d['sqlquery'] = report.get('sqlquery', '')
-            d['sqltotal'] = report.get('sqltotal', '')
+            d['sqltotal'] = report.get('sqltotal', '') # SQL Total Query
+            d['sqlcompr'] = report.get('sqlcompare', '') # SQL Query Compare side by side
             res[d['id']]  = d
 
         return res
