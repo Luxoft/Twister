@@ -1,7 +1,7 @@
 /*
    File: ConfigFiles.java ; This file is part of Twister.
 
-   Copyright © 2012 , Luxoft
+   Copyright (C) 2012 , Luxoft
 
    Authors: Andrei Costachi <acostachi@luxoft.com>
                 
