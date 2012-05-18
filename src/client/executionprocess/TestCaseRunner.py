@@ -349,7 +349,7 @@ if __name__=='__main__':
                 if not vPauseMsg:
                     print('Runner: Execution paused. Waiting for RESUME signal.\n')
                     vPauseMsg = True
-                time.sleep(0.5)
+                time.sleep(3)
                 # Reload config file written by EP
                 CONFIG = loadConfig()
                 # On resume, stop waiting
@@ -366,7 +366,7 @@ if __name__=='__main__':
             proxy.echo(':: {0} is waiting for {1}::{2} to finish execution...'.format(globEpId, DEP_FILE['epid'], DEP_FILE['file']))
             proxySetTestStatus(globEpId, filename, STATUS_WAITING, 0.0) # Status WAITING
             while 1:
-                time.sleep(1)
+                time.sleep(3)
                 # Reload info about dependency file
                 if proxy.getTestStatus(DEP_FILE['epid'], DEP_FILE['file']) not in ['pending', 'working']:
                     proxy.echo(':: {0} is not longer waiting !'.format(globEpId))
