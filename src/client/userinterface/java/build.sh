@@ -1,6 +1,6 @@
 #!/bin/bash
 
-JDK_PATH=/opt/java1.7/bin
+JDK_PATH=/usr/bin
 
 EXTLIBS=extlibs/jsch-0.1.44.jar:\
 extlibs/ws-commons-util-1.0.2.jar:\
