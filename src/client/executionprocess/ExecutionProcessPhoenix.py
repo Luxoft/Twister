@@ -109,7 +109,7 @@ def RUN(tList):
             proxy.setTestStatus(globEpId, tcName, 1) # Send status WORKING
 
         # The file that will be executed
-        toExecute = CONFIG['cfg_path'] +os.sep+ outFile
+        toExecute = CONFIG['tests_path'] +os.sep+ outFile
 
         # Download the file from the Central Engine
         with open(toExecute, "wb") as handle:
@@ -128,7 +128,7 @@ def RUN(tList):
         # then start Simulator.exe ...
 
         # Parse the TST test files
-        tst_data = open(CONFIG['tests_path'] +os.sep+ outFile, 'rb').read()
+        tst_data = open(toExecute, 'rb').read()
         test_cases = re.findall('(TestCase\d+) STARTED', tst_data)
         test_descrip = '... description ...'
 
@@ -141,8 +141,8 @@ def RUN(tList):
         # Open Phoenix sys monitor
         proxy.logMessage('logRunning', 'EP::Windows: Opened sys monitor...\n')
         log_name = CONFIG['logs_path'] +os.sep+ time.strftime('%Y-%m-%d %H.%M.%S.log')
-        plog = Popen([CONFIG['sys_mon_exe'], '192.168.42.122', 'password', 'C:/Simulations', log_name],
-            cwd='C:/Simulations')
+        plog = Popen([CONFIG['sys_mon_exe'], CONFIG['sys_mon_IP'], 'password', CONFIG['logs_path'], log_name],
+            cwd=CONFIG['logs_path'])
 
 
         # --------- Saving to database ---------
@@ -192,7 +192,7 @@ def RUN(tList):
         # Open Avaya simulator
         proxy.logMessage('logRunning', 'EP::Windows: Executing test file `%s`...\nRunning...\n\n' % toExecute)
         Popen([CONFIG['simulator_exe'], '-i' + conf_file_path],
-            cwd='C:/Simulations/Simulator/Debug').wait()
+            cwd = os.path.split(CONFIG['simulator_exe'])[0] ).wait()
         # The simulator should EXIT after each test suite
 
 
