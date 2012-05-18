@@ -1,7 +1,7 @@
 Luxoft Twister
 ==============
 
-Luxoft Twister is a test automation framework designed to manage and drive test cases written scripting languages.
+Luxoft Twister is a test automation framework designed to manage and drive test cases written in shell scripting languages.
 Twister supports TCL, Python and Perl, three of the most common scripting languages used in testing communities.
 Twister offers an intuitive, web-based user interface for configuration, control, and reporting with remote access availability. 
 This makes it easy to build the testing suite, execute it, and accurately monitor the result logs.
