@@ -47,6 +47,9 @@ import smtplib
 import xmlrpclib
 import MySQLdb
 
+import cherrypy
+from cherrypy import _cptools
+
 from string import Template
 from collections import OrderedDict
 from email.mime.text import MIMEText
@@ -329,7 +332,7 @@ class EpId:
 # # # #    C L A S S    C e n t r a l-E n g i n e    # # #
 # --------------------------------------------------------------------------------------------------
 
-class CentralEngine:
+class CentralEngine(_cptools.XMLRPCController):
 
     def __init__(self, config_path=None):
 
@@ -401,6 +404,7 @@ class CentralEngine:
                     ])
 
 
+    @cherrypy.expose
     def echo(self, msg):
         '''
         Simple echo function, for testing connection.
@@ -409,6 +413,7 @@ class CentralEngine:
         return 'CE reply: ' + msg
 
 
+    @cherrypy.expose
     def getAllVars():
         '''
         Returns available variables from CE, used in Java interface.
@@ -435,6 +440,7 @@ class CentralEngine:
         return ce_vars
 
 
+    @cherrypy.expose
     def getConfigPath(self):
         '''
         The path to Master config file.
@@ -442,6 +448,7 @@ class CentralEngine:
         return self.config_path
 
 
+    @cherrypy.expose
     def getLogsPath(self):
         '''
         The path to Logs files.
@@ -449,6 +456,7 @@ class CentralEngine:
         return self.parser.getLogsPath()
 
 
+    @cherrypy.expose
     def getLogTypes(self):
         '''
         All types of logs defined in Master config file will be exposed
@@ -457,6 +465,7 @@ class CentralEngine:
         return self.parser.getLogTypes()
 
 
+    @cherrypy.expose
     def searchEP(self, epid):
         '''
         Search one EpId and return True or False.
@@ -467,6 +476,7 @@ class CentralEngine:
         return False
 
 
+    @cherrypy.expose
     def runDBSelect(self, field_id):
         '''
         Selects from database.
@@ -496,6 +506,7 @@ class CentralEngine:
         return msg_str
 
 
+    @cherrypy.expose
     def sendMail(self):
         '''
         Send e-mail after the suites are run.
@@ -596,6 +607,7 @@ class CentralEngine:
             return False
 
 
+    @cherrypy.expose
     def commitToDatabase(self):
         '''
         For each EP, for each File, the results of the tests are saved to database,
@@ -619,6 +631,7 @@ class CentralEngine:
         return 1
 
 
+    @cherrypy.expose
     def setStartedBy(self, user):
         '''
         Remember the user that started the Central Engine.
@@ -630,6 +643,7 @@ class CentralEngine:
         return 1
 
 
+    @cherrypy.expose
     def getEpVariable(self, epid, variable):
         '''
         This function is called from the Execution Process,
@@ -659,6 +673,7 @@ class CentralEngine:
             return False
 
 
+    @cherrypy.expose
     def setEpVariable(self, epid, variable, value):
         '''
         This function is called from the Execution Process,
@@ -687,6 +702,7 @@ class CentralEngine:
 # --------------------------------------------------------------------------------------------------
 
 
+    @cherrypy.expose
     def getExecStatus(self, epid):
         '''
         Return execution status for one EP. (stopped, paused, running)
@@ -704,6 +720,7 @@ class CentralEngine:
         return False
 
 
+    @cherrypy.expose
     def getExecStatusAll(self):
         '''
         Return execution status for all EPs. (stopped, paused, running)
@@ -724,6 +741,7 @@ class CentralEngine:
         return '{0};{1};{2};{3}'.format(status, start_time, self.vars['elapsed_time'], self.vars.get('started_by_user'))
 
 
+    @cherrypy.expose
     def setExecStatus(self, epid, new_status, msg=''):
         '''
         Set execution status for one EP. (0, 1, 2, or 3)
@@ -767,6 +785,7 @@ class CentralEngine:
         return ret
 
 
+    @cherrypy.expose
     def setExecStatusAll(self, new_status, msg=''):
         '''
         Set execution status for one EP. (0, 1, 2, or 3).
@@ -830,6 +849,7 @@ class CentralEngine:
 # --------------------------------------------------------------------------------------------------
 
 
+    @cherrypy.expose
     def getLibrariesList(self):
         '''
         Returns the list of exposed libraries, from CE libraries folder.
@@ -845,6 +865,7 @@ class CentralEngine:
         return sorted(libs)
 
 
+    @cherrypy.expose
     def getLibraryFile(self, filename):
         '''
         Sends required library to EP, to be syncronized.
@@ -859,6 +880,7 @@ class CentralEngine:
             return xmlrpclib.Binary(handle.read())
 
 
+    @cherrypy.expose
     def getTestSuiteFileList(self, epid, reset_list=True):
         '''
         Returns all TCL/Py files that must be run in current test suite and
@@ -885,6 +907,7 @@ class CentralEngine:
         return fileList
 
 
+    @cherrypy.expose
     def getTestCaseFile(self, epid, filename):
         '''
         Sends requested filename to TC, to be executed.
@@ -919,6 +942,7 @@ class CentralEngine:
             return False
 
 
+    @cherrypy.expose
     def getTestCaseDependency(self, epid, filename):
         '''
         Find dependency for specified file name, or file ID.
@@ -948,6 +972,7 @@ class CentralEngine:
             return False
 
 
+    @cherrypy.expose
     def getTestDescription(self, fname):
 
         from xml.dom.minidom import parseString
@@ -989,6 +1014,7 @@ class CentralEngine:
 # --------------------------------------------------------------------------------------------------
 
 
+    @cherrypy.expose
     def getTestStatusAll(self, epid=None):
         '''
         Returns a list with all statuses, for all files, in order.
@@ -1027,6 +1053,7 @@ class CentralEngine:
         #
 
 
+    @cherrypy.expose
     def getTestStatus(self, epid, filename):
         '''
         Returns the status for EpId > FileName.
@@ -1043,6 +1070,7 @@ class CentralEngine:
                 #
 
 
+    @cherrypy.expose
     def setTestStatus(self, epid, filename, new_status=10, time_elapsed=0.0):
         '''
         Sets status for EpId > FileName.
@@ -1093,6 +1121,7 @@ class CentralEngine:
                 #
 
 
+    @cherrypy.expose
     def setFileInfo(self, epid, filename, key, value):
         '''
         Set extra information for EpId > Filename.
@@ -1116,6 +1145,8 @@ class CentralEngine:
 #           L O G S
 # --------------------------------------------------------------------------------------------------
 
+
+    @cherrypy.expose
     def getLogFile(self, read, fstart, filename):
 
         if fstart is None:
@@ -1140,6 +1171,7 @@ class CentralEngine:
         return binascii.b2a_base64(data)
 
 
+    @cherrypy.expose
     def logMessage(self, logType, logMessage):
         '''
         This function is exposed in all TCL/Py tests, all logs are centralized.
@@ -1174,6 +1206,7 @@ class CentralEngine:
         #
 
 
+    @cherrypy.expose
     def logLIVE(self, epid, logMessage):
         '''
         Writes messages in a big log, so all output can be checked LIVE,
@@ -1198,6 +1231,7 @@ class CentralEngine:
         #
 
 
+    @cherrypy.expose
     def findLog(self, epid, filename):
         '''
         Parses the log file of one EPID and returns the log of one test file.
@@ -1222,6 +1256,7 @@ class CentralEngine:
         return log.replace("'", "\\'")
 
 
+    @cherrypy.expose
     def resetLogs(self):
         '''
         All logs defined in master config are erased.
@@ -1263,6 +1298,7 @@ class CentralEngine:
         #
 
 
+    @cherrypy.expose
     def resetLog(self, logName):
         '''
         Resets one log.

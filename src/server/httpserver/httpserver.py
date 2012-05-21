@@ -505,7 +505,7 @@ if __name__ == '__main__':
     conf = {
             '/': {
                 'tools.caching.on': True,
-                'tools.caching.delay': 3600,
+                'tools.caching.delay': 9,
                 },
             '/static': {
                 'tools.staticdir.on': True,
