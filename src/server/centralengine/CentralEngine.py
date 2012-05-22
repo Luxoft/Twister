@@ -59,6 +59,6 @@ if __name__ == "__main__":
 
     # Start server
     root = CentralEngine(FMW_PATH)
-    cherrypy.quickstart(root, config='config_ce.cfg')
+    cherrypy.quickstart(root, config=TWISTER_PATH + '/bin/config_ce.cfg')
 
 #

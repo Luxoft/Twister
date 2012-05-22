@@ -33,8 +33,13 @@ import datetime
 import cherrypy
 import logging as log
 
-if not os.path.exists('logs'):
-    os.mkdir('logs')
+TWISTER_PATH = os.getenv('TWISTER_PATH')
+if not TWISTER_PATH:
+    print('TWISTER_PATH environment variable is not set! Exiting!')
+    exit(1)
+
+if not os.path.exists(TWISTER_PATH + '/bin/logs'):
+    os.mkdir(TWISTER_PATH + '/bin/logs')
 
 
 # Config cherrypy logging
@@ -44,7 +49,7 @@ cherry_log = cherrypy.log.error_log
 
 # Config python logging
 dateTag = datetime.datetime.now().strftime("%Y-%b-%d %H-%M-%S")
-LOG_FILE = 'logs/Log %s.txt' % dateTag
+LOG_FILE = TWISTER_PATH + '/bin/logs/Log %s.txt' % dateTag
 log.basicConfig(level=log.NOTSET, format='%(asctime)s %(levelname)-8s %(message)s',
                     datefmt='%y-%m-%d %H:%M:%S', filename=LOG_FILE, filemode='w')
 
