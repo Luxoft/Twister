@@ -76,8 +76,7 @@ public class Repository {
 			failicon, passicon, playicon, stopicon, pauseicon, background,
 			notexecicon, pendingicon, skipicon, stoppedicon, timeouticon,
 			waiticon, workingicon, moduleicon, deviceicon, addsuitaicon,
-			removeicon, vlcclient, vlcserver, switche, flootw, rack150,
-			rack151, rack152, switche2, inicon, outicon, baricon;
+			removeicon, switche2, inicon, outicon, baricon;
 	public static boolean run = true;
 	public static boolean applet;
 	public static IntroScreen intro;
@@ -133,28 +132,7 @@ public class Repository {
 				InputStream in;
 				in = Repository.class.getResourceAsStream("Icons" + bar
 						+ "background.png");
-				background = new ImageIcon(ImageIO.read(in)).getImage();
-				in = Repository.class.getResourceAsStream("Icons" + bar
-						+ "vlcclient.png");
-				vlcclient = new ImageIcon(ImageIO.read(in)).getImage();
-				in = Repository.class.getResourceAsStream("Icons" + bar
-						+ "vlcserver.png");
-				vlcserver = new ImageIcon(ImageIO.read(in)).getImage();
-				in = Repository.class.getResourceAsStream("Icons" + bar
-						+ "switch.png");
-				switche = new ImageIcon(ImageIO.read(in)).getImage();
-				in = Repository.class.getResourceAsStream("Icons" + bar
-						+ "twisterfloodlight.png");
-				flootw = new ImageIcon(ImageIO.read(in)).getImage();
-				in = Repository.class.getResourceAsStream("Icons" + bar
-						+ "150.png");
-				rack150 = new ImageIcon(ImageIO.read(in)).getImage();
-				in = Repository.class.getResourceAsStream("Icons" + bar
-						+ "151.png");
-				rack151 = new ImageIcon(ImageIO.read(in)).getImage();
-				in = Repository.class.getResourceAsStream("Icons" + bar
-						+ "152.png");
-				rack152 = new ImageIcon(ImageIO.read(in)).getImage();
+				background = new ImageIcon(ImageIO.read(in)).getImage();				
 				in = Repository.class.getResourceAsStream("Icons" + bar
 						+ "switch.jpg");
 				switche2 = new ImageIcon(ImageIO.read(in)).getImage();

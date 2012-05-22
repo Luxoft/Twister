@@ -64,17 +64,10 @@ public class applet extends Applet {
 			Repository.workingicon = loadIcon("working.png");
 			Repository.suitaicon = loadIcon("suita.png");
 			Repository.propicon = loadIcon("prop.png");
-			Repository.vlcclient = loadIcon("vlcclient.png");
 			Repository.failicon = loadIcon("fail.png");
 			Repository.passicon = loadIcon("pass.png");
 			Repository.stopicon = loadIcon("stop.png");
-			Repository.switche = loadIcon("switch.png");
 			Repository.switche2 = loadIcon("switch.jpg");
-			Repository.flootw = loadIcon("twisterfloodlight.png");
-			Repository.rack150 = loadIcon("150.png");
-			Repository.rack151 = loadIcon("151.png");
-			Repository.rack152 = loadIcon("152.png");
-			Repository.vlcserver = loadIcon("vlcserver.png");
 			Repository.playicon = loadIcon("play.png");
 			Repository.addsuitaicon = loadIcon("addsuita.png");
 			Repository.removeicon = loadIcon("deleteicon.png");
