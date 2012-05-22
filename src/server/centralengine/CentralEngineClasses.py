@@ -404,6 +404,79 @@ class CentralEngine(_cptools.XMLRPCController):
                     ])
 
 
+# --------------------------------------------------------------------------------------------------
+#           B R O W S E R   F U N C T I O N S
+# --------------------------------------------------------------------------------------------------
+
+
+    def _user_agent(self):
+        '''
+        User agent returns Browser or XML RPC client.
+        This function is not exposed.
+        '''
+        if  cherrypy.request.headers['User-Agent'].startswith('xmlrpclib.py') or \
+            cherrypy.request.headers['User-Agent'].startswith('Apache XML RPC'):
+            # XML RPC client
+            return 'x'
+        else:
+            # Browser
+            return 'b'
+
+
+    @cherrypy.expose
+    def stats(self):
+        '''
+        This function should be used in the browser.
+        It prints a few statistics about the Central Engine.
+        '''
+        if self._user_agent == 'x':
+            return 0
+
+        reversed = dict((v,k) for k,v in dictStatus.iteritems())
+        status = reversed[self.executionStatus]
+
+        ret = '''
+        <h3>Central Engine Statistics</h3>
+        <b>Running on</b>: {host}:{port}<br><br>
+        <b>Status</b>: {status}<br><br>
+        <b>Processes</b>:<br>{eps}<br><br>
+        '''.format(
+            status=status,
+            host=cherrypy.config['server.socket_host'],
+            port=cherrypy.config['server.socket_port'],
+            eps='<br>'.join(str(ep) for ep in self.EpIds)
+            )
+
+        return ret
+
+    @cherrypy.expose
+    def status(self):
+        return self.stats()
+
+
+    @cherrypy.expose
+    def log(self):
+        '''
+        This function should be used in the browser.
+        It prints the Central Engine log.
+        '''
+        if self._user_agent == 'x':
+            return 0
+
+        global LOG_FILE
+        log = open(LOG_FILE).read()
+        return log.replace('\n', '<br>')
+
+    @cherrypy.expose
+    def logs(self):
+        return self.log()
+
+
+# --------------------------------------------------------------------------------------------------
+#           H E L P E R   F U N C T I O N S
+# --------------------------------------------------------------------------------------------------
+
+
     @cherrypy.expose
     def echo(self, msg):
         '''

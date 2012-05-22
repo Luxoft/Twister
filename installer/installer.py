@@ -222,6 +222,7 @@ if TO_INSTALL == 'server':
     # Files to move in twister folder
     to_copy = [
         'bin/start_ce',
+        'bin/config_ce.cfg',
         'bin/start_ra',
         'bin/start_httpserver',
         'demo/',
@@ -282,6 +283,7 @@ else:
         'bin/start_ep.py',
         'bin/config_ep.json',
         'bin/start_ce',
+        'bin/config_ce.cfg',
         'bin/start_ra',
         'bin/start_httpserver',
         'demo/',

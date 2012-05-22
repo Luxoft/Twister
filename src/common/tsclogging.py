@@ -44,16 +44,16 @@ cherry_log = cherrypy.log.error_log
 
 # Config python logging
 dateTag = datetime.datetime.now().strftime("%Y-%b-%d %H-%M-%S")
-FILENAME = 'logs/Log %s.txt' % dateTag
+LOG_FILE = 'logs/Log %s.txt' % dateTag
 log.basicConfig(level=log.NOTSET, format='%(asctime)s %(levelname)-8s %(message)s',
-                    datefmt='%y-%m-%d %H:%M:%S', filename=FILENAME, filemode='w')
+                    datefmt='%y-%m-%d %H:%M:%S', filename=LOG_FILE, filemode='w')
 
 console = log.StreamHandler()
 console.setLevel(log.NOTSET)
 cherry_log.addHandler(console)
 
 
-__all__ = ['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL',
+__all__ = ['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL', 'LOG_FILE',
             'logMsg', 'logDebug', 'logInfo', 'logWarning', 'logError', 'logCritical']
 
 DEBUG    = 1

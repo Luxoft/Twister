@@ -285,7 +285,7 @@ if __name__=='__main__':
         epStatus = 'running'
     # Connected to CE...
     else:
-        CEProxy = 'http://' + host
+        CEProxy = 'http://' + host + '/'
         tcr_pid = None # PID of TC Runner
         threadCheckStatus().start() # Start checking CE status
         threadCheckLog().start()    # Start reading live log
