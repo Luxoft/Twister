@@ -43,8 +43,8 @@ if not os.path.exists(LOGS_PATH):
     os.makedirs(LOGS_PATH)
 
 # Config cherrypy logging
+cherrypy.log.access_log.propagate = False
 cherrypy.log.error_log.setLevel(log.DEBUG)
-cherrypy.log.access_log.setLevel(log.CRITICAL)
 cherry_log = cherrypy.log.error_log
 
 # Config python logging
