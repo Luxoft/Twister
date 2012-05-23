@@ -93,6 +93,39 @@ def loadConfig():
 
 #
 
+def saveLibraries(proxy):
+    '''
+    Saves all libraries from CE.
+    Not used in offline mode.
+    '''
+    global TWISTER_PATH
+    libs_list = proxy.getLibrariesList()
+    libs_path = TWISTER_PATH + '/.twister_cache/ce_libs/'
+
+    try: os.makedirs(libs_path)
+    except: pass
+
+    __init = open(libs_path + '/__init__.py', 'w')
+    __init.write('\nPROXY = "%s"\n' % CEProxy)
+    all_libs = [os.path.splitext(lib)[0] for lib in libs_list]
+    __init.write('\nall = ["%s"]\n\n' % ('", "'.join(all_libs)))
+
+    for filename in libs_list:
+        # Write in __init__ file.
+        __init.write('import %s\n' % os.path.splitext(filename)[0])
+        __init.write('from %s import *\n\n' % os.path.splitext(filename)[0])
+
+        lib_pth = libs_path + os.sep + filename
+        print('Downloading library `{0}` ...'.format(lib_pth))
+        f = open(lib_pth, 'wb')
+        lib_data = proxy.getLibraryFile(filename)
+        f.write(lib_data.data)
+        f.close() ; del f
+
+    __init.close()
+
+#
+
 def Suicide(sig=None, msg=None, filename=None, status_f=None, timer_f=None):
     '''
     Function Suicide is used to kill current process.
@@ -248,9 +281,6 @@ if __name__=='__main__':
         globEpId = globEpId[0]
         print('TC debug: TestCaseRunner started with Id: {0}.'.format(globEpId))
 
-    tc_tcl = None; tc_perl = None; tc_python = None
-    proxy = None
-
     if globEpId == 'OFFLINE':
         filelist = sys.argv[2:3]
         if not filelist:
@@ -263,6 +293,10 @@ if __name__=='__main__':
         exit(0) # Exit code 0 ??
 
     CONFIG = loadConfig()
+
+    tc_tcl = None; tc_perl = None; tc_python = None
+    proxy = None
+    CEProxy = CONFIG['PROXY']
 
     if CONFIG['STATUS'] == 'running':
         print('TC debug: Connected to proxy, running tests!')
@@ -277,6 +311,10 @@ if __name__=='__main__':
     except:
         print('TC debug: Cannot to CE path `{0}`! Exiting!'.format(CONFIG['PROXY']))
         exit(1)
+
+    # If not offline, save all libraries from CE
+    if globEpId != 'OFFLINE':
+        saveLibraries(proxy)
 
     if '7' in tStats:
         print('TC debug: Resuming after timeout...')
@@ -349,7 +387,7 @@ if __name__=='__main__':
                 if not vPauseMsg:
                     print('Runner: Execution paused. Waiting for RESUME signal.\n')
                     vPauseMsg = True
-                time.sleep(3)
+                time.sleep(2)
                 # Reload config file written by EP
                 CONFIG = loadConfig()
                 # On resume, stop waiting
@@ -366,7 +404,7 @@ if __name__=='__main__':
             proxy.echo(':: {0} is waiting for {1}::{2} to finish execution...'.format(globEpId, DEP_FILE['epid'], DEP_FILE['file']))
             proxySetTestStatus(globEpId, filename, STATUS_WAITING, 0.0) # Status WAITING
             while 1:
-                time.sleep(3)
+                time.sleep(2)
                 # Reload info about dependency file
                 if proxy.getTestStatus(DEP_FILE['epid'], DEP_FILE['file']) not in ['pending', 'working']:
                     proxy.echo(':: {0} is not longer waiting !'.format(globEpId))

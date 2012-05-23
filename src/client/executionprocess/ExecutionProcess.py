@@ -89,128 +89,16 @@ def saveConfig():
 
 #
 
-def saveLibraries(proxy):
+class threadStatusNLogs(threading.Thread):
     '''
-    Saves all libraries from CE.
-    Not used in offline mode.
-    '''
-    global TWISTER_PATH
-    libs_list = proxy.getLibrariesList()
-    libs_path = TWISTER_PATH + '/.twister_cache/ce_libs/'
-
-    try: os.makedirs(libs_path)
-    except: pass
-
-    __init = open(libs_path + '/__init__.py', 'w')
-    __init.write('\nPROXY = "%s"\n' % CEProxy)
-    all_libs = [os.path.splitext(lib)[0] for lib in libs_list]
-    __init.write('\nall = ["%s"]\n\n' % ('", "'.join(all_libs)))
-
-    for filename in libs_list:
-        # Write in __init__ file.
-        __init.write('import %s\n' % os.path.splitext(filename)[0])
-        __init.write('from %s import *\n\n' % os.path.splitext(filename)[0])
-
-        lib_pth = libs_path + os.sep + filename
-        print('Downloading library `{0}` ...'.format(lib_pth))
-        f = open(lib_pth, 'wb')
-        lib_data = proxy.getLibraryFile(filename)
-        f.write(lib_data.data)
-        f.close() ; del f
-
-    __init.close()
-
-#
-
-def saveTests(proxy):
-    '''
-    Saves all test files from CE.
-    Not used in offline mode.
-    '''
-    global globEpId, TWISTER_PATH
-    tests_list = proxy.getTestSuiteFileList(globEpId, False)
-    tests_path = TWISTER_PATH + '/.twister_cache/to_execute/'
-
-    try: os.makedirs(tests_path)
-    except: pass
-
-    for filename in tests_list:
-        file_data = proxy.getTestCaseFile(globEpId, filename)
-
-        # If file is not skipped
-        if file_data:
-            file_pth = tests_path + os.sep + os.path.split(filename)[1]
-            print('Downloading test file `{0}` ...'.format(file_pth))
-            f = open(file_pth, 'wb')
-            f.write(file_data.data)
-            f.close() ; del f
-
-#
-
-class threadCheckStatus(threading.Thread):
-    '''
-    Threaded class for checking CE Status.
+    THREADED class for checking CE Status and sending Live log.
     Not used in offline mode.
     '''
     def __init__(self):
         global CEProxy
         self.errMsg = True
-        self.proxy = xmlrpclib.ServerProxy(CEProxy)
-        threading.Thread.__init__(self)
-
-    def run(self):
-        #
-        global epStatus, newEpStatus
-        global programExit, globEpId
-        #
-        while not programExit:
-
-            try:
-                # Try to get status from CE!
-                newEpStatus = self.proxy.getExecStatus(globEpId)
-                if not self.errMsg:
-                    print('EP warning: Central Engine is running. Reconnected successfully.')
-                    self.errMsg = True
-            except:
-                if self.errMsg:
-                    print('EP warning: Central Engine is down. Trying to reconnect...')
-                    self.errMsg = False
-                # Wait and retry...
-                time.sleep(3)
-                continue
-
-            # If status changed
-            if newEpStatus != epStatus:
-                print('Py debug: For EP %s, CE Server returned a new status: %s.' % \
-                    (globEpId.upper(), str(newEpStatus)))
-            epStatus = newEpStatus
-
-            saveConfig() # Save configuration EVERY second
-
-            if newEpStatus == 'stopped':
-                # PID might be invalid, trying to kill it anyway.
-                global tcr_pid
-                if tcr_pid:
-                    try:
-                        os.kill(tcr_pid, 9)
-                        print('EP warning: STOP from Central Engine! Killing Runner PID %s.' % str(tcr_pid))
-                        tcr_pid = None
-                    except:
-                        pass
-
-            time.sleep(3)
-            #
-
-#
-
-class threadCheckLog(threading.Thread):
-    '''
-    Threaded class for checking LIVE.log.
-    '''
-    def __init__(self):
-        global CEProxy
-        self.proxy = xmlrpclib.ServerProxy(CEProxy)
         self.read_len = 0
+        self.proxy = xmlrpclib.ServerProxy(CEProxy)
         threading.Thread.__init__(self)
 
     def tail(self, file_path):
@@ -230,22 +118,61 @@ class threadCheckLog(threading.Thread):
 
     def run(self):
         #
-        global globEpId, TWISTER_PATH, programExit
-
+        global epStatus, newEpStatus
+        global programExit, globEpId
+        global TWISTER_PATH
+        #
         while not programExit:
-            #
-            vString = self.tail('{0}/.twister_cache/{1}_LIVE.log'.format(TWISTER_PATH, globEpId))
 
             try:
-                # Send log to CE server.
-                self.proxy.logLIVE(globEpId, binascii.b2a_base64(vString))
+                # Try to get status from CE!
+                newEpStatus = self.proxy.getExecStatus(globEpId)
+                if not self.errMsg:
+                    print('EP warning: Central Engine is running. Reconnected successfully.')
+                    self.errMsg = True
             except:
-                # Wait and retry...
-                time.sleep(3)
+                if self.errMsg:
+                    print('EP warning: Central Engine is down. Trying to reconnect...')
+                    self.errMsg = False
+                # Wait and retry every 2 seconds...
+                time.sleep(2)
                 continue
 
-            time.sleep(3)
-            #
+            # If status changed
+            if newEpStatus != epStatus:
+                print('Py debug: For EP %s, CE Server returned a new status: %s.' % \
+                    (globEpId.upper(), str(newEpStatus)))
+            epStatus = newEpStatus
+
+            saveConfig() # Save configuration EVERY time
+
+            if newEpStatus == 'stopped':
+                # PID might be invalid, trying to kill it anyway.
+                global tcr_pid
+                if tcr_pid:
+                    try:
+                        os.kill(tcr_pid, 9)
+                        print('EP warning: STOP from Central Engine! Killing Runner PID %s.' % str(tcr_pid))
+                        tcr_pid = None
+                    except:
+                        pass
+
+            time.sleep(1) # Delay between status and logs
+
+            # Send logs only if EP is not stopped
+            if epStatus != 'stopped':
+
+                current_read_len = self.read_len
+                vString = self.tail('{0}/.twister_cache/{1}_LIVE.log'.format(TWISTER_PATH, globEpId))
+                try:
+                    # Send log to CE server.
+                    self.proxy.logLIVE(globEpId, binascii.b2a_base64(vString))
+                except:
+                    # If the connection is lost at this point, the log will be lost,
+                    # so, the position in the log file must be reverted:
+                    self.read_len = current_read_len
+                    time.sleep(2)
+                    continue
 
 #
 
@@ -287,8 +214,7 @@ if __name__=='__main__':
     else:
         CEProxy = 'http://' + host + '/'
         tcr_pid = None # PID of TC Runner
-        threadCheckStatus().start() # Start checking CE status
-        threadCheckLog().start()    # Start reading live log
+        threadStatusNLogs().start() # Start checking CE status and sending Logs
         proxy = xmlrpclib.ServerProxy(CEProxy)
 
     print('EP debug: Setup done, waiting for START signal.')
@@ -297,16 +223,14 @@ if __name__=='__main__':
     while 1:
 
         if epStatus == 'running':
-            # If not offline, save all libraries from CE
-            if not OFFLINE:
-                saveLibraries(proxy)
-                #saveTests(proxy)
+
             print('EP debug: Received start signal from CE!')
 
             # The same Python interpreter that started EP, will be used to start the Runner
             tcr_fname = TWISTER_PATH + os.sep + 'client/executionprocess/TestCaseRunner.py'
             tcr_proc = subprocess.Popen([sys.executable, '-u', tcr_fname, globEpId, filelist], shell=False)
             tcr_pid = tcr_proc.pid
+
             # TestCaseRunner should suicide if timer expired
             tcr_proc.wait()
             ret = tcr_proc.returncode
@@ -321,17 +245,19 @@ if __name__=='__main__':
             # Return code != 0
             elif ret:
                 print('EP debug: TC Runner exit with error code `{0}`!\n'.format(ret))
+
+                # Set EP status STOPPED
                 if not OFFLINE:
-                    # Set EP status STOPPED
                     proxy.setExecStatus(globEpId, STATUS_STOP, 'TC Runner exit with error code `{0}`!'.format(ret))
 
         # For offline, only 1 cycle is executed
         if OFFLINE:
             break
         else:
-            time.sleep(3)
+            time.sleep(2)
 
     # If the cicle is broken, try to kill the threads...!
     programExit = True
+    del proxy
 
 #
