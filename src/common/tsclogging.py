@@ -40,8 +40,7 @@ if not TWISTER_PATH:
 
 LOGS_PATH = TWISTER_PATH + '/logs/'
 if not os.path.exists(LOGS_PATH):
-    os.mkdirs(LOGS_PATH)
-
+    os.makedirs(LOGS_PATH)
 
 # Config cherrypy logging
 cherrypy.log.error_log.setLevel(log.DEBUG)

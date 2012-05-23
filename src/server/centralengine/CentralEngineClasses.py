@@ -601,7 +601,7 @@ class CentralEngine(_cptools.XMLRPCController):
             ''.format(**eMailConfig))
 
         # Information that will be mapped into subject or message of the e-mail
-        map_info = {'date': time.strftime("%Y.%m.%d %H.%M")}
+        map_info = {'date': time.strftime("%Y-%m-%d %H:%M")}
         suites = self.parser.configTS('testsuite')
 
         for suite in suites:
@@ -643,15 +643,22 @@ class CentralEngine(_cptools.XMLRPCController):
         head += 'Pass rate: %.2f%%\n\nDetails:\n\n' % (float(logSummary.count('*PASS*'))/ len(logSummary.strip().splitlines())* 100)
         head += '    EP    ::  Suite  ::         Test File           |    Status   |  Elapsed   |       Date  Time\n'
 
+        # Fix TO and CC
+        eMailConfig['To'] = eMailConfig['To'].replace(';', ',')
+        eMailConfig['To'] = eMailConfig['To'].split(',')
+
         msg = MIMEText(eMailConfig['Message'] + '\n\n' + head + logSummary)
         msg['From'] = eMailConfig['From']
-        msg['To'] = eMailConfig['To']
+        msg['To'] = eMailConfig['To'][0]
+        if len(eMailConfig['To']) > 1:
+            # Carbon Copy recipients
+            msg['CC'] = ','.join(eMailConfig['To'][1:])
         msg['Subject'] = eMailConfig['Subject']
 
         if (not eMailConfig['Enabled']) or (eMailConfig['Enabled'] in ['0', 'false']):
             open('e-mail.txt', 'w').write(msg.as_string())
             logDebug('E-mail.txt file written. The message will NOT be sent.')
-            return
+            return True
 
         try:
             server = smtplib.SMTP(eMailConfig['SMTPPath'])
