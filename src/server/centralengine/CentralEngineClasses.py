@@ -53,6 +53,7 @@ from cherrypy import _cptools
 from string import Template
 from collections import OrderedDict
 from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 TWISTER_PATH = os.getenv('TWISTER_PATH')
 if not TWISTER_PATH:
@@ -617,6 +618,7 @@ class CentralEngine(_cptools.XMLRPCController):
                 else:
                     map_info[k] = suite_info[k]
 
+        # Subject template string
         tmpl = Template(eMailConfig['Subject'])
         try:
             eMailConfig['Subject'] = tmpl.substitute(map_info)
@@ -625,6 +627,7 @@ class CentralEngine(_cptools.XMLRPCController):
             return False
         del tmpl
 
+        # Message template string
         tmpl = Template(eMailConfig['Message'])
         try:
             eMailConfig['Message'] = tmpl.substitute(map_info)
@@ -633,27 +636,49 @@ class CentralEngine(_cptools.XMLRPCController):
             return False
         del tmpl
 
-        head = ''
-        head += 'Tests executed: %i\n' % len(logSummary.strip().splitlines())
-        head += 'Tests passed:   %i\n' % logSummary.count('*PASS*')
-        head += 'Tests failed:   %i\n' % logSummary.count('*FAIL*')
-        head += 'Tests aborted:  %i\n' % logSummary.count('*ABORTED*')
-        head += 'Tests not exec: %i\n' % logSummary.count('*NO EXEC*')
-        head += 'Tests timeout:  %i\n' % logSummary.count('*TIMEOUT*')
-        head += 'Pass rate: %.2f%%\n\nDetails:\n\n' % (float(logSummary.count('*PASS*'))/ len(logSummary.strip().splitlines())* 100)
-        head += '    EP    ::  Suite  ::         Test File           |    Status   |  Elapsed   |       Date  Time\n'
+        ROWS = []
+
+        for line in logSummary.split('\n'):
+            rows = line.replace('::', '|').split('|')
+            if not rows[0]:
+                continue
+            rclass = rows[3].strip().replace('*', '')
+
+            rows = ['&nbsp;'+r.strip() for r in rows]
+            ROWS.append( ('<tr class="%s"><td>' % rclass) + '</td><td>'.join(rows) + '</td></tr>\n')
+
+        # Body string
+        body_path = os.path.split(self.config_path)[0] +os.sep+ 'e-mail-tmpl.htm'
+        if not os.path.exists(body_path):
+            logError('E-mail: Cannot find e-mail template file `{0}`!'.format(body_path))
+            return False
+
+        body_tmpl = Template(open(body_path).read())
+        body_dict = {
+            'texec':  len(logSummary.strip().splitlines()),
+            'tpass':  logSummary.count('*PASS*'),
+            'tfail':  logSummary.count('*FAIL*'),
+            'tabort': logSummary.count('*ABORTED*'),
+            'tnexec': logSummary.count('*NO EXEC*'),
+            'ttimeout': logSummary.count('*TIMEOUT*'),
+            'rate'  : round( (float(logSummary.count('*PASS*'))/ len(logSummary.strip().splitlines())* 100), 2),
+            'table' : ''.join(ROWS),
+        }
 
         # Fix TO and CC
         eMailConfig['To'] = eMailConfig['To'].replace(';', ',')
         eMailConfig['To'] = eMailConfig['To'].split(',')
 
-        msg = MIMEText(eMailConfig['Message'] + '\n\n' + head + logSummary)
+        msg = MIMEMultipart()
         msg['From'] = eMailConfig['From']
         msg['To'] = eMailConfig['To'][0]
         if len(eMailConfig['To']) > 1:
             # Carbon Copy recipients
             msg['CC'] = ','.join(eMailConfig['To'][1:])
         msg['Subject'] = eMailConfig['Subject']
+
+        msg.attach(MIMEText(eMailConfig['Message'], 'plain'))
+        msg.attach(MIMEText(body_tmpl.substitute(body_dict), 'html'))
 
         if (not eMailConfig['Enabled']) or (eMailConfig['Enabled'] in ['0', 'false']):
             open('e-mail.txt', 'w').write(msg.as_string())
