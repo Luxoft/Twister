@@ -77,6 +77,7 @@ class Root:
 
 
     # Reporting link
+    @cherrypy.tools.caching(delay=0)
     @cherrypy.expose
     def rep(self, report=None, **args):
         global dbparser, db_config
@@ -84,6 +85,10 @@ class Root:
         global conn, curs
         if not conn: connect_db()
         global glob_fields, glob_reports, glob_links
+
+        cherrypy.response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        cherrypy.response.headers['Pragma']  = 'no-cache'
+        cherrypy.response.headers['Expires'] = 0
 
         if not report:
             raise cherrypy.HTTPRedirect('/home')
@@ -254,6 +259,7 @@ class Root:
 
 
     # JSON link
+    @cherrypy.tools.caching(delay=0)
     @cherrypy.expose
     def json(self, report, **args):
         global dbparser, db_config
@@ -262,7 +268,10 @@ class Root:
         if not conn: connect_db()
         global glob_reports
 
-        cherrypy.response.headers['Content-Type'] = 'application/json; charset=utf-8'
+        cherrypy.response.headers['Content-Type']  = 'application/json; charset=utf-8'
+        cherrypy.response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        cherrypy.response.headers['Pragma']  = 'no-cache'
+        cherrypy.response.headers['Expires'] = 0
 
         if report not in glob_reports:
             output = {'aaData':[], 'error':'Report `{0}` is not in the list of defined reports!'.format(report)}
@@ -504,8 +513,8 @@ if __name__ == '__main__':
 
     conf = {
             '/': {
-                'tools.caching.on': True,
-                'tools.caching.delay': 9,
+                'tools.caching.on': False,
+                'tools.caching.delay': 0,
                 },
             '/static': {
                 'tools.staticdir.on': True,

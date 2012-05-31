@@ -66,6 +66,7 @@ class TSCParser:
 
         self.configTS = None
         self.configHash = None
+        self.getEpIdsList()
         self.updateConfigTS()
 
 
@@ -182,62 +183,7 @@ class TSCParser:
         return res
 
 
-    def getSuiteInfo(self, suite):
-        '''
-        Returns a list with information about all available Suites from Master XML.
-        '''
-
-        prop_keys = suite(lambda tag: tag.name=='propname' and tag.parent.name=='userdefined')
-        prop_vals = suite(lambda tag: tag.name=='propvalue' and tag.parent.name=='userdefined')
-        res = dict(zip([p.text for p in prop_keys], [p.text for p in prop_vals])) # Pack Key + Value
-
-        return res
-
-
-    def getFileInfo(self, epid, filename):
-        '''
-        Find all information about one test file, like deps, props, etc.
-        `filename` can be the name of the file, or the file ID.
-        '''
-        res = {}
-
-        # All suites for this EPID
-        suites = self.configTS(text=epid)
-        TestCase = None
-
-        if suites:
-            TestSuites = [suite.parent.parent for suite in suites]
-        else:
-            print('TSCParser: Cannot find EPID `%s`! Exiting!' % epid)
-            return {}
-
-        for TestSuite in TestSuites:
-            file_info = TestSuite(text=filename)
-            if file_info:
-                TestCase = file_info[0].parent.parent
-                res.update(self.getSuiteInfo(TestSuite))
-
-        if not TestCase:
-            print('TSCParser: Cannot find Info for `%s`! Exiting!' % filename)
-            return {}
-
-        try:
-            prop_keys = TestCase.property('propname')  # All extra properties, keys
-            prop_vals = TestCase.property('propvalue') # Properties, values
-            res.update( dict(zip([p.text for p in prop_keys], [p.text for p in prop_vals])) ) # Pack Key + Value
-        except:
-            pass # Doesn't have extra properties
-
-        res['id']    = TestCase.tcid.text
-        res['file']  = TestCase.tcname.text
-        res['epid']  = epid
-        res['suite'] = TestSuite.tsname.text
-        res['dep']   = TestCase.dependancy.text if TestCase.dependancy else ''
-        #print 'File info ::', res
-        return res
-
-
-    def getEpIdsList(self):
+    def getEpList(self):
         '''
         Returns a list with all available EP-IDs.
         '''
@@ -254,14 +200,84 @@ class TSCParser:
         return self.epids
 
 
-    def getActiveEpIds(self):
+    def getActiveEps(self):
         '''
         Returns a list with all active EpIds from Master XML.
         '''
         activeEpids = []
-        for ep in self.configTS.findAll('epid'):
+        for ep in self.configTS('epid'):
             activeEpids.append(ep.text)
         return activeEpids
+
+
+    def getFileInfo(self, file_soup):
+        '''
+        Returns a dict with information about 1 File from Master XML.
+        The "file" must be a BeautifulSoup class.
+        '''
+        res = OrderedDict()
+        res['suite'] = file_soup.parent.tsname.text
+        res['file'] = file_soup.tcname.text
+        res['dep']  = file_soup.dependancy.text if file_soup.dependancy else ''
+
+        prop_keys = file_soup(lambda tag: tag.name=='propname')
+        prop_vals = file_soup(lambda tag: tag.name=='propvalue')
+        param_nr = 1
+
+        # The order of the properties is important!
+        for i in range(len(prop_keys)):
+            p_key = prop_keys[i].text
+            p_val = prop_vals[i].text
+
+            # Param tags are special
+            if p_key == 'param':
+                p_key = 'param_%.2d' % param_nr
+                param_nr += 1
+
+            res[p_key] = p_val
+
+        return res
+
+
+    def getSuiteInfo(self, suite_soup):
+        '''
+        Returns a dict with information about 1 Suite from Master XML.
+        The "suite" must be a BeautifulSoup class.
+        '''
+
+        prop_keys = suite_soup(lambda tag: tag.name=='propname' and tag.parent.name=='userdefined')
+        prop_vals = suite_soup(lambda tag: tag.name=='propvalue' and tag.parent.name=='userdefined')
+        res = dict(zip([p.text for p in prop_keys], [p.text for p in prop_vals])) # Pack Key + Value
+
+        res['files'] = OrderedDict()
+        res['ep'] = suite_soup.epid.text
+
+        for file_tag in suite_soup('tcid'):
+            file_data = self.getFileInfo(file_tag.parent)
+            res['files'][file_tag.text] = file_data
+
+        return res
+
+
+    def getAllSuitesInfo(self, epname):
+        '''
+        Returns a list with data for all suites of one EP.
+        Also returns the file list, with all file data.
+        '''
+        if not self.configTS:
+            print('TSCParser: Cannot parse Test Suite XML! Exiting!')
+            return []
+
+        if epname not in self.epids:
+            print('TSCParser: Station `%s` is not in the list of defined EPIds: `%s`!' % \
+                (str(epname), str(self.epids)) )
+            return []
+
+        res = OrderedDict()
+        for suite in [k.parent for k in self.configTS(name='epid') if k.text==epname]:
+            suite_name = suite.tsname.text
+            res[suite_name] = self.getSuiteInfo(suite)
+        return res
 
 
     def getAllTestFiles(self):
@@ -285,35 +301,6 @@ class TSCParser:
 
         print('TSCParser: TestSuite Files (%s files) took %.4f seconds.' % (len(ts), time.clock()-ti))
         return ts
-
-
-    def getTestSuiteFileList(self, epid):
-        '''
-        Returns a list with all files defined for current EP.
-        '''
-        ti = time.clock()
-        if not self.configTS:
-            print('TSCParser: Cannot parse Test Suite XML! Exiting!')
-            return []
-
-        if epid not in self.epids:
-            print('TSCParser: Station `%s` is not in the list of defined EPIds: `%s`!' % \
-                (str(epid), str(self.epids)) )
-            return []
-
-        soup = self.configTS
-        ts = [tsSuite for tsSuite in soup('testsuite') if tsSuite.epid.text == epid]
-        if not ts:
-            print('TSCParser: Station `%s` has no files!' % str(epid))
-            return []
-
-        # For multiple test suites.
-        tcNames = []
-        for tcName in ts:
-            tcNames += [fname.text for fname in tcName('tcname')]
-
-        print('TSCParser: Parsing file fist (%s files) for `%s` took %.4f seconds.' % (len(tcNames), epid, (time.clock()-ti)))
-        return tcNames
 
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
