@@ -16,7 +16,7 @@ STATUS_TIMEOUT  = 7  # When timer expired
 STATUS_INVALID  = 8  # When timer expired, the next run
 STATUS_WAITING  = 9  # Is waiting for another test
 
-dictStatus = {'stopped':STATUS_STOP, 'paused':STATUS_PAUSED, 'running':STATUS_RUNNING, 'resume':STATUS_RESUME,
+execStatus = {'stopped':STATUS_STOP, 'paused':STATUS_PAUSED, 'running':STATUS_RUNNING, 'resume':STATUS_RESUME,
     'invalid':STATUS_INVALID}
 
 testStatus = {'pending':STATUS_PENDING, 'working':STATUS_WORKING, 'pass':STATUS_PASS, 'fail':STATUS_FAIL,

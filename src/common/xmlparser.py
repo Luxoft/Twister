@@ -66,7 +66,7 @@ class TSCParser:
 
         self.configTS = None
         self.configHash = None
-        self.getEpIdsList()
+        self.getEpList()
         self.updateConfigTS()
 
 
@@ -217,8 +217,8 @@ class TSCParser:
         '''
         res = OrderedDict()
         res['suite'] = file_soup.parent.tsname.text
-        res['file'] = file_soup.tcname.text
-        res['dep']  = file_soup.dependancy.text if file_soup.dependancy else ''
+        res['file']  = file_soup.tcname.text
+        res['dependancy'] = file_soup.dependancy.text if file_soup.dependancy else ''
 
         prop_keys = file_soup(lambda tag: tag.name=='propname')
         prop_vals = file_soup(lambda tag: tag.name=='propvalue')
