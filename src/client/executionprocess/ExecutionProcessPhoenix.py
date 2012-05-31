@@ -39,8 +39,8 @@ except:
     exit(1)
 
 # --- Configuration information --------------------------------------------------------------------
-globEpId     =  CONFIG['EP']
-PHOENIX_IP   =  CONFIG['server']
+globEpName  =  CONFIG['EP']
+PHOENIX_IP  =  CONFIG['server']
 # --------------------------------------------------------------------------------------------------
 
 #
@@ -48,7 +48,7 @@ PHOENIX_IP   =  CONFIG['server']
 try:
     proxy = xmlrpclib.ServerProxy('http://'+PHOENIX_IP+':8000/')
     print 'Central Engine started on:', PHOENIX_IP
-    print 'Central Engine Status:', proxy.getExecStatus(globEpId)
+    print 'Central Engine Status:', proxy.getExecStatus(globEpName)
     print 'You can start the test from user interface!\n'
 except:
     print 'Cannot connect to Central Engine at `%s`!' % PHOENIX_IP
@@ -77,7 +77,7 @@ def RUN(tList):
         timer_i = time.time()
         now = datetime.datetime.today().isoformat()
 
-        STATUS = proxy.getExecStatus(globEpId)
+        STATUS = proxy.getExecStatus(globEpName)
 
         if STATUS == 'stopped': # On stop, DIE!
             print 'EP::Windows: STOP! Exiting.\n'
@@ -87,7 +87,7 @@ def RUN(tList):
             print('EP::Windows: Paused!... Press RESUME to continue, or STOP to exit test suite...')
             while 1:
                 time.sleep(3)
-                STATUS = proxy.getExecStatus(globEpId)
+                STATUS = proxy.getExecStatus(globEpName)
                 # On resume, stop waiting
                 if STATUS == 'running' or STATUS == 'resume':
                     break
@@ -103,22 +103,22 @@ def RUN(tList):
         # Ignores NON phoenix
         if file_ext != '.tst':
             print 'EP::Windows: ... file ignored.\n'
-            proxy.setTestStatus(globEpId, tcName, 4) # Send status SKIPPED
+            proxy.setFileStatus(globEpName, tcName, 4) # Send status SKIPPED
             continue
         else:
-            proxy.setTestStatus(globEpId, tcName, 1) # Send status WORKING
+            proxy.setFileStatus(globEpName, tcName, 1) # Send status WORKING
 
         # The file that will be executed
         toExecute = CONFIG['tests_path'] +os.sep+ outFile
 
         # Download the file from the Central Engine
         with open(toExecute, "wb") as handle:
-            if not proxy.getTestCaseFile(globEpId, tcName):
+            if not proxy.getTestFile(globEpName, tcName):
                 print 'EP::Windows: File `%s` will be skipped...' % tcName
-                proxy.setTestStatus(globEpId, tcName, 4, 0) # Status SKIP
+                proxy.setFileStatus(globEpName, tcName, 4, 0) # Status SKIP
                 continue
             # If the file is not SKIP...
-            handle.write(proxy.getTestCaseFile(globEpId, tcName).data)
+            handle.write(proxy.getTestFile(globEpName, tcName).data)
 
         proxy.logMessage('logRunning', 'EP::Windows: Downloading file `%s`...\n' % toExecute)
 
@@ -162,10 +162,10 @@ def RUN(tList):
         # curs.execute( "SELECT id FROM ipo WHERE ip='%s' AND build_ver='%s' " % (..., ...) )
         # ipo_id = curs.fetchone()[0]
 
-        conf_id = proxy.getEpVariable(globEpId, 'conf_id')
-        #curs.execute( "SELECT file FROM conf_file WHERE id = %s " % conf_id )
-        #conf_file = curs.fetchone()[0]   # User chosen config file
-        ipo_id  = proxy.getEpVariable(globEpId, 'ipo_id')
+        conf_id = proxy.getEpVariable(globEpName, 'conf_id')
+        curs.execute( "SELECT file FROM conf_file WHERE id = %s " % conf_id )
+        conf_file = curs.fetchone()[0]   # User chosen config file
+        ipo_id  = proxy.getEpVariable(globEpName, 'ipo_id')
 
         # Save in log table.
         curs.execute( "INSERT INTO log (file) VALUES ('%s')" % log_name.replace('\\', '/') )
@@ -176,8 +176,7 @@ def RUN(tList):
         # --------- End of saving ---------
 
         # Config file path, chosen by user
-        #conf_file_path = CONFIG['cfg_path'] +os.sep+ conf_file
-        conf_file_path = CONFIG['cfg_path'] +os.sep+ 'config.txt'
+        conf_file_path = CONFIG['cfg_path'] +os.sep+ conf_file
 
         cfg_lines = open(conf_file_path, 'r').readlines()
         proxy.logMessage('logRunning', 'EP::Windows: Preparing config file...\n')
@@ -224,10 +223,10 @@ def RUN(tList):
 
         if 'FAIL' in results.values() or 'NOT EXEC' in results.values():
             final_result = 'FAIL'
-            proxy.setTestStatus(globEpId, tcName, 3, timer_f) # Status FAIL
+            proxy.setFileStatus(globEpName, tcName, 3, timer_f) # Status FAIL
         else:
             final_result = 'PASS'
-            proxy.setTestStatus(globEpId, tcName, 2, timer_f) # Status PASS
+            proxy.setFileStatus(globEpName, tcName, 2, timer_f) # Status PASS
 
         proxy.logMessage('logRunning',
             'EP::Windows: Finished execution of file `%s`, the result was `%s`.\n\n' % (toExecute, final_result))
@@ -274,7 +273,7 @@ while 1:
 
     try:
         # Try to get status from CE!
-        STATUS = proxy.getExecStatus(globEpId)
+        STATUS = proxy.getExecStatus(globEpName)
         if not errMsg:
             print('EP warning: Central Engine is running. Reconnected successfully.')
             errMsg = True
@@ -290,9 +289,9 @@ while 1:
 
     if STATUS == 'running':
         print('EP debug: Starting the runner !')
-        tList = proxy.getTestSuiteFileList(globEpId)
+        tList = proxy.getEpFiles(globEpName)
         RUN(tList)
-        proxy.setExecStatus(globEpId, 0) # Set EpId status STOP
+        proxy.setExecStatus(globEpName, 0) # Set EpId status STOP
 
     time.sleep(3)
 
