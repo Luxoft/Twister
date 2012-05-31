@@ -62,7 +62,7 @@ if __name__ == "__main__":
 
     if os.path.exists(TWISTER_PATH + '/bin/config_ce.cfg'):
         cherrypy.quickstart(root, config=TWISTER_PATH + '/bin/config_ce.cfg')
-    elif os.path.exists(TWISTER_PATH + '/../bin/config_ce.cfg')::
+    elif os.path.exists(TWISTER_PATH + '/../bin/config_ce.cfg'):
         cherrypy.quickstart(root, config=TWISTER_PATH + '/../bin/config_ce.cfg')
     else:
         logCritical("CE: Invalid path for `config_ce` file!")
