@@ -76,6 +76,8 @@ class TCRunTcl:
 
         import ce_libs
 
+        dir(ce_libs) # Update ?
+
         self.tcl = Tkinter.Tcl()
         # Expose all function to TCL
         self.tcl.createcommand('logMessage',          ce_libs.logMsg)

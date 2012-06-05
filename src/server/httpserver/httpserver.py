@@ -77,7 +77,6 @@ class Root:
 
 
     # Reporting link
-    @cherrypy.tools.caching(delay=0)
     @cherrypy.expose
     def rep(self, report=None, **args):
         global dbparser, db_config
@@ -221,6 +220,9 @@ class Root:
 
         descr = [desc[0] for desc in curs.description]
 
+        # Write DEBUG
+        #DEBUG.write(report +' -> '+ user_choices +' -> '+ query + '\n\n') ; DEBUG.flush()
+
 
         # ... For Query Compare side by side, the table is double ...
         query_compr = report_dict['sqlcompr']
@@ -252,6 +254,8 @@ class Root:
             # Update headers: must contain both headers.
             descr = descr + ['vs.'] + headers_tot
 
+            # Write DEBUG
+            #DEBUG.write(report +' -> '+ user_choices +' -> '+ query_compr + '\n\n') ; DEBUG.flush()
 
         output = Template(filename=TWISTER_PATH + '/server/httpserver/template/base.htm')
         return output.render(title=report, links=glob_links, ajax_link=ajax_link, user_choices=user_choices,
@@ -259,7 +263,6 @@ class Root:
 
 
     # JSON link
-    @cherrypy.tools.caching(delay=0)
     @cherrypy.expose
     def json(self, report, **args):
         global dbparser, db_config
@@ -498,6 +501,9 @@ if __name__ == '__main__':
     conn = None
     curs = None
 
+    # DEBUG file
+    #DEBUG = open(TWISTER_PATH + '/config/reporting.query', 'w')
+
     # Find server IP
     try:
         serverIP = socket.gethostbyname(socket.gethostname())
@@ -512,10 +518,6 @@ if __name__ == '__main__':
     cherrypy.config.update({'server.socket_host': serverIP, 'server.socket_port': serverPort})
 
     conf = {
-            '/': {
-                'tools.caching.on': False,
-                'tools.caching.delay': 0,
-                },
             '/static': {
                 'tools.staticdir.on': True,
                 'tools.staticdir.dir': TWISTER_PATH + '/server/httpserver/static',

@@ -41,8 +41,6 @@ sys.path.append(TWISTER_PATH)
 
 from trd_party.BeautifulSoup import BeautifulStoneSoup
 from server.centralengine.CentralEngineClasses import *
-from common.tsclogging import *
-from common.xmlparser import *
 
 #
 
@@ -56,17 +54,22 @@ if __name__ == "__main__":
     else:
         logDebug("CE: XML Config File: `%s`." % FMW_PATH)
         soup = BeautifulStoneSoup(open(FMW_PATH))
+        serverPort = int(soup.centralengineport.text)
+        del soup
 
-    # Start server
+    # Root path
     root = CentralEngine(FMW_PATH)
 
-    if os.path.exists(TWISTER_PATH + '/bin/config_ce.cfg'):
-        cherrypy.quickstart(root, config=TWISTER_PATH + '/bin/config_ce.cfg')
-    elif os.path.exists(TWISTER_PATH + '/../bin/config_ce.cfg'):
-        cherrypy.quickstart(root, config=TWISTER_PATH + '/../bin/config_ce.cfg')
-    else:
-        logCritical("CE: Invalid path for `config_ce` file!")
-        exit(1)
+    # Config
+    conf = {
+        'server.socket_host': '0.0.0.0',
+        'server.socket_port': serverPort,
+        'server.thread_pool': 30,
+        'engine.autoreload.on': False,
+        'log.screen': False,
+        }
+
+    # Start !
+    cherrypy.quickstart(root, '/', config=conf)
 
 #
-

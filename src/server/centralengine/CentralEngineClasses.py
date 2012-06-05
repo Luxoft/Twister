@@ -42,7 +42,6 @@ import glob
 import time
 import datetime
 import binascii
-import smtplib
 import xmlrpclib
 import MySQLdb
 
@@ -50,8 +49,6 @@ import cherrypy
 from cherrypy import _cptools
 
 from xml.dom.minidom import parseString
-from string import Template
-from collections import OrderedDict
 
 
 TWISTER_PATH = os.getenv('TWISTER_PATH')
@@ -117,7 +114,7 @@ class CentralEngine(_cptools.XMLRPCController):
             return 0
 
         reversed = dict((v,k) for k,v in execStatus.iteritems())
-        status = reversed[self.executionStatus]
+        status = reversed[self.project.getUserInfo('status')]
 
         ret = '''
         <h3>Central Engine Statistics</h3>
@@ -128,7 +125,7 @@ class CentralEngine(_cptools.XMLRPCController):
             status=status,
             host=cherrypy.config['server.socket_host'],
             port=cherrypy.config['server.socket_port'],
-            eps='<br>'.join(str(ep) for ep in self.project.data['eps'])
+            eps='<br>'.join(str(ep) +': '+ reversed[self.project.data['eps'][ep].get('status', STATUS_INVALID)] for ep in self.project.data['eps'])
             )
 
         return ret
@@ -201,7 +198,7 @@ class CentralEngine(_cptools.XMLRPCController):
         Selects from database.
         This function is called from the Java Interface.
         '''
-        dbparser = DBParser(self.db_path)
+        dbparser = DBParser(self.parser.getDbConfigPath())
         query = dbparser.getQuery(field_id)
         db_config = dbparser.db_config
         del dbparser
@@ -362,8 +359,18 @@ class CentralEngine(_cptools.XMLRPCController):
         '''
 
         data = self.project.getEpInfo(epname)
-        reversed = dict((v,k) for k,v in execStatus.iteritems())
+        # EP alive status = ping
+        last_seen = data.get('last_seen_alive', 0)
+        some_time = datetime.datetime.today()
+        self.project.setEpInfo(epname, 'last_seen_alive', some_time.strftime('%Y-%m-%d %H:%M:%S'))
+
+        if not last_seen:
+            self.project.setEpInfo(epname, 'ping', 0)
+        else:
+            last_seen = datetime.datetime.strptime(last_seen, '%Y-%m-%d %H:%M:%S')
+            #(now - datetime.timedelta(seconds=time_elapsed))
         # Return a status, or stop
+        reversed = dict((v,k) for k,v in execStatus.iteritems())
         return reversed[data.get('status', 8)]
 
 
@@ -699,7 +706,7 @@ class CentralEngine(_cptools.XMLRPCController):
                 (now.isoformat()))
 
             with open(logPath, 'a') as status_file:
-                status_file.write(' {ep}::{suite}::{file} | {status} | {elapsed} | {date}\n'.format(\
+                status_file.write(' {ep}::{suite}::{file} | {status} | {elapsed} | {date}\n'.format(
                     ep = epname.center(9), suite = suite.center(9), file = filename.center(28),
                     status = status_str.center(11),
                     elapsed = ('%.2fs' % time_elapsed).center(10),

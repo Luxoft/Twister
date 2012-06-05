@@ -23,8 +23,8 @@
 
 import os
 import sys
-import md5
 import time
+import hashlib
 
 from collections import OrderedDict
 
@@ -84,7 +84,7 @@ class TSCParser:
             return -1
 
         # Hash check the XML file, to see if is changed
-        newConfigHash = md5.new(open(config_ts).read()).hexdigest()
+        newConfigHash = hashlib.new(open(config_ts).read()).hexdigest()
         if self.configHash != newConfigHash:
             print('TSCParser: Master XML file changed, rebuilding internal structure...')
             # Use the new hash

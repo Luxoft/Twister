@@ -47,7 +47,7 @@ proc demo_setup {} {
     connect_and_setup_function3
 
     logMessage logDebug "TCL Setup done."
-    return
+    return "PASS"
 }
 
 proc connect_and_setup_function1 {} {
@@ -65,6 +65,6 @@ proc connect_and_setup_function3 {} {
     after 1000
 }
 
-demo_setup
-
 puts "\nTCL init done.\n"
+
+demo_setup

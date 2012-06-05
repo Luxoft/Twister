@@ -45,35 +45,31 @@ from common.tsclogging import *
 from common.xmlparser import *
 
 #
-
-'''
-Information about user:
-- user name
-
-Information about EP:
-- EP name
-- EP status (start, stop, pause)
-- EP OS
-- EP IP
-
-Information about Suite:
-- suite name
-- other info from Test-Suites.XML
-
-Information about Test File:
-- file name
-- complete file path
-- test title
-- test description
-- timeout value (if any)
-- test status (pass, fail, skip, etc)
-- crash detected
-- test params
-- test date started and finished
-- test time elapsed
-- test log
-'''
-
+# Information about user:
+#- user name
+#
+# Information about EP:
+#- EP name
+#- EP status (start, stop, pause)
+#- EP OS
+#- EP IP
+#
+# Information about Suite:
+#- suite name
+#- other info from Test-Suites.XML
+#
+# Information about Test File:
+#- file name
+#- complete file path
+#- test title
+#- test description
+#- timeout value (if any)
+#- test status (pass, fail, skip, etc)
+#- crash detected
+#- test params
+#- test date started and finished
+#- test time elapsed
+#- test log
 #
 
 class Project:
@@ -474,6 +470,7 @@ class Project:
         #
 
         for epname in self.data['eps']:
+
             for suite in self.data['eps'][epname]['suites']:
                 for file_id in self.data['eps'][epname]['suites'][suite]['files']:
 
