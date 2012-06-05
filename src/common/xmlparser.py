@@ -84,7 +84,7 @@ class TSCParser:
             return -1
 
         # Hash check the XML file, to see if is changed
-        newConfigHash = hashlib.new(open(config_ts).read()).hexdigest()
+        newConfigHash = hashlib.md5(open(config_ts).read()).hexdigest()
         if self.configHash != newConfigHash:
             print('TSCParser: Master XML file changed, rebuilding internal structure...')
             # Use the new hash
@@ -222,7 +222,7 @@ class TSCParser:
 
         prop_keys = file_soup(lambda tag: tag.name=='propname')
         prop_vals = file_soup(lambda tag: tag.name=='propvalue')
-        param_nr = 1
+        params = ''
 
         # The order of the properties is important!
         for i in range(len(prop_keys)):
@@ -231,8 +231,8 @@ class TSCParser:
 
             # Param tags are special
             if p_key == 'param':
-                p_key = 'param_%.2d' % param_nr
-                param_nr += 1
+                params += p_val + ','
+                p_val = params
 
             res[p_key] = p_val
 
@@ -424,17 +424,5 @@ class DBParser():
             res[d['id']]  = d
 
         return res
-
-#
-
-if __name__ == '__main__':
-
-    t = TSCParser(os.getenv('HOME') + '/tscproject/twister/Config/fwmconfig.xml')
-    print t.getLogsPath()
-    print t.getLogTypes()
-    print t.getReportsPath()
-    print t.getEpIdsList()
-    for l in t.getTestSuiteFileList('EP-1001'):
-        print 'Found file:', l
 
 #

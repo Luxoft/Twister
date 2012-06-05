@@ -360,6 +360,12 @@ if __name__=='__main__':
             prerequisite = proxy.getFileVariable(file_id, 'Prerequisite')
             # Test-case dependency, if any
             dependancy = proxy.getFileVariable(file_id, 'dependancy')
+            # Get args
+            args = proxy.getFileVariable(file_id, 'param')
+            if args:
+                args = [p for p in args.split(',') if p]
+            else:
+                args = []
 
             print('Starting to RUN filename: `%s`, dependancy = `%s`, is prerequisite = `%s` ...\n' % (filename, dependancy, prerequisite))
 
@@ -467,6 +473,7 @@ if __name__=='__main__':
             # Unknown file type
             else:
                 print('TC warning: Extension type `%s` is unknown and will be ignored!' % file_ext)
+                proxySetTestStatus(globEpName, file_id, STATUS_NOT_EXEC, 0.0) # Status NOT_EXEC
                 continue
 
             result = None
@@ -475,7 +482,7 @@ if __name__=='__main__':
             # --------------------------------------------------
             # RUN CURRENT TEST!
             try:
-                result = current_runner._eval(str_to_execute)
+                result = current_runner._eval(str_to_execute, args)
                 print('\n>>> File `%s` returned `%s`. <<<\n' % (filename, result))
 
             except Exception, e:

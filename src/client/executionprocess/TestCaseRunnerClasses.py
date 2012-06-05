@@ -61,12 +61,12 @@ class TCRunTcl:
             print('*ERROR* Cannot create TCL console! Exiting!')
             exit(1)
 
-        DEFAULT_INFO_VARS = ['_tkinter_skip_tk_init', 'argc', 'argv', 'argv0', 'auto_index', 'auto_oldpath', \
-            'auto_path', 'env', 'errorCode', 'errorInfo', 'tcl_interactive', 'tcl_libPath', 'tcl_library', \
-            'tcl_patchLevel', 'tcl_pkgPath', 'tcl_platform', 'tcl_rcFileName', 'tcl_version', 'exp_library', \
+        DEFAULT_INFO_VARS = ['_tkinter_skip_tk_init', 'argc', 'argv', 'argv0', 'auto_index', 'auto_oldpath',
+            'auto_path', 'env', 'errorCode', 'errorInfo', 'tcl_interactive', 'tcl_libPath', 'tcl_library',
+            'tcl_patchLevel', 'tcl_pkgPath', 'tcl_platform', 'tcl_rcFileName', 'tcl_version', 'exp_library',
             'expect_library', 'exp_exec_library']
 
-        DEFAULT_INFO_PROCS = ['auto_execok', 'auto_import', 'auto_load', 'auto_load_index', 'auto_qualify', \
+        DEFAULT_INFO_PROCS = ['auto_execok', 'auto_import', 'auto_load', 'auto_load_index', 'auto_qualify',
             'clock', 'history', 'tclLog', 'unknown', 'pkg_mkIndex']
 
         self.all_vars = 0
@@ -101,7 +101,7 @@ class TCRunTcl:
         except: pass
         #
 
-    def _eval(self, str_to_execute):
+    def _eval(self, str_to_execute, params=[]):
         '''
         After executing a TCL statement, the last value will be used
         as return value.
@@ -188,7 +188,7 @@ class TCRunTcl:
 
 class TCRunPython:
 
-    def _eval(self, str_to_execute):
+    def _eval(self, str_to_execute, params=[]):
         '''
         Variable `_RESULT` must be injected inside the exec,
         or else the return will always be None.
@@ -196,6 +196,8 @@ class TCRunPython:
         #
         _RESULT = None
         to_execute = str_to_execute.data
+        #
+        to_execute = '\nimport sys\nsys.argv = %s\n' % str(["file.py"] + params) + to_execute
         #
         # *.pyc or *.pyo files
         if to_execute[:4] == '\x03\xf3\r\n':
@@ -219,7 +221,7 @@ class TCRunPython:
 
 class TCRunPerl:
 
-    def _eval(self, str_to_execute):
+    def _eval(self, str_to_execute, params=[]):
         '''
         Perl test runner.
         '''
