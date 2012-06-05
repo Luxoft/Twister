@@ -1,11 +1,138 @@
 <Root>
     <TestSuite>
-        <tsName>demo2</tsName>
-        <EpId>EPID-1001</EpId>
-
+        <tsName>S1</tsName>
+        <EpId>EP-1001</EpId>
         <UserDefined>
             <propName>release_id</propName>
             <propValue>1</propValue>
+        </UserDefined>
+        <UserDefined>
+            <propName>build_id</propName>
+            <propValue>1</propValue>
+        </UserDefined>
+        <UserDefined>
+            <propName>suite_id</propName>
+            <propValue>1</propValue>
+        </UserDefined>
+        <UserDefined>
+            <propName>station_id</propName>
+            <propValue>1</propValue>
+        </UserDefined>
+        <UserDefined>
+            <propName>comments</propName>
+            <propValue>... xxx ...</propValue>
+        </UserDefined>
+        <TestSuite>
+            <tsName>S-11</tsName>
+            <EpId>EP-1001</EpId>
+            <TestCase>
+                <tcName>~/twister/demo/testsuite-python/init.py</tcName>
+                <tcID>1000</tcID>
+                <Title/>
+                <Summary/>
+                <Priority>Medium</Priority>
+                <Dependancy> </Dependancy>
+                <Property>
+                    <propName>Prerequisite</propName>
+                    <propValue>true</propValue>
+                </Property>
+                <Property>
+                    <propName>Runnable</propName>
+                    <propValue>true</propValue>
+                </Property>
+            </TestCase>
+            <TestCase>
+                <tcName>~/twister/demo/testsuite-python/test001.py</tcName>
+                <tcID>1001</tcID>
+                <Title/>
+                <Summary/>
+                <Priority>Medium</Priority>
+                <Dependancy> </Dependancy>
+                <Property>
+                    <propName>Runnable</propName>
+                    <propValue>true</propValue>
+                </Property>
+            </TestCase>
+        </TestSuite>
+        <TestSuite>
+            <tsName>S-12</tsName>
+            <EpId>EP-1001</EpId>
+            <TestCase>
+                <tcName>~/twister/demo/testsuite-python/init.py</tcName>
+                <tcID>1002</tcID>
+                <Title/>
+                <Summary/>
+                <Priority>Medium</Priority>
+                <Dependancy> </Dependancy>
+                <Property>
+                    <propName>Prerequisite</propName>
+                    <propValue>true</propValue>
+                </Property>
+                <Property>
+                    <propName>Runnable</propName>
+                    <propValue>true</propValue>
+                </Property>
+            </TestCase>
+            <TestCase>
+                <tcName>~/twister/demo/testsuite-python/test002.py</tcName>
+                <tcID>1003</tcID>
+                <Title/>
+                <Summary/>
+                <Priority>Medium</Priority>
+                <Dependancy> </Dependancy>
+                <Property>
+                    <propName>Runnable</propName>
+                    <propValue>false</propValue>
+                </Property>
+            </TestCase>
+            <TestCase>
+                <tcName>~/twister/demo/testsuite-python/test004.py</tcName>
+                <tcID>1004</tcID>
+                <Title/>
+                <Summary/>
+                <Priority>Medium</Priority>
+                <Dependancy> </Dependancy>
+                <Property>
+                    <propName>Runnable</propName>
+                    <propValue>true</propValue>
+                </Property>
+            </TestCase>
+        </TestSuite>
+        <TestSuite>
+            <tsName>S-13</tsName>
+            <EpId>EP-1001</EpId>
+            <TestCase>
+                <tcName>~/twister/demo/testsuite-python/init.py</tcName>
+                <tcID>1005</tcID>
+                <Title/>
+                <Summary/>
+                <Priority>Medium</Priority>
+                <Dependancy> </Dependancy>
+                <Property>
+                    <propName>Runnable</propName>
+                    <propValue>true</propValue>
+                </Property>
+            </TestCase>
+            <TestCase>
+                <tcName>~/twister/demo/testsuite-python/test006.py</tcName>
+                <tcID>1006</tcID>
+                <Title/>
+                <Summary/>
+                <Priority>Medium</Priority>
+                <Dependancy> </Dependancy>
+                <Property>
+                    <propName>Runnable</propName>
+                    <propValue>true</propValue>
+                </Property>
+            </TestCase>
+        </TestSuite>
+    </TestSuite>
+    <TestSuite>
+        <tsName>S2</tsName>
+        <EpId>EP-1002</EpId>
+        <UserDefined>
+            <propName>release_id</propName>
+            <propValue>2</propValue>
         </UserDefined>
         <UserDefined>
             <propName>build_id</propName>
@@ -13,20 +140,19 @@
         </UserDefined>
         <UserDefined>
             <propName>suite_id</propName>
-            <propValue>3</propValue>
+            <propValue>2</propValue>
         </UserDefined>
         <UserDefined>
             <propName>station_id</propName>
-            <propValue>4</propValue>
+            <propValue>2</propValue>
         </UserDefined>
         <UserDefined>
             <propName>comments</propName>
-            <propValue>some comment</propValue>
+            <propValue>commment</propValue>
         </UserDefined>
-
         <TestCase>
-            <tcName>~/twister_rel1/demo/testsuite-python/init.py</tcName>
-            <tcID>1000</tcID>
+            <tcName>~/twister/demo/testsuite-python/init.py</tcName>
+            <tcID>1007</tcID>
             <Title/>
             <Summary/>
             <Priority>Medium</Priority>
@@ -37,56 +163,8 @@
             </Property>
         </TestCase>
         <TestCase>
-            <tcName>~/twister_rel1/demo/testsuite-python/test001.py</tcName>
-            <tcID>1001</tcID>
-            <Title/>
-            <Summary/>
-            <Priority>Medium</Priority>
-            <Dependancy> </Dependancy>
-            <Property>
-                <propName>Runnable</propName>
-                <propValue>true</propValue>
-            </Property>
-        </TestCase>
-        <TestCase>
-            <tcName>~/twister_rel1/demo/testsuite-python/test002.py</tcName>
-            <tcID>1002</tcID>
-            <Title/>
-            <Summary/>
-            <Priority>Medium</Priority>
-            <Dependancy> </Dependancy>
-            <Property>
-                <propName>Runnable</propName>
-                <propValue>true</propValue>
-            </Property>
-        </TestCase>
-        <TestCase>
-            <tcName>~/twister_rel1/demo/testsuite-python/test003.py</tcName>
-            <tcID>1003</tcID>
-            <Title/>
-            <Summary/>
-            <Priority>Medium</Priority>
-            <Dependancy> </Dependancy>
-            <Property>
-                <propName>Runnable</propName>
-                <propValue>true</propValue>
-            </Property>
-        </TestCase>
-        <TestCase>
-            <tcName>~/twister_rel1/demo/testsuite-python/test004.py</tcName>
-            <tcID>1004</tcID>
-            <Title/>
-            <Summary/>
-            <Priority>Medium</Priority>
-            <Dependancy> </Dependancy>
-            <Property>
-                <propName>Runnable</propName>
-                <propValue>true</propValue>
-            </Property>
-        </TestCase>
-        <TestCase>
-            <tcName>~/twister_rel1/demo/testsuite-python/test005.py</tcName>
-            <tcID>1005</tcID>
+            <tcName>~/twister/demo/testsuite-python/test002.py</tcName>
+            <tcID>1008</tcID>
             <Title/>
             <Summary/>
             <Priority>Medium</Priority>
