@@ -95,7 +95,7 @@ class Project:
             }
 
         # List with all EPs for this User
-        epList = self.parser.getActiveEps()
+        epList = self.parser.getEpList()
         if not epList:
             raise Exception('Project: Cannot load the list of EPs !')
 

@@ -61,12 +61,13 @@ if __name__ == "__main__":
     root = CentralEngine(FMW_PATH)
 
     # Config
-    conf = {
+    conf = {'global': {
         'server.socket_host': '0.0.0.0',
         'server.socket_port': serverPort,
         'server.thread_pool': 30,
         'engine.autoreload.on': False,
         'log.screen': False,
+            }
         }
 
     # Start !

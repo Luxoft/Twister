@@ -105,7 +105,7 @@ class CentralEngine(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
-    def stats(self):
+    def stats(self, epname=''):
         '''
         This function should be used in the browser.
         It prints a few statistics about the Central Engine.
@@ -118,23 +118,45 @@ class CentralEngine(_cptools.XMLRPCController):
         now = datetime.datetime.today()
         now_str = now.strftime('%Y-%m-%d %H:%M:%S')
 
-        ret = '''
-        <h3>Central Engine Statistics</h3>
-        <b>Running on</b>: {host}:{port}<br><br>
-        <b>Status</b>: {status}<br><br>
-        <b>Processes</b>:<br>{eps}<br><br>
+        if epname:
+            if not self.searchEP(epname):
+                return '<b>Execution Process `{0}` doesn\'t exist!</b>'.format(epname)
+
+            data = self.project.getEpInfo(epname)
+            ret = '''
+<head>
+<title>Central Engine Statistics</title>
+</head>
+<body>
+<h3>Execution Process `{epname}`</h3>
+<b>Status</b>: {status}<br>
+<b>Ping</b>: {ping}<br>
+<b>Suites</b>: {suites}<br>
+</body>
+        '''.format(
+                epname=epname,
+                status=reversed[data.get('status', STATUS_INVALID)],
+                ping=str( (now - datetime.datetime.strptime(data.get('last_seen_alive', now_str), '%Y-%m-%d %H:%M:%S')).seconds ) + 's',
+                suites='['+', '.join(data['suites'].keys())+']',
+            )
+
+        else:
+            ret = '''
+<head>
+<title>Central Engine Statistics</title>
+</head>
+<body>
+<h3>Central Engine Statistics</h3>
+<b>Running on</b>: {host}:{port}<br><br>
+<b>Status</b>: {status}<br><br>
+<b>Processes</b>:<br>{eps}<br><br>
+</body>
         '''.format(
             status=status,
             host=cherrypy.config['server.socket_host'],
             port=cherrypy.config['server.socket_port'],
             eps='<br>'.join(
-                [ep + ': '
-                    + reversed[self.project.data['eps'][ep].get('status', STATUS_INVALID)] + ' (ping '
-                    + str(
-                        (now - datetime.datetime.strptime(self.project.data['eps'][ep].get('last_seen_alive', now_str), '%Y-%m-%d %H:%M:%S')).seconds
-                        )
-                    + 's)'
-                    for ep in self.project.data['eps']]
+                [ep +': '+ reversed[self.project.data['eps'][ep].get('status', STATUS_INVALID)] for ep in self.project.data['eps']]
                 )
             )
 
