@@ -107,7 +107,12 @@ class TCRunTcl:
         as return value.
         '''
         #
-        _RESULT = self.tcl.eval(str_to_execute.data)
+        to_execute = str_to_execute.data
+        #
+        to_execute = '\nset argc %i\n' % len(params) + to_execute
+        to_execute = 'set argv {%s}\n' % str(params)[1:-1] + to_execute
+        #
+        _RESULT = self.tcl.eval(to_execute)
         return _RESULT
         #
 
