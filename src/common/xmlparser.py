@@ -315,23 +315,39 @@ class DBParser():
     '''
 
     def __init__(self, config_data):
-        if os.path.isfile(config_data):
-            self.xmlDict = BeautifulStoneSoup(open(config_data))
-        elif config_data and type(config_data)==type('') or type(config_data)==type(u''):
-            self.xmlDict = BeautifulStoneSoup(config_data)
-        else:
-            raise Exception('DBParser: Invalid config data type: `%s`!' % type(config_data))
 
+        self.config_data = config_data
+        self.configHash = None
         self.db_config = {}
-        if self.xmlDict.db_config:
-            if self.xmlDict.db_config.server:
-                self.db_config['server']    = self.xmlDict.db_config.server.text
-            if self.xmlDict.db_config.database:
-                self.db_config['database']  = self.xmlDict.db_config.database.text
-            if self.xmlDict.db_config.user:
-                self.db_config['user']      = self.xmlDict.db_config.user.text
-            if self.xmlDict.db_config.password:
-                self.db_config['password']  = self.xmlDict.db_config.password.text
+        self.updateConfig()
+
+
+    def updateConfig(self):
+        ''' Reload all Database Xml info '''
+
+        config_data = self.config_data
+        newConfigHash = hashlib.md5(open(config_data).read()).hexdigest()
+
+        if self.configHash != newConfigHash:
+            self.configHash = newConfigHash
+            print('DBParser: Database XML file changed, rebuilding internal structure...\n')
+
+            if os.path.isfile(config_data):
+                self.xmlDict = BeautifulStoneSoup(open(config_data))
+            elif config_data and type(config_data)==type('') or type(config_data)==type(u''):
+                self.xmlDict = BeautifulStoneSoup(config_data)
+            else:
+                raise Exception('DBParser: Invalid config data type: `%s`!' % type(config_data))
+
+            if self.xmlDict.db_config:
+                if self.xmlDict.db_config.server:
+                    self.db_config['server']    = self.xmlDict.db_config.server.text
+                if self.xmlDict.db_config.database:
+                    self.db_config['database']  = self.xmlDict.db_config.database.text
+                if self.xmlDict.db_config.user:
+                    self.db_config['user']      = self.xmlDict.db_config.user.text
+                if self.xmlDict.db_config.password:
+                    self.db_config['password']  = self.xmlDict.db_config.password.text
 
 # --------------------------------------------------------------------------------------------------
 #           USED BY CENTRAL ENGINE
@@ -368,6 +384,8 @@ class DBParser():
 
     def getReportFields(self):
         ''' Used by HTTP Server. '''
+        self.updateConfig()
+
         try:
             fields = self.xmlDict.reports_section('field')
         except:
@@ -388,6 +406,8 @@ class DBParser():
 
     def getReports(self):
         ''' Used by HTTP Server. '''
+        self.updateConfig()
+
         try:
             reports = self.xmlDict.reports_section('report')
         except:
@@ -410,6 +430,8 @@ class DBParser():
 
     def getRedirects(self):
         ''' Used by HTTP Server. '''
+        self.updateConfig()
+
         try:
             reports = self.xmlDict.reports_section('redirect')
         except:

@@ -30,9 +30,7 @@ import os
 import sys
 import re
 import datetime
-import socket
 import json
-import binascii
 import MySQLdb
 import cherrypy
 from mako.template import Template
@@ -51,7 +49,7 @@ class Root:
     @cherrypy.expose
     def home(self):
         global dbparser, db_config
-        if not dbparser: load_config()
+        load_config() # Re-load all Database XML
         global glob_links
         output = Template(filename=TWISTER_PATH + '/server/httpserver/template/base.htm')
         return output.render(title='Home', links=glob_links)
@@ -70,7 +68,7 @@ class Root:
     @cherrypy.expose
     def help(self):
         global dbparser, db_config
-        if not dbparser: load_config()
+        load_config() # Re-load all Database XML
         global glob_links
         output = Template(filename=TWISTER_PATH + '/server/httpserver/template/help.htm')
         return output.render(title='Help', links=glob_links)
@@ -80,7 +78,7 @@ class Root:
     @cherrypy.expose
     def rep(self, report=None, **args):
         global dbparser, db_config
-        if not dbparser: load_config()
+        load_config() # Re-load all Database XML
         global conn, curs
         if not conn: connect_db()
         global glob_fields, glob_reports, glob_links
@@ -266,7 +264,7 @@ class Root:
     @cherrypy.expose
     def json(self, report, **args):
         global dbparser, db_config
-        if not dbparser: load_config()
+        load_config() # Re-load all Database XML
         global conn, curs
         if not conn: connect_db()
         global glob_reports
@@ -440,9 +438,11 @@ def load_config():
     '''
     global dbparser, db_config
     global glob_fields, glob_reports, glob_redirects, glob_links
-    print 'Parsing the config for the first time...\n'
-    dbparser =  DBParser(DB_CFG)
-    db_config = dbparser.db_config
+    if not dbparser:
+        print('Parsing the Config for the first time...\n')
+        dbparser =  DBParser(DB_CFG)
+        db_config = dbparser.db_config
+
     glob_fields = dbparser.getReportFields()
     glob_reports = dbparser.getReports()
     glob_redirects = dbparser.getRedirects()
@@ -452,20 +452,11 @@ def load_config():
 
 def connect_db():
     global conn, curs
-    print 'Connecting to the database for the first time...\n'
+    if not conn:
+        print('Connecting to the Database for the first time...\n')
     conn = MySQLdb.connect(host=db_config.get('server'), db=db_config.get('database'),
                            user=db_config.get('user'), passwd=db_config.get('password'))
     curs = conn.cursor()
-
-#
-
-def get_ip_address(ifname):
-    import struct
-    try: import fcntl
-    except: print('Fatal Error get IP adress!') ; exit(1)
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    return socket.inet_ntoa(fcntl.ioctl(
-        s.fileno(), 0x8915, struct.pack('256s', ifname[:15]) )[20:24])
 
 #
 
@@ -504,12 +495,8 @@ if __name__ == '__main__':
     # DEBUG file
     #DEBUG = open(TWISTER_PATH + '/config/reporting.query', 'w')
 
-    # Find server IP
-    try:
-        serverIP = socket.gethostbyname(socket.gethostname())
-    except:
-        serverIP = get_ip_address('eth0')
-    # Find server PORT
+    # Find server IP and PORT
+    serverIP = '0.0.0.0'
     serverPort = int(soup.httpserverport.text)
     del soup
 
