@@ -59,7 +59,7 @@ PYTHON_EXE = sys.executable
 
 # The proxy is used only if you need a proxy to connect to internet,
 # And `setuptools` is not installed, or some dependencies are missing
-HTTP_PROXY = 'http://UserName:PassWord@http-proxy.itcnetworks:3128'
+HTTP_PROXY = 'http://UserName:PassWord@http-proxy:3128'
 
 
 # --------------------------------------------------------------------------------------------------
@@ -496,7 +496,10 @@ tcr_proc.wait()
 
 os.system('chown %s %s -R' % (GROUP, INSTALL_PATH))
 os.system('chmod 774 %s -R' % INSTALL_PATH)
+os.system('find %s -name "*.txt" -exec chmod 664 {} \;' % INSTALL_PATH)
 os.system('find %s -name "*.xml" -exec chmod 664 {} \;' % INSTALL_PATH)
+os.system('find %s -name "*.htm" -exec chmod 664 {} \;' % INSTALL_PATH)
+os.system('find %s -name "*.json" -exec chmod 664 {} \;' % INSTALL_PATH)
 os.system('find %s -name "*.py" -exec chmod 664 {} \;' % INSTALL_PATH)
 os.system('find %s -name "*.tcl" -exec chmod 664 {} \;' % INSTALL_PATH)
 

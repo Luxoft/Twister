@@ -311,6 +311,8 @@ class Project:
         else:
             return [ str( self.files_data[k].get('status', -1) ) for k in self.files_data ]
 
+    getFileStatusAll.exposed = True
+
 
     def setFileStatusAll(self, new_status=10, epname=None):
         '''

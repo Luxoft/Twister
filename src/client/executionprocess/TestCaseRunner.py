@@ -303,11 +303,9 @@ if __name__=='__main__':
 
     while 1:
 
-        '''
-        = = =  CYCLE  IN  SUITES = = =
-        This cycle will run forever,
-        To complete all test files.
-        '''
+        # = = =  CYCLE  IN  SUITES = = =
+        # This cycle will run forever,
+        # To complete all test files.
 
         try: suite = tSuites[suite_number]
         except: break
@@ -317,15 +315,9 @@ if __name__=='__main__':
         print('===== ===== ===== ===== =====\n')
 
 
-        # File stats for current EP -> Suite
+        # File stats for current Suite
         tStats = proxy.getFileStatusAll(globEpName, suite).split(',')
-
-        if '7' in tStats:
-            print('TC debug: Resuming after timeout...')
-        else:
-            # Reset all stats if not Timeout
-            proxy.setFileStatusAll(STATUS_PENDING, globEpName)
-
+        # File list for current Suite
         tList = proxy.getSuiteFiles(globEpName, suite)
 
         if not tList:

@@ -457,7 +457,7 @@ class CentralEngine(_cptools.XMLRPCController):
 
         # If all Stations are stopped, the Central Engine must also stop!
         # This is important, so that in the Java GUI, the buttons will change to [Play | Stop]
-        if not sum([self.project.getEpInfo(ep).get('status', 8) for ep in self.project.data['eps']]):
+        if not sum([self.project.getEpInfo(ep).get('status', 8) for ep in self.parser.getActiveEps()]):
 
             # If User status was not Stop
             if self.project.getUserInfo('status'):
