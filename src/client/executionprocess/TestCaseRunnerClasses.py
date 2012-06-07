@@ -1,7 +1,29 @@
 
+# File: TestCaseRunnerClasses.py ; This file is part of Twister.
+
+# Copyright (C) 2012 , Luxoft
+
+# Authors:
+#    Andrei Costachi <acostachi@luxoft.com>
+#    Andrei Toma <atoma@luxoft.com>
+#    Cristian Constantin <crconstantin@luxoft.com>
+#    Daniel Cioata <dcioata@luxoft.com>
+
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at:
+
+# http://www.apache.org/licenses/LICENSE-2.0
+
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 '''
 REQUIRED Python 2.7
-This file contains classes that will run TCL/ Python/ Sikuli test cases.
+This file contains classes that will run TCL/ Python/ Perl test cases.
 '''
 
 import os
@@ -39,12 +61,12 @@ class TCRunTcl:
             print('*ERROR* Cannot create TCL console! Exiting!')
             exit(1)
 
-        DEFAULT_INFO_VARS = ['_tkinter_skip_tk_init', 'argc', 'argv', 'argv0', 'auto_index', 'auto_oldpath', \
-            'auto_path', 'env', 'errorCode', 'errorInfo', 'tcl_interactive', 'tcl_libPath', 'tcl_library', \
-            'tcl_patchLevel', 'tcl_pkgPath', 'tcl_platform', 'tcl_rcFileName', 'tcl_version', 'exp_library', \
+        DEFAULT_INFO_VARS = ['_tkinter_skip_tk_init', 'argc', 'argv', 'argv0', 'auto_index', 'auto_oldpath',
+            'auto_path', 'env', 'errorCode', 'errorInfo', 'tcl_interactive', 'tcl_libPath', 'tcl_library',
+            'tcl_patchLevel', 'tcl_pkgPath', 'tcl_platform', 'tcl_rcFileName', 'tcl_version', 'exp_library',
             'expect_library', 'exp_exec_library']
 
-        DEFAULT_INFO_PROCS = ['auto_execok', 'auto_import', 'auto_load', 'auto_load_index', 'auto_qualify', \
+        DEFAULT_INFO_PROCS = ['auto_execok', 'auto_import', 'auto_load', 'auto_load_index', 'auto_qualify',
             'clock', 'history', 'tclLog', 'unknown', 'pkg_mkIndex']
 
         self.all_vars = 0
@@ -53,6 +75,8 @@ class TCRunTcl:
         self.all_procs_values = 0
 
         import ce_libs
+
+        dir(ce_libs) # Update ?
 
         self.tcl = Tkinter.Tcl()
         # Expose all function to TCL
@@ -77,13 +101,18 @@ class TCRunTcl:
         except: pass
         #
 
-    def _eval(self, str_to_execute):
+    def _eval(self, str_to_execute, params=[]):
         '''
         After executing a TCL statement, the last value will be used
         as return value.
         '''
         #
-        _RESULT = self.tcl.eval(str_to_execute.data)
+        to_execute = str_to_execute.data
+        #
+        to_execute = '\nset argc %i\n' % len(params) + to_execute
+        to_execute = 'set argv {%s}\n' % str(params)[1:-1] + to_execute
+        #
+        _RESULT = self.tcl.eval(to_execute)
         return _RESULT
         #
 
@@ -164,7 +193,7 @@ class TCRunTcl:
 
 class TCRunPython:
 
-    def _eval(self, str_to_execute):
+    def _eval(self, str_to_execute, params=[]):
         '''
         Variable `_RESULT` must be injected inside the exec,
         or else the return will always be None.
@@ -172,6 +201,8 @@ class TCRunPython:
         #
         _RESULT = None
         to_execute = str_to_execute.data
+        #
+        to_execute = '\nimport sys\nsys.argv = %s\n' % str(["file.py"] + params) + to_execute
         #
         # *.pyc or *.pyo files
         if to_execute[:4] == '\x03\xf3\r\n':
@@ -195,7 +226,7 @@ class TCRunPython:
 
 class TCRunPerl:
 
-    def _eval(self, str_to_execute):
+    def _eval(self, str_to_execute, params=[]):
         '''
         Perl test runner.
         '''

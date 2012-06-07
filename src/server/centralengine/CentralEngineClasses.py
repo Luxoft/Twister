@@ -1,8 +1,30 @@
 
+# File: CentralEngineClasses.py ; This file is part of Twister.
+
+# Copyright (C) 2012 , Luxoft
+
+# Authors:
+#    Andrei Costachi <acostachi@luxoft.com>
+#    Andrei Toma <atoma@luxoft.com>
+#    Cristian Constantin <crconstantin@luxoft.com>
+#    Daniel Cioata <dcioata@luxoft.com>
+
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at:
+
+# http://www.apache.org/licenses/LICENSE-2.0
+
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 '''
 Requires Python 2.7 !
 
-This file contains 3 classes: EpId, Test File and Central Engine.
+This file contains Central Engine Class.
 All functions from Central Engine are EXPOSED and can be accesed via RPC.
 The CE and each EP have a status that can be: start/ stop/ paused.
 Each test file has a status that can be: pending, working, pass, fail, skip, etc.
@@ -19,15 +41,15 @@ import re
 import glob
 import time
 import datetime
-import json
 import binascii
-import smtplib
 import xmlrpclib
 import MySQLdb
 
-from string import Template
-from collections import OrderedDict
-from email.mime.text import MIMEText
+import cherrypy
+from cherrypy import _cptools
+
+from xml.dom.minidom import parseString
+
 
 TWISTER_PATH = os.getenv('TWISTER_PATH')
 if not TWISTER_PATH:
@@ -35,380 +57,149 @@ if not TWISTER_PATH:
     exit(1)
 sys.path.append(TWISTER_PATH)
 
+from CentralEngineOthers import Project
+
 from common.constants import *
 from common.tsclogging import *
 from common.xmlparser import *
 
-
-dictStatus = {'stopped':STATUS_STOP, 'paused':STATUS_PAUSED, 'running':STATUS_RUNNING, 'resume':STATUS_RESUME}
-
-testStatus = {'pending':STATUS_PENDING, 'working':STATUS_WORKING, 'pass':STATUS_PASS, 'fail':STATUS_FAIL,
-    'skipped':STATUS_SKIPPED, 'aborted':STATUS_ABORTED, 'not executed':STATUS_NOT_EXEC, 'timeout':STATUS_TIMEOUT,
-    'invalid':STATUS_INVALID, 'waiting':STATUS_WAITING}
-
+#
 
 # --------------------------------------------------------------------------------------------------
-# # # # # # # # # # # # # # # # # #
+# # # #    C L A S S    C e n t r a l-E n g i n e    # # #
 # --------------------------------------------------------------------------------------------------
 
 
-class TestFile:
-
-    def __init__(self, props):
-
-        # File properties
-        self.epid =     props.get('epid', '')
-        self.suite =    props.get('suite', '')
-        self.name =     props.get('file', '')
-        self.runnable = props.get('runnable', '')
-        self.status = STATUS_PENDING
-
-        if (not self.name) or (not self.epid) or (not self.suite):
-            logError('TestFile: Error! Created empty file, without Name, EP or Suite!')
-
-        # Preparing the known variables for mapping in query
-        del props['epid']
-        del props['suite']
-        del props['file']
-        self.data = props
-
-        self.data['twister_ep_name'] = self.epid
-        self.data['twister_suite_name'] = self.suite
-        self.data['twister_tc_name'] = os.path.split(self.name)[1]
-        self.data['twister_tc_full_path'] = self.name
-
-
-    def __repr__(self):
-        reversed = dict((v,k) for k,v in testStatus.iteritems())
-        return '{ep}::{suite}::{file} - {status}'.format(self.epid, self.suite, self.name, reversed[self.status])
-
-
-    def setStatus(self, new_status):
-        # Status must be valid
-        if new_status not in testStatus.values():
-            logError("TF ERROR! Status value `%s` is not in the list of defined statuses: `%s`!" % \
-                (str(new_status), str(testStatus.values())) )
-            return False
-
-        self.status = new_status
-        reversed = dict((v,k) for k,v in testStatus.iteritems())
-        self.data['twister_tc_status'] = reversed[new_status]
-
-        return reversed[new_status]
-
-
-    def saveToDatabase(self, db_config, fields, queries):
-        '''
-        This function will populate user query with data collected from:
-        Master XML, Central Engine, or from SQL Queries.
-        All queries will be executed for each filename.
-
-        twister_ce_os              # from CE
-        twister_ep_os              # from EP
-        twister_ce_ip              # from CE
-        twister_ep_ip              # from EP
-
-        twister_ep_name            # from master XML
-        twister_suite_name         # suite from master XML
-        twister_tc_name            # test case name from master XML
-        twister_tc_full_path       # test case full path from master XML
-        twister_tc_title           # from ...?
-        twister_tc_description     # from ...?
-
-        twister_tc_status          # from Runner
-        twister_tc_crash_detected  # from EP service
-        twister_tc_time_elapsed    # from Runner
-        twister_tc_date_started    # calculated
-        twister_tc_date_finished   # from Runner
-        twister_tc_log             # parsed from logs
-        '''
-
-        conn = MySQLdb.connect(host=db_config.get('server'), db=db_config.get('database'),
-            user=db_config.get('user'), passwd=db_config.get('password'))
-        curs = conn.cursor()
-
-        for query in queries:
-
-            # All variables that must be replaced in Insert
-            vars_to_replace = re.findall('(@.+?@)', query)
-
-            for field in vars_to_replace:
-                # Delete the @ character
-                u_query = fields.get(field.replace('@', ''))
-
-                if not u_query:
-                    logError('File: {0}, cannot build query! Field {1} is not defined in the fields section!'.format(self.name, field))
-                    return False
-
-                # Execute User Query
-                curs.execute(u_query)
-                q_value = curs.fetchone()[0]
-                # Replace @variables@ with real Database values
-                query = query.replace(field, str(q_value))
-
-            # String Template
-            tmpl = Template(query)
-
-            # Build complete query
-            try:
-                query = tmpl.substitute(self.data)
-            except Exception, e:
-                logError('File: {0}, cannot build query! Error: {1}!'.format(self.name, str(e)))
-                return False
-
-            # :: For DEBUG ::
-            #open(TWISTER_PATH + os.sep + 'Query.debug', 'a').write('File Query:: `{0}` ::\n{1}\n\n\n'.format(self.name, query))
-
-            # Execute MySQL Query
-            try:
-                curs.execute(query)
-            except MySQLdb.Error, e:
-                logError('Error in query ``{0}``'.format(query))
-                logError('MySQL Error %d: %s!' % (e.args[0], e.args[1]))
-                return False
-
-        curs.close()
-        conn.close()
-
-
-    def saveToExcel(self):
-        pass
-
-
-# --------------------------------------------------------------------------------------------------
-# # # # # # # # # # # # # # # # # #
-# --------------------------------------------------------------------------------------------------
-
-
-class EpId:
-
-    '''
-    An EP (Execution Process) is actually the representation of a machine/ station/ computer.
-    When creating the list of suites, each suite must run on one EP (station).
-    It's not possible to run multiple suites on the same EP, at the same time,
-    but one Master XML can have more suites on the same EP, that will run sequential.
-    Execution in parallel means that the tests are run in parallel on many differend EPs.
-    '''
-
-    def __init__(self, id=None):
-
-        # EP id number
-        self.id = id
-        # The EP, the Suite and the File must have data
-        self.data = {}
-        # Dictionary of test files
-        self.tfList = OrderedDict()
-        self.executionStatus = STATUS_STOP
-
-
-    def __repr__(self):
-        reversed = dict((v,k) for k,v in dictStatus.iteritems())
-        return '%s -> %s' % (str(self.id), reversed[self.executionStatus])
-
-
-    def setStatus(self, new_status):
-        # Status must be valid
-        if new_status not in dictStatus.values():
-            logError('Station %s ERROR! Cannot change status! Status value `%s` is not in the list of defined '\
-                'statuses: `%s`!' % (str(self.id), str(new_status), str(dictStatus.values())) )
-            return False
-
-        reversed = dict((v,k) for k,v in dictStatus.iteritems())
-        self.executionStatus = new_status
-        return reversed[new_status]
-
-
-    def getFileInfo(self, filename):
-        '''
-        Get all information available about one file.
-        '''
-        if filename not in self.tfList:
-            logError('Station %s ERROR! Cannot get status! Filename `%s` is not in the list of defined '\
-                'files: `%s`!' % (str(self.id), str(filename), str(self.tfList)) )
-            return False
-
-        return self.tfList[filename].data
-
-
-    def addFileInfo(self, filename, key, value):
-        '''
-        Add extra information on one file.
-        '''
-        if filename not in self.tfList:
-            logError('Station %s ERROR! Cannot get status! Filename `%s` is not in the list of defined '\
-                'files: `%s`!' % (str(self.id), str(filename), str(self.tfList)) )
-            return False
-
-        self.tfList[filename].data[key] = value
-        return True
-
-
-    def getTfStatus(self, filename):
-        '''
-        Get status for one Test File. The file must exist.
-        '''
-        if filename not in self.tfList:
-            logError('Station %s ERROR! Cannot get status! Filename `%s` is not in the list of defined '\
-                'files: `%s`!' % (str(self.id), str(filename), str(self.tfList)) )
-            return False
-
-        reversed = dict((v,k) for k,v in testStatus.iteritems())
-        status = self.tfList[filename].status
-        return reversed[status]
-
-
-    def getStatusAll(self):
-        '''
-        Returns status for all files that must be executed on this EP.
-        Pairs like : file name => status
-        '''
-        statuses = OrderedDict()
-        for filename in self.tfList:
-            statuses[filename] = self.tfList[filename].status
-        return statuses
-
-
-    def setTfStatus(self, filename, new_status):
-        '''
-        Set status for one Test File. The file must exist.
-        '''
-        if filename not in self.tfList:
-            logError('Station %s ERROR! Cannot change file status! Filename `%s` is not in the list of defined '\
-                'files: `%s`!' % (str(self.id), str(filename), str(self.tfList.keys())) )
-            return False
-
-        status = self.tfList[filename].setStatus(new_status)
-        return status
-
-
-    def setTfStatusAll(self, new_status):
-        '''
-        Set status for all Test File.
-        '''
-        for filename in self.tfList:
-            self.tfList[filename].setStatus(new_status)
-
-        reversed = dict((v,k) for k,v in testStatus.iteritems())
-        return reversed[new_status]
-
-
-    def toDatabase(self):
-        '''
-        Save all files into database.
-        '''
-        for filename in self.tfList:
-            self.tfList[filename].saveToDatabase(self.db_config, self.fields, self.queries)
-        return True
-
-
-# --------------------------------------------------------------------------------------------------
-# # # # # # # # # # # # # # # # # #
-# --------------------------------------------------------------------------------------------------
-
-
-class CentralEngine:
+class CentralEngine(_cptools.XMLRPCController):
 
     def __init__(self, config_path=None):
 
-        # Before executing a test, EP / TC is checking CE status
-
-        # String status values
-        self.executionStatus = STATUS_STOP
+        # Config path and XML parser
         self.config_path = config_path
-
-        # Central engine variables
-        # Can be used to store start time, elapsed time, users, etc
-        self.vars = {}
-        self.vars['start_time'] = 0
-        self.vars['elapsed_time'] = 0
-        self.vars['started_by_user'] = ''
-
-        self.open_flow_bit_rate = {} # Temporar variable!
+        self.parser = TSCParser(config_path)
 
         # Build all Parsers + EP + Files structure
         logDebug('CE: Starting Central Engine...') ; ti = time.clock()
-        self._initialize(reset=True)
+        self.project = Project(config_path)
+        self.project.setFileStatusAll(STATUS_PENDING)
         logDebug('CE: Initialization took %.4f seconds.' % (time.clock()-ti))
 
 
-    def _initialize(self, reset=False):
+# --------------------------------------------------------------------------------------------------
+#           B R O W S E R   F U N C T I O N S
+# --------------------------------------------------------------------------------------------------
+
+
+    def _user_agent(self):
         '''
-        This function re-builds:
-        - the framework config parser
-        - the list of all files defined in Test Suite XML
-        - the list of EP-IDs
-        - and the list of files for each EP-ID.
-        This can take a long time if there are many test files !
+        User agent returns Browser or XML RPC client.
+        This function is not exposed.
         '''
-        if reset:
-            # Framework config XML
-            self.parser = TSCParser(self.config_path)
-
-            # List with all EP-Ids
-            epList = self.parser.getEpIdsList()
-            if not epList:
-                logCritical('CE: Cannot load the list of EPs !')
-                return -1
-            else:
-                self.EpIds = [EpId(id) for id in epList]
-
-        # The list with all test files defined in Test Suite XML, in order
-        self.all_test_files = self.parser.getAllTestFiles()
-
-        # Database parser, fields, queries
-        self.db_path = self.parser.getDbConfigPath()
-        dbparser = DBParser(self.db_path)
-        db_config = dbparser.db_config
-        queries = dbparser.getQueries()
-        fields = dbparser.getFields()
-        del dbparser
-
-        for ep in self.EpIds:
-            # Add queries for each EP
-            ep.db_config = db_config # DB.XML connections
-            ep.queries = queries # DB.XML insert queries
-            ep.fields = fields # DB.XML field queries
-
-            # Populate files inside each EP
-            fileList = self.parser.getTestSuiteFileList(ep.id)
-            ep.tfList = OrderedDict([ (filename, TestFile(self.parser.getFileInfo(ep.id, filename))) \
-                for filename in fileList ])
+        if  cherrypy.request.headers['User-Agent'].startswith('xmlrpclib.py') or \
+            cherrypy.request.headers['User-Agent'].startswith('Apache XML RPC'):
+            # XML RPC client
+            return 'x'
+        else:
+            # Browser
+            return 'b'
 
 
+    @cherrypy.expose
+    def stats(self, epname=''):
+        '''
+        This function should be used in the browser.
+        It prints a few statistics about the Central Engine.
+        '''
+        if self._user_agent == 'x':
+            return 0
+
+        reversed = dict((v,k) for k,v in execStatus.iteritems())
+        status = reversed[self.project.getUserInfo('status')]
+        now = datetime.datetime.today()
+        now_str = now.strftime('%Y-%m-%d %H:%M:%S')
+
+        if epname:
+            if not self.searchEP(epname):
+                return '<b>Execution Process `{0}` doesn\'t exist!</b>'.format(epname)
+
+            data = self.project.getEpInfo(epname)
+            ret = '''
+<head>
+<title>Central Engine Statistics</title>
+</head>
+<body>
+<h3>Execution Process `{epname}`</h3>
+<b>Status</b>: {status}<br>
+<b>Ping</b>: {ping}<br>
+<b>Suites</b>: {suites}<br>
+</body>
+        '''.format(
+                epname=epname,
+                status=reversed[data.get('status', STATUS_INVALID)],
+                ping=str( (now - datetime.datetime.strptime(data.get('last_seen_alive', now_str), '%Y-%m-%d %H:%M:%S')).seconds ) + 's',
+                suites='['+', '.join(data['suites'].keys())+']',
+            )
+
+        else:
+            ret = '''
+<head>
+<title>Central Engine Statistics</title>
+</head>
+<body>
+<h3>Central Engine Statistics</h3>
+<b>Running on</b>: {host}:{port}<br><br>
+<b>Status</b>: {status}<br><br>
+<b>Processes</b>:<br>{eps}<br><br>
+</body>
+        '''.format(
+            status=status,
+            host=cherrypy.config['server.socket_host'],
+            port=cherrypy.config['server.socket_port'],
+            eps='<br>'.join(
+                [ep +': '+ reversed[self.project.data['eps'][ep].get('status', STATUS_INVALID)] for ep in self.project.data['eps']]
+                )
+            )
+
+        return ret
+
+    @cherrypy.expose
+    def status(self):
+        return self.stats()
+
+
+    @cherrypy.expose
+    def log(self):
+        '''
+        This function should be used in the browser.
+        It prints the Central Engine log.
+        '''
+        if self._user_agent == 'x':
+            return 0
+
+        global LOG_FILE
+        log = open(LOG_FILE).read()
+        return log.replace('\n', '<br>')
+
+    @cherrypy.expose
+    def logs(self):
+        return self.log()
+
+
+# --------------------------------------------------------------------------------------------------
+#           H E L P E R   F U N C T I O N S
+# --------------------------------------------------------------------------------------------------
+
+
+    @cherrypy.expose
     def echo(self, msg):
         '''
         Simple echo function, for testing connection.
         '''
-        logInfo('Echo: %s' % str(msg))
+        logInfo(':: %s' % str(msg))
         return 'CE reply: ' + msg
 
 
-    def getAllVars():
-        '''
-        Returns available variables from CE, used in Java interface.
-        This information is at test file level, NOT suite level.
-        '''
-        ce_vars = '''
-        twister_ce_os
-        twister_ep_os
-        twister_ce_ip
-        twister_ep_ip
-        twister_ep_name
-        twister_suite_name
-        twister_tc_name
-        twister_tc_full_path
-        twister_tc_title
-        twister_tc_description
-        twister_tc_status
-        twister_tc_crash_detected
-        twister_tc_time_elapsed
-        twister_tc_date_started
-        twister_tc_date_finished
-        twister_tc_log
-        '''
-        return ce_vars
-
-
+    @cherrypy.expose
     def getConfigPath(self):
         '''
         The path to Master config file.
@@ -416,6 +207,7 @@ class CentralEngine:
         return self.config_path
 
 
+    @cherrypy.expose
     def getLogsPath(self):
         '''
         The path to Logs files.
@@ -423,29 +215,22 @@ class CentralEngine:
         return self.parser.getLogsPath()
 
 
+    @cherrypy.expose
     def getLogTypes(self):
         '''
-        All types of logs defined in Master config file will be exposed in TCL environment.
+        All types of logs defined in Master config file will be exposed
+        in the testing environment.
         '''
         return self.parser.getLogTypes()
 
 
-    def searchEP(self, epid):
-        '''
-        Search one EpId and return True or False.
-        '''
-        for ep in self.EpIds:
-            if ep.id==epid:
-                return True
-        return False
-
-
+    @cherrypy.expose
     def runDBSelect(self, field_id):
         '''
         Selects from database.
         This function is called from the Java Interface.
         '''
-        dbparser = DBParser(self.db_path)
+        dbparser = DBParser(self.parser.getDbConfigPath())
         query = dbparser.getQuery(field_id)
         db_config = dbparser.db_config
         del dbparser
@@ -469,6 +254,7 @@ class CentralEngine:
         return msg_str
 
 
+    @cherrypy.expose
     def sendMail(self):
         '''
         Send e-mail after the suites are run.
@@ -477,121 +263,110 @@ class CentralEngine:
         This function is called every time the Central Engine stops.
         '''
 
-        eMailConfig = self.parser.getEmailConfig()
-
-        logPath = self.parser.getLogFileForType('logSummary')
-        logSummary = open(logPath).read()
-
-        if not logSummary:
-            logDebug('E-mail: Nothing to send!')
-            return
-
-        logDebug('E-mail preparing... Server `{SMTPPath}`, user `{SMTPUser}`, from `{From}`, to `{To}`...'
-            ''.format(**eMailConfig))
-
-        # Information that will be mapped into subject or message of the e-mail
-        map_info = {'date': time.strftime("%Y.%m.%d %H.%M")}
-        suites = self.parser.configTS('testsuite')
-
-        for suite in suites:
-            # All information for one suite
-            suite_info = self.parser.getSuiteInfo(suite)
-
-            for k in suite_info:
-                # If the information is already in the mapping info
-                if k in map_info:
-                    map_info[k] += ', ' + suite_info[k]
-                    map_info[k] = ', '.join( list(set( map_info[k].split(', ') )) )
-                    #map_info[k] = ', '.join(sorted( list(set(map_info[k].split(', '))) )) # Sorted ?
-                else:
-                    map_info[k] = suite_info[k]
-
-        tmpl = Template(eMailConfig['Subject'])
-        try:
-            eMailConfig['Subject'] = tmpl.substitute(map_info)
-        except Exception, e:
-            logError('CE: Cannot build e-mail subject! Error: {0}!'.format(e))
-            return False
-        del tmpl
-
-        tmpl = Template(eMailConfig['Message'])
-        try:
-            eMailConfig['Message'] = tmpl.substitute(map_info)
-        except Exception, e:
-            logError('CE: Cannot build e-mail message! Error: {0}!'.format(e))
-            return False
-        del tmpl
-
-        head = ''
-        head += 'Tests executed: %i\n' % len(logSummary.strip().splitlines())
-        head += 'Tests passed:   %i\n' % logSummary.count('*PASS*')
-        head += 'Tests failed:   %i\n' % logSummary.count('*FAIL*')
-        head += 'Tests aborted:  %i\n' % logSummary.count('*ABORTED*')
-        head += 'Tests not exec: %i\n' % logSummary.count('*NO EXEC*')
-        head += 'Tests timeout:  %i\n' % logSummary.count('*TIMEOUT*')
-        head += 'Pass rate: %.2f%%\n\nDetails:\n\n' % (float(logSummary.count('*PASS*'))/ len(logSummary.strip().splitlines())* 100)
-        head += '    EP    ::  Suite  ::         Test File           |    Status   |  Elapsed   |       Date  Time\n'
-
-        msg = MIMEText(eMailConfig['Message'] + '\n\n' + head + logSummary)
-        msg['From'] = eMailConfig['From']
-        msg['To'] = eMailConfig['To']
-        msg['Subject'] = eMailConfig['Subject']
-
-        if (not eMailConfig['Enabled']) or (eMailConfig['Enabled'] in ['0', 'false']):
-            open('e-mail.txt', 'w').write(msg.as_string())
-            logDebug('E-mail.txt file written. The message will NOT be sent.')
-            return
-
-        try:
-            server = smtplib.SMTP(eMailConfig['SMTPPath'])
-        except:
-            logError('SMTP: Cannot connect to SMTP server!')
-            return False
-
-        try:
-            logDebug('SMTP: Preparing to login...')
-            server.ehlo()
-            server.starttls()
-            server.ehlo()
-            server.login(eMailConfig['SMTPUser'], eMailConfig['SMTPPwd'])
-            logDebug('SMTP: Connect success!')
-        except:
-            logError('SMTP: Cannot autentificate to SMTP server!')
-            return False
-
-        try:
-            server.sendmail(eMailConfig['From'], eMailConfig['To'], msg.as_string())
-            logDebug('SMTP: E-mail sent successfully!')
-            server.quit()
-            return True
-        except:
-            logError('SMTP: Cannot send e-mail!')
-            return False
+        ret = self.project.sendMail()
+        return ret
 
 
+    @cherrypy.expose
     def commitToDatabase(self):
         '''
-        For each EP, for each File, the results of the tests are saved to database,
-        exactly as the user defined them in db.xml.
-        This function is called from the Java Interface, or from an EP.
+        For each EP, for each Suite and each File, the results of the tests are saved to database,
+        exactly as the user defined them in Database.XML.
+        This function is called from the Java GUI, or from an EP.
         '''
 
-        logDebug('CE: Preparing to save into database... 3... 2... 1...')
+        logDebug('CE: Preparing to save into database...')
         time.sleep(3)
-
-        # Inject extra information, then commit
-        for ep in self.EpIds:
-            for filename in ep.tfList:
-
-                logFile = self.findLog(ep.id, filename)
-                ep.addFileInfo(filename, 'twister_tc_log', logFile)
-
-            ep.toDatabase()
-
-        logDebug('CE: Ok, done saving to database!')
-        return 1
+        ret = self.project.saveToDatabase()
+        logDebug('CE: Done saving to database!')
+        return ret
 
 
+# --------------------------------------------------------------------------------------------------
+#           E P   A N D   F I L E   V A R I A B L E S
+# --------------------------------------------------------------------------------------------------
+
+
+    @cherrypy.expose
+    def searchEP(self, epname):
+        '''
+        Search one EP and return True or False.
+        '''
+        epList = self.project.data['eps'].keys()
+        return epname in epList
+
+
+    @cherrypy.expose
+    def listEPs(self):
+        '''
+        Returns all EPs for current user.
+        '''
+        epList = self.project.data['eps'].keys()
+        return ','.join(epList)
+
+
+    @cherrypy.expose
+    def listSuites(self, epname):
+        '''
+        Returns all Suites for one EP from current user.
+        '''
+        if not self.searchEP(epname):
+            logError('CE ERROR! EP `%s` is not in the list of defined EPs: `%s`!' % \
+                (str(epname), str(self.project.data['eps'])) )
+            return False
+
+        suitesList = self.project.getEpInfo(epname)['suites'].keys()
+        return ','.join(suitesList)
+
+
+    @cherrypy.expose
+    def getEpVariable(self, epname, variable):
+        '''
+        This function is called from the Execution Process,
+        to get information that is available only here, or are hard to get:
+        - what the user selected in the Java interface (release, build, comments)
+        - the name of the suite, the test files, etc.
+        '''
+
+        data = self.project.getEpInfo(epname)
+        return data.get(variable, False)
+
+
+    @cherrypy.expose
+    def setEpVariable(self, epname, variable, value):
+        '''
+        This function is called from the Execution Process,
+        to inject values inside the EP classes.
+        The values can saved in the Database, when commiting.
+        Eg: the OS, the IP, or other information can be added this way.
+        '''
+
+        return self.project.setEpInfo(epname, variable, value)
+
+
+    @cherrypy.expose
+    def getFileVariable(self, file_id, variable):
+        '''
+        Get information about a test file:
+        - dependencies, runnable, status, etc.
+        '''
+
+        data = self.project.getFileInfo(file_id)
+        return data.get(variable, False)
+
+
+    @cherrypy.expose
+    def setFileVariable(self, epname, suite, filename, variable, value):
+        '''
+        Set extra information for a Filename.
+        Information like Crash detected, OS, IP.
+        This can be called from the Runner.
+        '''
+
+        return self.project.setFileInfo(epname, suite, filename, variable, value)
+
+
+    @cherrypy.expose
     def setStartedBy(self, user):
         '''
         Remember the user that started the Central Engine.
@@ -599,7 +374,7 @@ class CentralEngine:
         '''
 
         logDebug('CE: Started by user `%s`.' % str(user))
-        self.vars['started_by_user'] = str(user)
+        self.project.setUserInfo('started_by', str(user))
         return 1
 
 
@@ -608,140 +383,146 @@ class CentralEngine:
 # --------------------------------------------------------------------------------------------------
 
 
-    def getExecStatus(self, epid):
+    @cherrypy.expose
+    def getExecStatus(self, epname):
         '''
-        Return execution status for one EP. (stopped, paused, running)
+        Return execution status for one EP. (stopped, paused, running, invalid)
+        Used by EPs.
         '''
-        if not self.searchEP(epid):
-            logError('CE ERROR! EpId `%s` is not in the list of defined EpIds: `%s`!' % \
-                (str(epid), str(self.EpIds)) )
-            return False
-        reversed = dict((v,k) for k,v in dictStatus.iteritems())
-        for ep in self.EpIds:
-            if ep.id==epid:
-                # Will return a string: stopped, paused, OR running
-                status = reversed[ep.executionStatus]
-                return status
-        return False
+
+        data = self.project.getEpInfo(epname)
+
+        # Set EP last seen alive
+        self.project.setEpInfo(epname, 'last_seen_alive', datetime.datetime.today().strftime('%Y-%m-%d %H:%M:%S'))
+        # Return a status, or stop
+        reversed = dict((v,k) for k,v in execStatus.iteritems())
+        return reversed[data.get('status', 8)]
 
 
+    @cherrypy.expose
     def getExecStatusAll(self):
         '''
-        Return execution status for all EPs. (stopped, paused, running)
-        Used in the GUI.
+        Return execution status for all EPs. (stopped, paused, running, invalid)
+        Used in the Java GUI.
         '''
-        reversed = dict((v,k) for k,v in dictStatus.iteritems())
-        # Will return a string: stopped, paused, OR running
-        status = reversed[self.executionStatus]
-        if self.vars['start_time']:
-            start_time = self.vars['start_time'].strftime('%Y-%m-%d %H:%M:%S')
+
+        data = self.project.getUserInfo()
+        reversed = dict((v,k) for k,v in execStatus.iteritems())
+        status = reversed[data.get('status', 8)]
+
+        # If start time is not define, then define it
+        if not data.get('start_time'):
+            start_time = datetime.datetime.today()
+            self.project.setUserInfo('start_time', start_time.strftime('%Y-%m-%d %H:%M:%S'))
         else:
-            start_time = 'xxxx-xx-xx'
+            start_time = datetime.datetime.strptime(data['start_time'], '%Y-%m-%d %H:%M:%S')
+
         # If the engine is not stopped, update elapsed time
-        if self.executionStatus != STATUS_STOP:
-            self.vars['elapsed_time'] = str(datetime.datetime.today() - self.vars['start_time']).split('.')[0]
+        if data.get('status', 8) != STATUS_STOP:
+            elapsed_time = str(datetime.datetime.today() - start_time).split('.')[0]
+            self.project.setUserInfo('elapsed_time', elapsed_time)
+        else:
+            elapsed_time = data.get('elapsed_time', 0)
 
         # Status + start time + elapsed time
-        return '{0};{1};{2};{3}'.format(status, start_time, self.vars['elapsed_time'], self.vars.get('started_by_user'))
+        start_time = start_time.strftime('%Y-%m-%d %H:%M:%S')
+        return '{0}; S {1}; E {2}; Usr {3}'.format(status, start_time, elapsed_time, data.get('started_by', 'X'))
 
 
-    def setExecStatus(self, epid, new_status, msg=''):
+    @cherrypy.expose
+    def setExecStatus(self, epname, new_status, msg=''):
         '''
         Set execution status for one EP. (0, 1, 2, or 3)
         Returns a string (stopped, paused, running).
         '''
-        #
-        if not self.searchEP(epid):
-            logError('CE ERROR! EpId `%s` is not in the list of defined EpIds: `%s`!' % \
-                (str(epid), str(self.EpIds)) )
+        if not self.searchEP(epname):
+            logError('CE ERROR! EP `%s` is not in the list of defined EPs: `%s`!' % \
+                (str(epname), str(self.project.data['eps'].keys())) )
             return False
 
         # Status resume => start running
         if new_status == STATUS_RESUME:
             new_status = STATUS_RUNNING
 
-        ret = False
-        for ep in self.EpIds:
-            # Only for THIS EP
-            if ep.id==epid:
-                ret = ep.setStatus(new_status)
-                if ret:
-                    if msg:
-                        logDebug('STATUS changed for EpId %s: %s. Message: `%s`.' % \
-                            (epid, ret, str(msg)))
-                    else:
-                        logDebug('STATUS changed for EpId %s: %s.' % (epid, ret))
-                else:
-                    logError('Cannot change status for EpId %s!' % epid)
+        ret = self.project.setEpInfo(epname, 'status', new_status)
+        reversed = dict((v,k) for k,v in execStatus.iteritems())
+
+        if ret:
+            if msg:
+                logDebug('CE: Status changed for EP %s: %s. Message: `%s`.' % (epname, reversed[new_status], str(msg)))
+            else:
+                logDebug('CE: Status changed for EP %s: %s.' % (epname, reversed[new_status]))
+        else:
+            logError('CE ERROR! Cannot change status for EP %s !' % epname)
 
         # If all Stations are stopped, the Central Engine must also stop!
-        # This is important, so that in the Java interface, the buttons will change to [Play | Stop]
-        if not sum([ep.executionStatus for ep in self.EpIds if ep.id in self.parser.getActiveEpIds()]):
-            if self.executionStatus:
+        # This is important, so that in the Java GUI, the buttons will change to [Play | Stop]
+        if not sum([self.project.getEpInfo(ep).get('status', 8) for ep in self.parser.getActiveEps()]):
 
-                self.executionStatus = STATUS_STOP
-                logDebug('CE: All stations stopped! Central engine will also stop.')
+            # If User status was not Stop
+            if self.project.getUserInfo('status'):
 
-                # Send e-mail
-                self.sendMail()
+                self.project.setUserInfo('status', STATUS_STOP)
+                logDebug('CE: All stations stopped! Central engine will also STOP!')
 
-        return ret
+                # On Central Engine stop, send e-mail?
+                #self.sendMail()
+
+                # On Central Engine stop, save to database?
+                #self.commitToDatabase()
+
+        return reversed[new_status]
 
 
+    @cherrypy.expose
     def setExecStatusAll(self, new_status, msg=''):
         '''
-        Set execution status for one EP. (0, 1, 2, or 3).
+        Set execution status for all EPs. (0, 1, 2, or 3).
         Returns a string (stopped, paused, running).
-        #
-        Must try to change status for ALL EPs.
         Both CE and EP have a status.
         '''
-        #
-        reversed = dict((v,k) for k,v in dictStatus.iteritems())
-        # Status must be valid
-        if new_status not in dictStatus.values():
+        if new_status not in execStatus.values():
             logError("CE ERROR! Status value `%s` is not in the list of defined statuses: `%s`!" % \
-                (str(new_status), str(dictStatus.values())) )
+                (str(new_status), str(execStatus.values())) )
             return False
-
-        # Re-initialize the Master XML and Reset all logs on fresh start!
-        # This will always happen when the START button is pressed
-        if self.executionStatus != STATUS_PAUSED and new_status == STATUS_RUNNING:
-            logWarning('CE: RESET Central Engine configuration...') ; ti = time.clock()
-            self.parser.updateConfigTS()
-            self._initialize(reset=False)
-            self.resetLogs()
-            logWarning('CE: RESET operation took %.4f seconds.' % (time.clock()-ti))
-            # Central engine start time and elapsed time
-            self.vars['start_time'] = datetime.datetime.today() # strftime('%Y-%m-%d %H:%M:%S')
-            self.elapsed_time = 0
-
-        # Change test status to PENDING, for all files, on status START, from status STOP
-        if new_status == STATUS_RUNNING and self.executionStatus == STATUS_STOP:
-            for ep in self.EpIds:
-                ep.setTfStatusAll(10)
-        # For status STOP, send e-mail ?
-        #elif new_status == STATUS_STOP:
-        #    # Send e-mail
-        #    self.sendMail()
 
         # Status resume => start running. The logs must not reset on resume
         if new_status == STATUS_RESUME:
             new_status = STATUS_RUNNING
 
-        # Change status for CE
-        self.executionStatus = new_status
+        # Return the current status, or 8 = INVALID
+        executionStatus = self.project.getUserInfo('status') or 8
+
+        # Re-initialize the Master XML and Reset all logs on fresh start!
+        # This will always happen when the START button is pressed
+        if (executionStatus != STATUS_PAUSED and executionStatus != STATUS_RUNNING) and new_status == STATUS_RUNNING:
+
+            logWarning('CE: RESET Central Engine configuration...') ; ti = time.clock()
+            self.project = Project(self.config_path)
+            self.resetLogs()
+            logWarning('CE: RESET operation took %.4f seconds.' % (time.clock()-ti))
+
+            # User start time and elapsed time
+            self.project.setUserInfo('start_time', datetime.datetime.today().strftime('%Y-%m-%d %H:%M:%S'))
+            self.project.setUserInfo('elapsed_time', 0)
+
+        # Change test status to PENDING, for all files, on status START, from status STOP
+        if executionStatus == STATUS_STOP and new_status == STATUS_RUNNING:
+            self.project.setFileStatusAll(STATUS_PENDING)
+
+        # Change status for User
+        self.project.setUserInfo('status', new_status)
 
         # Change status for ALL EPs
-        for ep in self.EpIds:
-            ret = ep.setStatus(new_status)
-            if not ret:
-                logError('Cannot change status for EpId %s!' % ep.id)
+        for epname in self.project.data['eps']:
+            self.project.setEpInfo(epname, 'status', new_status)
+
+        reversed = dict((v,k) for k,v in execStatus.iteritems())
 
         if msg:
-            logDebug("Status changed for all EpIds: %s. Message: `%s`." % (reversed[new_status], str(msg)))
+            logDebug("CE: Status changed for all EPs: %s. Message: `%s`." % (reversed[new_status], str(msg)))
         else:
-            logDebug("Status changed for all EpIds: %s." % reversed[new_status])
+            logDebug("CE: Status changed for all EPs: %s." % reversed[new_status])
 
         return reversed[new_status]
 
@@ -751,6 +532,7 @@ class CentralEngine:
 # --------------------------------------------------------------------------------------------------
 
 
+    @cherrypy.expose
     def getLibrariesList(self):
         '''
         Returns the list of exposed libraries, from CE libraries folder.
@@ -766,6 +548,7 @@ class CentralEngine:
         return sorted(libs)
 
 
+    @cherrypy.expose
     def getLibraryFile(self, filename):
         '''
         Sends required library to EP, to be syncronized.
@@ -780,49 +563,52 @@ class CentralEngine:
             return xmlrpclib.Binary(handle.read())
 
 
-    def getTestSuiteFileList(self, epid, reset_list=True):
+    @cherrypy.expose
+    def getEpFiles(self, epname):
         '''
-        Returns all TCL/Py files that must be run in current test suite and
-        creates the list of files for this EP.
+        Returns all files that must be run on one EP.
         '''
-        if not self.searchEP(epid):
-            logError('CE ERROR! EpId `%s` is not in the list of defined EpIds: `%s`!' % \
-                (str(epid), str(self.EpIds)) )
+        if not self.searchEP(epname):
+            logError('CE ERROR! EP `%s` is not in the list of defined EPs: `%s`!' % \
+                (str(epname), str(self.project.data['eps'])) )
             return False
 
-        for ep in self.EpIds:
-            if ep.id == epid:
-                if not ep.executionStatus:
-                    logError('CE ERROR! `%s` requested file list, but the EP is closed! Exiting!' % epid)
-                    return False
-                break
-
-        fileList = self.parser.getTestSuiteFileList(epid)
-        if reset_list: # Reset filelist to pending, only for THIS EP
-            for ep in self.EpIds:
-                if ep.id == epid:
-                    ep.tfList = OrderedDict([ (filename, TestFile(self.parser.getFileInfo(ep.id, filename))) \
-                        for filename in fileList ])
-        return fileList
+        try: data = self.project.getEpFiles(epname)
+        except: data = False
+        return data
 
 
-    def getTestCaseFile(self, epid, filename):
+    @cherrypy.expose
+    def getSuiteFiles(self, epname, suite):
         '''
-        Sends requested filename to TC, to be executed.
+        Returns all files that must be run on one Suite.
         '''
-        if not self.searchEP(epid):
-            logError('CE ERROR! EpId `%s` is not in the list of defined EpIds: `%s`!' % \
-                (str(epid), str(self.EpIds)) )
+        if not self.searchEP(epname):
+            logError('CE ERROR! EP `%s` is not in the list of defined EPs: `%s`!' % \
+                (str(epname), str(self.project.data['eps'])) )
             return False
 
-        for ep in self.EpIds:
-            if ep.id == epid:
-                if not ep.executionStatus:
-                    logError('CE ERROR! `%s` requested file `%s`, but the EP is closed! Exiting!' % (epid, filename))
-                    return False
-                break
+        try: data = self.project.getSuiteFiles(epname, suite)
+        except: data = False
+        return data
 
-        runnable = self.parser.getFileInfo(epid, filename).get('Runnable', 'not set')
+
+    @cherrypy.expose
+    def getTestFile(self, epname, file_id):
+        '''
+        Sends requested file to TC, to be executed.
+        '''
+        if not self.searchEP(epname):
+            logError('CE ERROR! EP `%s` is not in the list of defined EPs: `%s`!' % \
+                (str(epname), str(self.project.data['eps'])) )
+            return False
+        if not self.project.getEpInfo(epname).get('status'):
+            logError('CE ERROR! `%s` requested file list, but the EP is closed! Exiting!' % epname)
+            return False
+
+        data = self.project.getFileInfo(file_id)
+        filename = data.get('file', 'invalid file')
+        runnable = data.get('Runnable', 'not set')
 
         if runnable=='true' or runnable=='not set':
             if filename.startswith('~'):
@@ -831,7 +617,7 @@ class CentralEngine:
                 logError('CE ERROR! TestCase file: `%s` does not exist!' % filename)
                 return False
 
-            logDebug('CE: Station {0} requested file `{1}`'.format(epid, filename))
+            logDebug('CE: Station {0} requested file `{1}`'.format(epname, filename))
 
             with open(filename, 'rb') as handle:
                 return xmlrpclib.Binary(handle.read())
@@ -840,38 +626,13 @@ class CentralEngine:
             return False
 
 
-    def getTestCaseDependency(self, epid, filename):
-        '''
-        Find dependency for specified file name, or file ID.
-        '''
-        if not self.searchEP(epid):
-            logError('CE ERROR! EpId `%s` is not in the list of defined EpIds: `%s`!' % \
-                (str(epid), str(self.EpIds)) )
-            return False
-
-        # This is the ID of the file that needs to be checked.
-        dep_id = self.parser.getFileInfo(epid, filename).get('dep', None)
-
-        if dep_id:
-            # There are dependencies.
-            dep_id = dep_id[2:]
-            try:
-                tc = self.parser.configTS.find(text=dep_id).parent.parent
-                return self.parser.getFileInfo(tc.parent.epid.text, dep_id)
-            except:
-                return False
-        elif dep_id is not None:
-            # No dependencies.
-            return ''
-        else:
-            # File error.
-            logError('CE ERROR! Cannot find info about file `{0}`!'.format(filename))
-            return False
-
-
+    @cherrypy.expose
     def getTestDescription(self, fname):
+        '''
+        Used in Java GUI.
+        Returns the title and the descrip of a test file.
+        '''
 
-        from xml.dom.minidom import parseString
         s = ''
         c = ''
         a = False
@@ -910,134 +671,94 @@ class CentralEngine:
 # --------------------------------------------------------------------------------------------------
 
 
-    def getTestStatusAll(self, epid=None):
+    @cherrypy.expose
+    def getFileStatusAll(self, epname=None, suite=None):
         '''
         Returns a list with all statuses, for all files, in order.
+        The status of one file can be obtained with get File Variable.
         '''
-        if epid and not self.searchEP(epid):
-            logError('CE ERROR! EpId `%s` is not in the list of defined EpIds: `%s`!' % \
-                (str(epid), str(self.EpIds)) )
+        if epname and not self.searchEP(epname):
+            logError('CE ERROR! EP `%s` is not in the list of defined EPs: `%s`!' % \
+                (str(epname), str(self.project.data['eps'])) )
             return ''
 
-        o_fnames = self.all_test_files   # Ordered list with all filenames
-        u_statuses = OrderedDict()       # Ordered file + status
-        fin_statuses = []                # Final statuses, ordered
-        #ti = time.clock()
-
-        # Collect file statuses from each EP
-        for ep in self.EpIds:
-            # If EPID is provided, skip other EPIDs
-            if epid and ep.id != epid:
-                continue
-            all_statuses = ep.getStatusAll()
-            if all_statuses:
-                u_statuses.update(all_statuses)
-
-        if epid:
-            return ','.join([str(s) for s in u_statuses.values()])
-
-        # Append statuses in order
-        for fname in o_fnames:
-            s = u_statuses.get(fname, '')
-            if s: fin_statuses.append(str(s))
-
-        #print('Get Test Status All took %.4f seconds.' % (time.clock()-ti))
-        #import random # For testing random statuses
-        #fin_statuses[random.randrange(0,len(fin_statuses)-1,1)] = random.choice(['2','3','4','10'])
-        return ','.join(fin_statuses)
-        #
+        statuses = self.project.getFileStatusAll(epname, suite)
+        return ','.join(statuses)
 
 
-    def getTestStatus(self, epid, filename):
+    @cherrypy.expose
+    def setFileStatus(self, epname, file_id, new_status=10, time_elapsed=0.0):
         '''
-        Returns the status for EpId > FileName.
+        Set status for one file and write in log summary.
         '''
-        if not self.searchEP(epid):
-            logError('CE ERROR! EpId `%s` is not in the list of defined EpIds: `%s`!' % \
-                (str(epid), str(self.EpIds)) )
+        if not self.searchEP(epname):
+            logError('CE ERROR! EP `%s` is not in the list of defined EPs: `%s`!' % \
+                (str(epname), str(self.project.data['eps'])) )
+            return False
+        if new_status not in testStatus.values():
+            logError("CE ERROR! Status value `%s` is not in the list of defined statuses: `%s`!" % \
+                (str(new_status), str(testStatus.values())) )
             return False
 
-        for ep in self.EpIds:
-            # Only for this EP
-            if ep.id==epid:
-                return ep.getTfStatus(filename)
-                #
+        data = self.project.getFileInfo(file_id)
+        filename = os.path.split(data['file'])[1]
+        suite = data['suite']
 
+        # Sets file status
+        self.project.setFileInfo(epname, suite, file_id, 'status', new_status)
+        reversed = dict((v,k) for k,v in testStatus.iteritems())
+        status_str = reversed[new_status]
 
-    def setTestStatus(self, epid, filename, new_status=10, time_elapsed=0.0):
-        '''
-        Sets status for EpId > FileName.
-        '''
-        if not self.searchEP(epid):
-            logError('CE ERROR! EpId `%s` is not in the list of defined EpIds: `%s`!' % \
-                (str(epid), str(self.EpIds)) )
-            return False
-
-        # Get logSummary path from FMWCONFIG
+        # Get logSummary path from framework config
         logPath = self.parser.getLogFileForType('logSummary')
-        status_str = None
 
-        for ep in self.EpIds:
-            # Only for this EP...
-            if ep.id == epid:
-                #print('CE Info: Status changed {0} -> {1} -> {2}'.format(epid, filename, status_str))
+        # Only write important statuses in logs
+        if status_str in ['pass', 'fail', 'aborted', 'timeout', 'not executed']:
+            if status_str=='not executed': status_str='*NO EXEC*'
+            else: status_str='*%s*' % status_str.upper()
 
-                # Sets file status
-                status_str = ep.setTfStatus(filename, new_status)
+            # # Inject information into File Classes
+            now = datetime.datetime.today()
+            self.project.setFileInfo(epname, suite, file_id, 'twister_tc_status',
+                status_str.replace('*', ''))
+            self.project.setFileInfo(epname, suite, file_id, 'twister_tc_crash_detected',
+                data.get('twister_tc_crash_detected', 0))
+            self.project.setFileInfo(epname, suite, file_id, 'twister_tc_time_elapsed',
+                int(time_elapsed))
+            self.project.setFileInfo(epname, suite, file_id, 'twister_tc_date_started',
+                (now - datetime.timedelta(seconds=time_elapsed)).isoformat())
+            self.project.setFileInfo(epname, suite, file_id, 'twister_tc_date_finished',
+                (now.isoformat()))
 
-                # Write important statuses in logs
-                if status_str in ['pass', 'fail', 'aborted', 'timeout', 'not executed']:
-                    if status_str=='not executed': status_str='*NO EXEC*'
-                    else: status_str='*%s*' % status_str.upper()
+            with open(logPath, 'a') as status_file:
+                status_file.write(' {ep}::{suite}::{file} | {status} | {elapsed} | {date}\n'.format(
+                    ep = epname.center(9), suite = suite.center(9), file = filename.center(28),
+                    status = status_str.center(11),
+                    elapsed = ('%.2fs' % time_elapsed).center(10),
+                    date = now.strftime('%a %b %d, %H:%M:%S')))
 
-                    suite = ep.getFileInfo(filename).get('twister_suite_name', '')
-                    crash_detected = ep.getFileInfo(filename).get('twister_tc_crash_detected', 0)
-
-                    # Inject information into File Classes
-                    now = datetime.datetime.today()
-                    ep.addFileInfo(filename, 'twister_tc_status',         status_str.replace('*', ''))
-                    ep.addFileInfo(filename, 'twister_tc_crash_detected', crash_detected)
-                    ep.addFileInfo(filename, 'twister_tc_time_elapsed',   int(time_elapsed))
-                    ep.addFileInfo(filename, 'twister_tc_date_started',  (now - datetime.timedelta(seconds=time_elapsed)).isoformat())
-                    ep.addFileInfo(filename, 'twister_tc_date_finished', (now.isoformat()))
-                    # The LOG is inserted at the end of the suite, not here.
-
-                    with open(logPath, 'a') as status_file:
-                        status_file.write(' {ep}::{suite}::{file} | {status} | {elapsed} | {date}\n'.format(\
-                            ep = epid.center(9), suite = suite.center(9), file = os.path.split(filename)[1].center(28),
-                            status = status_str.center(11),
-                            elapsed = ('%.2fs' % time_elapsed).center(10),
-                            date = now.strftime('%a %b %d, %H:%M:%S')))
-
-                # Return string
-                return status_str
-                #
+        # Return string
+        return status_str
 
 
-    def setFileInfo(self, epid, filename, key, value):
+    @cherrypy.expose
+    def setFileStatusAll(self, new_status, epname):
         '''
-        Set extra information for EpId > Filename.
-        Information like Crash detected, OS, IP.
-        This can be called from the Runner.
+        Reset file status for all files of one EP.
         '''
-        if not self.searchEP(epid):
-            logError('CE ERROR! EpId `%s` is not in the list of defined EpIds: `%s`!' % \
-                (str(epid), str(self.EpIds)) )
-            return False
-
-        for ep in self.EpIds:
-            # Only for this EP...
-            if ep.id == epid:
-                ep.addFileInfo(filename, key, value)
-
-        return True
+        return self.project.setFileStatusAll(new_status, epname)
 
 
 # --------------------------------------------------------------------------------------------------
 #           L O G S
 # --------------------------------------------------------------------------------------------------
 
+
+    @cherrypy.expose
     def getLogFile(self, read, fstart, filename):
+        '''
+        Used in Java GUI to show the logs.
+        '''
 
         if fstart is None:
             return '*ERROR!* Parameter FEND is NULL!'
@@ -1061,12 +782,14 @@ class CentralEngine:
         return binascii.b2a_base64(data)
 
 
+    @cherrypy.expose
     def logMessage(self, logType, logMessage):
         '''
-        This function is exposed in all TCL/Py tests, all logs are centralized.
+        This function is exposed in all tests, all logs are centralized.
         '''
-        logTypes = self.parser.getLogTypes()
+
         logType = str(logType).lower()
+        logTypes = self.parser.getLogTypes()
 
         if logType == 'logCli' or logType == 'logSummary':
             logError('CE ERROR! logCLI and logSummary are reserved and cannot be written into!')
@@ -1091,16 +814,17 @@ class CentralEngine:
             return False
         f.write(logMessage)
         f.close()
+
         return True
-        #
 
 
-    def logLIVE(self, epid, logMessage):
+    @cherrypy.expose
+    def logLIVE(self, epname, logMessage):
         '''
-        Writes messages in a big log, so all output can be checked LIVE,
-        in the java user interface.
+        Writes CLI messages in a big log, so all output can be checked LIVE,
+        in the Java GUI.
         '''
-        logPath = self.parser.getLogsPath() + os.sep + epid + '_CLI.log'
+        logPath = self.parser.getLogsPath() + os.sep + epname + '_CLI.log'
         f = None
 
         try:
@@ -1119,11 +843,12 @@ class CentralEngine:
         #
 
 
-    def findLog(self, epid, filename):
+    @cherrypy.expose
+    def findLog(self, epname, filename):
         '''
-        Parses the log file of one EPID and returns the log of one test file.
+        Parses the log file of one EP and returns the log of one test file.
         '''
-        logPath = self.parser.getLogsPath() + os.sep + epid + '_CLI.log'
+        logPath = self.parser.getLogsPath() + os.sep + epname + '_CLI.log'
 
         try:
             data = open(logPath, 'r').read()
@@ -1137,12 +862,13 @@ class CentralEngine:
             try:
                 log = re.search(('(?:.*===== ===== ===== ===== =====)(.+?>>> File `%s` returned `\w+`. <<<)' % filename), data, re.S).group(1)
             except:
-                logError("CE ERROR! Cannot find file {0} in the log for {1}!".format(filename, epid))
+                logError("CE ERROR! Cannot find file {0} in the log for {1}!".format(filename, epname))
                 return '*no log*'
 
         return log.replace("'", "\\'")
 
 
+    @cherrypy.expose
     def resetLogs(self):
         '''
         All logs defined in master config are erased.
@@ -1150,7 +876,7 @@ class CentralEngine:
         '''
         logTypes = self.parser.getLogTypes()
         vError = False
-        logDebug('CE debug! Cleaning log files...')
+        logDebug('Cleaning log files...')
 
         for log in glob.glob(self.parser.getLogsPath() + os.sep + '*.log'):
             try: os.remove(log)
@@ -1159,8 +885,8 @@ class CentralEngine:
         for logType in logTypes:
             # For CLI
             if logType.lower()=='logcli':
-                for ep in self.EpIds:
-                    logPath = self.parser.getLogsPath() + os.sep + ep.id + '_CLI.log'
+                for epname in self.project.data['eps']:
+                    logPath = self.parser.getLogsPath() + os.sep + epname + '_CLI.log'
                     try:
                         open(logPath, 'w').close()
                     except:
@@ -1181,9 +907,9 @@ class CentralEngine:
             return False
         else:
             return True
-        #
 
 
+    @cherrypy.expose
     def resetLog(self, logName):
         '''
         Resets one log.
@@ -1197,6 +923,5 @@ class CentralEngine:
         except:
             logError("CE ERROR! Log file `%s` cannot be reset!" % logPath)
             return False
-        #
 
 # Eof()

@@ -1,5 +1,27 @@
 #!/usr/bin/python
 
+# File: httpserver.py ; This file is part of Twister.
+
+# Copyright (C) 2012 , Luxoft
+
+# Authors:
+#    Andrei Costachi <acostachi@luxoft.com>
+#    Andrei Toma <atoma@luxoft.com>
+#    Cristian Constantin <crconstantin@luxoft.com>
+#    Daniel Cioata <dcioata@luxoft.com>
+
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at:
+
+# http://www.apache.org/licenses/LICENSE-2.0
+
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 '''
 This file contains the HTTP server that generates reports and runs the Java applet.
 '''
@@ -8,9 +30,7 @@ import os
 import sys
 import re
 import datetime
-import socket
 import json
-import binascii
 import MySQLdb
 import cherrypy
 from mako.template import Template
@@ -28,27 +48,27 @@ class Root:
     # Java User Interface 2
     @cherrypy.expose
     def home(self):
-        return self.index()
-
-    # Report link 1
-    @cherrypy.expose
-    def report(self):
         global dbparser, db_config
-        if not dbparser: load_config()
+        load_config() # Re-load all Database XML
         global glob_links
         output = Template(filename=TWISTER_PATH + '/server/httpserver/template/base.htm')
         return output.render(title='Home', links=glob_links)
 
+    # Report link 1
+    @cherrypy.expose
+    def report(self):
+        return self.home()
+
     # Report link 2
     @cherrypy.expose
     def reporting(self):
-        return self.report()
+        return self.home()
 
     # Help link
     @cherrypy.expose
     def help(self):
         global dbparser, db_config
-        if not dbparser: load_config()
+        load_config() # Re-load all Database XML
         global glob_links
         output = Template(filename=TWISTER_PATH + '/server/httpserver/template/help.htm')
         return output.render(title='Help', links=glob_links)
@@ -58,10 +78,14 @@ class Root:
     @cherrypy.expose
     def rep(self, report=None, **args):
         global dbparser, db_config
-        if not dbparser: load_config()
+        load_config() # Re-load all Database XML
         global conn, curs
         if not conn: connect_db()
         global glob_fields, glob_reports, glob_links
+
+        cherrypy.response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        cherrypy.response.headers['Pragma']  = 'no-cache'
+        cherrypy.response.headers['Expires'] = 0
 
         if not report:
             raise cherrypy.HTTPRedirect('/home')
@@ -166,6 +190,7 @@ class Root:
 
         ajax_links = []
 
+        # ... For normal Queries ...
         for field in vars_to_replace:
             # The value chosen by the user
             u_select = cherrypy.request.params.get(field)
@@ -173,6 +198,7 @@ class Root:
             # Replace @variables@ with user chosen value
             query = query.replace(field, str(u_select))
 
+        ajax_links = sorted( list(set(ajax_links)) )
         ajax_link = '/json/' + report + '?' + '&'.join(ajax_links)
         user_choices = ('", '.join(ajax_links))
         user_choices = user_choices.replace('@', '').replace('=', '="')+'"'
@@ -185,12 +211,49 @@ class Root:
                 connect_db()
             except:
                 pass
-
+            #
             output = Template(filename=TWISTER_PATH + '/server/httpserver/template/error.htm')
             return output.render(title=report, links=glob_links,
                 msg='Error in query `{0}`!<br><br><b>MySQL Error {1}</b>: {2}!'.format(query, e.args[0], e.args[1]))
 
         descr = [desc[0] for desc in curs.description]
+
+        # Write DEBUG
+        #DEBUG.write(report +' -> '+ user_choices +' -> '+ query + '\n\n') ; DEBUG.flush()
+
+
+        # ... For Query Compare side by side, the table is double ...
+        query_compr = report_dict['sqlcompr']
+
+        if query_compr:
+            # All variables that must be replaced in Query
+            vars_to_replace = re.findall('(@.+?@)', query_compr)
+
+            for field in vars_to_replace:
+                # The value chosen by the user
+                u_select = cherrypy.request.params.get(field)
+                # Replace @variables@ with user chosen value
+                query_compr = query_compr.replace(field, str(u_select))
+
+            try:
+                curs.execute(query_compr)
+            except MySQLdb.Error, e:
+                try:
+                    connect_db()
+                except:
+                    pass
+                #
+                output = Template(filename=TWISTER_PATH + '/server/httpserver/template/error.htm')
+                return output.render(title=report, links=glob_links,
+                msg='Error in query `{0}`!<br><br><b>MySQL Error {1}</b>: {2}!'.format(query_compr, e.args[0], e.args[1]))
+
+            headers_tot = [desc[0] for desc in curs.description]
+
+            # Update headers: must contain both headers.
+            descr = descr + ['vs.'] + headers_tot
+
+            # Write DEBUG
+            #DEBUG.write(report +' -> '+ user_choices +' -> '+ query_compr + '\n\n') ; DEBUG.flush()
 
         output = Template(filename=TWISTER_PATH + '/server/httpserver/template/base.htm')
         return output.render(title=report, links=glob_links, ajax_link=ajax_link, user_choices=user_choices,
@@ -201,12 +264,15 @@ class Root:
     @cherrypy.expose
     def json(self, report, **args):
         global dbparser, db_config
-        if not dbparser: load_config()
+        load_config() # Re-load all Database XML
         global conn, curs
         if not conn: connect_db()
         global glob_reports
 
-        cherrypy.response.headers['Content-Type'] = 'application/json; charset=utf-8'
+        cherrypy.response.headers['Content-Type']  = 'application/json; charset=utf-8'
+        cherrypy.response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        cherrypy.response.headers['Pragma']  = 'no-cache'
+        cherrypy.response.headers['Expires'] = 0
 
         if report not in glob_reports:
             output = {'aaData':[], 'error':'Report `{0}` is not in the list of defined reports!'.format(report)}
@@ -241,7 +307,10 @@ class Root:
         del query
 
         query_total = report_dict['sqltotal']
+        query_compr = report_dict['sqlcompr']
 
+
+        # ... Calculate SQL Query Total ...
         if query_total:
             # All variables that must be replaced in Query
             vars_to_replace = re.findall('(@.+?@)', query_total)
@@ -259,8 +328,8 @@ class Root:
                     connect_db()
                 except:
                     pass
-
-                output = {'aaData':[], 'error':'Error in query `{0}`! MySQL Error {1}: {2}!'.format(query_total, e.args[0], e.args[1])}
+                #
+                output = {'aaData':[], 'error':'Error in query total `{0}`! MySQL Error {1}: {2}!'.format(query_total, e.args[0], e.args[1])}
                 return json.dumps(output, indent=2)
 
             headers_tot = [desc[0] for desc in curs.description]
@@ -288,9 +357,57 @@ class Root:
                 # Using the header from Total, because it might be Null in the first query
                 calc_rows.append([rows_tot[i][0], float(percent)])
 
+
+        # ... SQL Query Compare side by side ...
+        elif query_compr:
+            # All variables that must be replaced in Query
+            vars_to_replace = re.findall('(@.+?@)', query_compr)
+
+            for field in vars_to_replace:
+                # The value chosen by the user
+                u_select = cherrypy.request.params.get(field)
+                # Replace @variables@ with user chosen value
+                query_compr = query_compr.replace(field, str(u_select))
+
+            try:
+                curs.execute(query_compr)
+            except MySQLdb.Error, e:
+                try:
+                    connect_db()
+                except:
+                    pass
+                #
+                output = {'aaData':[], 'error':'Error in query compare `{0}`! MySQL Error {1}: {2}!'.format(query_total, e.args[0], e.args[1])}
+                return json.dumps(output, indent=2)
+
+            headers_tot = [desc[0] for desc in curs.description]
+            rows_tot = curs.fetchall()
+
+            if len(headers) != len(headers_tot): # Must be the same number of columns
+                output = {'aaData':[], 'error':'The first query has {0} columns and the second has {1} columns!'.format(len(headers), len(headers_tot))}
+                return json.dumps(output, indent=2)
+
+            headers_len = len(headers)
+            rows_max_size = max(len(rows), len(rows_tot))
+            calc_rows = []
+
+            for i in range(rows_max_size):
+                r1 = rows[i:i+1]
+                r2 = rows_tot[i:i+1]
+                if not r1: r1 = [' ' for i in range(headers_len)]
+                else: r1 = r1[0]
+                if not r2: r2 = [' ' for i in range(headers_len)]
+                else: r2 = r2[0]
+                calc_rows.append( tuple(r1) +(' <---> ',)+ tuple(r2) )
+
+            # Update headers: must contain both headers.
+            headers = headers + ['vs.'] + headers_tot
+
+        # ... Normal Query ...
         else:
             calc_rows = rows
             del rows
+
 
         if (not calc_rows) or (not calc_rows[0:1]):
             output = {'aaData':[], 'error':'The select is empty!'}
@@ -321,9 +438,11 @@ def load_config():
     '''
     global dbparser, db_config
     global glob_fields, glob_reports, glob_redirects, glob_links
-    print 'Parsing the config for the first time...\n'
-    dbparser =  DBParser(DB_CFG)
-    db_config = dbparser.db_config
+    if not dbparser:
+        print('Parsing the Config for the first time...\n')
+        dbparser =  DBParser(DB_CFG)
+        db_config = dbparser.db_config
+
     glob_fields = dbparser.getReportFields()
     glob_reports = dbparser.getReports()
     glob_redirects = dbparser.getRedirects()
@@ -333,19 +452,11 @@ def load_config():
 
 def connect_db():
     global conn, curs
-    print 'Connecting to the database for the first time...\n'
+    if not conn:
+        print('Connecting to the Database for the first time...\n')
     conn = MySQLdb.connect(host=db_config.get('server'), db=db_config.get('database'),
                            user=db_config.get('user'), passwd=db_config.get('password'))
     curs = conn.cursor()
-
-#
-
-def get_ip_address(ifname):
-    try: import fcntl
-    except: print('Fatal Error get IP adress!') ; exit(1)
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    return socket.inet_ntoa(fcntl.ioctl(
-        s.fileno(), 0x8915, struct.pack('256s', ifname[:15]) )[20:24])
 
 #
 
@@ -381,12 +492,11 @@ if __name__ == '__main__':
     conn = None
     curs = None
 
-    # Find server IP
-    try:
-        serverIP = socket.gethostbyname(socket.gethostname())
-    except:
-        serverIP = get_ip_address('eth0')
-    # Find server PORT
+    # DEBUG file
+    #DEBUG = open(TWISTER_PATH + '/config/reporting.query', 'w')
+
+    # Find server IP and PORT
+    serverIP = '0.0.0.0'
     serverPort = int(soup.httpserverport.text)
     del soup
 
@@ -395,10 +505,6 @@ if __name__ == '__main__':
     cherrypy.config.update({'server.socket_host': serverIP, 'server.socket_port': serverPort})
 
     conf = {
-            '/': {
-                'tools.caching.on': True,
-                'tools.caching.delay': 3600,
-                },
             '/static': {
                 'tools.staticdir.on': True,
                 'tools.staticdir.dir': TWISTER_PATH + '/server/httpserver/static',
