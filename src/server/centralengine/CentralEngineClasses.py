@@ -345,6 +345,17 @@ class CentralEngine(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
+    def getSuiteVariable(self, suite, variable):
+        '''
+        This function is called from the Execution Process,
+        to get information that is available only here, or are hard to get.
+        '''
+
+        data = self.project.getSuiteInfo(suite)
+        return data.get(variable, False)
+
+
+    @cherrypy.expose
     def getFileVariable(self, file_id, variable):
         '''
         Get information about a test file:
