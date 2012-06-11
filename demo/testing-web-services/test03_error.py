@@ -1,23 +1,24 @@
 
-import time
-from suds.client import Client
+def func():
 
-c = Client('http://localhost:55000/?wsdl')
+	import time
+	from suds.client import Client
 
-print '\nConnected to SOAP Server:'
-print str(c)[80:-1]
+	c = Client('http://localhost:55000/?wsdl')
+
+	print '\nConnected to SOAP Server:'
+	print str(c)[80:-1]
+
+	try:
+		print 'Calling function with err: ', c.service.error_function()
+	except Exception, e:
+		print time.sleep(2)
+		print 'Caught error:', e
+		return 'FAIL'
+
+	print time.sleep(2)
+	return 'PASS'
 
 #
 
-try:
-	print 'Calling function with err: ', c.service.error_function()
-except Exception, e:
-	print 'Caught error:', e
-	_RESULT = 'FAIL'
-	exit(1)
-
-print time.sleep(2)
-
-_RESULT = 'PASS'
-
-#
+_RESULT = func()

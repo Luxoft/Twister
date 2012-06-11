@@ -1,25 +1,28 @@
 
-import time
-from suds.client import Client
+def func():
 
-c = Client('http://localhost:55000/?wsdl')
+	import time
+	from suds.client import Client
 
-print '\nConnected to SOAP Server.\n'
+	c = Client('http://localhost:55000/?wsdl')
 
-print 'Creating temporary user...'
-u = c.factory.create('User')
+	print '\nConnected to SOAP Server.\n'
 
-u.user_name = 'John-Doe'
-u.first_name = 'John'
-u.last_name = 'Doe'
-u.email = 'john-doe@site.com'
-print '... Done.\n'
+	print 'Creating temporary user...'
+	u = c.factory.create('User')
 
-print 'The final user is:', u
+	u.user_name = 'John-Doe'
+	u.first_name = 'John'
+	u.last_name = 'Doe'
+	u.email = 'john-doe@site.com'
+	print '... Done.\n'
 
-print time.sleep(2)
-print '\nCreating new user OK!'
+	print 'The final user is:', u
 
-_RESULT = 'PASS'
+	print time.sleep(2)
+	print '\nCreating new user OK!'
+	return 'PASS'
 
 #
+
+_RESULT = func()
