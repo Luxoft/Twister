@@ -1,7 +1,8 @@
 
+import time
 from suds.client import Client
 
-c = Client('http://localhost:8080/?wsdl')
+c = Client('http://localhost:55000/?wsdl')
 
 print '\nConnected to SOAP Server.\n'
 
@@ -28,6 +29,7 @@ print '... Done.\n'
 
 print 'All users: ', c.service.get_all_users()
 
+print time.sleep(1)
 print '\nOk!'
 
 _RESULT = 'PASS'

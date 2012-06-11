@@ -116,7 +116,7 @@ if __name__=='__main__':
     application.event_manager.add_listener('method_call', _on_method_call)
 
     from wsgiref.simple_server import make_server
-    server = make_server('0.0.0.0', 8080, WsgiApplication(application))
-    print "listening to http://localhost:8080"
-    print "wsdl is at: http://localhost:8080/?wsdl"
+    server = make_server('0.0.0.0', 55000, WsgiApplication(application))
+    print "listening to http://localhost:55000"
+    print "wsdl is at: http://localhost:55000/?wsdl"
     server.serve_forever()

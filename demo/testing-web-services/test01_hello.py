@@ -1,7 +1,8 @@
 
+import time
 from suds.client import Client
 
-c = Client('http://localhost:8080/?wsdl')
+c = Client('http://localhost:55000/?wsdl')
 
 print '\nConnected to SOAP Server:'
 print str(c)[80:-1]
@@ -15,6 +16,7 @@ try:
 except Exception, e:
 	print 'Caught error:', e
 
+print time.sleep(1)
 print '\nOk!'
 
 _RESULT = 'PASS'
