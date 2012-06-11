@@ -12,6 +12,7 @@ from rpclib.server.wsgi import WsgiApplication
 from rpclib.interface.wsdl import Wsdl11
 from rpclib.protocol.soap import Soap11
 
+from rpclib.model.fault import Fault
 from rpclib.model.complex import Array, Iterable, ComplexModel
 from rpclib.model.primitive import Integer, String
 
@@ -35,13 +36,20 @@ class User(ComplexModel):
     email = String(pattern=r'[a-z0-9._%+-]+@[a-z0-9.-]+\.[A-Z]{2,4}')
     permissions = Array(Permission)
 
+class PublicError(Fault):
+    __type_name__ = 'Error'
+    __namespace__ = 'testing.user_manager'
+
+    def __init__(self, value):
+        Fault.__init__(self, faultcode='Error', faultstring=value)
+
 #
 
 class UserManagerService(ServiceBase):
 
 # --- SERVICE ---
 
-    @srpc(String, Integer, _returns=Iterable(String))
+    @srpc(String, Integer, _throws=PublicError, _returns=Iterable(String))
     def say_hello(name, times):
         '''
         <b>Docstrings for service methods appear as documentation in the WSDL</b>
@@ -49,12 +57,24 @@ class UserManagerService(ServiceBase):
         @param: the number of times to say hello
         @returns: the completed array
         '''
+        try:
+            int(times)
+        except:
+            raise PublicError('An integer is required!')
         for i in xrange(times):
             yield 'Hello, %s' % name
 
-    @srpc(Integer, _returns=Integer)
+    @srpc(Integer, _throws=PublicError, _returns=Integer)
     def factorial(number):
-        return math.factorial(number)
+        try:
+            int(number)
+            return math.factorial(number)
+        except:
+            raise PublicError('An integer is required!')
+
+    @srpc(_throws=PublicError, _returns=Integer)
+    def error_function():
+        raise PublicError('Fatal exception!')
 
 # --- FACTORY ---
 

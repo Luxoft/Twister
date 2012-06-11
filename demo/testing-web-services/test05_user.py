@@ -9,39 +9,9 @@ print '\nConnected to SOAP Server.\n'
 print 'Creating new user...'
 u = c.factory.create('User')
 
-u.user_name = 'John-Permissions'
+u.user_name = 'John-Doe'
 u.first_name = 'John'
 u.last_name = 'Doe'
-print '... Done.\n'
-
-print 'Creating permissions array for user...'
-u.permissions = c.factory.create("PermissionArray")
-print '... Done.\n'
-
-print 'Creating first permission for user...'
-permission = c.factory.create("Permission")
-permission.application = 'table'
-permission.operation = 'write'
-print permission
-try:
-	u.permissions.Permission.append(permission)
-except Exception, e:
-	print 'Cannot add permission!'
-	_RESULT = 'FAIL'
-	exit(1)
-print '... Done.\n'
-
-print 'Creating second permission for user...'
-permission = c.factory.create("Permission")
-permission.application = 'table'
-permission.operation = 'read'
-print permission
-try:
-	u.permissions.Permission.append(permission)
-except Exception, e:
-	print 'Cannot add permission!'
-	_RESULT = 'FAIL'
-	exit(1)
 print '... Done.\n'
 
 print 'The final user is:', u
@@ -56,10 +26,21 @@ except Exception, e:
 	exit(1)
 print '... Done.\n'
 
-print 'All users:', c.service.get_all_users()
+print 'All users: ', c.service.get_all_users()
+
+print 'Deleting user from the service...'
+try:
+	c.service.del_user(uid)
+except Exception, e:
+	print 'Cannot delete user!'
+	_RESULT = 'FAIL'
+	exit(1)
+print '... Done.\n'
+
+print 'All users: ', c.service.get_all_users()
 
 print time.sleep(1)
-print '\nOk!'
+print '\nAdding and deleting users OK!'
 
 _RESULT = 'PASS'
 
