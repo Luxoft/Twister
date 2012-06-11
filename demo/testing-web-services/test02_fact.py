@@ -16,8 +16,8 @@ try:
 except Exception, e:
 	print 'Caught error:', e
 
-print time.sleep(1)
-print '\nOk!'
+print time.sleep(2)
+print '\nFactorial function OK!'
 
 _RESULT = 'PASS'
 

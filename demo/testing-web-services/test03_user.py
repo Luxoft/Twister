@@ -7,7 +7,7 @@ c = Client('http://localhost:55000/?wsdl')
 print '\nConnected to SOAP Server.\n'
 
 print 'Creating temporary user...'
-u = c.factory.create("User")
+u = c.factory.create('User')
 
 u.user_name = 'John-Doe'
 u.first_name = 'John'
@@ -17,8 +17,8 @@ print '... Done.\n'
 
 print 'The final user is:', u
 
-print time.sleep(1)
-print '\nOk!'
+print time.sleep(2)
+print '\nCreating new user OK!'
 
 _RESULT = 'PASS'
 

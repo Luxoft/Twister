@@ -7,7 +7,7 @@ c = Client('http://localhost:55000/?wsdl')
 print '\nConnected to SOAP Server.\n'
 
 print 'Creating new user...'
-u = c.factory.create("User")
+u = c.factory.create('User')
 
 u.user_name = 'John-Doe'
 u.first_name = 'John'
@@ -17,20 +17,30 @@ print '... Done.\n'
 print 'The final user is:', u
 
 print 'Adding user to the service...'
-uid = c.service.add_user(u)
-print 'User ID:', uid
+try:
+	uid = c.service.add_user(u)
+	print 'User ID:', uid
+except Exception, e:
+	print 'Cannot add user!'
+	_RESULT = 'FAIL'
+	exit(1)
 print '... Done.\n'
 
 print 'All users: ', c.service.get_all_users()
 
 print 'Deleting user from the service...'
-c.service.del_user(uid)
+try:
+	c.service.del_user(uid)
+except Exception, e:
+	print 'Cannot delete user!'
+	_RESULT = 'FAIL'
+	exit(1)
 print '... Done.\n'
 
 print 'All users: ', c.service.get_all_users()
 
 print time.sleep(1)
-print '\nOk!'
+print '\nAdding and deleting users OK!'
 
 _RESULT = 'PASS'
 

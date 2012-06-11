@@ -17,7 +17,7 @@ except Exception, e:
 	print 'Caught error:', e
 
 print time.sleep(1)
-print '\nOk!'
+print '\nHello function OK!'
 
 _RESULT = 'PASS'
 
