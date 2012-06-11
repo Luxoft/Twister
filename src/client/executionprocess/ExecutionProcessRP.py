@@ -35,11 +35,8 @@ from win32com.client import Dispatch
 
 # -------------------------------------------------------
 outDir = os.getcwd()
-globEpName = 'EP-1001'
+globEpName = 'EP-1003'
 proxy = xmlrpclib.ServerProxy('http://11.126.32.9:8000/')   # Tsc Server
-#proxy = xmlrpclib.ServerProxy('http://11.126.32.12:8000/') # Dan Ubuntu
-#proxy = xmlrpclib.ServerProxy('http://11.126.32.14:8000/') # Cro Windows
-#proxy = xmlrpclib.ServerProxy('http://127.0.0.1:8000/')    # VirtualBox VM
 # -------------------------------------------------------
 
 try:
@@ -127,6 +124,7 @@ def RUN(tList):
         #
         elif file_ext == '.py':
             outPython = outDir + os.sep + outFile
+            toExecute = outDir + os.sep + os.path.splitext(outFile)[0] + os.sep + os.path.splitext(outFile)[0] + '.py'
             with open(outPython, "wb") as handle:
                 print 'EP::Selenium: Writing selenium file `%s`.' % outPython
                 handle.write(proxy.getTestFile(globEpName, tcId).data)
@@ -224,6 +222,8 @@ def RUN(tList):
         elif file_ext == '.py':
             try: os.remove(outDir + os.sep + outFile)
             except: print 'EP::Python: Cannot cleanup %s!\n' % (outDir + os.sep + outFile)
+            try: os.remove(toExecute)
+            except: print 'EP::Python: Cannot cleanup %s!\n' % toExecute
         #
 
 #
