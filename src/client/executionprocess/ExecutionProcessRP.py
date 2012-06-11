@@ -51,7 +51,10 @@ except: print 'Cannot connect to Central Engine!'
 
 def RUN(tList):
 
-    for tcName in tList:
+    for i in range(len(tList)):
+
+        tcId = tList[i]
+        tcName = proxy.getFileVariable(tcId, 'file')
 
         timer_i = time.time()
 
@@ -81,10 +84,10 @@ def RUN(tList):
         # Ignores non-sikuli/ selenium/ testcomplete files
         if file_ext != '.zip' and file_ext != '.py' and file_ext != '.testcomplete':
             print 'EP::Windows: ... file ignored.\n'
-            proxy.setFileStatus(globEpName, tcName, 4) # Send status SKIPPED
+            proxy.setFileStatus(globEpName, tcId, 4) # Send status SKIPPED
             continue
         else:
-            proxy.setFileStatus(globEpName, tcName, 1) # Send status WORKING
+            proxy.setFileStatus(globEpName, tcId, 1) # Send status WORKING
 
 
 
@@ -92,7 +95,7 @@ def RUN(tList):
         #
         if file_ext == '.zip':
             with open(outDir + os.sep + outFile, "wb") as handle:
-                handle.write(proxy.getTestFile(globEpName, tcName).data)
+                handle.write(proxy.getTestFile(globEpName, tcId).data)
             with ZipFile(outDir + os.sep + outFile, 'r') as handle:
                 handle.extractall(outDir)
             #
@@ -108,7 +111,7 @@ def RUN(tList):
         #
         elif file_ext == '.testcomplete':
             with open(outDir + os.sep + outFile, "wb") as handle:
-                handle.write(proxy.getTestFile(globEpName, tcName).data)
+                handle.write(proxy.getTestFile(globEpName, tcId).data)
             with ZipFile(outDir + os.sep + outFile, 'r') as handle:
                 handle.extractall(outDir) # This is a FOLDER !
             #
@@ -126,7 +129,7 @@ def RUN(tList):
             outPython = outDir + os.sep + outFile
             with open(outPython, "wb") as handle:
                 print 'EP::Selenium: Writing selenium file `%s`.' % outPython
-                handle.write(proxy.getTestFile(globEpName, tcName).data)
+                handle.write(proxy.getTestFile(globEpName, tcId).data)
 
         proxy.logMessage('logRunning', 'EP::Windows: Executing file `%s`...\n' % toExecute)
 
@@ -195,9 +198,9 @@ def RUN(tList):
         timer_f = time.time() - timer_i
 
         if ret:
-            proxy.setFileStatus(globEpName, tcName, 3, timer_f) # Status FAIL
+            proxy.setFileStatus(globEpName, tcId, 3, timer_f) # Status FAIL
         else:
-            proxy.setFileStatus(globEpName, tcName, 2, timer_f) # Status PASS
+            proxy.setFileStatus(globEpName, tcId, 2, timer_f) # Status PASS
 
 
 
@@ -250,4 +253,4 @@ while 1:
         RUN(tList)
         proxy.setExecStatus(globEpName, 0) # Set EpId status STOP
 
-    time.sleep(1)
+    time.sleep(2)
