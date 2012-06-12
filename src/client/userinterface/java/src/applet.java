@@ -24,8 +24,8 @@ public class applet extends Applet{
     
     //applet initialization
     public void init(){
-        try{UIManager.setLookAndFeel("javax.swing.plaf.nimbus.NimbusLookAndFeel");}
-        catch(Exception e){e.printStackTrace();} 
+//         try{UIManager.setLookAndFeel("javax.swing.plaf.nimbus.NimbusLookAndFeel");}
+//         catch(Exception e){e.printStackTrace();} 
         
         /*
          * load all icons from jar into Repository
@@ -75,7 +75,13 @@ public class applet extends Applet{
          * host - server address
          * this - as container
          */
-        Repository.initialize(true, getCodeBase().getHost(),this);}
+        Repository.initialize(true, getCodeBase().getHost(),applet.this);
+//         SwingUtilities.invokeLater(new Runnable(){
+//             public void run(){
+//                 try{Repository.initialize(true, getCodeBase().getHost(),applet.this);}
+//                 catch(Exception e){
+//                     e.printStackTrace();}}});
+                }
         
         
     /*

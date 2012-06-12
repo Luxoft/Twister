@@ -12,20 +12,20 @@ import java.awt.event.ActionEvent;
  */
 public class Main{
     public static void main(String args[]){  
-// com.jtattoo.plaf.acryl.AcrylLookAndFeel
-// com.jtattoo.plaf.smart.SmartLookAndFeel
+// com.jtattoo.plaf.acryl.AcrylLookAndFeel - trebuiesc platite
+// com.jtattoo.plaf.smart.SmartLookAndFeel - trebuiesc platite
 // javax.swing.plaf.nimbus.NimbusLookAndFeel
-// com.jtattoo.plaf.aero.AeroLookAndFeel
-// com.jtattoo.plaf.aluminium.AluminiumLookAndFeel
-// com.jtattoo.plaf.bernstein.BernsteinLookAndFeel
-// com.jtattoo.plaf.fast.FastLookAndFeel
-// com.jtattoo.plaf.graphite.GraphiteLookAndFeel
-// com.jtattoo.plaf.hifi.HiFiLookAndFeel
-// com.jtattoo.plaf.luna.LunaLookAndFeel
-// com.jtattoo.plaf.mcwin.McWinLookAndFeel
-// com.jtattoo.plaf.mint.MintLookAndFeel
-// com.jtattoo.plaf.noire.NoireLookAndFeel
-// com.jtattoo.plaf.smart.SmartLookAndFeel
+// com.jtattoo.plaf.aero.AeroLookAndFeel - trebuiesc platite
+// com.jtattoo.plaf.aluminium.AluminiumLookAndFeel - trebuiesc platite
+// com.jtattoo.plaf.bernstein.BernsteinLookAndFeel - trebuiesc platite
+// com.jtattoo.plaf.fast.FastLookAndFeel - trebuiesc platite
+// com.jtattoo.plaf.graphite.GraphiteLookAndFeel - trebuiesc platite
+// com.jtattoo.plaf.hifi.HiFiLookAndFeel- trebuiesc platite
+// com.jtattoo.plaf.luna.LunaLookAndFeel- trebuiesc platite
+// com.jtattoo.plaf.mcwin.McWinLookAndFeel- trebuiesc platite
+// com.jtattoo.plaf.mint.MintLookAndFeel- trebuiesc platite
+// com.jtattoo.plaf.noire.NoireLookAndFeel- trebuiesc platite
+// com.jtattoo.plaf.smart.SmartLookAndFeel- trebuiesc platite
 // ch.randelshofer.quaqua.QuaquaLookAndFeel
 // ch.randelshofer.quaqua.QuaquaLookAndFeel15
 // ch.randelshofer.quaqua.BasicQuaquaLookAndFeel
@@ -62,23 +62,40 @@ public class Main{
 //         catch(Exception e){
 //             e.printStackTrace();
 //             System.out.println("Could not load look and feel");}
-//        SwingUtilities.invokeLater(new Runnable(){
-//           public void run(){
-            try{UIManager.setLookAndFeel("javax.swing.plaf.nimbus.NimbusLookAndFeel");}
-            catch(Exception e){e.printStackTrace();}
+
+        
+      
+
+
+
+//        SwingUtilities.invokeLater();
+            
             /*
              * start Repository initialization and passing to it
              * false - because it does not start from applet
              * host - server address
              * null - to use the default window
              */
-            Repository.initialize(false,"tsc-server",null);
+//             for(LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
+//                 System.out.println(info.getName());}
 
+            SwingUtilities.invokeLater(new Runnable(){
+                public void run(){
+                    try{
+//                         UIManager.setLookAndFeel("javax.swing.plaf.nimbus.NimbusLookAndFeel");
+                        Repository.initialize(false,"tsc-server",null);}
+                    catch(Exception e){
+                        e.printStackTrace();}}});
+
+           
+                
+            
+            
+            
             
 // }});
 //         
-//         for(LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
-//                 System.out.println(info.getName());
+        
 //             if(info.getClassName().equals("com.jtattoo.plaf.smart.SmartLookAndFeel")){
 //                 try{UIManager.setLookAndFeel(info.getClassName());}
 //                 catch(Exception e){

@@ -71,122 +71,23 @@ public class Panel2 extends JPanel{
         play.setBounds(10,5,105,25);
         play.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
-                try{String status="";
-                    if(play.getText().equals("Run")){
-                        for(int i=0;i<Repository.getTestSuiteNr();i++){clearProp(Repository.getTestSuita(i));}
-                        Repository.window.mainpanel.p2.sc.g.repaint();    
-                        status = (String)Repository.getRPCClient().execute("setExecStatusAll",new Object[]{2});
-                        Repository.getRPCClient().execute("setStartedBy",new Object[]{Repository.getUser()});
-                        play.setText("Pause");
-                        play.setIcon(new ImageIcon(Repository.pauseicon));}
-                    else if(play.getText().equals("Resume")){
-                        status = (String)Repository.getRPCClient().execute("setExecStatusAll",new Object[]{3});
-                        play.setText("Pause");
-                        play.setIcon(new ImageIcon(Repository.playicon));}
-                    else if(play.getText().equals("Pause")){
-                        status = (String)Repository.getRPCClient().execute("setExecStatusAll",new Object[]{1});
-                        play.setText("Resume");
-                        play.setIcon(new ImageIcon(Repository.playicon));}}
-                catch(Exception e){e.printStackTrace();}}});
+                play(play);}});
         add(play);
         stop = new JButton("Stop",new ImageIcon(Repository.getStopIcon()));
         stop.setEnabled(false);
         stop.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
-                try{String status = (String)Repository.getRPCClient().execute("setExecStatusAll",new Object[]{0});
-                    play.setText("Run");
-                    play.setIcon(new ImageIcon(Repository.playicon));
-                    stoppushed = true;}
-                catch(Exception e){e.printStackTrace();}}});
+                stop(play);}});
         stop.setBounds(121,5,95,25);
         add(stop);
         cestatus = new JLabel("CE status: ");
         cestatus.setBounds(225,12,550,25);
         cestatus.setForeground(new Color(100,100,100));
         add(cestatus);
-    try{new Thread(){
-            public void run(){
-                while(Repository.run){  
-                    try{
-                        String result;
-                        while(Repository.run){
-                            Thread.sleep(1000);
-                            result = Repository.getRPCClient().execute("getExecStatusAll",new Object[]{})+" ";
-                            String startedtime = "   Started : "+result.split(";")[1];
-                            String elapsedtime = "   Elapsed time: "+result.split(";")[2];
-                            String user = "   Started by: "+result.split(";")[3];
-                            result = result.split(";")[0];
-                            if(result.equals("paused")){
-                                Repository.window.mainpanel.p1.setGenerate(false);
-                                cestatus.setText("CE status: paused"+startedtime+elapsedtime+user);
-                                cleared=false;
-                                play.setText("Resume");
-                                play.setIcon(new ImageIcon(Repository.playicon));}
-                            else if(result.equals("stopped")){
-                                Repository.window.mainpanel.p1.setGenerate(true);
-                                cestatus.setText("CE status: stopped");
-                                stop.setEnabled(false);
-                                play.setText("Run");
-                                play.setIcon(new ImageIcon(Repository.playicon));
-                                if(runned){
-                                    System.out.println("Just Stopped");
-                                    String[] buttons = {"Save to DB","Export to excel","Cancel"};
-                                    
-                                    String resp = CustomDialog.showButtons(Panel2.this, JOptionPane.QUESTION_MESSAGE,JOptionPane.DEFAULT_OPTION, null,buttons , "Confirmation","Generate statistics?");
-
-                                    
-                                    
-                                    
-//                                     int rc = JOptionPane.showOptionDialog(Repository.window,"Generate statistics?","Confirmation",JOptionPane.DEFAULT_OPTION,JOptionPane.QUESTION_MESSAGE,null,buttons,buttons[2]);
-//                                     if (rc!=-1) {
-//                                         if(rc==0){
-//                                             System.out.println("Saving to DB");
-//                                             Repository.getRPCClient().execute("commitToDatabase",new Object[]{});}
-//                                         else if(rc==1){
-//                                             System.out.println("Exporting to excel..");
-//                                             generateExcel();}}
-
-                                    if (!resp.equals("NULL")) {
-                                        if(resp.equals("Save to DB")){
-                                            System.out.println("Saving to DB");
-                                            Repository.getRPCClient().execute("commitToDatabase",new Object[]{});}
-                                        else if(resp.equals("Export to excel")){
-                                            System.out.println("Exporting to excel..");
-                                            generateExcel();}}
-
-
-                                    if(!stoppushed){
-                                        System.out.println("Without stop button");}
-                                    runned = false;}
-                                stoppushed = false;}
-                            else if(result.equals("running")){
-                                Repository.window.mainpanel.p1.setGenerate(false);
-                                stoppushed = false;
-                                runned = true;
-                                cestatus.setText("CE status: running"+startedtime+elapsedtime+user);
-                                stop.setEnabled(true);
-                                cleared=false;
-                                play.setText("Pause");
-                                play.setIcon(new ImageIcon(Repository.pauseicon));}
-                            if(!play.isEnabled()){
-                                play.setEnabled(true);
-                                stop.setEnabled(true);}
-                            Object result1 = Repository.getRPCClient().execute("getFileStatusAll",new Object[]{});
-                            if(result1!=null){                                    
-                                if(((String)result1).indexOf(",")!=-1){
-                                    String[] result2 = ((String)result1).split(",");
-                                    updateStatuses(result2);}
-                                else{
-                                    String[] result2 = {(String)result1};
-                                    updateStatuses(result2);}}}}
-                catch(Exception e){
-                    try{Thread.sleep(1000);}
-                    catch(Exception ex){ex.printStackTrace();}
-                    System.out.println("Could not connect to: "+Repository.host+" on port"+Repository.getCentralEnginePort());
-                    e.printStackTrace();
-                    if(play.isEnabled()){
-                        play.setEnabled(false);
-                        stop.setEnabled(false);}}}}}.start();}
+        try{new Thread(){
+                public void run(){
+                    while(Repository.run){ 
+                        askCE(play);}}}.start();}
         catch(Exception e){e.printStackTrace();}
         new Thread(){
             public void run(){
@@ -203,6 +104,121 @@ public class Panel2 extends JPanel{
         Repository.intro.addPercent(0.035);
         Repository.intro.repaint();}
         
+    /*
+     * get status from ce
+     * and adjust accordingly
+     */
+    public void askCE(JButton play){
+        try{String result;
+            while(Repository.run){
+                Thread.sleep(1000);
+                result = Repository.getRPCClient().execute("getExecStatusAll",new Object[]{})+" ";
+                String startedtime = "   Started : "+result.split(";")[1];
+                String elapsedtime = "   Elapsed time: "+result.split(";")[2];
+                String user = "   Started by: "+result.split(";")[3];
+                result = result.split(";")[0];
+                if(result.equals("paused")){
+                    Repository.window.mainpanel.p1.setGenerate(false);
+                    cestatus.setText("CE status: paused"+startedtime+elapsedtime+user);
+                    cleared=false;
+                    play.setText("Resume");
+                    play.setIcon(new ImageIcon(Repository.playicon));}
+                else if(result.equals("stopped")){
+                    Repository.window.mainpanel.p1.setGenerate(true);
+                    cestatus.setText("CE status: stopped");
+                    stop.setEnabled(false);
+                    play.setText("Run");
+                    play.setIcon(new ImageIcon(Repository.playicon));
+                    if(runned){userOptions();}
+                    stoppushed = false;}
+                else if(result.equals("running")){
+                    Repository.window.mainpanel.p1.setGenerate(false);
+                    stoppushed = false;
+                    runned = true;
+                    cestatus.setText("CE status: running"+startedtime+elapsedtime+user);
+                    stop.setEnabled(true);
+                    cleared=false;
+                    play.setText("Pause");
+                    play.setIcon(new ImageIcon(Repository.pauseicon));}
+                if(!play.isEnabled()){
+                    play.setEnabled(true);
+                    stop.setEnabled(true);}
+                Object result1 = Repository.getRPCClient().execute("getFileStatusAll",new Object[]{});
+                if(result1!=null){                                    
+                    if(((String)result1).indexOf(",")!=-1){
+                        String[] result2 = ((String)result1).split(",");
+                        updateStatuses(result2);}
+                    else{
+                        String[] result2 = {(String)result1};
+                        updateStatuses(result2);}}}}
+        catch(Exception e){
+            try{Thread.sleep(1000);}
+            catch(Exception ex){ex.printStackTrace();}
+            System.out.println("Could not connect to: "+Repository.host+" on port"+Repository.getCentralEnginePort());
+            e.printStackTrace();
+            if(play.isEnabled()){
+                play.setEnabled(false);
+                stop.setEnabled(false);}}}
+                
+    /*
+     * Prompt user to save to db or
+     * localy in excel file
+     */           
+    public void userOptions(){
+        System.out.println("Just Stopped");
+        String[] buttons = {"Save to DB","Export to excel","Cancel"};
+        String resp = CustomDialog.showButtons(Panel2.this, JOptionPane.QUESTION_MESSAGE,JOptionPane.DEFAULT_OPTION, null,buttons , "Confirmation","Generate statistics?");
+        if (!resp.equals("NULL")) {
+            if(resp.equals("Save to DB")){
+                System.out.println("Saving to DB");
+                try{Repository.getRPCClient().execute("commitToDatabase",new Object[]{});}
+                catch(Exception e){
+                    System.out.println("Could not comunicate with ce through RPC");
+                    e.printStackTrace();}}
+            else if(resp.equals("Export to excel")){
+                System.out.println("Exporting to excel..");
+                generateExcel();}}
+        if(!stoppushed){
+            System.out.println("Without stop button");}
+        runned = false;}
+    
+    /*
+     * stop CE from executing
+     */
+    public void stop(JButton play){
+        try{String status = (String)Repository.getRPCClient().execute("setExecStatusAll",new Object[]{0});
+            play.setText("Run");
+            play.setIcon(new ImageIcon(Repository.playicon));
+            stoppushed = true;}
+        catch(Exception e){e.printStackTrace();}}
+    
+    /*
+     * Handle play button pressed based on
+     * play previous status
+     */
+    public void play(JButton play){
+        try{String status="";
+            if(play.getText().equals("Run")){
+                for(int i=0;i<Repository.getTestSuiteNr();i++){clearProp(Repository.getTestSuita(i));}
+                Repository.window.mainpanel.p2.sc.g.repaint();    
+                status = (String)Repository.getRPCClient().execute("setExecStatusAll",new Object[]{2});
+                Repository.getRPCClient().execute("setStartedBy",new Object[]{Repository.getUser()});
+                play.setText("Pause");
+                play.setIcon(new ImageIcon(Repository.pauseicon));}
+            else if(play.getText().equals("Resume")){
+                status = (String)Repository.getRPCClient().execute("setExecStatusAll",new Object[]{3});
+                play.setText("Pause");
+                play.setIcon(new ImageIcon(Repository.playicon));}
+            else if(play.getText().equals("Pause")){
+                status = (String)Repository.getRPCClient().execute("setExecStatusAll",new Object[]{1});
+                play.setText("Resume");
+                play.setIcon(new ImageIcon(Repository.playicon));}}
+        catch(Exception e){e.printStackTrace();}}
+    
+    /*
+     * Ask and generate excel file
+     * with the suites and their status
+     */
     public boolean generateExcel(){   
         try{JFileChooser chooser = new JFileChooser(); 
             chooser.setApproveButtonText("Save");
@@ -246,6 +262,15 @@ public class Panel2 extends JPanel{
                 if(!continua)return continua;}
             return false;}}
         
+    /*
+     * method to populate excel row 
+     * with suites data
+     * 
+     * sheet - excel sheet to be populated
+     * element - the Item to populate excel data with
+     * index - row numbel
+     * columns - the columns to populate
+     */
     public int addToExcel(WritableSheet sheet,Item element,int index,int columns){
         if(element.getType()==1){
             Label label;
@@ -270,7 +295,11 @@ public class Panel2 extends JPanel{
                 index = addToExcel(sheet,element.getSubItem(i),index,columns);}
             return index;}
         return index;}
-        
+   
+    /*
+     * Update tabs based on
+     * the logs found in repository
+     */
     public void updateTabs(){
         tabbed.removeAll();
         logs.clear();
@@ -284,12 +313,19 @@ public class Panel2 extends JPanel{
             catch(Exception e){e.printStackTrace();}}});
         TabsReorder.enableReordering(tabbed);} 
 
+    /*
+     * update TC satatus
+     */
     public void updateStatuses(String [] statuses){
         int index = 0;
         for(int i=0;i<Repository.getTestSuiteNr();i++){
             index = manageSubchildren(Repository.getTestSuita(i),statuses,index);}
             Repository.window.mainpanel.p2.sc.g.repaint();}
-            
+    
+    /*
+     * interpret status value
+     * and asign it to item
+     */
     public int manageSubchildren(Item item, String[]statuses, int index){
         int index2 = index;
         if(item.getType()==1&&statuses.length>index2){
@@ -309,10 +345,16 @@ public class Panel2 extends JPanel{
                 index2 = manageSubchildren(item.getSubItem(i),statuses,index2);}
             return index2;}
         return index2;}
-        
+     
+    /*
+     * return status of stop button
+     */
     public boolean getStopStatus(){
         return stop.isEnabled();}
             
+    /*
+     * assign value Pending to item
+     */
     public void clearProp(Item item){
         if(item.getType()==1)item.getSubItem(0).setValue("Pending");
         else if (item.getType()==2){

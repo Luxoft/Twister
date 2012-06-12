@@ -53,8 +53,7 @@ public class Window extends JFrame{
             add(mainpanel);
             setBounds(0,60,mainpanel.getWidth()+30,mainpanel.getHeight()+45);
             addWindowListener(new WindowAdapter(){
-                public void windowClosing(WindowEvent e){                
-//                     int r = JOptionPane.showConfirmDialog(mainpanel, "Save your Suite XML before exiting ?", "Save", JOptionPane.YES_NO_OPTION);
+                public void windowClosing(WindowEvent e){
                     int r = (Integer)CustomDialog.showDialog(new JLabel("Save your Suite XML before exiting ?"), JOptionPane.QUESTION_MESSAGE, JOptionPane.OK_CANCEL_OPTION, mainpanel, "Save", null);
                     if(r == JOptionPane.OK_OPTION){mainpanel.saveUserXML();}
                     if(deleteTemp(new File(Repository.temp)))System.out.println(Repository.temp+System.getProperty("file.separator")+"Twister deleted successfull");

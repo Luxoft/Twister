@@ -27,7 +27,10 @@ public class GraficTest extends JPanel{
         setBackground(new Color(190, 195, 195));
         addMouseListener(new MouseAdapter(){
             public void mouseReleased(MouseEvent ev){handleClick(ev);}});}
-                
+    
+    /*
+     * interpret mouse click
+     */
     public void handleClick(MouseEvent ev){
         if(ev.getButton()==1){
             if(Repository.getTestSuiteNr()==0)return;
@@ -36,13 +39,19 @@ public class GraficTest extends JPanel{
                     if(getItem(selected).getSubItemsNr()>0){getItem(selected).setVisible(!(getItem(selected).getSubItem(0).isVisible()));}
                     updateLocations(getItem(selected));}
                 repaint();}}
-                
+    
+    /*
+     * get item based on ArrayList indices
+     */
     public Item getItem(ArrayList <Integer> pos){           
         Item theone1 = Repository.getTestSuita(pos.get(0));
         for(int j=1;j<pos.size();j++){
             theone1 = theone1.getSubItem(pos.get(j));}
         return theone1;}
-                
+    
+    /*
+     * return item on location x,y
+     */
     public void getClickedItem(int x, int y){
         Rectangle r = new Rectangle(x-1,y-1,2,2);
         int suitenr = Repository.getTestSuiteNr();
@@ -52,7 +61,10 @@ public class GraficTest extends JPanel{
                 selected.add(i);
                 break;}}
         if(selected.size()>0)Collections.reverse(selected);}
-        
+     
+    /*
+     * handle click on specific item
+     */
     public boolean handleClicked(Rectangle r, Item item){
         if(r.intersects(item.getRectangle())&&item.isVisible())return true;
         else{int itemnr = item.getSubItemsNr();
@@ -61,7 +73,11 @@ public class GraficTest extends JPanel{
                     selected.add(i);
                     return true;}}
             return false;}}
-        
+     
+    /*
+     * update items location in tree view
+     * starting from suita
+     */
     public void updateLocations(Item suita){
         ArrayList <Integer> selected2 = (ArrayList <Integer>)suita.getPos().clone();
         if(selected2.size()>1){
@@ -77,19 +93,43 @@ public class GraficTest extends JPanel{
         foundfirstitem=false;
         updateScroll();}
         
+    /*
+     * calculates previous position
+     * for aligning on x
+     */
     public int calcPreviousPositions(Item item){
+        /*
+         * calc diferently based on item type
+         */
         ArrayList <Integer> pos = (ArrayList <Integer>)item.getPos().clone();
-        if(pos.size()>1){
+        if(item.getType()!=0){//it is not a prop
+            if(pos.size()>1){
+                pos.remove(pos.size()-1);
+                Item temp = getItem(pos);
+                return temp.getLocation()[0]+(int)(temp.getRectangle().getWidth()/2+20);}
+            else{return 5;}}
+        else{// it is prop should put beside it
             pos.remove(pos.size()-1);
             Item temp = getItem(pos);
-            return temp.getLocation()[0]+(int)(temp.getRectangle().getWidth()/2+20);}
-        else{return 5;}}
+            return temp.getLocation()[0]+(int)(temp.getRectangle().getWidth()+20);}}
         
-    public void positionItem(Item item){        
-        int x = calcPreviousPositions(item);
-        item.setLocation(new int[]{x,y});
-        y+=(int)(5+item.getRectangle().getHeight());}  
-        
+    /*
+     * positions the item based on
+     * previous location
+     */    
+    public void positionItem(Item item){    
+        if(item.getType()!=0){
+            int x = calcPreviousPositions(item);
+            item.setLocation(new int[]{x,y});
+            y+=(int)(5+item.getRectangle().getHeight());}
+        else{
+            int x = calcPreviousPositions(item);
+            item.setLocation(new int[]{x,(int)(y-5-item.getRectangle().getHeight())});}}
+    
+    /*
+     * iterate through subitem of an item
+     * and position it
+     */
     public void iterateThrough(Item item, ArrayList <Integer> theone){
         int subitemsnr = item.getSubItemsNr();
         if(theone==null){
@@ -109,7 +149,11 @@ public class GraficTest extends JPanel{
             int index = theone.get(0);
             for(int i=index;i<subitemsnr;i++){
                 iterateThrough(item.getSubItem(i),null);}}}
-
+                
+    /*
+     * update scroll to adjust based
+     * on view dimension
+     */
     public void updateScroll(){
         int y1=0;
         for(int i=0;i<Repository.getTestSuiteNr();i++){
@@ -124,7 +168,11 @@ public class GraficTest extends JPanel{
             if(y1<595){
                 setPreferredSize(new Dimension(445,595));
                 revalidate();}}}
-            
+          
+                
+    /*
+     * return last y position for last visible item
+     */
     public int getLastY(Item item, int height){
         if(height<=(item.getRectangle().getY()+item.getRectangle().getHeight())){
             height=(int)(item.getRectangle().getY()+item.getRectangle().getHeight());        
@@ -147,7 +195,12 @@ public class GraficTest extends JPanel{
         int subitemnr = item.getSubItemsNr();
         if(subitemnr>0&&item.getSubItem(0).isVisible()){
             for(int i=0;i<subitemnr;i++){handlePaintItem(item.getSubItem(i),g);}}}
-                
+             
+            
+    /*
+     * handle drawing item based on
+     * item type and it's properties
+     */
     public void drawItem(Item item,Graphics g){
         g.setColor(Color.BLACK);
         g.setFont(new Font("TimesRoman", Font.PLAIN, 12));
@@ -169,10 +222,11 @@ public class GraficTest extends JPanel{
             else if(value.equals("WAITING")) g.drawImage(Repository.getWaitingIcon(), (int)item.getRectangle().getX()+5,(int)item.getRectangle().getY()+1,null);
             else if(value.equals("PASS")) g.drawImage(Repository.getPassIcon(), (int)item.getRectangle().getX()+5,(int)item.getRectangle().getY()+1,null);
             else g.drawImage(Repository.getTCIcon(),(int)item.getRectangle().getX()+5,(int)item.getRectangle().getY()+1,null);}
-        else{if(item.getPos().get(item.getPos().size()-1).intValue()==0)g.drawImage(Repository.getPropertyIcon(),(int)item.getRectangle().getX()+2,(int)item.getRectangle().getY()+1,null);
+        else{
+            g.drawImage(Repository.getPropertyIcon(),(int)item.getRectangle().getX()+2,(int)item.getRectangle().getY()+1,null);
             g.drawString(item.getName()+" : "+item.getValue(),(int)item.getRectangle().getX()+25,(int)item.getRectangle().getY()+15);}
         if((item.getPos().size()!=1)){
-            if(item.getType()==0 && item.getPos().get(item.getPos().size()-1).intValue()!=0){}
+            if(item.getType()==0){}
             else{
                 g.drawLine((int)item.getRectangle().getX()-25,(int)(item.getRectangle().getY()+item.getRectangle().getHeight()/2),(int)item.getRectangle().getX(),(int)(item.getRectangle().getY()+item.getRectangle().getHeight()/2));
                 ArrayList<Integer> temp = (ArrayList<Integer>)item.getPos().clone();

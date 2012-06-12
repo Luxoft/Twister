@@ -75,7 +75,7 @@ public class XMLReader{
                     property.setValue(value);
                     theone.addSubItem(property);}
                 k=2;}
-            if(!(test&&theone.getType()==1)){
+            if(!(test&&theone.getType()==1)){//if it is test the props should not be read further
                 int subchildren = node.getChildNodes().getLength();
                 int index=0;
                 for(;k<subchildren-1;k++){
@@ -85,7 +85,8 @@ public class XMLReader{
                     manageSubChilderen(theone,node.getChildNodes().item(k),temp,g,test);
                     index++;}}
         item.addSubItem(theone);}
-        else{trdNmElmntLst = ((Element)node).getElementsByTagName("propName");
+        else{
+            trdNmElmntLst = ((Element)node).getElementsByTagName("propName");
             trdNmElmnt = (Element)trdNmElmntLst.item(0);
             trdNm = trdNmElmnt.getChildNodes();
             name = (trdNm.item(0).getNodeValue().toString());
@@ -96,7 +97,7 @@ public class XMLReader{
                 value = (trdNm2.item(0).getNodeValue().toString());
                 item.setRunnable(Boolean.parseBoolean(value));
                 return;}
-            if(name.equals("Prerequisite")){
+            else if(name.equals("Prerequisite")){
                 item.setPrerequisite(true);
                 return;}
             trdNmElmntLst2 = ((Element)node).getElementsByTagName("propValue");
@@ -112,7 +113,8 @@ public class XMLReader{
             if(name.equals("Running")){item.setCheck(Boolean.parseBoolean(value));}
             item.setVisible(false);}}
             
-    public void parseXML(Graphics g,boolean test){        
+    public void parseXML(Graphics g,boolean test){   
+        System.out.println("parsing test: "+test);
         NodeList nodeLst = doc.getChildNodes().item(0).getChildNodes();
         int childsnr = doc.getChildNodes().item(0).getChildNodes().getLength();
         if(childsnr==0){
@@ -132,7 +134,7 @@ public class XMLReader{
             int width = metrics.stringWidth(fstNm.item(0).getNodeValue().toString());
             Item suitatemp;
             if(!test)suitatemp= new Item(fstNm.item(0).getNodeValue(),2,-1,10, width+140,25,indexpos);
-            else suitatemp= new Item(fstNm.item(0).getNodeValue(),2,-1,10, width+40,25,indexpos);
+            else suitatemp=  new Item(fstNm.item(0).getNodeValue(),2,-1,10, width+40,25,indexpos);
             fstNmElmntLst = fstElmnt.getElementsByTagName("EpId");
             fstNmElmnt = (Element)fstNmElmntLst.item(0);
             fstNm = fstNmElmnt.getChildNodes();

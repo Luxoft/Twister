@@ -22,6 +22,9 @@ public class IntroScreen extends JFrame{
     int width;
     private double percent = 0; //percent of status bar set by initialization methods
 
+    /*
+     * intro screen initialization
+     */
     public IntroScreen(){
         Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
         setBounds((int)(screenSize.getWidth()-640)/2,(int)(screenSize.getHeight()-480)/2,640,480);
@@ -43,9 +46,16 @@ public class IntroScreen extends JFrame{
         g.drawString(text, 30, 374);
         g.drawImage(Repository.background, 55, 10, null);}
     
-        
+    /*
+     * text - the text to display on loading
+     * bar
+     */   
     public void setStatus(String text){
         this.text = text;}
         
+    /*
+     * add percent to ilustrate
+     * on loading bar
+     */
     public void addPercent(double percent){
         this.percent+=percent;}}
