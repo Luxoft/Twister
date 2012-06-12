@@ -26,6 +26,7 @@ import sys
 import re
 import time
 import json
+import smtplib
 import MySQLdb
 
 from string import Template
