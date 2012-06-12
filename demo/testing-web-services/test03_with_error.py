@@ -1,4 +1,7 @@
 
+# <title> Test 03 - a function with an error </title>
+# <description> Testing a function with an error, on the SOAP server </description>
+
 def func():
 
 	import time

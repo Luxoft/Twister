@@ -1,4 +1,7 @@
 
+# <title> Test 04 - create user </title>
+# <description> Testing the SOAP server: receive a complex data atructure from the server (user object) and create an instance of that structure </description>
+
 def func():
 
 	import time

@@ -1,4 +1,7 @@
 
+# <title> Test 02 - factorial </title>
+# <description> Testing the SOAP server: running Factorial function 3 times, the last time with wrong parameters </description>
+
 import time
 from suds.client import Client
 

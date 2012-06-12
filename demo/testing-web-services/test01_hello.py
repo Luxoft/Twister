@@ -1,4 +1,7 @@
 
+# <title> Test 01 - hello </title>
+# <description> Testing the SOAP server: running Echo function 3 times, the last time with wrong parameters </description>
+
 import time
 from suds.client import Client
 
