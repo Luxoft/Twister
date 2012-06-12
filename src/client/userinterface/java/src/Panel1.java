@@ -84,46 +84,11 @@ public class Panel1 extends JPanel{
         suitaDetails = new SuitaDetails(Repository.getDatabaseUserFields());
         generate.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
-                String result="";
-                try{result = (String)Repository.getRPCClient().execute("getExecStatusAll",new Object[]{});}
-                catch(Exception e){System.out.println("Could not connect to server");}
-                int defsNr = suitaDetails.getDefsNr();
-                boolean execute=true;
-                for(int i=0;i<Repository.getSuiteNr();i++){
-                    if(Repository.getSuita(i).getUserDefNr()<defsNr){
-                        CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, Repository.window, "Warning","Please set user defined fields for: "+Repository.getSuita(i).getName());
-                        
-//                         JOptionPane.showMessageDialog(Repository.window, "Please set user defined fields for: "+Repository.getSuita(i).getName());
-                        execute = false;
-                        break;}
-                    for(int j=0;j<defsNr;j++){
-                        if(Repository.getSuita(i).getUserDef(j)[1].length()==0&&Repository.getDatabaseUserFields().get(j)[Repository.MANDATORY].equals("true")){
-                            CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, Repository.window, "Warning","Please set user defined field at "+Repository.getDatabaseUserFields().get(j)[Repository.LABEL]+" for: "+Repository.getSuita(i).getName());
-//                             JOptionPane.showMessageDialog(Repository.window, "Please set user defined field at "+Repository.getDatabaseUserFields().get(j)[Repository.LABEL]+" for: "+Repository.getSuita(i).getName());
-                            execute = false;
-                            break;}}
-                    if(!execute)break;}                
-                if(execute){
-                    if(!result.equals("running")){
-                        sc.g.printXML(Repository.getTestXMLDirectory(),true,false);
-                        Repository.emptyTestRepository();
-                        File xml = new File(Repository.getTestXMLDirectory());    
-                        int size = Repository.getLogs().size();
-                        for(int i=5;i<size;i++){Repository.getLogs().remove(5);}
-                        new XMLReader(xml).parseXML(sc.g.getGraphics(), true);
-                        Repository.window.mainpanel.p2.updateTabs();
-                        CustomDialog.showInfo(JOptionPane.PLAIN_MESSAGE, Repository.window, "Info", "File successfully generated ");
-//                         JOptionPane.showMessageDialog(Repository.window, "File successfully generated ");
-                    }
-                    else{
-                        CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, Repository.window, "Warning", "Please close Central Engine before generating");
-//                         JOptionPane.showMessageDialog(Repository.window, "Please close Central Engine before generating");
-                    }}}});
+                generate();}});
         this.applet = applet;
         JMenuBar menu = new JMenuBar();
         menu.setLayout(null);
         menu.setBounds(0, 0, width, 20);
-        
         final JMenu suitemenu = new JMenu("Suite");
         suitemenu.setBounds(50,0,50,20);
         menu.add(suitemenu);
@@ -131,184 +96,66 @@ public class Panel1 extends JPanel{
         item = new JMenuItem("Add Suite");
         item.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
-                System.out.println("adding suite");
                 sc.g.addSuiteFromButton();}});
         suitemenu.add(item);
         item = new JMenuItem("Set Ep");
         suitemenu.add(item);
         item.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
-                /*
-                 * get EP's from EP's file
-                 */
-                try{final Item theone = getItem();
-                    File f = new File(Repository.temp+System.getProperty("file.separator")+"Twister"+System.getProperty("file.separator")+"EpID.txt");
-                    String line = null;  
-                    InputStream in = Repository.c.get(Repository.REMOTEEPIDDIR);
-                    InputStreamReader inputStreamReader = new InputStreamReader(in);
-                    BufferedReader bufferedReader = new BufferedReader(inputStreamReader);  
-                    StringBuffer b=new StringBuffer("");
-                    while ((line=bufferedReader.readLine())!= null){b.append(line+";");}                        
-                    bufferedReader.close();
-                    inputStreamReader.close();
-                    in.close();
-                    String result = b.toString();
-                    String  [] vecresult = result.split(";");//EP's list
-                    try{
-                        JComboBox combo = new JComboBox(vecresult);
-                        int resp = (Integer)CustomDialog.showDialog(combo,JOptionPane.INFORMATION_MESSAGE,JOptionPane.OK_CANCEL_OPTION,sc.g,"Please select an Ep name",null);
-                        if(resp==JOptionPane.OK_OPTION){
-                            String ID = combo.getSelectedItem().toString();
-//                         String ID = (String)JOptionPane.showInputDialog(sc.g,"Please select an Ep name","EpID's", JOptionPane.INFORMATION_MESSAGE,null, vecresult,"EpID's");
-                            theone.setEpId(ID);
-                            for(int i=0;i<theone.getSubItemsNr();i++){
-                                sc.g.assignEpID(theone.getSubItem(i),ID);}
-                            repaint();}}
-                    catch(Exception e){e.printStackTrace();}}
-                catch(Exception e){e.printStackTrace();}}});
+                setEP();}});
         item = new JMenuItem("Rename");
         suitemenu.add(item);
         item.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
-                final Item theone = getItem();
-//                 String name = JOptionPane.showInputDialog(sc.g,"Please enter the suite name","Suite Name",  JOptionPane.PLAIN_MESSAGE).toUpperCase();
-                String name = CustomDialog.showInputDialog(JOptionPane.PLAIN_MESSAGE, JOptionPane.OK_CANCEL_OPTION, sc.g, "Suite Name", "Please enter the suite name").toUpperCase();
-                if(!name.equals("NULL")){
-                    FontMetrics metrics = sc.g.getGraphics().getFontMetrics(new Font("TimesRoman", Font.BOLD, 14));
-                    int width = metrics.stringWidth(name)+140;
-                    theone.setName(name);
-                    theone.getRectangle().setSize(width,(int)theone.getRectangle().getHeight());
-                    if(theone.isVisible())sc.g.updateLocations(theone);
-                    sc.g.repaint();}}});
+                renameSuite();}});
         item = new JMenuItem("Expand");
         suitemenu.add(item);
         item.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
-                final Item theone = getItem();
-                theone.setVisible(true);
-                sc.g.updateLocations(theone);
-                sc.g.repaint();}});
+                expandContract(true);}});
         item = new JMenuItem("Contract");
         suitemenu.add(item);
         item.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
-                final Item theone = getItem();
-                int nr = theone.getSubItemsNr();
-                for(int i=0;i<nr;i++){
-                    theone.getSubItem(i).setVisible(false);}
-                sc.g.updateLocations(theone);
-                repaint();}});
+                contractSuite();}});
         item = new JMenuItem("Remove");
         suitemenu.add(item);
         item.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
-                if(sc.g.getSelectedCollection().size()>1){
-                    sc.g.removeSelected();}
-                else{final Item theone = getItem();
-                    if(theone.getPos().size()==1){
-                        int index = theone.getPos().get(0).intValue();
-                        Repository.getSuite().remove(theone);                    
-                        if(Repository.getSuiteNr()>=index){
-                            for(int i= index;i<Repository.getSuiteNr();i++){
-                                Repository.getSuita(i).updatePos(0,new Integer(Repository.getSuita(i).getPos().get(0).intValue()-1));}
-                        if(Repository.getSuiteNr()>0){
-                            Repository.getSuita(0).setLocation(new int[]{5,10});
-                            sc.g.updateLocations(Repository.getSuita(0));}
-                        sc.g.repaint();
-                        sc.g.getSelectedCollection().clear();}}
-                    else{int index = theone.getPos().get(theone.getPos().size()-1).intValue();
-                        int position = theone.getPos().size()-1;
-                        ArrayList<Integer> temp = (ArrayList<Integer>)theone.getPos().clone();
-                        temp.remove(temp.size()-1);
-                        Item parent = sc.g.getItem(temp,false);
-                        parent.getSubItems().remove(theone);                    
-                        if(parent.getSubItemsNr()>=index){
-                            for(int i = index;i<parent.getSubItemsNr();i++){
-                                parent.getSubItem(i).updatePos(position,new Integer(parent.getSubItem(i).getPos().get(position).intValue()-1));}}
-                        sc.g.updateLocations(parent);
-                        sc.g.repaint();
-                        sc.g.getSelectedCollection().clear();}
-                    for(int j=0;j<suitemenu.getMenuComponentCount();j++){
-                        suitemenu.getMenuComponent(j).setEnabled(false);}}}});
-        /*
-         * set menu options
-         * based on selection
-         */
+                removeSuite(suitemenu);}});
         suitemenu.addMenuListener(new MenuListener(){
             public void menuCanceled(MenuEvent ev){}
             public void menuDeselected(MenuEvent ev){}
             public void menuSelected(MenuEvent ev){
-                for(int j=0;j<suitemenu.getMenuComponentCount();j++){
-                    suitemenu.getMenuComponent(j).setEnabled(false);}
-                if(sc.g.getSelectedCollection().size()>1){
-                    suitemenu.getMenuComponent(5).setEnabled(true);}
-                else{
-                    if(sc.g.getSelectedCollection().size()==0){
-                        suitemenu.getMenuComponent(0).setEnabled(true);}
-                    if(sc.g.getSelectedCollection().size()==1){
-                        ArrayList<Integer> temp = new ArrayList<Integer>();
-                        int indexsize = sc.g.getSelectedCollection().get(0).length;
-                        for(int j=0;j<indexsize;j++){temp.add(new Integer(sc.g.getSelectedCollection().get(0)[j]));}
-                        final Item theone = sc.g.getItem(temp,false);
-                        if(theone.getType()==2){
-                            for(int j=0;j<suitemenu.getMenuComponentCount();j++){
-                                suitemenu.getMenuComponent(j).setEnabled(true);}
-                            if(theone.getPos().size()>1){
-                                suitemenu.getMenuComponent(1).setEnabled(false);}}}}}});
-                                
+                enableSuiteMenu(suitemenu);}});
         final JMenu tcmenu = new JMenu("TestCase");
         tcmenu.setBounds(100,0,65,20);
         menu.add(tcmenu);
-        
         item = new JMenuItem("Set Parameters");
         tcmenu.add(item);
         item.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
-                ArrayList<Integer> temp = new ArrayList<Integer>();
-                int indexsize = sc.g.getSelectedCollection().get(0).length;
-                for(int j=0;j<indexsize;j++){temp.add(new Integer(sc.g.getSelectedCollection().get(0)[j]));}
-                sc.g.setParam(sc.g.getItem(temp,false));}});
+                setParam();}});
         item = new JMenuItem("Add Property");
         tcmenu.add(item);
         item.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
-                ArrayList<Integer> temp = new ArrayList<Integer>();
-                int indexsize = sc.g.getSelectedCollection().get(0).length;
-                for(int j=0;j<indexsize;j++){temp.add(new Integer(sc.g.getSelectedCollection().get(0)[j]));}
-                sc.g.addTCProp(sc.g.getItem(temp,false));}});
+                addTCProperty();}});
         item = new JMenuItem("Rename");
         tcmenu.add(item);
         item.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
-                final Item theone = getItem();
-                
-                
-//                 String name = JOptionPane.showInputDialog(sc.g,"Please enter the TC name","TC Name",  JOptionPane.PLAIN_MESSAGE);
-                
-                String name = CustomDialog.showInputDialog(JOptionPane.PLAIN_MESSAGE, JOptionPane.OK_CANCEL_OPTION, sc.g, "TC Name", "Please enter the TC name").toUpperCase();
-                if(!name.equals("NULL")){
-                    FontMetrics metrics = sc.g.getGraphics().getFontMetrics(new Font("TimesRoman", Font.BOLD, 13));
-                    int width = metrics.stringWidth(name);
-                    theone.setName(name);
-                    theone.getRectangle().setSize(width+50,(int)theone.getRectangle().getHeight());
-                    sc.g.updateLocations(theone);
-                    sc.g.repaint();}}});
+                renameTC();}});
         item = new JMenuItem("Expand");
         tcmenu.add(item);
         item.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
-                final Item theone = getItem();
-                theone.setVisible(true);
-                sc.g.updateLocations(theone);
-                sc.g.repaint();}});
+                expandContract(true);}});
         item = new JMenuItem("Contract");
         tcmenu.add(item);
         item.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
-                final Item theone = getItem();
-                theone.setVisible(false);
-                sc.g.updateLocations(theone);
-                sc.g.repaint();}});
+                expandContract(false);}});
         item = new JMenuItem("Switch Runnable");
         tcmenu.add(item);
         item.addActionListener(new ActionListener(){
@@ -318,181 +165,53 @@ public class Panel1 extends JPanel{
         tcmenu.add(item);
         item.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
-                ArrayList<Integer> temp = new ArrayList<Integer>();
-                int indexsize = sc.g.getSelectedCollection().get(0).length;
-                for(int j=0;j<indexsize;j++){temp.add(new Integer(sc.g.getSelectedCollection().get(0)[j]));}
-                Item theone = sc.g.getItem(temp,false);
-                sc.g.setPreRequisites(theone);}});
+                setPrerequisite();}});
         item = new JMenuItem("Unset pre-requisites");
         tcmenu.add(item);
         item.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
-                ArrayList<Integer> temp = new ArrayList<Integer>();
-                int indexsize = sc.g.getSelectedCollection().get(0).length;
-                for(int j=0;j<indexsize;j++){temp.add(new Integer(sc.g.getSelectedCollection().get(0)[j]));}
-                Item theone = sc.g.getItem(temp,false);
-                theone.setPrerequisite(false);
-                sc.g.repaint();}});
+                unsetPrerequisite();}});
         item = new JMenuItem("Remove");
         tcmenu.add(item);
         item.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
-                if(sc.g.getSelectedCollection().size()>1){
-                    sc.g.removeSelected();}
-                else{
-                    ArrayList<Integer> temp = new ArrayList<Integer>();
-                    int indexsize = sc.g.getSelectedCollection().get(0).length;
-                    for(int j=0;j<indexsize;j++){temp.add(new Integer(sc.g.getSelectedCollection().get(0)[j]));}
-                    final Item theone = sc.g.getItem(temp,false);
-                    sc.g.removeTC(theone);
-                    sc.g.getSelectedCollection().clear();}}});
-        /*
-         * set menu options
-         * based on selection
-         */
+                removeElement();}});
         tcmenu.addMenuListener(new MenuListener(){
             public void menuCanceled(MenuEvent ev){}
             public void menuDeselected(MenuEvent ev){}
             public void menuSelected(MenuEvent ev){
-                for(int j=0;j<tcmenu.getMenuComponentCount();j++){
-                    tcmenu.getMenuComponent(j).setEnabled(false);}
-                if(sc.g.getSelectedCollection().size()>1){
-                    tcmenu.getMenuComponent(5).setEnabled(true);}
-                else{
-                    if(sc.g.getSelectedCollection().size()==1){
-                        ArrayList<Integer> temp = new ArrayList<Integer>();
-                        int indexsize = sc.g.getSelectedCollection().get(0).length;
-                        for(int j=0;j<indexsize;j++){temp.add(new Integer(sc.g.getSelectedCollection().get(0)[j]));}
-                        final Item theone = sc.g.getItem(temp,false);
-                        if(theone.getType()==1){
-                            for(int j=0;j<tcmenu.getMenuComponentCount();j++){
-                                tcmenu.getMenuComponent(j).setEnabled(true);}
-                            if(!theone.isPrerequisite()){
-                                tcmenu.getMenuComponent(7).setEnabled(false);}
-                            else tcmenu.getMenuComponent(6).setEnabled(false);}}}}});
-                                
+                enableTCMenu(tcmenu);}});
         JMenu filemenu = new JMenu("File");
         filemenu.setBounds(10,0,40,20);
         JMenuItem newuser = new JMenuItem("New suite file");
         newuser.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
-//                 String user ="";
-//                 Repository.emptySuites();
-//                 try{user = JOptionPane.showInputDialog(null, "Please enter file name", "File Name", -1).toUpperCase();}
-//                 catch(NullPointerException e){}
-                String user = CustomDialog.showInputDialog(JOptionPane.PLAIN_MESSAGE, JOptionPane.OK_CANCEL_OPTION, sc.g, "TC Name", "Please enter the TC name").toUpperCase();
-                if(user!=null){
-                    (new XMLBuilder(Repository.getSuite())).writeXMLFile(Repository.getUsersDirectory()+System.getProperty("file.separator")+user+".xml",false);
-                    Repository.window.mainpanel.p1.sc.g.setUser(Repository.getUsersDirectory()+System.getProperty("file.separator")+user+".xml");
-                    sc.g.printXML(sc.g.getUser(),false,false);
-                    sc.g.updateScroll();
-                    sc.g.repaint();
-                    Repository.emptySuites();}}});
+                addSuiteFile();}});
         filemenu.add(newuser);
         JMenuItem changeuser = new JMenuItem("Open suite file");
         changeuser.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
-                File usersdirectory = new File(Repository.getUsersDirectory());
-                String users[] = new String[usersdirectory.list().length];
-                System.arraycopy(usersdirectory.list(), 0, users, 0, usersdirectory.list().length);
-//                 String user = (String)JOptionPane.showInputDialog(null, "Select suite file", "Suite File", 1, null, users, "Suite File");
-                JComboBox combo = new JComboBox(users);
-                int resp = (Integer)CustomDialog.showDialog(combo,JOptionPane.INFORMATION_MESSAGE,JOptionPane.OK_CANCEL_OPTION,sc.g,"Select suite file",null);
-                if(resp==JOptionPane.OK_OPTION){
-                    String user = combo.getSelectedItem().toString();
-//                 if(user != null){
-                    Repository.emptySuites();
-                    Repository.window.mainpanel.p1.sc.g.setUser(Repository.getUsersDirectory()+Repository.getBar()+user);
-                    System.out.println("TEST: "+Repository.getUsersDirectory()+Repository.getBar()+user);
-                    Repository.window.mainpanel.p1.sc.g.parseXML(new File(Repository.getUsersDirectory()+Repository.getBar()+user));}
-                if(Repository.getSuiteNr() > 0){
-                    Repository.window.mainpanel.p1.sc.g.updateLocations(Repository.getSuita(0));}
-                Repository.window.mainpanel.p1.sc.g.repaint();}});
+                openSuiteFile();}});
         filemenu.add(changeuser);
         JMenuItem saveuser = new JMenuItem("Save suite file");
         saveuser.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent ev){
-                if(!sc.g.getUser().equals("")){
-                    if(sc.g.printXML(sc.g.getUser(), false,false))CustomDialog.showInfo(JOptionPane.PLAIN_MESSAGE, Repository.window, "Succes", "File successfully saved");
-//                     JOptionPane.showMessageDialog(Repository.window, "File successfully saved");
-                    else CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, Repository.window, "Warning", "Warning, file not saved");}}});
-//                     JOptionPane.showMessageDialog(Repository.window, "Warning, file not saved.");
+                saveSuiteFile();}});
         filemenu.add(saveuser);
         JMenuItem deleteuser = new JMenuItem("Delete suite file");
         deleteuser.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent ev){
-                int r = (Integer)CustomDialog.showDialog(new JLabel( "Delete file "+new File(sc.g.getUser()).getName()+" ?"), JOptionPane.QUESTION_MESSAGE, JOptionPane.OK_CANCEL_OPTION, sc.g, "Delete", null);
-//                 int r = JOptionPane.showConfirmDialog(null, "Delete file "+new File(sc.g.getUser()).getName()+" ?", "Delete", 0);
-                if(r == JOptionPane.OK_OPTION){
-                    Repository.emptySuites();
-                    try{new File(sc.g.getUser()).delete();
-                        try{Repository.c.cd(Repository.getRemoteUsersDirectory());
-                            Repository.c.rm(new File(sc.g.getUser()).getName());}
-                        catch(Exception e){
-                            System.out.println("Could not delete "+new File(sc.g.getUser()).getName()+" from "+Repository.getRemoteUsersDirectory());
-                            e.printStackTrace();}}
-                    catch(Exception e){e.printStackTrace();}
-                    File usersdirectory = new File(Repository.getUsersDirectory());
-                    String users[] = new String[usersdirectory.list().length + 1];
-                    System.arraycopy(usersdirectory.list(), 0, users, 0, usersdirectory.list().length);
-                    users[users.length - 1] = "New File";
-                    JComboBox combo = new JComboBox(users);
-//                     String user = (String)JOptionPane.showInputDialog(null, "Please select file name", "File Name", 1, null, users, "File Name");
-//                     if(user!=null){
-                    int resp = (Integer)CustomDialog.showDialog(combo,JOptionPane.INFORMATION_MESSAGE,JOptionPane.OK_CANCEL_OPTION,Panel1.this,"File Name",null);
-                    if(resp==JOptionPane.OK_OPTION){
-                        String user = combo.getSelectedItem().toString();
-                        if(user.equals("New File")){
-                            
-//                             user = JOptionPane.showInputDialog(null, "Please enter file name", "File Name", -1).toUpperCase();
-                            user = CustomDialog.showInputDialog(JOptionPane.QUESTION_MESSAGE, JOptionPane.OK_CANCEL_OPTION, Panel1.this, "File Name", "Please enter file name").toUpperCase();
-                            if(!user.equals("NULL")){
-                                Repository.emptySuites();
-                                (new XMLBuilder(Repository.getSuite())).writeXMLFile((new StringBuilder()).append(Repository.getUsersDirectory()).append(System.getProperty("file.separator")).append(user).append(".xml").toString(),false);
-                                sc.g.setUser((new StringBuilder()).append(Repository.getUsersDirectory()).append(System.getProperty("file.separator")).append(user).append(".xml").toString());
-                                sc.g.printXML(sc.g.getUser(),false,false);}}
-                        else if(user != null){
-                            sc.g.setUser((new StringBuilder()).append(Repository.getUsersDirectory()).append(System.getProperty("file.separator")).append(user).toString());
-                            sc.g.parseXML(new File((new StringBuilder()).append(Repository.getUsersDirectory()).append(System.getProperty("file.separator")).append(user).toString()));}}
-                    else Repository.window.mainpanel.p1.sc.g.setUser("");
-                    if(Repository.getSuiteNr() > 0)Repository.window.mainpanel.p1.sc.g.updateLocations(Repository.getSuita(0));
-                    Repository.window.mainpanel.p1.sc.g.repaint();
-                    Repository.window.mainpanel.p1.sc.g.repaint();}}});
+                deleteSuiteFile();}});
         filemenu.add(deleteuser);
         JMenuItem openlocalXML = new JMenuItem("Open from local");
         openlocalXML.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent ev){
-                JFileChooser chooser = new JFileChooser(); 
-                chooser.setFileFilter(new XMLFilter());
-                chooser.setCurrentDirectory(new java.io.File("."));
-                chooser.setDialogTitle("Select XML File"); 
-                if (chooser.showOpenDialog(Repository.window) == JFileChooser.APPROVE_OPTION) {                    
-                    Repository.emptySuites();
-                    sc.g.setUser(Repository.getUsersDirectory()+Repository.getBar()+chooser.getSelectedFile().getName());
-                    sc.g.parseXML(chooser.getSelectedFile());
-                    if(Repository.getSuiteNr() > 0)sc.g.updateLocations(Repository.getSuita(0));
-                    sc.g.repaint();}}});
+                openLocalFile();}});
         filemenu.add(openlocalXML);
         JMenuItem savelocalXML = new JMenuItem("Save to local");
         savelocalXML.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent ev){
-                if(!sc.g.getUser().equals("")){
-                    try{JFileChooser chooser = new JFileChooser(); 
-                        chooser.setApproveButtonText("Save");
-                        chooser.setCurrentDirectory(new java.io.File("."));
-                        chooser.setDialogTitle("Choose Location");         
-                        chooser.setAcceptAllFileFilterUsed(false);    
-                        if (chooser.showOpenDialog(Panel1.this) == JFileChooser.APPROVE_OPTION) {
-                            if(sc.g.printXML(chooser.getSelectedFile()+".xml", false,true)) CustomDialog.showInfo(JOptionPane.PLAIN_MESSAGE, Panel1.this, "Success","File successfully saved ");
-//                             JOptionPane.showMessageDialog(Repository.window, "File successfully saved ");
-                            else CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, Panel1.this, "Warning","Warning, file not saved.");}
-//                             JOptionPane.showMessageDialog(Repository.window, "Warning, file not saved.");}
-                        else {System.out.println("No Selection");}}
-                    catch(Exception e){
-                        CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, Panel1.this, "Warning","Warning, file not saved.");
-//                         JOptionPane.showMessageDialog(Repository.window, "Warning, file not saved.");
-                        System.out.println("There was a problem in writing xml file, make sure file it is not in use.");
-                        e.printStackTrace();}}}});
+                saveLocalXML();}});
         filemenu.add(savelocalXML);
         menu.add(filemenu);
         add(menu);
@@ -513,7 +232,309 @@ public class Panel1 extends JPanel{
         Repository.intro.addPercent(0.035);
         Repository.intro.repaint();}
         
-    public Item getItem(){
+    /*
+     * save opened suite file
+     * on server
+     */
+    private void saveSuiteFile(){
+        if(!sc.g.getUser().equals("")){
+            if(sc.g.printXML(sc.g.getUser(), false,false))CustomDialog.showInfo(JOptionPane.PLAIN_MESSAGE, Repository.window, "Succes", "File successfully saved");
+            else CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, Repository.window, "Warning", "Warning, file not saved");}}
+        
+    /*
+     * contract selected suite
+     */
+    private void contractSuite(){
+        final Item theone = getItem();
+        int nr = theone.getSubItemsNr();
+        for(int i=0;i<nr;i++){
+            theone.getSubItem(i).setVisible(false);}
+        sc.g.updateLocations(theone);
+        repaint();}
+        
+    /*
+     * remove selected suite
+     */
+    private void removeSuite(JMenu suitemenu){
+        if(sc.g.getSelectedCollection().size()>1){
+            sc.g.removeSelected();}
+        else{final Item theone = getItem();
+            if(theone.getPos().size()==1){
+                int index = theone.getPos().get(0).intValue();
+                Repository.getSuite().remove(theone);                    
+                if(Repository.getSuiteNr()>=index){
+                    for(int i= index;i<Repository.getSuiteNr();i++){
+                        Repository.getSuita(i).updatePos(0,new Integer(Repository.getSuita(i).getPos().get(0).intValue()-1));}
+                if(Repository.getSuiteNr()>0){
+                    Repository.getSuita(0).setLocation(new int[]{5,10});
+                    sc.g.updateLocations(Repository.getSuita(0));}
+                sc.g.repaint();
+                sc.g.getSelectedCollection().clear();}}
+            else{int index = theone.getPos().get(theone.getPos().size()-1).intValue();
+                int position = theone.getPos().size()-1;
+                ArrayList<Integer> temp = (ArrayList<Integer>)theone.getPos().clone();
+                temp.remove(temp.size()-1);
+                Item parent = sc.g.getItem(temp,false);
+                parent.getSubItems().remove(theone);                    
+                if(parent.getSubItemsNr()>=index){
+                    for(int i = index;i<parent.getSubItemsNr();i++){
+                        parent.getSubItem(i).updatePos(position,new Integer(parent.getSubItem(i).getPos().get(position).intValue()-1));}}
+                sc.g.updateLocations(parent);
+                sc.g.repaint();
+                sc.g.getSelectedCollection().clear();}
+            for(int j=0;j<suitemenu.getMenuComponentCount();j++){
+                suitemenu.getMenuComponent(j).setEnabled(false);}}}
+        
+    /*
+     * set parameters for
+     * selected TC
+     */
+    private void setParam(){        
+        ArrayList<Integer> temp = new ArrayList<Integer>();
+        int indexsize = sc.g.getSelectedCollection().get(0).length;
+        for(int j=0;j<indexsize;j++){temp.add(new Integer(sc.g.getSelectedCollection().get(0)[j]));}
+        sc.g.setParam(sc.g.getItem(temp,false));}
+        
+    /*
+     * set menu options
+     * based on selection
+     */
+    private void enableSuiteMenu(JMenu suitemenu){
+        for(int j=0;j<suitemenu.getMenuComponentCount();j++){
+            suitemenu.getMenuComponent(j).setEnabled(false);}
+        if(sc.g.getSelectedCollection().size()>1){
+            suitemenu.getMenuComponent(5).setEnabled(true);}
+        else{
+            if(sc.g.getSelectedCollection().size()==0){
+                suitemenu.getMenuComponent(0).setEnabled(true);}
+            if(sc.g.getSelectedCollection().size()==1){
+                ArrayList<Integer> temp = new ArrayList<Integer>();
+                int indexsize = sc.g.getSelectedCollection().get(0).length;
+                for(int j=0;j<indexsize;j++){temp.add(new Integer(sc.g.getSelectedCollection().get(0)[j]));}
+                final Item theone = sc.g.getItem(temp,false);
+                if(theone.getType()==2){
+                    for(int j=0;j<suitemenu.getMenuComponentCount();j++){
+                        suitemenu.getMenuComponent(j).setEnabled(true);}
+                    if(theone.getPos().size()>1){
+                        suitemenu.getMenuComponent(1).setEnabled(false);}}}}}
+        
+    /*
+     * add property to 
+     * selected TC
+     */    
+    private void addTCProperty(){
+        ArrayList<Integer> temp = new ArrayList<Integer>();
+        int indexsize = sc.g.getSelectedCollection().get(0).length;
+        for(int j=0;j<indexsize;j++){temp.add(new Integer(sc.g.getSelectedCollection().get(0)[j]));}
+        sc.g.addTCProp(sc.g.getItem(temp,false));}
+        
+    /*
+     * rename selected TC
+     */
+    private void renameTC(){
+        final Item theone = getItem();
+        String name = CustomDialog.showInputDialog(JOptionPane.PLAIN_MESSAGE, JOptionPane.OK_CANCEL_OPTION, sc.g, "TC Name", "Please enter the TC name").toUpperCase();
+        if(!name.equals("NULL")){
+            FontMetrics metrics = sc.g.getGraphics().getFontMetrics(new Font("TimesRoman", Font.BOLD, 13));
+            int width = metrics.stringWidth(name);
+            theone.setName(name);
+            theone.getRectangle().setSize(width+50,(int)theone.getRectangle().getHeight());
+            sc.g.updateLocations(theone);
+            sc.g.repaint();}}
+        
+    /*
+     * expand or contract
+     * selected item
+     */
+    private void expandContract(boolean expand){
+        final Item theone = getItem();
+        theone.setVisible(expand);
+        sc.g.updateLocations(theone);
+        sc.g.repaint();}
+        
+    /*
+     * rename selected suite
+     */
+    private void renameSuite(){
+        final Item theone = getItem();
+        String name = CustomDialog.showInputDialog(JOptionPane.PLAIN_MESSAGE, JOptionPane.OK_CANCEL_OPTION, sc.g, "Suite Name", "Please enter the suite name").toUpperCase();
+        if(!name.equals("NULL")){
+            FontMetrics metrics = sc.g.getGraphics().getFontMetrics(new Font("TimesRoman", Font.BOLD, 14));
+            int width = metrics.stringWidth(name)+140;
+            theone.setName(name);
+            theone.getRectangle().setSize(width,(int)theone.getRectangle().getHeight());
+            if(theone.isVisible())sc.g.updateLocations(theone);
+            sc.g.repaint();}}
+        
+    /*
+     * set Pre-requisite for selected item
+     */
+    private void setPrerequisite(){
+        ArrayList<Integer> temp = new ArrayList<Integer>();
+        int indexsize = sc.g.getSelectedCollection().get(0).length;
+        for(int j=0;j<indexsize;j++){temp.add(new Integer(sc.g.getSelectedCollection().get(0)[j]));}
+        Item theone = sc.g.getItem(temp,false);
+        sc.g.setPreRequisites(theone);}
+        
+    /*
+     * unset Pre-requisite for selected item
+     */
+    private void unsetPrerequisite(){
+        ArrayList<Integer> temp = new ArrayList<Integer>();
+        int indexsize = sc.g.getSelectedCollection().get(0).length;
+        for(int j=0;j<indexsize;j++){temp.add(new Integer(sc.g.getSelectedCollection().get(0)[j]));}
+        Item theone = sc.g.getItem(temp,false);
+        theone.setPrerequisite(false);
+        sc.g.repaint();}
+        
+    /*
+     * remove selected element
+     */
+    private void removeElement(){
+        if(sc.g.getSelectedCollection().size()>1){
+            sc.g.removeSelected();}
+        else{
+            ArrayList<Integer> temp = new ArrayList<Integer>();
+            int indexsize = sc.g.getSelectedCollection().get(0).length;
+            for(int j=0;j<indexsize;j++){temp.add(new Integer(sc.g.getSelectedCollection().get(0)[j]));}
+            final Item theone = sc.g.getItem(temp,false);
+            sc.g.removeTC(theone);
+            sc.g.getSelectedCollection().clear();}}
+        
+    /*
+     * interpret selection and enable 
+     * items based on selection
+     */
+    private void enableTCMenu(JMenu tcmenu){
+        for(int j=0;j<tcmenu.getMenuComponentCount();j++){
+            tcmenu.getMenuComponent(j).setEnabled(false);}
+        if(sc.g.getSelectedCollection().size()>1){//if more tc's are selected
+            tcmenu.getMenuComponent(5).setEnabled(true);}
+        else{
+            if(sc.g.getSelectedCollection().size()==1){//only one selected
+                ArrayList<Integer> temp = new ArrayList<Integer>();
+                int indexsize = sc.g.getSelectedCollection().get(0).length;
+                for(int j=0;j<indexsize;j++){temp.add(new Integer(sc.g.getSelectedCollection().get(0)[j]));}
+                final Item theone = sc.g.getItem(temp,false);
+                if(theone.getType()==1){
+                    for(int j=0;j<tcmenu.getMenuComponentCount();j++){
+                        tcmenu.getMenuComponent(j).setEnabled(true);}
+                    if(!theone.isPrerequisite()){
+                        tcmenu.getMenuComponent(7).setEnabled(false);}
+                    else tcmenu.getMenuComponent(6).setEnabled(false);}}}}
+       
+    /*
+     * generate master suites XML
+     */
+    private void generate(){
+        String result="";//server status
+        try{result = (String)Repository.getRPCClient().execute("getExecStatusAll",new Object[]{});}
+        catch(Exception e){System.out.println("Could not connect to server");}
+        int defsNr = suitaDetails.getDefsNr();
+        boolean execute=true;
+        for(int i=0;i<Repository.getSuiteNr();i++){
+//             if(Repository.getSuita(i).getUserDefNr()<defsNr){
+//                 CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, Repository.window, "Warning","Please set user defined fields for: "+Repository.getSuita(i).getName());
+//                 execute = false;
+//                 break;}
+            /*
+             * check if mandatory fields are set
+             */
+            for(int j=0;j<defsNr;j++){
+                if(Repository.getSuita(i).getUserDef(j)[1].length()==0&&Repository.getDatabaseUserFields().get(j)[Repository.MANDATORY].equals("true")){
+                    CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, Repository.window, "Warning","Please set user defined field at "+Repository.getDatabaseUserFields().get(j)[Repository.LABEL]+" for: "+Repository.getSuita(i).getName());
+                    execute = false;
+                    break;}}
+            if(!execute)break;}                
+        if(execute){
+            if(!result.equals("running")){//check if CE is running
+                sc.g.printXML(Repository.getTestXMLDirectory(),true,false);
+                Repository.emptyTestRepository();
+                File xml = new File(Repository.getTestXMLDirectory());    
+                int size = Repository.getLogs().size();
+                for(int i=5;i<size;i++){Repository.getLogs().remove(5);}
+                new XMLReader(xml).parseXML(sc.g.getGraphics(), true);
+                Repository.window.mainpanel.p2.updateTabs();
+                CustomDialog.showInfo(JOptionPane.PLAIN_MESSAGE, Repository.window, "Info", "File successfully generated ");}
+            else CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, Repository.window, "Warning", "Please close Central Engine before generating");}}
+        
+    /*
+     * delete curently opened file
+     * from local and server
+     */
+    private void deleteSuiteFile(){
+        int r = (Integer)CustomDialog.showDialog(new JLabel( "Delete file "+new File(sc.g.getUser()).getName()+" ?"), JOptionPane.QUESTION_MESSAGE, JOptionPane.OK_CANCEL_OPTION, sc.g, "Delete", null);
+        if(r == JOptionPane.OK_OPTION){
+            Repository.emptySuites();
+            try{new File(sc.g.getUser()).delete();
+                try{Repository.c.cd(Repository.getRemoteUsersDirectory());
+                    Repository.c.rm(new File(sc.g.getUser()).getName());}
+                catch(Exception e){
+                    System.out.println("Could not delete "+new File(sc.g.getUser()).getName()+" from "+Repository.getRemoteUsersDirectory());
+                    e.printStackTrace();}}
+            catch(Exception e){e.printStackTrace();}
+            File usersdirectory = new File(Repository.getUsersDirectory());
+            String users[] = new String[usersdirectory.list().length + 1];
+            System.arraycopy(usersdirectory.list(), 0, users, 0, usersdirectory.list().length);
+            users[users.length - 1] = "New File";
+            JComboBox combo = new JComboBox(users);
+            int resp = (Integer)CustomDialog.showDialog(combo,JOptionPane.INFORMATION_MESSAGE,JOptionPane.OK_CANCEL_OPTION,Panel1.this,"File Name",null);
+            if(resp==JOptionPane.OK_OPTION){
+                String user = combo.getSelectedItem().toString();
+                if(user.equals("New File")){
+                    user = CustomDialog.showInputDialog(JOptionPane.QUESTION_MESSAGE, JOptionPane.OK_CANCEL_OPTION, Panel1.this, "File Name", "Please enter file name").toUpperCase();
+                    if(!user.equals("NULL")){
+                        Repository.emptySuites();
+                        (new XMLBuilder(Repository.getSuite())).writeXMLFile((new StringBuilder()).append(Repository.getUsersDirectory()).append(System.getProperty("file.separator")).append(user).append(".xml").toString(),false);
+                        sc.g.setUser((new StringBuilder()).append(Repository.getUsersDirectory()).append(System.getProperty("file.separator")).append(user).append(".xml").toString());
+                        sc.g.printXML(sc.g.getUser(),false,false);}}
+                else if(user != null){
+                    sc.g.setUser((new StringBuilder()).append(Repository.getUsersDirectory()).append(System.getProperty("file.separator")).append(user).toString());
+                    sc.g.parseXML(new File((new StringBuilder()).append(Repository.getUsersDirectory()).append(System.getProperty("file.separator")).append(user).toString()));}}
+            else Repository.window.mainpanel.p1.sc.g.setUser("");
+            if(Repository.getSuiteNr() > 0)Repository.window.mainpanel.p1.sc.g.updateLocations(Repository.getSuita(0));
+            Repository.window.mainpanel.p1.sc.g.repaint();
+            Repository.window.mainpanel.p1.sc.g.repaint();}}
+        
+    /*
+     * open XML file from
+     * local PC
+     */    
+    private void openLocalFile(){
+        JFileChooser chooser = new JFileChooser(); 
+        chooser.setFileFilter(new XMLFilter());
+        chooser.setCurrentDirectory(new java.io.File("."));
+        chooser.setDialogTitle("Select XML File"); 
+        if (chooser.showOpenDialog(Repository.window) == JFileChooser.APPROVE_OPTION) {                    
+            Repository.emptySuites();
+            sc.g.setUser(Repository.getUsersDirectory()+Repository.getBar()+chooser.getSelectedFile().getName());
+            sc.g.parseXML(chooser.getSelectedFile());
+            if(Repository.getSuiteNr() > 0)sc.g.updateLocations(Repository.getSuita(0));
+            sc.g.repaint();}}
+        
+    /*
+     * save suite file on local PC
+     */    
+    private void saveLocalXML(){
+        if(!sc.g.getUser().equals("")){//if there is an opened file
+            try{JFileChooser chooser = new JFileChooser(); 
+                chooser.setApproveButtonText("Save");
+                chooser.setCurrentDirectory(new java.io.File("."));
+                chooser.setDialogTitle("Choose Location");         
+                chooser.setAcceptAllFileFilterUsed(false);    
+                if (chooser.showOpenDialog(Panel1.this) == JFileChooser.APPROVE_OPTION) {
+                    if(sc.g.printXML(chooser.getSelectedFile()+".xml", false,true)) CustomDialog.showInfo(JOptionPane.PLAIN_MESSAGE, Panel1.this, "Success","File successfully saved ");
+                    else CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, Panel1.this, "Warning","Warning, file not saved.");}
+                else {System.out.println("No Selection");}}
+            catch(Exception e){
+                CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, Panel1.this, "Warning","Warning, file not saved.");
+                System.out.println("There was a problem in writing xml file, make sure file it is not in use.");
+                e.printStackTrace();}}}
+      
+    /*
+     * get first item selected
+     */    
+    private Item getItem(){
         ArrayList<Integer> temp = new ArrayList<Integer>();
         int indexsize = sc.g.getSelectedCollection().get(0).length;
         for(int j=0;j<indexsize;j++){temp.add(new Integer(sc.g.getSelectedCollection().get(0)[j]));}
@@ -532,7 +553,73 @@ public class Panel1 extends JPanel{
             if(!generate.isEnabled()){
                 generate.setEnabled(status);
                 generate.setToolTipText("Generate XML");}}}
+    /*    
+     * add new suite file
+     */        
+    private void addSuiteFile(){
+        String user = CustomDialog.showInputDialog(JOptionPane.PLAIN_MESSAGE, JOptionPane.OK_CANCEL_OPTION, sc.g, "File Name", "Please file name").toUpperCase();
+        if(user!=null){
+            (new XMLBuilder(Repository.getSuite())).writeXMLFile(Repository.getUsersDirectory()+System.getProperty("file.separator")+user+".xml",false);
+            Repository.window.mainpanel.p1.sc.g.setUser(Repository.getUsersDirectory()+System.getProperty("file.separator")+user+".xml");
+            sc.g.printXML(sc.g.getUser(),false,false);
+            sc.g.updateScroll();
+            sc.g.repaint();
+            Repository.emptySuites();}}
     
+    /*
+     * open existing suite file
+     */
+    private void openSuiteFile(){
+        File usersdirectory = new File(Repository.getUsersDirectory());
+        String users[] = new String[usersdirectory.list().length];
+        System.arraycopy(usersdirectory.list(), 0, users, 0, usersdirectory.list().length);
+        JComboBox combo = new JComboBox(users);
+        int resp = (Integer)CustomDialog.showDialog(combo,JOptionPane.INFORMATION_MESSAGE,JOptionPane.OK_CANCEL_OPTION,sc.g,"Select suite file",null);
+        if(resp==JOptionPane.OK_OPTION){
+            String user = combo.getSelectedItem().toString();
+            Repository.emptySuites();
+            Repository.window.mainpanel.p1.sc.g.setUser(Repository.getUsersDirectory()+Repository.getBar()+user);
+            Repository.window.mainpanel.p1.sc.g.parseXML(new File(Repository.getUsersDirectory()+Repository.getBar()+user));}
+        if(Repository.getSuiteNr() > 0){
+            Repository.window.mainpanel.p1.sc.g.updateLocations(Repository.getSuita(0));}
+        Repository.window.mainpanel.p1.sc.g.repaint();}
+        
+    /*
+     * set EP for selected
+     * suite
+     */    
+    private void setEP(){
+        try{final Item theone = getItem();
+            /*
+             * get EP's from EP's file
+             */
+            File f = new File(Repository.temp+System.getProperty("file.separator")+"Twister"+System.getProperty("file.separator")+"EpID.txt");
+            String line = null;  
+            InputStream in = Repository.c.get(Repository.REMOTEEPIDDIR);
+            InputStreamReader inputStreamReader = new InputStreamReader(in);
+            BufferedReader bufferedReader = new BufferedReader(inputStreamReader);  
+            StringBuffer b=new StringBuffer("");
+            while ((line=bufferedReader.readLine())!= null){b.append(line+";");}                        
+            bufferedReader.close();
+            inputStreamReader.close();
+            in.close();
+            String result = b.toString();
+            String  [] vecresult = result.split(";");//EP's list
+            try{JComboBox combo = new JComboBox(vecresult);
+                int resp = (Integer)CustomDialog.showDialog(combo,JOptionPane.INFORMATION_MESSAGE,JOptionPane.OK_CANCEL_OPTION,sc.g,"Please select an Ep name",null);
+                if(resp==JOptionPane.OK_OPTION){
+                    String ID = combo.getSelectedItem().toString();
+                    theone.setEpId(ID);
+                    for(int i=0;i<theone.getSubItemsNr();i++){
+                        sc.g.assignEpID(theone.getSubItem(i),ID);}
+                    repaint();}}
+            catch(Exception e){e.printStackTrace();}}
+        catch(Exception e){e.printStackTrace();}}
+    
+    /*
+     * filename - the name of the file
+     * to display in UI for info
+     */    
     public void setOpenedfile(String filename){
         openedfile.setText("Suite file: "+filename);}}
         

@@ -54,6 +54,16 @@ import java.awt.Color;
 import javax.swing.BoxLayout;
 import javax.swing.JLabel;
 import java.awt.BorderLayout;
+import javax.swing.JComboBox;
+import javax.swing.JCheckBox;
+import java.awt.event.ItemListener;
+import java.awt.event.ItemEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.ActionEvent;
+import javax.swing.UIManager;
+import javax.swing.SwingUtilities;
+import java.awt.Dimension;
+import org.pushingpixels.substance.api.skin.SubstanceMistAquaLookAndFeel;
 
 /*
  * static class to hold
@@ -81,7 +91,9 @@ public class Repository{
     public static int ELEMENTSNR = 4;
     private static XmlRpcClient client;
     private static JsonObject inifile;//json structure of conf file saved localy
-    private static JsonObject editors;//editors saved by user localy
+    private static JsonObject editors, looks;//editors saved by user localy
+    private static String[] lookAndFeels;
+    private static Applet container;
     
     /*
      * repository initialization method
@@ -90,15 +102,25 @@ public class Repository{
      * container - applet or null
      */
     public static void initialize(final boolean applet,String host,Applet container){
+        Repository.container = container;
         /*
          * temp folder creation to hold
          * all the needed twister files localy
          */
-        try{File g = File.createTempFile("tmp","");
-            temp = g.getParent();
-            g.delete();
-            File g1 = new File(temp+bar+host);
-            g1.mkdir();
+        try{
+//             File g = File.createTempFile("tmp","");
+//             temp = g.getParent();
+//             g.delete();
+            temp = System.getProperty("user.home")+bar+".twister" ;
+            File g1 = new File(temp);
+            if(g1.mkdir()){
+                System.out.println(temp+" succesfuly created");}
+            else System.out.println(temp+" could not be created ");
+            g1 = new File(temp+bar+host);
+            if(g1.mkdir()){
+                System.out.println(temp+bar+host+" succesfuly created");}
+            else System.out.println(temp+bar+host+" could not be created ");
+            
             temp = g1.getCanonicalPath();}
         catch(Exception e){
             System.out.println("Could not retrieve Temp directory for this OS");
@@ -119,30 +141,39 @@ public class Repository{
             catch(Exception e){
                 System.out.println("Could not create "+System.getProperty("user.home")+bar+".twister");
                 e.printStackTrace();}}
+        /*
+         * twiste configuration file
+         */
         try{File twisterini = new File(twisterhome.getCanonicalPath()+bar+"twister.conf");
             TWISTERINI = twisterhome.getCanonicalPath()+bar+"twister.conf";
-            if(!twisterini.exists()){
+            if(!twisterini.exists()){// if it does not exist, create one from scratch
                 if(new File(twisterhome.getCanonicalPath()+bar+"twister.conf").createNewFile()){
+                    JsonObject root = new JsonObject();
                     JsonObject array =new JsonObject();
                     array.addProperty("Embedded", "embedded");
                     array.addProperty("DEFAULT", "Embedded");
-                    JsonObject editors = new JsonObject();
-                    editors.add("editors", array);
+                    JsonObject array2 =new JsonObject();
+                    array2.addProperty("NimbusLookAndFeel", "javax.swing.plaf.nimbus.NimbusLookAndFeel");
+                    array2.addProperty("MetalLookAndFeel", "javax.swing.plaf.metal.MetalLookAndFeel");
+                    array2.addProperty("MotifLookAndFeel", "com.sun.java.swing.plaf.motif.MotifLookAndFeel");
+                    array2.addProperty("WindowsLookAndFeel", "com.sun.java.swing.plaf.windows.WindowsLookAndFeel");
+                    array2.addProperty("DEFAULT", "MetalLookAndFeel");
+                    root.add("editors", array);
+                    root.add("looks", array2);
                     try{FileWriter writer = new FileWriter(TWISTERINI);
                         Gson gson = new GsonBuilder().setPrettyPrinting().create(); 
-                        writer.write(gson.toJson(editors));
-                        writer.close();
-                        parseIni(new File(TWISTERINI));}
+                        writer.write(gson.toJson(root));
+                        writer.close();}
                     catch(Exception e){
                         System.out.println("Could not write default JSon to twister.conf");
                         e.printStackTrace();}
                     System.out.println("twister.conf succesfuly created");}
                 else System.out.println("Could not create twister.conf");}
-            else{parseIni(twisterini);}}
+            parseIni(twisterini);}//parse configuration file
         catch(Exception e){e.printStackTrace();}
         Repository.host = host;
         System.out.println("Setting sftp server to :"+host);
-        intro = new IntroScreen();
+        intro = new IntroScreen();//display intro screen
         intro.setVisible(true);
         intro.setStatus("Started initialization");
         intro.repaint();
@@ -272,6 +303,29 @@ public class Repository{
                 run = false;
                 if(!applet)System.exit(0);}}
         catch(Exception e){e.printStackTrace();}}
+    
+    /*
+     * set UI Look based on
+     * user selection
+     */
+    public static void setUILook(final String look){
+        SwingUtilities.invokeLater(new Runnable(){
+            public void run(){
+                System.out.println("Setting UI: "+look);
+                try{
+                    UIManager.setLookAndFeel("org.pushingpixels.substance.api.skin.SubstanceMistAquaLookAndFeel");
+//                     UIManager.setLookAndFeel(Repository.getLooks().get(look).getAsString());
+                    if(applet){SwingUtilities.updateComponentTreeUI(container);
+//                         try {
+//                             JSObject object = JSObject.getWindow(window.container);
+//                 
+//                             object.eval("resize()");
+//                         } catch (Exception e) {
+//                             e.printStackTrace();
+//                         }
+                    }
+                    else{SwingUtilities.updateComponentTreeUI(window);}}
+                catch(Exception e){e.printStackTrace();}}});}
         
     /*
      * attempt to connect with sftp to server
@@ -279,18 +333,18 @@ public class Repository{
     public static boolean userpassword(){
         boolean passed = false;
         while(!passed){
-            try{
-//                 JTextField user1 = new JTextField();   
-//                 JPasswordField password1 = new JPasswordField();
-//                 Object[] message = new Object[] {"User: ", user1, "Password: ", password1};
-//                 int r = JOptionPane.showConfirmDialog(intro, message, "User&Password", JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE, new ImageIcon(Repository.getPasswordIcon()));
-                JTextField user1 = new JTextField();   
+            try{JTextField user1 = new JTextField();   
                 JPasswordField password1 = new JPasswordField();
-                JPanel p = getPasswordPanel(user1,password1);
+                JComboBox combo = new JComboBox();
+                try{populateLookAndFeels();
+                    int index = populateCombo(combo,lookAndFeels);
+                    if(index>-1)combo.setSelectedIndex(index);}
+                catch(Exception e){
+                    System.out.println("Error: No LooksAndFeels set");
+                    e.printStackTrace();}
+                JPanel p = getPasswordPanel(user1,password1,combo);
                 int resp = (Integer)CustomDialog.showDialog(p,JOptionPane.QUESTION_MESSAGE, JOptionPane.OK_CANCEL_OPTION, intro, "User & Password",new ImageIcon(Repository.getPasswordIcon()));
                 if(resp == JOptionPane.OK_OPTION){
-//                 }
-//                 if(r == JOptionPane.OK_OPTION){
                     System.out.println("Attempting to connect to: "+host+" with user: "+user1.getText()+" and password: "+password1.getPassword());
                     JSch jsch = new JSch();
                     user = user1.getText();
@@ -307,7 +361,8 @@ public class Repository{
                     try{USERHOME = c.pwd();}
                     catch(Exception e){System.out.println("ERROR: Could not retrieve remote user home directory");}
                     REMOTECONFIGDIRECTORY = USERHOME+"/twister/config/";
-                    passed = true;}
+                    passed = true;
+                    setUILook(combo.getSelectedItem().toString());}
                 else return false;}
             catch(JSchException ex){
                 if(ex.toString().indexOf("Auth fail")!=-1)System.out.println("wrong user and/or password");
@@ -493,7 +548,6 @@ public class Repository{
             String name = null;
             try{c.cd(USERHOME+"/twister/config/");}
             catch(Exception e){System.out.println("Could not get :"+USERHOME+"/twister/config/");
-            //JOptionPane.showMessageDialog(Repository.window, "Could not get :"+USERHOME+"/twister/config/");
             CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,Repository.window, "Warning", "Could not get :"+USERHOME+"/twister/config/");
             if(Window.deleteTemp(new File(Repository.temp+bar+"Twister")))System.out.println(Repository.temp+bar+"Twister deleted successfull");
             else System.out.println("Could not delete: "+Repository.temp+bar+"Twister");
@@ -503,9 +557,7 @@ public class Repository{
             try{System.out.println("fwmconfig.xml size on sftp: "+c.lstat("fwmconfig.xml").getSize()+" bytes");
                 in = c.get("fwmconfig.xml");}
             catch(Exception e){
-
                 CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, Repository.window, "Warning","Could not get fwmconfig.xml from "+c.pwd()+" creating a blank one.");
-//                 JOptionPane.showMessageDialog(Repository.window, "Could not get fwmconfig.xml from "+c.pwd()+" creating a blank one.");
                 System.out.println("Could not get fwmconfig.xml from "+c.pwd()+" creating a blank one.");
                 ConfigFiles.saveXML(true);
                 in = c.get("fwmconfig.xml");}
@@ -678,6 +730,7 @@ public class Repository{
             JsonElement jelement = new JsonParser().parse(line);
             inifile = jelement.getAsJsonObject();
             editors = inifile.getAsJsonObject("editors");
+            looks = inifile.getAsJsonObject("looks");
             System.out.println("Editors: "+editors.toString());}
         catch(Exception e){
             System.out.print("Could not parse ini file: ");
@@ -818,20 +871,59 @@ public class Repository{
      */
     public static String getTestXMLDirectory(){
         return XMLDIRECTORY;}
-     
+        
+     /*
+      * declare posible looksAndFeel
+      */
+    private static void populateLookAndFeels(){
+        JsonObject looks = Repository.getLooks();
+        int length = looks.entrySet().size();
+        Iterator iter = looks.entrySet().iterator();
+        Entry entry;
+        String [] vecresult;
+        if(looks.get("DEFAULT")!=null)lookAndFeels = new String[length-1];
+        else lookAndFeels = new String[length];
+        int index = 0;
+        for(int i=0;i<length;i++){                        
+            entry = (Entry)iter.next();
+            if(entry.getKey().toString().equals("DEFAULT"))continue;
+            lookAndFeels[index] = ((JsonPrimitive)entry.getValue()).getAsString();
+            index++;}}
+        
+     /*
+      *populate lookandfeel cobo
+      *with looks and feels that are
+      *available
+      */
+    private static int populateCombo(JComboBox combo,String[]list){
+        int index = -1;
+        String [] name;
+        for(int i=0;i<list.length;i++){
+            try{Class.forName(list[i]);
+                name = list[i].split("\\.");
+                combo.addItem(name[name.length-1]);
+                if(Repository.getDefaultLook().equals(name[name.length-1])){
+                    index = i;}}
+            catch(Exception e){continue;}}
+        return index;}
         
     /*
      * panel displayed on
      * twister startup for user and password
      * input
      */    
-    public static JPanel getPasswordPanel(JTextField jTextField1,JPasswordField jTextField2){
+    public static JPanel getPasswordPanel(JTextField jTextField1,JPasswordField jTextField2,final JComboBox combo){
+        final JCheckBox check = new JCheckBox("Default");
+        check.setSelected(true);
         JPanel p = new JPanel();
         p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
         JPanel jPanel1 = new JPanel();
         JLabel jLabel3 = new JLabel();
         JPanel jPanel2 = new JPanel();
         JLabel jLabel4 = new JLabel();
+        JPanel jPanel5 = new JPanel();
+        jPanel5.add(combo);
+        jPanel5.add(check);
         jPanel1.setLayout(new java.awt.BorderLayout());
         jLabel3.setText("User: ");
         jPanel1.add(jLabel3, BorderLayout.CENTER);
@@ -842,6 +934,19 @@ public class Repository{
         jPanel2.add(jLabel4, BorderLayout.CENTER);
         p.add(jPanel2);
         p.add(jTextField2);
+        p.add(jPanel5);
+        
+        combo.addItemListener(new ItemListener(){
+            public void itemStateChanged(ItemEvent evt){
+                if(evt.getStateChange() == ItemEvent.SELECTED){
+                    if(Repository.getDefaultLook().equals(evt.getItem().toString())) check.setSelected(true);
+                    else check.setSelected(false);}}});
+        
+        check.addActionListener(new ActionListener(){
+            public void actionPerformed(ActionEvent ev){
+                if(check.isSelected())Repository.setDefaultLook(combo.getSelectedItem().toString());
+                else Repository.setDefaultLook("MetalLookAndFeel");}});
+        
         return p;}
         
     /*
@@ -897,6 +1002,37 @@ public class Repository{
         
     public static Image getPasswordIcon(){
         return passwordicon;}
+        
+    /*
+     * looks saved in conf file
+     */
+    public static JsonObject getLooks(){
+        return looks;}
+        
+        
+    /*
+     * default look name
+     * saved in json list
+     * 
+     */ 
+    public static String getDefaultLook(){
+        return getLooks().get("DEFAULT").getAsJsonPrimitive().getAsString();}
+        
+    /*
+     * write default look
+     * in json list and in local conf     * 
+     */
+    public static void setDefaultLook(String look){
+        addLook(new String[]{"DEFAULT",look});
+        writeJSon();}
+        
+    /*
+     * add user defined look to list
+     * of looks
+     */
+    public static void addLook(String [] look){
+        getLooks().add(look[0],new JsonPrimitive(look[1]));
+        writeJSon();}
         
     /*
      * editors saved in conf file

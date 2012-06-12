@@ -79,64 +79,10 @@ public class Grafic extends JPanel{
         DropTarget dropTarget = new DropTarget(this, tdtl);
         new Thread(){
             public void run(){
-                while(Repository.run){
-                    if(scrolldown){
-                        int scrollvalue = Repository.window.mainpanel.p1.sc.pane.getVerticalScrollBar().getValue();
-                        Repository.window.mainpanel.p1.sc.pane.getVerticalScrollBar().setValue(scrollvalue-10);}
-                    else if(scrollup){
-                        int scrollvalue = Repository.window.mainpanel.p1.sc.pane.getVerticalScrollBar().getValue();
-                        Repository.window.mainpanel.p1.sc.pane.getVerticalScrollBar().setValue(scrollvalue+10);}
-                    try{Thread.sleep(60);}
-                    catch(Exception e){e.printStackTrace();}}}}.start();
+                automaticScroll();}}.start();
         addMouseMotionListener(new MouseMotionAdapter(){
             public void mouseDragged(MouseEvent ev){
-                if((ev.getModifiers() & InputEvent.BUTTON1_MASK) != 0){
-                    if(dragging){handleDraggingLine(ev.getX(),ev.getY());}
-                    else{//first time
-                        if(dragammount==0){
-                            xStart = ev.getX();
-                            yStart = ev.getY();}
-                        if(dragammount<3)dragammount++;
-                        else{dragammount=0;
-                            getClickedItem(xStart,yStart);
-                            if(selected.size()>0){
-                                if(!(selectedcollection.size()<2&&getItem(selected,false).isPrerequisite())){//must not be prerequisite
-                                    if(getItem(selected,false).getType()!=0){
-                                        setCursor(DragSource.DefaultCopyDrop);
-                                        if(!getItem(selected,false).isSelected()){
-                                            deselectAll();
-                                            int [] temporary = new int[selected.size()];
-                                            for(int m=0;m<temporary.length;m++)temporary[m]=selected.get(m).intValue();
-                                            selectedcollection.add(temporary);}
-                                        ArrayList <Integer> temp = new ArrayList <Integer>();
-                                        for(int i=selectedcollection.size()-1;i>=0;i--){
-                                            for(int j=0;j<selectedcollection.get(i).length;j++){temp.add(new Integer(selectedcollection.get(i)[j]));}
-                                            Item theone2 = getItem(temp,false).clone();  
-                                            if(theone2.getType()==0||theone2.isPrerequisite()){
-                                                getItem(temp,false).select(false);
-                                                selectedcollection.remove(i);
-                                                temp.clear();
-                                                continue;}
-                                            clone.add(theone2);
-                                            temp.clear();}                                
-                                        removeSelected();
-                                        dragging = true;}
-                                    ArrayList<Item> unnecessary = new ArrayList<Item>();                        
-                                    for(int i=0;i<clone.size();i++){
-                                        Item one = clone.get(i);
-                                        ArrayList<Integer>pos = (ArrayList<Integer>)one.getPos().clone();
-                                        while(pos.size()>1){
-                                            pos.remove(pos.size()-1);
-                                            boolean found = false;
-                                            for(int j=0;j<clone.size();j++){
-                                                Item one2 = clone.get(j);
-                                                ArrayList<Integer>pos2 = (ArrayList<Integer>)one2.getPos().clone();
-                                                if(compareArrays(pos,pos2)){
-                                                    unnecessary.add(clone.get(i));
-                                                    found = true;
-                                                    break;}}
-                                            if(found)break;}}
-                                    for(int i=0;i<unnecessary.size();i++){clone.remove(unnecessary.get(i));}}}}}}}});
+                mouseIsDragged(ev);}});
         addMouseListener(new MouseAdapter(){
             public void mousePressed(MouseEvent ev){}
             public void mouseEntered(MouseEvent ev){
@@ -150,87 +96,187 @@ public class Grafic extends JPanel{
                 dragscroll = false;
                 keypress = 0;}
             public void mouseReleased(MouseEvent ev){
-                clearDraggingLine();
-                scrolldown = false;
-                scrollup = false; 
-                Repository.window.mainpanel.p1.suitaDetails.clearDefs();
-                Repository.window.mainpanel.p1.suitaDetails.setParent(null);
-                dragammount=0;
-                if(dragging){handleMouseDroped(ev.getY());}
-                else handleClick(ev);}});
+                mouseIsReleased(ev);}});
         addKeyListener(new KeyListener(){
             public void keyPressed(KeyEvent ev){
                 if(ev.getKeyCode()==KeyEvent.VK_SHIFT){keypress=1;}
                 if(ev.getKeyCode()==KeyEvent.VK_CONTROL){keypress=2;}
                 if(ev.getKeyCode()==KeyEvent.VK_DELETE){removeSelected();}
-                if(ev.getKeyCode()==KeyEvent.VK_UP){
-                    ArrayList <Integer> temp = new ArrayList <Integer>();  
-                    int last = selectedcollection.size()-1;
-                    for(int j=0;j<selectedcollection.get(last).length;j++){temp.add(new Integer(selectedcollection.get(last)[j]));}
-                    Item next = prevInLine(getItem(temp,false));
-                    if(next!=null&&keypress!=2){
-                        if(keypress!=1){
-                            deselectAll();
-                            selectItem(next.getPos());
-                            if(next.getType()==2&&next.getPos().size()==1){
-                                int userDefNr = next.getUserDefNr();
-                                Repository.window.mainpanel.p1.suitaDetails.setParent(next);
-                                if(userDefNr!=Repository.window.mainpanel.p1.suitaDetails.getDefsNr())System.out.println("Warning, suite "+next.getName()+" has "+userDefNr+" fields while in bd.xml are defined "+Repository.window.mainpanel.p1.suitaDetails.getDefsNr()+" fields");
-                                try{for(int i=0;i<userDefNr;i++){Repository.window.mainpanel.p1.suitaDetails.getDefPanel(i).setDecription(next.getUserDef(i)[1]);}}
-                                catch(Exception e){e.printStackTrace();}}
-                            else{
-                                Repository.window.mainpanel.p1.suitaDetails.clearDefs();
-                                Repository.window.mainpanel.p1.suitaDetails.setParent(null);}}
-                        else{
-                            if(!clearedSelection){
-                                deselectAll();
-                                clearedSelection = true;
-                                selectItem(getItem(temp,false).getPos());}
-                            if(next.isSelected()){                            
-                                int [] itemselected = selectedcollection.get(selectedcollection.size()-1);
-                                Item theone = Repository.getSuita(itemselected[0]);
-                                for(int j=1;j<itemselected.length;j++){theone = theone.getSubItem(itemselected[j]);}
-                                theone.select(false);
-                                selectedcollection.remove(selectedcollection.size()-1);}
-                            else selectItem(next.getPos());}
-                        repaint();}}
-                if(ev.getKeyCode()==KeyEvent.VK_DOWN){
-                    ArrayList <Integer> temp = new ArrayList <Integer>();  
-                    int last = selectedcollection.size()-1;
-                    for(int j=0;j<selectedcollection.get(last).length;j++){temp.add(new Integer(selectedcollection.get(last)[j]));}
-                    Item next = nextInLine(getItem(temp,false));
-                    if(next!=null&&keypress!=2){
-                        if(keypress!=1){
-                            deselectAll();
-                            selectItem(next.getPos());
-                            if(next.getType()==2&&next.getPos().size()==1){
-                                int userDefNr = next.getUserDefNr();
-                                Repository.window.mainpanel.p1.suitaDetails.setParent(next);
-                                if(userDefNr!=Repository.window.mainpanel.p1.suitaDetails.getDefsNr())System.out.println("Warning, suite "+next.getName()+" has "+userDefNr+" fields while in bd.xml are defined "+Repository.window.mainpanel.p1.suitaDetails.getDefsNr()+" fields");
-                                try{for(int i=0;i<userDefNr;i++){Repository.window.mainpanel.p1.suitaDetails.getDefPanel(i).setDecription(next.getUserDef(i)[1]);}}
-                                catch(Exception e){e.printStackTrace();}}
-                            else{
-                                Repository.window.mainpanel.p1.suitaDetails.clearDefs();
-                                Repository.window.mainpanel.p1.suitaDetails.setParent(null);}}
-                        else{
-                            if(!clearedSelection){
-                                deselectAll();
-                                clearedSelection = true;
-                                selectItem(getItem(temp,false).getPos());}
-                            if(next.isSelected()){                            
-                                int [] itemselected = selectedcollection.get(selectedcollection.size()-1);
-                                Item theone = Repository.getSuita(itemselected[0]);
-                                for(int j=1;j<itemselected.length;j++){theone = theone.getSubItem(itemselected[j]);}
-                                theone.select(false);
-                                selectedcollection.remove(selectedcollection.size()-1);}
-                            else selectItem(next.getPos());}
-                        repaint();}}}
+                if(ev.getKeyCode()==KeyEvent.VK_UP){keyUpPressed();}
+                if(ev.getKeyCode()==KeyEvent.VK_DOWN){keyDownPressed();}}
             public void keyReleased(KeyEvent ev){
                 if(ev.getKeyCode()!=KeyEvent.VK_UP&&ev.getKeyCode()!=KeyEvent.VK_DOWN){
                     if(ev.getKeyCode()!=KeyEvent.VK_SHIFT)clearedSelection=false;
                     keypress=0;}}
             public void keyTyped(KeyEvent ev){}});}
+       
+    /*
+     * handle up down press
+     */
+    public void keyDownPressed(){
+        ArrayList <Integer> temp = new ArrayList <Integer>();  
+        int last = selectedcollection.size()-1;
+        for(int j=0;j<selectedcollection.get(last).length;j++){temp.add(new Integer(selectedcollection.get(last)[j]));}
+        Item next = nextInLine(getItem(temp,false));
+        if(next!=null&&keypress!=2){
+            if(keypress!=1){
+                deselectAll();
+                selectItem(next.getPos());
+                if(next.getType()==2&&next.getPos().size()==1){
+                    int userDefNr = next.getUserDefNr();
+                    Repository.window.mainpanel.p1.suitaDetails.setParent(next);
+                    if(userDefNr!=Repository.window.mainpanel.p1.suitaDetails.getDefsNr()){
+                        System.out.println("Warning, suite "+next.getName()+" has "+userDefNr+" fields while in bd.xml are defined "+Repository.window.mainpanel.p1.suitaDetails.getDefsNr()+" fields");}
+                    try{for(int i=0;i<userDefNr;i++){
+                        Repository.window.mainpanel.p1.suitaDetails.getDefPanel(i).setDecription(next.getUserDef(i)[1]);}}
+                    catch(Exception e){e.printStackTrace();}}
+                else{
+                    Repository.window.mainpanel.p1.suitaDetails.clearDefs();
+                    Repository.window.mainpanel.p1.suitaDetails.setParent(null);}}
+            else{
+                if(!clearedSelection){
+                    deselectAll();
+                    clearedSelection = true;
+                    selectItem(getItem(temp,false).getPos());}
+                if(next.isSelected()){                            
+                    int [] itemselected = selectedcollection.get(selectedcollection.size()-1);
+                    Item theone = Repository.getSuita(itemselected[0]);
+                    for(int j=1;j<itemselected.length;j++){theone = theone.getSubItem(itemselected[j]);}
+                    theone.select(false);
+                    selectedcollection.remove(selectedcollection.size()-1);}
+                else selectItem(next.getPos());}
+            repaint();}}
+          
+    /*
+     * handle up key press
+     */
+    public void keyUpPressed(){
+        ArrayList <Integer> temp = new ArrayList <Integer>();  
+        int last = selectedcollection.size()-1;
+        for(int j=0;j<selectedcollection.get(last).length;j++){temp.add(new Integer(selectedcollection.get(last)[j]));}
+        Item next = prevInLine(getItem(temp,false));
+        if(next!=null&&keypress!=2){
+            if(keypress!=1){
+                deselectAll();
+                selectItem(next.getPos());
+                if(next.getType()==2&&next.getPos().size()==1){
+                    int userDefNr = next.getUserDefNr();
+                    Repository.window.mainpanel.p1.suitaDetails.setParent(next);
+                    if(userDefNr!=Repository.window.mainpanel.p1.suitaDetails.getDefsNr()){
+                        System.out.println("Warning, suite "+next.getName()+" has "+userDefNr+" fields while in bd.xml are defined "+Repository.window.mainpanel.p1.suitaDetails.getDefsNr()+" fields");}
+                    try{for(int i=0;i<userDefNr;i++){
+                            Repository.window.mainpanel.p1.suitaDetails.getDefPanel(i).setDecription(next.getUserDef(i)[1]);}}
+                    catch(Exception e){e.printStackTrace();}}
+                else{
+                    Repository.window.mainpanel.p1.suitaDetails.clearDefs();
+                    Repository.window.mainpanel.p1.suitaDetails.setParent(null);}}
+            else{
+                if(!clearedSelection){
+                    deselectAll();
+                    clearedSelection = true;
+                    selectItem(getItem(temp,false).getPos());}
+                if(next.isSelected()){                            
+                    int [] itemselected = selectedcollection.get(selectedcollection.size()-1);
+                    Item theone = Repository.getSuita(itemselected[0]);
+                    for(int j=1;j<itemselected.length;j++){theone = theone.getSubItem(itemselected[j]);}
+                    theone.select(false);
+                    selectedcollection.remove(selectedcollection.size()-1);}
+                else selectItem(next.getPos());}
+            repaint();}}
             
+    /*
+     * handles mouse released
+     */
+    public void mouseIsReleased(MouseEvent ev){
+        clearDraggingLine();
+        scrolldown = false;
+        scrollup = false; 
+        Repository.window.mainpanel.p1.suitaDetails.clearDefs();
+        Repository.window.mainpanel.p1.suitaDetails.setParent(null);
+        dragammount=0;
+        if(dragging){handleMouseDroped(ev.getY());}
+        else handleClick(ev);}
+            
+    /*
+     * handles mouse dragged
+     */     
+    public void mouseIsDragged(MouseEvent ev){
+        if((ev.getModifiers() & InputEvent.BUTTON1_MASK) != 0){
+            if(dragging){handleDraggingLine(ev.getX(),ev.getY());}
+            else{//first time
+                if(dragammount==0){
+                    xStart = ev.getX();
+                    yStart = ev.getY();}
+                if(dragammount<3)dragammount++;
+                else{dragammount=0;
+                    getClickedItem(xStart,yStart);
+                    if(selected.size()>0){
+                        if(!(selectedcollection.size()<2&&
+                        getItem(selected,false).isPrerequisite())){//must not be prerequisite
+                            handleDraggedItems();}}}}}}
+                            
+    /*
+     * Dragged items method
+     * handles dragged items
+     * and puts them in a clone array
+     */                      
+    public void handleDraggedItems(){
+        if(getItem(selected,false).getType()!=0){
+            setCursor(DragSource.DefaultCopyDrop);
+            if(!getItem(selected,false).isSelected()){
+                deselectAll();
+                int [] temporary = new int[selected.size()];
+                for(int m=0;m<temporary.length;m++){
+                    temporary[m]=selected.get(m).intValue();}
+                selectedcollection.add(temporary);}
+            ArrayList <Integer> temp = new ArrayList <Integer>();
+            for(int i=selectedcollection.size()-1;i>=0;i--){
+                for(int j=0;j<selectedcollection.get(i).length;j++){
+                    temp.add(new Integer(selectedcollection.get(i)[j]));}
+                Item theone2 = getItem(temp,false).clone();  
+                if(theone2.getType()==0||theone2.isPrerequisite()){
+                    getItem(temp,false).select(false);
+                    selectedcollection.remove(i);
+                    temp.clear();
+                    continue;}
+                clone.add(theone2);
+                temp.clear();}                                
+            removeSelected();
+            dragging = true;}
+        ArrayList<Item> unnecessary = new ArrayList<Item>();                        
+        for(int i=0;i<clone.size();i++){
+            Item one = clone.get(i);
+            ArrayList<Integer>pos = (ArrayList<Integer>)one.getPos().clone();
+            while(pos.size()>1){
+                pos.remove(pos.size()-1);
+                boolean found = false;
+                for(int j=0;j<clone.size();j++){
+                    Item one2 = clone.get(j);
+                    ArrayList<Integer>pos2 = (ArrayList<Integer>)one2.getPos().clone();
+                    if(compareArrays(pos,pos2)){
+                        unnecessary.add(clone.get(i));
+                        found = true;
+                        break;}}
+                if(found)break;}}
+        for(int i=0;i<unnecessary.size();i++){clone.remove(unnecessary.get(i));}}
+            
+    /*
+     * handle automatic scrolling
+     */
+    public void automaticScroll(){
+        while(Repository.run){
+            if(scrolldown){
+                int scrollvalue = Repository.window.mainpanel.p1.sc.pane.getVerticalScrollBar().getValue();
+                Repository.window.mainpanel.p1.sc.pane.getVerticalScrollBar().setValue(scrollvalue-10);}
+            else if(scrollup){
+                int scrollvalue = Repository.window.mainpanel.p1.sc.pane.getVerticalScrollBar().getValue();
+                Repository.window.mainpanel.p1.sc.pane.getVerticalScrollBar().setValue(scrollvalue+10);}
+            try{Thread.sleep(60);}
+            catch(Exception e){e.printStackTrace();}}}
+    
+    /*
+     * clears draggin line from screen
+     */
     public void clearDraggingLine(){
         line[0] = -1;
         line[1] = line[0];
@@ -371,12 +417,20 @@ public class Grafic extends JPanel{
                 Item parent = getItem(temp,false);
                 if(parent.getType()==1)dropOnFirstLevel(upper);//parintele e de tipul tc>e pe nivelul 0
                 else dropNextInLine(upper, parent, index, position);}}}
-            
+       
+    /*
+     * checks if y is in the upper half
+     * of item
+     */
     public boolean isUpperHalf(Item item, int Y){
         int middle = item.getLocation()[1]+(int)item.getRectangle().getHeight()/2;
         if(Y<=middle)return true;
         return false;}
-            
+      
+    /*
+     * drops elements from clone 
+     * as first lements in tree
+     */
     public void dropFirstElement(){
         int temp1 = 0;
         y=10;
@@ -394,7 +448,11 @@ public class Grafic extends JPanel{
         clone.clear();
         updateLocations(Repository.getSuita(0));
         repaint();}
-            
+       
+    /*
+     * drops elements from clone 
+     * at first level under upper
+     */
     public void dropOnFirstLevel(Item upper){
         int position = upper.getPos().size();                                
         int temp1 = upper.getPos().get(position-1);                                    
@@ -412,6 +470,10 @@ public class Grafic extends JPanel{
         updateLocations(Repository.getSuita(0));
         repaint();}
         
+    /*
+     * drops elements from clone 
+     * next in line after upper
+     */    
     public void dropNextInLine(Item upper,Item parent,int index,int position){
         int temp1 = index+1;
         String ep = parent.getEpId();
@@ -426,7 +488,11 @@ public class Grafic extends JPanel{
             insertNewTC(clone.get(i).getName(),selected2,parent,clone.get(i));}    
         deselectAll();
         clone.clear();}
-        
+     
+    /*
+     * drops elements from clone 
+     * previous in line before upper
+     */
     public void dropPreviousInLine(Item upper, Item parent, int index, int position){
         int temp1 = index;  //valoare ultimei pozitie al tc
         ArrayList<Integer> selected2 = (ArrayList<Integer>)upper.getPos().clone();
@@ -443,6 +509,10 @@ public class Grafic extends JPanel{
         deselectAll();
         clone.clear();}
         
+    /*
+     * drops elements from clone 
+     * on upper level from upper
+     */
     public void dropOnUpperLevel(Item upper){
         int index = upper.getPos().get(upper.getPos().size()-1).intValue();
         int position = upper.getPos().size()-1;
@@ -463,6 +533,10 @@ public class Grafic extends JPanel{
         deselectAll();
         clone.clear();}
         
+    /*
+     * drops elements from clone 
+     * first in suite upper
+     */
     public void dropFirstInSuita(Item upper){
         int position = upper.getPos().size();
         Item parent = upper;
@@ -479,7 +553,11 @@ public class Grafic extends JPanel{
            if(clone.get(i).getType()==2)clone.get(i).setEpId(ep);}
         deselectAll();
         clone.clear();}
-            
+     
+    /*
+     * positions dragging line
+     * inside suite
+     */
     public void lineInsideSuita(Item item, int X){
         line[0] = (int)(item.getRectangle().x+item.getRectangle().getWidth()/2-55);
         line[1] = (int)(item.getRectangle().y+item.getRectangle().getHeight()+5);
@@ -487,13 +565,21 @@ public class Grafic extends JPanel{
         line[3] = line[1];
         line[4] = (int)(item.getRectangle().y+item.getRectangle().getHeight()+5);}
         
+    /*
+     * positions dragging line
+     * on suite
+     */
     public void lineOnSuita(Item item, int X){
         line[0] = (int)(item.getRectangle().x+item.getRectangle().getWidth()-40);
         line[1] = (int)(item.getRectangle().y+item.getRectangle().getHeight()/2);
         line[2] = X;
         line[3] = line[1];
         line[4] = line[3];}
-        
+      
+    /*
+     * positions dragging line
+     * under suite
+     */
     public void lineUnderSuita(Item item,int X){
         line[0] = (int)(item.getRectangle().x-25);
         line[1] = (int)(item.getRectangle().y+item.getRectangle().getHeight()+5);
@@ -502,13 +588,21 @@ public class Grafic extends JPanel{
         if(item.getFirstSuitaParent(false)!=null)line[4] = (int)(item.getFirstSuitaParent(false).getRectangle().y+item.getFirstSuitaParent(false).getRectangle().getHeight()+5);
         else line[4] = line[2];}
         
+    /*
+     * positions dragging line
+     * above tc
+     */
     public void lineAboveTc(Item item, int X){
         line[0] = (int)(item.getRectangle().x-25);
         line[1] = (int)(item.getRectangle().y-5);
         line[2] = X;
         line[3] = line[1];
         line[4] = line[1];}
-        
+     
+    /*
+     * positions dragging line
+     * under item
+     */    
     public void lineUnderItem(Item item, int X){
         line[0] = (int)(item.getRectangle().x-25);
         line[2] = X;
@@ -516,7 +610,11 @@ public class Grafic extends JPanel{
         else{line[1] = (int)(item.getRectangle().y+item.getRectangle().getHeight()+5);}
         line[3] = line[1];
         line[4] = (int)(item.getRectangle().y+item.getRectangle().getHeight()/2);}
-        
+     
+    /*
+     * positions dragging line
+     * after upper parent
+     */
     public void lineAfterUpperParent(Item item, int X){
         line[0] = (int)(item.getFirstSuitaParent(false).getRectangle().x-25);
         line[2] = X;
@@ -525,6 +623,10 @@ public class Grafic extends JPanel{
         line[3] = line[1];
         line[4] = (int)(item.getFirstSuitaParent(false).getRectangle().y+item.getFirstSuitaParent(false).getRectangle().getHeight()/2);}
         
+    /*
+     * positions dragging line
+     * after suite parent
+     */    
     public void lineAfterSuitaParent(Item item, int X){
         line[0] = (int)(item.getTcParent(false).getFirstSuitaParent(false).getRectangle().x-25);
         line[2] = X;
@@ -532,13 +634,21 @@ public class Grafic extends JPanel{
         line[3] = line[1];
         line[4] = (int)(item.getFirstSuitaParent(false).getRectangle().y+item.getFirstSuitaParent(false).getRectangle().getHeight()/2);}
         
+    /*
+     * positions dragging line
+     * after tc parent
+     */    
     public void lineAfterTcParent(Item item, int X){
         line[0] = (int)(item.getTcParent(false).getRectangle().x-25);
         line[1] = (int)(item.getTcParent(false).getSubItem(item.getTcParent(false).getSubItemsNr()-1).getRectangle().y+item.getTcParent(false).getSubItem(item.getTcParent(false).getSubItemsNr()-1).getRectangle().getHeight()+5);
         line[2] = X;
         line[3] = line[1];
         line[4] = (int)(item.getTcParent(false).getRectangle().y+item.getTcParent(false).getRectangle().getHeight()/2);}
-            
+        
+    /*
+     * position dragging line
+     * based on context
+     */
     public void handleDraggingLine(int X, int Y){
         Item item = null;
         item = getUpperItem(X,Y);
@@ -598,7 +708,11 @@ public class Grafic extends JPanel{
         for(Integer el:selected2){
             string.append(el.toString()+" ");}
         return string.toString();}
-        
+     
+    /*
+     * gets the item above
+     * X, Y position
+     */
     public Item getUpperItem(int X, int Y){
         int y1 = Y;
         Item upper=null;
@@ -612,6 +726,9 @@ public class Grafic extends JPanel{
             y1-=5;}
         return upper;}
             
+    /*
+     * return next visible elment
+     */
     public Item nextInLine(Item item){
         if(item.getType()==2&&item.getSubItemsNr()>0&&item.getSubItem(0).isVisible()){//daca e o suita visibila sa coboare un element in subitems
             return item.getSubItem(0);}
@@ -640,7 +757,10 @@ public class Grafic extends JPanel{
         Item item = getItem(pos,false);
         if(item.getSubItemsNr()>(index+1))return item.getSubItem(index+1);
         else return iterateBack(pos);}
-        
+    
+    /*
+     * return previous elment
+     */
     public Item prevInLine(Item item){//elementul anterio al lui item
         ArrayList <Integer> temp =(ArrayList <Integer>)item.getPos().clone();
         if(item.getPos().get(item.getPos().size()-1)>0){//mai sunt elemente inaintea lui
@@ -650,14 +770,22 @@ public class Grafic extends JPanel{
             temp.remove(temp.size()-1);
             return getItem(temp,false);}
         return null;}
-        
+     
+    /*
+     * returns last visible element after 
+     * element at pos
+     */    
     public Item lastVisible(ArrayList <Integer> pos){//ultimul element vizibil in arbore sub pozitie pos
         Item item = getItem(pos,false);
         if(item.getType()==2&&item.getSubItemsNr()>0&&item.getSubItem(0).isVisible()){
             pos.add(new Integer(item.getSubItemsNr()-1));
             return lastVisible(pos);}        
         return item;}
-            
+      
+    /*
+     * prints this item and his 
+     * subitems indices on screen
+     */
     public void printPos(Item item){
         if(item.getType()==0||item.getType()==1||item.getType()==2){
             System.out.print(item.getName()+" - ");
@@ -781,7 +909,11 @@ public class Grafic extends JPanel{
                         else suitaPopUp(ev,getItem(selected,false));}
                     else{multipleSelectionPopUp(ev);}}}}
         if(selectedcollection.size()>0)Repository.window.mainpanel.p1.remove.setEnabled(true);}
-                    
+    
+    /*
+     * popup in case nothing 
+     * is selected
+     */
     public void noSelectionPopUp(final MouseEvent ev){ //poup in caz ca nu s-a selectat nimic, pozitia unde s-a facut click
         p.removeAll();
         JMenuItem item = new JMenuItem("Add Suite");        
@@ -828,6 +960,10 @@ public class Grafic extends JPanel{
                  if(!user.equals(""))printXML(user,false);}});*/
         p.show(this,ev.getX(),ev.getY());}
         
+    /*
+     * popup in case property
+     * is selected
+     */
     public void propertyPopUp(MouseEvent ev,final Item prop){//popup pentru click pe property, locatia unde s-a facut click
         if(prop.getPos().get(prop.getPos().size()-1)!=0){
             p.removeAll();        
@@ -849,7 +985,10 @@ public class Grafic extends JPanel{
                     updateLocations(prop.getTcParent(false));
                     repaint();}});
             p.show(this,ev.getX(),ev.getY());}}
-            
+    
+    /*
+     * prompt user to redefine property
+     */
     public void redefineProp(Item prop){
         boolean found = true;
         JTextField name = new JTextField(prop.getName());  
@@ -857,14 +996,11 @@ public class Grafic extends JPanel{
         JTextField value = new JTextField(prop.getValue());
         Object[] message = new Object[] {"Name", name, "Value", value};
         while(found){
-            
-            JPanel p = getPropPanel(name,value);
-            
+            JPanel p = getPropPanel(name,value);            
             int resp = (Integer)CustomDialog.showDialog(p,JOptionPane.PLAIN_MESSAGE, JOptionPane.OK_CANCEL_OPTION, Grafic.this, "Property: value",null);
             if(resp == JOptionPane.OK_OPTION&&(!(name.getText()+value.getText()).equals(""))){
                 if(name.getText().equals("param")&&name.isEnabled()){
                     CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, Grafic.this, "Warning", "'param' is used for parameters, please use a different name");
-//                     JOptionPane.showMessageDialog(Grafic.this, "'param' is used for parameters, please use a different name");
                     continue;}
                 else found = false;
                 FontMetrics metrics = getGraphics().getFontMetrics(new Font("TimesRoman", 0, 11));
@@ -872,9 +1008,7 @@ public class Grafic extends JPanel{
                 prop.setName(name.getText());
                 prop.setValue(value.getText());
                 prop.getRectangle().setSize(width, (int)(prop.getRectangle().getHeight()));
-                repaint();
-                
-            }
+                repaint();}
             
 //             int r = JOptionPane.showConfirmDialog(Grafic.this, message, "Property: value", JOptionPane.OK_CANCEL_OPTION);
 //             if(r == JOptionPane.OK_OPTION&&(!(name.getText()+value.getText()).equals(""))){
@@ -913,7 +1047,11 @@ public class Grafic extends JPanel{
         p.add(jPanel2);
         p.add(value);
         return p;}
-            
+     
+    /*
+     * popup in case there
+     * are multiple items selected
+     */
     public void multipleSelectionPopUp(MouseEvent ev){
         p.removeAll();        
         JMenuItem menuitem = new JMenuItem("Remove");
@@ -939,6 +1077,9 @@ public class Grafic extends JPanel{
                         switchRunnable();}});}}
         p.show(this,ev.getX(),ev.getY());}
         
+    /*
+     * switch runnable for selected items
+     */
     public void switchRunnable(){
         Item item=null;
         int nr = selectedcollection.size();
@@ -950,7 +1091,10 @@ public class Grafic extends JPanel{
             item = getItem(temp,false);
             item.switchRunnable();}
         repaint();}
-        
+      
+    /*
+     * switch check for selected items
+     */
     public void switchCheck(){
         Item item=null;
         int nr = selectedcollection.size();
@@ -963,6 +1107,9 @@ public class Grafic extends JPanel{
             item.setCheck(!item.getCheck());}
         repaint();}
             
+    /*
+     * popup in case TC is selected
+     */
     public void tcPopUp(MouseEvent ev, final Item tc){
         p.removeAll();
         JMenuItem item;
@@ -980,7 +1127,6 @@ public class Grafic extends JPanel{
         p.add(item);
         item.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
-//                 String name = JOptionPane.showInputDialog(Grafic.this,"Please enter the TC name","Suite Name",  JOptionPane.PLAIN_MESSAGE);
                 String name = CustomDialog.showInputDialog(JOptionPane.QUESTION_MESSAGE, JOptionPane.OK_CANCEL_OPTION, Grafic.this, "TC Name", "Please enter the TC name");
                 if(name!=null){
                     FontMetrics metrics = getGraphics().getFontMetrics(new Font("TimesRoman", Font.BOLD, 13));
@@ -1029,7 +1175,10 @@ public class Grafic extends JPanel{
                 removeTC(tc);
                 selectedcollection.clear();}});
         p.show(this,ev.getX(),ev.getY());}       
-        
+       
+    /*
+     * popup in case suite is selected
+     */
     public void suitaPopUp(MouseEvent ev,final Item suita){
         p.removeAll();
         JMenuItem item ;
@@ -1055,8 +1204,7 @@ public class Grafic extends JPanel{
                         in.close();
                         String result = b.toString();
                         String  [] vecresult = result.split(";");
-                        try{
-                            JComboBox combo = new JComboBox(vecresult);
+                        try{JComboBox combo = new JComboBox(vecresult);
                             int resp = (Integer)CustomDialog.showDialog(combo,JOptionPane.INFORMATION_MESSAGE,JOptionPane.OK_CANCEL_OPTION,Grafic.this,"Epname",null);
                             if(resp==JOptionPane.OK_OPTION){
                                 String ID = combo.getSelectedItem().toString();
@@ -1071,10 +1219,7 @@ public class Grafic extends JPanel{
         p.add(item);
         item.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){   
-                
             String name = CustomDialog.showInputDialog(JOptionPane.QUESTION_MESSAGE, JOptionPane.OK_CANCEL_OPTION, Grafic.this, "Suite Name", "Please enter suite name").toUpperCase();
-                
-//             String name = JOptionPane.showInputDialog(Grafic.this,"Please enter the suite name","Suite Name",  JOptionPane.PLAIN_MESSAGE).toUpperCase();
             FontMetrics metrics = getGraphics().getFontMetrics(new Font("TimesRoman", Font.BOLD, 14));
             int width = metrics.stringWidth(name)+140;
             suita.setName(name);
@@ -1125,13 +1270,15 @@ public class Grafic extends JPanel{
                     repaint();
                     selectedcollection.clear();}}});     
         p.show(this,ev.getX(),ev.getY());}
-        
+    
+    /*
+     * set tc prerequisite
+     */
     public void setPreRequisites(Item tc){
         boolean goon = true;
         Item firsttc = tc.getFirstSuitaParent(false).getSubItem(0);
         if(firsttc.isPrerequisite()){
             String message = "Suite already contains pre-requisite, overwrite?";
-//             int r = JOptionPane.showConfirmDialog(Grafic.this, message, "Warning", JOptionPane.OK_CANCEL_OPTION);
             int r = (Integer)CustomDialog.showDialog(message, JOptionPane.QUESTION_MESSAGE, JOptionPane.OK_CANCEL_OPTION, Grafic.this, "Warning", null);
             if(r != JOptionPane.OK_OPTION)goon = false;}
         if(goon){
@@ -1143,23 +1290,20 @@ public class Grafic extends JPanel{
             dropFirstInSuita(theone2.getFirstSuitaParent(false));
             repaint();}}
         
+    /*
+     * prompt user to add
+     * prop to tc
+     */
     public void addTCProp(Item tc){       
         boolean found = true;
         JTextField name = new JTextField();   
         JTextField value = new JTextField();
-//         Object[] message = new Object[] {"Name", name, "Value", value};
-        while(found){
-//             int r = JOptionPane.showConfirmDialog(Grafic.this, message, "Property: value", JOptionPane.OK_CANCEL_OPTION);
-            
+        while(found){            
             JPanel p = getPropPanel(name,value);
-            
             int r = (Integer)CustomDialog.showDialog(p,JOptionPane.PLAIN_MESSAGE, JOptionPane.OK_CANCEL_OPTION, Grafic.this, "Property: value",null);
-            
-            
             if(r == JOptionPane.OK_OPTION&&(!(name.getText()+value.getText()).equals(""))){
                 if(name.getText().equals("param")){
                     CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, Grafic.this, "Warning", "'param' is used for parameters, please use a different name");
-//                     JOptionPane.showMessageDialog(Grafic.this, "'param' is used for parameters, please use a different name");
                     continue;}
                 else found = false;
                 ArrayList <Integer> indexpos3 = (ArrayList <Integer>)tc.getPos().clone();
@@ -1174,6 +1318,10 @@ public class Grafic extends JPanel{
                 repaint();}
             else found = false;}}
             
+    /*
+     * prompt user to add
+     * param to tc
+     */
     public void setParam(Item tc){
         JTextField name = new JTextField();
         name.setText("param");
@@ -1183,9 +1331,6 @@ public class Grafic extends JPanel{
         JPanel p = getParamPanel(name,value);        
         int resp = (Integer)CustomDialog.showDialog(p,JOptionPane.QUESTION_MESSAGE, JOptionPane.OK_CANCEL_OPTION, Grafic.this, "Property: value",null);
         if(resp == JOptionPane.OK_OPTION){
-        
-//         int r = JOptionPane.showConfirmDialog(Grafic.this, message, "Property: value", JOptionPane.OK_CANCEL_OPTION);
-//         if(r == JOptionPane.OK_OPTION&&(!(name.getText()+value.getText()).equals(""))){
             ArrayList <Integer> indexpos3 = (ArrayList <Integer>)tc.getPos().clone();
             indexpos3.add(new Integer(tc.getSubItemsNr()));
             FontMetrics metrics = getGraphics().getFontMetrics(new Font("TimesRoman", 0, 11));
@@ -1223,6 +1368,10 @@ public class Grafic extends JPanel{
     public void setCanRequestFocus(boolean canrequestfocus){
         this.canrequestfocus = canrequestfocus;}
            
+    /*
+     * remove selected items from
+     * Repository suites array
+     */
     public void removeSelected(){      
         if(selectedcollection.size()>0){
             ArrayList<Item> fordeletion = new ArrayList<Item>();                
@@ -1271,11 +1420,18 @@ public class Grafic extends JPanel{
             Repository.window.mainpanel.p1.suitaDetails.setParent(null);
             repaint();}}
         
+    /*
+     * assign epid to item and its
+     * subsuites
+     */
     public void assignEpID(Item item,String ID){
         if(item.getType()==2){
             item.setEpId(ID);
             for(int i=0;i<item.getSubItemsNr();i++){assignEpID(item.getSubItem(i),ID);}}}                
-                
+     
+    /*
+     * remove tc
+     */
     public void removeTC(Item tc){ 
         if(tc.getPos().size()>1){//tc nu e pe nivelul 0
             int index = tc.getPos().get(tc.getPos().size()-1).intValue();
@@ -1301,6 +1457,9 @@ public class Grafic extends JPanel{
             repaint();
             selectedcollection.clear();}}}
         
+    /*
+     * deselect all the items that are selected
+     */
     public void deselectAll(){
         Repository.window.mainpanel.p1.remove.setEnabled(false);
         int selectednr = selectedcollection.size()-1;
@@ -1310,13 +1469,20 @@ public class Grafic extends JPanel{
             for(int j=1;j<itemselected.length;j++){theone = theone.getSubItem(itemselected[j]);}
             theone.select(false);
             selectedcollection.remove(i);}}
-            
+     
+    /*
+     * select item based on
+     * his pos indices
+     */
     public void selectItem(ArrayList <Integer> pos){
         getItem(pos,false).select(true);
         int [] theone1 = new int[pos.size()];
         for(int i=0;i<pos.size();i++){theone1[i]= pos.get(i).intValue();}
         selectedcollection.add(theone1);}
     
+    /*
+     * get item at position x, y in suites frame
+     */
     public void getClickedItem(int x, int y){
         Rectangle r = new Rectangle(x-1,y-1,2,2);
         int suitenr = Repository.getSuiteNr();
@@ -1327,6 +1493,10 @@ public class Grafic extends JPanel{
                 break;}}
         if(selected.size()>0)Collections.reverse(selected);}
         
+     /*
+     * get item with pos indices
+     * test - from mastersuites or suites
+     */
     public static Item getItem(ArrayList <Integer> pos,boolean test){           
         Item theone1;
         if(!test)theone1 = Repository.getSuita(pos.get(0));
@@ -1335,6 +1505,10 @@ public class Grafic extends JPanel{
             theone1 = theone1.getSubItem(pos.get(j));}
         return theone1;}
     
+    /*
+     * return if item or its
+     * subitem have been clicked
+     */
     public boolean handleClicked(Rectangle r, Item item){
         if(r.intersects(item.getRectangle())&&item.isVisible())return true;
         else{int itemnr = item.getSubItemsNr();
@@ -1343,7 +1517,11 @@ public class Grafic extends JPanel{
                     selected.add(i);
                     return true;}}
             return false;}}
-        
+    
+    /*
+     * handle update locations
+     * from suita on
+     */
     public void updateLocations(Item suita){
         ArrayList <Integer> selected2 = (ArrayList <Integer>)suita.getPos().clone();
         if(selected2.size()>1){
@@ -1358,7 +1536,11 @@ public class Grafic extends JPanel{
         y=10;
         foundfirstitem=false;
         updateScroll();}
-            
+    
+    /*
+     * returns previous item from item
+     * half width locatiuon
+     */
     public int calcPreviousPositions(Item item){
         ArrayList <Integer> pos = (ArrayList <Integer>)item.getPos().clone();
         if(pos.size()>1){
@@ -1368,11 +1550,20 @@ public class Grafic extends JPanel{
             return temp.getLocation()[0]+(int)(temp.getRectangle().getWidth()/2+20);}
         else{return 5;}}
     
+    /*
+     * positions item based on
+     * previous postion
+     */
     public void positionItem(Item item){        
         int x = calcPreviousPositions(item);
         item.setLocation(new int[]{x,y});
         y+=(int)(10+item.getRectangle().getHeight());}
     
+    /*
+     * used for calculating items positions
+     * iterates through subitems and positions them
+     * based previous location
+     */
     public void iterateThrough(Item item, ArrayList <Integer> theone){
         int subitemsnr = item.getSubItemsNr();
         if(theone==null){
@@ -1401,19 +1592,30 @@ public class Grafic extends JPanel{
         int suitenr = Repository.getSuiteNr();
         for(int i=0;i<suitenr;i++){
             handlePaintItem(Repository.getSuita(i),g);}}
-        
+      
+    /*
+     * actual drawing of dragging line
+     */
     public void drawDraggingLine(Graphics g){
         if(line[0]!=-1){
             g.setColor(new Color(150,150,150));
             g.drawLine(line[0],line[1],line[2],line[3]);
             g.drawLine(line[0],line[3],line[0],line[4]);}}
     
+    /*
+     * handle paint item
+     * and subitems
+     */
     public void handlePaintItem(Item item, Graphics g){
         drawItem(item,g);
         int subitemnr = item.getSubItemsNr();
         if(subitemnr>0&&item.getSubItem(0).isVisible()){
             for(int i=0;i<subitemnr;i++){handlePaintItem(item.getSubItem(i),g);}}}
-        
+     
+    /*
+     * handles drawing item based 
+     * on item type
+     */
     public void drawItem(Item item,Graphics g){
         g.setFont(new Font("TimesRoman", Font.PLAIN, 12));
         g.setColor(Color.BLACK);
@@ -1453,13 +1655,20 @@ public class Grafic extends JPanel{
         if(item.getEpId()!=null){
             g.setFont(new Font("TimesRoman", Font.PLAIN, 11));
             g.drawString(" - "+item.getEpId(),(int)(item.getRectangle().getX()+item.getRectangle().getWidth()-100),(int)(item.getRectangle().getY()+18));}}
-        
+     
+    /*
+     * changes suites file name and sets
+     * name accordingly on tab
+     */
     public void setUser(String user){//schimba userul si modifica numele din tab conform cu cel al userului
         Repository.window.mainpanel.p1.setOpenedfile(new File(user).getName());
         Repository.window.mainpanel.p1.suitaDetails.clearDefs();
         Repository.window.mainpanel.p1.suitaDetails.setParent(null);
         this.user = user;}
     
+    /*
+     * returns file name and path
+     */
     public String getUser(){// metoda pentru aflarea path-ului fisierului xml pentru user
         return user;}        
         
@@ -1631,9 +1840,7 @@ public class Grafic extends JPanel{
             ArrayList <Integer> temp = new ArrayList <Integer>();
             for(int j=0;j<selectedcollection.get(0).length;j++){temp.add(new Integer(selectedcollection.get(0)[j]));}
             if(selectedcollection.size()>1||getItem(temp,false).getType()!=2){
-                CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, Grafic.this, "Warning", "Please select only one suite.");
-//                 JOptionPane.showMessageDialog(Grafic.this, "Please select only one suite.", "Warning", JOptionPane.WARNING_MESSAGE);
-            }
+                CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, Grafic.this, "Warning", "Please select only one suite.");}
             else new AddSuiteFrame(Grafic.this, getItem(temp,false),0);}}
         
     class AddSuiteFrame extends JFrame{

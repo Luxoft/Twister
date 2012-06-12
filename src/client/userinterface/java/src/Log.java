@@ -25,8 +25,6 @@ import javax.swing.text.Highlighter;
 import javax.swing.text.DefaultHighlighter;
 import javax.swing.JButton;
 import javax.swing.BorderFactory;
-// import org.apache.xmlrpc.client.XmlRpcClient;
-// import org.apache.xmlrpc.client.XmlRpcClientConfigImpl;
 import java.io.FileInputStream;
 import java.io.FileWriter;
 import javax.swing.JFileChooser;
@@ -64,57 +62,14 @@ public class Log extends JPanel{
         final JTextField find = new JTextField();
         next.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
-                String toFind = find.getText();
-                Element paragraph = textarea.getDocument().getDefaultRootElement();
-                int contentCount = paragraph.getElementCount();
-                HighlightPainter myHighlighter = new MyHighlightPainter(Color.RED);
-                for (int i=lastIndexFound+1; i<contentCount; i++){
-                    Element e = paragraph.getElement(i);
-                    int rangeStart = e.getStartOffset();
-                    int rangeEnd = e.getEndOffset();
-                    try{
-                        if(textarea.getText(rangeStart, rangeEnd-rangeStart).indexOf(toFind)!=-1){
-                            lastIndexFound = i;
-                            int index = textarea.getText(rangeStart, rangeEnd-rangeStart).indexOf(toFind);
-                            textarea.setCaretPosition(0);
-                            textarea.setCaretPosition(rangeStart);
-                            Highlighter hilite = textarea.getHighlighter(); 
-                            hilite.removeAllHighlights();
-                            hilite.addHighlight(rangeStart+index,rangeStart+index+toFind.length(), myHighlighter);  
-                            hilite.paint(textarea.getGraphics());
-                            break;}}
-                    catch (BadLocationException ex){}
-                    if(i==(contentCount-1))i=-1;
-                    if(i==(lastIndexFound-1))break;}}});
+                findNext(find.getText());}});
         find.setPreferredSize(new Dimension(150,25));
         findpanel.add(find);        
         JButton prev = new JButton("Prev");
         prev.setFont(new Font("TimesRoman", Font.PLAIN, 10));
         prev.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
-                String toFind = find.getText();
-                Element paragraph = textarea.getDocument().getDefaultRootElement();
-                int contentCount = paragraph.getElementCount();    
-                HighlightPainter myHighlighter = new MyHighlightPainter(Color.RED);
-                if(lastIndexFound==-1)lastIndexFound=0;
-                for (int i=lastIndexFound-1; i>=-1; i--){
-                    if(i==-1){i=contentCount-1;}
-                    Element e = paragraph.getElement(i);
-                    int rangeStart = e.getStartOffset();
-                    int rangeEnd = e.getEndOffset();
-                    try{
-                        if(textarea.getText(rangeStart, rangeEnd-rangeStart).indexOf(toFind)!=-1){
-                            lastIndexFound = i;
-                            int index = textarea.getText(rangeStart, rangeEnd-rangeStart).indexOf(toFind);
-                            textarea.setCaretPosition(0);
-                            textarea.setCaretPosition(rangeStart);
-                            Highlighter hilite = textarea.getHighlighter(); 
-                            hilite.removeAllHighlights();
-                            hilite.addHighlight(rangeStart+index,rangeStart+index+toFind.length(), myHighlighter);  
-                            hilite.paint(textarea.getGraphics());
-                            break;}}
-                    catch (BadLocationException ex){i=contentCount-1;}                    
-                    if(i==(lastIndexFound+1))break;}}});
+                findPrevious(find.getText());}});
         JButton savelog = new JButton("Save log");
         savelog.setFont(new Font("TimesRoman", Font.PLAIN, 10));
         savelog.addActionListener(new ActionListener(){
@@ -137,41 +92,97 @@ public class Log extends JPanel{
         textarea.setFont(new Font("Monospaced",Font.PLAIN, 12));
         new Thread(){
             public void run(){
-//                 XmlRpcClientConfigImpl config = new XmlRpcClientConfigImpl();
-//                 try{config.setServerURL(new URL("http://"+Repository.host+":"+Repository.getCentralEnginePort()));}
-//                 catch(Exception e){System.out.println("Could not connect to "+Repository.host+" on port "+Repository.getCentralEnginePort());}//!!! NU uita sa updatezi portul in mesajul de eroare                          
-//                 XmlRpcClient client = new XmlRpcClient();
-//                 client.setConfig(config);
+                updateLog();}}.start();}
+    
+    /*
+     * interpret result from CE
+     * and update Log on screen accordingly
+     */
+    public void updateLog(){
+        String result;
+        while(Repository.run){
+            try{Thread.sleep(1500);
+                if(response==length){
+                    result = Repository.getRPCClient().execute("getLogFile",new Object[]{"0","0",log})+"";
+                    response = Long.parseLong(result);}
+                if(response>length){
+                    result = Repository.getRPCClient().execute("getLogFile",new Object[]{"1",length+"",log})+"";
+                    readText(result);
+                    length = response;}
+                else if(response<length){
+                    clearScreen();}}
+            catch (Exception e){
+                e.printStackTrace();
+                clearScreen();
+                textarea.append("This log has the folowing error: "+e.toString());}}}
                 
-                String result;
-                while(Repository.run){
-                    try{Thread.sleep(1500);
-                        if(response==length){    
-//                                 result = client.execute("getLogFile",new Object[]{"0","0",log})+"";
-                            result = Repository.getRPCClient().execute("getLogFile",new Object[]{"0","0",log})+"";
-                            response = Long.parseLong(result);}
-                        if(response>length){
-//                                  result = client.execute("getLogFile",new Object[]{"1",length+"",log})+"";
-                            result = Repository.getRPCClient().execute("getLogFile",new Object[]{"1",length+"",log})+"";
-                            readText(result);
-                            length = response;}
-                        else if(response<length){
-                            clearScreen();
-//                             for(int i=0;i<Repository.getSuiteNr();i++){
-//                                 for(int j=0;j<Repository.getSuita(i).getSubItemsNr();j++){
-//                                     Repository.getTestSuita(i).getSubItem(j).getSubItem(0).setValue("");
-//                                     Repository.window.mainpanel.p2.sc.g.repaint();}}
-                                }}
-                    catch (Exception e){
-                        e.printStackTrace();
-                        clearScreen();
-                        textarea.append("This log has the folowing error: "+e.toString());}}}}.start();}
-                            
+     /*
+     * find previous occurrence of "toFind"
+     * in this log
+     */           
+    public void findPrevious(String toFind){
+        Element paragraph = textarea.getDocument().getDefaultRootElement();
+        int contentCount = paragraph.getElementCount();    
+        
+        if(lastIndexFound==-1)lastIndexFound=0;
+        for (int i=lastIndexFound-1; i>=-1; i--){
+            if(i==-1){i=contentCount-1;}
+            Element e = paragraph.getElement(i);
+            int rangeStart = e.getStartOffset();
+            int rangeEnd = e.getEndOffset();
+            try{if(textarea.getText(rangeStart, rangeEnd-rangeStart).indexOf(toFind)!=-1){
+                    lastIndexFound = i;
+                    highlite(toFind,rangeStart,rangeEnd);
+                    break;}}
+            catch (BadLocationException ex){i=contentCount-1;}   
+            catch(Exception ex){ex.printStackTrace();}
+            if(i==(lastIndexFound+1))break;}}
+         
+    /*
+     * highlite string int log
+     */
+    public void highlite(String toFind,int rangeStart,int rangeEnd)throws Exception{
+        HighlightPainter myHighlighter = new MyHighlightPainter(Color.RED);
+        int index = textarea.getText(rangeStart, rangeEnd-rangeStart).indexOf(toFind);
+        textarea.setCaretPosition(0);
+        textarea.setCaretPosition(rangeStart);
+        Highlighter hilite = textarea.getHighlighter(); 
+        hilite.removeAllHighlights();
+        hilite.addHighlight(rangeStart+index,rangeStart+index+toFind.length(), myHighlighter);  
+        hilite.paint(textarea.getGraphics());}
+                        
+    /*
+     * find next occurrence of "toFind"
+     * in this log
+     */
+    public void findNext(String toFind){
+        Element paragraph = textarea.getDocument().getDefaultRootElement();
+        int contentCount = paragraph.getElementCount();
+        for (int i=lastIndexFound+1; i<contentCount; i++){
+            Element e = paragraph.getElement(i);
+            int rangeStart = e.getStartOffset();
+            int rangeEnd = e.getEndOffset();
+            try{if(textarea.getText(rangeStart, rangeEnd-rangeStart).indexOf(toFind)!=-1){
+                    lastIndexFound = i;
+                    highlite(toFind,rangeStart,rangeEnd);
+                    break;}}
+            catch (BadLocationException ex){}
+             catch(Exception ex){ex.printStackTrace();}
+            if(i==(contentCount-1))i=-1;
+            if(i==(lastIndexFound-1))break;}}
+     
+    /*
+     * clear log screen
+     */
     public void clearScreen(){
         textarea.setText("");
         length = 0;
         response = 0;}
-        
+    
+    /*
+     * open filechooser
+     * and save log localy
+     */
     public void saveLog(){
         JFileChooser chooser = new JFileChooser(); 
         chooser.setApproveButtonText("Save");
@@ -186,30 +197,18 @@ public class Log extends JPanel{
                 writer.flush();
                 writer.close();}
             catch(Exception e){}}}
-        
+     
+    /*
+     * clear log localy and on server
+     */
     public void clearLog(){
         clearScreen();
-        
-//         XmlRpcClientConfigImpl config = new XmlRpcClientConfigImpl();
-//         try{config.setServerURL(new URL("http://"+Repository.host+":"+Repository.getCentralEnginePort()));}
-//         catch(Exception e){System.out.println("Could not connect to "+Repository.host+" on port "+Repository.getCentralEnginePort());}//!!! NU uita sa updatezi portul in mesajul de eroare                          
-//         XmlRpcClient client = new XmlRpcClient();
-//         client.setConfig(config);
-        
-//         try{String result = client.execute("resetLog",new Object[]{log})+"";}
         try{String result = Repository.getRPCClient().execute("resetLog",new Object[]{log})+"";}
         catch(Exception e){e.printStackTrace();}}
         
-    public Item getSubTC(Item item,String name){
-        String name1 = item.getName().split("/")[item.getName().split("/").length-1].toLowerCase();        
-        if(item.getType()==1&&name1.equals(name)){
-            return item;}
-        if(item.getType()==2){
-            for(int i=0;i<item.getSubItemsNr();i++){
-                Item temp = getSubTC(item.getSubItem(i),name);
-                if(temp!=null)return temp;}}
-        return null;}
-                        
+    /*
+     * decode string and append to Log screen
+     */
     public void readText(String content){
         BASE64Decoder base64 = new BASE64Decoder();
         byte mydata[]=null;

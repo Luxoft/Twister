@@ -50,12 +50,32 @@ public class MainPanel extends JTabbedPane{
         addTab("Reports", null);
         addTab("Configuration", p4);        
 //         add("Network", new JScrollPane(p5));
+        askForFile();
+        /*
+         * if it is applet
+         * listen for clicks on reports tab
+         * and open url when pressed
+         */
+        if(applet){
+            addChangeListener(new ChangeListener(){
+                public void stateChanged(ChangeEvent e){
+                    if(getSelectedIndex()==2){
+                        try{Repository.window.container.getAppletContext().showDocument(new URL("http://"+Repository.host+":"+Repository.getHTTPServerPort()+"/report"), "_blank");}
+                        catch(Exception ex){ex.printStackTrace();}
+                        setSelectedIndex(1);}}});}
+        Repository.intro.setStatus("Finished Main initialization");
+        Repository.intro.addPercent(0.035);
+        Repository.intro.repaint();}
+ 
+    /*
+     * ask user for suite file
+     */
+    private void askForFile(){
         new Thread(){
             public void run(){
                 SwingUtilities.invokeLater(new Runnable(){
                     public void run(){
-                        try{
-                            while(p1.sc.g.getGraphics() == null) 
+                        try{while(p1.sc.g.getGraphics() == null) 
                                 try{Thread.sleep(100);}
                                 catch(Exception e){System.out.println("Thread interrupted at getting Graphics");}
                             File usersdirectory = new File(Repository.getUsersDirectory());
@@ -77,24 +97,8 @@ public class MainPanel extends JTabbedPane{
                                 else{
                                     p1.sc.g.setUser((new StringBuilder()).append(Repository.getUsersDirectory()).append(Repository.getBar()).append(user).toString());
                                     p1.sc.g.parseXML(new File((new StringBuilder()).append(Repository.getUsersDirectory()).append(Repository.getBar()).append(user).toString()));}}}
-                        catch(NullPointerException e){}}});}}.start();
-        /*
-         * if it is applet
-         * listen for clicks on reports tab
-         * and open url when pressed
-         */
-        if(applet){
-            addChangeListener(new ChangeListener(){
-                public void stateChanged(ChangeEvent e){
-                    if(getSelectedIndex()==2){
-                        try{Repository.window.container.getAppletContext().showDocument(new URL("http://"+Repository.host+":"+Repository.getHTTPServerPort()+"/report"), "_blank");}
-                        catch(Exception ex){ex.printStackTrace();}
-                        setSelectedIndex(1);}}});}
-        Repository.intro.setStatus("Finished Main initialization");
-        Repository.intro.addPercent(0.035);
-        Repository.intro.repaint();}
- 
-    
+                        catch(NullPointerException e){}}});}}.start();}
+        
     public void saveUserXML(){
         if(!p1.sc.g.getUser().equals("")){
             p1.sc.g.printXML(p1.sc.g.getUser(), false,false);}}}

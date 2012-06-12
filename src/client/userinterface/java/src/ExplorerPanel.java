@@ -98,7 +98,7 @@ import java.awt.event.ItemEvent;
 
 public class ExplorerPanel extends JPanel {
     private static final long serialVersionUID = 1L;
-    JTree tree;
+    public JTree tree;
     private DefaultMutableTreeNode root;
     private boolean dragging;
     private TreePath [] selected;
@@ -129,33 +129,9 @@ public class ExplorerPanel extends JPanel {
         tree.expandRow(1);
         tree.addMouseListener(new MouseAdapter(){
             public void mousePressed(MouseEvent ev){
-                if(ev.isPopupTrigger()){
-                    refreshPopup(ev);}
-                else{setDragging(true);
-                    selected = tree.getSelectionPaths();
-                    if(selected!=null){
-                        int left  = 0;          
-                        int right = selected.length-1;                        
-                        while (left < right) {
-                            TreePath temp = selected[left]; 
-                            selected[left]  = selected[right]; 
-                            selected[right] = temp;
-                            left++;
-                            right--;}}}}
+                treeClick(ev);}
             public void mouseReleased(MouseEvent ev){
-                if(ev.isPopupTrigger()){refreshPopup(ev);}
-                else{
-                    if((tree.getSelectionPaths().length==1)&&(tree.getModel().isLeaf(tree.getSelectionPath().getLastPathComponent()))){
-                        try{String thefile = tree.getSelectionPath().getParentPath().getLastPathComponent().toString()+"/"+tree.getSelectionPath().getLastPathComponent().toString();
-                            String result= Repository.getRPCClient().execute("getTestDescription",new Object[]{thefile})+"";
-                            String [] cont = result.split("-;-");
-                            Container pan1 = (Container)Repository.window.mainpanel.p1.splitPane.getComponent(1);
-                            TCDetails pan2 = (TCDetails)pan1.getComponents()[1];
-                            if(cont[1].length()>1)pan2.text.setText(cont[1].substring(1));
-                            else pan2.text.setText("Not Available");
-                            if(cont[0].length()>1)pan2.title.setText(cont[0].substring(1));
-                            else pan2.title.setText("Not Available");}
-                        catch(Exception e){e.printStackTrace();}}}}});
+                treeClickReleased(ev);}});
         DragSource ds = new DragSource();
         ds.getDefaultDragSource();
         ds.createDefaultDragGestureRecognizer(this,DnDConstants.ACTION_COPY_OR_MOVE,new TreeDragGestureListener());
@@ -164,35 +140,62 @@ public class ExplorerPanel extends JPanel {
         Repository.intro.setStatus("Finished Explorer interface initialization");
         Repository.intro.addPercent(0.035);
         Repository.intro.repaint();}
-        
+    
+    /*
+     * executed on tree released click 
+     */ 
+    public void treeClickReleased(MouseEvent ev){
+        if(ev.isPopupTrigger()){refreshPopup(ev);}
+        else{
+            if((tree.getSelectionPaths().length==1)&&(tree.getModel().isLeaf(tree.getSelectionPath().getLastPathComponent()))){
+                try{String thefile = tree.getSelectionPath().getParentPath().getLastPathComponent().toString()+"/"+tree.getSelectionPath().getLastPathComponent().toString();
+                    String result= Repository.getRPCClient().execute("getTestDescription",new Object[]{thefile})+"";
+                    String [] cont = result.split("-;-");
+                    Container pan1 = (Container)Repository.window.mainpanel.p1.splitPane.getComponent(1);
+                    TCDetails pan2 = (TCDetails)pan1.getComponents()[1];
+                    if(cont[1].length()>1)pan2.text.setText(cont[1].substring(1));
+                    else pan2.text.setText("Not Available");
+                    if(cont[0].length()>1)pan2.title.setText(cont[0].substring(1));
+                    else pan2.title.setText("Not Available");}
+                catch(Exception e){e.printStackTrace();}}}}
+     
+    /*
+     * executed on tree click 
+     */    
+    public void treeClick(MouseEvent ev){
+        if(ev.isPopupTrigger()){
+            refreshPopup(ev);}
+        else{setDragging(true);
+            selected = tree.getSelectionPaths();
+            if(selected!=null){
+                int left  = 0;          
+                int right = selected.length-1;                        
+                while (left < right) {
+                    TreePath temp = selected[left]; 
+                    selected[left]  = selected[right]; 
+                    selected[right] = temp;
+                    left++;
+                    right--;}}}}
+    /*
+     * returns the selected paths 
+     */    
     public TreePath[] getSelected(){        
         Arrays.sort(selected, new Compare());
         List<TreePath> listOfPaths = Arrays.asList(selected);
         Collections.reverse(listOfPaths);
         selected = listOfPaths.toArray(new TreePath[]{});
         return selected;}
-        
+   
+    /*
+     * popup displayed on tree panel
+     */
     public void refreshPopup(final MouseEvent ev){
         JPopupMenu p = new JPopupMenu();
         JMenuItem item = new JMenuItem("Refresh tree");        
         p.add(item);
         item.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent evnt){
-                new Thread(){
-                    public void run(){
-                        setEnabledTabs(false);
-                        JFrame progress = new JFrame();
-                        progress.setAlwaysOnTop(true);
-                        progress.setLocation( (int)ev.getLocationOnScreen().getX(),(int)ev.getLocationOnScreen().getY());
-                        progress.setUndecorated(true);
-                        JProgressBar bar = new JProgressBar();
-                        bar.setIndeterminate(true);
-                        progress.add(bar);
-                        progress.pack();
-                        progress.setVisible(true);
-                        refreshStructure();
-                        progress.dispose();
-                        setEnabledTabs(true);}}.start();}});
+                refreshTree(ev);}});
         final String editable;
         if(tree.getSelectionPaths().length>0) editable = tree.getSelectionPath().getLastPathComponent()+"";
         else editable = "";
@@ -202,101 +205,133 @@ public class ExplorerPanel extends JPanel {
             p.add(item);
             item.addActionListener(new ActionListener(){
                 public void actionPerformed(ActionEvent ev){
-                    String defaulteditor = Repository.getEditors().get("DEFAULT").getAsString();
-                    String remotefilename = tree.getSelectionPath().getPathComponent(tree.getSelectionPath().getPathCount()-2)+"/"+tree.getSelectionPath().getLastPathComponent();
-                    String localfilename = Repository.temp+Repository.getBar()+"Twister"+Repository.getBar()+tree.getSelectionPath().getLastPathComponent();
-                    if(defaulteditor.equals("Embedded"))openEmbeddedEditor(editable,remotefilename,localfilename);
-                    else{File file2 = copyFileLocaly(remotefilename,localfilename);
-                        executeCommand(Repository.getEditors().get(defaulteditor)+" "+localfilename);
-                        sendFileToServer(file2, remotefilename);
-                        file2.delete();}}});
+                    editTC(editable);}});
             item = new JMenuItem("Edit with");     
             p.add(item);
             item.addActionListener(new ActionListener(){
                 public void actionPerformed(ActionEvent evnt){
-                    
-                    JsonObject editors = Repository.getEditors();
-                    int length = editors.entrySet().size();
-                    Iterator iter = editors.entrySet().iterator();
-                    Entry entry;
-                    String [] vecresult;
-                    if(editors.get("DEFAULT")!=null)vecresult = new String[length-1];
-                    else vecresult = new String[length];
-                    int index = 0;
-                    for(int i=0;i<length;i++){                        
-                        entry = (Entry)iter.next();
-                        if(entry.getKey().toString().equals("DEFAULT"))continue;
-                        vecresult[index] = entry.getKey().toString();
-                        index++;}
-                    
-                    JPanel p = new JPanel();
-                    
-                    JLabel jLabel1 = new JLabel();
-                    JComboBox jComboBox1 = new JComboBox();
-            
-                    jLabel1.setText("Editor: ");
-            
-                    jComboBox1.setModel(new DefaultComboBoxModel(vecresult));
-            
-                    GroupLayout layout = new GroupLayout(p);
-                    p.setLayout(layout);
-                    layout.setHorizontalGroup(
-                        layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                        .addGroup(layout.createSequentialGroup()
-                            .addContainerGap()
-                            .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                .addComponent(jLabel1))
-                            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                            .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                .addComponent(jComboBox1, javax.swing.GroupLayout.PREFERRED_SIZE, 84, javax.swing.GroupLayout.PREFERRED_SIZE))
-                            .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)));
-                    layout.setVerticalGroup(
-                        layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                        .addGroup(layout.createSequentialGroup()
-                            .addContainerGap()
-                            .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                                .addComponent(jLabel1)
-                                .addComponent(jComboBox1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                            .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING))
-                            .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)));
-                            
-                    Object[] message = new Object[] {p};
-                    
-                    
-
-//                     JComboBox combo = new JComboBox(vecresult);
-//                     int r = (Integer)CustomDialog.showDialog(p,JOptionPane.QUESTION_MESSAGE,JOptionPane.OK_CANCEL_OPTION,ExplorerPanel.this,"Please select an editor",null);
-//                     if(resp==JOptionPane.OK_OPTION){
-//                         String editor = jComboBox1.getSelectedItem().toString();
-//                         System.out.println("EDITOR: "+editor);
-//                     }
-                    
-                    int r = (Integer)CustomDialog.showDialog(p,JOptionPane.QUESTION_MESSAGE,JOptionPane.OK_CANCEL_OPTION,ExplorerPanel.this,"Please select an editor",null);
-                    if(r==JOptionPane.OK_OPTION){
-//                     int r = JOptionPane.showConfirmDialog(ExplorerPanel.this, message, "Please select an editor", JOptionPane.OK_CANCEL_OPTION,JOptionPane.QUESTION_MESSAGE,null);
-//                     if(r == JOptionPane.OK_OPTION){
-                        
-                        
-                        String ID = jComboBox1.getSelectedItem().toString();
-                        
-                        String remotefilename = tree.getSelectionPath().getPathComponent(tree.getSelectionPath().getPathCount()-2)+"/"+tree.getSelectionPath().getLastPathComponent();
-                        String localfilename = Repository.temp+Repository.getBar()+"Twister"+Repository.getBar()+tree.getSelectionPath().getLastPathComponent();
-                        if(ID.equals("Embedded")) openEmbeddedEditor(editable,remotefilename,localfilename);
-                        else{
-                            File file2 = copyFileLocaly(remotefilename,localfilename);
-                            String execute = Repository.getEditors().get(ID).getAsString();
-                            System.out.println("Running: "+ execute);
-                            executeCommand(execute+" "+localfilename);
-                            sendFileToServer(file2, remotefilename);
-                            file2.delete();}}}});
+                    editWith(editable);}});
             item = new JMenuItem("Editors");        
             p.add(item);
             item.addActionListener(new ActionListener(){
                 public void actionPerformed(ActionEvent evnt){
-                    new Editors(ev.getLocationOnScreen()).setVisible(true);}});}
+                    try{new Editors(ev.getLocationOnScreen()).setVisible(true);}
+                    catch(Exception e){
+                        System.out.println("There was an error in opening editors configuration window, please check configuration file");
+                        e.printStackTrace();}}});}
         p.show(tree,ev.getX(),ev.getY());}
         
+        
+    /*
+     * Propmpts user to select editor
+     * and opens selected editor for editing TC
+     */
+    public void editWith(String editable){
+        try{JsonObject editors = Repository.getEditors();
+            int length = editors.entrySet().size();
+            Iterator iter = editors.entrySet().iterator();
+            Entry entry;
+            String [] vecresult;
+            if(editors.get("DEFAULT")!=null)vecresult = new String[length-1];
+            else vecresult = new String[length];
+            int index = 0;
+            for(int i=0;i<length;i++){                        
+                entry = (Entry)iter.next();
+                if(entry.getKey().toString().equals("DEFAULT"))continue;
+                vecresult[index] = entry.getKey().toString();
+                index++;}
+            JComboBox jComboBox1 = new JComboBox();
+            JPanel p = getEditorsPanel(jComboBox1,vecresult);
+            Object[] message = new Object[] {p};
+            int r = (Integer)CustomDialog.showDialog(p,JOptionPane.QUESTION_MESSAGE,JOptionPane.OK_CANCEL_OPTION,ExplorerPanel.this,"Please select an editor",null);
+            if(r==JOptionPane.OK_OPTION){
+                String ID = jComboBox1.getSelectedItem().toString();
+                String remotefilename = tree.getSelectionPath().getPathComponent(tree.getSelectionPath().getPathCount()-2)+"/"+tree.getSelectionPath().getLastPathComponent();
+                String localfilename = Repository.temp+Repository.getBar()+"Twister"+Repository.getBar()+tree.getSelectionPath().getLastPathComponent();
+                if(ID.equals("Embedded")) openEmbeddedEditor(editable,remotefilename,localfilename);
+                else{
+                    File file2 = copyFileLocaly(remotefilename,localfilename);
+                    String execute = Repository.getEditors().get(ID).getAsString();
+                    System.out.println("Running: "+ execute);
+                    executeCommand(execute+" "+localfilename);
+                    sendFileToServer(file2, remotefilename);
+                    file2.delete();}}}
+            catch(Exception e){
+                System.out.println("There was an error in opening editors window, please check configuration file");
+                e.printStackTrace();}}
+    /*
+     * creates the editors panel
+     */         
+    public JPanel getEditorsPanel(JComboBox jComboBox1,String [] vecresult){
+        JPanel p = new JPanel();
+        JLabel jLabel1 = new JLabel();
+        jLabel1.setText("Editor: ");
+        jComboBox1.setModel(new DefaultComboBoxModel(vecresult));
+        GroupLayout layout = new GroupLayout(p);
+        p.setLayout(layout);
+        layout.setHorizontalGroup(
+            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(layout.createSequentialGroup()
+                .addContainerGap()
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(jLabel1))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(jComboBox1, javax.swing.GroupLayout.PREFERRED_SIZE, 84, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)));
+        layout.setVerticalGroup(
+            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(layout.createSequentialGroup()
+                .addContainerGap()
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jLabel1)
+                    .addComponent(jComboBox1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING))
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)));
+        return p;}
+        
+    /*
+     * open default editor and edit
+     * selected TC
+     */
+    public void editTC(String editable){
+        String defaulteditor;
+        try{defaulteditor = Repository.getEditors().get("DEFAULT").getAsString();}
+        catch(Exception e){
+            System.out.println("Default Editor not present, using embedded");
+            defaulteditor = "Embedded";}
+        String remotefilename = tree.getSelectionPath().getPathComponent(tree.getSelectionPath().getPathCount()-2)+"/"+tree.getSelectionPath().getLastPathComponent();
+        String localfilename = Repository.temp+Repository.getBar()+"Twister"+Repository.getBar()+tree.getSelectionPath().getLastPathComponent();
+        if(defaulteditor.equals("Embedded"))openEmbeddedEditor(editable,remotefilename,localfilename);
+        else{File file2 = copyFileLocaly(remotefilename,localfilename);
+            executeCommand(Repository.getEditors().get(defaulteditor)+" "+localfilename);
+            sendFileToServer(file2, remotefilename);
+            file2.delete();}}
+    
+    /*
+     * refresh tree structure
+     */    
+    public void refreshTree(final MouseEvent ev){
+        new Thread(){
+            public void run(){
+                setEnabledTabs(false);
+                JFrame progress = new JFrame();
+                progress.setAlwaysOnTop(true);
+                progress.setLocation( (int)ev.getLocationOnScreen().getX(),(int)ev.getLocationOnScreen().getY());
+                progress.setUndecorated(true);
+                JProgressBar bar = new JProgressBar();
+                bar.setIndeterminate(true);
+                progress.add(bar);
+                progress.pack();
+                progress.setVisible(true);
+                refreshStructure();
+                progress.dispose();
+                setEnabledTabs(true);}}.start();}
+     
+    /*
+     * executes the command for opening an editor
+     */
     public void executeCommand(String command){
         try{String line;
             System.out.println("Executing "+command+" command");
@@ -306,7 +341,10 @@ public class ExplorerPanel extends JPanel {
         catch (Exception err) {
             System.out.println("Error in executing "+command+" command");
             err.printStackTrace();}}
-       
+     
+    /*
+     * opens a window for embeded editor
+     */
     public void openEmbeddedEditor(String editable,final String remotefile,final String localfile){
         final JFrame f = new JFrame();
         tree.setEnabled(false);
@@ -342,7 +380,6 @@ public class ExplorerPanel extends JPanel {
         JButton save = new JButton("Save");
         save.setPreferredSize(new Dimension(70,20));
         save.setMaximumSize(new Dimension(70,20));
-        //final String filename = tree.getSelectionPath().getPathComponent(tree.getSelectionPath().getPathCount()-2)+"/"+tree.getSelectionPath().getLastPathComponent();
         final File file = new File(localfile);
         JMenuBar menu = new JMenuBar();
         JMenu filemenu = new JMenu("File");
@@ -415,45 +452,7 @@ public class ExplorerPanel extends JPanel {
         catch(Exception e){
             e.printStackTrace();
             System.out.println("There was a problem in saving file "+localfile.getName()+" on hdd and uploading it to "+remotefile);}}
-        
-//     private String [] getEditor(){
-//         JPanel p = new JPanel();
-//         p.setPreferredSize(new Dimension(375,70));
-//         p.setMaximumSize(new Dimension(375,70));
-//         p.setLayout(null);       
-//         JLabel name = new JLabel("Name:");
-//         name.setBounds(5,10,60,25);
-//         p.add(name);
-//         JTextField tname = new JTextField();
-//         tname.setBounds(65,10,100,25);
-//         p.add(tname);
-//         JLabel path = new JLabel("Path:");
-//         path.setBounds(5,35,60,25);
-//         p.add(path);
-//         final JTextField tpath = new JTextField();
-//         tpath.setBounds(65,35,250,25);
-//         p.add(tpath);
-//         JButton browse = new JButton("...");
-//         browse.setBounds(320,35,50,25);
-//         browse.addActionListener(new ActionListener(){
-//             public void actionPerformed(ActionEvent evnt){
-//                 JFileChooser chooser = new JFileChooser(); 
-//                 chooser.setDialogTitle("Select editor executable path"); 
-//                 if (chooser.showOpenDialog(Repository.window) == JFileChooser.APPROVE_OPTION) {                    
-//                     tpath.setText(chooser.getSelectedFile().getPath());}}});
-//         p.add(browse);
-//         Object[] message = new Object[] {p};
-//         
-//         int r = (Integer)CustomDialog.showDialog(p, JOptionPane.QUESTION_MESSAGE, JOptionPane.OK_CANCEL_OPTION, ExplorerPanel.this, "Editor", null);
-//         if(r == JOptionPane.OK_OPTION && tname.getText().length()>0 && tpath.getText().length()>0){
-//             System.out.println(tname.getText()+" - "+tpath.getText());}
-//         
-//         
-//         r = JOptionPane.showConfirmDialog(ExplorerPanel.this, message, "Editor", JOptionPane.OK_CANCEL_OPTION,JOptionPane.QUESTION_MESSAGE,null);
-//         if(r == JOptionPane.OK_OPTION && tname.getText().length()>0 && tpath.getText().length()>0){
-//             return new String []{tname.getText(),tpath.getText()};}
-//         else return null;}
-        
+
     public void refreshStructure(){
         root.remove(0);
         try{Repository.c.cd(Repository.getTestSuitePath());
@@ -474,18 +473,34 @@ public class ExplorerPanel extends JPanel {
         
     public boolean getDragging(){
         return dragging;}
-
+        
+    /*
+     * construct the list for folders
+     * representation in jtree
+     */
     public void getList(DefaultMutableTreeNode node, ChannelSftp c){
         try{DefaultMutableTreeNode child = new DefaultMutableTreeNode(c.pwd());
-            Vector<LsEntry> vector1 = c.ls(".");
-            Vector <String> vector = new Vector<String>();
-            int lssize = vector1.size(); 
+            Vector<LsEntry> vector1 = c.ls(".");//all items for curent directory
+            Vector <String> vector = new Vector<String>();//wil combine folders and files
+            Vector <String> folders = new Vector<String>();//only folders
+            Vector <String> files = new Vector<String>();//only files
+            int lssize = vector1.size(); //size of curent directory
             if(lssize>2)node.add(child);
             for(int i=0;i<lssize;i++){
-                vector.add(vector1.get(i).getFilename());}
-            Collections.sort(vector);
-            for(int i = 0; i<lssize; i++){
-                if(vector.get(i).split("\\.").length==0)continue;
+                if(vector1.get(i).getFilename().split("\\.").length==0)continue;//don't want ".." items
+                try{c.cd(vector1.get(i).getFilename());//if it can go one level deep it is folder
+                    c.cd("..");
+                    folders.add(vector1.get(i).getFilename());}
+                catch(SftpException e){//could no go one level deep, it is file
+                    if(e.id==4){
+                        files.add(vector1.get(i).getFilename());}}}
+            Collections.sort(folders);
+            Collections.sort(files);
+            for(int i=0;i<folders.size();i++){//first add folders
+                vector.add(folders.get(i));}
+            for(int i=0;i<files.size();i++){//then add files
+                vector.add(files.get(i));}
+            for(int i = 0; i<vector.size(); i++){
                 try{c.cd(vector.get(i));
                     getList(child, c);
                     c.cd("..");}

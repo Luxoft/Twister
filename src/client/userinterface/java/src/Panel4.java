@@ -40,39 +40,64 @@ public class Panel4 extends JPanel{
         bemails.setBounds(20,70,200,25);
         bemails.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
-                main.removeAll();
-                main.setLayout(null);
-                scroll = new JScrollPane(emails);
-                scroll.setBounds(5,15,main.getWidth()-10,main.getHeight()-20);
-                main.add(scroll);
-                main.repaint();
-                main.revalidate();}});
+                setEmail();}});
         add(bemails);
         RoundButton database = new RoundButton("Database");
         database.setBounds(20,100,200,25);
         database.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
-                main.removeAll();
-                main.setLayout(null);
-                scroll = new JScrollPane(dbconfig);
-                scroll.setBounds(5,15,main.getWidth()-10,main.getHeight()-20);
-                main.add(scroll);
-                main.repaint();
-                main.revalidate();}});
+                setDatabase();}});
         add(database);
         RoundButton duts = new RoundButton("Device Under Test");
         duts.setBounds(20,130,200,25);
         duts.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
-                main.removeAll();
-                main.setLayout(new FlowLayout());
-                dut.setPreferredSize(new Dimension(main.getWidth()-5,main.getHeight()-5));
-                main.add(dut);
-                main.repaint();
-                main.revalidate();}});
+                setDuts();}});
         add(duts);
         setPaths();}
+       
+    /*
+     * set email content
+     * into this window
+     */
+    public void setEmail(){
+        main.removeAll();
+        main.setLayout(null);
+        scroll = new JScrollPane(emails);
+        scroll.setBounds(5,15,main.getWidth()-10,main.getHeight()-20);
+        main.add(scroll);
+        main.repaint();
+        main.revalidate();}
+     
+    /*
+     * set database content
+     * into this window
+     */
+    public void setDatabase(){
+        main.removeAll();
+        main.setLayout(null);
+        scroll = new JScrollPane(dbconfig);
+        scroll.setBounds(5,15,main.getWidth()-10,main.getHeight()-20);
+        main.add(scroll);
+        main.repaint();
+        main.revalidate();}
     
+    /*
+     * set duts  content
+     * into this window
+     */
+    public void setDuts(){        
+        main.removeAll();
+        main.setLayout(new FlowLayout());
+        dut.setPreferredSize(new Dimension(main.getWidth()-5,main.getHeight()-5));
+        main.add(dut);
+        main.repaint();
+        main.revalidate();}
+    
+    /*
+     * set paths configuration content
+     * into this window
+     */
     public void setPaths(){
         main.removeAll();
         main.setLayout(null);

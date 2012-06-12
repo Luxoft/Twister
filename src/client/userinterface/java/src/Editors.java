@@ -33,9 +33,9 @@ import java.awt.Point;
  */
 public class Editors extends JFrame {
     private JComboBox editorscombo;
-    private JButton jButton1;
-    private JButton jButton2;
-    private JButton jButton3;
+    private JButton remove;
+    private JButton add;
+    private JButton browse;
     private JCheckBox defaultcheck;
     private JLabel jLabel1;
     private JLabel jLabel2;
@@ -47,6 +47,9 @@ public class Editors extends JFrame {
     public Editors(Point p) {
         initComponents(p);}        
         
+    /*
+     * editors window initialization
+     */
     private void initComponents(Point p) {
         setLocation(p);
         setAlwaysOnTop(true);
@@ -56,27 +59,27 @@ public class Editors extends JFrame {
         tname = new JTextField();
         jLabel3 = new JLabel();
         tcommand = new JTextField();
-        jButton1 = new JButton();
-        jButton2 = new JButton();
+        remove = new JButton();
+        add = new JButton();
         jLabel4 = new JLabel();
         defaultcheck = new JCheckBox();
-        jButton3 = new JButton();
+        browse = new JButton();
         
         if(Repository.getDefaultEditor().equals(getEditors()[0]))defaultcheck.setSelected(true);
         if(getEditors()[0].equals("Embedded")){
             tname.setEnabled(false);
-            jButton1.setEnabled(false);
+            remove.setEnabled(false);
             tcommand.setEnabled(false);
-            jButton3.setEnabled(false);}
+            browse.setEnabled(false);}
         
-        jButton2.addActionListener(new ActionListener(){
+        add.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 String [] editor = getEditor();
                 if(editor!=null){
                     Repository.addEditor(editor);
                     editorscombo.addItem(editor[0]);}}});
         
-        jButton1.addActionListener(new ActionListener(){
+        remove.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 int index = editorscombo.getSelectedIndex();
                 Repository.removeEditor(editorscombo.getSelectedItem().toString());
@@ -90,7 +93,6 @@ public class Editors extends JFrame {
                     int index = editorscombo.getSelectedIndex();
                     if(defaultcheck.isSelected())Repository.setDefaultEditor(name);
                     saveTName(name,editorscombo.getItemAt(index).toString());
-                    
                     editorscombo.removeItemAt(index);
                     editorscombo.insertItemAt(name, index);
                     editorscombo.setSelectedIndex(index);
@@ -111,20 +113,20 @@ public class Editors extends JFrame {
                 if(evt.getStateChange() == ItemEvent.SELECTED){
                     if(evt.getItem().toString().equals("Embedded")){
                         tname.setEnabled(false);
-                        jButton1.setEnabled(false);
+                        remove.setEnabled(false);
                         tcommand.setEnabled(false);
-                        jButton3.setEnabled(false);}
+                        browse.setEnabled(false);}
                     else{
                         tname.setEnabled(true);
-                        jButton1.setEnabled(true);
+                        remove.setEnabled(true);
                         tcommand.setEnabled(true);
-                        jButton3.setEnabled(true);}
+                        browse.setEnabled(true);}
                     if(Repository.getDefaultEditor().equals(evt.getItem().toString())) defaultcheck.setSelected(true);
                     else defaultcheck.setSelected(false);
                     tname.setText(evt.getItem().toString());
                     tcommand.setText(Repository.getEditors().get(evt.getItem().toString()).getAsString());}}});        
         
-        jButton3.addActionListener(new ActionListener(){
+        browse.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent evnt){
                 JFileChooser chooser = new JFileChooser();
                 chooser.setDialogTitle("Select editor executable path"); 
@@ -140,18 +142,12 @@ public class Editors extends JFrame {
         tcommand.setText(Repository.getEditors().get(getEditors()[0]).getAsString());
         
         jLabel1.setText("Editors");
-
         jLabel2.setText("Name");
-
         jLabel3.setText("Command");
-
-        jButton1.setText("Remove");
-
-        jButton2.setText("Add");
-
+        remove.setText("Remove");
+        add.setText("Add");
         jLabel4.setText("Default:");
-        
-        jButton3.setText("...");
+        browse.setText("...");
 
         GroupLayout layout = new GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
@@ -178,17 +174,15 @@ public class Editors extends JFrame {
                             .addGroup(layout.createSequentialGroup()
                                 .addComponent(tcommand, GroupLayout.DEFAULT_SIZE, 181, Short.MAX_VALUE)
                                 .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
-                                .addComponent(jButton3)))
+                                .addComponent(browse)))
                         .addContainerGap())
                     .addGroup(layout.createSequentialGroup()
                         .addGap(0, 0, Short.MAX_VALUE)
-                        .addComponent(jButton2)
+                        .addComponent(add)
                         .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(jButton1)
+                        .addComponent(remove)
                         .addGap(10, 10, 10)))));
-
-        layout.linkSize(SwingConstants.HORIZONTAL, new Component[] {jButton1, jButton2});
-
+        layout.linkSize(SwingConstants.HORIZONTAL, new Component[] {remove, add});
         layout.setVerticalGroup(
             layout.createParallelGroup(GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
@@ -206,21 +200,34 @@ public class Editors extends JFrame {
                 .addGroup(layout.createParallelGroup(GroupLayout.Alignment.CENTER)
                     .addComponent(jLabel3)
                     .addComponent(tcommand, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jButton3))
+                    .addComponent(browse))
                 .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
                 .addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
-                    .addComponent(jButton2)
-                    .addComponent(jButton1))
+                    .addComponent(add)
+                    .addComponent(remove))
                 .addContainerGap(GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)));
         pack();}
     
+    /*
+     * redefine editor path
+     */
     public void saveTCommand(String command, String element){
         Repository.addEditor(new String[]{element,command});}
-    
+        
+    /*
+     * change editor name
+     * name - new name
+     * element - the name to be removed
+     */
     public void saveTName(String name, String element){
         Repository.addEditor(new String[]{name,Repository.getEditors().get(element).getAsString()});
         Repository.removeEditor(element);}
         
+    /*
+     * define a new editor 
+     * returns name and path of
+     * the new editor
+     */    
     public String [] getEditor(){
         JPanel p = new JPanel();
         p.setPreferredSize(new Dimension(375,70));
@@ -248,13 +255,16 @@ public class Editors extends JFrame {
                     tpath.setText(chooser.getSelectedFile().getPath());}}});
         p.add(browse);
         Object[] message = new Object[] {p};
-        
         int r = (Integer)CustomDialog.showDialog(p, JOptionPane.QUESTION_MESSAGE, JOptionPane.OK_CANCEL_OPTION, Editors.this, "Editor", null);
         if(r == JOptionPane.OK_OPTION && tname.getText().length()>0 && tpath.getText().length()>0){
             System.out.println(tname.getText()+" - "+tpath.getText());
             return new String []{tname.getText(),tpath.getText()};}
         else return null;}
-        
+   
+    /*
+     * get editors from
+     * repository as an array
+     */
     public String[] getEditors(){
         String [] vecresult;
         JsonObject editors = Repository.getEditors();
