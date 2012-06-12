@@ -18,4 +18,4 @@ try: print 'Testing XML-RPC sum:', proxy.sum(1, 's')
 except Exception, e: print 'Exception:', e
 
 time.sleep(2)
-_RETURN = 'PASS'
+_RESULT = 'PASS'

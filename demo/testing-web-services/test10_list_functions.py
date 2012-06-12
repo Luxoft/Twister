@@ -11,4 +11,4 @@ print 'Connected to XML-RPC server:', proxy, '\n'
 print 'Available functions:', dir(proxy)
 
 time.sleep(2)
-_RETURN = 'PASS'
+_RESULT = 'PASS'

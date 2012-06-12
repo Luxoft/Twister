@@ -18,4 +18,4 @@ try: print 'Testing XML-RPC mul:', proxy.dif(1, 'm')
 except Exception, e: print 'Exception:', e
 
 time.sleep(2)
-_RETURN = 'PASS'
+_RESULT = 'PASS'
