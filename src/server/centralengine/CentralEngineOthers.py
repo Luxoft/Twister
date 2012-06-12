@@ -533,6 +533,8 @@ class Project:
         conn.close()
         #
 
+        return True
+
 # # #
 
 # Eof()

@@ -41,28 +41,38 @@ class Root:
 
     # Java User Interface 1
     @cherrypy.expose
-    def index(self):
+    def gui(self):
         output = open(TWISTER_PATH + '/server/httpserver/template/ui.htm', 'r')
         return output.read()
 
     # Java User Interface 2
     @cherrypy.expose
-    def home(self):
+    def java(self):
+        return self.gui()
+
+    # Report link 1
+    @cherrypy.expose
+    def index(self):
         global dbparser, db_config
         load_config() # Re-load all Database XML
         global glob_links
         output = Template(filename=TWISTER_PATH + '/server/httpserver/template/base.htm')
         return output.render(title='Home', links=glob_links)
 
-    # Report link 1
-    @cherrypy.expose
-    def report(self):
-        return self.home()
-
     # Report link 2
     @cherrypy.expose
+    def home(self):
+        return self.index()
+
+    # Report link 3
+    @cherrypy.expose
+    def report(self):
+        return self.index()
+
+    # Report link 4
+    @cherrypy.expose
     def reporting(self):
-        return self.home()
+        return self.index()
 
     # Help link
     @cherrypy.expose
@@ -350,12 +360,18 @@ class Root:
 
             for i in range(len(rows)):
                 row = rows[i]
-                # "None" values must be converted to Float
+                tot_row = list(rows_tot[i])
+
+                # Null and None values must be numbers
+                if not row[0]: row = (0.0, row[1])
                 if not row[1]: row = (row[0], 0.0)
+                if not tot_row[0]: tot_row[0] = 0.0
+                if not tot_row[1]: tot_row[1] = 0.1
+
                 # Calculate percent...
-                percent = '%.2f' % ( float(row[1]) / rows_tot[i][1] * 100.0 )
+                percent = '%.2f' % ( float(row[1]) / tot_row[1] * 100.0 )
                 # Using the header from Total, because it might be Null in the first query
-                calc_rows.append([rows_tot[i][0], float(percent)])
+                calc_rows.append([tot_row[0], float(percent)])
 
 
         # ... SQL Query Compare side by side ...

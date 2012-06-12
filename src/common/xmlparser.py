@@ -53,7 +53,7 @@ class TSCParser:
     - Logs Path
     - Reports Path
     - EPs list, active EPs
-    - Test files for specific EpId
+    - Test files for specific EP
     '''
 
     def __init__(self, config_data):
@@ -80,7 +80,7 @@ class TSCParser:
         if config_ts.startswith('~'):
             config_ts = os.getenv('HOME') + config_ts[1:]
         if not os.path.isfile(config_ts):
-            print('TSCParser: Test Suite Config file `%s` does not exist!' % config_ts)
+            print('TSCParser: Test Suite Config file `%s` does not exist! Please check framework config XML file!' % config_ts)
             return -1
 
         # Hash check the XML file, to see if is changed
@@ -149,7 +149,7 @@ class TSCParser:
         if e_file.startswith('~'):
             e_file = os.getenv('HOME') + e_file[1:]
         if not os.path.isfile(e_file):
-            print('TSCParser: E-mail Config file `%s` does not exist!' % e_file)
+            print('TSCParser: E-mail Config file `%s` does not exist! Please check framework config XML file!' % e_file)
             return -1
 
         econfig = BeautifulStoneSoup(open(e_file))
@@ -191,7 +191,7 @@ class TSCParser:
         if res.startswith('~'):
             res = os.getenv('HOME') + res[1:]
         if not os.path.isfile(res):
-            print('TSCParser: EpIds file `%s` does not exist!' % res)
+            print('TSCParser: EP Names file `%s` does not exist! Please check framework config XML file!' % res)
             return None
 
         self.epids = []
@@ -202,7 +202,7 @@ class TSCParser:
 
     def getActiveEps(self):
         '''
-        Returns a list with all active EpIds from Master XML.
+        Returns a list with all active EPs from Master XML.
         '''
         activeEpids = []
         for ep in self.configTS('epid'):
@@ -269,7 +269,7 @@ class TSCParser:
             return []
 
         if epname not in self.epids:
-            print('TSCParser: Station `%s` is not in the list of defined EPIds: `%s`!' % \
+            print('TSCParser: Station `%s` is not in the list of defined EPs: `%s`!' % \
                 (str(epname), str(self.epids)) )
             return []
 

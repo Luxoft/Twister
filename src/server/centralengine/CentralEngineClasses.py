@@ -505,8 +505,8 @@ class CentralEngine(_cptools.XMLRPCController):
         executionStatus = self.project.getUserInfo('status') or 8
 
         # Re-initialize the Master XML and Reset all logs on fresh start!
-        # This will always happen when the START button is pressed
-        if (executionStatus != STATUS_PAUSED and executionStatus != STATUS_RUNNING) and new_status == STATUS_RUNNING:
+        # This will always happen when the START button is pressed, if CE is stopped
+        if executionStatus == STATUS_STOP and new_status == STATUS_RUNNING:
 
             logWarning('CE: RESET Central Engine configuration...') ; ti = time.clock()
             self.project = Project(self.config_path)
@@ -517,16 +517,18 @@ class CentralEngine(_cptools.XMLRPCController):
             self.project.setUserInfo('start_time', datetime.datetime.today().strftime('%Y-%m-%d %H:%M:%S'))
             self.project.setUserInfo('elapsed_time', 0)
 
-        # Change test status to PENDING, for all files, on status START, from status STOP
-        if executionStatus == STATUS_STOP and new_status == STATUS_RUNNING:
+            # Change test status to PENDING, for all files
             self.project.setFileStatusAll(STATUS_PENDING)
 
-        # Change status for User
+        # Update status for User
         self.project.setUserInfo('status', new_status)
 
-        # Change status for ALL EPs
+        # Update status for EPs with Suites
         for epname in self.project.data['eps']:
-            self.project.setEpInfo(epname, 'status', new_status)
+            epdata = self.project.getEpInfo(epname)
+            # If the EP has suites, update its status
+            if epdata['suites']:
+                self.project.setEpInfo(epname, 'status', new_status)
 
         reversed = dict((v,k) for k,v in execStatus.iteritems())
 
