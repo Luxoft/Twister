@@ -64,7 +64,7 @@ def RUN(tList):
         elif STATUS == 'paused': # On pause, freeze cycle and wait for Resume or Stop
             print('EP::Windows: Paused!... Press RESUME to continue, or STOP to exit test suite...')
             while 1:
-                time.sleep(0.5)
+                time.sleep(2)
                 STATUS = proxy.getExecStatus(globEpName)
                 # On resume, stop waiting
                 if STATUS == 'running' or STATUS == 'resume':
@@ -124,7 +124,7 @@ def RUN(tList):
         #
         elif file_ext == '.py':
             outPython = outDir + os.sep + outFile
-            toExecute = outDir + os.sep + os.path.splitext(outFile)[0] + os.sep + os.path.splitext(outFile)[0] + '.py'
+            toExecute = outPython
             with open(outPython, "wb") as handle:
                 print 'EP::Selenium: Writing selenium file `%s`.' % outPython
                 handle.write(proxy.getTestFile(globEpName, tcId).data)
@@ -220,11 +220,12 @@ def RUN(tList):
             except: print 'EP::Testcomplete: Cannot cleanup %s!\n' % toDelete
         #
         elif file_ext == '.py':
-            try: os.remove(outDir + os.sep + outFile)
+            try: os.remove(outDir + os.sep + outFile) ; print('Cleanup successful.\n')
             except: print 'EP::Python: Cannot cleanup %s!\n' % (outDir + os.sep + outFile)
-            try: os.remove(toExecute)
-            except: print 'EP::Python: Cannot cleanup %s!\n' % toExecute
         #
+
+    print('EP debug: Run complete!\n')
+    proxy.setExecStatus(globEpName, 0, 'Run complete!') # Set EpId status STOP
 
 #
 
@@ -251,6 +252,5 @@ while 1:
         print('EP debug: Starting the runner!!!')
         tList = proxy.getEpFiles(globEpName)
         RUN(tList)
-        proxy.setExecStatus(globEpName, 0) # Set EpId status STOP
 
     time.sleep(2)

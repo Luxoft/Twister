@@ -626,7 +626,7 @@ class CentralEngine(_cptools.XMLRPCController):
                 filename = os.getenv('HOME') + filename[1:]
             if not os.path.isfile(filename):
                 logError('CE ERROR! TestCase file: `%s` does not exist!' % filename)
-                return False
+                return ''
 
             logDebug('CE: Station {0} requested file `{1}`'.format(epname, filename))
 

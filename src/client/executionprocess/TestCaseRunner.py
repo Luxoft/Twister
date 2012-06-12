@@ -430,8 +430,12 @@ if __name__=='__main__':
 
             str_to_execute = proxy.getTestFile(globEpName, file_id)
             # If CE sent False, it means the file is empty, does not exist, or it's not runnable.
-            if not str_to_execute:
-                print('TC debug: File `{0}` will be skipped.'.format(file_id))
+            if str_to_execute == '':
+                print('TC debug: File path `{0}` does not exist!\n'.format(filename))
+                proxySetTestStatus(globEpName, file_id, STATUS_SKIPPED, 0.0) # Status SKIPPED
+                continue
+            elif not str_to_execute:
+                print('TC debug: File `{0}` will be skipped.\n'.format(filename))
                 proxySetTestStatus(globEpName, file_id, STATUS_SKIPPED, 0.0) # Status SKIPPED
                 continue
 
