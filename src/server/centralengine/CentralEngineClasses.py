@@ -477,7 +477,7 @@ class CentralEngine(_cptools.XMLRPCController):
                 logDebug('CE: All stations stopped! Central engine will also STOP!')
 
                 # On Central Engine stop, send e-mail?
-                #self.sendMail()
+                self.sendMail()
 
                 # On Central Engine stop, save to database?
                 #self.commitToDatabase()
@@ -723,30 +723,29 @@ class CentralEngine(_cptools.XMLRPCController):
         # Get logSummary path from framework config
         logPath = self.parser.getLogFileForType('logSummary')
 
-        # Only write important statuses in logs
-        if status_str in ['pass', 'fail', 'aborted', 'timeout', 'not executed']:
-            if status_str=='not executed': status_str='*NO EXEC*'
-            else: status_str='*%s*' % status_str.upper()
+        # Write all statuses in logs, because all files will be saved to database
+        if status_str=='not executed': status_str='*NO EXEC*'
+        else: status_str='*%s*' % status_str.upper()
 
-            # # Inject information into File Classes
-            now = datetime.datetime.today()
-            self.project.setFileInfo(epname, suite, file_id, 'twister_tc_status',
-                status_str.replace('*', ''))
-            self.project.setFileInfo(epname, suite, file_id, 'twister_tc_crash_detected',
-                data.get('twister_tc_crash_detected', 0))
-            self.project.setFileInfo(epname, suite, file_id, 'twister_tc_time_elapsed',
-                int(time_elapsed))
-            self.project.setFileInfo(epname, suite, file_id, 'twister_tc_date_started',
-                (now - datetime.timedelta(seconds=time_elapsed)).isoformat())
-            self.project.setFileInfo(epname, suite, file_id, 'twister_tc_date_finished',
-                (now.isoformat()))
+        # # Inject information into File Classes
+        now = datetime.datetime.today()
+        self.project.setFileInfo(epname, suite, file_id, 'twister_tc_status',
+            status_str.replace('*', ''))
+        self.project.setFileInfo(epname, suite, file_id, 'twister_tc_crash_detected',
+            data.get('twister_tc_crash_detected', 0))
+        self.project.setFileInfo(epname, suite, file_id, 'twister_tc_time_elapsed',
+            int(time_elapsed))
+        self.project.setFileInfo(epname, suite, file_id, 'twister_tc_date_started',
+            (now - datetime.timedelta(seconds=time_elapsed)).isoformat())
+        self.project.setFileInfo(epname, suite, file_id, 'twister_tc_date_finished',
+            (now.isoformat()))
 
-            with open(logPath, 'a') as status_file:
-                status_file.write(' {ep}::{suite}::{file} | {status} | {elapsed} | {date}\n'.format(
-                    ep = epname.center(9), suite = suite.center(9), file = filename.center(28),
-                    status = status_str.center(11),
-                    elapsed = ('%.2fs' % time_elapsed).center(10),
-                    date = now.strftime('%a %b %d, %H:%M:%S')))
+        with open(logPath, 'a') as status_file:
+            status_file.write(' {ep}::{suite}::{file} | {status} | {elapsed} | {date}\n'.format(
+                ep = epname.center(9), suite = suite.center(9), file = filename.center(28),
+                status = status_str.center(11),
+                elapsed = ('%.2fs' % time_elapsed).center(10),
+                date = now.strftime('%a %b %d, %H:%M:%S')))
 
         # Return string
         return status_str
