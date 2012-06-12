@@ -63,7 +63,7 @@ import java.awt.event.ActionEvent;
 import javax.swing.UIManager;
 import javax.swing.SwingUtilities;
 import java.awt.Dimension;
-import org.pushingpixels.substance.api.skin.SubstanceMistAquaLookAndFeel;
+
 
 /*
  * static class to hold
@@ -312,9 +312,7 @@ public class Repository{
         SwingUtilities.invokeLater(new Runnable(){
             public void run(){
                 System.out.println("Setting UI: "+look);
-                try{
-                    UIManager.setLookAndFeel("org.pushingpixels.substance.api.skin.SubstanceMistAquaLookAndFeel");
-//                     UIManager.setLookAndFeel(Repository.getLooks().get(look).getAsString());
+                try{UIManager.setLookAndFeel(Repository.getLooks().get(look).getAsString());
                     if(applet){SwingUtilities.updateComponentTreeUI(container);
 //                         try {
 //                             JSObject object = JSObject.getWindow(window.container);
