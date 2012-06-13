@@ -312,7 +312,8 @@ public class Repository{
         SwingUtilities.invokeLater(new Runnable(){
             public void run(){
                 System.out.println("Setting UI: "+look);
-                try{UIManager.setLookAndFeel(Repository.getLooks().get(look).getAsString());
+                try{UIManager.setLookAndFeel("com.jgoodies.looks.plastic.PlasticXPLookAndFeel");
+//                     UIManager.setLookAndFeel(Repository.getLooks().get(look).getAsString());
                     if(applet){SwingUtilities.updateComponentTreeUI(container);
 //                         try {
 //                             JSObject object = JSObject.getWindow(window.container);
