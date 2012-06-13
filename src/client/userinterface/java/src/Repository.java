@@ -157,6 +157,9 @@ public class Repository{
                     array2.addProperty("MetalLookAndFeel", "javax.swing.plaf.metal.MetalLookAndFeel");
                     array2.addProperty("MotifLookAndFeel", "com.sun.java.swing.plaf.motif.MotifLookAndFeel");
                     array2.addProperty("WindowsLookAndFeel", "com.sun.java.swing.plaf.windows.WindowsLookAndFeel");
+                    array2.addProperty("JGoodiesWindowsLookAndFeel", "com.jgoodies.looks.windows.WindowsLookAndFeel");
+                    array2.addProperty("Plastic3DLookAndFeel", "com.jgoodies.looks.plastic.Plastic3DLookAndFeel");
+                    array2.addProperty("PlasticXPLookAndFeel", "com.jgoodies.looks.plastic.PlasticXPLookAndFeel");
                     array2.addProperty("DEFAULT", "MetalLookAndFeel");
                     root.add("editors", array);
                     root.add("looks", array2);
@@ -312,17 +315,8 @@ public class Repository{
         SwingUtilities.invokeLater(new Runnable(){
             public void run(){
                 System.out.println("Setting UI: "+look);
-                try{UIManager.setLookAndFeel("com.jgoodies.looks.plastic.PlasticXPLookAndFeel");
-//                     UIManager.setLookAndFeel(Repository.getLooks().get(look).getAsString());
-                    if(applet){SwingUtilities.updateComponentTreeUI(container);
-//                         try {
-//                             JSObject object = JSObject.getWindow(window.container);
-//                 
-//                             object.eval("resize()");
-//                         } catch (Exception e) {
-//                             e.printStackTrace();
-//                         }
-                    }
+                try{UIManager.setLookAndFeel(Repository.getLooks().get(look).getAsString());
+                    if(applet){SwingUtilities.updateComponentTreeUI(container);}
                     else{SwingUtilities.updateComponentTreeUI(window);}}
                 catch(Exception e){e.printStackTrace();}}});}
         
@@ -886,7 +880,7 @@ public class Repository{
         for(int i=0;i<length;i++){                        
             entry = (Entry)iter.next();
             if(entry.getKey().toString().equals("DEFAULT"))continue;
-            lookAndFeels[index] = ((JsonPrimitive)entry.getValue()).getAsString();
+            lookAndFeels[index] = (String)entry.getKey();
             index++;}}
         
      /*
@@ -896,12 +890,12 @@ public class Repository{
       */
     private static int populateCombo(JComboBox combo,String[]list){
         int index = -1;
-        String [] name;
+        String name;
+        System.out.println("list length is: "+list.length);
         for(int i=0;i<list.length;i++){
-            try{Class.forName(list[i]);
-                name = list[i].split("\\.");
-                combo.addItem(name[name.length-1]);
-                if(Repository.getDefaultLook().equals(name[name.length-1])){
+            try{Class.forName(getLooks().get(list[i]).getAsString());                
+                combo.addItem(list[i]);
+                if(Repository.getDefaultLook().equals(list[i])){
                     index = i;}}
             catch(Exception e){continue;}}
         return index;}
