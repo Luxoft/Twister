@@ -18,7 +18,7 @@ jarsigner ../extlibs/xmlrpc-client-3.1.3.jar Twister -storepass password
 jarsigner ../extlibs/xmlrpc-common-3.1.3.jar Twister -storepass password
 jarsigner ../extlibs/jgoodies-looks-2.5.1.jar Twister -storepass password
 jarsigner ../extlibs/jgoodies-common-1.3.1.jar Twister -storepass password
-
+jarsigner ../extlibs/gson-2.2.1.jar Twister -storepass password
 
 keytool -export -alias Twister -rfc -file sig.x509 -storepass password
 
