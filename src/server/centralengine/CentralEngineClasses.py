@@ -37,6 +37,12 @@ if not sys.version.startswith('2.7'):
     print('Python version error! Central Engine must run on Python 2.7!')
     exit(1)
 
+TWISTER_PATH = os.getenv('TWISTER_PATH')
+if not TWISTER_PATH:
+    print('$TWISTER_PATH environment variable is not set! Exiting!')
+    exit(1)
+sys.path.append(TWISTER_PATH)
+
 import re
 import glob
 import time
@@ -44,18 +50,10 @@ import datetime
 import binascii
 import xmlrpclib
 import MySQLdb
-
 import cherrypy
+
 from cherrypy import _cptools
-
 from xml.dom.minidom import parseString
-
-
-TWISTER_PATH = os.getenv('TWISTER_PATH')
-if not TWISTER_PATH:
-    print('$TWISTER_PATH environment variable is not set! Exiting!')
-    exit(1)
-sys.path.append(TWISTER_PATH)
 
 from CentralEngineOthers import Project
 
@@ -105,7 +103,7 @@ class CentralEngine(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
-    def stats(self, epname=''):
+    def stats(self, epname='', suite=''):
         '''
         This function should be used in the browser.
         It prints a few statistics about the Central Engine.
@@ -116,30 +114,60 @@ class CentralEngine(_cptools.XMLRPCController):
         reversed = dict((v,k) for k,v in execStatus.iteritems())
         status = reversed[self.project.getUserInfo('status')]
         now = datetime.datetime.today()
-        now_str = now.strftime('%Y-%m-%d %H:%M:%S')
+        if now.second < 59:
+            now_str = now.replace(second=now.second+1).strftime('%Y-%m-%d %H:%M:%S')
+        else:
+            now_str = now.replace(minute=now.minute+1, second=0).strftime('%Y-%m-%d %H:%M:%S')
+        ce_host = cherrypy.config['server.socket_host']
+        ce_port = cherrypy.config['server.socket_port']
+        host = cherrypy.request.headers['Host']
 
         if epname:
             if not self.searchEP(epname):
                 return '<b>Execution Process `{0}` doesn\'t exist!</b>'.format(epname)
 
-            data = self.project.getEpInfo(epname)
-            ret = '''
+            # EP name only
+            if not suite:
+                data = self.project.getEpInfo(epname)
+                ret = '''
 <head>
 <title>Central Engine Statistics</title>
 </head>
 <body>
 <h3>Execution Process `{epname}`</h3>
-<b>Status</b>: {status}<br>
-<b>Ping</b>: {ping}<br>
-<b>Suites</b>: {suites}<br>
+<b>Status</b>: {status}<br><br>
+<b>Ping</b>: {ping}<br><br>
+<b>Suites</b>: [<br>{suites}<br>]
 </body>
-        '''.format(
-                epname=epname,
-                status=reversed[data.get('status', STATUS_INVALID)],
-                ping=str( (now - datetime.datetime.strptime(data.get('last_seen_alive', now_str), '%Y-%m-%d %H:%M:%S')).seconds ) + 's',
-                suites='['+', '.join(data['suites'].keys())+']',
-            )
+            '''.format(
+                    epname = epname,
+                    status = reversed[data.get('status', STATUS_INVALID)],
+                    ping = str( (now - datetime.datetime.strptime(data.get('last_seen_alive', now_str), '%Y-%m-%d %H:%M:%S')).seconds ) + 's',
+                    suites = '<br>'.join(['&nbsp;&nbsp;<a href="http://{host}/stats?epname={ep}&suite={s}">{s}</a>'.format(
+                             host = host, ep = epname, s = k)
+                             for k in data['suites'].keys()])
+                )
 
+            # EP name and Suite name
+            else:
+                data = self.project.getSuiteInfo(suite)
+                reversed = dict((v,k) for k,v in testStatus.iteritems())
+                ret = '''
+<head>
+<title>Central Engine Statistics</title>
+</head>
+<body>
+<h3>EP `{epname}` -> Suite `{suite}`</h3>
+<b>Files</b>: [<br>{files}<br>]
+</body>
+                '''.format(
+                    epname = epname,
+                    suite = suite,
+                    files = '<br>'.join(['&nbsp;&nbsp;{0}: {1}'.format(data['files'][k]['file'], reversed[data['files'][k]['status']] )
+                            for k in data['files']])
+                )
+
+        # General statistics
         else:
             ret = '''
 <head>
@@ -149,14 +177,16 @@ class CentralEngine(_cptools.XMLRPCController):
 <h3>Central Engine Statistics</h3>
 <b>Running on</b>: {host}:{port}<br><br>
 <b>Status</b>: {status}<br><br>
-<b>Processes</b>:<br>{eps}<br><br>
+<b>Processes</b>: [<br>{eps}<br>]
 </body>
         '''.format(
-            status=status,
-            host=cherrypy.config['server.socket_host'],
-            port=cherrypy.config['server.socket_port'],
-            eps='<br>'.join(
-                [ep +': '+ reversed[self.project.data['eps'][ep].get('status', STATUS_INVALID)] for ep in self.project.data['eps']]
+            status = status,
+            host = ce_host,
+            port = ce_port,
+            eps = '<br>'.join(
+                ['&nbsp;&nbsp;<a href="http://{host}/stats?epname={ep}">{ep}</a>: {status}'.format(
+                    ep=ep, host=host, status=reversed[self.project.data['eps'][ep].get('status', STATUS_INVALID)])
+                    for ep in self.project.data['eps']]
                 )
             )
 
