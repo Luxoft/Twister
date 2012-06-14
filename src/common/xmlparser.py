@@ -296,10 +296,10 @@ class TSCParser:
             print('TSCParser: Current suite has no files!')
 
         for TestCase in files:
-            fname = TestCase.parent.tcname.text
-            ts.append(fname)
+            tcid = TestCase.parent.tcid.text
+            ts.append(tcid)
 
-        print('TSCParser: TestSuite Files (%s files) took %.4f seconds.' % (len(ts), time.clock()-ti))
+        #print('TSCParser: TestSuite Files (%s files) took %.4f seconds.' % (len(ts), time.clock()-ti))
         return ts
 
 
