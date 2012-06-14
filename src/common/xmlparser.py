@@ -150,7 +150,7 @@ class TSCParser:
             e_file = os.getenv('HOME') + e_file[1:]
         if not os.path.isfile(e_file):
             print('TSCParser: E-mail Config file `%s` does not exist! Please check framework config XML file!' % e_file)
-            return -1
+            return {}
 
         econfig = BeautifulStoneSoup(open(e_file))
 

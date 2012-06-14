@@ -136,6 +136,9 @@ class Project:
         Recalculate all pointers for Suites and Files.
         The pointers are useful for searching the data very fast.
         '''
+        # Ordered list of file IDs
+        self.test_ids = self.parser.getAllTestFiles()
+
         # Shortcut for ALL suites data
         self.suites_data = OrderedDict()
         for ep in self.data['eps']:
@@ -297,20 +300,27 @@ class Project:
             logError('Project: Must provide both EP and Suite!')
             return []
 
+        statuses = {}
+        final = []
+
         if epname:
-            statuses = []
             if suite:
                 for fname in self.data['eps'][epname]['suites'][suite]['files']:
                     s = self.data['eps'][epname]['suites'][suite]['files'][fname].get('status', -1)
-                    statuses.append( str(s) )
+                    statuses[fname] = str(s)
             else:
                 for suite in self.data['eps'][epname]['suites']:
                     for fname in self.data['eps'][epname]['suites'][suite]['files']:
                         s = self.data['eps'][epname]['suites'][suite]['files'][fname].get('status', -1)
-                        statuses.append( str(s) )
-            return statuses
+                        statuses[fname] = str(s)
         else:
-            return [ str( self.files_data[k].get('status', -1) ) for k in self.files_data ]
+            statuses = { k: str( self.files_data[k].get('status', -1) ) for k in self.files_data }
+
+        for tcid in self.test_ids:
+            if tcid in statuses:
+                final.append(statuses[tcid])
+
+        return final
 
     getFileStatusAll.exposed = True
 
@@ -340,6 +350,9 @@ class Project:
 
         # This is updated every time.
         eMailConfig = self.parser.getEmailConfig()
+        if not eMailConfig:
+            logWarning('E-mail: Nothing to do here.')
+            return False
 
         logPath = self.data['log_types']['logsummary']
         logSummary = open(logPath).read()

@@ -100,7 +100,7 @@ def saveLibraries(proxy):
         # Write in __init__ file.
         ext = os.path.splitext(lib_file)
         if ext[1] == '.zip':
-            __init.write('sys.path.append(__path__[0] + "/%s")\n\n' % lib_file)
+            __init.write('sys.path.append("%s")\n\n' % lib_file)
         else:
             __init.write('import %s\n' % ext[0])
             __init.write('from %s import *\n\n' % ext[0])

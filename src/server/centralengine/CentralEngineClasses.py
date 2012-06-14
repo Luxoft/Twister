@@ -498,7 +498,7 @@ class CentralEngine(_cptools.XMLRPCController):
 
         # If all Stations are stopped, the Central Engine must also stop!
         # This is important, so that in the Java GUI, the buttons will change to [Play | Stop]
-        if not sum([self.project.getEpInfo(ep).get('status', 8) for ep in self.parser.getActiveEps()]):
+        if not sum([self.project.getEpInfo(ep).get('status', 8) for ep in self.project.parser.getActiveEps()]):
 
             # If User status was not Stop
             if self.project.getUserInfo('status'):
@@ -536,7 +536,7 @@ class CentralEngine(_cptools.XMLRPCController):
 
         # Re-initialize the Master XML and Reset all logs on fresh start!
         # This will always happen when the START button is pressed, if CE is stopped
-        if executionStatus == STATUS_STOP and new_status == STATUS_RUNNING:
+        if (executionStatus == STATUS_STOP or executionStatus == STATUS_INVALID) and new_status == STATUS_RUNNING:
 
             logWarning('CE: RESET Central Engine configuration...') ; ti = time.clock()
             self.project = Project(self.config_path)
@@ -553,19 +553,17 @@ class CentralEngine(_cptools.XMLRPCController):
         # Update status for User
         self.project.setUserInfo('status', new_status)
 
-        # Update status for EPs with Suites
-        for epname in self.project.data['eps']:
-            epdata = self.project.getEpInfo(epname)
-            # If the EP has suites, update its status
-            if epdata['suites']:
-                self.project.setEpInfo(epname, 'status', new_status)
+        # Update status for all active EPs
+        active_eps = self.project.parser.getActiveEps()
+        for epname in active_eps:
+            self.project.setEpInfo(epname, 'status', new_status)
 
         reversed = dict((v,k) for k,v in execStatus.iteritems())
 
         if msg:
-            logDebug("CE: Status changed for all EPs: %s. Message: `%s`." % (reversed[new_status], str(msg)))
+            logDebug("CE: Status changed for EPs %s -> %s. Message: `%s`." % (active_eps, reversed[new_status], str(msg)))
         else:
-            logDebug("CE: Status changed for all EPs: %s." % reversed[new_status])
+            logDebug("CE: Status changed for EPs %s -> %s." % (active_eps, reversed[new_status]))
 
         return reversed[new_status]
 
@@ -587,7 +585,7 @@ class CentralEngine(_cptools.XMLRPCController):
         libs = [d for d in os.listdir(libs_path) if \
             os.path.isfile(libs_path + os.sep + d) and \
             '__init__.py' not in d and \
-            os.path.splitext(d)[1]=='.py']
+            os.path.splitext(d)[1] in ['.py', '.zip']]
         return sorted(libs)
 
 
@@ -759,25 +757,27 @@ class CentralEngine(_cptools.XMLRPCController):
         if status_str=='not executed': status_str='*NO EXEC*'
         else: status_str='*%s*' % status_str.upper()
 
-        # # Inject information into File Classes
-        now = datetime.datetime.today()
-        self.project.setFileInfo(epname, suite, file_id, 'twister_tc_status',
-            status_str.replace('*', ''))
-        self.project.setFileInfo(epname, suite, file_id, 'twister_tc_crash_detected',
-            data.get('twister_tc_crash_detected', 0))
-        self.project.setFileInfo(epname, suite, file_id, 'twister_tc_time_elapsed',
-            int(time_elapsed))
-        self.project.setFileInfo(epname, suite, file_id, 'twister_tc_date_started',
-            (now - datetime.timedelta(seconds=time_elapsed)).isoformat())
-        self.project.setFileInfo(epname, suite, file_id, 'twister_tc_date_finished',
-            (now.isoformat()))
+        if new_status != STATUS_WORKING:
+            # Inject information into File Classes
+            now = datetime.datetime.today()
 
-        with open(logPath, 'a') as status_file:
-            status_file.write(' {ep}::{suite}::{file} | {status} | {elapsed} | {date}\n'.format(
-                ep = epname.center(9), suite = suite.center(9), file = filename.center(28),
-                status = status_str.center(11),
-                elapsed = ('%.2fs' % time_elapsed).center(10),
-                date = now.strftime('%a %b %d, %H:%M:%S')))
+            self.project.setFileInfo(epname, suite, file_id, 'twister_tc_status',
+                status_str.replace('*', ''))
+            self.project.setFileInfo(epname, suite, file_id, 'twister_tc_crash_detected',
+                data.get('twister_tc_crash_detected', 0))
+            self.project.setFileInfo(epname, suite, file_id, 'twister_tc_time_elapsed',
+                int(time_elapsed))
+            self.project.setFileInfo(epname, suite, file_id, 'twister_tc_date_started',
+                (now - datetime.timedelta(seconds=time_elapsed)).isoformat())
+            self.project.setFileInfo(epname, suite, file_id, 'twister_tc_date_finished',
+                (now.isoformat()))
+
+            with open(logPath, 'a') as status_file:
+                status_file.write(' {ep}::{suite}::{file} | {status} | {elapsed} | {date}\n'.format(
+                    ep = epname.center(9), suite = suite.center(9), file = filename.center(28),
+                    status = status_str.center(11),
+                    elapsed = ('%.2fs' % time_elapsed).center(10),
+                    date = now.strftime('%a %b %d, %H:%M:%S')))
 
         # Return string
         return status_str
