@@ -92,6 +92,7 @@ def saveLibraries(proxy):
     except: pass
 
     __init = open(libs_path + '/__init__.py', 'w')
+    __init.write('\nimport os\n')
     __init.write('\nPROXY = "%s"\n' % CE_Path)
     all_libs = [os.path.splitext(lib)[0] for lib in libs_list if not lib.endswith('.zip')]
     __init.write('\nall = ["%s"]\n\n' % ('", "'.join(all_libs)))
@@ -100,7 +101,7 @@ def saveLibraries(proxy):
         # Write in __init__ file.
         ext = os.path.splitext(lib_file)
         if ext[1] == '.zip':
-            __init.write('sys.path.append("%s")\n\n' % lib_file)
+            __init.write('sys.path.append(os.path.split(__file__)[0] + "/%s")\n\n' % lib_file)
         else:
             __init.write('import %s\n' % ext[0])
             __init.write('from %s import *\n\n' % ext[0])
