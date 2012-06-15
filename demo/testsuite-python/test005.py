@@ -1,6 +1,9 @@
 
 import os, sys, time
+import pexpect
+
 sys.path.append(os.getenv('TWISTER_PATH') + '/.twister_cache/')
+from ce_libs import logMsg
 
 #
 # <title>test 001</title>
@@ -8,8 +11,6 @@ sys.path.append(os.getenv('TWISTER_PATH') + '/.twister_cache/')
 #
 
 def test005():
-	import pexpect
-	from ce_libs import logMsg
 
 	testName = 'test005.py'
 	logMsg('logTest', "\nTestCase:%s starting\n" % testName)

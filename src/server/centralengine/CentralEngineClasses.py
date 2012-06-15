@@ -504,7 +504,7 @@ class CentralEngine(_cptools.XMLRPCController):
             if self.project.getUserInfo('status'):
 
                 self.project.setUserInfo('status', STATUS_STOP)
-                logDebug('CE: All stations stopped! Central engine will also STOP!')
+                logDebug('CE: All stations stopped! Central engine will also STOP!\n')
 
                 # On Central Engine stop, send e-mail?
                 self.sendMail()

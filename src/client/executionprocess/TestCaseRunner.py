@@ -371,7 +371,7 @@ if __name__=='__main__':
 
             # If this suite is aborted because of the prerequisite file, send status ABORT
             if abort_suite:
-                print('TC debug: Abort file `{0}` with because of prerequisite file!\n'.format(filename))
+                print('TC debug: Abort file `{0}` because of prerequisite file!\n'.format(filename))
                 proxySetTestStatus(globEpName, file_id, STATUS_ABORTED, 0.0) # File status ABORTED
                 continue
 
@@ -482,7 +482,7 @@ if __name__=='__main__':
             # --------------------------------------------------
             # RUN CURRENT TEST!
             try:
-                result = current_runner._eval(str_to_execute, args)
+                result = current_runner._eval(str_to_execute, globals(), args)
                 print('\n>>> File `%s` returned `%s`. <<<\n' % (filename, result))
 
             except Exception, e:

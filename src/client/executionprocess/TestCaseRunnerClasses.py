@@ -101,7 +101,7 @@ class TCRunTcl:
         except: pass
         #
 
-    def _eval(self, str_to_execute, params=[]):
+    def _eval(self, str_to_execute, globs={}, params=[]):
         '''
         After executing a TCL statement, the last value will be used
         as return value.
@@ -193,40 +193,38 @@ class TCRunTcl:
 
 class TCRunPython:
 
-    def _eval(self, str_to_execute, params=[]):
+    def _eval(self, str_to_execute, globs={}, params=[]):
         '''
         Variable `_RESULT` must be injected inside the exec,
         or else the return will always be None.
         '''
         #
-        _RESULT = None
         to_execute = str_to_execute.data
-        #
         to_execute = '\nimport sys\nsys.argv = %s\n' % str(["file.py"] + params) + to_execute
         #
         # *.pyc or *.pyo files
         if to_execute[:4] == '\x03\xf3\r\n':
             print('TC Python: Binary Python file detected!')
-            f = open('__to_execute.pyc', 'wb')
-            f.write(to_execute)
-            f.close() ; del f
-            fp, pathname, description = imp.find_module('__to_execute')
-            imp.load_module('__main__', fp, pathname, description)
-            os.remove('__to_execute.pyc')
-        #
-        # *.py files
+            fname = '__to_execute.pyc'
         else:
-            exec(to_execute)
+            fname = '__to_execute.py'
+        #
+        f = open(fname, 'wb')
+        f.write(to_execute)
+        f.close() ; del f
+        #
+        execfile(fname, globs)
+        os.remove(fname)
         #
         # The _RESULT must be injected from within the python script
-        return _RESULT
+        return globs.get('_RESULT')
         #
 
 #
 
 class TCRunPerl:
 
-    def _eval(self, str_to_execute, params=[]):
+    def _eval(self, str_to_execute, globs={}, params=[]):
         '''
         Perl test runner.
         '''

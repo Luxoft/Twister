@@ -207,6 +207,7 @@ class TSCParser:
         activeEpids = []
         for ep in self.configTS('epid'):
             activeEpids.append(ep.text)
+        activeEpids = list(set(activeEpids))
         return activeEpids
 
 
