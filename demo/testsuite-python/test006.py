@@ -1,8 +1,6 @@
 
-import os, sys
 import pexpect
 
-sys.path.append(os.getenv('TWISTER_PATH') + '/.twister_cache/')
 from ce_libs import logMsg
 from ce_libs import queryResource, setPropertyLocal, getPropertyLocal
 from ce_libs import createEmptyResource, delResource

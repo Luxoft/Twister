@@ -200,7 +200,8 @@ class TCRunPython:
         '''
         #
         to_execute = str_to_execute.data
-        to_execute = '\nimport sys\nsys.argv = %s\n' % str(["file.py"] + params) + to_execute
+        to_execute = '\nimport os, sys\nsys.argv = %s\n' % str(["file.py"] + params) + to_execute
+        to_execute = "\nsys.path.append(os.getenv('TWISTER_PATH') + '/.twister_cache/')\n" + to_execute
         #
         # *.pyc or *.pyo files
         if to_execute[:4] == '\x03\xf3\r\n':

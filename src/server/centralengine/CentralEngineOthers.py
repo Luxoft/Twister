@@ -48,6 +48,7 @@ from common.xmlparser import *
 #
 # Information about user:
 #- user name
+#- user status (start, stop, pause)
 #
 # Information about EP:
 #- EP name

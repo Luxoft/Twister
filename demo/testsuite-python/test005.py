@@ -1,8 +1,6 @@
 
-import os, sys, time
+import time
 import pexpect
-
-sys.path.append(os.getenv('TWISTER_PATH') + '/.twister_cache/')
 from ce_libs import logMsg
 
 #

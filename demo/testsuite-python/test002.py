@@ -1,6 +1,5 @@
 
-import os, sys, time
-sys.path.append(os.getenv('TWISTER_PATH') + '/.twister_cache/')
+import time
 from ce_libs import logMsg
 
 #
