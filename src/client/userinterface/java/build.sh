@@ -1,12 +1,13 @@
 #!/bin/bash
 
 JDK_PATH=/usr/bin
-
 EXTLIBS=extlibs/jsch-0.1.44.jar:\
+extlibs/gson-2.2.1.jar:\
 extlibs/ws-commons-util-1.0.2.jar:\
 extlibs/commons-vfs-1.0.jar:\
+extlibs/jgoodies-looks-2.5.1.jar:\
+extlibs/jgoodies-common-1.3.1.jar:\
 extlibs/VFSJFileChooser-0.0.3.jar:\
-extlibs/jcommon-1.0.16.jar:\
 extlibs/jxl.jar:\
 extlibs/ws-commons-util-1.0.2.jar:\
 extlibs/xmlrpc-client-3.1.3.jar:\
@@ -20,16 +21,19 @@ cd classes;
 $JDK_PATH/jar  cf ../target/applet.jar Icons *.class
 
 # Sign the JAR file using the keystore
-$JDK_PATH/jarsigner ../target/applet.jar Twister -storepass password
-$JDK_PATH/jarsigner ../extlibs/commons-logging-1.1.1.jar Twister -storepass password
-$JDK_PATH/jarsigner ../extlibs/commons-vfs-1.0.jar Twister -storepass password
-$JDK_PATH/jarsigner ../extlibs/jcommon-1.0.16.jar Twister -storepass password
-$JDK_PATH/jarsigner ../extlibs/jsch-0.1.44.jar Twister -storepass password
-$JDK_PATH/jarsigner ../extlibs/jxl.jar Twister -storepass password
-$JDK_PATH/jarsigner ../extlibs/VFSJFileChooser-0.0.3.jar Twister -storepass password
-$JDK_PATH/jarsigner ../extlibs/ws-commons-util-1.0.2.jar Twister -storepass password
-$JDK_PATH/jarsigner ../extlibs/xmlrpc-client-3.1.3.jar Twister -storepass password
-$JDK_PATH/jarsigner ../extlibs/xmlrpc-common-3.1.3.jar Twister -storepass password
+cd ../target
+jarsigner applet.jar Twister -storepass password
+jarsigner ../extlibs/gson-2.2.1.jar Twister -storepass password
+jarsigner ../extlibs/commons-logging-1.1.1.jar Twister -storepass password
+jarsigner ../extlibs/commons-vfs-1.0.jar Twister -storepass password
+jarsigner ../extlibs/jsch-0.1.44.jar Twister -storepass password
+jarsigner ../extlibs/jxl.jar Twister -storepass password
+jarsigner ../extlibs/VFSJFileChooser-0.0.3.jar Twister -storepass password
+jarsigner ../extlibs/ws-commons-util-1.0.2.jar Twister -storepass password
+jarsigner ../extlibs/xmlrpc-client-3.1.3.jar Twister -storepass password
+jarsigner ../extlibs/xmlrpc-common-3.1.3.jar Twister -storepass password
+jarsigner ../extlibs/jgoodies-looks-2.5.1.jar Twister -storepass password
+jarsigner ../extlibs/jgoodies-common-1.3.1.jar Twister -storepass password
 
 
 # Export the keystore as X509

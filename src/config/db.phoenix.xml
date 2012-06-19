@@ -32,7 +32,7 @@
 	<field ID="Build_Ver" Label="Build version" Type="UserSelect" SQLQuery="SELECT DISTINCT build_ver FROM `ipo` ORDER BY build_ver" />
 
 	<report ID="Details Tests" Type="Table"
-		SQLQuery="SELECT suite_name, test_name, res_value, test_starttime, test_duration FROM results, suite
+		SQLQuery="SELECT suite_name, test_name, res_value, test_starttime AS suite_starttime, test_duration FROM results, suite
 		WHERE results.suite_id = suite.suite_id
 		ORDER BY test_id"
 		/>
@@ -48,13 +48,13 @@
 	<report ID="Summary by Ipo" Type="Table"
 		SQLQuery="SELECT  *  from results where suite_id IN
 		(SELECT suite_id from suite where ipo_id =
-		(SELECT id from ipo where ip like '@IPO_IP@' and build_ver=@Build_Ver@))"
+		(SELECT id from ipo where ip = '@IPO_IP@' and build_ver = @Build_Ver@))"
 		/>
 
 	<report ID="Summary Count" Type="PieChart"
 		SQLQuery="SELECT  res_value AS Status, count(*) AS Number  from results where suite_id IN
 		(SELECT suite_id from suite where ipo_id =
-		(SELECT id from ipo where ip like '@IPO_IP@' and build_ver=@Build_Ver@))
+		(SELECT id from ipo where ip = '@IPO_IP@' and build_ver = @Build_Ver@))
 		group by res_value "
 		/>
 

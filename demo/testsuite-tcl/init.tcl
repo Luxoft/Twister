@@ -11,6 +11,8 @@ set DEMO_PATH "/home/tscguest/twister/demo/testsuite-tcl/"
 lappend auto_path $DEMO_PATH
 puts "\nTCL debug: Autopath is: $auto_path"
 
+puts "TCL debug: argc = $argc  and  argv = $argv"
+
 logMessage logTest "\n\nTestCase: init.tcl starting\n"
 
 # Load Expect and some demo library
@@ -47,7 +49,7 @@ proc demo_setup {} {
     connect_and_setup_function3
 
     logMessage logDebug "TCL Setup done."
-    return
+    return "PASS"
 }
 
 proc connect_and_setup_function1 {} {
@@ -65,6 +67,6 @@ proc connect_and_setup_function3 {} {
     after 1000
 }
 
-demo_setup
-
 puts "\nTCL init done.\n"
+
+demo_setup

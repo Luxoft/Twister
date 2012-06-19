@@ -1,6 +1,7 @@
 
-import os, sys, time
-sys.path.append(os.getenv('TWISTER_PATH') + '/.twister_cache/')
+import time
+import pexpect
+from ce_libs import logMsg
 
 #
 # <title>test 001</title>
@@ -11,9 +12,6 @@ def test004():
 	'''
 	Testing Python Expect.
 	'''
-
-	import pexpect
-	from ce_libs import logMsg
 
 	testName = 'test004.py'
 	logMsg('logTest', "\nTestCase:%s starting\n" % testName)

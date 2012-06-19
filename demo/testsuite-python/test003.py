@@ -1,6 +1,7 @@
 
-import os, sys, time
-sys.path.append(os.getenv('TWISTER_PATH') + '/.twister_cache/')
+import time
+import telnetlib
+from ce_libs import logMsg
 
 #
 # <title>test 001</title>
@@ -11,9 +12,6 @@ def test003():
 	'''
 	Testing Python Telnet library.
 	'''
-
-	import telnetlib
-	from ce_libs import logMsg
 
 	testName = 'test003.py'
 	logMsg('logTest', "\nTestCase:%s starting\n" % testName)
