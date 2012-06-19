@@ -19,7 +19,6 @@ import javax.swing.SwingUtilities;
 import javax.swing.JPanel;
 import javax.swing.JComboBox;
 import java.util.Iterator;
-import com.twister.plugin.twisterinterface.TwisterPluginInterface;
 
 /*
  * twister main container
