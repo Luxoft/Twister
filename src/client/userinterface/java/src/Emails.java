@@ -152,10 +152,9 @@ public class Emails extends JPanel{
         save.setBounds(352,435,80,20);
         save.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
+                boolean saved = true;
                 if(tpass.getPassword().length == 0){
-                    CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, Emails.this, "Warning", "Warning, password not set");
-//                     JOptionPane.showMessageDialog(Emails.this, "Warning, password not set.", "Warning", JOptionPane.WARNING_MESSAGE);
-                }
+                    CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, Emails.this, "Warning", "Warning, password not set");}
                 try{File theone = new File(Repository.temp+Repository.getBar()+"Twister"+Repository.getBar()+"Config"+Repository.getBar()+new File(Repository.REMOTEEMAILCONFIGFILE).getName());
                     DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
                     DocumentBuilder db = dbf.newDocumentBuilder();                                        
@@ -187,7 +186,9 @@ public class Emails extends JPanel{
                         nodeLst = doc.getElementsByTagName("Subject");
                         if(nodeLst.item(0).getChildNodes().getLength()>0)nodeLst.item(0).getChildNodes().item(0).setNodeValue(subject.getText());
                         else nodeLst.item(0).appendChild(doc.createTextNode(subject.getText()));}
-                    catch(Exception e){System.out.println(doc.getDocumentURI()+" may not be properly formatted");}
+                    catch(Exception e){
+                        System.out.println(doc.getDocumentURI()+" may not be properly formatted");
+                        saved = false;}
                     Result result = new StreamResult(theone); 
                     try{DOMSource source = new DOMSource(doc);
                         TransformerFactory transformerFactory = TransformerFactory.newInstance();
@@ -197,14 +198,22 @@ public class Emails extends JPanel{
                         transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "4");                        
                         transformer.transform(source, result);  
                         try{Repository.c.cd(Repository.REMOTEEMAILCONFIGPATH);}
-                        catch(Exception e){System.out.println("could not get "+Repository.REMOTEEMAILCONFIGPATH);
-                            e.printStackTrace();}
+                        catch(Exception e){
+                            System.out.println("could not get "+Repository.REMOTEEMAILCONFIGPATH);
+                            e.printStackTrace();
+                            saved = false;}
                         FileInputStream input = new FileInputStream(theone);
                         Repository.c.put(input, theone.getName());
                         input.close();}
-                    catch(Exception e){e.printStackTrace();
-                    System.out.println("Could not save in file : "+Repository.temp+Repository.getBar()+"Twister"+Repository.getBar()+"Config"+Repository.getBar()+Repository.REMOTEEMAILCONFIGFILE+" and send to "+Repository.REMOTEEMAILCONFIGPATH);}}
-                catch(Exception e){e.printStackTrace();}}});
+                    catch(Exception e){
+                        e.printStackTrace();
+                        System.out.println("Could not save in file : "+Repository.temp+Repository.getBar()+"Twister"+Repository.getBar()+"Config"+Repository.getBar()+Repository.REMOTEEMAILCONFIGFILE+" and send to "+Repository.REMOTEEMAILCONFIGPATH);
+                        saved = false;}}
+                catch(Exception e){
+                    e.printStackTrace();
+                    saved = false;}
+                if(saved)CustomDialog.showInfo(JOptionPane.INFORMATION_MESSAGE, Emails.this, "Successfull", "File successfully saved");
+                else CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, Emails.this, "Warning", "File could not be saved");}});
         add(save);}
     
     public void setIPName(String ipname){

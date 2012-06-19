@@ -62,9 +62,10 @@ public class DBConfig extends JPanel{
         browse.setBounds(255,13,90,20);
         add(browse);
         JButton upload = new JButton("Upload");
-        upload.setBounds(355,10,90,20);
+        upload.setBounds(355,13,90,20);
         upload.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
+                boolean saved = true;
                 try{File f = new File(tfile.getText());
                     Repository.c.cd(Repository.REMOTEDATABASECONFIGPATH);
                     FileInputStream stream = new FileInputStream(f);
@@ -73,7 +74,11 @@ public class DBConfig extends JPanel{
                     Files.copy(f.toPath(), new File(Repository.getConfigDirectory()+
                     Repository.getBar()+f.getName()).toPath(), REPLACE_EXISTING);
                     Repository.resetDBConf(f.getName(),false);}
-                catch(Exception e){e.printStackTrace();}}});
+                catch(Exception e){
+                    saved = false;
+                    e.printStackTrace();}
+                if(saved)CustomDialog.showInfo(JOptionPane.INFORMATION_MESSAGE, DBConfig.this, "Successfull", "File successfully uploaded");
+                else CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, DBConfig.this, "Warning", "File could not uploaded");}});
         add(upload);
         JLabel database = new JLabel("Database: ");
         database.setBounds(15,55,65,20);
@@ -106,59 +111,67 @@ public class DBConfig extends JPanel{
             public void actionPerformed(ActionEvent ev){
                 if(doc!=null){
                     if(tpassword.getPassword().length == 0){
-                        CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, DBConfig.this, "Warning", "Warning, password not set");
-//                         JOptionPane.showMessageDialog(DBConfig.this, "Warning, password not set", "Warning", JOptionPane.WARNING_MESSAGE);
-                    }
-                    theone = new File(Repository.temp+Repository.getBar()+"Twister"+
-                    Repository.getBar()+"config"+Repository.getBar()+new File(
-                    Repository.REMOTEDATABASECONFIGFILE).getName());
-                    try{NodeList nodeLst = doc.getElementsByTagName("server");
-                        if(nodeLst.item(0).getChildNodes().getLength()>0)nodeLst.
-                        item(0).getChildNodes().item(0).setNodeValue(tserver.getText());
-                        else nodeLst.item(0).appendChild(doc.createTextNode(
-                        tserver.getText()));
-                        nodeLst = doc.getElementsByTagName("database");
-                        if(nodeLst.item(0).getChildNodes().getLength()>0)nodeLst.
-                        item(0).getChildNodes().item(0).setNodeValue(tdatabase.
-                        getText());
-                        else nodeLst.item(0).appendChild(doc.createTextNode(tdatabase.
-                        getText()));
-                        nodeLst = doc.getElementsByTagName("user");
-                        if(nodeLst.item(0).getChildNodes().getLength()>0)nodeLst.
-                        item(0).getChildNodes().item(0).setNodeValue(tuser.getText());
-                        else nodeLst.item(0).appendChild(doc.createTextNode(tuser.
-                        getText()));
-                        if(tpassword.getPassword().length != 0 && !(new String(
-                        tpassword.getPassword()).equals("****"))){
-                            nodeLst = doc.getElementsByTagName("password");
+                        CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, DBConfig.this, "Warning", "Warning, password not set");}
+                    boolean saved = true;
+                    try{theone = new File(Repository.temp+Repository.getBar()+"Twister"+
+                        Repository.getBar()+"config"+Repository.getBar()+new File(
+                        Repository.REMOTEDATABASECONFIGFILE).getName());
+                        try{NodeList nodeLst = doc.getElementsByTagName("server");
                             if(nodeLst.item(0).getChildNodes().getLength()>0)nodeLst.
-                            item(0).getChildNodes().item(0).setNodeValue(new String(
-                            tpassword.getPassword()));
+                                item(0).getChildNodes().item(0).setNodeValue(tserver.getText());
                             else nodeLst.item(0).appendChild(doc.createTextNode(
-                            new String(tpassword.getPassword())));}}
-                    catch(Exception e){System.out.println(doc.getDocumentURI()+
-                    " may not be properly formatted");}
-                    Result result = new StreamResult(theone);
-                    try{DOMSource source = new DOMSource(doc);
-                        TransformerFactory transformerFactory = TransformerFactory.
-                        newInstance();
-                        Transformer transformer = transformerFactory.newTransformer();
-                        transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
-                        transformer.setOutputProperty(OutputKeys.INDENT, "yes");
-                        transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "4");                        
-                        transformer.transform(source, result);  
-                        try{Repository.c.cd(Repository.REMOTEDATABASECONFIGPATH);}
-                        catch(Exception e){System.out.println("could not get "+
-                        Repository.REMOTEDATABASECONFIGPATH);
-                            e.printStackTrace();}
-                        FileInputStream input = new FileInputStream(theone);
-                        Repository.c.put(input, theone.getName());
-                        input.close();}
-                    catch(Exception e){e.printStackTrace();
-                    System.out.println("Could not save in file : "+Repository.
-                    temp+Repository.getBar()+"Twister"+Repository.getBar()+"Config"+
-                    Repository.getBar()+Repository.REMOTEDATABASECONFIGFILE+" and send to "+
-                    Repository.REMOTEDATABASECONFIGPATH);}}}});
+                                tserver.getText()));
+                            nodeLst = doc.getElementsByTagName("database");
+                            if(nodeLst.item(0).getChildNodes().getLength()>0)nodeLst.
+                                item(0).getChildNodes().item(0).setNodeValue(tdatabase.
+                                getText());
+                            else nodeLst.item(0).appendChild(doc.createTextNode(tdatabase.
+                                getText()));
+                            nodeLst = doc.getElementsByTagName("user");
+                            if(nodeLst.item(0).getChildNodes().getLength()>0)nodeLst.
+                                item(0).getChildNodes().item(0).setNodeValue(tuser.getText());
+                            else nodeLst.item(0).appendChild(doc.createTextNode(tuser.
+                                getText()));
+                            if(tpassword.getPassword().length != 0 && !(new String(
+                                tpassword.getPassword()).equals("****"))){
+                                    nodeLst = doc.getElementsByTagName("password");
+                                    if(nodeLst.item(0).getChildNodes().getLength()>0)nodeLst.
+                                        item(0).getChildNodes().item(0).setNodeValue(new String(
+                                        tpassword.getPassword()));
+                                    else nodeLst.item(0).appendChild(doc.createTextNode(
+                                        new String(tpassword.getPassword())));}}
+                        catch(Exception e){
+                            saved = false;
+                            System.out.println(doc.getDocumentURI()+
+                            " may not be properly formatted");}
+                        Result result = new StreamResult(theone);
+                        try{DOMSource source = new DOMSource(doc);
+                            TransformerFactory transformerFactory = TransformerFactory.
+                            newInstance();
+                            Transformer transformer = transformerFactory.newTransformer();
+                            transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
+                            transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+                            transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "4");                        
+                            transformer.transform(source, result);  
+                            try{Repository.c.cd(Repository.REMOTEDATABASECONFIGPATH);}
+                            catch(Exception e){
+                                System.out.println("could not get "+Repository.REMOTEDATABASECONFIGPATH);
+                                e.printStackTrace();}
+                            FileInputStream input = new FileInputStream(theone);
+                            Repository.c.put(input, theone.getName());
+                            input.close();}
+                        catch(Exception e){
+                            saved = false;
+                            e.printStackTrace();
+                            System.out.println("Could not save in file : "+Repository.
+                            temp+Repository.getBar()+"Twister"+Repository.getBar()+"Config"+
+                            Repository.getBar()+Repository.REMOTEDATABASECONFIGFILE+" and send to "+
+                            Repository.REMOTEDATABASECONFIGPATH);}}
+                    catch(Exception e){
+                        saved = false;
+                        e.printStackTrace();}
+                    if(saved)CustomDialog.showInfo(JOptionPane.INFORMATION_MESSAGE, DBConfig.this, "Successfull", "File successfully saved");
+                    else CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, DBConfig.this, "Warning", "File could not be saved ");}}});
         add(save);}
     
     public void refresh(){

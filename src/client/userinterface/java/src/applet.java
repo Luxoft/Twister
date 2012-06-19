@@ -32,8 +32,8 @@ public class applet extends Applet{
          */
         try{System.out.println("Current version: ");
             System.out.println("OS current temporary directory is : "+System.getProperty("java.io.tmpdir"));
+//             PluginsLoader.setClassPath();
             Repository.tcicon = loadIcon("tc.png");
-            System.out.println("Repository.tcicon "+Repository.tcicon.getHeight(this));
             Repository.background = loadIcon("background.png");
             Repository.pendingicon = loadIcon("pending.png");
             Repository.deviceicon = loadIcon("device.png");
@@ -75,13 +75,7 @@ public class applet extends Applet{
          * host - server address
          * this - as container
          */
-        Repository.initialize(true, getCodeBase().getHost(),applet.this);
-//         SwingUtilities.invokeLater(new Runnable(){
-//             public void run(){
-//                 try{Repository.initialize(true, getCodeBase().getHost(),applet.this);}
-//                 catch(Exception e){
-//                     e.printStackTrace();}}});
-                }
+        Repository.initialize(true, getCodeBase().getHost(),applet.this);}
         
         
     /*

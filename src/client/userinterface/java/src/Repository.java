@@ -63,6 +63,7 @@ import java.awt.event.ActionEvent;
 import javax.swing.UIManager;
 import javax.swing.SwingUtilities;
 import java.awt.Dimension;
+import java.util.Vector;
 
 
 /*
@@ -120,7 +121,6 @@ public class Repository{
             if(g1.mkdir()){
                 System.out.println(temp+bar+host+" succesfuly created");}
             else System.out.println(temp+bar+host+" could not be created ");
-            
             temp = g1.getCanonicalPath();}
         catch(Exception e){
             System.out.println("Could not retrieve Temp directory for this OS");
@@ -146,31 +146,10 @@ public class Repository{
          */
         try{File twisterini = new File(twisterhome.getCanonicalPath()+bar+"twister.conf");
             TWISTERINI = twisterhome.getCanonicalPath()+bar+"twister.conf";
-            if(!twisterini.exists()){// if it does not exist, create one from scratch
+            if(!twisterini.exists()||twisterini.length()==0){// if it does not exist or is empty, create one from scratch 
+                if(twisterini.exists())twisterini.delete();
                 if(new File(twisterhome.getCanonicalPath()+bar+"twister.conf").createNewFile()){
-                    JsonObject root = new JsonObject();
-                    JsonObject array =new JsonObject();
-                    array.addProperty("Embedded", "embedded");
-                    array.addProperty("DEFAULT", "Embedded");
-                    JsonObject array2 =new JsonObject();
-                    array2.addProperty("NimbusLookAndFeel", "javax.swing.plaf.nimbus.NimbusLookAndFeel");
-                    array2.addProperty("MetalLookAndFeel", "javax.swing.plaf.metal.MetalLookAndFeel");
-                    array2.addProperty("MotifLookAndFeel", "com.sun.java.swing.plaf.motif.MotifLookAndFeel");
-                    array2.addProperty("WindowsLookAndFeel", "com.sun.java.swing.plaf.windows.WindowsLookAndFeel");
-                    array2.addProperty("JGoodiesWindowsLookAndFeel", "com.jgoodies.looks.windows.WindowsLookAndFeel");
-                    array2.addProperty("Plastic3DLookAndFeel", "com.jgoodies.looks.plastic.Plastic3DLookAndFeel");
-                    array2.addProperty("PlasticXPLookAndFeel", "com.jgoodies.looks.plastic.PlasticXPLookAndFeel");
-                    array2.addProperty("DEFAULT", "MetalLookAndFeel");
-                    root.add("editors", array);
-                    root.add("looks", array2);
-                    try{FileWriter writer = new FileWriter(TWISTERINI);
-                        Gson gson = new GsonBuilder().setPrettyPrinting().create(); 
-                        writer.write(gson.toJson(root));
-                        writer.close();}
-                    catch(Exception e){
-                        System.out.println("Could not write default JSon to twister.conf");
-                        e.printStackTrace();}
-                    System.out.println("twister.conf succesfuly created");}
+                    generateJSon();}
                 else System.out.println("Could not create twister.conf");}
             parseIni(twisterini);}//parse configuration file
         catch(Exception e){e.printStackTrace();}
@@ -188,76 +167,7 @@ public class Repository{
                  * if it did not start from applet
                  * the resources must be loaded from local pc 
                  */
-                InputStream in;
-                in = Repository.class.getResourceAsStream("Icons"+bar+"background.png"); 
-                background = new ImageIcon(ImageIO.read(in)).getImage();
-                in = Repository.class.getResourceAsStream("Icons"+bar+"vlcclient.png"); 
-                vlcclient = new ImageIcon(ImageIO.read(in)).getImage();
-                in = Repository.class.getResourceAsStream("Icons"+bar+"vlcserver.png"); 
-                vlcserver = new ImageIcon(ImageIO.read(in)).getImage();
-                in = Repository.class.getResourceAsStream("Icons"+bar+"switch.png"); 
-                switche = new ImageIcon(ImageIO.read(in)).getImage();
-                in = Repository.class.getResourceAsStream("Icons"+bar+"twisterfloodlight.png"); 
-                flootw = new ImageIcon(ImageIO.read(in)).getImage();
-                in = Repository.class.getResourceAsStream("Icons"+bar+"150.png"); 
-                rack150 = new ImageIcon(ImageIO.read(in)).getImage();
-                in = Repository.class.getResourceAsStream("Icons"+bar+"151.png"); 
-                rack151 = new ImageIcon(ImageIO.read(in)).getImage();
-                in = Repository.class.getResourceAsStream("Icons"+bar+"152.png"); 
-                rack152 = new ImageIcon(ImageIO.read(in)).getImage();
-                in = Repository.class.getResourceAsStream("Icons"+bar+"switch.jpg"); 
-                switche2 = new ImageIcon(ImageIO.read(in)).getImage();
-                in = Repository.class.getResourceAsStream("Icons"+bar+"in.png"); 
-                inicon = new ImageIcon(ImageIO.read(in)).getImage();
-                in = Repository.class.getResourceAsStream("Icons"+bar+"out.png"); 
-                outicon = new ImageIcon(ImageIO.read(in)).getImage();
-                in = Repository.class.getResourceAsStream("Icons"+bar+"bar.png"); 
-                baricon = new ImageIcon(ImageIO.read(in)).getImage();
-                in = Repository.class.getResourceAsStream("Icons"+bar+"port.png"); 
-                porticon = new ImageIcon(ImageIO.read(in)).getImage();
-                in = Repository.class.getResourceAsStream("Icons"+bar+"deleteicon.png");
-                removeicon = new ImageIcon(ImageIO.read(in)).getImage();
-                in = Repository.class.getResourceAsStream("Icons"+bar+"addsuita.png"); 
-                addsuitaicon = new ImageIcon(ImageIO.read(in)).getImage();
-                in = Repository.class.getResourceAsStream("Icons"+bar+"device.png"); 
-                deviceicon = new ImageIcon(ImageIO.read(in)).getImage();
-                in = Repository.class.getResourceAsStream("Icons"+bar+"module.png"); 
-                moduleicon = new ImageIcon(ImageIO.read(in)).getImage();
-                in = Repository.class.getResourceAsStream("Icons"+bar+"tc.png"); 
-                Repository.tcicon = new ImageIcon(ImageIO.read(in)).getImage(); 
-                in = Repository.class.getResourceAsStream("Icons"+bar+"suita.png"); 
-                Repository.suitaicon = new ImageIcon(ImageIO.read(in)).getImage(); 
-                in = Repository.class.getResourceAsStream("Icons"+bar+"prop.png"); 
-                Repository.propicon = new ImageIcon(ImageIO.read(in)).getImage(); 
-                in = Repository.class.getResourceAsStream("Icons"+bar+"fail.png"); 
-                Repository.failicon = new ImageIcon(ImageIO.read(in)).getImage(); 
-                in = Repository.class.getResourceAsStream("Icons"+bar+"pass.png");
-                Repository.passicon = new ImageIcon(ImageIO.read(in)).getImage(); 
-                in = Repository.class.getResourceAsStream("Icons"+bar+"stop.png");
-                Repository.stopicon = new ImageIcon(ImageIO.read(in)).getImage(); 
-                in = Repository.class.getResourceAsStream("Icons"+bar+"play.png");
-                Repository.playicon = new ImageIcon(ImageIO.read(in)).getImage();                 
-                in = Repository.class.getResourceAsStream("Icons"+bar+"notexec.png");
-                Repository.notexecicon = new ImageIcon(ImageIO.read(in)).getImage(); 
-                in = Repository.class.getResourceAsStream("Icons"+bar+"pending.png");
-                Repository.pendingicon = new ImageIcon(ImageIO.read(in)).getImage();
-                in = Repository.class.getResourceAsStream("Icons"+bar+"skip.png");
-                Repository.skipicon = new ImageIcon(ImageIO.read(in)).getImage();
-                in = Repository.class.getResourceAsStream("Icons"+bar+"stopped.png");
-                Repository.stoppedicon = new ImageIcon(ImageIO.read(in)).getImage();
-                in = Repository.class.getResourceAsStream("Icons"+bar+"timeout.png");
-                Repository.timeouticon = new ImageIcon(ImageIO.read(in)).getImage();
-                in = Repository.class.getResourceAsStream("Icons"+bar+"waiting.png");
-                Repository.waiticon = new ImageIcon(ImageIO.read(in)).getImage();
-                in = Repository.class.getResourceAsStream("Icons"+bar+"passwordicon.png");
-                Repository.passwordicon = new ImageIcon(ImageIO.read(in)).getImage();
-                in = Repository.class.getResourceAsStream("Icons"+bar+"working.png");
-                Repository.workingicon = new ImageIcon(ImageIO.read(in)).getImage();                
-                in = Repository.class.getResourceAsStream("Icons"+bar+"pause.png");
-                Repository.pauseicon = new ImageIcon(ImageIO.read(in)).getImage();
-                in = Repository.class.getResourceAsStream("Icons"+bar+"testbed.png");
-                Repository.testbedicon = new ImageIcon(ImageIO.read(in)).getImage();
-                in.close();}
+                loadResourcesFromLocal();}
             if(userpassword()){
                 /*
                  * create directory structure
@@ -274,12 +184,17 @@ public class Repository{
                 else System.out.println("Could not create "+temp+bar+"Twister"+bar+"Users folder");
                 if(new File(temp+bar+"Twister"+bar+"config").mkdir())System.out.println(temp+bar+"Twister"+bar+"config folder successfully created");
                 else System.out.println("Could not create "+temp+bar+"Twister"+bar+"config folder");
+                if(new File(temp+bar+"Twister"+bar+"Plugins").mkdir())System.out.println(temp+bar+"Twister"+bar+"Plugins folder successfully created");
+                else System.out.println("Could not create "+temp+bar+"Twister"+bar+"Plugins folder");
                 USERSDIRECTORY = Repository.temp+bar+"Twister"+bar+"Users";
                 CONFIGDIRECTORY = Repository.temp+bar+"Twister"+bar+"config";
                 intro.setStatus("Started to parse the config");
                 intro.addPercent(0.035);
                 intro.repaint();
                 parseConfig();
+                copyPlugins();
+//                 PluginsLoader.setClassPath();
+                
                 /*
                  * XmlRpc main connection used by Twister framework
                  */
@@ -306,6 +221,204 @@ public class Repository{
                 run = false;
                 if(!applet)System.exit(0);}}
         catch(Exception e){e.printStackTrace();}}
+        
+    /*
+     * load resources needed for framework
+     * from local pc
+     */
+    public static void loadResourcesFromLocal()throws Exception{
+        InputStream in;
+        in = Repository.class.getResourceAsStream("Icons"+bar+"background.png"); 
+        background = new ImageIcon(ImageIO.read(in)).getImage();
+        in = Repository.class.getResourceAsStream("Icons"+bar+"vlcclient.png"); 
+        vlcclient = new ImageIcon(ImageIO.read(in)).getImage();
+        in = Repository.class.getResourceAsStream("Icons"+bar+"vlcserver.png"); 
+        vlcserver = new ImageIcon(ImageIO.read(in)).getImage();
+        in = Repository.class.getResourceAsStream("Icons"+bar+"switch.png"); 
+        switche = new ImageIcon(ImageIO.read(in)).getImage();
+        in = Repository.class.getResourceAsStream("Icons"+bar+"twisterfloodlight.png"); 
+        flootw = new ImageIcon(ImageIO.read(in)).getImage();
+        in = Repository.class.getResourceAsStream("Icons"+bar+"150.png"); 
+        rack150 = new ImageIcon(ImageIO.read(in)).getImage();
+        in = Repository.class.getResourceAsStream("Icons"+bar+"151.png"); 
+        rack151 = new ImageIcon(ImageIO.read(in)).getImage();
+        in = Repository.class.getResourceAsStream("Icons"+bar+"152.png"); 
+        rack152 = new ImageIcon(ImageIO.read(in)).getImage();
+        in = Repository.class.getResourceAsStream("Icons"+bar+"switch.jpg"); 
+        switche2 = new ImageIcon(ImageIO.read(in)).getImage();
+        in = Repository.class.getResourceAsStream("Icons"+bar+"in.png"); 
+        inicon = new ImageIcon(ImageIO.read(in)).getImage();
+        in = Repository.class.getResourceAsStream("Icons"+bar+"out.png"); 
+        outicon = new ImageIcon(ImageIO.read(in)).getImage();
+        in = Repository.class.getResourceAsStream("Icons"+bar+"bar.png"); 
+        baricon = new ImageIcon(ImageIO.read(in)).getImage();
+        in = Repository.class.getResourceAsStream("Icons"+bar+"port.png"); 
+        porticon = new ImageIcon(ImageIO.read(in)).getImage();
+        in = Repository.class.getResourceAsStream("Icons"+bar+"deleteicon.png");
+        removeicon = new ImageIcon(ImageIO.read(in)).getImage();
+        in = Repository.class.getResourceAsStream("Icons"+bar+"addsuita.png"); 
+        addsuitaicon = new ImageIcon(ImageIO.read(in)).getImage();
+        in = Repository.class.getResourceAsStream("Icons"+bar+"device.png"); 
+        deviceicon = new ImageIcon(ImageIO.read(in)).getImage();
+        in = Repository.class.getResourceAsStream("Icons"+bar+"module.png"); 
+        moduleicon = new ImageIcon(ImageIO.read(in)).getImage();
+        in = Repository.class.getResourceAsStream("Icons"+bar+"tc.png"); 
+        tcicon = new ImageIcon(ImageIO.read(in)).getImage(); 
+        in = Repository.class.getResourceAsStream("Icons"+bar+"suita.png"); 
+        suitaicon = new ImageIcon(ImageIO.read(in)).getImage(); 
+        in = Repository.class.getResourceAsStream("Icons"+bar+"prop.png"); 
+        propicon = new ImageIcon(ImageIO.read(in)).getImage(); 
+        in = Repository.class.getResourceAsStream("Icons"+bar+"fail.png"); 
+        failicon = new ImageIcon(ImageIO.read(in)).getImage(); 
+        in = Repository.class.getResourceAsStream("Icons"+bar+"pass.png");
+        passicon = new ImageIcon(ImageIO.read(in)).getImage(); 
+        in = Repository.class.getResourceAsStream("Icons"+bar+"stop.png");
+        stopicon = new ImageIcon(ImageIO.read(in)).getImage(); 
+        in = Repository.class.getResourceAsStream("Icons"+bar+"play.png");
+        playicon = new ImageIcon(ImageIO.read(in)).getImage();                 
+        in = Repository.class.getResourceAsStream("Icons"+bar+"notexec.png");
+        notexecicon = new ImageIcon(ImageIO.read(in)).getImage(); 
+        in = Repository.class.getResourceAsStream("Icons"+bar+"pending.png");
+        pendingicon = new ImageIcon(ImageIO.read(in)).getImage();
+        in = Repository.class.getResourceAsStream("Icons"+bar+"skip.png");
+        skipicon = new ImageIcon(ImageIO.read(in)).getImage();
+        in = Repository.class.getResourceAsStream("Icons"+bar+"stopped.png");
+        stoppedicon = new ImageIcon(ImageIO.read(in)).getImage();
+        in = Repository.class.getResourceAsStream("Icons"+bar+"timeout.png");
+        timeouticon = new ImageIcon(ImageIO.read(in)).getImage();
+        in = Repository.class.getResourceAsStream("Icons"+bar+"waiting.png");
+        waiticon = new ImageIcon(ImageIO.read(in)).getImage();
+        in = Repository.class.getResourceAsStream("Icons"+bar+"passwordicon.png");
+        passwordicon = new ImageIcon(ImageIO.read(in)).getImage();
+        in = Repository.class.getResourceAsStream("Icons"+bar+"working.png");
+        workingicon = new ImageIcon(ImageIO.read(in)).getImage();                
+        in = Repository.class.getResourceAsStream("Icons"+bar+"pause.png");
+        pauseicon = new ImageIcon(ImageIO.read(in)).getImage();
+        in = Repository.class.getResourceAsStream("Icons"+bar+"testbed.png");
+        testbedicon = new ImageIcon(ImageIO.read(in)).getImage();
+        in.close();}
+        
+    public static void copyPlugins(){
+        InputStream in = null;
+        //byte[] data = new byte[100]; 
+        //int nRead;
+        //ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+        //OutputStream out=null;
+        InputStreamReader inputStreamReader = null;
+        BufferedReader bufferedReader = null;  
+        BufferedWriter writer=null;
+        File file;
+        String line = null;
+        String name = null;
+        try{c.cd(USERHOME+"/twister/config/Plugins/");}
+        catch(Exception e){System.out.println("Could not get :"+USERHOME+"/twister/config/Plugins/");}
+        int size;
+        try{size= c.ls(".").size();}
+        catch(Exception e){
+            System.out.println("No plugins");
+            size=0;}
+        Vector<LsEntry> plugins = null;
+        try{plugins = c.ls(".");}
+        catch(Exception e){
+            System.out.println("Error in getting plugins from Plugins remote directory");
+            e.printStackTrace();}
+        if(plugins!=null){
+            for(int i=0;i<size;i++){
+                
+                try{name = plugins.get(i).getFilename();
+                    if(name.split("\\.").length==0)continue;                     
+                    System.out.print("Getting "+name+" ....");
+                    in = c.get(name);    
+                    file = new File(temp+bar+"Twister"+bar+"Plugins"+bar+name);
+                    OutputStream out=new FileOutputStream(file);
+                    byte buf[]=new byte[100];
+                    int len;
+                    while((len=in.read(buf))>0)
+                        out.write(buf,0,len);
+                    out.close();
+                    in.close();
+                    
+                    
+                    
+//                     inputStreamReader = new InputStreamReader(in);
+//                     //bufferedReader = new BufferedReader(inputStreamReader);  
+//                     file = new File(temp+bar+"Twister"+bar+"Plugins"+bar+name);
+//                     writer = new BufferedWriter(new FileWriter(file));
+//                     while((line=bufferedReader.readLine())!= null){
+//                         writer.write(line);
+//                         writer.newLine();}
+//                     bufferedReader.close();
+//                     writer.close();
+//                     inputStreamReader.close();
+//                     in.close();
+                    System.out.println("successfull");}
+                catch(Exception e){
+                    System.out.println("Error in copying plugin" +plugins.get(i).getFilename()+ " localy");}
+                }
+            }
+        }
+            
+            
+            
+            
+//             c.ls(_String_)
+//             try{System.out.println("fwmconfig.xml size on sftp: "+c.lstat("fwmconfig.xml").getSize()+" bytes");
+//                 in = c.get("fwmconfig.xml");}
+//             catch(Exception e){
+//                 CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, Repository.window, "Warning","Could not get fwmconfig.xml from "+c.pwd()+" creating a blank one.");
+//                 System.out.println("Could not get fwmconfig.xml from "+c.pwd()+" creating a blank one.");
+//                 ConfigFiles.saveXML(true);
+//                 in = c.get("fwmconfig.xml");}
+//             inputStreamReader = new InputStreamReader(in);
+//             bufferedReader = new BufferedReader(inputStreamReader);  
+//             file = new File(temp+bar+"Twister"+bar+"config"+bar+"fwmconfig.xml");
+//             writer = new BufferedWriter(new FileWriter(file));
+//             while((line=bufferedReader.readLine())!= null){
+//                 writer.write(line);
+//                 writer.newLine();}
+//             bufferedReader.close();
+//             writer.close();
+//             inputStreamReader.close();
+//             in.close();
+//             System.out.println("fwmconfig.xml local size: "+file.length()+" bytes");}
+        
+        
+        
+        
+        
+        
+        
+        
+
+     
+    /*
+     * generate local config 
+     * file from scratch
+     */
+    public static void generateJSon(){
+        JsonObject root = new JsonObject();
+        JsonObject array =new JsonObject();
+        array.addProperty("Embedded", "embedded");
+        array.addProperty("DEFAULT", "Embedded");
+        JsonObject array2 =new JsonObject();
+        array2.addProperty("NimbusLookAndFeel", "javax.swing.plaf.nimbus.NimbusLookAndFeel");
+        array2.addProperty("MetalLookAndFeel", "javax.swing.plaf.metal.MetalLookAndFeel");
+        array2.addProperty("MotifLookAndFeel", "com.sun.java.swing.plaf.motif.MotifLookAndFeel");
+        array2.addProperty("WindowsLookAndFeel", "com.sun.java.swing.plaf.windows.WindowsLookAndFeel");
+        array2.addProperty("JGoodiesWindowsLookAndFeel", "com.jgoodies.looks.windows.WindowsLookAndFeel");
+        array2.addProperty("Plastic3DLookAndFeel", "com.jgoodies.looks.plastic.Plastic3DLookAndFeel");
+        array2.addProperty("PlasticXPLookAndFeel", "com.jgoodies.looks.plastic.PlasticXPLookAndFeel");
+        array2.addProperty("DEFAULT", "MetalLookAndFeel");
+        root.add("editors", array);
+        root.add("looks", array2);
+        try{FileWriter writer = new FileWriter(TWISTERINI);
+            Gson gson = new GsonBuilder().setPrettyPrinting().create(); 
+            writer.write(gson.toJson(root));
+            writer.close();}
+        catch(Exception e){
+            System.out.println("Could not write default JSon to twister.conf");
+            e.printStackTrace();}
+        System.out.println("twister.conf succesfuly created");}
     
     /*
      * set UI Look based on
@@ -317,7 +430,7 @@ public class Repository{
                 System.out.println("Setting UI: "+look);
                 try{UIManager.setLookAndFeel(Repository.getLooks().get(look).getAsString());
                     if(applet){SwingUtilities.updateComponentTreeUI(container);}
-                    else{SwingUtilities.updateComponentTreeUI(window);}}
+                    else if(window!=null){SwingUtilities.updateComponentTreeUI(window);}}
                 catch(Exception e){e.printStackTrace();}}});}
         
     /*
@@ -330,13 +443,14 @@ public class Repository{
                 JPasswordField password1 = new JPasswordField();
                 JComboBox combo = new JComboBox();
                 try{populateLookAndFeels();
-                    int index = populateCombo(combo,lookAndFeels);
-                    if(index>-1)combo.setSelectedIndex(index);}
+                    if(lookAndFeels!=null){
+                        int index = populateCombo(combo,lookAndFeels);
+                        if(index>-1)combo.setSelectedIndex(index);}}
                 catch(Exception e){
-                    System.out.println("Error: No LooksAndFeels set");
+                    System.out.println("Error in setting LookAndFeel");
                     e.printStackTrace();}
                 JPanel p = getPasswordPanel(user1,password1,combo);
-                int resp = (Integer)CustomDialog.showDialog(p,JOptionPane.QUESTION_MESSAGE, JOptionPane.OK_CANCEL_OPTION, intro, "User & Password",new ImageIcon(Repository.getPasswordIcon()));
+                int resp = (Integer)CustomDialog.showDialog(p,JOptionPane.QUESTION_MESSAGE, JOptionPane.OK_CANCEL_OPTION, null, "User & Password",new ImageIcon(Repository.getPasswordIcon()));
                 if(resp == JOptionPane.OK_OPTION){
                     System.out.println("Attempting to connect to: "+host+" with user: "+user1.getText()+" and password: "+password1.getPassword());
                     JSch jsch = new JSch();
@@ -355,7 +469,7 @@ public class Repository{
                     catch(Exception e){System.out.println("ERROR: Could not retrieve remote user home directory");}
                     REMOTECONFIGDIRECTORY = USERHOME+"/twister/config/";
                     passed = true;
-                    setUILook(combo.getSelectedItem().toString());}
+                    if(combo.getItemCount()>0)setUILook(combo.getSelectedItem().toString());}
                 else return false;}
             catch(JSchException ex){
                 if(ex.toString().indexOf("Auth fail")!=-1)System.out.println("wrong user and/or password");
@@ -544,7 +658,7 @@ public class Repository{
             CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,Repository.window, "Warning", "Could not get :"+USERHOME+"/twister/config/");
             if(Window.deleteTemp(new File(Repository.temp+bar+"Twister")))System.out.println(Repository.temp+bar+"Twister deleted successfull");
             else System.out.println("Could not delete: "+Repository.temp+bar+"Twister");
-            intro.dispose();
+            //intro.dispose();
             run = false;
             if(!applet)System.exit(0);}
             try{System.out.println("fwmconfig.xml size on sftp: "+c.lstat("fwmconfig.xml").getSize()+" bytes");
@@ -870,18 +984,20 @@ public class Repository{
       */
     private static void populateLookAndFeels(){
         JsonObject looks = Repository.getLooks();
-        int length = looks.entrySet().size();
-        Iterator iter = looks.entrySet().iterator();
-        Entry entry;
-        String [] vecresult;
-        if(looks.get("DEFAULT")!=null)lookAndFeels = new String[length-1];
-        else lookAndFeels = new String[length];
-        int index = 0;
-        for(int i=0;i<length;i++){                        
-            entry = (Entry)iter.next();
-            if(entry.getKey().toString().equals("DEFAULT"))continue;
-            lookAndFeels[index] = (String)entry.getKey();
-            index++;}}
+        if(looks!=null){
+            int length = looks.entrySet().size();
+            Iterator iter = looks.entrySet().iterator();
+            Entry entry;
+            String [] vecresult;
+            if(looks.get("DEFAULT")!=null)lookAndFeels = new String[length-1];
+            else lookAndFeels = new String[length];
+            int index = 0;
+            for(int i=0;i<length;i++){                        
+                entry = (Entry)iter.next();
+                if(entry.getKey().toString().equals("DEFAULT"))continue;
+                lookAndFeels[index] = (String)entry.getKey();
+                index++;}}
+        else{System.out.println("Error: No LooksAndFeels set, using default look");}}
         
      /*
       *populate lookandfeel cobo
@@ -891,7 +1007,6 @@ public class Repository{
     private static int populateCombo(JComboBox combo,String[]list){
         int index = -1;
         String name;
-        System.out.println("list length is: "+list.length);
         for(int i=0;i<list.length;i++){
             try{Class.forName(getLooks().get(list[i]).getAsString());                
                 combo.addItem(list[i]);
@@ -928,18 +1043,16 @@ public class Repository{
         p.add(jPanel2);
         p.add(jTextField2);
         p.add(jPanel5);
-        
         combo.addItemListener(new ItemListener(){
             public void itemStateChanged(ItemEvent evt){
                 if(evt.getStateChange() == ItemEvent.SELECTED){
                     if(Repository.getDefaultLook().equals(evt.getItem().toString())) check.setSelected(true);
                     else check.setSelected(false);}}});
-        
         check.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
-                if(check.isSelected())Repository.setDefaultLook(combo.getSelectedItem().toString());
-                else Repository.setDefaultLook("MetalLookAndFeel");}});
-        
+                if(getLooks()!=null){
+                    if(check.isSelected())Repository.setDefaultLook(combo.getSelectedItem().toString());
+                    else Repository.setDefaultLook("MetalLookAndFeel");}}});
         return p;}
         
     /*

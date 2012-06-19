@@ -441,7 +441,8 @@ public class Panel1 extends JPanel{
              * check if mandatory fields are set
              */
             for(int j=0;j<defsNr;j++){
-                if(Repository.getSuita(i).getUserDef(j)[1].length()==0&&Repository.getDatabaseUserFields().get(j)[Repository.MANDATORY].equals("true")){
+                if( Repository.getDatabaseUserFields().get(j)[Repository.MANDATORY].equals("true") &&
+                (Repository.getSuita(i).getUserDefNr()-1<j||Repository.getSuita(i).getUserDef(j)[1].length()==0)){
                     CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, Repository.window, "Warning","Please set user defined field at "+Repository.getDatabaseUserFields().get(j)[Repository.LABEL]+" for: "+Repository.getSuita(i).getName());
                     execute = false;
                     break;}}

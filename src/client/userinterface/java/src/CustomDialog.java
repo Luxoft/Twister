@@ -24,8 +24,12 @@ public class CustomDialog{
         dialog.setAlwaysOnTop(true);
         dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
         dialog.setVisible(true);
-        if(pane.getValue()==null) return "NULL";
-        else return (String)pane.getValue();}
+        if(pane.getValue()==null){
+            dialog.dispose();
+            return "NULL";}
+        else{
+            dialog.dispose();
+            return (String)pane.getValue();}}
         
     
     /*
@@ -37,8 +41,12 @@ public class CustomDialog{
         dialog.setAlwaysOnTop(true);
         dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
         dialog.setVisible(true);
-        if(pane.getValue()==null) return -1;
-        else return pane.getValue();}
+        if(pane.getValue()==null){
+            dialog.dispose();
+            return -1;}
+        else{
+            dialog.dispose();
+            return pane.getValue();}}
     
     /*
      * used for input dialog
@@ -55,8 +63,12 @@ public class CustomDialog{
         dialog.setAlwaysOnTop(true);
         dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
         dialog.setVisible(true);
-        if(pane.getValue()==null||(Integer)pane.getValue()==JOptionPane.CANCEL_OPTION) return null;
-        else return field.getText();}
+        if(pane.getValue()==null||(Integer)pane.getValue()==JOptionPane.CANCEL_OPTION){
+            dialog.dispose();
+            return null;}
+        else{
+            dialog.dispose();
+            return field.getText();}}
     
     /*
      * used to show info

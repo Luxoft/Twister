@@ -78,14 +78,16 @@ public class Main{
              */
 //             for(LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
 //                 System.out.println(info.getName());}
-
-            SwingUtilities.invokeLater(new Runnable(){
-                public void run(){
-                    try{
+//             PluginsLoader.setClassPath();
+            Repository.initialize(false,"tsc-server",null);
+//             
+//             SwingUtilities.invokeLater(new Runnable(){
+//                 public void run(){
+//                     try{
 //                         UIManager.setLookAndFeel("javax.swing.plaf.nimbus.NimbusLookAndFeel");
-                        Repository.initialize(false,"tsc-server",null);}
-                    catch(Exception e){
-                        e.printStackTrace();}}});
+//                         Repository.initialize(false,"tsc-server",null);}
+//                     catch(Exception e){
+//                         e.printStackTrace();}}});
 
            
                 

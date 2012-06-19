@@ -128,9 +128,7 @@ public class ConfigFiles extends JPanel{
             public void actionPerformed(ActionEvent ev){
                 if(!tname.getText().equals("")){saveXML(false);}
                 else{
-                    CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, ConfigFiles.this, "Filename missing", "No file name given");
-//                     JOptionPane.showMessageDialog(Repository.window, "No file name given", "Filename missing", JOptionPane.WARNING_MESSAGE);
-                }}};        
+                    CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, ConfigFiles.this, "Filename missing", "No file name given");}}};
         tname = new JTextField();
         addPanel("File name","File name to store this configuration",tname,"",944,true,actionlistener);
         tdbfile = new JTextField();
@@ -254,14 +252,8 @@ public class ConfigFiles extends JPanel{
                         thttpPort.setText(Repository.getHTTPServerPort());
                         traPort.setText(Repository.getResourceAllocatorPort());
                         tceport.setText(Repository.getCentralEnginePort());}
-                    else CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, ConfigFiles.this, "WARNING", "This is not a config file");
-//                     JOptionPane.showMessageDialog(Repository.window, "This is not a config file", "WARNING", JOptionPane.WARNING_MESSAGE);
-                
-                }}
-            else CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, ConfigFiles.this, "WARNING", "Could not find Config tab");
-//             JOptionPane.showMessageDialog(Repository.window, "Could not find Config tab", "WARNING", JOptionPane.WARNING_MESSAGE);
-        
-        }
+                    else CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, ConfigFiles.this, "WARNING", "This is not a config file");}}
+            else CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, ConfigFiles.this, "WARNING", "Could not find Config tab");}
         catch(Exception e){e.printStackTrace();}}
         
     public JPanel addField(JTextField textfield,String text,int nr){
@@ -319,13 +311,7 @@ public class ConfigFiles extends JPanel{
                 b.addActionListener(new AbstractAction(){
                     public void actionPerformed(ActionEvent ev){                        
                         if(fileChooser==null)initializeFileBrowser();
-                        try{
-//                             if(fileChooser.showOpenDialog(Repository.window)==VFSJFileChooser.RETURN_TYPE.CANCEL){
-//                                 FileObject aFileObject = fileChooser.getSelectedFile();
-//                                  FileObject aFileObject = fileChooser.getCurrentDirectory();
-//                                  if(aFileObject!=null)textfield.setText(aFileObject.toString().substring(aFileObject.toString().indexOf("@")).substring(aFileObject.toString().substring(aFileObject.toString().indexOf("@")).indexOf("/")));}
-//                                  fileChooser=null;
-                            RETURN_TYPE answer = fileChooser.showOpenDialog(ConfigFiles.this);
+                        try{RETURN_TYPE answer = fileChooser.showOpenDialog(ConfigFiles.this);
                             if (answer == RETURN_TYPE.APPROVE){
                                 final FileObject aFileObject = fileChooser.getSelectedFile();
                                 String safeName = VFSUtils.getFriendlyName(aFileObject.toString());
@@ -348,8 +334,8 @@ public class ConfigFiles extends JPanel{
         p1.add(p12);}
         
     public static void saveXML(boolean blank){
-        try{System.out.println("Starting saveXML");
-            DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
+        boolean saved = true;
+        try{DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
             DocumentBuilder documentBuilder = documentBuilderFactory.newDocumentBuilder();
             Document document = documentBuilder.newDocument();
             TransformerFactory transformerFactory = TransformerFactory.newInstance();
@@ -393,9 +379,17 @@ public class ConfigFiles extends JPanel{
             FileInputStream in = new FileInputStream(file);
             Repository.c.put(in, file.getName());
             in.close();}
-        catch(ParserConfigurationException e){System.out.println("DocumentBuilder cannot be created which satisfies the configuration requested");}
-        catch(TransformerConfigurationException e){System.out.println("Could not create transformer");}
-        catch(Exception e){e.printStackTrace();}}
+        catch(ParserConfigurationException e){
+            System.out.println("DocumentBuilder cannot be created which satisfies the configuration requested");
+            saved = false;}
+        catch(TransformerConfigurationException e){
+            System.out.println("Could not create transformer");
+            saved = false;}
+        catch(Exception e){
+            e.printStackTrace();
+            saved = false;}
+        if(saved)CustomDialog.showInfo(JOptionPane.INFORMATION_MESSAGE, Repository.window.mainpanel.p4.config, "Successfull", "File successfully saved");
+        else CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, Repository.window.mainpanel.p4.config, "Warning", "File could not be saved ");}
         
     public static void addTag(String tagname, String tagcontent ,Element root,boolean blank,Document document){
         Element rootElement = document.createElement(tagname);
@@ -409,5 +403,4 @@ public class ConfigFiles extends JPanel{
         fileChooser = new VFSJFileChooser("sftp://"+Repository.user+":"+Repository.password+"@"+Repository.host+"/home/"+Repository.user+"/twister/config/");        
         fileChooser.setFileHidingEnabled(true);
         fileChooser.setMultiSelectionEnabled(false);
-        fileChooser.setFileSelectionMode(VFSJFileChooser.SELECTION_MODE.FILES_AND_DIRECTORIES);
-    }}
+        fileChooser.setFileSelectionMode(VFSJFileChooser.SELECTION_MODE.FILES_AND_DIRECTORIES);}}

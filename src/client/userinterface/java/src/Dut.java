@@ -436,8 +436,7 @@ public class Dut extends JPanel {
         
     public void save(){
         String name = CustomDialog.showInputDialog(JOptionPane.PLAIN_MESSAGE, JOptionPane.OK_CANCEL_OPTION, Dut.this, "File name", "Please enter file name:");
-//         System.out.println("NAME: "+name);
-//         name = JOptionPane.showInputDialog("File Name :");
+        boolean saved =true;
         if(name!=null){
             try{DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
                 DocumentBuilder documentBuilder = documentBuilderFactory.newDocumentBuilder();
@@ -462,9 +461,15 @@ public class Dut extends JPanel {
                     FileInputStream in = new FileInputStream(file);
                     Repository.c.put(in, file.getName());
                     in.close();}
-                catch(Exception e){e.printStackTrace();
+                catch(Exception e){
+                    saved =false;
+                    e.printStackTrace();
                 System.out.println("Could not save in file : "+file.getCanonicalPath()+" and sen to "+Repository.REMOTEHARDWARECONFIGDIRECTORY);}} 
-            catch(Exception e) {e.printStackTrace();}}}
+            catch(Exception e) {
+                saved =false;
+                e.printStackTrace();}
+            if(saved)CustomDialog.showInfo(JOptionPane.INFORMATION_MESSAGE, Dut.this, "Successfull", "File successfully saved");
+            else CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, Dut.this, "Warning", "File could not be saved ");}}
         
     public void addItem(){
         if(additem.getText().equals("Add testbed")){
@@ -492,10 +497,13 @@ public class Dut extends JPanel {
         clearSelection();}
         
     public void generate(){
+        boolean saved = true;
         try{String status="";
             try{status = (String)Repository.getRPCClient().execute("getExecStatusAll",new Object[]{});}
-            catch(Exception e){System.out.println("Could not connect to server");}
-            System.out.println("STATUS: "+status);
+            catch(Exception e){
+                e.printStackTrace();
+                saved = false;
+                System.out.println("Could not connect to server");}
             if(status.indexOf("running")==-1){
                 DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
                 DocumentBuilder documentBuilder = documentBuilderFactory.newDocumentBuilder();
@@ -516,19 +524,24 @@ public class Dut extends JPanel {
                 Result result = new StreamResult(file); 
                 try{transformer.transform(source, result);
                     try{Repository.c.cd(Repository.REMOTEHARDWARECONFIGDIRECTORY);}
-                    catch(Exception e){System.out.println("could not get "+Repository.REMOTEHARDWARECONFIGDIRECTORY);}
+                    catch(Exception e){
+                        e.printStackTrace();
+                        saved = false;
+                        System.out.println("could not get "+Repository.REMOTEHARDWARECONFIGDIRECTORY);}
                     FileInputStream in = new FileInputStream(file);
                     Repository.c.put(in, file.getName());
                     in.close();}
-                catch(Exception e){e.printStackTrace();
-                System.out.println("Could not save in file : "+file.getCanonicalPath()+" and send to "+Repository.REMOTEHARDWARECONFIGDIRECTORY);}}
-            else{
-                CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, Dut.this, "Warning", "Please close Central Engine before generating");
-//                 JOptionPane.showMessageDialog(Repository.window, "Please close Central Engine before generating");
-            }
-        
-        }
-        catch(Exception e) {e.printStackTrace();}}
+                catch(Exception e){
+                    saved = false;
+                    e.printStackTrace();
+                    System.out.println("Could not save in file : "+file.getCanonicalPath()+" and send to "+Repository.REMOTEHARDWARECONFIGDIRECTORY);}}
+            else{saved = false;
+                CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, Dut.this, "Warning", "Please close Central Engine before generating");}}
+        catch(Exception e) {
+            saved = false;
+            e.printStackTrace();}
+        if(saved)CustomDialog.showInfo(JOptionPane.INFORMATION_MESSAGE, Repository.window.mainpanel.p4.config, "Successfull", "File successfully generated");
+        else CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, Repository.window.mainpanel.p4.config, "Warning", "File could not be generated ");}
         
     private void load(String file){
         try{String config=null;

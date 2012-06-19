@@ -18,6 +18,8 @@ import javax.swing.JScrollPane;
 import javax.swing.SwingUtilities;
 import javax.swing.JPanel;
 import javax.swing.JComboBox;
+import java.util.Iterator;
+import com.twister.plugin.twisterinterface.TwisterPluginInterface;
 
 /*
  * twister main container
@@ -50,6 +52,16 @@ public class MainPanel extends JTabbedPane{
         addTab("Reports", null);
         addTab("Configuration", p4);        
 //         add("Network", new JScrollPane(p5));
+
+        
+//  		final Iterator<TwisterPluginInterface> tabs = PluginsLoader.getPlugins(); 
+//  		while(tabs.hasNext()){
+//      		TwisterPluginInterface tab = tabs.next();
+//      		tab.init();
+//      		addTab(tab.getTitle(),tab.getContent());
+//          }
+        
+
         askForFile();
         /*
          * if it is applet

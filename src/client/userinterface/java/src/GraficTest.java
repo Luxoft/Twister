@@ -35,7 +35,7 @@ public class GraficTest extends JPanel{
         if(ev.getButton()==1){
             if(Repository.getTestSuiteNr()==0)return;
                 getClickedItem(ev.getX(),ev.getY());
-                if(selected.size()>0){
+                if(selected.size()>0&&getItem(selected).getType()==2){
                     if(getItem(selected).getSubItemsNr()>0){getItem(selected).setVisible(!(getItem(selected).getSubItem(0).isVisible()));}
                     updateLocations(getItem(selected));}
                 repaint();}}

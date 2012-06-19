@@ -29,11 +29,13 @@ public class IntroScreen extends JFrame{
         Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
         setBounds((int)(screenSize.getWidth()-640)/2,(int)(screenSize.getHeight()-480)/2,640,480);
         setUndecorated(true);
+        setAlwaysOnTop(true);
         try{if(AWTUtilities.isTranslucencySupported(AWTUtilities.Translucency.PERPIXEL_TRANSLUCENT))AWTUtilities.setWindowOpaque(this, false);
             else if(AWTUtilities.isTranslucencySupported(AWTUtilities.Translucency.TRANSLUCENT))AWTUtilities.setWindowOpacity(this, 0.7f);}
         catch(Exception e){e.printStackTrace();}}
     
-    public void paint(Graphics g){
+    
+    public void paint(Graphics g) {
         Graphics2D g2d = (Graphics2D)g;
         g2d.setComposite(AlphaComposite.Clear);
         g2d.fillRect(0, 0, 640, 480);
