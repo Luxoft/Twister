@@ -30,9 +30,7 @@ import os
 import sys
 import re
 import datetime
-import socket
 import json
-import binascii
 import MySQLdb
 import cherrypy
 from mako.template import Template
@@ -43,34 +41,44 @@ class Root:
 
     # Java User Interface 1
     @cherrypy.expose
-    def index(self):
+    def gui(self):
         output = open(TWISTER_PATH + '/server/httpserver/template/ui.htm', 'r')
         return output.read()
 
     # Java User Interface 2
     @cherrypy.expose
-    def home(self):
+    def java(self):
+        return self.gui()
+
+    # Report link 1
+    @cherrypy.expose
+    def index(self):
         global dbparser, db_config
-        if not dbparser: load_config()
+        load_config() # Re-load all Database XML
         global glob_links
         output = Template(filename=TWISTER_PATH + '/server/httpserver/template/base.htm')
         return output.render(title='Home', links=glob_links)
 
-    # Report link 1
-    @cherrypy.expose
-    def report(self):
-        return self.home()
-
     # Report link 2
     @cherrypy.expose
+    def home(self):
+        return self.index()
+
+    # Report link 3
+    @cherrypy.expose
+    def report(self):
+        return self.index()
+
+    # Report link 4
+    @cherrypy.expose
     def reporting(self):
-        return self.home()
+        return self.index()
 
     # Help link
     @cherrypy.expose
     def help(self):
         global dbparser, db_config
-        if not dbparser: load_config()
+        load_config() # Re-load all Database XML
         global glob_links
         output = Template(filename=TWISTER_PATH + '/server/httpserver/template/help.htm')
         return output.render(title='Help', links=glob_links)
@@ -80,10 +88,14 @@ class Root:
     @cherrypy.expose
     def rep(self, report=None, **args):
         global dbparser, db_config
-        if not dbparser: load_config()
+        load_config() # Re-load all Database XML
         global conn, curs
         if not conn: connect_db()
         global glob_fields, glob_reports, glob_links
+
+        cherrypy.response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        cherrypy.response.headers['Pragma']  = 'no-cache'
+        cherrypy.response.headers['Expires'] = 0
 
         if not report:
             raise cherrypy.HTTPRedirect('/home')
@@ -216,6 +228,9 @@ class Root:
 
         descr = [desc[0] for desc in curs.description]
 
+        # Write DEBUG
+        #DEBUG.write(report +' -> '+ user_choices +' -> '+ query + '\n\n') ; DEBUG.flush()
+
 
         # ... For Query Compare side by side, the table is double ...
         query_compr = report_dict['sqlcompr']
@@ -247,6 +262,8 @@ class Root:
             # Update headers: must contain both headers.
             descr = descr + ['vs.'] + headers_tot
 
+            # Write DEBUG
+            #DEBUG.write(report +' -> '+ user_choices +' -> '+ query_compr + '\n\n') ; DEBUG.flush()
 
         output = Template(filename=TWISTER_PATH + '/server/httpserver/template/base.htm')
         return output.render(title=report, links=glob_links, ajax_link=ajax_link, user_choices=user_choices,
@@ -257,12 +274,15 @@ class Root:
     @cherrypy.expose
     def json(self, report, **args):
         global dbparser, db_config
-        if not dbparser: load_config()
+        load_config() # Re-load all Database XML
         global conn, curs
         if not conn: connect_db()
         global glob_reports
 
-        cherrypy.response.headers['Content-Type'] = 'application/json; charset=utf-8'
+        cherrypy.response.headers['Content-Type']  = 'application/json; charset=utf-8'
+        cherrypy.response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        cherrypy.response.headers['Pragma']  = 'no-cache'
+        cherrypy.response.headers['Expires'] = 0
 
         if report not in glob_reports:
             output = {'aaData':[], 'error':'Report `{0}` is not in the list of defined reports!'.format(report)}
@@ -340,12 +360,18 @@ class Root:
 
             for i in range(len(rows)):
                 row = rows[i]
-                # "None" values must be converted to Float
+                tot_row = list(rows_tot[i])
+
+                # Null and None values must be numbers
+                if not row[0]: row = (0.0, row[1])
                 if not row[1]: row = (row[0], 0.0)
+                if not tot_row[0]: tot_row[0] = 0.0
+                if not tot_row[1]: tot_row[1] = 0.1
+
                 # Calculate percent...
-                percent = '%.2f' % ( float(row[1]) / rows_tot[i][1] * 100.0 )
+                percent = '%.2f' % ( float(row[1]) / tot_row[1] * 100.0 )
                 # Using the header from Total, because it might be Null in the first query
-                calc_rows.append([rows_tot[i][0], float(percent)])
+                calc_rows.append([tot_row[0], float(percent)])
 
 
         # ... SQL Query Compare side by side ...
@@ -428,9 +454,11 @@ def load_config():
     '''
     global dbparser, db_config
     global glob_fields, glob_reports, glob_redirects, glob_links
-    print 'Parsing the config for the first time...\n'
-    dbparser =  DBParser(DB_CFG)
-    db_config = dbparser.db_config
+    if not dbparser:
+        print('Parsing the Config for the first time...\n')
+        dbparser =  DBParser(DB_CFG)
+        db_config = dbparser.db_config
+
     glob_fields = dbparser.getReportFields()
     glob_reports = dbparser.getReports()
     glob_redirects = dbparser.getRedirects()
@@ -440,20 +468,11 @@ def load_config():
 
 def connect_db():
     global conn, curs
-    print 'Connecting to the database for the first time...\n'
+    if not conn:
+        print('Connecting to the Database for the first time...\n')
     conn = MySQLdb.connect(host=db_config.get('server'), db=db_config.get('database'),
                            user=db_config.get('user'), passwd=db_config.get('password'))
     curs = conn.cursor()
-
-#
-
-def get_ip_address(ifname):
-    import struct
-    try: import fcntl
-    except: print('Fatal Error get IP adress!') ; exit(1)
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    return socket.inet_ntoa(fcntl.ioctl(
-        s.fileno(), 0x8915, struct.pack('256s', ifname[:15]) )[20:24])
 
 #
 
@@ -489,12 +508,11 @@ if __name__ == '__main__':
     conn = None
     curs = None
 
-    # Find server IP
-    try:
-        serverIP = socket.gethostbyname(socket.gethostname())
-    except:
-        serverIP = get_ip_address('eth0')
-    # Find server PORT
+    # DEBUG file
+    #DEBUG = open(TWISTER_PATH + '/config/reporting.query', 'w')
+
+    # Find server IP and PORT
+    serverIP = '0.0.0.0'
     serverPort = int(soup.httpserverport.text)
     del soup
 
@@ -503,10 +521,6 @@ if __name__ == '__main__':
     cherrypy.config.update({'server.socket_host': serverIP, 'server.socket_port': serverPort})
 
     conf = {
-            '/': {
-                'tools.caching.on': True,
-                'tools.caching.delay': 3600,
-                },
             '/static': {
                 'tools.staticdir.on': True,
                 'tools.staticdir.dir': TWISTER_PATH + '/server/httpserver/static',

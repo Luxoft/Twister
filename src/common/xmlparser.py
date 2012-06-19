@@ -23,8 +23,8 @@
 
 import os
 import sys
-import md5
 import time
+import hashlib
 
 from collections import OrderedDict
 
@@ -53,7 +53,7 @@ class TSCParser:
     - Logs Path
     - Reports Path
     - EPs list, active EPs
-    - Test files for specific EpId
+    - Test files for specific EP
     '''
 
     def __init__(self, config_data):
@@ -66,6 +66,7 @@ class TSCParser:
 
         self.configTS = None
         self.configHash = None
+        self.getEpList()
         self.updateConfigTS()
 
 
@@ -79,11 +80,11 @@ class TSCParser:
         if config_ts.startswith('~'):
             config_ts = os.getenv('HOME') + config_ts[1:]
         if not os.path.isfile(config_ts):
-            print('TSCParser: Test Suite Config file `%s` does not exist!' % config_ts)
+            print('TSCParser: Test Suite Config file `%s` does not exist! Please check framework config XML file!' % config_ts)
             return -1
 
         # Hash check the XML file, to see if is changed
-        newConfigHash = md5.new(open(config_ts).read()).hexdigest()
+        newConfigHash = hashlib.md5(open(config_ts).read()).hexdigest()
         if self.configHash != newConfigHash:
             print('TSCParser: Master XML file changed, rebuilding internal structure...')
             # Use the new hash
@@ -148,8 +149,8 @@ class TSCParser:
         if e_file.startswith('~'):
             e_file = os.getenv('HOME') + e_file[1:]
         if not os.path.isfile(e_file):
-            print('TSCParser: E-mail Config file `%s` does not exist!' % e_file)
-            return -1
+            print('TSCParser: E-mail Config file `%s` does not exist! Please check framework config XML file!' % e_file)
+            return {}
 
         econfig = BeautifulStoneSoup(open(e_file))
 
@@ -182,62 +183,7 @@ class TSCParser:
         return res
 
 
-    def getSuiteInfo(self, suite):
-        '''
-        Returns a list with information about all available Suites from Master XML.
-        '''
-
-        prop_keys = suite(lambda tag: tag.name=='propname' and tag.parent.name=='userdefined')
-        prop_vals = suite(lambda tag: tag.name=='propvalue' and tag.parent.name=='userdefined')
-        res = dict(zip([p.text for p in prop_keys], [p.text for p in prop_vals])) # Pack Key + Value
-
-        return res
-
-
-    def getFileInfo(self, epid, filename):
-        '''
-        Find all information about one test file, like deps, props, etc.
-        `filename` can be the name of the file, or the file ID.
-        '''
-        res = {}
-
-        # All suites for this EPID
-        suites = self.configTS(text=epid)
-        TestCase = None
-
-        if suites:
-            TestSuites = [suite.parent.parent for suite in suites]
-        else:
-            print('TSCParser: Cannot find EPID `%s`! Exiting!' % epid)
-            return {}
-
-        for TestSuite in TestSuites:
-            file_info = TestSuite(text=filename)
-            if file_info:
-                TestCase = file_info[0].parent.parent
-                res.update(self.getSuiteInfo(TestSuite))
-
-        if not TestCase:
-            print('TSCParser: Cannot find Info for `%s`! Exiting!' % filename)
-            return {}
-
-        try:
-            prop_keys = TestCase.property('propname')  # All extra properties, keys
-            prop_vals = TestCase.property('propvalue') # Properties, values
-            res.update( dict(zip([p.text for p in prop_keys], [p.text for p in prop_vals])) ) # Pack Key + Value
-        except:
-            pass # Doesn't have extra properties
-
-        res['id']    = TestCase.tcid.text
-        res['file']  = TestCase.tcname.text
-        res['epid']  = epid
-        res['suite'] = TestSuite.tsname.text
-        res['dep']   = TestCase.dependancy.text if TestCase.dependancy else ''
-        #print 'File info ::', res
-        return res
-
-
-    def getEpIdsList(self):
+    def getEpList(self):
         '''
         Returns a list with all available EP-IDs.
         '''
@@ -245,7 +191,7 @@ class TSCParser:
         if res.startswith('~'):
             res = os.getenv('HOME') + res[1:]
         if not os.path.isfile(res):
-            print('TSCParser: EpIds file `%s` does not exist!' % res)
+            print('TSCParser: EP Names file `%s` does not exist! Please check framework config XML file!' % res)
             return None
 
         self.epids = []
@@ -254,14 +200,85 @@ class TSCParser:
         return self.epids
 
 
-    def getActiveEpIds(self):
+    def getActiveEps(self):
         '''
-        Returns a list with all active EpIds from Master XML.
+        Returns a list with all active EPs from Master XML.
         '''
         activeEpids = []
-        for ep in self.configTS.findAll('epid'):
+        for ep in self.configTS('epid'):
             activeEpids.append(ep.text)
+        activeEpids = list(set(activeEpids))
         return activeEpids
+
+
+    def getFileInfo(self, file_soup):
+        '''
+        Returns a dict with information about 1 File from Master XML.
+        The "file" must be a BeautifulSoup class.
+        '''
+        res = OrderedDict()
+        res['suite'] = file_soup.parent.tsname.text
+        res['file']  = file_soup.tcname.text
+        res['dependancy'] = file_soup.dependancy.text if file_soup.dependancy else ''
+
+        prop_keys = file_soup(lambda tag: tag.name=='propname')
+        prop_vals = file_soup(lambda tag: tag.name=='propvalue')
+        params = ''
+
+        # The order of the properties is important!
+        for i in range(len(prop_keys)):
+            p_key = prop_keys[i].text
+            p_val = prop_vals[i].text
+
+            # Param tags are special
+            if p_key == 'param':
+                params += p_val + ','
+                p_val = params
+
+            res[p_key] = p_val
+
+        return res
+
+
+    def getSuiteInfo(self, suite_soup):
+        '''
+        Returns a dict with information about 1 Suite from Master XML.
+        The "suite" must be a BeautifulSoup class.
+        '''
+
+        prop_keys = suite_soup(lambda tag: tag.name=='propname' and tag.parent.name=='userdefined')
+        prop_vals = suite_soup(lambda tag: tag.name=='propvalue' and tag.parent.name=='userdefined')
+        res = dict(zip([p.text for p in prop_keys], [p.text for p in prop_vals])) # Pack Key + Value
+
+        res['files'] = OrderedDict()
+        res['ep'] = suite_soup.epid.text
+
+        for file_tag in suite_soup('tcid'):
+            file_data = self.getFileInfo(file_tag.parent)
+            res['files'][file_tag.text] = file_data
+
+        return res
+
+
+    def getAllSuitesInfo(self, epname):
+        '''
+        Returns a list with data for all suites of one EP.
+        Also returns the file list, with all file data.
+        '''
+        if not self.configTS:
+            print('TSCParser: Cannot parse Test Suite XML! Exiting!')
+            return []
+
+        if epname not in self.epids:
+            print('TSCParser: Station `%s` is not in the list of defined EPs: `%s`!' % \
+                (str(epname), str(self.epids)) )
+            return []
+
+        res = OrderedDict()
+        for suite in [k.parent for k in self.configTS(name='epid') if k.text==epname]:
+            suite_name = suite.tsname.text
+            res[suite_name] = self.getSuiteInfo(suite)
+        return res
 
 
     def getAllTestFiles(self):
@@ -280,40 +297,11 @@ class TSCParser:
             print('TSCParser: Current suite has no files!')
 
         for TestCase in files:
-            fname = TestCase.parent.tcname.text
-            ts.append(fname)
+            tcid = TestCase.parent.tcid.text
+            ts.append(tcid)
 
-        print('TSCParser: TestSuite Files (%s files) took %.4f seconds.' % (len(ts), time.clock()-ti))
+        #print('TSCParser: TestSuite Files (%s files) took %.4f seconds.' % (len(ts), time.clock()-ti))
         return ts
-
-
-    def getTestSuiteFileList(self, epid):
-        '''
-        Returns a list with all files defined for current EP.
-        '''
-        ti = time.clock()
-        if not self.configTS:
-            print('TSCParser: Cannot parse Test Suite XML! Exiting!')
-            return []
-
-        if epid not in self.epids:
-            print('TSCParser: Station `%s` is not in the list of defined EPIds: `%s`!' % \
-                (str(epid), str(self.epids)) )
-            return []
-
-        soup = self.configTS
-        ts = [tsSuite for tsSuite in soup('testsuite') if tsSuite.epid.text == epid]
-        if not ts:
-            print('TSCParser: Station `%s` has no files!' % str(epid))
-            return []
-
-        # For multiple test suites.
-        tcNames = []
-        for tcName in ts:
-            tcNames += [fname.text for fname in tcName('tcname')]
-
-        print('TSCParser: Parsing file fist (%s files) for `%s` took %.4f seconds.' % (len(tcNames), epid, (time.clock()-ti)))
-        return tcNames
 
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -328,23 +316,39 @@ class DBParser():
     '''
 
     def __init__(self, config_data):
-        if os.path.isfile(config_data):
-            self.xmlDict = BeautifulStoneSoup(open(config_data))
-        elif config_data and type(config_data)==type('') or type(config_data)==type(u''):
-            self.xmlDict = BeautifulStoneSoup(config_data)
-        else:
-            raise Exception('DBParser: Invalid config data type: `%s`!' % type(config_data))
 
+        self.config_data = config_data
+        self.configHash = None
         self.db_config = {}
-        if self.xmlDict.db_config:
-            if self.xmlDict.db_config.server:
-                self.db_config['server']    = self.xmlDict.db_config.server.text
-            if self.xmlDict.db_config.database:
-                self.db_config['database']  = self.xmlDict.db_config.database.text
-            if self.xmlDict.db_config.user:
-                self.db_config['user']      = self.xmlDict.db_config.user.text
-            if self.xmlDict.db_config.password:
-                self.db_config['password']  = self.xmlDict.db_config.password.text
+        self.updateConfig()
+
+
+    def updateConfig(self):
+        ''' Reload all Database Xml info '''
+
+        config_data = self.config_data
+        newConfigHash = hashlib.md5(open(config_data).read()).hexdigest()
+
+        if self.configHash != newConfigHash:
+            self.configHash = newConfigHash
+            print('DBParser: Database XML file changed, rebuilding internal structure...\n')
+
+            if os.path.isfile(config_data):
+                self.xmlDict = BeautifulStoneSoup(open(config_data))
+            elif config_data and type(config_data)==type('') or type(config_data)==type(u''):
+                self.xmlDict = BeautifulStoneSoup(config_data)
+            else:
+                raise Exception('DBParser: Invalid config data type: `%s`!' % type(config_data))
+
+            if self.xmlDict.db_config:
+                if self.xmlDict.db_config.server:
+                    self.db_config['server']    = self.xmlDict.db_config.server.text
+                if self.xmlDict.db_config.database:
+                    self.db_config['database']  = self.xmlDict.db_config.database.text
+                if self.xmlDict.db_config.user:
+                    self.db_config['user']      = self.xmlDict.db_config.user.text
+                if self.xmlDict.db_config.password:
+                    self.db_config['password']  = self.xmlDict.db_config.password.text
 
 # --------------------------------------------------------------------------------------------------
 #           USED BY CENTRAL ENGINE
@@ -381,6 +385,8 @@ class DBParser():
 
     def getReportFields(self):
         ''' Used by HTTP Server. '''
+        self.updateConfig()
+
         try:
             fields = self.xmlDict.reports_section('field')
         except:
@@ -401,6 +407,8 @@ class DBParser():
 
     def getReports(self):
         ''' Used by HTTP Server. '''
+        self.updateConfig()
+
         try:
             reports = self.xmlDict.reports_section('report')
         except:
@@ -423,6 +431,8 @@ class DBParser():
 
     def getRedirects(self):
         ''' Used by HTTP Server. '''
+        self.updateConfig()
+
         try:
             reports = self.xmlDict.reports_section('redirect')
         except:
@@ -437,17 +447,5 @@ class DBParser():
             res[d['id']]  = d
 
         return res
-
-#
-
-if __name__ == '__main__':
-
-    t = TSCParser(os.getenv('HOME') + '/tscproject/twister/Config/fwmconfig.xml')
-    print t.getLogsPath()
-    print t.getLogTypes()
-    print t.getReportsPath()
-    print t.getEpIdsList()
-    for l in t.getTestSuiteFileList('EP-1001'):
-        print 'Found file:', l
 
 #
