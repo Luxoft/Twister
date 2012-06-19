@@ -26,58 +26,58 @@ public class DeviceModule{
         ports.add(port);}
         
     public void updateInfo(){
-        Repository.window.mainpanel.p4.dut.additem.setEnabled(true);
-        Repository.window.mainpanel.p4.dut.additem.setText("Add port");
-        Repository.window.mainpanel.p4.dut.remitem.setEnabled(true);
-        Repository.window.mainpanel.p4.dut.remitem.setText("Remove module");
-        Repository.window.mainpanel.p4.dut.temp2 = reference;
-        Repository.window.mainpanel.p4.dut.tname2.setText(name);
-        Repository.window.mainpanel.p4.dut.propname.setText("");
-        Repository.window.mainpanel.p4.dut.propvalue.setText("");
+        Repository.window.mainpanel.p4.getDut().additem.setEnabled(true);
+        Repository.window.mainpanel.p4.getDut().additem.setText("Add port");
+        Repository.window.mainpanel.p4.getDut().remitem.setEnabled(true);
+        Repository.window.mainpanel.p4.getDut().remitem.setText("Remove module");
+        Repository.window.mainpanel.p4.getDut().temp2 = reference;
+        Repository.window.mainpanel.p4.getDut().tname2.setText(name);
+        Repository.window.mainpanel.p4.getDut().propname.setText("");
+        Repository.window.mainpanel.p4.getDut().propvalue.setText("");
         updatePropertys();}
         
     public void setName(String name){
         this.name = name;}
     
     public void updatePropertys(){
-        Repository.window.mainpanel.p4.dut.properties2.removeAll();
-        if(Repository.window.mainpanel.p4.dut.nodetemp2.getChildAt(Repository.window.mainpanel.p4.dut.nodetemp2.getChildCount()-1).isLeaf()){
-            while(Repository.window.mainpanel.p4.dut.nodetemp2.getChildCount()>1){
-                ((DefaultTreeModel)Repository.window.mainpanel.p4.dut.explorer.tree.getModel()).removeNodeFromParent(((DefaultMutableTreeNode)Repository.window.mainpanel.p4.dut.nodetemp2.getChildAt(1)));}}
+        Repository.window.mainpanel.p4.getDut().properties2.removeAll();
+        if(Repository.window.mainpanel.p4.getDut().nodetemp2.getChildAt(Repository.window.mainpanel.p4.getDut().nodetemp2.getChildCount()-1).isLeaf()){
+            while(Repository.window.mainpanel.p4.getDut().nodetemp2.getChildCount()>1){
+                ((DefaultTreeModel)Repository.window.mainpanel.p4.getDut().explorer.tree.getModel()).removeNodeFromParent(((DefaultMutableTreeNode)Repository.window.mainpanel.p4.getDut().nodetemp2.getChildAt(1)));}}
         else{
-            while(Repository.window.mainpanel.p4.dut.nodetemp2.getChildAt(1).isLeaf()){
-                ((DefaultTreeModel)Repository.window.mainpanel.p4.dut.explorer.tree.getModel()).removeNodeFromParent(((DefaultMutableTreeNode)Repository.window.mainpanel.p4.dut.nodetemp2.getChildAt(1)));}}
+            while(Repository.window.mainpanel.p4.getDut().nodetemp2.getChildAt(1).isLeaf()){
+                ((DefaultTreeModel)Repository.window.mainpanel.p4.getDut().explorer.tree.getModel()).removeNodeFromParent(((DefaultMutableTreeNode)Repository.window.mainpanel.p4.getDut().nodetemp2.getChildAt(1)));}}
         for(int i=0;i<properties.size();i++){
             DefaultMutableTreeNode child2 = new DefaultMutableTreeNode(properties.get(i)[0]+" - "+properties.get(i)[1],false);
-            if(Repository.window.mainpanel.p4.dut.nodetemp2.getChildAt(Repository.window.mainpanel.p4.dut.nodetemp2.getChildCount()-1).isLeaf()){
-                ((DefaultTreeModel)Repository.window.mainpanel.p4.dut.explorer.tree.getModel()).insertNodeInto(child2,Repository.window.mainpanel.p4.dut.nodetemp2,Repository.window.mainpanel.p4.dut.nodetemp2.getChildCount());}
+            if(Repository.window.mainpanel.p4.getDut().nodetemp2.getChildAt(Repository.window.mainpanel.p4.getDut().nodetemp2.getChildCount()-1).isLeaf()){
+                ((DefaultTreeModel)Repository.window.mainpanel.p4.getDut().explorer.tree.getModel()).insertNodeInto(child2,Repository.window.mainpanel.p4.getDut().nodetemp2,Repository.window.mainpanel.p4.getDut().nodetemp2.getChildCount());}
             else{
-                ((DefaultTreeModel)Repository.window.mainpanel.p4.dut.explorer.tree.getModel()).insertNodeInto(child2,Repository.window.mainpanel.p4.dut.nodetemp2,1+i);}
+                ((DefaultTreeModel)Repository.window.mainpanel.p4.getDut().explorer.tree.getModel()).insertNodeInto(child2,Repository.window.mainpanel.p4.getDut().nodetemp2,1+i);}
             final JButton b = new JButton("remove");
             b.setBounds(280,i*23+18,78,19);
             b.addActionListener(new ActionListener(){
                 public void actionPerformed(ActionEvent ev){
-                    properties.remove(Repository.window.mainpanel.p4.dut.properties2.getComponentZOrder(b)/3);
+                    properties.remove(Repository.window.mainpanel.p4.getDut().properties2.getComponentZOrder(b)/3);
                     updatePropertys();}});
-            Repository.window.mainpanel.p4.dut.properties2.add(b);
+            Repository.window.mainpanel.p4.getDut().properties2.add(b);
             final JTextField text1 = new JTextField();
             text1.setText(properties.get(i)[0]);
             text1.setBounds(6,i*23+18,135,25);
             text1.addKeyListener(new KeyAdapter(){
                 public void keyReleased(KeyEvent ev){
-                    properties.get(Repository.window.mainpanel.p4.dut.properties2.getComponentZOrder(text1)/3)[0]=text1.getText();
-                    ((DefaultMutableTreeNode)Repository.window.mainpanel.p4.dut.nodetemp2.getChildAt(1+(Repository.window.mainpanel.p4.dut.properties2.getComponentZOrder(text1)/3))).setUserObject(text1.getText()+" - "+properties.get(Repository.window.mainpanel.p4.dut.properties2.getComponentZOrder(text1)/3)[1]);
-                    ((DefaultTreeModel)Repository.window.mainpanel.p4.dut.explorer.tree.getModel()).nodeChanged(Repository.window.mainpanel.p4.dut.nodetemp2.getChildAt(1+(Repository.window.mainpanel.p4.dut.properties2.getComponentZOrder(text1)/3)));}});
+                    properties.get(Repository.window.mainpanel.p4.getDut().properties2.getComponentZOrder(text1)/3)[0]=text1.getText();
+                    ((DefaultMutableTreeNode)Repository.window.mainpanel.p4.getDut().nodetemp2.getChildAt(1+(Repository.window.mainpanel.p4.getDut().properties2.getComponentZOrder(text1)/3))).setUserObject(text1.getText()+" - "+properties.get(Repository.window.mainpanel.p4.getDut().properties2.getComponentZOrder(text1)/3)[1]);
+                    ((DefaultTreeModel)Repository.window.mainpanel.p4.getDut().explorer.tree.getModel()).nodeChanged(Repository.window.mainpanel.p4.getDut().nodetemp2.getChildAt(1+(Repository.window.mainpanel.p4.getDut().properties2.getComponentZOrder(text1)/3)));}});
             final JTextField text2 = new JTextField();
             text2.setText(properties.get(i)[1]);
             text2.setBounds(143,i*23+18,135,25);    
             text2.addKeyListener(new KeyAdapter(){
                 public void keyReleased(KeyEvent ev){
-                    properties.get(Repository.window.mainpanel.p4.dut.properties2.getComponentZOrder(text1)/3)[1]=text2.getText();
-                    ((DefaultMutableTreeNode)Repository.window.mainpanel.p4.dut.nodetemp2.getChildAt(1+(Repository.window.mainpanel.p4.dut.properties2.getComponentZOrder(text1)/3))).setUserObject(properties.get(Repository.window.mainpanel.p4.dut.properties2.getComponentZOrder(text1)/3)[0]+" - "+text2.getText());
-                    ((DefaultTreeModel)Repository.window.mainpanel.p4.dut.explorer.tree.getModel()).nodeChanged(Repository.window.mainpanel.p4.dut.nodetemp2.getChildAt(1+(Repository.window.mainpanel.p4.dut.properties2.getComponentZOrder(text1)/3)));}});
-            Repository.window.mainpanel.p4.dut.properties2.add(text2);
-            Repository.window.mainpanel.p4.dut.properties2.add(text1);}
-        Repository.window.mainpanel.p4.dut.properties2.setPreferredSize(new Dimension(Repository.window.mainpanel.p4.dut.properties2.getWidth(),properties.size()*23+18));
-        Repository.window.mainpanel.p4.dut.properties2.revalidate();
-        Repository.window.mainpanel.p4.dut.properties2.repaint();}}
+                    properties.get(Repository.window.mainpanel.p4.getDut().properties2.getComponentZOrder(text1)/3)[1]=text2.getText();
+                    ((DefaultMutableTreeNode)Repository.window.mainpanel.p4.getDut().nodetemp2.getChildAt(1+(Repository.window.mainpanel.p4.getDut().properties2.getComponentZOrder(text1)/3))).setUserObject(properties.get(Repository.window.mainpanel.p4.getDut().properties2.getComponentZOrder(text1)/3)[0]+" - "+text2.getText());
+                    ((DefaultTreeModel)Repository.window.mainpanel.p4.getDut().explorer.tree.getModel()).nodeChanged(Repository.window.mainpanel.p4.getDut().nodetemp2.getChildAt(1+(Repository.window.mainpanel.p4.getDut().properties2.getComponentZOrder(text1)/3)));}});
+            Repository.window.mainpanel.p4.getDut().properties2.add(text2);
+            Repository.window.mainpanel.p4.getDut().properties2.add(text1);}
+        Repository.window.mainpanel.p4.getDut().properties2.setPreferredSize(new Dimension(Repository.window.mainpanel.p4.getDut().properties2.getWidth(),properties.size()*23+18));
+        Repository.window.mainpanel.p4.getDut().properties2.revalidate();
+        Repository.window.mainpanel.p4.getDut().properties2.repaint();}}

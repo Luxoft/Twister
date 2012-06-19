@@ -105,9 +105,9 @@ public class applet extends Applet{
         Repository.window.mainpanel.p2.splitPane.setSize(width-52,height-120);
         Repository.window.mainpanel.p1.splitPane.setSize(width-52,height-120);
         Repository.window.mainpanel.setSize(width-28,height-40);
-        Repository.window.mainpanel.p4.scroll.setSize(width-310,height-150);
-        Repository.window.mainpanel.p4.main.setSize(width-300,height-130);
-        Repository.window.mainpanel.p4.dut.setPreferredSize(new Dimension(width-300,height-150));
+        Repository.window.mainpanel.p4.getScroll().setSize(width-310,height-150);
+        Repository.window.mainpanel.p4.getMain().setSize(width-300,height-130);
+        Repository.window.mainpanel.p4.getDut().setPreferredSize(new Dimension(width-300,height-150));
         Repository.window.appletpanel.setSize(width-20,height-20);
 //         Repository.window.mainpanel.p5.setPreferredSize(new Dimension(getWidth()-50,672));
         System.out.println("Resizing to: "+width+" - "+height);

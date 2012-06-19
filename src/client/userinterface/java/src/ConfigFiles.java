@@ -56,6 +56,7 @@ import javax.swing.AbstractAction;
 import javax.swing.JFrame;
 import javax.swing.JProgressBar;
 import javax.swing.JComboBox;
+import java.util.Arrays;
 
 public class ConfigFiles extends JPanel{
     VFSJFileChooser fileChooser;
@@ -230,7 +231,7 @@ public class ConfigFiles extends JPanel{
                         Repository.window.mainpanel.p2 = new Panel2(Repository.applet);
                         Repository.window.mainpanel.setComponentAt(1, Repository.window.mainpanel.p2);
                         Repository.window.mainpanel.p1.ep.refreshStructure();
-                        Repository.window.mainpanel.p4.dbconfig.refresh();
+                        Repository.window.mainpanel.p4.getDBConfig().refresh();
                         Repository.resetDBConf(Repository.REMOTEDATABASECONFIGFILE,true);
                         Repository.resetEmailConf(Repository.REMOTEEMAILCONFIGFILE,true);
                         tdbfile.setText(Repository.REMOTEDATABASECONFIGFILE);
@@ -313,9 +314,15 @@ public class ConfigFiles extends JPanel{
                         if(fileChooser==null)initializeFileBrowser();
                         try{RETURN_TYPE answer = fileChooser.showOpenDialog(ConfigFiles.this);
                             if (answer == RETURN_TYPE.APPROVE){
-                                final FileObject aFileObject = fileChooser.getSelectedFile();
+                                FileObject aFileObject = fileChooser.getSelectedFile();
                                 String safeName = VFSUtils.getFriendlyName(aFileObject.toString());
                                 safeName = safeName.substring(safeName.indexOf(Repository.host)+Repository.host.length());
+                                String [] check = safeName.split("/");
+                                if(check[check.length-1].equals(check[check.length-2])){
+                                    StringBuffer buffer = new StringBuffer();
+                                    for(int i=0;i<check.length-1;i++)
+                                        buffer.append(check[i]+"/");
+                                    safeName = buffer.toString();}
                                 textfield.setText(safeName);}}
                          catch(Exception e){
                              fileChooser=null;
@@ -388,8 +395,8 @@ public class ConfigFiles extends JPanel{
         catch(Exception e){
             e.printStackTrace();
             saved = false;}
-        if(saved)CustomDialog.showInfo(JOptionPane.INFORMATION_MESSAGE, Repository.window.mainpanel.p4.config, "Successfull", "File successfully saved");
-        else CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, Repository.window.mainpanel.p4.config, "Warning", "File could not be saved ");}
+        if(saved)CustomDialog.showInfo(JOptionPane.INFORMATION_MESSAGE, Repository.window.mainpanel.p4.getConfig(), "Successfull", "File successfully saved");
+        else CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, Repository.window.mainpanel.p4.getConfig(), "Warning", "File could not be saved ");}
         
     public static void addTag(String tagname, String tagcontent ,Element root,boolean blank,Document document){
         Element rootElement = document.createElement(tagname);

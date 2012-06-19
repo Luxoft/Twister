@@ -540,8 +540,8 @@ public class Dut extends JPanel {
         catch(Exception e) {
             saved = false;
             e.printStackTrace();}
-        if(saved)CustomDialog.showInfo(JOptionPane.INFORMATION_MESSAGE, Repository.window.mainpanel.p4.config, "Successfull", "File successfully generated");
-        else CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, Repository.window.mainpanel.p4.config, "Warning", "File could not be generated ");}
+        if(saved)CustomDialog.showInfo(JOptionPane.INFORMATION_MESSAGE, Repository.window.mainpanel.p4.getConfig(), "Successfull", "File successfully generated");
+        else CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, Repository.window.mainpanel.p4.getConfig(), "Warning", "File could not be generated ");}
         
     private void load(String file){
         try{String config=null;

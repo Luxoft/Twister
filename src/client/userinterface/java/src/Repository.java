@@ -168,7 +168,7 @@ public class Repository{
                  * the resources must be loaded from local pc 
                  */
                 loadResourcesFromLocal();}
-            if(userpassword()){
+            if(userpassword()){ 
                 /*
                  * create directory structure
                  * for twister resources localy
@@ -193,7 +193,7 @@ public class Repository{
                 intro.repaint();
                 parseConfig();
                 copyPlugins();
-//                 PluginsLoader.setClassPath();
+                //PluginsLoader.setClassPath();
                 
                 /*
                  * XmlRpc main connection used by Twister framework
@@ -625,16 +625,16 @@ public class Repository{
         try{DocumentBuilder db = dbf.newDocumentBuilder();
             Document doc = db.parse(dbConf);
             doc.getDocumentElement().normalize();                
-            window.mainpanel.p4.emails.setCheck(Boolean.parseBoolean(getTagContent(doc, "Enabled")));
+            window.mainpanel.p4.getEmails().setCheck(Boolean.parseBoolean(getTagContent(doc, "Enabled")));
             String smtppath = getTagContent(doc, "SMTPPath");
-            window.mainpanel.p4.emails.setIPName(smtppath.split(":")[0]);
-            window.mainpanel.p4.emails.setPort(smtppath.split(":")[1]);
-            window.mainpanel.p4.emails.setUser(getTagContent(doc, "SMTPUser"));
-            window.mainpanel.p4.emails.setFrom(getTagContent(doc, "From"));
-            window.mainpanel.p4.emails.setEmails(getTagContent(doc, "To"));
-            if(!getTagContent(doc, "SMTPPwd").equals("")){window.mainpanel.p4.emails.setPassword("****");}
-            window.mainpanel.p4.emails.setMessage(getTagContent(doc, "Message"));
-            window.mainpanel.p4.emails.setSubject(getTagContent(doc, "Subject"));}
+            window.mainpanel.p4.getEmails().setIPName(smtppath.split(":")[0]);
+            window.mainpanel.p4.getEmails().setPort(smtppath.split(":")[1]);
+            window.mainpanel.p4.getEmails().setUser(getTagContent(doc, "SMTPUser"));
+            window.mainpanel.p4.getEmails().setFrom(getTagContent(doc, "From"));
+            window.mainpanel.p4.getEmails().setEmails(getTagContent(doc, "To"));
+            if(!getTagContent(doc, "SMTPPwd").equals("")){window.mainpanel.p4.getEmails().setPassword("****");}
+            window.mainpanel.p4.getEmails().setMessage(getTagContent(doc, "Message"));
+            window.mainpanel.p4.getEmails().setSubject(getTagContent(doc, "Subject"));}
         catch(Exception e){e.printStackTrace();}}
         
         

@@ -50,72 +50,72 @@ public class DUTExplorer extends JPanel{
                         tree.clearSelection();
                         if(((DefaultMutableTreeNode)tp.getLastPathComponent()).getUserObject() instanceof Device){
                             tree.addSelectionPath(tp);
-                            Repository.window.mainpanel.p4.dut.nodetemp1 = (DefaultMutableTreeNode)tp.getLastPathComponent();
+                            Repository.window.mainpanel.p4.getDut().nodetemp1 = (DefaultMutableTreeNode)tp.getLastPathComponent();
                             refreshPopup((DefaultMutableTreeNode)tp.getLastPathComponent(),ev,2);}
                         else if(((DefaultMutableTreeNode)tp.getLastPathComponent()).getUserObject() instanceof DeviceModule){
                             tree.addSelectionPath(tp);
-                            Repository.window.mainpanel.p4.dut.nodetemp2 = (DefaultMutableTreeNode)tp.getLastPathComponent();
+                            Repository.window.mainpanel.p4.getDut().nodetemp2 = (DefaultMutableTreeNode)tp.getLastPathComponent();
                             refreshPopup((DefaultMutableTreeNode)tp.getLastPathComponent(),ev,1);}
                         else if(((DefaultMutableTreeNode)tp.getLastPathComponent()).getUserObject() instanceof DevicePort){
                             tree.addSelectionPath(tp);
-                            Repository.window.mainpanel.p4.dut.nodetemp3 = (DefaultMutableTreeNode)tp.getLastPathComponent();
+                            Repository.window.mainpanel.p4.getDut().nodetemp3 = (DefaultMutableTreeNode)tp.getLastPathComponent();
                             refreshPopup((DefaultMutableTreeNode)tp.getLastPathComponent(),ev,0);}
                         else if(((DefaultMutableTreeNode)tp.getLastPathComponent()).getUserObject() instanceof TestBed){
                             tree.addSelectionPath(tp);
-                            Repository.window.mainpanel.p4.dut.nodetemp0 = (DefaultMutableTreeNode)tp.getLastPathComponent();
+                            Repository.window.mainpanel.p4.getDut().nodetemp0 = (DefaultMutableTreeNode)tp.getLastPathComponent();
                             refreshPopup((DefaultMutableTreeNode)tp.getLastPathComponent(),ev,3);}
-                        else{Repository.window.mainpanel.p4.dut.clearSelection();}}
+                        else{Repository.window.mainpanel.p4.getDut().clearSelection();}}
                     else if(ev.getButton() == MouseEvent.BUTTON1){
                         if(((DefaultMutableTreeNode)tp.getLastPathComponent()).getUserObject() instanceof Device){
-                            Repository.window.mainpanel.p4.dut.nodetemp1 = (DefaultMutableTreeNode)tp.getLastPathComponent();
-                            if(Repository.window.mainpanel.p4.dut.SettingsPanel.getComponentZOrder(Repository.window.mainpanel.p4.dut.p2)==-1){
+                            Repository.window.mainpanel.p4.getDut().nodetemp1 = (DefaultMutableTreeNode)tp.getLastPathComponent();
+                            if(Repository.window.mainpanel.p4.getDut().SettingsPanel.getComponentZOrder(Repository.window.mainpanel.p4.getDut().p2)==-1){
                                 removeElements();
-                                Repository.window.mainpanel.p4.dut.SettingsPanel.add(Repository.window.mainpanel.p4.dut.p2);
-                                Repository.window.mainpanel.p4.dut.jScrollPane4.setViewportView(Repository.window.mainpanel.p4.dut.properties);
-                                Repository.window.mainpanel.p4.dut.SettingsPanel.revalidate();
-                                Repository.window.mainpanel.p4.dut.SettingsPanel.repaint();}
+                                Repository.window.mainpanel.p4.getDut().SettingsPanel.add(Repository.window.mainpanel.p4.getDut().p2);
+                                Repository.window.mainpanel.p4.getDut().jScrollPane4.setViewportView(Repository.window.mainpanel.p4.getDut().properties);
+                                Repository.window.mainpanel.p4.getDut().SettingsPanel.revalidate();
+                                Repository.window.mainpanel.p4.getDut().SettingsPanel.repaint();}
                             ((Device)((DefaultMutableTreeNode)tp.getLastPathComponent()).getUserObject()).updateInfo();}
                         else if(((DefaultMutableTreeNode)tp.getLastPathComponent()).getUserObject() instanceof DeviceModule){
-                            Repository.window.mainpanel.p4.dut.nodetemp2 = (DefaultMutableTreeNode)tp.getLastPathComponent();
-                            if(Repository.window.mainpanel.p4.dut.SettingsPanel.getComponentZOrder(Repository.window.mainpanel.p4.dut.p3)==-1){
+                            Repository.window.mainpanel.p4.getDut().nodetemp2 = (DefaultMutableTreeNode)tp.getLastPathComponent();
+                            if(Repository.window.mainpanel.p4.getDut().SettingsPanel.getComponentZOrder(Repository.window.mainpanel.p4.getDut().p3)==-1){
                                 removeElements();
-                                Repository.window.mainpanel.p4.dut.SettingsPanel.add(Repository.window.mainpanel.p4.dut.p3);
-                                Repository.window.mainpanel.p4.dut.jScrollPane4.setViewportView(Repository.window.mainpanel.p4.dut.properties2);
-                                Repository.window.mainpanel.p4.dut.SettingsPanel.revalidate();
-                                Repository.window.mainpanel.p4.dut.SettingsPanel.repaint();}    
+                                Repository.window.mainpanel.p4.getDut().SettingsPanel.add(Repository.window.mainpanel.p4.getDut().p3);
+                                Repository.window.mainpanel.p4.getDut().jScrollPane4.setViewportView(Repository.window.mainpanel.p4.getDut().properties2);
+                                Repository.window.mainpanel.p4.getDut().SettingsPanel.revalidate();
+                                Repository.window.mainpanel.p4.getDut().SettingsPanel.repaint();}    
                             ((DeviceModule)((DefaultMutableTreeNode)tp.getLastPathComponent()).getUserObject()).updateInfo();}
                         else if(((DefaultMutableTreeNode)tp.getLastPathComponent()).getUserObject() instanceof TestBed){
-                            Repository.window.mainpanel.p4.dut.nodetemp0 = (DefaultMutableTreeNode)tp.getLastPathComponent();
-                            if(Repository.window.mainpanel.p4.dut.SettingsPanel.getComponentZOrder(Repository.window.mainpanel.p4.dut.p1)==-1){
+                            Repository.window.mainpanel.p4.getDut().nodetemp0 = (DefaultMutableTreeNode)tp.getLastPathComponent();
+                            if(Repository.window.mainpanel.p4.getDut().SettingsPanel.getComponentZOrder(Repository.window.mainpanel.p4.getDut().p1)==-1){
                                 removeElements();
-                                Repository.window.mainpanel.p4.dut.SettingsPanel.add(Repository.window.mainpanel.p4.dut.p1);
-                                Repository.window.mainpanel.p4.dut.jScrollPane4.setViewportView(null);
-                                Repository.window.mainpanel.p4.dut.SettingsPanel.revalidate();
-                                Repository.window.mainpanel.p4.dut.SettingsPanel.repaint();}    
+                                Repository.window.mainpanel.p4.getDut().SettingsPanel.add(Repository.window.mainpanel.p4.getDut().p1);
+                                Repository.window.mainpanel.p4.getDut().jScrollPane4.setViewportView(null);
+                                Repository.window.mainpanel.p4.getDut().SettingsPanel.revalidate();
+                                Repository.window.mainpanel.p4.getDut().SettingsPanel.repaint();}    
                             ((TestBed)((DefaultMutableTreeNode)tp.getLastPathComponent()).getUserObject()).updateInfo();}
                         else if(((DefaultMutableTreeNode)tp.getLastPathComponent()).getUserObject() instanceof DevicePort){{
-                            Repository.window.mainpanel.p4.dut.nodetemp3 = (DefaultMutableTreeNode)tp.getLastPathComponent();
-                            if(Repository.window.mainpanel.p4.dut.SettingsPanel.getComponentZOrder(Repository.window.mainpanel.p4.dut.p4)==-1){
+                            Repository.window.mainpanel.p4.getDut().nodetemp3 = (DefaultMutableTreeNode)tp.getLastPathComponent();
+                            if(Repository.window.mainpanel.p4.getDut().SettingsPanel.getComponentZOrder(Repository.window.mainpanel.p4.getDut().p4)==-1){
                                 removeElements();
-                                Repository.window.mainpanel.p4.dut.SettingsPanel.add(Repository.window.mainpanel.p4.dut.p4);
-                                Repository.window.mainpanel.p4.dut.jScrollPane4.setViewportView(Repository.window.mainpanel.p4.dut.properties3);
-                                Repository.window.mainpanel.p4.dut.SettingsPanel.revalidate();
-                                Repository.window.mainpanel.p4.dut.SettingsPanel.repaint();}
+                                Repository.window.mainpanel.p4.getDut().SettingsPanel.add(Repository.window.mainpanel.p4.getDut().p4);
+                                Repository.window.mainpanel.p4.getDut().jScrollPane4.setViewportView(Repository.window.mainpanel.p4.getDut().properties3);
+                                Repository.window.mainpanel.p4.getDut().SettingsPanel.revalidate();
+                                Repository.window.mainpanel.p4.getDut().SettingsPanel.repaint();}
                             ((DevicePort)((DefaultMutableTreeNode)tp.getLastPathComponent()).getUserObject()).updateInfo();}}
-                        else{Repository.window.mainpanel.p4.dut.clearSelection();}}}
-                else{Repository.window.mainpanel.p4.dut.clearSelection(); 
+                        else{Repository.window.mainpanel.p4.getDut().clearSelection();}}}
+                else{Repository.window.mainpanel.p4.getDut().clearSelection(); 
                     tree.clearSelection();
                     if(ev.getButton() == MouseEvent.BUTTON3){ 
                         refreshPopup(null,ev,0);}}}});}
                         
     public void removeElements(){
-        Repository.window.mainpanel.p4.dut.SettingsPanel.remove(Repository.window.mainpanel.p4.dut.p1);
-        Repository.window.mainpanel.p4.dut.SettingsPanel.remove(Repository.window.mainpanel.p4.dut.p3);
-        Repository.window.mainpanel.p4.dut.SettingsPanel.remove(Repository.window.mainpanel.p4.dut.p4);
-        Repository.window.mainpanel.p4.dut.jScrollPane4.remove(Repository.window.mainpanel.p4.dut.properties2);
-        Repository.window.mainpanel.p4.dut.jScrollPane4.remove(Repository.window.mainpanel.p4.dut.properties3);
-        Repository.window.mainpanel.p4.dut.SettingsPanel.remove(Repository.window.mainpanel.p4.dut.p2);
-        Repository.window.mainpanel.p4.dut.jScrollPane4.remove(Repository.window.mainpanel.p4.dut.properties);}
+        Repository.window.mainpanel.p4.getDut().SettingsPanel.remove(Repository.window.mainpanel.p4.getDut().p1);
+        Repository.window.mainpanel.p4.getDut().SettingsPanel.remove(Repository.window.mainpanel.p4.getDut().p3);
+        Repository.window.mainpanel.p4.getDut().SettingsPanel.remove(Repository.window.mainpanel.p4.getDut().p4);
+        Repository.window.mainpanel.p4.getDut().jScrollPane4.remove(Repository.window.mainpanel.p4.getDut().properties2);
+        Repository.window.mainpanel.p4.getDut().jScrollPane4.remove(Repository.window.mainpanel.p4.getDut().properties3);
+        Repository.window.mainpanel.p4.getDut().SettingsPanel.remove(Repository.window.mainpanel.p4.getDut().p2);
+        Repository.window.mainpanel.p4.getDut().jScrollPane4.remove(Repository.window.mainpanel.p4.getDut().properties);}
                 
     public void refreshPopup(final DefaultMutableTreeNode element,MouseEvent ev,int type){
         JPopupMenu p = new JPopupMenu();
@@ -168,7 +168,7 @@ public class DUTExplorer extends JPanel{
         
     public void removeElement(DefaultMutableTreeNode element){
         ((DefaultTreeModel)tree.getModel()).removeNodeFromParent(element);
-        Repository.window.mainpanel.p4.dut.clearSelection();}
+        Repository.window.mainpanel.p4.getDut().clearSelection();}
         
     public void addTestBed(){    
 //         JTextField name = new JTextField("");

@@ -29,14 +29,14 @@ public class TestBed{
     public TestBed(){reference = this;}
         
     public void updateInfo(){
-        Repository.window.mainpanel.p4.dut.additem.setEnabled(true);
-        Repository.window.mainpanel.p4.dut.additem.setText("Add device");
-        Repository.window.mainpanel.p4.dut.remitem.setEnabled(true);
-        Repository.window.mainpanel.p4.dut.remitem.setText("Remove testbed");
-        Repository.window.mainpanel.p4.dut.temp0 = reference;
-        Repository.window.mainpanel.p4.dut.tname0.setText(name.toString());
-        Repository.window.mainpanel.p4.dut.tid0.setText(id.toString());        
-        Repository.window.mainpanel.p4.dut.tdescription0.setText(description.toString());}
+        Repository.window.mainpanel.p4.getDut().additem.setEnabled(true);
+        Repository.window.mainpanel.p4.getDut().additem.setText("Add device");
+        Repository.window.mainpanel.p4.getDut().remitem.setEnabled(true);
+        Repository.window.mainpanel.p4.getDut().remitem.setText("Remove testbed");
+        Repository.window.mainpanel.p4.getDut().temp0 = reference;
+        Repository.window.mainpanel.p4.getDut().tname0.setText(name.toString());
+        Repository.window.mainpanel.p4.getDut().tid0.setText(id.toString());        
+        Repository.window.mainpanel.p4.getDut().tdescription0.setText(description.toString());}
         
     public void setDescription(String description){
         this.description = description;}

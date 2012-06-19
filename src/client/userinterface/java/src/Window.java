@@ -67,9 +67,9 @@ public class Window extends JFrame{
                         mainpanel.p2.splitPane.setSize(Repository.window.getWidth()-52,Repository.window.getHeight()-120);
                         mainpanel.p1.splitPane.setSize(Repository.window.getWidth()-52,Repository.window.getHeight()-120);
                         mainpanel.setSize(Repository.window.getWidth()-28,Repository.window.getHeight()-50);
-                        mainpanel.p4.scroll.setSize(Repository.window.getWidth()-310,Repository.window.getHeight()-150);
-                        mainpanel.p4.main.setSize(Repository.window.getWidth()-300,Repository.window.getHeight()-130);
-                        mainpanel.p4.dut.setPreferredSize(new Dimension(getWidth()-300,getHeight()-150));
+                        mainpanel.p4.getScroll().setSize(Repository.window.getWidth()-310,Repository.window.getHeight()-150);
+                        mainpanel.p4.getMain().setSize(Repository.window.getWidth()-300,Repository.window.getHeight()-130);
+                        mainpanel.p4.getDut().setPreferredSize(new Dimension(getWidth()-300,getHeight()-150));
                         //Repository.window.mainpanel.p5.nettop.setPreferredSize(new Dimension(getWidth()-50,672));
                     }}});
             setVisible(true);}
