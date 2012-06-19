@@ -92,14 +92,19 @@ def saveLibraries(proxy):
     except: pass
 
     __init = open(libs_path + '/__init__.py', 'w')
+    __init.write('\nimport os\n')
     __init.write('\nPROXY = "%s"\n' % CE_Path)
-    all_libs = [os.path.splitext(lib)[0] for lib in libs_list]
+    all_libs = [os.path.splitext(lib)[0] for lib in libs_list if not lib.endswith('.zip')]
     __init.write('\nall = ["%s"]\n\n' % ('", "'.join(all_libs)))
 
     for lib_file in libs_list:
         # Write in __init__ file.
-        __init.write('import %s\n' % os.path.splitext(lib_file)[0])
-        __init.write('from %s import *\n\n' % os.path.splitext(lib_file)[0])
+        ext = os.path.splitext(lib_file)
+        if ext[1] == '.zip':
+            __init.write('sys.path.append(os.path.split(__file__)[0] + "/%s")\n\n' % lib_file)
+        else:
+            __init.write('import %s\n' % ext[0])
+            __init.write('from %s import *\n\n' % ext[0])
 
         lib_pth = libs_path + os.sep + lib_file
         print('Downloading library `{0}` ...'.format(lib_pth))
@@ -367,7 +372,7 @@ if __name__=='__main__':
 
             # If this suite is aborted because of the prerequisite file, send status ABORT
             if abort_suite:
-                print('TC debug: Abort file `{0}` with because of prerequisite file!\n'.format(filename))
+                print('TC debug: Abort file `{0}` because of prerequisite file!\n'.format(filename))
                 proxySetTestStatus(globEpName, file_id, STATUS_ABORTED, 0.0) # File status ABORTED
                 continue
 
@@ -478,7 +483,7 @@ if __name__=='__main__':
             # --------------------------------------------------
             # RUN CURRENT TEST!
             try:
-                result = current_runner._eval(str_to_execute, args)
+                result = current_runner._eval(str_to_execute, globals(), args)
                 print('\n>>> File `%s` returned `%s`. <<<\n' % (filename, result))
 
             except Exception, e:

@@ -1,6 +1,9 @@
 
-import os, sys, time
-sys.path.append(os.getenv('TWISTER_PATH') + '/.twister_cache/')
+import pexpect
+
+from ce_libs import logMsg
+from ce_libs import queryResource, setPropertyLocal, getPropertyLocal
+from ce_libs import createEmptyResource, delResource
 
 #
 # <title>test 001</title>
@@ -9,10 +12,6 @@ sys.path.append(os.getenv('TWISTER_PATH') + '/.twister_cache/')
 
 def test006():
 
-	import pexpect
-	from ce_libs import logMsg
-	from ce_libs import queryResource, setPropertyLocal, getPropertyLocal
-	from ce_libs import createEmptyResource, delResource
 
 	testName = 'test006.py'
 	logMsg('logTest', "\nTestCase:%s starting\n" % testName)

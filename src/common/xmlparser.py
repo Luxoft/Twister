@@ -150,7 +150,7 @@ class TSCParser:
             e_file = os.getenv('HOME') + e_file[1:]
         if not os.path.isfile(e_file):
             print('TSCParser: E-mail Config file `%s` does not exist! Please check framework config XML file!' % e_file)
-            return -1
+            return {}
 
         econfig = BeautifulStoneSoup(open(e_file))
 
@@ -207,6 +207,7 @@ class TSCParser:
         activeEpids = []
         for ep in self.configTS('epid'):
             activeEpids.append(ep.text)
+        activeEpids = list(set(activeEpids))
         return activeEpids
 
 
@@ -296,10 +297,10 @@ class TSCParser:
             print('TSCParser: Current suite has no files!')
 
         for TestCase in files:
-            fname = TestCase.parent.tcname.text
-            ts.append(fname)
+            tcid = TestCase.parent.tcid.text
+            ts.append(tcid)
 
-        print('TSCParser: TestSuite Files (%s files) took %.4f seconds.' % (len(ts), time.clock()-ti))
+        #print('TSCParser: TestSuite Files (%s files) took %.4f seconds.' % (len(ts), time.clock()-ti))
         return ts
 
 
