@@ -1,3 +1,22 @@
+/*
+File: applet.java ; This file is part of Twister.
+
+Copyright (C) 2012 , Luxoft
+
+Authors: Andrei Costachi <acostachi@luxoft.com>
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 import java.applet.Applet; 
 import java.awt.Graphics; 
 import java.awt.Color;
@@ -22,17 +41,17 @@ import javax.swing.SwingUtilities;
 public class applet extends Applet{ 
     private static final long serialVersionUID = 1L;
     
-    //applet initialization
+    
     public void init(){
-//         try{UIManager.setLookAndFeel("javax.swing.plaf.nimbus.NimbusLookAndFeel");}
-//         catch(Exception e){e.printStackTrace();} 
+
+
         
         /*
          * load all icons from jar into Repository
          */
         try{System.out.println("Current version: ");
-            System.out.println("OS current temporary directory is : "+System.getProperty("java.io.tmpdir"));
-//             PluginsLoader.setClassPath();
+            System.out.println("OS current temporary directory is : "+
+                System.getProperty("java.io.tmpdir"));
             Repository.tcicon = loadIcon("tc.png");
             Repository.background = loadIcon("background.png");
             Repository.pendingicon = loadIcon("pending.png");
@@ -105,11 +124,11 @@ public class applet extends Applet{
         Repository.window.mainpanel.p2.splitPane.setSize(width-52,height-120);
         Repository.window.mainpanel.p1.splitPane.setSize(width-52,height-120);
         Repository.window.mainpanel.setSize(width-28,height-40);
-        Repository.window.mainpanel.p4.scroll.setSize(width-310,height-150);
-        Repository.window.mainpanel.p4.main.setSize(width-300,height-130);
-        Repository.window.mainpanel.p4.dut.setPreferredSize(new Dimension(width-300,height-150));
+        Repository.window.mainpanel.p4.getScroll().setSize(width-310,height-150);
+        Repository.window.mainpanel.p4.getMain().setSize(width-300,height-130);
+        Repository.window.mainpanel.p4.getDut().setPreferredSize(new Dimension(width-300,height-150));
         Repository.window.appletpanel.setSize(width-20,height-20);
-//         Repository.window.mainpanel.p5.setPreferredSize(new Dimension(getWidth()-50,672));
+
         System.out.println("Resizing to: "+width+" - "+height);
         validate();}
     

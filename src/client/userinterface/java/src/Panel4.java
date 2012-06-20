@@ -1,3 +1,21 @@
+/*
+File: Panel4.java ; This file is part of Twister.
+
+Copyright (C) 2012 , Luxoft
+
+Authors: Andrei Costachi <acostachi@luxoft.com>
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 import javax.swing.JPanel;
 import java.awt.Color;
 import javax.swing.JTabbedPane;
@@ -8,16 +26,15 @@ import java.awt.event.ActionEvent;
 import javax.swing.BorderFactory;
 import javax.swing.JScrollPane;
 import java.awt.FlowLayout;
-
 import javax.swing.border.TitledBorder;
 
 public class Panel4 extends JPanel{
-    ConfigFiles config;
-    DBConfig dbconfig;
-    Emails emails;
-    JPanel main;    
-    JScrollPane scroll = new JScrollPane();
-    Dut dut = new Dut();
+    private ConfigFiles config;
+    private DBConfig dbconfig;
+    private Emails emails;
+    private JPanel main;
+    private JScrollPane scroll = new JScrollPane();
+    private Dut dut = new Dut();
     
 
     public Panel4(){
@@ -26,9 +43,10 @@ public class Panel4 extends JPanel{
         config = new ConfigFiles(screenSize);
         dbconfig = new DBConfig();
         emails = new Emails();
-        main = new JPanel();
+        main = new JPanel();        
         main.setLayout(null);
-        main.setBounds(240,10,(int)screenSize.getWidth()-320,(int)screenSize.getHeight()-320);
+        main.setBounds(240,10,(int)screenSize.getWidth()-320,
+            (int)screenSize.getHeight()-320);
         add(main);   
         RoundButton bpaths = new RoundButton("Paths");
         bpaths.setBounds(20,40,200,25);
@@ -53,8 +71,9 @@ public class Panel4 extends JPanel{
         duts.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 setDuts();}});
-        add(duts);
-        setPaths();}
+        add(duts);        
+        setPaths();
+    }
        
     /*
      * set email content
@@ -89,7 +108,8 @@ public class Panel4 extends JPanel{
     public void setDuts(){        
         main.removeAll();
         main.setLayout(new FlowLayout());
-        dut.setPreferredSize(new Dimension(main.getWidth()-5,main.getHeight()-5));
+        dut.setPreferredSize(
+            new Dimension(main.getWidth()-5,main.getHeight()-5));
         main.add(dut);
         main.repaint();
         main.revalidate();}
@@ -107,4 +127,24 @@ public class Panel4 extends JPanel{
         scroll.getVerticalScrollBar().setValue(0);
         main.add(scroll);
         main.repaint();
-        main.revalidate();}}
+        main.revalidate();}
+    
+    
+    
+    public Dut getDut(){
+        return dut;}
+        
+    public Emails getEmails(){
+        return emails;}
+        
+    public DBConfig getDBConfig(){
+        return dbconfig;}
+        
+    public ConfigFiles getConfig(){
+        return config;}
+    
+    public JScrollPane getScroll(){
+        return scroll;}
+        
+    public JPanel getMain(){
+        return main;}}

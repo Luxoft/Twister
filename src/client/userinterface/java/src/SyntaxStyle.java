@@ -123,7 +123,7 @@ public class SyntaxStyle
 			(bold ? ",bold" : "") + "]";
 	}
 
-	// private members
+	
 	private Color color;
 	private boolean italic;
 	private boolean bold;
