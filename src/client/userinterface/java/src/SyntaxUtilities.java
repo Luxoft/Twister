@@ -151,6 +151,6 @@ public class SyntaxUtilities
 		return x;
 	}
 
-	// private members
+	
 	private SyntaxUtilities() {}
 }

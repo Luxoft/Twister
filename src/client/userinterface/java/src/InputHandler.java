@@ -70,7 +70,7 @@ public abstract class InputHandler extends KeyAdapter
 	public static final ActionListener REPEAT = new repeat();
 	public static final ActionListener TOGGLE_RECT = new toggle_rect();
 
-	// Default action
+	
 	public static final ActionListener INSERT_CHAR = new insert_char();
 
 	private static Hashtable actions;
@@ -258,24 +258,24 @@ public abstract class InputHandler extends KeyAdapter
 	public void executeAction(ActionListener listener, Object source,
 		String actionCommand)
 	{
-		// create event
+		
 		ActionEvent evt = new ActionEvent(source,
 			ActionEvent.ACTION_PERFORMED,
 			actionCommand);
 
-		// don't do anything if the action is a wrapper
-		// (like EditAction.Wrapper)
+		
+		
 		if(listener instanceof Wrapper)
 		{
 			listener.actionPerformed(evt);
 			return;
 		}
 
-		// remember old values, in case action changes them
+		
 		boolean _repeat = repeat;
 		int _repeatCount = getRepeatCount();
 
-		// execute the action
+		
 		if(listener instanceof InputHandler.NonRepeatable)
 			listener.actionPerformed(evt);
 		else
@@ -284,8 +284,8 @@ public abstract class InputHandler extends KeyAdapter
 				listener.actionPerformed(evt);
 		}
 
-		// do recording. Notice that we do no recording whatsoever
-		// for actions that grab keys
+		
+		
 		if(grabAction == null)
 		{
 			if(recorder != null)
@@ -299,8 +299,8 @@ public abstract class InputHandler extends KeyAdapter
 				}
 			}
 
-			// If repeat was true originally, clear it
-			// Otherwise it might have been set by the action, etc
+			
+			
 			if(_repeat)
 			{
 				repeat = false;
@@ -320,7 +320,7 @@ public abstract class InputHandler extends KeyAdapter
 			Object o = evt.getSource();
 			if(o instanceof Component)
 			{
-				// find the parent text area
+				
 				Component c = (Component)o;
 				for(;;)
 				{
@@ -337,13 +337,13 @@ public abstract class InputHandler extends KeyAdapter
 			}
 		}
 
-		// this shouldn't happen
+		
 		System.err.println("BUG: getTextArea() returning null");
 		System.err.println("Report this to Slava Pestov <sp@gjt.org>");
 		return null;
 	}
 
-	// protected members
+	
 
 	/**
 	 * If a key is being grabbed, this method should be called with
@@ -352,15 +352,15 @@ public abstract class InputHandler extends KeyAdapter
 	 */
 	protected void handleGrabAction(KeyEvent evt)
 	{
-		// Clear it *before* it is executed so that executeAction()
-		// resets the repeat count
+		
+		
 		ActionListener _grabAction = grabAction;
 		grabAction = null;
 		executeAction(_grabAction,evt.getSource(),
 			String.valueOf(evt.getKeyChar()));
 	}
 
-	// protected members
+	
 	protected ActionListener grabAction;
 	protected boolean repeat;
 	protected int repeatCount;
