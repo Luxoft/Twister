@@ -1,3 +1,21 @@
+/*
+File: Panel4.java ; This file is part of Twister.
+
+Copyright (C) 2012 , Luxoft
+
+Authors: Andrei Costachi <acostachi@luxoft.com>
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 import javax.swing.JPanel;
 import java.awt.Color;
 import javax.swing.JTabbedPane;
@@ -14,8 +32,7 @@ public class Panel4 extends JPanel{
     private ConfigFiles config;
     private DBConfig dbconfig;
     private Emails emails;
-    private JPanel main; 
-    //private Plugins plugins;
+    private JPanel main;
     private JScrollPane scroll = new JScrollPane();
     private Dut dut = new Dut();
     
@@ -26,10 +43,10 @@ public class Panel4 extends JPanel{
         config = new ConfigFiles(screenSize);
         dbconfig = new DBConfig();
         emails = new Emails();
-        //plugins = new Plugins();
         main = new JPanel();        
         main.setLayout(null);
-        main.setBounds(240,10,(int)screenSize.getWidth()-320,(int)screenSize.getHeight()-320);
+        main.setBounds(240,10,(int)screenSize.getWidth()-320,
+            (int)screenSize.getHeight()-320);
         add(main);   
         RoundButton bpaths = new RoundButton("Paths");
         bpaths.setBounds(20,40,200,25);
@@ -55,13 +72,8 @@ public class Panel4 extends JPanel{
             public void actionPerformed(ActionEvent ev){
                 setDuts();}});
         add(duts);        
-//         RoundButton plugins = new RoundButton("Plugins");
-//         plugins.setBounds(20,160,200,25);
-//         plugins.addActionListener(new ActionListener(){
-//             public void actionPerformed(ActionEvent ev){                
-//                 setPlugins();}});
-//         add(plugins);        
-        setPaths();}
+        setPaths();
+    }
        
     /*
      * set email content
@@ -96,7 +108,8 @@ public class Panel4 extends JPanel{
     public void setDuts(){        
         main.removeAll();
         main.setLayout(new FlowLayout());
-        dut.setPreferredSize(new Dimension(main.getWidth()-5,main.getHeight()-5));
+        dut.setPreferredSize(
+            new Dimension(main.getWidth()-5,main.getHeight()-5));
         main.add(dut);
         main.repaint();
         main.revalidate();}
@@ -117,17 +130,6 @@ public class Panel4 extends JPanel{
         main.revalidate();}
     
     
-    /*
-     * set plugins  content
-     * into this window
-     */
-//     public void setPlugins(){        
-//         main.removeAll();
-//         main.setLayout(null);
-//         plugins.setPreferredSize(new Dimension(main.getWidth()-5,main.getHeight()-5));
-//         main.add(plugins);
-//         main.repaint();
-//         main.revalidate();}
     
     public Dut getDut(){
         return dut;}
@@ -145,6 +147,4 @@ public class Panel4 extends JPanel{
         return scroll;}
         
     public JPanel getMain(){
-        return main;}
-        
-    }
+        return main;}}

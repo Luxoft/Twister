@@ -1,3 +1,21 @@
+/*
+File: IntroScreen.java ; This file is part of Twister.
+
+Copyright (C) 2012 , Luxoft
+
+Authors: Andrei Costachi <acostachi@luxoft.com>
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 import javax.swing.JFrame;
 import java.awt.Dimension;
 import java.awt.Toolkit;
@@ -18,9 +36,9 @@ import java.awt.Frame;
  * and loading status bar
  */
 public class IntroScreen extends JFrame{
-    private String text = ""; //text used to display initialization status on loading bar
+    private String text = ""; 
     int width;
-    private double percent = 0; //percent of status bar set by initialization methods
+    private double percent = 0; 
 
     /*
      * intro screen initialization
@@ -30,8 +48,10 @@ public class IntroScreen extends JFrame{
         setBounds((int)(screenSize.getWidth()-640)/2,(int)(screenSize.getHeight()-480)/2,640,480);
         setUndecorated(true);
         setAlwaysOnTop(true);
-        try{if(AWTUtilities.isTranslucencySupported(AWTUtilities.Translucency.PERPIXEL_TRANSLUCENT))AWTUtilities.setWindowOpaque(this, false);
-            else if(AWTUtilities.isTranslucencySupported(AWTUtilities.Translucency.TRANSLUCENT))AWTUtilities.setWindowOpacity(this, 0.7f);}
+        try{if(AWTUtilities.isTranslucencySupported(AWTUtilities.Translucency.PERPIXEL_TRANSLUCENT))
+                AWTUtilities.setWindowOpaque(this, false);
+            else if(AWTUtilities.isTranslucencySupported(AWTUtilities.Translucency.TRANSLUCENT))
+                AWTUtilities.setWindowOpacity(this, 0.7f);}
         catch(Exception e){e.printStackTrace();}}
     
     

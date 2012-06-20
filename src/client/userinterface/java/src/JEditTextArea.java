@@ -69,10 +69,10 @@ public class JEditTextArea extends JComponent{
      */
     public JEditTextArea(TextAreaDefaults defaults)
     {
-        // Enable the necessary events
+        
         enableEvents(AWTEvent.KEY_EVENT_MASK);
 
-        // Initialize some misc. stuff
+        
         painter = new TextAreaPainter(this,defaults);
         documentHandler = new DocumentHandler();
         listenerList = new EventListenerList();
@@ -81,13 +81,13 @@ public class JEditTextArea extends JComponent{
         bracketLine = bracketPosition = -1;
         blink = true;
 
-        // Initialize the GUI
+        
         setLayout(new ScrollLayout());
         add(CENTER,painter);
         add(RIGHT,vertical = new JScrollBar(JScrollBar.VERTICAL));
         add(BOTTOM,horizontal = new JScrollBar(JScrollBar.HORIZONTAL));
 
-        // Add some event listeners
+        
         vertical.addAdjustmentListener(new AdjustHandler());
         horizontal.addAdjustmentListener(new AdjustHandler());
         painter.addComponentListener(new ComponentHandler());
@@ -98,7 +98,7 @@ public class JEditTextArea extends JComponent{
             new MouseWheelListener(){
                 public void  mouseWheelMoved(MouseWheelEvent e){
                     vertical.setValue(vertical.getValue()+e.getWheelRotation());}});
-        // Load the defaults
+        
         setInputHandler(defaults.inputHandler);
         setDocument(defaults.document);
         editable = defaults.editable;
@@ -107,15 +107,15 @@ public class JEditTextArea extends JComponent{
         electricScroll = defaults.electricScroll;
         popup = defaults.popup;
 
-        // We don't seem to get the initial focus event?
+        
         focusedComponent = this;}
 
-//     /**
-//      * Returns if this component can be traversed by pressing
-//      * the Tab key. This returns false.
-//      */
-//     public final boolean isManagingFocus(){
-//         return true;}
+
+
+
+
+
+
 
     /**
      * Returns the object responsible for painting this text area.
@@ -364,9 +364,9 @@ public class JEditTextArea extends JComponent{
      */
     public boolean scrollTo(int line, int offset)
     {
-        // visibleLines == 0 before the component is realized
-        // we can't do any proper scrolling then, so we have
-        // this hack...
+        
+        
+        
         if(visibleLines == 0)
         {
             setFirstLine(Math.max(0,line - electricScroll));
@@ -439,7 +439,7 @@ public class JEditTextArea extends JComponent{
      */
     public final int offsetToX(int line, int offset)
     {
-        // don't use cached tokens
+        
         painter.currentLineTokens = null;
         return _offsetToX(line,offset);
     }
@@ -1067,9 +1067,9 @@ public class JEditTextArea extends JComponent{
                 newEnd);
         }
 
-        // If the new position is the same as the old, we don't
-        // do all this crap, however we still do the stuff at
-        // the end (clearing magic position, scrolling)
+        
+        
+        
         if(newStart != selectionStart || newEnd != selectionEnd
             || newBias != biasLeft)
         {
@@ -1100,16 +1100,16 @@ public class JEditTextArea extends JComponent{
             fireCaretEvent();
         }
 
-        // When the user is typing, etc, we don't want the caret
-        // to blink
+        
+        
         blink = true;
         caretTimer.restart();
 
-        // Disable rectangle select if selection start = selection end
+        
         if(selectionStart == selectionEnd)
             rectSelect = false;
 
-        // Clear the `magic' caret position used by up/down
+        
         magicCaret = -1;
 
         scrollToCaret();
@@ -1125,7 +1125,7 @@ public class JEditTextArea extends JComponent{
 
         if(rectSelect)
         {
-            // Return each row of the selection on a new line
+            
 
             Element map = document.getDefaultRootElement();
 
@@ -1134,7 +1134,7 @@ public class JEditTextArea extends JComponent{
             int end = selectionEnd - map.getElement(selectionEndLine)
                 .getStartOffset();
 
-            // Certain rectangles satisfy this condition...
+            
             if(end < start)
             {
                 int tmp = end;
@@ -1196,7 +1196,7 @@ public class JEditTextArea extends JComponent{
                 int end = selectionEnd - map.getElement(selectionEndLine)
                     .getStartOffset();
 
-                // Certain rectangles satisfy this condition...
+                
                 if(end < start)
                 {
                     int tmp = end;
@@ -1258,8 +1258,8 @@ public class JEditTextArea extends JComponent{
             throw new InternalError("Cannot replace"
                 + " selection");
         }
-        // No matter what happends... stops us from leaving document
-        // in a bad state
+        
+        
         finally
         {
             document.endCompoundEdit();
@@ -1331,15 +1331,15 @@ public class JEditTextArea extends JComponent{
      */
     public void overwriteSetSelectedText(String str)
     {
-        // Don't overstrike if there is a selection
+        
         if(!overwrite || selectionStart != selectionEnd)
         {
             setSelectedText(str);
             return;
         }
 
-        // Don't overstrike if we're on the end of
-        // the line
+        
+        
         int caret = getCaretPosition();
         int caretLineEnd = getLineEndOffset(getCaretLine());
         if(caretLineEnd - caret <= str.length())
@@ -1482,8 +1482,8 @@ public class JEditTextArea extends JComponent{
             Clipboard clipboard = getToolkit().getSystemClipboard();
             try
             {
-                // The MacOS MRJ doesn't convert \r to \n,
-                // so do it here
+                
+                
                 String selection = ((String)clipboard
                     .getContents(this).getTransferData(
                     DataFlavor.stringFlavor))
@@ -1548,7 +1548,7 @@ public class JEditTextArea extends JComponent{
         }
     }
 
-    // protected members
+    
     protected static String CENTER = "center";
     protected static String RIGHT = "right";
     protected static String BOTTOM = "bottom";
@@ -1654,12 +1654,12 @@ public class JEditTextArea extends JComponent{
         {
             painter.invalidateLine(line);
         }
-        // do magic stuff
+        
         else if(line < firstLine)
         {
             setFirstLine(firstLine + count);
         }
-        // end of magic stuff
+        
         else
         {
             painter.invalidateLineRange(line,firstLine + visibleLines);
@@ -1755,7 +1755,7 @@ public class JEditTextArea extends JComponent{
                 rightWidth,
                 centerHeight);
 
-            // Lay out all status components, in order
+            
             Enumeration status = leftOfScrollBar.elements();
             while(status.hasMoreElements())
             {
@@ -1775,7 +1775,7 @@ public class JEditTextArea extends JComponent{
                 bottomHeight);
         }
 
-        // private members
+        
         private Component center;
         private Component right;
         private Component bottom;
@@ -1817,9 +1817,9 @@ public class JEditTextArea extends JComponent{
             if(!scrollBarsInitialized)
                 return;
 
-            // If this is not done, mousePressed events accumilate
-            // and the result is that scrolling doesn't stop after
-            // the mouse is released
+            
+            
+            
             SwingUtilities.invokeLater(new Runnable() {
                 public void run(){
                     if(evt.getAdjustable() == vertical)
@@ -1908,7 +1908,7 @@ public class JEditTextArea extends JComponent{
         {
             requestFocus();
 
-            // Focus events not fired sometimes?
+            
             setCaretVisible(true);
             focusedComponent = JEditTextArea.this;
 
@@ -1929,8 +1929,8 @@ public class JEditTextArea extends JComponent{
                 doSingleClick(evt,line,offset,dot);
                 break;
             case 2:
-                // It uses the bracket matching stuff, so
-                // it can throw a BLE
+                
+                
                 try
                 {
                     doDoubleClick(evt,line,offset,dot);
@@ -1961,7 +1961,7 @@ public class JEditTextArea extends JComponent{
         private void doDoubleClick(MouseEvent evt, int line,
             int offset, int dot) throws BadLocationException
         {
-            // Ignore empty lines
+            
             if(getLineLength(line) == 0)
                 return;
 
@@ -1972,7 +1972,7 @@ public class JEditTextArea extends JComponent{
                 if(bracket != -1)
                 {
                     int mark = getMarkPosition();
-                    // Hack
+                    
                     if(bracket > mark)
                     {
                         bracket++;
@@ -1987,7 +1987,7 @@ public class JEditTextArea extends JComponent{
                 bl.printStackTrace();
             }
 
-            // Ok, it's not a bracket... select the word
+            
             String lineText = getLineText(line);
             char ch = lineText.charAt(Math.max(0,offset - 1));
 
@@ -1995,8 +1995,8 @@ public class JEditTextArea extends JComponent{
             if(noWordSep == null)
                 noWordSep = "";
 
-            // If the user clicked on a non-letter char,
-            // we select the surrounding non-letters
+            
+            
             boolean selectNoLetter = (!Character
                 .isLetterOrDigit(ch)
                 && noWordSep.indexOf(ch) == -1);
