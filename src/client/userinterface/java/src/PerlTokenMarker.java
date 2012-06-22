@@ -17,7 +17,7 @@ import javax.swing.text.Segment;
  */
 public class PerlTokenMarker extends TokenMarker
 {
-	// public members
+	
 	public static final byte S_ONE = Token.INTERNAL_FIRST;
 	public static final byte S_TWO = (byte)(Token.INTERNAL_FIRST + 1);
 	public static final byte S_END = (byte)(Token.INTERNAL_FIRST + 2);
@@ -188,9 +188,9 @@ loop:		for(int i = offset; i < length; i++)
 					backslash = false;
 					if(doKeyword(line,i,c))
 						break;
-					// Doesn't pick up all labels,
-					// but at least doesn't mess up
-					// XXX::YYY
+					
+					
+					
 					if(lastKeyword != 0)
 						break;
 					addToken(i1 - lastOffset,Token.LABEL);
@@ -245,28 +245,28 @@ loop:		for(int i = offset; i < length; i++)
 				break;
 			case Token.KEYWORD2:
 				backslash = false;
-				// This test checks for an end-of-variable
-				// condition
+				
+				
 				if(!Character.isLetterOrDigit(c) && c != '_'
 					&& c != '#' && c != '\'' && c != ':'
 					&& c != '&')
 				{
-					// If this is the first character
-					// of the variable name ($'aaa)
-					// ignore it
+					
+					
+					
 					if(i != offset && array[i-1] == '$')
 					{
 						addToken(i1 - lastOffset,token);
 						lastOffset = lastKeyword = i1;
 					}
-					// Otherwise, end of variable...
+					
 					else
 					{
 						addToken(i - lastOffset,token);
 						lastOffset = lastKeyword = i;
-						// Wind back so that stuff
-						// like $hello$fred is picked
-						// up
+						
+						
+						
 						i--;
 						token = Token.NULL;
 					}
@@ -402,7 +402,7 @@ loop:		for(int i = offset; i < length; i++)
 			token = Token.NULL;
 			break;
 		case S_ONE: case S_TWO:
-			addToken(length - lastOffset,Token.INVALID); // XXX
+			addToken(length - lastOffset,Token.INVALID); 
 			token = Token.NULL;
 			break;
 		default:
@@ -412,7 +412,7 @@ loop:		for(int i = offset; i < length; i++)
 		return token;
 	}
 
-	// private members
+	
 	private KeywordMap keywords;
 	private byte token;
 	private int lastOffset;
@@ -462,7 +462,7 @@ loop:		for(int i = offset; i < length; i++)
 		return false;
 	}
 
-	// Converts < EOF >, < 'EOF' >, etc to <EOF>
+	
 	private String createReadinString(char[] array, int start, int len)
 	{
 		int idx1 = start;

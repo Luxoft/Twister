@@ -1,4 +1,22 @@
-import java.applet.Applet; 
+/*
+File: Window.java ; This file is part of Twister.
+
+Copyright (C) 2012 , Luxoft
+
+Authors: Andrei Costachi <acostachi@luxoft.com>
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+import java.applet.Applet;
 import javax.swing.JFrame;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
@@ -22,74 +40,122 @@ import javax.swing.JLabel;
 /*
  * main window displayed if twister is running local
  */
-public class Window extends JFrame{
-    MainPanel mainpanel;//applet main container
+public class Window extends JFrame {
+
+    MainPanel mainpanel;
     private static final long serialVersionUID = 1L;
     Applet container;
     JPanel appletpanel;
-    
+
     /*
-     * applet - true if starts from applet, false otherwie
-     * container - if not null, applet container
+     * applet - true if starts from applet, false otherwie container - if not
+     * null, applet container
      */
-   
-    public Window(final boolean applet, Applet container){
+    public Window(final boolean applet, Applet container) {
         this.container = container;
         setTitle("Luxoft - Test Automation Framework");
         Repository.intro.setStatus("Started Frame initialization");
         Repository.intro.addPercent(0.035);
         Repository.intro.repaint();
         mainpanel = new MainPanel(applet);
-        if(container!=null){
+        if (container != null) {
             appletpanel = new JPanel();
             Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
-            appletpanel.setBounds(5, 5, (int)screenSize.getWidth(), 672);
+            appletpanel.setBounds(5, 5, (int) screenSize.getWidth(), 672);
             appletpanel.setBackground(Color.WHITE);
             appletpanel.setLayout(null);
             appletpanel.add(mainpanel);
-            container.add(appletpanel);}
-        else{
+            container.add(appletpanel);
+        } else {
             setLayout(null);
             add(mainpanel);
-            setBounds(0,60,mainpanel.getWidth()+30,mainpanel.getHeight()+45);
-            addWindowListener(new WindowAdapter(){
-                public void windowClosing(WindowEvent e){
-                    int r = (Integer)CustomDialog.showDialog(new JLabel("Save your Suite XML before exiting ?"), JOptionPane.QUESTION_MESSAGE, JOptionPane.OK_CANCEL_OPTION, mainpanel, "Save", null);
-                    if(r == JOptionPane.OK_OPTION){mainpanel.saveUserXML();}
-                    if(deleteTemp(new File(Repository.temp)))System.out.println(Repository.temp+System.getProperty("file.separator")+"Twister deleted successfull");
-                    else System.out.println("Could not delete: "+Repository.temp+System.getProperty("file.separator")+"Twister");
+            setBounds(0, 60, mainpanel.getWidth() + 30,
+                    mainpanel.getHeight() + 45);
+            addWindowListener(new WindowAdapter() {
+
+                public void windowClosing(WindowEvent e) {
+                    int r = (Integer) CustomDialog.showDialog(new JLabel(
+                            "Save your Suite XML before exiting ?"),
+                            JOptionPane.QUESTION_MESSAGE,
+                            JOptionPane.OK_CANCEL_OPTION, mainpanel, "Save",
+                            null);
+                    if (r == JOptionPane.OK_OPTION) {
+                        mainpanel.saveUserXML();
+                    }
+                    if (deleteTemp(new File(Repository.temp))) {
+                        System.out.println(Repository.temp
+                                + System.getProperty("file.separator")
+                                + "Twister deleted successfull");
+                    } else {
+                        System.out.println("Could not delete: "
+                                + Repository.temp
+                                + System.getProperty("file.separator")
+                                + "Twister");
+                    }
                     dispose();
                     Repository.run = false;
-                    if(!applet)System.exit(0);}});
-            addComponentListener(new ComponentAdapter(){
-                public void componentResized(ComponentEvent e){
-                    if(Repository.window!=null){
-                        mainpanel.p2.splitPane.setSize(Repository.window.getWidth()-52,Repository.window.getHeight()-120);
-                        mainpanel.p1.splitPane.setSize(Repository.window.getWidth()-52,Repository.window.getHeight()-120);
-                        mainpanel.setSize(Repository.window.getWidth()-28,Repository.window.getHeight()-50);
-                        mainpanel.p4.scroll.setSize(Repository.window.getWidth()-310,Repository.window.getHeight()-150);
-                        mainpanel.p4.main.setSize(Repository.window.getWidth()-300,Repository.window.getHeight()-130);
-                        mainpanel.p4.dut.setPreferredSize(new Dimension(getWidth()-300,getHeight()-150));
-                        //Repository.window.mainpanel.p5.nettop.setPreferredSize(new Dimension(getWidth()-50,672));
-                    }}});
-            setVisible(true);}
+                    if (!applet) {
+                        System.exit(0);
+                    }
+                }
+            });
+            addComponentListener(new ComponentAdapter() {
+
+                public void componentResized(ComponentEvent e) {
+                    if (Repository.window != null) {
+                        mainpanel.p2.splitPane.setSize(
+                                Repository.window.getWidth() - 52,
+                                Repository.window.getHeight() - 120);
+                        mainpanel.p1.splitPane.setSize(
+                                Repository.window.getWidth() - 52,
+                                Repository.window.getHeight() - 120);
+                        mainpanel.setSize(Repository.window.getWidth() - 28,
+                                Repository.window.getHeight() - 50);
+                        mainpanel.p4.getScroll().setSize(
+                                Repository.window.getWidth() - 310,
+                                Repository.window.getHeight() - 150);
+                        mainpanel.p4.getMain().setSize(
+                                Repository.window.getWidth() - 300,
+                                Repository.window.getHeight() - 130);
+                        mainpanel.p4.getDut().setPreferredSize(
+                                new Dimension(getWidth() - 300,
+                                getHeight() - 150));
+
+                    }
+                }
+            });
+            setVisible(true);
+        }
         Repository.intro.setStatus("Starting applet");
         Repository.intro.addPercent(1);
         Repository.intro.repaint();
-        Repository.intro.dispose();}
-    
+        Repository.intro.dispose();
+    }
+
     /*
-     * static method used to dele a directory 
-     * dir - the directory to be deleted localy
+     * static method used to dele a directory dir - the directory to be deleted
+     * localy
      */
-    public static boolean deleteTemp(File dir){    
-        if (dir.isDirectory()){
+    public static boolean deleteTemp(File dir) {
+        if (dir.isDirectory()) {
             String[] children = dir.list();
-            for (int i=0; i<children.length; i++) {
-                boolean success = deleteTemp(new File(dir, children[i])); 
-                if(success) System.out.println("successfull");
-                else System.out.println("failed");
-                if (!success) {return false;}}}
-        try{System.out.print("Deleting "+dir.getCanonicalPath()+"....");}
-        catch(Exception e){e.printStackTrace();}
-        return dir.delete();}}
+            for (int i = 0; i < children.length; i++) {
+                boolean success = deleteTemp(new File(dir, children[i]));
+                if (success) {
+                    System.out.println("successfull");
+                } else {
+                    System.out.println("failed");
+                }
+                if (!success) {
+                    return false;
+                }
+            }
+        }
+        try {
+            System.out.print("Deleting " + dir.getCanonicalPath() + "....");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return dir.delete();
+    }
+}

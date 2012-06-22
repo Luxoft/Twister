@@ -115,7 +115,7 @@ public class SyntaxDocument extends PlainDocument
 	 */
 	public void addUndoableEdit(UndoableEdit edit) {}
 
-	// protected members
+	
 	protected TokenMarker tokenMarker;
 
 	/**
