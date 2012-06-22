@@ -199,26 +199,29 @@ class TCRunPython:
         or else the return will always be None.
         '''
         #
+        globs_copy = dict(globs)
+        globEpName = globs_copy['globEpName']
         to_execute = str_to_execute.data
         to_execute = '\nimport os, sys\nsys.argv = %s\n' % str(["file.py"] + params) + to_execute
-        to_execute = "\nsys.path.append(os.getenv('TWISTER_PATH') + '/.twister_cache/')\n" + to_execute
+        to_execute = '\nsys.path.append(os.getenv("TWISTER_PATH") + "/.twister_cache/")\n' + to_execute
         #
         # *.pyc or *.pyo files
         if to_execute[:4] == '\x03\xf3\r\n':
             print('TC Python: Binary Python file detected!')
-            fname = '__to_execute.pyc'
+            fname = '/__to_execute.pyc'
         else:
-            fname = '__to_execute.py'
+            fname = '/__to_execute.py'
         #
+        fname = TWISTER_PATH + '/.twister_cache/' + globEpName + fname
         f = open(fname, 'wb')
         f.write(to_execute)
         f.close() ; del f
         #
-        execfile(fname, globs)
+        execfile(fname, globs_copy)
         os.remove(fname)
         #
         # The _RESULT must be injected from within the python script
-        return globs.get('_RESULT')
+        return globs_copy.get('_RESULT')
         #
 
 #

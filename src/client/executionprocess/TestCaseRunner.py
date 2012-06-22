@@ -135,11 +135,11 @@ def Suicide(sig=None, msg=None, file_id=None, status_f=None, timer_f=None):
 
 #
 
-def proxySetTestStatus(epid, file_id, status, time_t):
+def proxySetTestStatus(epname, file_id, status, time_t):
     #
     global proxy
     if proxy is not None:
-        proxy.setFileStatus(epid, file_id, status, time_t)
+        proxy.setFileStatus(epname, file_id, status, time_t)
     else:
         print('Offline mode: file_id `{0}`, status [ {1} ], time [ {2} ]'.format(file_id, status, time_t))
     #
