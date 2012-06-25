@@ -58,8 +58,10 @@ class TSCParser:
 
     def __init__(self, config_data):
         if os.path.isfile(config_data):
+            self.config_path = config_data
             self.xmlDict = BeautifulStoneSoup(open(config_data))
         elif config_data and type(config_data)==type('') or type(config_data)==type(u''):
+            self.config_path = ''
             self.xmlDict = BeautifulStoneSoup(config_data)
         else:
             raise Exception('Parser ERROR: Invalid config data type: `%s`!' % type(config_data))
