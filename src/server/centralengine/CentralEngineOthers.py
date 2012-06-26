@@ -173,16 +173,21 @@ class Project:
         return True
 
 
-    def reset(self, user):
+    def reset(self, user, config_path=''):
         """
         Reset user parser, all EPs to STOP, all files to PENDING.
         """
+
+        if config_path and not os.path.exists(config_path):
+            logError('Project ERROR: Config path `%s` does not exist! Using default config!' % config_path)
+            config_path = False
 
         r = self.changeUser(user)
         if not r: return False
 
         # User config XML
-        config_path = self.users[user]['config_path']
+        if not config_path:
+            config_path = self.users[user]['config_path']
         self.parsers[user] = TSCParser(config_path)
         self.parser = self.parsers[user]
 

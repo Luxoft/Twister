@@ -538,7 +538,12 @@ class CentralEngine(_cptools.XMLRPCController):
         if (executionStatus == STATUS_STOP or executionStatus == STATUS_INVALID) and new_status == STATUS_RUNNING:
 
             logWarning('CE: RESET Central Engine configuration...') ; ti = time.clock()
-            self.resetLogs(user)
+            # If the msg is a path to a config file...
+            if msg and os.path.isfile(msg):
+                self.resetLogs(user, msg)
+                msg = ''
+            else:
+                self.resetLogs(user)
             self.project.reset(user)
             logWarning('CE: RESET operation took %.4f seconds.' % (time.clock()-ti))
 

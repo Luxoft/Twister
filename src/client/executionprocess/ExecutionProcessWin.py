@@ -22,10 +22,8 @@
 # limitations under the License.
 
 import os
-import sys
 import time
 import shutil
-import time
 import xmlrpclib
 from subprocess import Popen
 from zipfile import ZipFile
@@ -52,11 +50,11 @@ def RUN(tList):
     for i in range(len(tList)):
 
         tcId = tList[i]
-        tcName = proxy.getFileVariable(tcId, 'file')
+        tcName = proxy.getFileVariable(userName, tcId, 'file')
 
         timer_i = time.time()
 
-        STATUS = proxy.getExecStatus(globEpName)
+        STATUS = proxy.getExecStatus(userName, globEpName)
 
         if STATUS == 'stopped': # On stop, DIE!
             print 'EP::Windows: STOP! Exiting.\n'
@@ -66,7 +64,7 @@ def RUN(tList):
             print('EP::Windows: Paused!... Press RESUME to continue, or STOP to exit test suite...')
             while 1:
                 time.sleep(2)
-                STATUS = proxy.getExecStatus(globEpName)
+                STATUS = proxy.getExecStatus(userName, globEpName)
                 # On resume, stop waiting
                 if STATUS == 'running' or STATUS == 'resume':
                     break
@@ -82,10 +80,10 @@ def RUN(tList):
         # Ignores non-sikuli/ selenium/ testcomplete files
         if file_ext != '.zip' and file_ext != '.py' and file_ext != '.testcomplete':
             print 'EP::Windows: ... file ignored.\n'
-            proxy.setFileStatus(globEpName, tcId, 4) # Send status SKIPPED
+            proxy.setFileStatus(userName, globEpName, tcId, 4) # Send status SKIPPED
             continue
         else:
-            proxy.setFileStatus(globEpName, tcId, 1) # Send status WORKING
+            proxy.setFileStatus(userName, globEpName, tcId, 1) # Send status WORKING
 
 
 
@@ -93,7 +91,7 @@ def RUN(tList):
         #
         if file_ext == '.zip':
             with open(outDir + os.sep + outFile, "wb") as handle:
-                handle.write(proxy.getTestFile(globEpName, tcId).data)
+                handle.write(proxy.getTestFile(userName, globEpName, tcId).data)
             with ZipFile(outDir + os.sep + outFile, 'r') as handle:
                 handle.extractall(outDir)
             #
@@ -109,7 +107,7 @@ def RUN(tList):
         #
         elif file_ext == '.testcomplete':
             with open(outDir + os.sep + outFile, "wb") as handle:
-                handle.write(proxy.getTestFile(globEpName, tcId).data)
+                handle.write(proxy.getTestFile(userName, globEpName, tcId).data)
             with ZipFile(outDir + os.sep + outFile, 'r') as handle:
                 handle.extractall(outDir) # This is a FOLDER !
             #
@@ -128,9 +126,9 @@ def RUN(tList):
             toExecute = outPython
             with open(outPython, "wb") as handle:
                 print 'EP::Selenium: Writing selenium file `%s`.' % outPython
-                handle.write(proxy.getTestFile(globEpName, tcId).data)
+                handle.write(proxy.getTestFile(userName, globEpName, tcId).data)
 
-        proxy.logMessage('logRunning', 'EP::Windows: Executing file `%s`...\n' % toExecute)
+        proxy.logMessage(userName, 'logRunning', 'EP::Windows: Executing file `%s`...\n' % toExecute)
 
 
 
@@ -192,14 +190,14 @@ def RUN(tList):
 
 
 
-        proxy.logMessage('logRunning',
+        proxy.logMessage(userName, 'logRunning',
             'EP::Windows: Finished execution of file `%s`, return code is `%i`.\n\n' % (toExecute, ret))
         timer_f = time.time() - timer_i
 
         if ret:
-            proxy.setFileStatus(globEpName, tcId, 3, timer_f) # Status FAIL
+            proxy.setFileStatus(userName, globEpName, tcId, 3, timer_f) # Status FAIL
         else:
-            proxy.setFileStatus(globEpName, tcId, 2, timer_f) # Status PASS
+            proxy.setFileStatus(userName, globEpName, tcId, 2, timer_f) # Status PASS
 
 
 
@@ -226,7 +224,7 @@ def RUN(tList):
         #
 
     print('EP debug: Run complete!\n')
-    proxy.setExecStatus(globEpName, 0, 'Run complete!') # Set EpId status STOP
+    proxy.setExecStatus(userName, globEpName, 0, 'Run complete!') # Set EpId status STOP
 
 #
 
@@ -236,7 +234,7 @@ while 1:
 
     try:
         # Try to get status from CE!
-        STATUS = proxy.getExecStatus(globEpName)
+        STATUS = proxy.getExecStatus(userName, globEpName)
         if not errMsg:
             print('EP warning: Central Engine is running. Reconnected successfully.')
             errMsg = True
@@ -251,7 +249,7 @@ while 1:
 
     if STATUS == 'running':
         print('EP debug: Starting the runner!!!')
-        tList = proxy.getEpFiles(globEpName)
+        tList = proxy.getEpFiles(userName, globEpName)
         RUN(tList)
 
     time.sleep(2)
