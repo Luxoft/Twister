@@ -230,12 +230,13 @@ if __name__=='__main__':
 
         proxy = xmlrpclib.ServerProxy(CE_Path)
 
-        proxy.setEpVariable(userName, globEpName, 'twister_ep_uid', os.getuid())
-        proxy.setEpVariable(userName, globEpName, 'twister_ep_gid', os.getgid())
-        proxy.setEpVariable(userName, globEpName, 'twister_ep_os',
-            (platform.machine() +' '+ platform.system() +', '+ ' '.join(platform.linux_distribution())))
-        proxy.setEpVariable(userName, globEpName, 'twister_ep_hostname', socket.gethostname())
-        try: proxy.setEpVariable(userName, globEpName, 'twister_ep_ip', socket.gethostbyname( socket.gethostname() ))
+        try:
+            proxy.setEpVariable(userName, globEpName, 'twister_ep_uid', os.getuid())
+            proxy.setEpVariable(userName, globEpName, 'twister_ep_gid', os.getgid())
+            proxy.setEpVariable(userName, globEpName, 'twister_ep_os',
+                (platform.machine() +' '+ platform.system() +', '+ ' '.join(platform.linux_distribution())))
+            proxy.setEpVariable(userName, globEpName, 'twister_ep_hostname', socket.gethostname())
+            proxy.setEpVariable(userName, globEpName, 'twister_ep_ip', socket.gethostbyname( socket.gethostname() ))
         except: pass
 
     print('EP debug: Setup done, waiting for START signal.')

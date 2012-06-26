@@ -284,8 +284,11 @@ class CentralEngine(_cptools.XMLRPCController):
         This function is called every time the Central Engine stops.
         '''
 
-        ret = self.project.sendMail(user)
-        return ret
+        try:
+            ret = self.project.sendMail(user)
+            return ret
+        except:
+            return False
 
 
     @cherrypy.expose
@@ -519,6 +522,7 @@ class CentralEngine(_cptools.XMLRPCController):
         '''
         Set execution status for all EPs. (0, 1, 2, or 3).\n
         Returns a string (stopped, paused, running).\n
+        The `message` parameter can explain why the status has changed.\n
         Both CE and EP have a status.
         '''
         if new_status not in execStatus.values():

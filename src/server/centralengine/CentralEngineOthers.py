@@ -205,10 +205,11 @@ class Project:
 
     def _dump(self):
         """
-        Save all data structure on HDD.
+        Internal function. Save all data structure on HDD.
         """
         with open(TWISTER_PATH + '/common/project_users.json', 'w') as f:
-            json.dump(self.users, f, indent=4)
+            try: json.dump(self.users, f, indent=4)
+            except: pass
 
 
     def _calcPointers(self, user):
@@ -484,8 +485,37 @@ class Project:
         # Information that will be mapped into subject or message of the e-mail
         map_info = {'date': time.strftime("%Y-%m-%d %H:%M")}
 
-        #user_info = .....
-        #map_info.update(user_info)
+        for ep in self.data['eps']:
+            # All info about 1 EP
+            ep_data = self.data['eps'][ep]
+
+            for k in ep_data:
+                if k in ['suites', 'status', 'last_seen_alive']: continue
+                if ep_data[k] == '': continue
+                # If the information is already in the mapping info
+                if k in map_info:
+                    map_info[k] += ', ' + str(ep_data[k])
+                    map_info[k] = ', '.join( list(set( map_info[k].split(', ') )) )
+                    #map_info[k] = ', '.join(sorted( list(set(map_info[k].split(', '))) )) # Sorted ?
+                else:
+                    map_info[k] = str(ep_data[k])
+
+            for suite in ep_data['suites']:
+                # All info about 1 Suite
+                suite_data = ep_data['suites'][suite]
+
+                for k in suite_data:
+                    if k in ['ep', 'files']: continue
+                    if suite_data[k] == '': continue
+                    # If the information is already in the mapping info
+                    if k in map_info:
+                        map_info[k] += ', ' + str(suite_data[k])
+                        map_info[k] = ', '.join( list(set( map_info[k].split(', ') )) )
+                        #map_info[k] = ', '.join(sorted( list(set(map_info[k].split(', '))) )) # Sorted ?
+                    else:
+                        map_info[k] = str(suite_data[k])
+
+        # print 'E-mail map info::', map_info
 
         # Subject template string
         tmpl = Template(eMailConfig['Subject'])
