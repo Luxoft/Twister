@@ -35,6 +35,7 @@ from win32com.client import Dispatch
 
 # -------------------------------------------------------
 outDir = os.getcwd()
+userName   = 'user'
 globEpName = 'EP-1003'
 proxy = xmlrpclib.ServerProxy('http://11.126.32.9:8000/')   # Tsc Server
 # -------------------------------------------------------

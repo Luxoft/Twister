@@ -21,11 +21,51 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""
+Project Class
+*************
+
+The **Project** class collects and organizes all the information for the Central Engine.
+
+Information about *users*:
+
+- user name
+- user status (start, stop, pause)
+
+Information about *EPs*:
+
+- EP name
+- EP status (start, stop, pause)
+- EP OS
+- EP IP
+
+Information about *Suites*:
+
+- suite name
+- other info from Test-Suites.XML (eg: release, or build)
+
+Information about *Test Files*:
+
+- file name
+- complete file path
+- test title
+- test description
+- timeout value (if any)
+- test status (pass, fail, skip, etc)
+- crash detected
+- test params
+- test date started and finished
+- test time elapsed
+- test log
+
+"""
+
 import os
 import sys
 import re
 import time
 import json
+import thread
 import smtplib
 import MySQLdb
 
@@ -45,165 +85,194 @@ from common.constants import *
 from common.tsclogging import *
 from common.xmlparser import *
 
-#
-# Information about user:
-#- user name
-#- user status (start, stop, pause)
-#
-# Information about EP:
-#- EP name
-#- EP status (start, stop, pause)
-#- EP OS
-#- EP IP
-#
-# Information about Suite:
-#- suite name
-#- other info from Test-Suites.XML
-#
-# Information about Test File:
-#- file name
-#- complete file path
-#- test title
-#- test description
-#- timeout value (if any)
-#- test status (pass, fail, skip, etc)
-#- crash detected
-#- test params
-#- test date started and finished
-#- test time elapsed
-#- test log
-#
 
 class Project:
 
-    '''
+    """
     This class controls data about:
+
     - users
     - EPs
     - suites
     - test files
-    '''
 
-    def __init__(self, config_path):
+    """
 
-        # Framework config XML
-        self.config_path = config_path
-        self.parser = TSCParser(config_path)
+    def __init__(self):
 
-        self.current_user = 'user'
-        self.users = {
-            'admin': {'status': STATUS_STOP, 'eps': OrderedDict()},
-            'user':  {'status': STATUS_STOP, 'eps': OrderedDict()},
-            }
+        self.users = {}
+        self.data = {}
+        self.parsers = {}
+        self.current_user = ''
+        self.ulock = thread.allocate_lock()
+
+
+    def createUser(self, user, config_path=''):
+        """
+        Create or overwrite one user.\n
+        This creates a master XML parser and a list with all user variables.
+        """
+
+        if config_path and not os.path.exists(config_path):
+            logError('Project ERROR: Config path `%s` does not exist !' % config_path)
+            return False
+        elif not os.path.exists('/home/%s/twister' % user):
+            logError('Project ERROR: Cannot find Twister for user `%s` !' % user)
+            return False
+        else:
+            config_path = '/home/%s/twister/config/fwmconfig.xml' % user
+
+        self.users[user] = {'status': STATUS_STOP, 'eps': OrderedDict()}
+
+        # User config XML
+        self.parsers[user] = TSCParser(config_path)
+        self.parser = self.parsers[user]
 
         # List with all EPs for this User
         epList = self.parser.getEpList()
         if not epList:
-            raise Exception('Project: Cannot load the list of EPs !')
+            logError('Project ERROR: Cannot load the list of EPs for user `%s` !' % user)
+            return False
 
-        # Calculate the Suites for each EP,
-        # And the Files for each Suite
+        # Calculate the Suites for each EP and the Files for each Suite
         for epname in epList:
-            self.users[self.current_user]['eps'][epname] = {}
-            self.users[self.current_user]['eps'][epname]['suites'] = self.parser.getAllSuitesInfo(epname)
+            self.users[user]['eps'][epname] = {}
+            self.users[user]['eps'][epname]['suites'] = self.parser.getAllSuitesInfo(epname)
 
         # Add framework config info to default user
-        self.users[self.current_user]['tests_path'] = self.parser.getTestSuitePath()
-        self.users[self.current_user]['logs_path'] = self.parser.getLogsPath()
-        self.users[self.current_user]['log_types'] = {}
+        self.users[user]['config_path'] = config_path
+        self.users[user]['tests_path'] = self.parser.getTestSuitePath()
+        self.users[user]['logs_path'] = self.parser.getLogsPath()
+        self.users[user]['log_types'] = {}
 
         for logType in self.parser.getLogTypes():
-            self.users[self.current_user]['log_types'][logType] = self.parser.getLogFileForType(logType)
+            self.users[user]['log_types'][logType] = self.parser.getLogFileForType(logType)
 
         # Data contains: EP -> Suite -> File
-        self.data = self.users[self.current_user]
+        self.data = self.users[user]
 
-        # Shortcuts for Suites and Files.
-        self.calcPointers()
+        # Save everything.
         self._dump()
+        logDebug('Project: Created user `%s` ...' % user)
 
-
-    def _dump(self):
-        '''
-        Save all data structure on HDD.
-        '''
-        f = open(TWISTER_PATH + '/config/project_users.json', 'w')
-        json.dump(self.users, f, indent=4)
-        f.close()
-
-
-    def calcPointers(self):
-        '''
-        Recalculate all pointers for Suites and Files.
-        The pointers are useful for searching the data very fast.
-        '''
-        # Ordered list of file IDs
-        self.test_ids = self.parser.getAllTestFiles()
-
-        # Shortcut for ALL suites data
-        self.suites_data = OrderedDict()
-        for ep in self.data['eps']:
-            for suite in self.data['eps'][ep]['suites']:
-                self.suites_data[suite] = self.data['eps'][ep]['suites'][suite]
-        #
-        # Shortcut for ALL files data
-        self.files_data = OrderedDict()
-        for suite in self.suites_data:
-            for f_id in self.suites_data[suite]['files']:
-                self.files_data[f_id] = self.suites_data[suite]['files'][f_id]
+        return True
 
 
     def changeUser(self, user):
-        '''
-        Switch user. The current data becomes the user data.
-        '''
-        self.current_user = user
-        self.data = self.users[user]
-        logDebug('Project: Changed user `%s`.' % user)
+        """
+        Switch user. Changes the pointers for `data` and `parser`.
+        """
+
+        with self.ulock:
+            if user not in self.users:
+                r = self.createUser(user)
+                if not r: return False
+            self.data = self.users[user]
+            self.parser = self.parsers[user]
+
+        return True
+
+
+    def reset(self, user):
+        """
+        Reset user parser, all EPs to STOP, all files to PENDING.
+        """
+
+        r = self.changeUser(user)
+        if not r: return False
+
+        # User config XML
+        config_path = self.users[user]['config_path']
+        self.parsers[user] = TSCParser(config_path)
+        self.parser = self.parsers[user]
+
+        # All EPs have status STOP
+        for ep in self.data['eps']:
+            self.data['eps'][ep]['status'] = STATUS_STOP
+
+        # All tests have status PENDING
+        self.setFileStatusAll(user, STATUS_PENDING)
+        return True
 
 
 # # #
 
 
-    def getUserInfo(self, key=None):
-        '''
+    def _dump(self):
+        """
+        Save all data structure on HDD.
+        """
+        with open(TWISTER_PATH + '/common/project_users.json', 'w') as f:
+            json.dump(self.users, f, indent=4)
+
+
+    def _calcPointers(self, user):
+        """
+        Internal function. Recalculate all pointers for Suites and Files.
+        The pointers are useful for searching the data very fast.
+        """
+        # Ordered list of file IDs
+        self.test_ids = self.parsers[user].getAllTestFiles()
+
+        # Shortcut for ALL files data
+        self.files_data = OrderedDict()
+        for ep in self.data['eps']:
+            for suite in self.data['eps'][ep]['suites']:
+                for f_id in self.data['eps'][ep]['suites'][suite]['files']:
+                    self.files_data[f_id] = self.data['eps'][ep]['suites'][suite]['files'][f_id]
+
+
+# # #
+
+
+    def getUserInfo(self, user, key=None):
+        """
         Returns data for the current user, including all EP info.
         If the key is not specified, it can be a huge dictionary.
-        '''
+        """
+        r = self.changeUser(user)
+        if not r: return []
 
         if key:
-            return self.users[self.current_user].get(key)
+            return self.users[user].get(key)
         else:
-            return self.users[self.current_user]
+            return self.users[user]
 
 
-    def setUserInfo(self, key, value):
-        '''
+    def setUserInfo(self, user, key, value):
+        """
         Create or overwrite a variable with a value, for the current user.
-        '''
+        """
+        r = self.changeUser(user)
+        if not r: return False
+
         if not key or key == 'eps':
             logDebug('Project: Invalid Key `%s` !' % str(key))
             return False
 
-        self.users[self.current_user][key] = value
-        self.calcPointers()
+        self.users[user][key] = value
+        self._calcPointers(user)
         self._dump()
         return True
 
 
-    def getEpInfo(self, epname):
-        '''
+    def getEpInfo(self, user, epname):
+        """
         Retrieve all info available, about one EP.
-        '''
+        """
+        r = self.changeUser(user)
+        if not r: return {}
+
         return self.data['eps'].get(epname, {})
 
-    getEpInfo.exposed = True
 
-
-    def getEpFiles(self, epname):
-        '''
+    def getEpFiles(self, user, epname):
+        """
         Return a list with all files associated with one EP.
-        '''
+        """
+        r = self.changeUser(user)
+        if not r: return []
+
         files = []
         for suite in self.data['eps'][epname]['suites']:
             for fname in self.data['eps'][epname]['suites'][suite]['files']:
@@ -211,10 +280,13 @@ class Project:
         return files
 
 
-    def setEpInfo(self, epname, key, value):
-        '''
+    def setEpInfo(self, user, epname, key, value):
+        """
         Create or overwrite a variable with a value, for one EP.
-        '''
+        """
+        r = self.changeUser(user)
+        if not r: return False
+
         if epname not in self.data['eps']:
             logDebug('Project: Invalid EP name `%s` !' % epname)
             return False
@@ -223,31 +295,45 @@ class Project:
             return False
 
         self.data['eps'][epname][key] = value
-        self.calcPointers()
+        self._calcPointers(user)
         self._dump()
         return True
 
 
-    def getSuiteInfo(self, suite):
-        '''
+    def getSuiteInfo(self, user, epname, suite):
+        """
         Retrieve all info available, about one EP.
-        '''
-        return self.suites_data.get(suite, {})
+        """
+        r = self.changeUser(user)
+        if not r: return {}
 
-    getSuiteInfo.exposed = True
+        if epname not in self.data['eps']:
+            logDebug('Project: Invalid EP name `%s` !' % epname)
+            return False
+        if suite not in self.data['eps'][epname]['suites']:
+            logDebug('Project: Invalid Suite name `%s` !' % suite)
+            return False
+
+        return self.data['eps'][epname]['suites'].get(suite, {})
 
 
-    def getSuiteFiles(self, epname, suite):
-        '''
+    def getSuiteFiles(self, user, epname, suite):
+        """
         Return a list with all files associated with one Suite.
-        '''
+        """
+        r = self.changeUser(user)
+        if not r: return []
+
         return self.data['eps'][epname]['suites'][suite]['files'].keys()
 
 
-    def setSuiteInfo(self, epname, suite, key, value):
-        '''
+    def setSuiteInfo(self, user, epname, suite, key, value):
+        """
         Create or overwrite a variable with a value, for one Suite.
-        '''
+        """
+        r = self.changeUser(user)
+        if not r: return False
+
         if epname not in self.data['eps']:
             logDebug('Project: Invalid EP name `%s` !' % epname)
             return False
@@ -259,24 +345,29 @@ class Project:
             return False
 
         self.data['eps'][epname]['suites'][suite][key] = value
-        self.calcPointers()
+        self._calcPointers(user)
         self._dump()
         return True
 
 
-    def getFileInfo(self, file_id):
-        '''
+    def getFileInfo(self, user, file_id):
+        """
         Retrieve all info available, about one Test File.
-        '''
+        """
+        r = self.changeUser(user)
+        if not r: return {}
+
+        self._calcPointers(user)
         return self.files_data.get(file_id, {})
 
-    getFileInfo.exposed = True
 
-
-    def setFileInfo(self, epname, suite, fileid, key, value):
-        '''
+    def setFileInfo(self, user, epname, suite, fileid, key, value):
+        """
         Create or overwrite a variable with a value, for one Test File.
-        '''
+        """
+        r = self.changeUser(user)
+        if not r: return False
+
         if epname not in self.data['eps']:
             logDebug('Project: Invalid EP name `%s` !' % epname)
             return False
@@ -288,15 +379,18 @@ class Project:
             return False
 
         self.data['eps'][epname]['suites'][suite]['files'][fileid][key] = value
-        self.calcPointers()
+        self._calcPointers(user)
         self._dump()
         return True
 
 
-    def getFileStatusAll(self, epname=None, suite=None):
-        '''
+    def getFileStatusAll(self, user, epname=None, suite=None):
+        """
         Return the status of all files, in order.
-        '''
+        """
+        r = self.changeUser(user)
+        if not r: return []
+
         if suite and not epname:
             logError('Project: Must provide both EP and Suite!')
             return []
@@ -323,31 +417,48 @@ class Project:
 
         return final
 
-    getFileStatusAll.exposed = True
 
-
-    def setFileStatusAll(self, new_status=10, epname=None):
-        '''
+    def setFileStatusAll(self, user, epname=None, new_status=10):
+        """
         Reset the status of all files, to value: x.
-        '''
-        if epname:
-            for suite in self.data['eps'][epname]['suites']:
-                for fname in self.data['eps'][epname]['suites'][suite]['files']:
-                    self.data['eps'][epname]['suites'][suite]['files'][fname]['status'] = new_status
-        else:
-            for epname in self.data['eps']:
-                for suite in self.data['eps'][epname]['suites']:
-                    for fname in self.data['eps'][epname]['suites'][suite]['files']:
-                        self.data['eps'][epname]['suites'][suite]['files'][fname]['status'] = new_status
+        """
+        r = self.changeUser(user)
+        if not r: return False
+
+        for epcycle in self.data['eps']:
+            if epname and epcycle != epname:
+                continue
+            for suite in self.data['eps'][epcycle]['suites']:
+                for fname in self.data['eps'][epcycle]['suites'][suite]['files']:
+                    self.data['eps'][epcycle]['suites'][suite]['files'][fname]['status'] = new_status
+
         self._dump()
         return True
 
 # # #
 
-    def sendMail(self):
-        '''
+
+    def setFileOwner(self, user, path):
+        """
+        Update file ownership for 1 file.
+        """
+        uinfo = self.getUserInfo(user, 'eps')
+        epname = uinfo[uinfo.keys()[0]]
+        uid = epname.get('twister_ep_uid')
+        gid = epname.get('twister_ep_gid')
+        if uid and gid:
+            os.chown(path, uid, gid)
+            return True
+        else:
+            return False
+
+
+    def sendMail(self, user):
+        """
         Send e-mail function.
-        '''
+        """
+        r = self.changeUser(user)
+        if not r: return False
 
         # This is updated every time.
         eMailConfig = self.parser.getEmailConfig()
@@ -376,7 +487,7 @@ class Project:
         try:
             eMailConfig['Subject'] = tmpl.substitute(map_info)
         except Exception, e:
-            logError('CE ERROR! Cannot build e-mail subject! Error: {0}!'.format(e))
+            logError('E-mail ERROR! Cannot build e-mail subject! Error: {0}!'.format(e))
             return False
         del tmpl
 
@@ -385,7 +496,7 @@ class Project:
         try:
             eMailConfig['Message'] = tmpl.substitute(map_info)
         except Exception, e:
-            logError('CE ERROR! Cannot build e-mail message! Error: {0}!'.format(e))
+            logError('E-mail ERROR! Cannot build e-mail message! Error: {0}!'.format(e))
             return False
         del tmpl
 
@@ -401,7 +512,7 @@ class Project:
             ROWS.append( ('<tr class="%s"><td>' % rclass) + '</td><td>'.join(rows) + '</td></tr>\n')
 
         # Body string
-        body_path = os.path.split(self.config_path)[0] +os.sep+ 'e-mail-tmpl.htm'
+        body_path = os.path.split(self.parser.config_path)[0] +os.sep+ 'e-mail-tmpl.htm'
         if not os.path.exists(body_path):
             logError('CE ERROR! Cannot find e-mail template file `{0}`!'.format(body_path))
             return False
@@ -434,8 +545,11 @@ class Project:
         msg.attach(MIMEText(body_tmpl.substitute(body_dict), 'html'))
 
         if (not eMailConfig['Enabled']) or (eMailConfig['Enabled'] in ['0', 'false']):
-            open(TWISTER_PATH + '/config/e-mail.htm', 'w').write(msg.as_string())
+            e_mail_path = os.path.split(self.parser.config_path)[0] +os.sep+ 'e-mail.htm'
+            open(e_mail_path, 'w').write(msg.as_string())
             logDebug('E-mail.htm file written. The message will NOT be sent.')
+            # Update file ownership
+            self.setFileOwner(user, e_mail_path)
             return True
 
         try:
@@ -466,11 +580,14 @@ class Project:
 
 # # #
 
-    def saveToDatabase(self):
-        '''
+    def saveToDatabase(self, user):
+        """
         Save all data from a user: Ep, Suite, File, into database,
         using the DB.XML for the current project.
-        '''
+        """
+        r = self.changeUser(user)
+        if not r: return False
+
         # Database parser, fields, queries
         # This is created every time the Save is called
         db_path = self.parser.getDbConfigPath()

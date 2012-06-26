@@ -292,7 +292,7 @@ class TSCParser:
         '''
         ti = time.clock()
         if not self.configTS:
-            print('Parser: Cannot parse Test Suite XML! Exiting!')
+            print('Parser: Fatal error! Cannot parse Test Suite XML!')
             return []
 
         ts = []
@@ -302,8 +302,11 @@ class TSCParser:
             print('Parser: Current suite has no files!')
 
         for TestCase in files:
-            tcid = TestCase.parent.tcid.text
-            ts.append(tcid)
+            tcid = TestCase.parent.tcid
+            if not tcid:
+                print('Parser: Fatal error! Found files without ID in Test Suite XML!')
+                return []
+            ts.append(tcid.text)
 
         #print('Parser: TestSuite Files (%s files) took %.4f seconds.' % (len(ts), time.clock()-ti))
         return ts

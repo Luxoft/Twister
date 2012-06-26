@@ -42,8 +42,10 @@ import time
 import xmlrpclib
 import pickle
 import binascii
+import socket
 import threading
 import subprocess
+import platform
 
 TWISTER_PATH = os.getenv('TWISTER_PATH')
 if not TWISTER_PATH:
@@ -57,7 +59,7 @@ from common.constants import *
 
 def saveConfig():
     '''
-    Saves EpId, RPC Server IP/ Port and current EpId status in a file.
+    Saves EpName, RPC Server IP/ Port and current EpName status in a file.
     This file will be read by the Runner.
     '''
     global globEpName, CE_Path, epStatus, TWISTER_PATH
@@ -100,7 +102,7 @@ class threadCheckStatus(threading.Thread):
 
             try:
                 # Try to get status from CE!
-                newEpStatus = self.proxy.getExecStatus(globEpName)
+                newEpStatus = self.proxy.getExecStatus(userName, globEpName)
                 if not self.errMsg:
                     print('EP warning: Central Engine is running. Reconnected successfully.')
                     self.errMsg = True
@@ -171,7 +173,7 @@ class threadCheckLog(threading.Thread):
 
             try:
                 # Send log to CE server.
-                self.proxy.logLIVE(globEpName, binascii.b2a_base64(vString))
+                self.proxy.logLIVE(userName, globEpName, binascii.b2a_base64(vString))
             except:
                 # Wait and retry...
                 time.sleep(2)
@@ -186,32 +188,34 @@ if __name__=='__main__':
 
     epStatus = ''
     newEpStatus = ''
+    proxy = ''
+    filelist = ''
     programExit = False
     OFFLINE = False
 
     try: os.mkdir(TWISTER_PATH + '/.twister_cache/')
     except: pass
 
-    if len(sys.argv) != 3:
-        print('EP error: must supply 2 parameters!')
-        print('usage:  python ExecutionProcess.py Ep_Id_Name Host:Port')
+    if len(sys.argv) != 4:
+        print('EP error: must supply 3 parameters!')
+        print('usage:  python ExecutionProcess.py User_Name Ep_Name Host:Port')
         print('OR,')
-        print('usage:  python ExecutionProcess.py OFFLINE File_List_Path')
+        print('usage:  python ExecutionProcess.py User_Name OFFLINE File_List_Path')
         exit(1)
     else:
-        globEpName = sys.argv[1]
+        userName = sys.argv[1]
+        globEpName = sys.argv[2]
         # If EP is started in OFFLINE mode
         if globEpName.upper() == 'OFFLINE':
             OFFLINE = True
             globEpName = 'OFFLINE'
-            filelist = sys.argv[2]
+            filelist = sys.argv[3]
             if not os.path.isfile(filelist):
                 print('EP error: Invalid file list! File `{0}` does not exits!'.format(filelist))
                 exit(1)
         else:
-            host = sys.argv[2]
-            filelist = ''
-            print 'Epid: {0} host: {1}'.format(globEpName, host)
+            host = sys.argv[3]
+            print('User: {0} ;  EP: {1} ;  host: {2}'.format(userName, globEpName, host))
 
     # Offline mode...
     if OFFLINE:
@@ -226,6 +230,14 @@ if __name__=='__main__':
 
         proxy = xmlrpclib.ServerProxy(CE_Path)
 
+        proxy.setEpVariable(userName, globEpName, 'twister_ep_uid', os.getuid())
+        proxy.setEpVariable(userName, globEpName, 'twister_ep_gid', os.getgid())
+        proxy.setEpVariable(userName, globEpName, 'twister_ep_os',
+            (platform.machine() +' '+ platform.system() +', '+ ' '.join(platform.linux_distribution())))
+        proxy.setEpVariable(userName, globEpName, 'twister_ep_hostname', socket.gethostname())
+        try: proxy.setEpVariable(userName, globEpName, 'twister_ep_ip', socket.gethostbyname( socket.gethostname() ))
+        except: pass
+
     print('EP debug: Setup done, waiting for START signal.')
 
     # Run forever and ever
@@ -236,8 +248,8 @@ if __name__=='__main__':
             print('EP debug: Received start signal from CE!')
 
             # The same Python interpreter that started EP, will be used to start the Runner
-            tcr_fname = TWISTER_PATH + os.sep + 'client/executionprocess/TestCaseRunner.py'
-            tcr_proc = subprocess.Popen([sys.executable, '-u', tcr_fname, globEpName, filelist], shell=False)
+            tcr_fname = TWISTER_PATH + '/client/executionprocess/TestCaseRunner.py'
+            tcr_proc = subprocess.Popen([sys.executable, '-u', tcr_fname, userName, globEpName, filelist], shell=False)
             tcr_pid = tcr_proc.pid
 
             # TestCaseRunner should suicide if timer expired
@@ -247,16 +259,16 @@ if __name__=='__main__':
             # Set EP status STOPPED
             if not ret:
                 print('EP debug: Successful run!\n')
-                proxy.setExecStatus(globEpName, STATUS_STOP, 'Successful run!')
+                proxy.setExecStatus(userName, globEpName, STATUS_STOP, 'Successful run!')
             if ret == -26:
                 print('EP debug: TC Runner exit because of timeout!\n')
-                proxy.setExecStatus(globEpName, STATUS_STOP, 'TC Runner exit because of timeout!')
+                proxy.setExecStatus(userName, globEpName, STATUS_STOP, 'TC Runner exit because of timeout!')
             # Return code != 0
             elif ret:
                 print('EP debug: TC Runner exit with error code `{0}`!\n'.format(ret))
                 if not OFFLINE:
                     # Set EP status STOPPED
-                    proxy.setExecStatus(globEpName, STATUS_STOP, 'TC Runner exit with error code `{0}`!'.format(ret))
+                    proxy.setExecStatus(userName, globEpName, STATUS_STOP, 'TC Runner exit with error code `{0}`!'.format(ret))
 
         # For offline, only 1 cycle is executed
         if OFFLINE:

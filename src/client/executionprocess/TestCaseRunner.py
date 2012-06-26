@@ -124,7 +124,7 @@ def Suicide(sig=None, msg=None, file_id=None, status_f=None, timer_f=None):
     if msg:
         proxy.echo(':: {0} {1}...'.format(globEpName, msg.strip()))
     if (file_id is not None) and (status_f is not None) and (timer_f is not None):
-        proxySetTestStatus(globEpName, file_id, status_f, timer_f)
+        proxySetTestStatus(file_id, status_f, timer_f)
     pid = os.getpid()
     print('TC debug: Killing PID `{0}`.'.format(pid))
     # Kill PID
@@ -135,11 +135,11 @@ def Suicide(sig=None, msg=None, file_id=None, status_f=None, timer_f=None):
 
 #
 
-def proxySetTestStatus(epname, file_id, status, time_t):
+def proxySetTestStatus(file_id, status, time_t):
     #
-    global proxy
+    global proxy, userName, globEpName
     if proxy is not None:
-        proxy.setFileStatus(epname, file_id, status, time_t)
+        proxy.setFileStatus(userName, globEpName, file_id, status, time_t)
     else:
         print('Offline mode: file_id `{0}`, status [ {1} ], time [ {2} ]'.format(file_id, status, time_t))
     #
@@ -218,19 +218,19 @@ def runOffline(filelist):
         # --------------------------------------------------
 
         if result==STATUS_PASS or result in ['pass', 'PASS']:
-            proxySetTestStatus(globEpName, file_name, STATUS_PASS, timer_f) # File status PASS
+            proxySetTestStatus(file_name, STATUS_PASS, timer_f) # File status PASS
         elif result==STATUS_SKIPPED or result in ['skip', 'skipped', 'SKIP', 'SKIPPED']:
-            proxySetTestStatus(globEpName, file_name, STATUS_SKIPPED, timer_f) # File status SKIPPED
+            proxySetTestStatus(file_name, STATUS_SKIPPED, timer_f) # File status SKIPPED
         elif result==STATUS_ABORTED or result in ['abort', 'aborted', 'ABORT', 'ABORTED']:
-            proxySetTestStatus(globEpName, file_name, STATUS_ABORTED, timer_f) # File status ABORTED
+            proxySetTestStatus(file_name, STATUS_ABORTED, timer_f) # File status ABORTED
         elif result==STATUS_NOT_EXEC or result in ['not-exec', 'not exec', 'NOT-EXEC', 'NOT EXEC']:
-            proxySetTestStatus(globEpName, file_name, STATUS_NOT_EXEC, timer_f) # File status NOT_EXEC
+            proxySetTestStatus(file_name, STATUS_NOT_EXEC, timer_f) # File status NOT_EXEC
         elif result==STATUS_TIMEOUT or result in ['timeout', 'TIMEOUT']:
-            proxySetTestStatus(globEpName, file_name, STATUS_TIMEOUT, timer_f) # File status TIMEOUT
+            proxySetTestStatus(file_name, STATUS_TIMEOUT, timer_f) # File status TIMEOUT
         elif result==STATUS_INVALID or result in ['invalid', 'INVALID']:
-            proxySetTestStatus(globEpName, file_name, STATUS_INVALID, timer_f) # File status INVALID
+            proxySetTestStatus(file_name, STATUS_INVALID, timer_f) # File status INVALID
         else:
-            proxySetTestStatus(globEpName, file_name, STATUS_FAIL, timer_f) # File status FAIL
+            proxySetTestStatus(file_name, STATUS_FAIL, timer_f) # File status FAIL
 
         sys.stdout.flush() # Just in case
 
@@ -251,19 +251,25 @@ def runOffline(filelist):
 
 if __name__=='__main__':
 
-    globEpName = sys.argv[1:2]
+    userName   = sys.argv[1:2]
+    globEpName = sys.argv[2:3]
 
+    if not userName:
+        print('TC error: TestCaseRunner must be started with username argument! Exiting!')
+        exit(1)
+    else:
+        userName = userName[0]
     if not globEpName:
-        print('TC error: TestCaseRunner must be started with EpId argument! Exiting!')
+        print('TC error: TestCaseRunner must be started with EpName argument! Exiting!')
         exit(1)
     else:
         globEpName = globEpName[0]
-        print('TC debug: TestCaseRunner started with Id: {0}.'.format(globEpName))
+        print('TC debug: TestCaseRunner started with  User: {0} ;  EP: {1}.'.format(userName, globEpName))
 
     if globEpName == 'OFFLINE':
         filelist = sys.argv[2:3]
         if not filelist:
-            print('TC error: Must start the Runner with 2 parameters, EpId and Filelist! Exiting!')
+            print('TC error: Must start the Runner with 2 parameters, EpName and Filelist! Exiting!')
             exit(1)
         if not os.path.exists(filelist[0]):
             print('TC error: File list file `{0}` does not exist! Exiting!')
@@ -283,15 +289,15 @@ if __name__=='__main__':
     if CONFIG['STATUS'] == 'running':
         print('TC debug: Connected to proxy, running tests!')
     else:
-        print('TC debug: EpId {0} is NOT running! Exiting!'.format(globEpName))
+        print('TC debug: EpName {0} is NOT running! Exiting!'.format(globEpName))
         exit(1)
 
     # Connect to RPC server
     try:
         proxy = xmlrpclib.ServerProxy(CONFIG['PROXY'])
-        tSuites = proxy.listSuites(globEpName).split(',')
+        tSuites = proxy.listSuites(userName, globEpName).split(',')
     except:
-        print('TC debug: Cannot to CE path `{0}`! Exiting!'.format(CONFIG['PROXY']))
+        print('TC debug: Cannot connect to CE path `{0}`! Exiting!'.format(CONFIG['PROXY']))
         exit(1)
 
     # If not offline, save all libraries from CE
@@ -321,9 +327,9 @@ if __name__=='__main__':
 
 
         # File stats for current Suite
-        tStats = proxy.getFileStatusAll(globEpName, suite).split(',')
+        tStats = proxy.getFileStatusAll(userName, globEpName, suite).split(',')
         # File list for current Suite
-        tList = proxy.getSuiteFiles(globEpName, suite)
+        tList = proxy.getSuiteFiles(userName, globEpName, suite)
 
         if not tList:
             print('TC warning: Nothing to do in suite `%s`!\n' % suite)
@@ -333,7 +339,7 @@ if __name__=='__main__':
         # If last file from last run is with TIMEOUT, fix file status and exit Suite
         if tStats[-1] == str(STATUS_TIMEOUT):
             print('TC debug: Dry run after timeout...')
-            proxySetTestStatus(globEpName, tList[-1], STATUS_INVALID, 0.0) # File status INVALID
+            proxySetTestStatus(tList[-1], STATUS_INVALID, 0.0) # File status INVALID
             suite_number += 1
             continue
 
@@ -352,13 +358,13 @@ if __name__=='__main__':
             status = tStats[iIndex]
 
             # The name of the file
-            filename = proxy.getFileVariable(file_id, 'file')
+            filename = proxy.getFileVariable(userName, file_id, 'file')
             # Is this file Prerequisite?
-            prerequisite = proxy.getFileVariable(file_id, 'Prerequisite')
+            prerequisite = proxy.getFileVariable(userName, file_id, 'Prerequisite')
             # Test-case dependency, if any
-            dependancy = proxy.getFileVariable(file_id, 'dependancy')
+            dependancy = proxy.getFileVariable(userName, file_id, 'dependancy')
             # Get args
-            args = proxy.getFileVariable(file_id, 'param')
+            args = proxy.getFileVariable(userName, file_id, 'param')
             if args:
                 args = [p for p in args.split(',') if p]
             else:
@@ -373,12 +379,12 @@ if __name__=='__main__':
             # If this suite is aborted because of the prerequisite file, send status ABORT
             if abort_suite:
                 print('TC debug: Abort file `{0}` because of prerequisite file!\n'.format(filename))
-                proxySetTestStatus(globEpName, file_id, STATUS_ABORTED, 0.0) # File status ABORTED
+                proxySetTestStatus(file_id, STATUS_ABORTED, 0.0) # File status ABORTED
                 continue
 
             # Reset the TIMEOUT status for the next execution!
             if status == '7':
-                proxySetTestStatus(globEpName, file_id, STATUS_INVALID, 0.0) # Status INVALID
+                proxySetTestStatus(file_id, STATUS_INVALID, 0.0) # Status INVALID
 
             # If there was a TIMEOUT last time, must continue with the next file after timeout
             # First file in the suite is always executed
@@ -415,33 +421,33 @@ if __name__=='__main__':
                         Suicide('NOT EXECUTED: Status STOP, while waiting for resume!', file_id, 6, 0.0)
 
             # If dependency file is PENDING or WORKING, wait to finish, for any other status, go next.
-            if dependancy and  proxy.getFileVariable(dependancy, 'status')  in [-1, False, STATUS_PENDING, STATUS_WORKING]:
-                dependancy_suite = proxy.getFileVariable(dependancy, 'suite')
-                dependancy_file = proxy.getFileVariable(dependancy, 'file')
+            if dependancy and  proxy.getFileVariable(userName, dependancy, 'status')  in [-1, False, STATUS_PENDING, STATUS_WORKING]:
+                dependancy_suite = proxy.getFileVariable(userName, dependancy, 'suite')
+                dependancy_file = proxy.getFileVariable(userName, dependancy, 'file')
 
                 if dependancy_file:
                     proxy.echo(':: {0} is waiting for file `{1}::{2}` to finish execution...'.format(globEpName, dependancy_suite, dependancy_file))
-                    proxySetTestStatus(globEpName, file_id, STATUS_WAITING, 0.0) # Status WAITING
+                    proxySetTestStatus(userName, file_id, STATUS_WAITING, 0.0) # Status WAITING
 
                     while 1:
                         time.sleep(3)
                         # Reload info about dependency file
-                        if  proxy.getFileVariable(dependancy, 'status')  not in [-1, False, STATUS_PENDING, STATUS_WORKING]:
+                        if  proxy.getFileVariable(userName, dependancy, 'status')  not in [-1, False, STATUS_PENDING, STATUS_WORKING]:
                             proxy.echo(':: {0} is not longer waiting !'.format(globEpName))
                             break
 
             # Timer for current cycle, must be after checking CE/ EP Status
             timer_i = time.time()
 
-            str_to_execute = proxy.getTestFile(globEpName, file_id)
+            str_to_execute = proxy.getTestFile(userName, globEpName, file_id)
             # If CE sent False, it means the file is empty, does not exist, or it's not runnable.
             if str_to_execute == '':
                 print('TC debug: File path `{0}` does not exist!\n'.format(filename))
-                proxySetTestStatus(globEpName, file_id, STATUS_SKIPPED, 0.0) # Status SKIPPED
+                proxySetTestStatus(file_id, STATUS_SKIPPED, 0.0) # Status SKIPPED
                 continue
             elif not str_to_execute:
                 print('TC debug: File `{0}` will be skipped.\n'.format(filename))
-                proxySetTestStatus(globEpName, file_id, STATUS_SKIPPED, 0.0) # Status SKIPPED
+                proxySetTestStatus(file_id, STATUS_SKIPPED, 0.0) # Status SKIPPED
                 continue
 
             file_ext = os.path.splitext(filename)[1].lower()
@@ -474,16 +480,17 @@ if __name__=='__main__':
             # Unknown file type
             else:
                 print('TC warning: Extension type `%s` is unknown and will be ignored!' % file_ext)
-                proxySetTestStatus(globEpName, file_id, STATUS_NOT_EXEC, 0.0) # Status NOT_EXEC
+                proxySetTestStatus(file_id, STATUS_NOT_EXEC, 0.0) # Status NOT_EXEC
                 continue
 
             result = None
-            proxySetTestStatus(globEpName, file_id, STATUS_WORKING, 0.0) # Status WORKING
+            proxySetTestStatus(file_id, STATUS_WORKING, 0.0) # Status WORKING
 
             # --------------------------------------------------
             # RUN CURRENT TEST!
             try:
                 result = current_runner._eval(str_to_execute, globals(), args)
+                result = str(result).upper()
                 print('\n>>> File `%s` returned `%s`. <<<\n' % (filename, result))
 
             except Exception, e:
@@ -494,27 +501,27 @@ if __name__=='__main__':
 
                 proxy.echo('TC error: Error executing file `%s`!' % filename)
 
-                proxySetTestStatus(globEpName, file_id, STATUS_FAIL, 0.0) # File status FAIL
-                proxy.setFileVariable(globEpName, suite, file_id, 'twister_tc_crash_detected', 1) # Crash detected True
+                proxySetTestStatus(file_id, STATUS_FAIL, 0.0) # File status FAIL
+                proxy.setFileVariable(userName, globEpName, suite, file_id, 'twister_tc_crash_detected', 1) # Crash detected True
 
             # END OF TEST!
             timer_f = time.time() - timer_i
             # --------------------------------------------------
 
-            if result==STATUS_PASS or result in ['pass', 'PASS']:
-                proxySetTestStatus(globEpName, file_id, STATUS_PASS, timer_f) # File status PASS
-            elif result==STATUS_SKIPPED or result in ['skip', 'skipped', 'SKIP', 'SKIPPED']:
-                proxySetTestStatus(globEpName, file_id, STATUS_SKIPPED, timer_f) # File status SKIPPED
-            elif result==STATUS_ABORTED or result in ['abort', 'aborted', 'ABORT', 'ABORTED']:
-                proxySetTestStatus(globEpName, file_id, STATUS_ABORTED, timer_f) # File status ABORTED
-            elif result==STATUS_NOT_EXEC or result in ['not-exec', 'not exec', 'NOT-EXEC', 'NOT EXEC']:
-                proxySetTestStatus(globEpName, file_id, STATUS_NOT_EXEC, timer_f) # File status NOT_EXEC
-            elif result==STATUS_TIMEOUT or result in ['timeout', 'TIMEOUT']:
-                proxySetTestStatus(globEpName, file_id, STATUS_TIMEOUT, timer_f) # File status TIMEOUT
-            elif result==STATUS_INVALID or result in ['invalid', 'INVALID']:
-                proxySetTestStatus(globEpName, file_id, STATUS_INVALID, timer_f) # File status INVALID
+            if result==STATUS_PASS or result == 'PASS':
+                proxySetTestStatus(file_id, STATUS_PASS, timer_f) # File status PASS
+            elif result==STATUS_SKIPPED or result in ['SKIP', 'SKIPPED']:
+                proxySetTestStatus(file_id, STATUS_SKIPPED, timer_f) # File status SKIPPED
+            elif result==STATUS_ABORTED or result in ['ABORT', 'ABORTED']:
+                proxySetTestStatus(file_id, STATUS_ABORTED, timer_f) # File status ABORTED
+            elif result==STATUS_NOT_EXEC or result in ['NOT-EXEC', 'NOT EXEC', 'NOT EXECUTED']:
+                proxySetTestStatus(file_id, STATUS_NOT_EXEC, timer_f) # File status NOT_EXEC
+            elif result==STATUS_TIMEOUT or result == 'TIMEOUT':
+                proxySetTestStatus(file_id, STATUS_TIMEOUT, timer_f) # File status TIMEOUT
+            elif result==STATUS_INVALID or result == 'INVALID':
+                proxySetTestStatus(file_id, STATUS_INVALID, timer_f) # File status INVALID
             else:
-                proxySetTestStatus(globEpName, file_id, STATUS_FAIL, timer_f) # File status FAIL
+                proxySetTestStatus(file_id, STATUS_FAIL, timer_f) # File status FAIL
 
                 # If status if FAIL, and the file is prerequisite, CANCEL all suite
                 if iIndex == 0 and prerequisite:

@@ -218,7 +218,8 @@ class TCRunPython:
         f.close() ; del f
         #
         execfile(fname, globs_copy)
-        os.remove(fname)
+        try: os.remove(fname)
+        except: pass
         #
         # The _RESULT must be injected from within the python script
         return globs_copy.get('_RESULT')
