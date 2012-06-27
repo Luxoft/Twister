@@ -506,7 +506,7 @@ class CentralEngine(_cptools.XMLRPCController):
             if self.project.getUserInfo(user, 'status'):
 
                 self.project.setUserInfo(user, 'status', STATUS_STOP)
-                logDebug('CE: All stations stopped! Central engine will also STOP!\n')
+                logDebug('CE: All stations stopped for user `%s`! Central engine will also STOP!\n' % user)
 
                 # On Central Engine stop, send e-mail?
                 self.sendMail(user)
@@ -566,9 +566,9 @@ class CentralEngine(_cptools.XMLRPCController):
         reversed = dict((v,k) for k,v in execStatus.iteritems())
 
         if msg:
-            logDebug("CE: Status changed for EPs %s -> %s. Message: `%s`." % (active_eps, reversed[new_status], str(msg)))
+            logDebug("CE: Status changed for `%s %s` -> %s. Message: `%s`.\n" % (user, active_eps, reversed[new_status], str(msg)))
         else:
-            logDebug("CE: Status changed for EPs %s -> %s." % (active_eps, reversed[new_status]))
+            logDebug("CE: Status changed for `%s %s` -> %s.\n" % (user, active_eps, reversed[new_status]))
 
         return reversed[new_status]
 

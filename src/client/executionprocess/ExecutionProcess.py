@@ -90,6 +90,7 @@ class threadCheckStatus(threading.Thread):
     def __init__(self):
         global CE_Path
         self.errMsg = True
+        self.cycle = 0
         self.proxy = xmlrpclib.ServerProxy(CE_Path)
         threading.Thread.__init__(self)
 
@@ -120,7 +121,22 @@ class threadCheckStatus(threading.Thread):
                     (globEpName.upper(), str(newEpStatus)))
             epStatus = newEpStatus
 
-            saveConfig() # Save configuration EVERY second
+            saveConfig() # Save configuration EVERY cycle
+
+            # Save EP info like OS, IP, user id, user group, EVERY 10 cycles
+            if not self.cycle:
+                try:
+                    if not proxy.getEpVariable(userName, globEpName, 'twister_ep_hostname'):
+                        proxy.setEpVariable(userName, globEpName, 'twister_ep_uid', os.getuid())
+                        proxy.setEpVariable(userName, globEpName, 'twister_ep_gid', os.getgid())
+                        proxy.setEpVariable(userName, globEpName, 'twister_ep_os',
+                            (platform.machine() +' '+ platform.system() +', '+ ' '.join(platform.linux_distribution())))
+                        proxy.setEpVariable(userName, globEpName, 'twister_ep_hostname', socket.gethostname())
+                        proxy.setEpVariable(userName, globEpName, 'twister_ep_ip', socket.gethostbyname( socket.gethostname() ))
+                except:
+                    pass
+            self.cycle += 1
+            if self.cycle > 10: self.cycle = 0
 
             if newEpStatus == 'stopped':
                 # PID might be invalid, trying to kill it anyway.
@@ -229,15 +245,6 @@ if __name__=='__main__':
         threadCheckLog().start() # Start checking CE status and sending Logs
 
         proxy = xmlrpclib.ServerProxy(CE_Path)
-
-        try:
-            proxy.setEpVariable(userName, globEpName, 'twister_ep_uid', os.getuid())
-            proxy.setEpVariable(userName, globEpName, 'twister_ep_gid', os.getgid())
-            proxy.setEpVariable(userName, globEpName, 'twister_ep_os',
-                (platform.machine() +' '+ platform.system() +', '+ ' '.join(platform.linux_distribution())))
-            proxy.setEpVariable(userName, globEpName, 'twister_ep_hostname', socket.gethostname())
-            proxy.setEpVariable(userName, globEpName, 'twister_ep_ip', socket.gethostbyname( socket.gethostname() ))
-        except: pass
 
     print('EP debug: Setup done, waiting for START signal.')
 
