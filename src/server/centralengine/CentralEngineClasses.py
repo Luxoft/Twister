@@ -110,7 +110,7 @@ class CentralEngine(_cptools.XMLRPCController):
             return 0
 
         reversed = dict((v,k) for k,v in execStatus.iteritems())
-        status = reversed[self.project.getUserInfo('status')]
+        status = reversed[self.project.getUserInfo(user, 'status')]
         now = datetime.datetime.today()
         if now.second < 59:
             now_str = now.replace(second=now.second+1).strftime('%Y-%m-%d %H:%M:%S')
@@ -126,7 +126,7 @@ class CentralEngine(_cptools.XMLRPCController):
 
             # EP name only
             if not suite:
-                data = self.project.getEpInfo(epname)
+                data = self.project.getEpInfo(user, epname)
                 ret = '''
 <head>
 <title>Central Engine Statistics</title>
@@ -141,14 +141,14 @@ class CentralEngine(_cptools.XMLRPCController):
                     epname = epname,
                     status = reversed[data.get('status', STATUS_INVALID)],
                     ping = str( (now - datetime.datetime.strptime(data.get('last_seen_alive', now_str), '%Y-%m-%d %H:%M:%S')).seconds ) + 's',
-                    suites = '<br>'.join(['&nbsp;&nbsp;<a href="http://{host}/stats?epname={ep}&suite={s}">{s}</a>'.format(
-                             host = host, ep = epname, s = k)
+                    suites = '<br>'.join(['&nbsp;&nbsp;<a href="http://{host}/stats?user={user}&epname={ep}&suite={s}">{s}</a>'.format(
+                             host = host, user = user, ep = epname, s = k)
                              for k in data['suites'].keys()])
                 )
 
             # EP name and Suite name
             else:
-                data = self.project.getSuiteInfo(suite)
+                data = self.project.getSuiteInfo(user, epname, suite)
                 reversed = dict((v,k) for k,v in testStatus.iteritems())
                 ret = '''
 <head>
@@ -167,6 +167,7 @@ class CentralEngine(_cptools.XMLRPCController):
 
         # General statistics
         else:
+            eps = self.listEPs(user).split(',')
             ret = '''
 <head>
 <title>Central Engine Statistics</title>
@@ -182,9 +183,10 @@ class CentralEngine(_cptools.XMLRPCController):
             host = ce_host,
             port = ce_port,
             eps = '<br>'.join(
-                ['&nbsp;&nbsp;<a href="http://{host}/stats?epname={ep}">{ep}</a>: {status}'.format(
-                    ep=ep, host=host, status=reversed[self.listEPs(user)[ep].get('status', STATUS_INVALID)])
-                    for ep in self.listEPs(user)]
+                ['&nbsp;&nbsp;<a href="http://{host}/stats?user={user}&epname={ep}">{ep}</a>: {status}'.format(
+                    user = user, ep=ep, host=host,
+                    status=reversed[self.project.getEpInfo(user, ep).get('status', STATUS_INVALID)])
+                    for ep in eps]
                 )
             )
 
@@ -663,7 +665,7 @@ class CentralEngine(_cptools.XMLRPCController):
             return False
 
         data = self.project.getFileInfo(user, file_id)
-        filename = data.get('file', 'invalid file')
+        filename = data.get('file', 'invalid file!')
         runnable = data.get('Runnable', 'not set')
 
         if runnable=='true' or runnable=='not set':
