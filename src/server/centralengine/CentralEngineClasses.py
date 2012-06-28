@@ -843,8 +843,8 @@ class CentralEngine(_cptools.XMLRPCController):
         logType = str(logType).lower()
         logTypes = self.project.getUserInfo(user, 'log_types')
 
-        if logType == 'logCli' or logType == 'logSummary':
-            logError('CE ERROR! logCLI and logSummary are reserved and cannot be written into!')
+        if logType == 'logcli' or logType == 'logsummary':
+            logError('CE Warning! logCLI and logSummary are reserved and cannot be written into!')
             return False
 
         if not logType in logTypes:
