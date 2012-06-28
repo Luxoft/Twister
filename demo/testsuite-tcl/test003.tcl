@@ -7,7 +7,7 @@ proc T-003 {} {
 
     set purpose {Testing Expect take 1}
     set description {Some description}
-    logMessage logCli "\nTest purpose: $purpose\nTest description: $description\n"
+    logMessage logTest "\nTest purpose: $purpose\nTest description: $description\n"
 
     set error_code "FAIL"
 

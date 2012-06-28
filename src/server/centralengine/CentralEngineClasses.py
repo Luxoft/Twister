@@ -541,8 +541,6 @@ class CentralEngine(_cptools.XMLRPCController):
         # This will always happen when the START button is pressed, if CE is stopped
         if (executionStatus == STATUS_STOP or executionStatus == STATUS_INVALID) and new_status == STATUS_RUNNING:
 
-            logWarning('CE: RESET Central Engine configuration...') ; ti = time.clock()
-
             # If the msg is a path to an existing file...
             if msg and os.path.isfile(msg):
                 data = open(msg).read().strip()
@@ -558,7 +556,6 @@ class CentralEngine(_cptools.XMLRPCController):
                 self.project.reset(user)
 
             self.resetLogs(user)
-            logWarning('CE: RESET operation took %.4f seconds.' % (time.clock()-ti))
 
             # User start time and elapsed time
             self.project.setUserInfo(user, 'start_time', datetime.datetime.today().strftime('%Y-%m-%d %H:%M:%S'))

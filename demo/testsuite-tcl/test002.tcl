@@ -7,7 +7,7 @@ proc T-002 {} {
 
     set purpose {Verify 2 and log the results}
     set description {Some description}
-    logMessage logCli "\nTest purpose: $purpose\nTest description: $description\n"
+    logMessage logTest "\nTest purpose: $purpose\nTest description: $description\n"
 
     set error_code "FAIL"
 

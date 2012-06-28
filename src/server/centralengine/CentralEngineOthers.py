@@ -189,18 +189,22 @@ class Project:
         r = self.changeUser(user)
         if not r: return False
 
+        logWarning('Project: RESET configuration...') ; ti = time.clock()
+
         # User config XML
         if not config_path:
             config_path = self.users[user]['config_path']
         self.parsers[user] = TSCParser(config_path)
         self.parser = self.parsers[user]
 
-        # All EPs have status STOP
-        for ep in self.data['eps']:
-            self.data['eps'][ep]['status'] = STATUS_STOP
+        # Calculate the Suites for each EP and the Files for each Suite
+        for epname in self.data['eps']:
+            # All EPs must have status STOP
+            self.users[user]['eps'][epname]['status'] = STATUS_STOP
+            self.users[user]['eps'][epname] = {}
+            self.users[user]['eps'][epname]['suites'] = self.parser.getAllSuitesInfo(epname)
 
-        # All tests have status PENDING
-        self.setFileStatusAll(user, STATUS_PENDING)
+        logWarning('Project: RESET operation took %.4f seconds.' % (time.clock()-ti))
         return True
 
 
@@ -221,15 +225,17 @@ class Project:
         Internal function. Recalculate all pointers for Suites and Files.
         The pointers are useful for searching the data very fast.
         """
-        # Ordered list of file IDs
-        self.test_ids = self.parsers[user].getAllTestFiles()
 
-        # Shortcut for ALL files data
-        self.files_data = OrderedDict()
-        for ep in self.data['eps']:
-            for suite in self.data['eps'][ep]['suites']:
-                for f_id in self.data['eps'][ep]['suites'][suite]['files']:
-                    self.files_data[f_id] = self.data['eps'][ep]['suites'][suite]['files'][f_id]
+        with self.ulock:
+            # Ordered list of file IDs
+            self.test_ids = self.parsers[user].getAllTestFiles()
+
+            # Shortcut for ALL files data
+            self.files_data = OrderedDict()
+            for ep in self.users[user]['eps']:
+                for suite in self.users[user]['eps'][ep]['suites']:
+                    for f_id in self.users[user]['eps'][ep]['suites'][suite]['files']:
+                        self.files_data[f_id] = self.users[user]['eps'][ep]['suites'][suite]['files'][f_id]
 
 
 # # #
