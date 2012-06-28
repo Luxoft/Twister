@@ -5,8 +5,8 @@ proc T-002 {} {
     puts "\n**********\nStarting test: $testName\n"
     logMessage logTest "\n\nTestCase: $testName starting\n"
 
-    set purpose {Verify 2 and log the results}
-    set description {Some description}
+    set purpose "<title>Verify something 2 and print the results</title>"
+    set description "<description> This test doesn't do anything spectacular, it just counts to 10, in 10 seconds. </description>"
     logMessage logTest "\nTest purpose: $purpose\nTest description: $description\n"
 
     set error_code "FAIL"
@@ -17,12 +17,12 @@ proc T-002 {} {
 
     for {set i 0} {$i < 10} {incr i} {
         # Python function:
-        logMessage logRunning "TEST 2: working $i..."
+        logMessage logRunning "TEST 2: working $i...\n"
         after 500
     }
 
     # Python function:
-    logMessage logDebug "TEST: working even more ..."
+    logMessage logDebug "TEST: working even more ...\n"
     after 100
 
     puts "\nFinished test $testName, exit code $error_code\n**********\n"

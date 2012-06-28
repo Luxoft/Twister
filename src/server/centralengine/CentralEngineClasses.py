@@ -53,7 +53,6 @@ import MySQLdb
 import cherrypy
 
 from cherrypy import _cptools
-from xml.dom.minidom import parseString
 
 from CentralEngineOthers import Project
 
@@ -689,37 +688,25 @@ class CentralEngine(_cptools.XMLRPCController):
         Returns the title and the description of a test file.\n
         Called from the Java GUI.
         '''
-        s = ''
-        c = ''
-        a = False
-        b = False
+        title = ''
+        descr = ''
 
         for line in open(fname,'r'):
-            if "<description>" in line:
-                a = True
-            if "<title>" in line:
-                b = True
-            if a:
-                s += line.replace('#','')
-            if b:
-                c += line.replace('#','')
-            if "</description>" in line:
-                a = False
-            if "</title>" in line:
-                b = False
-            if len(s)>0 and len(c)>0 and not a and not b:
-                break
+            s = line.strip()
+            if '<title>' in line and '</title>' in line:
+                a = s.find('<title>') + len('<title>')
+                b = s.find('</title>')
+                title = s[a:b]
+                if title: continue
+            if '<description>' in line and '</description>' in line:
+                a = s.find('<description>') + len('<description>')
+                b = s.find('</description>')
+                descr = s[a:b]
+                if descr: continue
 
-        if len(s) > 0:
-            source = parseString(s)
-            element = source.getElementsByTagName('description')
-            s = element[0].childNodes[0].nodeValue
-        if len(c) > 0:
-            source = parseString(c)
-            element = source.getElementsByTagName('title')
-            c = element[0].childNodes[0].nodeValue
+            if title and descr: break
 
-        return '-'+c+'-;--'+s
+        return '-'+title+'-;--'+descr
 
 
 # --------------------------------------------------------------------------------------------------

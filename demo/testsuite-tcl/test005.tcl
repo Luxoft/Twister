@@ -5,8 +5,8 @@ proc T-005 {} {
     puts "\n**********\nStarting test: $testName\n"
     logMessage logTest "\n\nTestCase: $testName starting\n"
 
-    set purpose {Testing Resource Allocator Client}
-    set description {This test should use all RAC functions in order to test the functionality}
+    set purpose "<title>Testing Resource Allocator Client</title>"
+    set description "<description>This test should use all RAC functions in order to test the functionality</description>"
     logMessage logTest "\nTest purpose: $purpose\nTest description: $description\n"
 
     set error_code "PASS"
