@@ -542,13 +542,22 @@ class CentralEngine(_cptools.XMLRPCController):
         if (executionStatus == STATUS_STOP or executionStatus == STATUS_INVALID) and new_status == STATUS_RUNNING:
 
             logWarning('CE: RESET Central Engine configuration...') ; ti = time.clock()
-            # If the msg is a path to a config file...
+
+            # If the msg is a path to an existing file...
             if msg and os.path.isfile(msg):
-                self.resetLogs(user, msg)
-                msg = ''
+                data = open(msg).read().strip()
+                # If the file is XML, send it to project reset function
+                if data[0] == '<' and data [-1] == '>':
+                    self.project.reset(user, msg)
+                    msg = ''
+                else:
+                    logDebug('CE: You are probably trying to use file `%s` as config file, but it\'s not a valid XML!' % msg)
+                    self.project.reset(user)
+                del data
             else:
-                self.resetLogs(user)
-            self.project.reset(user)
+                self.project.reset(user)
+
+            self.resetLogs(user)
             logWarning('CE: RESET operation took %.4f seconds.' % (time.clock()-ti))
 
             # User start time and elapsed time
@@ -843,8 +852,8 @@ class CentralEngine(_cptools.XMLRPCController):
         logType = str(logType).lower()
         logTypes = self.project.getUserInfo(user, 'log_types')
 
-        if logType == 'logCli' or logType == 'logSummary':
-            logError('CE ERROR! logCLI and logSummary are reserved and cannot be written into!')
+        if logType == 'logcli' or logType == 'logsummary':
+            logError('CE Warning! logCLI and logSummary are reserved and cannot be written into!')
             return False
 
         if not logType in logTypes:

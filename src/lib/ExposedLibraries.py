@@ -36,7 +36,7 @@ if not TWISTER_PATH:
 sys.path.append(TWISTER_PATH)
 
 try:
-    user_name = os.getenv('HOME').split('/')[-1]
+    user_name = os.getenv('USER')
 except:
     print('Cannot guess user name for this Execution Process! Exiting!')
     exit(1)

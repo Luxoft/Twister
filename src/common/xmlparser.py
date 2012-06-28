@@ -86,6 +86,7 @@ class TSCParser:
             config_ts = os.getenv('HOME') + config_ts[1:]
         if not os.path.isfile(config_ts):
             print('Parser: Test-Suites XML file `%s` does not exist! Please check framework config XML file!' % config_ts)
+            self.configTS = None
             return -1
 
         # Hash check the XML file, to see if is changed
@@ -190,7 +191,7 @@ class TSCParser:
 
     def getEpList(self):
         '''
-        Returns a list with all available EP-IDs.
+        Returns a list with all available EP names.
         '''
         res = str(self.xmlDict.root.epidsfile.text)
         if res.startswith('~'):
@@ -199,10 +200,12 @@ class TSCParser:
             print('Parser: EP Names file `%s` does not exist! Please check framework config XML file!' % res)
             return None
 
-        self.epids = []
+        self.epnames = []
         for line in open(res).readlines():
-            self.epids.append(line.strip())
-        return self.epids
+            line = line.strip()
+            if not line: continue
+            self.epnames.append(line)
+        return self.epnames
 
 
     def getActiveEps(self):
@@ -210,6 +213,9 @@ class TSCParser:
         Returns a list with all active EPs from Test-Suites XML.
         '''
         activeEpids = []
+        if not self.configTS:
+            print('Parser: Cannot get active EPs, because Test-Suites XML is invalid!')
+            return []
         for ep in self.configTS('epid'):
             activeEpids.append(ep.text)
         activeEpids = list(set(activeEpids))
@@ -272,12 +278,12 @@ class TSCParser:
         '''
         if not self.configTS:
             print('Parser: Cannot parse Test Suite XML! Exiting!')
-            return []
+            return {}
 
-        if epname not in self.epids:
+        if epname not in self.epnames:
             print('Parser: Station `%s` is not in the list of defined EPs: `%s`!' %
-                (str(epname), str(self.epids)) )
-            return []
+                (str(epname), str(self.epnames)) )
+            return {}
 
         res = OrderedDict()
         for suite in [k.parent for k in self.configTS(name='epid') if k.text==epname]:

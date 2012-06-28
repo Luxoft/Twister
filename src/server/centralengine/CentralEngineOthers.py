@@ -112,6 +112,8 @@ class Project:
         Create or overwrite one user.\n
         This creates a master XML parser and a list with all user variables.
         """
+        if not user:
+            return False
 
         if config_path and not os.path.exists(config_path):
             logError('Project ERROR: Config path `%s` does not exist !' % config_path)
@@ -164,6 +166,8 @@ class Project:
         """
 
         with self.ulock:
+            if not user:
+                return False
             if user not in self.users:
                 r = self.createUser(user)
                 if not r: return False
@@ -237,7 +241,11 @@ class Project:
         If the key is not specified, it can be a huge dictionary.
         """
         r = self.changeUser(user)
-        if not r: return []
+        if not r:
+            if key:
+                return []
+            else:
+                return {}
 
         if key:
             return self.users[user].get(key)
