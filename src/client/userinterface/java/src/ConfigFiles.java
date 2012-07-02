@@ -94,21 +94,25 @@ public class ConfigFiles extends JPanel{
         setLayout(null);
         ttcpath = new JTextField();
         addPanel("TestCase Source Path",
-                "Master directory with the test cases that can be run by the framework",
+                "Master directory with the test cases that can"+
+                " be run by the framework",
                 ttcpath,Repository.TESTSUITEPATH,5,true,null);
         tMasterXML = new JTextField();
         addPanel("Master XML TestSuite",
-                "Location of the XML that is generated from the user interface to run on Central Engine",
+                "Location of the XML that is generated from the user"+
+                " interface to run on Central Engine",
                 tMasterXML,Repository.XMLREMOTEDIR,73,true,null);
         tUsers = new JTextField();
         addPanel("Suites Path",
                 "Location of suites XML files",tUsers,
                 Repository.REMOTEUSERSDIRECTORY,141,true,null);
         tepid = new JTextField();
-        addPanel("EP name File","Location of the file that contains the Ep name list",
+        addPanel("EP name File","Location of the file that contains"+
+        " the Ep name list",
                 tepid,Repository.REMOTEEPIDDIR,209,true,null);
         tlog = new JTextField();
-        addPanel("Logs Path","Location of the directory that stores the logs that will be monitored",
+        addPanel("Logs Path","Location of the directory that stores the"+
+        " logs that will be monitored",
                 tlog,Repository.LOGSPATH,277,true,null);
         JPanel p7 = new JPanel();
         p7.setBackground(Color.WHITE);
@@ -160,29 +164,40 @@ public class ConfigFiles extends JPanel{
             public void actionPerformed(ActionEvent ev){
                 if(!tname.getText().equals("")){saveXML(false);}
                 else{
-                    CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, ConfigFiles.this, "Filename missing", "No file name given");}}};
+                    CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,
+                                            ConfigFiles.this, "Filename missing",
+                                            "No file name given");}}};
         tname = new JTextField();
-        addPanel("File name","File name to store this configuration",tname,"",944,true,actionlistener);
+        addPanel("File name","File name to store this configuration",
+                    tname,"",944,true,actionlistener);
         tdbfile = new JTextField();
-        addPanel("Database XML path","File location for database configuration",tdbfile,Repository.REMOTEDATABASECONFIGPATH+Repository.REMOTEDATABASECONFIGFILE,604,true,null);
+        addPanel("Database XML path","File location for database configuration",    
+                tdbfile,Repository.REMOTEDATABASECONFIGPATH+Repository.REMOTEDATABASECONFIGFILE,
+                604,true,null);
         temailfile = new JTextField();
-        addPanel("Email XML path","File location for email configuration",temailfile,Repository.REMOTEEMAILCONFIGPATH+Repository.REMOTEEMAILCONFIGFILE,672,true,null);
+        addPanel("Email XML path","File location for email configuration",temailfile,
+                Repository.REMOTEEMAILCONFIGPATH+Repository.REMOTEEMAILCONFIGFILE,672,true,null);
         tceport = new JTextField();
-        addPanel("Central Engine Port","Central Engine port",tceport,Repository.getCentralEnginePort(),740,false,null);
+        addPanel("Central Engine Port","Central Engine port",
+                tceport,Repository.getCentralEnginePort(),740,false,null);
         traPort = new JTextField();
-        addPanel("Resource Allocator Port","Resource Allocator Port",traPort,Repository.getResourceAllocatorPort(),808,false,null);
+        addPanel("Resource Allocator Port","Resource Allocator Port",
+                traPort,Repository.getResourceAllocatorPort(),808,false,null);
         thttpPort = new JTextField();
-        addPanel("HTTP Server Port","HTTP Server Port",thttpPort,Repository.getHTTPServerPort(),876,false,null);
+        addPanel("HTTP Server Port","HTTP Server Port",thttpPort,
+                Repository.getHTTPServerPort(),876,false,null);
         
         final JButton loadXML = new JButton("Load Config");
         loadXML.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){  
                 try{try{Repository.c.cd(Repository.USERHOME+"/twister/config/");}
-                    catch(Exception e){System.out.println("Could not get: /home/tscguest/twister/Config/");}
+                    catch(Exception e){
+                        System.out.println("Could not get: /home/tscguest/twister/Config/");}
                     int size = Repository.c.ls(Repository.USERHOME+"/twister/config/").size();
                     ArrayList<String> temp = new ArrayList<String>();
                     for(int i=0;i<size;i++){
-                        String name = ((LsEntry)Repository.c.ls(Repository.USERHOME+"/twister/config/").get(i)).getFilename();
+                        String name = ((LsEntry)Repository.c.ls(Repository.USERHOME+
+                                        "/twister/config/").get(i)).getFilename();
                         if(name.split("\\.").length==0)continue; 
                         if(name.indexOf(".xml")==-1)continue;                
                         temp.add(name);}
@@ -190,7 +205,9 @@ public class ConfigFiles extends JPanel{
                     temp.toArray(configs);
                     final String config;
                     JComboBox combo = new JComboBox(configs);
-                    int resp = (Integer)CustomDialog.showDialog(combo,JOptionPane.INFORMATION_MESSAGE,JOptionPane.OK_CANCEL_OPTION,ConfigFiles.this,"Config",null);
+                    int resp = (Integer)CustomDialog.showDialog(combo,JOptionPane.INFORMATION_MESSAGE,
+                                                                JOptionPane.OK_CANCEL_OPTION,
+                                                                ConfigFiles.this,"Config",null);
                     if(resp==JOptionPane.OK_OPTION) config = combo.getSelectedItem().toString();
                     else config = null;
                     if(config!=null){ 
@@ -199,7 +216,8 @@ public class ConfigFiles extends JPanel{
                                 setEnabledTabs(false);
                                 JFrame progress = new JFrame();
                                 progress.setAlwaysOnTop(true);
-                                progress.setLocation((int)loadXML.getLocationOnScreen().getX(),(int)loadXML.getLocationOnScreen().getY());
+                                progress.setLocation((int)loadXML.getLocationOnScreen().getX(),
+                                                     (int)loadXML.getLocationOnScreen().getY());
                                 progress.setUndecorated(true);
                                 JProgressBar bar = new JProgressBar();
                                 bar.setIndeterminate(true);
@@ -225,22 +243,33 @@ public class ConfigFiles extends JPanel{
             byte [] data = new byte[100];
             ByteArrayOutputStream buffer = new ByteArrayOutputStream();
             int nRead;
-            try{while ((nRead = in.read(data, 0, data.length)) != -1){buffer.write(data, 0, nRead);}
+            try{while ((nRead = in.read(data, 0, data.length)) != -1){
+                buffer.write(data, 0, nRead);}
                 buffer.flush();}
-            catch(Exception e){System.out.println("could not copy data from server "+config);}
-            File theone = new File(Repository.temp+Repository.getBar()+"Twister"+Repository.getBar()+"config"+Repository.getBar()+config);
+            catch(Exception e){
+                System.out.println("could not copy data from server "+config);}
+            File theone = new File(Repository.temp+Repository.getBar()+
+                                    "Twister"+Repository.getBar()+"config"+
+                                    Repository.getBar()+config);
             FileOutputStream out=null;
-            try{out = new FileOutputStream(Repository.temp+Repository.getBar()+"Twister"+Repository.getBar()+"config"+Repository.getBar()+config);
+            try{out = new FileOutputStream(Repository.temp+Repository.getBar()+
+                                            "Twister"+Repository.getBar()+"config"+
+                                            Repository.getBar()+config);
                 buffer.writeTo(out);
                 out.close();
                 buffer.close();
                 in.close();}
-            catch(Exception e){System.out.println("Could not write to "+Repository.temp+Repository.getBar()+"Twister"+Repository.getBar()+"config"+Repository.getBar()+config);}
+            catch(Exception e){
+                System.out.println("Could not write to "+Repository.temp+Repository.getBar()+
+                                    "Twister"+Repository.getBar()+
+                                    "config"+Repository.getBar()+config);}
             DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
             DocumentBuilder db = dbf.newDocumentBuilder();
             Document doc=null;
             try{doc = db.parse(theone);}
-            catch(Exception e){System.out.println(theone.getCanonicalPath()+" is corrup or not a valid XML");}
+            catch(Exception e){
+                System.out.println(theone.getCanonicalPath()+
+                                   "is corrup or not a valid XML");}
             if(doc!=null){
                 doc.getDocumentElement().normalize();                
                 NodeList nodeLst = doc.getElementsByTagName("FileType");
@@ -278,13 +307,21 @@ public class ConfigFiles extends JPanel{
                         tinfo.setText(Repository.getLogs().get(3));
                         tcli.setText(Repository.getLogs().get(4));
                         thardwareconfig.setText(Repository.REMOTEHARDWARECONFIGDIRECTORY);
-                        tdbfile.setText(Repository.REMOTEDATABASECONFIGPATH+Repository.REMOTEDATABASECONFIGFILE);
-                        temailfile.setText(Repository.REMOTEEMAILCONFIGPATH+Repository.REMOTEEMAILCONFIGFILE);
+                        tdbfile.setText(Repository.REMOTEDATABASECONFIGPATH+
+                                        Repository.REMOTEDATABASECONFIGFILE);
+                        temailfile.setText(Repository.REMOTEEMAILCONFIGPATH+
+                                            Repository.REMOTEEMAILCONFIGFILE);
                         thttpPort.setText(Repository.getHTTPServerPort());
                         traPort.setText(Repository.getResourceAllocatorPort());
                         tceport.setText(Repository.getCentralEnginePort());}
-                    else CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, ConfigFiles.this, "WARNING", "This is not a config file");}}
-            else CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, ConfigFiles.this, "WARNING", "Could not find Config tab");}
+                    else{
+                        CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, 
+                                              ConfigFiles.this, "WARNING", 
+                                              "This is not a config file");}}}
+            else{
+                CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, 
+                                      ConfigFiles.this, "WARNING", 
+                                      "Could not find Config tab");}}
         catch(Exception e){e.printStackTrace();}}
         
     public JPanel addField(JTextField textfield,String text,int nr){
@@ -302,7 +339,10 @@ public class ConfigFiles extends JPanel{
         p721.setPreferredSize(new Dimension(800,28)); 
         return p721;}
         
-    public void addPanel(String title, String description, final JTextField textfield, String fieldtext, int Y, boolean withbutton,ActionListener actionlistener){
+    public void addPanel(String title, String description,
+                         final JTextField textfield,
+                         String fieldtext, int Y, boolean withbutton,
+                         ActionListener actionlistener){
         JPanel p1 = new JPanel();
         p1.setBackground(Color.WHITE);
         TitledBorder border = BorderFactory.createTitledBorder(title);
@@ -346,12 +386,13 @@ public class ConfigFiles extends JPanel{
                             if (answer == RETURN_TYPE.APPROVE){
                                 FileObject aFileObject = fileChooser.getSelectedFile();
                                 String safeName = VFSUtils.getFriendlyName(aFileObject.toString());
-                                safeName = safeName.substring(safeName.indexOf(Repository.host)+Repository.host.length());
+                                safeName = safeName.substring(safeName.indexOf(Repository.host)+
+                                                                Repository.host.length());
                                 String [] check = safeName.split("/");
                                 if(check[check.length-1].equals(check[check.length-2])){
                                     StringBuffer buffer = new StringBuffer();
-                                    for(int i=0;i<check.length-1;i++)
-                                        buffer.append(check[i]+"/");
+                                    for(int i=0;i<check.length-1;i++){
+                                        buffer.append(check[i]+"/");}
                                     safeName = buffer.toString();}
                                 textfield.setText(safeName);}}
                          catch(Exception e){
@@ -380,7 +421,11 @@ public class ConfigFiles extends JPanel{
             transformer.setOutputProperty(OutputKeys.INDENT, "yes");
             transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "4");
             DOMSource source = new DOMSource(document);                    
-            Comment simpleComment = document.createComment("\n Master config file for TSC.\n \n Logs Path: Where CE and PE write their getLogs(). Reports Path: Where all reports are saved.\n Test Suite Config: All info about the current Test Suite (Test Plan).\n");
+            Comment simpleComment = document.createComment("\n Master config file for TSC.\n \n Logs"+
+                                                            " Path: Where CE and PE write their getLogs()."+
+                                                            " Reports Path: Where all reports are saved.\n "+
+                                                            "Test Suite Config: All info about the current "+
+                                                            "Test Suite (Test Plan).\n");
             document.appendChild(simpleComment);
             Element root = document.createElement("Root");
             document.appendChild(root);
@@ -408,7 +453,8 @@ public class ConfigFiles extends JPanel{
             String temp;
             if(blank) temp ="fwmconfig";
             else temp = tname.getText();
-            File file = new File(Repository.temp+Repository.getBar()+"Twister"+Repository.getBar()+temp+".xml");
+            File file = new File(Repository.temp+Repository.getBar()+
+                                "Twister"+Repository.getBar()+temp+".xml");
             Result result = new StreamResult(file);
             transformer.transform(source, result);
             Repository.c.cd(Repository.USERHOME+"/twister/config/");
@@ -417,7 +463,8 @@ public class ConfigFiles extends JPanel{
             Repository.c.put(in, file.getName());
             in.close();}
         catch(ParserConfigurationException e){
-            System.out.println("DocumentBuilder cannot be created which satisfies the configuration requested");
+            System.out.println("DocumentBuilder cannot be created which"+
+                                " satisfies the configuration requested");
             saved = false;}
         catch(TransformerConfigurationException e){
             System.out.println("Could not create transformer");
@@ -425,10 +472,17 @@ public class ConfigFiles extends JPanel{
         catch(Exception e){
             e.printStackTrace();
             saved = false;}
-        if(saved)CustomDialog.showInfo(JOptionPane.INFORMATION_MESSAGE, Repository.window.mainpanel.p4.getConfig(), "Successfull", "File successfully saved");
-        else CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, Repository.window.mainpanel.p4.getConfig(), "Warning", "File could not be saved ");}
+        if(saved){
+            CustomDialog.showInfo(JOptionPane.INFORMATION_MESSAGE,
+                                  Repository.window.mainpanel.p4.getConfig(),
+                                  "Successfull", "File successfully saved");}
+        else{
+            CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,
+                                  Repository.window.mainpanel.p4.getConfig(),
+                                  "Warning", "File could not be saved ");}}
         
-    public static void addTag(String tagname, String tagcontent ,Element root,boolean blank,Document document){
+    public static void addTag(String tagname, String tagcontent ,
+                              Element root,boolean blank,Document document){
         Element rootElement = document.createElement(tagname);
         root.appendChild(rootElement);
         String temp;
@@ -437,7 +491,9 @@ public class ConfigFiles extends JPanel{
         rootElement.appendChild(document.createTextNode(temp));}
         
     public void initializeFileBrowser(){
-        fileChooser = new VFSJFileChooser("sftp://"+Repository.user+":"+Repository.password+"@"+Repository.host+"/home/"+Repository.user+"/twister/config/");        
+        fileChooser = new VFSJFileChooser("sftp://"+Repository.user+":"+
+                                           Repository.password+"@"+Repository.host+
+                                           "/home/"+Repository.user+"/twister/config/");        
         fileChooser.setFileHidingEnabled(true);
         fileChooser.setMultiSelectionEnabled(false);
         fileChooser.setFileSelectionMode(VFSJFileChooser.SELECTION_MODE.FILES_AND_DIRECTORIES);}}

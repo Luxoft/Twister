@@ -83,7 +83,8 @@ public class Editors extends JFrame {
         defaultcheck = new JCheckBox();
         browse = new JButton();
         
-        if(Repository.getDefaultEditor().equals(getEditors()[0]))defaultcheck.setSelected(true);
+        if(Repository.getDefaultEditor().equals(getEditors()[0]))
+        defaultcheck.setSelected(true);
         if(getEditors()[0].equals("Embedded")){
             tname.setEnabled(false);
             remove.setEnabled(false);
@@ -123,7 +124,8 @@ public class Editors extends JFrame {
         
         defaultcheck.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
-                if(defaultcheck.isSelected())Repository.setDefaultEditor(editorscombo.getSelectedItem().toString());
+                if(defaultcheck.isSelected())
+                    Repository.setDefaultEditor(editorscombo.getSelectedItem().toString());
                 else Repository.setDefaultEditor("Embedded");}});
 
         editorscombo.addItemListener(new ItemListener(){
@@ -139,10 +141,12 @@ public class Editors extends JFrame {
                         remove.setEnabled(true);
                         tcommand.setEnabled(true);
                         browse.setEnabled(true);}
-                    if(Repository.getDefaultEditor().equals(evt.getItem().toString())) defaultcheck.setSelected(true);
+                    if(Repository.getDefaultEditor().equals(evt.getItem().toString()))
+                        defaultcheck.setSelected(true);
                     else defaultcheck.setSelected(false);
                     tname.setText(evt.getItem().toString());
-                    tcommand.setText(Repository.getEditors().get(evt.getItem().toString()).getAsString());}}});        
+                    tcommand.setText(Repository.getEditors().
+                                     get(evt.getItem().toString()).getAsString());}}});        
         
         browse.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent evnt){

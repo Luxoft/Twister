@@ -202,7 +202,9 @@ public class XMLReader{
                 Repository.window.mainpanel.p1.sc.g.updateLocations(Repository.getSuita(0));
                 Repository.window.mainpanel.p1.sc.g.repaint();}}
         else{if(Repository.getTestSuiteNr()>0){
-                while(Repository.window==null||Repository.window.mainpanel==null||Repository.window.mainpanel.p2==null||Repository.window.mainpanel.p2.sc==null||Repository.window.mainpanel.p2.sc.g==null){
+                while(Repository.window==null||Repository.window.mainpanel==null||
+                Repository.window.mainpanel.p2==null||Repository.window.mainpanel.p2.sc==null||
+                Repository.window.mainpanel.p2.sc.g==null){
                     try{Thread.sleep(10);}
                     catch(Exception e){e.printStackTrace();}}
                 Repository.window.mainpanel.p2.sc.g.updateLocations(Repository.getTestSuita(0));

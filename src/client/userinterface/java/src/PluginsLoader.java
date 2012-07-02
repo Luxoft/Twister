@@ -46,9 +46,7 @@ public class PluginsLoader {
     
     public static void addURL(URL u) throws Exception{
         if(sysLoader==null){
-//             sysLoader = (URLClassLoader) Repository.class.getClassLoader();
-            sysLoader = (URLClassLoader) ClassLoader.getSystemClassLoader();
-        }
+            sysLoader = (URLClassLoader) ClassLoader.getSystemClassLoader();}
         URL urls[] = sysLoader.getURLs();
         for(int i=0;i<urls.length;i++){
             if(urls[i].toString().equalsIgnoreCase(u.toString())){

@@ -95,8 +95,14 @@ public class DBConfig extends JPanel{
                 catch(Exception e){
                     saved = false;
                     e.printStackTrace();}
-                if(saved)CustomDialog.showInfo(JOptionPane.INFORMATION_MESSAGE, DBConfig.this, "Successfull", "File successfully uploaded");
-                else CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, DBConfig.this, "Warning", "File could not uploaded");}});
+                if(saved){
+                    CustomDialog.showInfo(JOptionPane.INFORMATION_MESSAGE, 
+                                            DBConfig.this, "Successfull", 
+                                            "File successfully uploaded");}
+                else{
+                    CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, 
+                                            DBConfig.this, "Warning", 
+                                            "File could not uploaded");}}});
         add(upload);
         JLabel database = new JLabel("Database: ");
         database.setBounds(15,55,65,20);
@@ -129,7 +135,9 @@ public class DBConfig extends JPanel{
             public void actionPerformed(ActionEvent ev){
                 if(doc!=null){
                     if(tpassword.getPassword().length == 0){
-                        CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, DBConfig.this, "Warning", "Warning, password not set");}
+                        CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, 
+                                                DBConfig.this, "Warning", 
+                                                "Warning, password not set");}
                     boolean saved = true;
                     try{theone = new File(Repository.temp+Repository.getBar()+"Twister"+
                         Repository.getBar()+"config"+Repository.getBar()+new File(
@@ -188,8 +196,14 @@ public class DBConfig extends JPanel{
                     catch(Exception e){
                         saved = false;
                         e.printStackTrace();}
-                    if(saved)CustomDialog.showInfo(JOptionPane.INFORMATION_MESSAGE, DBConfig.this, "Successfull", "File successfully saved");
-                    else CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, DBConfig.this, "Warning", "File could not be saved ");}}});
+                    if(saved){
+                        CustomDialog.showInfo(JOptionPane.INFORMATION_MESSAGE, 
+                                                DBConfig.this, "Successfull", 
+                                                "File successfully saved");}
+                    else{
+                        CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, 
+                                                DBConfig.this, "Warning", 
+                                                "File could not be saved ");}}}});
         add(save);}
     
     public void refresh(){

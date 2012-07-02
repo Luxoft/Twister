@@ -31,7 +31,9 @@ class CustomIconRenderer extends DefaultTreeCellRenderer {
         module = new ImageIcon(Repository.moduleicon);
         testbed = new ImageIcon(Repository.testbedicon);}
      
-    public Component getTreeCellRendererComponent(JTree tree,Object value,boolean sel,boolean expanded,boolean leaf,int row,boolean hasFocus){
+    public Component getTreeCellRendererComponent(JTree tree,Object value,
+                                                 boolean sel,boolean expanded,
+                                                 boolean leaf,int row,boolean hasFocus){
         super.getTreeCellRendererComponent(tree, value, sel,expanded, leaf, row, hasFocus);
         Object nodeObj = ((DefaultMutableTreeNode)value).getUserObject();
         if (nodeObj instanceof DevicePort) setIcon(port);

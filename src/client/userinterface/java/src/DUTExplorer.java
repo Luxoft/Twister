@@ -86,25 +86,30 @@ public class DUTExplorer extends JPanel{
                     else if(ev.getButton() == MouseEvent.BUTTON1){
                         if(((DefaultMutableTreeNode)tp.getLastPathComponent()).getUserObject() instanceof Device){
                             Repository.window.mainpanel.p4.getDut().nodetemp1 = (DefaultMutableTreeNode)tp.getLastPathComponent();
-                            if(Repository.window.mainpanel.p4.getDut().SettingsPanel.getComponentZOrder(Repository.window.mainpanel.p4.getDut().p2)==-1){
+                            if(Repository.window.mainpanel.p4.getDut().SettingsPanel.
+                            getComponentZOrder(Repository.window.mainpanel.p4.getDut().p2)==-1){
                                 removeElements();
                                 Repository.window.mainpanel.p4.getDut().SettingsPanel.add(Repository.window.mainpanel.p4.getDut().p2);
-                                Repository.window.mainpanel.p4.getDut().jScrollPane4.setViewportView(Repository.window.mainpanel.p4.getDut().properties);
+                                Repository.window.mainpanel.p4.getDut().jScrollPane4.
+                                    setViewportView(Repository.window.mainpanel.p4.getDut().properties);
                                 Repository.window.mainpanel.p4.getDut().SettingsPanel.revalidate();
                                 Repository.window.mainpanel.p4.getDut().SettingsPanel.repaint();}
                             ((Device)((DefaultMutableTreeNode)tp.getLastPathComponent()).getUserObject()).updateInfo();}
                         else if(((DefaultMutableTreeNode)tp.getLastPathComponent()).getUserObject() instanceof DeviceModule){
                             Repository.window.mainpanel.p4.getDut().nodetemp2 = (DefaultMutableTreeNode)tp.getLastPathComponent();
-                            if(Repository.window.mainpanel.p4.getDut().SettingsPanel.getComponentZOrder(Repository.window.mainpanel.p4.getDut().p3)==-1){
+                            if(Repository.window.mainpanel.p4.getDut().SettingsPanel.
+                            getComponentZOrder(Repository.window.mainpanel.p4.getDut().p3)==-1){
                                 removeElements();
                                 Repository.window.mainpanel.p4.getDut().SettingsPanel.add(Repository.window.mainpanel.p4.getDut().p3);
-                                Repository.window.mainpanel.p4.getDut().jScrollPane4.setViewportView(Repository.window.mainpanel.p4.getDut().properties2);
+                                Repository.window.mainpanel.p4.getDut().jScrollPane4.
+                                    setViewportView(Repository.window.mainpanel.p4.getDut().properties2);
                                 Repository.window.mainpanel.p4.getDut().SettingsPanel.revalidate();
                                 Repository.window.mainpanel.p4.getDut().SettingsPanel.repaint();}    
                             ((DeviceModule)((DefaultMutableTreeNode)tp.getLastPathComponent()).getUserObject()).updateInfo();}
                         else if(((DefaultMutableTreeNode)tp.getLastPathComponent()).getUserObject() instanceof TestBed){
                             Repository.window.mainpanel.p4.getDut().nodetemp0 = (DefaultMutableTreeNode)tp.getLastPathComponent();
-                            if(Repository.window.mainpanel.p4.getDut().SettingsPanel.getComponentZOrder(Repository.window.mainpanel.p4.getDut().p1)==-1){
+                            if(Repository.window.mainpanel.p4.getDut().SettingsPanel.
+                            getComponentZOrder(Repository.window.mainpanel.p4.getDut().p1)==-1){
                                 removeElements();
                                 Repository.window.mainpanel.p4.getDut().SettingsPanel.add(Repository.window.mainpanel.p4.getDut().p1);
                                 Repository.window.mainpanel.p4.getDut().jScrollPane4.setViewportView(null);
@@ -113,10 +118,12 @@ public class DUTExplorer extends JPanel{
                             ((TestBed)((DefaultMutableTreeNode)tp.getLastPathComponent()).getUserObject()).updateInfo();}
                         else if(((DefaultMutableTreeNode)tp.getLastPathComponent()).getUserObject() instanceof DevicePort){{
                             Repository.window.mainpanel.p4.getDut().nodetemp3 = (DefaultMutableTreeNode)tp.getLastPathComponent();
-                            if(Repository.window.mainpanel.p4.getDut().SettingsPanel.getComponentZOrder(Repository.window.mainpanel.p4.getDut().p4)==-1){
+                            if(Repository.window.mainpanel.p4.getDut().SettingsPanel.
+                            getComponentZOrder(Repository.window.mainpanel.p4.getDut().p4)==-1){
                                 removeElements();
                                 Repository.window.mainpanel.p4.getDut().SettingsPanel.add(Repository.window.mainpanel.p4.getDut().p4);
-                                Repository.window.mainpanel.p4.getDut().jScrollPane4.setViewportView(Repository.window.mainpanel.p4.getDut().properties3);
+                                Repository.window.mainpanel.p4.getDut().jScrollPane4.
+                                    setViewportView(Repository.window.mainpanel.p4.getDut().properties3);
                                 Repository.window.mainpanel.p4.getDut().SettingsPanel.revalidate();
                                 Repository.window.mainpanel.p4.getDut().SettingsPanel.repaint();}
                             ((DevicePort)((DefaultMutableTreeNode)tp.getLastPathComponent()).getUserObject()).updateInfo();}}
@@ -188,17 +195,13 @@ public class DUTExplorer extends JPanel{
         ((DefaultTreeModel)tree.getModel()).removeNodeFromParent(element);
         Repository.window.mainpanel.p4.getDut().clearSelection();}
         
-    public void addTestBed(){    
-//         JTextField name = new JTextField("");
-//         Object configs = new Object[]{"Name: ",name};
-//         
-//         int r = JOptionPane.showConfirmDialog(null, configs, "Add testbed", JOptionPane.OK_CANCEL_OPTION);  
-//         if (r == JOptionPane.OK_OPTION){
-            
-        String user = CustomDialog.showInputDialog(JOptionPane.QUESTION_MESSAGE, JOptionPane.OK_CANCEL_OPTION, DUTExplorer.this, "Name: ", "Add testbed");
+    public void addTestBed(){  
+        String user = CustomDialog.showInputDialog(JOptionPane.QUESTION_MESSAGE, 
+                                                   JOptionPane.OK_CANCEL_OPTION, 
+                                                   DUTExplorer.this, "Name: ", 
+                                                   "Add testbed");
         if(user!=null){
             TestBed d = new TestBed();
-//             d.setName(name.getText());
             d.setName(user);
             DefaultMutableTreeNode child = new DefaultMutableTreeNode(d);
             DefaultMutableTreeNode child2 = new DefaultMutableTreeNode("Id: "+d.id,false);
@@ -208,16 +211,11 @@ public class DUTExplorer extends JPanel{
             ((DefaultTreeModel)tree.getModel()).insertNodeInto(child, root,root.getChildCount());
             ((DefaultTreeModel)tree.getModel()).reload();}}
     
-    public void addDevice(DefaultMutableTreeNode element){    
-//         JTextField name = new JTextField("");
-//         Object configs = new Object[]{"Name: ",name};
-//         int r = JOptionPane.showConfirmDialog(null, configs, "Add device", JOptionPane.OK_CANCEL_OPTION);  
-//         if (r == JOptionPane.OK_OPTION){
-            
-        String name = CustomDialog.showInputDialog(JOptionPane.QUESTION_MESSAGE, JOptionPane.OK_CANCEL_OPTION, DUTExplorer.this, "Name: ", "Add device");
+    public void addDevice(DefaultMutableTreeNode element){
+        String name = CustomDialog.showInputDialog(JOptionPane.QUESTION_MESSAGE, JOptionPane.OK_CANCEL_OPTION,
+                                                    DUTExplorer.this, "Name: ", "Add device");
         if(name!=null){
             Device d = new Device();
-//             d.setName(name.getText());
             d.setName(name);
             DefaultMutableTreeNode child = new DefaultMutableTreeNode(d);
             DefaultMutableTreeNode child3 = new DefaultMutableTreeNode("Id: "+d.id,false);
@@ -235,13 +233,9 @@ public class DUTExplorer extends JPanel{
             ((DefaultTreeModel)tree.getModel()).insertNodeInto(child, element,element.getChildCount());}}
             
     public void addModule(DefaultMutableTreeNode element){
-//         JTextField name = new JTextField("");
-//         Object configs = new Object[]{"Type: ",name};
-//         int r = JOptionPane.showConfirmDialog(null, configs, "Add module", JOptionPane.OK_CANCEL_OPTION);  
-//         if (r == JOptionPane.OK_OPTION){
-        String name = CustomDialog.showInputDialog(JOptionPane.QUESTION_MESSAGE, JOptionPane.OK_CANCEL_OPTION, DUTExplorer.this, "Name: ", "Add module");
+        String name = CustomDialog.showInputDialog(JOptionPane.QUESTION_MESSAGE, JOptionPane.OK_CANCEL_OPTION,
+                                                    DUTExplorer.this, "Name: ", "Add module");
         if(name!=null){
-//             DeviceModule d = new DeviceModule(name.getText());
             DeviceModule d = new DeviceModule(name);
             DefaultMutableTreeNode child = new DefaultMutableTreeNode(d);
             DefaultMutableTreeNode child3 = new DefaultMutableTreeNode("Module Type: "+d.name);
@@ -251,11 +245,9 @@ public class DUTExplorer extends JPanel{
     public void addPort(DefaultMutableTreeNode element){
         JTextField name = new JTextField("");
         JTextField type = new JTextField("");
-//         Object configs = new Object[]{"Port: ",name,"Port type: ",type};
-//         int r = JOptionPane.showConfirmDialog(null, configs, "Add port", JOptionPane.OK_CANCEL_OPTION);  
-//         if (r == JOptionPane.OK_OPTION){
         JPanel p = getPortPanel(name,type);
-        int r = (Integer)CustomDialog.showDialog(p,JOptionPane.PLAIN_MESSAGE, JOptionPane.OK_CANCEL_OPTION, DUTExplorer.this, "Add port",null);
+        int r = (Integer)CustomDialog.showDialog(p,JOptionPane.PLAIN_MESSAGE, JOptionPane.OK_CANCEL_OPTION,
+                                                                    DUTExplorer.this, "Add port",null);
         if (r == JOptionPane.OK_OPTION){
             DevicePort d = new DevicePort(name.getText(),type.getText());
             DefaultMutableTreeNode child = new DefaultMutableTreeNode(d);

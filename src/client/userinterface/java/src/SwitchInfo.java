@@ -30,8 +30,10 @@ public class SwitchInfo extends JPanel{
     private JLabel outputport = new JLabel("Output_port: ");
     private JLabel packets = new JLabel("Packets ");
     private JLabel toutputport = new JLabel();
-    private JLabel rxpackets = new JLabel(" RX: ",new ImageIcon(Repository.inicon),JLabel.LEFT);
-    private JLabel txpackets = new JLabel(" TX: ",new ImageIcon(Repository.outicon),JLabel.LEFT);
+    private JLabel rxpackets = new JLabel(" RX: ",new ImageIcon(Repository.inicon),
+                                            JLabel.LEFT);
+    private JLabel txpackets = new JLabel(" TX: ",new ImageIcon(Repository.outicon),
+                                            JLabel.LEFT);
     private JLabel trxpackets = new JLabel();
     private JLabel ttxpackets = new JLabel();
     private JLabel bitrate = new JLabel("Bitrate: ");

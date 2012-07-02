@@ -163,7 +163,26 @@ class DefPanel extends JPanel{
         filedsGap.setLayout(filedsGapLayout);
         filedsGapLayout.setHorizontalGroup(filedsGapLayout.createParallelGroup(GroupLayout.Alignment.LEADING).addGap(0, 20, Short.MAX_VALUE));
         filedsGapLayout.setVerticalGroup(filedsGapLayout.createParallelGroup(GroupLayout.Alignment.LEADING).addGap(0, 20, Short.MAX_VALUE));
-        add(filedsGap);        
+        add(filedsGap);      
+        JButton script = new JButton("Script");
+        script.setMaximumSize(new Dimension(70, 20));
+        script.setMinimumSize(new Dimension(70, 20));
+        script.setPreferredSize(new Dimension(70, 20));
+        script.addActionListener(new ActionListener(){
+                public void actionPerformed(ActionEvent ev){
+                    
+                }});
+        add(script);
+        filedsGap = new JPanel();
+        filedsGap.setBackground(new Color(255, 255, 255));
+        filedsGap.setMaximumSize(new Dimension(20, 20));
+        filedsGap.setMinimumSize(new Dimension(20, 20));
+        filedsGap.setPreferredSize(new Dimension(20, 20));
+        filedsGapLayout = new GroupLayout(filedsGap);
+        filedsGap.setLayout(filedsGapLayout);
+        filedsGapLayout.setHorizontalGroup(filedsGapLayout.createParallelGroup(GroupLayout.Alignment.LEADING).addGap(0, 20, Short.MAX_VALUE));
+        filedsGapLayout.setVerticalGroup(filedsGapLayout.createParallelGroup(GroupLayout.Alignment.LEADING).addGap(0, 20, Short.MAX_VALUE));
+        add(filedsGap); 
         if(button){
             final JButton database = new JButton("Database");
             database.setMaximumSize(new Dimension(100, 20));
