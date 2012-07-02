@@ -1,5 +1,5 @@
 /*
-File: IntroScreen.java ; This file is part of Twister.
+File: applet.java ; This file is part of Twister.
 
 Copyright (C) 2012 , Luxoft
 
@@ -36,9 +36,9 @@ import java.awt.Frame;
  * and loading status bar
  */
 public class IntroScreen extends JFrame{
-    private String text = ""; 
+    private String text = ""; //text used to display initialization status on loading bar
     int width;
-    private double percent = 0; 
+    private double percent = 0; //percent of status bar set by initialization methods
 
     /*
      * intro screen initialization
