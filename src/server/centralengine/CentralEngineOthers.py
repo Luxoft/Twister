@@ -21,11 +21,51 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""
+Project Class
+*************
+
+The **Project** class collects and organizes all the information for the Central Engine.
+
+Information about *users*:
+
+- user name
+- user status (start, stop, pause)
+
+Information about *EPs*:
+
+- EP name
+- EP status (start, stop, pause)
+- EP OS
+- EP IP
+
+Information about *Suites*:
+
+- suite name
+- other info from Test-Suites.XML (eg: release, or build)
+
+Information about *Test Files*:
+
+- file name
+- complete file path
+- test title
+- test description
+- timeout value (if any)
+- test status (pass, fail, skip, etc)
+- crash detected
+- test params
+- test date started and finished
+- test time elapsed
+- test log
+
+"""
+
 import os
 import sys
 import re
 import time
 import json
+import thread
 import smtplib
 import MySQLdb
 
@@ -45,509 +85,640 @@ from common.constants import *
 from common.tsclogging import *
 from common.xmlparser import *
 
-#
-# Information about user:
-#- user name
-#- user status (start, stop, pause)
-#
-# Information about EP:
-#- EP name
-#- EP status (start, stop, pause)
-#- EP OS
-#- EP IP
-#
-# Information about Suite:
-#- suite name
-#- other info from Test-Suites.XML
-#
-# Information about Test File:
-#- file name
-#- complete file path
-#- test title
-#- test description
-#- timeout value (if any)
-#- test status (pass, fail, skip, etc)
-#- crash detected
-#- test params
-#- test date started and finished
-#- test time elapsed
-#- test log
-#
 
 class Project:
 
-    '''
+    """
     This class controls data about:
+
     - users
     - EPs
     - suites
     - test files
-    '''
 
-    def __init__(self, config_path):
+    """
 
-        # Framework config XML
-        self.config_path = config_path
-        self.parser = TSCParser(config_path)
+    def __init__(self):
 
-        self.current_user = 'user'
-        self.users = {
-            'admin': {'status': STATUS_STOP, 'eps': OrderedDict()},
-            'user':  {'status': STATUS_STOP, 'eps': OrderedDict()},
-            }
+        self.users = {}
+        self.parsers = {}
+        self.test_ids = {}
+
+        self.usr_lock = thread.allocate_lock() # User change lock
+        self.int_lock = thread.allocate_lock() # Internal use lock
+        self.eml_lock = thread.allocate_lock() # E-mail lock
+        self.db_lock  = thread.allocate_lock() # Database lock
+
+
+    def createUser(self, user, config_path=''):
+        """
+        Create or overwrite one user.\n
+        This creates a master XML parser and a list with all user variables.
+        """
+        if not user:
+            return False
+
+        if config_path and not os.path.exists(config_path):
+            logError('Project ERROR: Config path `%s` does not exist !' % config_path)
+            return False
+        elif not os.path.exists('/home/%s/twister' % user):
+            logError('Project ERROR: Cannot find Twister for user `%s` !' % user)
+            return False
+        else:
+            config_path = '/home/%s/twister/config/fwmconfig.xml' % user
+
+        # User data + User parser
+        self.users[user] = {'status': STATUS_STOP, 'eps': OrderedDict()}
+        self.parsers[user] = TSCParser(config_path)
 
         # List with all EPs for this User
-        epList = self.parser.getEpList()
+        epList = self.parsers[user].getEpList()
         if not epList:
-            raise Exception('Project: Cannot load the list of EPs !')
+            logError('Project ERROR: Cannot load the list of EPs for user `%s` !' % user)
+            return False
 
-        # Calculate the Suites for each EP,
-        # And the Files for each Suite
+        # Calculate the Suites for each EP and the Files for each Suite
         for epname in epList:
-            self.users[self.current_user]['eps'][epname] = {}
-            self.users[self.current_user]['eps'][epname]['suites'] = self.parser.getAllSuitesInfo(epname)
+            self.users[user]['eps'][epname] = {}
+            self.users[user]['eps'][epname]['suites'] = self.parsers[user].getAllSuitesInfo(epname)
+
+        # Ordered list of file IDs, used for Get Status ALL
+        self.test_ids[user] = self.parsers[user].getAllTestFiles()
 
         # Add framework config info to default user
-        self.users[self.current_user]['tests_path'] = self.parser.getTestSuitePath()
-        self.users[self.current_user]['logs_path'] = self.parser.getLogsPath()
-        self.users[self.current_user]['log_types'] = {}
+        self.users[user]['config_path'] = config_path
+        self.users[user]['tests_path'] = self.parsers[user].getTestSuitePath()
+        self.users[user]['logs_path'] = self.parsers[user].getLogsPath()
+        self.users[user]['log_types'] = {}
 
-        for logType in self.parser.getLogTypes():
-            self.users[self.current_user]['log_types'][logType] = self.parser.getLogFileForType(logType)
+        for logType in self.parsers[user].getLogTypes():
+            self.users[user]['log_types'][logType] = self.parsers[user].getLogFileForType(logType)
 
-        # Data contains: EP -> Suite -> File
-        self.data = self.users[self.current_user]
-
-        # Shortcuts for Suites and Files.
-        self.calcPointers()
+        # Save everything.
         self._dump()
+        logDebug('Project: Created user `%s` ...' % user)
 
-
-    def _dump(self):
-        '''
-        Save all data structure on HDD.
-        '''
-        f = open(TWISTER_PATH + '/config/project_users.json', 'w')
-        json.dump(self.users, f, indent=4)
-        f.close()
-
-
-    def calcPointers(self):
-        '''
-        Recalculate all pointers for Suites and Files.
-        The pointers are useful for searching the data very fast.
-        '''
-        # Ordered list of file IDs
-        self.test_ids = self.parser.getAllTestFiles()
-
-        # Shortcut for ALL suites data
-        self.suites_data = OrderedDict()
-        for ep in self.data['eps']:
-            for suite in self.data['eps'][ep]['suites']:
-                self.suites_data[suite] = self.data['eps'][ep]['suites'][suite]
-        #
-        # Shortcut for ALL files data
-        self.files_data = OrderedDict()
-        for suite in self.suites_data:
-            for f_id in self.suites_data[suite]['files']:
-                self.files_data[f_id] = self.suites_data[suite]['files'][f_id]
+        return True
 
 
     def changeUser(self, user):
-        '''
-        Switch user. The current data becomes the user data.
-        '''
-        self.current_user = user
-        self.data = self.users[user]
-        logDebug('Project: Changed user `%s`.' % user)
+        """
+        Switch user.\n
+        This uses a lock, in order to create the user structure only once.
+        If the lock is not present, on CE startup, all running EPs from one user will rush
+        to create the memory structure.
+        """
+        with self.usr_lock:
+
+            if not user:
+                return False
+            if user not in self.users:
+                r = self.createUser(user)
+                if not r: return False
+
+        return True
+
+
+    def reset(self, user, config_path=''):
+        """
+        Reset user parser, all EPs to STOP, all files to PENDING.
+        """
+        if config_path and not os.path.exists(config_path):
+            logError('Project ERROR: Config path `%s` does not exist! Using default config!' % config_path)
+            config_path = False
+
+        r = self.changeUser(user)
+        if not r: return False
+
+        logWarning('Project: RESET configuration for user `%s`...' % user) ; ti = time.clock()
+
+        # User config XML
+        if not config_path:
+            config_path = self.users[user]['config_path']
+        self.parsers[user] = TSCParser(config_path)
+
+        # Calculate the Suites for each EP and the Files for each Suite
+        for epname in self.users[user]['eps']:
+            # All EPs must have status STOP
+            self.users[user]['eps'][epname]['status'] = STATUS_STOP
+            self.users[user]['eps'][epname] = {}
+            self.users[user]['eps'][epname]['suites'] = self.parsers[user].getAllSuitesInfo(epname)
+
+        # Ordered list of file IDs, used for Get Status ALL
+        self.test_ids[user] = self.parsers[user].getAllTestFiles()
+
+        logWarning('Project: RESET operation took %.4f seconds.' % (time.clock()-ti))
+        return True
+
+
+    def _dump(self):
+        """
+        Internal function. Save all data structure on HDD.\n
+        This function must use a lock!
+        """
+        with self.int_lock:
+
+            with open(TWISTER_PATH + '/common/project_users.json', 'w') as f:
+                try: json.dump(self.users, f, indent=4)
+                except: pass
 
 
 # # #
 
 
-    def getUserInfo(self, key=None):
-        '''
+    def getUserInfo(self, user, key=None):
+        """
         Returns data for the current user, including all EP info.
         If the key is not specified, it can be a huge dictionary.
-        '''
+        """
+        r = self.changeUser(user)
+        if not r:
+            if key:
+                return []
+            else:
+                return {}
 
         if key:
-            return self.users[self.current_user].get(key)
+            return self.users[user].get(key)
         else:
-            return self.users[self.current_user]
+            return self.users[user]
 
 
-    def setUserInfo(self, key, value):
-        '''
+    def setUserInfo(self, user, key, value):
+        """
         Create or overwrite a variable with a value, for the current user.
-        '''
+        """
+        r = self.changeUser(user)
+        if not r: return False
+
         if not key or key == 'eps':
             logDebug('Project: Invalid Key `%s` !' % str(key))
             return False
 
-        self.users[self.current_user][key] = value
-        self.calcPointers()
+        self.users[user][key] = value
         self._dump()
         return True
 
 
-    def getEpInfo(self, epname):
-        '''
+    def getEpInfo(self, user, epname):
+        """
         Retrieve all info available, about one EP.
-        '''
-        return self.data['eps'].get(epname, {})
+        """
+        r = self.changeUser(user)
+        if not r: return {}
 
-    getEpInfo.exposed = True
+        return self.users[user]['eps'].get(epname, {})
 
 
-    def getEpFiles(self, epname):
-        '''
+    def getEpFiles(self, user, epname):
+        """
         Return a list with all files associated with one EP.
-        '''
+        """
+        r = self.changeUser(user)
+        if not r: return []
         files = []
-        for suite in self.data['eps'][epname]['suites']:
-            for fname in self.data['eps'][epname]['suites'][suite]['files']:
+
+        for suite in self.users[user]['eps'][epname]['suites']:
+            for fname in self.users[user]['eps'][epname]['suites'][suite]['files']:
                 files.append(fname)
+
         return files
 
 
-    def setEpInfo(self, epname, key, value):
-        '''
+    def setEpInfo(self, user, epname, key, value):
+        """
         Create or overwrite a variable with a value, for one EP.
-        '''
-        if epname not in self.data['eps']:
+        """
+        r = self.changeUser(user)
+        if not r: return False
+
+        if epname not in self.users[user]['eps']:
             logDebug('Project: Invalid EP name `%s` !' % epname)
             return False
         if not key or key == 'suites':
             logDebug('Project: Invalid Key `%s` !' % str(key))
             return False
 
-        self.data['eps'][epname][key] = value
-        self.calcPointers()
+        self.users[user]['eps'][epname][key] = value
         self._dump()
         return True
 
 
-    def getSuiteInfo(self, suite):
-        '''
+    def getSuiteInfo(self, user, epname, suite):
+        """
         Retrieve all info available, about one EP.
-        '''
-        return self.suites_data.get(suite, {})
+        """
+        r = self.changeUser(user)
+        if not r: return {}
+        eps = self.users[user]['eps']
 
-    getSuiteInfo.exposed = True
-
-
-    def getSuiteFiles(self, epname, suite):
-        '''
-        Return a list with all files associated with one Suite.
-        '''
-        return self.data['eps'][epname]['suites'][suite]['files'].keys()
-
-
-    def setSuiteInfo(self, epname, suite, key, value):
-        '''
-        Create or overwrite a variable with a value, for one Suite.
-        '''
-        if epname not in self.data['eps']:
+        if epname not in eps:
             logDebug('Project: Invalid EP name `%s` !' % epname)
             return False
-        if suite not in self.data['eps'][epname]['suites']:
+        if suite not in eps[epname]['suites']:
+            logDebug('Project: Invalid Suite name `%s` !' % suite)
+            return False
+
+        return eps[epname]['suites'].get(suite, {})
+
+
+    def getSuiteFiles(self, user, epname, suite):
+        """
+        Return a list with all files associated with one Suite.
+        """
+        r = self.changeUser(user)
+        if not r: return []
+        eps = self.users[user]['eps']
+
+        return eps[epname]['suites'][suite]['files'].keys()
+
+
+    def setSuiteInfo(self, user, epname, suite, key, value):
+        """
+        Create or overwrite a variable with a value, for one Suite.
+        """
+        r = self.changeUser(user)
+        if not r: return False
+        eps = self.users[user]['eps']
+
+        if epname not in eps:
+            logDebug('Project: Invalid EP name `%s` !' % epname)
+            return False
+        if suite not in eps[epname]['suites']:
             logDebug('Project: Invalid Suite name `%s` !' % suite)
             return False
         if not key or key == 'files':
             logDebug('Project: Invalid Key `%s` !' % str(key))
             return False
 
-        self.data['eps'][epname]['suites'][suite][key] = value
-        self.calcPointers()
+        eps[epname]['suites'][suite][key] = value
         self._dump()
         return True
 
 
-    def getFileInfo(self, file_id):
-        '''
-        Retrieve all info available, about one Test File.
-        '''
-        return self.files_data.get(file_id, {})
+    def getFileInfo(self, user, file_id):
+        """
+        Retrieve all info available, about one Test File.\n
+        The file ID must be unique!
+        """
+        r = self.changeUser(user)
+        if not r: return {}
+        eps = self.users[user]['eps']
 
-    getFileInfo.exposed = True
+        for epname in eps:
+            for suite in eps[epname]['suites']:
+                for fname in eps[epname]['suites'][suite]['files']:
+                    if fname == file_id:
+                        return eps[epname]['suites'][suite]['files'][fname]
+
+        return {}
 
 
-    def setFileInfo(self, epname, suite, fileid, key, value):
-        '''
+    def setFileInfo(self, user, epname, suite, fileid, key, value):
+        """
         Create or overwrite a variable with a value, for one Test File.
-        '''
-        if epname not in self.data['eps']:
+        """
+        r = self.changeUser(user)
+        if not r: return False
+        eps = self.users[user]['eps']
+
+        if epname not in eps:
             logDebug('Project: Invalid EP name `%s` !' % epname)
             return False
-        if suite not in self.data['eps'][epname]['suites']:
+        if suite not in eps[epname]['suites']:
             logDebug('Project: Invalid Suite name `%s` !' % suite)
             return False
-        if fileid not in self.data['eps'][epname]['suites'][suite]['files']:
+        if fileid not in eps[epname]['suites'][suite]['files']:
             logDebug('Project: Invalid File id `%s` !' % fileid)
             return False
 
-        self.data['eps'][epname]['suites'][suite]['files'][fileid][key] = value
-        self.calcPointers()
+        eps[epname]['suites'][suite]['files'][fileid][key] = value
         self._dump()
         return True
 
 
-    def getFileStatusAll(self, epname=None, suite=None):
-        '''
+    def getFileStatusAll(self, user, epname=None, suite=None):
+        """
         Return the status of all files, in order.
-        '''
+        """
+        r = self.changeUser(user)
+        if not r: return []
+
         if suite and not epname:
             logError('Project: Must provide both EP and Suite!')
             return []
 
         statuses = {}
         final = []
+        eps = self.users[user]['eps']
 
         if epname:
             if suite:
-                for fname in self.data['eps'][epname]['suites'][suite]['files']:
-                    s = self.data['eps'][epname]['suites'][suite]['files'][fname].get('status', -1)
+                for fname in eps[epname]['suites'][suite]['files']:
+                    s = eps[epname]['suites'][suite]['files'][fname].get('status', -1)
                     statuses[fname] = str(s)
             else:
-                for suite in self.data['eps'][epname]['suites']:
-                    for fname in self.data['eps'][epname]['suites'][suite]['files']:
-                        s = self.data['eps'][epname]['suites'][suite]['files'][fname].get('status', -1)
+                for suite in eps[epname]['suites']:
+                    for fname in eps[epname]['suites'][suite]['files']:
+                        s = eps[epname]['suites'][suite]['files'][fname].get('status', -1)
                         statuses[fname] = str(s)
         else:
-            statuses = { k: str( self.files_data[k].get('status', -1) ) for k in self.files_data }
+            for epname in eps:
+                for suite in eps[epname]['suites']:
+                    for fname in eps[epname]['suites'][suite]['files']:
+                        s = eps[epname]['suites'][suite]['files'][fname].get('status', -1)
+                        statuses[fname] = str(s)
 
-        for tcid in self.test_ids:
+        for tcid in self.test_ids[user]:
             if tcid in statuses:
                 final.append(statuses[tcid])
 
         return final
 
-    getFileStatusAll.exposed = True
 
-
-    def setFileStatusAll(self, new_status=10, epname=None):
-        '''
+    def setFileStatusAll(self, user, epname=None, new_status=10):
+        """
         Reset the status of all files, to value: x.
-        '''
-        if epname:
-            for suite in self.data['eps'][epname]['suites']:
-                for fname in self.data['eps'][epname]['suites'][suite]['files']:
-                    self.data['eps'][epname]['suites'][suite]['files'][fname]['status'] = new_status
-        else:
-            for epname in self.data['eps']:
-                for suite in self.data['eps'][epname]['suites']:
-                    for fname in self.data['eps'][epname]['suites'][suite]['files']:
-                        self.data['eps'][epname]['suites'][suite]['files'][fname]['status'] = new_status
+        """
+        r = self.changeUser(user)
+        if not r: return False
+        eps = self.users[user]['eps']
+
+        for epcycle in eps:
+            if epname and epcycle != epname:
+                continue
+            for suite in eps[epcycle]['suites']:
+                for fname in eps[epcycle]['suites'][suite]['files']:
+                    eps[epcycle]['suites'][suite]['files'][fname]['status'] = new_status
+
         self._dump()
         return True
 
 # # #
 
-    def sendMail(self):
-        '''
+
+    def setFileOwner(self, user, path):
+        """
+        Update file ownership for 1 file.\n
+        `Chown` function only works in Linux.
+        """
+        uinfo = self.getUserInfo(user, 'eps')
+        epname = uinfo[uinfo.keys()[0]]
+        uid = epname.get('twister_ep_uid')
+        gid = epname.get('twister_ep_gid')
+
+        if uid and gid:
+            os.chown(path, uid, gid)
+            return True
+        else:
+            return False
+
+
+    def sendMail(self, user):
+        """
         Send e-mail function.
-        '''
+        """
+        with self.eml_lock:
 
-        # This is updated every time.
-        eMailConfig = self.parser.getEmailConfig()
-        if not eMailConfig:
-            logWarning('E-mail: Nothing to do here.')
-            return False
+            r = self.changeUser(user)
+            if not r: return False
 
-        logPath = self.data['log_types']['logsummary']
-        logSummary = open(logPath).read()
+            # This is updated every time.
+            eMailConfig = self.parsers[user].getEmailConfig()
+            if not eMailConfig:
+                logWarning('E-mail: Nothing to do here.')
+                return False
 
-        if not logSummary:
-            logDebug('E-mail: Nothing to send!')
-            return False
+            logPath = self.users[user]['log_types']['logsummary']
+            logSummary = open(logPath).read()
 
-        logDebug('E-mail: Preparing... Server `{SMTPPath}`, user `{SMTPUser}`, from `{From}`, to `{To}`...'
-            ''.format(**eMailConfig))
+            if not logSummary:
+                logDebug('E-mail: Nothing to send!')
+                return False
 
-        # Information that will be mapped into subject or message of the e-mail
-        map_info = {'date': time.strftime("%Y-%m-%d %H:%M")}
+            logDebug('E-mail: Preparing... Server `{SMTPPath}`, user `{SMTPUser}`, from `{From}`, to `{To}`...'
+                ''.format(**eMailConfig))
 
-        #user_info = .....
-        #map_info.update(user_info)
+            # Information that will be mapped into subject or message of the e-mail
+            map_info = {'date': time.strftime("%Y-%m-%d %H:%M")}
 
-        # Subject template string
-        tmpl = Template(eMailConfig['Subject'])
-        try:
-            eMailConfig['Subject'] = tmpl.substitute(map_info)
-        except Exception, e:
-            logError('CE ERROR! Cannot build e-mail subject! Error: {0}!'.format(e))
-            return False
-        del tmpl
+            for ep in self.users[user]['eps']:
+                # All info about 1 EP
+                ep_data = self.users[user]['eps'][ep]
 
-        # Message template string
-        tmpl = Template(eMailConfig['Message'])
-        try:
-            eMailConfig['Message'] = tmpl.substitute(map_info)
-        except Exception, e:
-            logError('CE ERROR! Cannot build e-mail message! Error: {0}!'.format(e))
-            return False
-        del tmpl
+                for k in ep_data:
+                    if k in ['suites', 'status', 'last_seen_alive']: continue
+                    if ep_data[k] == '': continue
+                    # If the information is already in the mapping info
+                    if k in map_info:
+                        map_info[k] += ', ' + str(ep_data[k])
+                        map_info[k] = ', '.join( list(set( map_info[k].split(', ') )) )
+                        #map_info[k] = ', '.join(sorted( list(set(map_info[k].split(', '))) )) # Sorted ?
+                    else:
+                        map_info[k] = str(ep_data[k])
 
-        ROWS = []
+                for suite in ep_data['suites']:
+                    # All info about 1 Suite
+                    suite_data = ep_data['suites'][suite]
 
-        for line in logSummary.split('\n'):
-            rows = line.replace('::', '|').split('|')
-            if not rows[0]:
-                continue
-            rclass = rows[3].strip().replace('*', '')
+                    for k in suite_data:
+                        if k in ['ep', 'files']: continue
+                        if suite_data[k] == '': continue
+                        # If the information is already in the mapping info
+                        if k in map_info:
+                            map_info[k] += ', ' + str(suite_data[k])
+                            map_info[k] = ', '.join( list(set( map_info[k].split(', ') )) )
+                            #map_info[k] = ', '.join(sorted( list(set(map_info[k].split(', '))) )) # Sorted ?
+                        else:
+                            map_info[k] = str(suite_data[k])
 
-            rows = ['&nbsp;'+r.strip() for r in rows]
-            ROWS.append( ('<tr class="%s"><td>' % rclass) + '</td><td>'.join(rows) + '</td></tr>\n')
+            # print 'E-mail map info::', map_info
 
-        # Body string
-        body_path = os.path.split(self.config_path)[0] +os.sep+ 'e-mail-tmpl.htm'
-        if not os.path.exists(body_path):
-            logError('CE ERROR! Cannot find e-mail template file `{0}`!'.format(body_path))
-            return False
+            # Subject template string
+            tmpl = Template(eMailConfig['Subject'])
+            try:
+                eMailConfig['Subject'] = tmpl.substitute(map_info)
+            except Exception, e:
+                logError('E-mail ERROR! Cannot build e-mail subject! Error: {0}!'.format(e))
+                return False
+            del tmpl
 
-        body_tmpl = Template(open(body_path).read())
-        body_dict = {
-            'texec':  len(logSummary.strip().splitlines()),
-            'tpass':  logSummary.count('*PASS*'),
-            'tfail':  logSummary.count('*FAIL*'),
-            'tabort': logSummary.count('*ABORTED*'),
-            'tnexec': logSummary.count('*NO EXEC*'),
-            'ttimeout': logSummary.count('*TIMEOUT*'),
-            'rate'  : round( (float(logSummary.count('*PASS*'))/ len(logSummary.strip().splitlines())* 100), 2),
-            'table' : ''.join(ROWS),
-        }
+            # Message template string
+            tmpl = Template(eMailConfig['Message'])
+            try:
+                eMailConfig['Message'] = tmpl.substitute(map_info)
+            except Exception, e:
+                logError('E-mail ERROR! Cannot build e-mail message! Error: {0}!'.format(e))
+                return False
+            del tmpl
 
-        # Fix TO and CC
-        eMailConfig['To'] = eMailConfig['To'].replace(';', ',')
-        eMailConfig['To'] = eMailConfig['To'].split(',')
+            ROWS = []
 
-        msg = MIMEMultipart()
-        msg['From'] = eMailConfig['From']
-        msg['To'] = eMailConfig['To'][0]
-        if len(eMailConfig['To']) > 1:
-            # Carbon Copy recipients
-            msg['CC'] = ','.join(eMailConfig['To'][1:])
-        msg['Subject'] = eMailConfig['Subject']
+            for line in logSummary.split('\n'):
+                rows = line.replace('::', '|').split('|')
+                if not rows[0]:
+                    continue
+                rclass = rows[3].strip().replace('*', '')
 
-        msg.attach(MIMEText(eMailConfig['Message'], 'plain'))
-        msg.attach(MIMEText(body_tmpl.substitute(body_dict), 'html'))
+                rows = ['&nbsp;'+r.strip() for r in rows]
+                ROWS.append( ('<tr class="%s"><td>' % rclass) + '</td><td>'.join(rows) + '</td></tr>\n')
 
-        if (not eMailConfig['Enabled']) or (eMailConfig['Enabled'] in ['0', 'false']):
-            open(TWISTER_PATH + '/config/e-mail.htm', 'w').write(msg.as_string())
-            logDebug('E-mail.htm file written. The message will NOT be sent.')
-            return True
+            # Body string
+            body_path = os.path.split(self.parsers[user].config_path)[0] +os.sep+ 'e-mail-tmpl.htm'
+            if not os.path.exists(body_path):
+                logError('CE ERROR! Cannot find e-mail template file `{0}`!'.format(body_path))
+                return False
 
-        try:
-            server = smtplib.SMTP(eMailConfig['SMTPPath'])
-        except:
-            logError('SMTP: Cannot connect to SMTP server!')
-            return False
+            body_tmpl = Template(open(body_path).read())
+            body_dict = {
+                'texec':  len(logSummary.strip().splitlines()),
+                'tpass':  logSummary.count('*PASS*'),
+                'tfail':  logSummary.count('*FAIL*'),
+                'tabort': logSummary.count('*ABORTED*'),
+                'tnexec': logSummary.count('*NO EXEC*'),
+                'ttimeout': logSummary.count('*TIMEOUT*'),
+                'rate'  : round( (float(logSummary.count('*PASS*'))/ len(logSummary.strip().splitlines())* 100), 2),
+                'table' : ''.join(ROWS),
+            }
 
-        try:
-            logDebug('SMTP: Preparing to login...')
-            server.ehlo()
-            server.starttls()
-            server.ehlo()
-            server.login(eMailConfig['SMTPUser'], eMailConfig['SMTPPwd'])
-            logDebug('SMTP: Connect success!')
-        except:
-            logError('SMTP: Cannot autentificate to SMTP server!')
-            return False
+            # Fix TO and CC
+            eMailConfig['To'] = eMailConfig['To'].replace(';', ',')
+            eMailConfig['To'] = eMailConfig['To'].split(',')
 
-        try:
-            server.sendmail(eMailConfig['From'], eMailConfig['To'], msg.as_string())
-            logDebug('SMTP: E-mail sent successfully!')
-            server.quit()
-            return True
-        except:
-            logError('SMTP: Cannot send e-mail!')
-            return False
+            msg = MIMEMultipart()
+            msg['From'] = eMailConfig['From']
+            msg['To'] = eMailConfig['To'][0]
+            if len(eMailConfig['To']) > 1:
+                # Carbon Copy recipients
+                msg['CC'] = ','.join(eMailConfig['To'][1:])
+            msg['Subject'] = eMailConfig['Subject']
+
+            msg.attach(MIMEText(eMailConfig['Message'], 'plain'))
+            msg.attach(MIMEText(body_tmpl.substitute(body_dict), 'html'))
+
+            if (not eMailConfig['Enabled']) or (eMailConfig['Enabled'] in ['0', 'false']):
+                e_mail_path = os.path.split(self.parsers[user].config_path)[0] +os.sep+ 'e-mail.htm'
+                open(e_mail_path, 'w').write(msg.as_string())
+                logDebug('E-mail.htm file written. The message will NOT be sent.')
+                # Update file ownership
+                self.setFileOwner(user, e_mail_path)
+                return True
+
+            try:
+                server = smtplib.SMTP(eMailConfig['SMTPPath'])
+            except:
+                logError('SMTP: Cannot connect to SMTP server!')
+                return False
+
+            try:
+                logDebug('SMTP: Preparing to login...')
+                server.ehlo()
+                server.starttls()
+                server.ehlo()
+                server.login(eMailConfig['SMTPUser'], eMailConfig['SMTPPwd'])
+                logDebug('SMTP: Connect success!')
+            except:
+                logError('SMTP: Cannot autentificate to SMTP server!')
+                return False
+
+            try:
+                server.sendmail(eMailConfig['From'], eMailConfig['To'], msg.as_string())
+                logDebug('SMTP: E-mail sent successfully!')
+                server.quit()
+                return True
+            except:
+                logError('SMTP: Cannot send e-mail!')
+                return False
 
 # # #
 
-    def saveToDatabase(self):
-        '''
+    def saveToDatabase(self, user):
+        """
         Save all data from a user: Ep, Suite, File, into database,
         using the DB.XML for the current project.
-        '''
-        # Database parser, fields, queries
-        # This is created every time the Save is called
-        db_path = self.parser.getDbConfigPath()
-        db_parser = DBParser(db_path)
-        db_config = db_parser.db_config
-        queries = db_parser.getQueries()
-        fields = db_parser.getFields()
-        del db_parser
+        """
+        with self.db_lock:
 
-        #
-        conn = MySQLdb.connect(host=db_config.get('server'), db=db_config.get('database'),
-            user=db_config.get('user'), passwd=db_config.get('password'))
-        curs = conn.cursor()
-        #
+            r = self.changeUser(user)
+            if not r: return False
 
-        for epname in self.data['eps']:
+            # Database parser, fields, queries
+            # This is created every time the Save is called
+            db_path = self.parsers[user].getDbConfigPath()
+            db_parser = DBParser(db_path)
+            db_config = db_parser.db_config
+            queries = db_parser.getQueries()
+            fields = db_parser.getFields()
+            del db_parser
 
-            for suite in self.data['eps'][epname]['suites']:
-                for file_id in self.data['eps'][epname]['suites'][suite]['files']:
+            #
+            conn = MySQLdb.connect(host=db_config.get('server'), db=db_config.get('database'),
+                user=db_config.get('user'), passwd=db_config.get('password'))
+            curs = conn.cursor()
+            #
 
-                    subst_data = dict( self.data['eps'][epname] )
-                    del subst_data['suites']
-                    subst_data.update( self.data['eps'][epname]['suites'][suite] )
-                    del subst_data['files']
-                    subst_data.update( self.data['eps'][epname]['suites'][suite]['files'][file_id] )
+            for epname in self.users[user]['eps']:
 
-                    # Prerequisite files will not be saved to database
-                    if subst_data.get('Prerequisite'):
-                        continue
+                for suite in self.users[user]['eps'][epname]['suites']:
+                    for file_id in self.users[user]['eps'][epname]['suites'][suite]['files']:
 
-                    for query in queries:
+                        subst_data = dict( self.users[user]['eps'][epname] )
+                        del subst_data['suites']
+                        subst_data.update( self.users[user]['eps'][epname]['suites'][suite] )
+                        del subst_data['files']
+                        subst_data.update( self.users[user]['eps'][epname]['suites'][suite]['files'][file_id] )
 
-                        # All variables that must be replaced in Insert
-                        vars_to_replace = re.findall('(@.+?@)', query)
+                        # Prerequisite files will not be saved to database
+                        if subst_data.get('Prerequisite'):
+                            continue
 
-                        for field in vars_to_replace:
-                            # Delete the @ character
-                            u_query = fields.get(field.replace('@', ''))
+                        for query in queries:
 
-                            if not u_query:
-                                logError('File: {0}, cannot build query! Field {1} is not defined in the fields section!'.format(subst_data['file'], field))
+                            # All variables that must be replaced in Insert
+                            vars_to_replace = re.findall('(@.+?@)', query)
+
+                            for field in vars_to_replace:
+                                # Delete the @ character
+                                u_query = fields.get(field.replace('@', ''))
+
+                                if not u_query:
+                                    logError('File: {0}, cannot build query! Field {1} is not defined in the fields section!'.format(subst_data['file'], field))
+                                    return False
+
+                                # Execute User Query
+                                curs.execute(u_query)
+                                q_value = curs.fetchone()[0]
+                                # Replace @variables@ with real Database values
+                                query = query.replace(field, str(q_value))
+
+                            # String Template
+                            tmpl = Template(query)
+
+                            # Build complete query
+                            try:
+                                query = tmpl.substitute(subst_data)
+                            except Exception, e:
+                                logError('File: {0}, cannot build query! Error: {1}!'.format(subst_data['file'], str(e)))
                                 return False
 
-                            # Execute User Query
-                            curs.execute(u_query)
-                            q_value = curs.fetchone()[0]
-                            # Replace @variables@ with real Database values
-                            query = query.replace(field, str(q_value))
+                            # :: For DEBUG ::
+                            #open(TWISTER_PATH + '/config/Query.debug', 'a').write('File Query:: `{0}` ::\n{1}\n\n\n'.format(subst_data['file'], query))
 
-                        # String Template
-                        tmpl = Template(query)
+                            # Execute MySQL Query!
+                            try:
+                                curs.execute(query)
+                            except MySQLdb.Error, e:
+                                logError('Error in query ``{0}``'.format(query))
+                                logError('MySQL Error %d: %s!' % (e.args[0], e.args[1]))
+                                return False
 
-                        # Build complete query
-                        try:
-                            query = tmpl.substitute(subst_data)
-                        except Exception, e:
-                            logError('File: {0}, cannot build query! Error: {1}!'.format(subst_data['file'], str(e)))
-                            return False
+            #
+            conn.commit()
+            curs.close()
+            conn.close()
+            #
 
-                        # :: For DEBUG ::
-                        #open(TWISTER_PATH + '/config/Query.debug', 'a').write('File Query:: `{0}` ::\n{1}\n\n\n'.format(subst_data['file'], query))
-
-                        # Execute MySQL Query!
-                        try:
-                            curs.execute(query)
-                        except MySQLdb.Error, e:
-                            logError('Error in query ``{0}``'.format(query))
-                            logError('MySQL Error %d: %s!' % (e.args[0], e.args[1]))
-                            return False
-
-        #
-        conn.commit()
-        curs.close()
-        conn.close()
-        #
-
-        return True
+            return True
 
 # # #
 

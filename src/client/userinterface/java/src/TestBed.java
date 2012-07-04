@@ -1,5 +1,5 @@
 /*
-File: TestBed.java ; This file is part of Twister.
+File: applet.java ; This file is part of Twister.
 
 Copyright (C) 2012 , Luxoft
 
@@ -36,49 +36,38 @@ import java.awt.Dimension;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.DefaultMutableTreeNode;
 
-public class TestBed {
-
-	private int X, Y;
-	String name = "";
-	String description = "";
-	String id = "";
-	ArrayList<Device> devices = new ArrayList<Device>();
-	TestBed reference;
-
-	public TestBed() {
-		reference = this;
-	}
-
-	public void updateInfo() {
-		Repository.window.mainpanel.p4.getDut().additem.setEnabled(true);
-		Repository.window.mainpanel.p4.getDut().additem.setText("Add device");
-		Repository.window.mainpanel.p4.getDut().remitem.setEnabled(true);
-		Repository.window.mainpanel.p4.getDut().remitem
-				.setText("Remove testbed");
-		Repository.window.mainpanel.p4.getDut().temp0 = reference;
-		Repository.window.mainpanel.p4.getDut().tname0.setText(name.toString());
-		Repository.window.mainpanel.p4.getDut().tid0.setText(id.toString());
-		Repository.window.mainpanel.p4.getDut().tdescription0
-				.setText(description.toString());
-	}
-
-	public void setDescription(String description) {
-		this.description = description;
-	}
-
-	public void setID(String id) {
-		this.id = id;
-	}
-
-	public void setName(String name) {
-		this.name = name;
-	}
-
-	public String toString() {
-		return "TestBed: " + name.toString();
-	}
-
-	public void addDevice(Device device) {
-		devices.add(device);
-	}
-}
+public class TestBed{
+    private int X,Y;
+    String name= "";
+    String description="";
+    String id="";
+    ArrayList <Device> devices =  new ArrayList <Device>();
+    TestBed reference;
+    
+    public TestBed(){reference = this;}
+        
+    public void updateInfo(){
+        Dut dut = Repository.window.mainpanel.p4.getDut();
+        dut.additem.setEnabled(true);
+        dut.additem.setText("Add device");
+        dut.remitem.setEnabled(true);
+        dut.remitem.setText("Remove testbed");
+        dut.temp0 = reference;
+        dut.tname0.setText(name.toString());
+        dut.tid0.setText(id.toString());        
+        dut.tdescription0.setText(description.toString());}
+        
+    public void setDescription(String description){
+        this.description = description;}
+        
+    public void setID(String id){
+        this.id=id;}
+        
+    public void setName(String name){
+        this.name=name;}
+        
+    public String toString(){
+        return "TestBed: "+name.toString();}
+        
+    public void addDevice(Device device){
+        devices.add(device);}}

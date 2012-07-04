@@ -1,5 +1,5 @@
 /*
-File: Panel4.java ; This file is part of Twister.
+File: applet.java ; This file is part of Twister.
 
 Copyright (C) 2012 , Luxoft
 
@@ -32,7 +32,8 @@ public class Panel4 extends JPanel{
     private ConfigFiles config;
     private DBConfig dbconfig;
     private Emails emails;
-    private JPanel main;
+    private JPanel main; 
+    private Plugins plugins;
     private JScrollPane scroll = new JScrollPane();
     private Dut dut = new Dut();
     
@@ -43,10 +44,11 @@ public class Panel4 extends JPanel{
         config = new ConfigFiles(screenSize);
         dbconfig = new DBConfig();
         emails = new Emails();
+        plugins = new Plugins();
         main = new JPanel();        
         main.setLayout(null);
         main.setBounds(240,10,(int)screenSize.getWidth()-320,
-            (int)screenSize.getHeight()-320);
+                        (int)screenSize.getHeight()-320);
         add(main);   
         RoundButton bpaths = new RoundButton("Paths");
         bpaths.setBounds(20,40,200,25);
@@ -72,7 +74,14 @@ public class Panel4 extends JPanel{
             public void actionPerformed(ActionEvent ev){
                 setDuts();}});
         add(duts);        
-        setPaths();
+        RoundButton plugins = new RoundButton("Plugins");
+        plugins.setBounds(20,160,200,25);
+        plugins.addActionListener(new ActionListener(){
+            public void actionPerformed(ActionEvent ev){                
+                setPlugins();}});
+        add(plugins);        
+        setPlugins();
+        //setPaths();
     }
        
     /*
@@ -108,8 +117,7 @@ public class Panel4 extends JPanel{
     public void setDuts(){        
         main.removeAll();
         main.setLayout(new FlowLayout());
-        dut.setPreferredSize(
-            new Dimension(main.getWidth()-5,main.getHeight()-5));
+        dut.setPreferredSize(new Dimension(main.getWidth()-5,main.getHeight()-5));
         main.add(dut);
         main.repaint();
         main.revalidate();}
@@ -130,6 +138,20 @@ public class Panel4 extends JPanel{
         main.revalidate();}
     
     
+    /*
+     * set plugins  content
+     * into this window
+     */
+    public void setPlugins(){        
+        main.removeAll();
+        main.setLayout(new FlowLayout());
+        plugins.setPreferredSize(new Dimension(main.getWidth()-5,main.getHeight()-5));
+        main.add(plugins);
+        main.repaint();
+        main.revalidate();}
+        
+    public Plugins getPlugins(){
+        return plugins;}    
     
     public Dut getDut(){
         return dut;}

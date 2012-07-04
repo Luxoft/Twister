@@ -174,15 +174,15 @@ public class DefaultInputHandler extends InputHandler
 			Object o = currentBindings.get(keyStroke);
 			if(o == null)
 			{
-				
-				
-				
-				
+				// Don't beep if the user presses some
+				// key we don't know about unless a
+				// prefix is active. Otherwise it will
+				// beep when caps lock is pressed, etc.
 				if(currentBindings != bindings)
 				{
 					Toolkit.getDefaultToolkit().beep();
-					
-					
+					// F10 should be passed on, but C+e F10
+					// shouldn't
 					repeatCount = 0;
 					repeat = false;
 					evt.consume();
@@ -247,7 +247,7 @@ public class DefaultInputHandler extends InputHandler
 					return;
 				}
 
-				
+				// 0-9 adds another 'digit' to the repeat number
 				if(repeat && Character.isDigit(c))
 				{
 					repeatCount *= 10;
@@ -335,7 +335,7 @@ public class DefaultInputHandler extends InputHandler
 		}
 	}
 
-	
+	// private members
 	private Hashtable bindings;
 	private Hashtable currentBindings;
 

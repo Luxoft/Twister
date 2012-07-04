@@ -3,7 +3,7 @@ import time
 from ce_libs import logMsg
 
 #
-# <title>test 001</title>
+# <title>test 002</title>
 # <description>This test doesn't do anything spectacular, it just counts to 10, in 10 seconds.</description>
 #
 
