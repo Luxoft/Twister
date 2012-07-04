@@ -1,7 +1,8 @@
 #!/bin/bash
 
 JDK_PATH=/usr/lib/jvm/jdk1.7.0/bin
-EXTLIBS=extlibs/jsch-0.1.44.jar:\
+EXTLIBS=extlibs/Twister.jar:\
+extlibs/jsch-0.1.44.jar:\
 extlibs/gson-2.2.1.jar:\
 extlibs/ws-commons-util-1.0.2.jar:\
 extlibs/commons-vfs-1.0.jar:\
@@ -46,7 +47,8 @@ echo "Signing jar file jgoodies-looks-2.5.1.jar"
 jarsigner ../extlibs/jgoodies-looks-2.5.1.jar Twister -storepass password
 echo "Signing jar file jgoodies-common-1.3.1.jar"
 jarsigner ../extlibs/jgoodies-common-1.3.1.jar Twister -storepass password
-
+echo "Signing jar file Twister.jar"
+jarsigner ../extlibs/Twister.jar Twister -storepass password
 
 # Export the keystore as X509
 $JDK_PATH/keytool  -export -alias Twister -rfc -file ../target/sig.x509 -storepass password
