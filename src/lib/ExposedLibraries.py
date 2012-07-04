@@ -35,6 +35,12 @@ if not TWISTER_PATH:
     exit(1)
 sys.path.append(TWISTER_PATH)
 
+try:
+    user_name = os.getenv('USER')
+except:
+    print('Cannot guess user name for this Execution Process! Exiting!')
+    exit(1)
+
 platform_sys = platform.system().lower()
 
 #
@@ -72,10 +78,7 @@ if platform_sys=='linux' or platform_sys=='sunos':
 
 elif platform_sys=='windows' or platform_sys=='java':
     # For Windows, the IP and PORT must be specified manually
-    PROXY = 'http://11.126.32.9:8000/'   # Tsc Server
-    #PROXY = 'http://11.126.32.12:8000/' # Dan Ubuntu
-    #PROXY = 'http://11.126.32.14:8000/' # Cro Windows
-    #PROXY = 'http://10.0.1.15:8000/'    # OpenSUSE VM
+    PROXY = 'http://11.126.32.9:8000/'
 
 else:
     print('Exposed Libraries: PLATFORM UNSUPPORTED `{0}` !'.format(platform_sys))
@@ -102,11 +105,14 @@ else:
         pass
 
 #
+def logMessage(logType, logMessage):
+    proxy.logMessage(user_name, logType, logMessage)
+#
 
 try:
     proxy = xmlrpclib.ServerProxy(PROXY)
     proxy.echo('exposed-libraries: checking connection...')
-    logMsg = proxy.logMessage
+    logMsg = logMessage
 except:
     def logMsg(logType, logMessage):
         print('[{0}]: {1}'.format(logType, logMessage))

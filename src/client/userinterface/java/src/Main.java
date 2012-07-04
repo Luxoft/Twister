@@ -1,5 +1,5 @@
 /*
-File: Main.java ; This file is part of Twister.
+File: applet.java ; This file is part of Twister.
 
 Copyright (C) 2012 , Luxoft
 
@@ -29,97 +29,6 @@ import java.awt.event.ActionEvent;
  * main method for starting Twister local
  */
 public class Main{
-    public static void main(String args[]){  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        
-      
-
-
-
-
-            
-            /*
-             * start Repository initialization and passing to it
-             * false - because it does not start from applet
-             * host - server address
-             * null - to use the default window
-             */
-
-
-
+    public static void main(String args[]){ 
             Repository.initialize(false,"tsc-server",null);
-
-
-
-
-
-
-
-
-
-           
-                
-            
-            
-            
-            
-
-
-        
-
-
-
-
-
-
         }}      

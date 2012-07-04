@@ -39,26 +39,31 @@ if not TWISTER_PATH:
     exit(1)
 sys.path.append(TWISTER_PATH)
 
-from trd_party.BeautifulSoup import BeautifulStoneSoup
-from server.centralengine.CentralEngineClasses import *
+from common.tsclogging import *
+from server.centralengine.CentralEngineClasses import CentralEngine
 
 #
 
 if __name__ == "__main__":
 
-    # Read XML configuration file
-    FMW_PATH = TWISTER_PATH + '/config/fwmconfig.xml'
-    if not os.path.exists(FMW_PATH):
-        logCritical("CE: Invalid path for config file: `%s` !" % FMW_PATH)
+    if os.getuid() != 0:
+        logWarning('Central Engine should run as ROOT! If it doesn\'t, '
+                   'it won\'t be able to read config files and write logs for all users!')
+
+    serverPort = sys.argv[1:2]
+
+    if not serverPort:
+        logCritical('CE: Must start with parameter PORT number!')
         exit(1)
     else:
-        logDebug("CE: XML Config File: `%s`." % FMW_PATH)
-        soup = BeautifulStoneSoup(open(FMW_PATH))
-        serverPort = int(soup.centralengineport.text)
-        del soup
+        try:
+            serverPort = int(serverPort[0])
+        except:
+            logCritical('CE: Must start with parameter PORT number!')
+            exit(1)
 
     # Root path
-    root = CentralEngine(FMW_PATH)
+    root = CentralEngine()
 
     # Config
     conf = {'global': {

@@ -1,9 +1,7 @@
 
 #
-# Initialize the global variables needed for running the tests and ...
-# Prepair the phisical equipment for running the tests.
-# This involves setting/ resetting/ restarting the equipment a few times.
-# It can take a long time ...
+# <title>init file</title>
+# <description>...</description>
 #
 
 # Load a few sources
@@ -53,17 +51,17 @@ proc demo_setup {} {
 }
 
 proc connect_and_setup_function1 {} {
-    logMessage logDebug "Running setup 1."
+    logMessage logDebug "Running setup 1.\n"
     after 1000
 }
 
 proc connect_and_setup_function2 {} {
-    logMessage logDebug "Running setup 2.."
+    logMessage logDebug "Running setup 2..\n"
     after 1000
 }
 
 proc connect_and_setup_function3 {} {
-    logMessage logDebug "Running setup 3..."
+    logMessage logDebug "Running setup 3...\n"
     after 1000
 }
 

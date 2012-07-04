@@ -4,7 +4,7 @@ import pexpect
 from ce_libs import logMsg
 
 #
-# <title>test 001</title>
+# <title>test 004</title>
 # <description>This test is connecting to a FTP host.</description>
 #
 

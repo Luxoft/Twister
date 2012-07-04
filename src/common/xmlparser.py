@@ -58,11 +58,16 @@ class TSCParser:
 
     def __init__(self, config_data):
         if os.path.isfile(config_data):
+            self.config_path = config_data
             self.xmlDict = BeautifulStoneSoup(open(config_data))
         elif config_data and type(config_data)==type('') or type(config_data)==type(u''):
+            self.config_path = ''
             self.xmlDict = BeautifulStoneSoup(config_data)
         else:
-            raise Exception('TSCParser: Invalid config data type: `%s`!' % type(config_data))
+            raise Exception('Parser ERROR: Invalid config data type: `%s`!' % type(config_data))
+
+        if not self.xmlDict.root:
+            raise Exception('Parser ERROR: Cannot access XML config data!')
 
         self.configTS = None
         self.configHash = None
@@ -75,18 +80,19 @@ class TSCParser:
         Updates Test Suite Cofig file hash and recreates internal XML structure,
         only if the XML file is changed.
         '''
-        # Path of TestSuite/ Master XML
+        # Path of TestSuite/ Test-Suites XML
         config_ts = str(self.xmlDict.root.masterxmltestsuite.text)
         if config_ts.startswith('~'):
             config_ts = os.getenv('HOME') + config_ts[1:]
         if not os.path.isfile(config_ts):
-            print('TSCParser: Test Suite Config file `%s` does not exist! Please check framework config XML file!' % config_ts)
+            print('Parser: Test-Suites XML file `%s` does not exist! Please check framework config XML file!' % config_ts)
+            self.configTS = None
             return -1
 
         # Hash check the XML file, to see if is changed
         newConfigHash = hashlib.md5(open(config_ts).read()).hexdigest()
         if self.configHash != newConfigHash:
-            print('TSCParser: Master XML file changed, rebuilding internal structure...')
+            print('Parser: Test-Suites XML file changed, rebuilding internal structure...')
             # Use the new hash
             self.configHash = newConfigHash
             # Create Beautiful Soup class from the new XML file
@@ -149,7 +155,7 @@ class TSCParser:
         if e_file.startswith('~'):
             e_file = os.getenv('HOME') + e_file[1:]
         if not os.path.isfile(e_file):
-            print('TSCParser: E-mail Config file `%s` does not exist! Please check framework config XML file!' % e_file)
+            print('Parser: E-mail Config file `%s` does not exist! Please check framework config XML file!' % e_file)
             return {}
 
         econfig = BeautifulStoneSoup(open(e_file))
@@ -185,26 +191,31 @@ class TSCParser:
 
     def getEpList(self):
         '''
-        Returns a list with all available EP-IDs.
+        Returns a list with all available EP names.
         '''
         res = str(self.xmlDict.root.epidsfile.text)
         if res.startswith('~'):
             res = os.getenv('HOME') + res[1:]
         if not os.path.isfile(res):
-            print('TSCParser: EP Names file `%s` does not exist! Please check framework config XML file!' % res)
+            print('Parser: EP Names file `%s` does not exist! Please check framework config XML file!' % res)
             return None
 
-        self.epids = []
+        self.epnames = []
         for line in open(res).readlines():
-            self.epids.append(line.strip())
-        return self.epids
+            line = line.strip()
+            if not line: continue
+            self.epnames.append(line)
+        return self.epnames
 
 
     def getActiveEps(self):
         '''
-        Returns a list with all active EPs from Master XML.
+        Returns a list with all active EPs from Test-Suites XML.
         '''
         activeEpids = []
+        if not self.configTS:
+            print('Parser: Cannot get active EPs, because Test-Suites XML is invalid!')
+            return []
         for ep in self.configTS('epid'):
             activeEpids.append(ep.text)
         activeEpids = list(set(activeEpids))
@@ -213,7 +224,7 @@ class TSCParser:
 
     def getFileInfo(self, file_soup):
         '''
-        Returns a dict with information about 1 File from Master XML.
+        Returns a dict with information about 1 File from Test-Suites XML.
         The "file" must be a BeautifulSoup class.
         '''
         res = OrderedDict()
@@ -242,7 +253,7 @@ class TSCParser:
 
     def getSuiteInfo(self, suite_soup):
         '''
-        Returns a dict with information about 1 Suite from Master XML.
+        Returns a dict with information about 1 Suite from Test-Suites XML.
         The "suite" must be a BeautifulSoup class.
         '''
 
@@ -266,13 +277,13 @@ class TSCParser:
         Also returns the file list, with all file data.
         '''
         if not self.configTS:
-            print('TSCParser: Cannot parse Test Suite XML! Exiting!')
-            return []
+            print('Parser: Cannot parse Test Suite XML! Exiting!')
+            return {}
 
-        if epname not in self.epids:
-            print('TSCParser: Station `%s` is not in the list of defined EPs: `%s`!' % \
-                (str(epname), str(self.epids)) )
-            return []
+        if epname not in self.epnames:
+            print('Parser: Station `%s` is not in the list of defined EPs: `%s`!' %
+                (str(epname), str(self.epnames)) )
+            return {}
 
         res = OrderedDict()
         for suite in [k.parent for k in self.configTS(name='epid') if k.text==epname]:
@@ -287,20 +298,23 @@ class TSCParser:
         '''
         ti = time.clock()
         if not self.configTS:
-            print('TSCParser: Cannot parse Test Suite XML! Exiting!')
+            print('Parser: Fatal error! Cannot parse Test Suite XML!')
             return []
 
         ts = []
         files = self.configTS('tcname')
 
         if not files:
-            print('TSCParser: Current suite has no files!')
+            print('Parser: Current suite has no files!')
 
         for TestCase in files:
-            tcid = TestCase.parent.tcid.text
-            ts.append(tcid)
+            tcid = TestCase.parent.tcid
+            if not tcid:
+                print('Parser: Fatal error! Found files without ID in Test Suite XML!')
+                return []
+            ts.append(tcid.text)
 
-        #print('TSCParser: TestSuite Files (%s files) took %.4f seconds.' % (len(ts), time.clock()-ti))
+        #print('Parser: TestSuite Files (%s files) took %.4f seconds.' % (len(ts), time.clock()-ti))
         return ts
 
 

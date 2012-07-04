@@ -698,7 +698,7 @@ loop:		for(int i = offset; i < length; i++)
 		return cKeywords;
 	}
 
-	
+	// private members
 	private static KeywordMap cKeywords;
 
 	private boolean cpp;

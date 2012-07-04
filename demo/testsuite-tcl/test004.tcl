@@ -5,9 +5,9 @@ proc T-004 {} {
     puts "\n**********\nStarting test: $testName\n"
     logMessage logTest "\n\nTestCase: $testName starting\n"
 
-    set purpose {Testing Expect take 1}
-    set description {Some description}
-    logMessage logCli "\nTest purpose: $purpose\nTest description: $description\n"
+    set purpose "<title>Testing Expect take 2</title>"
+    set description "<description>Some description for test 4</description>"
+    logMessage logTest "\nTest purpose: $purpose\nTest description: $description\n"
 
     set error_code "PASS"
 

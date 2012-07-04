@@ -6,7 +6,7 @@ from ce_libs import queryResource, setPropertyLocal, getPropertyLocal
 from ce_libs import createEmptyResource, delResource
 
 #
-# <title>test 001</title>
+# <title>test 006</title>
 # <description>This test is checking the Resource Allocator.</description>
 #
 
