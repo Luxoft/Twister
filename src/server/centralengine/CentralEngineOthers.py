@@ -474,6 +474,10 @@ class Project:
             return False
 
 
+    def cloneRepository(self):
+        pass
+
+
     def sendMail(self, user):
         """
         Send e-mail function.

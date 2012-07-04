@@ -23,11 +23,11 @@
 
 '''
 Twister Installer
+=================
+
 Requires Python 2.7 and must run as ROOT.
 If you are installing the Twister Server, it is strongly recommended
-to have an internet connection, or else, you must manually install :
- - Python-DEV and
- - python-mysql.
+to have an internet connection, to allow the installer to setup all the dependencies.
 '''
 
 import os, sys
@@ -74,17 +74,12 @@ if sys.argv[1:2] == ['--server']:
 elif sys.argv[1:2] == ['--client']:
     TO_INSTALL = 'client'
 
-# If installer was run with parameter "--both"
-elif sys.argv[1:2] == ['--both']:
-    TO_INSTALL = 'both'
-
 else:
     while 1:
         print('\nPlease select what you wish to install:')
         print('[1] the Twister clients')
         print('[2] the Twister servers')
-        print('[3] both client and server')
-        print('[0] exit, don\'t install anything')
+        print('[q] e[x]it, don\'t install anything')
 
         selected = raw_input('Your choice: ')
         if selected == '1':
@@ -95,15 +90,11 @@ else:
             print('Will install servers.\n')
             TO_INSTALL = 'server'
             break
-        elif selected == '3':
-            print('Will install both client and server.\n')
-            TO_INSTALL = 'both'
-            break
         elif selected in ['0', 'q', 'x']:
             print('Ok, exiting!\n')
             exit(0)
         else:
-            print('`%s` is not a valid choice!' % selected)
+            print('`%s` is not a valid choice! try again!' % selected)
         del selected
 
 
@@ -111,84 +102,103 @@ else:
 # For what user will you install ?
 # --------------------------------------------------------------------------------------------------
 
-# Find the users
-users = os.listdir('/home/')
-users.sort()
+if TO_INSTALL == 'client':
 
-try:
-    i = users.index('lost+found')
-    users.pop(i)
-except: pass
+    # Find the users
+    users = os.listdir('/home/')
+    users.sort()
 
-# If there are more users, choose
-if len(users) > 1:
+    try:
+        i = users.index('lost+found')
+        users.pop(i)
+    except: pass
 
-    while 1:
-        print('Please select the user you are installing for:')
-        for i in range(1, len(users)+1):
-            print('[%i] : %s' % (i, users[i-1]))
+    # If there are more users, choose
+    if len(users) > 1:
 
-        selected = raw_input('Your choice: ')
-        try:
-            usr = int(selected)
-        except:
-            usr = None
-            print('`%s` is not a valid choice!' % selected)
-            continue
-        if usr not in range(1, len(users)+1):
-            print('`%s` is not a valid choice!' % selected)
-            continue
+        while 1:
+            print('Please select the user you are installing for:')
+            for i in range(1, len(users)+1):
+                print('[%i] : %s' % (i, users[i-1]))
 
-        USER = users[usr - 1]
+            selected = raw_input('Your choice: ')
+            try:
+                usr = int(selected)
+            except:
+                usr = None
+                print('`%s` is not a valid choice! try again!' % selected)
+                continue
+            if usr not in range(1, len(users)+1):
+                print('`%s` is not a valid choice! try again!' % selected)
+                continue
+
+            USER = users[usr - 1]
+            g = subprocess.check_output(['groups', USER])
+            GROUP = ''.join(g.split()[:3])
+
+            selected = raw_input('\nYou selected user `%s` from group `%s`.\nIs that correct? (yes/no): ' % \
+                (USER, GROUP))
+            if selected.strip().lower() == 'yes':
+                break
+            else:
+                print('Canceling...')
+                continue
+
+    # If there's only 1 user, no need to choose
+    else:
+
+        USER = users[0]
         g = subprocess.check_output(['groups', USER])
         GROUP = ''.join(g.split()[:3])
 
-        selected = raw_input('\nYou selected user `%s` from group `%s`.\nIs that correct? (yes/no): ' % \
-            (USER, GROUP))
-        if selected.strip().lower() == 'yes':
-            break
-        else:
-            print('Canceling...')
-            continue
-
-# If there's only 1 user, no need to choose
-else:
-
-    USER = users[0]
-    g = subprocess.check_output(['groups', USER])
-    GROUP = ''.join(g.split()[:3])
-
-del users
-
+    del users
 
 # --------------------------------------------------------------------------------------------------
 # Previous installations of Twister
 # --------------------------------------------------------------------------------------------------
 
-INSTALL_PATH = '/home/%s/twister/' % USER
+if TO_INSTALL == 'server':
 
-if os.path.exists(INSTALL_PATH):
-    print('WARNING! Another version of Twister is installed at `%s`!' % INSTALL_PATH)
-    print('If you continue, all files from that folder will be DELETED,')
-    print('Only the `config` folder will be saved!')
-    selected = raw_input('Are you sure you want to continue? (yes/no): ')
+    # Twister server path
+    INSTALL_PATH = '/opt/twister/'
 
-    if selected.strip().lower() == 'yes':
+    # Deleting previous versions of Twister
+    try:
+        dir_util.remove_tree(INSTALL_PATH)
+        print('Removed folder `%s`.' % INSTALL_PATH)
+    except: print('Error! Cannot delete Twister dir `{0}` !'.format(INSTALL_PATH))
+    try:
+        os.mkdir(INSTALL_PATH)
+        print('Created folder `%s`.' % INSTALL_PATH)
+    except: print('Error! Cannot create Twister dir `{0}` !'.format(INSTALL_PATH))
 
-        if os.path.exists(INSTALL_PATH + 'config'):
-            print('Back-up `config` folder (from `{0}` to `{1}`)...'.format(INSTALL_PATH+'config', os.getcwd()))
-            shutil.move(INSTALL_PATH + 'config', os.getcwd())
+else:
 
-        # Deleting previous versions of Twister
-        try: dir_util.remove_tree(INSTALL_PATH)
-        except: print('Error! Cannot delete Twister dir `{0}` !'.format(INSTALL_PATH))
-        try: os.mkdir(INSTALL_PATH)
-        except: print('Error! Cannot create Twister dir `{0}` !'.format(INSTALL_PATH))
+    # Twister client path
+    INSTALL_PATH = '/home/%s/twister/' % USER
 
-    else:
-        print('\nPlease backup all your data, then restart the installer.')
-        print('Exiting.\n')
-        exit(0)
+    if os.path.exists(INSTALL_PATH):
+        print('\nWARNING! Another version of Twister is installed at `%s`!' % INSTALL_PATH)
+        print('If you continue, all files from that folder will be DELETED,')
+        print('Only the `config` folder will be saved!')
+        selected = raw_input('Are you sure you want to continue? (yes/no): ')
+
+        if selected.strip().lower() in ['y', 'yes']:
+
+            if os.path.exists(INSTALL_PATH + 'config'):
+                print('\nBack-up `config` folder (from `{0}` to `{1}`)...'.format(INSTALL_PATH+'config', os.getcwd()))
+                shutil.move(INSTALL_PATH + 'config', os.getcwd())
+
+            # Deleting previous versions of Twister
+            try: dir_util.remove_tree(INSTALL_PATH)
+            except: print('Error! Cannot delete Twister dir `{0}` !'.format(INSTALL_PATH))
+            try: os.mkdir(INSTALL_PATH)
+            except: print('Error! Cannot create Twister dir `{0}` !'.format(INSTALL_PATH))
+
+        else:
+            print('\nPlease backup all your data, then restart the installer.')
+            print('Exiting.\n')
+            exit(0)
 
 # --------------------------------------------------------------------------------------------------
 # Dependencies lists and configs
@@ -219,17 +229,14 @@ if TO_INSTALL == 'server':
         '1.2',
     ]
 
-    # Files to move in twister folder
+    # Files to move in Server folder
     to_copy = [
         'bin/start_ce',
-        'bin/config_ce.cfg',
         'bin/start_ra',
         'bin/start_httpserver',
-        'demo/',
         'doc/',
         'src/server/',
         'src/common/',
-        'src/config/',
         'src/lib/',
         'src/trd_party/',
     ]
@@ -240,61 +247,21 @@ elif TO_INSTALL == 'client':
     library_names = ['pexpect']
     library_versions = ['2.3']
 
-    # Files to move in twister folder
+    # Files to move in Client folder
     to_copy = [
         'bin/start_ep.py',
         'bin/config_ep.json',
         'doc/',
+        'demo/',
+        'src/config/',
         'src/client/',
         'src/common/__init__.py',
         'src/common/constants.py',
     ]
 
 else:
-    # Client + Server
-    dependencies = [
-        'pexpect',
-        'Beaker',
-        'Mako',
-        'CherryPy',
-        'MySQL-python',
-    ]
-
-    # Import names used for testing
-    library_names = [
-        'pexpect',
-        'beaker',
-        'mako',
-        'cherrypy',
-        'MySQLdb',
-    ]
-
-    # Versions
-    library_versions = [
-        '2.3',
-        '1.6',
-        '0.6',
-        '3.2',
-        '1.2',
-    ]
-
-    # Files to move in twister folder
-    to_copy = [
-        'bin/start_ep.py',
-        'bin/config_ep.json',
-        'bin/start_ce',
-        'bin/config_ce.cfg',
-        'bin/start_ra',
-        'bin/start_httpserver',
-        'demo/',
-        'doc/',
-        'src/client/',
-        'src/server/',
-        'src/common/',
-        'src/config/',
-        'src/lib/',
-        'src/trd_party/',
-    ]
+    print 'This is really wrong! Exiting!'
+    exit(1)
 
 
 # Using HTTP_PROXY environment variable?
@@ -324,7 +291,7 @@ except:
 # Starting the install process
 # --------------------------------------------------------------------------------------------------
 
-root_folder = os.sep.join( os.getcwd().split(os.sep)[:-1] )
+ROOT_FOLDER = os.sep.join( os.getcwd().split(os.sep)[:-1] )
 cwd_path = os.getcwd() + os.sep
 pkg_path = cwd_path + 'packages/'
 
@@ -442,7 +409,7 @@ for i in range(len(dependencies)):
 print('')
 
 for fname in to_copy:
-    fpath = root_folder + os.sep + fname
+    fpath = ROOT_FOLDER + os.sep + fname
     dpath = os.path.dirname(fname)
 
     # Copy into folder without `src`
@@ -477,25 +444,30 @@ for fname in to_copy:
 
 #
 
-# Restore Config folder
-if os.path.exists(os.getcwd() + '/config'):
-    print('Moving `config` folder back (from `{0}` to `{1}`)...\n'.format(os.getcwd()+'/config', INSTALL_PATH+'/config'))
-    dir_util.copy_tree(os.getcwd() + '/config', INSTALL_PATH+'/config')
-    dir_util.remove_tree(os.getcwd() + '/config')
+# Restore Config folder, if any
+if os.path.exists(cwd_path + 'config'):
+    print('Moving `config` folder back (from `{0}` to `{1}`)...\n'.format(cwd_path+'config', INSTALL_PATH+'config'))
+    dir_util.copy_tree(cwd_path + 'config', INSTALL_PATH+'config')
+    dir_util.remove_tree(cwd_path + 'config')
 
-# Create cache and logs folders
-try: os.mkdir(INSTALL_PATH +os.sep+ '.twister_cache')
-except: pass
-try: os.mkdir(INSTALL_PATH +os.sep+ 'logs')
-except: pass
+#
 
-tcr_proc = subprocess.Popen(['chown', GROUP, INSTALL_PATH, '-R'],)
-tcr_proc.wait()
+if TO_INSTALL == 'client':
+
+    # Create cache and logs folders
+    try: os.mkdir(INSTALL_PATH +os.sep+ '.twister_cache')
+    except: pass
+    try: os.mkdir(INSTALL_PATH +os.sep+ 'logs')
+    except: pass
+
+    tcr_proc = subprocess.Popen(['chown', GROUP, INSTALL_PATH, '-R'],)
+    tcr_proc.wait()
+    os.system('chown %s %s -R' % (GROUP, INSTALL_PATH))
+
 tcr_proc = subprocess.Popen(['chmod', '774', INSTALL_PATH, '-R'],)
 tcr_proc.wait()
-
-os.system('chown %s %s -R' % (GROUP, INSTALL_PATH))
 os.system('chmod 774 %s -R' % INSTALL_PATH)
+
 os.system('find %s -name "*.txt" -exec chmod 664 {} \;' % INSTALL_PATH)
 os.system('find %s -name "*.xml" -exec chmod 664 {} \;' % INSTALL_PATH)
 os.system('find %s -name "*.htm" -exec chmod 664 {} \;' % INSTALL_PATH)
@@ -505,11 +477,13 @@ os.system('find %s -name "*.tcl" -exec chmod 664 {} \;' % INSTALL_PATH)
 
 # Add twister path export
 for fname in glob.glob(INSTALL_PATH + 'bin/*'):
-    # Ignore python and config files
+    # Ignore all files with extension
     if os.path.splitext(fname)[1]: continue
 
     lines = open(fname).readlines()
-    lines.insert(4, ('export TWISTER_PATH=%s\n' % INSTALL_PATH))
+    lines.insert(4, ('export TWISTER_PATH=%s\n\n' % INSTALL_PATH))
     open(fname, 'w').write(''.join(lines))
 
-print('Twister installation done!\n')
+#
+
+print('\nTwister installation done!\n')
