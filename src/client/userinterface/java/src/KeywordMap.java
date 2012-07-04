@@ -101,7 +101,7 @@ public class KeywordMap
 		this.ignoreCase = ignoreCase;
 	}
 
-	
+	// protected members
 	protected int mapLength;
 
 	protected int getStringMapKey(String s)
@@ -118,7 +118,7 @@ public class KeywordMap
 				% mapLength;
 	}
 
-	
+	// private members
 	class Keyword
 	{
 		public Keyword(char[] keyword, byte id, Keyword next)

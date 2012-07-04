@@ -16,7 +16,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-
 import java.applet.Applet; 
 import java.awt.Graphics; 
 import java.awt.Color;
@@ -41,10 +40,10 @@ import javax.swing.SwingUtilities;
 public class applet extends Applet{ 
     private static final long serialVersionUID = 1L;
     
-    
+    //applet initialization
     public void init(){
-
-
+//         try{UIManager.setLookAndFeel("javax.swing.plaf.nimbus.NimbusLookAndFeel");}
+//         catch(Exception e){e.printStackTrace();} 
         
         /*
          * load all icons from jar into Repository
@@ -109,7 +108,8 @@ public class applet extends Applet{
             if(image !=null)System.out.println(icon+" succsesfully loaded.");
             else System.out.println(icon+" not loaded.");}
         catch(Exception e){
-            System.out.println("There was a problem in loading "+icon+" on "+image.toString());
+            System.out.println("There was a problem in loading "+icon+
+                " on "+image.toString());
             e.printStackTrace();}
         return image;}
     
@@ -126,9 +126,15 @@ public class applet extends Applet{
         Repository.window.mainpanel.setSize(width-28,height-40);
         Repository.window.mainpanel.p4.getScroll().setSize(width-310,height-150);
         Repository.window.mainpanel.p4.getMain().setSize(width-300,height-130);
-        Repository.window.mainpanel.p4.getDut().setPreferredSize(new Dimension(width-300,height-150));
-        Repository.window.appletpanel.setSize(width-20,height-20);
-
+        Repository.window.mainpanel.p4.getDut().setPreferredSize(
+            new Dimension(width-300,height-150));
+        Repository.window.appletpanel.setSize(width-20,height-20);        
+        Repository.window.mainpanel.p4.getPlugins().setPreferredSize(
+            new Dimension(getWidth()-300,getHeight()-150));
+        Repository.window.mainpanel.p4.getPlugins().horizontalsplit.setPreferredSize(
+            new Dimension(getWidth()-305,getHeight()-155));
+        
+//         Repository.window.mainpanel.p5.setPreferredSize(new Dimension(getWidth()-50,672));
         System.out.println("Resizing to: "+width+" - "+height);
         validate();}
     
@@ -147,7 +153,8 @@ public class applet extends Applet{
         System.out.println("applet destroying");
         File file = new File(Repository.temp);
         if(file.exists()){
-            if(Window.deleteTemp(file))System.out.println(Repository.temp+" deleted successfull");
+            if(Window.deleteTemp(file))
+                System.out.println(Repository.temp+" deleted successfull");
             else System.out.println("Could not delete: "+Repository.temp);}
         System.exit(0);}
         

@@ -61,15 +61,15 @@ public class TextAreaPainter extends JComponent implements TabExpander
     }
 
     /**
-
-
-
-
-
-
-
-
-
+//      * Returns if this component can be traversed by pressing the
+//      * Tab key. This returns false.
+//      */
+//     public final boolean setFocusCycleRoot(boolean){
+//        return false;}
+//     public final boolean isManagingFocus()
+//     {
+//         return false;
+//     }
 
     /**
      * Returns the syntax styles used to paint colorized text. Entry <i>n</i>
@@ -371,14 +371,14 @@ public class TextAreaPainter extends JComponent implements TabExpander
         gfx.setColor(getBackground());
         gfx.fillRect(clipRect.x,clipRect.y,clipRect.width,clipRect.height);
 
-        
-        
+        // We don't use yToLine() here because that method doesn't
+        // return lines past the end of the document
         int height = fm.getHeight();
         int firstLine = textArea.getFirstLine();
         int firstInvalid = firstLine + clipRect.y / height;
-        
-        
-        
+        // Because the clipRect's height is usually an even multiple
+        // of the font height, we subtract 1 from it, otherwise one
+        // too many lines will always be painted.
         int lastInvalid = firstLine + (clipRect.y + clipRect.height - 1) / height;
 
         try
@@ -471,12 +471,12 @@ public class TextAreaPainter extends JComponent implements TabExpander
         return getPreferredSize();
     }
 
-    
+    // package-private members
     int currentLineIndex;
     Token currentLineTokens;
     Segment currentLine;
 
-    
+    // protected members
     protected JEditTextArea textArea;
     
     protected SyntaxStyle[] styles;
@@ -647,7 +647,7 @@ public class TextAreaPainter extends JComponent implements TabExpander
                 x2 = getWidth();
             }
 
-            
+            // "inlined" min/max()
             gfx.fillRect(x1 > x2 ? x2 : x1,y,x1 > x2 ?
                 (x1 - x2) : (x2 - x1),height);
         }
@@ -662,9 +662,9 @@ public class TextAreaPainter extends JComponent implements TabExpander
         y += fm.getLeading() + fm.getMaxDescent();
         int x = textArea._offsetToX(line,position);
         gfx.setColor(bracketHighlightColor);
-        
-        
-        
+        // Hack!!! Since there is no fast way to get the character
+        // from the bracket matching routine, we use ( since all
+        // brackets probably have the same width anyway
         gfx.drawRect(x,y,fm.charWidth('(') - 1,
             fm.getHeight() - 1);
     }

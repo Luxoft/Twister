@@ -196,7 +196,7 @@ public abstract class TokenMarker
 		return nextLineRequested;
 	}
 
-	
+	// protected members
 
 	/**
 	 * The first token in the list. This should be used as the return

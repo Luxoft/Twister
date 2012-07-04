@@ -212,7 +212,7 @@ loop:		for(int i = offset; i < length; i++)
 		return pyKeywords;
 	}
 
-	
+	// private members
 	private static KeywordMap pyKeywords;
 
 	private KeywordMap keywords;
