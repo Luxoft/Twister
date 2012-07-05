@@ -277,6 +277,17 @@ class CentralEngine(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
+    def runUserScript(self, script_path):
+        '''
+        Executes a script.
+        Returns a string containing the text printed by the script.\n
+        This function is called from the Java GUI.
+        '''
+        logDebug('CE: Executing script `%s`...' % script_path)
+        return self.project.execScript(script_path)
+
+
+    @cherrypy.expose
     def sendMail(self, user):
         '''
         Send e-mail after the suites are run.\n
