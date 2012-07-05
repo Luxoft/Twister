@@ -262,11 +262,6 @@ public class Plugins extends JPanel{
             localtable.remove(addremove.getMyLabel());
             remotetable2.add(addremove,constraints);
             remotetable2.add(addremove.getMyLabel(),constraints1);
-            try{((TwisterPluginInterface)plugins.get(filename)).terminate();}
-            catch(Exception e){
-                System.out.println("There was a problem in terminatig"+
-                    " the plugin with filename: "+filename);
-                e.printStackTrace();}
             MainPanel main = Repository.window.mainpanel;
             try{main.remove(((TwisterPluginInterface)plugins.
                     get(filename)).getContent());
@@ -276,6 +271,11 @@ public class Plugins extends JPanel{
                     "the plugin with filename: "+filename);
                 e.printStackTrace();
             }
+            try{((TwisterPluginInterface)plugins.get(filename)).terminate();}
+            catch(Exception e){
+                System.out.println("There was a problem in terminatig"+
+                    " the plugin with filename: "+filename);
+                e.printStackTrace();}
             main.revalidate();
             main.repaint();
             localtable.revalidate();
