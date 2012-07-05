@@ -1,6 +1,7 @@
 5th July changes:
 - added support for multi tenancy
 - added plugins mechanism for GUI interface
+- updated user guide with information about plugins mechanism
 
 
 19th June 2012 Changes:
