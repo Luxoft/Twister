@@ -66,6 +66,7 @@ import re
 import time
 import json
 import thread
+import subprocess
 import smtplib
 import MySQLdb
 
@@ -474,8 +475,31 @@ class Project:
             return False
 
 
+    def execScript(self, script_path):
+        """
+        Execute a user script and return the text printed on the screen.
+        This only works in Linux.
+        """
+        if not os.path.exists(script_path):
+            logError('Exec script: The path `%s` does not exist!' % script_path)
+            return False
+
+        try:
+            txt = subprocess.check_output([script_path])
+            return txt.strip()
+        except Exception, e:
+            logError('Exec script: Exception: %s' % str(e))
+            return False
+
+
     def cloneRepository(self):
+        """
+        Clone a Git or Svn repository.
+        """
         pass
+
+
+# # #
 
 
     def sendMail(self, user):

@@ -54,6 +54,8 @@ class Root:
     @cherrypy.expose
     def index(self, usr=''):
         if not usr: return '<br><b>Error! This link should be accessed by passing a username, eg: /index?usr=some_user<b/>'
+        if not os.path.exists('/home/%s/twister/config' % usr): return '<br><b>Error! '\
+                              'Username `%s` doesn\'t have a Twister config folder!</b>' % usr
 
         load_config(usr) # Re-load all Database XML
         global glob_links
@@ -79,6 +81,8 @@ class Root:
     @cherrypy.expose
     def help(self, usr=''):
         if not usr: return '<br><b>Error! This link should be accessed by passing a username, eg: /help?usr=some_user<b/>'
+        if not os.path.exists('/home/%s/twister/config' % usr): return '<br><b>Error! '\
+                              'Username `%s` doesn\'t have a Twister config folder!</b>' % usr
 
         load_config(usr) # Re-load all Database XML
         global glob_links
@@ -92,6 +96,9 @@ class Root:
         if not args.get('usr'): return '<br><b>Error! This link should be accessed by passing a username, eg: /rep?usr=some_user<b/>'
 
         usr = args['usr']
+        if not os.path.exists('/home/%s/twister/config' % usr): return '<br><b>Error! '\
+                              'Username `%s` doesn\'t have a Twister config folder!</b>' % usr
+
         load_config(usr) # Re-load all Database XML
         global conn, curs
         if usr not in conn: connect_db(usr)
@@ -282,6 +289,10 @@ class Root:
             return json.dumps(output, indent=2)
 
         usr = args['usr']
+        if not os.path.exists('/home/%s/twister/config' % usr):
+            output = {'aaData':[], 'error':'Error! Username `%s` doesn\'t have a Twister config folder!' % usr}
+            return json.dumps(output, indent=2)
+
         load_config(usr) # Re-load all Database XML
         global conn, curs
         if usr not in conn: connect_db(usr)
@@ -492,7 +503,7 @@ def load_config(usr):
     glob_fields[usr] = dbparser[usr].getReportFields()
     glob_reports[usr] = dbparser[usr].getReports()
     glob_redirects[usr] = dbparser[usr].getRedirects()
-    glob_links[usr] = ['Home'] + glob_reports[usr].keys() + glob_redirects.keys() + ['Help']
+    glob_links[usr] = ['Home'] + glob_reports[usr].keys() + glob_redirects[usr].keys() + ['Help']
 
 #
 
