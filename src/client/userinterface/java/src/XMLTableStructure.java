@@ -37,8 +37,11 @@ public class XMLTableStructure{
     private DocumentBuilder db;
     private Document doc;
     private Node fstNode,secNode,trdNode;
-    private Element fstElmnt,fstNmElmnt,secElmnt,secNmElmnt,trdElmnt,trdNmElmnt;
-    private NodeList fstNmElmntLst,fstNm,fstNmElmntLst2,secNmElmntLst,secNm,secNmElmntLst2,trdNmElmntLst,trdNm,trdNmElmntLst2,trdNm2;
+    private Element fstElmnt,fstNmElmnt,secElmnt,
+                    secNmElmnt,trdElmnt,trdNmElmnt;
+    private NodeList fstNmElmntLst,fstNm,fstNmElmntLst2,
+                     secNmElmntLst,secNm,secNmElmntLst2,
+                     trdNmElmntLst,trdNm,trdNmElmntLst2,trdNm2;
     private File f;
     private String name,value;
     private ArrayList<Integer > editable = new ArrayList<Integer>();
@@ -53,11 +56,13 @@ public class XMLTableStructure{
         catch(ParserConfigurationException e){
             try{in.close();}
             catch(Exception ex){ex.printStackTrace();}
-            System.out.println("Could not create a XML parser configuration");}
+            System.out.println("Could not create a"+
+                                " XML parser configuration");}
         catch(SAXException e){
             try{in.close();}
             catch(Exception ex){ex.printStackTrace();}
-            System.out.println("The document is empty or not valid");}
+            System.out.println("The document is empty"+
+                                " or not valid");}
         catch(IOException e){
             try{in.close();}
             catch(Exception ex){ex.printStackTrace();}
@@ -69,7 +74,9 @@ public class XMLTableStructure{
         
     public ArrayList<String>  parseXML(){    
         NodeList nodeLst = doc.getElementsByTagName("Column");
-        if(nodeLst.getLength()==0)System.out.println("Table structure document has no Column tags");
+        if(nodeLst.getLength()==0){
+            System.out.println("Table structure document"+
+                                " has no Column tags");}
         for(int s = 0; s < nodeLst.getLength(); s++){
             fstNode = nodeLst.item(s);
             fstElmnt = (Element)fstNode;            

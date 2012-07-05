@@ -118,15 +118,11 @@ public class NetTop extends JPanel{
         new Thread(){
             public void run(){
                 try{
-//                     XmlRpcClientConfigImpl config = new XmlRpcClientConfigImpl();
-//                     config.setServerURL(new URL("http://"+Repository.host+":"+Repository.getCentralEnginePort()));  //!!! NU uita sa updatezi portul in mesajul de eroare                          
-//                     XmlRpcClient client = new XmlRpcClient();
-//                     client.setConfig(config);
                     String result;
                     String aresult[];
-//                     Random r = new Random();
                     while(Repository.run){
-                        try{result = Repository.getRPCClient().execute("ofStatistics",new Object[]{})+"";
+                        try{result = Repository.getRPCClient().
+                                        execute("ofStatistics",new Object[]{})+"";
                             aresult = result.split(",");
                             switch1.setText("   "+aresult[0]);
                             info1.setIngressport(aresult[1]);
@@ -167,18 +163,23 @@ public class NetTop extends JPanel{
                             info23.setRxpackets(aresult[35]);
                             info23.setTxpackets(aresult[36]);
                             info23.setBitrate(aresult[37]);
-                            result = Repository.getRPCClient().execute("ofDataPath",new Object[]{})+"";
+                            result = Repository.getRPCClient().
+                                        execute("ofDataPath",new Object[]{})+"";
                             setUpper(result);
                             try{Thread.sleep(3000);}
                             catch(Exception e){e.printStackTrace();}}
                         catch(Exception e){
                             e.printStackTrace();
-                            System.out.println("could not retrieve net info from: "+"http://"+Repository.host+":"+Repository.getCentralEnginePort());
+                            System.out.println("could not retrieve net info from: "+
+                                                "http://"+Repository.host+":"+
+                                                Repository.getCentralEnginePort());
                             try{Thread.sleep(3000);}
                             catch(Exception xe){xe.printStackTrace();}}}}
                 catch(Exception e){
                     e.printStackTrace();
-                    System.out.println("could not retrieve net info from: "+"http://"+Repository.host+":"+Repository.getCentralEnginePort());
+                    System.out.println("could not retrieve net info from: "+
+                                        "http://"+Repository.host+":"+
+                                        Repository.getCentralEnginePort());
                     try{Thread.sleep(3000);}
                     catch(Exception ex){ex.printStackTrace();}}}}.start();}
         

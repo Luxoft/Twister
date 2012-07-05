@@ -211,17 +211,20 @@ public class Editors extends JFrame {
                 .addContainerGap()
                 .addGroup(layout.createParallelGroup(GroupLayout.Alignment.CENTER)
                     .addComponent(jLabel1)
-                    .addComponent(editorscombo, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
+                    .addComponent(editorscombo, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE,
+                                    GroupLayout.PREFERRED_SIZE))
                 .addGap(18, 18, 18)
                 .addGroup(layout.createParallelGroup(GroupLayout.Alignment.CENTER)
-                    .addComponent(tname, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+                    .addComponent(tname, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE,
+                                    GroupLayout.PREFERRED_SIZE)
                     .addComponent(jLabel2)
                     .addComponent(jLabel4)
                     .addComponent(defaultcheck))
                 .addGap(18, 18, 18)
                 .addGroup(layout.createParallelGroup(GroupLayout.Alignment.CENTER)
                     .addComponent(jLabel3)
-                    .addComponent(tcommand, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+                    .addComponent(tcommand, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE,
+                                    GroupLayout.PREFERRED_SIZE)
                     .addComponent(browse))
                 .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
                 .addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
@@ -273,12 +276,15 @@ public class Editors extends JFrame {
             public void actionPerformed(ActionEvent evnt){
                 JFileChooser chooser = new JFileChooser(); 
                 chooser.setDialogTitle("Select editor executable path"); 
-                if (chooser.showOpenDialog(Editors.this) == JFileChooser.APPROVE_OPTION) {                    
+                if (chooser.showOpenDialog(Editors.this) == JFileChooser.APPROVE_OPTION){                    
                     tpath.setText(chooser.getSelectedFile().getPath());}}});
         p.add(browse);
         Object[] message = new Object[] {p};
-        int r = (Integer)CustomDialog.showDialog(p, JOptionPane.QUESTION_MESSAGE, JOptionPane.OK_CANCEL_OPTION, Editors.this, "Editor", null);
-        if(r == JOptionPane.OK_OPTION && tname.getText().length()>0 && tpath.getText().length()>0){
+        int r = (Integer)CustomDialog.showDialog(p, JOptionPane.QUESTION_MESSAGE, 
+                                                JOptionPane.OK_CANCEL_OPTION,
+                                                Editors.this, "Editor", null);
+        if(r == JOptionPane.OK_OPTION && tname.getText().length()>0 &&
+        tpath.getText().length()>0){
             System.out.println(tname.getText()+" - "+tpath.getText());
             return new String []{tname.getText(),tpath.getText()};}
         else return null;}

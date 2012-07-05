@@ -269,7 +269,6 @@ public class Repository{
                 parseEmailConfig(Repository.REMOTEEMAILCONFIGFILE,true);            
                 
                 variables.put("user",user);
-                variables.put("user",user);
                 variables.put("password",password);  
                 variables.put("temp",temp);
                 variables.put("inifile",TWISTERINI);

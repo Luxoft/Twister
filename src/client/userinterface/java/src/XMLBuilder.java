@@ -54,8 +54,11 @@ public class XMLBuilder{
             transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "4");
             source = new DOMSource(document);
             this.suite = suite;}
-        catch(ParserConfigurationException e){System.out.println("DocumentBuilder cannot be created which satisfies the configuration requested");}
-        catch(TransformerConfigurationException e){System.out.println("Could not create transformer");}}
+        catch(ParserConfigurationException e){
+            System.out.println("DocumentBuilder cannot be created which satisfies the"+
+                                " configuration requested");}
+        catch(TransformerConfigurationException e){
+            System.out.println("Could not create transformer");}}
         
     public boolean getRunning(Item item){
         if(item.getType()==1){
@@ -117,8 +120,9 @@ public class XMLBuilder{
             if(item.getSubItem(0).getValue().equals("false")&&skip)return;
             Element tc  = document.createElement("TestCase");
             rootelement.appendChild(tc);
-            Element em3 = document.createElement("tcName");// if(!skip)em3.appendChild(document.createTextNode(Repository.getTestSuitePath()+item.getFileLocation())); else em3.appendChild(document.createTextNode(item.getFileLocation()));
-            em3.appendChild(document.createTextNode(Repository.getTestSuitePath()+item.getFileLocation()));
+            Element em3 = document.createElement("tcName");
+            em3.appendChild(document.createTextNode(Repository.getTestSuitePath()+
+                                                    item.getFileLocation()));
             tc.appendChild(em3);
             if(skip){
                 Element em6 = document.createElement("tcID");

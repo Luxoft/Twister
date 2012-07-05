@@ -79,9 +79,8 @@ public class Panel4 extends JPanel{
         plugins.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){                
                 setPlugins();}});
-        add(plugins);        
-        setPlugins();
-        //setPaths();
+        add(plugins);
+        setPaths();
     }
        
     /*
@@ -117,7 +116,8 @@ public class Panel4 extends JPanel{
     public void setDuts(){        
         main.removeAll();
         main.setLayout(new FlowLayout());
-        dut.setPreferredSize(new Dimension(main.getWidth()-5,main.getHeight()-5));
+        dut.setPreferredSize(new Dimension(main.getWidth()-5,
+                                            main.getHeight()-5));
         main.add(dut);
         main.repaint();
         main.revalidate();}
@@ -145,7 +145,8 @@ public class Panel4 extends JPanel{
     public void setPlugins(){        
         main.removeAll();
         main.setLayout(new FlowLayout());
-        plugins.setPreferredSize(new Dimension(main.getWidth()-5,main.getHeight()-5));
+        plugins.setPreferredSize(new Dimension(main.getWidth()-5,
+                                                main.getHeight()-5));
         main.add(plugins);
         main.repaint();
         main.revalidate();}
