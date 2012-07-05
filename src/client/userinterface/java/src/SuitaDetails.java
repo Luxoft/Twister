@@ -88,7 +88,10 @@ public class SuitaDetails extends JPanel {
                 width = metrics.stringWidth(descriptions.get(i)[Repository.LABEL]);}}
         for(int i=0;i<descriptions.size();i++){
             String button = descriptions.get(i)[Repository.SELECTED];
-            DefPanel define = new DefPanel(descriptions.get(i)[Repository.LABEL],button,descriptions.get(i)[Repository.ID],width,i,this);
+            DefPanel define = new DefPanel(descriptions.get(i)[Repository.LABEL],
+                                                               button,
+                                                               descriptions.get(i)[Repository.ID],
+                                                               width,i,this);
             definitions.add(define);
             defsContainer.add(define);}
         setEnabled(false);}
@@ -121,7 +124,8 @@ class DefPanel extends JPanel{
     private String id;
     private String descriptions;
     
-    public DefPanel(String descriptions,String button,String id, int width,final int index, SuitaDetails container){
+    public DefPanel(String descriptions,String button,String id, 
+                    int width,final int index, SuitaDetails container){
         this.descriptions = descriptions;
         this.id = id;
         reference = this;
@@ -145,8 +149,12 @@ class DefPanel extends JPanel{
         filedsGap.setPreferredSize(new Dimension(20, 20));
         GroupLayout filedsGapLayout = new GroupLayout(filedsGap);
         filedsGap.setLayout(filedsGapLayout);
-        filedsGapLayout.setHorizontalGroup(filedsGapLayout.createParallelGroup(GroupLayout.Alignment.LEADING).addGap(0, 20, Short.MAX_VALUE));
-        filedsGapLayout.setVerticalGroup(filedsGapLayout.createParallelGroup(GroupLayout.Alignment.LEADING).addGap(0, 20, Short.MAX_VALUE));
+        filedsGapLayout.setHorizontalGroup(filedsGapLayout.
+                                           createParallelGroup(GroupLayout.Alignment.LEADING).
+                                           addGap(0, 20, Short.MAX_VALUE));
+        filedsGapLayout.setVerticalGroup(filedsGapLayout.
+                                        createParallelGroup(GroupLayout.Alignment.LEADING).
+                                        addGap(0, 20, Short.MAX_VALUE));
         add(filedsGap);        
         userDefinition = new JTextField();
         userDefinition.setText("");
@@ -165,19 +173,13 @@ class DefPanel extends JPanel{
         filedsGap.setPreferredSize(new Dimension(20, 20));
         filedsGapLayout = new GroupLayout(filedsGap);
         filedsGap.setLayout(filedsGapLayout);
-        filedsGapLayout.setHorizontalGroup(filedsGapLayout.createParallelGroup(GroupLayout.Alignment.LEADING).addGap(0, 20, Short.MAX_VALUE));
-        filedsGapLayout.setVerticalGroup(filedsGapLayout.createParallelGroup(GroupLayout.Alignment.LEADING).addGap(0, 20, Short.MAX_VALUE));
-        add(filedsGap);      
-        filedsGap = new JPanel();
-        filedsGap.setBackground(new Color(255, 255, 255));
-        filedsGap.setMaximumSize(new Dimension(20, 20));
-        filedsGap.setMinimumSize(new Dimension(20, 20));
-        filedsGap.setPreferredSize(new Dimension(20, 20));
-        filedsGapLayout = new GroupLayout(filedsGap);
-        filedsGap.setLayout(filedsGapLayout);
-        filedsGapLayout.setHorizontalGroup(filedsGapLayout.createParallelGroup(GroupLayout.Alignment.LEADING).addGap(0, 20, Short.MAX_VALUE));
-        filedsGapLayout.setVerticalGroup(filedsGapLayout.createParallelGroup(GroupLayout.Alignment.LEADING).addGap(0, 20, Short.MAX_VALUE));
-        add(filedsGap); 
+        filedsGapLayout.setHorizontalGroup(filedsGapLayout.
+                                           createParallelGroup(GroupLayout.Alignment.LEADING).
+                                           addGap(0, 20, Short.MAX_VALUE));
+        filedsGapLayout.setVerticalGroup(filedsGapLayout.
+                                         createParallelGroup(GroupLayout.Alignment.LEADING).
+                                         addGap(0, 20, Short.MAX_VALUE));
+        add(filedsGap);
         if(button.equals("UserSelect")){
             final JButton database = new JButton("Database");
             database.setMaximumSize(new Dimension(100, 20));
@@ -188,65 +190,75 @@ class DefPanel extends JPanel{
                 public void actionPerformed(ActionEvent ev){
                     DatabaseFrame frame = new DatabaseFrame(reference);
                     frame.executeQuery();
-                    frame.setLocation((int)database.getLocationOnScreen().getX()-100,(int)database.getLocationOnScreen().getY());
+                    frame.setLocation((int)database.getLocationOnScreen().getX()-100,
+                                      (int)database.getLocationOnScreen().getY());
                     frame.setVisible(true);}});}
-//         else if(button.equals("UserScript")){
-//             JButton script = new JButton("Script");
-//             script.setMaximumSize(new Dimension(100, 20));
-//             script.setMinimumSize(new Dimension(50, 20));
-//             script.setPreferredSize(new Dimension(80, 20));
-//             add(script);
-//             script.addActionListener(new ActionListener(){
-//                 public void actionPerformed(ActionEvent ev){
-//                     
-//                     VFSJFileChooser fileChooser = Repository.window.mainpanel.p4.getConfig().getChooser();
-//                     try{RETURN_TYPE answer = fileChooser.showOpenDialog(DefPanel.this);
-//                         if (answer == RETURN_TYPE.APPROVE){
-//                             FileObject aFileObject = fileChooser.getSelectedFile();
-//                             String safeName = VFSUtils.getFriendlyName(aFileObject.toString());
-//                             safeName = safeName.substring(safeName.indexOf(Repository.host)+
-//                                                             Repository.host.length());
-//                             String [] check = safeName.split("/");
-//                             if(check[check.length-1].equals(check[check.length-2])){
-//                                 StringBuffer buffer = new StringBuffer();
-//                                 for(int i=0;i<check.length-1;i++){
-//                                     buffer.append(check[i]+"/");}
-//                                 safeName = buffer.toString();}
-//                             
-//                         }}
-//                     catch(Exception e){
-//                         e.printStackTrace();
-//                     }
-//                     
-//                     
-//                     
-//                     
-//                     
-//                 }});
-//                 
-//             filedsGap = new JPanel();
-//             filedsGap.setBackground(new Color(255, 255, 255));
-//             filedsGap.setMaximumSize(new Dimension(10, 10));
-//             filedsGap.setMinimumSize(new Dimension(10, 10));
-//             filedsGap.setPreferredSize(new Dimension(10, 10));    
-//             filedsGapLayout = new GroupLayout(filedsGap);
-//             filedsGap.setLayout(filedsGapLayout);
-//             filedsGapLayout.setHorizontalGroup(filedsGapLayout.createParallelGroup(GroupLayout.Alignment.LEADING).addGap(0, 20, Short.MAX_VALUE));
-//             filedsGapLayout.setVerticalGroup(filedsGapLayout.createParallelGroup(GroupLayout.Alignment.LEADING).addGap(0, 20, Short.MAX_VALUE));
-//             filedsGap.setLayout(filedsGapLayout);           
-//             add(filedsGap); 
-//             
-//             JButton value = new JButton("Value");
-//             value.setMaximumSize(new Dimension(100, 20));
-//             value.setMinimumSize(new Dimension(50, 20));
-//             value.setPreferredSize(new Dimension(80, 20));
-//             add(value);
-//             value.addActionListener(new ActionListener(){
-//                 public void actionPerformed(ActionEvent ev){
-//                     
-//                     
-//                 }});
-//             }
+        else if(button.equals("UserScript")){
+            JButton script = new JButton("Script");
+            script.setMaximumSize(new Dimension(100, 20));
+            script.setMinimumSize(new Dimension(50, 20));
+            script.setPreferredSize(new Dimension(80, 20));
+            add(script);
+            script.addActionListener(new ActionListener(){
+                public void actionPerformed(ActionEvent ev){
+                    
+                    VFSJFileChooser fileChooser = Repository.window.mainpanel.p4.getConfig().getChooser();
+                    try{RETURN_TYPE answer = fileChooser.showOpenDialog(DefPanel.this);
+                        if (answer == RETURN_TYPE.APPROVE){
+                            FileObject aFileObject = fileChooser.getSelectedFile();
+                            String safeName = VFSUtils.getFriendlyName(aFileObject.toString());
+                            safeName = safeName.substring(safeName.indexOf(Repository.host)+
+                                                            Repository.host.length());
+                            String [] check = safeName.split("/");
+                            if(check[check.length-1].equals(check[check.length-2])){
+                                StringBuffer buffer = new StringBuffer();
+                                for(int i=0;i<check.length-1;i++){
+                                    buffer.append(check[i]+"/");}
+                                safeName = buffer.toString();}
+                            userDefinition.setText(safeName);
+                            if(parent!=null){
+                                setParentField(userDefinition.getText(),false);}
+                        }}
+                    catch(Exception e){
+                        e.printStackTrace();
+                    }
+                }});
+                
+            filedsGap = new JPanel();
+            filedsGap.setBackground(new Color(255, 255, 255));
+            filedsGap.setMaximumSize(new Dimension(10, 10));
+            filedsGap.setMinimumSize(new Dimension(10, 10));
+            filedsGap.setPreferredSize(new Dimension(10, 10));    
+            filedsGapLayout = new GroupLayout(filedsGap);
+            filedsGap.setLayout(filedsGapLayout);
+            filedsGapLayout.setHorizontalGroup(filedsGapLayout.
+                                               createParallelGroup(GroupLayout.Alignment.LEADING).
+                                               addGap(0, 20, Short.MAX_VALUE));
+            filedsGapLayout.setVerticalGroup(filedsGapLayout.
+                                             createParallelGroup(GroupLayout.Alignment.LEADING).
+                                             addGap(0, 20, Short.MAX_VALUE));
+            filedsGap.setLayout(filedsGapLayout);           
+            add(filedsGap); 
+            
+            JButton value = new JButton("Value");
+            value.setMaximumSize(new Dimension(100, 20));
+            value.setMinimumSize(new Dimension(50, 20));
+            value.setPreferredSize(new Dimension(80, 20));
+            add(value);
+            value.addActionListener(new ActionListener(){
+                public void actionPerformed(ActionEvent ev){
+                    String script = userDefinition.getText();
+                    if(script!=null && !script.equals("")){
+                        try{
+                            String result = Repository.getRPCClient().execute("runUserScript",
+                                                                     new Object[]{script})+"";
+                        }
+                        catch(Exception e){
+                            e.printStackTrace();
+                        }
+                    }
+                }});
+            }
         else if(button.equals("UserText")){
             JPanel database = new JPanel();
             database.setBackground(Color.WHITE);

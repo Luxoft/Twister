@@ -190,7 +190,6 @@ public class Plugins extends JPanel{
         catch(Exception e){
             System.out.println("Could not get Plugins Array from local config");
             e.printStackTrace();}}
-            
      
     /*
      * load the list of plugins
@@ -262,20 +261,23 @@ public class Plugins extends JPanel{
             localtable.remove(addremove.getMyLabel());
             remotetable2.add(addremove,constraints);
             remotetable2.add(addremove.getMyLabel(),constraints1);
+            MainPanel main = Repository.window.mainpanel;
+            if(((TwisterPluginInterface)plugins.
+                    get(filename)).getContent()!=null){
+                try{main.remove(((TwisterPluginInterface)plugins.
+                        get(filename)).getContent());
+                }
+                catch(Exception e){
+                    System.out.println("There was a problem in removing "+
+                        "the plugin with filename: "+filename);
+                    e.printStackTrace();
+            }
+        }
             try{((TwisterPluginInterface)plugins.get(filename)).terminate();}
             catch(Exception e){
                 System.out.println("There was a problem in terminatig"+
                     " the plugin with filename: "+filename);
                 e.printStackTrace();}
-            MainPanel main = Repository.window.mainpanel;
-            try{main.remove(((TwisterPluginInterface)plugins.
-                    get(filename)).getContent());
-            }
-            catch(Exception e){
-                System.out.println("There was a problem in removing "+
-                    "the plugin with filename: "+filename);
-                e.printStackTrace();
-            }
             main.revalidate();
             main.repaint();
             localtable.revalidate();
@@ -295,8 +297,7 @@ public class Plugins extends JPanel{
                 description = plugin.getDescription();
                 addPlugin(name,description,plugin);}
             plugintable.revalidate();
-            plugintable.repaint();
-        }
+            plugintable.repaint();}
         else{
             if(copyPlugin(filename)){
                 addremove.setText("Remove");
