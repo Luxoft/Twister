@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 	<meta charset="utf-8">
-	% if title is UNDEFINED:
+	% if title is not UNDEFINED:
 	<title>${title}</title>
 	% else:
 	<title>Twister reporting</title>
@@ -29,19 +29,19 @@
 		<ul class="nav nav-pills nav-stacked">
 		% for link in links:
 			% if link == 'Home' and link == title:
-			<li class="active"><a href="/home"><i class="icon-home"></i> ${link}</a></li>
+			<li class="active"><a href="/home?usr=${usr}"><i class="icon-home"></i> ${link}</a></li>
 			% elif link == 'Help' and link == title:
-			<li class="active"><a href="/help"><i class="icon-flag"></i> ${link}</a></li>
+			<li class="active"><a href="/help?usr=${usr}"><i class="icon-flag"></i> ${link}</a></li>
 			% elif link == 'Home':
-			<li><a href="/home"><i class="icon-home"></i> ${link}</a></li>
+			<li><a href="/home?usr=${usr}"><i class="icon-home"></i> ${link}</a></li>
 			% elif link == 'Help':
-			<li><a href="/help"><i class="icon-flag"></i> ${link}</a></li>
+			<li><a href="/help?usr=${usr}"><i class="icon-flag"></i> ${link}</a></li>
 			% elif link.startswith('goto'):
-			<li><a href="/rep/${link}"><i class="icon-share-alt"></i> ${link}</a></li>
+			<li><a href="/rep/${link}?usr=${usr}"><i class="icon-share-alt"></i> ${link}</a></li>
 			% elif link == title:
-			<li class="active"><a href="/rep/${link}"><i class="icon-asterisk"></i> ${link}</a></li>
+			<li class="active"><a href="/rep/${link}?usr=${usr}"><i class="icon-asterisk"></i> ${link}</a></li>
 			% else:
-			<li><a href="/rep/${link}"><i class="icon-arrow-right"></i> ${link}</a></li>
+			<li><a href="/rep/${link}?usr=${usr}"><i class="icon-arrow-right"></i> ${link}</a></li>
 			% endif
 		% endfor
 		</ul>
@@ -121,7 +121,7 @@
 		<div class="hero-unit">
 			<h2>Twister reporting</h2><br><br>
 			<div class="alert alert-info">
-				<h3 class="alert-heading">Welcome !</h3><br>
+				<h3 class="alert-heading">Welcome <i>${usr}</i> !</h3><br>
 				Please choose a report from the left.
 			</div>
 		</div>
