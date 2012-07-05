@@ -1,0 +1,117 @@
+[
+  {
+  "name": "basic",
+  "tests": [
+    "DataPlaneOnly",
+    "DescStatsGet",
+    "Echo",
+    "EchoWithData",
+    "FlowMod",
+    "FlowStatsGet",
+    "PacketIn",
+    "PacketOut",
+    "PacketOutMC",
+    "PortConfigMod",
+    "SimpleDataPlane",
+    "SimpleProtocol",
+    "TableStatsGet"
+    ]
+  },
+  {
+  "name": "flow_stats",
+  "tests": [
+    "AggregateStats",
+    "SingleFlowStats",
+    "TwoFlowStats"
+    ]
+  },
+  {
+  "name": "flow_query",
+  "tests": [
+    "Flow_Add_5",
+    "Flow_Add_5_1",
+    "Flow_Add_6",
+    "Flow_Add_7",
+    "Flow_Add_8",
+    "Flow_Del_1",
+    "Flow_Del_2",
+    "Flow_Del_4",
+    "Flow_Mod_1",
+    "Flow_Mod_2",
+    "Flow_Mod_3",
+    "Flow_Mod_3_1"
+    ]
+  },
+  {
+  "name": "flow_expire",
+  "tests": [
+    "FlowExpire"
+    ]
+  },
+  {
+  "name": "load",
+  "tests": [
+    "LoadBarrier"
+    ]
+  },
+  {
+  "name": "caps",
+  "tests": [
+    "FillTableExact",
+    "FillTableWC"
+    ]
+  },
+  {
+  "name": "pktact",
+  "tests": [
+    "AddVLANTag",
+    "All",
+    "AllExceptOneWildcardMatch",
+    "AllExceptOneWildcardMatchTagged",
+    "AllPlusIngress",
+    "AllWildcardMatch",
+    "AllWildcardMatchTagged",
+    "BaseMatchCase",
+    "DirectMC",
+    "DirectMCNonIngress",
+    "DirectPacket",
+    "DirectPacketICMP",
+    "DirectPacketQueue",
+    "DirectTwoPorts",
+    "ExactMatch",
+    "ExactMatchTagged",
+    "ExactMatchTaggedMany",
+    "Flood",
+    "FloodMinusPort",
+    "FloodPlusIngress",
+    "FlowToggle",
+    "IterCases",
+    "MixedVLAN",
+    "ModifyL2Dst",
+    "ModifyL2DstIngress",
+    "ModifyL2DstIngressMC",
+    "ModifyL2DstMC",
+    "ModifyL2DstVIDMC",
+    "ModifyL2Src",
+    "ModifyL2SrcDstMC",
+    "ModifyL2SrcMC",
+    "ModifyL3Dst",
+    "ModifyL3Src",
+    "ModifyL4Dst",
+    "ModifyL4Src",
+    "ModifyTOS",
+    "ModifyVID",
+    "ModifyVIDWithTagMatchWildcarded",
+    "ModifyVlanPcp",
+    "PacketOnly",
+    "PacketOnlyTagged",
+    "SingleWildcardMatch",
+    "SingleWildcardMatchPriority",
+    "SingleWildcardMatchPriorityInsertModifyDelete",
+    "SingleWildcardMatchTagged",
+    "StripVLANTag",
+    "StripVLANTagWithTagMatchWildcarded",
+    "WildcardPriority"
+    ]
+  }
+]
