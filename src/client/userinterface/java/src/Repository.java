@@ -606,21 +606,23 @@ public class Repository{
                     String field [] = new String[ELEMENTSNR];
                     field[0]=tablee.getAttribute("Label");
                     if(field[0]==null){
-                        System.out.println("Warning, no Label element in field tag in db.xml at filed nr: "+i);
+                        System.out.println("Warning, no Label element in"+
+                                            " field tag in db.xml at filed nr: "+i);
                         field[0]="";}
                     field[1]=tablee.getAttribute("ID");
                     if(field[1]==null){
-                        System.out.println("Warning, no ID element in field tag in db.xml at filed nr: "+i);
+                        System.out.println("Warning, no ID element in "+
+                                            "field tag in db.xml at filed nr: "+i);
                         field[1]="";}
                     field[2]=tablee.getAttribute("Type");
                     if(field[2]==null){
-                        System.out.println("Warning, no Type element in field tag in db.xml at filed nr: "+i);
+                        System.out.println("Warning, no Type element in"+
+                                            " field tag in db.xml at filed nr: "+i);
                         field[2]="";}
-                    else if (field[2].equals("UserSelect"))field[2] ="true";
-                    else field[2] = "false";
                     field[3]=tablee.getAttribute("Mandatory");
                     if(field[3]==null){
-                        System.out.println("Warning, no Mandatory element in field tag in db.xml at filed nr: "+i);
+                        System.out.println("Warning, no Mandatory element "+
+                                            "in field tag in db.xml at filed nr: "+i);
                         field[3]="";}
                     databaseUserFields.add(field);}}}
         catch(Exception e){

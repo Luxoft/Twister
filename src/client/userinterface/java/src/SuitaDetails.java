@@ -40,6 +40,10 @@ import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
 import java.awt.Component;
 import java.util.ArrayList;
+import net.sf.vfsjfilechooser.VFSJFileChooser;
+import net.sf.vfsjfilechooser.VFSJFileChooser.RETURN_TYPE;
+import org.apache.commons.vfs.FileObject;
+import net.sf.vfsjfilechooser.utils.VFSUtils;
 
 public class SuitaDetails extends JPanel {
     private JPanel defsContainer;
@@ -80,10 +84,10 @@ public class SuitaDetails extends JPanel {
         FontMetrics metrics = l.getFontMetrics(l.getFont());
         int width = 0;
         for(int i=0;i<descriptions.size();i++){
-            if(width<metrics.stringWidth(descriptions.get(i)[Repository.LABEL])){width = metrics.stringWidth(descriptions.get(i)[Repository.LABEL]);}}
+            if(width<metrics.stringWidth(descriptions.get(i)[Repository.LABEL])){
+                width = metrics.stringWidth(descriptions.get(i)[Repository.LABEL]);}}
         for(int i=0;i<descriptions.size();i++){
-            boolean button = true;
-            if(descriptions.get(i)[Repository.SELECTED].equals("false"))button = false;
+            String button = descriptions.get(i)[Repository.SELECTED];
             DefPanel define = new DefPanel(descriptions.get(i)[Repository.LABEL],button,descriptions.get(i)[Repository.ID],width,i,this);
             definitions.add(define);
             defsContainer.add(define);}
@@ -117,7 +121,7 @@ class DefPanel extends JPanel{
     private String id;
     private String descriptions;
     
-    public DefPanel(String descriptions,boolean button,String id, int width,final int index, SuitaDetails container){
+    public DefPanel(String descriptions,String button,String id, int width,final int index, SuitaDetails container){
         this.descriptions = descriptions;
         this.id = id;
         reference = this;
@@ -164,15 +168,6 @@ class DefPanel extends JPanel{
         filedsGapLayout.setHorizontalGroup(filedsGapLayout.createParallelGroup(GroupLayout.Alignment.LEADING).addGap(0, 20, Short.MAX_VALUE));
         filedsGapLayout.setVerticalGroup(filedsGapLayout.createParallelGroup(GroupLayout.Alignment.LEADING).addGap(0, 20, Short.MAX_VALUE));
         add(filedsGap);      
-        JButton script = new JButton("Script");
-        script.setMaximumSize(new Dimension(70, 20));
-        script.setMinimumSize(new Dimension(70, 20));
-        script.setPreferredSize(new Dimension(70, 20));
-        script.addActionListener(new ActionListener(){
-                public void actionPerformed(ActionEvent ev){
-                    
-                }});
-        add(script);
         filedsGap = new JPanel();
         filedsGap.setBackground(new Color(255, 255, 255));
         filedsGap.setMaximumSize(new Dimension(20, 20));
@@ -183,7 +178,7 @@ class DefPanel extends JPanel{
         filedsGapLayout.setHorizontalGroup(filedsGapLayout.createParallelGroup(GroupLayout.Alignment.LEADING).addGap(0, 20, Short.MAX_VALUE));
         filedsGapLayout.setVerticalGroup(filedsGapLayout.createParallelGroup(GroupLayout.Alignment.LEADING).addGap(0, 20, Short.MAX_VALUE));
         add(filedsGap); 
-        if(button){
+        if(button.equals("UserSelect")){
             final JButton database = new JButton("Database");
             database.setMaximumSize(new Dimension(100, 20));
             database.setMinimumSize(new Dimension(50, 20));
@@ -195,7 +190,64 @@ class DefPanel extends JPanel{
                     frame.executeQuery();
                     frame.setLocation((int)database.getLocationOnScreen().getX()-100,(int)database.getLocationOnScreen().getY());
                     frame.setVisible(true);}});}
-        else{
+//         else if(button.equals("UserScript")){
+//             JButton script = new JButton("Script");
+//             script.setMaximumSize(new Dimension(100, 20));
+//             script.setMinimumSize(new Dimension(50, 20));
+//             script.setPreferredSize(new Dimension(80, 20));
+//             add(script);
+//             script.addActionListener(new ActionListener(){
+//                 public void actionPerformed(ActionEvent ev){
+//                     
+//                     VFSJFileChooser fileChooser = Repository.window.mainpanel.p4.getConfig().getChooser();
+//                     try{RETURN_TYPE answer = fileChooser.showOpenDialog(DefPanel.this);
+//                         if (answer == RETURN_TYPE.APPROVE){
+//                             FileObject aFileObject = fileChooser.getSelectedFile();
+//                             String safeName = VFSUtils.getFriendlyName(aFileObject.toString());
+//                             safeName = safeName.substring(safeName.indexOf(Repository.host)+
+//                                                             Repository.host.length());
+//                             String [] check = safeName.split("/");
+//                             if(check[check.length-1].equals(check[check.length-2])){
+//                                 StringBuffer buffer = new StringBuffer();
+//                                 for(int i=0;i<check.length-1;i++){
+//                                     buffer.append(check[i]+"/");}
+//                                 safeName = buffer.toString();}
+//                             
+//                         }}
+//                     catch(Exception e){
+//                         e.printStackTrace();
+//                     }
+//                     
+//                     
+//                     
+//                     
+//                     
+//                 }});
+//                 
+//             filedsGap = new JPanel();
+//             filedsGap.setBackground(new Color(255, 255, 255));
+//             filedsGap.setMaximumSize(new Dimension(10, 10));
+//             filedsGap.setMinimumSize(new Dimension(10, 10));
+//             filedsGap.setPreferredSize(new Dimension(10, 10));    
+//             filedsGapLayout = new GroupLayout(filedsGap);
+//             filedsGap.setLayout(filedsGapLayout);
+//             filedsGapLayout.setHorizontalGroup(filedsGapLayout.createParallelGroup(GroupLayout.Alignment.LEADING).addGap(0, 20, Short.MAX_VALUE));
+//             filedsGapLayout.setVerticalGroup(filedsGapLayout.createParallelGroup(GroupLayout.Alignment.LEADING).addGap(0, 20, Short.MAX_VALUE));
+//             filedsGap.setLayout(filedsGapLayout);           
+//             add(filedsGap); 
+//             
+//             JButton value = new JButton("Value");
+//             value.setMaximumSize(new Dimension(100, 20));
+//             value.setMinimumSize(new Dimension(50, 20));
+//             value.setPreferredSize(new Dimension(80, 20));
+//             add(value);
+//             value.addActionListener(new ActionListener(){
+//                 public void actionPerformed(ActionEvent ev){
+//                     
+//                     
+//                 }});
+//             }
+        else if(button.equals("UserText")){
             JPanel database = new JPanel();
             database.setBackground(Color.WHITE);
             database.setMaximumSize(new Dimension(100, 20));
@@ -217,7 +269,8 @@ class DefPanel extends JPanel{
                 
     protected void setParent(Item parent){
         if(parent!=null&&parent.getType()==2){
-            container.setTitle("Suite "+parent.getName());
+            container.setTitle("Suite "+
+                                parent.getName());
             container.setEnabled(true);}
         else{
             container.setEnabled(false);

@@ -394,7 +394,6 @@ public class Plugins extends JPanel{
         check.setName(tname);
         try{MainPanel main = Repository.window.mainpanel;
             ArrayList<Component>components = new ArrayList<Component>(Arrays.asList(main.getComponents()));
-//             if(components.contains(plugin.getContent()))check.setSelected(true);
         }
         catch(Exception e){}
         GridBagConstraints gridBagConstraints = new GridBagConstraints();        
@@ -481,7 +480,9 @@ public class Plugins extends JPanel{
         TwisterPluginInterface plugin = (TwisterPluginInterface)plugins.get(pluginname);
         MainPanel main = Repository.window.mainpanel;
         if(check.isSelected()){
-            plugin.init(Repository.getSuite(),Repository.getTestSuite(),Repository.getVariables());
+            plugin.init(Repository.getSuite(),
+                        Repository.getTestSuite(),
+                        Repository.getVariables());
             main.addTab(plugin.getName(), plugin.getContent());
             main.revalidate();
             main.repaint();}
