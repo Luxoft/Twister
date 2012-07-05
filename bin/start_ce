@@ -5,7 +5,7 @@ PYTHON=/usr/bin/python
 if [ -n "$TWISTER_PATH" ]
 then
 	echo TWISTER_PATH set to: "$TWISTER_PATH".
-	$PYTHON $TWISTER_PATH/server/centralengine/CentralEngine.py
+	$PYTHON $TWISTER_PATH/server/centralengine/CentralEngine.py 8000
 else
 	echo TWISTER_PATH variable enviroment is not defined!
 fi

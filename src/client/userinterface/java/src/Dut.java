@@ -98,7 +98,9 @@ public class Dut extends JPanel {
     DevicePort temp3; 
     DefaultMutableTreeNode nodetemp1,nodetemp2,nodetemp3,nodetemp0;
     JTextArea tdescription,tdescription0;
-    JTextField propvalue,propvalue2,tname0,tname,tname2,tname3,tname4,propname,propvalue3,propname2,propname3,tid0,tid,tvendor,ttype,tfamily,tmodel;
+    JTextField propvalue,propvalue2,tname0,tname,tname2,
+               tname3,tname4,propname,propvalue3,propname2,
+               propname3,tid0,tid,tvendor,ttype,tfamily,tmodel;
     
     public Dut(){
         initComponents();
@@ -125,7 +127,9 @@ public class Dut extends JPanel {
         add3.setBounds(330,75,58,24);
         add3.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
-                if(temp3!=null&&!propname3.getText().equals("")&&!propvalue3.getText().equals("")&&!checkForNumber(propname3.getText().charAt(0))){
+                if(temp3!=null&&!propname3.getText().equals("") && 
+                !propvalue3.getText().equals("") && 
+                !checkForNumber(propname3.getText().charAt(0))){
                     temp3.properties.add(new String[]{propname3.getText(),propvalue3.getText()});
                     propname3.setText("");
                     propvalue3.setText("");
@@ -184,7 +188,10 @@ public class Dut extends JPanel {
         add2.setBounds(330,65,58,24);
         add2.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
-                if(temp2!=null&&!propname2.getText().equals("")&&!propvalue2.getText().equals("")&&!checkForNumber(propname2.getText().charAt(0))){
+                if(temp2!=null && 
+                !propname2.getText().equals("") && 
+                !propvalue2.getText().equals("") && 
+                !checkForNumber(propname2.getText().charAt(0))){
                     temp2.properties.add(new String[]{propname2.getText(),propvalue2.getText()});
                     propname2.setText("");
                     propvalue2.setText("");
@@ -284,7 +291,9 @@ public class Dut extends JPanel {
         add.setBounds(330,230,58,24);
         add.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
-                if(temp!=null&&!propname.getText().equals("")&&!propvalue.getText().equals("")&&!checkForNumber(propname.getText().charAt(0))){
+                if(temp!=null&&!propname.getText().equals("") && 
+                !propvalue.getText().equals("") && 
+                !checkForNumber(propname.getText().charAt(0))){
                     temp.properties.add(new String[]{propname.getText(),propvalue.getText()});
                     propname.setText("");
                     propvalue.setText("");
@@ -357,7 +366,9 @@ public class Dut extends JPanel {
                     ((DefaultTreeModel)explorer.tree.getModel()).nodeChanged(nodetemp1.getChildAt(1));}}});
         p2.add(tdescription);
         try{Repository.c.cd(Repository.REMOTEHARDWARECONFIGDIRECTORY);}
-        catch(Exception e){System.out.println("Could not get: "+Repository.REMOTEHARDWARECONFIGDIRECTORY+" as REMOTE HARDWARE CONFIG DIRECTORY");}
+        catch(Exception e){
+            System.out.println("Could not get: "+Repository.REMOTEHARDWARECONFIGDIRECTORY+
+                                " as REMOTE HARDWARE CONFIG DIRECTORY");}
         try{System.out.println(Repository.c.pwd());}
         catch(Exception e){}   
         jScrollPane2 = new JScrollPane();
@@ -453,7 +464,10 @@ public class Dut extends JPanel {
         GeneralButtonsPanel.add(save);}
         
     public void save(){
-        String name = CustomDialog.showInputDialog(JOptionPane.PLAIN_MESSAGE, JOptionPane.OK_CANCEL_OPTION, Dut.this, "File name", "Please enter file name:");
+        String name = CustomDialog.showInputDialog(JOptionPane.PLAIN_MESSAGE, 
+                                                    JOptionPane.OK_CANCEL_OPTION,
+                                                    Dut.this, "File name", 
+                                                    "Please enter file name:");
         boolean saved =true;
         if(name!=null){
             try{DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
@@ -471,7 +485,9 @@ public class Dut extends JPanel {
                     Element em = document.createElement("testbed");
                     root.appendChild(em);
                     traverseTree(((TreeNode)explorer.tree.getModel().getRoot()).getChildAt(i),em,document);}
-                File file = new File(Repository.temp+Repository.getBar()+"Twister"+Repository.getBar()+"HardwareConfig"+Repository.getBar()+name+".xml");
+                File file = new File(Repository.temp+Repository.getBar()+"Twister"+
+                                        Repository.getBar()+"HardwareConfig"+
+                                        Repository.getBar()+name+".xml");
                 Result result = new StreamResult(file); 
                 try{transformer.transform(source, result);
                     try{Repository.c.cd(Repository.REMOTEHARDWARECONFIGDIRECTORY);}
@@ -482,12 +498,19 @@ public class Dut extends JPanel {
                 catch(Exception e){
                     saved =false;
                     e.printStackTrace();
-                System.out.println("Could not save in file : "+file.getCanonicalPath()+" and sen to "+Repository.REMOTEHARDWARECONFIGDIRECTORY);}} 
+                    System.out.println("Could not save in file : "+
+                                    file.getCanonicalPath()+" and sen to "+
+                                    Repository.REMOTEHARDWARECONFIGDIRECTORY);}} 
             catch(Exception e) {
                 saved =false;
                 e.printStackTrace();}
-            if(saved)CustomDialog.showInfo(JOptionPane.INFORMATION_MESSAGE, Dut.this, "Successfull", "File successfully saved");
-            else CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, Dut.this, "Warning", "File could not be saved ");}}
+            if(saved){
+                CustomDialog.showInfo(JOptionPane.INFORMATION_MESSAGE, 
+                                        Dut.this, "Successfull", 
+                                        "File successfully saved");}
+            else CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, 
+                                        Dut.this, "Warning", 
+                                        "File could not be saved ");}}
         
     public void addItem(){
         if(additem.getText().equals("Add testbed")){
@@ -517,7 +540,8 @@ public class Dut extends JPanel {
     public void generate(){
         boolean saved = true;
         try{String status="";
-            try{status = (String)Repository.getRPCClient().execute("getExecStatusAll",new Object[]{});}
+            try{status = (String)Repository.getRPCClient().execute("getExecStatusAll",
+                                                                    new Object[]{});}
             catch(Exception e){
                 e.printStackTrace();
                 saved = false;
@@ -538,7 +562,9 @@ public class Dut extends JPanel {
                     Element em = document.createElement("testbed");
                     root.appendChild(em);
                     traverseTree(((TreeNode)explorer.tree.getModel().getRoot()).getChildAt(i),em,document);}
-                File file = new File(Repository.temp+Repository.getBar()+"Twister"+Repository.getBar()+"HardwareConfig"+Repository.getBar()+"hwconfig.xml");
+                File file = new File(Repository.temp+Repository.getBar()+"Twister"+
+                                     Repository.getBar()+"HardwareConfig"+
+                                     Repository.getBar()+"hwconfig.xml");
                 Result result = new StreamResult(file); 
                 try{transformer.transform(source, result);
                     try{Repository.c.cd(Repository.REMOTEHARDWARECONFIGDIRECTORY);}
@@ -552,20 +578,30 @@ public class Dut extends JPanel {
                 catch(Exception e){
                     saved = false;
                     e.printStackTrace();
-                    System.out.println("Could not save in file : "+file.getCanonicalPath()+" and send to "+Repository.REMOTEHARDWARECONFIGDIRECTORY);}}
+                    System.out.println("Could not save in file : "+
+                                        file.getCanonicalPath()+
+                                        " and send to "+
+                                        Repository.REMOTEHARDWARECONFIGDIRECTORY);}}
             else{saved = false;
-                CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, Dut.this, "Warning", "Please close Central Engine before generating");}}
+                CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, Dut.this,
+                                        "Warning", "Please close Central Engine before generating");}}
         catch(Exception e) {
             saved = false;
             e.printStackTrace();}
-        if(saved)CustomDialog.showInfo(JOptionPane.INFORMATION_MESSAGE, Repository.window.mainpanel.p4.getConfig(), "Successfull", "File successfully generated");
-        else CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, Repository.window.mainpanel.p4.getConfig(), "Warning", "File could not be generated ");}
+        if(saved)CustomDialog.showInfo(JOptionPane.INFORMATION_MESSAGE,
+                                        Repository.window.mainpanel.p4.getConfig(),
+                                        "Successfull", "File successfully generated");
+        else CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, 
+                                    Repository.window.mainpanel.p4.getConfig(),
+                                    "Warning", "File could not be generated ");}
         
     private void load(String file){
         try{String config=null;
             if(file == null){
                 try{Repository.c.cd(Repository.REMOTEHARDWARECONFIGDIRECTORY);}
-                catch(Exception e){System.out.println("Could not get: "+Repository.REMOTEHARDWARECONFIGDIRECTORY+" as REMOTE HARDWARE CONFIG DIRECTORY");}
+                catch(Exception e){System.out.println("Could not get: "+
+                                                        Repository.REMOTEHARDWARECONFIGDIRECTORY+
+                                                        " as REMOTE HARDWARE CONFIG DIRECTORY");}
                 Vector <LsEntry> files = Repository.c.ls(Repository.REMOTEHARDWARECONFIGDIRECTORY);
                 int size = files.size();
                 ArrayList<String> temp = new ArrayList<String>();
@@ -576,24 +612,26 @@ public class Dut extends JPanel {
                     temp.add(name);}
                 String configs [] = new String[temp.size()];
                 temp.toArray(configs);
-                
                 JComboBox combo = new JComboBox(configs);
-                int resp = (Integer)CustomDialog.showDialog(combo,JOptionPane.INFORMATION_MESSAGE,JOptionPane.OK_CANCEL_OPTION,Dut.this,"Config",null);
+                int resp = (Integer)CustomDialog.showDialog(combo,JOptionPane.INFORMATION_MESSAGE,
+                                                            JOptionPane.OK_CANCEL_OPTION,Dut.this,
+                                                            "Config",null);
                 if(resp==JOptionPane.OK_OPTION){
-                   config = combo.getSelectedItem().toString();}
-//                 config = (String)JOptionPane.showInputDialog(null, "Please select a DUT file", "Config", 1, null, configs, "Configs");
-            }
+                   config = combo.getSelectedItem().toString();}}
             else config=file;
             if(config!=null){
                 InputStream in=null;
                 try{in = Repository.c.get(config);}
-                catch(Exception e){System.out.println("Please check the hwconfig file "+config+" in "+Repository.c.pwd());}
+                catch(Exception e){System.out.println("Please check the hwconfig file "+
+                                                      config+" in "+Repository.c.pwd());}
                 byte [] data = new byte[100];
                 ByteArrayOutputStream buffer = new ByteArrayOutputStream();
                 int nRead;
                 while ((nRead = in.read(data, 0, data.length)) != -1){buffer.write(data, 0, nRead);}
                 buffer.flush();
-                File theone = new File(Repository.temp+Repository.getBar()+"Twister"+Repository.getBar()+"HardwareConfig"+Repository.getBar()+config);
+                File theone = new File(Repository.temp+Repository.getBar()+"Twister"+
+                                        Repository.getBar()+"HardwareConfig"+
+                                        Repository.getBar()+config);
                 FileOutputStream out = new FileOutputStream(theone);
                 buffer.writeTo(out);
                 out.close();
@@ -603,7 +641,8 @@ public class Dut extends JPanel {
                 DocumentBuilder db = dbf.newDocumentBuilder();
                 Document doc = null;
                 try{doc = db.parse(theone);}
-                catch(Exception e){System.out.println(theone.getCanonicalPath()+" is corrupted or incomplete");}
+                catch(Exception e){System.out.println(theone.getCanonicalPath()+
+                                                        " is corrupted or incomplete");}
                 if(doc!=null){
                     doc.getDocumentElement().normalize(); 
                     NodeList nodeLst = doc.getElementsByTagName("testbed");
@@ -681,7 +720,7 @@ public class Dut extends JPanel {
                                                         catch(Exception e){dmodul.setName("");}
                                                         DefaultMutableTreeNode child9 = new DefaultMutableTreeNode("Module Type: "+dmodul.name,false);
                                                         child8.add(child9);}
-                                                else{DefaultMutableTreeNode child9 = new DefaultMutableTreeNode("Module Type: ",false);// in cazul in care nu are tag modultype
+                                                else{DefaultMutableTreeNode child9 = new DefaultMutableTreeNode("Module Type: ",false);// in case it has no moduletype tag
                                                     child8.add(child9);}
                                                 for(int l=3;l<((Element)modul).getChildNodes().getLength();l++){
                                                     if(((Element)modul).getChildNodes().item(l).getNodeName().equals("deviceport"))break;

@@ -37,8 +37,11 @@ public class XMLReader{
     private DocumentBuilder db;
     private Document doc;
     private Node fstNode,secNode,trdNode;
-    private Element fstElmnt,fstNmElmnt,secElmnt,secNmElmnt,trdElmnt,trdNmElmnt;
-    private NodeList fstNmElmntLst,fstNm,fstNmElmntLst2,secNmElmntLst,secNm,secNmElmntLst2,trdNmElmntLst,trdNm,trdNmElmntLst2,trdNm2;
+    private Element fstElmnt,fstNmElmnt,secElmnt,
+                    secNmElmnt,trdElmnt,trdNmElmnt;
+    private NodeList fstNmElmntLst,fstNm,fstNmElmntLst2,
+                     secNmElmntLst,secNm,secNmElmntLst2,
+                     trdNmElmntLst,trdNm,trdNmElmntLst2,trdNm2;
     private File f;
     private String name,value;
     
@@ -46,18 +49,22 @@ public class XMLReader{
         f = file;
         dbf = DocumentBuilderFactory.newInstance();
         try{db = dbf.newDocumentBuilder();}
-        catch(ParserConfigurationException e){System.out.println("Could not create a XML parser configuration");}
+        catch(ParserConfigurationException e){
+            System.out.println("Could not create a XML parser configuration");}
         try{doc = db.parse(file);}
         catch(SAXException e){
-            try{System.out.println("The document"+file.getCanonicalPath()+" is empty or not valid");}
+            try{System.out.println("The document"+file.getCanonicalPath()+
+                                    " is empty or not valid");}
             catch(Exception ex){e.printStackTrace();}}
         catch(IOException e){
-            try{System.out.println("Could not read the document"+file.getCanonicalPath());}
+            try{System.out.println("Could not read the document"+
+                                    file.getCanonicalPath());}
             catch(Exception ex){e.printStackTrace();}}
         try{doc.getDocumentElement().normalize();}
         catch(Exception e){e.printStackTrace();}}
         
-    public void manageSubChilderen(Item item,Node node,ArrayList <Integer> indexes, Graphics g, boolean test){
+    public void manageSubChilderen(Item item,Node node,ArrayList <Integer> indexes,
+                                    Graphics g, boolean test){
         if(!node.getNodeName().equals("Property")){
             Item theone;
             int k = 0;
@@ -67,8 +74,12 @@ public class XMLReader{
                 fstNm = fstNmElmnt.getChildNodes();
                 FontMetrics metrics = g.getFontMetrics(new Font("TimesRoman", 1, 13));
                 int width = metrics.stringWidth(fstNm.item(0).getNodeValue().toString());
-                if(test)theone = new Item(fstNm.item(0).getNodeValue(),2,-1,10, width+40,25,indexes);
-                else theone = new Item(fstNm.item(0).getNodeValue(),2,-1,10, width+140,25,indexes);
+                if(test){
+                    theone = new Item(fstNm.item(0).getNodeValue(),2,
+                                        -1,10, width+40,25,indexes);}
+                else{
+                    theone = new Item(fstNm.item(0).getNodeValue(),2,
+                                        -1,10, width+140,25,indexes);}
                 fstNmElmntLst = ((Element)node).getElementsByTagName("EpId");
                 fstNmElmnt = (Element)fstNmElmntLst.item(0);
                 fstNm = fstNmElmnt.getChildNodes();
@@ -79,7 +90,9 @@ public class XMLReader{
                 secNm = secNmElmnt.getChildNodes();
                 FontMetrics metrics = g.getFontMetrics(new Font("TimesRoman", 0, 13));
                 String f ;
-                if(!test) f = secNm.item(0).getNodeValue().toString().split(Repository.getTestSuitePath())[1];
+                if(!test){
+                    f = secNm.item(0).getNodeValue().toString().
+                            split(Repository.getTestSuitePath())[1];}
                 else f = secNm.item(0).getNodeValue().toString();
                 int width = metrics.stringWidth(f) + 8;                
                 theone = new Item(f,1,-1,-1,width+40,20,indexes);
@@ -125,7 +138,8 @@ public class XMLReader{
             value = trdNm2.item(0).getNodeValue().toString();
             FontMetrics metrics = g.getFontMetrics(new Font("TimesRoman", 0, 11));
             int width = metrics.stringWidth(name+":  "+value) + 8;
-            indexes.set(indexes.size()-1,new Integer(indexes.get(indexes.size()-1).intValue()-1));
+            indexes.set(indexes.size()-1,
+                        new Integer(indexes.get(indexes.size()-1).intValue()-1));
             Item property = new Item(name,0,-1,-1,width+30,20,indexes);
             property.setValue(value);
             item.addSubItem(property);
@@ -152,8 +166,10 @@ public class XMLReader{
             FontMetrics metrics = g.getFontMetrics(new Font("TimesRoman", 1, 13));
             int width = metrics.stringWidth(fstNm.item(0).getNodeValue().toString());
             Item suitatemp;
-            if(!test)suitatemp= new Item(fstNm.item(0).getNodeValue(),2,-1,10, width+140,25,indexpos);
-            else suitatemp=  new Item(fstNm.item(0).getNodeValue(),2,-1,10, width+40,25,indexpos);
+            if(!test)suitatemp= new Item(fstNm.item(0).getNodeValue(),
+                                         2,-1,10, width+140,25,indexpos);
+            else suitatemp=  new Item(fstNm.item(0).getNodeValue(),
+                                      2,-1,10, width+40,25,indexpos);
             fstNmElmntLst = fstElmnt.getElementsByTagName("EpId");
             fstNmElmnt = (Element)fstNmElmntLst.item(0);
             fstNm = fstNmElmnt.getChildNodes();
@@ -183,7 +199,8 @@ public class XMLReader{
                 k++;
                 ArrayList <Integer> temp =(ArrayList <Integer>)indexpos.clone();
                 temp.add(new Integer(index));
-                manageSubChilderen(suitatemp,fstElmnt.getChildNodes().item(k),temp,g,test);
+                manageSubChilderen(suitatemp,fstElmnt.getChildNodes().item(k),
+                                    temp,g,test);
                 index++;}
             if(!test)Repository.addSuita(suitatemp);
             else{Repository.addTestSuita(suitatemp);
@@ -193,7 +210,8 @@ public class XMLReader{
                     found = true;
                     break;}}
             if(!found){
-                Repository.getLogs().add(suitatemp.getEpId()+"_"+Repository.getLogs().get(4));}}}
+                Repository.getLogs().add(suitatemp.getEpId()+"_"+
+                                            Repository.getLogs().get(4));}}}
         if(!test){
             if(Repository.getSuiteNr()>0){
                 while(Repository.window.mainpanel.p1.sc.g==null){

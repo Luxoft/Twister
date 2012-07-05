@@ -351,7 +351,8 @@ public class Grafic extends JPanel{
                         if((parent.getSubItemsNr()-1==upper.getPos().get(upper.getPos().size()-1)) &&
                                 !upper.getSubItem(0).isVisible()){//if tc is last in suite                                    
                             int Y = mouseY;
-                            if(Y<upper.getRectangle().y+upper.getRectangle().getHeight()+5){//Should be inserted in upper parent/next in line; 5 is half height between elements
+                            if(Y<upper.getRectangle().y+upper.getRectangle().getHeight()+5){//Should be inserted in upper parent/next in line
+                                
                                 dropNextInLine(upper,parent,index,position);}
                             else{//Should be inserted after upper parent; exit one level
                                 upper = parent;
@@ -412,7 +413,7 @@ public class Grafic extends JPanel{
                                 int temp1 = upper.getPos().get(position-1);
                                 if(upper.getPos().size()==1){dropOnFirstLevel(upper);}//suite on level 0
                                 else{dropOnUpperLevel(upper);}}}//Suita with parent suita
-                        else{dropNextInLine(upper, parent, index, position);}}}}//tc-ul is not last in suite
+                        else{dropNextInLine(upper, parent, index, position);}}}}//tc is not last in suite
             else{dropFirstElement();}}//upper is null
         else{
             if(getItem(selected,false).getType()==2){//inserted in suita
@@ -545,7 +546,7 @@ public class Grafic extends JPanel{
         String ep = parent.getEpId();
         for(int i=0;i<clone.size();i++){//all elements from drag
             ArrayList<Integer> selected3 = (ArrayList<Integer>)selected2.clone(); //clone position of the lement in that was made drop
-            selected3.set(selected3.size()-1,new Integer(selected3.get(selected3.size()-1).intValue()+i)); // 
+            selected3.set(selected3.size()-1,new Integer(selected3.get(selected3.size()-1).intValue()+i));
             clone.get(i).setPos(selected3);
             for(int j = temp1;j<parent.getSubItemsNr();j++){
                 parent.getSubItem(j).updatePos(position,new Integer(parent.getSubItem(j).

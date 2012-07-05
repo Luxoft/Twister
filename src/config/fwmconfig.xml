@@ -11,6 +11,7 @@ Test Suite Config: All info about the current Test Suite (Test Plan).
     <CentralEnginePort>8000</CentralEnginePort>
     <ResourceAllocatorPort>8001</ResourceAllocatorPort>
     <HttpServerPort>8080</HttpServerPort>
+    <VersionControlSource>tsc Git</VersionControlSource>
     <TestCaseSourcePath>/home/tscguest/twister/demo/</TestCaseSourcePath>
     <MasterXMLTestSuite>/home/tscguest/twister/src/config/testsuites.xml</MasterXMLTestSuite>
     <UsersPath>/home/tscguest/twister/src/users/</UsersPath>

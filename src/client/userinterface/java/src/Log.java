@@ -121,10 +121,14 @@ public class Log extends JPanel{
         while(Repository.run){
             try{Thread.sleep(1500);
                 if(response==length){
-                    result = Repository.getRPCClient().execute("getLogFile",new Object[]{Repository.getUser(),"0","0",log})+"";
+                    result = Repository.getRPCClient().execute("getLogFile",
+                                                                new Object[]{Repository.getUser(),
+                                                                                "0","0",log})+"";
                     response = Long.parseLong(result);}
                 if(response>length){
-                    result = Repository.getRPCClient().execute("getLogFile",new Object[]{Repository.getUser(),"1",length+"",log})+"";
+                    result = Repository.getRPCClient().execute("getLogFile",
+                                                                new Object[]{Repository.getUser(),
+                                                                                "1",length+"",log})+"";
                     readText(result);
                     length = response;}
                 else if(response<length){
@@ -140,8 +144,7 @@ public class Log extends JPanel{
      */           
     public void findPrevious(String toFind){
         Element paragraph = textarea.getDocument().getDefaultRootElement();
-        int contentCount = paragraph.getElementCount();    
-        
+        int contentCount = paragraph.getElementCount();
         if(lastIndexFound==-1)lastIndexFound=0;
         for (int i=lastIndexFound-1; i>=-1; i--){
             if(i==-1){i=contentCount-1;}
@@ -161,12 +164,15 @@ public class Log extends JPanel{
      */
     public void highlite(String toFind,int rangeStart,int rangeEnd)throws Exception{
         HighlightPainter myHighlighter = new MyHighlightPainter(Color.RED);
-        int index = textarea.getText(rangeStart, rangeEnd-rangeStart).indexOf(toFind);
+        int index = textarea.getText(rangeStart, 
+                                        rangeEnd-rangeStart).indexOf(toFind);
         textarea.setCaretPosition(0);
         textarea.setCaretPosition(rangeStart);
         Highlighter hilite = textarea.getHighlighter(); 
         hilite.removeAllHighlights();
-        hilite.addHighlight(rangeStart+index,rangeStart+index+toFind.length(), myHighlighter);  
+        hilite.addHighlight(rangeStart+index,
+                            rangeStart+index+toFind.length(),
+                            myHighlighter);  
         hilite.paint(textarea.getGraphics());}
                         
     /*
@@ -221,7 +227,9 @@ public class Log extends JPanel{
      */
     public void clearLog(){
         clearScreen();
-        try{String result = Repository.getRPCClient().execute("resetLog",new Object[]{Repository.getUser(),log})+"";}
+        try{String result = Repository.getRPCClient().execute("resetLog",
+                                                                new Object[]{Repository.getUser(),
+                                                                             log})+"";}
         catch(Exception e){e.printStackTrace();}}
         
     /*

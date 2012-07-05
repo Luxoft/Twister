@@ -93,7 +93,8 @@ public class Plugins extends JPanel{
                     System.out.println("Could not instatiate plugin");
                     e.printStackTrace();
                     continue;}
-                name = plugin.getFileName();                
+                name = plugin.getFileName();    
+                System.out.println(name);
                 pluginsarray = Repository.getPlugins().getAsJsonArray();
                 size = pluginsarray.size();            
                 for(int i=0;i<size;i++){
@@ -480,19 +481,16 @@ public class Plugins extends JPanel{
         TwisterPluginInterface plugin = (TwisterPluginInterface)plugins.get(pluginname);
         MainPanel main = Repository.window.mainpanel;
         if(check.isSelected()){
-//             if(main.getComponentZOrder(plugin.getContent())==-1){
-                plugin.init(Repository.getSuite(),Repository.getTestSuite(),Repository.getVariables());
-                main.addTab(pluginname, plugin.getContent());
-                main.revalidate();
-                main.repaint();}
-//             }
-        else{                
-//             if(main.getComponentZOrder(plugin.getContent())!=-1){
-                plugin.terminate();
-                main.remove(plugin.getContent());
-                main.revalidate();
-                main.repaint();}
-//             }
+            plugin.init(Repository.getSuite(),Repository.getTestSuite(),Repository.getVariables());
+            main.addTab(plugin.getName(), plugin.getContent());
+            main.revalidate();
+            main.repaint();}
+        else{
+            main.remove(plugin.getContent());
+            main.revalidate();
+            main.repaint();
+            plugin.terminate();
+        }
     }
                 
                

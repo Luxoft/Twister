@@ -101,7 +101,7 @@ class CentralEngine(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
-    def stats(self, user, epname='', suite=''):
+    def stats(self, user='', epname='', suite=''):
         '''
         This function should be used in the browser.
         It prints a few statistics about the Central Engine.
@@ -110,7 +110,6 @@ class CentralEngine(_cptools.XMLRPCController):
             return 0
 
         reversed = dict((v,k) for k,v in execStatus.iteritems())
-        status = reversed[self.project.getUserInfo(user, 'status')]
         now = datetime.datetime.today()
         if now.second < 59:
             now_str = now.replace(second=now.second+1).strftime('%Y-%m-%d %H:%M:%S')
@@ -120,6 +119,18 @@ class CentralEngine(_cptools.XMLRPCController):
         ce_port = cherrypy.config['server.socket_port']
         host = cherrypy.request.headers['Host']
 
+        if not user:
+            return '<head><title>Central Engine Statistics</title></head>\n'\
+                   '<body>'\
+                   '<h3>Central Engine statistics</h3>'\
+                   '<h3>Registered users:</h3>\n'\
+                   '{users}.'\
+                   '</body>'.format(users=';<br>'.join(
+                            ['&nbsp;&nbsp;<a href="http://{host}/stats?user={user}">{user}</a>'.format(host = host, user=k)
+                            for k in self.project.users.keys()]))
+
+        status = reversed[self.project.getUserInfo(user, 'status')]
+
         if epname:
             if not self.searchEP(user, epname):
                 return '<b>Execution Process `{0}` doesn\'t exist!</b>'.format(epname)
@@ -127,17 +138,13 @@ class CentralEngine(_cptools.XMLRPCController):
             # EP name only
             if not suite:
                 data = self.project.getEpInfo(user, epname)
-                ret = '''
-<head>
-<title>Central Engine Statistics</title>
-</head>
-<body>
-<h3>Execution Process `{epname}`</h3>
-<b>Status</b>: {status}<br><br>
-<b>Ping</b>: {ping}<br><br>
-<b>Suites</b>: [<br>{suites}<br>]
-</body>
-            '''.format(
+                ret = '<head><title>Central Engine Statistics</title></head>\n'\
+                      '<body>'\
+                      '<h3>Execution Process `{epname}`</h3>'\
+                      '<b>Status</b>: {status}<br><br>'\
+                      '<b>Ping</b>: {ping}<br><br>'\
+                      '<b>Suites</b>: [<br>{suites}<br>]'\
+                      '</body>'.format(
                     epname = epname,
                     status = reversed[data.get('status', STATUS_INVALID)],
                     ping = str( (now - datetime.datetime.strptime(data.get('last_seen_alive', now_str), '%Y-%m-%d %H:%M:%S')).seconds ) + 's',
@@ -150,15 +157,11 @@ class CentralEngine(_cptools.XMLRPCController):
             else:
                 data = self.project.getSuiteInfo(user, epname, suite)
                 reversed = dict((v,k) for k,v in testStatus.iteritems())
-                ret = '''
-<head>
-<title>Central Engine Statistics</title>
-</head>
-<body>
-<h3>EP `{epname}` -> Suite `{suite}`</h3>
-<b>Files</b>: [<br>{files}<br>]
-</body>
-                '''.format(
+                ret = '<head><title>Central Engine Statistics</title></head>\n'\
+                      '<body>'\
+                      '<h3>EP `{epname}` -> Suite `{suite}`</h3>'\
+                      '<b>Files</b>: [<br>{files}<br>]'\
+                      '</body>'.format(
                     epname = epname,
                     suite = suite,
                     files = '<br>'.join(['&nbsp;&nbsp;{0}: {1}'.format(data['files'][k]['file'], reversed[data['files'][k]['status']] )
@@ -168,17 +171,14 @@ class CentralEngine(_cptools.XMLRPCController):
         # General statistics
         else:
             eps = self.listEPs(user).split(',')
-            ret = '''
-<head>
-<title>Central Engine Statistics</title>
-</head>
-<body>
-<h3>Central Engine Statistics</h3>
-<b>Running on</b>: {host}:{port}<br><br>
-<b>Status</b>: {status}<br><br>
-<b>Processes</b>: [<br>{eps}<br>]
-</body>
-        '''.format(
+            ret = '<head><title>Central Engine Statistics</title></head>\n'\
+                  '<body>'\
+                  '<h3>Central Engine statistics for user `{user}`</h3>'\
+                  '<b>Running on</b>: {host}:{port}<br><br>'\
+                  '<b>Status</b>: {status}<br><br>'\
+                  '<b>Processes</b>: [<br>{eps}<br>]'\
+                  '</body>'.format(
+            user = user,
             status = status,
             host = ce_host,
             port = ce_port,
