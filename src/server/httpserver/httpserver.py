@@ -53,7 +53,7 @@ class Root:
     # Report link 1
     @cherrypy.expose
     def index(self, usr=''):
-        if not usr: return '<br><b>Error! This link should be accessed by passing a username, eg: /index?usr=some_user<b/>'
+        if not usr: return '<br><b>Error! This link should be accessed by passing a username, eg: /index/some_user<b/>'
         if not os.path.exists('/home/%s/twister/config' % usr): return '<br><b>Error! '\
                               'Username `%s` doesn\'t have a Twister config folder!</b>' % usr
 
@@ -80,7 +80,7 @@ class Root:
     # Help link
     @cherrypy.expose
     def help(self, usr=''):
-        if not usr: return '<br><b>Error! This link should be accessed by passing a username, eg: /help?usr=some_user<b/>'
+        if not usr: return '<br><b>Error! This link should be accessed by passing a username, eg: /help/some_user<b/>'
         if not os.path.exists('/home/%s/twister/config' % usr): return '<br><b>Error! '\
                               'Username `%s` doesn\'t have a Twister config folder!</b>' % usr
 
@@ -92,10 +92,9 @@ class Root:
 
     # Reporting link
     @cherrypy.expose
-    def rep(self, report=None, **args):
-        if not args.get('usr'): return '<br><b>Error! This link should be accessed by passing a username, eg: /rep?usr=some_user<b/>'
+    def rep(self, report=None, usr=None, **args):
 
-        usr = args['usr']
+        if not usr: return '<br><b>Error! This link should be accessed by passing a username, eg: /rep/some_user<b/>'
         if not os.path.exists('/home/%s/twister/config' % usr): return '<br><b>Error! '\
                               'Username `%s` doesn\'t have a Twister config folder!</b>' % usr
 
@@ -117,7 +116,7 @@ class Root:
 
         if report not in glob_reports[usr]:
             output = Template(filename=TWISTER_PATH + '/server/httpserver/template/error.htm')
-            return output.render(title='Missing report', links=glob_links[usr], msg='Report <b>{0}</b> is not defined!'.format(report))
+            return output.render(title='Missing report', usr=usr, links=glob_links[usr], msg='Report <b>{0}</b> is not defined!'.format(report))
 
         # All info about the report, from DB XML
         report_dict = glob_reports[usr][report]
@@ -126,7 +125,6 @@ class Root:
 
         # All variables that must be replaced in Query
         vars_to_replace = re.findall('(@.+?@)', query)
-
 
         # ------------------------------------------------------------------------------------------
         # If the user didn't select fields YET :
@@ -142,7 +140,7 @@ class Root:
 
                 if not u_field:
                     output = Template(filename=TWISTER_PATH + '/server/httpserver/template/error.htm')
-                    return output.render(links=glob_links[usr], title=report,
+                    return output.render(links=glob_links[usr], title=report, usr=usr,
                         msg='Cannot build query!<br><br>Field <b>{0}</b> is not defined in the fields section!'.format(opt.replace('@', '')))
 
                 this_option['type'] = u_field.get('type')
@@ -155,7 +153,7 @@ class Root:
 
                     if not u_query:
                         output = Template(filename=TWISTER_PATH + '/server/httpserver/template/error.htm')
-                        return output.render(links=glob_links[usr], title=report,
+                        return output.render(links=glob_links[usr], title=report, usr=usr,
                             msg='Cannot build query!<br><br>Field <b>{0}</b> doesn\'t have a query!'.format(opt.replace('@', '')))
 
                     # Execute User Query
@@ -168,14 +166,14 @@ class Root:
                             pass
 
                         output = Template(filename=TWISTER_PATH + '/server/httpserver/template/error.htm')
-                        return output.render(links=glob_links[usr], title=report,
+                        return output.render(links=glob_links[usr], title=report, usr=usr,
                             msg='Error in query `{0}`!<br><br><b>MySQL Error {1}</b>: {2}!'.format(u_query, e.args[0], e.args[1]))
 
                     try:
                         u_vals = curs[usr].fetchall()
                     except Exception, e:
                         output = Template(filename=TWISTER_PATH + '/server/httpserver/template/error.htm')
-                        return output.render(links=glob_links[usr], title=report,
+                        return output.render(links=glob_links[usr], title=report, usr=usr,
                             msg='Error in query `{0}`!<br><br><b>Exception</b>: {1}!'.format(u_query, e))
 
                     # No data available
@@ -196,13 +194,13 @@ class Root:
 
                 else:
                     output = Template(filename=TWISTER_PATH + '/server/httpserver/template/error.htm')
-                    return output.render(title=report, links=glob_links[usr],
+                    return output.render(title=report, links=glob_links[usr], usr=usr,
                         msg='Field <b>{0}</b> is of unknown type: <b>{1}</b>!'.format(opt.replace('@', ''), this_option['type']))
 
                 u_options[opt] = this_option
 
             output = Template(filename=TWISTER_PATH + '/server/httpserver/template/base.htm')
-            return output.render(title=report, links=glob_links[usr], options=u_options)
+            return output.render(title=report, usr=usr, links=glob_links[usr], options=u_options)
 
 
         # ------------------------------------------------------------------------------------------
@@ -215,12 +213,13 @@ class Root:
         for field in vars_to_replace:
             # The value chosen by the user
             u_select = cherrypy.request.params.get(field)
+            if not u_select: u_select = ''
             ajax_links.append(field +'='+ u_select)
             # Replace @variables@ with user chosen value
             query = query.replace(field, str(u_select))
 
         ajax_links = sorted( list(set(ajax_links)) )
-        ajax_link = '/json/' + report + '?usr=' + usr + '&'.join(ajax_links)
+        ajax_link = '/json/' + report + '/' + usr + '?' + '&'.join(ajax_links)
         user_choices = ('", '.join(ajax_links))
         user_choices = user_choices.replace('@', '').replace('=', '="')+'"'
         del ajax_links
@@ -234,7 +233,7 @@ class Root:
                 pass
             #
             output = Template(filename=TWISTER_PATH + '/server/httpserver/template/error.htm')
-            return output.render(title=report, links=glob_links[usr],
+            return output.render(title=report, links=glob_links[usr], usr=usr,
                 msg='Error in query `{0}`!<br><br><b>MySQL Error {1}</b>: {2}!'.format(query, e.args[0], e.args[1]))
 
         descr = [desc[0] for desc in curs[usr].description]
@@ -265,7 +264,7 @@ class Root:
                     pass
                 #
                 output = Template(filename=TWISTER_PATH + '/server/httpserver/template/error.htm')
-                return output.render(title=report, links=glob_links[usr],
+                return output.render(title=report, links=glob_links[usr], usr=usr,
                 msg='Error in query `{0}`!<br><br><b>MySQL Error {1}</b>: {2}!'.format(query_compr, e.args[0], e.args[1]))
 
             headers_tot = [desc[0] for desc in curs[usr].description]
@@ -283,12 +282,12 @@ class Root:
 
     # JSON link
     @cherrypy.expose
-    def json(self, report, **args):
-        if not args.get('usr'):
-            output = {'aaData':[], 'error':'Error! This link should be accessed by passing a username, eg: /json/some_report?usr=some_user'}
+    def json(self, report, usr, **args):
+
+        if not usr:
+            output = {'aaData':[], 'error':'Error! This link should be accessed by passing a username, eg: /json/some_report/some_user'}
             return json.dumps(output, indent=2)
 
-        usr = args['usr']
         if not os.path.exists('/home/%s/twister/config' % usr):
             output = {'aaData':[], 'error':'Error! Username `%s` doesn\'t have a Twister config folder!' % usr}
             return json.dumps(output, indent=2)

@@ -29,19 +29,19 @@
 		<ul class="nav nav-pills nav-stacked">
 		% for link in links:
 			% if link == 'Home' and link == title:
-			<li class="active"><a href="/home?usr=${usr}"><i class="icon-home"></i> ${link}</a></li>
+			<li class="active"><a href="/home/${usr}"><i class="icon-home"></i> ${link}</a></li>
 			% elif link == 'Help' and link == title:
-			<li class="active"><a href="/help?usr=${usr}"><i class="icon-flag"></i> ${link}</a></li>
+			<li class="active"><a href="/help/${usr}"><i class="icon-flag"></i> ${link}</a></li>
 			% elif link == 'Home':
-			<li><a href="/home?usr=${usr}"><i class="icon-home"></i> ${link}</a></li>
+			<li><a href="/home/${usr}"><i class="icon-home"></i> ${link}</a></li>
 			% elif link == 'Help':
-			<li><a href="/help?usr=${usr}"><i class="icon-flag"></i> ${link}</a></li>
+			<li><a href="/help/${usr}"><i class="icon-flag"></i> ${link}</a></li>
 			% elif link.startswith('goto'):
-			<li><a href="/rep/${link}?usr=${usr}"><i class="icon-share-alt"></i> ${link}</a></li>
+			<li><a href="/rep/${link}/${usr}"><i class="icon-share-alt"></i> ${link}</a></li>
 			% elif link == title:
-			<li class="active"><a href="/rep/${link}?usr=${usr}"><i class="icon-asterisk"></i> ${link}</a></li>
+			<li class="active"><a href="/rep/${link}/${usr}"><i class="icon-asterisk"></i> ${link}</a></li>
 			% else:
-			<li><a href="/rep/${link}?usr=${usr}"><i class="icon-arrow-right"></i> ${link}</a></li>
+			<li><a href="/rep/${link}/${usr}"><i class="icon-arrow-right"></i> ${link}</a></li>
 			% endif
 		% endfor
 		</ul>
@@ -89,7 +89,7 @@
 	% elif options is not UNDEFINED:
 
 		<div class="hero-unit">
-		<form class="form-horizontal" action="/rep/${title}" method="GET">
+		<form class="form-horizontal" action="/rep/${title}/${usr}" method="GET">
 			<fieldset>
 				<legend style="padding-left:160px;">Required fields</legend>
 				% for opt in options:
