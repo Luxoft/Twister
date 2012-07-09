@@ -369,13 +369,29 @@ class DBParser():
 # --------------------------------------------------------------------------------------------------
 
     def getFields(self):
-        ''' Used by Central Engine. '''
+        """
+        Used by Central Engine.
+        Returns a dictionary with field ID : SQL select.
+        """
         try:
             res = self.xmlDict.field_section('field', type="DbSelect")
         except:
             print('DBParser: Cannot find field_section in DB config!')
             return {}
         return {field['id']:field['sqlquery'] for field in res}
+
+
+    def getScripts(self):
+        """
+        Used by Central Engine.
+        Returns a list with field IDs.
+        """
+        try:
+            res = self.xmlDict.field_section('field', type="UserScript")
+        except:
+            print('DBParser: Cannot find field_section in DB config!')
+            return {}
+        return [field['id'] for field in res]
 
 
     def getQuery(self, field_id):

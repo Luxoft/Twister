@@ -455,6 +455,7 @@ class Project:
         self._dump()
         return True
 
+
 # # #
 
 
@@ -488,7 +489,7 @@ class Project:
             txt = subprocess.check_output([script_path])
             return txt.strip()
         except Exception, e:
-            logError('Exec script: Exception: %s' % str(e))
+            logError('Exec script `%s`: Exception - %s' % (script_path, str(e)) )
             return False
 
 
@@ -675,8 +676,9 @@ class Project:
             db_path = self.parsers[user].getDbConfigPath()
             db_parser = DBParser(db_path)
             db_config = db_parser.db_config
-            queries = db_parser.getQueries()
-            fields = db_parser.getFields()
+            queries = db_parser.getQueries() # List
+            fields  = db_parser.getFields()  # Dictionary
+            scripts = db_parser.getScripts() # List
             del db_parser
 
             #
@@ -690,7 +692,9 @@ class Project:
                 for suite in self.users[user]['eps'][epname]['suites']:
                     for file_id in self.users[user]['eps'][epname]['suites'][suite]['files']:
 
-                        subst_data = dict( self.users[user]['eps'][epname] )
+                        # Substitute data
+                        subst_data = {'file_id': file_id}
+                        subst_data.update( self.users[user]['eps'][epname] )
                         del subst_data['suites']
                         subst_data.update( self.users[user]['eps'][epname]['suites'][suite] )
                         del subst_data['files']
@@ -700,9 +704,27 @@ class Project:
                         if subst_data.get('Prerequisite'):
                             continue
 
+                        # For every insert SQL statement, build correct data...
                         for query in queries:
 
-                            # All variables that must be replaced in Insert
+                            # All variables of type `UserScript` must be replaced with the script result
+                            vars_to_replace = re.findall('(\$.+?)[,\'"\s]', query)
+
+                            for field in vars_to_replace:
+                                field = field[1:]
+                                # If the field is not `UserScript`, ignore it
+                                if field not in scripts:
+                                    continue
+
+                                # Get Script Path, or null string
+                                u_script = subst_data.get(field, '')
+
+                                # Execute script and use result
+                                r = self.execScript(u_script)
+                                if r: subst_data[field] = r
+                                else: subst_data[field] = ''
+
+                            # All variables of type `DbSelect` must be replaced with the SQL result
                             vars_to_replace = re.findall('(@.+?@)', query)
 
                             for field in vars_to_replace:
@@ -726,7 +748,7 @@ class Project:
                             try:
                                 query = tmpl.substitute(subst_data)
                             except Exception, e:
-                                logError('File: {0}, cannot build query! Error: {1}!'.format(subst_data['file'], str(e)))
+                                logError('User `{0}`, file {1}: Cannot build query! Error on `{2}`!'.format(user, subst_data['file'], str(e)))
                                 return False
 
                             # :: For DEBUG ::
