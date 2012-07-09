@@ -82,7 +82,8 @@ public class MainPanel extends JTabbedPane{
                     if(getSelectedIndex()==2){
                         try{Repository.window.container.getAppletContext().showDocument(
                                                     new URL("http://"+Repository.host+":"+
-                                                    Repository.getHTTPServerPort()+"/report"), "_blank");}
+                                                    Repository.getHTTPServerPort()+
+                                                    "/report/"+Repository.getUser()), "_blank");}
                         catch(Exception ex){ex.printStackTrace();}
                         setSelectedIndex(1);}}});}
         Repository.intro.setStatus("Finished Main initialization");

@@ -184,7 +184,6 @@ public class XMLReader{
                 String prop ;
                 if(fstNm.getLength()>0)prop= fstNm.item(0).getNodeValue();
                 else prop = "";
-                
                 NodeList propvalue = element.getElementsByTagName("propValue");
                 Element el2 = (Element)propvalue.item(0);
                 fstNm = el2.getChildNodes();

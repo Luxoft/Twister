@@ -56,6 +56,10 @@ import java.net.URLClassLoader;
 import java.util.Arrays;
 import javax.swing.JSplitPane;
 import java.awt.Color;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 
 /*
  * plugins panel displayed
@@ -93,8 +97,7 @@ public class Plugins extends JPanel{
                     System.out.println("Could not instatiate plugin");
                     e.printStackTrace();
                     continue;}
-                name = plugin.getFileName();    
-                System.out.println(name);
+                name = plugin.getFileName();
                 pluginsarray = Repository.getPlugins().getAsJsonArray();
                 size = pluginsarray.size();            
                 for(int i=0;i<size;i++){
@@ -121,10 +124,13 @@ public class Plugins extends JPanel{
         localtable = new JPanel();
         remotetable2 = new JPanel();      
         downloadtable.setBorder(BorderFactory.createTitledBorder(
-            BorderFactory.createLineBorder(new Color(0, 0, 0)), "Download"));
-        downloadtable.setLayout(new BoxLayout(downloadtable, BoxLayout.PAGE_AXIS));
+            BorderFactory.createLineBorder(new Color(0, 0, 0)),
+                                            "Download"));
+        downloadtable.setLayout(new BoxLayout(downloadtable,
+                                            BoxLayout.PAGE_AXIS));
         localtable.setBorder(BorderFactory.createTitledBorder(
-            BorderFactory.createLineBorder(new Color(0, 0, 0)), "Local"));
+            BorderFactory.createLineBorder(new Color(0, 0, 0)),
+                                            "Local"));
         localtable.setLayout(new GridBagLayout());
         remotetable2.setBorder(BorderFactory.createTitledBorder(
             BorderFactory.createLineBorder(new Color(0, 0, 0)), "Remote"));
@@ -327,14 +333,16 @@ public class Plugins extends JPanel{
                 }}}
      
     /*
-     * method te get plugins on server
+     * method te get plugins from server
      * as an ArrayList
      */
     public ArrayList<String> getRemotePlugins(){
         ArrayList list = new ArrayList<String>();
-        try{Repository.c.cd(Repository.USERHOME+"/twister/config/Plugins/");}
-        catch(Exception e){System.out.println("Could not get :"+
-                Repository.USERHOME+"/twister/config/Plugins/");}
+        try{Repository.c.cd(Repository.REMOTEPLUGINSDIR);}
+        catch(Exception e){
+            System.out.println("Could not get :"+
+                Repository.REMOTEPLUGINSDIR);
+            e.printStackTrace();}
         int size;
         try{size= Repository.c.ls(".").size();}
         catch(Exception e){
@@ -350,6 +358,7 @@ public class Plugins extends JPanel{
             String name;
             for(int i=0;i<size;i++){                
                 name = plugins.get(i).getFilename();
+                System.out.println(name);
                     if(name.split("\\.").length==0||
                         name.equals("TwisterPluginInterface.jar"))continue;
                     list.add(name);}}
@@ -393,10 +402,6 @@ public class Plugins extends JPanel{
         JButton readmore = new JButton("Read more");        
         check.setText("Activate");
         check.setName(tname);
-        try{MainPanel main = Repository.window.mainpanel;
-            ArrayList<Component>components = new ArrayList<Component>(Arrays.asList(main.getComponents()));
-        }
-        catch(Exception e){}
         GridBagConstraints gridBagConstraints = new GridBagConstraints();        
         gridBagConstraints.gridx = 0;
         gridBagConstraints.ipadx = 10;
@@ -444,7 +449,24 @@ public class Plugins extends JPanel{
                 showReadMore(tdescription);}});        
         check.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
-                pluginClicked(check);}});                
+                pluginClicked(check);}});
+        if(isPluginEnabled(tname)){
+            //wait for MainPanel to be initialized
+            new Thread(){
+                public void run(){
+                    while(Repository.window==null){
+                        try{Thread.sleep(200);}
+                        catch(Exception e){e.printStackTrace();}
+                    }
+                    String pluginname = check.getName();
+                    TwisterPluginInterface plugin = (TwisterPluginInterface)plugins.
+                                                    get(pluginname);
+                    MainPanel main = Repository.window.mainpanel;
+                    if(main.getComponentZOrder(plugin.getContent())==-1){
+                        check.doClick();}
+                    else check.setSelected(true);}
+            }.start();
+        }
         plugintable.revalidate();
         plugintable.repaint();    
         titleborder.revalidate();
@@ -483,7 +505,8 @@ public class Plugins extends JPanel{
         if(check.isSelected()){
             plugin.init(Repository.getSuite(),
                         Repository.getTestSuite(),
-                        Repository.getVariables());
+                        Repository.getVariables(),
+                        Repository.getPluginsConfig());
             main.addTab(plugin.getName(), plugin.getContent());
             main.revalidate();
             main.repaint();}
@@ -493,6 +516,7 @@ public class Plugins extends JPanel{
             main.repaint();
             plugin.terminate();
         }
+        enablePlugin(check.isSelected(),pluginname);
     }
                 
                
@@ -555,10 +579,9 @@ public class Plugins extends JPanel{
             InputStreamReader inputStreamReader = null;
             BufferedReader bufferedReader = null;  
             BufferedWriter writer=null;
-            try{Repository.c.cd(Repository.USERHOME+"/twister/config/Plugins/");}
+            try{Repository.c.cd(Repository.REMOTEPLUGINSDIR);}
             catch(Exception e){
-                System.out.println("Could not get :"+Repository.USERHOME+
-                    "/twister/config/Plugins/");
+                System.out.println("Could not get :"+Repository.REMOTEPLUGINSDIR);
                 return false;}
             try{System.out.print("Getting "+filename+" ....");
                 in = Repository.c.get(filename);    
@@ -574,7 +597,49 @@ public class Plugins extends JPanel{
                 return true;}
             catch(Exception e){
                 System.out.println("Error in copying plugin" +filename+ " localy");
-                return false;}}return true;}}
+                return false;}}return true;}
+                
+    public void enablePlugin(boolean value, String filename){
+        Document doc = Repository.getPluginsConfig();
+        NodeList list1 = doc.getElementsByTagName("Plugin");
+        Element item;
+        Element compare;
+        for(int i=0;i<list1.getLength();i++){
+            item = (Element)list1.item(i);
+            compare = (Element)item.getElementsByTagName("jarfile").item(0);
+            if(compare.getChildNodes().item(0).getNodeValue().equals(filename)){
+                compare = (Element)item.getElementsByTagName("status").item(0);
+                if(value)compare.getChildNodes().item(0).setNodeValue("enabled");
+                else compare.getChildNodes().item(0).setNodeValue("disabled");
+                Repository.uploadPluginsFile();
+                return;
+            }
+        }
+    }
+                
+    /*
+     * method to check if plugin with filename
+     * is enabled in general plugins config
+     */        
+    public boolean isPluginEnabled(String filename){
+        Document doc = Repository.getPluginsConfig();
+        NodeList list1 = doc.getElementsByTagName("Plugin");
+        Element item;
+        Element compare;
+        for(int i=0;i<list1.getLength();i++){
+            item = (Element)list1.item(i);
+            compare = (Element)item.getElementsByTagName("jarfile").item(0);
+            if(compare.getChildNodes().item(0).getNodeValue().equals(filename)){
+                compare = (Element)item.getElementsByTagName("status").item(0);
+                if(compare.getChildNodes().item(0).getNodeValue().equals("enabled")){
+                    return true;
+                }
+                return false;
+            }
+        }
+        return false;
+    }
+}
   
 /*
  *extended JChecBox to 

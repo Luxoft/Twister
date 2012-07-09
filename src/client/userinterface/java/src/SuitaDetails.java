@@ -44,6 +44,7 @@ import net.sf.vfsjfilechooser.VFSJFileChooser;
 import net.sf.vfsjfilechooser.VFSJFileChooser.RETURN_TYPE;
 import org.apache.commons.vfs.FileObject;
 import net.sf.vfsjfilechooser.utils.VFSUtils;
+import javax.swing.JFrame;
 
 public class SuitaDetails extends JPanel {
     private JPanel defsContainer;
@@ -79,7 +80,7 @@ public class SuitaDetails extends JPanel {
         defsContainer.setBorder(BorderFactory.createEmptyBorder(10, 0, 10, 0));
         defsContainer.setLayout(new BoxLayout(defsContainer, BoxLayout.Y_AXIS));
         scroll.setViewportView(defsContainer);
-        add(scroll, java.awt.BorderLayout.CENTER);
+        add(scroll, BorderLayout.CENTER);
         JLabel l = new JLabel("test");            
         FontMetrics metrics = l.getFontMetrics(l.getFont());
         int width = 0;
@@ -201,8 +202,8 @@ class DefPanel extends JPanel{
             add(script);
             script.addActionListener(new ActionListener(){
                 public void actionPerformed(ActionEvent ev){
-                    
-                    VFSJFileChooser fileChooser = Repository.window.mainpanel.p4.getConfig().getChooser();
+                    VFSJFileChooser fileChooser = Repository.window.mainpanel.p4.getConfig().
+                                                                                getChooser();
                     try{RETURN_TYPE answer = fileChooser.showOpenDialog(DefPanel.this);
                         if (answer == RETURN_TYPE.APPROVE){
                             FileObject aFileObject = fileChooser.getSelectedFile();
@@ -223,7 +224,6 @@ class DefPanel extends JPanel{
                         e.printStackTrace();
                     }
                 }});
-                
             filedsGap = new JPanel();
             filedsGap.setBackground(new Color(255, 255, 255));
             filedsGap.setMaximumSize(new Dimension(10, 10));
@@ -239,8 +239,7 @@ class DefPanel extends JPanel{
                                              addGap(0, 20, Short.MAX_VALUE));
             filedsGap.setLayout(filedsGapLayout);           
             add(filedsGap); 
-            
-            JButton value = new JButton("Value");
+            final JButton value = new JButton("Value");
             value.setMaximumSize(new Dimension(100, 20));
             value.setMinimumSize(new Dimension(50, 20));
             value.setPreferredSize(new Dimension(80, 20));
@@ -252,6 +251,13 @@ class DefPanel extends JPanel{
                         try{
                             String result = Repository.getRPCClient().execute("runUserScript",
                                                                      new Object[]{script})+"";
+                            JFrame f = new JFrame();
+                            f.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+                            f.setLocation(value.getLocationOnScreen());
+                            JLabel l = new JLabel("Script result: "+result);
+                            f.getContentPane().add(l, BorderLayout.CENTER);
+                            f.pack();
+                            f.setVisible(true);
                         }
                         catch(Exception e){
                             e.printStackTrace();
