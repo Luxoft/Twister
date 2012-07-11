@@ -210,7 +210,9 @@ public class Plugins extends JPanel{
         JPanel panel;
         JLabel lname;        
         for(String name:list){
-            if(name.equals("Twister.jar"))continue;
+            if(name.equals("Twister.jar") ||
+            name.equals("xmlrpc-common-3.1.3.jar") ||
+            name.equals("xmlrpc-client-3.1.3.jar"))continue;
             final String tempname = name;
             lname = new JLabel(name);
             final MyButton addremove = new MyButton("Download");
@@ -506,7 +508,8 @@ public class Plugins extends JPanel{
             plugin.init(Repository.getSuite(),
                         Repository.getTestSuite(),
                         Repository.getVariables(),
-                        Repository.getPluginsConfig());
+                        Repository.getPluginsConfig(),
+                        Repository.getRPCClient());
             main.addTab(plugin.getName(), plugin.getContent());
             main.revalidate();
             main.repaint();}
@@ -622,22 +625,26 @@ public class Plugins extends JPanel{
      * is enabled in general plugins config
      */        
     public boolean isPluginEnabled(String filename){
-        Document doc = Repository.getPluginsConfig();
-        NodeList list1 = doc.getElementsByTagName("Plugin");
-        Element item;
-        Element compare;
-        for(int i=0;i<list1.getLength();i++){
-            item = (Element)list1.item(i);
-            compare = (Element)item.getElementsByTagName("jarfile").item(0);
-            if(compare.getChildNodes().item(0).getNodeValue().equals(filename)){
-                compare = (Element)item.getElementsByTagName("status").item(0);
-                if(compare.getChildNodes().item(0).getNodeValue().equals("enabled")){
-                    return true;
+        try{
+            Document doc = Repository.getPluginsConfig();
+            NodeList list1 = doc.getElementsByTagName("Plugin");
+            Element item;
+            Element compare;
+            for(int i=0;i<list1.getLength();i++){
+                item = (Element)list1.item(i);
+                compare = (Element)item.getElementsByTagName("jarfile").item(0);
+                if(compare.getChildNodes().item(0).getNodeValue().equals(filename)){
+                    compare = (Element)item.getElementsByTagName("status").item(0);
+                    if(compare.getChildNodes().item(0).getNodeValue().equals("enabled")){
+                        return true;
+                    }
+                    return false;
                 }
-                return false;
             }
+            return false;}
+        catch(Exception e){
+            return false;
         }
-        return false;
     }
 }
   

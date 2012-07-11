@@ -90,6 +90,7 @@ import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.OutputKeys;
+import javax.xml.transform.Transformer;
 
 /*
  * static class to hold
@@ -258,14 +259,11 @@ public class Repository{
                 intro.repaint();
                 loadPluginsInterfaces();
                 parseConfig();
-                if(getPluginsFile()){
-                    if(!parsePluginsConfig(CONFIGDIRECTORY+"/plugins.xml")){
-                        System.out.println("There was a problem in parsing"+
-                                           " plugins configuration");}}
-                else{
-                    System.out.println("There was a problem in getting"+
-                                       " plugins configuration from server");}
-                
+                if(!getPluginsFile())createGeneralPluginConf();
+                if(!parsePluginsConfig(CONFIGDIRECTORY+"/plugins.xml")){
+                    System.out.println("There was a problem in parsing"+
+                                       " plugins configuration");}
+                                       
                 /*
                  * XmlRpc main connection used by Twister framework
                  */
@@ -308,6 +306,7 @@ public class Repository{
                 variables.put("remoteepdir",REMOTEEPIDDIR);
                 variables.put("remoteusersdir",REMOTEUSERSDIRECTORY);
                 variables.put("pluginslocalgeneralconf",PLUGINSLOCALGENERALCONF);
+                variables.put("remotegeneralpluginsdir",REMOTEPLUGINSDIR);
             }
             else{
                 /*
@@ -321,6 +320,37 @@ public class Repository{
                 run = false;
                 if(!applet)System.exit(0);}}
         catch(Exception e){e.printStackTrace();}}
+        
+    /*
+     * method to create general plugin
+     * configuration file 
+     */
+    public static void createGeneralPluginConf(){
+        try{
+            DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
+            DocumentBuilder documentBuilder = documentBuilderFactory.newDocumentBuilder();
+            Document document = documentBuilder.newDocument();
+            TransformerFactory transformerFactory = TransformerFactory.newInstance();
+            Transformer transformer = transformerFactory.newTransformer();
+            transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
+            transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+            transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "4");
+            DOMSource source = new DOMSource(document);
+            Element rootElement = document.createElement("Root");
+            document.appendChild(rootElement);
+            File file = new File(Repository.PLUGINSLOCALGENERALCONF);
+            Result result = new StreamResult(file);
+            transformer.transform(source, result);
+            Repository.c.cd(Repository.USERHOME+"/twister/config/");
+            System.out.println("Saving to: "+Repository.USERHOME+"/twister/config/");
+            FileInputStream in = new FileInputStream(file);
+            Repository.c.put(in, file.getName());
+            in.close();}
+        catch(Exception e){
+            System.out.println("There was a problem in generating Plugins general config");
+            e.printStackTrace();
+        }
+    }
       
     /*
      * method to load plugininterfaces
@@ -329,6 +359,8 @@ public class Repository{
     public static void loadPluginsInterfaces(){
         Plugins.deletePlugins();
         Plugins.copyPlugin("Twister.jar");
+        Plugins.copyPlugin("xmlrpc-client-3.1.3.jar");
+        Plugins.copyPlugin("xmlrpc-common-3.1.3.jar");
         PluginsLoader.setClassPath();
     }
         
