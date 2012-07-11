@@ -6,7 +6,7 @@
 # Authors:
 #    Andrei Costachi <acostachi@luxoft.com>
 #    Andrei Toma <atoma@luxoft.com>
-#    Cristian Constantin <crconstantin@luxoft.com>
+#    Cristi Constantin <crconstantin@luxoft.com>
 #    Daniel Cioata <dcioata@luxoft.com>
 
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -462,7 +462,7 @@ class Project:
     def setFileOwner(self, user, path):
         """
         Update file ownership for 1 file.\n
-        `Chown` function only works in Linux.
+        `Chown` function works only in Linux.
         """
         uinfo = self.getUserInfo(user, 'eps')
         epname = uinfo[uinfo.keys()[0]]
@@ -479,7 +479,7 @@ class Project:
     def execScript(self, script_path):
         """
         Execute a user script and return the text printed on the screen.
-        This only works in Linux.
+        This works only in Linux.
         """
         if not os.path.exists(script_path):
             logError('Exec script: The path `%s` does not exist!' % script_path)
@@ -491,13 +491,6 @@ class Project:
         except Exception, e:
             logError('Exec script `%s`: Exception - %s' % (script_path, str(e)) )
             return False
-
-
-    def cloneRepository(self):
-        """
-        Clone a Git or Svn repository.
-        """
-        pass
 
 
 # # #
@@ -525,7 +518,7 @@ class Project:
                 logDebug('E-mail: Nothing to send!')
                 return False
 
-            logDebug('E-mail: Preparing... Server `{SMTPPath}`, user `{SMTPUser}`, from `{From}`, to `{To}`...'
+            logDebug('E-mail: Preparing... Server `{SMTPPath}`, user `{SMTPUser}`, from `{From}`, to `{To}`...'\
                 ''.format(**eMailConfig))
 
             # Information that will be mapped into subject or message of the e-mail
@@ -659,7 +652,9 @@ class Project:
                 logError('SMTP: Cannot send e-mail!')
                 return False
 
+
 # # #
+
 
     def saveToDatabase(self, user):
         """
@@ -732,7 +727,8 @@ class Project:
                                 u_query = fields.get(field.replace('@', ''))
 
                                 if not u_query:
-                                    logError('File: {0}, cannot build query! Field {1} is not defined in the fields section!'.format(subst_data['file'], field))
+                                    logError('File: {0}, cannot build query! Field {1} is not defined in the fields section!'\
+                                        ''.format(subst_data['file'], field))
                                     return False
 
                                 # Execute User Query
@@ -748,11 +744,12 @@ class Project:
                             try:
                                 query = tmpl.substitute(subst_data)
                             except Exception, e:
-                                logError('User `{0}`, file {1}: Cannot build query! Error on `{2}`!'.format(user, subst_data['file'], str(e)))
+                                logError('User `{0}`, file {1}: Cannot build query! Error on `{2}`!'\
+                                    ''.format(user, subst_data['file'], str(e)))
                                 return False
 
                             # :: For DEBUG ::
-                            #open(TWISTER_PATH + '/config/Query.debug', 'a').write('File Query:: `{0}` ::\n{1}\n\n\n'.format(subst_data['file'], query))
+                            #open(TWISTER_PATH + '/Query.debug', 'a').write('File Query:: `{0}` ::\n{1}\n\n\n'.format(subst_data['file'], query))
 
                             # Execute MySQL Query!
                             try:
