@@ -72,6 +72,7 @@ public class Window extends JFrame{
             setBounds(0,60,mainpanel.getWidth()+30,mainpanel.getHeight()+45);
             addWindowListener(new WindowAdapter(){
                 public void windowClosing(WindowEvent e){
+                    Repository.uploadPluginsFile();
                     int r = (Integer)CustomDialog.showDialog(
                                 new JLabel("Save your Suite XML before exiting ?"),
                                 JOptionPane.QUESTION_MESSAGE, 
