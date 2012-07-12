@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<Root>
+	<Plugin>
+		<name>SVN</name>
+		<jarfile>SVNPlugin.jar</jarfile>
+		<pyfile>SvnPlugin.py</pyfile>
+		<status>enabled</status>
+		<property>
+			<propname>default_operation</propname>
+			<propvalue>update</propvalue>
+		</property>
+		<property>
+			<propname>tag</propname>
+			<propvalue>tag</propvalue>
+		</property>
+		<property>
+			<propname>snapshot</propname>
+			<propvalue>snapshot</propvalue>
+		</property>
+		<property>
+			<propname>server</propname>
+			<propvalue>server</propvalue>
+		</property>
+		<property>
+			<propname>password</propname>
+			<propvalue>password</propvalue>
+		</property>
+		<property>
+			<propname>username</propname>
+			<propvalue>user</propvalue>
+		</property>
+	</Plugin>
+	<Plugin>
+		<name>GIT</name>
+		<jarfile>GitPlugin.jar</jarfile>
+		<pyfile>GitPlugin.py</pyfile>
+		<status>enabled</status>
+		<property>
+			<propname>path</propname>
+			<propvalue>/home/tscguest/teste</propvalue>
+		</property>
+	</Plugin>
+</Root>
