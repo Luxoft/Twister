@@ -282,6 +282,7 @@ public class Repository{
                 parseDBConfig(Repository.REMOTEDATABASECONFIGFILE,true);
                 window = new Window(applet,container);
                 parseEmailConfig(Repository.REMOTEEMAILCONFIGFILE,true);
+                variables.put("host",host);
                 variables.put("user",user);
                 variables.put("password",password);  
                 variables.put("temp",temp);
@@ -361,6 +362,8 @@ public class Repository{
         Plugins.copyPlugin("Twister.jar");
         Plugins.copyPlugin("xmlrpc-client-3.1.3.jar");
         Plugins.copyPlugin("xmlrpc-common-3.1.3.jar");
+        Plugins.copyPlugin("jsch-0.1.44.jar");
+        Plugins.copyPlugin("commons-vfs-1.0.jar");
         PluginsLoader.setClassPath();
     }
         
@@ -1385,7 +1388,7 @@ public class Repository{
             transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "4");
             transformer.transform(source, result);
             Repository.c.cd(Repository.USERHOME+"/twister/config/");
-            System.out.println("Saving to: "+Repository.USERHOME+"/twister/config/");
+            System.out.println("Saving "+file.getName()+" to: "+Repository.USERHOME+"/twister/config/");
             FileInputStream in = new FileInputStream(file);
             Repository.c.put(in, file.getName());
             in.close();

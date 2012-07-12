@@ -129,11 +129,11 @@ public class ExplorerPanel extends JPanel {
 		Repository.intro.setStatus("Started Explorer interface initialization");
 		Repository.intro.addPercent(0.035);
 		Repository.intro.repaint();
-		setLayout(null);
-		setSize(450, 600);
-		setPreferredSize(new Dimension(450, 500));
-		setMinimumSize(new Dimension(0, 0));
-		setMaximumSize(new Dimension(1000, 1000));
+// 		setLayout(null);
+// 		setSize(450, 600);
+// 		setPreferredSize(new Dimension(450, 500));
+// 		setMinimumSize(new Dimension(0, 0));
+// 		setMaximumSize(new Dimension(1000, 1000));
 		root = new DefaultMutableTreeNode("root", true);
 		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
 		try {
@@ -691,12 +691,13 @@ public class ExplorerPanel extends JPanel {
 			if (lssize > 2) {
 				node.add(child);
 			}
+			String current;
 			for (int i = 0; i < lssize; i++) {
 				if (vector1.get(i).getFilename().split("\\.").length == 0) {
 					continue;
 				}
 				try {
-				    String current = c.pwd();
+				    current = c.pwd();
 					c.cd(vector1.get(i).getFilename());
 					c.cd(current);
 					folders.add(vector1.get(i).getFilename());
@@ -719,7 +720,7 @@ public class ExplorerPanel extends JPanel {
 			}
 			for (int i = 0; i < vector.size(); i++) {
 				try {
-				    String current = c.pwd();
+				    current = c.pwd();
 					c.cd(vector.get(i));
 					getList(child, c);
 					c.cd(current);

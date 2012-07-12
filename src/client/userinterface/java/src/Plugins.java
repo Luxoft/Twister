@@ -212,6 +212,8 @@ public class Plugins extends JPanel{
         for(String name:list){
             if(name.equals("Twister.jar") ||
             name.equals("xmlrpc-common-3.1.3.jar") ||
+            name.equals("commons-vfs-1.0.jar") ||
+            name.equals("jsch-0.1.44.jar") ||
             name.equals("xmlrpc-client-3.1.3.jar"))continue;
             final String tempname = name;
             lname = new JLabel(name);
@@ -270,8 +272,8 @@ public class Plugins extends JPanel{
             remotetable2.add(addremove,constraints);
             remotetable2.add(addremove.getMyLabel(),constraints1);
             MainPanel main = Repository.window.mainpanel;
-            if(((TwisterPluginInterface)plugins.
-                    get(filename)).getContent()!=null){
+            TwisterPluginInterface plugin = ((TwisterPluginInterface)plugins.get(filename));
+            if(plugin!=null&&plugin.getContent()!=null){
                 try{main.remove(((TwisterPluginInterface)plugins.
                         get(filename)).getContent());
                 }
@@ -301,7 +303,7 @@ public class Plugins extends JPanel{
             String description;
             while(iterator.hasNext()){
                 name = iterator.next().toString();
-                TwisterPluginInterface plugin = (TwisterPluginInterface)plugins.get(name);
+                plugin = (TwisterPluginInterface)plugins.get(name);
                 description = plugin.getDescription();
                 addPlugin(name,description,plugin);}
             plugintable.revalidate();
@@ -360,7 +362,6 @@ public class Plugins extends JPanel{
             String name;
             for(int i=0;i<size;i++){                
                 name = plugins.get(i).getFilename();
-                System.out.println(name);
                     if(name.split("\\.").length==0||
                         name.equals("TwisterPluginInterface.jar"))continue;
                     list.add(name);}}
