@@ -201,9 +201,7 @@ public class SVNPlugin extends BasePlugin implements TwisterPluginInterface {
         
         root = new DefaultMutableTreeNode("root", true);
         if(c!=null){
-        	System.out.println("getting list from ");
-        	try{System.out.print(tsnapshot.getText());
-        		c.cd(tsnapshot.getText());}
+        	try{c.cd(tsnapshot.getText());}
         	catch(Exception e){e.printStackTrace();
         		try {
 					c.cd(variables.get("remoteuserhome")+
@@ -345,7 +343,6 @@ public class SVNPlugin extends BasePlugin implements TwisterPluginInterface {
                 FileObject aFileObject = filechooser.getSelectedFile();
                 
                 String safeName = VFSUtils.getFriendlyName(aFileObject.toString());
-                System.out.println(safeName);
                 safeName = safeName.substring(safeName.indexOf(variables.get("host"))+
                 		variables.get("host").length());
                 String [] check = safeName.split("/");
@@ -379,7 +376,6 @@ public class SVNPlugin extends BasePlugin implements TwisterPluginInterface {
 		new Thread() {
 			public void run() {
 				frame.setVisible(true);
-				System.out.println("home:"+home);
 				refreshStructure(home);
 				frame.dispose();
 			}
@@ -387,14 +383,10 @@ public class SVNPlugin extends BasePlugin implements TwisterPluginInterface {
 	}
 	
 	public void refreshStructure(String home) {
-		try {
-			if(c==null)System.out.println("c is null");
-			System.out.println("home:"+home);
-			c.cd(home);
+		try {c.cd(home);
 			root.remove(0);
 			getList(root,c,true);
 		} catch (Exception e) {
-			System.out.println("HOME: "+home);
 			e.printStackTrace();
 		}
 		((DefaultTreeModel) tree.getModel()).reload();
@@ -478,7 +470,6 @@ public class SVNPlugin extends BasePlugin implements TwisterPluginInterface {
 			String param="command=snapshot";
 			String result = client.execute("runPlugin", new Object[]{variables.get("user"),
 																	 getName(),param})+"";
-			System.out.println(result);
 			if(result.equals("true")){
 				frame.setVisible(false);
 				JOptionPane.showConfirmDialog(SVNPlugin.this, "Success",
@@ -510,7 +501,6 @@ public class SVNPlugin extends BasePlugin implements TwisterPluginInterface {
 				param = "command=update&overwrite=true";}
 			String result = client.execute("runPlugin", new Object[]{variables.get("user"),
 																	 getName(),param})+"";
-			System.out.println(result);
 			if(result.equals("true")){
 				frame.setVisible(false);
 				JOptionPane.showConfirmDialog(SVNPlugin.this, "Success",
@@ -544,15 +534,12 @@ public class SVNPlugin extends BasePlugin implements TwisterPluginInterface {
             transformer.setOutputProperty("{http:xml.apache.org/xslt}indent-amount",
             																	 "4");
             transformer.transform(source, result);
-            System.out.println("cd to: "+variables.get("remoteuserhome")+
-            											"/twister/config/");
-            if(c==null)System.out.println("C is null");
             c.cd(variables.get("remoteuserhome")+"/twister/config/");
-            System.out.println("Saving "+file.getName()+" to: "+
-            					variables.get("remoteuserhome")+"/twister/config/");
             FileInputStream in = new FileInputStream(file);
             c.put(in, file.getName());
             in.close();
+            System.out.println("Saved "+file.getName()+" to: "+
+					variables.get("remoteuserhome")+"/twister/config/");
             return true;}
         catch(Exception e){
             e.printStackTrace();
