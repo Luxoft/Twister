@@ -397,6 +397,17 @@ class CentralEngine(_cptools.XMLRPCController):
                 # On Central Engine stop, save to database?
                 #self.commitToDatabase()
 
+                # Execute "onStop" for all plugins!
+                parser = PluginParser(user)
+                plugins = parser.getPlugins()
+                for pname in plugins:
+                    plugin = self._buildPlugin(user, pname,  {'ce_stop': 'automatic'})
+                    try:
+                        plugin.onStop()
+                    except Exception, e:
+                        logWarning('Error on running plugin `%s onStop` - Exception: `%s`!' % (pname, str(e)))
+                del parser, plugins
+
         return reversed[new_status]
 
 
@@ -443,6 +454,32 @@ class CentralEngine(_cptools.XMLRPCController):
             # User start time and elapsed time
             self.project.setUserInfo(user, 'start_time', datetime.datetime.today().strftime('%Y-%m-%d %H:%M:%S'))
             self.project.setUserInfo(user, 'elapsed_time', 0)
+
+            # Execute "onStart" for all plugins!
+            parser = PluginParser(user)
+            plugins = parser.getPlugins()
+            for pname in plugins:
+                plugin = self._buildPlugin(user, pname)
+                try:
+                    plugin.onStart()
+                except Exception, e:
+                    logWarning('Error on running plugin `%s onStop` - Exception: `%s`!' % (pname, str(e)))
+            del parser, plugins
+
+        # If the engine is running, or paused and it received STOP from the user...
+        elif (executionStatus == STATUS_RUNNING or executionStatus == STATUS_PAUSED) and new_status == STATUS_STOP:
+
+            # Execute "onStop" for all plugins... ?
+                parser = PluginParser(user)
+                plugins = parser.getPlugins()
+                for pname in plugins:
+                    plugin = self._buildPlugin(user, pname, {'ce_stop': 'manual'})
+                    try:
+                        plugin.onStop()
+                    except Exception, e:
+                        logWarning('Error on running plugin `%s onStop` - Exception: `%s`!' % (pname, str(e)))
+                del parser, plugins
+
 
         # Update status for User
         self.project.setUserInfo(user, 'status', new_status)
@@ -554,6 +591,30 @@ class CentralEngine(_cptools.XMLRPCController):
 # --------------------------------------------------------------------------------------------------
 
 
+    def _buildPlugin(self, user, plugin, extra_data={}):
+        """
+        Parses the list of plugins and creates an instance of the requested plugin.
+        All the data
+        """
+
+        parser = PluginParser(user)
+        pdict = parser.getPlugins().get(plugin)
+        if not pdict:
+            logError('CE ERROR: Cannot find plugin `%s`!' % plugin)
+            return False
+        del parser
+
+        data = dict(self.project.getUserInfo(user))
+        data.update(pdict)
+        data.update(extra_data)
+        del data['eps']
+        del data['status']
+        del data['plugin']
+
+        plugin = pdict['plugin'](user, data)
+        return plugin
+
+
     @cherrypy.expose
     def listPlugins(self, user):
 
@@ -573,20 +634,7 @@ class CentralEngine(_cptools.XMLRPCController):
 
         logDebug('Running plugin:: {0} ; {1} ; {2}'.format(user, plugin, args))
 
-        parser = PluginParser(user)
-        d = parser.getPlugins().get(plugin)
-        if not d:
-            logError('CE ERROR: Cannot find plugin `%s`!' % plugin)
-            return False
-        del parser
-
-        data = dict(self.project.getUserInfo(user))
-        data.update(d)
-        del data['eps']
-        del data['status']
-        del data['plugin']
-        obj = d['plugin']
-        plugin = obj(user, data)
+        plugin = self._buildPlugin(user, plugin)
 
         try:
             return plugin.run(args)
@@ -722,7 +770,7 @@ class CentralEngine(_cptools.XMLRPCController):
         return '-'+title+'-;--'+descr
 
 
-    # --------------------------------------------------------------------------------------------------
+# --------------------------------------------------------------------------------------------------
 #           L O G S
 # --------------------------------------------------------------------------------------------------
 

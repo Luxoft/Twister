@@ -103,9 +103,12 @@ class CentralEngineRest:
                    '<h3>Registered users:</h3>\n'\
                    '{users}.'\
                    '</body>'.format(users=';<br>'.join(
-                   ['&nbsp;&nbsp;<a href="http://{host}/stats?user={user}">{user}</a>'.format(host = host, user=k)
+                   ['&nbsp;&nbsp;<a href="http://{host}/rest/stats/{user}">{user}</a>'.format(host = host, user=k)
                     for k in self.project.users.keys()]
                     ) or 'None')
+        else:
+            if user not in self.project.users.keys():
+                return '<b>User name `{0}` doesn\'t exist!</b>'.format(user)
 
         status = reversed[self.project.getUserInfo(user, 'status')]
 
@@ -126,7 +129,7 @@ class CentralEngineRest:
                     epname = epname,
                     status = reversed[data.get('status', STATUS_INVALID)],
                     ping = str( (now - datetime.datetime.strptime(data.get('last_seen_alive', now_str), '%Y-%m-%d %H:%M:%S')).seconds ) + 's',
-                    suites = '<br>'.join(['&nbsp;&nbsp;<a href="http://{host}/stats?user={user}&epname={ep}&suite={s}">{s}</a>'.format(
+                    suites = '<br>'.join(['&nbsp;&nbsp;<a href="http://{host}/rest/stats/{user}/{ep}/{s}">{s}</a>'.format(
                         host = host, user = user, ep = epname, s = k)
                                           for k in data['suites'].keys()])
                 )
@@ -142,7 +145,7 @@ class CentralEngineRest:
                       '</body>'.format(
                     epname = epname,
                     suite = suite,
-                    files = '<br>'.join(['&nbsp;&nbsp;{0}: {1}'.format(data['files'][k]['file'], reversed[data['files'][k]['status']] )
+                    files = '<br>'.join(['&nbsp;&nbsp;{0}: {1}'.format(data['files'][k]['file'], reversed[data['files'][k].get('status', STATUS_INVALID)] )
                                          for k in data['files']])
                 )
 
@@ -161,7 +164,7 @@ class CentralEngineRest:
                 host = ce_host,
                 port = ce_port,
                 eps = '<br>'.join(
-                    ['&nbsp;&nbsp;<a href="http://{host}/stats?user={user}&epname={ep}">{ep}</a>: {status}'.format(
+                    ['&nbsp;&nbsp;<a href="http://{host}/rest/stats/{user}/{ep}">{ep}</a>: {status}'.format(
                         user = user, ep=ep, host=host,
                         status=reversed[self.project.getEpInfo(user, ep).get('status', STATUS_INVALID)])
                      for ep in eps]
@@ -187,7 +190,7 @@ class CentralEngineRest:
 
         log = open(LOG_FILE).read()
         return '<head><title>Central Engine Log</title></head>\n'\
-               '<body>' + log.replace('\n', '<br>') + \
+               '<body>' + log.replace('\n', '<br>').replace(' ', '&nbsp;') + \
                '</body>'
 
 
