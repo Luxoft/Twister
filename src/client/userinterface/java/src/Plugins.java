@@ -99,15 +99,10 @@ public class Plugins extends JPanel{
                     e.printStackTrace();
                     continue;}
                 name = plugin.getFileName();
-                System.out.println("First NAME: "+name);
                 pluginsarray = Repository.getPlugins().getAsJsonArray();
-                size = pluginsarray.size();    
-                
-//                 plugins.put(name,plugin);
-//                 
+                size = pluginsarray.size();
                 for(int i=0;i<size;i++){
                     pluginname = pluginsarray.get(i).getAsString();
-                    System.out.println("pluginname: "+pluginname);
                     if(pluginname.equals(name)&&(plugins.get(pluginname)==null)){
                         plugins.put(pluginname,plugin);
                         break;
@@ -148,9 +143,12 @@ public class Plugins extends JPanel{
         plugintable.setLayout(new GridBagLayout());
         pluginsscroll.setViewportView(plugintable);
         titleborder.add(pluginsscroll);
-        verticalsplit = new JSplitPane(JSplitPane.VERTICAL_SPLIT,new JScrollPane(localtable),new JScrollPane(remotetable2));
+        verticalsplit = new JSplitPane(JSplitPane.VERTICAL_SPLIT,
+                                        new JScrollPane(localtable),
+                                        new JScrollPane(remotetable2));
         verticalsplit.setDividerLocation(0.5);
-        horizontalsplit = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,verticalsplit,new JScrollPane(plugintable));
+        horizontalsplit = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,verticalsplit,
+                                            new JScrollPane(plugintable));
         horizontalsplit.setDividerLocation(0.5);
         add(horizontalsplit);
         Iterator iterator = plugins.keySet().iterator();
@@ -186,8 +184,6 @@ public class Plugins extends JPanel{
         try{JsonArray plugins = Repository.getPlugins().getAsJsonArray();
             int size = plugins.size();
             String pluginfile;
-            System.out.println("Repository.PLUGINSDIRECTORY "+
-                                Repository.PLUGINSDIRECTORY);
             File pluginsfolder = new File(Repository.PLUGINSDIRECTORY);
             String [] localplugins = pluginsfolder.list();
             boolean found;
@@ -346,15 +342,7 @@ public class Plugins extends JPanel{
     public ArrayList<String> getRemotePlugins(){
         ArrayList list = new ArrayList<String>();
         Iterator iterator = plugins.keySet().iterator();
-//         String name;
         String description;
-        
-//         while(iterator.hasNext()){
-//             name = iterator.next().toString();
-//             System.out.println("NAME: "+name);
-//             TwisterPluginInterface plugin = (TwisterPluginInterface)plugins.get(name);
-//             list.add(plugin.getFileName());}
-            
         try{Repository.c.cd(Repository.REMOTEPLUGINSDIR);}
         catch(Exception e){
             System.out.println("Could not get :"+
@@ -598,7 +586,7 @@ public class Plugins extends JPanel{
             BufferedWriter writer=null;
             try{Repository.c.cd(Repository.REMOTEPLUGINSDIR);}
             catch(Exception e){
-                System.out.println("Could not get :"+Repository.REMOTEPLUGINSDIR);
+                System.out.println("Could not get :"+Repository.REMOTEPLUGINSDIR+" as remote plugins dir");
                 return false;}
             try{System.out.print("Getting "+filename+" ....");
                 in = Repository.c.get(filename);    

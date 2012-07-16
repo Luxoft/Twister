@@ -32,12 +32,14 @@ import javax.swing.BoxLayout;
  */
 public class CustomDialog{
 
-
     /*
      * options presented as buttons 
      */
-    public static String showButtons(Component parent, int messagetype ,int optiontype, Icon icon,Object[] options, String title,String message){
-        JOptionPane pane = new JOptionPane(message, messagetype, optiontype, icon, options);
+    public static String showButtons(Component parent, int messagetype,
+                                    int optiontype, Icon icon,
+                                    Object[] options, String title,String message){
+        JOptionPane pane = new JOptionPane(message, messagetype, 
+                                            optiontype, icon, options);
         JDialog dialog = pane.createDialog(parent, title);
         dialog.setAlwaysOnTop(true);
         dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
@@ -53,7 +55,8 @@ public class CustomDialog{
     /*
      * used for OK, CANCEL, OPTION
      */
-    public static Object showDialog(Object message,int type,int options,Component parent,String title,Icon icon){
+    public static Object showDialog(Object message,int type,int options,
+                                    Component parent,String title,Icon icon){
         JOptionPane pane = new JOptionPane(message,type,options,icon);
         JDialog dialog = pane.createDialog(parent, title);
         dialog.setAlwaysOnTop(true);
@@ -69,7 +72,8 @@ public class CustomDialog{
     /*
      * used for input dialog
      */
-    public static String showInputDialog(int type,int options,Component parent,String title,String text){
+    public static String showInputDialog(int type,int options,Component parent,
+                                            String title,String text){
         JTextField field = new JTextField();
         JLabel label = new JLabel(text);
         JPanel p = new JPanel();
@@ -81,7 +85,8 @@ public class CustomDialog{
         dialog.setAlwaysOnTop(true);
         dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
         dialog.setVisible(true);
-        if(pane.getValue()==null||(Integer)pane.getValue()==JOptionPane.CANCEL_OPTION){
+        if(pane.getValue()==null||
+        (Integer)pane.getValue()==JOptionPane.CANCEL_OPTION){
             dialog.dispose();
             return null;}
         else{
@@ -91,9 +96,11 @@ public class CustomDialog{
     /*
      * used to show info
      */
-    public static void showInfo(int type,Component parent,String title,String text){
+    public static void showInfo(int type,Component parent,
+                                String title,String text){
         JLabel label = new JLabel(text);
-        JOptionPane pane = new JOptionPane(label,type,JOptionPane.DEFAULT_OPTION);
+        JOptionPane pane = new JOptionPane(label,type,
+                                            JOptionPane.DEFAULT_OPTION);
         JDialog dialog = pane.createDialog(parent, title);
         dialog.setAlwaysOnTop(true);
         dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);

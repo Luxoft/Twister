@@ -23,25 +23,21 @@ import java.net.URLClassLoader;
 import java.util.Iterator;
 import java.util.ServiceLoader;
 import com.twister.plugin.twisterinterface.TwisterPluginInterface;
-
 import java.io.InputStream;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
-
 public class PluginsLoader {
     private static URLClassLoader sysLoader;
-    //private static ServiceLoader<TwisterPluginInterface> serviceLoader;
     private static Class[] parameters = new Class[]{URL.class};
     
     public static void setClassPath(){
-        try{if(sysLoader==null){
+        try{
+            if(sysLoader==null){
                 sysLoader= new URLClassLoader(new URL[]{},Plugins.class.getClassLoader());
             }
             addDirToClasspath(new File(Repository.PLUGINSDIRECTORY));
-            
-            //serviceLoader = ServiceLoader.load(TwisterPluginInterface.class);
         }
         catch(Exception e){e.printStackTrace();}}
     
@@ -56,18 +52,12 @@ public class PluginsLoader {
                 addURL(file.toURI().toURL());}}}
     
     public static void addURL(URL u) throws Exception{
-//         if(sysLoader==null){
-//             sysLoader = (URLClassLoader) ClassLoader.getSystemClassLoader();}
         URL urls[] = sysLoader.getURLs();
         for(int i=0;i<urls.length;i++){
             if(urls[i].toString().equalsIgnoreCase(u.toString())){
-                System.out.println("returning for:"+u.toString());
                 return;}}
         Class sysClass = URLClassLoader.class;
         try{Method method = sysClass.getDeclaredMethod("addURL", parameters);
             method.setAccessible(true);
-            method.invoke(sysLoader, new Object[]{u});
-            System.out.println("adding :"+u.toString());
-            System.out.println(u.toString()+" has: "+ServiceLoader.load(TwisterPluginInterface.class,sysLoader).iterator().hasNext());
-        }
+            method.invoke(sysLoader, new Object[]{u});}
 		catch(Exception e){e.printStackTrace();}}}
