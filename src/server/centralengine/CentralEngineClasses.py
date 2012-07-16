@@ -6,7 +6,7 @@
 # Authors:
 #    Andrei Costachi <acostachi@luxoft.com>
 #    Andrei Toma <atoma@luxoft.com>
-#    Cristian Constantin <crconstantin@luxoft.com>
+#    Cristi Constantin <crconstantin@luxoft.com>
 #    Daniel Cioata <dcioata@luxoft.com>
 
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -31,7 +31,18 @@ Each test file has a status that can be: pending, working, pass, fail, skip, etc
 All the statuses are defined in "constants.py".\n
 '''
 
-import os, sys
+import os
+import sys
+import re
+import glob
+import time
+import datetime
+import binascii
+import xmlrpclib
+import urlparse
+import MySQLdb
+import cherrypy
+
 
 if not sys.version.startswith('2.7'):
     print('Python version error! Central Engine must run on Python 2.7!')
@@ -43,18 +54,11 @@ if not TWISTER_PATH:
     exit(1)
 sys.path.append(TWISTER_PATH)
 
-import re
-import glob
-import time
-import datetime
-import binascii
-import xmlrpclib
-import MySQLdb
-import cherrypy
 
 from cherrypy import _cptools
 
 from CentralEngineOthers import Project
+from CentralEngineRest import CentralEngineRest
 
 from common.constants import *
 from common.tsclogging import *
@@ -79,140 +83,7 @@ class CentralEngine(_cptools.XMLRPCController):
         logDebug('CE: Starting Central Engine...') ; ti = time.clock()
         self.project = Project()
         logDebug('CE: Initialization took %.4f seconds.' % (time.clock()-ti))
-
-
-# --------------------------------------------------------------------------------------------------
-#           B R O W S E R   F U N C T I O N S
-# --------------------------------------------------------------------------------------------------
-
-
-    def _user_agent(self):
-        '''
-        User agent returns Browser or XML RPC client.
-        This function is not exposed.
-        '''
-        if  cherrypy.request.headers['User-Agent'].startswith('xmlrpclib.py') or \
-            cherrypy.request.headers['User-Agent'].startswith('Apache XML RPC'):
-            # XML RPC client
-            return 'x'
-        else:
-            # Browser
-            return 'b'
-
-
-    @cherrypy.expose
-    def stats(self, user='', epname='', suite=''):
-        '''
-        This function should be used in the browser.
-        It prints a few statistics about the Central Engine.
-        '''
-        if self._user_agent == 'x':
-            return 0
-
-        reversed = dict((v,k) for k,v in execStatus.iteritems())
-        now = datetime.datetime.today()
-        if now.second < 59:
-            now_str = now.replace(second=now.second+1).strftime('%Y-%m-%d %H:%M:%S')
-        else:
-            now_str = now.replace(minute=now.minute+1, second=0).strftime('%Y-%m-%d %H:%M:%S')
-        ce_host = cherrypy.config['server.socket_host']
-        ce_port = cherrypy.config['server.socket_port']
-        host = cherrypy.request.headers['Host']
-
-        if not user:
-            return '<head><title>Central Engine Statistics</title></head>\n'\
-                   '<body>'\
-                   '<h3>Central Engine statistics</h3>'\
-                   '<h3>Registered users:</h3>\n'\
-                   '{users}.'\
-                   '</body>'.format(users=';<br>'.join(
-                            ['&nbsp;&nbsp;<a href="http://{host}/stats?user={user}">{user}</a>'.format(host = host, user=k)
-                            for k in self.project.users.keys()]))
-
-        status = reversed[self.project.getUserInfo(user, 'status')]
-
-        if epname:
-            if not self.searchEP(user, epname):
-                return '<b>Execution Process `{0}` doesn\'t exist!</b>'.format(epname)
-
-            # EP name only
-            if not suite:
-                data = self.project.getEpInfo(user, epname)
-                ret = '<head><title>Central Engine Statistics</title></head>\n'\
-                      '<body>'\
-                      '<h3>Execution Process `{epname}`</h3>'\
-                      '<b>Status</b>: {status}<br><br>'\
-                      '<b>Ping</b>: {ping}<br><br>'\
-                      '<b>Suites</b>: [<br>{suites}<br>]'\
-                      '</body>'.format(
-                    epname = epname,
-                    status = reversed[data.get('status', STATUS_INVALID)],
-                    ping = str( (now - datetime.datetime.strptime(data.get('last_seen_alive', now_str), '%Y-%m-%d %H:%M:%S')).seconds ) + 's',
-                    suites = '<br>'.join(['&nbsp;&nbsp;<a href="http://{host}/stats?user={user}&epname={ep}&suite={s}">{s}</a>'.format(
-                             host = host, user = user, ep = epname, s = k)
-                             for k in data['suites'].keys()])
-                )
-
-            # EP name and Suite name
-            else:
-                data = self.project.getSuiteInfo(user, epname, suite)
-                reversed = dict((v,k) for k,v in testStatus.iteritems())
-                ret = '<head><title>Central Engine Statistics</title></head>\n'\
-                      '<body>'\
-                      '<h3>EP `{epname}` -> Suite `{suite}`</h3>'\
-                      '<b>Files</b>: [<br>{files}<br>]'\
-                      '</body>'.format(
-                    epname = epname,
-                    suite = suite,
-                    files = '<br>'.join(['&nbsp;&nbsp;{0}: {1}'.format(data['files'][k]['file'], reversed[data['files'][k]['status']] )
-                            for k in data['files']])
-                )
-
-        # General statistics
-        else:
-            eps = self.listEPs(user).split(',')
-            ret = '<head><title>Central Engine Statistics</title></head>\n'\
-                  '<body>'\
-                  '<h3>Central Engine statistics for user `{user}`</h3>'\
-                  '<b>Running on</b>: {host}:{port}<br><br>'\
-                  '<b>Status</b>: {status}<br><br>'\
-                  '<b>Processes</b>: [<br>{eps}<br>]'\
-                  '</body>'.format(
-            user = user,
-            status = status,
-            host = ce_host,
-            port = ce_port,
-            eps = '<br>'.join(
-                ['&nbsp;&nbsp;<a href="http://{host}/stats?user={user}&epname={ep}">{ep}</a>: {status}'.format(
-                    user = user, ep=ep, host=host,
-                    status=reversed[self.project.getEpInfo(user, ep).get('status', STATUS_INVALID)])
-                    for ep in eps]
-                )
-            )
-
-        return ret
-
-    @cherrypy.expose
-    def status(self, user, epname='', suite=''):
-        return self.stats(user, epname, suite)
-
-
-    @cherrypy.expose
-    def log(self):
-        '''
-        This function should be used in the browser.
-        It prints the Central Engine log.
-        '''
-        if self._user_agent == 'x':
-            return 0
-
-        global LOG_FILE
-        log = open(LOG_FILE).read()
-        return log.replace('\n', '<br>')
-
-    @cherrypy.expose
-    def logs(self):
-        return self.log()
+        self.rest = CentralEngineRest(self.project)
 
 
 # --------------------------------------------------------------------------------------------------
@@ -328,8 +199,8 @@ class CentralEngine(_cptools.XMLRPCController):
         '''
         Search one EP and return True or False.
         '''
-        epList = self.project.getUserInfo(user, 'eps').keys()
-        return epname in epList
+        epDict = self.project.getUserInfo(user, 'eps')
+        return epname in epDict
 
 
     @cherrypy.expose
@@ -592,137 +463,6 @@ class CentralEngine(_cptools.XMLRPCController):
 
 
 # --------------------------------------------------------------------------------------------------
-#           L I B R A R Y   AND   T E S T   S U I T E   F I L E S
-# --------------------------------------------------------------------------------------------------
-
-
-    @cherrypy.expose
-    def getLibrariesList(self):
-        '''
-        Returns the list of exposed libraries, from CE libraries folder.\n
-        This list will be used to syncronize the libs on all EP computers.\n
-        Called from the Runner.
-        '''
-        global TWISTER_PATH
-        libs_path = TWISTER_PATH + os.sep + 'lib'
-        # All Python source files from Libraries folder
-        libs = [d for d in os.listdir(libs_path) if \
-            os.path.isfile(libs_path + os.sep + d) and \
-            '__init__.py' not in d and \
-            os.path.splitext(d)[1] in ['.py', '.zip']]
-        return sorted(libs)
-
-
-    @cherrypy.expose
-    def getLibraryFile(self, filename):
-        '''
-        Sends required library to EP, to be syncronized.\n
-        Called from the Runner.
-        '''
-        global TWISTER_PATH
-        filename = TWISTER_PATH + os.sep + 'lib' +os.sep + filename
-        if not os.path.isfile(filename):
-            logError('CE ERROR! Library file: `%s` does not exist!' % filename)
-            return False
-        logDebug('CE: Requested library: ' + filename)
-        with open(filename, 'rb') as handle:
-            return xmlrpclib.Binary(handle.read())
-
-
-    @cherrypy.expose
-    def getEpFiles(self, user, epname):
-        '''
-        Returns all files that must be run on one EP.\n
-        Called from the Runner.
-        '''
-        if not self.searchEP(user, epname):
-            logError('CE ERROR! EP `%s` is not in the list of defined EPs: `%s`!' % \
-                (str(epname), self.listEPs(user)) )
-            return False
-
-        try: data = self.project.getEpFiles(user, epname)
-        except: data = False
-        return data
-
-
-    @cherrypy.expose
-    def getSuiteFiles(self, user, epname, suite):
-        '''
-        Returns all files that must be run on one Suite.\n
-        Called from the Runner.
-        '''
-        if not self.searchEP(user, epname):
-            logError('CE ERROR! EP `%s` is not in the list of defined EPs: `%s`!' % \
-                (str(epname), self.listEPs(user)) )
-            return False
-
-        try: data = self.project.getSuiteFiles(user, epname, suite)
-        except: data = False
-        return data
-
-
-    @cherrypy.expose
-    def getTestFile(self, user, epname, file_id):
-        '''
-        Sends requested file to TC, to be executed.\n
-        Called from the Runner.
-        '''
-        if not self.searchEP(user, epname):
-            logError('CE ERROR! EP `%s` is not in the list of defined EPs: `%s`!' % \
-                (str(epname), self.listEPs(user)) )
-            return False
-        if not self.project.getEpInfo(user, epname).get('status'):
-            logError('CE ERROR! `%s` requested file list, but the EP is closed! Exiting!' % epname)
-            return False
-
-        data = self.project.getFileInfo(user, file_id)
-        filename = data.get('file', 'invalid file!')
-        runnable = data.get('Runnable', 'not set')
-
-        if runnable=='true' or runnable=='not set':
-            if filename.startswith('~'):
-                filename = os.getenv('HOME') + filename[1:]
-            if not os.path.isfile(filename):
-                logError('CE ERROR! TestCase file: `%s` does not exist!' % filename)
-                return ''
-
-            logDebug('CE: Station {0} requested file `{1}`'.format(epname, filename))
-
-            with open(filename, 'rb') as handle:
-                return xmlrpclib.Binary(handle.read())
-        else:
-            logDebug('CE: Skipped file `{0}`'.format(filename))
-            return False
-
-
-    @cherrypy.expose
-    def getTestDescription(self, fname):
-        '''
-        Returns the title and the description of a test file.\n
-        Called from the Java GUI.
-        '''
-        title = ''
-        descr = ''
-
-        for line in open(fname,'r'):
-            s = line.strip()
-            if '<title>' in line and '</title>' in line:
-                a = s.find('<title>') + len('<title>')
-                b = s.find('</title>')
-                title = s[a:b]
-                if title: continue
-            if '<description>' in line and '</description>' in line:
-                a = s.find('<description>') + len('<description>')
-                b = s.find('</description>')
-                descr = s[a:b]
-                if descr: continue
-
-            if title and descr: break
-
-        return '-'+title+'-;--'+descr
-
-
-# --------------------------------------------------------------------------------------------------
 #           T E S T   F I L E   S T A T U S E S
 # --------------------------------------------------------------------------------------------------
 
@@ -810,6 +550,179 @@ class CentralEngine(_cptools.XMLRPCController):
 
 
 # --------------------------------------------------------------------------------------------------
+#           L I B R A R Y   AND   T E S T   S U I T E   F I L E S
+# --------------------------------------------------------------------------------------------------
+
+
+    @cherrypy.expose
+    def listPlugins(self, user):
+
+        p = PluginParser(user)
+        logDebug(p.getPlugins())
+        return True
+
+
+    @cherrypy.expose
+    def runPlugin(self, user, plugin, args):
+
+        try:
+            args = urlparse.parse_qs(args)
+        except:
+            logError('CE ERROR: Cannot run plugin `%s` with arguments `%s`!' % (plugin, args))
+            return False
+
+        logDebug('Running plugin:: {0} ; {1} ; {2}'.format(user, plugin, args))
+
+        parser = PluginParser(user)
+        d = parser.getPlugins().get(plugin)
+        if not d:
+            logError('CE ERROR: Cannot find plugin `%s`!' % plugin)
+            return False
+        del parser
+
+        data = dict(self.project.getUserInfo(user))
+        data.update(d)
+        del data['eps']
+        del data['status']
+        del data['plugin']
+        obj = d['plugin']
+        plugin = obj(user, data)
+
+        try:
+            return plugin.run(args)
+        except Exception, e:
+            logError('CE ERROR: Plugin `%s`, ran with arguments `%s` and returned EXCEPTION: `%s`!' %
+                     (plugin, args, e))
+            return 'Error on running plugin %s - Exception: `%s`!' % (plugin, str(e))
+
+
+    @cherrypy.expose
+    def getLibrariesList(self):
+        '''
+        Returns the list of exposed libraries, from CE libraries folder.\n
+        This list will be used to syncronize the libs on all EP computers.\n
+        Called from the Runner.
+        '''
+        global TWISTER_PATH
+        libs_path = TWISTER_PATH + os.sep + 'lib'
+        # All Python source files from Libraries folder
+        libs = [d for d in os.listdir(libs_path) if\
+                os.path.isfile(libs_path + os.sep + d) and\
+                '__init__.py' not in d and\
+                os.path.splitext(d)[1] in ['.py', '.zip']]
+        return sorted(libs)
+
+
+    @cherrypy.expose
+    def getLibraryFile(self, filename):
+        '''
+        Sends required library to EP, to be syncronized.\n
+        Called from the Runner.
+        '''
+        global TWISTER_PATH
+        filename = TWISTER_PATH + os.sep + 'lib' +os.sep + filename
+        if not os.path.isfile(filename):
+            logError('CE ERROR! Library file: `%s` does not exist!' % filename)
+            return False
+        logDebug('CE: Requested library: ' + filename)
+        with open(filename, 'rb') as handle:
+            return xmlrpclib.Binary(handle.read())
+
+
+    @cherrypy.expose
+    def getEpFiles(self, user, epname):
+        '''
+        Returns all files that must be run on one EP.\n
+        Called from the Runner.
+        '''
+        if not self.searchEP(user, epname):
+            logError('CE ERROR! EP `%s` is not in the list of defined EPs: `%s`!' %\
+                     (str(epname), self.listEPs(user)) )
+            return False
+
+        try: data = self.project.getEpFiles(user, epname)
+        except: data = False
+        return data
+
+
+    @cherrypy.expose
+    def getSuiteFiles(self, user, epname, suite):
+        '''
+        Returns all files that must be run on one Suite.\n
+        Called from the Runner.
+        '''
+        if not self.searchEP(user, epname):
+            logError('CE ERROR! EP `%s` is not in the list of defined EPs: `%s`!' %\
+                     (str(epname), self.listEPs(user)) )
+            return False
+
+        try: data = self.project.getSuiteFiles(user, epname, suite)
+        except: data = False
+        return data
+
+
+    @cherrypy.expose
+    def getTestFile(self, user, epname, file_id):
+        '''
+        Sends requested file to TC, to be executed.\n
+        Called from the Runner.
+        '''
+        if not self.searchEP(user, epname):
+            logError('CE ERROR! EP `%s` is not in the list of defined EPs: `%s`!' %\
+                     (str(epname), self.listEPs(user)) )
+            return False
+        if not self.project.getEpInfo(user, epname).get('status'):
+            logError('CE ERROR! `%s` requested file list, but the EP is closed! Exiting!' % epname)
+            return False
+
+        data = self.project.getFileInfo(user, file_id)
+        filename = data.get('file', 'invalid file!')
+        runnable = data.get('Runnable', 'not set')
+
+        if runnable=='true' or runnable=='not set':
+            if filename.startswith('~'):
+                filename = os.getenv('HOME') + filename[1:]
+            if not os.path.isfile(filename):
+                logError('CE ERROR! TestCase file: `%s` does not exist!' % filename)
+                return ''
+
+            logDebug('CE: Station {0} requested file `{1}`'.format(epname, filename))
+
+            with open(filename, 'rb') as handle:
+                return xmlrpclib.Binary(handle.read())
+        else:
+            logDebug('CE: Skipped file `{0}`'.format(filename))
+            return False
+
+
+    @cherrypy.expose
+    def getTestDescription(self, fname):
+        '''
+        Returns the title and the description of a test file.\n
+        Called from the Java GUI.
+        '''
+        title = ''
+        descr = ''
+
+        for line in open(fname,'r'):
+            s = line.strip()
+            if '<title>' in line and '</title>' in line:
+                a = s.find('<title>') + len('<title>')
+                b = s.find('</title>')
+                title = s[a:b]
+                if title: continue
+            if '<description>' in line and '</description>' in line:
+                a = s.find('<description>') + len('<description>')
+                b = s.find('</description>')
+                descr = s[a:b]
+                if descr: continue
+
+            if title and descr: break
+
+        return '-'+title+'-;--'+descr
+
+
+    # --------------------------------------------------------------------------------------------------
 #           L O G S
 # --------------------------------------------------------------------------------------------------
 
