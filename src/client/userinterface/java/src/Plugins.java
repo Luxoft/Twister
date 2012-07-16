@@ -60,6 +60,7 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
+import java.net.URLClassLoader;
 
 /*
  * plugins panel displayed
@@ -98,15 +99,21 @@ public class Plugins extends JPanel{
                     e.printStackTrace();
                     continue;}
                 name = plugin.getFileName();
+                System.out.println("First NAME: "+name);
                 pluginsarray = Repository.getPlugins().getAsJsonArray();
-                size = pluginsarray.size();            
+                size = pluginsarray.size();    
+                
+//                 plugins.put(name,plugin);
+//                 
                 for(int i=0;i<size;i++){
                     pluginname = pluginsarray.get(i).getAsString();
+                    System.out.println("pluginname: "+pluginname);
                     if(pluginname.equals(name)&&(plugins.get(pluginname)==null)){
                         plugins.put(pluginname,plugin);
                         break;
                     }
-                }}}               
+                }
+            }}               
         catch(Exception e){
             e.printStackTrace();}
         }
@@ -210,11 +217,7 @@ public class Plugins extends JPanel{
         JPanel panel;
         JLabel lname;        
         for(String name:list){
-            if(name.equals("Twister.jar") ||
-            name.equals("xmlrpc-common-3.1.3.jar") ||
-            name.equals("commons-vfs-1.0.jar") ||
-            name.equals("jsch-0.1.44.jar") ||
-            name.equals("xmlrpc-client-3.1.3.jar"))continue;
+            if(name.indexOf(".jar")==-1)continue;
             final String tempname = name;
             lname = new JLabel(name);
             final MyButton addremove = new MyButton("Download");
@@ -342,6 +345,16 @@ public class Plugins extends JPanel{
      */
     public ArrayList<String> getRemotePlugins(){
         ArrayList list = new ArrayList<String>();
+        Iterator iterator = plugins.keySet().iterator();
+//         String name;
+        String description;
+        
+//         while(iterator.hasNext()){
+//             name = iterator.next().toString();
+//             System.out.println("NAME: "+name);
+//             TwisterPluginInterface plugin = (TwisterPluginInterface)plugins.get(name);
+//             list.add(plugin.getFileName());}
+            
         try{Repository.c.cd(Repository.REMOTEPLUGINSDIR);}
         catch(Exception e){
             System.out.println("Could not get :"+
@@ -509,15 +522,15 @@ public class Plugins extends JPanel{
             plugin.init(Repository.getSuite(),
                         Repository.getTestSuite(),
                         Repository.getVariables(),
-                        Repository.getPluginsConfig(),
-                        Repository.getRPCClient());
+                        Repository.getPluginsConfig());
             main.addTab(plugin.getName(), plugin.getContent());
             main.revalidate();
             main.repaint();}
         else{
-            main.remove(plugin.getContent());
-            main.revalidate();
-            main.repaint();
+            if(plugin.getContent()!=null){
+                main.remove(plugin.getContent());
+                main.revalidate();
+                main.repaint();}
             plugin.terminate();
         }
         enablePlugin(check.isSelected(),pluginname);

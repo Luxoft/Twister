@@ -23,12 +23,14 @@ import javax.swing.SwingUtilities;
 import java.awt.BorderLayout;
 import java.awt.EventQueue;
 import java.awt.event.ActionEvent;
+import java.net.URLClassLoader;
+import java.rmi.RMISecurityManager;
 
 
 /*
  * main method for starting Twister local
  */
 public class Main{
-    public static void main(String args[]){ 
-            Repository.initialize(false,"tsc-server",null);
-        }}      
+    
+    public static void main(String args[]){
+            Repository.initialize(false,"tsc-server",null);}}

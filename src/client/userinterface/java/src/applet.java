@@ -36,6 +36,8 @@ import java.awt.image.BufferedImage;
 import java.awt.Image;
 import javax.swing.UIManager;
 import javax.swing.SwingUtilities;
+import java.net.URLClassLoader;
+import com.twister.MySecurityManager;
 
 public class applet extends Applet{ 
     private static final long serialVersionUID = 1L;
@@ -50,7 +52,9 @@ public class applet extends Applet{
          */
         try{System.out.println("Current version: ");
             System.out.println("OS current temporary directory is : "+
-                System.getProperty("java.io.tmpdir"));
+                                System.getProperty("java.io.tmpdir"));
+            System.setSecurityManager(new MySecurityManager());
+            System.out.println("Testing Testing Testing");
             Repository.tcicon = loadIcon("tc.png");
             Repository.background = loadIcon("background.png");
             Repository.pendingicon = loadIcon("pending.png");

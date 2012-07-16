@@ -91,6 +91,7 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Transformer;
+import java.net.URLClassLoader;
 
 /*
  * static class to hold
@@ -144,6 +145,7 @@ public class Repository{
      */
     public static void initialize(final boolean applet,String host,Applet container){
         Repository.container = container;
+        
         /*
          * temp folder creation to hold
          * all the needed twister files localy
@@ -209,7 +211,7 @@ public class Repository{
                  * the resources must be loaded from local pc 
                  */
                 loadResourcesFromLocal();}
-            if(userpassword()){ 
+            if(userpassword()){
                 /*
                  * create directory structure
                  * for twister resources localy
@@ -257,7 +259,6 @@ public class Repository{
                 intro.setStatus("Started to parse the config");
                 intro.addPercent(0.035);
                 intro.repaint();
-                loadPluginsInterfaces();
                 parseConfig();
                 if(!getPluginsFile())createGeneralPluginConf();
                 if(!parsePluginsConfig(CONFIGDIRECTORY+"/plugins.xml")){
@@ -279,7 +280,9 @@ public class Repository{
                 intro.setStatus("Finished parsing the config");
                 intro.addPercent(0.035);
                 intro.repaint();
+                
                 parseDBConfig(Repository.REMOTEDATABASECONFIGFILE,true);
+//                 Repository.loadPluginsInterfaces();
                 window = new Window(applet,container);
                 parseEmailConfig(Repository.REMOTEEMAILCONFIGFILE,true);
                 variables.put("host",host);
@@ -342,10 +345,10 @@ public class Repository{
             File file = new File(Repository.PLUGINSLOCALGENERALCONF);
             Result result = new StreamResult(file);
             transformer.transform(source, result);
-            Repository.c.cd(Repository.USERHOME+"/twister/config/");
+            c.cd(Repository.USERHOME+"/twister/config/");
             System.out.println("Saving to: "+Repository.USERHOME+"/twister/config/");
             FileInputStream in = new FileInputStream(file);
-            Repository.c.put(in, file.getName());
+            c.put(in, file.getName());
             in.close();}
         catch(Exception e){
             System.out.println("There was a problem in generating Plugins general config");
@@ -357,15 +360,18 @@ public class Repository{
      * method to load plugininterfaces
      * to be available on initializing Plugins
      */
-    public static void loadPluginsInterfaces(){
-        Plugins.deletePlugins();
-        Plugins.copyPlugin("Twister.jar");
-        Plugins.copyPlugin("xmlrpc-client-3.1.3.jar");
-        Plugins.copyPlugin("xmlrpc-common-3.1.3.jar");
-        Plugins.copyPlugin("jsch-0.1.44.jar");
-        Plugins.copyPlugin("commons-vfs-1.0.jar");
-        PluginsLoader.setClassPath();
-    }
+//     public static void loadPluginsInterfaces(){
+//         Plugins.deletePlugins();
+//         Plugins.copyPlugin("Twister.jar");
+//         Plugins.copyPlugin("xmlrpc-client-3.1.3.jar");
+//         Plugins.copyPlugin("xmlrpc-common-3.1.3.jar");
+//         Plugins.copyPlugin("jsch-0.1.44.jar");
+//         Plugins.copyPlugin("commons-vfs-1.0.jar");
+//         Plugins.copyPlugin("VFSJFileChooser-0.0.3.jar");
+//         Plugins.copyPlugin("commons-logging-1.1.1.jar");
+//         Plugins.copyPlugin("ws-commons-util-1.0.2.jar");
+//         PluginsLoader.setClassPath();
+//     }
         
     /*
      * load resources needed for framework
@@ -723,7 +729,9 @@ public class Repository{
             File file;
             String line = null;
             String name = null;
-            try{c.cd(USERHOME+"/twister/config/");}
+            try{c.cd(USERHOME+"/twister/config/");
+                System.out.println("c.ls.size(): "+c.ls(".").size());
+            }
             catch(Exception e){
                 System.out.println("Could not get :"+USERHOME+"/twister/config/");
                 CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,Repository.window,
@@ -814,7 +822,8 @@ public class Repository{
                 System.out.println("Could not get to "+usersdir+"on sftp");}
             int subdirnr = usersdir.split("/").length-1;
             int size ;
-            try{size= c.ls(usersdir).size();}
+            try{System.out.println("c.ls.size(): "+c.ls(".").size());
+                size= c.ls(usersdir).size();}
             catch(Exception e){
                 System.out.println("No suites xml");
                 size=0;}
@@ -1387,7 +1396,7 @@ public class Repository{
             transformer.setOutputProperty(OutputKeys.INDENT, "yes");
             transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "4");
             transformer.transform(source, result);
-            Repository.c.cd(Repository.USERHOME+"/twister/config/");
+            c.cd(Repository.USERHOME+"/twister/config/");
             System.out.println("Saving "+file.getName()+" to: "+Repository.USERHOME+"/twister/config/");
             FileInputStream in = new FileInputStream(file);
             Repository.c.put(in, file.getName());
