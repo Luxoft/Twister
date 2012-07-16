@@ -43,12 +43,30 @@ class Plugin(BasePlugin):
             print 'SVN plugin: Deleting folder `%s` !' % dst
             os.rmdir(dst)
 
-        try:
-            p = subprocess.Popen(['svn', command, src, dst], shell=False)
-            p.wait()
-        except Exception, e:
-            return 'Error on calling SVN {cmd} (from `{src}` to `{dst}`): `{e}`!'.format(
-                cmd=command, src=src, dst=dst, e=e)
+        usr = self.data['username']
+        pwd = self.data['password']
+
+        if usr:
+            try:
+                p = subprocess.Popen(['svn', command, src, dst, '--username', usr], shell=False)
+                p.wait()
+            except Exception, e:
+                return 'Error on calling SVN {cmd} (from `{src}` to `{dst}`): `{e}`!'.format(
+                    cmd=command, src=src, dst=dst, e=e)
+        elif usr and pwd:
+            try:
+                p = subprocess.Popen(['svn', command, src, dst, '--username', usr, '--password', pwd], shell=False)
+                p.wait()
+            except Exception, e:
+                return 'Error on calling SVN {cmd} (from `{src}` to `{dst}`): `{e}`!'.format(
+                    cmd=command, src=src, dst=dst, e=e)
+        else:
+            try:
+                p = subprocess.Popen(['svn', command, src, dst], shell=False)
+                p.wait()
+            except Exception, e:
+                return 'Error on calling SVN {cmd} (from `{src}` to `{dst}`): `{e}`!'.format(
+                    cmd=command, src=src, dst=dst, e=e)
 
         return 'true'
 
