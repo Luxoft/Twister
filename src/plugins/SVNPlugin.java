@@ -73,7 +73,7 @@ public class SVNPlugin extends BasePlugin implements TwisterPluginInterface {
 
 	@Override
 	public void init(ArrayList<Item> suite, ArrayList<Item> suitetest,
-			final Hashtable<String, String> variables,Document pluginsConfig) {
+			final Hashtable<String, String> variables,final Document pluginsConfig) {
 		super.init(suite, suitetest, variables,pluginsConfig);
 		System.out.println("Initializing "+getName()+" ...");
 		initializeSFTP();
@@ -101,17 +101,20 @@ public class SVNPlugin extends BasePlugin implements TwisterPluginInterface {
         ndefaultOp = getPropValue("default_operation");
         nusername = getPropValue("username");
         
-        try{tparola.setText(npassword.getNodeValue());}
-        catch(Exception e){e.printStackTrace();}
-        try{tserver.setText(nserver.getNodeValue());}
-        catch(Exception e){e.printStackTrace();}
-        try{tsnapshot.setText(nsnapshot.getNodeValue());}
-        catch(Exception e){e.printStackTrace();}
-        try{tusername.setText(nusername.getNodeValue());}
-        catch(Exception e){e.printStackTrace();}
-        String operation="";
-        try{operation = ndefaultOp.getNodeValue();}
-        catch(Exception e){e.printStackTrace();}        
+        //if(!npassword.getNodeValue().equals(" ")){
+        	tparola.setText(npassword.getNodeValue());
+        //	}
+        //if(!nserver.getNodeValue().equals(" ")){
+        	tserver.setText(nserver.getNodeValue());
+        //	}
+        //if(!nsnapshot.getNodeValue().equals(" ")){
+        	tsnapshot.setText(nsnapshot.getNodeValue());
+        //	}
+        //if(!nusername.getNodeValue().equals(" ")){
+        	tusername.setText(nusername.getNodeValue());
+        //	}
+        
+        String operation = ndefaultOp.getNodeValue();       
         if(!operation.equals("update")) check.setSelected(true);
         else check.setSelected(false);
         
