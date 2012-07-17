@@ -57,9 +57,9 @@ import org.apache.commons.vfs.FileObject;
 public class GITPlugin extends BasePlugin implements TwisterPluginInterface {
 	private static final long serialVersionUID = 1L;
 	private JCheckBox check;
-    private JLabel parola,server,snapshot,username;
+    private JLabel parola,server,snapshot,username,branch;
     private JButton snap,update;
-    private JTextField tparola,tserver,tsnapshot,tusername;    
+    private JTextField tparola,tserver,tsnapshot,tusername,tbranch;    
 	private JPanel p;
 	private DefaultMutableTreeNode root;
 	private DefaultMutableTreeNode child2;
@@ -68,7 +68,7 @@ public class GITPlugin extends BasePlugin implements TwisterPluginInterface {
 	private XmlRpcClient client;
 	private ChannelSftp c;
 	private VFSJFileChooser filechooser;
-	private Node npassword,nserver,nsnapshot,ndefaultOp,nusername;
+	private Node npassword,nserver,nsnapshot,ndefaultOp,nusername,nbranch;
 	
 
 	@Override
@@ -86,6 +86,8 @@ public class GITPlugin extends BasePlugin implements TwisterPluginInterface {
         tparola = new JTextField();
         server = new JLabel("Server: ");
         tserver = new JTextField();
+        branch = new JLabel("Branch: ");
+        tbranch = new JTextField();
         snapshot = new JLabel("Snapshot: ");
         tsnapshot = new JTextField();
         snap = new JButton("Create snaphot");
@@ -100,6 +102,7 @@ public class GITPlugin extends BasePlugin implements TwisterPluginInterface {
         nsnapshot = getPropValue("snapshot");
         ndefaultOp = getPropValue("default_operation");
         nusername = getPropValue("username");
+        nbranch = getPropValue("branch");
         //if(!npassword.getNodeValue().equals(" ")){
         	tparola.setText(npassword.getNodeValue());
        // 	}
@@ -112,6 +115,7 @@ public class GITPlugin extends BasePlugin implements TwisterPluginInterface {
         //if(!nusername.getNodeValue().equals(" ")){
         	tusername.setText(nusername.getNodeValue());
         //	}
+        	tbranch.setText(nbranch.getNodeValue());
         
         String operation = ndefaultOp.getNodeValue();
                 
@@ -136,6 +140,11 @@ public class GITPlugin extends BasePlugin implements TwisterPluginInterface {
         tusername.addKeyListener(new KeyAdapter(){
             public void keyReleased(KeyEvent ev){
             	nusername.setNodeValue(tusername.getText());
+            	uploadPluginsFile();
+            }});
+        tbranch.addKeyListener(new KeyAdapter(){
+            public void keyReleased(KeyEvent ev){
+            	nbranch.setNodeValue(tbranch.getText());
             	uploadPluginsFile();
             }});
         check.addActionListener(new ActionListener(){
@@ -175,29 +184,33 @@ public class GITPlugin extends BasePlugin implements TwisterPluginInterface {
         username.setBounds(20, 30, 70, 25);
         parola.setBounds(20, 60, 70, 25);
         server.setBounds(20, 90, 70, 25);
-        snapshot.setBounds(20, 120, 70, 25);
+        branch.setBounds(20, 120, 70, 25);
+        snapshot.setBounds(20, 150, 70, 25);
         p.add(parola);
         p.add(server);
+        p.add(branch);
         p.add(snapshot);
         p.add(username);
         
-        tsnapshot.setBounds(95, 120, 250, 25);
+        tsnapshot.setBounds(95, 150, 250, 25);
+        tbranch.setBounds(95, 120, 250, 25);
         tserver.setBounds(95, 90, 250, 25);
         tparola.setBounds(95, 60, 250, 25);
         tusername.setBounds(95, 30, 250, 25);
         p.add(tparola);
+        p.add(tbranch);
         p.add(tserver);
         p.add(tsnapshot);
         p.add(tusername);
         
-        snap.setBounds(20,195, 130, 30);
-        update.setBounds(155,195, 100, 30);
-        check.setBounds(260,195, 100, 30);
+        snap.setBounds(20,225, 130, 30);
+        update.setBounds(155,225, 100, 30);
+        check.setBounds(260,225, 100, 30);
         p.add(snap);
         p.add(update);
         p.add(check);
         
-        browse.setBounds(350, 120, 50, 25);
+        browse.setBounds(350, 150, 50, 25);
         browse.addActionListener(new ActionListener() {
 			
 			@Override
