@@ -101,12 +101,17 @@ public class SVNPlugin extends BasePlugin implements TwisterPluginInterface {
         ndefaultOp = getPropValue("default_operation");
         nusername = getPropValue("username");
         
-        tparola.setText(npassword.getNodeValue());
-        tserver.setText(nserver.getNodeValue());
-        tsnapshot.setText(nsnapshot.getNodeValue());
-        tusername.setText(nusername.getNodeValue());
-        String operation = ndefaultOp.getNodeValue();
-        
+        try{tparola.setText(npassword.getNodeValue());}
+        catch(Exception e){e.printStackTrace();}
+        try{tserver.setText(nserver.getNodeValue());}
+        catch(Exception e){e.printStackTrace();}
+        try{tsnapshot.setText(nsnapshot.getNodeValue());}
+        catch(Exception e){e.printStackTrace();}
+        try{tusername.setText(nusername.getNodeValue());}
+        catch(Exception e){e.printStackTrace();}
+        String operation="";
+        try{operation = ndefaultOp.getNodeValue();}
+        catch(Exception e){e.printStackTrace();}        
         if(!operation.equals("update")) check.setSelected(true);
         else check.setSelected(false);
         
