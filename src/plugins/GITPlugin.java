@@ -103,18 +103,10 @@ public class GITPlugin extends BasePlugin implements TwisterPluginInterface {
         ndefaultOp = getPropValue("default_operation");
         nusername = getPropValue("username");
         nbranch = getPropValue("branch");
-        //if(!npassword.getNodeValue().equals(" ")){
         	tparola.setText(npassword.getNodeValue());
-       // 	}
-        //if(!nserver.getNodeValue().equals(" ")){
         	tserver.setText(nserver.getNodeValue());
-        //	}
-        //if(!nsnapshot.getNodeValue().equals(" ")){
         	tsnapshot.setText(nsnapshot.getNodeValue());
-        //	}
-        //if(!nusername.getNodeValue().equals(" ")){
         	tusername.setText(nusername.getNodeValue());
-        //	}
         	tbranch.setText(nbranch.getNodeValue());
         
         String operation = ndefaultOp.getNodeValue();
@@ -488,6 +480,22 @@ public class GITPlugin extends BasePlugin implements TwisterPluginInterface {
 	 */
 	public void snapshot(JFrame frame){
 		try {
+			boolean exists = true;
+			String folder = tsnapshot.getText();
+			try{c.cd(folder);}
+			catch(Exception e){
+				e.printStackTrace();
+				exists = false;
+			}
+			if(exists){
+				int response = JOptionPane.showConfirmDialog(this, "Warning, "+folder+
+															 " allready exist, continue?","Warning",
+															 JOptionPane.OK_CANCEL_OPTION);
+				if(response==JOptionPane.CANCEL_OPTION){
+					frame.dispose();
+					return;
+				}
+			}
 			String param="command=snapshot";
 			String result = client.execute("runPlugin", new Object[]{variables.get("user"),
 																	 getName(),param})+"";
