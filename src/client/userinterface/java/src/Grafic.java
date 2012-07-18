@@ -1233,6 +1233,21 @@ public class Grafic extends JPanel{
             public void actionPerformed(ActionEvent ev){
                 tc.switchRunnable();
                 repaint();}});
+        if(tc.isOptional()){
+            item = new JMenuItem("Unset optional");
+            p.add(item);
+            item.addActionListener(new ActionListener(){
+                public void actionPerformed(ActionEvent ev){
+                    setOptional(tc);}});
+        }
+        else{
+            item = new JMenuItem("Set optional");
+            p.add(item);
+            item.addActionListener(new ActionListener(){
+                public void actionPerformed(ActionEvent ev){
+                    setOptional(tc);}});
+        }
+        
         if(!tc.isPrerequisite()){
             item = new JMenuItem("Set pre-requisites");
             p.add(item);
@@ -1376,6 +1391,15 @@ public class Grafic extends JPanel{
             removeSelected();
             dropFirstInSuita(getFirstSuitaParent(theone2,false));
             repaint();}}
+            
+    public void setOptional(Item tc){
+        if(tc.isOptional()){
+            tc.setOptional(false);
+        }
+        else{
+            tc.setOptional(true);
+        }
+    }
         
     /*
      * prompt user to add

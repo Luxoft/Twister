@@ -192,9 +192,26 @@ public class Plugins extends JPanel{
                 found = false;
                 for(String file:localplugins){
                     if(file.equals(pluginfile)){
-                        found = true;
+                        File myfile = new File(Repository.PLUGINSDIRECTORY+
+                                            Repository.getBar()+pluginfile);
+                        try{Repository.c.cd(Repository.REMOTEPLUGINSDIR);}
+                        catch(Exception e){
+                            System.out.println("Could not get :"+
+                                                Repository.REMOTEPLUGINSDIR+
+                                                " as remote plugins dir");
+                        }
+                        try{
+                            long remotesize = Repository.c.lstat(pluginfile).getSize();
+                            long localsize = myfile.length();
+                            System.out.println(pluginfile+" "+remotesize+" "+localsize);
+                            if(remotesize==localsize)found = true;
+                        }
+                        catch(Exception e){
+                            e.printStackTrace();
+                        }
                         break;}}
                 if(!found){
+                    System.out.println("copying "+pluginfile);
                     copyPlugin(pluginfile);}}}
         catch(Exception e){
             System.out.println("Could not get Plugins Array from local config");
@@ -374,7 +391,8 @@ public class Plugins extends JPanel{
      * @param tname - plugin name to display
      * @param tdescription - plugin descritpion to display
      */
-    public void addPlugin(String tname,final String tdescription,TwisterPluginInterface plugin){
+    public void addPlugin(String tname,final String tdescription,
+                            TwisterPluginInterface plugin){
         GridBagLayout layout = (GridBagLayout)plugintable.getLayout();
         int componentnr = plugintable.getComponentCount();
         Component component;
@@ -579,30 +597,32 @@ public class Plugins extends JPanel{
      */
     public static boolean copyPlugin(String filename){
         File file = new File(Repository.PLUGINSDIRECTORY+Repository.getBar()+filename);
-        if(!file.exists()){
-            InputStream in = null;
-            InputStreamReader inputStreamReader = null;
-            BufferedReader bufferedReader = null;  
-            BufferedWriter writer=null;
-            try{Repository.c.cd(Repository.REMOTEPLUGINSDIR);}
-            catch(Exception e){
-                System.out.println("Could not get :"+Repository.REMOTEPLUGINSDIR+" as remote plugins dir");
-                return false;}
-            try{System.out.print("Getting "+filename+" ....");
-                in = Repository.c.get(filename);    
-                file = new File(Repository.PLUGINSDIRECTORY+Repository.getBar()+filename);
-                OutputStream out=new FileOutputStream(file);
-                byte buf[]=new byte[100];
-                int len;
-                while((len=in.read(buf))>0)
-                    out.write(buf,0,len);
-                out.close();
-                in.close();
-                System.out.println("successfull");
-                return true;}
-            catch(Exception e){
-                System.out.println("Error in copying plugin" +filename+ " localy");
-                return false;}}return true;}
+//         if(file.exists()){
+//             file.delete();
+//         }
+        InputStream in = null;
+        InputStreamReader inputStreamReader = null;
+        BufferedReader bufferedReader = null;  
+        BufferedWriter writer=null;
+        try{Repository.c.cd(Repository.REMOTEPLUGINSDIR);}
+        catch(Exception e){
+            System.out.println("Could not get :"+Repository.REMOTEPLUGINSDIR+" as remote plugins dir");
+            return false;}
+        try{System.out.print("Getting "+filename+" ....");
+            in = Repository.c.get(filename);    
+            file = new File(Repository.PLUGINSDIRECTORY+Repository.getBar()+filename);
+            OutputStream out=new FileOutputStream(file);
+            byte buf[]=new byte[100];
+            int len;
+            while((len=in.read(buf))>0)
+                out.write(buf,0,len);
+            out.close();
+            in.close();
+            System.out.println("successfull");
+            return true;}
+        catch(Exception e){
+            System.out.println("Error in copying plugin" +filename+ " localy");
+            return false;}}
                 
     public void enablePlugin(boolean value, String filename){
         Document doc = Repository.getPluginsConfig();
