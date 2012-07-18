@@ -132,6 +132,9 @@ public class XMLReader{
             else if(name.equals("Prerequisite")){
                 item.setPrerequisite(true);
                 return;}
+            else if(name.equals("Optional")){
+                item.setOptional(true);
+                return;}
             trdNmElmntLst2 = ((Element)node).getElementsByTagName("propValue");
             Element trdNmElmnt2 = (Element)trdNmElmntLst2.item(0);
             trdNm2 = trdNmElmnt2.getChildNodes();

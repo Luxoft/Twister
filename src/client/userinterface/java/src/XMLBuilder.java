@@ -150,7 +150,17 @@ public class XMLBuilder{
                 prop.appendChild(em4);
                 Element em5 = document.createElement("propValue");
                 em5.appendChild(document.createTextNode("true"));
-                prop.appendChild(em5);}                
+                prop.appendChild(em5);} 
+            System.out.println(item.getName()+" is optional:"+item.isOptional());
+            if(item.isOptional()){
+                Element prop  = document.createElement("Property");
+                tc.appendChild(prop);
+                Element em4 = document.createElement("propName");
+                em4.appendChild(document.createTextNode("Optional"));
+                prop.appendChild(em4);
+                Element em5 = document.createElement("propValue");
+                em5.appendChild(document.createTextNode("true"));
+                prop.appendChild(em5);}
                 
             Element prop  = document.createElement("Property");
             tc.appendChild(prop);
