@@ -1,6 +1,15 @@
+
+16th July changes:
+
+- implemented plugins for Central Engine and GUI
+- added SVN plugin
+- Central Engine REST interface for viewing logs and stats
+
+
 5th July changes:
+
 - added support for multi tenancy
-- added plugins mechanism for GUI interface
+- added plugins mechanism for GUI
 - updated user guide with information about plugins mechanism
 - execute external script to return an output used later for database records ( e.g. retrieve
   build version from a device using a script and use the build version when results are save in db ).
@@ -15,4 +24,4 @@
 - database file configuration read when it's changed
 - User should be able to specify external editor for test cases
 - GUI - mechanism for pre-requisites file
-- Fix xmlrpc socket issues 
+- Fix xmlrpc socket issues

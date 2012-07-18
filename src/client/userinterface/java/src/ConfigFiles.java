@@ -22,6 +22,8 @@ import java.awt.event.ActionListener;
 import javax.swing.JButton;
 import net.sf.vfsjfilechooser.VFSJFileChooser;
 import net.sf.vfsjfilechooser.accessories.DefaultAccessoriesPanel;
+import net.sf.vfsjfilechooser.VFSJFileChooser.RETURN_TYPE;
+import net.sf.vfsjfilechooser.utils.VFSUtils;
 import org.apache.commons.vfs.FileObject;
 import javax.swing.JLabel;
 import javax.swing.JTextField;
@@ -68,8 +70,6 @@ import javax.swing.BorderFactory;
 import javax.swing.border.BevelBorder;
 import java.awt.BorderLayout;
 import javax.swing.SwingUtilities;
-import net.sf.vfsjfilechooser.VFSJFileChooser.RETURN_TYPE;
-import net.sf.vfsjfilechooser.utils.VFSUtils;
 import javax.swing.AbstractAction;
 import javax.swing.JFrame;
 import javax.swing.JProgressBar;
@@ -77,7 +77,7 @@ import javax.swing.JComboBox;
 import java.util.Arrays;
 
 public class ConfigFiles extends JPanel{
-    VFSJFileChooser fileChooser;
+    private VFSJFileChooser fileChooser;
     private static JTextField ttcpath,tMasterXML,tUsers,tepid,
                               tlog,trunning,tname,thardwareconfig,
                               tdebug,tsummary,tinfo,tcli,tdbfile,
@@ -489,6 +489,13 @@ public class ConfigFiles extends JPanel{
         if(blank) temp ="";
         else temp = tagcontent;            
         rootElement.appendChild(document.createTextNode(temp));}
+        
+    public VFSJFileChooser getChooser(){
+        if(fileChooser==null){
+            initializeFileBrowser();
+        }
+        return fileChooser;
+    }
         
     public void initializeFileBrowser(){
         fileChooser = new VFSJFileChooser("sftp://"+Repository.user+":"+

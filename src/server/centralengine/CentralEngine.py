@@ -7,7 +7,7 @@
 # Authors:
 #    Andrei Costachi <acostachi@luxoft.com>
 #    Andrei Toma <atoma@luxoft.com>
-#    Cristian Constantin <crconstantin@luxoft.com>
+#    Cristi Constantin <crconstantin@luxoft.com>
 #    Daniel Cioata <dcioata@luxoft.com>
 
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -22,12 +22,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-'''
+"""
 This file contains configurations for Central Engine:
   - Base path
   - Config path
 If the file is executed with Python, it will start the Engine.
-'''
+"""
 
 import os
 import sys

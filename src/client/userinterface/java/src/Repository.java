@@ -84,6 +84,14 @@ import java.awt.Dimension;
 import java.util.Vector;
 import java.util.Hashtable;
 import com.twister.Item;
+import javax.xml.transform.Result;
+import javax.xml.transform.stream.StreamResult;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.OutputKeys;
+import javax.xml.transform.Transformer;
+import java.net.URLClassLoader;
 
 /*
  * static class to hold
@@ -103,8 +111,9 @@ public class Repository{
                          RESOURCEALLOCATORPORT, REMOTEDATABASECONFIGPATH,
                          REMOTEDATABASECONFIGFILE, REMOTEEMAILCONFIGPATH,
                          REMOTEEMAILCONFIGFILE,CONFIGDIRECTORY, USERSDIRECTORY,
-                         XMLDIRECTORY,  TESTSUITEPATH, LOGSPATH ,XMLREMOTEDIR,
-                         REMOTEUSERSDIRECTORY, REMOTEEPIDDIR, REMOTEHARDWARECONFIGDIRECTORY;
+                         XMLDIRECTORY,  TESTSUITEPATH, LOGSPATH ,XMLREMOTEDIR,REMOTEPLUGINSDIR,
+                         REMOTEUSERSDIRECTORY, REMOTEEPIDDIR, REMOTEHARDWARECONFIGDIRECTORY,
+                         PLUGINSLOCALGENERALCONF;
     public static Image passicon,testbedicon,porticon,suitaicon, tcicon, propicon,
                         failicon, passwordicon, playicon, stopicon, pauseicon,
                         background,notexecicon,pendingicon,skipicon,stoppedicon,
@@ -126,6 +135,7 @@ public class Repository{
     private static JsonArray plugins;
     private static String[] lookAndFeels;
     private static Applet container;
+    private static Document pluginsconfig;
     
     /*
      * repository initialization method
@@ -135,6 +145,7 @@ public class Repository{
      */
     public static void initialize(final boolean applet,String host,Applet container){
         Repository.container = container;
+        
         /*
          * temp folder creation to hold
          * all the needed twister files localy
@@ -200,7 +211,7 @@ public class Repository{
                  * the resources must be loaded from local pc 
                  */
                 loadResourcesFromLocal();}
-            if(userpassword()){ 
+            if(userpassword()){
                 /*
                  * create directory structure
                  * for twister resources localy
@@ -233,6 +244,7 @@ public class Repository{
                     "Twister"+bar+"config folder");
                 File pluginsdirectory = new File(twisterhome.getCanonicalPath()+
                                                  bar+"Plugins");
+                REMOTEPLUGINSDIR = "/opt/twister/plugins";
                 if(pluginsdirectory.exists()){
                     PLUGINSDIRECTORY = twisterhome.getCanonicalPath()+bar+"Plugins";
                     System.out.println(twisterhome.getCanonicalPath()+bar+
@@ -243,12 +255,16 @@ public class Repository{
                             bar+"Plugins folder successfully created");}
                 else System.out.println("Could not create "+twisterhome.getCanonicalPath()+
                                         bar+"Plugins folder");
+                PLUGINSLOCALGENERALCONF = temp+bar+"Twister"+bar+"config"+bar+"plugins.xml";
                 intro.setStatus("Started to parse the config");
                 intro.addPercent(0.035);
                 intro.repaint();
-                loadPluginsInterfaces();
                 parseConfig();
-                
+                if(!getPluginsFile())createGeneralPluginConf();
+                if(!parsePluginsConfig(CONFIGDIRECTORY+"/plugins.xml")){
+                    System.out.println("There was a problem in parsing"+
+                                       " plugins configuration");}
+                                       
                 /*
                  * XmlRpc main connection used by Twister framework
                  */
@@ -264,10 +280,12 @@ public class Repository{
                 intro.setStatus("Finished parsing the config");
                 intro.addPercent(0.035);
                 intro.repaint();
-                parseDBConfig(Repository.REMOTEDATABASECONFIGFILE,true);
-                window = new Window(applet,container);
-                parseEmailConfig(Repository.REMOTEEMAILCONFIGFILE,true);            
                 
+                parseDBConfig(Repository.REMOTEDATABASECONFIGFILE,true);
+//                 Repository.loadPluginsInterfaces();
+                window = new Window(applet,container);
+                parseEmailConfig(Repository.REMOTEEMAILCONFIGFILE,true);
+                variables.put("host",host);
                 variables.put("user",user);
                 variables.put("password",password);  
                 variables.put("temp",temp);
@@ -291,6 +309,8 @@ public class Repository{
                 variables.put("remotehwconfdir",REMOTEHARDWARECONFIGDIRECTORY);
                 variables.put("remoteepdir",REMOTEEPIDDIR);
                 variables.put("remoteusersdir",REMOTEUSERSDIRECTORY);
+                variables.put("pluginslocalgeneralconf",PLUGINSLOCALGENERALCONF);
+                variables.put("remotegeneralpluginsdir",REMOTEPLUGINSDIR);
             }
             else{
                 /*
@@ -304,16 +324,54 @@ public class Repository{
                 run = false;
                 if(!applet)System.exit(0);}}
         catch(Exception e){e.printStackTrace();}}
+        
+    /*
+     * method to create general plugin
+     * configuration file 
+     */
+    public static void createGeneralPluginConf(){
+        try{
+            DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
+            DocumentBuilder documentBuilder = documentBuilderFactory.newDocumentBuilder();
+            Document document = documentBuilder.newDocument();
+            TransformerFactory transformerFactory = TransformerFactory.newInstance();
+            Transformer transformer = transformerFactory.newTransformer();
+            transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
+            transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+            transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "4");
+            DOMSource source = new DOMSource(document);
+            Element rootElement = document.createElement("Root");
+            document.appendChild(rootElement);
+            File file = new File(Repository.PLUGINSLOCALGENERALCONF);
+            Result result = new StreamResult(file);
+            transformer.transform(source, result);
+            c.cd(Repository.USERHOME+"/twister/config/");
+            System.out.println("Saving to: "+Repository.USERHOME+"/twister/config/");
+            FileInputStream in = new FileInputStream(file);
+            c.put(in, file.getName());
+            in.close();}
+        catch(Exception e){
+            System.out.println("There was a problem in generating Plugins general config");
+            e.printStackTrace();
+        }
+    }
       
     /*
      * method to load plugininterfaces
      * to be available on initializing Plugins
      */
-    public static void loadPluginsInterfaces(){
-        Plugins.deletePlugins();
-        Plugins.copyPlugin("Twister.jar");
-        PluginsLoader.setClassPath();
-    }
+//     public static void loadPluginsInterfaces(){
+//         Plugins.deletePlugins();
+//         Plugins.copyPlugin("Twister.jar");
+//         Plugins.copyPlugin("xmlrpc-client-3.1.3.jar");
+//         Plugins.copyPlugin("xmlrpc-common-3.1.3.jar");
+//         Plugins.copyPlugin("jsch-0.1.44.jar");
+//         Plugins.copyPlugin("commons-vfs-1.0.jar");
+//         Plugins.copyPlugin("VFSJFileChooser-0.0.3.jar");
+//         Plugins.copyPlugin("commons-logging-1.1.1.jar");
+//         Plugins.copyPlugin("ws-commons-util-1.0.2.jar");
+//         PluginsLoader.setClassPath();
+//     }
         
     /*
      * load resources needed for framework
@@ -606,21 +664,23 @@ public class Repository{
                     String field [] = new String[ELEMENTSNR];
                     field[0]=tablee.getAttribute("Label");
                     if(field[0]==null){
-                        System.out.println("Warning, no Label element in field tag in db.xml at filed nr: "+i);
+                        System.out.println("Warning, no Label element in"+
+                                            " field tag in db.xml at filed nr: "+i);
                         field[0]="";}
                     field[1]=tablee.getAttribute("ID");
                     if(field[1]==null){
-                        System.out.println("Warning, no ID element in field tag in db.xml at filed nr: "+i);
+                        System.out.println("Warning, no ID element in "+
+                                            "field tag in db.xml at filed nr: "+i);
                         field[1]="";}
                     field[2]=tablee.getAttribute("Type");
                     if(field[2]==null){
-                        System.out.println("Warning, no Type element in field tag in db.xml at filed nr: "+i);
+                        System.out.println("Warning, no Type element in"+
+                                            " field tag in db.xml at filed nr: "+i);
                         field[2]="";}
-                    else if (field[2].equals("UserSelect"))field[2] ="true";
-                    else field[2] = "false";
                     field[3]=tablee.getAttribute("Mandatory");
                     if(field[3]==null){
-                        System.out.println("Warning, no Mandatory element in field tag in db.xml at filed nr: "+i);
+                        System.out.println("Warning, no Mandatory element "+
+                                            "in field tag in db.xml at filed nr: "+i);
                         field[3]="";}
                     databaseUserFields.add(field);}}}
         catch(Exception e){
@@ -669,7 +729,9 @@ public class Repository{
             File file;
             String line = null;
             String name = null;
-            try{c.cd(USERHOME+"/twister/config/");}
+            try{c.cd(USERHOME+"/twister/config/");
+                System.out.println("c.ls.size(): "+c.ls(".").size());
+            }
             catch(Exception e){
                 System.out.println("Could not get :"+USERHOME+"/twister/config/");
                 CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,Repository.window,
@@ -760,7 +822,8 @@ public class Repository{
                 System.out.println("Could not get to "+usersdir+"on sftp");}
             int subdirnr = usersdir.split("/").length-1;
             int size ;
-            try{size= c.ls(usersdir).size();}
+            try{System.out.println("c.ls.size(): "+c.ls(".").size());
+                size= c.ls(usersdir).size();}
             catch(Exception e){
                 System.out.println("No suites xml");
                 size=0;}
@@ -1291,4 +1354,113 @@ public class Repository{
      */
     public static Hashtable getVariables(){
         return variables;}
+    
+    /*
+     * method to get pluginsconfig Document
+     */  
+    public static Document getPluginsConfig(){
+        return pluginsconfig;
     }
+        
+    /* 
+     * method to load plugins config from file to
+     * pluginsconfig Node
+     */
+    public static boolean parsePluginsConfig(String filename){
+        DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+        try{DocumentBuilder db = dbf.newDocumentBuilder();
+            File f = new File(filename);
+            if(!f.exists())return false;
+            Document doc = db.parse(f);
+            doc.getDocumentElement().normalize();  
+            pluginsconfig = doc;
+            return true;
+        }
+        catch(Exception e){
+            e.printStackTrace();
+            return false;
+        }
+    }
+    
+    /*
+     * method to copy plugins configuration file
+     * to server 
+     */
+    public static boolean uploadPluginsFile(){
+        try{
+            DOMSource source = new DOMSource(pluginsconfig);
+            File file = new File(Repository.PLUGINSLOCALGENERALCONF);
+            Result result = new StreamResult(file);
+            TransformerFactory transformerFactory = TransformerFactory.newInstance();
+            Transformer transformer = transformerFactory.newTransformer();
+            transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+            transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "4");
+            transformer.transform(source, result);
+            c.cd(Repository.USERHOME+"/twister/config/");
+            System.out.println("Saving "+file.getName()+" to: "+Repository.USERHOME+"/twister/config/");
+            FileInputStream in = new FileInputStream(file);
+            Repository.c.put(in, file.getName());
+            in.close();
+            return true;}
+        catch(Exception e){
+            e.printStackTrace();
+            return false;
+        }
+    }
+        
+    /*
+     * method to copy plugins configuration file
+     * localy 
+     */
+    public static boolean getPluginsFile(){
+        try{InputStream in = null;
+            byte[] data = new byte[100]; 
+            int nRead;
+            ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+            OutputStream out=null;
+            InputStreamReader inputStreamReader = null;
+            BufferedReader bufferedReader = null;  
+            BufferedWriter writer=null;
+            File file;
+            String line = null;
+            String name = null;
+            System.out.println("Starting getting plugins.xml from "+USERHOME+"/twister/config/");
+            try{c.cd(USERHOME+"/twister/config/");}
+            catch(Exception e){
+                System.out.println("Could not get :"+USERHOME+"/twister/config/");
+                CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,Repository.window,
+                                        "Warning", "Could not get :"+USERHOME+
+                                        "/twister/config/");
+                return false;}
+            try{System.out.println("plugins.xml size on sftp: "+
+                        c.lstat("plugins.xml").getSize()+" bytes");
+                in = c.get("plugins.xml");}
+            catch(Exception e){
+                CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, Repository.window,
+                                        "Warning","Could not get plugins.xml from "+
+                                        c.pwd());
+                System.out.println("Could not get plugins.xml from "+
+                                        c.pwd());
+                return false;}
+            inputStreamReader = new InputStreamReader(in);
+            bufferedReader = new BufferedReader(inputStreamReader);  
+            file = new File(PLUGINSLOCALGENERALCONF);
+            writer = new BufferedWriter(new FileWriter(file));
+            while((line=bufferedReader.readLine())!= null){
+                writer.write(line);
+                writer.newLine();}
+            bufferedReader.close();
+            writer.close();
+            inputStreamReader.close();
+            in.close();
+            System.out.println("plugins.xml local size: "+file.length()+" bytes");
+            intro.setStatus("Finished getting plugins");
+            intro.repaint();
+            return true;
+        }
+        catch(Exception e){
+            e.printStackTrace();
+            return false;
+        }
+    }
+}    

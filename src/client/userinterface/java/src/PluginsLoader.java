@@ -23,19 +23,26 @@ import java.net.URLClassLoader;
 import java.util.Iterator;
 import java.util.ServiceLoader;
 import com.twister.plugin.twisterinterface.TwisterPluginInterface;
+import java.io.InputStream;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 
 public class PluginsLoader {
     private static URLClassLoader sysLoader;
-    private static ServiceLoader<TwisterPluginInterface> serviceLoader;
     private static Class[] parameters = new Class[]{URL.class};
     
     public static void setClassPath(){
-        try{addDirToClasspath(new File(Repository.PLUGINSDIRECTORY));
-            serviceLoader = ServiceLoader.load(TwisterPluginInterface.class);}
+        try{
+            if(sysLoader==null){
+                sysLoader= new URLClassLoader(new URL[]{},Plugins.class.getClassLoader());
+            }
+            addDirToClasspath(new File(Repository.PLUGINSDIRECTORY));
+        }
         catch(Exception e){e.printStackTrace();}}
     
     public static Iterator<TwisterPluginInterface> getPlugins() {
-        return serviceLoader.iterator();}
+        return ServiceLoader.load(TwisterPluginInterface.class,sysLoader).iterator();}
     
     public static void addDirToClasspath(File directory) throws Exception{
         if(directory.exists()){
@@ -45,8 +52,6 @@ public class PluginsLoader {
                 addURL(file.toURI().toURL());}}}
     
     public static void addURL(URL u) throws Exception{
-        if(sysLoader==null){
-            sysLoader = (URLClassLoader) ClassLoader.getSystemClassLoader();}
         URL urls[] = sysLoader.getURLs();
         for(int i=0;i<urls.length;i++){
             if(urls[i].toString().equalsIgnoreCase(u.toString())){

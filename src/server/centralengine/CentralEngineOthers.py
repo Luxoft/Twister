@@ -6,7 +6,7 @@
 # Authors:
 #    Andrei Costachi <acostachi@luxoft.com>
 #    Andrei Toma <atoma@luxoft.com>
-#    Cristian Constantin <crconstantin@luxoft.com>
+#    Cristi Constantin <crconstantin@luxoft.com>
 #    Daniel Cioata <dcioata@luxoft.com>
 
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -66,6 +66,7 @@ import re
 import time
 import json
 import thread
+import subprocess
 import smtplib
 import MySQLdb
 
@@ -454,13 +455,14 @@ class Project:
         self._dump()
         return True
 
+
 # # #
 
 
     def setFileOwner(self, user, path):
         """
         Update file ownership for 1 file.\n
-        `Chown` function only works in Linux.
+        `Chown` function works only in Linux.
         """
         uinfo = self.getUserInfo(user, 'eps')
         epname = uinfo[uinfo.keys()[0]]
@@ -474,8 +476,24 @@ class Project:
             return False
 
 
-    def cloneRepository(self):
-        pass
+    def execScript(self, script_path):
+        """
+        Execute a user script and return the text printed on the screen.
+        This works only in Linux.
+        """
+        if not os.path.exists(script_path):
+            logError('Exec script: The path `%s` does not exist!' % script_path)
+            return False
+
+        try:
+            txt = subprocess.check_output([script_path])
+            return txt.strip()
+        except Exception, e:
+            logError('Exec script `%s`: Exception - %s' % (script_path, str(e)) )
+            return False
+
+
+# # #
 
 
     def sendMail(self, user):
@@ -500,7 +518,7 @@ class Project:
                 logDebug('E-mail: Nothing to send!')
                 return False
 
-            logDebug('E-mail: Preparing... Server `{SMTPPath}`, user `{SMTPUser}`, from `{From}`, to `{To}`...'
+            logDebug('E-mail: Preparing... Server `{SMTPPath}`, user `{SMTPUser}`, from `{From}`, to `{To}`...'\
                 ''.format(**eMailConfig))
 
             # Information that will be mapped into subject or message of the e-mail
@@ -634,7 +652,9 @@ class Project:
                 logError('SMTP: Cannot send e-mail!')
                 return False
 
+
 # # #
+
 
     def saveToDatabase(self, user):
         """
@@ -651,8 +671,9 @@ class Project:
             db_path = self.parsers[user].getDbConfigPath()
             db_parser = DBParser(db_path)
             db_config = db_parser.db_config
-            queries = db_parser.getQueries()
-            fields = db_parser.getFields()
+            queries = db_parser.getQueries() # List
+            fields  = db_parser.getFields()  # Dictionary
+            scripts = db_parser.getScripts() # List
             del db_parser
 
             #
@@ -666,7 +687,9 @@ class Project:
                 for suite in self.users[user]['eps'][epname]['suites']:
                     for file_id in self.users[user]['eps'][epname]['suites'][suite]['files']:
 
-                        subst_data = dict( self.users[user]['eps'][epname] )
+                        # Substitute data
+                        subst_data = {'file_id': file_id}
+                        subst_data.update( self.users[user]['eps'][epname] )
                         del subst_data['suites']
                         subst_data.update( self.users[user]['eps'][epname]['suites'][suite] )
                         del subst_data['files']
@@ -676,9 +699,27 @@ class Project:
                         if subst_data.get('Prerequisite'):
                             continue
 
+                        # For every insert SQL statement, build correct data...
                         for query in queries:
 
-                            # All variables that must be replaced in Insert
+                            # All variables of type `UserScript` must be replaced with the script result
+                            vars_to_replace = re.findall('(\$.+?)[,\'"\s]', query)
+
+                            for field in vars_to_replace:
+                                field = field[1:]
+                                # If the field is not `UserScript`, ignore it
+                                if field not in scripts:
+                                    continue
+
+                                # Get Script Path, or null string
+                                u_script = subst_data.get(field, '')
+
+                                # Execute script and use result
+                                r = self.execScript(u_script)
+                                if r: subst_data[field] = r
+                                else: subst_data[field] = ''
+
+                            # All variables of type `DbSelect` must be replaced with the SQL result
                             vars_to_replace = re.findall('(@.+?@)', query)
 
                             for field in vars_to_replace:
@@ -686,7 +727,8 @@ class Project:
                                 u_query = fields.get(field.replace('@', ''))
 
                                 if not u_query:
-                                    logError('File: {0}, cannot build query! Field {1} is not defined in the fields section!'.format(subst_data['file'], field))
+                                    logError('File: {0}, cannot build query! Field {1} is not defined in the fields section!'\
+                                        ''.format(subst_data['file'], field))
                                     return False
 
                                 # Execute User Query
@@ -702,11 +744,12 @@ class Project:
                             try:
                                 query = tmpl.substitute(subst_data)
                             except Exception, e:
-                                logError('File: {0}, cannot build query! Error: {1}!'.format(subst_data['file'], str(e)))
+                                logError('User `{0}`, file {1}: Cannot build query! Error on `{2}`!'\
+                                    ''.format(user, subst_data['file'], str(e)))
                                 return False
 
                             # :: For DEBUG ::
-                            #open(TWISTER_PATH + '/config/Query.debug', 'a').write('File Query:: `{0}` ::\n{1}\n\n\n'.format(subst_data['file'], query))
+                            #open(TWISTER_PATH + '/Query.debug', 'a').write('File Query:: `{0}` ::\n{1}\n\n\n'.format(subst_data['file'], query))
 
                             # Execute MySQL Query!
                             try:

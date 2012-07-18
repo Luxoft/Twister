@@ -6,7 +6,7 @@
 # Authors:
 #    Andrei Costachi <acostachi@luxoft.com>
 #    Andrei Toma <atoma@luxoft.com>
-#    Cristian Constantin <crconstantin@luxoft.com>
+#    Cristi Constantin <crconstantin@luxoft.com>
 #    Daniel Cioata <dcioata@luxoft.com>
 
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -35,8 +35,9 @@ if not TWISTER_PATH:
 sys.path.append(TWISTER_PATH)
 
 from trd_party.BeautifulSoup import BeautifulStoneSoup
+from plugins import BasePlugin
 
-__all__ = ['TSCParser', 'DBParser']
+__all__ = ['TSCParser', 'DBParser', 'PluginParser']
 
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -45,7 +46,7 @@ __all__ = ['TSCParser', 'DBParser']
 
 
 class TSCParser:
-    '''
+    """
     Requirements: BeautifulSoup.
     This parser is specific for TSC project.
     It returns information like:
@@ -54,7 +55,7 @@ class TSCParser:
     - Reports Path
     - EPs list, active EPs
     - Test files for specific EP
-    '''
+    """
 
     def __init__(self, config_data):
         if os.path.isfile(config_data):
@@ -76,10 +77,10 @@ class TSCParser:
 
 
     def updateConfigTS(self):
-        '''
+        """
         Updates Test Suite Cofig file hash and recreates internal XML structure,
         only if the XML file is changed.
-        '''
+        """
         # Path of TestSuite/ Test-Suites XML
         config_ts = str(self.xmlDict.root.masterxmltestsuite.text)
         if config_ts.startswith('~'):
@@ -92,7 +93,7 @@ class TSCParser:
         # Hash check the XML file, to see if is changed
         newConfigHash = hashlib.md5(open(config_ts).read()).hexdigest()
         if self.configHash != newConfigHash:
-            print('Parser: Test-Suites XML file changed, rebuilding internal structure...')
+            print('Parser: Test-Suites XML file changed, rebuilding internal structure...\n')
             # Use the new hash
             self.configHash = newConfigHash
             # Create Beautiful Soup class from the new XML file
@@ -128,17 +129,17 @@ class TSCParser:
 
 
     def getLogTypes(self):
-        '''
+        """
         All types of logs exposed from Python to the test cases.
-        '''
+        """
         return [str(log.name) for log in self.xmlDict.root.logfiles.findAll()]
 
 
     def getLogFileForType(self, logType):
-        '''
+        """
         Returns the path for one type of log.
         CE will use this path to write the log received from EP.
-        '''
+        """
         baseLogsPath = self.getLogsPath()
         logType = str(logType).lower()
         logFile = self.xmlDict.root.logfiles.find(logType)
@@ -146,10 +147,10 @@ class TSCParser:
 
 
     def getEmailConfig(self):
-        '''
+        """
         Returns the e-mail configuration.
         After Central Engine stops, an e-mail must be sent to the people interested.
-        '''
+        """
         # Read email.xml
         e_file = str(self.xmlDict.root.emailconfigfile.text)
         if e_file.startswith('~'):
@@ -190,9 +191,9 @@ class TSCParser:
 
 
     def getEpList(self):
-        '''
+        """
         Returns a list with all available EP names.
-        '''
+        """
         res = str(self.xmlDict.root.epidsfile.text)
         if res.startswith('~'):
             res = os.getenv('HOME') + res[1:]
@@ -209,9 +210,9 @@ class TSCParser:
 
 
     def getActiveEps(self):
-        '''
+        """
         Returns a list with all active EPs from Test-Suites XML.
-        '''
+        """
         activeEpids = []
         if not self.configTS:
             print('Parser: Cannot get active EPs, because Test-Suites XML is invalid!')
@@ -223,10 +224,10 @@ class TSCParser:
 
 
     def getFileInfo(self, file_soup):
-        '''
+        """
         Returns a dict with information about 1 File from Test-Suites XML.
         The "file" must be a BeautifulSoup class.
-        '''
+        """
         res = OrderedDict()
         res['suite'] = file_soup.parent.tsname.text
         res['file']  = file_soup.tcname.text
@@ -252,10 +253,10 @@ class TSCParser:
 
 
     def getSuiteInfo(self, suite_soup):
-        '''
+        """
         Returns a dict with information about 1 Suite from Test-Suites XML.
         The "suite" must be a BeautifulSoup class.
-        '''
+        """
 
         prop_keys = suite_soup(lambda tag: tag.name=='propname' and tag.parent.name=='userdefined')
         prop_vals = suite_soup(lambda tag: tag.name=='propvalue' and tag.parent.name=='userdefined')
@@ -272,10 +273,10 @@ class TSCParser:
 
 
     def getAllSuitesInfo(self, epname):
-        '''
+        """
         Returns a list with data for all suites of one EP.
         Also returns the file list, with all file data.
-        '''
+        """
         if not self.configTS:
             print('Parser: Cannot parse Test Suite XML! Exiting!')
             return {}
@@ -293,9 +294,9 @@ class TSCParser:
 
 
     def getAllTestFiles(self):
-        '''
+        """
         Returns a list with ALL files defined for current suite, in order.
-        '''
+        """
         ti = time.clock()
         if not self.configTS:
             print('Parser: Fatal error! Cannot parse Test Suite XML!')
@@ -324,10 +325,10 @@ class TSCParser:
 
 
 class DBParser():
-    '''
+    """
     Requirements: BeautifulSoup.
     This parser will read DB.xml.
-    '''
+    """
 
     def __init__(self, config_data):
 
@@ -338,7 +339,7 @@ class DBParser():
 
 
     def updateConfig(self):
-        ''' Reload all Database Xml info '''
+        """ Reload all Database Xml info """
 
         config_data = self.config_data
         newConfigHash = hashlib.md5(open(config_data).read()).hexdigest()
@@ -369,7 +370,10 @@ class DBParser():
 # --------------------------------------------------------------------------------------------------
 
     def getFields(self):
-        ''' Used by Central Engine. '''
+        """
+        Used by Central Engine.
+        Returns a dictionary with field ID : SQL select.
+        """
         try:
             res = self.xmlDict.field_section('field', type="DbSelect")
         except:
@@ -378,8 +382,21 @@ class DBParser():
         return {field['id']:field['sqlquery'] for field in res}
 
 
+    def getScripts(self):
+        """
+        Used by Central Engine.
+        Returns a list with field IDs.
+        """
+        try:
+            res = self.xmlDict.field_section('field', type="UserScript")
+        except:
+            print('DBParser: Cannot find field_section in DB config!')
+            return {}
+        return [field['id'] for field in res]
+
+
     def getQuery(self, field_id):
-        ''' Used by Central Engine. '''
+        """ Used by Central Engine. """
         res = self.xmlDict.field_section('field', id=field_id)
         if not res:
             print('DBParser: Cannot find field ID `%s`!' % field_id)
@@ -389,7 +406,7 @@ class DBParser():
 
 
     def getQueries(self):
-        ''' Used by Central Engine. '''
+        """ Used by Central Engine. """
         res = self.xmlDict('sql_statement')
         return [field.text for field in res]
 
@@ -398,7 +415,7 @@ class DBParser():
 # --------------------------------------------------------------------------------------------------
 
     def getReportFields(self):
-        ''' Used by HTTP Server. '''
+        """ Used by HTTP Server. """
         self.updateConfig()
 
         try:
@@ -420,7 +437,7 @@ class DBParser():
 
 
     def getReports(self):
-        ''' Used by HTTP Server. '''
+        """ Used by HTTP Server. """
         self.updateConfig()
 
         try:
@@ -444,7 +461,7 @@ class DBParser():
 
 
     def getRedirects(self):
-        ''' Used by HTTP Server. '''
+        """ Used by HTTP Server. """
         self.updateConfig()
 
         try:
@@ -462,4 +479,104 @@ class DBParser():
 
         return res
 
-#
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # Plugins XML parser
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+
+class PluginParser:
+    """
+    Requirements: BeautifulSoup.
+    This parser will read Plugins.xml.
+    """
+
+    def __init__(self, user):
+
+        if not os.path.exists('/home/%s/twister' % user):
+            raise Exception('PluginParser ERROR: Cannot find Twister for user `%s` !' % user)
+        config_data = '/home/%s/twister/config/plugins.xml' % user
+        if not os.path.exists(config_data):
+            raise Exception('PluginParser ERROR: Cannot find Plugins for user `%s` !' % user)
+
+        self.config_data = config_data
+        self.configHash = None
+        self.p_config = OrderedDict()
+        self.updateConfig()
+
+
+    def updateConfig(self):
+        """ Reload all Plugins Xml info """
+
+        config_data = open(self.config_data).read()
+        newConfigHash = hashlib.md5(config_data).hexdigest()
+
+        config_data = config_data.replace('<pyfile/>', '<pyfile></pyfile>')
+        config_data = config_data.replace('<jarfile/>', '<jarfile></jarfile>')
+
+        if self.configHash != newConfigHash:
+            self.configHash = newConfigHash
+            #print('PluginParser: Plugin XML file changed, rebuilding internal structure...\n')
+
+            self.xmlDict = BeautifulStoneSoup(config_data)
+            if not self.xmlDict.root:
+                print('PluginParser ERROR: Cannot access XML config data!')
+                return False
+
+            for plugin in self.xmlDict.root('plugin'):
+                name = plugin('name')
+                if not name:
+                    print('PluginParser ERROR: Invalid plugin: `%s`!' % str(plugin))
+                    continue
+                name = name[0].text
+
+                prop_keys = plugin(lambda tag: tag.name=='propname' and tag.parent.name=='property')
+                prop_vals = plugin(lambda tag: tag.name=='propvalue' and tag.parent.name=='property')
+                res = dict(zip([p.text for p in prop_keys], [p.text for p in prop_vals])) # Pack Key + Value
+
+                self.p_config[name] = res
+                self.p_config[name]['jarfile'] = plugin.jarfile.text
+                self.p_config[name]['pyfile']  = plugin.pyfile.text
+                self.p_config[name]['status']  = plugin.status.text
+
+
+    def getPlugins(self):
+        """ Return all plugins info """
+
+        self.updateConfig()
+        Base = BasePlugin.BasePlugin
+        py_modules = [k +'::'+ os.path.splitext(self.p_config[k]['pyfile'])[0]
+                      for k in self.p_config if self.p_config[k]['status'] == 'enabled']
+        plugins = {}
+
+        for module in py_modules:
+            name = module.split('::')[0]
+            mod  = module.split('::')[1]
+            plug = None
+            try:
+                # Import the plugin module
+                mm = __import__('plugins.' + mod, fromlist=['Plugin'])
+                # Reload all data, just in case
+                mm = reload(mm)
+                plug = mm.Plugin
+            except Exception, e:
+                print 'ERROR in module `{0}`! Exception: {1}!'.format(mod, e)
+                continue
+
+            if not plug:
+                print('Plugin `%s` must not be Null!' % plug)
+                continue
+            # Check plugin parent. Must be Base Plugin.
+            if not issubclass(plug, Base):
+                print('Plugin `%s` must be inherited from Base Plugin!' % plug)
+                continue
+
+            # Append plugin classes to plugins list
+            d = self.p_config[name]
+            d['plugin'] = plug
+            plugins[name] = d
+
+        return plugins
+
+
+# Eof()
