@@ -4,7 +4,7 @@
 - implemented plugins for Central Engine and GUI
 - added SVN plugin
 - Central Engine REST interface for viewing logs and stats
-- added a mechanism to retrieve informatio from an external script to use it when the results are
+- added a mechanism to retrieve information from an external script to use it when the results are
   saved in database ( e.g. get a build version from a device and use it when the testing results are
   recorded in database ).
 
