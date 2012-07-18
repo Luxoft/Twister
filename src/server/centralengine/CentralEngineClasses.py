@@ -629,8 +629,9 @@ class CentralEngine(_cptools.XMLRPCController):
         try:
             args = urlparse.parse_qs(args)
         except:
-            logError('CE ERROR: Cannot run plugin `%s` with arguments `%s`!' % (plugin, args))
-            return False
+            msg = 'CE ERROR: Cannot run plugin `%s` with arguments `%s`!' % (plugin, args)
+            logError(msg)
+            return msg
 
         logDebug('Running plugin:: {0} ; {1} ; {2}'.format(user, plugin, args))
 
