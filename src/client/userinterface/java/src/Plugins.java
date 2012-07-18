@@ -304,7 +304,14 @@ public class Plugins extends JPanel{
                 System.out.println("There was a problem in terminatig"+
                     " the plugin with filename: "+filename);
                 e.printStackTrace();}
+
+            try{((TwisterPluginInterface)plugins.get(filename)).terminate();}
+            catch(Exception e){
+                System.out.println("There was a problem in terminatig"+
+                    " the plugin with filename: "+filename);
+                e.printStackTrace();}
             main.revalidate();
+
             main.repaint();
             localtable.revalidate();
             localtable.repaint();
