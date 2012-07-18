@@ -2,6 +2,8 @@
 - added support for multi tenancy
 - added plugins mechanism for GUI interface
 - updated user guide with information about plugins mechanism
+- execute external script to return an output used later for database records ( e.g. retrieve
+  build version from a device using a script and use the build version when results are save in db ).
 
 
 19th June 2012 Changes:
