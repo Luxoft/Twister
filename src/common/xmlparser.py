@@ -146,6 +146,19 @@ class TSCParser:
         return baseLogsPath + os.sep + str(logFile.text)
 
 
+    def getExitOnTestFail(self):
+        """
+        Returns the value of the tag "Exit On Test Fail".
+        """
+        res = self.configTS.root.stoponfail
+        if not res:
+            return False
+        if res.text.lower() == 'true':
+            return True
+        else:
+            return False
+
+
     def getEmailConfig(self):
         """
         Returns the e-mail configuration.
@@ -213,14 +226,14 @@ class TSCParser:
         """
         Returns a list with all active EPs from Test-Suites XML.
         """
-        activeEpids = []
+        activeEPs = []
         if not self.configTS:
             print('Parser: Cannot get active EPs, because Test-Suites XML is invalid!')
             return []
         for ep in self.configTS('epid'):
-            activeEpids.append(ep.text)
-        activeEpids = list(set(activeEpids))
-        return activeEpids
+            activeEPs.append(ep.text)
+        activeEPs = list(set(activeEPs))
+        return activeEPs
 
 
     def getFileInfo(self, file_soup):

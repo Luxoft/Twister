@@ -195,6 +195,18 @@ class CentralEngine(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
+    def getUserVariable(self, user, variable):
+        '''
+        Function called from the Execution Process,
+        to get information that is available only here, or are hard to get.
+        '''
+
+        data = self.project.getUserInfo(user, variable)
+        if data is None: data = False
+        return data
+
+
+    @cherrypy.expose
     def searchEP(self, user, epname):
         '''
         Search one EP and return True or False.
@@ -210,20 +222,6 @@ class CentralEngine(_cptools.XMLRPCController):
         '''
         epList = self.project.getUserInfo(user, 'eps').keys()
         return ','.join(epList)
-
-
-    @cherrypy.expose
-    def listSuites(self, user, epname):
-        '''
-        Returns all Suites for one EP from current user.
-        '''
-        if not self.searchEP(user, epname):
-            logError('CE ERROR! EP `%s` is not in the list of defined EPs: `%s`!' % \
-                (str(epname), self.listEPs(user)) )
-            return False
-
-        suitesList = self.project.getEpInfo(user, epname)['suites'].keys()
-        return ','.join(suitesList)
 
 
     @cherrypy.expose
@@ -253,9 +251,23 @@ class CentralEngine(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
+    def listSuites(self, user, epname):
+        '''
+        Returns all Suites for one EP from current user.
+        '''
+        if not self.searchEP(user, epname):
+            logError('CE ERROR! EP `%s` is not in the list of defined EPs: `%s`!' %\
+                     (str(epname), self.listEPs(user)) )
+            return False
+
+        suitesList = self.project.getEpInfo(user, epname)['suites'].keys()
+        return ','.join(suitesList)
+
+
+    @cherrypy.expose
     def getSuiteVariable(self, user, epname, suite, variable):
         '''
-        This function is called from the Execution Process,
+        Function called from the Execution Process,
         to get information that is available only here, or are hard to get.
         '''
 

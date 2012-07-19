@@ -152,6 +152,9 @@ class Project:
         self.users[user]['logs_path'] = self.parsers[user].getLogsPath()
         self.users[user]['log_types'] = {}
 
+        # Add the `exit on test Fail` value
+        self.users[user]['exit_on_test_fail'] = self.parsers[user].getExitOnTestFail()
+
         for logType in self.parsers[user].getLogTypes():
             self.users[user]['log_types'][logType] = self.parsers[user].getLogFileForType(logType)
 
@@ -207,6 +210,9 @@ class Project:
 
         # Ordered list of file IDs, used for Get Status ALL
         self.test_ids[user] = self.parsers[user].getAllTestFiles()
+
+        # Add the `exit on test Fail` value
+        self.users[user]['exit_on_test_fail'] = self.parsers[user].getExitOnTestFail()
 
         logWarning('Project: RESET operation took %.4f seconds.' % (time.clock()-ti))
         return True

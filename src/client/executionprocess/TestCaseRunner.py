@@ -304,6 +304,9 @@ if __name__=='__main__':
     if globEpName != 'OFFLINE':
         saveLibraries(proxy)
 
+    # Get the `exit on test Fail` value
+    exit_on_test_fail = proxy.getUserVariable(userName, 'exit_on_test_fail')
+
     def Rindex(l, val):
         ''' Find element in list from the end '''
         for i, j in enumerate(reversed(l)):
@@ -363,6 +366,8 @@ if __name__=='__main__':
             prerequisite = proxy.getFileVariable(userName, file_id, 'Prerequisite')
             # Test-case dependency, if any
             dependancy = proxy.getFileVariable(userName, file_id, 'dependancy')
+            # Is this test file optional?
+            optional_test = proxy.getFileVariable(userName, file_id, 'Optional')
             # Get args
             args = proxy.getFileVariable(userName, file_id, 'param')
             if args:
@@ -370,7 +375,8 @@ if __name__=='__main__':
             else:
                 args = []
 
-            print('Starting to RUN filename: `%s`, dependancy = `%s`, is prerequisite = `%s` ...\n' % (filename, dependancy, prerequisite))
+            print('Starting to RUN filename: `%s`, dependancy = `%s`, prereq = `%s`, optional = `%s` ...\n' %
+                  (filename, dependancy, prerequisite, optional_test))
 
             # Reset abort suite variable for every first file in the suite
             if iIndex == 0:
@@ -523,7 +529,14 @@ if __name__=='__main__':
             else:
                 proxySetTestStatus(file_id, STATUS_FAIL, timer_f) # File status FAIL
 
-                # If status if FAIL, and the file is prerequisite, CANCEL all suite
+                # If status is FAIL, and the file is not Optional and Exit on test fail is ON, CLOSE the runner
+                if not optional_test and exit_on_test_fail:
+                    print('TC error: Mandatory file `{0}` returned FAIL! Closing the runner!'.format(filename))
+                    proxy.echo('TC error: Mandatory file `{0}::{1}::{2}` returned FAIL! Closing the runner!'.format(
+                        globEpName, suite, filename))
+                    exit(1)
+
+                # If status is FAIL, and the file is prerequisite, CANCEL all suite
                 if iIndex == 0 and prerequisite:
                     abort_suite = True
                     print('TC error: Prerequisite file for suite `%s` returned FAIL! All suite will be ABORTED!' % suite)
