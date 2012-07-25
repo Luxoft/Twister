@@ -50,7 +50,7 @@ cherry_log = cherrypy.log.error_log
 # Config python logging
 dateTag = datetime.datetime.now().strftime("%Y-%b-%d %H-%M-%S")
 LOG_FILE = LOGS_PATH + 'Log %s.txt' % dateTag
-log.basicConfig(level=log.NOTSET, format='%(asctime)s %(levelname)-8s %(message)s',
+log.basicConfig(level=log.NOTSET, format='%(asctime)s  %(levelname)-8s %(message)s',
                     datefmt='%y-%m-%d %H:%M:%S', filename=LOG_FILE, filemode='w')
 
 console = log.StreamHandler()

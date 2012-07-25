@@ -57,13 +57,13 @@ class TSCParser:
     - Test files for specific EP
     """
 
-    def __init__(self, config_data):
-        if os.path.isfile(config_data):
-            self.config_path = config_data
-            self.xmlDict = BeautifulStoneSoup(open(config_data))
-        elif config_data and type(config_data)==type('') or type(config_data)==type(u''):
-            self.config_path = ''
-            self.xmlDict = BeautifulStoneSoup(config_data)
+    def __init__(self, base_config='', files_config=''):
+
+        if os.path.isfile(base_config):
+            self.xmlDict = BeautifulStoneSoup(open(base_config))
+        elif base_config and ( type(base_config)==type('') or type(base_config)==type(u'') ) \
+                and ( base_config[0] == '<' and base_config[-1] == '>' ):
+            self.xmlDict = BeautifulStoneSoup(base_config)
         else:
             raise Exception('Parser ERROR: Invalid config data type: `%s`!' % type(config_data))
 
@@ -73,31 +73,50 @@ class TSCParser:
         self.configTS = None
         self.configHash = None
         self.getEpList()
-        self.updateConfigTS()
+        self.updateConfigTS(files_config)
 
 
-    def updateConfigTS(self):
+    def updateConfigTS(self, files_config=''):
         """
         Updates Test Suite Cofig file hash and recreates internal XML structure,
         only if the XML file is changed.
         """
-        # Path of TestSuite/ Test-Suites XML
-        config_ts = str(self.xmlDict.root.masterxmltestsuite.text)
-        if config_ts.startswith('~'):
-            config_ts = os.getenv('HOME') + config_ts[1:]
-        if not os.path.isfile(config_ts):
-            print('Parser: Test-Suites XML file `%s` does not exist! Please check framework config XML file!' % config_ts)
-            self.configTS = None
-            return -1
+        if files_config and ( type(files_config)==type('') or type(files_config)==type(u'') ) \
+                and ( files_config[0] == '<' and files_config[-1] == '>' ):
 
-        # Hash check the XML file, to see if is changed
-        newConfigHash = hashlib.md5(open(config_ts).read()).hexdigest()
+            # This is pure XML data
+            config_ts = files_config
+            # Hash check the XML file, to see if is changed
+            newConfigHash = hashlib.md5(files_config).hexdigest()
+
+        else:
+
+            if not (files_config or os.path.isfile(files_config)):
+                # Get path to Test-Suites XML from Master config
+                files_config = str(self.xmlDict.root.masterxmltestsuite.text)
+
+            if files_config.startswith('~'):
+                files_config = os.getenv('HOME') + files_config[1:]
+            if not os.path.isfile(files_config):
+                print('Parser: Test-Suites XML file `%s` does not exist! Please check framework config XML file!' % files_config)
+                self.configTS = None
+                return -1
+            else:
+                config_ts = open(files_config).read()
+
+            # Hash check the XML file, to see if is changed
+            newConfigHash = hashlib.md5(config_ts).hexdigest()
+
         if self.configHash != newConfigHash:
             print('Parser: Test-Suites XML file changed, rebuilding internal structure...\n')
             # Use the new hash
             self.configHash = newConfigHash
             # Create Beautiful Soup class from the new XML file
-            self.configTS = BeautifulStoneSoup(open(config_ts))
+            self.configTS = BeautifulStoneSoup(config_ts)
+
+        if not self.configTS.root:
+            print('Parser ERROR: Cannot access Test-Suites XML data!')
+            return -1
 
 
     def getTestSuitePath(self):
@@ -150,6 +169,9 @@ class TSCParser:
         """
         Returns the value of the tag "Exit On Test Fail".
         """
+        if not self.configTS:
+            print('Parser: Cannot get Exit on test fail status, because Test-Suites XML is invalid!')
+            return False
         res = self.configTS.root.stoponfail
         if not res:
             return False
@@ -242,8 +264,8 @@ class TSCParser:
         The "file" must be a BeautifulSoup class.
         """
         res = OrderedDict()
-        res['suite'] = file_soup.parent.tsname.text
         res['file']  = file_soup.tcname.text
+        res['suite'] = None
         res['dependancy'] = file_soup.dependancy.text if file_soup.dependancy else ''
 
         prop_keys = file_soup(lambda tag: tag.name=='propname')
@@ -271,9 +293,10 @@ class TSCParser:
         The "suite" must be a BeautifulSoup class.
         """
 
+        res = OrderedDict([['name', suite_soup.tsname.text]])
         prop_keys = suite_soup(lambda tag: tag.name=='propname' and tag.parent.name=='userdefined')
         prop_vals = suite_soup(lambda tag: tag.name=='propvalue' and tag.parent.name=='userdefined')
-        res = dict(zip([p.text for p in prop_keys], [p.text for p in prop_vals])) # Pack Key + Value
+        res.update( dict(zip([p.text for p in prop_keys], [p.text for p in prop_vals])) ) # Pack Key + Value
 
         res['files'] = OrderedDict()
         res['ep'] = suite_soup.epid.text
@@ -300,9 +323,14 @@ class TSCParser:
             return {}
 
         res = OrderedDict()
+        suite_nr = 100
         for suite in [k.parent for k in self.configTS(name='epid') if k.text==epname]:
-            suite_name = suite.tsname.text
-            res[suite_name] = self.getSuiteInfo(suite)
+            suite_str = str(suite_nr)
+            res[suite_str] = self.getSuiteInfo(suite)
+            # Add the suite ID for all files in the suite
+            for fileid in res[suite_str]['files']:
+                res[suite_str]['files'][fileid]['suite'] = suite_str
+            suite_nr += 1
         return res
 
 

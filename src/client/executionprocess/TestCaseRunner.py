@@ -281,6 +281,7 @@ if __name__=='__main__':
 
     tc_tcl = None; tc_perl = None; tc_python = None
     proxy = None
+    tSuites = None
     suite_number = 0
     abort_suite = False
 
@@ -321,11 +322,14 @@ if __name__=='__main__':
         # This cycle will run forever,
         # To complete all test files.
 
-        try: suite = tSuites[suite_number]
+        try:
+            suite_str  = tSuites[suite_number]
+            suite      = suite_str.split(':')[0]
+            suite_name = suite_str.split(':')[1]
         except: break
 
         print('\n===== ===== ===== ===== =====')
-        print('   Starting suite `%s`' % suite)
+        print('  Starting suite `%s`' % suite_str)
         print('===== ===== ===== ===== =====\n')
 
 
@@ -335,7 +339,7 @@ if __name__=='__main__':
         tList = proxy.getSuiteFiles(userName, globEpName, suite)
 
         if not tList:
-            print('TC warning: Nothing to do in suite `%s`!\n' % suite)
+            print('TC warning: Nothing to do in suite `%s`!\n' % suite_str)
             suite_number += 1
             continue
 
@@ -533,14 +537,14 @@ if __name__=='__main__':
                 if not optional_test and exit_on_test_fail:
                     print('TC error: Mandatory file `{0}` returned FAIL! Closing the runner!'.format(filename))
                     proxy.echo('TC error: Mandatory file `{0}::{1}::{2}` returned FAIL! Closing the runner!'.format(
-                        globEpName, suite, filename))
+                        globEpName, suite_name, filename))
                     exit(1)
 
                 # If status is FAIL, and the file is prerequisite, CANCEL all suite
                 if iIndex == 0 and prerequisite:
                     abort_suite = True
-                    print('TC error: Prerequisite file for suite `%s` returned FAIL! All suite will be ABORTED!' % suite)
-                    proxy.echo('TC error: Prerequisite file for `{0}::{1}` returned FAIL! All suite will be ABORTED!'.format(globEpName, suite))
+                    print('TC error: Prerequisite file for suite `%s` returned FAIL! All suite will be ABORTED!' % suite_name)
+                    proxy.echo('TC error: Prerequisite file for `{0}::{1}` returned FAIL! All suite will be ABORTED!'.format(globEpName, suite_name))
 
             sys.stdout.flush() # Flush just in case
 
