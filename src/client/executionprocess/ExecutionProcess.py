@@ -127,8 +127,6 @@ class threadCheckStatus(threading.Thread):
             if not self.cycle:
                 try:
                     if not proxy.getEpVariable(userName, globEpName, 'twister_ep_hostname'):
-                        proxy.setEpVariable(userName, globEpName, 'twister_ep_uid', os.getuid())
-                        proxy.setEpVariable(userName, globEpName, 'twister_ep_gid', os.getgid())
                         proxy.setEpVariable(userName, globEpName, 'twister_ep_os',
                             (platform.machine() +' '+ platform.system() +', '+ ' '.join(platform.linux_distribution())))
                         proxy.setEpVariable(userName, globEpName, 'twister_ep_hostname', socket.gethostname())

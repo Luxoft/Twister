@@ -80,7 +80,11 @@ class TSCParser:
         """
         Updates Test Suite Cofig file hash and recreates internal XML structure,
         only if the XML file is changed.
+        The file number and suite number have to be unique.
         """
+        self.file_no = 1000
+        self.suite_no = 100
+
         if files_config and ( type(files_config)==type('') or type(files_config)==type(u'') ) \
                 and ( files_config[0] == '<' and files_config[-1] == '>' ):
 
@@ -258,6 +262,54 @@ class TSCParser:
         return activeEPs
 
 
+    def getSuiteInfo(self, suite_soup):
+        """
+        Returns a dict with information about 1 Suite from Test-Suites XML.
+        The "suite" must be a BeautifulSoup class.
+        """
+
+        res = OrderedDict([['name', suite_soup.tsname.text]])
+        prop_keys = suite_soup(lambda tag: tag.name=='propname' and tag.parent.name=='userdefined')
+        prop_vals = suite_soup(lambda tag: tag.name=='propvalue' and tag.parent.name=='userdefined')
+        res.update( dict(zip([p.text for p in prop_keys], [p.text for p in prop_vals])) ) # Pack Key + Value
+
+        res['files'] = OrderedDict()
+        res['ep'] = suite_soup.epid.text
+
+        for file_tag in suite_soup('tcname'):
+            file_data = self.getFileInfo(file_tag.parent)
+            res['files'][str(self.file_no)] = file_data
+            self.file_no += 1
+
+        return res
+
+
+    def getAllSuitesInfo(self, epname):
+        """
+        Returns a list with data for all suites of one EP.
+        Also returns the file list, with all file data.
+        """
+        if not self.configTS:
+            print('Parser: Cannot parse Test Suite XML! Exiting!')
+            return {}
+
+        if epname not in self.epnames:
+            print('Parser: Station `%s` is not in the list of defined EPs: `%s`!' %
+                (str(epname), str(self.epnames)) )
+            return {}
+
+        res = OrderedDict()
+
+        for suite in [k.parent for k in self.configTS(name='epid') if k.text==epname]:
+            suite_str = str(self.suite_no)
+            res[suite_str] = self.getSuiteInfo(suite)
+            # Add the suite ID for all files in the suite
+            for file_id in res[suite_str]['files']:
+                res[suite_str]['files'][file_id]['suite'] = suite_str
+            self.suite_no += 1
+        return res
+
+
     def getFileInfo(self, file_soup):
         """
         Returns a dict with information about 1 File from Test-Suites XML.
@@ -287,77 +339,22 @@ class TSCParser:
         return res
 
 
-    def getSuiteInfo(self, suite_soup):
-        """
-        Returns a dict with information about 1 Suite from Test-Suites XML.
-        The "suite" must be a BeautifulSoup class.
-        """
-
-        res = OrderedDict([['name', suite_soup.tsname.text]])
-        prop_keys = suite_soup(lambda tag: tag.name=='propname' and tag.parent.name=='userdefined')
-        prop_vals = suite_soup(lambda tag: tag.name=='propvalue' and tag.parent.name=='userdefined')
-        res.update( dict(zip([p.text for p in prop_keys], [p.text for p in prop_vals])) ) # Pack Key + Value
-
-        res['files'] = OrderedDict()
-        res['ep'] = suite_soup.epid.text
-
-        for file_tag in suite_soup('tcid'):
-            file_data = self.getFileInfo(file_tag.parent)
-            res['files'][file_tag.text] = file_data
-
-        return res
-
-
-    def getAllSuitesInfo(self, epname):
-        """
-        Returns a list with data for all suites of one EP.
-        Also returns the file list, with all file data.
-        """
-        if not self.configTS:
-            print('Parser: Cannot parse Test Suite XML! Exiting!')
-            return {}
-
-        if epname not in self.epnames:
-            print('Parser: Station `%s` is not in the list of defined EPs: `%s`!' %
-                (str(epname), str(self.epnames)) )
-            return {}
-
-        res = OrderedDict()
-        suite_nr = 100
-        for suite in [k.parent for k in self.configTS(name='epid') if k.text==epname]:
-            suite_str = str(suite_nr)
-            res[suite_str] = self.getSuiteInfo(suite)
-            # Add the suite ID for all files in the suite
-            for fileid in res[suite_str]['files']:
-                res[suite_str]['files'][fileid]['suite'] = suite_str
-            suite_nr += 1
-        return res
-
-
     def getAllTestFiles(self):
         """
         Returns a list with ALL files defined for current suite, in order.
         """
-        ti = time.clock()
         if not self.configTS:
             print('Parser: Fatal error! Cannot parse Test Suite XML!')
             return []
 
-        ts = []
         files = self.configTS('tcname')
 
         if not files:
             print('Parser: Current suite has no files!')
 
-        for TestCase in files:
-            tcid = TestCase.parent.tcid
-            if not tcid:
-                print('Parser: Fatal error! Found files without ID in Test Suite XML!')
-                return []
-            ts.append(tcid.text)
+        ids = range(1000, 1000 + len(files))
 
-        #print('Parser: TestSuite Files (%s files) took %.4f seconds.' % (len(ts), time.clock()-ti))
-        return ts
+        return [str(i) for i in ids]
 
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #

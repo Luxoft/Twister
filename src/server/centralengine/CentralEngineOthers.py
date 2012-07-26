@@ -454,37 +454,37 @@ class Project:
         return True
 
 
-    def getFileStatusAll(self, user, epname=None, suite=None):
+    def getFileStatusAll(self, user, epname=None, suite_id=None):
         """
         Return the status of all files, in order.
         """
         r = self.changeUser(user)
         if not r: return []
 
-        if suite and not epname:
+        if suite_id and not epname:
             logError('Project: Must provide both EP and Suite!')
             return []
 
-        statuses = {}
-        final = []
+        statuses = {} # Unordered
+        final = []    # Ordered
         eps = self.users[user]['eps']
 
         if epname:
-            if suite:
-                for fname in eps[epname]['suites'][suite]['files']:
-                    s = eps[epname]['suites'][suite]['files'][fname].get('status', -1)
-                    statuses[fname] = str(s)
+            if suite_id:
+                for file_id in eps[epname]['suites'][suite_id]['files']:
+                    s = eps[epname]['suites'][suite_id]['files'][file_id].get('status', -1)
+                    statuses[file_id] = str(s)
             else:
-                for suite in eps[epname]['suites']:
-                    for fname in eps[epname]['suites'][suite]['files']:
-                        s = eps[epname]['suites'][suite]['files'][fname].get('status', -1)
-                        statuses[fname] = str(s)
+                for suite_id in eps[epname]['suites']:
+                    for file_id in eps[epname]['suites'][suite_id]['files']:
+                        s = eps[epname]['suites'][suite_id]['files'][file_id].get('status', -1)
+                        statuses[file_id] = str(s)
         else:
             for epname in eps:
-                for suite in eps[epname]['suites']:
-                    for fname in eps[epname]['suites'][suite]['files']:
-                        s = eps[epname]['suites'][suite]['files'][fname].get('status', -1)
-                        statuses[fname] = str(s)
+                for suite_id in eps[epname]['suites']:
+                    for file_id in eps[epname]['suites'][suite_id]['files']:
+                        s = eps[epname]['suites'][suite_id]['files'][file_id].get('status', -1)
+                        statuses[file_id] = str(s)
 
         for tcid in self.test_ids[user]:
             if tcid in statuses:
@@ -520,16 +520,19 @@ class Project:
         Update file ownership for 1 file.\n
         `Chown` function works only in Linux.
         """
-        uinfo = self.getUserInfo(user, 'eps')
-        epname = uinfo[uinfo.keys()[0]]
-        uid = epname.get('twister_ep_uid')
-        gid = epname.get('twister_ep_gid')
-
-        if uid and gid:
-            os.chown(path, uid, gid)
-            return True
-        else:
+        try:
+            from pwd import getpwnam
+            uid = getpwnam(user)[2]
+            gid = getpwnam(user)[3]
+        except:
             return False
+
+        try:
+            os.chown(path, uid, gid)
+        except:
+            logWarning('ERROR on set file owner! Cannot chown `{0}:{1}`!'.format(uid, gid))
+            return False
+        return True
 
 
     def execScript(self, script_path):
@@ -538,7 +541,7 @@ class Project:
         This works only in Linux.
         """
         if not os.path.exists(script_path):
-            logError('Exec script: The path `%s` does not exist!' % script_path)
+            logError('Exec script: The path `{0}` does not exist!'.format(script_path))
             return False
 
         try:
@@ -642,7 +645,7 @@ class Project:
                 ROWS.append( ('<tr class="%s"><td>' % rclass) + '</td><td>'.join(rows) + '</td></tr>\n')
 
             # Body string
-            body_path = os.path.split(self.parsers[user].config_path)[0] +os.sep+ 'e-mail-tmpl.htm'
+            body_path = os.path.split(self.users[user]['config_path'])[0] +os.sep+ 'e-mail-tmpl.htm'
             if not os.path.exists(body_path):
                 logError('CE ERROR! Cannot find e-mail template file `{0}`!'.format(body_path))
                 return False
@@ -675,7 +678,7 @@ class Project:
             msg.attach(MIMEText(body_tmpl.substitute(body_dict), 'html'))
 
             if (not eMailConfig['Enabled']) or (eMailConfig['Enabled'] in ['0', 'false']):
-                e_mail_path = os.path.split(self.parsers[user].config_path)[0] +os.sep+ 'e-mail.htm'
+                e_mail_path = os.path.split(self.users[user]['config_path'])[0] +os.sep+ 'e-mail.htm'
                 open(e_mail_path, 'w').write(msg.as_string())
                 logDebug('E-mail.htm file written. The message will NOT be sent.')
                 # Update file ownership

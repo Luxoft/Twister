@@ -1,11 +1,4 @@
 
-Updated XML Parser to accept a Base config AND a Test-Files config.
-Updated XML Parser to auto generate suite IDs, to fix the problem with more suites having the same name.
-Implemented temporary Run, to allow a few files to be run a few times, but WITHOUT changing the status of the currently running files in the interface.
-Fixed a few rare bugs in sending and receiving logs in CE.
-Implemented Rename user and Delete user for Project structure.
-Updated REST interface with a template and a few other minor improvements.
-All features were tested with Python-demos and Smoke-test, but MUST BE TESTED MORE, because the changes might have deeper implications.
 # File: CentralEngineClasses.py ; This file is part of Twister.
 
 # Copyright (C) 2012 , Luxoft
@@ -975,35 +968,35 @@ class CentralEngine(_cptools.XMLRPCController):
         Log CLI is *magic*, there are more logs, one for each EP.\n
         Called from the Java GUI.
         '''
+        logsPath = self.project.getUserInfo(user, 'logs_path')
         logTypes = self.project.getUserInfo(user, 'log_types')
         vError = False
-        logDebug('Cleaning log files...')
+        logDebug('Cleaning {0} log files...'.format(len(logTypes)))
 
-        for log in glob.glob(self.project.getUserInfo(user, 'logs_path') + os.sep + '*.log'):
+        for log in glob.glob(logsPath + os.sep + '*.log'):
             try: os.remove(log)
             except: pass
 
         for logType in logTypes:
             # For CLI
-            if logType.lower()=='logcli':
+            if logType.lower() == 'logcli':
                 for epname in self.listEPs(user).split(','):
-                    logPath = self.project.getUserInfo(user, 'logs_path') + os.sep + epname + '_CLI.log'
+                    logPath = logsPath + os.sep + epname + '_CLI.log'
                     try:
                         open(logPath, 'w').close()
-                        self.project.setFileOwner(user, logPath)
                     except:
-                        logError("CE ERROR! Log file `%s` cannot be reset!" % logPath)
+                        logError('CE ERROR! Log file `{0}` cannot be reset!'.format(logPath))
                         vError = True
-                continue
+                    self.project.setFileOwner(user, logPath)
+            # For normal logs
             else:
                 logPath = logTypes[logType]
-            #
-            try:
-                open(logPath, 'w').close()
+                try:
+                    open(logPath, 'w').close()
+                except:
+                    logError('CE ERROR! Log file `{0}` cannot be reset!'.format(logPath))
+                    vError = True
                 self.project.setFileOwner(user, logPath)
-            except:
-                logError("CE ERROR! Log file `%s` cannot be reset!" % logPath)
-                vError = True
 
         # On error, return IN-succes
         if vError:
