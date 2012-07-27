@@ -440,6 +440,8 @@ class CentralEngine(_cptools.XMLRPCController):
             logError("CE ERROR! Status value `%s` is not in the list of defined statuses: `%s`!" % \
                 (str(new_status), str(execStatus.values())) )
             return False
+        if cherrypy.request.headers['User-Agent'].startswith('Apache XML RPC') and (user+'_old') in self.project.users:
+            return '*ERROR*! Cannot change status while running temporary!'
 
         # Status resume => start running. The logs must not reset on resume
         if new_status == STATUS_RESUME:
@@ -676,9 +678,14 @@ class CentralEngine(_cptools.XMLRPCController):
         The results are Not saved to database and No report is sent on e-mail.
         '''
 
+        # Cannot run temporary more than once
         if user + '_old' in self.project.users:
             logError('CE ERROR: User `{0}` is already running temporary!'.format(user))
             return '*ERROR!* User `{0}` is already running temporary!'.format(user)
+        # If the user is already running something, DON'T run temporary
+        if self.project.getUserInfo(user, 'status'):
+            logError('*ERROR!* User `{0}` must be stopped, before running temporary!'.format(user))
+            return '*ERROR!* User `{0}` must be stopped, before running temporary!'.format(user)
 
         # Backup all username data, under a different name
         self.project.renameUser(user, user + '_old')
