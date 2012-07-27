@@ -58,16 +58,16 @@ TMPL_DATA = """
 	* {font-family: Courier New, Courier, Monospace, Verdana, Arial}
 	</style>
 </head>
-<body>
+<body><div style="margin:5px;">
 % if title is not UNDEFINED:
-<h3>${title}</h3>
+<h2>${title}</h2>
 % else:
-<h3>Central Engine REST</h3>
+<h2>Central Engine REST</h2>
 % endif
 
 ${body}
 
-</body>
+</div></body>
 </html>
 """
 #
@@ -127,15 +127,16 @@ class CentralEngineRest:
         host = cherrypy.request.headers['Host']
 
         if not user:
-            body = '<h3>Registered users:</h3>\n'\
-                   '{users}.'.format(users=';<br>'.join(
+            body = '<b>Running on</b>: {ce_host}:{ce_port}<br><br>\n'\
+                   '<h2>Registered users:</h2>\n'\
+                   '{users}.'.format(ce_host=ce_host, ce_port=ce_port, users=';<br>'.join(
                    ['&nbsp;&nbsp;user <a href="http://{host}/rest/stats/{user}">{user}</a> ' \
                     '<small>(<a href="http://{host}/rest/setUserStatus/{user}/2">start</a> | ' \
                     '<a href="http://{host}/rest/setUserStatus/{user}/0">stop</a>)</small>'
                         .format(host=host, user=k)
                         for k in self.project.users.keys()]
                         ) or 'None')
-            return output.render(title='Central Engine users', body=body)
+            return output.render(title='Central Engine', body=body)
         else:
             if user not in self.project.users.keys():
                 body = '<b>User name `{0}` doesn\'t exist!</b>'.format(user)
@@ -151,10 +152,10 @@ class CentralEngineRest:
             # EP name only
             if not suite:
                 data = self.project.getEpInfo(user, epname)
-                ret = '<h3>Execution Process `{epname}`</h3>'\
-                      '<b>Status</b>: {status}<br><br>'\
-                      '<b>Ping</b>: {ping}<br><br>'\
-                      '<b>Suites</b>: [<br>{suites}<br>]'.format(
+                ret = '<h3>Execution Process `{epname}`</h3>\n'\
+                      '<b>Status</b>: {status}<br><br>\n'\
+                      '<b>Ping</b>: {ping}<br><br>\n'\
+                      '<b>Suites</b>: [<br>{suites}<br>]\n'.format(
                     epname = epname,
                     status = reversed[data.get('status', STATUS_INVALID)],
                     ping = str( (now - datetime.datetime.strptime(data.get('last_seen_alive', now_str), '%Y-%m-%d %H:%M:%S')).seconds ) + 's',
@@ -180,14 +181,13 @@ class CentralEngineRest:
         # General statistics
         else:
             eps = self.project.getUserInfo(user, 'eps').keys()
-            ret = '<h3>Central Engine statistics for user `{user}`</h3>'\
-                  '<b>Running on</b>: {host}:{port}<br><br>'\
-                  '<b>Status</b>: {status}<br><br>'\
-                  '<b>Processes</b>: [<br>{eps}<br>]'.format(
+            ret = '<h3>User `{user}`</h3>\n'\
+                  '<b>Status</b>: {status}<br><br>\n'\
+                  '<b>Config</b>: <small>{config}</small><br><br><br>\n'\
+                  '<b>Processes</b>: [<br>{eps}<br>]\n'.format(
                 user = user,
                 status = status,
-                host = ce_host,
-                port = ce_port,
+                config = self.project.getUserInfo(user, 'tests_path'),
                 eps = '<br>'.join(
                     ['&nbsp;&nbsp;<a href="http://{host}/rest/stats/{user}/{ep}">{ep}</a>: {status}'.format(
                         user = user, ep=ep, host=host,
