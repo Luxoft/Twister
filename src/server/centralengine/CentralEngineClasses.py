@@ -339,7 +339,7 @@ class CentralEngine(_cptools.XMLRPCController):
         Called from the Java GUI.
         '''
         # If this is a temporary run, return the statuses of the backup user!
-        if user + '_old' in self.project.users:
+        if cherrypy.request.headers['User-Agent'].startswith('Apache XML RPC') and (user+'_old') in self.project.users:
             user += '_old'
 
         data = self.project.getUserInfo(user)
@@ -534,7 +534,7 @@ class CentralEngine(_cptools.XMLRPCController):
             return ''
 
         # If this is a temporary run, return the statuses of the backup user!
-        if user + '_old' in self.project.users:
+        if cherrypy.request.headers['User-Agent'].startswith('Apache XML RPC') and (user+'_old') in self.project.users:
             statuses = self.project.getFileStatusAll(user + '_old', epname, suite)
             return ','.join(statuses)
 

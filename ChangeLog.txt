@@ -1,4 +1,12 @@
 
+30th July changes:
+
+- implemented "run temporary", a mechanism that allows 1 or more files to be run several times,
+  without losing the stats from last run and without saving to database or sending e-mail report.
+- better REST interface
+- bug fixing.
+
+
 16th July changes:
 
 - implemented plugins for Central Engine and GUI

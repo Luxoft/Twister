@@ -85,7 +85,7 @@ class Plugin(BasePlugin):
                     child.sendline(pwd)
                 print 'Running Git plugin::', child.read()
 
-                if 'automatic merge failed' in child.before.lower():
+                if 'automatic merge failed' in child.before.lower() or 'would be overwritten by merge' in child.before.lower():
                     if not overwrite:
                         return 'Git pull conflict! Please fix the issues, then update again!\n{0}'.format(child.before)
                     else:

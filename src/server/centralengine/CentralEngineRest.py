@@ -238,11 +238,11 @@ class CentralEngineRest:
         output = Template(text=TMPL_DATA)
         log = open(LOG_FILE).read()
         body = log.replace('\n', '<br>\n').replace(' ', '&nbsp;')
-        body = body.replace('INFO', '<b style="color:gray">INFO</b>')
-        body = body.replace('DEBUG', '<b style="color:gray">DEBUG</b>')
-        body = body.replace('ERROR', '<b style="color:orange">ERROR</b>')
-        body = body.replace('WARNING', '<b>WARNING</b>')
-        body = body.replace('CRITICAL', '<b style="color:red">CRITICAL</b>')
+        body = body.replace(';INFO&',   ';<b style="color:gray">INFO</b>&')
+        body = body.replace(';DEBUG&',  ';<b style="color:gray">DEBUG</b>&')
+        body = body.replace(';ERROR&',  ';<b style="color:orange">ERROR</b>&')
+        body = body.replace(';WARNING&',  ';<b>WARNING</b>&')
+        body = body.replace(';CRITICAL&', ';<b style="color:red">CRITICAL</b>&')
         return output.render(title='Central Engine Log', body=body)
 
 
