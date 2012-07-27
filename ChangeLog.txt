@@ -1,6 +1,9 @@
 
 30th July changes:
 
+- implemented "stop on fail". If a test file fails, and the file is mandatory, and the "stop on fail"
+  flag is activated, the execution process stops. The files that are optional must not stop the
+  execution process if they fail. The "stop on fail" flag can be easily activated and deactivated.
 - implemented "run temporary", a mechanism that allows 1 or more files to be run several times,
   without losing the stats from last run and without saving to database or sending e-mail report.
 - better REST interface
