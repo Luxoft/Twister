@@ -122,11 +122,11 @@ public class MainPanel extends JTabbedPane{
                                     if(!user.equals("NULL")){
                                         (new XMLBuilder(Repository.getSuite())).writeXMLFile((new StringBuilder()).
                                                             append(Repository.getUsersDirectory()).append(Repository.
-                                                            getBar()).append(user).append(".XML").toString(),false);
+                                                            getBar()).append(user).append(".XML").toString(),false,false);
                                         p1.sc.g.setUser((new StringBuilder()).append(Repository.getUsersDirectory()).
                                                             append(Repository.getBar()).append(user).append(".XML").
                                                             toString());
-                                        p1.sc.g.printXML(p1.sc.g.getUser(),false,false);}}
+                                        p1.sc.g.printXML(p1.sc.g.getUser(),false,false,false);}}
                                 else{
                                     p1.sc.g.setUser((new StringBuilder()).append(Repository.getUsersDirectory()).
                                                             append(Repository.getBar()).append(user).toString());
@@ -136,4 +136,4 @@ public class MainPanel extends JTabbedPane{
         
     public void saveUserXML(){
         if(!p1.sc.g.getUser().equals("")){
-            p1.sc.g.printXML(p1.sc.g.getUser(), false,false);}}}
+            p1.sc.g.printXML(p1.sc.g.getUser(), false,false,false);}}}

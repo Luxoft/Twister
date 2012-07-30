@@ -88,7 +88,9 @@ public class applet extends Applet{
             Repository.inicon = loadIcon("in.png");
             Repository.outicon = loadIcon("out.png");
             Repository.passwordicon = loadIcon("passwordicon.png");
-            Repository.baricon = loadIcon("bar.png");}
+            Repository.baricon = loadIcon("bar.png");
+            Repository.optional = loadIcon("optional.png");
+        }
         catch(Exception e){e.printStackTrace();}
         setLayout(null);
         /*

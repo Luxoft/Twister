@@ -456,9 +456,16 @@ public class TextAreaPainter extends JComponent implements TabExpander
      */
     public Dimension getPreferredSize()
     {
+        if(fm==null){
+            setFont(new Font("Monospaced",Font.PLAIN,14));
+        }
         Dimension dim = new Dimension();
-        dim.width = fm.charWidth('w') * cols;
-        dim.height = fm.getHeight() * rows;
+//         System.out.println("dim width"+dim.width);
+//         System.out.println("fm.charWidth('w')"+fm.charWidth('w'));
+//         dim.setSize(fm.charWidth('w') * cols, fm.getHeight() * rows);
+        dim.setSize(8 * cols, 8 * rows);
+//         dim.width = fm.charWidth('w') * cols;
+//         dim.height = fm.getHeight() * rows;
         return dim;
     }
 

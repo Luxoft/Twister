@@ -88,14 +88,14 @@ public class SyntaxUtilities
 	{
 		SyntaxStyle[] styles = new SyntaxStyle[Token.ID_COUNT];
 
-		styles[Token.COMMENT1] = new SyntaxStyle(Color.black,true,false);
-		styles[Token.COMMENT2] = new SyntaxStyle(Color.GREEN,true,false);
+		styles[Token.COMMENT1] = new SyntaxStyle(Color.BLUE,true,false);
+		styles[Token.COMMENT2] = new SyntaxStyle(Color.MAGENTA,true,false);
 		styles[Token.KEYWORD1] = new SyntaxStyle(new Color(150,50,50),false,true);
 		styles[Token.KEYWORD2] = new SyntaxStyle(new Color(50,150,50),false,false);
-		styles[Token.KEYWORD3] = new SyntaxStyle(new Color(0x009600),false,false);
+		styles[Token.KEYWORD3] = new SyntaxStyle(Color.BLUE,false,false);
 		styles[Token.LITERAL1] = new SyntaxStyle(new Color(0x650099),false,false);
 		styles[Token.LITERAL2] = new SyntaxStyle(new Color(0x650099),false,true);
-		styles[Token.LABEL] = new SyntaxStyle(new Color(0x990033),false,true);
+		styles[Token.LABEL] = new SyntaxStyle(new Color(50,130,180),false,true);
 		styles[Token.OPERATOR] = new SyntaxStyle(Color.black,false,true);
 		styles[Token.INVALID] = new SyntaxStyle(Color.red,false,true);
 

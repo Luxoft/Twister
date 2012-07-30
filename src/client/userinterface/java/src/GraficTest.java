@@ -16,6 +16,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 import com.twister.Item;
 import java.awt.Canvas;
 import java.awt.Graphics;
@@ -31,7 +32,18 @@ import javax.imageio.ImageIO;
 import javax.swing.JPanel;
 import java.awt.Dimension;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.awt.event.KeyListener;
+import java.awt.event.KeyEvent;
+import javax.swing.JPopupMenu;
+import javax.swing.JMenuItem;
+import java.awt.event.ActionListener;
+import java.awt.event.ActionEvent;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JTextField;
+import javax.swing.JOptionPane;
 
 public class GraficTest extends JPanel{
     private static final long serialVersionUID = 1L;
@@ -39,34 +51,331 @@ public class GraficTest extends JPanel{
     private ArrayList <Integer> selected;
     private boolean foundfirstitem;
     private int y = 5;
+    private byte keypress=0;
+    private ArrayList <Item> selecteditems = new ArrayList<Item>();
 
     public GraficTest(int x, int y, boolean applet){
         this.applet = applet;
+        setFocusable(true);
+        
         setSize(445, 595);
         setBackground(new Color(190, 195, 195));
         addMouseListener(new MouseAdapter(){
-            public void mouseReleased(MouseEvent ev){handleClick(ev);}});}
+            public void mouseReleased(MouseEvent ev){
+                handleClick(ev);}
+            public void mouseEntered(MouseEvent ev){
+                requestFocus();
+            }
+        });
+        addKeyListener(new KeyListener(){
+            public void keyPressed(KeyEvent ev){
+                if(ev.getKeyCode()==KeyEvent.VK_SHIFT){keypress=1;}
+                if(ev.getKeyCode()==KeyEvent.VK_CONTROL){keypress=2;}}                
+            public void keyTyped(KeyEvent ev){}            
+            public void keyReleased(KeyEvent ev){
+                if(ev.getKeyCode()==KeyEvent.VK_SHIFT ||
+                ev.getKeyCode()==KeyEvent.VK_CONTROL){
+                    keypress=0;}}});
+    }
+    
+    public boolean isParentSelected(ArrayList<Item>items,Item item){
+        ArrayList<Integer>pos = (ArrayList<Integer>)item.getPos().clone();
+        pos.remove(pos.size()-1);
+        Item parent = getCloneItem(items,pos);
+        if(parent!=null){
+            if(parent.isSelected()){
+                return true;
+            }
+            return isParentSelected(items,parent);}
+        return false;
+    }
+    
+    /*
+     * prints this item and his 
+     * subitems indices on screen
+     */
+    public void printPos(Item item){
+        if(item.getType()==0||item.getType()==1||item.getType()==2){
+            System.out.print(item.getName()+" - ");
+            for(int i=0;i<item.getPos().size();i++){
+                System.out.print(item.getPos().get(i));}
+            System.out.println();}
+        if(item.getType()==1){
+            for(int i=0;i<item.getSubItemsNr();i++){
+                printPos(item.getSubItem(i));}}
+        if(item.getType()==2){
+            for(int i=0;i<item.getSubItemsNr();i++){
+                printPos(item.getSubItem(i));}}}
+    
+    /*
+     * deselect all the items that are selected
+     */
+    public void deselectAll(){
+        for(Item item:selecteditems){
+            item.select(false);
+        }
+        selecteditems.clear();
+    }
     
     /*
      * interpret mouse click
      */
     public void handleClick(MouseEvent ev){
         if(ev.getButton()==1){
-            if(Repository.getTestSuiteNr()==0)return;
+            if(Repository.getTestSuiteNr()==0)return;            
+            if(keypress==0){
+                deselectAll();
                 getClickedItem(ev.getX(),ev.getY());
-                if(selected.size()>0&&getItem(selected).getType()==2){
-                    if(getItem(selected).getSubItemsNr()>0){getItem(selected).setVisible(!(getItem(selected).getSubItem(0).isVisible()));}
-                    updateLocations(getItem(selected));}
-                repaint();}}
+                selectItem(selected);}
+            else if(keypress==2){
+                getClickedItem(ev.getX(),ev.getY());
+                Item item = getItem(selected);
+                if(item.getType()!=0){
+                    if(item!=null && item.isSelected()){
+                        item.select(false);
+                        selecteditems.remove(item);
+                    }
+                    else{
+                        item.select(true);
+                        selecteditems.add(item);
+                    }
+                }
+            }
+            else{
+                deselectAll();
+                int [] theone1 = new int[selected.size()];
+                for(int i=0;i<selected.size();i++){theone1[i]= selected.get(i).intValue();}
+                getClickedItem(ev.getX(),ev.getY());
+                int [] theone2 = new int[selected.size()];
+                for(int i=0;i<selected.size();i++){theone2[i]= selected.get(i).intValue();}
+                if(theone1.length==theone2.length){
+                    if(theone1.length>1){
+                        int [] temp1,temp2;
+                        temp1 = Arrays.copyOfRange(theone1,0,theone1.length-1);
+                        temp2 = Arrays.copyOfRange(theone2,0,theone2.length-1);
+                        if(Arrays.equals(temp1,temp2)){
+                            int [] first,second;
+                            if(theone2[theone2.length-1]>=theone1[theone1.length-1]){
+                                first = theone2;
+                                second = theone1;}
+                            else{
+                                first = theone1;
+                                second = theone2;}
+                            ArrayList<Integer>temp11 = new ArrayList<Integer>();
+                            for(int i=0;i<temp1.length;i++)temp11.add(new Integer(temp1[i]));
+                            Item parent = getItem(temp11);
+                            for(int i=second[second.length-1];i<first[first.length-1]+1;i++){
+                                //parent.getSubItem(i).select(true);
+                                ArrayList<Integer> temporary = new ArrayList<Integer>();
+                                for(int m=0;m<parent.getSubItem(i).getPos().size();m++){
+                                    temporary.add(new Integer(parent.getSubItem(i).getPos().get(m).intValue()));}
+                                selectItem(temporary);}}}
+                    else{
+                        int first,second;
+                        if(theone1[0]>=theone2[0]){
+                            first = theone1[0];
+                            second = theone2[0];}
+                        else{
+                            second = theone1[0];
+                            first = theone2[0];}
+                        for(int m=second;m<first+1;m++){
+                            selectItem(Repository.getTestSuita(m).getPos());}}}}
+            if(selected.size()>0&&getItem(selected).getType()==2&&ev.getClickCount()==2){
+                if(getItem(selected).getSubItemsNr()>0){
+                    getItem(selected).setVisible(!(getItem(selected).getSubItem(0).isVisible()));}
+                updateLocations(getItem(selected));}
+            repaint();}
+        if(ev.getButton()==3&&selecteditems.size()>0){
+            popUp(ev);}}
+           
+    /*
+     * method to display popup
+     */
+    public void popUp(MouseEvent ev){
+        JPopupMenu p = new JPopupMenu();
+        JMenuItem item = new JMenuItem("Run separately");        
+        p.add(item);
+        item.addActionListener(new ActionListener(){
+            public void actionPerformed(ActionEvent ev2){
+                runSeparately();
+            }});
+        p.show(this,ev.getX(),ev.getY());
+    }
+    
+    
+    public void runSeparately(){
+        String userrespons = CustomDialog.showInputDialog(JOptionPane.INFORMATION_MESSAGE, 
+                                                            JOptionPane.OK_CANCEL_OPTION, 
+                                                            GraficTest.this, "", "Number of times:");
+        final int times;
+        try{times= Integer.parseInt(userrespons);}//exit if respons is not integer
+        catch(Exception e){
+            return;
+        }
+        ArrayList<Item> items = cloneItems();//clone all testcases
+        ArrayList<Item> fordelete = new ArrayList<Item>();//array to hold the ones to delete
+        for(Item item:items){                 
+            if(!item.isSelected()&&
+            !hasSubItemSelected(item)
+            &&!isParentSelected(items, item)){
+                fordelete.add(item);}
+            else{
+                for(Item child:item.getSubItems()){
+                    removeSelected(items,fordelete,item,child);
+                }
+            }
+        }  
+        ArrayList<Item> parents = new ArrayList<Item>();//parents array for items in fordelete
+        ArrayList<Integer>pos;                          //array
+        for(Item item:fordelete){
+            pos = (ArrayList<Integer>)item.getPos().clone();
+            pos.remove(pos.size()-1);
+            parents.add(getCloneItem(items,pos));
+        }
+        for(int i=0;i<fordelete.size();i++){
+            if(parents.get(i)!=null){
+                parents.get(i).getSubItems().remove(fordelete.get(i));
+            }
+            else{
+                items.remove(fordelete.get(i));
+            }
+        }
+        ArrayList<Item>last = new ArrayList<Item>();//array to store items repeatley
+        for(int i=0;i<times;i++){                   //the number of times the user specified
+            for(Item it:items){
+                last.add(it);
+            }
+        }
+        if(writeXML(last)){
+            CustomDialog.showInfo(JOptionPane.INFORMATION_MESSAGE, 
+                                  GraficTest.this, "Succes", 
+                                  "File succesfuly saved");
+        }
+        else {
+            CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, 
+                                  GraficTest.this, "Failed", 
+                                  "File could not be saved");
+        }
+    }
+    
+    /*
+     * convret ArrayList last to xml
+     * and upload it as a file 
+     */
+    public boolean writeXML(ArrayList<Item>last){
+        try{XMLBuilder xml = new XMLBuilder(last);
+            xml.createXML(false,false,true);
+            String dir = Repository.getXMLRemoteDir();
+            String [] path = dir.split("/");
+            StringBuffer result2 = new StringBuffer();
+            if (path.length > 0){
+                for (int i=0; i<path.length-1; i++){
+                    result2.append(path[i]);
+                    result2.append("/");}}
+            final String filelocation = result2.toString()+"testsuites_temp.xml";
+            if(!xml.writeXMLFile("testsuites_temp.xml", false,true)) return false;
+            new Thread(){
+                public void run(){
+                    try{
+                        String result = Repository.getRPCClient().execute("runTemporary",
+                                                            new Object[]{Repository.getUser(),
+                                                                            filelocation})+"";
+                        if(result.indexOf("ERROR")!=-1){
+                            CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, 
+                                                  GraficTest.this, "Failed", 
+                                                  result);
+                        }
+                        System.out.println("RPC result: "+result);
+                    }
+                    catch(Exception e){
+                        e.printStackTrace();
+                    }
+                }
+            }.start();
+            return true;
+        }
+        catch(Exception e){
+            e.printStackTrace();
+            return false;
+        }
+    }
+    
+    /*
+     * check if any of its
+     * subitems is selected
+     */
+    public boolean hasSubItemSelected(Item item){
+        for(Item subitem:item.getSubItems()){
+            if(subitem.isSelected())return true;
+        }
+        for(Item subitem:item.getSubItems()){
+            if(hasSubItemSelected(subitem))return true;
+        }
+        return false;
+    }
+    
+    /*
+     * adds item to remove
+     * from his parent if item 
+     * is not selected or is not in a 
+     * selected tree
+     */
+    public void removeSelected(ArrayList<Item>items, ArrayList<Item>fordelete, Item parent, Item child){
+        if(!child.isSelected()&&!hasSubItemSelected(child)&&child.getType()!=0
+        &&!isParentSelected(items,child)){
+            fordelete.add(child);
+            return;
+        }
+        if(child.getSubItemsNr()>0){
+            for(Item subchild:child.getSubItems()){
+                removeSelected(items,fordelete,child,subchild);
+            }
+        }
+    }
+    
+    /*
+     * creates a clone of all
+     * tc's from test suite
+     */
+    public ArrayList<Item> cloneItems(){
+        ArrayList<Item> items = new ArrayList<Item>();
+        for(Item i:Repository.getTestSuite()){
+            items.add(i.clone());
+        }
+        return items;
+    }
+            
+    /*
+     * select item based on
+     * his pos indices
+     */
+    public void selectItem(ArrayList <Integer> pos){
+        Item item = getItem(pos);
+        if(item!=null&&item.getType()!=0){
+            item.select(true);        
+            selecteditems.add(item);}}
+            
+    /*
+     * get item based on ArrayList indices
+     */
+    public Item getCloneItem(ArrayList<Item>clone,ArrayList <Integer> pos){
+        if(pos.size()>0){
+            Item theone1 = clone.get(pos.get(0));
+            for(int j=1;j<pos.size();j++){
+                theone1 = theone1.getSubItem(pos.get(j));}
+            return theone1;}
+        return null;}
     
     /*
      * get item based on ArrayList indices
      */
-    public Item getItem(ArrayList <Integer> pos){           
-        Item theone1 = Repository.getTestSuita(pos.get(0));
-        for(int j=1;j<pos.size();j++){
-            theone1 = theone1.getSubItem(pos.get(j));}
-        return theone1;}
+    public Item getItem(ArrayList <Integer> pos){
+        if(pos.size()>0){
+            Item theone1 = Repository.getTestSuita(pos.get(0));
+            for(int j=1;j<pos.size();j++){
+                theone1 = theone1.getSubItem(pos.get(j));}
+                return theone1;}
+        return null;}
     
     /*
      * return item on location x,y
@@ -221,6 +530,13 @@ public class GraficTest extends JPanel{
      * item type and it's properties
      */
     public void drawItem(Item item,Graphics g){
+         if(item.isSelected()){
+            g.setColor(new Color(220,220,220));
+            g.fillRect((int)item.getRectangle().getX(),(int)item.getRectangle().getY(),
+                        (int)item.getRectangle().getWidth(),(int)item.getRectangle().getHeight());
+            g.setColor(Color.BLACK);
+            g.drawRect((int)item.getRectangle().getX(),(int)item.getRectangle().getY(),
+                        (int)item.getRectangle().getWidth(),(int)item.getRectangle().getHeight());}
         g.setColor(Color.BLACK);
         g.setFont(new Font("TimesRoman", Font.PLAIN, 12));
         if(item.getType()==2){
@@ -256,4 +572,4 @@ public class GraficTest extends JPanel{
                     g.drawLine((int)item.getRectangle().getX()-25,(int)(item.getRectangle().getY()+item.getRectangle().getHeight()/2),(int)item.getRectangle().getX()-25,(int)(theone.getRectangle().getY()+theone.getRectangle().getHeight()/2));}}}
         if(item.getEpId()!=null){
             g.setFont(new Font("TimesRoman", Font.PLAIN, 11));
-            g.drawString(" - "+item.getEpId(),(int)(item.getRectangle().getX()+item.getRectangle().getWidth()-20),(int)(item.getRectangle().getY()+18));}}}
+            g.drawString(" - "+item.getEpId(),(int)(item.getRectangle().getX()+item.getRectangle().getWidth()-100),(int)(item.getRectangle().getY()+18));}}}
