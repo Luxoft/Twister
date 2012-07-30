@@ -83,7 +83,7 @@ class CentralEngine(_cptools.XMLRPCController):
         logDebug('CE: Starting Central Engine...') ; ti = time.clock()
         self.project = Project()
         logDebug('CE: Initialization took %.4f seconds.' % (time.clock()-ti))
-        self.rest = CentralEngineRest(self.project)
+        self.rest = CentralEngineRest(self, self.project)
 
 
 # --------------------------------------------------------------------------------------------------
@@ -195,6 +195,18 @@ class CentralEngine(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
+    def getUserVariable(self, user, variable):
+        '''
+        Function called from the Execution Process,
+        to get information that is available only here, or are hard to get.
+        '''
+
+        data = self.project.getUserInfo(user, variable)
+        if data is None: data = False
+        return data
+
+
+    @cherrypy.expose
     def searchEP(self, user, epname):
         '''
         Search one EP and return True or False.
@@ -210,20 +222,6 @@ class CentralEngine(_cptools.XMLRPCController):
         '''
         epList = self.project.getUserInfo(user, 'eps').keys()
         return ','.join(epList)
-
-
-    @cherrypy.expose
-    def listSuites(self, user, epname):
-        '''
-        Returns all Suites for one EP from current user.
-        '''
-        if not self.searchEP(user, epname):
-            logError('CE ERROR! EP `%s` is not in the list of defined EPs: `%s`!' % \
-                (str(epname), self.listEPs(user)) )
-            return False
-
-        suitesList = self.project.getEpInfo(user, epname)['suites'].keys()
-        return ','.join(suitesList)
 
 
     @cherrypy.expose
@@ -253,9 +251,23 @@ class CentralEngine(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
+    def listSuites(self, user, epname):
+        '''
+        Returns all Suites for one EP from current user.
+        '''
+        if not self.searchEP(user, epname):
+            logError('CE ERROR! EP `%s` is not in the list of defined EPs: `%s`!' %\
+                     (str(epname), self.listEPs(user)) )
+            return False
+
+        suiteList   = [str(k)+':'+v['name'] for k, v in self.project.getEpInfo(user, epname)['suites'].items()]
+        return ','.join(suiteList)
+
+
+    @cherrypy.expose
     def getSuiteVariable(self, user, epname, suite, variable):
         '''
-        This function is called from the Execution Process,
+        Function called from the Execution Process,
         to get information that is available only here, or are hard to get.
         '''
 
@@ -326,6 +338,9 @@ class CentralEngine(_cptools.XMLRPCController):
         Return execution status for all EPs. (stopped, paused, running, invalid)\n
         Called from the Java GUI.
         '''
+        # If this is a temporary run, return the statuses of the backup user!
+        if cherrypy.request.headers['User-Agent'].startswith('Apache XML RPC') and (user+'_old') in self.project.users:
+            user += '_old'
 
         data = self.project.getUserInfo(user)
         reversed = dict((v,k) for k,v in execStatus.iteritems())
@@ -391,22 +406,24 @@ class CentralEngine(_cptools.XMLRPCController):
                 self.project.setUserInfo(user, 'status', STATUS_STOP)
                 logDebug('CE: All stations stopped for user `%s`! Central engine will also STOP!\n' % user)
 
-                # On Central Engine stop, send e-mail?
-                self.sendMail(user)
+                # If this run is Not temporary
+                if not (user + '_old' in self.project.users):
+                    # On Central Engine stop, send e-mail?
+                    self.sendMail(user)
 
-                # On Central Engine stop, save to database?
-                #self.commitToDatabase()
+                    # On Central Engine stop, save to database?
+                    #self.commitToDatabase()
 
-                # Execute "onStop" for all plugins!
-                parser = PluginParser(user)
-                plugins = parser.getPlugins()
-                for pname in plugins:
-                    plugin = self._buildPlugin(user, pname,  {'ce_stop': 'automatic'})
-                    try:
-                        plugin.onStop()
-                    except Exception, e:
-                        logWarning('Error on running plugin `%s onStop` - Exception: `%s`!' % (pname, str(e)))
-                del parser, plugins
+                    # Execute "onStop" for all plugins!
+                    parser = PluginParser(user)
+                    plugins = parser.getPlugins()
+                    for pname in plugins:
+                        plugin = self._buildPlugin(user, pname,  {'ce_stop': 'automatic'})
+                        try:
+                            plugin.onStop()
+                        except Exception, e:
+                            logWarning('Error on running plugin `%s onStop` - Exception: `%s`!' % (pname, str(e)))
+                    del parser, plugins
 
         return reversed[new_status]
 
@@ -423,6 +440,8 @@ class CentralEngine(_cptools.XMLRPCController):
             logError("CE ERROR! Status value `%s` is not in the list of defined statuses: `%s`!" % \
                 (str(new_status), str(execStatus.values())) )
             return False
+        if cherrypy.request.headers['User-Agent'].startswith('Apache XML RPC') and (user+'_old') in self.project.users:
+            return '*ERROR*! Cannot change status while running temporary!'
 
         # Status resume => start running. The logs must not reset on resume
         if new_status == STATUS_RESUME:
@@ -515,6 +534,11 @@ class CentralEngine(_cptools.XMLRPCController):
             logError('CE ERROR! EP `%s` is not in the list of defined EPs: `%s`!' % \
                 (str(epname), self.listEPs(user)) )
             return ''
+
+        # If this is a temporary run, return the statuses of the backup user!
+        if cherrypy.request.headers['User-Agent'].startswith('Apache XML RPC') and (user+'_old') in self.project.users:
+            statuses = self.project.getFileStatusAll(user + '_old', epname, suite)
+            return ','.join(statuses)
 
         statuses = self.project.getFileStatusAll(user, epname, suite)
         return ','.join(statuses)
@@ -629,8 +653,9 @@ class CentralEngine(_cptools.XMLRPCController):
         try:
             args = urlparse.parse_qs(args)
         except:
-            logError('CE ERROR: Cannot run plugin `%s` with arguments `%s`!' % (plugin, args))
-            return False
+            msg = 'CE ERROR: Cannot run plugin `%s` with arguments `%s`!' % (plugin, args)
+            logError(msg)
+            return msg
 
         logDebug('Running plugin:: {0} ; {1} ; {2}'.format(user, plugin, args))
 
@@ -642,6 +667,48 @@ class CentralEngine(_cptools.XMLRPCController):
             logError('CE ERROR: Plugin `%s`, ran with arguments `%s` and returned EXCEPTION: `%s`!' %
                      (plugin, args, e))
             return 'Error on running plugin %s - Exception: `%s`!' % (plugin, str(e))
+
+
+    @cherrypy.expose
+    def runTemporary(self, user, files_xml):
+        '''
+        This function allows the Central Engine to run a temporary Test-Suite XML file
+        that contains any valid combination of suites and files.
+        The temporary run does not affect the normal suites and files.
+        The results are Not saved to database and No report is sent on e-mail.
+        '''
+
+        # Cannot run temporary more than once
+        if user + '_old' in self.project.users:
+            logError('CE ERROR: User `{0}` is already running temporary!'.format(user))
+            return '*ERROR!* User `{0}` is already running temporary!'.format(user)
+        # If the user is already running something, DON'T run temporary
+        if self.project.getUserInfo(user, 'status'):
+            logError('*ERROR!* User `{0}` must be stopped, before running temporary!'.format(user))
+            return '*ERROR!* User `{0}` must be stopped, before running temporary!'.format(user)
+
+        # Backup all username data, under a different name
+        self.project.renameUser(user, user + '_old')
+        # Create a temporary user
+        self.project.createUser(user, base_config='', files_config=files_xml)
+
+        # Update status for temporary user
+        self.project.setUserInfo(user, 'status', STATUS_RUNNING)
+        # Update status for all active EPs
+        active_eps = self.project.parsers[user].getActiveEps()
+        for epname in active_eps:
+            self.project.setEpInfo(user, epname, 'status', STATUS_RUNNING)
+
+        while self.project.getUserInfo(user, 'status') == STATUS_RUNNING:
+            print 'Temporary user `{0}` is still running ...'.format(user)
+            time.sleep(1)
+
+        # Delete temporary user
+        self.project.deleteUser(user)
+        # Restore previous user
+        self.project.renameUser(user + '_old', user)
+
+        return True
 
 
     @cherrypy.expose
@@ -781,14 +848,21 @@ class CentralEngine(_cptools.XMLRPCController):
         Called in the Java GUI to show the logs.
         '''
         if fstart is None:
-            return '*ERROR!* Parameter FEND is NULL!'
+            return '*ERROR for {0}!* Parameter FEND is NULL!'.format(user)
         if not filename:
-            return '*ERROR!* Parameter FILENAME is NULL!'
+            return '*ERROR for {0}!* Parameter FILENAME is NULL!'.format(user)
 
-        filename = self.project.getUserInfo(user, 'logs_path') + os.sep + filename
+        fpath = self.project.getUserInfo(user, 'logs_path')
+
+        if not fpath or not os.path.exists(fpath):
+            return '*ERROR for {0}!* Logs path `{1}` is invalid! Using master config `{2}` and suites config `{3}`.'\
+                .format(user, fpath, self.project.getUserInfo(user, 'config_path'), self.project.getUserInfo(user, 'tests_path'))
+
+        filename = fpath + os.sep + filename
 
         if not os.path.exists(filename):
-            return '*ERROR!* File `%s` does not exist!' % filename
+            return '*ERROR for {0}!* File `{1}` does not exist! Using master config `{2}` and suites config `{3}`'.\
+                format(user, filename, self.project.getUserInfo(user, 'config_path'), self.project.getUserInfo(user, 'tests_path'))
 
         if not read or read=='0':
             return os.path.getsize(filename)
@@ -843,16 +917,23 @@ class CentralEngine(_cptools.XMLRPCController):
         Called from the EP.
         '''
         logFolder = self.project.getUserInfo(user, 'logs_path')
+
+        if not logFolder:
+            logError("CE ERROR! Logs folder is `%s`!" % logFolder)
+            return False
+
+        if not os.path.exists(logFolder):
+            try: os.makedirs(logFolder)
+            except:
+                logError("CE ERROR! Log file `%s` cannot be created!" % logFolder)
+                return False
+
         logPath = logFolder + os.sep + epname + '_CLI.log'
 
         try:
             f = open(logPath, 'a')
         except:
-            try:
-                os.mkdir(logFolder)
-                f = open(logPath, 'a')
-            except:
-                logError("CE ERROR! Log file `%s` cannot be written!" % logPath)
+            logError("CE ERROR! Log file `%s` cannot be written!" % logPath)
             return False
 
         f.write(binascii.a2b_base64(logMessage))
@@ -894,35 +975,35 @@ class CentralEngine(_cptools.XMLRPCController):
         Log CLI is *magic*, there are more logs, one for each EP.\n
         Called from the Java GUI.
         '''
+        logsPath = self.project.getUserInfo(user, 'logs_path')
         logTypes = self.project.getUserInfo(user, 'log_types')
         vError = False
-        logDebug('Cleaning log files...')
+        logDebug('Cleaning {0} log files...'.format(len(logTypes)))
 
-        for log in glob.glob(self.project.getUserInfo(user, 'logs_path') + os.sep + '*.log'):
+        for log in glob.glob(logsPath + os.sep + '*.log'):
             try: os.remove(log)
             except: pass
 
         for logType in logTypes:
             # For CLI
-            if logType.lower()=='logcli':
+            if logType.lower() == 'logcli':
                 for epname in self.listEPs(user).split(','):
-                    logPath = self.project.getUserInfo(user, 'logs_path') + os.sep + epname + '_CLI.log'
+                    logPath = logsPath + os.sep + epname + '_CLI.log'
                     try:
                         open(logPath, 'w').close()
-                        self.project.setFileOwner(user, logPath)
                     except:
-                        logError("CE ERROR! Log file `%s` cannot be reset!" % logPath)
+                        logError('CE ERROR! Log file `{0}` cannot be reset!'.format(logPath))
                         vError = True
-                continue
+                    self.project.setFileOwner(user, logPath)
+            # For normal logs
             else:
                 logPath = logTypes[logType]
-            #
-            try:
-                open(logPath, 'w').close()
+                try:
+                    open(logPath, 'w').close()
+                except:
+                    logError('CE ERROR! Log file `{0}` cannot be reset!'.format(logPath))
+                    vError = True
                 self.project.setFileOwner(user, logPath)
-            except:
-                logError("CE ERROR! Log file `%s` cannot be reset!" % logPath)
-                vError = True
 
         # On error, return IN-succes
         if vError:

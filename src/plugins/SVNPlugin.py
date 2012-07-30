@@ -42,6 +42,10 @@ class Plugin(BasePlugin):
         if overwrite and os.path.exists(dst):
             print 'SVN plugin: Deleting folder `%s` !' % dst
             os.rmdir(dst)
+        if not src:
+            return 'SVN source folder is NULL !'
+        if not dst:
+            return 'SVN destination folder is NULL !'
 
         usr = self.data['username']
         pwd = self.data['password']

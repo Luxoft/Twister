@@ -111,7 +111,7 @@ class Project:
         self.db_lock  = thread.allocate_lock() # Database lock
 
 
-    def createUser(self, user, config_path=''):
+    def createUser(self, user, base_config='', files_config=''):
         """
         Create or overwrite one user.\n
         This creates a master XML parser and a list with all user variables.
@@ -119,18 +119,28 @@ class Project:
         if not user:
             return False
 
-        if config_path and not os.path.exists(config_path):
-            logError('Project ERROR: Config path `%s` does not exist !' % config_path)
+        config_data = None
+        # If config path is actually XML data
+        if base_config and ( type(base_config)==type('') or type(base_config)==type(u'') )\
+        and ( base_config[0] == '<' and base_config[-1] == '>' ):
+            config_data, base_config = base_config, ''
+
+        # If it's a valid path
+        if base_config and not os.path.exists(base_config):
+            logError('Project ERROR: Config path `%s` does not exist !' % base_config)
             return False
         elif not os.path.exists('/home/%s/twister' % user):
             logError('Project ERROR: Cannot find Twister for user `%s` !' % user)
             return False
         else:
-            config_path = '/home/%s/twister/config/fwmconfig.xml' % user
+            base_config = '/home/%s/twister/config/fwmconfig.xml' % user
 
         # User data + User parser
         self.users[user] = {'status': STATUS_STOP, 'eps': OrderedDict()}
-        self.parsers[user] = TSCParser(config_path)
+        if config_data:
+            self.parsers[user] = TSCParser(config_data, files_config)
+        else:
+            self.parsers[user] = TSCParser(base_config, files_config)
 
         # List with all EPs for this User
         epList = self.parsers[user].getEpList()
@@ -147,10 +157,13 @@ class Project:
         self.test_ids[user] = self.parsers[user].getAllTestFiles()
 
         # Add framework config info to default user
-        self.users[user]['config_path'] = config_path
+        self.users[user]['config_path'] = base_config
         self.users[user]['tests_path'] = self.parsers[user].getTestSuitePath()
         self.users[user]['logs_path'] = self.parsers[user].getLogsPath()
         self.users[user]['log_types'] = {}
+
+        # Add the `exit on test Fail` value
+        self.users[user]['exit_on_test_fail'] = self.parsers[user].getExitOnTestFail()
 
         for logType in self.parsers[user].getLogTypes():
             self.users[user]['log_types'][logType] = self.parsers[user].getLogFileForType(logType)
@@ -158,6 +171,42 @@ class Project:
         # Save everything.
         self._dump()
         logDebug('Project: Created user `%s` ...' % user)
+
+        return True
+
+
+    def renameUser(self, name, new_name):
+        """
+        Rename 1 user.
+        """
+        with self.usr_lock:
+
+            self.users[new_name] = self.users[name]
+            self.parsers[new_name] = self.parsers[name]
+            self.test_ids[new_name] = self.test_ids[name]
+
+            del self.users[name]
+            del self.parsers[name]
+            del self.test_ids[name]
+
+        self._dump()
+        logDebug('Project: Renamed user `{0}` to `{1}`...'.format(name, new_name))
+
+        return True
+
+
+    def deleteUser(self, user):
+        """
+        Delete 1 user.
+        """
+        with self.usr_lock:
+
+            del self.users[user]
+            del self.parsers[user]
+            del self.test_ids[user]
+
+        self._dump()
+        logDebug('Project: Deleted user `%s` ...' % user)
 
         return True
 
@@ -184,6 +233,10 @@ class Project:
         """
         Reset user parser, all EPs to STOP, all files to PENDING.
         """
+        if not user or user not in self.users:
+            logError('Project ERROR: Invalid user `{0}` !'.format(user))
+            return False
+
         if config_path and not os.path.exists(config_path):
             logError('Project ERROR: Config path `%s` does not exist! Using default config!' % config_path)
             config_path = False
@@ -191,7 +244,7 @@ class Project:
         r = self.changeUser(user)
         if not r: return False
 
-        logWarning('Project: RESET configuration for user `%s`...' % user) ; ti = time.clock()
+        logDebug('Project: RESET configuration for user `{0}`...'.format(user)) ; ti = time.clock()
 
         # User config XML
         if not config_path:
@@ -208,7 +261,10 @@ class Project:
         # Ordered list of file IDs, used for Get Status ALL
         self.test_ids[user] = self.parsers[user].getAllTestFiles()
 
-        logWarning('Project: RESET operation took %.4f seconds.' % (time.clock()-ti))
+        # Add the `exit on test Fail` value
+        self.users[user]['exit_on_test_fail'] = self.parsers[user].getExitOnTestFail()
+
+        logDebug('Project: RESET operation took %.4f seconds.' % (time.clock()-ti))
         return True
 
 
@@ -279,8 +335,8 @@ class Project:
         if not r: return []
         files = []
 
-        for suite in self.users[user]['eps'][epname]['suites']:
-            for fname in self.users[user]['eps'][epname]['suites'][suite]['files']:
+        for suite_id in self.users[user]['eps'][epname]['suites']:
+            for fname in self.users[user]['eps'][epname]['suites'][suite_id]['files']:
                 files.append(fname)
 
         return files
@@ -305,7 +361,7 @@ class Project:
         return True
 
 
-    def getSuiteInfo(self, user, epname, suite):
+    def getSuiteInfo(self, user, epname, suite_id):
         """
         Retrieve all info available, about one EP.
         """
@@ -316,14 +372,14 @@ class Project:
         if epname not in eps:
             logDebug('Project: Invalid EP name `%s` !' % epname)
             return False
-        if suite not in eps[epname]['suites']:
-            logDebug('Project: Invalid Suite name `%s` !' % suite)
+        if suite_id not in eps[epname]['suites']:
+            logDebug('Project: Invalid Suite name `%s` !' % suite_id)
             return False
 
-        return eps[epname]['suites'].get(suite, {})
+        return eps[epname]['suites'].get(suite_id, {})
 
 
-    def getSuiteFiles(self, user, epname, suite):
+    def getSuiteFiles(self, user, epname, suite_id):
         """
         Return a list with all files associated with one Suite.
         """
@@ -331,10 +387,10 @@ class Project:
         if not r: return []
         eps = self.users[user]['eps']
 
-        return eps[epname]['suites'][suite]['files'].keys()
+        return eps[epname]['suites'][suite_id]['files'].keys()
 
 
-    def setSuiteInfo(self, user, epname, suite, key, value):
+    def setSuiteInfo(self, user, epname, suite_id, key, value):
         """
         Create or overwrite a variable with a value, for one Suite.
         """
@@ -345,14 +401,14 @@ class Project:
         if epname not in eps:
             logDebug('Project: Invalid EP name `%s` !' % epname)
             return False
-        if suite not in eps[epname]['suites']:
-            logDebug('Project: Invalid Suite name `%s` !' % suite)
+        if suite_id not in eps[epname]['suites']:
+            logDebug('Project: Invalid Suite name `%s` !' % suite_id)
             return False
         if not key or key == 'files':
             logDebug('Project: Invalid Key `%s` !' % str(key))
             return False
 
-        eps[epname]['suites'][suite][key] = value
+        eps[epname]['suites'][suite_id][key] = value
         self._dump()
         return True
 
@@ -367,15 +423,15 @@ class Project:
         eps = self.users[user]['eps']
 
         for epname in eps:
-            for suite in eps[epname]['suites']:
-                for fname in eps[epname]['suites'][suite]['files']:
+            for suite_id in eps[epname]['suites']:
+                for fname in eps[epname]['suites'][suite_id]['files']:
                     if fname == file_id:
-                        return eps[epname]['suites'][suite]['files'][fname]
+                        return eps[epname]['suites'][suite_id]['files'][fname]
 
         return {}
 
 
-    def setFileInfo(self, user, epname, suite, fileid, key, value):
+    def setFileInfo(self, user, epname, suite_id, file_id, key, value):
         """
         Create or overwrite a variable with a value, for one Test File.
         """
@@ -386,49 +442,49 @@ class Project:
         if epname not in eps:
             logDebug('Project: Invalid EP name `%s` !' % epname)
             return False
-        if suite not in eps[epname]['suites']:
-            logDebug('Project: Invalid Suite name `%s` !' % suite)
+        if suite_id not in eps[epname]['suites']:
+            logDebug('Project: Invalid Suite name `%s` !' % suite_id)
             return False
-        if fileid not in eps[epname]['suites'][suite]['files']:
-            logDebug('Project: Invalid File id `%s` !' % fileid)
+        if file_id not in eps[epname]['suites'][suite_id]['files']:
+            logDebug('Project: Invalid File id `%s` !' % file_id)
             return False
 
-        eps[epname]['suites'][suite]['files'][fileid][key] = value
+        eps[epname]['suites'][suite_id]['files'][file_id][key] = value
         self._dump()
         return True
 
 
-    def getFileStatusAll(self, user, epname=None, suite=None):
+    def getFileStatusAll(self, user, epname=None, suite_id=None):
         """
         Return the status of all files, in order.
         """
         r = self.changeUser(user)
         if not r: return []
 
-        if suite and not epname:
+        if suite_id and not epname:
             logError('Project: Must provide both EP and Suite!')
             return []
 
-        statuses = {}
-        final = []
+        statuses = {} # Unordered
+        final = []    # Ordered
         eps = self.users[user]['eps']
 
         if epname:
-            if suite:
-                for fname in eps[epname]['suites'][suite]['files']:
-                    s = eps[epname]['suites'][suite]['files'][fname].get('status', -1)
-                    statuses[fname] = str(s)
+            if suite_id:
+                for file_id in eps[epname]['suites'][suite_id]['files']:
+                    s = eps[epname]['suites'][suite_id]['files'][file_id].get('status', -1)
+                    statuses[file_id] = str(s)
             else:
-                for suite in eps[epname]['suites']:
-                    for fname in eps[epname]['suites'][suite]['files']:
-                        s = eps[epname]['suites'][suite]['files'][fname].get('status', -1)
-                        statuses[fname] = str(s)
+                for suite_id in eps[epname]['suites']:
+                    for file_id in eps[epname]['suites'][suite_id]['files']:
+                        s = eps[epname]['suites'][suite_id]['files'][file_id].get('status', -1)
+                        statuses[file_id] = str(s)
         else:
             for epname in eps:
-                for suite in eps[epname]['suites']:
-                    for fname in eps[epname]['suites'][suite]['files']:
-                        s = eps[epname]['suites'][suite]['files'][fname].get('status', -1)
-                        statuses[fname] = str(s)
+                for suite_id in eps[epname]['suites']:
+                    for file_id in eps[epname]['suites'][suite_id]['files']:
+                        s = eps[epname]['suites'][suite_id]['files'][file_id].get('status', -1)
+                        statuses[file_id] = str(s)
 
         for tcid in self.test_ids[user]:
             if tcid in statuses:
@@ -448,9 +504,9 @@ class Project:
         for epcycle in eps:
             if epname and epcycle != epname:
                 continue
-            for suite in eps[epcycle]['suites']:
-                for fname in eps[epcycle]['suites'][suite]['files']:
-                    eps[epcycle]['suites'][suite]['files'][fname]['status'] = new_status
+            for suite_id in eps[epcycle]['suites']:
+                for fname in eps[epcycle]['suites'][suite_id]['files']:
+                    eps[epcycle]['suites'][suite_id]['files'][fname]['status'] = new_status
 
         self._dump()
         return True
@@ -464,16 +520,19 @@ class Project:
         Update file ownership for 1 file.\n
         `Chown` function works only in Linux.
         """
-        uinfo = self.getUserInfo(user, 'eps')
-        epname = uinfo[uinfo.keys()[0]]
-        uid = epname.get('twister_ep_uid')
-        gid = epname.get('twister_ep_gid')
-
-        if uid and gid:
-            os.chown(path, uid, gid)
-            return True
-        else:
+        try:
+            from pwd import getpwnam
+            uid = getpwnam(user)[2]
+            gid = getpwnam(user)[3]
+        except:
             return False
+
+        try:
+            os.chown(path, uid, gid)
+        except:
+            logWarning('ERROR on set file owner! Cannot chown `{0}:{1}`!'.format(uid, gid))
+            return False
+        return True
 
 
     def execScript(self, script_path):
@@ -482,7 +541,7 @@ class Project:
         This works only in Linux.
         """
         if not os.path.exists(script_path):
-            logError('Exec script: The path `%s` does not exist!' % script_path)
+            logError('Exec script: The path `{0}` does not exist!'.format(script_path))
             return False
 
         try:
@@ -539,9 +598,9 @@ class Project:
                     else:
                         map_info[k] = str(ep_data[k])
 
-                for suite in ep_data['suites']:
+                for suite_id in ep_data['suites']:
                     # All info about 1 Suite
-                    suite_data = ep_data['suites'][suite]
+                    suite_data = ep_data['suites'][suite_id]
 
                     for k in suite_data:
                         if k in ['ep', 'files']: continue
@@ -586,7 +645,7 @@ class Project:
                 ROWS.append( ('<tr class="%s"><td>' % rclass) + '</td><td>'.join(rows) + '</td></tr>\n')
 
             # Body string
-            body_path = os.path.split(self.parsers[user].config_path)[0] +os.sep+ 'e-mail-tmpl.htm'
+            body_path = os.path.split(self.users[user]['config_path'])[0] +os.sep+ 'e-mail-tmpl.htm'
             if not os.path.exists(body_path):
                 logError('CE ERROR! Cannot find e-mail template file `{0}`!'.format(body_path))
                 return False
@@ -619,7 +678,7 @@ class Project:
             msg.attach(MIMEText(body_tmpl.substitute(body_dict), 'html'))
 
             if (not eMailConfig['Enabled']) or (eMailConfig['Enabled'] in ['0', 'false']):
-                e_mail_path = os.path.split(self.parsers[user].config_path)[0] +os.sep+ 'e-mail.htm'
+                e_mail_path = os.path.split(self.users[user]['config_path'])[0] +os.sep+ 'e-mail.htm'
                 open(e_mail_path, 'w').write(msg.as_string())
                 logDebug('E-mail.htm file written. The message will NOT be sent.')
                 # Update file ownership
@@ -684,16 +743,16 @@ class Project:
 
             for epname in self.users[user]['eps']:
 
-                for suite in self.users[user]['eps'][epname]['suites']:
-                    for file_id in self.users[user]['eps'][epname]['suites'][suite]['files']:
+                for suite_id in self.users[user]['eps'][epname]['suites']:
+                    for file_id in self.users[user]['eps'][epname]['suites'][suite_id]['files']:
 
                         # Substitute data
                         subst_data = {'file_id': file_id}
                         subst_data.update( self.users[user]['eps'][epname] )
                         del subst_data['suites']
-                        subst_data.update( self.users[user]['eps'][epname]['suites'][suite] )
+                        subst_data.update( self.users[user]['eps'][epname]['suites'][suite_id] )
                         del subst_data['files']
-                        subst_data.update( self.users[user]['eps'][epname]['suites'][suite]['files'][file_id] )
+                        subst_data.update( self.users[user]['eps'][epname]['suites'][suite_id]['files'][file_id] )
 
                         # Prerequisite files will not be saved to database
                         if subst_data.get('Prerequisite'):

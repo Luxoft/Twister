@@ -24,18 +24,21 @@ def test(proxy, userName):
 
             if not suite: continue
 
-            r = proxy.getSuiteVariable(userName, epname, suite, 'ep')
+            suite_id = suite.split(':')[0]
+            suite_name = suite.split(':')[1]
+
+            r = proxy.getSuiteVariable(userName, epname, suite_id, 'ep')
             if not r:
                 print('Failure! Cannot get Suite variable `build_id` !')
                 return 'Fail'
             print 'Suite variable %s `ep` ?' % suite, r
 
-            r = proxy.getSuiteVariable(userName, epname, suite, 'build_id')
+            r = proxy.getSuiteVariable(userName, epname, suite_id, 'build_id')
             if not r:
                 print('Warning! Cannot get Suite variable `build_id` !')
             print 'Suite variable %s `build_id` ?' % suite, r
 
-            r = proxy.getSuiteVariable(userName, epname, suite, 'suite_id')
+            r = proxy.getSuiteVariable(userName, epname, suite_id, 'suite_id')
             if not r:
                 print('Warning! Cannot get Suite variable `suite_id` !')
             print 'Suite variable %s `suite_id` ?' % suite, r
