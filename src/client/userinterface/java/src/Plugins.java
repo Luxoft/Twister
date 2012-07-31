@@ -304,14 +304,7 @@ public class Plugins extends JPanel{
                 System.out.println("There was a problem in terminatig"+
                     " the plugin with filename: "+filename);
                 e.printStackTrace();}
-
-            try{((TwisterPluginInterface)plugins.get(filename)).terminate();}
-            catch(Exception e){
-                System.out.println("There was a problem in terminatig"+
-                    " the plugin with filename: "+filename);
-                e.printStackTrace();}
             main.revalidate();
-
             main.repaint();
             localtable.revalidate();
             localtable.repaint();
@@ -604,9 +597,6 @@ public class Plugins extends JPanel{
      */
     public static boolean copyPlugin(String filename){
         File file = new File(Repository.PLUGINSDIRECTORY+Repository.getBar()+filename);
-//         if(file.exists()){
-//             file.delete();
-//         }
         InputStream in = null;
         InputStreamReader inputStreamReader = null;
         BufferedReader bufferedReader = null;  

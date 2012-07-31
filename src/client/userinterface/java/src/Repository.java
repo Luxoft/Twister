@@ -118,7 +118,7 @@ public class Repository{
                         failicon, passwordicon, playicon, stopicon, pauseicon,
                         background,notexecicon,pendingicon,skipicon,stoppedicon,
                         timeouticon,waiticon,workingicon,moduleicon,deviceicon,
-                        addsuitaicon,removeicon,vlcclient,vlcserver,switche,
+                        addsuitaicon,removeicon,vlcclient,vlcserver,switche,optional,
                         flootw,rack150,rack151,rack152,switche2,inicon,outicon,baricon;
     public static boolean run = true;//signal that Twister is not closing
     public static boolean applet; //keeps track if twister is run from applet or localy
@@ -282,7 +282,6 @@ public class Repository{
                 intro.repaint();
                 
                 parseDBConfig(Repository.REMOTEDATABASECONFIGFILE,true);
-//                 Repository.loadPluginsInterfaces();
                 window = new Window(applet,container);
                 parseEmailConfig(Repository.REMOTEEMAILCONFIGFILE,true);
                 variables.put("host",host);
@@ -447,6 +446,8 @@ public class Repository{
         pauseicon = new ImageIcon(ImageIO.read(in)).getImage();
         in = Repository.class.getResourceAsStream("Icons"+bar+"testbed.png");
         testbedicon = new ImageIcon(ImageIO.read(in)).getImage();
+        in = Repository.class.getResourceAsStream("Icons"+bar+"optional.png");
+        optional = new ImageIcon(ImageIO.read(in)).getImage();
         in.close();}
         
     /*

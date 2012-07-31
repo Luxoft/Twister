@@ -76,7 +76,7 @@ public class XMLReader{
                 int width = metrics.stringWidth(fstNm.item(0).getNodeValue().toString());
                 if(test){
                     theone = new Item(fstNm.item(0).getNodeValue(),2,
-                                        -1,10, width+40,25,indexes);}
+                                        -1,10, width+120,25,indexes);}
                 else{
                     theone = new Item(fstNm.item(0).getNodeValue(),2,
                                         -1,10, width+140,25,indexes);}
@@ -143,11 +143,15 @@ public class XMLReader{
             int width = metrics.stringWidth(name+":  "+value) + 8;
             indexes.set(indexes.size()-1,
                         new Integer(indexes.get(indexes.size()-1).intValue()-1));
+            int index = item.getSubItemsNr();
+            indexes.set(indexes.size()-1, index);
             Item property = new Item(name,0,-1,-1,width+30,20,indexes);
             property.setValue(value);
             item.addSubItem(property);
             if(name.equals("Running")){item.setCheck(Boolean.parseBoolean(value));}
-            item.setVisible(false);}}
+            item.setVisible(false);
+        }
+    }
             
     public void parseXML(Graphics g,boolean test){   
         System.out.println("parsing test: "+test);
@@ -172,7 +176,7 @@ public class XMLReader{
             if(!test)suitatemp= new Item(fstNm.item(0).getNodeValue(),
                                          2,-1,10, width+140,25,indexpos);
             else suitatemp=  new Item(fstNm.item(0).getNodeValue(),
-                                      2,-1,10, width+40,25,indexpos);
+                                      2,-1,10, width+120,25,indexpos);
             fstNmElmntLst = fstElmnt.getElementsByTagName("EpId");
             fstNmElmnt = (Element)fstNmElmntLst.item(0);
             fstNm = fstNmElmnt.getChildNodes();

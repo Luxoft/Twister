@@ -16,7 +16,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-import com.twister.Item;
+
 import javax.swing.JPanel;
 import java.awt.Color;
 import java.awt.event.MouseAdapter;
@@ -69,6 +69,7 @@ import java.awt.event.MouseMotionAdapter;
 import javax.swing.JFileChooser;
 import javax.swing.BoxLayout;
 import java.awt.BorderLayout;
+import com.twister.Item;
 
 public class Grafic extends JPanel{
     private static final long serialVersionUID = 1L;
@@ -89,6 +90,7 @@ public class Grafic extends JPanel{
     private int[] line = {-1,-1,-1,-1,-1};
     private boolean canrequestfocus = true;
     private int xStart, yStart;
+    private boolean onlyOptionals;
     
     public Grafic(TreeDropTargetListener tdtl, String user){
         this.user=user;
@@ -103,7 +105,8 @@ public class Grafic extends JPanel{
                 automaticScroll();}}.start();
         addMouseMotionListener(new MouseMotionAdapter(){
             public void mouseDragged(MouseEvent ev){
-                mouseIsDragged(ev);}});
+                if(!onlyOptionals){
+                    mouseIsDragged(ev);}}});
         addMouseListener(new MouseAdapter(){
             public void mousePressed(MouseEvent ev){}
             public void mouseEntered(MouseEvent ev){
@@ -137,9 +140,10 @@ public class Grafic extends JPanel{
     public void keyDownPressed(){
         ArrayList <Integer> temp = new ArrayList <Integer>();  
         int last = selectedcollection.size()-1;
+        if(last<0)return;
         for(int j=0;j<selectedcollection.get(last).length;j++){
             temp.add(new Integer(selectedcollection.get(last)[j]));}
-        Item next = nextInLine(getItem(temp,false));
+        Item next = nextItem(getItem(temp,false));
         if(next!=null&&keypress!=2){
             if(keypress!=1){
                 deselectAll();
@@ -170,6 +174,7 @@ public class Grafic extends JPanel{
                     theone.select(false);
                     selectedcollection.remove(selectedcollection.size()-1);}
                 else selectItem(next.getPos());}
+            Repository.window.mainpanel.p1.remove.setEnabled(true);
             repaint();}}
           
     /*
@@ -178,9 +183,10 @@ public class Grafic extends JPanel{
     public void keyUpPressed(){
         ArrayList <Integer> temp = new ArrayList <Integer>();  
         int last = selectedcollection.size()-1;
+        if(last<0)return;
         for(int j=0;j<selectedcollection.get(last).length;j++){
             temp.add(new Integer(selectedcollection.get(last)[j]));}
-        Item next = prevInLine(getItem(temp,false));
+        Item next = previousItem(getItem(temp,false));
         if(next!=null&&keypress!=2){
             if(keypress!=1){
                 deselectAll();
@@ -212,6 +218,7 @@ public class Grafic extends JPanel{
                     theone.select(false);
                     selectedcollection.remove(selectedcollection.size()-1);}
                 else selectItem(next.getPos());}
+            Repository.window.mainpanel.p1.remove.setEnabled(true);
             repaint();}}
             
     /*
@@ -658,7 +665,7 @@ public class Grafic extends JPanel{
     public void lineUnderItem(Item item, int X){
         line[0] = (int)(item.getRectangle().x-25);
         line[2] = X;
-        if(item.getType()==1&&item.getSubItem(0).isVisible()){
+        if(item.getType()==1&&itemIsExpanded(item)){
             line[1] = (int)(item.getSubItem(item.getSubItemsNr()-1).getRectangle().y+
                         item.getSubItem(item.getSubItemsNr()-1).getRectangle().getHeight()+5);}
         else{line[1] = (int)(item.getRectangle().y+item.getRectangle().getHeight()+5);}
@@ -672,7 +679,7 @@ public class Grafic extends JPanel{
     public void lineAfterUpperParent(Item item, int X){
         line[0] = (int)(getFirstSuitaParent(item,false).getRectangle().x-25);
         line[2] = X;
-        if(item.getSubItemsNr()>0&&item.getSubItem(0).isVisible()){
+        if(item.getSubItemsNr()>0&&itemIsExpanded(item)){
             line[1] = (int)(item.getSubItem(item.getSubItemsNr()-1).getRectangle().y+
                             item.getSubItem(item.getSubItemsNr()-1).getRectangle().getHeight()+5);}
         else{line[1] = (int)(item.getRectangle().y+item.getRectangle().getHeight()+5);}
@@ -721,12 +728,12 @@ public class Grafic extends JPanel{
         else{
             if(item.getType()==2){//it is suite
                 if(item.getRectangle().intersects(new Rectangle(0,Y-1,getWidth(),2))){//touches suite
-                    if(item.getSubItemsNr()>0&&item.getSubItem(0).isVisible()){//it is expanded
+                    if(item.getSubItemsNr()>0&&itemIsExpanded(item)){//it is expanded
                         if(item.getSubItem(0).isPrerequisite()){//first element is prerequisite, must insert after
                             lineUnderItem(item.getSubItem(0), X);}
                         else{lineInsideSuita(item,X);}}
                     else{lineOnSuita(item,X);}}//it is not expanded
-                else if (item.getSubItemsNr()>0&&item.getSubItem(0).isVisible()){//not touching suite but suite is expanded
+                else if (item.getSubItemsNr()>0&&itemIsExpanded(item)){//not touching suite but suite is expanded
                     if(item.getSubItem(0).isPrerequisite()){//first element is prerequisite, must insert after
                             lineUnderItem(item.getSubItem(0), X);}
                     else lineInsideSuita(item,X);}
@@ -750,7 +757,7 @@ public class Grafic extends JPanel{
                     getFirstSuitaParent(item,false).getSubItemsNr()-1==item.getPos().get(item.getPos().size()-1)){//tc is last and has parent
                         if(Y<item.getRectangle().y+item.getRectangle().getHeight()+5){
                             lineUnderItem(item, X);}//Should be inserted in upper parent
-                        else if(!item.getSubItem(0).isVisible()){lineAfterUpperParent(item,X);}}//must insert after tc parent 
+                        else if(!itemIsExpanded(item)){lineAfterUpperParent(item,X);}}//must insert after tc parent 
                     else{lineUnderItem(item,X);}}}//not last element or is on level 0, must insert on same level
             else{//it is prop
                 if(getFirstSuitaParent(getTcParent(item,false),false)!=null &&
@@ -779,6 +786,18 @@ public class Grafic extends JPanel{
         for(Integer el:selected2){
             string.append(el.toString()+" ");}
         return string.toString();}
+        
+        
+    /*
+     * check if this item is expanded,
+     * has subelements that are visible
+     */
+    public boolean itemIsExpanded(Item item){
+        for(Item i:item.getSubItems()){
+            if(i.isVisible())return true;
+        }
+        return false;
+    }
      
     /*
      * gets the item above
@@ -796,63 +815,150 @@ public class Grafic extends JPanel{
                 if(upper!=null)break;}
             y1-=5;}
         return upper;}
-            
+        
+        
     /*
      * return next visible elment
      */
-    public Item nextInLine(Item item){
-        if(item.getType()==2&&item.getSubItemsNr()>0&&
-        item.getSubItem(0).isVisible()){//if suite is visible go down one lement in beneath
-            return item.getSubItem(0);}
-        else{
-            ArrayList <Integer> temp =(ArrayList <Integer>)item.getPos().clone();
-            Item upper;
-            if(temp.size()>1){temp.remove(temp.size()-1);
-                upper = getItem(temp,false);}
-            else{upper = null;}
-            if(upper!=null&&upper.getSubItemsNr()-1>item.getPos().get(item.getPos().size()-1)){//there are more elements beneath him
-                temp =(ArrayList <Integer>)item.getPos().clone();
-                temp.set(temp.size()-1,temp.get(temp.size()-1)+1);
-                return getItem(temp,false);}
-            if(upper==null&&Repository.getSuiteNr()-1>item.getPos().get(item.getPos().size()-1)){
-                temp.set(temp.size()-1,temp.get(temp.size()-1)+1);
-                return getItem(temp,false);}
-            return iterateBack((ArrayList <Integer>)item.getPos().clone());}}
-            
-    public Item iterateBack(ArrayList <Integer> pos){
-        if(pos.size()==1){            
-            if(Repository.getSuiteNr()>pos.get(0)+1){
-                return Repository.getSuita(pos.get(0)+1);}
-            else return null;}
-        int index = pos.get(pos.size()-1);
-        pos.remove(pos.size()-1);
-        Item item = getItem(pos,false);
-        if(item.getSubItemsNr()>(index+1))return item.getSubItem(index+1);
-        else return iterateBack(pos);}
+    public Item nextItem(Item item){
+        if(item.getSubItemsNr()>0){
+            for(int i=0;i<item.getSubItemsNr();i++){
+                Item subitem = item.getSubItem(i);
+                if(subitem.isVisible()){
+                    return subitem;}
+            }
+            Item parent;
+            if(item.getType()!=0)parent = getFirstSuitaParent(item, false);
+            else parent = getTcParent(item, false);   
+            if(parent!=null){
+                return iterateBack(parent,item.getPos().get(item.getPos().size()-1));
+            }
+            return null;
+        }
+        Item parent;
+        if(item.getType()!=0)parent = getFirstSuitaParent(item, false);
+        else parent = getTcParent(item, false);
+        if(parent!=null){
+            return iterateBack(parent,item.getPos().get(item.getPos().size()-1));
+        }
+        return null;
+    }
     
     /*
-     * return previous elment
+     * item - parent of item 
+     * index - the index of item in parent
      */
-    public Item prevInLine(Item item){//anterior element of item
+    public Item iterateBack(Item item, int index){
+        if(item.getSubItemsNr()-1>index){
+            
+            Item subitem = item.getSubItem(index+1);
+            if(subitem.isVisible())return subitem;
+            return iterateBack(item,index+1);
+            
+            
+            
+        }
+        Item parent;
+        if(item.getType()!=0)parent = getFirstSuitaParent(item, false);
+        else parent = getTcParent(item, false);
+        if(parent!=null){
+            return iterateBack(parent,item.getPos().get(item.getPos().size()-1));
+        }
+        int nr = item.getPos().get(0);
+        if(Repository.getSuiteNr()-1>nr){
+            return Repository.getSuita(nr+1);
+        }
+        return null;
+    }
+        
+        
+    /*
+     * previous item on same line
+     * if none returns parent
+     */
+    public Item prevInLine(Item item){
         ArrayList <Integer> temp =(ArrayList <Integer>)item.getPos().clone();
-        if(item.getPos().get(item.getPos().size()-1)>0){//there are lements before
-            temp.set(temp.size()-1,temp.get(temp.size()-1)-1);
-            return lastVisible(temp);}
-        else if(item.getPos().size()>1){
-            temp.remove(temp.size()-1);
-            return getItem(temp,false);}
-        return null;}
+        if(temp.size()>1){
+            if(temp.get(temp.size()-1)>0){
+                temp.set(temp.size()-1, temp.get(temp.size()-1)-1);
+                Item previous = getItem(temp, false);
+                if(previous.isVisible()){
+                    return previous;
+                }
+                return prevInLine(previous);
+            }
+            else{
+                temp.remove(temp.size()-1);                
+                return getItem(temp, false);
+            }
+        }
+        else if(temp.get(0)>0){
+            return Repository.getSuita(temp.get(0)-1);
+        }
+        return item;
+    }
+    
+    /*
+     * the item immediately befor item
+     */
+    public Item previousItem(Item item){
+        ArrayList <Integer> temp =(ArrayList <Integer>)item.getPos().clone();
+        if(temp.size()>1){
+            if(temp.get(temp.size()-1)>0){
+                temp.set(temp.size()-1, temp.get(temp.size()-1)-1);
+                Item previous = getItem(temp, false);
+                if(previous.isVisible()){
+                    return lastVisible(previous);
+                }
+                return previousItem(previous);
+            }
+            else{
+                //if(item.isVisible())return item;
+                temp.remove(temp.size()-1);
+                
+                return getItem(temp, false);
+            }
+        }
+        else if(temp.get(0)>0){
+            return lastVisible(Repository.getSuita(temp.get(0)-1));
+        }
+        return item;
+    }
+        
+        
+    
      
     /*
      * returns last visible element after 
      * element at pos
      */    
-    public Item lastVisible(ArrayList <Integer> pos){//last visible elem under pos
-        Item item = getItem(pos,false);
-        if(item.getType()==2&&item.getSubItemsNr()>0&&item.getSubItem(0).isVisible()){
-            pos.add(new Integer(item.getSubItemsNr()-1));
-            return lastVisible(pos);}        
-        return item;}
+    public Item lastVisible(Item item){//last visible elem under pos
+        if(item.getSubItemsNr()>0){
+            for(int i=item.getSubItemsNr()-1;i>-1;i--){
+                Item subitem = item.getSubItem(i);
+                if(subitem.isVisible()){
+                    return lastVisible(subitem);
+                }
+            }
+            return item;
+        }
+        return item;
+    }
+        
+        
+//     /*
+//      * returns last visible element after 
+//      * element at pos
+//      */    
+//     public Item lastVisible(ArrayList <Integer> pos){//last visible elem under pos
+//         Item item = getItem(pos,false);
+//         if(item.getType()==2&&item.getSubItemsNr()>0&&item.getSubItem(0).isVisible()){
+//             pos.add(new Integer(item.getSubItemsNr()-1));
+//             return lastVisible(pos);}        
+//         return item;}
+        
+        
+     
       
     /*
      * prints this item and his 
@@ -908,10 +1014,21 @@ public class Grafic extends JPanel{
                         getItem(selected,false).setCheck(!getItem(selected,false).getCheck());}
                     else if(getItem(selected,false).getSubItemsNr()>0&&ev.getClickCount()==2){
                         if(getItem(selected,false).getType()==2 &&
-                        !getItem(selected,false).getSubItem(0).isVisible()){
-                            getItem(selected,false).setVisibleTC();}
+                        !itemIsExpanded(getItem(selected,false))){
+                            if(!onlyOptionals)getItem(selected,false).setVisibleTC();
+                            else{
+                                Item parent = getItem(selected,false);
+                                for(Item i:parent.getSubItems()){
+                                    if(i.isOptional()){
+                                        i.setSubItemVisible(true);
+                                        i.setSubItemVisible(true);
+                                        i.setVisible(false);
+                                    }
+                                }
+                            }
+                        }
                         else getItem(selected,false).setVisible(
-                            !(getItem(selected,false).getSubItem(0).isVisible()));}
+                            !itemIsExpanded(getItem(selected,false)));}
                     updateLocations(getItem(selected,false));}
                 repaint();}
             else if(keypress==2){
@@ -927,6 +1044,7 @@ public class Grafic extends JPanel{
                             if(Arrays.equals(selectedcollection.get(m),theone)){
                                 selectedcollection.remove(m);
                                 break;}}}
+                    if(selectedcollection.size()==0)Repository.window.mainpanel.p1.remove.setEnabled(false);
                     repaint();}}
             else{// selection with shift
                 if(selected.size()>0){
@@ -1148,8 +1266,25 @@ public class Grafic extends JPanel{
                 p.add(menuitem);
                 menuitem.addActionListener(new ActionListener(){
                     public void actionPerformed(ActionEvent ev){
-                        switchRunnable();}});}}
+                        switchRunnable();}});
+                menuitem = new JMenuItem("Switch Optional");
+                p.add(menuitem);
+                menuitem.addActionListener(new ActionListener(){
+                    public void actionPerformed(ActionEvent ev){
+                        switchOptional();}});}}
         p.show(this,ev.getX(),ev.getY());}
+        
+    public void switchOptional(){
+        Item item=null;
+        int nr = selectedcollection.size();
+        ArrayList<Integer>temp = new ArrayList<Integer>();
+        for(int i=0;i<nr;i++){
+            temp.clear();
+            int [] indices = selectedcollection.get(i);
+            for(int j=0;j<indices.length;j++)temp.add(new Integer(indices[j]));
+            item = getItem(temp,false);
+            if(!item.isPrerequisite())item.setOptional(!item.isOptional());}
+        repaint();}
         
     /*
      * switch runnable for selected items
@@ -1238,16 +1373,13 @@ public class Grafic extends JPanel{
             p.add(item);
             item.addActionListener(new ActionListener(){
                 public void actionPerformed(ActionEvent ev){
-                    setOptional(tc);}});
-        }
-        else{
+                    setOptional(tc);}});}
+        else if(!tc.isPrerequisite()){
             item = new JMenuItem("Set optional");
             p.add(item);
             item.addActionListener(new ActionListener(){
                 public void actionPerformed(ActionEvent ev){
-                    setOptional(tc);}});
-        }
-        
+                    setOptional(tc);}});}
         if(!tc.isPrerequisite()){
             item = new JMenuItem("Set pre-requisites");
             p.add(item);
@@ -1267,7 +1399,7 @@ public class Grafic extends JPanel{
             public void actionPerformed(ActionEvent ev){
                 removeTC(tc);
                 selectedcollection.clear();}});
-        p.show(this,ev.getX(),ev.getY());}       
+        p.show(this,ev.getX(),ev.getY());}
        
     /*
      * popup in case suite is selected
@@ -1399,6 +1531,7 @@ public class Grafic extends JPanel{
         else{
             tc.setOptional(true);
         }
+        repaint();
     }
         
     /*
@@ -1654,11 +1787,11 @@ public class Grafic extends JPanel{
             int index = selected2.get(0);
             selected2.remove(0);
             for(int i=index;i<Repository.getSuiteNr();i++){  
-                Grafic.this.iterateThrough(Repository.getSuita(i),selected2);
+                iterateThrough(Repository.getSuita(i),selected2);
                 selected2 = null;}}
         else if(selected2.size()==1){
             for(int i=selected2.get(0);i<Repository.getSuiteNr();i++){
-                Grafic.this.iterateThrough(Repository.getSuita(i),null);}}
+                iterateThrough(Repository.getSuita(i),null);}}
         y=10;
         foundfirstitem=false;
         updateScroll();}
@@ -1729,6 +1862,7 @@ public class Grafic extends JPanel{
             g.drawLine(line[0],line[1],line[2],line[3]);
             g.drawLine(line[0],line[3],line[0],line[4]);}}
     
+    
     /*
      * handle paint item
      * and subitems
@@ -1736,9 +1870,93 @@ public class Grafic extends JPanel{
     public void handlePaintItem(Item item, Graphics g){
         drawItem(item,g);
         int subitemnr = item.getSubItemsNr();
-        if(subitemnr>0&&item.getSubItem(0).isVisible()){
-            for(int i=0;i<subitemnr;i++){handlePaintItem(item.getSubItem(i),g);}}}
+        if(subitemnr>0){
+            for(int i=0;i<subitemnr;i++){
+                if(!item.getSubItem(i).isVisible())continue;
+                handlePaintItem(item.getSubItem(i),g);}}}
      
+//     /*
+//      * handles drawing item based 
+//      * on item type
+//      */
+//     public void drawItem(Item item,Graphics g){
+//         g.setFont(new Font("TimesRoman", Font.PLAIN, 12));
+//         g.setColor(Color.BLACK);
+//         if(item.isSelected()){
+//             g.setColor(new Color(220,220,220));
+//             g.fillRect((int)item.getRectangle().getX(),(int)item.getRectangle().getY(),
+//                         (int)item.getRectangle().getWidth(),(int)item.getRectangle().getHeight());
+//             g.setColor(Color.BLACK);
+//             g.drawRect((int)item.getRectangle().getX(),(int)item.getRectangle().getY(),
+//                         (int)item.getRectangle().getWidth(),(int)item.getRectangle().getHeight());}
+//         if(item.getType()==2){
+//             g.drawString(item.getName(),(int)item.getRectangle().getX()+45,
+//                         (int)item.getRectangle().getY()+18);
+//             g.drawImage(Repository.getSuitaIcon(),(int)item.getRectangle().getX()+25,
+//                         (int)item.getRectangle().getY()+1,null);}
+//         else if(item.getType()==1){
+//             if(item.isPrerequisite())g.setColor(Color.RED);
+//             else if(!item.isRunnable())g.setColor(Color.GRAY);
+//             g.drawString(item.getName(),(int)item.getRectangle().getX()+50,
+//                         (int)item.getRectangle().getY()+15);
+//             g.setColor(Color.BLACK);
+//             g.drawImage(Repository.getTCIcon(),(int)item.getRectangle().getX()+25,
+//                         (int)item.getRectangle().getY()+1,null);
+//             if(item.isOptional()){
+//                 g.drawImage(Repository.optional,(int)item.getRectangle().getX()+43,
+//                         (int)item.getRectangle().getY()+1,null);
+//             }
+//                     }
+//         else{if(item.getPos().get(item.getPos().size()-1).intValue()==0){
+//             g.drawImage(Repository.getPropertyIcon(),
+//                         (int)item.getRectangle().getX()+2,
+//                         (int)item.getRectangle().getY()+1,null);}
+//             g.drawString(item.getName()+" : "+item.getValue(),
+//                         (int)item.getRectangle().getX()+25,
+//                         (int)item.getRectangle().getY()+15);}
+//         if((item.getPos().size()!=1)){
+//             if(item.getType()==0 &&
+//             item.getPos().get(item.getPos().size()-1).intValue()!=0){}
+//             else{g.setColor(new Color(180,180,180));
+//                 g.drawLine((int)item.getRectangle().getX()-25,
+//                             (int)(item.getRectangle().getY()+item.getRectangle().getHeight()/2),
+//                             (int)item.getRectangle().getX(),
+//                             (int)(item.getRectangle().getY()+item.getRectangle().getHeight()/2));
+//                 ArrayList<Integer> temp = (ArrayList<Integer>)item.getPos().clone();
+//                 if(temp.get(temp.size()-1)==0){
+//                     g.drawLine((int)item.getRectangle().getX()-25,
+//                                 (int)(item.getRectangle().getY()+item.getRectangle().getHeight()/2),
+//                                 (int)item.getRectangle().getX()-25,(int)(item.getRectangle().getY())-5);}
+//                 else{temp.set(temp.size()-1,new Integer(temp.get(temp.size()-1).intValue()-1));
+//                     Item theone = getItem(temp,false);
+//                     g.drawLine((int)item.getRectangle().getX()-25,
+//                                 (int)(item.getRectangle().getY()+item.getRectangle().getHeight()/2),
+//                                 (int)item.getRectangle().getX()-25,
+//                                 (int)(theone.getRectangle().getY()+theone.getRectangle().getHeight()/2));}
+//                 g.setColor(Color.BLACK);}}
+//         if(item.getType()!=0){
+//             g.drawRect((int)item.getCheckRectangle().getX(),
+//                         (int)item.getCheckRectangle().getY(),
+//                         (int)item.getCheckRectangle().getWidth(),
+//                         (int)item.getCheckRectangle().getHeight());
+//             if(item.getCheck()){
+//                 Rectangle r = item.getCheckRectangle();
+//                 int x2[] = {(int)r.getX(),(int)r.getX()+(int)r.getWidth()/2,
+//                             (int)r.getX()+(int)r.getWidth(),
+//                             (int)r.getX()+(int)r.getWidth()/2};
+//                 int y2[] = {(int)r.getY()+(int)r.getHeight()/2,
+//                             (int)r.getY()+(int)r.getHeight(),
+//                             (int)r.getY(),(int)r.getY()+(int)r.getHeight()-5};
+//                 g.fillPolygon(x2,y2,4);}}
+//         if(item.getEpId()!=null){
+//             g.setFont(new Font("TimesRoman", Font.PLAIN, 11));
+//             g.drawString(" - "+item.getEpId(),(int)(item.getRectangle().getX()+item.getRectangle().getWidth()-100),
+//                         (int)(item.getRectangle().getY()+18));}}
+
+
+
+
+
     /*
      * handles drawing item based 
      * on item type
@@ -1765,7 +1983,12 @@ public class Grafic extends JPanel{
                         (int)item.getRectangle().getY()+15);
             g.setColor(Color.BLACK);
             g.drawImage(Repository.getTCIcon(),(int)item.getRectangle().getX()+25,
-                        (int)item.getRectangle().getY()+1,null);}
+                        (int)item.getRectangle().getY()+1,null);
+            if(item.isOptional()){
+                g.drawImage(Repository.optional,(int)item.getRectangle().getX()+43,
+                        (int)item.getRectangle().getY()+1,null);
+            }
+                    }
         else{if(item.getPos().get(item.getPos().size()-1).intValue()==0){
             g.drawImage(Repository.getPropertyIcon(),
                         (int)item.getRectangle().getX()+2,
@@ -1787,7 +2010,7 @@ public class Grafic extends JPanel{
                                 (int)(item.getRectangle().getY()+item.getRectangle().getHeight()/2),
                                 (int)item.getRectangle().getX()-25,(int)(item.getRectangle().getY())-5);}
                 else{temp.set(temp.size()-1,new Integer(temp.get(temp.size()-1).intValue()-1));
-                    Item theone = getItem(temp,false);
+                    Item theone = prevInLine(item);
                     g.drawLine((int)item.getRectangle().getX()-25,
                                 (int)(item.getRectangle().getY()+item.getRectangle().getHeight()/2),
                                 (int)item.getRectangle().getX()-25,
@@ -1811,6 +2034,9 @@ public class Grafic extends JPanel{
             g.setFont(new Font("TimesRoman", Font.PLAIN, 11));
             g.drawString(" - "+item.getEpId(),(int)(item.getRectangle().getX()+item.getRectangle().getWidth()-100),
                         (int)(item.getRectangle().getY()+18));}}
+
+
+
      
     /*
      * changes suites file name and sets
@@ -1838,10 +2064,11 @@ public class Grafic extends JPanel{
      * writes xml on file
      * if skip => master xml
      */
-    public boolean printXML(String user, boolean skip, boolean local){
+    public boolean printXML(String user, boolean skip, boolean local, boolean stoponfail){
+        //skip = true
         try{XMLBuilder xml = new XMLBuilder(Repository.getSuite());
-            xml.createXML(skip);
-            xml.writeXMLFile(user,local);
+            xml.createXML(skip,stoponfail,false);
+            xml.writeXMLFile(user,local,false);
             return true;}
         catch(Exception e){
             e.printStackTrace();
@@ -2031,6 +2258,33 @@ public class Grafic extends JPanel{
                 CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, Grafic.this,
                                         "Warning", "Please select only one suite.");}
             else new AddSuiteFrame(Grafic.this, getItem(temp,false),0);}}
+            
+    public void setOnlyOptionals(boolean value){
+        onlyOptionals = value;
+    }
+            
+    public boolean getOnlyOptionals(){
+        return onlyOptionals;
+    }
+    
+    public void showOptionals(Item item){
+        if(item==null){
+            for(Item i:Repository.getSuite()){
+                showOptionals(i);
+            }
+        }
+        else if(item.getType()==1){
+            if(!onlyOptionals){
+                item.setSubItemVisible(true);
+                item.setVisible(false);
+            }
+            else if(!item.isOptional()){
+                item.setSubItemVisible(false);
+            }
+        }
+        else if(item.getType()==2){
+            for(int i=0;i<item.getSubItemsNr();i++){
+                showOptionals(item.getSubItem(i));}}}
         
     class AddSuiteFrame extends JFrame{
         private static final long serialVersionUID = 1L;

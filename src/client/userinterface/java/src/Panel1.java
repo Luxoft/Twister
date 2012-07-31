@@ -56,7 +56,9 @@ import javax.swing.JTextField;
 import javax.swing.ImageIcon;
 import javax.swing.ToolTipManager;
 import javax.swing.JComboBox;
+import javax.swing.JCheckBox;
 import com.twister.Item;
+import java.awt.Cursor;
 
 /*
  * Suites generation panel
@@ -72,13 +74,15 @@ public class Panel1 extends JPanel{
     private JLabel openedfile;
     public JButton remove;
     private JButton generate;
+    private JCheckBox stoponfail;
+    private JButton showoptionals;
     
     public Panel1(String user, final boolean applet, int width){
         Repository.intro.setStatus("Started Suites interface initialization");
         Repository.intro.addPercent(0.035);
         Repository.intro.repaint();
         openedfile = new JLabel();
-        openedfile.setBounds(210,23,250,20);
+        openedfile.setBounds(420,22,250,20);
         add(openedfile);
         JButton addsuite = new JButton(new ImageIcon(Repository.addsuitaicon));
         addsuite.setToolTipText("Add Suite");
@@ -100,6 +104,15 @@ public class Panel1 extends JPanel{
         generate.setBounds(94,20,90,25);
         generate.setToolTipText("Generate XML");
         add(generate);
+        showoptionals = new JButton("Show optionals");
+        showoptionals.setBounds(190,20,130,25);
+        showoptionals.addActionListener(new ActionListener(){
+            public void actionPerformed(ActionEvent ev){
+                showOptionals();}});
+        add(showoptionals);
+        stoponfail = new JCheckBox("Stop on fail");
+        stoponfail.setBounds(320,20,90,25);
+        add(stoponfail);
         suitaDetails = new SuitaDetails(Repository.getDatabaseUserFields());
         generate.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
@@ -255,13 +268,37 @@ public class Panel1 extends JPanel{
         Repository.intro.addPercent(0.035);
         Repository.intro.repaint();}
         
+        
+    /*
+     * method to show optionals tc
+     * in suites tab
+     */
+    public void showOptionals(){
+        boolean show;
+        if(Repository.getSuiteNr()>0){
+            if(showoptionals.getText().equals("Show optionals")){
+                showoptionals.setText("Show all");
+                sc.g.setOnlyOptionals(true);
+                sc.g.showOptionals(null);
+                sc.g.updateLocations(Repository.getSuita(0));
+                sc.g.repaint();
+                return;
+            }
+            showoptionals.setText("Show optionals");
+                sc.g.setOnlyOptionals(false);
+                sc.g.showOptionals(null);
+                sc.g.updateLocations(Repository.getSuita(0));
+                sc.g.repaint();
+                return;
+    }}
+        
     /*
      * save opened suite file
      * on server
      */
     private void saveSuiteFile(){
         if(!sc.g.getUser().equals("")){
-            if(sc.g.printXML(sc.g.getUser(), false,false))
+            if(sc.g.printXML(sc.g.getUser(), false,false,false))
                 CustomDialog.showInfo(JOptionPane.PLAIN_MESSAGE, 
                                         Repository.window, "Succes",
                                         "File successfully saved");
@@ -465,8 +502,10 @@ public class Panel1 extends JPanel{
      */
     private void generate(){
         String result="";//server status
-        try{result = (String)Repository.getRPCClient().execute("getExecStatusAll",new Object[]{});}
-        catch(Exception e){System.out.println("Could not connect to server");}
+        try{result = (String)Repository.getRPCClient().execute("getExecStatusAll",new Object[]{Repository.getUser()});}
+        catch(Exception e){
+            System.out.println("Could not connect to server");
+            e.printStackTrace();}
         int defsNr = suitaDetails.getDefsNr();
         boolean execute=true;
         for(int i=0;i<Repository.getSuiteNr();i++){
@@ -485,7 +524,7 @@ public class Panel1 extends JPanel{
             if(!execute)break;}                
         if(execute){
             if(!result.equals("running")){//check if CE is running
-                sc.g.printXML(Repository.getTestXMLDirectory(),true,false);
+                sc.g.printXML(Repository.getTestXMLDirectory(),true,false,stoponfail.isSelected());
                 Repository.emptyTestRepository();
                 File xml = new File(Repository.getTestXMLDirectory());    
                 int size = Repository.getLogs().size();
@@ -535,11 +574,11 @@ public class Panel1 extends JPanel{
                         (new XMLBuilder(Repository.getSuite())).writeXMLFile((new StringBuilder()).
                                                                append(Repository.getUsersDirectory()).
                                                                append(System.getProperty("file.separator"))
-                                                               .append(user).append(".xml").toString(),false);
+                                                               .append(user).append(".xml").toString(),false,false);
                         sc.g.setUser((new StringBuilder()).append(Repository.getUsersDirectory()).
                                                                     append(System.getProperty("file.separator")).
                                                                     append(user).append(".xml").toString());
-                        sc.g.printXML(sc.g.getUser(),false,false);}}
+                        sc.g.printXML(sc.g.getUser(),false,false,false);}}
                 else if(user != null){
                     sc.g.setUser((new StringBuilder()).append(Repository.getUsersDirectory()).
                                                                 append(System.getProperty("file.separator")).
@@ -580,7 +619,7 @@ public class Panel1 extends JPanel{
                 chooser.setDialogTitle("Choose Location");         
                 chooser.setAcceptAllFileFilterUsed(false);    
                 if (chooser.showOpenDialog(Panel1.this) == JFileChooser.APPROVE_OPTION) {
-                    if(sc.g.printXML(chooser.getSelectedFile()+".xml", false,true)){
+                    if(sc.g.printXML(chooser.getSelectedFile()+".xml", false,true,false)){
                         CustomDialog.showInfo(JOptionPane.PLAIN_MESSAGE, Panel1.this,
                                                 "Success","File successfully saved ");}
                     else{
@@ -623,15 +662,15 @@ public class Panel1 extends JPanel{
      */        
     private void addSuiteFile(){
         String user = CustomDialog.showInputDialog(JOptionPane.PLAIN_MESSAGE, JOptionPane.OK_CANCEL_OPTION,
-                                                    sc.g, "File Name", "Please file name").toUpperCase();
+                                                    sc.g, "File Name", "Please enter file name").toUpperCase();
         if(user!=null){
             (new XMLBuilder(Repository.getSuite())).writeXMLFile(Repository.getUsersDirectory()+
                                                                 System.getProperty("file.separator")+
-                                                                user+".xml",false);
+                                                                user+".xml",false,false);
             Repository.window.mainpanel.p1.sc.g.setUser(Repository.getUsersDirectory()+
                                                                 System.getProperty("file.separator")+
                                                                 user+".xml");
-            sc.g.printXML(sc.g.getUser(),false,false);
+            sc.g.printXML(sc.g.getUser(),false,false,false);
             sc.g.updateScroll();
             sc.g.repaint();
             Repository.emptySuites();}}
@@ -701,18 +740,27 @@ public class Panel1 extends JPanel{
         openedfile.setText("Suite file: "+filename);}}
         
 class TreeDropTargetListener implements DropTargetListener {
-    boolean applet;
+    private boolean applet;
     public TreeDropTargetListener(boolean applet){this.applet = applet;}
     public void dragEnter(DropTargetDragEvent dropTargetDragEvent){}
     public void dragExit(DropTargetEvent dropTargetEvent){}
     public void dragOver(DropTargetDragEvent dropTargetDragEvent) {
-        Repository.window.mainpanel.p1.sc.g.handleDraggingLine((int)dropTargetDragEvent.getLocation().getX(),
-                                                                (int)dropTargetDragEvent.getLocation().getY());}
-    public void dropActionChanged(DropTargetDragEvent dropTargetDragEvent) {}
-    public synchronized void drop(DropTargetDropEvent dropTargetDropEvent) {
-        try{Repository.window.mainpanel.p1.sc.g.clearDraggingLine();
-            Repository.window.mainpanel.p1.sc.g.drop((int)dropTargetDropEvent.getLocation().getX(),
-                                                    (int)dropTargetDropEvent.getLocation().getY());}
-            catch(Exception e){
-                e.printStackTrace();
-                System.out.println("Could not get folder location");}}}
+        Grafic g = Repository.window.mainpanel.p1.sc.g;
+        if(!g.getOnlyOptionals()){
+            g.handleDraggingLine((int)dropTargetDragEvent.getLocation().getX(),
+                                 (int)dropTargetDragEvent.getLocation().getY());
+        }
+    }
+    public void dropActionChanged(DropTargetDragEvent dropTargetDragEvent){}
+    public synchronized void drop(DropTargetDropEvent dropTargetDropEvent){
+        Grafic g = Repository.window.mainpanel.p1.sc.g;
+        try{g.setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
+            if(!g.getOnlyOptionals()){
+                g.clearDraggingLine();
+                g.drop((int)dropTargetDropEvent.getLocation().getX(),
+                       (int)dropTargetDropEvent.getLocation().getY());
+            }
+        }
+        catch(Exception e){
+            e.printStackTrace();
+            System.out.println("Could not get folder location");}}}

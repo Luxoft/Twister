@@ -41,7 +41,7 @@ public class XMLBuilder{
     private DOMSource source;
     private ArrayList <Item> suite;
     private boolean skip;
-    private int id = 1000;
+    //private int id = 1000;
 
     public XMLBuilder(ArrayList <Item> suite){
         try{documentBuilderFactory = DocumentBuilderFactory.newInstance();
@@ -71,7 +71,7 @@ public class XMLBuilder{
                 if(getRunning(item.getSubItem(i)))return true;}
             return false;}}
         
-    public void createXML(boolean skip){//skip verifica daca e user xml sau xml final
+    public void createXML(boolean skip, boolean stoponfail, boolean temp){//skip chckes if it is user or test xml
         this.skip = skip;
         Element root = document.createElement("Root");
         document.appendChild(root);
@@ -79,12 +79,16 @@ public class XMLBuilder{
         for(int i=0;i<nrsuite;i++){
             int nrtc = suite.get(i).getSubItemsNr();
             boolean go = false;
-            if(skip){
+            if(!temp && skip){
                 for(int j=0;j<nrtc;j++){
                     if(getRunning(suite.get(i))){
                         go=true;
                         break;}}}
-            if(!go&&skip)continue;
+            if(!go&&skip)continue;   
+            if(stoponfail){
+                Element em2 = document.createElement("stoponfail");
+                em2.appendChild(document.createTextNode("true"));
+                root.appendChild(em2);}
             Element rootElement = document.createElement("TestSuite");
             root.appendChild(rootElement);
             Element em2 = document.createElement("tsName");
@@ -104,11 +108,139 @@ public class XMLBuilder{
                 userdef.appendChild(pvalue);
                 rootElement.appendChild(userdef);}
             for(int j=0;j<nrtc;j++){                
-                addSubElement(rootElement,Repository.getSuita(i).getSubItem(j),skip);}}}
+                //addSubElement(rootElement,Repository.getSuita(i).getSubItem(j),skip);
+                addSubElement(rootElement,suite.get(i).getSubItem(j),skip,temp);            
+            }}}
+            
+            
+//     public void createTempXML(){//skip verifica daca e user xml sau xml final
+//         Element root = document.createElement("Root");
+//         document.appendChild(root);
+//         int nrsuite = suite.size();        
+//         for(int i=0;i<nrsuite;i++){
+//             int nrtc = suite.get(i).getSubItemsNr();
+// //             boolean go = false;
+// //             if(skip){
+// //                 for(int j=0;j<nrtc;j++){
+// //                     if(getRunning(suite.get(i))){
+// //                         go=true;
+// //                         break;}}}
+// //             if(!go&&skip)continue;   
+// //             if(stoponfail){
+// //                 Element em2 = document.createElement("stoponfail");
+// //                 em2.appendChild(document.createTextNode("true"));
+// //                 root.appendChild(em2);}
+//             Element rootElement = document.createElement("TestSuite");
+//             root.appendChild(rootElement);
+//             Element em2 = document.createElement("tsName");
+//             em2.appendChild(document.createTextNode(suite.get(i).getName()));
+//             rootElement.appendChild(em2);
+//             if(suite.get(i).getEpId()!=null&&!suite.get(i).getEpId().equals("")){
+//                 Element EP = document.createElement("EpId");
+//                 EP.appendChild(document.createTextNode(suite.get(i).getEpId()));
+//                 rootElement.appendChild(EP);}
+//             for(int j=0;j<suite.get(i).getUserDefNr();j++){
+//                 Element userdef = document.createElement("UserDefined");
+//                 Element pname = document.createElement("propName");
+//                 pname.appendChild(document.createTextNode(suite.get(i).getUserDef(j)[0]));
+//                 userdef.appendChild(pname);
+//                 Element pvalue = document.createElement("propValue");
+//                 pvalue.appendChild(document.createTextNode(suite.get(i).getUserDef(j)[1]));
+//                 userdef.appendChild(pvalue);
+//                 rootElement.appendChild(userdef);}
+//             for(int j=0;j<nrtc;j++){                
+//                 addTempSubElement(rootElement,suite.get(i).getSubItem(j));
+//             }}}
+//             
+//     public void addTempSubElement(Element rootelement, Item item){
+//         if(item.getType()==0){
+//             Element prop = document.createElement("Property");
+//             rootelement.appendChild(prop);
+//             Element em4 = document.createElement("propName");
+//             em4.appendChild(document.createTextNode(item.getName()));
+//             prop.appendChild(em4);
+//             Element em5 = document.createElement("propValue");
+//             em5.appendChild(document.createTextNode(item.getValue()));
+//             prop.appendChild(em5);}
+//         else if(item.getType()==1){
+//             Element tc  = document.createElement("TestCase");
+//             rootelement.appendChild(tc);
+//             Element em3 = document.createElement("tcName");
+//             em3.appendChild(document.createTextNode(item.getFileLocation()));
+//             tc.appendChild(em3);
+//             
+// //             Element em6 = document.createElement("tcID");
+// //             em6.appendChild(document.createTextNode(id+""));
+// //             id++;
+// //             tc.appendChild(em6);
+//             Element em7 = document.createElement("Title");
+//             em7.appendChild(document.createTextNode(""));
+//             tc.appendChild(em7);
+//             Element em8 = document.createElement("Summary");
+//             em8.appendChild(document.createTextNode(""));
+//             tc.appendChild(em8);
+//             Element em9 = document.createElement("Priority");
+//             em9.appendChild(document.createTextNode("Medium"));
+//             tc.appendChild(em9);
+//             Element em10 = document.createElement("Dependancy");
+//             em10.appendChild(document.createTextNode(" "));
+//             tc.appendChild(em10);
+//             
+//             if(item.isPrerequisite()){
+//                 Element prop  = document.createElement("Property");
+//                 tc.appendChild(prop);
+//                 Element em4 = document.createElement("propName");
+//                 em4.appendChild(document.createTextNode("Prerequisite"));
+//                 prop.appendChild(em4);
+//                 Element em5 = document.createElement("propValue");
+//                 em5.appendChild(document.createTextNode("true"));
+//                 prop.appendChild(em5);}
+//             if(item.isOptional()){
+//                 Element prop  = document.createElement("Property");
+//                 tc.appendChild(prop);
+//                 Element em4 = document.createElement("propName");
+//                 em4.appendChild(document.createTextNode("Optional"));
+//                 prop.appendChild(em4);
+//                 Element em5 = document.createElement("propValue");
+//                 em5.appendChild(document.createTextNode("true"));
+//                 prop.appendChild(em5);}
+//             Element prop  = document.createElement("Property");
+//             tc.appendChild(prop);
+//             Element em4 = document.createElement("propName");
+//             em4.appendChild(document.createTextNode("Runnable"));
+//             prop.appendChild(em4);
+//             Element em5 = document.createElement("propValue");
+//             em5.appendChild(document.createTextNode(item.isRunnable()+""));
+//             prop.appendChild(em5);
+//             int nrprop = item.getSubItemsNr();
+//             int k;
+// //             if(skip)k=1;
+// //             else 
+//             k=0;
+//             for(;k<nrprop;k++)addTempSubElement(tc,item.getSubItem(k));}
+//         else{int nrtc = item.getSubItemsNr();
+// //             boolean go = false;
+// //             if(skip){
+// //                 for(int j=0;j<nrtc;j++){
+// //                     if(getRunning(item.getSubItem(j))){
+// //                         go=true;
+// //                         break;}}}
+// //             if(!go&&skip)return;
+//             Element rootElement2 = document.createElement("TestSuite");
+//             rootelement.appendChild(rootElement2);
+//             Element em2 = document.createElement("tsName");
+//             em2.appendChild(document.createTextNode(item.getName()));
+//             rootElement2.appendChild(em2);
+//             if(item.getEpId()!=null&&!item.getEpId().equals("")){
+//                 Element EP = document.createElement("EpId");
+//                 EP.appendChild(document.createTextNode(item.getEpId()));
+//                 rootElement2.appendChild(EP);}
+//             for(int i=0;i<item.getSubItemsNr();i++){
+//                 addTempSubElement(rootElement2,item.getSubItem(i));}}}
                 
-    public void addSubElement(Element rootelement, Item item, boolean skip){
+    public void addSubElement(Element rootelement, Item item, boolean skip, boolean temp){
         if(item.getType()==0){
-            Element prop  = document.createElement("Property");
+            Element prop = document.createElement("Property");
             rootelement.appendChild(prop);
             Element em4 = document.createElement("propName");
             em4.appendChild(document.createTextNode(item.getName()));
@@ -117,18 +249,24 @@ public class XMLBuilder{
             em5.appendChild(document.createTextNode(item.getValue()));
             prop.appendChild(em5);}
         else if(item.getType()==1){
-            if(item.getSubItem(0).getValue().equals("false")&&skip)return;
+            if(item.getSubItem(0).getValue().equals("false")&& !temp && skip)return;
             Element tc  = document.createElement("TestCase");
             rootelement.appendChild(tc);
             Element em3 = document.createElement("tcName");
-            em3.appendChild(document.createTextNode(Repository.getTestSuitePath()+
-                                                    item.getFileLocation()));
+            if(temp){
+                em3.appendChild(document.createTextNode(item.getFileLocation()));
+            }
+            else{
+                em3.appendChild(document.createTextNode(Repository.getTestSuitePath()+
+                                        item.getFileLocation()));
+            }
+            
             tc.appendChild(em3);
-            if(skip){
-                Element em6 = document.createElement("tcID");
-                em6.appendChild(document.createTextNode(id+""));
-                id++;
-                tc.appendChild(em6);
+            if(temp || skip){
+//                 Element em6 = document.createElement("tcID");
+//                 em6.appendChild(document.createTextNode(id+""));
+//                 id++;
+//                 tc.appendChild(em6);
                 Element em7 = document.createElement("Title");
                 em7.appendChild(document.createTextNode(""));
                 tc.appendChild(em7);
@@ -140,8 +278,8 @@ public class XMLBuilder{
                 tc.appendChild(em9);
                 Element em10 = document.createElement("Dependancy");
                 em10.appendChild(document.createTextNode(" "));
-                tc.appendChild(em10);}
-                
+                tc.appendChild(em10);
+            }
             if(item.isPrerequisite()){
                 Element prop  = document.createElement("Property");
                 tc.appendChild(prop);
@@ -150,8 +288,7 @@ public class XMLBuilder{
                 prop.appendChild(em4);
                 Element em5 = document.createElement("propValue");
                 em5.appendChild(document.createTextNode("true"));
-                prop.appendChild(em5);} 
-            System.out.println(item.getName()+" is optional:"+item.isOptional());
+                prop.appendChild(em5);}
             if(item.isOptional()){
                 Element prop  = document.createElement("Property");
                 tc.appendChild(prop);
@@ -161,7 +298,6 @@ public class XMLBuilder{
                 Element em5 = document.createElement("propValue");
                 em5.appendChild(document.createTextNode("true"));
                 prop.appendChild(em5);}
-                
             Element prop  = document.createElement("Property");
             tc.appendChild(prop);
             Element em4 = document.createElement("propName");
@@ -169,16 +305,14 @@ public class XMLBuilder{
             prop.appendChild(em4);
             Element em5 = document.createElement("propValue");
             em5.appendChild(document.createTextNode(item.isRunnable()+""));
-            prop.appendChild(em5);     
-            
+            prop.appendChild(em5);
             int nrprop = item.getSubItemsNr();
-            int k;
-            if(skip)k=1;
-            else k=0;
-            for(;k<nrprop;k++)addSubElement(tc,item.getSubItem(k),skip);}
+            int k=0;
+            if(!temp && skip)k=1;
+            for(;k<nrprop;k++)addSubElement(tc,item.getSubItem(k),skip,temp);}
         else{int nrtc = item.getSubItemsNr();
             boolean go = false;
-            if(skip){
+            if(!temp && skip){
                 for(int j=0;j<nrtc;j++){
                     if(getRunning(item.getSubItem(j))){
                         go=true;
@@ -194,23 +328,51 @@ public class XMLBuilder{
                 EP.appendChild(document.createTextNode(item.getEpId()));
                 rootElement2.appendChild(EP);}
             for(int i=0;i<item.getSubItemsNr();i++){
-                addSubElement(rootElement2,item.getSubItem(i),skip);}}}
+                addSubElement(rootElement2,item.getSubItem(i),skip,temp);}}}
                     
     public void printXML(){        
         StreamResult result =  new StreamResult(System.out);
         try{transformer.transform(source, result);}
         catch(Exception e){System.out.println("Could not write standard output stream");}}
         
-    public void writeXMLFile(String filename, boolean local){
+//     public boolean writeTempXMLFile(String filename, boolean local){
+//         File file = new File(filename);
+//         Result result = new StreamResult(file);
+//         try{transformer.transform(source, result);}
+//         catch(Exception e){
+//             e.printStackTrace();
+//             System.out.println("Could not write to file");
+//             return false;}
+//         if(!local){
+//             try{String dir = Repository.getXMLRemoteDir();
+//                 String [] path = dir.split("/");
+//                 StringBuffer result2 = new StringBuffer();
+//                 if (path.length > 0){
+//                     for (int i=0; i<path.length-1; i++){
+//                         result2.append(path[i]);
+//                         result2.append("/");}}
+//                 Repository.c.cd(result2.toString());
+//                 FileInputStream in = new FileInputStream(file);
+//                 Repository.c.put(in, file.getName());
+//                 in.close();}
+//             catch(Exception e){e.printStackTrace();
+//                 System.out.println("Could not get XML file to upload on sever");
+//                 return false;}}
+//         return true;}
+        
+        
+    public boolean writeXMLFile(String filename, boolean local, boolean temp){
         File file = new File(filename);
+        if(temp)file = new File(Repository.temp +Repository.getBar()+"Twister"+Repository.getBar()+ filename);
         Result result = new StreamResult(file);
         try{transformer.transform(source, result);}
         catch(Exception e){
             e.printStackTrace();
-            System.out.println("Could not write to file");}
+            System.out.println("Could not write to file");
+            return false;}
         if(!local){
             try{
-                if(skip){
+                if(temp || skip){
                     String dir = Repository.getXMLRemoteDir();
                     String [] path = dir.split("/");
                     StringBuffer result2 = new StringBuffer();
@@ -228,4 +390,6 @@ public class XMLBuilder{
                     Repository.c.put(in, file.getName());
                     in.close();}}
             catch(Exception e){e.printStackTrace();
-                System.out.println("Could not get XML file to upload on sever");}}}}
+                System.out.println("Could not get XML file to upload on sever");
+                return false;}}
+        return true;}}
