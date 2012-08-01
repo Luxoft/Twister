@@ -757,6 +757,9 @@ class Project:
                         # Prerequisite files will not be saved to database
                         if subst_data.get('Prerequisite'):
                             continue
+                        # Pre-Suite or Post-Suite files will not be saved to database
+                        if subst_data.get('Pre-Suite') or subst_data.get('Post-Suite'):
+                            continue
 
                         # For every insert SQL statement, build correct data...
                         for query in queries:
