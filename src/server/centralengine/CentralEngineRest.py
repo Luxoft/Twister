@@ -126,13 +126,12 @@ class CentralEngineRest:
         ce_port = cherrypy.config['server.socket_port']
         host = cherrypy.request.headers['Host']
 
+        # -- This is before selecting a User
         if not user:
             body = '<b>Running on</b>: {ce_host}:{ce_port}<br><br>\n'\
                    '<h2>Registered users:</h2>\n'\
                    '{users}.'.format(ce_host=ce_host, ce_port=ce_port, users=';<br>'.join(
-                   ['&nbsp;&nbsp;user <a href="http://{host}/rest/stats/{user}">{user}</a> ' \
-                    '<small>(<a href="http://{host}/rest/setUserStatus/{user}/2">start</a> | ' \
-                    '<a href="http://{host}/rest/setUserStatus/{user}/0">stop</a>)</small>'
+                   ['&nbsp;&nbsp;user <a href="http://{host}/rest/stats/{user}">{user}</a>'
                         .format(host=host, user=k)
                         for k in self.project.users.keys()]
                         ) or 'None')
@@ -149,7 +148,7 @@ class CentralEngineRest:
                 body = '<b>Execution Process `{0}` doesn\'t exist!</b>'.format(epname)
                 return output.render(title='Error!', body=body)
 
-            # EP name only
+            # -- After selecting a User. EP statistics
             if not suite:
                 data = self.project.getEpInfo(user, epname)
                 ret = '<h3>Execution Process `{epname}`</h3>\n'\
@@ -164,7 +163,7 @@ class CentralEngineRest:
                                           for k, v in data['suites'].items()])
                 )
 
-            # EP name and Suite name
+            # -- After selecting a User. Suite statistics
             else:
                 data = self.project.getSuiteInfo(user, epname, suite)
                 reversed = dict((v,k) for k,v in testStatus.iteritems())
@@ -178,13 +177,17 @@ class CentralEngineRest:
                                         for k in data['files']])
                 )
 
-        # General statistics
+        # -- This is after selecting a User. General user statistics
         else:
             eps = self.project.getUserInfo(user, 'eps').keys()
             ret = '<h3>User `{user}`</h3>\n'\
-                  '<b>Status</b>: {status}<br><br>\n'\
+                  '<b>Status</b>: {status} '\
+                  '<small>(<a href="http://{host}/rest/setUserStatus/{user}/2">start</a> | '\
+                  '<a href="http://{host}/rest/setUserStatus/{user}/0">stop</a> | '\
+                  '<a href="http://{host}/rest/resetUser/{user}">reset!</a>)</small><br><br>\n'\
                   '<b>Config</b>: <small>{config}</small><br><br><br>\n'\
                   '<b>Processes</b>: [<br>{eps}<br>]\n'.format(
+                host = host,
                 user = user,
                 status = status,
                 config = self.project.getUserInfo(user, 'tests_path'),
@@ -202,6 +205,15 @@ class CentralEngineRest:
     @cherrypy.expose
     def status(self, user, epname='', suite=''):
         return self.stats(user, epname, suite)
+
+
+    @cherrypy.expose
+    def resetUser(self, user):
+        self.project.reset(user)
+        self.parent.resetLogs(user)
+        raise cherrypy.HTTPRedirect('http://{host}/rest/stats/{user}'.format(
+            host = cherrypy.request.headers['Host'], user = user
+        ))
 
 
     @cherrypy.expose
