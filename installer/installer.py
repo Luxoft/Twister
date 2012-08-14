@@ -225,7 +225,7 @@ if TO_INSTALL == 'server':
     # Versions
     library_versions = [
         '1.6',
-        '0.6',
+        '0.5',
         '3.2',
         '1.2',
     ]
@@ -240,6 +240,7 @@ if TO_INSTALL == 'server':
         'src/common/',
         'src/lib/',
         'src/trd_party/',
+        'src/plugins/',
     ]
 
 elif TO_INSTALL == 'client':
