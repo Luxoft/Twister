@@ -95,7 +95,7 @@ class TSCParser:
 
         else:
 
-            if not (files_config or os.path.isfile(files_config)):
+            if not files_config or not os.path.isfile(files_config):
                 # Get path to Test-Suites XML from Master config
                 files_config = str(self.xmlDict.root.masterxmltestsuite.text)
 

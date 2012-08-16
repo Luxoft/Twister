@@ -457,17 +457,28 @@ class CentralEngine(_cptools.XMLRPCController):
         # This will always happen when the START button is pressed, if CE is stopped
         if (executionStatus == STATUS_STOP or executionStatus == STATUS_INVALID) and new_status == STATUS_RUNNING:
 
-            # If the msg is a path to an existing file...
-            if msg and os.path.isfile(msg):
+            # If the Msg contains 2 paths, separated by comma
+            if msg and len(msg.split(',')) == 2:
+                path1 = msg.split(',')[0]
+                path2 = msg.split(',')[1]
+                if os.path.isfile(path1) and os.path.isfile(path2):
+                    logDebug('CE: Using custom XML files: `{0}` and `{1}`.'.format(path1, path2))
+                    self.project.reset(user, path1, path2)
+                    msg = ''
+
+            # Or if the Msg is a path to an existing file...
+            elif msg and os.path.isfile(msg):
                 data = open(msg).read().strip()
                 # If the file is XML, send it to project reset function
                 if data[0] == '<' and data [-1] == '>':
+                    logDebug('CE: Using custom XML file: `{0}`...'.format(msg))
                     self.project.reset(user, msg)
                     msg = ''
                 else:
                     logDebug('CE: You are probably trying to use file `%s` as config file, but it\'s not a valid XML!' % msg)
                     self.project.reset(user)
                 del data
+
             else:
                 self.project.reset(user)
 

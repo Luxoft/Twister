@@ -70,6 +70,7 @@ import subprocess
 import smtplib
 import MySQLdb
 
+
 from string import Template
 from collections import OrderedDict
 from email.mime.text import MIMEText
@@ -234,7 +235,7 @@ class Project:
         return True
 
 
-    def reset(self, user, config_path=''):
+    def reset(self, user, base_config='', files_config=''):
         """
         Reset user parser, all EPs to STOP, all files to PENDING.
         """
@@ -242,9 +243,9 @@ class Project:
             logError('Project ERROR: Invalid user `{0}` !'.format(user))
             return False
 
-        if config_path and not os.path.exists(config_path):
-            logError('Project ERROR: Config path `%s` does not exist! Using default config!' % config_path)
-            config_path = False
+        if base_config and not os.path.isfile(base_config):
+            logError('Project ERROR: Config path `%s` does not exist! Using default config!' % base_config)
+            base_config = False
 
         r = self.changeUser(user)
         if not r: return False
@@ -252,9 +253,9 @@ class Project:
         logDebug('Project: RESET configuration for user `{0}`...'.format(user)) ; ti = time.clock()
 
         # User config XML
-        if not config_path:
-            config_path = self.users[user]['config_path']
-        self.parsers[user] = TSCParser(config_path)
+        if not base_config:
+            base_config = self.users[user]['config_path']
+        self.parsers[user] = TSCParser(base_config, files_config)
 
         # Calculate the Suites for each EP and the Files for each Suite
         for epname in self.users[user]['eps']:
