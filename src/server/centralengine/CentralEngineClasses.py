@@ -154,7 +154,6 @@ class CentralEngine(_cptools.XMLRPCController):
         Returns a string containing the text printed by the script.\n
         This function is called from the Java GUI.
         '''
-        logDebug('CE: Executing script `%s`...' % script_path)
         return self.project.execScript(script_path)
 
 
@@ -414,6 +413,10 @@ class CentralEngine(_cptools.XMLRPCController):
                     # On Central Engine stop, save to database?
                     #self.commitToDatabase()
 
+                    # Execute "Post Script"
+                    script_post = self.project.getUserInfo(user, 'script_post')
+                    if script_post: self.project.execScript(script_post)
+
                     # Execute "onStop" for all plugins!
                     parser = PluginParser(user)
                     plugins = parser.getPlugins()
@@ -474,6 +477,10 @@ class CentralEngine(_cptools.XMLRPCController):
             self.project.setUserInfo(user, 'start_time', datetime.datetime.today().strftime('%Y-%m-%d %H:%M:%S'))
             self.project.setUserInfo(user, 'elapsed_time', 0)
 
+            # Execute "Pre Script"
+            script_pre = self.project.getUserInfo(user, 'script_pre')
+            if script_pre: self.project.execScript(script_pre)
+
             # Execute "onStart" for all plugins!
             parser = PluginParser(user)
             plugins = parser.getPlugins()
@@ -488,16 +495,20 @@ class CentralEngine(_cptools.XMLRPCController):
         # If the engine is running, or paused and it received STOP from the user...
         elif (executionStatus == STATUS_RUNNING or executionStatus == STATUS_PAUSED) and new_status == STATUS_STOP:
 
+            # Execute "Post Script"
+            script_post = self.project.getUserInfo(user, 'script_post')
+            if script_post: self.project.execScript(script_post)
+
             # Execute "onStop" for all plugins... ?
-                parser = PluginParser(user)
-                plugins = parser.getPlugins()
-                for pname in plugins:
-                    plugin = self._buildPlugin(user, pname, {'ce_stop': 'manual'})
-                    try:
-                        plugin.onStop()
-                    except Exception, e:
-                        logWarning('Error on running plugin `%s onStop` - Exception: `%s`!' % (pname, str(e)))
-                del parser, plugins
+            parser = PluginParser(user)
+            plugins = parser.getPlugins()
+            for pname in plugins:
+                plugin = self._buildPlugin(user, pname, {'ce_stop': 'manual'})
+                try:
+                    plugin.onStop()
+                except Exception, e:
+                    logWarning('Error on running plugin `%s onStop` - Exception: `%s`!' % (pname, str(e)))
+            del parser, plugins
 
 
         # Update status for User

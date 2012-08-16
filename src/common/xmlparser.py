@@ -185,6 +185,26 @@ class TSCParser:
             return False
 
 
+    def getScripts(self):
+        """
+        Returns the value of the tags "ScriptPre" and "ScriptPost".
+        """
+        if not self.configTS:
+            print('Parser: Cannot get Exit on test fail status, because Test-Suites XML is invalid!')
+            return False
+        p0 = self.configTS.root.scriptpre
+        p1 = self.configTS.root.scriptpost
+        if not p0:
+            p0 = ''
+        else:
+            p0 = p0.text
+        if not p1:
+            p1 = ''
+        else:
+            p1 = p1.text
+        return (p0, p1)
+
+
     def getEmailConfig(self):
         """
         Returns the e-mail configuration.

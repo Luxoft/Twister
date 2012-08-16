@@ -165,6 +165,11 @@ class Project:
         # Add the `exit on test Fail` value
         self.users[user]['exit_on_test_fail'] = self.parsers[user].getExitOnTestFail()
 
+        # Add the `Pre and Post` project Scripts
+        script_pre, script_post = self.parsers[user].getScripts()
+        self.users[user]['script_pre'] = script_pre
+        self.users[user]['script_post'] = script_post
+
         for logType in self.parsers[user].getLogTypes():
             self.users[user]['log_types'][logType] = self.parsers[user].getLogFileForType(logType)
 
@@ -263,6 +268,11 @@ class Project:
 
         # Add the `exit on test Fail` value
         self.users[user]['exit_on_test_fail'] = self.parsers[user].getExitOnTestFail()
+
+        # Add the `Pre and Post` project Scripts
+        script_pre, script_post = self.parsers[user].getScripts()
+        self.users[user]['script_pre'] = script_pre
+        self.users[user]['script_post'] = script_post
 
         logDebug('Project: RESET operation took %.4f seconds.' % (time.clock()-ti))
         return True
@@ -518,7 +528,7 @@ class Project:
     def setFileOwner(self, user, path):
         """
         Update file ownership for 1 file.\n
-        `Chown` function works only in Linux.
+        `Chown` function works ONLY in Linux.
         """
         try:
             from pwd import getpwnam
@@ -538,11 +548,15 @@ class Project:
     def execScript(self, script_path):
         """
         Execute a user script and return the text printed on the screen.
-        This works only in Linux.
         """
         if not os.path.exists(script_path):
             logError('Exec script: The path `{0}` does not exist!'.format(script_path))
             return False
+
+        try: os.system('chmod +x {0}'.format(script_path))
+        except: pass
+
+        logDebug('CE: Executing script `%s`...' % script_path)
 
         try:
             txt = subprocess.check_output([script_path])
