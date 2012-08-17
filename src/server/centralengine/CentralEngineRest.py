@@ -28,7 +28,7 @@ Central Engine REST functions
 All functions are exposed and can be accessed using the browser.
 """
 
-import os, sys
+import os, sys, re
 import datetime
 import cherrypy
 from mako.template import Template
@@ -54,20 +54,35 @@ TMPL_DATA = """
 	% else:
 	<title>Central Engine REST</title>
 	% endif
+	<link type="text/css" rel="stylesheet" href="/static/css/bootstrap.css" />
+	<!--[if lt IE 9]><script src="/static/js/html5.js"></script><![endif]-->
 	<style>
-	* {font-family: Courier New, Courier, Monospace, Verdana, Arial}
+	* {font-family:DejaVu Sans Mono, Monospace, Courier New, Courier}
+	.INFO {color:gray} .DEBUG {color:gray} .ERROR {color:orange} .WARNING {} .CRITICAL {color:red}
 	</style>
 </head>
-<body><div style="margin:5px;">
+<body>
+
+<div class="row-fluid" style="margin-top:10px;">
+<div class="span1"></div>
+<div class="span11">
+<div class="hero-unit">
+
 % if title is not UNDEFINED:
-<h2>${title}</h2>
+<h1>${title}</h1>
 % else:
-<h2>Central Engine REST</h2>
+<h1>Central Engine REST</h1>
 % endif
+<br>
 
 ${body}
 
-</div></body>
+</div>
+</div>
+</div>
+
+<script language="javascript" type="text/javascript" src="/static/js/jquery.min.js"></script>
+</body>
 </html>
 """
 #
@@ -100,8 +115,9 @@ class CentralEngineRest:
 
         output = Template(text=TMPL_DATA)
         host = cherrypy.request.headers['Host']
-        body = '<p>From here, you can access:<br><br>'\
-               '<a href="http://{host}/rest/stats">Stats</a>  and  <a href="http://{host}/rest/logs">Logs</a>.</p>'.format(host=host)
+        body = '<p>From here, you can access:<br><br>\n'\
+               '<i class="icon-user" style="margin-top:5px;"></i> <a href="http://{host}/rest/stats">User stats</a>&nbsp;  '\
+               'and&nbsp;  <i class="icon-list-alt" style="margin-top:5px;"></i> <a href="http://{host}/rest/logs">Logs</a>.</p>'.format(host=host)
 
         return output.render(body=body)
 
@@ -128,10 +144,10 @@ class CentralEngineRest:
 
         # -- This is before selecting a User
         if not user:
-            body = '<b>Running on</b>: {ce_host}:{ce_port}<br><br>\n'\
+            body = '<p><strong>Running on</strong>: {ce_host}:{ce_port}</p><br>\n'\
                    '<h2>Registered users:</h2>\n'\
-                   '{users}.'.format(ce_host=ce_host, ce_port=ce_port, users=';<br>'.join(
-                   ['&nbsp;&nbsp;user <a href="http://{host}/rest/stats/{user}">{user}</a>'
+                   '<p>{users}.</p>'.format(ce_host=ce_host, ce_port=ce_port, users=';<br>'.join(
+                   ['&nbsp;<i class="icon-user" style="margin-top:5px;"></i>&nbsp;user <a href="http://{host}/rest/stats/{user}">{user}</a>\n'
                         .format(host=host, user=k)
                         for k in self.project.users.keys()]
                         ) or 'None')
@@ -151,7 +167,7 @@ class CentralEngineRest:
             # -- After selecting a User. EP statistics
             if not suite:
                 data = self.project.getEpInfo(user, epname)
-                ret = '<h3>Execution Process `{epname}`</h3>\n'\
+                ret = '<h2>Execution Process `<i>{epname}</i>`</h2><br>\n'\
                       '<b>Status</b>: {status}<br><br>\n'\
                       '<b>Ping</b>: {ping}<br><br>\n'\
                       '<b>Suites</b>: [<br>{suites}<br>]\n'.format(
@@ -167,7 +183,7 @@ class CentralEngineRest:
             else:
                 data = self.project.getSuiteInfo(user, epname, suite)
                 reversed = dict((v,k) for k,v in testStatus.iteritems())
-                ret = '<h3>Suite `{name}` (id `{suite}`)</h3>'\
+                ret = '<h2>Suite `<i>{name}</i>` (id `<i>{suite}</i>`)</h2><br>\n'\
                       '<b>Files</b>: [<br>{files}<br>]'.format(
                     epname = epname,
                     suite = suite,
@@ -180,19 +196,29 @@ class CentralEngineRest:
         # -- This is after selecting a User. General user statistics
         else:
             eps = self.project.getUserInfo(user, 'eps').keys()
-            ret = '<h3>User `{user}`</h3>\n'\
-                  '<b>Status</b>: {status} '\
-                  '<small>(<a href="http://{host}/rest/setUserStatus/{user}/2">start</a> | '\
-                  '<a href="http://{host}/rest/setUserStatus/{user}/0">stop</a> | '\
-                  '<a href="http://{host}/rest/resetUser/{user}">reset!</a>)</small><br><br>\n'\
-                  '<b>Config</b>: <small>{config}</small><br><br><br>\n'\
-                  '<b>Processes</b>: [<br>{eps}<br>]\n'.format(
+            try: eps_file = self.project.parsers[user].xmlDict.root.epidsfile.text
+            except: eps_file = ''
+
+            ret = '<h2>User `<i>{user}</i>`</h2><br>\n'\
+                  '<table class="table">\n'\
+                  '<tr><td><b>Status</b></td><td>{status} '\
+                  '<small>(<a href="http://{host}/rest/setUserStatus/{user}/2"><i class="icon-play"></i> start</a> | '\
+                  '<a href="http://{host}/rest/setUserStatus/{user}/0"><i class="icon-stop"></i> stop</a> | '\
+                  '<a href="http://{host}/rest/resetUser/{user}"><i class="icon-warning-sign"></i> reset!</a>)</small>\n'\
+                  '<tr><td><b>Master Config</b></td><td><small>{big_config}</small></td></tr>\n'\
+                  '<tr><td><b>Tests Config</b></td><td><small>{config}</small></td></tr>\n'\
+                  '<tr><td><b>Logs Path</b></td><td><small>{logs_path}</small></td></tr>\n'\
+                  '<tr><td><b>EP files</b></td><td><small>{eps_file}</small></td></tr>\n</table><br>\n\n'\
+                  '<h3>Processes:</h3><br>\n<ol>{eps}</ol>\n'.format(
                 host = host,
                 user = user,
                 status = status,
+                big_config = self.project.getUserInfo(user, 'config_path'),
                 config = self.project.getUserInfo(user, 'tests_path'),
-                eps = '<br>'.join(
-                    ['&nbsp;&nbsp;<a href="http://{host}/rest/stats/{user}/{ep}">{ep}</a>: {status}'.format(
+                logs_path = self.project.getUserInfo(user, 'logs_path'),
+                eps_file = eps_file,
+                eps = '\n'.join(
+                    ['<li>&nbsp;<a href="http://{host}/rest/stats/{user}/{ep}">{ep}</a>: {status}</li>'.format(
                         user = user, ep=ep, host=host,
                         status=reversed[self.project.getEpInfo(user, ep).get('status', STATUS_INVALID)])
                      for ep in eps]
@@ -248,14 +274,14 @@ class CentralEngineRest:
             return 0
 
         output = Template(text=TMPL_DATA)
-        log = open(LOG_FILE).read()
+        log = open(LOG_FILE).read().strip()
         body = log.replace('\n', '<br>\n').replace(' ', '&nbsp;')
-        body = body.replace(';INFO&',   ';<b style="color:gray">INFO</b>&')
-        body = body.replace(';DEBUG&',  ';<b style="color:gray">DEBUG</b>&')
-        body = body.replace(';ERROR&',  ';<b style="color:orange">ERROR</b>&')
-        body = body.replace(';WARNING&',  ';<b>WARNING</b>&')
-        body = body.replace(';CRITICAL&', ';<b style="color:red">CRITICAL</b>&')
-        return output.render(title='Central Engine Log', body=body)
+        body = body.replace(';INFO&',   ';<b class=INFO>INFO</b>&')
+        body = body.replace(';DEBUG&',  ';<b class=DEBUG>DEBUG</b>&')
+        body = body.replace(';ERROR&',  ';<b class=ERROR>ERROR</b>&')
+        body = body.replace(';WARNING&',  ';<b class=WARNING>WARNING</b>&')
+        body = body.replace(';CRITICAL&', ';<b class=CRITICAL>CRITICAL</b>&')
+        return output.render(title='Central Engine Log', body='<p style="font-family:DejaVu Sans Mono, Monospace, Courier New">'+body+'</p>')
 
 
     @cherrypy.expose
