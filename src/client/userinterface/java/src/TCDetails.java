@@ -24,12 +24,30 @@ import java.awt.BorderLayout;
 import java.awt.Dimension;
 import javax.swing.JLabel;
 import javax.swing.BorderFactory;
+import java.awt.Color;
+import java.awt.event.ActionListener;
+import java.awt.event.ActionEvent;
+import javax.swing.JButton;
+import java.io.File;
 
 public class TCDetails extends JPanel{
-    JTextArea text = new JTextArea("This is a sample text for helping on screen allignament");
-    JLabel title = new JLabel("This is the title");
+    public JTextArea text = new JTextArea("This is a sample text for helping on screen allignament");
+    public JLabel title = new JLabel("This is the title");
+    private JPanel selector = new JPanel();
+//     private RoundButton tcdetails = new RoundButton("TC details");
+//     private RoundButton logs = new RoundButton("Logs");
+    private JButton tcdetails = new JButton("TC details");
+    private JButton logs = new JButton("Logs");
+    private JPanel p1,p2;
     
     public TCDetails(){
+        selector.setPreferredSize(new Dimension(200,35));
+        selector.setBackground(Color.WHITE);
+        selector.setLayout(null);
+        tcdetails.setBounds(2,4,90,30);
+        logs.setBounds(96,4,90,30);
+        selector.add(tcdetails);
+        selector.add(logs);
         setBorder(BorderFactory.createEmptyBorder(15, 10, 5, 10));
         setPreferredSize(new Dimension(450,100));
         setMinimumSize(new Dimension(0,0));
@@ -44,16 +62,58 @@ public class TCDetails extends JPanel{
         text.setFont(new Font("Arial",Font.PLAIN,12));
         setBackground(Color.WHITE); 
         text.setBackground(Color.WHITE);       
-        JPanel p1 = new JPanel();
+        p1 = new JPanel();
         p1.setBackground(Color.WHITE); 
         p1.setLayout(new BorderLayout());
         p1.add(new JLabel("Title:  "),BorderLayout.WEST);
         title.setFont(new Font("Arial",Font.PLAIN,12));
         p1.add(title,BorderLayout.CENTER);        
-        JPanel p2 = new JPanel();
+        p2 = new JPanel();
         p2.setBackground(Color.WHITE); 
         p2.setLayout(new BorderLayout());
         p2.add(new JLabel("Description:  "),BorderLayout.NORTH);
         p2.add(text,BorderLayout.CENTER);        
         add(p1,BorderLayout.NORTH);
-        add(p2,BorderLayout.CENTER);}}
+        add(p2,BorderLayout.CENTER);
+        add(selector,BorderLayout.SOUTH);
+        logs.addActionListener(new ActionListener(){
+            public void actionPerformed(ActionEvent ev){
+                setLogs();
+            }
+        });
+        tcdetails.addActionListener(new ActionListener(){
+            public void actionPerformed(ActionEvent ev){
+                setTCDetails();
+            }
+        });
+    }
+
+    public void setLogs(){
+        if(Repository.window.mainpanel.p2.tabbed.getComponentCount()==0){
+            try{
+                Repository.emptyTestRepository();
+                File xml = new File(Repository.getTestXMLDirectory());    
+                int size = Repository.getLogs().size();
+                for(int i=5;i<size;i++){Repository.getLogs().remove(5);}
+                new XMLReader(xml).parseXML(Repository.window.mainpanel.p1.sc.g.getGraphics(), true);
+                Repository.window.mainpanel.p2.updateTabs();}
+            catch(Exception e){
+                e.printStackTrace();
+            }
+        }
+        remove(p1);
+        remove(p2);
+        add(Repository.window.mainpanel.p2.tabbed,BorderLayout.CENTER);
+        revalidate();
+        repaint();
+    }
+    
+    public void setTCDetails(){
+        remove(Repository.window.mainpanel.p2.tabbed);
+        add(p1,BorderLayout.NORTH);
+        add(p2,BorderLayout.CENTER);
+        revalidate();
+        repaint();
+    }
+    
+}

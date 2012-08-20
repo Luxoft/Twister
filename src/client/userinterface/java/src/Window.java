@@ -90,7 +90,7 @@ public class Window extends JFrame{
             addComponentListener(new ComponentAdapter(){
                 public void componentResized(ComponentEvent e){
                     if(Repository.window!=null){
-                        mainpanel.p2.splitPane.setSize(getWidth()-52,getHeight()-120);
+                        //mainpanel.p2.splitPane.setSize(getWidth()-52,getHeight()-120);
                         mainpanel.p1.splitPane.setSize(getWidth()-52,getHeight()-120);
                         mainpanel.setSize(getWidth()-28,getHeight()-50);
                         mainpanel.p4.getScroll().setSize(getWidth()-310,getHeight()-150);

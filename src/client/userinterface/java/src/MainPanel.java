@@ -16,7 +16,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-import java.io.File;
+import java.io.File; 
 import java.io.PrintStream;
 import javax.swing.JOptionPane;
 import javax.swing.JTabbedPane;
@@ -66,7 +66,7 @@ public class MainPanel extends JTabbedPane{
 //         p5 = new Panel5(1500,612);
         setBounds(0, 5, (int)screenSize.getWidth()-50, 672);
         addTab("Suites", new ImageIcon(), p1);
-        addTab("Monitoring", p2);
+        //addTab("Monitoring", p2);
         addTab("Reports", null);
         addTab("Configuration", p4);        
 //         add("Network", new JScrollPane(p5));
@@ -79,13 +79,13 @@ public class MainPanel extends JTabbedPane{
         if(applet){
             addChangeListener(new ChangeListener(){
                 public void stateChanged(ChangeEvent e){
-                    if(getSelectedIndex()==2){
+                    if(getSelectedIndex()==1){
                         try{Repository.window.container.getAppletContext().showDocument(
                                                     new URL("http://"+Repository.host+":"+
                                                     Repository.getHTTPServerPort()+
                                                     "/report/"+Repository.getUser()), "_blank");}
                         catch(Exception ex){ex.printStackTrace();}
-                        setSelectedIndex(1);}}});}
+                        setSelectedIndex(0);}}});}
         Repository.intro.setStatus("Finished Main initialization");
         Repository.intro.addPercent(0.035);
         Repository.intro.repaint();}

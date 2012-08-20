@@ -71,10 +71,23 @@ public class XMLBuilder{
                 if(getRunning(item.getSubItem(i)))return true;}
             return false;}}
         
-    public void createXML(boolean skip, boolean stoponfail, boolean temp){//skip chckes if it is user or test xml
+    public void createXML(boolean skip, boolean stoponfail, boolean temp, String prescript, String postscript){//skip checks if it is user or test xml
         this.skip = skip;
         Element root = document.createElement("Root");
         document.appendChild(root);
+        Element em2 = document.createElement("stoponfail");;
+        if(stoponfail){
+            em2.appendChild(document.createTextNode("true"));
+        } else {
+            em2.appendChild(document.createTextNode("false"));
+        }
+        root.appendChild(em2);
+        em2 = document.createElement("ScriptPre");
+        em2.appendChild(document.createTextNode(prescript));
+        root.appendChild(em2);
+        em2 = document.createElement("ScriptPost");
+        em2.appendChild(document.createTextNode(postscript));
+        root.appendChild(em2);
         int nrsuite = suite.size();        
         for(int i=0;i<nrsuite;i++){
             int nrtc = suite.get(i).getSubItemsNr();
@@ -84,14 +97,10 @@ public class XMLBuilder{
                     if(getRunning(suite.get(i))){
                         go=true;
                         break;}}}
-            if(!go&&skip)continue;   
-            if(stoponfail){
-                Element em2 = document.createElement("stoponfail");
-                em2.appendChild(document.createTextNode("true"));
-                root.appendChild(em2);}
+            if(!go&&skip)continue;
             Element rootElement = document.createElement("TestSuite");
             root.appendChild(rootElement);
-            Element em2 = document.createElement("tsName");
+            em2 = document.createElement("tsName");
             em2.appendChild(document.createTextNode(suite.get(i).getName()));
             rootElement.appendChild(em2);
             if(suite.get(i).getEpId()!=null&&!suite.get(i).getEpId().equals("")){

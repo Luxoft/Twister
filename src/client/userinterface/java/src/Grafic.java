@@ -157,9 +157,10 @@ public class Grafic extends JPanel{
                             Repository.window.mainpanel.p1.suitaDetails.getDefsNr()+" fields");}
                     try{for(int i=0;i<userDefNr;i++){
                         Repository.window.mainpanel.p1.suitaDetails.
-                            getDefPanel(i).setDecription(next.getUserDef(i)[1]);}}
+                            getDefPanel(i).setDescription(next.getUserDef(i)[1]);}}
                     catch(Exception e){e.printStackTrace();}}
                 else{
+                    Repository.window.mainpanel.p1.suitaDetails.setGlobalDetails();
                     Repository.window.mainpanel.p1.suitaDetails.clearDefs();
                     Repository.window.mainpanel.p1.suitaDetails.setParent(null);}}
             else{
@@ -200,9 +201,10 @@ public class Grafic extends JPanel{
                         Repository.window.mainpanel.p1.suitaDetails.getDefsNr()+" fields");}
                     try{for(int i=0;i<userDefNr;i++){
                             Repository.window.mainpanel.p1.suitaDetails.getDefPanel(i).
-                                setDecription(next.getUserDef(i)[1]);}}
+                                setDescription(next.getUserDef(i)[1]);}}
                     catch(Exception e){e.printStackTrace();}}
                 else{
+                    Repository.window.mainpanel.p1.suitaDetails.setGlobalDetails();
                     Repository.window.mainpanel.p1.suitaDetails.clearDefs();
                     Repository.window.mainpanel.p1.suitaDetails.setParent(null);}}
             else{
@@ -228,6 +230,7 @@ public class Grafic extends JPanel{
         clearDraggingLine();
         scrolldown = false;
         scrollup = false; 
+        Repository.window.mainpanel.p1.suitaDetails.setGlobalDetails();
         Repository.window.mainpanel.p1.suitaDetails.clearDefs();
         Repository.window.mainpanel.p1.suitaDetails.setParent(null);
         dragammount=0;
@@ -992,9 +995,11 @@ public class Grafic extends JPanel{
                 getClickedItem(ev.getX(),ev.getY());
                 if(selected.size()>0){
                     selectItem(selected);
-                    if(getItem(selected,false).getType()==2&&getItem(selected,false).getPos().size()==1){
+                    if(getItem(selected,false).getType()==2
+                    &&getItem(selected,false).getPos().size()==1){
                         Item temp = getItem(selected,false);
                         int userDefNr = temp.getUserDefNr();
+                        Repository.window.mainpanel.p1.suitaDetails.setSuiteDetails();
                         Repository.window.mainpanel.p1.suitaDetails.setParent(temp);
                         if(userDefNr!=Repository.window.mainpanel.p1.suitaDetails.getDefsNr()){
                             System.out.println("Warning, suite "+
@@ -1007,10 +1012,10 @@ public class Grafic extends JPanel{
                             for(int i=0;i<Repository.window.mainpanel.p1.suitaDetails.getDefsNr();i++){
                                 if(temp.getUserDefNr()==i)break;
                                 Repository.window.mainpanel.p1.suitaDetails.getDefPanel(i).
-                                setDecription(temp.getUserDef(i)[1]);}}
+                                                    setDescription(temp.getUserDef(i)[1]);}}
                         catch(Exception e){e.printStackTrace();}}
                     if(getItem(selected,false).getCheckRectangle().intersects(
-                    new Rectangle(ev.getX()-1,ev.getY()-1,2,2))){
+                                  new Rectangle(ev.getX()-1,ev.getY()-1,2,2))){
                         getItem(selected,false).setCheck(!getItem(selected,false).getCheck());}
                     else if(getItem(selected,false).getSubItemsNr()>0&&ev.getClickCount()==2){
                         if(getItem(selected,false).getType()==2 &&
@@ -1030,6 +1035,8 @@ public class Grafic extends JPanel{
                         else getItem(selected,false).setVisible(
                             !itemIsExpanded(getItem(selected,false)));}
                     updateLocations(getItem(selected,false));}
+                else{
+                    Repository.window.mainpanel.p1.suitaDetails.setGlobalDetails();}
                 repaint();}
             else if(keypress==2){
                 getClickedItem(ev.getX(),ev.getY());
@@ -1044,7 +1051,8 @@ public class Grafic extends JPanel{
                             if(Arrays.equals(selectedcollection.get(m),theone)){
                                 selectedcollection.remove(m);
                                 break;}}}
-                    if(selectedcollection.size()==0)Repository.window.mainpanel.p1.remove.setEnabled(false);
+                    if(selectedcollection.size()==0){
+                        Repository.window.mainpanel.p1.remove.setEnabled(false);}
                     repaint();}}
             else{// selection with shift
                 if(selected.size()>0){
@@ -1088,7 +1096,7 @@ public class Grafic extends JPanel{
                                 Repository.getSuita(m).select(true);
                                 selectedcollection.add(new int[]{m});}}}
                     repaint();}}}
-        if(ev.getButton()==3){ 
+        if(ev.getButton()==3){
             getClickedItem(ev.getX(),ev.getY());            
             if((selected.size()==0)){
                 if(Repository.getSuiteNr()>0){
@@ -1101,11 +1109,55 @@ public class Grafic extends JPanel{
                     repaint();
                     if(getItem(selected,false).getType()==0) propertyPopUp(ev,getItem(selected,false));
                     else if(getItem(selected,false).getType()==1) tcPopUp(ev,getItem(selected,false));
-                    else suitaPopUp(ev,getItem(selected,false));}
+                    else{ 
+                        
+                        Item temp = getItem(selected,false);
+                        int userDefNr = temp.getUserDefNr();                        
+                        if(userDefNr!=Repository.window.mainpanel.p1.suitaDetails.getDefsNr()){
+                            System.out.println("Warning, suite "+
+                                temp.getName()+" has "+userDefNr+" fields while in bd.xml are defined "+
+                                Repository.window.mainpanel.p1.suitaDetails.getDefsNr()+" fields");
+                            if(Repository.window.mainpanel.p1.suitaDetails.getDefsNr()<userDefNr){
+                                temp.getUserDefs().subList(Repository.window.mainpanel.p1.suitaDetails.
+                                getDefsNr(),userDefNr).clear();}}
+                        try{    
+                            for(int i=0;i<Repository.window.mainpanel.p1.suitaDetails.getDefsNr();i++){
+                                if(temp.getUserDefNr()==i)break;
+                                Repository.window.mainpanel.p1.suitaDetails.getDefPanel(i).
+                                                    setDescription(temp.getUserDef(i)[1]);}}
+                        catch(Exception e){e.printStackTrace();}
+                        Repository.window.mainpanel.p1.suitaDetails.setParent(temp);
+                        suitaPopUp(ev,getItem(selected,false));
+                        Repository.window.mainpanel.p1.suitaDetails.setSuiteDetails();
+                        
+                    }
+                }
                 else{if(selectedcollection.size()==1){
                         if(getItem(selected,false).getType()==0) propertyPopUp(ev,getItem(selected,false));
                         else if(getItem(selected,false).getType()==1) tcPopUp(ev,getItem(selected,false));
-                        else suitaPopUp(ev,getItem(selected,false));}
+                        else{
+                            
+                            Item temp = getItem(selected,false);
+                            int userDefNr = temp.getUserDefNr();                            
+                            if(userDefNr!=Repository.window.mainpanel.p1.suitaDetails.getDefsNr()){
+                                System.out.println("Warning, suite "+
+                                    temp.getName()+" has "+userDefNr+" fields while in bd.xml are defined "+
+                                    Repository.window.mainpanel.p1.suitaDetails.getDefsNr()+" fields");
+                                if(Repository.window.mainpanel.p1.suitaDetails.getDefsNr()<userDefNr){
+                                    temp.getUserDefs().subList(Repository.window.mainpanel.p1.suitaDetails.
+                                    getDefsNr(),userDefNr).clear();}}
+                            try{    
+                                for(int i=0;i<Repository.window.mainpanel.p1.suitaDetails.getDefsNr();i++){
+                                    if(temp.getUserDefNr()==i)break;
+                                    Repository.window.mainpanel.p1.suitaDetails.getDefPanel(i).
+                                                        setDescription(temp.getUserDef(i)[1]);}}
+                            catch(Exception e){e.printStackTrace();}
+                            Repository.window.mainpanel.p1.suitaDetails.setParent(temp);
+                            suitaPopUp(ev,getItem(selected,false));
+                            Repository.window.mainpanel.p1.suitaDetails.setSuiteDetails();
+                            
+                        }
+                    }
                     else{multipleSelectionPopUp(ev);}}}}
         if(selectedcollection.size()>0)Repository.window.mainpanel.p1.remove.setEnabled(true);}
     
@@ -1670,6 +1722,7 @@ public class Grafic extends JPanel{
                 updateLocations(Repository.getSuita(0));}
             selectedcollection.clear();
             deselectAll();
+            Repository.window.mainpanel.p1.suitaDetails.setGlobalDetails();
             Repository.window.mainpanel.p1.suitaDetails.clearDefs();
             Repository.window.mainpanel.p1.suitaDetails.setParent(null);
             repaint();}}
@@ -2044,6 +2097,7 @@ public class Grafic extends JPanel{
      */
     public void setUser(String user){//
         Repository.window.mainpanel.p1.setOpenedfile(new File(user).getName());
+        Repository.window.mainpanel.p1.suitaDetails.setGlobalDetails();
         Repository.window.mainpanel.p1.suitaDetails.clearDefs();
         Repository.window.mainpanel.p1.suitaDetails.setParent(null);
         this.user = user;}
@@ -2067,7 +2121,9 @@ public class Grafic extends JPanel{
     public boolean printXML(String user, boolean skip, boolean local, boolean stoponfail){
         //skip = true
         try{XMLBuilder xml = new XMLBuilder(Repository.getSuite());
-            xml.createXML(skip,stoponfail,false);
+            xml.createXML(skip,stoponfail,false,
+                          Repository.window.mainpanel.p1.suitaDetails.getPreScript(),
+                          Repository.window.mainpanel.p1.suitaDetails.getPostScript());
             xml.writeXMLFile(user,local,false);
             return true;}
         catch(Exception e){
