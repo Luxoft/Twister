@@ -70,6 +70,7 @@ import subprocess
 import smtplib
 import MySQLdb
 
+
 from string import Template
 from collections import OrderedDict
 from email.mime.text import MIMEText
@@ -165,6 +166,11 @@ class Project:
         # Add the `exit on test Fail` value
         self.users[user]['exit_on_test_fail'] = self.parsers[user].getExitOnTestFail()
 
+        # Add the `Pre and Post` project Scripts
+        script_pre, script_post = self.parsers[user].getScripts()
+        self.users[user]['script_pre'] = script_pre
+        self.users[user]['script_post'] = script_post
+
         for logType in self.parsers[user].getLogTypes():
             self.users[user]['log_types'][logType] = self.parsers[user].getLogFileForType(logType)
 
@@ -229,7 +235,7 @@ class Project:
         return True
 
 
-    def reset(self, user, config_path=''):
+    def reset(self, user, base_config='', files_config=''):
         """
         Reset user parser, all EPs to STOP, all files to PENDING.
         """
@@ -237,9 +243,9 @@ class Project:
             logError('Project ERROR: Invalid user `{0}` !'.format(user))
             return False
 
-        if config_path and not os.path.exists(config_path):
-            logError('Project ERROR: Config path `%s` does not exist! Using default config!' % config_path)
-            config_path = False
+        if base_config and not os.path.isfile(base_config):
+            logError('Project ERROR: Config path `%s` does not exist! Using default config!' % base_config)
+            base_config = False
 
         r = self.changeUser(user)
         if not r: return False
@@ -247,9 +253,9 @@ class Project:
         logDebug('Project: RESET configuration for user `{0}`...'.format(user)) ; ti = time.clock()
 
         # User config XML
-        if not config_path:
-            config_path = self.users[user]['config_path']
-        self.parsers[user] = TSCParser(config_path)
+        if not base_config:
+            base_config = self.users[user]['config_path']
+        self.parsers[user] = TSCParser(base_config, files_config)
 
         # Calculate the Suites for each EP and the Files for each Suite
         for epname in self.users[user]['eps']:
@@ -263,6 +269,11 @@ class Project:
 
         # Add the `exit on test Fail` value
         self.users[user]['exit_on_test_fail'] = self.parsers[user].getExitOnTestFail()
+
+        # Add the `Pre and Post` project Scripts
+        script_pre, script_post = self.parsers[user].getScripts()
+        self.users[user]['script_pre'] = script_pre
+        self.users[user]['script_post'] = script_post
 
         logDebug('Project: RESET operation took %.4f seconds.' % (time.clock()-ti))
         return True
@@ -518,7 +529,7 @@ class Project:
     def setFileOwner(self, user, path):
         """
         Update file ownership for 1 file.\n
-        `Chown` function works only in Linux.
+        `Chown` function works ONLY in Linux.
         """
         try:
             from pwd import getpwnam
@@ -538,11 +549,15 @@ class Project:
     def execScript(self, script_path):
         """
         Execute a user script and return the text printed on the screen.
-        This works only in Linux.
         """
         if not os.path.exists(script_path):
             logError('Exec script: The path `{0}` does not exist!'.format(script_path))
             return False
+
+        try: os.system('chmod +x {0}'.format(script_path))
+        except: pass
+
+        logDebug('CE: Executing script `%s`...' % script_path)
 
         try:
             txt = subprocess.check_output([script_path])
