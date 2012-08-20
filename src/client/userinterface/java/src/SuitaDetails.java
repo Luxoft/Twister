@@ -45,12 +45,21 @@ import net.sf.vfsjfilechooser.VFSJFileChooser.RETURN_TYPE;
 import org.apache.commons.vfs.FileObject;
 import net.sf.vfsjfilechooser.utils.VFSUtils;
 import javax.swing.JFrame;
+import javax.swing.JCheckBox;
+import javax.swing.LayoutStyle;
+import javax.swing.border.TitledBorder;
+import javax.swing.JComboBox;
 
 public class SuitaDetails extends JPanel {
-    private JPanel defsContainer;
+    private JPanel defsContainer,global, suiteoptions;
     private JScrollPane scroll;
     private ArrayList <DefPanel> definitions = new ArrayList <DefPanel>();
     private TitledBorder border;    
+    private JCheckBox stoponfail;
+    private JTextField tprescript, tpostscript;
+    private JButton browse1,browse2;
+    private VFSJFileChooser fileChooser;
+    
     
     public void setEnabled(boolean enabled) {
         super.setEnabled(enabled);
@@ -69,9 +78,170 @@ public class SuitaDetails extends JPanel {
         initComponents(descriptions);
         repaint();}
         
+    private void initGlobal(){
+        suiteoptions = new JPanel();
+//         JLabel ep = new JLabel("EP:");
+//         JLabel name = new JLabel("Suite name:");
+//         JTextField tname = new JTextField();
+//         JComboBox combo = new JComboBox();
+//         suiteoptions.add(ep);
+//         suiteoptions.add(combo);
+        
+        
+        
+        
+        JLabel suitename = new JLabel();
+        JTextField tsuitename = new JTextField();
+        JPanel jPanel1 = new JPanel();
+        JLabel ep = new JLabel();
+        JComboBox combo = new JComboBox();
+
+        suiteoptions.setBackground(Color.WHITE);
+
+        suitename.setBackground(Color.WHITE);
+        suitename.setText("Suite name: ");
+        suiteoptions.add(suitename);
+
+        tsuitename.setPreferredSize(new Dimension(150, 20));
+        suiteoptions.add(tsuitename);
+
+        jPanel1.setBackground(Color.WHITE);
+        jPanel1.setMinimumSize(new Dimension(0, 0));
+        jPanel1.setPreferredSize(new Dimension(20, 20));
+
+        
+
+        suiteoptions.add(jPanel1);
+
+        ep.setText("EP: ");
+        suiteoptions.add(ep);
+
+        //combo.setModel(new DefaultComboBoxModel(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
+        combo.setPreferredSize(new java.awt.Dimension(100, 20));
+        suiteoptions.add(combo);
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        stoponfail = new JCheckBox();
+        JLabel prescript = new JLabel();
+        JLabel postscript = new JLabel();
+        tprescript = new JTextField();
+        tpostscript = new JTextField();
+        browse1 = new JButton("...");
+        browse2 = new JButton("...");
+
+        stoponfail.setText("Stop on fail");
+        prescript.setText("Pre execution script:");
+        postscript.setText("Post execution script:");
+        
+        browse1.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent evt) {
+                if(fileChooser==null)initializeFileBrowser();
+                
+                
+                try{RETURN_TYPE answer = fileChooser.showOpenDialog(SuitaDetails.this);
+                    if (answer == RETURN_TYPE.APPROVE){
+                        FileObject aFileObject = fileChooser.getSelectedFile();
+                        String safeName = VFSUtils.getFriendlyName(aFileObject.toString());
+                        safeName = safeName.substring(safeName.indexOf(Repository.host)+
+                                                        Repository.host.length());
+                        String [] check = safeName.split("/");
+                        if(check[check.length-1].equals(check[check.length-2])){
+                            StringBuffer buffer = new StringBuffer();
+                            for(int i=0;i<check.length-1;i++){
+                                buffer.append(check[i]+"/");}
+                            safeName = buffer.toString();}
+                        tprescript.setText(safeName);}}
+                 catch(Exception e){
+                     fileChooser=null;
+                     e.printStackTrace();}
+            }
+        });
+
+        browse2.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent evt) {
+                if(fileChooser==null)initializeFileBrowser();
+                try{RETURN_TYPE answer = fileChooser.showOpenDialog(SuitaDetails.this);
+                    if (answer == RETURN_TYPE.APPROVE){
+                        FileObject aFileObject = fileChooser.getSelectedFile();
+                        String safeName = VFSUtils.getFriendlyName(aFileObject.toString());
+                        safeName = safeName.substring(safeName.indexOf(Repository.host)+
+                                                        Repository.host.length());
+                        String [] check = safeName.split("/");
+                        if(check[check.length-1].equals(check[check.length-2])){
+                            StringBuffer buffer = new StringBuffer();
+                            for(int i=0;i<check.length-1;i++){
+                                buffer.append(check[i]+"/");}
+                            safeName = buffer.toString();}
+                        tpostscript.setText(safeName);}}
+                 catch(Exception e){
+                     fileChooser=null;
+                     e.printStackTrace();}
+            }
+        });
+
+        GroupLayout layout = new GroupLayout(global);
+        global.setLayout(layout);
+        layout.setHorizontalGroup(
+            layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+            .addGroup(layout.createSequentialGroup()
+                .addContainerGap()
+                .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+                    .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+                        .addGroup(GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
+                            .addGap(5, 5, 5)
+                            .addComponent(prescript))
+                        .addComponent(stoponfail, GroupLayout.PREFERRED_SIZE, 83,
+                                     GroupLayout.PREFERRED_SIZE))
+                    .addGroup(layout.createSequentialGroup()
+                        .addGap(5, 5, 5)
+                        .addComponent(postscript)))
+                .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
+                .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+                    .addComponent(tprescript, GroupLayout.DEFAULT_SIZE, 216, Short.MAX_VALUE)
+                    .addComponent(tpostscript))
+                .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
+                .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+                    .addComponent(browse1)
+                    .addComponent(browse2))
+                .addGap(10, 10, 10)));
+                
+        layout.setVerticalGroup(
+            layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+            .addGroup(layout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(stoponfail)
+                .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+                    .addComponent(prescript)
+                    .addComponent(tprescript, GroupLayout.PREFERRED_SIZE, 
+                                  GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+                    .addComponent(browse1))
+                .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+                    .addComponent(tpostscript, GroupLayout.PREFERRED_SIZE, 
+                                  GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+                    .addComponent(browse2)
+                    .addComponent(postscript))
+                .addContainerGap(GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)));}
+        
     private void initComponents(ArrayList<String []> descriptions){
+        global = new JPanel();
+        global.setBackground(Color.WHITE);
+        initGlobal();
+        
         definitions.clear();
-        border = BorderFactory.createTitledBorder("No suite");
+        border = BorderFactory.createTitledBorder("Global options");
         setBorder(border);
         scroll = new JScrollPane();
         defsContainer = new JPanel();
@@ -79,7 +249,11 @@ public class SuitaDetails extends JPanel {
         defsContainer.setBackground(new Color(255, 255, 255));
         defsContainer.setBorder(BorderFactory.createEmptyBorder(10, 0, 10, 0));
         defsContainer.setLayout(new BoxLayout(defsContainer, BoxLayout.Y_AXIS));
-        scroll.setViewportView(defsContainer);
+        //scroll.setViewportView(defsContainer);
+        
+        defsContainer.add(suiteoptions);
+        
+        scroll.setViewportView(global);
         add(scroll, BorderLayout.CENTER);
         JLabel l = new JLabel("test");            
         FontMetrics metrics = l.getFontMetrics(l.getFont());
@@ -95,7 +269,8 @@ public class SuitaDetails extends JPanel {
                                                                width,i,this);
             definitions.add(define);
             defsContainer.add(define);}
-        setEnabled(false);}
+        //setEnabled(false);
+    }
            
     public int getDefsNr(){
         return definitions.size();}
@@ -105,14 +280,56 @@ public class SuitaDetails extends JPanel {
            
     public void clearDefs(){
         for(int i=0;i<definitions.size();i++){
-            definitions.get(i).setDecription("");}}
+            definitions.get(i).setDescription("");}}
             
     public void setParent(Item parent){ 
         for(int i=0;i<definitions.size();i++){
             definitions.get(i).setParent(parent);}}
             
+    public void setSuiteDetails(){
+        scroll.setViewportView(defsContainer);
+        setBorderTitle("Suite options");
+    }
+    
+    public void setGlobalDetails(){
+        scroll.setViewportView(global);
+        setBorderTitle("Global options");
+    }
+            
     public DefPanel getDefPanel(int i){
-        return definitions.get(i);}}
+        return definitions.get(i);}
+    
+    public boolean stopOnFail(){
+        return stoponfail.isSelected();}
+        
+    public void setStopOnFail(boolean value){
+        stoponfail.setSelected(value);}
+        
+    public void setPreScript(String script){
+        tprescript.setText(script);}
+        
+    public void setPostScript(String script){
+        tpostscript.setText(script);}
+        
+    public String getPreScript(){
+        return tprescript.getText();}
+        
+    public String getPostScript(){
+        return tpostscript.getText();}
+        
+    public void setBorderTitle(String title){
+        ((TitledBorder)getBorder()).setTitle(title);
+    }
+        
+        
+    public void initializeFileBrowser(){
+        fileChooser = new VFSJFileChooser("sftp://"+Repository.user+":"+
+                                           Repository.password+"@"+Repository.host+
+                                           "/home/"+Repository.user+"/twister/config/");        
+        fileChooser.setFileHidingEnabled(true);
+        fileChooser.setMultiSelectionEnabled(false);
+        fileChooser.setFileSelectionMode(VFSJFileChooser.SELECTION_MODE.FILES_AND_DIRECTORIES);}
+}
         
 class DefPanel extends JPanel{
     private JLabel description;
@@ -287,16 +504,17 @@ class DefPanel extends JPanel{
                 
     protected void setParent(Item parent){
         if(parent!=null&&parent.getType()==2){
-            container.setTitle("Suite "+
-                                parent.getName());
+//             container.setTitle("Suite "+
+//                                 parent.getName());
+            container.setTitle("Suite options");
             container.setEnabled(true);}
         else{
-            container.setEnabled(false);
-            container.setTitle("No suite");}
+            //container.setEnabled(false);
+            container.setTitle("Global options");}
         this.parent = parent;}
         
     public String getDescription(){
         return descriptions;}
     
-    public void setDecription(String desc){
+    public void setDescription(String desc){
         userDefinition.setText(desc);}}

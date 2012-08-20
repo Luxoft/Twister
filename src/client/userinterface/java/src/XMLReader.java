@@ -153,8 +153,7 @@ public class XMLReader{
         }
     }
             
-    public void parseXML(Graphics g,boolean test){   
-        System.out.println("parsing test: "+test);
+    public void parseXML(Graphics g,boolean test){
         NodeList nodeLst = doc.getChildNodes().item(0).getChildNodes();
         int childsnr = doc.getChildNodes().item(0).getChildNodes().getLength();
         if(childsnr==0){
@@ -163,7 +162,36 @@ public class XMLReader{
         int indexsuita = 0;
         for(int m=0;m<childsnr;m++){
             Node fstNode = nodeLst.item(m);
-            if(!fstNode.getNodeName().equals("TestSuite"))continue;
+            if(!test){
+                if(fstNode.getNodeName().equals("stoponfail")){
+                    if(fstNode.getChildNodes().item(0).getNodeValue().toString().equals("true")){                    
+                        Repository.window.mainpanel.p1.suitaDetails.setStopOnFail(true);
+                    }
+                    else Repository.window.mainpanel.p1.suitaDetails.setStopOnFail(false);
+                    continue;
+                }
+                else if(fstNode.getNodeName().equals("ScriptPre")){
+                    try{
+                        String script = fstNode.getChildNodes().item(0).getNodeValue().toString();
+                        Repository.window.mainpanel.p1.suitaDetails.setPreScript(script);}
+                    catch(Exception e){
+                        e.printStackTrace();
+                        Repository.window.mainpanel.p1.suitaDetails.setPreScript("");
+                    }
+                    continue;
+                }
+                else if(fstNode.getNodeName().equals("ScriptPost")){
+                    try{
+                        String script = fstNode.getChildNodes().item(0).getNodeValue().toString();
+                        Repository.window.mainpanel.p1.suitaDetails.setPostScript(script);}
+                    catch(Exception e){
+                        e.printStackTrace();
+                        Repository.window.mainpanel.p1.suitaDetails.setPostScript("");
+                    }
+                    continue;
+                }
+            }
+            if(!fstNode.getNodeName().equals("TestSuite"))continue;            
             ArrayList <Integer> indexpos = new ArrayList <Integer> ();
             indexpos.add(new Integer(indexsuita));            
             fstElmnt = (Element)fstNode;

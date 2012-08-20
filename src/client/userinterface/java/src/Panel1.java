@@ -72,19 +72,18 @@ public class Panel1 extends JPanel{
     public JSplitPane splitPane;//split panel for suites and remote tc structure    
     public SuitaDetails suitaDetails;//details defined by user
     private JLabel openedfile;
-    public JButton remove;
-    private JButton generate;
-    private JCheckBox stoponfail;
-    private JButton showoptionals;
+    public JButton remove,generate,showoptionals,addsuite,edit;
+    private JSplitPane splitPane3;
+    //private JCheckBox stoponfail;
     
     public Panel1(String user, final boolean applet, int width){
         Repository.intro.setStatus("Started Suites interface initialization");
         Repository.intro.addPercent(0.035);
         Repository.intro.repaint();
         openedfile = new JLabel();
-        openedfile.setBounds(420,22,250,20);
+        openedfile.setBounds(410,22,250,20);
         add(openedfile);
-        JButton addsuite = new JButton(new ImageIcon(Repository.addsuitaicon));
+        addsuite = new JButton(new ImageIcon(Repository.addsuitaicon));
         addsuite.setToolTipText("Add Suite");
         ToolTipManager.sharedInstance().setInitialDelay(400);
         addsuite.setBounds(10,20,40,25);
@@ -100,19 +99,19 @@ public class Panel1 extends JPanel{
         remove.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 sc.g.removeSelected();}});
-        generate = new JButton("Generate");
-        generate.setBounds(94,20,90,25);
+        generate = new JButton("Run",new ImageIcon(Repository.getPlayIcon()));
+        generate.setBounds(94,20,80,25);
         generate.setToolTipText("Generate XML");
         add(generate);
         showoptionals = new JButton("Show optionals");
-        showoptionals.setBounds(190,20,130,25);
+        showoptionals.setBounds(180,20,130,25);
         showoptionals.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 showOptionals();}});
         add(showoptionals);
-        stoponfail = new JCheckBox("Stop on fail");
-        stoponfail.setBounds(320,20,90,25);
-        add(stoponfail);
+//         stoponfail = new JCheckBox("Stop on fail");
+//         stoponfail.setBounds(320,20,90,25);
+//         add(stoponfail);
         suitaDetails = new SuitaDetails(Repository.getDatabaseUserFields());
         generate.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
@@ -255,7 +254,7 @@ public class Panel1 extends JPanel{
                                                 new JScrollPane(ep.tree),
                                                 new TCDetails());
         splitPane2.setDividerLocation(0.5);        
-        JSplitPane splitPane3 = new JSplitPane(JSplitPane.VERTICAL_SPLIT,
+        splitPane3 = new JSplitPane(JSplitPane.VERTICAL_SPLIT,
                                                 sc.pane,suitaDetails);
         splitPane3.setDividerLocation(0.5);        
         splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,
@@ -266,7 +265,12 @@ public class Panel1 extends JPanel{
         add(splitPane);
         Repository.intro.setStatus("Finished Suites interface initialization");
         Repository.intro.addPercent(0.035);
-        Repository.intro.repaint();}
+        Repository.intro.repaint();
+        edit = new JButton("Edit");
+        edit.setBounds(10,20,55,25);
+        edit.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent ev){
+                edit();}});}
         
         
     /*
@@ -298,7 +302,8 @@ public class Panel1 extends JPanel{
      */
     private void saveSuiteFile(){
         if(!sc.g.getUser().equals("")){
-            if(sc.g.printXML(sc.g.getUser(), false,false,false))
+            if(sc.g.printXML(sc.g.getUser(), false,false,
+                             Repository.window.mainpanel.p1.suitaDetails.stopOnFail()))
                 CustomDialog.showInfo(JOptionPane.PLAIN_MESSAGE, 
                                         Repository.window, "Succes",
                                         "File successfully saved");
@@ -496,16 +501,30 @@ public class Panel1 extends JPanel{
                     if(!theone.isPrerequisite()){
                         tcmenu.getMenuComponent(7).setEnabled(false);}
                     else tcmenu.getMenuComponent(6).setEnabled(false);}}}}
+                    
+    private void edit(){
+        splitPane3.setLeftComponent(sc.pane);
+        remove(edit);
+        remove(Repository.window.mainpanel.p2.play);
+        remove(Repository.window.mainpanel.p2.stop);        
+        remove(Repository.window.mainpanel.p2.cestatus); 
+        add(openedfile);
+        add(remove);
+        add(generate);
+        add(showoptionals);
+        add(addsuite);
+        repaint();
+    }
        
     /*
      * generate master suites XML
      */
     private void generate(){
-        String result="";//server status
-        try{result = (String)Repository.getRPCClient().execute("getExecStatusAll",new Object[]{Repository.getUser()});}
-        catch(Exception e){
-            System.out.println("Could not connect to server");
-            e.printStackTrace();}
+//         String result="";//server status
+//         try{result = (String)Repository.getRPCClient().execute("getExecStatusAll",new Object[]{Repository.getUser()});}
+//         catch(Exception e){
+//             System.out.println("Could not connect to server");
+//             e.printStackTrace();}
         int defsNr = suitaDetails.getDefsNr();
         boolean execute=true;
         for(int i=0;i<Repository.getSuiteNr();i++){
@@ -521,10 +540,11 @@ public class Panel1 extends JPanel{
                                             " for: "+Repository.getSuita(i).getName());
                     execute = false;
                     break;}}
-            if(!execute)break;}                
+//             if(!execute)break;
+        }       
         if(execute){
-            if(!result.equals("running")){//check if CE is running
-                sc.g.printXML(Repository.getTestXMLDirectory(),true,false,stoponfail.isSelected());
+//             if(!result.equals("running")){//check if CE is running
+                sc.g.printXML(Repository.getTestXMLDirectory(),true,false,suitaDetails.stopOnFail());
                 Repository.emptyTestRepository();
                 File xml = new File(Repository.getTestXMLDirectory());    
                 int size = Repository.getLogs().size();
@@ -532,9 +552,24 @@ public class Panel1 extends JPanel{
                 new XMLReader(xml).parseXML(sc.g.getGraphics(), true);
                 Repository.window.mainpanel.p2.updateTabs();
                 CustomDialog.showInfo(JOptionPane.PLAIN_MESSAGE, Repository.window,
-                                        "Info", "File successfully generated ");}
-            else CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, Repository.window, "Warning",
-                                        "Please close Central Engine before generating");}}
+                                        "Info", "File successfully generated ");
+//             else CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, Repository.window, "Warning",
+//                                         "Please close Central Engine before generating");
+                splitPane3.setLeftComponent(Repository.window.mainpanel.p2.sc.pane);
+                splitPane3.setDividerLocation(0.5);
+                remove(openedfile);
+                remove(remove);
+                remove(generate);
+                remove(showoptionals);
+                remove(addsuite);
+                add(edit);
+                add(Repository.window.mainpanel.p2.play);
+                add(Repository.window.mainpanel.p2.stop);        
+                add(Repository.window.mainpanel.p2.cestatus);
+                Repository.window.mainpanel.p2.play.doClick();
+                repaint();
+        }
+    }
         
     /*
      * delete curently opened file

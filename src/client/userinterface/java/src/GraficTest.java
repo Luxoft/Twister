@@ -264,7 +264,9 @@ public class GraficTest extends JPanel{
      */
     public boolean writeXML(ArrayList<Item>last){
         try{XMLBuilder xml = new XMLBuilder(last);
-            xml.createXML(false,false,true);
+            xml.createXML(false,false,true,
+                          Repository.window.mainpanel.p1.suitaDetails.getPreScript(),
+                          Repository.window.mainpanel.p1.suitaDetails.getPostScript());
             String dir = Repository.getXMLRemoteDir();
             String [] path = dir.split("/");
             StringBuffer result2 = new StringBuffer();

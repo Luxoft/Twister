@@ -63,15 +63,15 @@ import javax.swing.SwingUtilities;
 
 public class Panel2 extends JPanel{
     private static final long serialVersionUID = 1L;
-    ScrollGraficTest sc;
+    public ScrollGraficTest sc;
     ArrayList<Log> logs=new ArrayList<Log>();
     JSplitPane splitPane;
-    JTabbedPane tabbed;
+    public JTabbedPane tabbed;
     private boolean cleared = true;
-    JLabel cestatus;
+    public JLabel cestatus;
     private boolean stoppushed = false;
     private boolean runned = false;
-    private JButton stop;
+    public JButton stop,play;
 
     public Panel2(final boolean applet){
         Repository.intro.setStatus("Started Monitoring interface initialization");
@@ -79,15 +79,15 @@ public class Panel2 extends JPanel{
         Repository.intro.repaint();
         sc = new ScrollGraficTest(0, 0,applet);
         tabbed = new JTabbedPane();
-        splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,sc.pane,tabbed);
-        Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
-        splitPane.setBounds(10,45,(int)screenSize.getWidth()-80,600);
-        splitPane.setDividerLocation(0.5);
+        //splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,sc.pane,tabbed);
+        //Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+        //splitPane.setBounds(10,45,(int)screenSize.getWidth()-80,600);
+        //splitPane.setDividerLocation(0.5);
         setLayout(null);
-        add(splitPane);
-        final JButton play = new JButton("Run",new ImageIcon(Repository.getPlayIcon()));
+        //add(splitPane);
+        play = new JButton("Run",new ImageIcon(Repository.getPlayIcon()));
         play.setEnabled(false);
-        play.setBounds(10,5,105,25);
+        play.setBounds(70,20,105,25);
         play.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 play(play);}});
@@ -97,10 +97,10 @@ public class Panel2 extends JPanel{
         stop.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 stop(play);}});
-        stop.setBounds(121,5,95,25);
+        stop.setBounds(180,20,95,25);
         add(stop);
         cestatus = new JLabel("CE status: ");
-        cestatus.setBounds(225,12,650,25);
+        cestatus.setBounds(280,25,650,25);
         cestatus.setForeground(new Color(100,100,100));
         add(cestatus);
         try{new Thread(){
@@ -108,17 +108,18 @@ public class Panel2 extends JPanel{
                     while(Repository.run){ 
                         askCE(play);}}}.start();}
         catch(Exception e){e.printStackTrace();}
-        new Thread(){
-            public void run(){
-                while(sc.g.getGraphics() == null){
-                    try{Thread.sleep(50);}
-                    catch(Exception e){System.out.println("Thread interrupted at getting Graphics");}}
-                File xml = new File(Repository.getTestXMLDirectory());
-                if(xml.length()>0)new XMLReader(xml).parseXML(sc.g.getGraphics(), true);
-                else{
-                    try{System.out.println(xml.getCanonicalPath()+" has no content");}
-                    catch(Exception e){e.printStackTrace();}}
-                updateTabs();}}.start();
+//         new Thread(){
+//             public void run(){
+//                 while(sc.g.getGraphics() == null){
+//                     try{Thread.sleep(50);}
+//                     catch(Exception e){System.out.println("Thread interrupted at getting Graphics");}}
+//                 File xml = new File(Repository.getTestXMLDirectory());
+// //                 System.out.println("xml:"+Repository.getTestXMLDirectory());
+//                 if(xml.length()>0)new XMLReader(xml).parseXML(sc.g.getGraphics(), true);
+//                 else{
+//                     try{System.out.println(xml.getCanonicalPath()+" has no content");}
+//                     catch(Exception e){e.printStackTrace();}}
+//                 updateTabs();}}.start();
         Repository.intro.setStatus("Finished Monitoring interface initialization");
         Repository.intro.addPercent(0.035);
         Repository.intro.repaint();}
@@ -146,6 +147,7 @@ public class Panel2 extends JPanel{
                     Repository.window.mainpanel.p1.setGenerate(true);
                     cestatus.setText("CE status: stopped");
                     stop.setEnabled(false);
+                    Repository.window.mainpanel.p1.edit.setEnabled(true);
                     play.setText("Run");
                     play.setIcon(new ImageIcon(Repository.playicon));
                     if(runned){userOptions();}
@@ -156,12 +158,15 @@ public class Panel2 extends JPanel{
                     runned = true;
                     cestatus.setText("CE status: running"+startedtime+elapsedtime+user);
                     stop.setEnabled(true);
+                    Repository.window.mainpanel.p1.edit.setEnabled(false);
                     cleared=false;
                     play.setText("Pause");
                     play.setIcon(new ImageIcon(Repository.pauseicon));}
                 if(!play.isEnabled()){
                     play.setEnabled(true);
-                    stop.setEnabled(true);}
+                    stop.setEnabled(true);
+                    Repository.window.mainpanel.p1.edit.setEnabled(false);
+                }
                 Object result1 = Repository.getRPCClient().execute("getFileStatusAll",
                                                                     new Object[]{Repository.getUser()});
                 if(result1!=null){                                    
@@ -179,7 +184,9 @@ public class Panel2 extends JPanel{
             e.printStackTrace();
             if(play.isEnabled()){
                 play.setEnabled(false);
-                stop.setEnabled(false);}}}
+                stop.setEnabled(false);
+                Repository.window.mainpanel.p1.edit.setEnabled(true);
+            }}}
                 
     /*
      * Prompt user to save to db or
