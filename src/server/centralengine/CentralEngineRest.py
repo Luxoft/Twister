@@ -28,8 +28,11 @@ Central Engine REST functions
 All functions are exposed and can be accessed using the browser.
 """
 
-import os, sys, re
+import os, sys
+import json
+import time
 import datetime
+import platform
 import cherrypy
 from mako.template import Template
 
@@ -42,8 +45,8 @@ sys.path.append(TWISTER_PATH)
 from common.constants import *
 from common.tsclogging import LOG_FILE
 
+# # # # #
 
-#
 TMPL_DATA = """
 <!DOCTYPE html>
 <html lang="en">
@@ -87,6 +90,43 @@ ${body}
 """
 #
 
+def calcMemory():
+    import subprocess
+    memLine = subprocess.check_output(['free', '-o']).split('\n')[1]
+    memUsed    = int(memLine.split()[2])
+    mebBuffers = int(memLine.split()[-2])
+    memCached  = int(memLine.split()[-1])
+    Total      = float(memLine.split()[1])
+    memPer = ((memUsed - mebBuffers - memCached) * 100.) / Total
+    return float('%.2f' % memPer)
+
+def getCpuData():
+    statLine = open('/proc/stat', 'r').readline()
+    timeList = statLine.split(' ')[2:6]
+    for i in range(len(timeList)):
+        timeList[i] = float(timeList[i])
+    return timeList
+
+def calcCpu():
+    x = getCpuData()
+    time.sleep(0.5)
+    y = getCpuData()
+    for i in range(len(x)):
+        y[i] -= x[i]
+    cpuPer = sum(y[:-1]) / sum(y) * 100.
+    return float('%.2f' % cpuPer)
+
+def prepareLog(log_file):
+    log = open(log_file).read().strip()
+    body = log.replace('\n', '<br>\n').replace(' ', '&nbsp;')
+    body = body.replace(';INFO&',   ';<b style="color:gray">INFO</b>&')
+    body = body.replace(';DEBUG&',  ';<b style="color:gray">DEBUG</b>&')
+    body = body.replace(';ERROR&',  ';<b style="color:orange">ERROR</b>&')
+    body = body.replace(';WARNING&',  ';<b style="color:orange">WARNING</b>&')
+    body = body.replace(';CRITICAL&', ';<b style="color:red"L>CRITICAL</b>&')
+    return body
+
+# # # # #
 
 class CentralEngineRest:
 
@@ -120,6 +160,54 @@ class CentralEngineRest:
                'and&nbsp;  <i class="icon-list-alt" style="margin-top:5px;"></i> <a href="http://{host}/rest/logs">Logs</a>.</p>'.format(host=host)
 
         return output.render(body=body)
+
+
+
+    @cherrypy.expose
+    def new(self):
+        ip_port = cherrypy.request.headers['Host']
+        machine = platform.uname()[1]
+        system  = ' '.join(platform.linux_distribution())
+        users   = ['cro', 'jorj', 'bubu'] # self.project.users.keys()
+
+        output = Template(filename=TWISTER_PATH + '/server/centralengine/template_main.htm')
+        return output.render(ip_port=ip_port, machine=machine, system=system, users=users)
+
+    @cherrypy.expose
+    def users(self, user):
+        host = cherrypy.request.headers['Host']
+        reversed = dict((v,k) for k,v in execStatus.iteritems())
+        status = reversed[self.project.getUserInfo(user, 'status')]
+        master_config = self.project.getUserInfo(user, 'config_path')
+        proj_config = self.project.getUserInfo(user, 'tests_path')
+        logs_path = self.project.getUserInfo(user, 'logs_path')
+        try: eps_file = self.project.parsers[user].xmlDict.root.epidsfile.text
+        except: eps_file = ''
+        eps = self.project.getUserInfo(user, 'eps')
+        statuses = [ reversed[eps[ep].get('status', STATUS_INVALID)] for ep in eps ]
+        logs = self.project.getUserInfo(user, 'log_types')
+
+        output = Template(filename=TWISTER_PATH + '/server/centralengine/template_user.htm')
+        return output.render(host=host, user=user, status=status, master_config=master_config, proj_config=proj_config,
+                            logs_path=logs_path, eps_file=eps_file, eps=eps, statuses=statuses, logs=logs)
+
+    @cherrypy.expose
+    def json_stats(self):
+        cherrypy.response.headers['Content-Type']  = 'application/json; charset=utf-8'
+        cherrypy.response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        cherrypy.response.headers['Pragma']  = 'no-cache'
+        cherrypy.response.headers['Expires'] = 0
+        data = {'mem': calcMemory(), 'cpu': calcCpu()}
+        return json.dumps(data)
+
+    @cherrypy.expose
+    def json_logs(self):
+        cherrypy.response.headers['Content-Type']  = 'application/json; charset=utf-8'
+        cherrypy.response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        cherrypy.response.headers['Pragma']  = 'no-cache'
+        cherrypy.response.headers['Expires'] = 0
+        return json.dumps(prepareLog(LOG_FILE))
+
 
 
     @cherrypy.expose
@@ -274,14 +362,8 @@ class CentralEngineRest:
             return 0
 
         output = Template(text=TMPL_DATA)
-        log = open(LOG_FILE).read().strip()
-        body = log.replace('\n', '<br>\n').replace(' ', '&nbsp;')
-        body = body.replace(';INFO&',   ';<b class=INFO>INFO</b>&')
-        body = body.replace(';DEBUG&',  ';<b class=DEBUG>DEBUG</b>&')
-        body = body.replace(';ERROR&',  ';<b class=ERROR>ERROR</b>&')
-        body = body.replace(';WARNING&',  ';<b class=WARNING>WARNING</b>&')
-        body = body.replace(';CRITICAL&', ';<b class=CRITICAL>CRITICAL</b>&')
-        return output.render(title='Central Engine Log', body='<p style="font-family:DejaVu Sans Mono, Monospace, Courier New">'+body+'</p>')
+        log_body = '<p style="font-family:DejaVu Sans Mono, Monospace, Courier New">' + prepareLog(LOG_FILE) + '</p>'
+        return output.render(title='Central Engine Log', body=log_body)
 
 
     @cherrypy.expose

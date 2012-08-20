@@ -225,7 +225,7 @@ if TO_INSTALL == 'server':
     # Versions
     library_versions = [
         '1.6',
-        '0.5',
+        '0.7',
         '3.2',
         '1.2',
     ]

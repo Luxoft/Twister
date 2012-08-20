@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>Central Engine</title>
+	<meta name="author" content="Cristi Constantin">
+	<meta name="description" content="Central Engine REST interface...">
+	<!-- Le styles -->
+	<link href="/static/css/bootstrap.css" rel="stylesheet">
+	<style>
+		body {
+			padding-top: 60px;
+			background: #f6f6f6 url(/static/img/bg.png) repeat fixed;
+		}
+		.hero-unit h1 {margin-top: -25px;}
+		#logs {font-family: Monospace, DejaVu Sans Mono, Courier New, Courier}
+	</style>
+	<link rel="stylesheet" href="/static/css/responsive.css" />
+	<link rel="shortcut icon" href="/static/favicon.ico" />
+	<!-- Le HTML5 shim, for IE6-8 support of HTML5 elements -->
+	<!--[if lt IE 9]>
+	<script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+	<![endif]-->
+</head>
+<body>
+<div class="container">
+
+<div class="tabbable">
+	<ul class="nav nav-tabs">
+		<li class="active"><a data-target="#tab1" data-toggle="tab"> <i class="icon-home"></i> Main </a></li>
+		<li><a data-target="#tab2" data-toggle="tab"> <i class="icon-user"></i> Users </a></li>
+		<li><a data-target='#tab3' data-toggle="tab"> <i class="icon-th-list"></i> Logs </a></li>
+	</ul>
+	<div class="tab-content">
+
+	<div class="tab-pane active" id="tab1">
+	<div class="hero-unit" style="border: 1px solid #aaf">
+		<h1>Central Engine REST interface</h1><br>
+		<table class="table table-bordered">
+			<tr><td width="200">IP and Port</td><td><code>${ip_port}</code></td></tr>
+			<tr><td>Machine</td><td><code>${machine}</code></td></tr>
+			<tr><td>System</td><td><code>${system}</code></td></tr>
+			<tr><td>Processor</td><td><span id="cpu_stat">Loading...</span></td></tr>
+			<tr><td>Memory</td><td><span id="mem_stat">Loading...</span></td></tr>
+		</table>
+	</div>
+	</div> <!-- End of tab-1 -->
+
+	<div class="tab-pane" id="tab2">
+	<div class="hero-unit" style="border: 1px solid #aaf">
+		<h1>Connected Users</h1><br>
+		<table class="table table-bordered">
+		% for usr in users:
+			<tr><td width="200"><i class="icon-star-empty"></i> <strong>${usr}</strong></td><td><code>/home/${usr}/twister</code></td></tr>
+		% endfor
+		</table>
+	</div>
+	</div> <!-- End of tab-2 -->
+
+	<div class="tab-pane" id="tab3">
+	<div class="hero-unit" style="border: 1px solid #aaf">
+		<h1>Central Engine Logs</h1><br>
+		<i class="icon-refresh" id="refresh_logs"></i> <br><br>
+		<span id="logs">Logs...</span>
+	</div>
+	</div> <!-- End of tab-3 -->
+
+	</div> <!-- End of tab-content -->
+</div> <!-- End of tabbable -->
+</div>
+
+<script src="/static/js/jquery.min.js"></script>
+<script src="/static/js/bootstrap.min.js"></script>
+<script src="/static/js/sparkline.min.js"></script>
+
+<script type="text/javascript">
+function drawServerStats() {
+	var refreshint = 1000; // update display every X ms
+	var maxupdates = 40;
+	var cpu_values = [];
+	var mem_values = [];
+	var draw_srv = function() {
+		$.getJSON("/rest/json_stats",
+			// On success, execute the following :
+			function(jdata) {
+				cpu_values.push(jdata["cpu"]);
+				if (cpu_values.length > maxupdates) cpu_values.splice(0, 1);
+				mem_values.push(jdata["mem"]);
+				if (mem_values.length > maxupdates) mem_values.splice(0, 1);
+				$('#cpu_stat').sparkline(cpu_values, {type: 'bar', 'chartRangeMin':0, 'chartRangeMax':100, 'height':25,
+					width: cpu_values.length*2, tooltipSuffix: '% processor'});
+				$('#mem_stat').sparkline(mem_values, {type: 'bar', 'chartRangeMin':0, 'chartRangeMax':100, 'height':25,
+					width: mem_values.length*2, tooltipSuffix: '% memory'});
+			});
+		setTimeout(draw_srv, refreshint);
+	}
+	setTimeout(draw_srv, refreshint);
+};
+function getServerLogs() {
+	var pos_i, pos_f;
+	$.getJSON("/rest/json_logs",
+		// On success, execute the following :
+		function(html) {
+			console.log(html);
+			$('#logs').html(html);
+	});
+};
+$("#refresh_logs").click(function () {
+	$("#refresh_logs").after('<span id="updating_logs"> ... Updating...</span>');
+	getServerLogs();
+	$("#updating_logs").fadeToggle(1500, "linear");
+});
+// Activate !
+drawServerStats();
+getServerLogs();
+</script>
+</body>
+</html>
