@@ -995,25 +995,54 @@ public class Grafic extends JPanel{
                 getClickedItem(ev.getX(),ev.getY());
                 if(selected.size()>0){
                     selectItem(selected);
-                    if(getItem(selected,false).getType()==2
-                    &&getItem(selected,false).getPos().size()==1){
+                    
+                    if(getItem(selected,false).getType()==2){
                         Item temp = getItem(selected,false);
                         int userDefNr = temp.getUserDefNr();
-                        Repository.window.mainpanel.p1.suitaDetails.setSuiteDetails();
+                        boolean root = false;
+                        
                         Repository.window.mainpanel.p1.suitaDetails.setParent(temp);
-                        if(userDefNr!=Repository.window.mainpanel.p1.suitaDetails.getDefsNr()){
-                            System.out.println("Warning, suite "+
-                                temp.getName()+" has "+userDefNr+" fields while in bd.xml are defined "+
-                                Repository.window.mainpanel.p1.suitaDetails.getDefsNr()+" fields");
-                            if(Repository.window.mainpanel.p1.suitaDetails.getDefsNr()<userDefNr){
-                                temp.getUserDefs().subList(Repository.window.mainpanel.p1.suitaDetails.
-                                getDefsNr(),userDefNr).clear();}}
-                        try{    
-                            for(int i=0;i<Repository.window.mainpanel.p1.suitaDetails.getDefsNr();i++){
-                                if(temp.getUserDefNr()==i)break;
-                                Repository.window.mainpanel.p1.suitaDetails.getDefPanel(i).
-                                                    setDescription(temp.getUserDef(i)[1]);}}
-                        catch(Exception e){e.printStackTrace();}}
+                        if(temp.getPos().size()==1){
+                            root = true;
+                            if(userDefNr!=Repository.window.mainpanel.p1.suitaDetails.getDefsNr()){
+                                System.out.println("Warning, suite "+
+                                    temp.getName()+" has "+userDefNr+" fields while in bd.xml are defined "+
+                                    Repository.window.mainpanel.p1.suitaDetails.getDefsNr()+" fields");
+                                if(Repository.window.mainpanel.p1.suitaDetails.getDefsNr()<userDefNr){
+                                    temp.getUserDefs().subList(Repository.window.mainpanel.p1.suitaDetails.
+                                    getDefsNr(),userDefNr).clear();}}
+                            try{
+                                for(int i=0;i<Repository.window.mainpanel.p1.suitaDetails.getDefsNr();i++){
+                                    if(temp.getUserDefNr()==i)break;
+                                    Repository.window.mainpanel.p1.suitaDetails.getDefPanel(i).
+                                                        setDescription(temp.getUserDef(i)[1]);}}
+                            catch(Exception e){e.printStackTrace();}   
+                        }
+                        Repository.window.mainpanel.p1.suitaDetails.setSuiteDetails(root);
+                    }
+                    
+                    
+//                     if(getItem(selected,false).getType()==2
+//                     &&getItem(selected,false).getPos().size()==1){
+//                         Item temp = getItem(selected,false);
+//                         int userDefNr = temp.getUserDefNr();
+//                         Repository.window.mainpanel.p1.suitaDetails.setSuiteDetails();
+//                         Repository.window.mainpanel.p1.suitaDetails.setParent(temp);
+//                         if(userDefNr!=Repository.window.mainpanel.p1.suitaDetails.getDefsNr()){
+//                             System.out.println("Warning, suite "+
+//                                 temp.getName()+" has "+userDefNr+" fields while in bd.xml are defined "+
+//                                 Repository.window.mainpanel.p1.suitaDetails.getDefsNr()+" fields");
+//                             if(Repository.window.mainpanel.p1.suitaDetails.getDefsNr()<userDefNr){
+//                                 temp.getUserDefs().subList(Repository.window.mainpanel.p1.suitaDetails.
+//                                 getDefsNr(),userDefNr).clear();}}
+//                         try{
+//                             for(int i=0;i<Repository.window.mainpanel.p1.suitaDetails.getDefsNr();i++){
+//                                 if(temp.getUserDefNr()==i)break;
+//                                 Repository.window.mainpanel.p1.suitaDetails.getDefPanel(i).
+//                                                     setDescription(temp.getUserDef(i)[1]);}}
+//                         catch(Exception e){e.printStackTrace();}}
+                        
+                        
                     if(getItem(selected,false).getCheckRectangle().intersects(
                                   new Rectangle(ev.getX()-1,ev.getY()-1,2,2))){
                         getItem(selected,false).setCheck(!getItem(selected,false).getCheck());}
@@ -1109,27 +1138,29 @@ public class Grafic extends JPanel{
                     repaint();
                     if(getItem(selected,false).getType()==0) propertyPopUp(ev,getItem(selected,false));
                     else if(getItem(selected,false).getType()==1) tcPopUp(ev,getItem(selected,false));
-                    else{ 
-                        
+                    else{
                         Item temp = getItem(selected,false);
-                        int userDefNr = temp.getUserDefNr();                        
-                        if(userDefNr!=Repository.window.mainpanel.p1.suitaDetails.getDefsNr()){
-                            System.out.println("Warning, suite "+
-                                temp.getName()+" has "+userDefNr+" fields while in bd.xml are defined "+
-                                Repository.window.mainpanel.p1.suitaDetails.getDefsNr()+" fields");
-                            if(Repository.window.mainpanel.p1.suitaDetails.getDefsNr()<userDefNr){
-                                temp.getUserDefs().subList(Repository.window.mainpanel.p1.suitaDetails.
-                                getDefsNr(),userDefNr).clear();}}
-                        try{    
-                            for(int i=0;i<Repository.window.mainpanel.p1.suitaDetails.getDefsNr();i++){
-                                if(temp.getUserDefNr()==i)break;
-                                Repository.window.mainpanel.p1.suitaDetails.getDefPanel(i).
-                                                    setDescription(temp.getUserDef(i)[1]);}}
-                        catch(Exception e){e.printStackTrace();}
+                        boolean root = false;
                         Repository.window.mainpanel.p1.suitaDetails.setParent(temp);
-                        suitaPopUp(ev,getItem(selected,false));
-                        Repository.window.mainpanel.p1.suitaDetails.setSuiteDetails();
-                        
+                        if(temp.getPos().size()==1){//if it is a root suite
+                            root = true;
+                            int userDefNr = temp.getUserDefNr();   
+                            if(userDefNr!=Repository.window.mainpanel.p1.suitaDetails.getDefsNr()){
+                                System.out.println("Warning, suite "+
+                                    temp.getName()+" has "+userDefNr+" fields while in bd.xml are defined "+
+                                    Repository.window.mainpanel.p1.suitaDetails.getDefsNr()+" fields");
+                                if(Repository.window.mainpanel.p1.suitaDetails.getDefsNr()<userDefNr){
+                                    temp.getUserDefs().subList(Repository.window.mainpanel.p1.suitaDetails.
+                                    getDefsNr(),userDefNr).clear();}}
+                            try{    
+                                for(int i=0;i<Repository.window.mainpanel.p1.suitaDetails.getDefsNr();i++){
+                                    if(temp.getUserDefNr()==i)break;
+                                    Repository.window.mainpanel.p1.suitaDetails.getDefPanel(i).
+                                                        setDescription(temp.getUserDef(i)[1]);}}
+                            catch(Exception e){e.printStackTrace();}
+                        }
+                        Repository.window.mainpanel.p1.suitaDetails.setSuiteDetails(root);
+                        suitaPopUp(ev, temp);
                     }
                 }
                 else{if(selectedcollection.size()==1){
@@ -1138,6 +1169,9 @@ public class Grafic extends JPanel{
                         else{
                             
                             Item temp = getItem(selected,false);
+                            boolean root = false;
+                            Repository.window.mainpanel.p1.suitaDetails.setParent(temp);
+                            
                             int userDefNr = temp.getUserDefNr();                            
                             if(userDefNr!=Repository.window.mainpanel.p1.suitaDetails.getDefsNr()){
                                 System.out.println("Warning, suite "+
@@ -1152,9 +1186,11 @@ public class Grafic extends JPanel{
                                     Repository.window.mainpanel.p1.suitaDetails.getDefPanel(i).
                                                         setDescription(temp.getUserDef(i)[1]);}}
                             catch(Exception e){e.printStackTrace();}
-                            Repository.window.mainpanel.p1.suitaDetails.setParent(temp);
+                            
                             suitaPopUp(ev,getItem(selected,false));
-                            Repository.window.mainpanel.p1.suitaDetails.setSuiteDetails();
+                            
+                            
+                            Repository.window.mainpanel.p1.suitaDetails.setSuiteDetails(true);
                             
                         }
                     }
@@ -2041,7 +2077,7 @@ public class Grafic extends JPanel{
                 g.drawImage(Repository.optional,(int)item.getRectangle().getX()+43,
                         (int)item.getRectangle().getY()+1,null);
             }
-                    }
+        }
         else{if(item.getPos().get(item.getPos().size()-1).intValue()==0){
             g.drawImage(Repository.getPropertyIcon(),
                         (int)item.getRectangle().getX()+2,
@@ -2087,9 +2123,6 @@ public class Grafic extends JPanel{
             g.setFont(new Font("TimesRoman", Font.PLAIN, 11));
             g.drawString(" - "+item.getEpId(),(int)(item.getRectangle().getX()+item.getRectangle().getWidth()-100),
                         (int)(item.getRectangle().getY()+18));}}
-
-
-
      
     /*
      * changes suites file name and sets

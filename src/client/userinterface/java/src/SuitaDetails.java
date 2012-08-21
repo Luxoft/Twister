@@ -49,6 +49,14 @@ import javax.swing.JCheckBox;
 import javax.swing.LayoutStyle;
 import javax.swing.border.TitledBorder;
 import javax.swing.JComboBox;
+import javax.swing.DefaultComboBoxModel;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.BufferedReader;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
+import java.awt.event.ItemListener;
+import java.awt.event.ItemEvent;
 
 public class SuitaDetails extends JPanel {
     private JPanel defsContainer,global, suiteoptions;
@@ -59,7 +67,10 @@ public class SuitaDetails extends JPanel {
     private JTextField tprescript, tpostscript;
     private JButton browse1,browse2;
     private VFSJFileChooser fileChooser;
-    
+    private Item parent;
+    private JTextField tsuite;
+    private JComboBox combo;
+    private JLabel ep;
     
     public void setEnabled(boolean enabled) {
         super.setEnabled(enabled);
@@ -80,54 +91,38 @@ public class SuitaDetails extends JPanel {
         
     private void initGlobal(){
         suiteoptions = new JPanel();
-//         JLabel ep = new JLabel("EP:");
-//         JLabel name = new JLabel("Suite name:");
-//         JTextField tname = new JTextField();
-//         JComboBox combo = new JComboBox();
-//         suiteoptions.add(ep);
-//         suiteoptions.add(combo);
-        
-        
-        
-        
-        JLabel suitename = new JLabel();
-        JTextField tsuitename = new JTextField();
-        JPanel jPanel1 = new JPanel();
-        JLabel ep = new JLabel();
-        JComboBox combo = new JComboBox();
 
         suiteoptions.setBackground(Color.WHITE);
-
-        suitename.setBackground(Color.WHITE);
-        suitename.setText("Suite name: ");
-        suiteoptions.add(suitename);
-
-        tsuitename.setPreferredSize(new Dimension(150, 20));
-        suiteoptions.add(tsuitename);
-
-        jPanel1.setBackground(Color.WHITE);
-        jPanel1.setMinimumSize(new Dimension(0, 0));
-        jPanel1.setPreferredSize(new Dimension(20, 20));
-
-        
-
-        suiteoptions.add(jPanel1);
-
-        ep.setText("EP: ");
-        suiteoptions.add(ep);
-
-        //combo.setModel(new DefaultComboBoxModel(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
-        combo.setPreferredSize(new java.awt.Dimension(100, 20));
-        suiteoptions.add(combo);
-        
-        
-        
-        
-        
-        
-        
-        
-        
+        JLabel suite = new JLabel("Suite name: ");
+        tsuite = new JTextField();
+        ep = new JLabel("Ep:");
+        combo = new JComboBox();
+        GroupLayout layout = new GroupLayout(suiteoptions);
+        suiteoptions.setLayout(layout);
+        layout.setHorizontalGroup(
+            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(layout.createSequentialGroup()
+                .addGap(21, 21, 21)
+                .addComponent(suite)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(tsuite, javax.swing.GroupLayout.PREFERRED_SIZE, 145, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(18, 18, 18)
+                .addComponent(ep)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(combo, javax.swing.GroupLayout.PREFERRED_SIZE, 108, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+        );
+        layout.setVerticalGroup(
+            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(suite)
+                    .addComponent(tsuite, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(ep)
+                    .addComponent(combo, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addContainerGap())
+        );
         
         
         
@@ -190,7 +185,7 @@ public class SuitaDetails extends JPanel {
             }
         });
 
-        GroupLayout layout = new GroupLayout(global);
+        layout = new GroupLayout(global);
         global.setLayout(layout);
         layout.setHorizontalGroup(
             layout.createParallelGroup(GroupLayout.Alignment.LEADING)
@@ -249,7 +244,6 @@ public class SuitaDetails extends JPanel {
         defsContainer.setBackground(new Color(255, 255, 255));
         defsContainer.setBorder(BorderFactory.createEmptyBorder(10, 0, 10, 0));
         defsContainer.setLayout(new BoxLayout(defsContainer, BoxLayout.Y_AXIS));
-        //scroll.setViewportView(defsContainer);
         
         defsContainer.add(suiteoptions);
         
@@ -260,7 +254,9 @@ public class SuitaDetails extends JPanel {
         int width = 0;
         for(int i=0;i<descriptions.size();i++){
             if(width<metrics.stringWidth(descriptions.get(i)[Repository.LABEL])){
-                width = metrics.stringWidth(descriptions.get(i)[Repository.LABEL]);}}
+                width = metrics.stringWidth(descriptions.get(i)[Repository.LABEL]);
+            }
+        }
         for(int i=0;i<descriptions.size();i++){
             String button = descriptions.get(i)[Repository.SELECTED];
             DefPanel define = new DefPanel(descriptions.get(i)[Repository.LABEL],
@@ -268,8 +264,8 @@ public class SuitaDetails extends JPanel {
                                                                descriptions.get(i)[Repository.ID],
                                                                width,i,this);
             definitions.add(define);
-            defsContainer.add(define);}
-        //setEnabled(false);
+            defsContainer.add(define);
+        }
     }
            
     public int getDefsNr(){
@@ -283,10 +279,71 @@ public class SuitaDetails extends JPanel {
             definitions.get(i).setDescription("");}}
             
     public void setParent(Item parent){ 
+        this.parent = parent;
+        if(parent!=null){
+            try{String line = null;  
+                InputStream in = Repository.c.get(Repository.REMOTEEPIDDIR);
+                InputStreamReader inputStreamReader = new InputStreamReader(in);
+                BufferedReader bufferedReader = new BufferedReader(inputStreamReader);  
+                StringBuffer b=new StringBuffer("");
+                while ((line=bufferedReader.readLine())!= null){b.append(line+";");}                        
+                bufferedReader.close();
+                inputStreamReader.close();
+                in.close();
+                String result = b.toString();
+                String  [] vecresult = result.split(";");
+                combo.setModel( new DefaultComboBoxModel(vecresult));
+                combo.setSelectedItem(parent.getEpId());
+                combo.addItemListener(new ItemListener(){
+                     public void itemStateChanged(ItemEvent evt) {
+                            JComboBox cb = (JComboBox)evt.getSource();
+                            Object item = evt.getItem();                    
+                            if (evt.getStateChange() == ItemEvent.SELECTED) {
+                                String ID = item.toString();
+                                getItemParent().setEpId(ID);
+                                for(int i=0;i<getItemParent().getSubItemsNr();i++){
+                                    Repository.window.mainpanel.p1.sc.g.assignEpID(getItemParent().getSubItem(i),ID);}
+                                Repository.window.mainpanel.p1.sc.g.repaint();
+                            } 
+                        }
+                    }
+                );
+                
+                tsuite.setText(parent.getName());
+                tsuite.addKeyListener(new KeyAdapter(){
+                    public void keyReleased(KeyEvent ev){
+                        String name = tsuite.getText();
+                        FontMetrics metrics = getGraphics().getFontMetrics(new Font("TimesRoman", Font.BOLD, 14));
+                        int width = metrics.stringWidth(name)+140;
+                        getItemParent().setName(name);
+                        getItemParent().getRectangle().setSize(width,(int)getItemParent().getRectangle().getHeight());
+                        if(getItemParent().isVisible())Repository.window.mainpanel.p1.sc.g.updateLocations(getItemParent());
+                        Repository.window.mainpanel.p1.sc.g.repaint();
+                    }
+                });
+            } catch (Exception e){
+                System.out.println("There was a problem in getting ep list");
+                e.printStackTrace();
+            }
+            
+        }
         for(int i=0;i<definitions.size();i++){
             definitions.get(i).setParent(parent);}}
             
-    public void setSuiteDetails(){
+    public void setSuiteDetails(boolean rootsuite){
+        if(rootsuite){
+            suiteoptions.add(combo);
+            suiteoptions.add(ep);
+            for(DefPanel p:definitions){
+                defsContainer.add(p);
+            }
+        } else {
+            suiteoptions.remove(combo);
+            suiteoptions.remove(ep);
+            for(DefPanel p:definitions){
+                defsContainer.remove(p);
+            }
+        }
         scroll.setViewportView(defsContainer);
         setBorderTitle("Suite options");
     }
@@ -319,6 +376,10 @@ public class SuitaDetails extends JPanel {
         
     public void setBorderTitle(String title){
         ((TitledBorder)getBorder()).setTitle(title);
+    }
+    
+    public Item getItemParent(){
+        return this.parent;
     }
         
         
@@ -504,12 +565,9 @@ class DefPanel extends JPanel{
                 
     protected void setParent(Item parent){
         if(parent!=null&&parent.getType()==2){
-//             container.setTitle("Suite "+
-//                                 parent.getName());
             container.setTitle("Suite options");
             container.setEnabled(true);}
         else{
-            //container.setEnabled(false);
             container.setTitle("Global options");}
         this.parent = parent;}
         
