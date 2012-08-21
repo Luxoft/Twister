@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>Central Engine</title>
+	<meta name="author" content="Cristi Constantin">
+	<meta name="description" content="Central Engine users...">
+	<!-- Le styles -->
+	<link href="/static/css/bootstrap.css" rel="stylesheet">
+	<style>
+		body {
+			padding-top: 60px;
+			background: #f6f6f6 url(/static/img/bg.png) repeat fixed;
+		}
+		.hero-unit h1 {margin-top: -25px;}
+		#logs {font-family: Monospace, DejaVu Sans Mono, Courier New, Courier}
+	</style>
+	<link rel="stylesheet" href="/static/css/responsive.css" />
+	<link rel="shortcut icon" href="/static/favicon.ico" />
+	<!-- Le HTML5 shim, for IE6-8 support of HTML5 elements -->
+	<!--[if lt IE 9]>
+	<script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+	<![endif]-->
+</head>
+<body>
+<div class="container">
+
+<div class="tabbable">
+	<ul class="nav nav-tabs">
+		<li class="active"><a data-target="#tab1" data-toggle="tab"> <i class="icon-user"></i> Home </a></li>
+		<li><a data-target="#tab2" data-toggle="tab"> <i class="icon-tasks"></i> Processes </a></li>
+		<li><a data-target='#tab3' data-toggle="tab"> <i class="icon-th-list"></i> Logs </a></li>
+	</ul>
+	<div class="tab-content">
+
+	<div class="tab-pane active" id="tab1">
+	<div class="hero-unit" style="border: 1px solid #aaf">
+		<h1>User `${user}`</h1><br>
+
+		<table class="table table-bordered">
+			<tr><td width="200"><b>Status</b></td><td>${status}
+				<small>(<a href="http://${host}/rest/setUserStatus/${user}/2"><i class="icon-play"></i> start</a> |
+				<a href="http://${host}/rest/setUserStatus/${user}/0"><i class="icon-stop"></i> stop</a> |
+				<a href="http://${host}/rest/resetUser/${user}"><i class="icon-warning-sign"></i> reset!</a>)</small>
+			</td></tr>
+			<tr><td><b>Master config</b></td><td>${master_config}</td></tr>
+			<tr><td><b>Project config</b></td><td>${proj_config}</td></tr>
+			<tr><td><b>Logs path</b></td><td>${logs_path}</td></tr>
+			<tr><td><b>EP files</b></td><td>${eps_file}</td></tr>
+		</table>
+	</div>
+	</div> <!-- End of tab-1 -->
+
+<%
+from datetime import datetime
+now = datetime.today()
+diffs = []
+if now.second < 59:
+	now_str = now.replace(second=now.second+1).strftime('%Y-%m-%d %H:%M:%S')
+else:
+	now_str = now.replace(minute=now.minute+1, second=0).strftime('%Y-%m-%d %H:%M:%S')
+for ep in eps:
+	tmp_now_str = eps[ep].get('last_seen_alive', now_str)
+	diff_time = now - datetime.strptime(tmp_now_str, '%Y-%m-%d %H:%M:%S')
+	diffs.append(diff_time.seconds)
+%>
+
+	<div class="tab-pane" id="tab2">
+	<div class="hero-unit" style="border: 1px solid #aaf">
+		<h1>Processes</h1><br>
+		<div class="tabbable tabs-left">
+		<ul class="nav nav-tabs">
+		% for ep in eps:
+			<li${' class="active"' if loop.first else ''}><a data-target="#${ep.replace(" ", "_")}" data-toggle="tab">
+			<i class="${'icon-ok-circle' if diffs[loop.index] < 10 else 'icon-time'}"></i>
+			% if statuses[loop.index] == 'running':
+			<i class="icon-play"></i>
+			% elif statuses[loop.index] == 'paused':
+			<i class="icon-pause"></i>
+			% else:
+			<i class="icon-stop"></i>
+			% endif
+			${ep} </a></li>
+		% endfor
+		</ul>
+
+		<div class="tab-content">
+		% for ep in eps:
+			<div class="tab-pane${' active' if loop.first else ''}" id="${ep.replace(" ", "_")}">
+				<h3> ${ep} (${'%i sec' % diffs[loop.index] if loop.first else 'unavailable'}) </h3><br>
+				<ul>
+				% for suite in eps[ep]['suites']:
+					<li>Suite `<i>${suite}</i>` [<b> ${eps[ep]['suites'][suite]['name']} </b>]
+						<ol>
+						% for file in eps[ep]['suites'][suite]['files']:
+							<li>File `<i>${file}</i>` [<b> ${eps[ep]['suites'][suite]['files'][file]['file']} </b>]</li>
+						% endfor
+						</ol> <!-- End of Files -->
+					</li><br>
+				% endfor
+				</ul> <!-- End of Suites -->
+			</div>
+		% endfor
+		</div>
+		</div> <!-- End of Tabbable -->
+	</div>
+	</div> <!-- End of tab-2 -->
+
+	<div class="tab-pane" id="tab3">
+	<div class="hero-unit" style="border: 1px solid #aaf">
+		<h1>Logs</h1><br>
+		<div class="tabbable tabs-left">
+		<ul class="nav nav-tabs">
+		% for log in sorted(logs.keys()):
+			<li${' class="active"' if loop.first else ''}><a data-target="#${log}" data-toggle="tab"> <i class="icon-th-list"></i> ${log} </a></li>
+		% endfor
+		</ul>
+
+		<div class="tab-content">
+		% for log in sorted(logs.keys()):
+			<div class="tab-pane${' active' if loop.first else ''}" id="${log}">
+			<h3> ${log} </h3><br>
+			<p>Here comes the log...</p>
+			</div>
+		% endfor
+		</div>
+		</div> <!-- End of Tabbable -->
+	</div>
+	</div> <!-- End of tab-3 -->
+
+	</div> <!-- End of tab-content -->
+</div> <!-- End of tabbable -->
+</div>
+
+<script src="/static/js/jquery.min.js"></script>
+<script src="/static/js/bootstrap.min.js"></script>
+
+<script type="text/javascript">
+function getServerLogs() {
+	var pos_i, pos_f;
+	$.getJSON("/rest/json_logs",
+		// On success, execute the following :
+		function(html) {
+			console.log(html);
+			$('#logs').html(html);
+	});
+};
+$("#refresh_logs").click(function () {
+	$("#refresh_logs").after('<span id="updating_logs"> ... Updating...</span>');
+	getServerLogs();
+	$("#updating_logs").fadeToggle(1500, "linear");
+});
+// Get logs !
+getServerLogs();
+</script>
+</body>
+</html>
