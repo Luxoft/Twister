@@ -1020,6 +1020,11 @@ public class Grafic extends JPanel{
                         }
                         Repository.window.mainpanel.p1.suitaDetails.setSuiteDetails(root);
                     }
+                    if(getItem(selected,false).getType()==1){
+                        Item temp = getItem(selected,false);
+                        Repository.window.mainpanel.p1.suitaDetails.setParent(temp);
+                        Repository.window.mainpanel.p1.suitaDetails.setTCDetails();
+                    }
                     
                     
 //                     if(getItem(selected,false).getType()==2
@@ -1139,6 +1144,7 @@ public class Grafic extends JPanel{
                     if(getItem(selected,false).getType()==0) propertyPopUp(ev,getItem(selected,false));
                     else if(getItem(selected,false).getType()==1) tcPopUp(ev,getItem(selected,false));
                     else{
+                        System.out.println("Here1");
                         Item temp = getItem(selected,false);
                         boolean root = false;
                         Repository.window.mainpanel.p1.suitaDetails.setParent(temp);
@@ -1167,31 +1173,28 @@ public class Grafic extends JPanel{
                         if(getItem(selected,false).getType()==0) propertyPopUp(ev,getItem(selected,false));
                         else if(getItem(selected,false).getType()==1) tcPopUp(ev,getItem(selected,false));
                         else{
-                            
+                            System.out.println("Here2");
                             Item temp = getItem(selected,false);
                             boolean root = false;
                             Repository.window.mainpanel.p1.suitaDetails.setParent(temp);
-                            
-                            int userDefNr = temp.getUserDefNr();                            
-                            if(userDefNr!=Repository.window.mainpanel.p1.suitaDetails.getDefsNr()){
-                                System.out.println("Warning, suite "+
-                                    temp.getName()+" has "+userDefNr+" fields while in bd.xml are defined "+
-                                    Repository.window.mainpanel.p1.suitaDetails.getDefsNr()+" fields");
-                                if(Repository.window.mainpanel.p1.suitaDetails.getDefsNr()<userDefNr){
-                                    temp.getUserDefs().subList(Repository.window.mainpanel.p1.suitaDetails.
-                                    getDefsNr(),userDefNr).clear();}}
-                            try{    
-                                for(int i=0;i<Repository.window.mainpanel.p1.suitaDetails.getDefsNr();i++){
-                                    if(temp.getUserDefNr()==i)break;
-                                    Repository.window.mainpanel.p1.suitaDetails.getDefPanel(i).
-                                                        setDescription(temp.getUserDef(i)[1]);}}
-                            catch(Exception e){e.printStackTrace();}
-                            
+                            if(temp.getPos().size()==1){//if it is a root suite
+                                root = true;
+                                int userDefNr = temp.getUserDefNr();                            
+                                if(userDefNr!=Repository.window.mainpanel.p1.suitaDetails.getDefsNr()){
+                                    System.out.println("Warning, suite "+
+                                        temp.getName()+" has "+userDefNr+" fields while in bd.xml are defined "+
+                                        Repository.window.mainpanel.p1.suitaDetails.getDefsNr()+" fields");
+                                    if(Repository.window.mainpanel.p1.suitaDetails.getDefsNr()<userDefNr){
+                                        temp.getUserDefs().subList(Repository.window.mainpanel.p1.suitaDetails.
+                                        getDefsNr(),userDefNr).clear();}}
+                                try{    
+                                    for(int i=0;i<Repository.window.mainpanel.p1.suitaDetails.getDefsNr();i++){
+                                        if(temp.getUserDefNr()==i)break;
+                                        Repository.window.mainpanel.p1.suitaDetails.getDefPanel(i).
+                                                            setDescription(temp.getUserDef(i)[1]);}}
+                                catch(Exception e){e.printStackTrace();}}
+                            Repository.window.mainpanel.p1.suitaDetails.setSuiteDetails(root);                            
                             suitaPopUp(ev,getItem(selected,false));
-                            
-                            
-                            Repository.window.mainpanel.p1.suitaDetails.setSuiteDetails(true);
-                            
                         }
                     }
                     else{multipleSelectionPopUp(ev);}}}}
@@ -1500,50 +1503,50 @@ public class Grafic extends JPanel{
             public void actionPerformed(ActionEvent ev){
                 new AddSuiteFrame(Grafic.this, suita,0);}});
         p.add(item);        
-        if(suita.getPos().size()==1){
-            item = new JMenuItem("Set Ep");
-            p.add(item);
-            item.addActionListener(new ActionListener(){
-                public void actionPerformed(ActionEvent ev){
-                    try{File f = new File(Repository.temp+System.getProperty("file.separator")+
-                                          "Twister"+System.getProperty("file.separator")+"Epname.txt");
-                        String line = null;  
-                        InputStream in = Repository.c.get(Repository.REMOTEEPIDDIR);
-                        InputStreamReader inputStreamReader = new InputStreamReader(in);
-                        BufferedReader bufferedReader = new BufferedReader(inputStreamReader);  
-                        StringBuffer b=new StringBuffer("");
-                        while ((line=bufferedReader.readLine())!= null){b.append(line+";");}                        
-                        bufferedReader.close();
-                        inputStreamReader.close();
-                        in.close();
-                        String result = b.toString();
-                        String  [] vecresult = result.split(";");
-                        try{JComboBox combo = new JComboBox(vecresult);
-                            int resp = (Integer)CustomDialog.showDialog(combo,JOptionPane.INFORMATION_MESSAGE,
-                                                                        JOptionPane.OK_CANCEL_OPTION,Grafic.this,
-                                                                        "Epname",null);
-                            if(resp==JOptionPane.OK_OPTION){
-                                String ID = combo.getSelectedItem().toString();
-                                suita.setEpId(ID);
-                                for(int i=0;i<suita.getSubItemsNr();i++){
-                                    assignEpID(suita.getSubItem(i),ID);}
-                                repaint();}}
-                        catch(Exception e){e.printStackTrace();}}
-                    catch(Exception e){e.printStackTrace();}}});}
-        item = new JMenuItem("Rename");
-        p.add(item);
-        item.addActionListener(new ActionListener(){
-            public void actionPerformed(ActionEvent ev){   
-            String name = CustomDialog.showInputDialog(JOptionPane.QUESTION_MESSAGE, 
-                                                       JOptionPane.OK_CANCEL_OPTION, 
-                                                       Grafic.this, "Suite Name", 
-                                                       "Please enter suite name").toUpperCase();
-            FontMetrics metrics = getGraphics().getFontMetrics(new Font("TimesRoman", Font.BOLD, 14));
-            int width = metrics.stringWidth(name)+140;
-            suita.setName(name);
-            suita.getRectangle().setSize(width,(int)suita.getRectangle().getHeight());
-            if(suita.isVisible())updateLocations(suita);
-            repaint();}});
+//         if(suita.getPos().size()==1){
+//             item = new JMenuItem("Set Ep");
+//             p.add(item);
+//             item.addActionListener(new ActionListener(){
+//                 public void actionPerformed(ActionEvent ev){
+//                     try{File f = new File(Repository.temp+System.getProperty("file.separator")+
+//                                           "Twister"+System.getProperty("file.separator")+"Epname.txt");
+//                         String line = null;  
+//                         InputStream in = Repository.c.get(Repository.REMOTEEPIDDIR);
+//                         InputStreamReader inputStreamReader = new InputStreamReader(in);
+//                         BufferedReader bufferedReader = new BufferedReader(inputStreamReader);  
+//                         StringBuffer b=new StringBuffer("");
+//                         while ((line=bufferedReader.readLine())!= null){b.append(line+";");}                        
+//                         bufferedReader.close();
+//                         inputStreamReader.close();
+//                         in.close();
+//                         String result = b.toString();
+//                         String  [] vecresult = result.split(";");
+//                         try{JComboBox combo = new JComboBox(vecresult);
+//                             int resp = (Integer)CustomDialog.showDialog(combo,JOptionPane.INFORMATION_MESSAGE,
+//                                                                         JOptionPane.OK_CANCEL_OPTION,Grafic.this,
+//                                                                         "Epname",null);
+//                             if(resp==JOptionPane.OK_OPTION){
+//                                 String ID = combo.getSelectedItem().toString();
+//                                 suita.setEpId(ID);
+//                                 for(int i=0;i<suita.getSubItemsNr();i++){
+//                                     assignEpID(suita.getSubItem(i),ID);}
+//                                 repaint();}}
+//                         catch(Exception e){e.printStackTrace();}}
+//                     catch(Exception e){e.printStackTrace();}}});}
+//         item = new JMenuItem("Rename");
+//         p.add(item);
+//         item.addActionListener(new ActionListener(){
+//             public void actionPerformed(ActionEvent ev){   
+//             String name = CustomDialog.showInputDialog(JOptionPane.QUESTION_MESSAGE, 
+//                                                        JOptionPane.OK_CANCEL_OPTION, 
+//                                                        Grafic.this, "Suite Name", 
+//                                                        "Please enter suite name").toUpperCase();
+//             FontMetrics metrics = getGraphics().getFontMetrics(new Font("TimesRoman", Font.BOLD, 14));
+//             int width = metrics.stringWidth(name)+140;
+//             suita.setName(name);
+//             suita.getRectangle().setSize(width,(int)suita.getRectangle().getHeight());
+//             if(suita.isVisible())updateLocations(suita);
+//             repaint();}});
         item = new JMenuItem("Expand");
         p.add(item);
         item.addActionListener(new ActionListener(){
@@ -2128,7 +2131,7 @@ public class Grafic extends JPanel{
      * changes suites file name and sets
      * name accordingly on tab
      */
-    public void setUser(String user){//
+    public void setUser(String user){
         Repository.window.mainpanel.p1.setOpenedfile(new File(user).getName());
         Repository.window.mainpanel.p1.suitaDetails.setGlobalDetails();
         Repository.window.mainpanel.p1.suitaDetails.clearDefs();
@@ -2151,7 +2154,8 @@ public class Grafic extends JPanel{
      * writes xml on file
      * if skip => master xml
      */
-    public boolean printXML(String user, boolean skip, boolean local, boolean stoponfail){
+    public boolean printXML(String user, boolean skip,
+                            boolean local, boolean stoponfail){
         //skip = true
         try{XMLBuilder xml = new XMLBuilder(Repository.getSuite());
             xml.createXML(skip,stoponfail,false,
