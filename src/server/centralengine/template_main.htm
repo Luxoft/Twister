@@ -15,7 +15,6 @@
 		.hero-unit h1 {margin-top: -25px;}
 		#logs {font-family: Monospace, DejaVu Sans Mono, Courier New, Courier}
 	</style>
-	<link rel="stylesheet" href="/static/css/responsive.css" />
 	<link rel="shortcut icon" href="/static/favicon.ico" />
 	<!-- Le HTML5 shim, for IE6-8 support of HTML5 elements -->
 	<!--[if lt IE 9]>
@@ -23,13 +22,13 @@
 	<![endif]-->
 </head>
 <body>
-<div class="container">
+<div class="container-fluid">
 
 <div class="tabbable">
-	<ul class="nav nav-tabs">
+	<ul class="nav nav-pills">
 		<li class="active"><a data-target="#tab1" data-toggle="tab"> <i class="icon-home"></i> Main </a></li>
 		<li><a data-target="#tab2" data-toggle="tab"> <i class="icon-user"></i> Users </a></li>
-		<li><a data-target='#tab3' data-toggle="tab"> <i class="icon-th-list"></i> Logs </a></li>
+		<li><a data-target='#tab3' data-toggle="tab"> <i class="icon-th-list"></i> Log </a></li>
 	</ul>
 	<div class="tab-content">
 
@@ -59,9 +58,9 @@
 
 	<div class="tab-pane" id="tab3">
 	<div class="hero-unit" style="border: 1px solid #aaf">
-		<h1>Central Engine Logs</h1><br>
-		<i class="icon-refresh" id="refresh_logs"></i> <br><br>
-		<span id="logs">Logs...</span>
+		<h1>Central Engine Log</h1><br>
+		<i class="icon-refresh" id="refresh_log"></i> <br><br>
+		<span id="logs">Log...</span>
 	</div>
 	</div> <!-- End of tab-3 -->
 
@@ -97,16 +96,15 @@ function drawServerStats() {
 	setTimeout(draw_srv, refreshint);
 };
 function getServerLogs() {
-	var pos_i, pos_f;
+	// var pos_i, pos_f;
 	$.getJSON("/rest/json_logs",
 		// On success, execute the following :
 		function(html) {
-			console.log(html);
 			$('#logs').html(html);
 	});
 };
-$("#refresh_logs").click(function () {
-	$("#refresh_logs").after('<span id="updating_logs"> ... Updating...</span>');
+$("#refresh_log").click(function () {
+	$("#refresh_log").after('<span id="updating_logs"> ... Updating...</span>');
 	getServerLogs();
 	$("#updating_logs").fadeToggle(1500, "linear");
 });
@@ -114,5 +112,6 @@ $("#refresh_logs").click(function () {
 drawServerStats();
 getServerLogs();
 </script>
+
 </body>
 </html>

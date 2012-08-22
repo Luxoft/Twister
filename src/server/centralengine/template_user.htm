@@ -13,9 +13,8 @@
 			background: #f6f6f6 url(/static/img/bg.png) repeat fixed;
 		}
 		.hero-unit h1 {margin-top: -25px;}
-		#logs {font-family: Monospace, DejaVu Sans Mono, Courier New, Courier}
+		.logs_content {font-family: Monospace, DejaVu Sans Mono, Courier New, Courier}
 	</style>
-	<link rel="stylesheet" href="/static/css/responsive.css" />
 	<link rel="shortcut icon" href="/static/favicon.ico" />
 	<!-- Le HTML5 shim, for IE6-8 support of HTML5 elements -->
 	<!--[if lt IE 9]>
@@ -23,10 +22,10 @@
 	<![endif]-->
 </head>
 <body>
-<div class="container">
+<div class="container-fluid">
 
 <div class="tabbable">
-	<ul class="nav nav-tabs">
+	<ul class="nav nav-pills">
 		<li class="active"><a data-target="#tab1" data-toggle="tab"> <i class="icon-user"></i> Home </a></li>
 		<li><a data-target="#tab2" data-toggle="tab"> <i class="icon-tasks"></i> Processes </a></li>
 		<li><a data-target='#tab3' data-toggle="tab"> <i class="icon-th-list"></i> Logs </a></li>
@@ -72,7 +71,7 @@ for ep in eps:
 		<ul class="nav nav-tabs">
 		% for ep in eps:
 			<li${' class="active"' if loop.first else ''}><a data-target="#${ep.replace(" ", "_")}" data-toggle="tab">
-			<i class="${'icon-ok-circle' if diffs[loop.index] < 10 else 'icon-time'}"></i>
+			<i class="${'icon-ok' if diffs[loop.index] < 10 else 'icon-off'}"></i>
 			% if statuses[loop.index] == 'running':
 			<i class="icon-play"></i>
 			% elif statuses[loop.index] == 'paused':
@@ -87,7 +86,7 @@ for ep in eps:
 		<div class="tab-content">
 		% for ep in eps:
 			<div class="tab-pane${' active' if loop.first else ''}" id="${ep.replace(" ", "_")}">
-				<h3> ${ep} (${'%i sec' % diffs[loop.index] if loop.first else 'unavailable'}) </h3><br>
+				<h3> ${ep} (${'%i sec' % diffs[loop.index] if diffs[loop.index] < 10 else 'no service'}) </h3><br>
 				<ul>
 				% for suite in eps[ep]['suites']:
 					<li>Suite `<i>${suite}</i>` [<b> ${eps[ep]['suites'][suite]['name']} </b>]
@@ -112,15 +111,15 @@ for ep in eps:
 		<div class="tabbable tabs-left">
 		<ul class="nav nav-tabs">
 		% for log in sorted(logs.keys()):
-			<li${' class="active"' if loop.first else ''}><a data-target="#${log}" data-toggle="tab"> <i class="icon-th-list"></i> ${log} </a></li>
+			<li${' class="active refresh_logs"' if loop.first else ' class="refresh_logs"'}><a data-target="#div_${log}" data-toggle="tab"> <i class="icon-th-list"></i> ${log} </a></li>
 		% endfor
 		</ul>
 
-		<div class="tab-content">
+		<div class="tab-content logs_content">
 		% for log in sorted(logs.keys()):
-			<div class="tab-pane${' active' if loop.first else ''}" id="${log}">
+			<div class="tab-pane${' active' if loop.first else ''}" id="div_${log}">
 			<h3> ${log} </h3><br>
-			<p>Here comes the log...</p>
+			<span id="${log}">Logs...</span>
 			</div>
 		% endfor
 		</div>
@@ -136,22 +135,21 @@ for ep in eps:
 <script src="/static/js/bootstrap.min.js"></script>
 
 <script type="text/javascript">
-function getServerLogs() {
-	var pos_i, pos_f;
-	$.getJSON("/rest/json_logs",
+function getServerLogs(log_name) {
+	$.getJSON("/rest/json_logs/${user}/" + log_name,
 		// On success, execute the following :
 		function(html) {
-			console.log(html);
-			$('#logs').html(html);
+			$("#" + log_name).html(html);
 	});
 };
-$("#refresh_logs").click(function () {
-	$("#refresh_logs").after('<span id="updating_logs"> ... Updating...</span>');
-	getServerLogs();
-	$("#updating_logs").fadeToggle(1500, "linear");
+$(".refresh_logs").click(function () {
+	$(this).find("i").after(' <i class="updating_logs icon-refresh"></i> ');
+	getServerLogs( $.trim($(this).text()) );
+	$(".updating_logs").fadeOut(1500, "linear", function() {$(".updating_logs").remove();});
 });
-// Get logs !
-getServerLogs();
+// Get logs ?!
+// getServerLogs();
 </script>
+
 </body>
 </html>

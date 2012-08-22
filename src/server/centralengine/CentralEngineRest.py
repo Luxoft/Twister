@@ -117,7 +117,9 @@ def calcCpu():
     return float('%.2f' % cpuPer)
 
 def prepareLog(log_file):
-    log = open(log_file).read().strip()
+    if not os.path.isfile(log_file):
+        return 'File `{0}` does not exist!'.format(log_file)
+    log = open(log_file).read().rstrip()
     body = log.replace('\n', '<br>\n').replace(' ', '&nbsp;')
     body = body.replace(';INFO&',   ';<b style="color:gray">INFO</b>&')
     body = body.replace(';DEBUG&',  ';<b style="color:gray">DEBUG</b>&')
@@ -201,12 +203,15 @@ class CentralEngineRest:
         return json.dumps(data)
 
     @cherrypy.expose
-    def json_logs(self):
+    def json_logs(self, user='', log=''):
+        if user and log:
+            logs = self.project.getUserInfo(user, 'log_types')
+            log = logs.get(log)
         cherrypy.response.headers['Content-Type']  = 'application/json; charset=utf-8'
         cherrypy.response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
         cherrypy.response.headers['Pragma']  = 'no-cache'
         cherrypy.response.headers['Expires'] = 0
-        return json.dumps(prepareLog(LOG_FILE))
+        return json.dumps(prepareLog(log or LOG_FILE))
 
 
 
