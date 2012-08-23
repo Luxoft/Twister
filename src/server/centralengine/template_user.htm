@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 	<meta charset="utf-8">
-	<title>Central Engine</title>
+	<title>Twister: user `${user}`</title>
 	<meta name="author" content="Cristi Constantin">
 	<meta name="description" content="Central Engine users...">
 	<!-- Le styles -->
@@ -24,23 +24,25 @@
 <body>
 <div class="container-fluid">
 
+<ul class="pager" style="position:absolute;margin-top:-45px;"><li class="previous"><a href="/rest">Back</a></li></ul>
+
 <div class="tabbable">
 	<ul class="nav nav-pills">
-		<li class="active"><a data-target="#tab1" data-toggle="tab"> <i class="icon-user"></i> Home </a></li>
-		<li><a data-target="#tab2" data-toggle="tab"> <i class="icon-tasks"></i> Processes </a></li>
-		<li><a data-target='#tab3' data-toggle="tab"> <i class="icon-th-list"></i> Logs </a></li>
+		<li class="active"><a href="#home" data-toggle="tab"> <i class="icon-user"></i> Home </a></li>
+		<li><a href="#tab2" data-toggle="tab"> <i class="icon-tasks"></i> Processes </a></li>
+		<li><a href="#tab3" data-toggle="tab"> <i class="icon-th-list"></i> Logs </a></li>
 	</ul>
 	<div class="tab-content">
 
-	<div class="tab-pane active" id="tab1">
+	<div class="tab-pane active" id="home">
 	<div class="hero-unit" style="border: 1px solid #aaf">
 		<h1>User `${user}`</h1><br>
 
 		<table class="table table-bordered">
 			<tr><td width="200"><b>Status</b></td><td>${status}
-				<small>(<a href="http://${host}/rest/setUserStatus/${user}/2"><i class="icon-play"></i> start</a> |
-				<a href="http://${host}/rest/setUserStatus/${user}/0"><i class="icon-stop"></i> stop</a> |
-				<a href="http://${host}/rest/resetUser/${user}"><i class="icon-warning-sign"></i> reset!</a>)</small>
+				<small>(<a href="http://${host}/rest/setUserStatus/${user}/2"><i class="icon-play"></i> start</a>&nbsp; |
+				<a href="http://${host}/rest/setUserStatus/${user}/0"><i class="icon-stop"></i> stop</a>&nbsp; |
+				<a href="http://${host}/rest/resetUser/${user}"><i class="icon-warning-sign"></i> reset!</a> )</small>
 			</td></tr>
 			<tr><td><b>Master config</b></td><td>${master_config}</td></tr>
 			<tr><td><b>Project config</b></td><td>${proj_config}</td></tr>
@@ -66,12 +68,12 @@ for ep in eps:
 
 	<div class="tab-pane" id="tab2">
 	<div class="hero-unit" style="border: 1px solid #aaf">
-		<h1>Processes</h1><br>
+		<h1>Processes for `${user}`</h1><br>
 		<div class="tabbable tabs-left">
 		<ul class="nav nav-tabs">
 		% for ep in eps:
 			<li${' class="active"' if loop.first else ''}><a data-target="#${ep.replace(" ", "_")}" data-toggle="tab">
-			<i class="${'icon-ok' if diffs[loop.index] < 10 else 'icon-off'}"></i>
+			<i class="${'icon-ok-sign' if diffs[loop.index] < 10 else 'icon-warning-sign'}"></i>
 			% if statuses[loop.index] == 'running':
 			<i class="icon-play"></i>
 			% elif statuses[loop.index] == 'paused':
@@ -85,14 +87,14 @@ for ep in eps:
 
 		<div class="tab-content">
 		% for ep in eps:
-			<div class="tab-pane${' active' if loop.first else ''}" id="${ep.replace(" ", "_")}">
-				<h3> ${ep} (${'%i sec' % diffs[loop.index] if diffs[loop.index] < 10 else 'no service'}) </h3><br>
+			<div class="tab-pane${' active' if loop.first else ''}" id="${ep.replace(" ", "_")}" style="margin-top:-10px">
+				<h2> ${ep} (${'%i sec' % diffs[loop.index] if diffs[loop.index] < 10 else 'no service'}) </h2>
 				<ul>
 				% for suite in eps[ep]['suites']:
-					<li>Suite `<i>${suite}</i>` [<b> ${eps[ep]['suites'][suite]['name']} </b>]
+					<li>Suite `<small>${suite}</small>` [<b> ${eps[ep]['suites'][suite]['name']} </b>]
 						<ol>
 						% for file in eps[ep]['suites'][suite]['files']:
-							<li>File `<i>${file}</i>` [<b> ${eps[ep]['suites'][suite]['files'][file]['file']} </b>]</li>
+							<li>File `<small>${file}</small>` [<b> ${eps[ep]['suites'][suite]['files'][file]['file']} </b>]</li>
 						% endfor
 						</ol> <!-- End of Files -->
 					</li><br>
@@ -101,29 +103,29 @@ for ep in eps:
 			</div>
 		% endfor
 		</div>
-		</div> <!-- End of Tabbable -->
+		</div> <!-- End of tabbable -->
 	</div>
 	</div> <!-- End of tab-2 -->
 
 	<div class="tab-pane" id="tab3">
 	<div class="hero-unit" style="border: 1px solid #aaf">
-		<h1>Logs</h1><br>
+		<h1>Logs for `${user}`</h1><br>
 		<div class="tabbable tabs-left">
 		<ul class="nav nav-tabs">
 		% for log in sorted(logs.keys()):
-			<li${' class="active refresh_logs"' if loop.first else ' class="refresh_logs"'}><a data-target="#div_${log}" data-toggle="tab"> <i class="icon-th-list"></i> ${log} </a></li>
+			<li${' class="refresh_logs active"' if loop.first else ' class="refresh_logs"'}><a data-target="#div_${log}" data-toggle="tab"> <i class="icon-th-list"></i> ${log} </a></li>
 		% endfor
 		</ul>
 
 		<div class="tab-content logs_content">
 		% for log in sorted(logs.keys()):
-			<div class="tab-pane${' active' if loop.first else ''}" id="div_${log}">
-			<h3> ${log} </h3><br>
+			<div class="tab-pane${' active' if loop.first else ''}" id="div_${log}" style="margin-top:-10px">
+			<h2> ${log} </h2>
 			<span id="${log}">Logs...</span>
 			</div>
 		% endfor
 		</div>
-		</div> <!-- End of Tabbable -->
+		</div> <!-- End of logs tabbable -->
 	</div>
 	</div> <!-- End of tab-3 -->
 
@@ -135,6 +137,14 @@ for ep in eps:
 <script src="/static/js/bootstrap.min.js"></script>
 
 <script type="text/javascript">
+// Javascript to enable link to tab
+var activeTab = $('[href="' + location.hash + '"]');
+activeTab && activeTab.tab('show');
+// On pill shown, change window location
+$(".nav-pills a").on("shown", function (e) {
+	window.location.hash = e.target.hash;
+});
+
 function getServerLogs(log_name) {
 	$.getJSON("/rest/json_logs/${user}/" + log_name,
 		// On success, execute the following :
@@ -147,8 +157,9 @@ $(".refresh_logs").click(function () {
 	getServerLogs( $.trim($(this).text()) );
 	$(".updating_logs").fadeOut(1500, "linear", function() {$(".updating_logs").remove();});
 });
-// Get logs ?!
-// getServerLogs();
+// Simulate click on first log
+$(".refresh_logs").click();
+
 </script>
 
 </body>
