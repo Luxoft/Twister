@@ -28,25 +28,25 @@
 
 <div class="tabbable">
 	<ul class="nav nav-pills">
-		<li class="active"><a href="#home" data-toggle="tab"> <i class="icon-user"></i> Home </a></li>
-		<li><a href="#tab2" data-toggle="tab"> <i class="icon-tasks"></i> Processes </a></li>
-		<li><a href="#tab3" data-toggle="tab"> <i class="icon-th-list"></i> Logs </a></li>
+		<li class="active"><a href="#tab_home" data-toggle="tab"> <i class="icon-user"></i> Home </a></li>
+		<li><a href="#tab_proc" data-toggle="tab"> <i class="icon-tasks"></i> Processes </a></li>
+		<li><a href="#tab_logs" data-toggle="tab"> <i class="icon-th-list"></i> Logs </a></li>
 	</ul>
 	<div class="tab-content">
 
-	<div class="tab-pane active" id="home">
+	<div class="tab-pane active" id="tab_home">
 	<div class="hero-unit" style="border: 1px solid #aaf">
 		<h1>User `${user}`</h1><br>
 
 		<table class="table table-bordered">
-			<tr><td width="200"><b>Status</b></td><td>${status}
+			<tr><td width="200"><b>Status</b></td><td><span id="user_status">${status}</span>
 				<small>(<a href="http://${host}/rest/setUserStatus/${user}/2"><i class="icon-play"></i> start</a>&nbsp; |
 				<a href="http://${host}/rest/setUserStatus/${user}/0"><i class="icon-stop"></i> stop</a>&nbsp; |
 				<a href="http://${host}/rest/resetUser/${user}"><i class="icon-warning-sign"></i> reset!</a> )</small>
 			</td></tr>
-			<tr><td><b>Master config</b></td><td>${master_config}</td></tr>
-			<tr><td><b>Project config</b></td><td>${proj_config}</td></tr>
-			<tr><td><b>Logs path</b></td><td>${logs_path}</td></tr>
+			<tr><td><b>Master config</b></td><td><span id="master_config">${master_config}</span></td></tr>
+			<tr><td><b>Project config</b></td><td><span id="proj_config">${proj_config}</span></td></tr>
+			<tr><td><b>Logs path</b></td><td><span id="logs_path">${logs_path}</span></td></tr>
 			<tr><td><b>EP files</b></td><td>${eps_file}</td></tr>
 		</table>
 	</div>
@@ -54,6 +54,7 @@
 
 <%
 from datetime import datetime
+from binascii import hexlify as encode
 now = datetime.today()
 diffs = []
 if now.second < 59:
@@ -66,17 +67,17 @@ for ep in eps:
 	diffs.append(diff_time.seconds)
 %>
 
-	<div class="tab-pane" id="tab2">
+	<div class="tab-pane" id="tab_proc">
 	<div class="hero-unit" style="border: 1px solid #aaf">
 		<h1>Processes for `${user}`</h1><br>
 		<div class="tabbable tabs-left">
 		<ul class="nav nav-tabs">
 		% for ep in eps:
-			<li${' class="active"' if loop.first else ''}><a data-target="#${ep.replace(" ", "_")}" data-toggle="tab">
+			<li${' class="refresh_eps active"' if loop.first else ' class="refresh_eps"'}><a href="/rest/eps/${user}/${encode(ep)}" data-target="#${encode(ep)}" data-toggle="tabajax">
 			<i class="${'icon-ok-sign' if diffs[loop.index] < 10 else 'icon-warning-sign'}"></i>
-			% if statuses[loop.index] == 'running':
+			% if ep_statuses[loop.index] == 'running':
 			<i class="icon-play"></i>
-			% elif statuses[loop.index] == 'paused':
+			% elif ep_statuses[loop.index] == 'paused':
 			<i class="icon-pause"></i>
 			% else:
 			<i class="icon-stop"></i>
@@ -87,42 +88,27 @@ for ep in eps:
 
 		<div class="tab-content">
 		% for ep in eps:
-			<div class="tab-pane${' active' if loop.first else ''}" id="${ep.replace(" ", "_")}" style="margin-top:-10px">
-				<h2> ${ep} (${'%i sec' % diffs[loop.index] if diffs[loop.index] < 10 else 'no service'}) </h2>
-				<ul>
-				% for suite in eps[ep]['suites']:
-					<li>Suite `<small>${suite}</small>` [<b> ${eps[ep]['suites'][suite]['name']} </b>]
-						<ol>
-						% for file in eps[ep]['suites'][suite]['files']:
-							<li>File `<small>${file}</small>` [<b> ${eps[ep]['suites'][suite]['files'][file]['file']} </b>]</li>
-						% endfor
-						</ol> <!-- End of Files -->
-					</li><br>
-				% endfor
-				</ul> <!-- End of Suites -->
-			</div>
+			<div class="tab-pane${' active' if loop.first else ''}" id="${encode(ep)}" style="margin-top:-10px"></div>
 		% endfor
 		</div>
 		</div> <!-- End of tabbable -->
 	</div>
 	</div> <!-- End of tab-2 -->
 
-	<div class="tab-pane" id="tab3">
+	<div class="tab-pane" id="tab_logs">
 	<div class="hero-unit" style="border: 1px solid #aaf">
 		<h1>Logs for `${user}`</h1><br>
 		<div class="tabbable tabs-left">
 		<ul class="nav nav-tabs">
 		% for log in sorted(logs.keys()):
-			<li${' class="refresh_logs active"' if loop.first else ' class="refresh_logs"'}><a data-target="#div_${log}" data-toggle="tab"> <i class="icon-th-list"></i> ${log} </a></li>
+			<li${' class="refresh_logs active"' if loop.first else ' class="refresh_logs"'}><a href="/rest/logs/${user}/${log}" data-target="#${log}" data-toggle="tabajax">
+			<i class="icon-th-list"></i> ${log} </a></li>
 		% endfor
 		</ul>
 
 		<div class="tab-content logs_content">
 		% for log in sorted(logs.keys()):
-			<div class="tab-pane${' active' if loop.first else ''}" id="div_${log}" style="margin-top:-10px">
-			<h2> ${log} </h2>
-			<span id="${log}">Logs...</span>
-			</div>
+			<div class="tab-pane${' active' if loop.first else ''}" id="${log}"></div>
 		% endfor
 		</div>
 		</div> <!-- End of logs tabbable -->
@@ -137,7 +123,8 @@ for ep in eps:
 <script src="/static/js/bootstrap.min.js"></script>
 
 <script type="text/javascript">
-// Javascript to enable link to tab
+
+// Show tab from hash link
 var activeTab = $('[href="' + location.hash + '"]');
 activeTab && activeTab.tab('show');
 // On pill shown, change window location
@@ -145,21 +132,38 @@ $(".nav-pills a").on("shown", function (e) {
 	window.location.hash = e.target.hash;
 });
 
-function getServerLogs(log_name) {
-	$.getJSON("/rest/json_logs/${user}/" + log_name,
-		// On success, execute the following :
-		function(html) {
-			$("#" + log_name).html(html);
-	});
+function updateUserStats() {
+	var refresh_int = 1500; // update every X ms
+	var status_dict = ${exec_status};
+	var updt_usr = function() {
+		$.getJSON("/rest/json_all",
+			// On success, execute the following :
+			function(jdata) {
+				$("span#user_status").text(status_dict[ jdata["${user}"]["status"] ]); // User status
+				$("span#master_config").text(jdata["${user}"]["config_path"]); // User master config
+				$("span#proj_config").text(jdata["${user}"]["tests_path"]);    // User project config
+				$("span#logs_path").text(jdata["${user}"]["logs_path"]);       // User logs
+			});
+		setTimeout(updt_usr, refresh_int);
+	}
+	setTimeout(updt_usr, refresh_int);
 };
-$(".refresh_logs").click(function () {
-	$(this).find("i").after(' <i class="updating_logs icon-refresh"></i> ');
-	getServerLogs( $.trim($(this).text()) );
-	$(".updating_logs").fadeOut(1500, "linear", function() {$(".updating_logs").remove();});
-});
-// Simulate click on first log
-$(".refresh_logs").click();
 
+// Ajax tabs
+$('[data-toggle="tabajax"]').click(function(e) {
+	e.preventDefault();
+	$this = $(this);
+	var loadurl = $(this).attr("href");
+	var targ = $(this).attr("data-target");
+	$(targ).load(loadurl, function() {
+		$this.tab("show");
+	});
+});
+
+// Start updating user stats
+updateUserStats();
+// Simulate click on active ajax tabs
+$('[data-toggle="tabajax"][.active]').click();
 </script>
 
 </body>

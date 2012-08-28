@@ -32,10 +32,10 @@ import os, sys
 import glob
 import json
 import time
-import datetime
 import platform
 import cherrypy
 from mako.template import Template
+from binascii import unhexlify as decode
 
 TWISTER_PATH = os.getenv('TWISTER_PATH')
 if not TWISTER_PATH:
@@ -142,12 +142,47 @@ class CentralEngineRest:
         try: eps_file = self.project.parsers[user].xmlDict.root.epidsfile.text
         except: eps_file = ''
         eps = self.project.getUserInfo(user, 'eps')
-        statuses = [ reversed[eps[ep].get('status', STATUS_INVALID)] for ep in eps ]
+        ep_statuses = [ reversed[eps[ep].get('status', STATUS_INVALID)] for ep in eps ]
         logs = self.project.getUserInfo(user, 'log_types')
 
         output = Template(filename=TWISTER_PATH + '/server/centralengine/template_user.htm')
         return output.render(host=host, user=user, status=status, master_config=master_config, proj_config=proj_config,
-                             logs_path=logs_path, eps_file=eps_file, eps=eps, statuses=statuses, logs=logs)
+               exec_status=reversed, logs_path=logs_path, eps_file=eps_file, eps=eps, ep_statuses=ep_statuses, logs=logs)
+
+
+    @cherrypy.expose
+    def eps(self, user, epname):
+        if self.user_agent() == 'x':
+            return 0
+        epname = decode(epname)
+        eps = self.project.getUserInfo(user, 'eps')
+        epdata = eps[epname]
+
+        output = Template(filename=TWISTER_PATH + '/server/centralengine/template_ep.htm')
+        return output.render(epname=epname, epdata=epdata)
+
+
+    @cherrypy.expose
+    def logs(self, user='', log=''):
+        if self.user_agent() == 'x':
+            return 0
+        if user and log:
+            logs = self.project.getUserInfo(user, 'log_types')
+            log = logs.get(log)
+
+        return prepareLog(log or LOG_FILE)
+
+
+    @cherrypy.expose
+    def json_all(self):
+        if self.user_agent() == 'x':
+            return 0
+
+        cherrypy.response.headers['Content-Type']  = 'application/json; charset=utf-8'
+        cherrypy.response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        cherrypy.response.headers['Pragma']  = 'no-cache'
+        cherrypy.response.headers['Expires'] = 0
+        return open(TWISTER_PATH + '/common/project_users.json', 'r').read()
 
 
     @cherrypy.expose
@@ -190,10 +225,13 @@ class CentralEngineRest:
 
     @cherrypy.expose
     def setUserStatus(self, user, status):
-        output = Template(text=TMPL_DATA)
+        output = Template(filename=TWISTER_PATH + '/server/centralengine/template_error.htm')
         try: status = int(status)
-        except: return output.render(title='Error!', body='<b>Status value `%s` is invalid!</b>' % str(status))
-        self.parent.setExecStatusAll(user, status, 'Status changed from REST interface.')
+        except: return output.render(title='Error!', body='<b>Status value `{0}` is invalid!</b>'.format(status))
+        if status not in execStatus.values():
+            return output.render(title='Error!', body='<b>Status value `{0}` is not in the list of valid statuses: {1}!</b>'\
+                .format(status, execStatus.values()))
+        self.parent.setExecStatusAll(user, status, 'User status changed from REST interface.')
         raise cherrypy.HTTPRedirect('http://{host}/rest/users/{user}'.format(
             host = cherrypy.request.headers['Host'], user = user
         ))
@@ -201,10 +239,13 @@ class CentralEngineRest:
 
     @cherrypy.expose
     def setEpStatus(self, user, epname, status):
-        output = Template(text=TMPL_DATA)
+        output = Template(filename=TWISTER_PATH + '/server/centralengine/template_error.htm')
         try: status = int(status)
-        except: return output.render(title='Error!', body='<b>Status value `%s` is invalid!</b>' % str(status))
-        self.parent.setExecStatus(user, epname, status, 'Status changed from REST interface.')
+        except: return output.render(title='Error!', body='<b>Status value `{0}` is invalid!</b>'.format(status))
+        if status not in execStatus.values():
+            return output.render(title='Error!', body='<b>Status value `{0}` is not in the list of valid statuses: {1}!</b>'\
+                .format(status, execStatus.values()))
+        self.parent.setExecStatus(user, epname, status, 'EP status changed from REST interface.')
         raise cherrypy.HTTPRedirect('http://{host}/rest/users/{user}/{epname}'.format(
             host = cherrypy.request.headers['Host'], user = user, epname = epname
         ))

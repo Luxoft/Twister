@@ -26,13 +26,13 @@
 
 <div class="tabbable">
 	<ul class="nav nav-pills">
-		<li class="active"><a href="#main" data-toggle="tab"> <i class="icon-home"></i> Main </a></li>
-		<li><a href="#users" data-toggle="tab"> <i class="icon-user"></i> Users </a></li>
-		<li><a href='#logs' data-toggle="tab"> <i class="icon-th-list"></i> Log </a></li>
+		<li class="active"><a href="#tab_main" data-toggle="tab"> <i class="icon-home"></i> Main </a></li>
+		<li><a href="#tab_users" data-toggle="tab"> <i class="icon-user"></i> Users </a></li>
+		<li><a href="#tab_logs" data-toggle="tab"> <i class="icon-th-list"></i> Log </a></li>
 	</ul>
 	<div class="tab-content">
 
-	<div class="tab-pane active" id="main">
+	<div class="tab-pane active" id="tab_main">
 	<div class="hero-unit" style="border: 1px solid #aaf">
 		<h1>Central Engine REST interface</h1><br>
 		<table class="table table-bordered">
@@ -45,7 +45,7 @@
 	</div>
 	</div> <!-- End of tab-1 -->
 
-	<div class="tab-pane" id="users">
+	<div class="tab-pane" id="tab_users">
 	<div class="hero-unit" style="border: 1px solid #aaf">
 		<h1>Connected Users</h1><br>
 		<table class="table table-bordered">
@@ -56,10 +56,10 @@
 	</div>
 	</div> <!-- End of tab-2 -->
 
-	<div class="tab-pane" id="logs">
+	<div class="tab-pane" id="tab_logs">
 	<div class="hero-unit" style="border: 1px solid #aaf">
 		<h1>Central Engine Log</h1><br>
-		<i class="icon-refresh" id="refresh_log"></i> <br><br>
+		<button class="btn btn-small" id="refresh_log">Refresh <i class="icon-refresh"></i></button> <br><br>
 		<span id="server_log">Log...</span>
 	</div>
 	</div> <!-- End of tab-3 -->
@@ -82,7 +82,7 @@ $(".nav-pills a").on("shown", function (e) {
 });
 
 function drawServerStats() {
-	var refreshint = 1000; // update display every X ms
+	var refresh_int = 1000; // update display every X ms
 	var maxupdates = 40;
 	var cpu_values = [];
 	var mem_values = [];
@@ -99,9 +99,9 @@ function drawServerStats() {
 				$('#mem_stat').sparkline(mem_values, {type:'bar', 'chartRangeMin':0, 'chartRangeMax':100, 'height':25,
 					width: mem_values.length*2, tooltipSuffix: '% memory'});
 			});
-		setTimeout(draw_srv, refreshint);
+		setTimeout(draw_srv, refresh_int);
 	}
-	setTimeout(draw_srv, refreshint);
+	setTimeout(draw_srv, refresh_int);
 };
 function getServerLog() {
 	// var pos_i, pos_f;
