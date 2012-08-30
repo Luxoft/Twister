@@ -10,6 +10,8 @@ if not sys.version.startswith('2.7'):
 
 try:
     user_name = os.getenv('USER')
+    if user_name=='root':
+        user_name = os.getenv('SUDO_USER')        
 except:
     print('Cannot guess user name for this Execution Process! Exiting!')
     exit(1)
