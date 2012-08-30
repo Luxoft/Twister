@@ -34,12 +34,16 @@ import json
 import time
 import platform
 import cherrypy
+import mako
 from mako.template import Template
 from binascii import unhexlify as decode
 
+if mako.__version__ < 0.7:
+    print('\n!Warning! Mako-template version is old! Some pages might crash!\n')
+
 TWISTER_PATH = os.getenv('TWISTER_PATH')
 if not TWISTER_PATH:
-    print('$TWISTER_PATH environment variable is not set! Exiting!')
+    print('\n$TWISTER_PATH environment variable is not set! Exiting!\n')
     exit(1)
 sys.path.append(TWISTER_PATH)
 

@@ -111,6 +111,9 @@ class TSCParser:
             # Hash check the XML file, to see if is changed
             newConfigHash = hashlib.md5(config_ts).hexdigest()
 
+            config_ts = config_ts.replace('<ScriptPre/>',  '<ScriptPre></ScriptPre>')
+            config_ts = config_ts.replace('<ScriptPost/>', '<ScriptPost></ScriptPost>')
+
         if self.configHash != newConfigHash:
             print('Parser: Test-Suites XML file changed, rebuilding internal structure...\n')
             # Use the new hash
