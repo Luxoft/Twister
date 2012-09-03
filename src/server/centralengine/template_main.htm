@@ -104,7 +104,6 @@ function drawServerStats() {
 	setTimeout(draw_srv, refresh_int);
 };
 function getServerLog() {
-	// var pos_i, pos_f;
 	$.getJSON("/rest/json_logs",
 		// On success, execute the following :
 		function(html) {

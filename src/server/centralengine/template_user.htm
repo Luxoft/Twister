@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
 	<meta charset="utf-8">
-	<title>Twister: user `${user}`</title>
+	<title>Twister: User `${user}`</title>
 	<meta name="author" content="Cristi Constantin">
-	<meta name="description" content="Central Engine users...">
+	<meta name="description" content="Central Engine Users...">
 	<!-- Le styles -->
 	<link href="/static/css/bootstrap.css" rel="stylesheet">
 	<style>
@@ -61,10 +61,13 @@ if now.second < 59:
 	now_str = now.replace(second=now.second+1).strftime('%Y-%m-%d %H:%M:%S')
 else:
 	now_str = now.replace(minute=now.minute+1, second=0).strftime('%Y-%m-%d %H:%M:%S')
+act_eps = []
 for ep in eps:
 	tmp_now_str = eps[ep].get('last_seen_alive', now_str)
 	diff_time = now - datetime.strptime(tmp_now_str, '%Y-%m-%d %H:%M:%S')
 	diffs.append(diff_time.seconds)
+	if eps[ep]['suites']:
+		act_eps.append(ep)
 %>
 
 	<div class="tab-pane" id="tab_proc">
@@ -73,7 +76,7 @@ for ep in eps:
 		<div class="tabbable tabs-left">
 		<ul class="nav nav-tabs">
 		% for ep in eps:
-			<li${' class="refresh_eps active"' if loop.first else ' class="refresh_eps"'}><a href="/rest/eps/${user}/${encode(ep)}" data-target="#${encode(ep)}" data-toggle="tabajax">
+			<li${' class="refresh_eps active"' if loop.first else ' class="refresh_eps"'}><a data-target="#${encode(ep)}" data-toggle="tab">
 			<i class="${'icon-ok-sign' if diffs[loop.index] < 10 else 'icon-warning-sign'}"></i>
 			% if ep_statuses[loop.index] == 'running':
 			<i class="icon-play"></i>
@@ -82,13 +85,15 @@ for ep in eps:
 			% else:
 			<i class="icon-stop"></i>
 			% endif
-			${ep} </a></li>
+			<span>${ep}</span> </a></li>
 		% endfor
 		</ul>
 
 		<div class="tab-content">
 		% for ep in eps:
-			<div class="tab-pane${' active' if loop.first else ''}" id="${encode(ep)}" style="margin-top:-10px"></div>
+			<div class="tab-pane${' active' if loop.first else ''}" id="${encode(ep)}">
+				<br><div id="t_${encode(ep)}" style="background:transparent;height:auto"></div>
+			</div>
 		% endfor
 		</div>
 		</div> <!-- End of tabbable -->
@@ -101,14 +106,27 @@ for ep in eps:
 		<div class="tabbable tabs-left">
 		<ul class="nav nav-tabs">
 		% for log in sorted(logs.keys()):
-			<li${' class="refresh_logs active"' if loop.first else ' class="refresh_logs"'}><a href="/rest/logs/${user}/${log}" data-target="#${log}" data-toggle="tabajax">
-			<i class="icon-th-list"></i> ${log} </a></li>
+		% if log.lower() == 'logcli':
+			% for ep in act_eps:
+			<li${' class="refresh_logs active"' if loop.first else ' class="refresh_logs"'}><a data-target="#${log}_${encode(ep)}" data-toggle="tab">
+			<i class="icon-th-list"></i> <span>${log} ${ep}</span> </a></li>
+			% endfor
+		% else:
+			<li${' class="refresh_logs active"' if loop.first else ' class="refresh_logs"'}><a data-target="#${log}" data-toggle="tab">
+			<i class="icon-th-list"></i> <span>${log}</span> </a></li>
+		% endif
 		% endfor
 		</ul>
 
 		<div class="tab-content logs_content">
 		% for log in sorted(logs.keys()):
+		% if log.lower() == 'logcli':
+			% for ep in act_eps:
+			<div class="tab-pane${' active' if loop.first else ''}" id="${log}_${encode(ep)}"></div>
+			% endfor
+		% else:
 			<div class="tab-pane${' active' if loop.first else ''}" id="${log}"></div>
+		% endif
 		% endfor
 		</div>
 		</div> <!-- End of logs tabbable -->
@@ -120,22 +138,18 @@ for ep in eps:
 </div>
 
 <script src="/static/js/jquery.min.js"></script>
+<script src="/static/js/jquery.cookie.js"></script>
+<script src="/static/js/jquery.hotkeys.js"></script>
 <script src="/static/js/bootstrap.min.js"></script>
+<script src="/static/js/jquery.jstree.js"></script>
 
 <script type="text/javascript">
 
-// Show tab from hash link
-var activeTab = $('[href="' + location.hash + '"]');
-activeTab && activeTab.tab('show');
-// On pill shown, change window location
-$(".nav-pills a").on("shown", function (e) {
-	window.location.hash = e.target.hash;
-});
-
+// User stats
 function updateUserStats() {
 	var refresh_int = 1500; // update every X ms
 	var status_dict = ${exec_status};
-	var updt_usr = function() {
+	//var updt_usr = function() {
 		$.getJSON("/rest/json_all",
 			// On success, execute the following :
 			function(jdata) {
@@ -144,26 +158,69 @@ function updateUserStats() {
 				$("span#proj_config").text(jdata["${user}"]["tests_path"]);    // User project config
 				$("span#logs_path").text(jdata["${user}"]["logs_path"]);       // User logs
 			});
-		setTimeout(updt_usr, refresh_int);
-	}
-	setTimeout(updt_usr, refresh_int);
+		// setTimeout(updt_usr, refresh_int);
+	//}
+	// setTimeout(updt_usr, refresh_int);
 };
 
-// Ajax tabs
-$('[data-toggle="tabajax"]').click(function(e) {
-	e.preventDefault();
-	$this = $(this);
-	var loadurl = $(this).attr("href");
-	var targ = $(this).attr("data-target");
-	$(targ).load(loadurl, function() {
-		$this.tab("show");
+function updateEpTree(ep_name) {
+	// jsTree config
+	var tconfig = {
+		"plugins" : ["json_data", "themes", "hotkeys", "ui", "types", "crrm", "dnd"],
+		"core" : {"html_titles" : true, "animation" : 200},
+		"json_data" : {"ajax" : {"url" : "/rest/json_eps/${user}/" + ep_name}},
+		"themes" : {"theme" : "classic", "dots" : true, "icons" : false},
+		"types" : {
+			"valid_children" : ["suite"],
+			"types" : {
+				"suite" : {
+					"valid_children": ["default"],
+					"max_depth": 2
+				},
+				"default" : {
+					"valid_children": ["default"]
+				}
+			}
+		}
+	};
+	$("#t_" + ep_name).jstree(tconfig)
+		.bind("loaded.jstree", function(e, data) {
+			data.inst.open_all(-1);
+		});
+};
+
+function updateUserLogs(log_name) {
+	$.getJSON("/rest/json_logs/${user}/" + log_name,
+		// Update on success
+		function(html) {
+			$("#" + log_name).html(html);
 	});
+};
+
+// Refresh eps on tab click
+$(".refresh_eps").click(function () {
+	updateEpTree( $(this).find("a").attr("data-target").replace("#", "") );
+});
+// Refresh logs on tab click
+$(".refresh_logs").click(function () {
+	updateUserLogs( $(this).find("a").attr("data-target").replace("#", "") );
 });
 
-// Start updating user stats
-updateUserStats();
-// Simulate click on active ajax tabs
-$('[data-toggle="tabajax"][.active]').click();
+// Run this on page load
+$(function () {
+	// Show tab from hash link
+	var activeTab = $('[href="' + location.hash + '"]');
+	activeTab && activeTab.tab('show');
+	// On pill shown, change window location
+	$(".nav-pills a").on("shown", function (e) {window.location.hash = e.target.hash});
+	// Updating user stats
+	updateUserStats();
+	// Update first EP
+	$(".refresh_eps.active").click();
+	// Update first user log
+	$(".refresh_logs.active").click();
+});
+
 </script>
 
 </body>

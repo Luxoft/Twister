@@ -38,9 +38,6 @@ import mako
 from mako.template import Template
 from binascii import unhexlify as decode
 
-if mako.__version__ < 0.7:
-    print('\n!Warning! Mako-template version is old! Some pages might crash!\n')
-
 TWISTER_PATH = os.getenv('TWISTER_PATH')
 if not TWISTER_PATH:
     print('\n$TWISTER_PATH environment variable is not set! Exiting!\n')
@@ -48,7 +45,10 @@ if not TWISTER_PATH:
 sys.path.append(TWISTER_PATH)
 
 from common.constants import *
-from common.tsclogging import LOG_FILE
+from common.tsclogging import *
+
+if mako.__version__ < '0.7':
+    logWarning('Warning! Mako-template version is old: `{0}`! Some pages might crash!\n'.format(mako.__version__))
 
 # # # # #
 
@@ -85,6 +85,7 @@ def prepareLog(log_file, pos=0):
     f.seek(pos)
     log = f.read().rstrip()
     f.close() ; del f
+
     body = log.replace('\n', '<br>\n').replace(' ', '&nbsp;')
     del log
     body = body.replace(';INFO&',   ';<b style="color:gray">INFO</b>&')
@@ -153,41 +154,7 @@ class CentralEngineRest:
         return output.render(host=host, user=user, status=status, master_config=master_config, proj_config=proj_config,
                exec_status=reversed, logs_path=logs_path, eps_file=eps_file, eps=eps, ep_statuses=ep_statuses, logs=logs)
 
-
-    @cherrypy.expose
-    def eps(self, user, epname):
-        if self.user_agent() == 'x':
-            return 0
-        epname = decode(epname)
-        eps = self.project.getUserInfo(user, 'eps')
-        epdata = eps[epname]
-
-        output = Template(filename=TWISTER_PATH + '/server/centralengine/template_ep.htm')
-        return output.render(epname=epname, epdata=epdata)
-
-
-    @cherrypy.expose
-    def logs(self, user='', log=''):
-        if self.user_agent() == 'x':
-            return 0
-        if user and log:
-            logs = self.project.getUserInfo(user, 'log_types')
-            log = logs.get(log)
-
-        return prepareLog(log or LOG_FILE)
-
-
-    @cherrypy.expose
-    def json_all(self):
-        if self.user_agent() == 'x':
-            return 0
-
-        cherrypy.response.headers['Content-Type']  = 'application/json; charset=utf-8'
-        cherrypy.response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
-        cherrypy.response.headers['Pragma']  = 'no-cache'
-        cherrypy.response.headers['Expires'] = 0
-        return open(TWISTER_PATH + '/common/project_users.json', 'r').read()
-
+#
 
     @cherrypy.expose
     def json_stats(self):
@@ -203,13 +170,55 @@ class CentralEngineRest:
 
 
     @cherrypy.expose
+    def json_all(self):
+        if self.user_agent() == 'x':
+            return 0
+
+        cherrypy.response.headers['Content-Type']  = 'application/json; charset=utf-8'
+        cherrypy.response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        cherrypy.response.headers['Pragma']  = 'no-cache'
+        cherrypy.response.headers['Expires'] = 0
+        return open(TWISTER_PATH + '/common/project_users.json', 'r').read()
+
+
+    @cherrypy.expose
+    def json_eps(self, user, epname):
+        if self.user_agent() == 'x':
+            return 0
+
+        epname = decode(epname)
+        cherrypy.response.headers['Content-Type']  = 'application/json; charset=utf-8'
+        cherrypy.response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        cherrypy.response.headers['Pragma']  = 'no-cache'
+        cherrypy.response.headers['Expires'] = 0
+
+        data = []
+        epinfo = self.project.getEpInfo(user, epname)
+
+        for suite in epinfo['suites']:
+            sdata = {}
+            sdata['attr'] = {'id' : suite, 'rel': 'suite'}
+            sdata['data'] = '<i class="icon-folder-open"></i> ' + epinfo['suites'][suite]['name']
+            sdata['children'] = [ '<i class="icon-file"></i> ' + epinfo['suites'][suite]['files'][k]['file'] for
+                                  k in epinfo['suites'][suite]['files'].keys() ]
+            data.append(sdata)
+
+        return json.dumps(data)
+
+
+    @cherrypy.expose
     def json_logs(self, user='', log=''):
         if self.user_agent() == 'x':
             return 0
 
         if user and log:
             logs = self.project.getUserInfo(user, 'log_types')
-            log = logs.get(log)
+            logsPath = self.project.getUserInfo(user, 'logs_path')
+            if log.startswith('logcli_'):
+                epname = '_'.join(log.split('_')[1:])
+                log = logsPath + os.sep + decode(epname) + '_CLI.log'
+            else:
+                log = logs.get(log)
 
         cherrypy.response.headers['Content-Type']  = 'application/json; charset=utf-8'
         cherrypy.response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
@@ -217,6 +226,7 @@ class CentralEngineRest:
         cherrypy.response.headers['Expires'] = 0
         return json.dumps(prepareLog(log or LOG_FILE))
 
+#
 
     @cherrypy.expose
     def resetUser(self, user):
