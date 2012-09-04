@@ -2,3 +2,4 @@
 .idea
 *.pyc
 *.pyo
+*.class
