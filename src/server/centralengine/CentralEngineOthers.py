@@ -267,6 +267,12 @@ class Project:
         # Ordered list of file IDs, used for Get Status ALL
         self.test_ids[user] = self.parsers[user].getAllTestFiles()
 
+        # Add framework config info to default user
+        self.users[user]['config_path'] = base_config
+        self.users[user]['tests_path'] = self.parsers[user].getTestSuitePath()
+        self.users[user]['logs_path'] = self.parsers[user].getLogsPath()
+        self.users[user]['log_types'] = {}
+
         # Add the `exit on test Fail` value
         self.users[user]['exit_on_test_fail'] = self.parsers[user].getExitOnTestFail()
 
@@ -274,6 +280,9 @@ class Project:
         script_pre, script_post = self.parsers[user].getScripts()
         self.users[user]['script_pre'] = script_pre
         self.users[user]['script_post'] = script_post
+
+        for logType in self.parsers[user].getLogTypes():
+            self.users[user]['log_types'][logType] = self.parsers[user].getLogFileForType(logType)
 
         logDebug('Project: RESET operation took %.4f seconds.' % (time.clock()-ti))
         return True

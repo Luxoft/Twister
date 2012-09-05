@@ -38,6 +38,7 @@ import urllib2
 import tarfile
 import subprocess
 import platform
+from string import Template
 
 from distutils import file_util
 from distutils import dir_util
@@ -46,14 +47,7 @@ if sys.version_info[0] != 2 and sys.version_info[1] != 7:
     print('Python version must be 2.7! Exiting!\n')
     exit(1)
 
-if os.getuid() != 0:
-    print('Installer must be run as ROOT! Exiting!\n')
-    exit(1)
-
-
 TO_INSTALL = ''
-USER = ''
-GROUP = ''
 
 # Python executable. Alternatively, it can be "python2.7".
 PYTHON_EXE = sys.executable
@@ -79,7 +73,7 @@ else:
     while 1:
         print('\nPlease select what you wish to install:')
         print('[1] the Twister clients')
-        print('[2] the Twister servers')
+        print('[2] the Twister servers (root)')
         print('[q] e[x]it, don\'t install anything')
 
         selected = raw_input('Your choice: ')
@@ -98,67 +92,15 @@ else:
             print('`%s` is not a valid choice! try again!' % selected)
         del selected
 
-
-# --------------------------------------------------------------------------------------------------
-# For what user will you install ?
-# --------------------------------------------------------------------------------------------------
-
-if TO_INSTALL == 'client':
-
-    # Find the users
-    users = os.listdir('/home/')
-    users.sort()
-
-    try:
-        i = users.index('lost+found')
-        users.pop(i)
-    except: pass
-
-    # If there are more users, choose
-    if len(users) > 1:
-
-        while 1:
-            print('Please select the user you are installing for:')
-            for i in range(1, len(users)+1):
-                print('[%i] : %s' % (i, users[i-1]))
-
-            selected = raw_input('Your choice: ')
-            try:
-                usr = int(selected)
-            except:
-                usr = None
-                print('`%s` is not a valid choice! try again!' % selected)
-                continue
-            if usr not in range(1, len(users)+1):
-                print('`%s` is not a valid choice! try again!' % selected)
-                continue
-
-            USER = users[usr - 1]
-            g = subprocess.check_output(['groups', USER])
-            GROUP = ''.join(g.split()[:3])
-
-            selected = raw_input('\nYou selected user `%s` from group `%s`.\nIs that correct? (yes/no): ' % \
-                (USER, GROUP))
-            if selected.strip().lower() == 'yes':
-                break
-            else:
-                print('Canceling...')
-                continue
-
-    # If there's only 1 user, no need to choose
-    else:
-
-        USER = users[0]
-        g = subprocess.check_output(['groups', USER])
-        GROUP = ''.join(g.split()[:3])
-
-    del users
-
 # --------------------------------------------------------------------------------------------------
 # Previous installations of Twister
 # --------------------------------------------------------------------------------------------------
 
 if TO_INSTALL == 'server':
+
+    if os.getuid() != 0:
+        print('Installer must be run as ROOT! Exiting!\n')
+        exit(1)
 
     # Twister server path
     INSTALL_PATH = '/opt/twister/'
@@ -176,10 +118,10 @@ if TO_INSTALL == 'server':
 else:
 
     # Twister client path
-    INSTALL_PATH = '/home/%s/twister/' % USER
+    INSTALL_PATH = os.getenv('HOME') + os.sep + 'twister/'
 
     if os.path.exists(INSTALL_PATH):
-        print('\nWARNING! Another version of Twister is installed at `%s`!' % INSTALL_PATH)
+        print('WARNING! Another version of Twister is installed at `%s`!' % INSTALL_PATH)
         print('If you continue, all files from that folder will be DELETED,')
         print('Only the `config` folder will be saved!')
         selected = raw_input('Are you sure you want to continue? (yes/no): ')
@@ -189,6 +131,8 @@ else:
             if os.path.exists(INSTALL_PATH + 'config'):
                 print('\nBack-up `config` folder (from `{0}` to `{1}`)...'.format(INSTALL_PATH+'config', os.getcwd()))
                 shutil.move(INSTALL_PATH + 'config', os.getcwd())
+                print('Back-up `config_ep` file (from `{0}` to `{1}`)...'.format(INSTALL_PATH+'bin/config_ep.json', os.getcwd()))
+                shutil.move(INSTALL_PATH + 'bin/config_ep.json', os.getcwd())
 
             # Deleting previous versions of Twister
             try: dir_util.remove_tree(INSTALL_PATH)
@@ -245,9 +189,9 @@ if TO_INSTALL == 'server':
 
 elif TO_INSTALL == 'client':
     # The client doesn't have important dependencies
-    dependencies = ['pexpect']
-    library_names = ['pexpect']
-    library_versions = ['2.3']
+    dependencies = []
+    library_names = []
+    library_versions = []
 
     # Files to move in Client folder
     to_copy = [
@@ -262,146 +206,148 @@ elif TO_INSTALL == 'client':
     ]
 
 else:
-    print 'This is really wrong! Exiting!'
+    print('This is really wrong! Exiting!')
     exit(1)
 
-
-# Using HTTP_PROXY environment variable?
-if HTTP_PROXY:
-    os.putenv('HTTP_PROXY', HTTP_PROXY)
-    proxy_support = urllib2.ProxyHandler({'http': HTTP_PROXY})
-    opener = urllib2.build_opener(proxy_support, urllib2.HTTPHandler)
-    urllib2.install_opener(opener)
-
-# Checking internet connection and Pypi availability
-print('\nChecking internet connection...')
-try:
-    pypi = urllib2.urlopen('http://pypi.python.org/simple/')
-    if pypi.read(255):
-        INTERNET = True
-        print('Internet connection available.\n')
-    else:
-        INTERNET = False
-        print('Cannot connect! Check the internet connection, or the Proxy settings!\n')
-    del pypi
-except:
-    INTERNET = False
-    print('Cannot connect! Check the internet connection, or the Proxy settings!\n')
-
-
-# --------------------------------------------------------------------------------------------------
-# Starting the install process
-# --------------------------------------------------------------------------------------------------
-
+#
 ROOT_FOLDER = os.sep.join( os.getcwd().split(os.sep)[:-1] )
 cwd_path = os.getcwd() + os.sep
 pkg_path = cwd_path + 'packages/'
+#
 
-try:
-    import setuptools
-    print('Python setuptools is installed. Ok.')
-except:
-    if INTERNET:
-        # Try to install python distribute (the new version of setuptools)
-        tcr_proc = subprocess.Popen([PYTHON_EXE, '-u', (pkg_path+'distribute_setup.py')], cwd=cwd_path)
-        tcr_proc.wait()
-        del tcr_proc
+if TO_INSTALL == 'server':
 
-        # Remove the downloaded file
-        distribute_file = glob.glob('distribute*.tar.gz')
-        if distribute_file:
-            try: os.remove(distribute_file[0])
-            except: print('Installer cannot delete `distribute*.tar.gz`! You must delete it yourself!')
-        del distribute_file
+    # Using HTTP_PROXY environment variable?
+    if HTTP_PROXY:
+        os.putenv('HTTP_PROXY', HTTP_PROXY)
+        proxy_support = urllib2.ProxyHandler({'http': HTTP_PROXY})
+        opener = urllib2.build_opener(proxy_support, urllib2.HTTPHandler)
+        urllib2.install_opener(opener)
 
-print('')
+    # Checking internet connection and Pypi availability
+    print('\nChecking internet connection...')
+    try:
+        pypi = urllib2.urlopen('http://pypi.python.org/simple/')
+        if pypi.read(255):
+            INTERNET = True
+            print('Internet connection available.\n')
+        else:
+            INTERNET = False
+            print('Cannot connect! Check the internet connection, or the Proxy settings!\n')
+        del pypi
+    except:
+        INTERNET = False
+        print('Cannot connect! Check the internet connection, or the Proxy settings!\n')
 
-# --------------------------------------------------------------------------------------------------
-# Testing installed packages
-# If a package does not exists, or is an old version, it must be installed
-# --------------------------------------------------------------------------------------------------
-
-for i in range(len(dependencies)):
-
-    lib_name = dependencies[i]
-    lib_version = library_versions[i]
-    import_name = library_names[i]
+    # --------------------------------------------------------------------------------------------------
+    # Starting the install process
+    # --------------------------------------------------------------------------------------------------
 
     try:
-        # Can be imported ?
-        lib = __import__(import_name)
-        # The version is ok ?
-        ver = eval('lib.__version__')
-        del lib
-        if ver < lib_version:
-            print('Testing: Library `%s` has version `%s` and it must be `%s` or newer! Will install...' %
-                (import_name, ver, lib_version))
-        else:
-            print('Testing: Imported `%s` ver %s OK. No need to re-install.' % (import_name, ver))
-            continue
+        import setuptools
+        print('Python setuptools is installed. Ok.')
     except:
-        print('Testing: Python library `%s` will be installed...' % import_name)
+        if INTERNET:
+            # Try to install python distribute (the new version of setuptools)
+            tcr_proc = subprocess.Popen([PYTHON_EXE, '-u', (pkg_path+'distribute_setup.py')], cwd=cwd_path)
+            tcr_proc.wait()
+            del tcr_proc
 
-    # ----------------------------------------------------------------------------------------------
-    # Internet connection available
-    # ----------------------------------------------------------------------------------------------
+            # Remove the downloaded file
+            distribute_file = glob.glob('distribute*.tar.gz')
+            if distribute_file:
+                try: os.remove(distribute_file[0])
+                except: print('Installer cannot delete `distribute*.tar.gz`! You must delete it yourself!')
+            del distribute_file
 
-    if INTERNET:
+    print('')
 
-        # MySQL Python requires Python-DEV and must be installed from repositories
-        if lib_name == 'MySQL-python':
-            print('\n~~~ Installing `%s` from System repositories ~~~\n' % lib_name)
+    # --------------------------------------------------------------------------------------------------
+    # Testing installed packages
+    # If a package does not exists, or is an old version, it must be installed
+    # --------------------------------------------------------------------------------------------------
 
-            if platform.dist()[0] == 'SuSE':
-                tcr_proc = subprocess.Popen(['zypper', 'install', 'python-mysql'], cwd=pkg_path)
-            if platform.dist()[0] == 'fedora':
-                tcr_proc = subprocess.Popen(['yum', '-y', 'install', 'python-mysql'], cwd=pkg_path)
+    for i in range(len(dependencies)):
+
+        lib_name = dependencies[i]
+        lib_version = library_versions[i]
+        import_name = library_names[i]
+
+        try:
+            # Can be imported ?
+            lib = __import__(import_name)
+            # The version is ok ?
+            ver = eval('lib.__version__')
+            del lib
+            if ver < lib_version:
+                print('Testing: Library `%s` has version `%s` and it must be `%s` or newer! Will install...' %
+                    (import_name, ver, lib_version))
             else:
-                tcr_proc = subprocess.Popen(['apt-get', 'install', 'python-mysqldb', '--yes'], cwd=pkg_path)
+                print('Testing: Imported `%s` ver %s OK. No need to re-install.' % (import_name, ver))
+                continue
+        except:
+            print('Testing: Python library `%s` will be installed...' % import_name)
 
+        # ----------------------------------------------------------------------------------------------
+        # Internet connection available
+        # ----------------------------------------------------------------------------------------------
+
+        if INTERNET:
+
+            # MySQL Python requires Python-DEV and must be installed from repositories
+            if lib_name == 'MySQL-python':
+                print('\n~~~ Installing `%s` from System repositories ~~~\n' % lib_name)
+
+                if platform.dist()[0] == 'SuSE':
+                    tcr_proc = subprocess.Popen(['zypper', 'install', 'python-mysql'], cwd=pkg_path)
+                if platform.dist()[0] == 'fedora':
+                    tcr_proc = subprocess.Popen(['yum', '-y', 'install', 'python-mysql'], cwd=pkg_path)
+                else:
+                    tcr_proc = subprocess.Popen(['apt-get', 'install', 'python-mysqldb', '--yes'], cwd=pkg_path)
+
+                tcr_proc.wait()
+
+            # All other packages are installed with easy_install
+            else:
+                print('\n~~~ Installing `%s` from Python repositories ~~~\n' % lib_name)
+                tcr_proc = subprocess.Popen(['easy_install', lib_name], cwd=pkg_path)
+                tcr_proc.wait()
+
+            if tcr_proc.returncode:
+                print('\n~~~ `%s` cannot be installed! It MUST be installed manually! ~~~\n' % lib_name)
+            else:
+                print('\n~~~ Successfully installed %s ~~~\n' % lib_name)
+
+        # ----------------------------------------------------------------------------------------------
+        # No internet connection
+        # ----------------------------------------------------------------------------------------------
+
+        else:
+            print('\n~~~ Installing `%s` from tar files ~~~\n' % lib_name)
+
+            p_library = glob.glob(pkg_path + lib_name + '*.tar.gz')
+
+            if not p_library:
+                print('\n~~~ Cannot find `%s`! You MUST install it manually! ~~~\n' % (lib_name+'*.tar.gz'))
+                continue
+
+            fopen = tarfile.open(p_library[0])
+            p_library_root = fopen.getnames()[0].split(os.sep)[0]
+            fopen.extractall()
+            fopen.close() ; del fopen
+
+            # Install library
+            tcr_proc = subprocess.Popen([PYTHON_EXE, '-u', (cwd_path+p_library_root+'/setup.py'), 'install', '-f'],
+                cwd=cwd_path + p_library_root)
             tcr_proc.wait()
 
-        # All other packages are installed with easy_install
-        else:
-            print('\n~~~ Installing `%s` from Python repositories ~~~\n' % lib_name)
-            tcr_proc = subprocess.Popen(['easy_install', lib_name], cwd=pkg_path)
-            tcr_proc.wait()
+            # Remove library folder
+            dir_util.remove_tree(cwd_path + p_library_root)
 
-        if tcr_proc.returncode:
-            print('\n~~~ `%s` cannot be installed! It MUST be installed manually! ~~~\n' % lib_name)
-        else:
-            print('\n~~~ Successfully installed %s ~~~\n' % lib_name)
-
-    # ----------------------------------------------------------------------------------------------
-    # No internet connection
-    # ----------------------------------------------------------------------------------------------
-
-    else:
-        print('\n~~~ Installing `%s` from tar files ~~~\n' % lib_name)
-
-        p_library = glob.glob(pkg_path + lib_name + '*.tar.gz')
-
-        if not p_library:
-            print('\n~~~ Cannot find `%s`! You MUST install it manually! ~~~\n' % (lib_name+'*.tar.gz'))
-            continue
-
-        fopen = tarfile.open(p_library[0])
-        p_library_root = fopen.getnames()[0].split(os.sep)[0]
-        fopen.extractall()
-        fopen.close() ; del fopen
-
-        # Install library
-        tcr_proc = subprocess.Popen([PYTHON_EXE, '-u', (cwd_path+p_library_root+'/setup.py'), 'install', '-f'],
-            cwd=cwd_path + p_library_root)
-        tcr_proc.wait()
-
-        # Remove library folder
-        dir_util.remove_tree(cwd_path + p_library_root)
-
-        if tcr_proc.returncode:
-            print('\n~~~ `%s` cannot be installed! It MUST be installed manually! ~~~\n' % import_name)
-        else:
-            print('\n~~~ Successfully installed `%s` ~~~\n' % lib_name)
+            if tcr_proc.returncode:
+                print('\n~~~ `%s` cannot be installed! It MUST be installed manually! ~~~\n' % import_name)
+            else:
+                print('\n~~~ Successfully installed `%s` ~~~\n' % lib_name)
 
 
 # --------------------------------------------------------------------------------------------------
@@ -448,9 +394,11 @@ for fname in to_copy:
 
 # Restore Config folder, if any
 if os.path.exists(cwd_path + 'config'):
-    print('Moving `config` folder back (from `{0}` to `{1}`)...\n'.format(cwd_path+'config', INSTALL_PATH+'config'))
+    print('Moving `config` folder back (from `{0}` to `{1}`)...'.format(cwd_path+'config', INSTALL_PATH+'config'))
     dir_util.copy_tree(cwd_path + 'config', INSTALL_PATH+'config')
     dir_util.remove_tree(cwd_path + 'config')
+    print('Moving `config_ep` file back (from `{0}` to `{1}`)...'.format(os.getcwd()+'/config_ep.json', INSTALL_PATH+'bin/config_ep.json'))
+    shutil.move(os.getcwd() + '/config_ep.json', INSTALL_PATH + 'bin/config_ep.json')
 
 #
 
@@ -461,10 +409,6 @@ if TO_INSTALL == 'client':
     except: pass
     try: os.mkdir(INSTALL_PATH +os.sep+ 'logs')
     except: pass
-
-    tcr_proc = subprocess.Popen(['chown', GROUP, INSTALL_PATH, '-R'],)
-    tcr_proc.wait()
-    os.system('chown %s %s -R' % (GROUP, INSTALL_PATH))
 
 tcr_proc = subprocess.Popen(['chmod', '774', INSTALL_PATH, '-R'],)
 tcr_proc.wait()
@@ -485,6 +429,12 @@ for fname in glob.glob(INSTALL_PATH + 'bin/*'):
     lines = open(fname).readlines()
     lines.insert(4, ('export TWISTER_PATH=%s\n\n' % INSTALL_PATH))
     open(fname, 'w').write(''.join(lines))
+
+# Fix FWM Config XML
+if TO_INSTALL == 'client':
+    fwm = Template( open(INSTALL_PATH + 'config/fwmconfig.xml', 'r').read() )
+    open(INSTALL_PATH + 'config/fwmconfig.xml', 'w').write( fwm.substitute(HOME=os.getenv('HOME')) )
+    del fwm
 
 #
 
