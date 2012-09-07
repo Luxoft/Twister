@@ -86,14 +86,41 @@ def prepareLog(log_file, pos=0):
     log = f.read().rstrip()
     f.close() ; del f
 
-    body = log.replace('\n', '<br>\n').replace(' ', '&nbsp;')
+    body = '''
+    <style>
+    .nfo {color:gray; text-shadow: 1px 1px 1px #aaa}
+    .dbg {color:gray; text-shadow: 1px 1px 1px #aaa}
+    .err {color:orange; text-shadow: 1px 1px 1px #aaa}
+    .warn {color:orange; text-shadow: 1px 1px 1px #aaa}
+    .crit {color:red; text-shadow: 1px 1px 1px #aaa}
+    </style>
+    '''
+    body += log.replace('\n', '<br>\n').replace(' ', '&nbsp;')
     del log
-    body = body.replace(';INFO&',   ';<b style="color:gray">INFO</b>&')
-    body = body.replace(';DEBUG&',  ';<b style="color:gray">DEBUG</b>&')
-    body = body.replace(';ERROR&',  ';<b style="color:orange">ERROR</b>&')
-    body = body.replace(';WARNING&',  ';<b style="color:orange">WARNING</b>&')
-    body = body.replace(';CRITICAL&', ';<b style="color:red"L>CRITICAL</b>&')
+    body = body.replace(';INFO&',   ';<b class="nfo">INFO</b>&')
+    body = body.replace(';DEBUG&',  ';<b class="dbg">DEBUG</b>&')
+    body = body.replace(';ERROR&',  ';<b class="err">ERROR</b>&')
+    body = body.replace(';WARNING&',  ';<b class="warn">WARNING</b>&')
+    body = body.replace(';CRITICAL&', ';<b class="crit">CRITICAL</b>&')
+    body = body.replace(';debug:',    ';<b class="dbg">debug</b>:')
+    body = body.replace(';error:',    ';<b class="err">error</b>:')
+    body = body.replace(';warning:',  ';<b class="warn">warning</b>:')
     return body
+
+def dirList(path, newdict):
+    if os.path.isdir(path):
+        dlist = []
+        flist = []
+        for fname in sorted(os.listdir(path), key=str.lower):
+            nd = {'data': fname, 'children': []}
+            if os.path.isdir(path + os.sep + fname):
+                dlist.append(nd)
+            else:
+                flist.append(nd)
+        newdict['children'] = dlist + flist
+    for nitem in newdict['children']:
+        newpath = path + os.sep + nitem['data']
+        dirList(newpath, nitem)
 
 # # # # #
 
@@ -196,14 +223,28 @@ class CentralEngineRest:
         epinfo = self.project.getEpInfo(user, epname)
 
         for suite in epinfo['suites']:
-            sdata = {}
-            sdata['attr'] = {'id' : suite, 'rel': 'suite'}
-            sdata['data'] = '<i class="icon-folder-open"></i> ' + epinfo['suites'][suite]['name']
-            sdata['children'] = [ '<i class="icon-file"></i> ' + epinfo['suites'][suite]['files'][k]['file'] for
-                                  k in epinfo['suites'][suite]['files'].keys() ]
+            sdata = {
+                'attr': {'id': suite, 'rel': 'suite'},
+                'data': '<i class="icon-folder-open"></i> {0}'.format(epinfo['suites'][suite]['name'])
+            }
+            if epinfo['suites'][suite]['files']:
+                sdata['children'] = ['<i class="icon-file"></i> ' + epinfo['suites'][suite]['files'][k]['file'] for
+                                     k in epinfo['suites'][suite]['files'].keys()]
             data.append(sdata)
 
         return json.dumps(data)
+
+
+    @cherrypy.expose
+    def json_folders(self):
+        if self.user_agent() == 'x':
+            return 0
+
+        newdict = {'data':'root','children':[]}
+        dirpath = '/home/cro/twister'
+        dirList(dirpath, newdict)
+
+        return json.dumps(newdict)
 
 
     @cherrypy.expose
@@ -246,7 +287,7 @@ class CentralEngineRest:
             return output.render(title='Error!', body='<b>Status value `{0}` is not in the list of valid statuses: {1}!</b>'\
                 .format(status, execStatus.values()))
         self.parent.setExecStatusAll(user, status, 'User status changed from REST interface.')
-        raise cherrypy.HTTPRedirect('http://{host}/rest/users/{user}'.format(
+        raise cherrypy.HTTPRedirect('http://{host}/rest/users/{user}#tab_home'.format(
             host = cherrypy.request.headers['Host'], user = user
         ))
 
@@ -260,7 +301,7 @@ class CentralEngineRest:
             return output.render(title='Error!', body='<b>Status value `{0}` is not in the list of valid statuses: {1}!</b>'\
                 .format(status, execStatus.values()))
         self.parent.setExecStatus(user, epname, status, 'EP status changed from REST interface.')
-        raise cherrypy.HTTPRedirect('http://{host}/rest/users/{user}/{epname}'.format(
+        raise cherrypy.HTTPRedirect('http://{host}/rest/users/{user}#tab_proc'.format(
             host = cherrypy.request.headers['Host'], user = user, epname = epname
         ))
 

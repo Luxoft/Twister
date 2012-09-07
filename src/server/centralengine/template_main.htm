@@ -12,8 +12,14 @@
 			padding-top: 60px;
 			background: #f6f6f6 url(/static/img/bg.png) repeat fixed;
 		}
-		.hero-unit h1 {margin-top: -25px;}
-		#server_log {font-family: Monospace, DejaVu Sans Mono, Courier New, Courier}
+		.hero-unit {border: 1px solid #aaf}
+		.hero-unit h1 {
+			margin-top: -25px;
+			text-shadow: 0px 1px 3px #555;
+		}
+		#server_log {
+			font-family: Monospace, DejaVu Sans Mono, Courier New, Courier;
+		}
 	</style>
 	<link rel="shortcut icon" href="/static/favicon.ico" />
 	<!-- Le HTML5 shim, for IE6-8 support of HTML5 elements -->
@@ -33,7 +39,7 @@
 	<div class="tab-content">
 
 	<div class="tab-pane active" id="tab_main">
-	<div class="hero-unit" style="border: 1px solid #aaf">
+	<div class="hero-unit">
 		<h1>Central Engine REST interface</h1><br>
 		<table class="table table-bordered">
 			<tr><td width="200">IP and Port</td><td><code>${ip_port}</code></td></tr>
@@ -46,7 +52,7 @@
 	</div> <!-- End of tab-1 -->
 
 	<div class="tab-pane" id="tab_users">
-	<div class="hero-unit" style="border: 1px solid #aaf">
+	<div class="hero-unit">
 		<h1>Connected Users</h1><br>
 		<table class="table table-bordered">
 		% for usr in users:
@@ -57,7 +63,7 @@
 	</div> <!-- End of tab-2 -->
 
 	<div class="tab-pane" id="tab_logs">
-	<div class="hero-unit" style="border: 1px solid #aaf">
+	<div class="hero-unit">
 		<h1>Central Engine Log</h1><br>
 		<button class="btn btn-small" id="refresh_log">Refresh <i class="icon-refresh"></i></button> <br><br>
 		<span id="server_log">Log...</span>

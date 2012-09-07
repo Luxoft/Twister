@@ -12,8 +12,14 @@
 			padding-top: 60px;
 			background: #f6f6f6 url(/static/img/bg.png) repeat fixed;
 		}
-		.hero-unit h1 {margin-top: -25px;}
-		.logs_content {font-family: Monospace, DejaVu Sans Mono, Courier New, Courier}
+		.hero-unit {border: 1px solid #aaf}
+		.hero-unit h1 {
+			margin-top: -25px;
+			text-shadow: 0px 1px 3px #555;
+		}
+		.logs_content {
+			font-family: Monospace, DejaVu Sans Mono, Courier New, Courier;
+		}
 	</style>
 	<link rel="shortcut icon" href="/static/favicon.ico" />
 	<!-- Le HTML5 shim, for IE6-8 support of HTML5 elements -->
@@ -35,9 +41,8 @@
 	<div class="tab-content">
 
 	<div class="tab-pane active" id="tab_home">
-	<div class="hero-unit" style="border: 1px solid #aaf">
+	<div class="hero-unit">
 		<h1>User `${user}`</h1><br>
-
 		<table class="table table-bordered">
 			<tr><td width="200"><b>Status</b></td><td><span id="user_status">${status}</span>
 				<small>(<a href="http://${host}/rest/setUserStatus/${user}/2"><i class="icon-play"></i> start</a>&nbsp; |
@@ -71,7 +76,7 @@ for ep in eps:
 %>
 
 	<div class="tab-pane" id="tab_proc">
-	<div class="hero-unit" style="border: 1px solid #aaf">
+	<div class="hero-unit">
 		<h1>Processes for `${user}`</h1><br>
 		<div class="tabbable tabs-left">
 		<ul class="nav nav-tabs">
@@ -92,7 +97,13 @@ for ep in eps:
 		<div class="tab-content">
 		% for ep in eps:
 			<div class="tab-pane${' active' if loop.first else ''}" id="${encode(ep)}">
-				<br><div id="t_${encode(ep)}" style="background:transparent;height:auto"></div>
+				<div class="well well-small" style="width:310px">
+				Actions:&nbsp;<a href="/rest/setEpStatus/${user}/${ep}/2"><i class="icon-play"></i> </a>&nbsp;|
+				&nbsp; <a href="/rest/setEpStatus/${user}/${ep}/1"><i class="icon-pause"></i> </a>&nbsp;|
+				&nbsp; <a href="/rest/setEpStatus/${user}/${ep}/0"><i class="icon-stop"></i> </a>&nbsp;|
+				&nbsp; <a href="#" class="tree_edit"><i class="icon-edit"></i> </a>
+				</div>
+				<div id="t_${encode(ep)}" style="background:transparent;height:auto"></div>
 			</div>
 		% endfor
 		</div>
@@ -101,7 +112,7 @@ for ep in eps:
 	</div> <!-- End of tab-2 -->
 
 	<div class="tab-pane" id="tab_logs">
-	<div class="hero-unit" style="border: 1px solid #aaf">
+	<div class="hero-unit">
 		<h1>Logs for `${user}`</h1><br>
 		<div class="tabbable tabs-left">
 		<ul class="nav nav-tabs">
@@ -144,6 +155,7 @@ for ep in eps:
 <script src="/static/js/jquery.jstree.js"></script>
 
 <script type="text/javascript">
+var can_edit = false;
 
 // User stats
 function updateUserStats() {
@@ -158,15 +170,15 @@ function updateUserStats() {
 				$("span#proj_config").text(jdata["${user}"]["tests_path"]);    // User project config
 				$("span#logs_path").text(jdata["${user}"]["logs_path"]);       // User logs
 			});
-		// setTimeout(updt_usr, refresh_int);
+		// setTimeout(updt_usr, refresh_int); // Thread
 	//}
-	// setTimeout(updt_usr, refresh_int);
+	// setTimeout(updt_usr, refresh_int); // Thread
 };
 
 function updateEpTree(ep_name) {
 	// jsTree config
 	var tconfig = {
-		"plugins" : ["json_data", "themes", "hotkeys", "ui", "types", "crrm", "dnd"],
+		"plugins" : ["json_data", "themes", "ui", "types", "crrm", "hotkeys", "dnd"],
 		"core" : {"html_titles" : true, "animation" : 200},
 		"json_data" : {"ajax" : {"url" : "/rest/json_eps/${user}/" + ep_name}},
 		"themes" : {"theme" : "classic", "dots" : true, "icons" : false},
@@ -181,12 +193,26 @@ function updateEpTree(ep_name) {
 					"valid_children": ["default"]
 				}
 			}
+		},
+		"crrm" : {
+			"move" : {
+				"check_move" : function (m) { if (!can_edit) return false; return true; }
+			}
+		},
+		"hotkeys" : {
+			"f2" : function () {
+				if (!can_edit) return false;
+				this.rename();
+			},
+			"del" : function () {
+				if (!can_edit) return false;
+				this.remove();
+			}
 		}
 	};
-	$("#t_" + ep_name).jstree(tconfig)
-		.bind("loaded.jstree", function(e, data) {
-			data.inst.open_all(-1);
-		});
+	$("#t_" + ep_name).jstree(tconfig).bind("loaded.jstree", function (e, data) {
+		data.inst.open_all();
+	});
 };
 
 function updateUserLogs(log_name) {
@@ -198,11 +224,11 @@ function updateUserLogs(log_name) {
 };
 
 // Refresh eps on tab click
-$(".refresh_eps").click(function () {
+$(".refresh_eps").click(function() {
 	updateEpTree( $(this).find("a").attr("data-target").replace("#", "") );
 });
 // Refresh logs on tab click
-$(".refresh_logs").click(function () {
+$(".refresh_logs").click(function() {
 	updateUserLogs( $(this).find("a").attr("data-target").replace("#", "") );
 });
 
@@ -219,8 +245,19 @@ $(function () {
 	$(".refresh_eps.active").click();
 	// Update first user log
 	$(".refresh_logs.active").click();
-});
 
+	$(".tree_edit").click(function () {
+		can_edit = !can_edit;
+		//var t_id = "#" + $(this).parent().parent().find(".jstree").attr("id");
+		if (can_edit) {
+			$(this).after('<span class="can_edit_tree">&nbsp;&nbsp;&nbsp;<b>Edit ...</b></span>');
+		}
+		else {
+			$(".can_edit_tree").remove();
+		}
+	});
+
+});
 </script>
 
 </body>
