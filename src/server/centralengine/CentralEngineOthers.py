@@ -778,6 +778,11 @@ class Project:
                         del subst_data['files']
                         subst_data.update( self.users[user]['eps'][epname]['suites'][suite_id]['files'][file_id] )
 
+                        # Insert/ fix DB variables
+                        subst_data['twister_suite_name'] = self.users[user]['eps'][epname]['suites'][suite_id]['name']
+                        subst_data['twister_tc_full_path'] = self.users[user]['eps'][epname]['suites'][suite_id]['files'][file_id]['file']
+                        subst_data['twister_tc_name'] = os.path.split(subst_data['twister_tc_full_path'])[1]
+
                         # Prerequisite files will not be saved to database
                         if subst_data.get('Prerequisite'):
                             continue

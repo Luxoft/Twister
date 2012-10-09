@@ -155,6 +155,7 @@ class CentralEngineRest:
         machine = platform.uname()[1]
         system  = ' '.join(platform.linux_distribution())
         users   = sorted([u.split('/')[2] for u in glob.glob('/home/*/twister')])
+        # os.path.expanduser("~user")
 
         output = Template(filename=TWISTER_PATH + '/server/centralengine/template_main.htm')
         return output.render(ip_port=ip_port, machine=machine, system=system, users=users)
@@ -224,12 +225,12 @@ class CentralEngineRest:
 
         for suite in epinfo['suites']:
             sdata = {
+                'data': epinfo['suites'][suite]['name'],
                 'attr': {'id': suite, 'rel': 'suite'},
-                'data': '<i class="icon-folder-open"></i> {0}'.format(epinfo['suites'][suite]['name'])
+                'children': [],
             }
             if epinfo['suites'][suite]['files']:
-                sdata['children'] = ['<i class="icon-file"></i> ' + epinfo['suites'][suite]['files'][k]['file'] for
-                                     k in epinfo['suites'][suite]['files'].keys()]
+                sdata['children'] = [epinfo['suites'][suite]['files'][k]['file'] for k in epinfo['suites'][suite]['files'].keys()]
             data.append(sdata)
 
         return json.dumps(data)

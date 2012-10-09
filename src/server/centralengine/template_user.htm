@@ -101,9 +101,10 @@ for ep in eps:
 				Actions:&nbsp;<a href="/rest/setEpStatus/${user}/${ep}/2"><i class="icon-play"></i> </a>&nbsp;|
 				&nbsp; <a href="/rest/setEpStatus/${user}/${ep}/1"><i class="icon-pause"></i> </a>&nbsp;|
 				&nbsp; <a href="/rest/setEpStatus/${user}/${ep}/0"><i class="icon-stop"></i> </a>&nbsp;|
-				&nbsp; <a href="#" class="tree_edit"><i class="icon-edit"></i> </a>
+				&nbsp; <a class="tree_edit" style="cursor:pointer"><i class="icon-pencil"></i> </a>
 				</div>
-				<div id="t_${encode(ep)}" style="background:transparent;height:auto"></div>
+				<div id="t_${encode(ep)}" style="float:left;position:relative;background:transparent;height:auto"></div>
+				<div id="b_${encode(ep)}" style="float:left;position:relative;margin-left:50px;background:transparent;height:auto"></div>
 			</div>
 		% endfor
 		</div>
@@ -179,40 +180,59 @@ function updateEpTree(ep_name) {
 	// jsTree config
 	var tconfig = {
 		"plugins" : ["json_data", "themes", "ui", "types", "crrm", "hotkeys", "dnd"],
-		"core" : {"html_titles" : true, "animation" : 200},
-		"json_data" : {"ajax" : {"url" : "/rest/json_eps/${user}/" + ep_name}},
-		"themes" : {"theme" : "classic", "dots" : true, "icons" : false},
+		"json_data" : { "ajax" : { "url" : "/rest/json_eps/${user}/" + ep_name } },
+		"themes" : {"theme" : "classic", "dots" : true, "icons" : true},
 		"types" : {
 			"valid_children" : ["suite"],
 			"types" : {
 				"suite" : {
+					"icon" : { 'image' : '/static/img/folder.png' },
 					"valid_children": ["default"],
-					"max_depth": 2
+					"max_depth" : 2
 				},
 				"default" : {
-					"valid_children": ["default"]
+					"icon" : { 'image' : '/static/img/file.png' },
+					"max_depth" : 1
 				}
 			}
 		},
 		"crrm" : {
 			"move" : {
-				"check_move" : function (m) { if (!can_edit) return false; return true; }
+				"check_move" : function (m) {
+					if (!can_edit) return false; return true;
+				}
 			}
 		},
 		"hotkeys" : {
 			"f2" : function () {
-				if (!can_edit) return false;
-				this.rename();
+				if (!can_edit) return false; this.rename();
 			},
 			"del" : function () {
-				if (!can_edit) return false;
-				this.remove();
+				if (!can_edit) return false; this.remove();
 			}
 		}
 	};
 	$("#t_" + ep_name).jstree(tconfig).bind("loaded.jstree", function (e, data) {
 		data.inst.open_all();
 	});
+};
+
+function updateBrowseTree(ep_name) {
+	// jsTree config
+	var tconfig = {
+		"plugins" : ["json_data", "themes", "ui", "types", "dnd"],
+		"initially_open" : ["root"],
+		"json_data" : { "ajax" : { "url" : "/rest/json_folders" } },
+		"themes" : { "theme" : "classic", "dots" : true, "icons" : true },
+		"types" : {
+			"valid_children" : ["default"],
+				"default" : {
+					"icon" : { 'image' : '/static/img/file.png' },
+					"max_depth" : 1
+				}
+			}
+	};
+	$("#b_" + ep_name).jstree(tconfig);
 };
 
 function updateUserLogs(log_name) {
@@ -225,12 +245,27 @@ function updateUserLogs(log_name) {
 
 // Refresh eps on tab click
 $(".refresh_eps").click(function() {
-	updateEpTree( $(this).find("a").attr("data-target").replace("#", "") );
+	var ep_name = $(this).find("a").attr("data-target").replace("#", "");
+	updateEpTree( ep_name );
+	updateBrowseTree( ep_name );
 });
 // Refresh logs on tab click
 $(".refresh_logs").click(function() {
 	updateUserLogs( $(this).find("a").attr("data-target").replace("#", "") );
 });
+
+function treeSave() {
+	can_edit = false;
+	$(".tree_edit").show();
+	$(".can_edit_tree").remove();
+	alert("Should save... !");
+};
+
+function treeCancel() {
+	can_edit = false;
+	$(".tree_edit").show();
+	$(".can_edit_tree").remove();
+};
 
 // Run this on page load
 $(function () {
@@ -245,18 +280,22 @@ $(function () {
 	$(".refresh_eps.active").click();
 	// Update first user log
 	$(".refresh_logs.active").click();
-
+	// Toggle edit mode
 	$(".tree_edit").click(function () {
 		can_edit = !can_edit;
-		//var t_id = "#" + $(this).parent().parent().find(".jstree").attr("id");
+		var ep_name = $(this).parent().parent().attr("id");
+		console.log( ep_name );
 		if (can_edit) {
-			$(this).after('<span class="can_edit_tree">&nbsp;&nbsp;&nbsp;<b>Edit ...</b></span>');
+			$(".tree_edit").hide();
+			$(this).after('<span class="can_edit_tree">&nbsp;&nbsp;&nbsp;<b>Edit ... </b>&nbsp;&nbsp;' +
+				'<a onclick="treeSave()" style="cursor:pointer"><i class="icon-ok"></i></a>&nbsp;&nbsp;' +
+				'<a onclick="treeCancel()" style="cursor:pointer"><i class="icon-remove"></i></a></span>');
 		}
 		else {
+			$(".tree_edit").show();
 			$(".can_edit_tree").remove();
 		}
 	});
-
 });
 </script>
 
