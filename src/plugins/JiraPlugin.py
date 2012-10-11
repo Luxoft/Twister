@@ -43,6 +43,12 @@ class Plugin(BasePlugin):
 
         command_name = args['command']
 
+        if 'user' not in args.keys():
+            logger.error("No user given.")
+            return False
+        
+        user = args['user']
+
         jira_env = {}
 
         if commands.has(command_name):
@@ -83,7 +89,7 @@ class Plugin(BasePlugin):
 
             home = "notset"
             try:
-                home = os.path.expanduser('~'+self.user)
+                home = os.path.expanduser('~'+user)
                 logger.debug('Set Jira HOME to '+ home)
             except KeyError:
                 try:
@@ -461,7 +467,7 @@ class JiraLogin(JiraCommand):
                 # Up to 3.12
                 jira_env['projects'] = soap.service.getProjects(auth)
             else:
-                jira_env['projects'] = soap.service.getProjectsNoSchemes(auth)               
+                jira_env['projects'] = soap.service.getProjectsNoSchemes(auth)
             return self.render(logger,jira_env,jira_env['projects'])
         except Exception, e:
             logger.error("Login failed")
@@ -768,6 +774,8 @@ class JiraUpdate(JiraCommand):
                     newValue.append(v['id'])        
             if field in ['affectsVersions']:
                 field = 'versions'        
+            if field in ['type']:
+                field = 'issuetype'        
             if field in ['duedate', 'created', 'updated']:
                 val = newValue
                 if val=='None':
@@ -971,8 +979,7 @@ def start_login(jira_env, command_name, logger, args):
             fp = open(jirarc_file, 'rb')
             jira_env['jirauser'] = fp.readline()[:-1]
             auth = fp.readline()[:-1]
-            fp.close()            
-          	    
+            fp.close()
         except Exception, e:
             # Attempt another login
             logger.error('Previous login is invalid or has expired')

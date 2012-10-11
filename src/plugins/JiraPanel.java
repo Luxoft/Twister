@@ -212,8 +212,10 @@ public class JiraPanel extends JPanel implements ActionListener {
 	 */
 	@Override
 	public void actionPerformed(ActionEvent arg0) {
-		// TODO Auto-generated method stub
 		int projectIndex;
+		int issueIndex;
+		Object selectedIssueKey;
+		HashMap selectedIssue;
 		lblInfo.setText("Info");
 		
 		System.out.println(arg0.getActionCommand()+":");
@@ -262,24 +264,25 @@ public class JiraPanel extends JPanel implements ActionListener {
 			new IssueFrame(JiraPanel.ISSUE_FIELD_NAMES_CREATE,new HashMap());
 			break;
 		case PUSH_EDIT_ISSUE_BTN: // create and display the window for issue editing
-			int issueIndex = issuesTable.getSelectedRow();
-			if (issueIndex>=0){
-				HashMap issue = jp.getIssueAt(issueIndex);
-				new IssueFrame(JiraPanel.ISSUE_FIELD_NAMES_CREATE,issue);
+			issueIndex = issuesTable.getSelectedRow();
+			selectedIssueKey = issuesTable.getValueAt(issueIndex, 0);
+			selectedIssue = jp.getIssueByKey((String)selectedIssueKey);
+			if (selectedIssue!=null){
+				new IssueFrame(JiraPanel.ISSUE_FIELD_NAMES_CREATE,selectedIssue);
 			}
 			else {
 				lblInfo.setText("You must select an issue from the table");
 			}
 			break;
 		case PUSH_ADD_ATTACHMENT:  // create and display a window for managing attachments
-			// TODO get the selected issue by issue KEY not by row index, as this changes with table sorting
 			issueIndex = issuesTable.getSelectedRow();
-//			issuesTable.getValueAt(issueIndex, 0);
-			if (issueIndex>=0){
-				HashMap issue = jp.getIssueAt(issueIndex);
-				AttachmentChooser ac = new AttachmentChooser(issue);				
+			selectedIssueKey = issuesTable.getValueAt(issueIndex, 0);
+			selectedIssue = jp.getIssueByKey((String)selectedIssueKey);
+			if (selectedIssue!=null){
+				
+				AttachmentChooser ac = new AttachmentChooser(selectedIssue);				
 
-				attachmentsPopup = new JFrame("Attachment Chooser for issue "+issue.get("key"));
+				attachmentsPopup = new JFrame("Attachment Chooser for issue "+selectedIssue.get("key"));
 				
 				attachmentsPopup.getContentPane().add(ac);
 				attachmentsPopup.pack();
@@ -291,12 +294,13 @@ public class JiraPanel extends JPanel implements ActionListener {
 			break;		
 		case PUSH_SEE_COMMENT: // create and display a window for adding / editing comments
 			issueIndex = issuesTable.getSelectedRow();
-			if (issueIndex>=0){
-				HashMap issue = jp.getIssueAt(issueIndex);
+			selectedIssueKey = issuesTable.getValueAt(issueIndex, 0);
+			selectedIssue = jp.getIssueByKey((String)selectedIssueKey);
+			if (selectedIssue!=null){
 
 				commentsPopup = new JFrame("Comments");
 				commentsPopup.setMaximumSize(new Dimension(400,650));
-				commentsPanel = createCommentsPanel((String)issue.get("key"), new JPanel());
+				commentsPanel = createCommentsPanel((String)selectedIssue.get("key"), new JPanel());
 				commentsPopup.getContentPane().add(commentsPanel);
 				commentsPopup.pack();
 				commentsPopup.setVisible(true);
@@ -402,8 +406,7 @@ public class JiraPanel extends JPanel implements ActionListener {
 			Date date = new SimpleDateFormat(DATE_FORMAT).parse(row2Value);
 			SimpleDateFormat dt1 = new SimpleDateFormat("yyyy-MM-dd");
 			l12.setText(dt1.format(date));
-		} catch (ParseException e) {
-			// TODO Auto-generated catch block
+		} catch (ParseException e) {			
 			l12.setText(row2Value);
 		}
 		l12.setFont(JiraPanel.LABEL_ITALIC_FONT);
@@ -843,7 +846,9 @@ public class JiraPanel extends JPanel implements ActionListener {
 		
 		/** 
 		 * The IssueFrame constructor
-		 * @param fieldNames - array of Strings for the com
+		 * @param fieldNames - array of Strings that identify the fields of an issue 
+		 * which will appear in the window to be edited
+		 * @param issue - HashMap object containing issue data (can be a new empty HashMap in the case of issue creation)
 		 */
 		public IssueFrame(String[] fieldNames, HashMap issue){
 			super();
@@ -870,9 +875,17 @@ public class JiraPanel extends JPanel implements ActionListener {
 			this.setVisible(true);
 		}
 		
-		
+		/** 
+		 * The createObjects method creates the components in the window used for creating/editing an issue 
+		 * @param fieldNames - array of Strings that identify the fields the issue 
+		 * which will appear in the window to be edited
+		 * @param projects - array of HashMap objects representing the available projects
+		 * @param types - array of HashMap objects that represent the possible issue types
+		 * @param priorities - array of HashMap objects that represent the possible priorities
+		 * @param statuses - array of HashMap objects that represent the possible statuses
+		 * @return a JPanel object containing all the components that store the issue data
+		 */
 		private JPanel createObjects(String[] fieldNames,Object[] projects, Object[] types, Object[] priorities, Object[] statuses) {
-			// TODO Auto-generated method stub
 			contentsPanel = new JPanel();
 			contentsPanel.setBorder(BorderFactory.createEtchedBorder(EtchedBorder.LOWERED));
 			contentsPanel.setLayout(new BoxLayout(contentsPanel, BoxLayout.PAGE_AXIS));
@@ -1039,9 +1052,12 @@ public class JiraPanel extends JPanel implements ActionListener {
 			return contentsPanel;
 		}
 
+		/**
+		 * This method treats the user events that occur in the IssuePanel.
+		 * @param arg0 - the user event
+		 */
 		@Override
 		public void actionPerformed(ActionEvent arg0) {
-			// TODO Auto-generated method stub
 			lblInfo.setText("Info");
 			switch (arg0.getActionCommand()){
 			case "Cancel":
@@ -1083,7 +1099,6 @@ public class JiraPanel extends JPanel implements ActionListener {
 				this.dispose();
 				break;
 			case PROJECT_SELECTED:
-//				System.out.println(cbProject.getSelectedIndex());
 				
 				Object[] versions = jp.JiraGetVersions(cbProject.getSelectedIndex());
 				
@@ -1111,7 +1126,10 @@ public class JiraPanel extends JPanel implements ActionListener {
 			}
 		}
 		
- 
+		/**
+		 * The class MultiCombo defines a panel that contains a JComboBox, JButton and JTextField 
+		 * used to allow the user to make multiple selections from the ComboBox  
+		 */
 	    private class MultiCombo extends JPanel implements ActionListener {
 	    	
 	        JComboBox cb = new JComboBox();
@@ -1130,7 +1148,6 @@ public class JiraPanel extends JPanel implements ActionListener {
 
 			@Override
 			public void actionPerformed(ActionEvent arg0) {
-				// TODO Auto-generated method stub
 				String text = list.getText();
 				if (text.equals("")){
 					list.setText((String) cb.getSelectedItem());
@@ -1142,6 +1159,10 @@ public class JiraPanel extends JPanel implements ActionListener {
 	    }	    
 	}
 	
+	/**
+	 * The class AttachmentChooser defines a panel that contains components 
+	 * used to allow the user to manipulate attachments for an issue  
+	 */
 	class AttachmentChooser extends JPanel implements ActionListener {
 		HashMap i;
 		List attachmentList = new LinkedList();
@@ -1153,7 +1174,10 @@ public class JiraPanel extends JPanel implements ActionListener {
         File file;
         final JFileChooser fc = new JFileChooser();
         final Font FILENAME_LABEL_FONT = new Font("Tahoma",Font.ITALIC,12); 
-        
+        /**
+		 * Constructor 
+		 * @param issue - HashMap object that contains issue data   
+		 */
         public AttachmentChooser(HashMap issue){
         	this();
         	this.i=issue;
@@ -1164,7 +1188,9 @@ public class JiraPanel extends JPanel implements ActionListener {
         		getAttach.setEnabled(false); // at issue creation this option is unavailable        		
         	}
         }
-        
+		/**
+		 * Constructor - creates components in the window that displays attachments   
+		 */
         public AttachmentChooser(){
         	// TODO Fix problem about size of the JList
         	att = new JList(model);
@@ -1197,6 +1223,10 @@ public class JiraPanel extends JPanel implements ActionListener {
             add(buttonsPanel);            
         }  
         
+		/**
+		 * This method is called when the attachments window is created to fill 
+		 * in its contents if the issue already has attachments  
+		 */
         public void setContents(){
         	model.clear();
 	    	if (i.containsKey("attachments")){
@@ -1208,10 +1238,11 @@ public class JiraPanel extends JPanel implements ActionListener {
 	    		}
 	    	}
         }
-	        
+        /**
+		 * This method treats user events in the window   
+		 */    
 		@Override
 		public void actionPerformed(ActionEvent arg0) {
-			// TODO Auto-generated method stub
 			if (arg0.getSource() == addAttach) {
 				int returnVal = fc.showOpenDialog(AttachmentChooser.this);
 				if (returnVal == JFileChooser.APPROVE_OPTION) {
@@ -1227,7 +1258,7 @@ public class JiraPanel extends JPanel implements ActionListener {
 						attachmentList.add(newAttach);						
 					}
 					// add attachment in Jira
-					if (i.containsKey("key")){
+					if (i.containsKey("key")){ // only if this issue is being edited, because we need the issue key
 						Object[] attachments = {newAttach};					
 						jp.JiraAddAttachment((String)i.get("key"), attachments);
 					}
@@ -1259,7 +1290,11 @@ public class JiraPanel extends JPanel implements ActionListener {
 				i.put(JiraPanel.ISSUE_FIELD_ATTACHMENT, jp.getProperty(attachmentList.toArray(), "filename"));
 			}
 		}
-		
+		/**
+		 * This method returns an attachment (HashMap object) from the list, given its filename
+		 * @param filename - the filename selected by the user in the list (String)
+		 * @return attachment object (HashMap)   
+		 */
 		public HashMap getAttachmentByName(String filename){
 			Iterator it = attachmentList.iterator();
 			while (it.hasNext()){
@@ -1272,31 +1307,43 @@ public class JiraPanel extends JPanel implements ActionListener {
 		}
     }
 	
+	/**
+	 * The class AddCommentListener treats user actions related to 
+	 * creating/editing comments   
+	 */
 	class AddCommentListener implements ActionListener {
 		HashMap comment;
 		String issueKey;
 		JFrame attPopup;
-				
+		/**
+		 * Constructor
+		 * @param issueKey - the key of the issue to add/edit comments   
+		 */		
 		public AddCommentListener(String issueKey){			
 			this.issueKey = issueKey;			
 		}
-		
+		/**
+		 * Constructor
+		 * @param issueKey - the key of the issue to add/edit comments
+		 * @param comment - a HashMap comment object that is an existing comment of the issue   
+		 */		
 		public AddCommentListener(HashMap comment,String issueKey){
 			this(issueKey);
 			this.comment = comment;
 //			System.out.println(comment.get("body"));
 		}
 
+		/**
+		 * Method that treats user events   
+		 */		
 		@Override
 		public void actionPerformed(ActionEvent arg0) {
-			// TODO Auto-generated method stub
-						
 			AddCommentPanel ac;
-			if (comment!=null){
+			if (comment!=null){ // create a pop-up window to edit the comment
 				attPopup = new JFrame("Edit Comment");
 				ac = new AddCommentPanel(comment, issueKey,attPopup);
 			}
-			else{
+			else{ // create a pop-up window to input a new comment
 				attPopup = new JFrame("New Comment");
 				ac = new AddCommentPanel(issueKey,attPopup);
 			}				
@@ -1306,7 +1353,10 @@ public class JiraPanel extends JPanel implements ActionListener {
 		}
 		
 	}
-	
+	/**
+	 * The class AddCommentPanel creates the pop-up window
+	 * where the user creates/edits comments and treats user events on this window
+	 */
 	class AddCommentPanel extends JPanel implements ActionListener {
 		HashMap newComment;
 		String issueKey;
@@ -1315,7 +1365,12 @@ public class JiraPanel extends JPanel implements ActionListener {
 		JScrollPane js;
         JButton cancel;
         JFrame frame;
-              
+    	/**
+    	 * Constructor
+    	 * @param oldComment - HashMap comment object of an old comment being edited
+    	 * @param issueKey - the key of the issue to which the comment belongs (String)
+    	 * @param parent - 
+    	 */     
         public AddCommentPanel(HashMap oldComment, String issueKey, JFrame parent){
         	this(issueKey, parent);
         	newComment = oldComment;

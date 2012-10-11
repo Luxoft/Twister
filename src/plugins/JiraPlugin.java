@@ -255,6 +255,7 @@ public class JiraPlugin extends BasePlugin implements TwisterPluginInterface {
 			HashMap<String,String> params = new HashMap();
 			params.put("command", "getissuetypes");
 			params.put("server", p.tfJiraServer.getText());
+			params.put("user", p.tfUsername.getText());
 
 			Object[] result = (Object[]) client.execute("runPlugin", new Object[]{variables.get("user"),
 					 getName(),params});
@@ -282,6 +283,7 @@ public class JiraPlugin extends BasePlugin implements TwisterPluginInterface {
 			HashMap<String,String> params = new HashMap();
 			params.put("command", "getpriorities");
 			params.put("server", p.tfJiraServer.getText());
+			params.put("user", p.tfUsername.getText());
 			
 			Object[] result = (Object[]) client.execute("runPlugin", new Object[]{variables.get("user"),
 					 getName(),params});
@@ -310,6 +312,7 @@ public class JiraPlugin extends BasePlugin implements TwisterPluginInterface {
 			HashMap<String,String> params = new HashMap();
 			params.put("command", "getstatuses");
 			params.put("server", p.tfJiraServer.getText());
+			params.put("user", p.tfUsername.getText());
 			
 			Object[] result = (Object[]) client.execute("runPlugin", new Object[]{variables.get("user"),
 					 getName(),params});
@@ -340,7 +343,8 @@ public class JiraPlugin extends BasePlugin implements TwisterPluginInterface {
 			System.out.println("\n\t - attempting to get versions list for project "+projKey);
 			HashMap<String,String> params = new HashMap();
 			params.put("command", "getversions");
-			params.put("server", p.tfJiraServer.getText());			
+			params.put("server", p.tfJiraServer.getText());		
+			params.put("user", p.tfUsername.getText());
 			params.put("project", projKey);			
 			
 			Object[] result = (Object[]) client.execute("runPlugin", new Object[]{variables.get("user"),
@@ -373,7 +377,8 @@ public class JiraPlugin extends BasePlugin implements TwisterPluginInterface {
 			System.out.println("\n\t - attempting to get components list for project "+projKey);
 			HashMap<String,String> params = new HashMap();
 			params.put("command", "getcomponents");
-			params.put("server", p.tfJiraServer.getText());			
+			params.put("server", p.tfJiraServer.getText());		
+			params.put("user", p.tfUsername.getText());
 			params.put("project", projKey);	
 			
 			Object[] result = (Object[]) client.execute("runPlugin", new Object[]{variables.get("user"),
@@ -441,6 +446,7 @@ public class JiraPlugin extends BasePlugin implements TwisterPluginInterface {
 		HashMap<String,String> params = new HashMap();
 		params.put("command", "getissues");
 		params.put("server", p.tfJiraServer.getText());		
+		params.put("user", p.tfUsername.getText());
 		params.put("query", query);
 		try {
 			System.out.println("\n\t - attempting to get issues by query "+hashToString(params));			
@@ -473,6 +479,7 @@ public class JiraPlugin extends BasePlugin implements TwisterPluginInterface {
 			HashMap<String,String> params = new HashMap();
 			params.put("command", "comments");
 			params.put("server", p.tfJiraServer.getText());		
+			params.put("user", p.tfUsername.getText());
 			params.put("key", issueKey);			
 			Object[] result = (Object[]) client.execute("runPlugin", new Object[]{variables.get("user"),
 					 getName(),params});
@@ -501,7 +508,8 @@ public class JiraPlugin extends BasePlugin implements TwisterPluginInterface {
 			System.out.println(issue.keySet().toString());
 			HashMap params = new HashMap();
 			params.put("command", "create");
-			params.put("server", p.tfJiraServer.getText());			
+			params.put("server", p.tfJiraServer.getText());		
+			params.put("user", p.tfUsername.getText());
 			params.put("issue", removeNullFields(issue));
 //			System.out.println(params);
 			Object[] result = (Object[]) client.execute("runPlugin", new Object[]{variables.get("user"),
@@ -540,7 +548,8 @@ public class JiraPlugin extends BasePlugin implements TwisterPluginInterface {
 			System.out.println("\n\t - attempting to update issue "+issue.get("key"));
 			HashMap params = new HashMap();
 			params.put("command", "update");
-			params.put("server", p.tfJiraServer.getText());			
+			params.put("server", p.tfJiraServer.getText());		
+			params.put("user", p.tfUsername.getText());
 			params.put("issue", removeNullFields(issue));
 			
 			Object[] result = (Object[]) client.execute("runPlugin", new Object[]{variables.get("user"),
@@ -609,6 +618,7 @@ public class JiraPlugin extends BasePlugin implements TwisterPluginInterface {
 		HashMap params = new HashMap();
 		params.put("command", "attach");
 		params.put("server", p.tfJiraServer.getText());
+		params.put("user", p.tfUsername.getText());
 		params.put("key", issueKey);
 		params.put("attachments", attachments);			
 		try {
@@ -635,6 +645,7 @@ public class JiraPlugin extends BasePlugin implements TwisterPluginInterface {
 		HashMap params = new HashMap();
 		
 		params.put("server", p.tfJiraServer.getText());
+		params.put("user", p.tfUsername.getText());
 		params.put("body", (String) comment.get("body"));
 		if (comment.containsKey("id")){ // this is an update			
 			try {
@@ -687,6 +698,7 @@ public class JiraPlugin extends BasePlugin implements TwisterPluginInterface {
 			HashMap params = new HashMap();
 			params.put("command", "actions");
 			params.put("server", p.tfJiraServer.getText());			
+			params.put("user", p.tfUsername.getText());
 			params.put("key", issueKey);
 			
 			Object[] result = (Object[]) client.execute("runPlugin", new Object[]{variables.get("user"),
@@ -801,12 +813,19 @@ public class JiraPlugin extends BasePlugin implements TwisterPluginInterface {
 	}
 	
 	/**
-	 * This method returns an issue object for an array of issues
-	 * @param index - index of the issue within the array
+	 * This method returns an issue object from an array of issues
+	 * @param key - key of the issue to search in the array (String)
 	 * @return a HashMap representing the issue object
 	 */	
-	public HashMap getIssueAt(int index){
-		return (HashMap) issues.toArray()[index];
+	public HashMap getIssueByKey(String key){
+		Iterator it = issues.iterator();
+		while (it.hasNext()){
+			HashMap i = (HashMap) it.next();
+			if (i.get("key").equals(key)){
+				return i;				
+			}
+		}
+		return null;
 	}
 
 	/**
