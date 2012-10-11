@@ -672,12 +672,20 @@ class CentralEngine(_cptools.XMLRPCController):
     @cherrypy.expose
     def runPlugin(self, user, plugin, args):
 
-        try:
-            args = urlparse.parse_qs(args)
-        except:
-            msg = 'CE ERROR: Cannot run plugin `%s` with arguments `%s`!' % (plugin, args)
-            logError(msg)
-            return msg
+        # If argument is a string
+        if type(args) == type(str()):
+            try:
+                args = urlparse.parse_qs(args)
+            except:
+                msg = 'CE ERROR: Cannot run plugin `%s` with arguments `%s`!' % (plugin, args)
+                logError(msg)
+                return msg
+        # If argument is a valid dict, pass
+        elif type(args) == type(dict()):
+            if not 'command' in args:
+                return 'CE ERROR: Invalid dictionary for plugin `%s` : %s !' % (plugin, args)
+        else:
+            return 'CE ERROR: Invalid type of argument for plugin `%s` : %s !' % (plugin, type(args))
 
         logDebug('Running plugin:: {0} ; {1} ; {2}'.format(user, plugin, args))
 
