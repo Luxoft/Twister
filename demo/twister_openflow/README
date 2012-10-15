@@ -2,16 +2,5 @@
 Prerequisites: you must have openvswitch running, or a physical OpenFlow switch.
 The configuration is made in file of_config.py.
 
-To run the tests with Twister Framework, you must:
-- generate the tests,
-- copy of_config.py, all Python files from oflib folder and oflib/oflib.zip into twister/lib, on Central Engine.
-
-To generate the tests, you must run:
-- python tools/basic_parser.py
-- python tools/caps_parser.py
-- python tools/errormsg_parser.py
-- python tools/pktact_parser.py
-
-"oftest_parser" is the library used for generating all the tests.
-
-The tests are created in "tests" folder.
+To run the tests with Twister Framework, you must copy of_config.py, all Python files from oflib folder
+  and oflib/oflib.zip into twister/lib, on Central Engine.
