@@ -53,14 +53,16 @@ import javax.swing.DefaultComboBoxModel;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.BufferedReader;
-import java.awt.event.KeyAdapter;
-import java.awt.event.KeyEvent;
 import java.awt.event.ItemListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.KeyListener;
+import javax.swing.JList;
+import javax.swing.event.ListSelectionListener;
+import javax.swing.event.ListSelectionEvent;
+import java.util.Arrays;
 
 public class SuitaDetails extends JPanel {
-    private JPanel defsContainer,global, suiteoptions, tcoptions;
+    private JPanel defsContainer,global, suiteoptions, tcoptions, summary;
     private JScrollPane scroll;
     private ArrayList <DefPanel> definitions = new ArrayList <DefPanel>();
     private TitledBorder border;    
@@ -70,13 +72,52 @@ public class SuitaDetails extends JPanel {
     private VFSJFileChooser fileChooser;
     private Item parent;
     private JTextField tsuite,ttcname;
-    private JComboBox combo;
+    private JList combo;
     private JLabel ep;
+    private JLabel stats [] = new JLabel[10];
     
     public void setEnabled(boolean enabled) {
-        super.setEnabled(enabled);
+        //super.setEnabled(enabled);
         for (Component component : definitions)
-            component.setEnabled(enabled);}
+            component.setEnabled(enabled);
+        for (Component component : defsContainer.getComponents())
+            component.setEnabled(enabled);
+        for (Component component : global.getComponents())
+            component.setEnabled(enabled);
+        for (Component component : suiteoptions.getComponents())
+            component.setEnabled(enabled);
+        for (Component component : tcoptions.getComponents())
+            component.setEnabled(enabled);
+        combo.setEnabled(enabled);
+        defsContainer.setEnabled(enabled);
+        global.setEnabled(enabled);
+        suiteoptions.setEnabled(enabled);
+        tcoptions.setEnabled(enabled);
+        if(enabled){
+            if(getItemParent()==null){
+                setTitle("Global options");
+                scroll.setViewportView(global);
+            } else if(getItemParent().getType()==2){
+                setSuiteDetails(getItemParent().getPos().size()==1);
+            } else if(getItemParent().getType()==1){
+                setTCDetails();
+            }
+        } else {
+            setTitle("Summary");
+            scroll.setViewportView(summary);
+            revalidate();
+            repaint();
+        }
+    }
+    
+    public void updateStats(int val[]){
+        int i=0;
+        for(JLabel l:stats){            
+            l.setText(val[i]+"");
+            i++;
+        }
+        summary.repaint();
+    }
     
     public SuitaDetails(ArrayList<String []> descriptions) {
         initComponents(descriptions);}
@@ -95,8 +136,11 @@ public class SuitaDetails extends JPanel {
         suiteoptions.setBackground(Color.WHITE);
         JLabel suite = new JLabel("Suite name: ");
         tsuite = new JTextField();
-        ep = new JLabel("Ep:");
-        combo = new JComboBox();
+        ep = new JLabel("Run on EP:");
+        combo = new JList();
+        
+        JScrollPane scroll = new JScrollPane();
+        scroll.setViewportView(combo);
         GroupLayout layout = new GroupLayout(suiteoptions);
         suiteoptions.setLayout(layout);
         layout.setHorizontalGroup(
@@ -109,7 +153,7 @@ public class SuitaDetails extends JPanel {
                 .addGap(18, 18, 18)
                 .addComponent(ep)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(combo, javax.swing.GroupLayout.PREFERRED_SIZE, 108, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addComponent(scroll, 60, 70, 100)
                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
         layout.setVerticalGroup(
@@ -120,11 +164,12 @@ public class SuitaDetails extends JPanel {
                     .addComponent(suite)
                     .addComponent(tsuite, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(ep)
-                    .addComponent(combo, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addComponent(scroll, 60, 70, 100))
                 .addContainerGap())
         );
         
-        stoponfail = new JCheckBox();
+        stoponfail = new JCheckBox("Stop on fail");
+        stoponfail.setBackground(Color.WHITE);
         JLabel prescript = new JLabel();
         JLabel postscript = new JLabel();
         tprescript = new JTextField();
@@ -132,7 +177,7 @@ public class SuitaDetails extends JPanel {
         browse1 = new JButton("...");
         browse2 = new JButton("...");
 
-        stoponfail.setText("Stop on fail");
+//         stoponfail.setText();
         prescript.setText("Pre execution script:");
         postscript.setText("Post execution script:");
         
@@ -191,7 +236,7 @@ public class SuitaDetails extends JPanel {
                         .addGroup(GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
                             .addGap(5, 5, 5)
                             .addComponent(prescript))
-                        .addComponent(stoponfail, GroupLayout.PREFERRED_SIZE, 83,
+                        .addComponent(stoponfail, GroupLayout.PREFERRED_SIZE, 120,
                                      GroupLayout.PREFERRED_SIZE))
                     .addGroup(layout.createSequentialGroup()
                         .addGap(5, 5, 5)
@@ -230,6 +275,7 @@ public class SuitaDetails extends JPanel {
         global.setBackground(Color.WHITE);
         initGlobal();
         initTCOptions();
+        initSummary();
         definitions.clear();
         border = BorderFactory.createTitledBorder("Global options");
         setBorder(border);
@@ -260,6 +306,77 @@ public class SuitaDetails extends JPanel {
                                                                width,i,this);
             definitions.add(define);
             defsContainer.add(define);
+        }
+    }
+    
+    public void initSummary(){
+        summary = new JPanel();
+        summary.setBackground(Color.WHITE);
+        summary.setPreferredSize(new Dimension(300,200));
+        summary.setLayout(null);
+        
+        JLabel l1 = new JLabel("Total TC:");
+        l1.setBounds(10,5,75,25);
+        summary.add(l1);        
+        stats[0] =  new JLabel();
+        stats[0].setBounds(118,5,100,25);
+        
+        JLabel l4 = new JLabel("Pass:");
+        l4.setBounds(10,22,40,25);
+        summary.add(l4);
+        stats[3] = new JLabel();
+        stats[3].setBounds(118,22,100,25);
+        
+        JLabel l5 = new JLabel("Fail:");
+        l5.setBounds(10,39,40,25);
+        summary.add(l5);
+        stats[4] = new JLabel();
+        stats[4].setBounds(118,39,100,25);
+         
+        JLabel l3 = new JLabel("Running:");
+        l3.setBounds(10,55,70,25);
+        summary.add(l3);
+        stats[2] = new JLabel();
+        stats[2].setBounds(118,55,100,25);        
+        
+        JLabel l2 = new JLabel("Pending:");
+        l2.setBounds(10,75,70,25);
+        summary.add(l2);        
+        stats[1] = new JLabel();
+        stats[1].setBounds(118,75,100,25);
+
+        JLabel l6 = new JLabel("Skipped:");
+        l6.setBounds(10,95,70,25);
+        summary.add(l6);
+        stats[5] = new JLabel();
+        stats[5].setBounds(118,95,100,25);
+
+        JLabel l7 = new JLabel("Stopped:");
+        l7.setBounds(10,115,70,25);
+        summary.add(l7);
+        stats[6] = new JLabel();
+        stats[6].setBounds(118,115,100,25);
+
+        JLabel l8 = new JLabel("Not Executed:");
+        l8.setBounds(10,135,105,25);
+        summary.add(l8);
+        stats[7] = new JLabel();
+        stats[7].setBounds(118,135,100,25);
+
+        JLabel l9 = new JLabel("Timeout:");
+        l9.setBounds(10,155,70,25);
+        summary.add(l9);
+        stats[8] = new JLabel();
+        stats[8].setBounds(118,155,100,25);
+//         
+        JLabel l10 = new JLabel("Waiting:");
+        l10.setBounds(10,175,60,25);
+        summary.add(l10);
+        stats[9] = new JLabel();
+        stats[9].setBounds(118,175,100,25);
+
+        for(JLabel l:stats){
+            if(l!=null)summary.add(l);
         }
     }
     
@@ -296,7 +413,7 @@ public class SuitaDetails extends JPanel {
                     .addGroup(layout.createSequentialGroup()
                         .addComponent(tcname)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(ttcname, GroupLayout.PREFERRED_SIZE, 116, GroupLayout.PREFERRED_SIZE)))
+                        .addComponent(ttcname, GroupLayout.PREFERRED_SIZE, 275, GroupLayout.PREFERRED_SIZE)))
                 .addContainerGap(127, Short.MAX_VALUE)));
                 
         layout.setVerticalGroup(
@@ -337,40 +454,36 @@ public class SuitaDetails extends JPanel {
                 inputStreamReader.close();
                 in.close();
                 String result = b.toString();
-                String  [] vecresult = result.split(";");
-                combo.setModel( new DefaultComboBoxModel(vecresult));
-                combo.setSelectedItem(parent.getEpId());
-                ItemListener l [] = combo.getItemListeners();
-                for(ItemListener s : l){
-                    combo.removeItemListener(s);
+                String [] vecresult = result.split(";");                
+                
+
+                for(ListSelectionListener l:combo.getListSelectionListeners()){
+                    combo.removeListSelectionListener(l);
                 }
-                combo.addItemListener(new ItemListener(){
-                     public void itemStateChanged(ItemEvent evt) {
-                            JComboBox cb = (JComboBox)evt.getSource();
-                            Object item = evt.getItem();                    
-                            if (evt.getStateChange() == ItemEvent.SELECTED) {
-                                String ID = item.toString();
-                                getItemParent().setEpId(ID);
-                                for(int i=0;i<getItemParent().getSubItemsNr();i++){
-                                    Repository.window.mainpanel.p1.sc.g.assignEpID(getItemParent().getSubItem(i),ID);
-                                }
-                                Repository.window.mainpanel.p1.sc.g.repaint();
-                            }
-                        }
-                    }
-                );
+
+                combo.setModel(new DefaultComboBoxModel(vecresult));
+                String [] strings = parent.getEpId();
+                ArrayList<String> array = new ArrayList<String>(Arrays.asList(vecresult));
+                int [] sel = new int[strings.length];
+                for(int i=0;i<strings.length;i++){
+                    sel[i]=array.indexOf(strings[i]);
+                }
+                combo.setSelectedIndices(sel);
+                combo.addListSelectionListener(new MyListSelectionListener());
+                
+
                 
                 tsuite.setText(parent.getName());
                 KeyListener k [] = combo.getKeyListeners();
                 for(KeyListener t : k){
                     tsuite.removeKeyListener(t);
                 }
-                
+
                 tsuite.addKeyListener(new KeyAdapter(){
                     public void keyReleased(KeyEvent ev){
                         String name = tsuite.getText();
                         FontMetrics metrics = getGraphics().getFontMetrics(new Font("TimesRoman", Font.BOLD, 14));
-                        int width = metrics.stringWidth(name)+140;
+                        int width = metrics.stringWidth(name)+40;
                         getItemParent().setName(name);
                         getItemParent().getRectangle().setSize(width,(int)getItemParent().getRectangle().getHeight());
                         if(getItemParent().isVisible())Repository.window.mainpanel.p1.sc.g.updateLocations(getItemParent());
@@ -386,31 +499,69 @@ public class SuitaDetails extends JPanel {
             }
         }
         if(parent!=null&&parent.getType()==1){
-            ttcname.setText(getItemParent().getName());
-            KeyListener k [] = ttcname.getKeyListeners();
-            for(KeyListener t : k){
-                ttcname.removeKeyListener(t);
-            }
-            ttcname.addKeyListener(new KeyAdapter(){
-                    public void keyReleased(KeyEvent ev){
-                        String name = ttcname.getText();
-                        FontMetrics metrics = getGraphics().getFontMetrics(new Font("TimesRoman", Font.BOLD, 14));
-                        int width = metrics.stringWidth(name)+140;
-                        getItemParent().setName(name);
-                        getItemParent().getRectangle().setSize(width,(int)getItemParent().getRectangle().getHeight());
-                        if(getItemParent().isVisible())Repository.window.mainpanel.p1.sc.g.updateLocations(getItemParent());
-                        Repository.window.mainpanel.p1.sc.g.repaint();
-                    }
-                });
             if(parent.isRunnable())runnable.setSelected(true);
             else runnable.setSelected(false);
             if(parent.isOptional())optional.setSelected(true);
             else optional.setSelected(false);
             if(parent.isPrerequisite())prerequisites.setSelected(true);
             else prerequisites.setSelected(false);
+            ttcname.setText(getItemParent().getName());
+            KeyListener k [] = ttcname.getKeyListeners();
+            for(KeyListener t : k){
+                ttcname.removeKeyListener(t);
+            }
+            ttcname.addKeyListener(new KeyAdapter(){
+                public void keyReleased(KeyEvent ev){
+                    String name = ttcname.getText();
+                    FontMetrics metrics = getGraphics().getFontMetrics(new Font("TimesRoman", Font.BOLD, 14));
+                    int width = metrics.stringWidth(name)+20;
+                    getItemParent().setName(name);
+                    getItemParent().getRectangle().setSize(width,(int)getItemParent().getRectangle().getHeight());
+                    if(getItemParent().isVisible())Repository.window.mainpanel.p1.sc.g.updateLocations(getItemParent());
+                    Repository.window.mainpanel.p1.sc.g.repaint();
+                }
+            });
+            ActionListener [] s = runnable.getActionListeners();
+            for(ActionListener a:s){
+                runnable.removeActionListener(a);
+            }
+            runnable.addActionListener(new ActionListener(){
+                public void actionPerformed(ActionEvent ev){
+                    if(runnable.isSelected())getItemParent().setRunnable(true);
+                    else getItemParent().setRunnable(false);
+                    Repository.window.mainpanel.p1.sc.g.repaint();
+                }
+            });
+            s = optional.getActionListeners();
+            for(ActionListener a:s){
+                optional.removeActionListener(a);
+            }
+            optional.addActionListener(new ActionListener(){
+                public void actionPerformed(ActionEvent ev){
+                    if(optional.isSelected())getItemParent().setOptional(true);
+                    else getItemParent().setOptional(false);
+                    Repository.window.mainpanel.p1.sc.g.repaint();
+                }
+            });
+            s = prerequisites.getActionListeners();
+            for(ActionListener a:s){
+                prerequisites.removeActionListener(a);
+            }
+            prerequisites.addActionListener(new ActionListener(){
+                public void actionPerformed(ActionEvent ev){
+                    if(prerequisites.isSelected()){
+                        Repository.window.mainpanel.p1.sc.g.setPreRequisites(getItemParent());
+                    }
+                    else{
+                        getItemParent().setPrerequisite(false);
+                        Repository.window.mainpanel.p1.sc.g.repaint();
+                    }
+                }
+            });
+            
         }
     }
-            
+
     public void setSuiteDetails(boolean rootsuite){
         if(rootsuite){
             combo.setEnabled(true);
@@ -428,17 +579,22 @@ public class SuitaDetails extends JPanel {
         scroll.setViewportView(defsContainer);
         setBorderTitle("Suite options");
     }
-    
+
     public void setTCDetails(){
         scroll.setViewportView(tcoptions);
         setBorderTitle("TC options");
     }
-    
+
     public void setGlobalDetails(){
         scroll.setViewportView(global);
         setBorderTitle("Global options");
     }
-            
+    
+    public void setSummaryDetails(){
+        scroll.setViewportView(summary);
+        setBorderTitle("Summary");
+    }
+
     public DefPanel getDefPanel(int i){
         return definitions.get(i);}
     
@@ -462,6 +618,8 @@ public class SuitaDetails extends JPanel {
         
     public void setBorderTitle(String title){
         ((TitledBorder)getBorder()).setTitle(title);
+        repaint();
+//         container.setTitle(title);
     }
     
     public Item getItemParent(){
@@ -476,6 +634,20 @@ public class SuitaDetails extends JPanel {
         fileChooser.setFileHidingEnabled(true);
         fileChooser.setMultiSelectionEnabled(false);
         fileChooser.setFileSelectionMode(VFSJFileChooser.SELECTION_MODE.FILES_AND_DIRECTORIES);}
+    
+    class MyListSelectionListener implements ListSelectionListener {
+        public void valueChanged(ListSelectionEvent evt) {
+            if (!evt.getValueIsAdjusting()) {
+                JList list = (JList)evt.getSource();
+                String [] selected = new String[list.getSelectedValues().length];
+                for(int i=0;i<list.getSelectedValues().length;i++){
+                    selected[i] = list.getSelectedValues()[i].toString();
+                }
+                getItemParent().setEpId(selected);
+                Repository.window.mainpanel.p1.sc.g.repaint();
+            }
+        }
+    }  
 }
         
 class DefPanel extends JPanel{
@@ -530,6 +702,7 @@ class DefPanel extends JPanel{
         userDefinition.addKeyListener(new KeyAdapter(){
             public void keyReleased(KeyEvent ev){
                 if(parent!=null){
+                    System.out.println(parent.getName()+" "+userDefinition.getText());
                     setParentField(userDefinition.getText(),false);}}});
         filedsGap = new JPanel();
         filedsGap.setBackground(new Color(255, 255, 255));
@@ -661,4 +834,4 @@ class DefPanel extends JPanel{
         return descriptions;}
     
     public void setDescription(String desc){
-        userDefinition.setText(desc);}}
+        userDefinition.setText(desc);}}      

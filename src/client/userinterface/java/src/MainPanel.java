@@ -65,12 +65,22 @@ public class MainPanel extends JTabbedPane{
         p4 = new Panel4();         
 //         p5 = new Panel5(1500,612);
         setBounds(0, 5, (int)screenSize.getWidth()-50, 672);
-        addTab("Suites", new ImageIcon(), p1);
+        addTab("Project", new ImageIcon(), p1);
         //addTab("Monitoring", p2);
         addTab("Reports", null);
         addTab("Configuration", p4);        
 //         add("Network", new JScrollPane(p5));
-        askForFile(); 
+//         new Thread(){
+//             public void run(){
+//                 SwingUtilities.invokeLater(new Runnable(){
+//                     public void run(){
+//                         try{while(p1.sc.g.getGraphics() == null){ 
+//                                 try{Thread.sleep(100);}
+//                                 catch(Exception e){
+//                                     System.out.println("Thread interrupted at getting Graphics");}}
+//                                 if(p1.suitaDetails.isEnabled())askForFile();}
+//                          catch(NullPointerException e){e.printStackTrace();}}});}}.start();
+        
         /*
          * if it is applet
          * listen for clicks on reports tab
@@ -93,46 +103,37 @@ public class MainPanel extends JTabbedPane{
     /*
      * ask user for suite file
      */
-    private void askForFile(){
-        new Thread(){
-            public void run(){
-                SwingUtilities.invokeLater(new Runnable(){
-                    public void run(){
-                        try{while(p1.sc.g.getGraphics() == null) 
-                                try{Thread.sleep(100);}
-                                catch(Exception e){
-                                    System.out.println("Thread interrupted at getting Graphics");}
-                            File usersdirectory = new File(Repository.getUsersDirectory());
-                            String users[] = new String[usersdirectory.list().length + 1];
-                            System.arraycopy(usersdirectory.list(), 0, users, 0,
-                                                usersdirectory.list().length);
-                            users[users.length - 1] = "New File";
-                            JComboBox combo = new JComboBox(users);
-                            int resp = (Integer)CustomDialog.showDialog(combo,
-                                                                        JOptionPane.INFORMATION_MESSAGE,
-                                                                        JOptionPane.OK_CANCEL_OPTION,p1,
-                                                                        "Suite File",null);
-                            if(resp==JOptionPane.OK_OPTION){
-                                String user = combo.getSelectedItem().toString();
-                                if(user.equals("New File")){
-                                    user = CustomDialog.showInputDialog(JOptionPane.QUESTION_MESSAGE,
-                                                                        JOptionPane.OK_CANCEL_OPTION, p1,
-                                                                        "File Name", "Please enter file name").
-                                                                        toUpperCase();
-                                    if(!user.equals("NULL")){
-                                        (new XMLBuilder(Repository.getSuite())).writeXMLFile((new StringBuilder()).
-                                                            append(Repository.getUsersDirectory()).append(Repository.
-                                                            getBar()).append(user).append(".XML").toString(),false,false);
-                                        p1.sc.g.setUser((new StringBuilder()).append(Repository.getUsersDirectory()).
-                                                            append(Repository.getBar()).append(user).append(".XML").
-                                                            toString());
-                                        p1.sc.g.printXML(p1.sc.g.getUser(),false,false,false);}}
-                                else{
-                                    p1.sc.g.setUser((new StringBuilder()).append(Repository.getUsersDirectory()).
-                                                            append(Repository.getBar()).append(user).toString());
-                                    p1.sc.g.parseXML(new File((new StringBuilder()).append(Repository.getUsersDirectory()).
-                                                            append(Repository.getBar()).append(user).toString()));}}}
-                        catch(NullPointerException e){}}});}}.start();}
+//     public void askForFile(){       
+//         File usersdirectory = new File(Repository.getUsersDirectory());
+//         String users[] = new String[usersdirectory.list().length + 1];
+//         System.arraycopy(usersdirectory.list(), 0, users, 0,
+//                             usersdirectory.list().length);
+//         users[users.length - 1] = "New File";
+//         JComboBox combo = new JComboBox(users);
+//         int resp = (Integer)CustomDialog.showDialog(combo,
+//                                                     JOptionPane.INFORMATION_MESSAGE,
+//                                                     JOptionPane.OK_CANCEL_OPTION,p1,
+//                                                     "Project File",null);
+//         if(resp==JOptionPane.OK_OPTION){
+//             String user = combo.getSelectedItem().toString();
+//             if(user.equals("New File")){
+//                 user = CustomDialog.showInputDialog(JOptionPane.QUESTION_MESSAGE,
+//                                                     JOptionPane.OK_CANCEL_OPTION, p1,
+//                                                     "File Name", "Please enter file name").
+//                                                     toUpperCase();
+//                 if(!user.equals("NULL")){
+//                     (new XMLBuilder(Repository.getSuite())).writeXMLFile((new StringBuilder()).
+//                                         append(Repository.getUsersDirectory()).append(Repository.
+//                                         getBar()).append(user).append(".XML").toString(),false,false);
+//                     p1.sc.g.setUser((new StringBuilder()).append(Repository.getUsersDirectory()).
+//                                         append(Repository.getBar()).append(user).append(".XML").
+//                                         toString());
+//                     p1.sc.g.printXML(p1.sc.g.getUser(),false,false,false);}}
+//             else{
+//                 p1.sc.g.setUser((new StringBuilder()).append(Repository.getUsersDirectory()).
+//                                         append(Repository.getBar()).append(user).toString());
+//                 p1.sc.g.parseXML(new File((new StringBuilder()).append(Repository.getUsersDirectory()).
+//                                         append(Repository.getBar()).append(user).toString()));}}}
         
     public void saveUserXML(){
         if(!p1.sc.g.getUser().equals("")){

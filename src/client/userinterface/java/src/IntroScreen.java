@@ -47,7 +47,7 @@ public class IntroScreen extends JFrame{
         Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
         setBounds((int)(screenSize.getWidth()-640)/2,(int)(screenSize.getHeight()-480)/2,640,480);
         setUndecorated(true);
-        setAlwaysOnTop(true);
+        //setAlwaysOnTop(true);
         try{if(AWTUtilities.isTranslucencySupported(AWTUtilities.Translucency.PERPIXEL_TRANSLUCENT))
                 AWTUtilities.setWindowOpaque(this, false);
             else if(AWTUtilities.isTranslucencySupported(AWTUtilities.Translucency.TRANSLUCENT))

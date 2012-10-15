@@ -26,6 +26,7 @@ import javax.swing.JLabel;
 import javax.swing.BorderFactory;
 import java.awt.Color;
 import java.awt.event.ActionListener;
+import java.awt.Graphics;
 import java.awt.event.ActionEvent;
 import javax.swing.JButton;
 import java.io.File;
@@ -36,16 +37,16 @@ public class TCDetails extends JPanel{
     private JPanel selector = new JPanel();
 //     private RoundButton tcdetails = new RoundButton("TC details");
 //     private RoundButton logs = new RoundButton("Logs");
-    private JButton tcdetails = new JButton("TC details");
-    private JButton logs = new JButton("Logs");
+    public JButton tcdetails = new JButton("TC details");
+    public JButton logs = new JButton("Logs");
     private JPanel p1,p2;
     
     public TCDetails(){
         selector.setPreferredSize(new Dimension(200,35));
         selector.setBackground(Color.WHITE);
         selector.setLayout(null);
-        tcdetails.setBounds(2,4,90,30);
-        logs.setBounds(96,4,90,30);
+        tcdetails.setBounds(2,4,110,30);
+        logs.setBounds(116,4,90,30);
         selector.add(tcdetails);
         selector.add(logs);
         setBorder(BorderFactory.createEmptyBorder(15, 10, 5, 10));
@@ -89,18 +90,28 @@ public class TCDetails extends JPanel{
     }
 
     public void setLogs(){
-        if(Repository.window.mainpanel.p2.tabbed.getComponentCount()==0){
+        Repository.window.mainpanel.p2.tabbed.removeAll();
             try{
                 Repository.emptyTestRepository();
                 File xml = new File(Repository.getTestXMLDirectory());    
                 int size = Repository.getLogs().size();
                 for(int i=5;i<size;i++){Repository.getLogs().remove(5);}
-                new XMLReader(xml).parseXML(Repository.window.mainpanel.p1.sc.g.getGraphics(), true);
-                Repository.window.mainpanel.p2.updateTabs();}
+                Graphics g=null;
+                while(g==null){
+                    try{Thread.sleep(100);
+                        g = Repository.window.mainpanel.p1.sc.g.getGraphics();
+                        if(g==null)g = Repository.window.mainpanel.p2.sc.g.getGraphics();
+                    } catch (Exception e){
+                        e.printStackTrace();
+                    }
+                        
+                }
+                new XMLReader(xml).parseXML(g, true);
+                Repository.window.mainpanel.p2.updateTabs();
+            }
             catch(Exception e){
                 e.printStackTrace();
             }
-        }
         remove(p1);
         remove(p2);
         add(Repository.window.mainpanel.p2.tabbed,BorderLayout.CENTER);

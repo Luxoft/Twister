@@ -53,6 +53,7 @@ public class GraficTest extends JPanel{
     private int y = 5;
     private byte keypress=0;
     private ArrayList <Item> selecteditems = new ArrayList<Item>();
+    private int maxWidth = 0;
 
     public GraficTest(int x, int y, boolean applet){
         this.applet = applet;
@@ -126,7 +127,23 @@ public class GraficTest extends JPanel{
             if(keypress==0){
                 deselectAll();
                 getClickedItem(ev.getX(),ev.getY());
-                selectItem(selected);}
+                selectItem(selected);
+                Item item = getItem(selected);
+                if(item==null||item.getType()!=1)return;
+                Item parent = Repository.window.mainpanel.p1.sc.g.getParent(item,true);
+                String[] eps = parent.getEpId();
+                ArrayList<Log> logs = new ArrayList<Log>();
+                for(Log l:Repository.window.mainpanel.p2.logs){
+                    for(String s:eps){
+                        if((s+"_"+Repository.getLogs().get(4)).equals(l.log)){
+                            logs.add(l);
+                        }
+                    }                    
+                }
+                for(Log l:logs){
+                    l.findNext("Starting to RUN filename: `"+item.getName());
+                }
+            }
             else if(keypress==2){
                 getClickedItem(ev.getX(),ev.getY());
                 Item item = getItem(selected);
@@ -202,7 +219,7 @@ public class GraficTest extends JPanel{
         p.show(this,ev.getX(),ev.getY());
     }
     
-    
+
     public void runSeparately(){
         String userrespons = CustomDialog.showInputDialog(JOptionPane.INFORMATION_MESSAGE, 
                                                             JOptionPane.OK_CANCEL_OPTION, 
@@ -247,9 +264,9 @@ public class GraficTest extends JPanel{
             }
         }
         if(writeXML(last)){
-            CustomDialog.showInfo(JOptionPane.INFORMATION_MESSAGE, 
-                                  GraficTest.this, "Succes", 
-                                  "File succesfuly saved");
+//             CustomDialog.showInfo(JOptionPane.INFORMATION_MESSAGE, 
+//                                   GraficTest.this, "Succes", 
+//                                   "File succesfuly saved");
         }
         else {
             CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, 
@@ -287,7 +304,6 @@ public class GraficTest extends JPanel{
                                                   GraficTest.this, "Failed", 
                                                   result);
                         }
-                        System.out.println("RPC result: "+result);
                     }
                     catch(Exception e){
                         e.printStackTrace();
@@ -448,13 +464,18 @@ public class GraficTest extends JPanel{
      * previous location
      */    
     public void positionItem(Item item){    
+        int x = 0;
         if(item.getType()!=0){
-            int x = calcPreviousPositions(item);
+            x = calcPreviousPositions(item);
             item.setLocation(new int[]{x,y});
             y+=(int)(5+item.getRectangle().getHeight());}
         else{
-            int x = calcPreviousPositions(item);
-            item.setLocation(new int[]{x,(int)(y-5-item.getRectangle().getHeight())});}}
+            x = calcPreviousPositions(item);
+            item.setLocation(new int[]{x,(int)(y-5-item.getRectangle().getHeight())});}
+        if(item.getType()==0&&x>maxWidth){
+            maxWidth = x;    
+        }
+    }
     
     /*
      * iterate through subitem of an item
@@ -485,19 +506,27 @@ public class GraficTest extends JPanel{
      * on view dimension
      */
     public void updateScroll(){
+//         System.out.println("Update Scroll: "+(maxWidth+100));
         int y1=0;
         for(int i=0;i<Repository.getTestSuiteNr();i++){
-            if(Repository.getTestSuita(i).isVisible())y1 = getLastY(Repository.getTestSuita(i),y1);}
+            if(Repository.getTestSuita(i).isVisible()){
+                y1 = getLastY(Repository.getTestSuita(i),y1);
+            }
+        }
+        setPreferredSize(new Dimension(maxWidth+120,y1+10));
         if(y1>getHeight()){
-            setPreferredSize(new Dimension(425,y1+10));
-            revalidate();}
+            setPreferredSize(new Dimension(maxWidth+120,y1+10));
+//             setPreferredSize(new Dimension(425,y1+10));
+            Repository.window.mainpanel.p2.sc.revalidate();}
         if(getHeight()>595){
             if(y1<getHeight()-10){
-                setPreferredSize(new Dimension(425,y1+10));
-                revalidate();}
+//                 setPreferredSize(new Dimension(425,y1+10));
+                setPreferredSize(new Dimension(maxWidth+120,y1+10));
+                Repository.window.mainpanel.p2.sc.revalidate();}
             if(y1<595){
-                setPreferredSize(new Dimension(445,595));
-                revalidate();}}}
+//                 setPreferredSize(new Dimension(445,595));
+                setPreferredSize(new Dimension(maxWidth+120,595));
+                Repository.window.mainpanel.p2.sc.revalidate();}}}
           
                 
     /*
@@ -542,36 +571,70 @@ public class GraficTest extends JPanel{
         g.setColor(Color.BLACK);
         g.setFont(new Font("TimesRoman", Font.PLAIN, 12));
         if(item.getType()==2){
-            g.drawString(item.getName(),(int)item.getRectangle().getX()+25,(int)item.getRectangle().getY()+18);
-            g.drawImage(Repository.getSuitaIcon(),(int)item.getRectangle().getX()+5,(int)item.getRectangle().getY()+1,null);}
+            g.drawString(item.getName(),(int)item.getRectangle().getX()+25,
+                        (int)item.getRectangle().getY()+18);
+            g.drawImage(Repository.getSuitaIcon(),(int)item.getRectangle().getX()+5,
+                       (int)item.getRectangle().getY()+1,null);}
         else if(item.getType()==1){
             if(!item.isRunnable())g.setColor(Color.GRAY);
-            g.drawString(item.getName(),(int)item.getRectangle().getX()+30,(int)item.getRectangle().getY()+15);
+            String name = item.getName();
+            try{name = item.getName().split(Repository.getTestSuitePath())[1];}
+            catch (Exception e){name = item.getName();};
+            g.drawString(name,(int)item.getRectangle().getX()+30,(int)item.getRectangle().getY()+15);
             g.setColor(Color.BLACK);
             String value = item.getSubItem(0).getValue().toUpperCase();
-            if(value.equals("FAIL")) g.drawImage(Repository.getFailIcon(), (int)item.getRectangle().getX()+5,(int)item.getRectangle().getY()+1,null);
-            else if(value.equals("PENDING")) g.drawImage(Repository.getPendingIcon(), (int)item.getRectangle().getX()+5,(int)item.getRectangle().getY()+1,null);
-            else if(value.equals("RUNNING")) g.drawImage(Repository.getWorkingIcon(), (int)item.getRectangle().getX()+5,(int)item.getRectangle().getY()+1,null);
-            else if(value.equals("SKIPPED")) g.drawImage(Repository.getSkippedIcon(), (int)item.getRectangle().getX()+5,(int)item.getRectangle().getY()+1,null);
-            else if(value.equals("STOPPED")) g.drawImage(Repository.getStoppedIcon(), (int)item.getRectangle().getX()+5,(int)item.getRectangle().getY()+1,null);
-            else if(value.equals("NOT EXECUTED")) g.drawImage(Repository.getNotExecIcon(), (int)item.getRectangle().getX()+5,(int)item.getRectangle().getY()+1,null);
-            else if(value.equals("TIMEOUT")) g.drawImage(Repository.getTimeoutIcon(), (int)item.getRectangle().getX()+5,(int)item.getRectangle().getY()+1,null);
-            else if(value.equals("WAITING")) g.drawImage(Repository.getWaitingIcon(), (int)item.getRectangle().getX()+5,(int)item.getRectangle().getY()+1,null);
-            else if(value.equals("PASS")) g.drawImage(Repository.getPassIcon(), (int)item.getRectangle().getX()+5,(int)item.getRectangle().getY()+1,null);
-            else g.drawImage(Repository.getTCIcon(),(int)item.getRectangle().getX()+5,(int)item.getRectangle().getY()+1,null);}
+            if(value.equals("FAIL")) g.drawImage(Repository.getFailIcon(),
+                                                (int)item.getRectangle().getX()+5,
+                                                (int)item.getRectangle().getY()+1,null);
+            else if(value.equals("PENDING")) g.drawImage(Repository.getPendingIcon(),
+                   (int)item.getRectangle().getX()+5,(int)item.getRectangle().getY()+1,null);
+            else if(value.equals("RUNNING")) g.drawImage(Repository.getWorkingIcon(),
+                   (int)item.getRectangle().getX()+5,(int)item.getRectangle().getY()+1,null);
+            else if(value.equals("SKIPPED")) g.drawImage(Repository.getSkippedIcon(), 
+                   (int)item.getRectangle().getX()+5,(int)item.getRectangle().getY()+1,null);
+            else if(value.equals("STOPPED")) g.drawImage(Repository.getStoppedIcon(), 
+                   (int)item.getRectangle().getX()+5,(int)item.getRectangle().getY()+1,null);
+            else if(value.equals("NOT EXECUTED")) g.drawImage(Repository.getNotExecIcon(), 
+                   (int)item.getRectangle().getX()+5,(int)item.getRectangle().getY()+1,null);
+            else if(value.equals("TIMEOUT")) g.drawImage(Repository.getTimeoutIcon(),
+                   (int)item.getRectangle().getX()+5,(int)item.getRectangle().getY()+1,null);
+            else if(value.equals("WAITING")) g.drawImage(Repository.getWaitingIcon(),
+                   (int)item.getRectangle().getX()+5,(int)item.getRectangle().getY()+1,null);
+            else if(value.equals("PASS")) g.drawImage(Repository.getPassIcon(),
+                   (int)item.getRectangle().getX()+5,(int)item.getRectangle().getY()+1,null);
+            else g.drawImage(Repository.getTCIcon(),(int)item.getRectangle().getX()+5,
+                            (int)item.getRectangle().getY()+1,null);}
         else{
-            g.drawImage(Repository.getPropertyIcon(),(int)item.getRectangle().getX()+2,(int)item.getRectangle().getY()+1,null);
-            g.drawString(item.getName()+" : "+item.getValue(),(int)item.getRectangle().getX()+25,(int)item.getRectangle().getY()+15);}
+//             g.drawImage(Repository.getPropertyIcon(),(int)item.getRectangle().getX()+2,(int)item.getRectangle().getY()+1,null);
+//             g.drawString(item.getName()+" : "+item.getValue(),(int)item.getRectangle().getX()+25,(int)item.getRectangle().getY()+15);
+            g.drawImage(Repository.getPropertyIcon(),maxWidth+2,(int)item.getRectangle().getY()+1,null);
+            g.drawString(item.getName()+" : "+item.getValue(),maxWidth+25,(int)item.getRectangle().getY()+15);
+        }
         if((item.getPos().size()!=1)){
             if(item.getType()==0){}
             else{
-                g.drawLine((int)item.getRectangle().getX()-25,(int)(item.getRectangle().getY()+item.getRectangle().getHeight()/2),(int)item.getRectangle().getX(),(int)(item.getRectangle().getY()+item.getRectangle().getHeight()/2));
+                g.drawLine((int)item.getRectangle().getX()-25,
+                           (int)(item.getRectangle().getY()+item.getRectangle().getHeight()/2),
+                           (int)item.getRectangle().getX(),
+                           (int)(item.getRectangle().getY()+item.getRectangle().getHeight()/2));
                 ArrayList<Integer> temp = (ArrayList<Integer>)item.getPos().clone();
-                if(temp.get(temp.size()-1)==0)g.drawLine((int)item.getRectangle().getX()-25,(int)(item.getRectangle().getY()+item.getRectangle().getHeight()/2),(int)item.getRectangle().getX()-25,(int)(item.getRectangle().getY())-5);
+                if(temp.get(temp.size()-1)==0)g.drawLine((int)item.getRectangle().getX()-25,
+                                                         (int)(item.getRectangle().getY()+item.getRectangle().getHeight()/2),
+                                                         (int)item.getRectangle().getX()-25,
+                                                         (int)(item.getRectangle().getY())-5);
                 else{
                     temp.set(temp.size()-1,new Integer(temp.get(temp.size()-1).intValue()-1));
                     Item theone = getItem(temp);
-                    g.drawLine((int)item.getRectangle().getX()-25,(int)(item.getRectangle().getY()+item.getRectangle().getHeight()/2),(int)item.getRectangle().getX()-25,(int)(theone.getRectangle().getY()+theone.getRectangle().getHeight()/2));}}}
-        if(item.getEpId()!=null){
+                    g.drawLine((int)item.getRectangle().getX()-25,
+                               (int)(item.getRectangle().getY()+item.getRectangle().getHeight()/2),
+                               (int)item.getRectangle().getX()-25,
+                               (int)(theone.getRectangle().getY()+theone.getRectangle().getHeight()/2));}}}
+        if(item.getEpId()!=null&&item.getEpId().length>0){
+            StringBuilder EP = new StringBuilder();
+            for(String s:item.getEpId()){
+                EP.append(s+";");
+            }
+            EP.deleteCharAt(EP.length()-1);
             g.setFont(new Font("TimesRoman", Font.PLAIN, 11));
-            g.drawString(" - "+item.getEpId(),(int)(item.getRectangle().getX()+item.getRectangle().getWidth()-100),(int)(item.getRectangle().getY()+18));}}}
+            g.drawString(" - "+EP.toString(),(int)(item.getRectangle().getX()+item.getRectangle().getWidth()-100),
+                                              (int)(item.getRectangle().getY()+18));}}}

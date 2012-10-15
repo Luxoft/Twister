@@ -157,6 +157,7 @@ public class applet extends Applet{
      */
     public void destroy(){
         System.out.println("applet destroying");
+        Repository.saveMainLayout();
         File file = new File(Repository.temp);
         if(file.exists()){
             if(Window.deleteTemp(file))

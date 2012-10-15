@@ -59,6 +59,12 @@ import javax.swing.JComboBox;
 import javax.swing.JCheckBox;
 import com.twister.Item;
 import java.awt.Cursor;
+import java.awt.Component;
+import javax.swing.JList;
+import java.util.Arrays;
+import javax.swing.SwingUtilities;
+import java.io.BufferedWriter;
+import java.io.FileWriter;
 
 /*
  * Suites generation panel
@@ -69,12 +75,11 @@ public class Panel1 extends JPanel{
     public ExplorerPanel ep;//remote tc structure    
     private TreeDropTargetListener tdtl;
     private boolean applet;//if started from applet
-    public JSplitPane splitPane;//split panel for suites and remote tc structure    
+    public JSplitPane splitPane,splitPane2,splitPane3;//split panel for suites and remote tc structure    
     public SuitaDetails suitaDetails;//details defined by user
     private JLabel openedfile;
     public JButton remove,generate,showoptionals,addsuite,edit;
-    private JSplitPane splitPane3;
-    //private JCheckBox stoponfail;
+    private TCDetails tcdetails = new TCDetails();
     
     public Panel1(String user, final boolean applet, int width){
         Repository.intro.setStatus("Started Suites interface initialization");
@@ -100,18 +105,15 @@ public class Panel1 extends JPanel{
             public void actionPerformed(ActionEvent ev){
                 sc.g.removeSelected();}});
         generate = new JButton("Run",new ImageIcon(Repository.getPlayIcon()));
-        generate.setBounds(94,20,80,25);
+        generate.setBounds(94,20,105,25);
         generate.setToolTipText("Generate XML");
         add(generate);
         showoptionals = new JButton("Show optionals");
-        showoptionals.setBounds(180,20,130,25);
+        showoptionals.setBounds(205,20,150,25);
         showoptionals.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 showOptionals();}});
         add(showoptionals);
-//         stoponfail = new JCheckBox("Stop on fail");
-//         stoponfail.setBounds(320,20,90,25);
-//         add(stoponfail);
         suitaDetails = new SuitaDetails(Repository.getDatabaseUserFields());
         generate.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
@@ -133,7 +135,8 @@ public class Panel1 extends JPanel{
         suitemenu.add(item);
         item.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
-                setEP();}});
+                 setEP();
+            }});
         item = new JMenuItem("Rename");
         suitemenu.add(item);
         item.addActionListener(new ActionListener(){
@@ -214,22 +217,24 @@ public class Panel1 extends JPanel{
                 enableTCMenu(tcmenu);}});
         JMenu filemenu = new JMenu("File");
         filemenu.setBounds(10,0,40,20);
-        JMenuItem newuser = new JMenuItem("New suite file");
+        JMenuItem newuser = new JMenuItem("New project file");
         newuser.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 addSuiteFile();}});
         filemenu.add(newuser);
-        JMenuItem changeuser = new JMenuItem("Open suite file");
+        JMenuItem changeuser = new JMenuItem("Open project file");
         changeuser.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
-                openSuiteFile();}});
+//                 openSuiteFile();
+                Repository.openProjectFile();
+            }});
         filemenu.add(changeuser);
-        JMenuItem saveuser = new JMenuItem("Save suite file");
+        JMenuItem saveuser = new JMenuItem("Save project file");
         saveuser.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent ev){
                 saveSuiteFile();}});
         filemenu.add(saveuser);
-        JMenuItem deleteuser = new JMenuItem("Delete suite file");
+        JMenuItem deleteuser = new JMenuItem("Delete project file");
         deleteuser.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent ev){
                 deleteSuiteFile();}});
@@ -250,24 +255,52 @@ public class Panel1 extends JPanel{
         sc = new ScrollGrafic(10, 32, tdtl, user, applet);
         ep = new ExplorerPanel(470, 32, tdtl, applet, Repository.c);
         setLayout(null);    
-        JSplitPane splitPane2 = new JSplitPane(JSplitPane.VERTICAL_SPLIT,
+        splitPane2 = new JSplitPane(JSplitPane.VERTICAL_SPLIT,
                                                 new JScrollPane(ep.tree),
-                                                new TCDetails());
-        splitPane2.setDividerLocation(0.5);        
+                                                tcdetails);
+        try{
+            SwingUtilities.invokeLater(new Runnable() {
+                public void run() {
+                    splitPane2.setDividerLocation(Repository.getLayouts().
+                                                 get("mainh2splitlocation").getAsInt());
+                }
+            });
+        } catch(Exception e){
+            splitPane2.setDividerLocation(0.5);
+        }           
         splitPane3 = new JSplitPane(JSplitPane.VERTICAL_SPLIT,
                                                 sc.pane,suitaDetails);
-        splitPane3.setDividerLocation(0.5);        
+        try{
+            SwingUtilities.invokeLater(new Runnable() {
+                public void run() {
+                    splitPane3.setDividerLocation(Repository.getLayouts().
+                                                 get("mainh1splitlocation").getAsInt());
+                }
+            });
+        } catch(Exception e){
+            splitPane3.setDividerLocation(0.5);
+        }       
         splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,
                                     splitPane3,splitPane2);
         Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
         splitPane.setBounds(10,45,(int)screenSize.getWidth()-80,600);
-        splitPane.setDividerLocation(0.5);
+        
+        try{
+            SwingUtilities.invokeLater(new Runnable() {
+                public void run() {
+                    splitPane.setDividerLocation(Repository.getLayouts().
+                                                 get("mainvsplitlocation").getAsInt());
+                }
+            });
+        } catch(Exception e){
+            splitPane.setDividerLocation(0.5);
+        }
         add(splitPane);
         Repository.intro.setStatus("Finished Suites interface initialization");
         Repository.intro.addPercent(0.035);
         Repository.intro.repaint();
         edit = new JButton("Edit");
-        edit.setBounds(10,20,55,25);
+        edit.setBounds(10,20,65,25);
         edit.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent ev){
                 edit();}});}
@@ -502,7 +535,7 @@ public class Panel1 extends JPanel{
                         tcmenu.getMenuComponent(7).setEnabled(false);}
                     else tcmenu.getMenuComponent(6).setEnabled(false);}}}}
                     
-    private void edit(){
+    public void edit(){
         splitPane3.setLeftComponent(sc.pane);
         remove(edit);
         remove(Repository.window.mainpanel.p2.play);
@@ -513,8 +546,44 @@ public class Panel1 extends JPanel{
         add(generate);
         add(showoptionals);
         add(addsuite);
+        suitaDetails.setEnabled(true);
+        tcdetails.tcdetails.doClick();
+        String user = "last_edited.xml";
+        Repository.emptySuites();
+        if(Repository.window.mainpanel.p1.sc.g.getUser()==null&&
+          Repository.window.mainpanel.p1.sc.g.getUser().equals("")){
+              Repository.window.mainpanel.p1.sc.g.setUser(Repository.getUsersDirectory()+
+                                                            Repository.getBar()+user);
+        }
+        
+        
+        try{
+            InputStream in = Repository.c.get(Repository.getRemoteUsersDirectory()+"/"+user);
+            InputStreamReader inputStreamReader = new InputStreamReader(in);
+            BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
+            File file = new File(Repository.temp+Repository.getBar()+"Twister"+Repository.getBar()+"Users"+Repository.getBar()+user);
+            BufferedWriter writer = new BufferedWriter(new FileWriter(file));
+            String line;
+            while ((line=bufferedReader.readLine())!= null){
+                writer.write(line);
+                writer.newLine();}
+            bufferedReader.close();
+            writer.close();
+            inputStreamReader.close();
+            in.close();
+        } catch (Exception e){
+            e.printStackTrace();
+        }
+        
+        Repository.window.mainpanel.p1.sc.g.parseXML(new File(Repository.getUsersDirectory()+
+                                                              Repository.getBar()+user));
+        if(Repository.getSuiteNr() > 0){
+            Repository.window.mainpanel.p1.sc.g.updateLocations(Repository.getSuita(0));}
+        Repository.window.mainpanel.p1.suitaDetails.setGlobalDetails();
+        Repository.window.mainpanel.p1.sc.g.repaint();
         repaint();
     }
+    
        
     /*
      * generate master suites XML
@@ -543,32 +612,67 @@ public class Panel1 extends JPanel{
 //             if(!execute)break;
         }       
         if(execute){
-//             if(!result.equals("running")){//check if CE is running
+                String [] s = sc.g.getUser().split("\\\\");
+                if(s.length>0){
+                    s[s.length-1] = "last_edited.xml";
+                    StringBuilder st = new StringBuilder();
+                    for(String i:s){
+                        st.append(i);
+                        st.append("\\");
+                    }
+                    st.deleteCharAt(st.length()-1);
+                    String user = st.toString();
+                    if(sc.g.printXML(user, false,false,
+                                     suitaDetails.stopOnFail())){}
+    //                     CustomDialog.showInfo(JOptionPane.PLAIN_MESSAGE, 
+    //                                             Repository.window, "Succes",
+    //                                             "File successfully saved");
+                    else CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, 
+                                                Repository.window, "Warning", 
+                                                "Warning, temp file not saved");                    
+                }
                 sc.g.printXML(Repository.getTestXMLDirectory(),true,false,suitaDetails.stopOnFail());
                 Repository.emptyTestRepository();
-                File xml = new File(Repository.getTestXMLDirectory());    
+                File xml = new File(Repository.getTestXMLDirectory());
                 int size = Repository.getLogs().size();
                 for(int i=5;i<size;i++){Repository.getLogs().remove(5);}
                 new XMLReader(xml).parseXML(sc.g.getGraphics(), true);
-                Repository.window.mainpanel.p2.updateTabs();
-                CustomDialog.showInfo(JOptionPane.PLAIN_MESSAGE, Repository.window,
-                                        "Info", "File successfully generated ");
-//             else CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, Repository.window, "Warning",
-//                                         "Please close Central Engine before generating");
-                splitPane3.setLeftComponent(Repository.window.mainpanel.p2.sc.pane);
-                splitPane3.setDividerLocation(0.5);
-                remove(openedfile);
-                remove(remove);
-                remove(generate);
-                remove(showoptionals);
-                remove(addsuite);
-                add(edit);
-                add(Repository.window.mainpanel.p2.play);
-                add(Repository.window.mainpanel.p2.stop);        
-                add(Repository.window.mainpanel.p2.cestatus);
-                Repository.window.mainpanel.p2.play.doClick();
-                repaint();
+                
+//              Repository.window.mainpanel.p2.updateTabs();
+                
+//                 CustomDialog.showInfo(JOptionPane.PLAIN_MESSAGE, Repository.window,
+//                                         "Info", "File successfully generated ");
+                setRunning();
+                
+
         }
+    }
+    
+    public void setRunning(){
+        splitPane3.setLeftComponent(Repository.window.mainpanel.p2.sc.pane);
+        try{
+            SwingUtilities.invokeLater(new Runnable(){
+                public void run() {
+                    splitPane3.setDividerLocation(Repository.getLayouts().
+                                                 get("mainh1splitlocation").getAsInt());
+                }
+            });
+        } catch(Exception e){
+            splitPane3.setDividerLocation(0.5);
+        }   
+        remove(openedfile);
+        remove(remove);
+        remove(generate);
+        remove(showoptionals);
+        remove(addsuite);
+        add(edit);
+        add(Repository.window.mainpanel.p2.play);
+        add(Repository.window.mainpanel.p2.stop);        
+        add(Repository.window.mainpanel.p2.cestatus);
+        Repository.window.mainpanel.p2.play.doClick();
+        suitaDetails.setEnabled(false);
+        tcdetails.logs.doClick();
+        repaint();
     }
         
     /*
@@ -713,24 +817,24 @@ public class Panel1 extends JPanel{
     /*
      * open existing suite file
      */
-    private void openSuiteFile(){
-        File usersdirectory = new File(Repository.getUsersDirectory());
-        String users[] = new String[usersdirectory.list().length];
-        System.arraycopy(usersdirectory.list(), 0, users, 0, usersdirectory.list().length);
-        JComboBox combo = new JComboBox(users);
-        int resp = (Integer)CustomDialog.showDialog(combo,JOptionPane.INFORMATION_MESSAGE,
-                                                    JOptionPane.OK_CANCEL_OPTION,sc.g,
-                                                    "Select suite file",null);
-        if(resp==JOptionPane.OK_OPTION){
-            String user = combo.getSelectedItem().toString();
-            Repository.emptySuites();
-            Repository.window.mainpanel.p1.sc.g.setUser(Repository.getUsersDirectory()+
-                                                        Repository.getBar()+user);
-            Repository.window.mainpanel.p1.sc.g.parseXML(new File(Repository.getUsersDirectory()+
-                                                                    Repository.getBar()+user));}
-        if(Repository.getSuiteNr() > 0){
-            Repository.window.mainpanel.p1.sc.g.updateLocations(Repository.getSuita(0));}
-        Repository.window.mainpanel.p1.sc.g.repaint();}
+//     private void openSuiteFile(){
+//         File usersdirectory = new File(Repository.getUsersDirectory());
+//         String users[] = new String[usersdirectory.list().length];
+//         System.arraycopy(usersdirectory.list(), 0, users, 0, usersdirectory.list().length);
+//         JComboBox combo = new JComboBox(users);
+//         int resp = (Integer)CustomDialog.showDialog(combo,JOptionPane.INFORMATION_MESSAGE,
+//                                                     JOptionPane.OK_CANCEL_OPTION,sc.g,
+//                                                     "Select project file",null);
+//         if(resp==JOptionPane.OK_OPTION){
+//             String user = combo.getSelectedItem().toString();
+//             Repository.emptySuites();
+//             Repository.window.mainpanel.p1.sc.g.setUser(Repository.getUsersDirectory()+
+//                                                         Repository.getBar()+user);
+//             Repository.window.mainpanel.p1.sc.g.parseXML(new File(Repository.getUsersDirectory()+
+//                                                                     Repository.getBar()+user));}
+//         if(Repository.getSuiteNr() > 0){
+//             Repository.window.mainpanel.p1.sc.g.updateLocations(Repository.getSuita(0));}
+//         Repository.window.mainpanel.p1.sc.g.repaint();}
         
     /*
      * set EP for selected
@@ -754,15 +858,38 @@ public class Panel1 extends JPanel{
             in.close();
             String result = b.toString();
             String  [] vecresult = result.split(";");//EP's list
-            try{JComboBox combo = new JComboBox(vecresult);
-                int resp = (Integer)CustomDialog.showDialog(combo,JOptionPane.INFORMATION_MESSAGE,
+//             try{JComboBox combo = new JComboBox(vecresult);
+//                 int resp = (Integer)CustomDialog.showDialog(combo,JOptionPane.INFORMATION_MESSAGE,
+//                                                             JOptionPane.OK_CANCEL_OPTION,sc.g,
+//                                                             "Please select an Ep name",null);
+//                 if(resp==JOptionPane.OK_OPTION){
+//                     String ID = combo.getSelectedItem().toString();
+//                     theone.setEpId(ID);
+//                     for(int i=0;i<theone.getSubItemsNr();i++){
+//                         sc.g.assignEpID(theone.getSubItem(i),ID);}
+//                     repaint();}}
+            try{JList combo = new JList(vecresult);
+                
+                String [] strings = theone.getEpId();
+                ArrayList<String> array = new ArrayList<String>(Arrays.asList(vecresult));
+                int [] sel = new int[strings.length];
+                for(int i=0;i<strings.length;i++){
+                    sel[i]=array.indexOf(strings[i]);
+                }
+                
+                
+                combo.setSelectedIndices(sel);
+                
+                
+                int resp = (Integer)CustomDialog.showDialog(new JScrollPane(combo),JOptionPane.INFORMATION_MESSAGE,
                                                             JOptionPane.OK_CANCEL_OPTION,sc.g,
-                                                            "Please select an Ep name",null);
+                                                            "Please select EP to run on",null);
                 if(resp==JOptionPane.OK_OPTION){
-                    String ID = combo.getSelectedItem().toString();
-                    theone.setEpId(ID);
-                    for(int i=0;i<theone.getSubItemsNr();i++){
-                        sc.g.assignEpID(theone.getSubItem(i),ID);}
+                    String [] selected = new String[combo.getSelectedValues().length];
+                    for(int i=0;i<combo.getSelectedValues().length;i++){
+                        selected[i] = combo.getSelectedValues()[i].toString();
+                    }
+                    theone.setEpId(selected);
                     repaint();}}
             catch(Exception e){e.printStackTrace();}}
         catch(Exception e){e.printStackTrace();}}
@@ -772,7 +899,7 @@ public class Panel1 extends JPanel{
      * to display in UI for info
      */    
     public void setOpenedfile(String filename){
-        openedfile.setText("Suite file: "+filename);}}
+        openedfile.setText("Project file: "+filename);}}
         
 class TreeDropTargetListener implements DropTargetListener {
     private boolean applet;

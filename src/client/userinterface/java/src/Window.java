@@ -69,9 +69,28 @@ public class Window extends JFrame{
         else{
             setLayout(null);
             add(mainpanel);
-            setBounds(0,60,mainpanel.getWidth()+30,mainpanel.getHeight()+45);
+            String l = null;
+            String s = null;
+            try{
+                l = Repository.getLayouts().get("mainlocation").getAsString();
+                s =  Repository.getLayouts().get("mainsize").getAsString();
+            } catch(Exception e){
+                e.printStackTrace();
+            }
+            if(l!=null&&s!=null){
+                String [] location = l.split(" ");
+                String [] size =s.split(" ");
+                setBounds((int)Double.parseDouble(location[0]),
+                          (int)Double.parseDouble(location[1]),
+                          (int)Double.parseDouble(size[0]),
+                          (int)Double.parseDouble(size[1]));
+            }else{
+                setBounds(0,60,mainpanel.getWidth()+30,mainpanel.getHeight()+45);
+            }
+            
             addWindowListener(new WindowAdapter(){
                 public void windowClosing(WindowEvent e){
+                    Repository.saveMainLayout();
                     Repository.uploadPluginsFile();
                     int r = (Integer)CustomDialog.showDialog(
                                 new JLabel("Save your Suite XML before exiting ?"),

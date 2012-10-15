@@ -60,6 +60,7 @@ public class CustomDialog{
         JOptionPane pane = new JOptionPane(message,type,options,icon);
         JDialog dialog = pane.createDialog(parent, title);
         dialog.setAlwaysOnTop(true);
+        dialog.setModal(true);
         dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
         dialog.setVisible(true);
         if(pane.getValue()==null){
