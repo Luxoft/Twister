@@ -95,7 +95,7 @@ class TSCParser:
 
         else:
 
-            if not (files_config or os.path.isfile(files_config)):
+            if not files_config or not os.path.isfile(files_config):
                 # Get path to Test-Suites XML from Master config
                 files_config = str(self.xmlDict.root.masterxmltestsuite.text)
 
@@ -110,6 +110,9 @@ class TSCParser:
 
             # Hash check the XML file, to see if is changed
             newConfigHash = hashlib.md5(config_ts).hexdigest()
+
+            config_ts = config_ts.replace('<ScriptPre/>',  '<ScriptPre></ScriptPre>')
+            config_ts = config_ts.replace('<ScriptPost/>', '<ScriptPost></ScriptPost>')
 
         if self.configHash != newConfigHash:
             print('Parser: Test-Suites XML file changed, rebuilding internal structure...\n')
@@ -183,6 +186,26 @@ class TSCParser:
             return True
         else:
             return False
+
+
+    def getScripts(self):
+        """
+        Returns the value of the tags "ScriptPre" and "ScriptPost".
+        """
+        if not self.configTS:
+            print('Parser: Cannot get Exit on test fail status, because Test-Suites XML is invalid!')
+            return False
+        p0 = self.configTS.root.scriptpre
+        p1 = self.configTS.root.scriptpost
+        if not p0:
+            p0 = ''
+        else:
+            p0 = p0.text
+        if not p1:
+            p1 = ''
+        else:
+            p1 = p1.text
+        return (p0, p1)
 
 
     def getEmailConfig(self):

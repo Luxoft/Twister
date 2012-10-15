@@ -79,22 +79,26 @@ public class XMLReader{
                                         -1,10, width+120,25,indexes);}
                 else{
                     theone = new Item(fstNm.item(0).getNodeValue(),2,
-                                        -1,10, width+140,25,indexes);}
+                                        -1,10, width+50,25,indexes);}
                 fstNmElmntLst = ((Element)node).getElementsByTagName("EpId");
                 fstNmElmnt = (Element)fstNmElmntLst.item(0);
                 fstNm = fstNmElmnt.getChildNodes();
-                theone.setEpId(fstNm.item(0).getNodeValue());
+                theone.setEpId(fstNm.item(0).getNodeValue().split(";"));
+//                 theone.setEpId(fstNm.item(0).getNodeValue());
                 k=4;}
             else{secNmElmntLst = ((Element)node).getElementsByTagName("tcName");
                 secNmElmnt = (Element)secNmElmntLst.item(0);
                 secNm = secNmElmnt.getChildNodes();
                 FontMetrics metrics = g.getFontMetrics(new Font("TimesRoman", 0, 13));
-                String f ;
-                if(!test){
-                    f = secNm.item(0).getNodeValue().toString().
-                            split(Repository.getTestSuitePath())[1];}
-                else f = secNm.item(0).getNodeValue().toString();
-                int width = metrics.stringWidth(f) + 8;                
+                String f = secNm.item(0).getNodeValue().toString().
+                            split(Repository.getTestSuitePath())[1];
+                int width = metrics.stringWidth(f) + 8;
+//                 String f ;
+//                 if(!test){
+//                     f = secNm.item(0).getNodeValue().toString().
+//                             split(Repository.getTestSuitePath())[1];}
+//                 else f = secNm.item(0).getNodeValue().toString();  
+                if(test){f = secNm.item(0).getNodeValue().toString();}   
                 theone = new Item(f,1,-1,-1,width+40,20,indexes);
                 if(test){
                     ArrayList <Integer> indexpos3 = (ArrayList <Integer>)indexes.clone();
@@ -153,8 +157,7 @@ public class XMLReader{
         }
     }
             
-    public void parseXML(Graphics g,boolean test){   
-        System.out.println("parsing test: "+test);
+    public void parseXML(Graphics g,boolean test){
         NodeList nodeLst = doc.getChildNodes().item(0).getChildNodes();
         int childsnr = doc.getChildNodes().item(0).getChildNodes().getLength();
         if(childsnr==0){
@@ -163,7 +166,36 @@ public class XMLReader{
         int indexsuita = 0;
         for(int m=0;m<childsnr;m++){
             Node fstNode = nodeLst.item(m);
-            if(!fstNode.getNodeName().equals("TestSuite"))continue;
+            if(!test){
+                if(fstNode.getNodeName().equals("stoponfail")){
+                    if(fstNode.getChildNodes().item(0).getNodeValue().toString().equals("true")){                    
+                        Repository.window.mainpanel.p1.suitaDetails.setStopOnFail(true);
+                    }
+                    else Repository.window.mainpanel.p1.suitaDetails.setStopOnFail(false);
+                    continue;
+                }
+                else if(fstNode.getNodeName().equals("ScriptPre")){
+                    try{
+                        String script = fstNode.getChildNodes().item(0).getNodeValue().toString();
+                        Repository.window.mainpanel.p1.suitaDetails.setPreScript(script);}
+                    catch(Exception e){
+                        e.printStackTrace();
+                        Repository.window.mainpanel.p1.suitaDetails.setPreScript("");
+                    }
+                    continue;
+                }
+                else if(fstNode.getNodeName().equals("ScriptPost")){
+                    try{
+                        String script = fstNode.getChildNodes().item(0).getNodeValue().toString();
+                        Repository.window.mainpanel.p1.suitaDetails.setPostScript(script);}
+                    catch(Exception e){
+                        e.printStackTrace();
+                        Repository.window.mainpanel.p1.suitaDetails.setPostScript("");
+                    }
+                    continue;
+                }
+            }
+            if(!fstNode.getNodeName().equals("TestSuite"))continue;            
             ArrayList <Integer> indexpos = new ArrayList <Integer> ();
             indexpos.add(new Integer(indexsuita));            
             fstElmnt = (Element)fstNode;
@@ -174,13 +206,14 @@ public class XMLReader{
             int width = metrics.stringWidth(fstNm.item(0).getNodeValue().toString());
             Item suitatemp;
             if(!test)suitatemp= new Item(fstNm.item(0).getNodeValue(),
-                                         2,-1,10, width+140,25,indexpos);
+                                         2,-1,10, width+50,25,indexpos);
             else suitatemp=  new Item(fstNm.item(0).getNodeValue(),
                                       2,-1,10, width+120,25,indexpos);
             fstNmElmntLst = fstElmnt.getElementsByTagName("EpId");
             fstNmElmnt = (Element)fstNmElmntLst.item(0);
             fstNm = fstNmElmnt.getChildNodes();
-            suitatemp.setEpId(fstNm.item(0).getNodeValue());
+//             suitatemp.setEpId(fstNm.item(0).getNodeValue());
+            suitatemp.setEpId(fstNm.item(0).getNodeValue().split(";"));
             fstNmElmntLst = fstElmnt.getElementsByTagName("UserDefined");
             int userdefinitions = fstNmElmntLst.getLength();
             for(int l=0;l<userdefinitions;l++){
@@ -210,14 +243,41 @@ public class XMLReader{
                 index++;}
             if(!test)Repository.addSuita(suitatemp);
             else{Repository.addTestSuita(suitatemp);
-            boolean found = false;
-            for(String s:Repository.getLogs()){
-                if(s.equals(suitatemp.getEpId()+"_"+Repository.getLogs().get(4))){                        
-                    found = true;
-                    break;}}
-            if(!found){
-                Repository.getLogs().add(suitatemp.getEpId()+"_"+
-                                            Repository.getLogs().get(4));}}}
+            String [] suiteeps = suitatemp.getEpId();
+            for(String currents:suiteeps){
+                boolean found = false;
+                for(String s:Repository.getLogs()){
+                    if(s.equals(currents+"_"+Repository.getLogs().get(4))){                        
+                        found = true;
+                        break;
+                    }                    
+                }
+                if(!found){
+                        Repository.getLogs().add(currents+"_"+
+                                                 Repository.getLogs().get(4));
+                }
+            }
+            
+            
+            
+            
+//             for(String s:Repository.getLogs()){
+//                 String [] suiteeps = suitatemp.getEpId();
+//                 for(String currents:suiteeps){
+//                     if(s.equals(suitatemp.getEpId()+"_"+Repository.getLogs().get(4))){                        
+//                         found = true;
+//                         break;
+//                     }
+//                 }
+//                 if(found)break;                
+//             }
+//             if(!found){
+//                 Repository.getLogs().add(suitatemp.getEpId()+"_"+
+//                                             Repository.getLogs().get(4));
+//                                         }
+                                    
+                                    
+                                    }}
         if(!test){
             if(Repository.getSuiteNr()>0){
                 while(Repository.window.mainpanel.p1.sc.g==null){

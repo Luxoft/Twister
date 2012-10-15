@@ -1,15 +1,15 @@
 
 div.dataTables_length label {
-	float: left;
-	text-align: left;
+	margin-left:30px;
 }
 div.dataTables_length select {
-	width: 95px;
+	width: 75px;
 }
 div.dataTables_filter label {
 	float: right;
 }
 div.dataTables_info {
+	margin-left:30px;
 	padding-top: 8px;
 }
 div.dataTables_paginate {

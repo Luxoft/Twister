@@ -181,7 +181,8 @@ public class Log extends JPanel{
      */
     public void findNext(String toFind){
         Element paragraph = textarea.getDocument().getDefaultRootElement();
-        int contentCount = paragraph.getElementCount();
+        int contentCount = paragraph.getElementCount();     
+        if(contentCount==1)return;
         for (int i=lastIndexFound+1; i<contentCount; i++){
             Element e = paragraph.getElement(i);
             int rangeStart = e.getStartOffset();
@@ -191,8 +192,11 @@ public class Log extends JPanel{
                     highlite(toFind,rangeStart,rangeEnd);
                     break;}}
             catch (BadLocationException ex){}
-             catch(Exception ex){ex.printStackTrace();}
-            if(i==(contentCount-1))i=-1;
+            catch(Exception ex){ex.printStackTrace();}
+            if(i==(contentCount-1)){
+                i=-1;
+                if(lastIndexFound==-1)break;
+            }
             if(i==(lastIndexFound-1))break;}}
      
     /*

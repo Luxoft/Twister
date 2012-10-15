@@ -127,7 +127,7 @@ public class applet extends Applet{
     public void setSize(int width, int height){
         super.setSize(width,height);
         Repository.window.mainpanel.setSize(width-20,height-20);
-        Repository.window.mainpanel.p2.splitPane.setSize(width-52,height-120);
+        //Repository.window.mainpanel.p2.splitPane.setSize(width-52,height-120);
         Repository.window.mainpanel.p1.splitPane.setSize(width-52,height-120);
         Repository.window.mainpanel.setSize(width-28,height-40);
         Repository.window.mainpanel.p4.getScroll().setSize(width-310,height-150);
@@ -157,6 +157,7 @@ public class applet extends Applet{
      */
     public void destroy(){
         System.out.println("applet destroying");
+        Repository.saveMainLayout();
         File file = new File(Repository.temp);
         if(file.exists()){
             if(Window.deleteTemp(file))

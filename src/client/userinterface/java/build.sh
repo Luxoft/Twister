@@ -2,6 +2,7 @@
 
 JDK_PATH=/usr/lib/jvm/jdk1.7.0/bin
 EXTLIBS=extlibs/Twister.jar:\
+extlibs/jcalendar-1.4.jar:\
 extlibs/jsch-0.1.44.jar:\
 extlibs/gson-2.2.1.jar:\
 extlibs/ws-commons-util-1.0.2.jar:\
@@ -47,6 +48,9 @@ echo "Signing jar file jgoodies-looks-2.5.1.jar"
 $JDK_PATH/jarsigner ../extlibs/jgoodies-looks-2.5.1.jar Twister -storepass password
 echo "Signing jar file jgoodies-common-1.3.1.jar"
 $JDK_PATH/jarsigner ../extlibs/jgoodies-common-1.3.1.jar Twister -storepass password
+echo "Signing jar file jcalendar-1.4.jar"
+$JDK_PATH/jarsigner ../extlibs/jcalendar-1.4.jar Twister -storepass password
+
 echo "Signing jar file Twister.jar"
 $JDK_PATH/jarsigner ../extlibs/Twister.jar Twister -storepass password
 

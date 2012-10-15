@@ -67,12 +67,16 @@ if __name__ == "__main__":
 
     # Config
     conf = {'global': {
-        'server.socket_host': '0.0.0.0',
-        'server.socket_port': serverPort,
-        'server.thread_pool': 30,
-        'engine.autoreload.on': False,
-        'log.screen': False,
-            }
+            'server.socket_host': '0.0.0.0',
+            'server.socket_port': serverPort,
+            'server.thread_pool': 30,
+            'engine.autoreload.on': False,
+            'log.screen': False,
+            },
+            '/static': {
+            'tools.staticdir.on': True,
+            'tools.staticdir.dir': TWISTER_PATH + '/server/httpserver/static',
+            },
         }
 
     # Start !

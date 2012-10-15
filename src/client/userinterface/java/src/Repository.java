@@ -92,6 +92,7 @@ import javax.xml.transform.Transformer;
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Transformer;
 import java.net.URLClassLoader;
+import java.awt.Point;
 
 /*
  * static class to hold
@@ -130,8 +131,7 @@ public class Repository{
     public static int MANDATORY = 3;
     public static int ELEMENTSNR = 4;
     private static XmlRpcClient client;
-    private static JsonObject inifile;//json structure of conf file saved localy
-    private static JsonObject editors, looks;//editors saved by user localy
+    private static JsonObject editors, looks, layout, inifile;//json structure of conf file saved localy;editors saved by user localy
     private static JsonArray plugins;
     private static String[] lookAndFeels;
     private static Applet container;
@@ -471,6 +471,7 @@ public class Repository{
         root.add("plugins", new JsonArray());
         root.add("editors", array);
         root.add("looks", array2);
+        root.add("layout", new JsonObject());
         try{FileWriter writer = new FileWriter(TWISTERINI);
             Gson gson = new GsonBuilder().setPrettyPrinting().create(); 
             writer.write(gson.toJson(root));
@@ -512,7 +513,7 @@ public class Repository{
                 JPanel p = getPasswordPanel(user1,password1,combo);
                 int resp = (Integer)CustomDialog.showDialog(p,JOptionPane.QUESTION_MESSAGE,
                                                             JOptionPane.OK_CANCEL_OPTION, 
-                                                            null, "User & Password",
+                                                            window, "User & Password",
                                                             new ImageIcon(Repository.getPasswordIcon()));
                 if(resp == JOptionPane.OK_OPTION){
                     System.out.println("Attempting to connect to: "+host+
@@ -781,7 +782,8 @@ public class Repository{
                     logs.add(getTagContent(doc,"logDebug"));
                     logs.add(getTagContent(doc,"logSummary"));
                     logs.add(getTagContent(doc,"logTest"));
-                    logs.add(getTagContent(doc,"logCli"));}
+                    logs.add(getTagContent(doc,"logCli"));
+                }
                 HTTPSERVERPORT = getTagContent(doc,"HttpServerPort");
                 CENTRALENGINEPORT = getTagContent(doc,"CentralEnginePort");
                 RESOURCEALLOCATORPORT = getTagContent(doc,"ResourceAllocatorPort");
@@ -818,35 +820,51 @@ public class Repository{
             intro.setStatus("Started getting users xml");
             intro.addPercent(0.035);
             intro.repaint();
-            try{c.cd(usersdir);}
-            catch(Exception e){
-                System.out.println("Could not get to "+usersdir+"on sftp");}
-            int subdirnr = usersdir.split("/").length-1;
-            int size ;
-            try{System.out.println("c.ls.size(): "+c.ls(".").size());
-                size= c.ls(usersdir).size();}
-            catch(Exception e){
-                System.out.println("No suites xml");
-                size=0;}
-            for(int i=0;i<size;i++){
-                name = ((LsEntry)c.ls(usersdir).get(i)).getFilename();
-                if(name.split("\\.").length==0)continue; 
-                if(name.toLowerCase().indexOf(".xml")==-1)continue;
-                System.out.print("Getting "+name+" ....");
-                in = c.get(name);
-                inputStreamReader = new InputStreamReader(in);
-                bufferedReader = new BufferedReader(inputStreamReader);
-                file = new File(temp+bar+"Twister"+bar+"Users"+bar+name);
-                writer = new BufferedWriter(new FileWriter(file));
-                while ((line=bufferedReader.readLine())!= null){
-                    writer.write(line);
-                    writer.newLine();}
-                bufferedReader.close();
-                writer.close();
-                inputStreamReader.close();
-                in.close();
-                System.out.println("successfull");}
-            intro.setStatus("Finished getting users xml");
+            
+            
+//            !!!!!!!!!!!!!!!!!
+            
+            
+            
+//             try{c.cd(usersdir);}
+//             catch(Exception e){
+//                 System.out.println("Could not get to "+usersdir+"on sftp");}
+//             int subdirnr = usersdir.split("/").length-1;
+//             int size ;
+//             try{System.out.println("c.ls.size(): "+c.ls(".").size());
+//                 size= c.ls(usersdir).size();}
+//             catch(Exception e){
+//                 System.out.println("No suites xml");
+//                 size=0;}
+//             for(int i=0;i<size;i++){
+//                 name = ((LsEntry)c.ls(usersdir).get(i)).getFilename();
+//                 if(name.split("\\.").length==0)continue; 
+//                 if(name.toLowerCase().indexOf(".xml")==-1)continue;
+//                 System.out.print("Getting "+name+" ....");
+//                 in = c.get(name);
+//                 inputStreamReader = new InputStreamReader(in);
+//                 bufferedReader = new BufferedReader(inputStreamReader);
+//                 file = new File(temp+bar+"Twister"+bar+"Users"+bar+name);
+//                 writer = new BufferedWriter(new FileWriter(file));
+//                 while ((line=bufferedReader.readLine())!= null){
+//                     writer.write(line);
+//                     writer.newLine();}
+//                 bufferedReader.close();
+//                 writer.close();
+//                 inputStreamReader.close();
+//                 in.close();
+//                 System.out.println("successfull");}
+//             intro.setStatus("Finished getting users xml");
+            
+
+            
+            
+            
+            
+//          !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+
+
             intro.addPercent(0.035);
             intro.repaint();
             String dir = Repository.getXMLRemoteDir();
@@ -927,12 +945,16 @@ public class Repository{
                 inputStreamReader.close();
                 in.close();}
             catch(Exception e){e.printStackTrace();}
-            line = b.toString();
-            JsonElement jelement = new JsonParser().parse(line);
+            JsonElement jelement = new JsonParser().parse(b.toString());
             inifile = jelement.getAsJsonObject();
             editors = inifile.getAsJsonObject("editors");
             looks = inifile.getAsJsonObject("looks");
-            plugins = inifile.getAsJsonArray("plugins");
+            layout = inifile.getAsJsonObject("layout");
+            plugins = inifile.getAsJsonArray("plugins");            
+            if(layout==null){
+                inifile.add("layout", new JsonObject());
+                writeJSon();
+                layout = inifile.getAsJsonObject("layout");}
             if(plugins==null){
                 inifile.add("plugins", new JsonArray());
                 writeJSon();
@@ -1220,7 +1242,7 @@ public class Repository{
     /*
      * looks saved in conf file
      */
-    public static JsonObject getLooks(){
+    private static JsonObject getLooks(){
         return looks;}
         
     /*
@@ -1273,6 +1295,13 @@ public class Repository{
      */
     public static JsonObject getEditors(){
         return editors;}
+        
+        
+    /*
+     * layout saved in conf file
+     */
+    public static JsonObject getLayouts(){
+        return layout;}
       
     /*
      * delete editor from editors list
@@ -1407,6 +1436,144 @@ public class Repository{
             e.printStackTrace();
             return false;
         }
+    }
+    
+    /*
+     * save the layouts of the frameworks
+     * for reuse on opening
+     */
+    public static void saveMainLayout(){
+        JsonObject lay = getLayouts();
+        lay.add("mainsize", new JsonPrimitive(window.getSize().getWidth()+" "+window.getSize().getHeight()));
+        lay.add("mainlocation", new JsonPrimitive(window.getLocation().getX()+" "+window.getLocation().getY()));
+        lay.add("mainvsplitlocation", new JsonPrimitive(window.mainpanel.p1.splitPane.getDividerLocation()));
+        lay.add("mainh1splitlocation", new JsonPrimitive(window.mainpanel.p1.splitPane3.getDividerLocation()));
+        lay.add("mainh2splitlocation", new JsonPrimitive(window.mainpanel.p1.splitPane2.getDividerLocation()));
+        writeJSon();
+    }
+        
+        
+    /*
+     * save the layouts of UT window
+     * for reuse on opening
+     */
+    public static void saveUTLayout(Dimension size, Point p,int divloc){
+        JsonObject lay = getLayouts();
+        lay.add("UTsize", new JsonPrimitive(size.getWidth()+" "+size.getHeight()));
+        lay.add("UTlocation", new JsonPrimitive(p.getX()+" "+p.getY()));
+        lay.add("UTh1splitlocation", new JsonPrimitive(divloc));
+        writeJSon();
+    }
+    
+    
+    /*
+     * open project file from server
+     */
+    public static void openProjectFile(){
+        try{c.cd(REMOTEUSERSDIRECTORY);}
+        catch(Exception e){
+            System.out.println("Could not get to "+REMOTEUSERSDIRECTORY+"on sftp");}
+        int subdirnr = REMOTEUSERSDIRECTORY.split("/").length-1;
+        int size ;
+        try{size= c.ls(REMOTEUSERSDIRECTORY).size();}
+        catch(Exception e){
+            System.out.println("No suites xml");
+            size=0;}
+        ArrayList<String> files = new ArrayList<String>();
+        String name=null;
+        for(int i=0;i<size;i++){
+            try{name = ((LsEntry)c.ls(REMOTEUSERSDIRECTORY).get(i)).getFilename();
+                if(name.split("\\.").length==0)continue; 
+                if(name.toLowerCase().indexOf(".xml")==-1)continue;
+                if(name.equals("last_edited.xml"))continue;
+                files.add(name.toString());
+            }
+            catch(Exception e){
+                e.printStackTrace();}
+            }
+            
+        String users[] = new String[files.size()+1];
+        for(int i=0;i<files.size();i++){
+            users[i] = files.get(i);
+        }
+        users[users.length - 1] = "New File";
+        JComboBox combo = new JComboBox(users);
+        
+        int resp = (Integer)CustomDialog.showDialog(combo,
+                            JOptionPane.INFORMATION_MESSAGE,
+                            JOptionPane.OK_CANCEL_OPTION,window,
+                            "Project File",null);
+        
+        if(resp==JOptionPane.OK_OPTION){
+            String user = combo.getSelectedItem().toString();
+            if(user.equals("New File")){
+                user = CustomDialog.showInputDialog(JOptionPane.QUESTION_MESSAGE,
+                                                    JOptionPane.OK_CANCEL_OPTION, window,
+                                                    "File Name", "Please enter file name").
+                                                    toUpperCase();
+                if(!user.equals("NULL")){
+                    Repository.emptySuites();
+                    (new XMLBuilder(Repository.getSuite())).writeXMLFile((new StringBuilder()).
+                                        append(Repository.getUsersDirectory()).append(Repository.
+                                        getBar()).append(user).append(".XML").toString(),false,false);
+                    window.mainpanel.p1.sc.g.setUser((new StringBuilder()).append(Repository.getUsersDirectory()).
+                                        append(Repository.getBar()).append(user).append(".XML").
+                                        toString());
+                    window.mainpanel.p1.sc.g.printXML( window.mainpanel.p1.sc.g.getUser(),false,false,false);}}
+            else{
+                try{
+                    InputStream in = c.get(user);
+                    InputStreamReader inputStreamReader = new InputStreamReader(in);
+                    BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
+                    File file = new File(temp+bar+"Twister"+bar+"Users"+bar+user);
+                    BufferedWriter writer = new BufferedWriter(new FileWriter(file));
+                    String line;
+                    while ((line=bufferedReader.readLine())!= null){
+                        writer.write(line);
+                        writer.newLine();}
+                    bufferedReader.close();
+                    writer.close();
+                    inputStreamReader.close();
+                    in.close();
+                    
+                    
+                    Repository.emptySuites();
+                    window.mainpanel.p1.sc.g.setUser((new StringBuilder()).append(Repository.getUsersDirectory()).
+                                            append(Repository.getBar()).append(user).toString());
+                    window.mainpanel.p1.sc.g.parseXML(new File((new StringBuilder()).append(Repository.getUsersDirectory()).
+                                            append(Repository.getBar()).append(user).toString()));}
+                catch(Exception e){
+                    e.printStackTrace();
+                }
+                                    
+                                    
+                                    }
+                                    if(Repository.getSuiteNr() > 0){
+            Repository.window.mainpanel.p1.sc.g.updateLocations(Repository.getSuita(0));}
+        Repository.window.mainpanel.p1.sc.g.repaint();
+                                    
+                                    }
+        
+        
+        
+            
+//             System.out.print("Getting "+name+" ....");
+//             in = c.get(name);
+//             inputStreamReader = new InputStreamReader(in);
+//             bufferedReader = new BufferedReader(inputStreamReader);
+//             file = new File(temp+bar+"Twister"+bar+"Users"+bar+name);
+//             writer = new BufferedWriter(new FileWriter(file));
+//             while ((line=bufferedReader.readLine())!= null){
+//                 writer.write(line);
+//                 writer.newLine();}
+//             bufferedReader.close();
+//             writer.close();
+//             inputStreamReader.close();
+//             in.close();
+//             System.out.println("successfull");
+//         intro.setStatus("Finished getting users xml");
+    
+    
     }
         
     /*

@@ -255,12 +255,12 @@ public class ExplorerPanel extends JPanel {
             }   
         });
         final String editable;
-        if (tree.getSelectionPaths().length > 0) {
+        if (tree.getSelectionPath()!=null) {
             editable = tree.getSelectionPath().getLastPathComponent() + "";
         } else {
             editable = "";
         }
-        if ((tree.getSelectionPaths().length == 1)
+        if ((tree.getSelectionPath()!=null)&&(tree.getSelectionPaths().length == 1)
                 && (tree.getModel().isLeaf(tree.getSelectionPath()
                         .getLastPathComponent()))
                 && ((editable.indexOf(".tcl") != -1)
@@ -271,6 +271,13 @@ public class ExplorerPanel extends JPanel {
             item.addActionListener(new ActionListener() {
                 public void actionPerformed(ActionEvent ev) {
                     editTC(editable);
+                }
+            });
+            item = new JMenuItem("Unit testing");
+            p.add(item);
+            item.addActionListener(new ActionListener() {
+                public void actionPerformed(ActionEvent ev) {
+                    unitTesting(editable);
                 }
             });
             item = new JMenuItem("Edit with");
@@ -296,16 +303,17 @@ public class ExplorerPanel extends JPanel {
                 }
             });
         }
-        if ((tree.getSelectionPaths().length == 1)
-        && (tree.getModel().isLeaf(tree.getSelectionPath()
-                        .getLastPathComponent()))){
+//         if ((tree.getSelectionPath()!=null)&&(tree.getSelectionPaths().length == 1)
+//         && (tree.getModel().isLeaf(tree.getSelectionPath()
+//                         .getLastPathComponent()))){
 //             item = new JMenuItem("Unit testing");
 //             p.add(item);
 //             item.addActionListener(new ActionListener(){
 //                 public void actionPerformed(ActionEvent ev){
 //                     unitTesting();}});
-            p.show(tree, ev.getX(), ev.getY()); 
-        }        
+             
+//         }   
+        p.show(tree, ev.getX(), ev.getY());
     }
     
 //     /*
@@ -437,6 +445,19 @@ public class ExplorerPanel extends JPanel {
                                         Short.MAX_VALUE)));
         return p;
     }
+    
+    /*
+     * open unit testing window to edit editable 
+     */
+    public void unitTesting(String editable) {
+        String remotefilename = tree.getSelectionPath().getPathComponent(
+                tree.getSelectionPath().getPathCount() - 2)
+                + "/" + tree.getSelectionPath().getLastPathComponent();
+        String localfilename = Repository.temp + Repository.getBar()
+                + "Twister" + Repository.getBar()
+                + tree.getSelectionPath().getLastPathComponent();
+        new UnitTesting(editable,localfilename,remotefilename);
+    }
 
     /*
      * open default editor and edit selected TC
@@ -511,7 +532,7 @@ public class ExplorerPanel extends JPanel {
      * opens a window for embeded editor
      */
     public void openEmbeddedEditor(String editable, final String remotefile,
-            final String localfile) {
+                                    final String localfile) {
         final JFrame f = new JFrame();
         tree.setEnabled(false);
         Repository.window.mainpanel.p1.sc.g.setCanRequestFocus(false);
@@ -561,7 +582,6 @@ public class ExplorerPanel extends JPanel {
         JMenu filemenu = new JMenu("File");
         JMenuItem saveuser = new JMenuItem("Save");
         saveuser.addActionListener(new ActionListener() {
-
             public void actionPerformed(ActionEvent ev) {
                 try {
                     FileWriter filewriter = new FileWriter(file);
@@ -601,7 +621,6 @@ public class ExplorerPanel extends JPanel {
             e.printStackTrace();
         }
         f.addWindowListener(new WindowAdapter() {
-
             public void windowClosing(WindowEvent ev) {
                 tree.setEnabled(true);
                 Repository.window.mainpanel.p1.sc.g.setCanRequestFocus(true);
@@ -614,7 +633,7 @@ public class ExplorerPanel extends JPanel {
         });
     }
 
-    public File copyFileLocaly(String filename, String localfilename) {
+    public static File copyFileLocaly(String filename, String localfilename) {
         InputStream in = null;
         System.out.print("Getting " + filename + " ....");
         try {
@@ -647,7 +666,7 @@ public class ExplorerPanel extends JPanel {
         return file2;
     }
 
-    public void sendFileToServer(File localfile, String remotefile) {
+    public static void sendFileToServer(File localfile, String remotefile) {
         try {
             FileInputStream in = new FileInputStream(localfile);
             Repository.c.put(in, remotefile);

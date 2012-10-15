@@ -33,4 +33,6 @@ import java.rmi.RMISecurityManager;
 public class Main{
     
     public static void main(String args[]){
-            Repository.initialize(false,"tsc-server",null);}}
+        Repository.initialize(false,"tsc-server",null);}
+//             Repository.initialize(false,"11.126.32.15",null);}
+}

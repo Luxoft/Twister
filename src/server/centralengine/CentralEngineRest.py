@@ -29,49 +29,100 @@ All functions are exposed and can be accessed using the browser.
 """
 
 import os, sys
-import datetime
+import glob
+import json
+import time
+import platform
 import cherrypy
+import mako
 from mako.template import Template
+from binascii import unhexlify as decode
 
 TWISTER_PATH = os.getenv('TWISTER_PATH')
 if not TWISTER_PATH:
-    print('$TWISTER_PATH environment variable is not set! Exiting!')
+    print('\n$TWISTER_PATH environment variable is not set! Exiting!\n')
     exit(1)
 sys.path.append(TWISTER_PATH)
 
 from common.constants import *
-from common.tsclogging import LOG_FILE
+from common.tsclogging import *
 
+if mako.__version__ < '0.7':
+    logWarning('Warning! Mako-template version is old: `{0}`! Some pages might crash!\n'.format(mako.__version__))
 
-#
-TMPL_DATA = """
-<!DOCTYPE html>
-<html lang="en">
-<head>
-	<meta charset="utf-8">
-	% if title is not UNDEFINED:
-	<title>${title}</title>
-	% else:
-	<title>Central Engine REST</title>
-	% endif
-	<style>
-	* {font-family: Courier New, Courier, Monospace, Verdana, Arial}
-	</style>
-</head>
-<body><div style="margin:5px;">
-% if title is not UNDEFINED:
-<h2>${title}</h2>
-% else:
-<h2>Central Engine REST</h2>
-% endif
+# # # # #
 
-${body}
+def calcMemory():
+    import subprocess
+    memLine = subprocess.check_output(['free', '-o']).split('\n')[1]
+    memUsed    = int(memLine.split()[2])
+    mebBuffers = int(memLine.split()[-2])
+    memCached  = int(memLine.split()[-1])
+    Total      = float(memLine.split()[1])
+    memPer = ((memUsed - mebBuffers - memCached) * 100.) / Total
+    return float('%.2f' % memPer)
 
-</div></body>
-</html>
-"""
-#
+def getCpuData():
+    statLine = open('/proc/stat', 'r').readline()
+    timeList = statLine.split(' ')[2:6]
+    for i in range(len(timeList)):
+        timeList[i] = float(timeList[i])
+    return timeList
 
+def calcCpu():
+    x = getCpuData()
+    time.sleep(0.5)
+    y = getCpuData()
+    for i in range(len(x)):
+        y[i] -= x[i]
+    cpuPer = sum(y[:-1]) / sum(y) * 100.
+    return float('%.2f' % cpuPer)
+
+def prepareLog(log_file, pos=0):
+    if not os.path.isfile(log_file):
+        return 'File `{0}` does not exist!'.format(log_file)
+    f = open(log_file, 'rb')
+    f.seek(pos)
+    log = f.read().rstrip()
+    f.close() ; del f
+
+    body = '''
+    <style>
+    .nfo {color:gray; text-shadow: 1px 1px 1px #aaa}
+    .dbg {color:gray; text-shadow: 1px 1px 1px #aaa}
+    .err {color:orange; text-shadow: 1px 1px 1px #aaa}
+    .warn {color:orange; text-shadow: 1px 1px 1px #aaa}
+    .crit {color:red; text-shadow: 1px 1px 1px #aaa}
+    </style>
+    '''
+    body += log.replace('\n', '<br>\n').replace(' ', '&nbsp;')
+    del log
+    body = body.replace(';INFO&',   ';<b class="nfo">INFO</b>&')
+    body = body.replace(';DEBUG&',  ';<b class="dbg">DEBUG</b>&')
+    body = body.replace(';ERROR&',  ';<b class="err">ERROR</b>&')
+    body = body.replace(';WARNING&',  ';<b class="warn">WARNING</b>&')
+    body = body.replace(';CRITICAL&', ';<b class="crit">CRITICAL</b>&')
+    body = body.replace(';debug:',    ';<b class="dbg">debug</b>:')
+    body = body.replace(';error:',    ';<b class="err">error</b>:')
+    body = body.replace(';warning:',  ';<b class="warn">warning</b>:')
+    return body
+
+def dirList(path, newdict):
+    if os.path.isdir(path):
+        dlist = []
+        flist = []
+        for fname in sorted(os.listdir(path), key=str.lower):
+            nd = {'data': fname, 'children': []}
+            if os.path.isdir(path + os.sep + fname):
+                dlist.append(nd)
+            else:
+                flist.append(nd)
+        newdict['children'] = dlist + flist
+    for nitem in newdict['children']:
+        newpath = path + os.sep + nitem['data']
+        dirList(newpath, nitem)
+
+# # # # #
 
 class CentralEngineRest:
 
@@ -97,158 +148,163 @@ class CentralEngineRest:
 
     @cherrypy.expose
     def index(self):
-
-        output = Template(text=TMPL_DATA)
-        host = cherrypy.request.headers['Host']
-        body = '<p>From here, you can access:<br><br>'\
-               '<a href="http://{host}/rest/stats">Stats</a>  and  <a href="http://{host}/rest/logs">Logs</a>.</p>'.format(host=host)
-
-        return output.render(body=body)
-
-
-    @cherrypy.expose
-    def stats(self, user='', epname='', suite=''):
-        """
-        This function should be used in the browser.
-        It prints a few statistics about the Central Engine.
-        """
         if self.user_agent() == 'x':
             return 0
 
-        output = Template(text=TMPL_DATA)
-        reversed = dict((v,k) for k,v in execStatus.iteritems())
-        now = datetime.datetime.today()
-        if now.second < 59:
-            now_str = now.replace(second=now.second+1).strftime('%Y-%m-%d %H:%M:%S')
-        else:
-            now_str = now.replace(minute=now.minute+1, second=0).strftime('%Y-%m-%d %H:%M:%S')
-        ce_host = cherrypy.config['server.socket_host']
-        ce_port = cherrypy.config['server.socket_port']
-        host = cherrypy.request.headers['Host']
+        ip_port = cherrypy.request.headers['Host']
+        machine = platform.uname()[1]
+        system  = ' '.join(platform.linux_distribution())
+        users   = sorted([u.split('/')[2] for u in glob.glob('/home/*/twister')])
+        # os.path.expanduser("~user")
 
-        if not user:
-            body = '<b>Running on</b>: {ce_host}:{ce_port}<br><br>\n'\
-                   '<h2>Registered users:</h2>\n'\
-                   '{users}.'.format(ce_host=ce_host, ce_port=ce_port, users=';<br>'.join(
-                   ['&nbsp;&nbsp;user <a href="http://{host}/rest/stats/{user}">{user}</a> ' \
-                    '<small>(<a href="http://{host}/rest/setUserStatus/{user}/2">start</a> | ' \
-                    '<a href="http://{host}/rest/setUserStatus/{user}/0">stop</a>)</small>'
-                        .format(host=host, user=k)
-                        for k in self.project.users.keys()]
-                        ) or 'None')
-            return output.render(title='Central Engine', body=body)
-        else:
-            if user not in self.project.users.keys():
-                body = '<b>User name `{0}` doesn\'t exist!</b>'.format(user)
-                return output.render(title='Error!', body=body)
-
-        status = reversed[self.project.getUserInfo(user, 'status')]
-
-        if epname:
-            if not epname in self.project.getUserInfo(user, 'eps'):
-                body = '<b>Execution Process `{0}` doesn\'t exist!</b>'.format(epname)
-                return output.render(title='Error!', body=body)
-
-            # EP name only
-            if not suite:
-                data = self.project.getEpInfo(user, epname)
-                ret = '<h3>Execution Process `{epname}`</h3>\n'\
-                      '<b>Status</b>: {status}<br><br>\n'\
-                      '<b>Ping</b>: {ping}<br><br>\n'\
-                      '<b>Suites</b>: [<br>{suites}<br>]\n'.format(
-                    epname = epname,
-                    status = reversed[data.get('status', STATUS_INVALID)],
-                    ping = str( (now - datetime.datetime.strptime(data.get('last_seen_alive', now_str), '%Y-%m-%d %H:%M:%S')).seconds ) + 's',
-                    suites = '<br>'.join(['&nbsp;&nbsp;<a href="http://{host}/rest/stats/{user}/{ep}/{id}">{name}</a>'.format(
-                        host = host, user = user, ep = epname, id = k, name = v['name'])
-                                          for k, v in data['suites'].items()])
-                )
-
-            # EP name and Suite name
-            else:
-                data = self.project.getSuiteInfo(user, epname, suite)
-                reversed = dict((v,k) for k,v in testStatus.iteritems())
-                ret = '<h3>Suite `{name}` (id `{suite}`)</h3>'\
-                      '<b>Files</b>: [<br>{files}<br>]'.format(
-                    epname = epname,
-                    suite = suite,
-                    name = data['name'],
-                    files = '<br>'.join(['&nbsp;&nbsp;{0}: {1}'.format(data['files'][k]['file'],
-                                        reversed[data['files'][k].get('status', STATUS_INVALID)] )
-                                        for k in data['files']])
-                )
-
-        # General statistics
-        else:
-            eps = self.project.getUserInfo(user, 'eps').keys()
-            ret = '<h3>User `{user}`</h3>\n'\
-                  '<b>Status</b>: {status}<br><br>\n'\
-                  '<b>Config</b>: <small>{config}</small><br><br><br>\n'\
-                  '<b>Processes</b>: [<br>{eps}<br>]\n'.format(
-                user = user,
-                status = status,
-                config = self.project.getUserInfo(user, 'tests_path'),
-                eps = '<br>'.join(
-                    ['&nbsp;&nbsp;<a href="http://{host}/rest/stats/{user}/{ep}">{ep}</a>: {status}'.format(
-                        user = user, ep=ep, host=host,
-                        status=reversed[self.project.getEpInfo(user, ep).get('status', STATUS_INVALID)])
-                     for ep in eps]
-                )
-            )
-
-        return output.render(title='Central Engine Statistics', body=ret)
+        output = Template(filename=TWISTER_PATH + '/server/centralengine/template_main.htm')
+        return output.render(ip_port=ip_port, machine=machine, system=system, users=users)
 
 
     @cherrypy.expose
-    def status(self, user, epname='', suite=''):
-        return self.stats(user, epname, suite)
+    def users(self, user):
+        if self.user_agent() == 'x':
+            return 0
+
+        host = cherrypy.request.headers['Host']
+        reversed = dict((v,k) for k,v in execStatus.iteritems())
+        status = reversed[self.project.getUserInfo(user, 'status')]
+        master_config = self.project.getUserInfo(user, 'config_path')
+        proj_config = self.project.getUserInfo(user, 'tests_path')
+        logs_path = self.project.getUserInfo(user, 'logs_path')
+        try: eps_file = self.project.parsers[user].xmlDict.root.epidsfile.text
+        except: eps_file = ''
+        eps = self.project.getUserInfo(user, 'eps')
+        ep_statuses = [ reversed[eps[ep].get('status', STATUS_INVALID)] for ep in eps ]
+        logs = self.project.getUserInfo(user, 'log_types')
+
+        output = Template(filename=TWISTER_PATH + '/server/centralengine/template_user.htm')
+        return output.render(host=host, user=user, status=status, master_config=master_config, proj_config=proj_config,
+               exec_status=reversed, logs_path=logs_path, eps_file=eps_file, eps=eps, ep_statuses=ep_statuses, logs=logs)
+
+#
+
+    @cherrypy.expose
+    def json_stats(self):
+        if self.user_agent() == 'x':
+            return 0
+
+        cherrypy.response.headers['Content-Type']  = 'application/json; charset=utf-8'
+        cherrypy.response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        cherrypy.response.headers['Pragma']  = 'no-cache'
+        cherrypy.response.headers['Expires'] = 0
+        data = {'mem': calcMemory(), 'cpu': calcCpu()}
+        return json.dumps(data)
+
+
+    @cherrypy.expose
+    def json_all(self):
+        if self.user_agent() == 'x':
+            return 0
+
+        cherrypy.response.headers['Content-Type']  = 'application/json; charset=utf-8'
+        cherrypy.response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        cherrypy.response.headers['Pragma']  = 'no-cache'
+        cherrypy.response.headers['Expires'] = 0
+        return open(TWISTER_PATH + '/common/project_users.json', 'r').read()
+
+
+    @cherrypy.expose
+    def json_eps(self, user, epname):
+        if self.user_agent() == 'x':
+            return 0
+
+        epname = decode(epname)
+        cherrypy.response.headers['Content-Type']  = 'application/json; charset=utf-8'
+        cherrypy.response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        cherrypy.response.headers['Pragma']  = 'no-cache'
+        cherrypy.response.headers['Expires'] = 0
+
+        data = []
+        epinfo = self.project.getEpInfo(user, epname)
+
+        for suite in epinfo['suites']:
+            sdata = {
+                'data': epinfo['suites'][suite]['name'],
+                'attr': {'id': suite, 'rel': 'suite'},
+                'children': [],
+            }
+            if epinfo['suites'][suite]['files']:
+                sdata['children'] = [epinfo['suites'][suite]['files'][k]['file'] for k in epinfo['suites'][suite]['files'].keys()]
+            data.append(sdata)
+
+        return json.dumps(data)
+
+
+    @cherrypy.expose
+    def json_folders(self):
+        if self.user_agent() == 'x':
+            return 0
+
+        newdict = {'data':'root','children':[]}
+        dirpath = '/home/cro/twister'
+        dirList(dirpath, newdict)
+
+        return json.dumps(newdict)
+
+
+    @cherrypy.expose
+    def json_logs(self, user='', log=''):
+        if self.user_agent() == 'x':
+            return 0
+
+        if user and log:
+            logs = self.project.getUserInfo(user, 'log_types')
+            logsPath = self.project.getUserInfo(user, 'logs_path')
+            if log.startswith('logcli_'):
+                epname = '_'.join(log.split('_')[1:])
+                log = logsPath + os.sep + decode(epname) + '_CLI.log'
+            else:
+                log = logs.get(log)
+
+        cherrypy.response.headers['Content-Type']  = 'application/json; charset=utf-8'
+        cherrypy.response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        cherrypy.response.headers['Pragma']  = 'no-cache'
+        cherrypy.response.headers['Expires'] = 0
+        return json.dumps(prepareLog(log or LOG_FILE))
+
+#
+
+    @cherrypy.expose
+    def resetUser(self, user):
+        self.project.reset(user)
+        self.parent.resetLogs(user)
+        raise cherrypy.HTTPRedirect('http://{host}/rest/users/{user}'.format(
+            host = cherrypy.request.headers['Host'], user = user
+        ))
 
 
     @cherrypy.expose
     def setUserStatus(self, user, status):
-        output = Template(text=TMPL_DATA)
+        output = Template(filename=TWISTER_PATH + '/server/centralengine/template_error.htm')
         try: status = int(status)
-        except: return output.render(title='Error!', body='<b>Status value `%s` is invalid!</b>' % str(status))
-        self.parent.setExecStatusAll(user, status, 'Status changed from REST interface.')
-        raise cherrypy.HTTPRedirect('http://{host}/rest/stats/{user}'.format(
+        except: return output.render(title='Error!', body='<b>Status value `{0}` is invalid!</b>'.format(status))
+        if status not in execStatus.values():
+            return output.render(title='Error!', body='<b>Status value `{0}` is not in the list of valid statuses: {1}!</b>'\
+                .format(status, execStatus.values()))
+        self.parent.setExecStatusAll(user, status, 'User status changed from REST interface.')
+        raise cherrypy.HTTPRedirect('http://{host}/rest/users/{user}#tab_home'.format(
             host = cherrypy.request.headers['Host'], user = user
         ))
 
 
     @cherrypy.expose
     def setEpStatus(self, user, epname, status):
-        output = Template(text=TMPL_DATA)
+        output = Template(filename=TWISTER_PATH + '/server/centralengine/template_error.htm')
         try: status = int(status)
-        except: return output.render(title='Error!', body='<b>Status value `%s` is invalid!</b>' % str(status))
-        self.parent.setExecStatus(user, epname, status, 'Status changed from REST interface.')
-        raise cherrypy.HTTPRedirect('http://{host}/rest/stats/{user}/{epname}'.format(
+        except: return output.render(title='Error!', body='<b>Status value `{0}` is invalid!</b>'.format(status))
+        if status not in execStatus.values():
+            return output.render(title='Error!', body='<b>Status value `{0}` is not in the list of valid statuses: {1}!</b>'\
+                .format(status, execStatus.values()))
+        self.parent.setExecStatus(user, epname, status, 'EP status changed from REST interface.')
+        raise cherrypy.HTTPRedirect('http://{host}/rest/users/{user}#tab_proc'.format(
             host = cherrypy.request.headers['Host'], user = user, epname = epname
         ))
-
-
-    @cherrypy.expose
-    def log(self):
-        """
-        This function should be used in the browser.
-        It prints the Central Engine log.
-        """
-        if self.user_agent() == 'x':
-            return 0
-
-        output = Template(text=TMPL_DATA)
-        log = open(LOG_FILE).read()
-        body = log.replace('\n', '<br>\n').replace(' ', '&nbsp;')
-        body = body.replace(';INFO&',   ';<b style="color:gray">INFO</b>&')
-        body = body.replace(';DEBUG&',  ';<b style="color:gray">DEBUG</b>&')
-        body = body.replace(';ERROR&',  ';<b style="color:orange">ERROR</b>&')
-        body = body.replace(';WARNING&',  ';<b>WARNING</b>&')
-        body = body.replace(';CRITICAL&', ';<b style="color:red">CRITICAL</b>&')
-        return output.render(title='Central Engine Log', body=body)
-
-
-    @cherrypy.expose
-    def logs(self):
-        return self.log()
 
 #
 

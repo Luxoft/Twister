@@ -63,15 +63,16 @@ import javax.swing.SwingUtilities;
 
 public class Panel2 extends JPanel{
     private static final long serialVersionUID = 1L;
-    ScrollGraficTest sc;
+    public ScrollGraficTest sc;
     ArrayList<Log> logs=new ArrayList<Log>();
     JSplitPane splitPane;
-    JTabbedPane tabbed;
+    public JTabbedPane tabbed;
     private boolean cleared = true;
-    JLabel cestatus;
+    public JLabel cestatus;
     private boolean stoppushed = false;
     private boolean runned = false;
-    private JButton stop;
+    public JButton stop,play;
+    private boolean first = true;
 
     public Panel2(final boolean applet){
         Repository.intro.setStatus("Started Monitoring interface initialization");
@@ -79,15 +80,15 @@ public class Panel2 extends JPanel{
         Repository.intro.repaint();
         sc = new ScrollGraficTest(0, 0,applet);
         tabbed = new JTabbedPane();
-        splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,sc.pane,tabbed);
-        Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
-        splitPane.setBounds(10,45,(int)screenSize.getWidth()-80,600);
-        splitPane.setDividerLocation(0.5);
+        //splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,sc.pane,tabbed);
+        //Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+        //splitPane.setBounds(10,45,(int)screenSize.getWidth()-80,600);
+        //splitPane.setDividerLocation(0.5);
         setLayout(null);
-        add(splitPane);
-        final JButton play = new JButton("Run",new ImageIcon(Repository.getPlayIcon()));
+        //add(splitPane);
+        play = new JButton("Run",new ImageIcon(Repository.getPlayIcon()));
         play.setEnabled(false);
-        play.setBounds(10,5,105,25);
+        play.setBounds(80,20,105,25);
         play.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 play(play);}});
@@ -97,10 +98,10 @@ public class Panel2 extends JPanel{
         stop.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 stop(play);}});
-        stop.setBounds(121,5,95,25);
+        stop.setBounds(190,20,95,25);
         add(stop);
         cestatus = new JLabel("CE status: ");
-        cestatus.setBounds(225,12,650,25);
+        cestatus.setBounds(290,25,650,25);
         cestatus.setForeground(new Color(100,100,100));
         add(cestatus);
         try{new Thread(){
@@ -108,17 +109,18 @@ public class Panel2 extends JPanel{
                     while(Repository.run){ 
                         askCE(play);}}}.start();}
         catch(Exception e){e.printStackTrace();}
-        new Thread(){
-            public void run(){
-                while(sc.g.getGraphics() == null){
-                    try{Thread.sleep(50);}
-                    catch(Exception e){System.out.println("Thread interrupted at getting Graphics");}}
-                File xml = new File(Repository.getTestXMLDirectory());
-                if(xml.length()>0)new XMLReader(xml).parseXML(sc.g.getGraphics(), true);
-                else{
-                    try{System.out.println(xml.getCanonicalPath()+" has no content");}
-                    catch(Exception e){e.printStackTrace();}}
-                updateTabs();}}.start();
+//         new Thread(){
+//             public void run(){
+//                 while(sc.g.getGraphics() == null){
+//                     try{Thread.sleep(50);}
+//                     catch(Exception e){System.out.println("Thread interrupted at getting Graphics");}}
+//                 File xml = new File(Repository.getTestXMLDirectory());
+// //                 System.out.println("xml:"+Repository.getTestXMLDirectory());
+//                 if(xml.length()>0)new XMLReader(xml).parseXML(sc.g.getGraphics(), true);
+//                 else{
+//                     try{System.out.println(xml.getCanonicalPath()+" has no content");}
+//                     catch(Exception e){e.printStackTrace();}}
+//                 updateTabs();}}.start();
         Repository.intro.setStatus("Finished Monitoring interface initialization");
         Repository.intro.addPercent(0.035);
         Repository.intro.repaint();}
@@ -127,51 +129,89 @@ public class Panel2 extends JPanel{
      * get status from ce
      * and adjust accordingly
      */
-    public void askCE(JButton play){
+    private void askCE(JButton play){
         try{String result;
-            while(Repository.run){
-                Thread.sleep(1000);
-                result = Repository.getRPCClient().execute("getExecStatusAll",new Object[]{Repository.getUser()})+" ";
-                String startedtime = "   Started : "+result.split(";")[1];
-                String elapsedtime = "   Elapsed time: "+result.split(";")[2];
-                String user = "   Started by: "+result.split(";")[3];
-                result = result.split(";")[0];
-                if(result.equals("paused")){
-                    Repository.window.mainpanel.p1.setGenerate(false);
-                    cestatus.setText("CE status: paused"+startedtime+elapsedtime+user);
-                    cleared=false;
-                    play.setText("Resume");
-                    play.setIcon(new ImageIcon(Repository.playicon));}
-                else if(result.equals("stopped")){
-                    Repository.window.mainpanel.p1.setGenerate(true);
-                    cestatus.setText("CE status: stopped");
-                    stop.setEnabled(false);
-                    play.setText("Run");
-                    play.setIcon(new ImageIcon(Repository.playicon));
-                    if(runned){userOptions();}
-                    stoppushed = false;}
-                else if(result.equals("running")){
-                    Repository.window.mainpanel.p1.setGenerate(false);
-                    stoppushed = false;
-                    runned = true;
-                    cestatus.setText("CE status: running"+startedtime+elapsedtime+user);
-                    stop.setEnabled(true);
-                    cleared=false;
-                    play.setText("Pause");
-                    play.setIcon(new ImageIcon(Repository.pauseicon));}
-                if(!play.isEnabled()){
-                    play.setEnabled(true);
-                    stop.setEnabled(true);}
-                Object result1 = Repository.getRPCClient().execute("getFileStatusAll",
-                                                                    new Object[]{Repository.getUser()});
-                if(result1!=null){                                    
-                    if(((String)result1).indexOf(",")!=-1){
-                        String[] result2 = ((String)result1).split(",");
-                        updateStatuses(result2);}
-                    else{
-                        String[] result2 = {(String)result1};
-                        updateStatuses(result2);}}}}
+//             while(Repository.run){
+            Thread.sleep(1000);
+            result = Repository.getRPCClient().execute("getExecStatusAll",new Object[]{Repository.getUser()})+" ";
+            String startedtime = "   Started : "+result.split(";")[1];
+            String elapsedtime = "   Elapsed time: "+result.split(";")[2];
+            String user = "   Started by: "+result.split(";")[3];
+            result = result.split(";")[0];
+            if(result.equals("paused")){
+                Repository.window.mainpanel.p1.setGenerate(false);
+                cestatus.setText("CE status: paused"+startedtime+elapsedtime+user);
+                cleared=false;
+                play.setText("Resume");
+                play.setIcon(new ImageIcon(Repository.playicon));
+                if(first){
+                    Repository.window.mainpanel.p1.setRunning();
+                    first = false;
+                }
+            }
+            else if(result.equals("stopped")){
+                if(first){
+                    Repository.openProjectFile();
+//                     Repository.window.mainpanel.askForFile();
+                    first = false;
+                }
+                Repository.window.mainpanel.p1.setGenerate(true);
+                cestatus.setText("CE status: stopped");
+                stop.setEnabled(false);
+                Repository.window.mainpanel.p1.edit.setEnabled(true);
+                play.setText("Run");
+                play.setIcon(new ImageIcon(Repository.playicon));
+                if(runned){
+                    new Thread(){
+                        public void run(){
+                            try{
+                                Thread.sleep(200);
+                                userOptions();
+                            } catch(Exception e){
+                                e.printStackTrace();
+                            }
+                        }
+                    }.start();
+                    runned = false;
+                }
+                stoppushed = false;}
+            else if(result.equals("running")){
+                Repository.window.mainpanel.p1.setGenerate(false);
+                stoppushed = false;
+                runned = true;
+                cestatus.setText("CE status: running"+startedtime+elapsedtime+user);
+                stop.setEnabled(true);
+                Repository.window.mainpanel.p1.edit.setEnabled(false);
+                cleared=false;
+                play.setText("Pause");
+                play.setIcon(new ImageIcon(Repository.pauseicon));
+                if(first){
+                    Repository.window.mainpanel.p1.setRunning();
+                    first = false;
+                }
+            }
+            if(!play.isEnabled()){
+                play.setEnabled(true);
+                stop.setEnabled(true);
+                Repository.window.mainpanel.p1.edit.setEnabled(false);
+            }
+            Object result1 = Repository.getRPCClient().execute("getFileStatusAll",
+                                                                new Object[]{Repository.getUser()});
+            if(result1!=null){                                    
+                if(((String)result1).indexOf(",")!=-1){
+                    String[] result2 = ((String)result1).split(",");
+                    updateStatuses(result2);}
+                else{
+                    String[] result2 = {(String)result1};
+                    updateStatuses(result2);}}
+//                     }
+            }
         catch(Exception e){
+            if(first){
+                Repository.openProjectFile();
+//                 Repository.window.mainpanel.askForFile();
+                first = false;
+            }
             try{Thread.sleep(1000);}
             catch(Exception ex){ex.printStackTrace();}
             System.out.println("Could not connect to: "+Repository.host+" on port"+
@@ -179,14 +219,15 @@ public class Panel2 extends JPanel{
             e.printStackTrace();
             if(play.isEnabled()){
                 play.setEnabled(false);
-                stop.setEnabled(false);}}}
+                stop.setEnabled(false);
+                Repository.window.mainpanel.p1.edit.setEnabled(true);
+            }}}
                 
     /*
      * Prompt user to save to db or
      * localy in excel file
      */           
-    public void userOptions(){
-        System.out.println("Just Stopped");
+    private void userOptions(){
         String[] buttons = {"Save to DB","Export to excel","Cancel"};
         String resp = CustomDialog.showButtons(Panel2.this, JOptionPane.QUESTION_MESSAGE,
                                                 JOptionPane.DEFAULT_OPTION, null,buttons ,
@@ -203,8 +244,7 @@ public class Panel2 extends JPanel{
                 System.out.println("Exporting to excel..");
                 generateExcel();}}
         if(!stoppushed){
-            System.out.println("Without stop button");}
-        runned = false;}
+            System.out.println("Without stop button");}}
     
     /*
      * stop CE from executing
@@ -239,7 +279,7 @@ public class Panel2 extends JPanel{
                 play.setText("Pause");
                 play.setIcon(new ImageIcon(Repository.playicon));}
             else if(play.getText().equals("Pause")){
-                status = (String)Repository.getRPCClient().execute("setExecStatusAll",new Object[]{1});
+                status = (String)Repository.getRPCClient().execute("setExecStatusAll",new Object[]{Repository.getUser(),1});
                 play.setText("Resume");
                 play.setIcon(new ImageIcon(Repository.playicon));}}
         catch(Exception e){e.printStackTrace();}}
@@ -309,7 +349,12 @@ public class Panel2 extends JPanel{
                 sheet.addCell(label);
                 label = new Label(1, index,element.getName());                
                 sheet.addCell(label);
-                label = new Label(2, index,Grafic.getFirstSuitaParent(element,true).getEpId());                
+                StringBuilder s = new StringBuilder();
+                for(String g:Grafic.getFirstSuitaParent(element,true).getEpId()){
+                    s.append(g+";");
+                }
+                s.deleteCharAt(s.length()-1);
+                label = new Label(2, index, s.toString());                
                 sheet.addCell(label);
                 label = new Label(3, index,element.getSubItem(0).getValue());
                 sheet.addCell(label);
@@ -338,6 +383,7 @@ public class Panel2 extends JPanel{
           public void run(){
             try{for(int i=0;i<Repository.getLogs().size();i++){
                     if(i==4)continue;
+                    if(Repository.getLogs().get(i).equals(""))continue;
                     Log log = new Log(500,0,Repository.getLogs().get(i));
                     logs.add(log);
                     tabbed.addTab(Repository.getLogs().get(i),log.container);}}
@@ -349,9 +395,28 @@ public class Panel2 extends JPanel{
      */
     public void updateStatuses(String [] statuses){
         int index = 0;
+        updateSummary(statuses);
         for(int i=0;i<Repository.getTestSuiteNr();i++){
             index = manageSubchildren(Repository.getTestSuita(i),statuses,index);}
             Repository.window.mainpanel.p2.sc.g.repaint();}
+            
+    public void updateSummary(String [] stats){
+        int [] val = new int[10];
+        val[0] = stats.length;
+        for(String s:stats){
+            if(s.equals("10"))val[1]++;
+            else if(s.equals("1"))val[2]++;
+            else if(s.equals("2"))val[3]++;
+            else if(s.equals("3"))val[4]++;
+            else if(s.equals("4"))val[5]++;
+            else if(s.equals("5"))val[6]++;
+            else if(s.equals("6"))val[7]++;
+            else if(s.equals("7")||s.equals("8")){
+                val[8]++;}
+            else if(s.equals("9"))val[9]++;
+        }
+        Repository.window.mainpanel.p1.suitaDetails.updateStats(val);
+    }
     
     /*
      * interpret status value

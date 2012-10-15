@@ -239,10 +239,10 @@ if __name__=='__main__':
         CE_Path = 'http://' + host + '/'
         tcr_pid = None # PID of TC Runner
 
+        proxy = xmlrpclib.ServerProxy(CE_Path)
+
         threadCheckStatus().start() # Start checking CE status and sending Logs
         threadCheckLog().start() # Start checking CE status and sending Logs
-
-        proxy = xmlrpclib.ServerProxy(CE_Path)
 
     print('EP debug: Setup done, waiting for START signal.')
 

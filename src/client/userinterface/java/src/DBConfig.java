@@ -105,7 +105,7 @@ public class DBConfig extends JPanel{
                                             "File could not uploaded");}}});
         add(upload);
         JLabel database = new JLabel("Database: ");
-        database.setBounds(15,55,65,20);
+        database.setBounds(15,55,70,20);
         add(database);
         tdatabase = new JTextField();
         tdatabase.setBounds(80,55,170,25);
@@ -218,7 +218,8 @@ public class DBConfig extends JPanel{
             ByteArrayOutputStream buffer = new ByteArrayOutputStream();
             int nRead;
             theone = new File(Repository.temp+Repository.getBar()+"Twister"+Repository.
-            getBar()+"Config"+Repository.getBar()+new File(Repository.REMOTEDATABASECONFIGFILE).getName());
+                            getBar()+"config"+Repository.getBar()+
+                            new File(Repository.REMOTEDATABASECONFIGFILE).getName());
             try{while ((nRead = in.read(data, 0, data.length)) != -1){buffer.write(data, 0, nRead);}
                 buffer.flush();
                 FileOutputStream out = new FileOutputStream(theone);
@@ -227,6 +228,7 @@ public class DBConfig extends JPanel{
                 buffer.close();
                 in.close();}
             catch(Exception e){e.printStackTrace();
+                CustomDialog.showInfo(JOptionPane.INFORMATION_MESSAGE, null, "info", e.getMessage());
                 System.out.println("Could not write "+Repository.REMOTEDATABASECONFIGFILE+" on local hdd");}
             try{DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
                 DocumentBuilder db = dbf.newDocumentBuilder();                                        
@@ -241,9 +243,12 @@ public class DBConfig extends JPanel{
                 if(!tpassword.getPassword().equals(""))tpassword.setText("****");
                 nodeLst = doc.getElementsByTagName("user");
                 tuser.setText(nodeLst.item(0).getChildNodes().item(0).getNodeValue());}
-            catch(Exception e){System.out.println(Repository.temp+Repository.getBar()+
-            "Twister"+Repository.getBar()+"Config"+Repository.getBar()+new File(Repository.
-            REMOTEDATABASECONFIGFILE).getName()+" is corrupted or incomplete");}}
+            catch(Exception e){
+                CustomDialog.showInfo(JOptionPane.INFORMATION_MESSAGE, null, "info", e.getMessage());
+                System.out.println(Repository.temp+Repository.getBar()+
+                "Twister"+Repository.getBar()+"Config"+Repository.getBar()+new File(Repository.
+                REMOTEDATABASECONFIGFILE).getName()+" is corrupted or incomplete");}}
         catch(Exception e){
+            CustomDialog.showInfo(JOptionPane.INFORMATION_MESSAGE, null, "info", e.getMessage());
             e.printStackTrace();
             System.out.println("Could not refresh dbconfig structure");}}}

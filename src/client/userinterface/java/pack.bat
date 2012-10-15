@@ -19,6 +19,7 @@ jarsigner ../extlibs/xmlrpc-common-3.1.3.jar Twister -storepass password
 jarsigner ../extlibs/jgoodies-looks-2.5.1.jar Twister -storepass password
 jarsigner ../extlibs/jgoodies-common-1.3.1.jar Twister -storepass password
 jarsigner ../extlibs/gson-2.2.1.jar Twister -storepass password
+jarsigner ../extlibs/jcalendar-1.4.jar Twister -storepass password
 jarsigner ../extlibs/Twister.jar Twister -storepass password
 
 

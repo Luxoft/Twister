@@ -92,20 +92,32 @@ def saveLibraries(proxy):
     except: pass
 
     __init = open(libs_path + '/__init__.py', 'w')
-    __init.write('\nimport os\n')
+    __init.write('\nimport os, sys\n')
     __init.write('\nPROXY = "%s"\n' % CE_Path)
-    all_libs = [os.path.splitext(lib)[0] for lib in libs_list if not lib.endswith('.zip')]
-    __init.write('\nall = ["%s"]\n\n' % ('", "'.join(all_libs)))
-
-    for lib_file in libs_list:
-        # Write in __init__ file.
-        ext = os.path.splitext(lib_file)
-        if ext[1] == '.zip':
-            __init.write('sys.path.append(os.path.split(__file__)[0] + "/%s")\n\n' % lib_file)
+    all_libs=[]
+    zip_libs=[]
+    
+    for lib in libs_list:
+        if not lib.endswith('.zip'):
+            all_libs.append(lib)
         else:
-            __init.write('import %s\n' % ext[0])
-            __init.write('from %s import *\n\n' % ext[0])
+            zip_libs.append(lib)
 
+    for lib_file in zip_libs:
+        # Write in __init__ file.
+        __init.write('\nsys.path.append(os.path.split(__file__)[0] + "/%s")\n\n' % lib_file)
+        lib_pth = libs_path + os.sep + lib_file
+        f = open(lib_pth, 'wb')
+        lib_data = proxy.getLibraryFile(lib_file)
+        f.write(lib_data.data)
+        f.close() ; del f
+
+    __init.write('\nall = ["%s"]\n\n' % ('", "'.join([os.path.splitext(lib)[0] for lib in all_libs])))
+
+    for lib_file in all_libs:
+        ext = os.path.splitext(lib_file)
+        __init.write('import %s\n' % ext[0])
+        __init.write('from %s import *\n\n' % ext[0])
         lib_pth = libs_path + os.sep + lib_file
         print('Downloading library `{0}` ...'.format(lib_pth))
         f = open(lib_pth, 'wb')
@@ -115,8 +127,7 @@ def saveLibraries(proxy):
 
     __init.close()
 
-#
-
+    
 def Suicide(sig=None, msg=None, file_id=None, status_f=None, timer_f=None):
     '''
     Function Suicide is used to kill current process.
@@ -567,3 +578,4 @@ if __name__=='__main__':
     del tc_tcl, tc_perl, tc_python
 
 #
+

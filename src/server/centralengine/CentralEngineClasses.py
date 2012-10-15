@@ -154,7 +154,6 @@ class CentralEngine(_cptools.XMLRPCController):
         Returns a string containing the text printed by the script.\n
         This function is called from the Java GUI.
         '''
-        logDebug('CE: Executing script `%s`...' % script_path)
         return self.project.execScript(script_path)
 
 
@@ -414,6 +413,10 @@ class CentralEngine(_cptools.XMLRPCController):
                     # On Central Engine stop, save to database?
                     #self.commitToDatabase()
 
+                    # Execute "Post Script"
+                    script_post = self.project.getUserInfo(user, 'script_post')
+                    if script_post: self.project.execScript(script_post)
+
                     # Execute "onStop" for all plugins!
                     parser = PluginParser(user)
                     plugins = parser.getPlugins()
@@ -454,17 +457,28 @@ class CentralEngine(_cptools.XMLRPCController):
         # This will always happen when the START button is pressed, if CE is stopped
         if (executionStatus == STATUS_STOP or executionStatus == STATUS_INVALID) and new_status == STATUS_RUNNING:
 
-            # If the msg is a path to an existing file...
-            if msg and os.path.isfile(msg):
+            # If the Msg contains 2 paths, separated by comma
+            if msg and len(msg.split(',')) == 2:
+                path1 = msg.split(',')[0]
+                path2 = msg.split(',')[1]
+                if os.path.isfile(path1) and os.path.isfile(path2):
+                    logDebug('CE: Using custom XML files: `{0}` and `{1}`.'.format(path1, path2))
+                    self.project.reset(user, path1, path2)
+                    msg = ''
+
+            # Or if the Msg is a path to an existing file...
+            elif msg and os.path.isfile(msg):
                 data = open(msg).read().strip()
                 # If the file is XML, send it to project reset function
                 if data[0] == '<' and data [-1] == '>':
+                    logDebug('CE: Using custom XML file: `{0}`...'.format(msg))
                     self.project.reset(user, msg)
                     msg = ''
                 else:
                     logDebug('CE: You are probably trying to use file `%s` as config file, but it\'s not a valid XML!' % msg)
                     self.project.reset(user)
                 del data
+
             else:
                 self.project.reset(user)
 
@@ -473,6 +487,10 @@ class CentralEngine(_cptools.XMLRPCController):
             # User start time and elapsed time
             self.project.setUserInfo(user, 'start_time', datetime.datetime.today().strftime('%Y-%m-%d %H:%M:%S'))
             self.project.setUserInfo(user, 'elapsed_time', 0)
+
+            # Execute "Pre Script"
+            script_pre = self.project.getUserInfo(user, 'script_pre')
+            if script_pre: self.project.execScript(script_pre)
 
             # Execute "onStart" for all plugins!
             parser = PluginParser(user)
@@ -488,16 +506,20 @@ class CentralEngine(_cptools.XMLRPCController):
         # If the engine is running, or paused and it received STOP from the user...
         elif (executionStatus == STATUS_RUNNING or executionStatus == STATUS_PAUSED) and new_status == STATUS_STOP:
 
+            # Execute "Post Script"
+            script_post = self.project.getUserInfo(user, 'script_post')
+            if script_post: self.project.execScript(script_post)
+
             # Execute "onStop" for all plugins... ?
-                parser = PluginParser(user)
-                plugins = parser.getPlugins()
-                for pname in plugins:
-                    plugin = self._buildPlugin(user, pname, {'ce_stop': 'manual'})
-                    try:
-                        plugin.onStop()
-                    except Exception, e:
-                        logWarning('Error on running plugin `%s onStop` - Exception: `%s`!' % (pname, str(e)))
-                del parser, plugins
+            parser = PluginParser(user)
+            plugins = parser.getPlugins()
+            for pname in plugins:
+                plugin = self._buildPlugin(user, pname, {'ce_stop': 'manual'})
+                try:
+                    plugin.onStop()
+                except Exception, e:
+                    logWarning('Error on running plugin `%s onStop` - Exception: `%s`!' % (pname, str(e)))
+            del parser, plugins
 
 
         # Update status for User
@@ -650,12 +672,20 @@ class CentralEngine(_cptools.XMLRPCController):
     @cherrypy.expose
     def runPlugin(self, user, plugin, args):
 
-        try:
-            args = urlparse.parse_qs(args)
-        except:
-            msg = 'CE ERROR: Cannot run plugin `%s` with arguments `%s`!' % (plugin, args)
-            logError(msg)
-            return msg
+        # If argument is a string
+        if type(args) == type(str()):
+            try:
+                args = urlparse.parse_qs(args)
+            except:
+                msg = 'CE ERROR: Cannot run plugin `%s` with arguments `%s`!' % (plugin, args)
+                logError(msg)
+                return msg
+        # If argument is a valid dict, pass
+        elif type(args) == type(dict()):
+            if not 'command' in args:
+                return 'CE ERROR: Invalid dictionary for plugin `%s` : %s !' % (plugin, args)
+        else:
+            return 'CE ERROR: Invalid type of argument for plugin `%s` : %s !' % (plugin, type(args))
 
         logDebug('Running plugin:: {0} ; {1} ; {2}'.format(user, plugin, args))
 

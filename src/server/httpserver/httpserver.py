@@ -462,7 +462,7 @@ class Root:
     def error(self):
         global glob_links
         output = Template(filename=TWISTER_PATH + '/server/httpserver/template/error.htm')
-        return output.render(title='Error 404', links=glob_links[usr], msg='Sorry, this page does not exist!')
+        return output.render(title='Error 404', links=[], msg='Sorry, this page does not exist!')
 
 #
 

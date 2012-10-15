@@ -69,9 +69,28 @@ public class Window extends JFrame{
         else{
             setLayout(null);
             add(mainpanel);
-            setBounds(0,60,mainpanel.getWidth()+30,mainpanel.getHeight()+45);
+            String l = null;
+            String s = null;
+            try{
+                l = Repository.getLayouts().get("mainlocation").getAsString();
+                s =  Repository.getLayouts().get("mainsize").getAsString();
+            } catch(Exception e){
+                e.printStackTrace();
+            }
+            if(l!=null&&s!=null){
+                String [] location = l.split(" ");
+                String [] size =s.split(" ");
+                setBounds((int)Double.parseDouble(location[0]),
+                          (int)Double.parseDouble(location[1]),
+                          (int)Double.parseDouble(size[0]),
+                          (int)Double.parseDouble(size[1]));
+            }else{
+                setBounds(0,60,mainpanel.getWidth()+30,mainpanel.getHeight()+45);
+            }
+            
             addWindowListener(new WindowAdapter(){
                 public void windowClosing(WindowEvent e){
+                    Repository.saveMainLayout();
                     Repository.uploadPluginsFile();
                     int r = (Integer)CustomDialog.showDialog(
                                 new JLabel("Save your Suite XML before exiting ?"),
@@ -90,7 +109,7 @@ public class Window extends JFrame{
             addComponentListener(new ComponentAdapter(){
                 public void componentResized(ComponentEvent e){
                     if(Repository.window!=null){
-                        mainpanel.p2.splitPane.setSize(getWidth()-52,getHeight()-120);
+                        //mainpanel.p2.splitPane.setSize(getWidth()-52,getHeight()-120);
                         mainpanel.p1.splitPane.setSize(getWidth()-52,getHeight()-120);
                         mainpanel.setSize(getWidth()-28,getHeight()-50);
                         mainpanel.p4.getScroll().setSize(getWidth()-310,getHeight()-150);

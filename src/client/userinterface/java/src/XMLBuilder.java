@@ -71,10 +71,23 @@ public class XMLBuilder{
                 if(getRunning(item.getSubItem(i)))return true;}
             return false;}}
         
-    public void createXML(boolean skip, boolean stoponfail, boolean temp){//skip chckes if it is user or test xml
+    public void createXML(boolean skip, boolean stoponfail, boolean temp, String prescript, String postscript){//skip checks if it is user or test xml
         this.skip = skip;
         Element root = document.createElement("Root");
         document.appendChild(root);
+        Element em2 = document.createElement("stoponfail");;
+        if(stoponfail){
+            em2.appendChild(document.createTextNode("true"));
+        } else {
+            em2.appendChild(document.createTextNode("false"));
+        }
+        root.appendChild(em2);
+        em2 = document.createElement("ScriptPre");
+        em2.appendChild(document.createTextNode(prescript));
+        root.appendChild(em2);
+        em2 = document.createElement("ScriptPost");
+        em2.appendChild(document.createTextNode(postscript));
+        root.appendChild(em2);
         int nrsuite = suite.size();        
         for(int i=0;i<nrsuite;i++){
             int nrtc = suite.get(i).getSubItemsNr();
@@ -84,19 +97,25 @@ public class XMLBuilder{
                     if(getRunning(suite.get(i))){
                         go=true;
                         break;}}}
-            if(!go&&skip)continue;   
-            if(stoponfail){
-                Element em2 = document.createElement("stoponfail");
-                em2.appendChild(document.createTextNode("true"));
-                root.appendChild(em2);}
+            if(!go&&skip)continue;
             Element rootElement = document.createElement("TestSuite");
             root.appendChild(rootElement);
-            Element em2 = document.createElement("tsName");
+            em2 = document.createElement("tsName");
             em2.appendChild(document.createTextNode(suite.get(i).getName()));
             rootElement.appendChild(em2);
-            if(suite.get(i).getEpId()!=null&&!suite.get(i).getEpId().equals("")){
+            if(suite.get(i).getEpId()!=null&&suite.get(i).getEpId().length>0){
                 Element EP = document.createElement("EpId");
-                EP.appendChild(document.createTextNode(suite.get(i).getEpId()));
+                StringBuilder b = new StringBuilder();
+//                 for(String s:suite.get(i).getEpId()){
+//                     b.append(s+";");
+//                 }
+//                 b.deleteCharAt(b.length()-1);
+                for(String s:suite.get(i).getEpId()){
+                    b.append(s);
+                    break;
+                }
+                EP.appendChild(document.createTextNode(b.toString()));
+//                 EP.appendChild(document.createTextNode(suite.get(i).getEpId()));
                 rootElement.appendChild(EP);}
             for(int j=0;j<suite.get(i).getUserDefNr();j++){
                 Element userdef = document.createElement("UserDefined");
@@ -249,7 +268,7 @@ public class XMLBuilder{
             em5.appendChild(document.createTextNode(item.getValue()));
             prop.appendChild(em5);}
         else if(item.getType()==1){
-            if(item.getSubItem(0).getValue().equals("false")&& !temp && skip)return;
+            if(!temp && item.getSubItem(0).getValue().equals("false") && skip)return;
             Element tc  = document.createElement("TestCase");
             rootelement.appendChild(tc);
             Element em3 = document.createElement("tcName");
@@ -325,7 +344,18 @@ public class XMLBuilder{
             rootElement2.appendChild(em2);
             if(item.getEpId()!=null&&!item.getEpId().equals("")){
                 Element EP = document.createElement("EpId");
-                EP.appendChild(document.createTextNode(item.getEpId()));
+                StringBuilder b = new StringBuilder();
+//                 for(String s:item.getEpId()){
+//                     b.append(s+";");
+//                 }
+//                 b.deleteCharAt(b.length()-1);   
+                for(String s:item.getEpId()){
+                    b.append(s);
+                    break;
+                }
+                
+                EP.appendChild(document.createTextNode(b.toString()));
+//                 EP.appendChild(document.createTextNode(item.getEpId()));
                 rootElement2.appendChild(EP);}
             for(int i=0;i<item.getSubItemsNr();i++){
                 addSubElement(rootElement2,item.getSubItem(i),skip,temp);}}}
