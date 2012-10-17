@@ -466,9 +466,6 @@ if __name__=='__main__':
                             proxy.echo(':: {0} is not longer waiting !'.format(globEpName))
                             break
 
-            # Timer for current cycle, must be after checking CE/ EP Status
-            timer_i = time.time()
-
             str_to_execute = proxy.getTestFile(userName, globEpName, file_id)
             # If CE sent False, it means the file is empty, does not exist, or it's not runnable.
             if str_to_execute == '':
@@ -513,7 +510,15 @@ if __name__=='__main__':
                 proxySetTestStatus(file_id, STATUS_NOT_EXEC, 0.0) # Status NOT_EXEC
                 continue
 
+            # If there is a delay between tests, wait here
+            if tc_delay:
+                print('TC debug: Waiting %i seconds before starting the test...\n' % tc_delay)
+                time.sleep(tc_delay)
+
+            # Start counting time
+            timer_i = time.time()
             result = None
+
             proxySetTestStatus(file_id, STATUS_WORKING, 0.0) # Status WORKING
 
             # --------------------------------------------------
