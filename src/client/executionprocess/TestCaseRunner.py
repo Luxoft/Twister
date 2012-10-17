@@ -390,6 +390,8 @@ if __name__=='__main__':
             dependancy = proxy.getFileVariable(userName, file_id, 'dependancy')
             # Is this test file optional?
             optional_test = proxy.getFileVariable(userName, file_id, 'Optional')
+            # Get testcase delay
+            tc_delay = proxy.getUserVariable(userName, 'tc_delay')
             # Get args
             args = proxy.getFileVariable(userName, file_id, 'param')
             if args:

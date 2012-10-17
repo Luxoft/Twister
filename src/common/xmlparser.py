@@ -172,20 +172,41 @@ class TSCParser:
         return baseLogsPath + os.sep + str(logFile.text)
 
 
-    def getExitOnTestFail(self):
+    def getProjectGlobals(self):
         """
-        Returns the value of the tag "Exit On Test Fail".
+        Returns the value of many global tags like:
+        - Exit On Test Fail
+        - ScriptPre and ScriptPost
+        - Database Autosave
+        - Testcase Delay
         """
         if not self.configTS:
-            print('Parser: Cannot get Exit on test fail status, because Test-Suites XML is invalid!')
+            print('Parser: Cannot get project globals, because Test-Suites XML is invalid!')
             return False
-        res = self.configTS.root.stoponfail
-        if not res:
-            return False
-        if res.text.lower() == 'true':
-            return True
-        else:
-            return False
+
+        res = {
+            'ExitOnTestFail': False,
+            'ScriptPre': '',
+            'ScriptPost': '',
+            'DbAutoSave': False,
+            'TestcaseDelay': 0
+        }
+
+        if self.configTS.stoponfail:
+            if self.configTS.stoponfail.text.lower() == 'true':
+                res['ExitOnTestFail'] = True
+
+        res['ScriptPre'], res['ScriptPost'] = self.getScripts()
+
+        if self.configTS.dbautosave:
+            if self.configTS.dbautosave.text.lower() == 'true':
+                res['DbAutoSave'] = True
+
+        if self.configTS.tcdelay:
+            try: res['TestcaseDelay'] = int(self.configTS.tcdelay.text)
+            except: print('Parser: Cannot get testcase delay value from string `%s`!' % self.configTS.tcdelay.text)
+
+        return res
 
 
     def getScripts(self):
@@ -195,8 +216,8 @@ class TSCParser:
         if not self.configTS:
             print('Parser: Cannot get Exit on test fail status, because Test-Suites XML is invalid!')
             return False
-        p0 = self.configTS.root.scriptpre
-        p1 = self.configTS.root.scriptpost
+        p0 = self.configTS.scriptpre
+        p1 = self.configTS.scriptpost
         if not p0:
             p0 = ''
         else:
