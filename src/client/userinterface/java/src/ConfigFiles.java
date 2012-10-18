@@ -89,7 +89,7 @@ public class ConfigFiles extends JPanel{
         paths = new JPanel();
         paths.setBackground(Color.WHITE);
         paths.setLayout(null);
-        paths.setPreferredSize(new Dimension(970,1060));
+        paths.setPreferredSize(new Dimension(970,1040));
         paths.setBorder(BorderFactory.createBevelBorder(BevelBorder.LOWERED));
         setLayout(null);
         ttcpath = new JTextField();
@@ -98,22 +98,30 @@ public class ConfigFiles extends JPanel{
                 " be run by the framework",
                 ttcpath,Repository.TESTSUITEPATH,5,true,null);
         tMasterXML = new JTextField();
-        addPanel("Master XML TestSuite",
-                "Location of the XML that is generated from the user"+
-                " interface to run on Central Engine",
-                tMasterXML,Repository.XMLREMOTEDIR,73,true,null);
+        
+//         addPanel("Master XML TestSuite",
+//                 "Location of the XML that is generated from the user"+
+//                 " interface to run on Central Engine",
+//                 tMasterXML,Repository.XMLREMOTEDIR,73,true,null);
+                
+                
         tUsers = new JTextField();
-        addPanel("Suites Path",
-                "Location of suites XML files",tUsers,
-                Repository.REMOTEUSERSDIRECTORY,141,true,null);
+        addPanel("Projects Path",
+                "Location of projects XML files",tUsers,
+                Repository.REMOTEUSERSDIRECTORY,73,true,null);
+                
+//                 141
         tepid = new JTextField();
         addPanel("EP name File","Location of the file that contains"+
         " the Ep name list",
-                tepid,Repository.REMOTEEPIDDIR,209,true,null);
+                tepid,Repository.REMOTEEPIDDIR,141,true,null);
+//                 209
         tlog = new JTextField();
         addPanel("Logs Path","Location of the directory that stores the"+
         " logs that will be monitored",
-                tlog,Repository.LOGSPATH,277,true,null);
+                tlog,Repository.LOGSPATH,209,true,null);
+//                 277
+                
         JPanel p7 = new JPanel();
         p7.setBackground(Color.WHITE);
         TitledBorder border7 = BorderFactory.createTitledBorder("Log Files");
@@ -121,8 +129,9 @@ public class ConfigFiles extends JPanel{
         border7.setBorder(BorderFactory.createLineBorder(new Color(150,150,150), 1));
         p7.setBorder(border7);
         p7.setLayout(new BoxLayout(p7, BoxLayout.Y_AXIS));    
-        p7.setBounds(80,345,800,190);
-        paths.add(p7);              
+        p7.setBounds(80,277,800,190);
+        paths.add(p7);  
+//         345
         JTextArea log2 = new JTextArea("All the log files that will be monitored");
         log2.setWrapStyleWord(true);
         log2.setLineWrap(true);
@@ -159,7 +168,9 @@ public class ConfigFiles extends JPanel{
         thardwareconfig = new JTextField();
         addPanel("Hardware Config XML",
                 "Location of the XML file that contains the devices configuration",
-                thardwareconfig,Repository.REMOTEHARDWARECONFIGDIRECTORY,535,true,null);
+                thardwareconfig,Repository.REMOTEHARDWARECONFIGDIRECTORY,467,true,null);
+//                 535
+                
         ActionListener actionlistener = new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 if(!tname.getText().equals("")){saveXML(false);}
@@ -169,24 +180,34 @@ public class ConfigFiles extends JPanel{
                                             "No file name given");}}};
         tname = new JTextField();
         addPanel("File name","File name to store this configuration",
-                    tname,"",944,true,actionlistener);
+                    tname,"",876,true,actionlistener);
+//                     944
+                    
         tdbfile = new JTextField();
         addPanel("Database XML path","File location for database configuration",    
                 tdbfile,Repository.REMOTEDATABASECONFIGPATH+Repository.REMOTEDATABASECONFIGFILE,
-                604,true,null);
+                535,true,null);
+//                 604
+                
         temailfile = new JTextField();
         addPanel("Email XML path","File location for email configuration",temailfile,
-                Repository.REMOTEEMAILCONFIGPATH+Repository.REMOTEEMAILCONFIGFILE,672,true,null);
+                Repository.REMOTEEMAILCONFIGPATH+Repository.REMOTEEMAILCONFIGFILE,604,true,null);
+//                 672
+                
         tceport = new JTextField();
         addPanel("Central Engine Port","Central Engine port",
-                tceport,Repository.getCentralEnginePort(),740,false,null);
+                tceport,Repository.getCentralEnginePort(),672,false,null);
+//                 740
+                
         traPort = new JTextField();
         addPanel("Resource Allocator Port","Resource Allocator Port",
-                traPort,Repository.getResourceAllocatorPort(),808,false,null);
+                traPort,Repository.getResourceAllocatorPort(),740,false,null);
+//                 808
+                
         thttpPort = new JTextField();
         addPanel("HTTP Server Port","HTTP Server Port",thttpPort,
-                Repository.getHTTPServerPort(),876,false,null);
-        
+                Repository.getHTTPServerPort(),808,false,null);
+//         876
         final JButton loadXML = new JButton("Load Config");
         loadXML.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){  
@@ -228,7 +249,8 @@ public class ConfigFiles extends JPanel{
                                 progress.dispose();
                                 setEnabledTabs(true);}}.start();}}
                 catch(Exception e){e.printStackTrace();}}});
-        loadXML.setBounds(760,1020,120,20);
+        loadXML.setBounds(760,970,120,20);
+//         760
         paths.add(loadXML);}
         
     public void setEnabledTabs(boolean enable){

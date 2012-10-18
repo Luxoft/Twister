@@ -66,14 +66,14 @@ public class SuitaDetails extends JPanel {
     private JScrollPane scroll;
     private ArrayList <DefPanel> definitions = new ArrayList <DefPanel>();
     private TitledBorder border;    
-    private JCheckBox stoponfail, runnable, optional, prerequisites;
+    private JCheckBox stoponfail, runnable, optional, prerequisites, savedb;
     private JTextField tprescript, tpostscript;
     private JButton browse1,browse2;
     private VFSJFileChooser fileChooser;
     private Item parent;
-    private JTextField tsuite,ttcname;
+    private JTextField tsuite,ttcname,ttcdelay;
     private JList combo;
-    private JLabel ep;
+    private JLabel ep, tcdelay;
     private JLabel stats [] = new JLabel[10];
     
     public void setEnabled(boolean enabled) {
@@ -167,7 +167,10 @@ public class SuitaDetails extends JPanel {
                     .addComponent(scroll, 60, 70, 100))
                 .addContainerGap())
         );
-        
+        tcdelay = new JLabel("TC delay");
+        savedb = new JCheckBox("DB autosave");
+        ttcdelay = new JTextField();
+        savedb.setBackground(Color.WHITE);
         stoponfail = new JCheckBox("Stop on fail");
         stoponfail.setBackground(Color.WHITE);
         JLabel prescript = new JLabel();
@@ -224,51 +227,154 @@ public class SuitaDetails extends JPanel {
                      e.printStackTrace();}
             }
         });
-
+        
         layout = new GroupLayout(global);
         global.setLayout(layout);
         layout.setHorizontalGroup(
-            layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
                 .addContainerGap()
-                .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
-                    .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
-                        .addGroup(GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                            .addGap(5, 5, 5)
-                            .addComponent(prescript))
-                        .addComponent(stoponfail, GroupLayout.PREFERRED_SIZE, 120,
-                                     GroupLayout.PREFERRED_SIZE))
+                .addComponent(stoponfail, javax.swing.GroupLayout.PREFERRED_SIZE, 105, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(savedb, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(40, 40, 40)
+                .addComponent(tcdelay)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(ttcdelay, javax.swing.GroupLayout.DEFAULT_SIZE, 162, Short.MAX_VALUE)
+                .addGap(65, 65, 65))
+            .addGroup(layout.createSequentialGroup()
+                .addGap(10, 10, 10)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(layout.createSequentialGroup()
-                        .addGap(5, 5, 5)
-                        .addComponent(postscript)))
-                .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
-                .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
-                    .addComponent(tprescript, GroupLayout.DEFAULT_SIZE, 216, Short.MAX_VALUE)
+                        .addComponent(prescript)
+                        .addGap(20, 20, 20))
+                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
+                        .addComponent(postscript)
+                        .addGap(18, 18, 18)))
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(tprescript)
                     .addComponent(tpostscript))
-                .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
-                .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
-                    .addComponent(browse1)
-                    .addComponent(browse2))
-                .addGap(10, 10, 10)));
-                
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(layout.createSequentialGroup()
+                        .addGap(10, 10, 10)
+                        .addComponent(browse1))
+                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(browse2)))
+                .addContainerGap())
+        );
         layout.setVerticalGroup(
-            layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
-                .addContainerGap()
-                .addComponent(stoponfail)
-                .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+                .addGap(13, 13, 13)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.CENTER)
+                    .addComponent(stoponfail, javax.swing.GroupLayout.PREFERRED_SIZE, 20, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(savedb, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(tcdelay)
+                    .addComponent(ttcdelay, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addGap(13, 13, 13)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(prescript)
-                    .addComponent(tprescript, GroupLayout.PREFERRED_SIZE, 
-                                  GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+                    .addComponent(tprescript, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(browse1))
-                .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
-                    .addComponent(tpostscript, GroupLayout.PREFERRED_SIZE, 
-                                  GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(tpostscript, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(browse2)
                     .addComponent(postscript))
-                .addContainerGap(GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)));}
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+        );
+
+        layout.linkSize(javax.swing.SwingConstants.VERTICAL, new java.awt.Component[] {browse1, tprescript});
+
+        layout.linkSize(javax.swing.SwingConstants.VERTICAL, new java.awt.Component[] {browse2, tpostscript});
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+
+//         layout = new GroupLayout(global);
+//         global.setLayout(layout);
+//         layout.setHorizontalGroup(
+//             layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+//             .addGroup(layout.createSequentialGroup()
+//                 .addContainerGap()
+//                 .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+//                     .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+//                         .addGroup(GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
+//                             .addGap(5, 5, 5)
+//                             .addComponent(prescript))
+//                         .addComponent(stoponfail, GroupLayout.PREFERRED_SIZE, 120,
+//                                      GroupLayout.PREFERRED_SIZE)
+//                         .addComponent(savedb, GroupLayout.PREFERRED_SIZE, 120,
+//                                      GroupLayout.PREFERRED_SIZE)
+//                                      
+//                                      )
+//                     .addGroup(layout.createSequentialGroup()
+//                         .addGap(5, 5, 5)
+//                         .addComponent(postscript)))
+//                 .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
+//                 .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+//                     .addComponent(tprescript, GroupLayout.DEFAULT_SIZE, 216, Short.MAX_VALUE)
+//                     .addComponent(tpostscript))
+//                 .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
+//                 .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+//                     .addComponent(browse1)
+//                     .addComponent(browse2))
+//                 .addGap(10, 10, 10)));
+//                 
+//         layout.setVerticalGroup(
+//             layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+//             .addGroup(layout.createSequentialGroup()
+//                 .addContainerGap()
+//                 
+//                 .addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+//                     .addComponent(stoponfail)
+//                     .addComponent(savedb)
+// //                     , GroupLayout.PREFERRED_SIZE, 
+// //                                   GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+// //                     .addComponent(browse1)
+//                     )
+//                 
+//                 
+// //                 .addComponent(stoponfail)
+//                 
+// //                 .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+//                 
+// //                 .addComponent(savedb)
+// 
+// 
+// 
+// 
+//                 .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+//                 .addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+//                     .addComponent(prescript)
+//                     .addComponent(tprescript, GroupLayout.PREFERRED_SIZE, 
+//                                   GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+//                     .addComponent(browse1))
+//                 .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+//                 .addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+//                     .addComponent(tpostscript, GroupLayout.PREFERRED_SIZE, 
+//                                   GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+//                     .addComponent(browse2)
+//                     .addComponent(postscript))
+//                 .addContainerGap(GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)));
+                
+                
+}
         
     private void initComponents(ArrayList<String []> descriptions){
         global = new JPanel();
@@ -601,8 +707,20 @@ public class SuitaDetails extends JPanel {
     public boolean stopOnFail(){
         return stoponfail.isSelected();}
         
+    public boolean saveDB(){
+        return savedb.isSelected();}
+        
     public void setStopOnFail(boolean value){
         stoponfail.setSelected(value);}
+        
+    public void setSaveDB(boolean value){
+        savedb.setSelected(value);}
+        
+    public void setDelay(String delay){
+        ttcdelay.setText(delay);}
+    
+    public String getDelay(){
+        return ttcdelay.getText();}
         
     public void setPreScript(String script){
         tprescript.setText(script);}

@@ -789,7 +789,8 @@ public class Repository{
                 RESOURCEALLOCATORPORT = getTagContent(doc,"ResourceAllocatorPort");
                 usersdir = getTagContent(doc,"UsersPath");
                 REMOTEUSERSDIRECTORY = usersdir;
-                XMLREMOTEDIR = getTagContent(doc,"MasterXMLTestSuite");
+                XMLREMOTEDIR = "/home/tscguest/twister/config/testsuites.xml";
+//                 getTagContent(doc,"MasterXMLTestSuite");
                 XMLDIRECTORY = Repository.temp+bar+"Twister"+bar+"XML"+
                                         bar+XMLREMOTEDIR.split("/")[XMLREMOTEDIR.split("/").length-1];
                 REMOTEEPIDDIR = getTagContent(doc,"EPIdsFile");
@@ -1519,7 +1520,7 @@ public class Repository{
                     window.mainpanel.p1.sc.g.setUser((new StringBuilder()).append(Repository.getUsersDirectory()).
                                         append(Repository.getBar()).append(user).append(".XML").
                                         toString());
-                    window.mainpanel.p1.sc.g.printXML( window.mainpanel.p1.sc.g.getUser(),false,false,false);}}
+                    window.mainpanel.p1.sc.g.printXML( window.mainpanel.p1.sc.g.getUser(),false,false,false,false,"");}}
             else{
                 try{
                     InputStream in = c.get(user);

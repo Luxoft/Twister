@@ -161,7 +161,7 @@ public class Panel2 extends JPanel{
                 Repository.window.mainpanel.p1.edit.setEnabled(true);
                 play.setText("Run");
                 play.setIcon(new ImageIcon(Repository.playicon));
-                if(runned){
+                if(runned && !Repository.window.mainpanel.p1.suitaDetails.saveDB()){
                     new Thread(){
                         public void run(){
                             try{
@@ -213,10 +213,14 @@ public class Panel2 extends JPanel{
                 first = false;
             }
             try{Thread.sleep(1000);}
-            catch(Exception ex){ex.printStackTrace();}
+            catch(Exception ex){
+                ex.printStackTrace();
+            }
             System.out.println("Could not connect to: "+Repository.host+" on port"+
                                 Repository.getCentralEnginePort());
+                                
             e.printStackTrace();
+            
             if(play.isEnabled()){
                 play.setEnabled(false);
                 stop.setEnabled(false);
