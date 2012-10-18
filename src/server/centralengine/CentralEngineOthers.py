@@ -163,13 +163,22 @@ class Project:
         self.users[user]['logs_path'] = self.parsers[user].getLogsPath()
         self.users[user]['log_types'] = {}
 
+        # Get project global variables from XML
+        project_globals = self.parsers[user].getProjectGlobals()
+
         # Add the `exit on test Fail` value
-        self.users[user]['exit_on_test_fail'] = self.parsers[user].getExitOnTestFail()
+        self.users[user]['exit_on_test_fail'] = project_globals['ExitOnTestFail']
 
         # Add the `Pre and Post` project Scripts
-        script_pre, script_post = self.parsers[user].getScripts()
-        self.users[user]['script_pre'] = script_pre
-        self.users[user]['script_post'] = script_post
+        self.users[user]['script_pre'] = project_globals['ScriptPre']
+        self.users[user]['script_post'] = project_globals['ScriptPost']
+
+        # Add the `Database Autosave` value
+        self.users[user]['db_auto_save'] = project_globals['DbAutoSave']
+
+        # Add the `Testcase Delay` value
+        self.users[user]['tc_delay'] = project_globals['TestcaseDelay']
+        del project_globals
 
         for logType in self.parsers[user].getLogTypes():
             self.users[user]['log_types'][logType] = self.parsers[user].getLogFileForType(logType)
@@ -273,13 +282,22 @@ class Project:
         self.users[user]['logs_path'] = self.parsers[user].getLogsPath()
         self.users[user]['log_types'] = {}
 
+        # Get project global variables from XML
+        project_globals = self.parsers[user].getProjectGlobals()
+
         # Add the `exit on test Fail` value
-        self.users[user]['exit_on_test_fail'] = self.parsers[user].getExitOnTestFail()
+        self.users[user]['exit_on_test_fail'] = project_globals['ExitOnTestFail']
 
         # Add the `Pre and Post` project Scripts
-        script_pre, script_post = self.parsers[user].getScripts()
-        self.users[user]['script_pre'] = script_pre
-        self.users[user]['script_post'] = script_post
+        self.users[user]['script_pre'] = project_globals['ScriptPre']
+        self.users[user]['script_post'] = project_globals['ScriptPost']
+
+        # Add the `Database Autosave` value
+        self.users[user]['db_auto_save'] = project_globals['DbAutoSave']
+
+        # Add the `Testcase Delay` value
+        self.users[user]['tc_delay'] = project_globals['TestcaseDelay']
+        del project_globals
 
         for logType in self.parsers[user].getLogTypes():
             self.users[user]['log_types'][logType] = self.parsers[user].getLogFileForType(logType)

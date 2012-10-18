@@ -53,6 +53,7 @@ if not TWISTER_PATH:
 sys.path.append(TWISTER_PATH)
 
 from common.constants import *
+import TestCaseRunnerClasses
 from TestCaseRunnerClasses import *
 
 #
@@ -84,19 +85,20 @@ def saveLibraries(proxy):
     Saves all libraries from CE.
     Not used in offline mode.
     '''
+    global globEpName
     global TWISTER_PATH
     libs_list = proxy.getLibrariesList()
-    libs_path = TWISTER_PATH + '/.twister_cache/ce_libs/'
+    libs_path = '{0}/.twister_cache/{1}/ce_libs'.format(TWISTER_PATH, globEpName)
 
     try: os.makedirs(libs_path)
     except: pass
 
-    __init = open(libs_path + '/__init__.py', 'w')
+    __init = open(libs_path + os.sep + '__init__.py', 'w')
     __init.write('\nimport os, sys\n')
     __init.write('\nPROXY = "%s"\n' % CE_Path)
     all_libs=[]
     zip_libs=[]
-    
+
     for lib in libs_list:
         if not lib.endswith('.zip'):
             all_libs.append(lib)
@@ -107,6 +109,7 @@ def saveLibraries(proxy):
         # Write in __init__ file.
         __init.write('\nsys.path.append(os.path.split(__file__)[0] + "/%s")\n\n' % lib_file)
         lib_pth = libs_path + os.sep + lib_file
+        print('Downloading Zip library `{0}` ...'.format(lib_pth))
         f = open(lib_pth, 'wb')
         lib_data = proxy.getLibraryFile(lib_file)
         f.write(lib_data.data)
@@ -127,7 +130,8 @@ def saveLibraries(proxy):
 
     __init.close()
 
-    
+#
+
 def Suicide(sig=None, msg=None, file_id=None, status_f=None, timer_f=None):
     '''
     Function Suicide is used to kill current process.
@@ -277,6 +281,9 @@ if __name__=='__main__':
         globEpName = globEpName[0]
         print('TC debug: TestCaseRunner started with  User: {0} ;  EP: {1}.'.format(userName, globEpName))
 
+    # Inject library path for the current EP
+    TestCaseRunnerClasses.TWISTER_LIBS_PATH = TWISTER_PATH + '/.twister_cache/' + globEpName
+
     if globEpName == 'OFFLINE':
         filelist = sys.argv[2:3]
         if not filelist:
@@ -335,7 +342,7 @@ if __name__=='__main__':
 
         try:
             suite_str  = tSuites[suite_number]
-            suite      = suite_str.split(':')[0]
+            suite_id   = suite_str.split(':')[0]
             suite_name = suite_str.split(':')[1]
         except: break
 
@@ -345,9 +352,9 @@ if __name__=='__main__':
 
 
         # File stats for current Suite
-        tStats = proxy.getFileStatusAll(userName, globEpName, suite).split(',')
+        tStats = proxy.getFileStatusAll(userName, globEpName, suite_id).split(',')
         # File list for current Suite
-        tList = proxy.getSuiteFiles(userName, globEpName, suite)
+        tList = proxy.getSuiteFiles(userName, globEpName, suite_id)
 
         if not tList:
             print('TC warning: Nothing to do in suite `%s`!\n' % suite_str)
@@ -383,6 +390,8 @@ if __name__=='__main__':
             dependancy = proxy.getFileVariable(userName, file_id, 'dependancy')
             # Is this test file optional?
             optional_test = proxy.getFileVariable(userName, file_id, 'Optional')
+            # Get testcase delay
+            tc_delay = proxy.getUserVariable(userName, 'tc_delay')
             # Get args
             args = proxy.getFileVariable(userName, file_id, 'param')
             if args:
@@ -457,9 +466,6 @@ if __name__=='__main__':
                             proxy.echo(':: {0} is not longer waiting !'.format(globEpName))
                             break
 
-            # Timer for current cycle, must be after checking CE/ EP Status
-            timer_i = time.time()
-
             str_to_execute = proxy.getTestFile(userName, globEpName, file_id)
             # If CE sent False, it means the file is empty, does not exist, or it's not runnable.
             if str_to_execute == '':
@@ -504,7 +510,15 @@ if __name__=='__main__':
                 proxySetTestStatus(file_id, STATUS_NOT_EXEC, 0.0) # Status NOT_EXEC
                 continue
 
+            # If there is a delay between tests, wait here
+            if tc_delay:
+                print('TC debug: Waiting %i seconds before starting the test...\n' % tc_delay)
+                time.sleep(tc_delay)
+
+            # Start counting time
+            timer_i = time.time()
             result = None
+
             proxySetTestStatus(file_id, STATUS_WORKING, 0.0) # Status WORKING
 
             # --------------------------------------------------
@@ -523,7 +537,7 @@ if __name__=='__main__':
                 proxy.echo('TC error: Error executing file `%s`!' % filename)
 
                 proxySetTestStatus(file_id, STATUS_FAIL, 0.0) # File status FAIL
-                proxy.setFileVariable(userName, globEpName, suite, file_id, 'twister_tc_crash_detected', 1) # Crash detected True
+                proxy.setFileVariable(userName, globEpName, suite_id, file_id, 'twister_tc_crash_detected', 1) # Crash detected True
 
             # END OF TEST!
             timer_f = time.time() - timer_i

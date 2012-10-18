@@ -24,6 +24,7 @@
 '''
 REQUIRED Python 2.7
 This file contains classes that will run TCL/ Python/ Perl test cases.
+This script CANNOT run separately, it must be called from TestCaseRunner.
 '''
 
 import os
@@ -39,15 +40,15 @@ if not TWISTER_PATH:
     print('TWISTER_PATH environment variable is not set! Exiting!')
     exit(1)
 
-sys.path.append(TWISTER_PATH)
-sys.path.append(TWISTER_PATH + '/.twister_cache/')
-
 #
 
 class TCRunTcl:
 
     def __init__(self):
+
         global TWISTER_PATH
+        if not TWISTER_LIBS_PATH in sys.path:
+            sys.path.append(TWISTER_LIBS_PATH) # Injected EP name
 
         try:
             import Tkinter
@@ -199,8 +200,25 @@ class TCRunPython:
         or else the return will always be None.
         '''
         #
-        globs_copy = dict(globs)
-        globEpName = globs_copy['globEpName']
+        global TWISTER_PATH
+        if not TWISTER_LIBS_PATH in sys.path:
+            sys.path.append(TWISTER_LIBS_PATH) # Injected EP name
+        #
+        # Start injecting inside tests
+        globs_copy = {}
+        globs_copy['os']   = os
+        globs_copy['sys']  = sys
+        globs_copy['time'] = time
+
+        globs_copy['SUITE_ID']   = globs['suite_id']
+        globs_copy['SUITE_NAME'] = globs['suite_name']
+        globs_copy['FILE_ID']    = globs['file_id']
+        globs_copy['FILE_NAME']  = globs['filename']
+        globs_copy['USER']       = globs['userName']
+        globs_copy['EP']         = globs['globEpName']
+        globs_copy['PROXY']      = globs['proxy']
+
+        globEpName = globs_copy['EP']
         to_execute = str_to_execute.data
         to_execute = '\nimport os, sys\nsys.argv = %s\n' % str(["file.py"] + params) + to_execute
         to_execute = '\nsys.path.append(os.getenv("TWISTER_PATH") + "/.twister_cache/")\n' + to_execute
@@ -233,6 +251,9 @@ class TCRunPerl:
         '''
         Perl test runner.
         '''
+        #
+        if not TWISTER_LIBS_PATH in sys.path:
+            sys.path.append(TWISTER_LIBS_PATH) # Injected EP name
         #
         _RESULT = None
         to_execute = str_to_execute.data
