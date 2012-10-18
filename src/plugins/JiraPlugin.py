@@ -946,9 +946,9 @@ def setupLogging(loglevel=logging.INFO):
     ch = logging.StreamHandler(sys.stdout)
     ch.setLevel(loglevel)
     # TODO logging.getLogger('suds.client').setLevel(logging.DEBUG), suds.transport etc
-    formatter = logging.Formatter("%(message)s")
-    ch.setFormatter(formatter)
-    logger.addHandler(ch)
+    #formatter = logging.Formatter("%(message)s")
+    #ch.setFormatter(formatter)
+    #logger.addHandler(ch)
     return logger
 
 class MockLogger:
