@@ -158,6 +158,8 @@ public class XMLReader{
     }
             
     public void parseXML(Graphics g,boolean test){
+        Repository.window.mainpanel.p1.suitaDetails.setSaveDB(false);
+        Repository.window.mainpanel.p1.suitaDetails.setDelay("");
         NodeList nodeLst = doc.getChildNodes().item(0).getChildNodes();
         int childsnr = doc.getChildNodes().item(0).getChildNodes().getLength();
         if(childsnr==0){
@@ -172,6 +174,23 @@ public class XMLReader{
                         Repository.window.mainpanel.p1.suitaDetails.setStopOnFail(true);
                     }
                     else Repository.window.mainpanel.p1.suitaDetails.setStopOnFail(false);
+                    continue;
+                }
+                else if(fstNode.getNodeName().equals("tcdelay")){
+                    try{
+                        String delay = fstNode.getChildNodes().item(0).getNodeValue().toString();
+                        Repository.window.mainpanel.p1.suitaDetails.setDelay(delay);}
+                    catch(Exception e){
+                        e.printStackTrace();
+                        Repository.window.mainpanel.p1.suitaDetails.setDelay("");
+                    }
+                    continue;
+                }
+                else if(fstNode.getNodeName().equals("dbautosave")){
+                    if(fstNode.getChildNodes().item(0).getNodeValue().toString().equals("true")){                    
+                        Repository.window.mainpanel.p1.suitaDetails.setSaveDB(true);
+                    }
+                    else Repository.window.mainpanel.p1.suitaDetails.setSaveDB(false);
                     continue;
                 }
                 else if(fstNode.getNodeName().equals("ScriptPre")){

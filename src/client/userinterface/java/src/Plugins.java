@@ -103,6 +103,7 @@ public class Plugins extends JPanel{
                 size = pluginsarray.size();
                 for(int i=0;i<size;i++){
                     pluginname = pluginsarray.get(i).getAsString();
+                    System.out.println("Plugin Name:"+pluginname);
                     if(pluginname.equals(name)&&(plugins.get(pluginname)==null)){
                         plugins.put(pluginname,plugin);
                         break;
@@ -380,6 +381,7 @@ public class Plugins extends JPanel{
             String name;
             for(int i=0;i<size;i++){                
                 name = plugins.get(i).getFilename();
+                System.out.println("Remote Plugin file:"+name);
                     if(name.split("\\.").length==0||
                         name.equals("TwisterPluginInterface.jar"))continue;
                     list.add(name);}}
