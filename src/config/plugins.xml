@@ -3,7 +3,7 @@
 	<Plugin>
 		<name>SVN</name>
 		<jarfile>SVNPlugin.jar</jarfile>
-		<pyfile>SvnPlugin.py</pyfile>
+		<pyfile>SVNPlugin.py</pyfile>
 		<status>enabled</status>
 		<property>
 			<propname>default_operation</propname>
@@ -32,8 +32,8 @@
 	</Plugin>
 	<Plugin>
 		<name>GIT</name>
-		<jarfile>GitPlugin.jar</jarfile>
-		<pyfile>GitPlugin.py</pyfile>
+		<jarfile>GITPlugin.jar</jarfile>
+		<pyfile>GITPlugin.py</pyfile>
 		<status>enabled</status>
 		<property>
 			<propname>path</propname>
