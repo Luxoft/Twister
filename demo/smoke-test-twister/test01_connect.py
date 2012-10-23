@@ -6,18 +6,19 @@
 # This file is checking if the suite runs from Twister.</description>
 #
 
-# `proxy` and `username` are variables from the Runner.
+# `PROXY`, `USER`, `SUITE_NAME` and `FILE_NAME` are magic variables, from the Runner.
 
 _RESULT = 'Pass'
 
 try:
-    print('Central engine connection: %s', proxy)
+    print('Central engine connection: %s', PROXY)
 except:
     print('This test should run from Twister!\n')
     _RESULT = 'Fail'
 
 try:
-    print(proxy.echo('Hello Central Engine! I am a user `%s`!\n' % userName))
+    print(PROXY.echo('Hello Central Engine! I am a user `%s`!\n' % USER))
+    print('This is suite `%s` and test `%s`.\n' % (SUITE_NAME, FILE_NAME))
 except:
     print('This test should run from Twister!\n')
     _RESULT = 'Fail'

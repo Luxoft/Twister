@@ -8,16 +8,16 @@ import time
 
 #
 
-def test(proxy, userName):
+def test(PROXY, USER):
 
-    ep_list = proxy.listEPs(userName).split(',')
+    ep_list = PROXY.listEPs(USER).split(',')
 
     for epname in ep_list:
 
-        print '\n:::', userName, '-', epname, ':::'
+        print '\n:::', USER, '-', epname, ':::'
         time.sleep(0.5)
 
-        suites = proxy.listSuites(userName, epname).split(',') or None
+        suites = PROXY.listSuites(USER, epname).split(',') or None
         print 'Suites:', suites
 
         for suite in suites:
@@ -27,18 +27,18 @@ def test(proxy, userName):
             suite_id = suite.split(':')[0]
             suite_name = suite.split(':')[1]
 
-            r = proxy.getSuiteVariable(userName, epname, suite_id, 'ep')
+            r = PROXY.getSuiteVariable(USER, epname, suite_id, 'ep')
             if not r:
                 print('Failure! Cannot get Suite variable `build_id` !')
                 return 'Fail'
             print 'Suite variable %s `ep` ?' % suite, r
 
-            r = proxy.getSuiteVariable(userName, epname, suite_id, 'build_id')
+            r = PROXY.getSuiteVariable(USER, epname, suite_id, 'build_id')
             if not r:
                 print('Warning! Cannot get Suite variable `build_id` !')
             print 'Suite variable %s `build_id` ?' % suite, r
 
-            r = proxy.getSuiteVariable(userName, epname, suite_id, 'suite_id')
+            r = PROXY.getSuiteVariable(USER, epname, suite_id, 'suite_id')
             if not r:
                 print('Warning! Cannot get Suite variable `suite_id` !')
             print 'Suite variable %s `suite_id` ?' % suite, r
@@ -49,6 +49,6 @@ def test(proxy, userName):
 
 #
 
-_RESULT = test(proxy, userName)
+_RESULT = test(PROXY, USER)
 
 # Eof()

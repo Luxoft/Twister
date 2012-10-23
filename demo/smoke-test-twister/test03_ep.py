@@ -9,21 +9,21 @@ import random
 
 #
 
-def test(proxy, userName, globEpName):
+def test(PROXY, USER, EP):
 
-    ep_list = proxy.listEPs(userName).split(',')
+    ep_list = PROXY.listEPs(USER).split(',')
     if not ep_list:
         print('Failure! Cannot get EP list!')
         return 'Fail'
     print 'EPs list:', ep_list
 
-    r = proxy.searchEP(userName, 'EP-1001')
+    r = PROXY.searchEP(USER, 'EP-1001')
     if not r:
         print('Failure! Cannot find EP-1001!')
         return 'Fail'
     print 'Search EP-1001:', r
 
-    r = proxy.searchEP(userName, 'EP-1999')
+    r = PROXY.searchEP(USER, 'EP-1999')
     if r:
         print('Failure! EP-1999 should not be here!')
         return 'Fail'
@@ -31,45 +31,45 @@ def test(proxy, userName, globEpName):
     time.sleep(0.5)
     print
 
-    print 'Status All ?', proxy.getExecStatusAll(userName)
-    print 'Status All:', proxy.setExecStatusAll(userName, 8)
-    print 'Status All ?', proxy.getExecStatusAll(userName)
+    print 'Status All ?', PROXY.getExecStatusAll(USER)
+    print 'Status All:', PROXY.setExecStatusAll(USER, 8)
+    print 'Status All ?', PROXY.getExecStatusAll(USER)
     time.sleep(0.5)
     print
 
     for epname in ep_list:
         #
-        if epname == globEpName: continue
+        if epname == EP: continue
         #
-        print ':::', userName, '-', epname, ':::'
-        suites = proxy.listSuites(userName, epname).split(',') or None
+        print ':::', USER, '-', epname, ':::'
+        suites = PROXY.listSuites(USER, epname).split(',') or None
         print 'Suites:', suites
         #
-        print 'EP files:', proxy.getEpFiles(userName, epname)
-        print 'Suite files:', proxy.getSuiteFiles(userName, epname, suites[0])
+        print 'EP files:', PROXY.getEpFiles(USER, epname)
+        print 'Suite files:', PROXY.getSuiteFiles(USER, epname, suites[0])
         #
-        print 'Exec status ?', proxy.getExecStatus(userName, epname)
-        print 'Set status paused:', proxy.setExecStatus(userName, epname, 1)
-        print 'Exec status ?', proxy.getExecStatus(userName, epname)
-        print 'Set status invalid:', proxy.setExecStatus(userName, epname, 8)
-        print 'Exec status ?', proxy.getExecStatus(userName, epname)
+        print 'Exec status ?', PROXY.getExecStatus(USER, epname)
+        print 'Set status paused:', PROXY.setExecStatus(USER, epname, 1)
+        print 'Exec status ?', PROXY.getExecStatus(USER, epname)
+        print 'Set status invalid:', PROXY.setExecStatus(USER, epname, 8)
+        print 'Exec status ?', PROXY.getExecStatus(USER, epname)
         print '-----\n'
 
-    print 'EP variable', ep_list[1], ' ABC:', proxy.getEpVariable(userName, ep_list[1], 'abc')
-    r = proxy.setEpVariable(userName, ep_list[1], 'abc', random.randrange(1, 100))
+    print 'EP variable', ep_list[1], ' ABC:', PROXY.getEpVariable(USER, ep_list[1], 'abc')
+    r = PROXY.setEpVariable(USER, ep_list[1], 'abc', random.randrange(1, 100))
     if not r:
         print('Failure! Cannot set EP variable!')
         return 'Fail'
-    print 'EP variable', ep_list[1], ' ABC:', proxy.getEpVariable(userName, ep_list[1], 'abc')
+    print 'EP variable', ep_list[1], ' ABC:', PROXY.getEpVariable(USER, ep_list[1], 'abc')
 
     time.sleep(0.5)
 
-    print 'EP variable', ep_list[-1], ' XYZ:', proxy.getEpVariable(userName, ep_list[-1], 'xyz')
-    r = proxy.setEpVariable(userName, ep_list[-1], 'xyz', random.randrange(1, 100))
+    print 'EP variable', ep_list[-1], ' XYZ:', PROXY.getEpVariable(USER, ep_list[-1], 'xyz')
+    r = PROXY.setEpVariable(USER, ep_list[-1], 'xyz', random.randrange(1, 100))
     if not r:
         print('Failure! Cannot set EP variable!')
         return 'Fail'
-    print 'EP variable', ep_list[-1], ' XYZ:', proxy.getEpVariable(userName, ep_list[-1], 'xyz')
+    print 'EP variable', ep_list[-1], ' XYZ:', PROXY.getEpVariable(USER, ep_list[-1], 'xyz')
 
     time.sleep(0.5)
 
@@ -77,6 +77,6 @@ def test(proxy, userName, globEpName):
 
 #
 
-_RESULT = test(proxy, userName, globEpName)
+_RESULT = test(PROXY, USER, EP)
 
 # Eof()
