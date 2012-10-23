@@ -1,5 +1,5 @@
 /*
-File: applet.java ; This file is part of Twister.
+File: Dut.java ; This file is part of Twister.
 
 Copyright (C) 2012 , Luxoft
 
