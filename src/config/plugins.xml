@@ -1,69 +1,43 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <Root>
-<Plugin>
-<name>SVNPlugin</name>
-<jarfile>SVNPlugin.jar</jarfile>
-<pyfile>SVNPlugin.py</pyfile>
-<status>disabled</status>
-<property>
-<propname>password</propname>
-<propvalue/>
-</property>
-<property>
-<propname>server</propname>
-<propvalue/>
-</property>
-<property>
-<propname>snapshot</propname>
-<propvalue>/home/tscguest/Downloads</propvalue>
-</property>
-<property>
-<propname>default_operation</propname>
-<propvalue/>
-</property>
-<property>
-<propname>username</propname>
-<propvalue/>
-</property>
-</Plugin>
-<Plugin>
-<name>GITPlugin</name>
-<jarfile>GITPlugin.jar</jarfile>
-<pyfile>GITPlugin.py</pyfile>
-<status>disabled</status>
-<property>
-<propname>password</propname>
-<propvalue>tscguest</propvalue>
-</property>
-<property>
-<propname>server</propname>
-<propvalue>ssh://tsc-server/home/git/git_root/twister_rel1</propvalue>
-</property>
-<property>
-<propname>snapshot</propname>
-<propvalue>/home/tscguest/teste/NewFolder</propvalue>
-</property>
-<property>
-<propname>default_operation</propname>
-<propvalue/>
-</property>
-<property>
-<propname>username</propname>
-<propvalue/>
-</property>
-<property>
-<propname>branch</propname>
-<propvalue>master</propvalue>
-</property>
-</Plugin>
-<Plugin>
-        <name>JIRA</name>
-        <jarfile>JiraPlugin.jar</jarfile>
-        <pyfile>JiraPlugin.py</pyfile>
-        <status>disabled</status>
-        <property>
-            <propname>jiraserver</propname>
-            <propvalue/>
-        </property>
-    </Plugin>
+	<Plugin>
+		<name>SVN</name>
+		<jarfile>SVNPlugin.jar</jarfile>
+		<pyfile>SVNPlugin.py</pyfile>
+		<status>enabled</status>
+		<property>
+			<propname>default_operation</propname>
+			<propvalue>update</propvalue>
+		</property>
+		<property>
+			<propname>tag</propname>
+			<propvalue>tag</propvalue>
+		</property>
+		<property>
+			<propname>snapshot</propname>
+			<propvalue>snapshot</propvalue>
+		</property>
+		<property>
+			<propname>server</propname>
+			<propvalue>server</propvalue>
+		</property>
+		<property>
+			<propname>password</propname>
+			<propvalue>password</propvalue>
+		</property>
+		<property>
+			<propname>username</propname>
+			<propvalue>user</propvalue>
+		</property>
+	</Plugin>
+	<Plugin>
+		<name>GIT</name>
+		<jarfile>GITPlugin.jar</jarfile>
+		<pyfile>GITPlugin.py</pyfile>
+		<status>enabled</status>
+		<property>
+			<propname>path</propname>
+			<propvalue>/home/tscguest/teste</propvalue>
+		</property>
+	</Plugin>
 </Root>

@@ -136,6 +136,9 @@ class Project:
         else:
             base_config = '/home/%s/twister/config/fwmconfig.xml' % user
 
+        if not files_config:
+            files_config = '/home/%s/twister/config/testsuites.xml' % user
+
         # User data + User parser
         self.users[user] = {'status': STATUS_STOP, 'eps': OrderedDict()}
         if config_data:
@@ -159,7 +162,7 @@ class Project:
 
         # Add framework config info to default user
         self.users[user]['config_path'] = base_config
-        self.users[user]['tests_path'] = self.parsers[user].getTestSuitePath()
+        self.users[user]['tests_path'] = files_config
         self.users[user]['logs_path'] = self.parsers[user].getLogsPath()
         self.users[user]['log_types'] = {}
 
@@ -259,11 +262,16 @@ class Project:
         r = self.changeUser(user)
         if not r: return False
 
-        logDebug('Project: RESET configuration for user `{0}`...'.format(user)) ; ti = time.clock()
+        ti = time.clock()
 
-        # User config XML
+        # User config XML files
         if not base_config:
             base_config = self.users[user]['config_path']
+        if not files_config:
+            files_config = self.users[user]['tests_path']
+
+        logDebug('Project: RESET configuration for user `{0}`, using config files `{1}` and `{2}`.'.format(
+            user, base_config, files_config))
         self.parsers[user] = TSCParser(base_config, files_config)
 
         # Calculate the Suites for each EP and the Files for each Suite
@@ -278,7 +286,7 @@ class Project:
 
         # Add framework config info to default user
         self.users[user]['config_path'] = base_config
-        self.users[user]['tests_path'] = self.parsers[user].getTestSuitePath()
+        self.users[user]['tests_path'] = files_config
         self.users[user]['logs_path'] = self.parsers[user].getLogsPath()
         self.users[user]['log_types'] = {}
 

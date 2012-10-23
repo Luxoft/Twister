@@ -1,17 +1,17 @@
-import os
-import sys
-from BasePlugin import BasePlugin
+
+import os, sys
 import base64
 import getopt
 import getpass
 import logging
+import urllib
 import string
 import time
 from datetime import datetime
-import urllib
 from suds.client import Client
 from suds import sudsobject
 from suds.sax.text import Text
+from BasePlugin import BasePlugin
 
 #
 
@@ -33,7 +33,7 @@ class Plugin(BasePlugin):
         global soap, commands
 
         progname = sys.argv[0]
-        commands = Commands()  
+        commands = Commands()
 
         logger = MockLogger()
 
@@ -46,20 +46,20 @@ class Plugin(BasePlugin):
         if 'user' not in args.keys():
             logger.error("No user given.")
             return False
-        
+
         user = args['user']
 
         jira_env = {}
 
         if commands.has(command_name):
-            
+
             if command_name in ['login']:
                 if 'user' not in args.keys():
-                    logger.error("User name was not provided.")           
+                    logger.error("User name was not provided.")
                     return False
 
                 if 'passwd' not in args.keys():
-                    logger.error("Password not provided for %s." %user)           
+                    logger.error("Password not provided for %s." %user)
                     return False
 
             if 'server' not in args.keys():
@@ -70,14 +70,14 @@ class Plugin(BasePlugin):
             jira_env['server'] = jira_env['server'] + "/rpc/soap/jirasoapservice-v2?wsdl"
 
             if not jira_env['server'].startswith('http'):  # also catches https
-                jira_env['server'] = 'http://' + jira_env['server'] # default is no SSL   
+                jira_env['server'] = 'http://' + jira_env['server'] # default is no SSL
 
             try:
                 logger.debug('Attempting to connect to the server: ' + jira_env['server'])
                 soap = Client(jira_env['server'])
                 # for i in soap.sd:
                 #     print(i.description())
-                
+
                 logger.debug('Connected to the server')
                 # logger.debug(soap)
             except:
@@ -102,12 +102,13 @@ class Plugin(BasePlugin):
 
             jira_env['home'] = home
 
-            return start_login(jira_env, command_name, logger, args)            
+            return start_login(jira_env, command_name, logger, args)
 
         else:
             logger.error("Command '%s' not recognized." % (command_name))
             logger.error("  run '%s help' for a list of commands" % (progname))
             return False
+
 
 class JiraCommand(object):
 
@@ -140,9 +141,9 @@ class JiraCommand(object):
     def renderElement(self, item):
         item_lvl1 = {}
         for (k1, val1) in sudsobject.items(item):
-            if val1 and type(val1) is list:                    
+            if val1 and type(val1) is list:
                 l = list()
-                for i, v2 in enumerate(val1):                        
+                for i, v2 in enumerate(val1):
                     if isinstance(v2,sudsobject.Object):
                         item_lvl2 = {}
                         for (k2, val2) in sudsobject.items(v2):
@@ -155,6 +156,7 @@ class JiraCommand(object):
                 item_lvl1[k1]=encode(val1)
         return item_lvl1
 
+
 class JiraGetAttach(JiraCommand):
 
     name = "getattach"
@@ -165,21 +167,21 @@ class JiraGetAttach(JiraCommand):
 
     def run(self, logger, jira_env, args):
         global soap, auth
-        
+
         if "key" not in args.keys():
             logger.error("You should provide the issue key")
             return "error"
 
         issueKey = args["key"]
         logger.debug('Attachments of issue ' + issueKey)
-        
+
         try:
-            #  this operation assumes that the user has permissions to get the attachments 
+            #  this operation assumes that the user has permissions to get the attachments
             # TODO add permission check
-            results = soap.service.getAttachmentsFromIssue(auth, issueKey)            
+            results = soap.service.getAttachmentsFromIssue(auth, issueKey)
             if len(results)>0:
-                # print self.render(logger,jira_env,results)            
-                return results                         
+                # print self.render(logger,jira_env,results)
+                return results
             else:
                 # print "returned empty"
                 return "empty"
@@ -187,12 +189,13 @@ class JiraGetAttach(JiraCommand):
             logger.error(e)
             return "error"
 
+
 class JiraAttach(JiraCommand):
 
     name = "attach"
     summary = "Attach a file to an issue"
     usage = """
-    <issue key>           Issue identifier, e.g. CA-1234 
+    <issue key>           Issue identifier, e.g. CA-1234
     <attachments>            The attachment objects to manage (as list)
     """
 
@@ -226,8 +229,8 @@ class JiraAttach(JiraCommand):
 
             try:
                 results = soap.service.addBase64EncodedAttachmentsToIssue(auth,
-                                                            issueKey, 
-                                                            [name], 
+                                                            issueKey,
+                                                            [name],
                                                             [file_contents])
                 if not results:
                     logger.debug("Attaching "+name+" failed.")
@@ -257,10 +260,10 @@ class JiraUpdateComment(JiraCommand):
     <issue key>           Issue identifier, e.g. CA-1234
     <text>                Text of the comment
     """
-    def run(self, logger, jira_env, args):        
-        
+    def run(self, logger, jira_env, args):
+
         RemoteComment = dict()
-        for field in ['id','body']:                                
+        for field in ['id','body']:
             newValue = args[field]
             RemoteComment[field]=newValue
 
@@ -270,12 +273,12 @@ class JiraUpdateComment(JiraCommand):
                 return self.render(logger, jira_env,results)
             else:
                 return "You don't have permission to edit this comment"
-            
+
         except Exception, e:
             print(e)
             logger.error(e)
             return "Comment update failed"
-        
+
 
 class JiraComment(JiraCommand):
 
@@ -300,6 +303,7 @@ class JiraComment(JiraCommand):
             logger.error(decode(e))
             return ["Comment create failed"]
 
+
 class JiraComments(JiraCommand):
 
     name = "comments"
@@ -314,19 +318,20 @@ class JiraComments(JiraCommand):
             return "error"
 
         issueKey = args["key"]
-        
+
         logger.debug('Comments of issue ' + issueKey)
         try:
             results = soap.service.getComments(auth, issueKey)
             # print self.render(logger,jira_env,results)
             if len(results)>0:
-                return self.render(logger,jira_env,results)                
+                return self.render(logger,jira_env,results)
             else:
                 return "empty"
         except Exception, e:
             print(e)
             logger.error(decode(e))
             return "error"
+
 
 class JiraCreate(JiraCommand):
 
@@ -339,15 +344,15 @@ class JiraCreate(JiraCommand):
     def run(self, logger, jira_env, args):
         global soap, auth
         remoteIssue = dict()
-        
-        issue = args['issue']    
+
+        issue = args['issue']
         # check for attachments and comments and store them separately
         # until the issue is created
         # we'll deal with adding them later, since for adding/editing them
         # we need the issue key
         # attachments = []
-        if 'attachments' in issue.keys():            
-            # attachments = issue['attachments'] # this should be a list            
+        if 'attachments' in issue.keys():
+            # attachments = issue['attachments'] # this should be a list
             issue.pop('attachments')
             # print attachments
         # comments = []
@@ -356,7 +361,7 @@ class JiraCreate(JiraCommand):
         #     issue.pop('comments')
         #     print comments
         # create the issue
-        for (field,item) in issue.items():                    
+        for (field,item) in issue.items():
             if field in ['components','fixVersions','affectsVersions']:
                 item_list = []
                 for i, v in enumerate(item):
@@ -369,10 +374,10 @@ class JiraCreate(JiraCommand):
                         remoteIssue[field]=""
                     else:
                         date = datetime.strptime(val, "%Y-%m-%d %H:%M:%S")
-                        remoteIssue[field]='{0}T00:00:00.0'.format(date.strftime("%Y-%m-%d"))                    
+                        remoteIssue[field]='{0}T00:00:00.0'.format(date.strftime("%Y-%m-%d"))
                 else:
                     remoteIssue[field] = item
-        
+
         try:
             newIssue = soap.service.createIssue(auth, remoteIssue)
 
@@ -380,11 +385,12 @@ class JiraCreate(JiraCommand):
                 print newIssue
                 return self.render(logger, jira_env, newIssue)
 
-        except Exception, e:       
-            print(e)             
+        except Exception, e:
+            print(e)
             logger.error(e)
             # logger.error(decode(e))
             return "error"
+
 
 class JiraGetAvailableActions(JiraCommand):
 
@@ -396,7 +402,7 @@ class JiraGetAvailableActions(JiraCommand):
 
     def run(self, logger, jira_env, args):
         global soap, auth
-        
+
         issueKey = args['key']
         logger.debug('Actions for issue ' + issueKey)
         try:
@@ -410,6 +416,7 @@ class JiraGetAvailableActions(JiraCommand):
             print(e)
             logger.error(decode(e))
             return "error"
+
 
 def changeStatus(issueKey, logger, jira_env, actionId):
     """Generic function for changing the status of an issue"""
@@ -455,7 +462,7 @@ class JiraLogin(JiraCommand):
         try:
             logger.info('Attempting to obtain authentication token')
             auth = soap.service.login(jirauser, password)
-            logger.info('Done.')        
+            logger.info('Done.')
             # Write the authentication token (not password) to a file
             # for use next time
             jirarc_file = jira_env['home'] + os.sep + '.jirarc'
@@ -497,13 +504,14 @@ class JiraLogout(JiraCommand):
             logger.exception(e)
             logger.error("Logout failed")
 
+
 class JiraGetIssues(JiraCommand):
 
    name = "getissues"
    summary = "List issues that match a JQL query. Shows issue key, created and summary fields sorted by created. Requires JIRA 4.x"
    usage = """
    "<JQL query>"             JQL query, e.g. "Summary ~ '%some%text%' AND Reporter=nagios AND Created > -7d"
-   [<limit>]                   Optional limit to number of issues returned, default 100 
+   [<limit>]                   Optional limit to number of issues returned, default 100
    """
 
    def run(self, logger, jira_env, args):
@@ -514,18 +522,18 @@ class JiraGetIssues(JiraCommand):
             return False
         else:
             query = args['query']
-        if 'limit' in args.keys():           
+        if 'limit' in args.keys():
             limit = args['limit']
         else:
             limit = 100
-        issues = soap.service.getIssuesFromJqlSearch(auth, query, limit)    
+        issues = soap.service.getIssuesFromJqlSearch(auth, query, limit)
         if len(issues)==0:
-            logger.debug('No issues found to match the query '+query)     
+            logger.debug('No issues found to match the query '+query)
             return "empty"
-        else:                
+        else:
             # Attempt to get attachments for issues:
-            # it is also possible to get the comments here, 
-            # but this operation is currently implemented separately 
+            # it is also possible to get the comments here,
+            # but this operation is currently implemented separately
             # at request from the Java interface
             for issue in issues:
                 # try:
@@ -543,7 +551,7 @@ class JiraGetIssues(JiraCommand):
                         issue["attachments"]=attachments
                 except Exception, e:
                     logger.error("Failed to get attachments for issue "+issue["key"])
-                
+
             # print(self.render(logger,jira_env,issues))
             return self.render(logger,jira_env,issues)
 
@@ -554,7 +562,7 @@ class JiraListUsers(JiraCommand):
     summary = "List users, needs administrator permission"
     usage = """
     """
-    
+
     def run(self, logger, jira_env, args):
         global soap, auth
         try:
@@ -577,6 +585,7 @@ class JiraListUsers(JiraCommand):
        logger.info("%d users" % len(results))
        return 0
 
+
 class JiraGetVersions(JiraCommand):
 
     name = "getversions"
@@ -584,20 +593,20 @@ class JiraGetVersions(JiraCommand):
     usage = """
     <source project>              Project key, e.g. TSTONE
     """
-    
+
     def run(self, logger, jira_env, args):
         global soap, auth
-        
+
         if 'project' not in args.keys():
             logger.error(self.summary)
             logger.error(self.usage)
             return "error"
         src_project = args['project']
-        logger.debug('Getting versions for project '+src_project)     
+        logger.debug('Getting versions for project '+src_project)
         try:
             src_versions = soap.service.getVersions(auth, src_project)
             if len(src_versions)==0:
-                logger.debug('No versions defined for project '+src_project)     
+                logger.debug('No versions defined for project '+src_project)
                 return "empty"
             else:
                 # print(self.render(logger,jira_env,src_versions))
@@ -614,20 +623,20 @@ class JiraGetComponents(JiraCommand):
     usage = """
     <source project>              Project key, e.g. TSTONE
     """
-    
+
     def run(self, logger, jira_env, args):
         global soap, auth
-        
+
         if 'project' not in args.keys():
             logger.error(self.summary)
             logger.error(self.usage)
             return "error"
         src_project = args['project']
-        logger.debug('Getting components for project '+src_project)        
+        logger.debug('Getting components for project '+src_project)
         try:
             src_components = soap.service.getComponents(auth, src_project)
             if len(src_components)==0:
-                logger.debug('No components defined for project '+src_project)        
+                logger.debug('No components defined for project '+src_project)
                 return "empty"
             else:
                 return self.render(logger,jira_env,src_components)
@@ -643,14 +652,14 @@ class JiraGetIssueTypes(JiraCommand):
     usage = """
     no arguments
     """
-    
+
     def run(self, logger, jira_env, args):
         global soap, auth
-        
+
         try:
             issue_types = soap.service.getIssueTypes(auth)
             if len(issue_types)==0:
-                logger.debug('Unable to get issue types!')        
+                logger.debug('Unable to get issue types!')
                 return "empty"
             else:
                 # print(self.render(logger,jira_env,issue_types))
@@ -660,6 +669,7 @@ class JiraGetIssueTypes(JiraCommand):
             # logger.exception(e)
             return False
 
+
 class JiraGetPriorities(JiraCommand):
 
     name = "getpriorities"
@@ -667,14 +677,14 @@ class JiraGetPriorities(JiraCommand):
     usage = """
     no arguments
     """
-    
+
     def run(self, logger, jira_env, args):
         global soap, auth
-        
+
         try:
             priority_types = soap.service.getPriorities(auth)
             if len(priority_types)==0:
-                logger.debug('Unable to get priority types!')        
+                logger.debug('Unable to get priority types!')
                 return "empty"
             else:
                 # print(self.render(logger,jira_env,priority_types))
@@ -692,14 +702,14 @@ class JiraGetStatuses(JiraCommand):
     usage = """
     no arguments
     """
-    
+
     def run(self, logger, jira_env, args):
         global soap, auth
-        
+
         try:
             statuses = soap.service.getStatuses(auth)
             if len(statuses)==0:
-                logger.debug('Unable to get statuses!')        
+                logger.debug('Unable to get statuses!')
                 return "empty"
             else:
                 # print(self.render(logger,jira_env,statuses))
@@ -707,7 +717,8 @@ class JiraGetStatuses(JiraCommand):
         except Exception, e:
             logger.debug(e)
             # logger.exception(e)
-            return False  
+            return False
+
 
 class JiraGetResolutionTypes(JiraCommand):
 
@@ -716,21 +727,21 @@ class JiraGetResolutionTypes(JiraCommand):
     usage = """
     no arguments
     """
-    
+
     def run(self, logger, jira_env, args):
         global soap, auth
-        
+
         try:
             res_types = soap.service.getResolutions(auth)
             if len(res_types)==0:
-                logger.debug('Unable to get resolution types!')        
+                logger.debug('Unable to get resolution types!')
                 return "empty"
             else:
-                return self.render(logger,jira_env,res_types)                
+                return self.render(logger,jira_env,res_types)
         except Exception, e:
             logger.debug(e)
             # logger.exception(e)
-            return False    
+            return False
 
 
 class JiraUpdate(JiraCommand):
@@ -744,45 +755,45 @@ class JiraUpdate(JiraCommand):
     """
 
     def run(self, logger, jira_env, args):
-       
+
         issue = args['issue']
         issueKey = issue["key"]
-        
+
         # change the status of the issue
         statAction = issue['status']
         changeStatus(issueKey, logger, jira_env, statAction)
         issue.pop('status')
-        
+
         # save attachments and comments to treat separately
-        # attachments = []        
+        # attachments = []
         if 'attachments' in issue.keys():
             # attachments = issue['attachments']
             issue.pop('attachments')
-        # comments = []        
+        # comments = []
         # if 'comments' in issue.keys():
         #     comments = issue['comments']
         #     issue.pop('comments')
 
         # create list of parameters to update
         paramList = list()
-        for (field,newValue) in issue.items():                  
+        for (field,newValue) in issue.items():
             if field in ['affectsVersions', 'fixVersions', 'components']:
-                val = newValue # for these fields are lists of dictionaries 
+                val = newValue # for these fields are lists of dictionaries
                 # -> should get only the id's as a list of strings
                 newValue = list()
                 for (i,v) in enumerate(val):
-                    newValue.append(v['id'])        
+                    newValue.append(v['id'])
             if field in ['affectsVersions']:
-                field = 'versions'        
+                field = 'versions'
             if field in ['type']:
-                field = 'issuetype'        
+                field = 'issuetype'
             if field in ['duedate', 'created', 'updated']:
                 val = newValue
                 if val=='None':
                     newValue = ""
                 else:
                     date = datetime.strptime(newValue, "%Y-%m-%d %H:%M:%S")
-                    newValue=[format(date.strftime("%d/%b/%y"))]                    
+                    newValue=[format(date.strftime("%d/%b/%y"))]
             if type(newValue) is not list:
                 newValue = [newValue]
             paramList.append({'id':field,'values':newValue})
@@ -792,7 +803,7 @@ class JiraUpdate(JiraCommand):
             if remoteIssue:
                 # key = remoteIssue["key"]
                 # logger.debug('updated issue '+key)
-                # attNames = []                
+                # attNames = []
                 # if attachments:
                 #     attachSuccessful = True
                 #     for att in attachments: # att should be a dictionary
@@ -803,7 +814,7 @@ class JiraUpdate(JiraCommand):
                 #             if status in ['upload']:
                 #                 flag = commands.run('attach', logger, jira_env, att)
                 #             elif status in ['download']:
-                #                 pass 
+                #                 pass
                 #             elif status in ['delete']:
                 #                 pass
                 #             if flag:
@@ -817,15 +828,15 @@ class JiraUpdate(JiraCommand):
                 #         if type(remoteAttachments) is not str: # the 'getattach' command might return "empty" or "error"
                 #             remoteIssue['attachments'] = remoteAttachments
 
-                # print remoteIssue 
+                # print remoteIssue
                 return self.render(logger, jira_env, remoteIssue)
             else:
                 print "error"
                 return "error"
-        except Exception, e:                
+        except Exception, e:
             print "error"
             print e
-            logger.error(e)            
+            logger.error(e)
             return "error"
 
 
@@ -861,14 +872,14 @@ class Commands:
     def __init__(self):
         self.commands = {}
         self.add(JiraAttach)
-        self.add(JiraGetAttach)        
+        self.add(JiraGetAttach)
         self.add(JiraComment)
         self.add(JiraUpdateComment)
         self.add(JiraComments)
         self.add(JiraCreate)
         self.add(JiraListUsers)
         self.add(JiraLogin)
-        self.add(JiraLogout)        
+        self.add(JiraLogout)
         self.add(JiraGetIssues)
         self.add(JiraGetComponents)
         self.add(JiraGetVersions)
@@ -899,6 +910,7 @@ class Commands:
         keys.sort()
         return map(self.commands.get, keys)
 
+
 def encode(s):
     '''Deal with unicode in text fields'''
     if s == None:
@@ -906,6 +918,7 @@ def encode(s):
     if type(s) == unicode:
         s = s.encode("utf-8")
     return str(s)
+
 
 def dateStr(i):
     '''Convert a datetime or String object to a string output format'''
@@ -915,6 +928,7 @@ def dateStr(i):
     if hasattr(i, 'date'):
         return "%04d/%02d/%02d %02d:%02d:%02d" % (i.year, i.month, i.day, i.hour, i.minute, i.second)
     return "%04d/%02d/%02d %02d:%02d:%02d" % (i[0], i[1], i[2], i[3], i[4], i[5])
+
 
 def getName(id, fields):
     '''TODO cache this, and note getCustomFields() needs admin privilege'''
@@ -927,7 +941,8 @@ def getName(id, fields):
         if val and val.lower() == id.lower():
             return v['name']
     return id.title()
-            
+
+
 def decode(e):
     """Process an exception for useful feedback"""
     # TODO how to log the fact it is an error, but allow info to be unchanged?
@@ -937,7 +952,7 @@ def decode(e):
     if str == 'java.lang.NullPointerException':
         return "Invalid issue key?"
     return e.faultstring
-    
+
 
 def setupLogging(loglevel=logging.INFO):
     """Set up logging, by default just echo to stdout"""
@@ -951,6 +966,7 @@ def setupLogging(loglevel=logging.INFO):
     #logger.addHandler(ch)
     return logger
 
+
 class MockLogger:
    """Print the output to stdout for doctest to check."""
    def __init__(self): pass
@@ -958,6 +974,7 @@ class MockLogger:
    def warning(self, s): print (s)
    def debug(self, s): print (s)
    def error(self, s): print (s)
+
 
 def start_login(jira_env, command_name, logger, args):
     global auth
@@ -972,8 +989,8 @@ def start_login(jira_env, command_name, logger, args):
             if command_name == 'login' and os.path.exists(jirarc_file):
                 os.remove(jirarc_file)
             if not os.path.exists(jirarc_file):
-                logger.debug('No cached auth, starting login')                
-                rc = commands.run('login', logger, jira_env, args)                
+                logger.debug('No cached auth, starting login')
+                rc = commands.run('login', logger, jira_env, args)
                 return rc
             logger.debug('Reading cached auth')
             fp = open(jirarc_file, 'rb')
@@ -984,8 +1001,8 @@ def start_login(jira_env, command_name, logger, args):
             # Attempt another login
             logger.error('Previous login is invalid or has expired')
             if os.path.exists(jirarc_file):
-                os.remove(jirarc_file)            
+                os.remove(jirarc_file)
 
     rc = commands.run(command_name, logger, jira_env, args)
     if (rc):
-        return rc          
+        return rc
