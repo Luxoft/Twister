@@ -623,6 +623,7 @@ public class Panel1 extends JPanel{
      * generate master suites XML
      */
     private void generate(){
+        Repository.window.mainpanel.p2.setSaveDB(suitaDetails.saveDB());
 //         String result="";//server status
 //         try{result = (String)Repository.getRPCClient().execute("getExecStatusAll",new Object[]{Repository.getUser()});}
 //         catch(Exception e){
@@ -646,6 +647,7 @@ public class Panel1 extends JPanel{
 //             if(!execute)break;
         }       
         if(execute){
+//             System.out.println("savedb: "+suitaDetails.saveDB());
                 String [] s = sc.g.getUser().split("\\\\");
                 if(s.length>0){
                     s[s.length-1] = "last_edited.xml";
@@ -670,9 +672,7 @@ public class Panel1 extends JPanel{
                 }
                 sc.g.printXML(Repository.getTestXMLDirectory(),true,false,
                               suitaDetails.stopOnFail(),suitaDetails.saveDB(),
-                              suitaDetails.getDelay()
-                
-                );
+                              suitaDetails.getDelay());
                 Repository.emptyTestRepository();
                 File xml = new File(Repository.getTestXMLDirectory());
                 int size = Repository.getLogs().size();

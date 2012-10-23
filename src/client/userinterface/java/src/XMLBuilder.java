@@ -426,6 +426,7 @@ public class XMLBuilder{
                             result2.append("/");}}
                     Repository.c.cd(result2.toString());
                     FileInputStream in = new FileInputStream(file);
+                    System.out.println("TEST: "+Repository.c.pwd()+"file.getName(): "+file.getName());
                     Repository.c.put(in, file.getName());
                     in.close();}
                 else{

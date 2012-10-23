@@ -732,7 +732,8 @@ public class Repository{
             String line = null;
             String name = null;
             try{c.cd(USERHOME+"/twister/config/");
-                System.out.println("c.ls.size(): "+c.ls(".").size());
+//                 System.out.println("c.ls.size(): "+c.ls(".").size());
+//                 System.out.println("HOME: "+c.getHome());
             }
             catch(Exception e){
                 System.out.println("Could not get :"+USERHOME+"/twister/config/");
@@ -744,8 +745,9 @@ public class Repository{
                 else System.out.println("Could not delete: "+Repository.temp+bar+"Twister");
                 run = false;
                 if(!applet)System.exit(0);}
-            try{System.out.println("fwmconfig.xml size on sftp: "+
-                        c.lstat("fwmconfig.xml").getSize()+" bytes");
+            try{
+//                 System.out.println("fwmconfig.xml size on sftp: "+
+//                         c.lstat("fwmconfig.xml").getSize()+" bytes");
                 in = c.get("fwmconfig.xml");}
             catch(Exception e){
                 CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, Repository.window,
@@ -766,7 +768,7 @@ public class Repository{
             writer.close();
             inputStreamReader.close();
             in.close();
-            System.out.println("fwmconfig.xml local size: "+file.length()+" bytes");
+//             System.out.println("fwmconfig.xml local size: "+file.length()+" bytes");
             String usersdir="";
             intro.setStatus("Finished getting fwmconfig");
             intro.addPercent(0.035);
@@ -782,14 +784,13 @@ public class Repository{
                     logs.add(getTagContent(doc,"logDebug"));
                     logs.add(getTagContent(doc,"logSummary"));
                     logs.add(getTagContent(doc,"logTest"));
-                    logs.add(getTagContent(doc,"logCli"));
-                }
+                    logs.add(getTagContent(doc,"logCli"));}
                 HTTPSERVERPORT = getTagContent(doc,"HttpServerPort");
                 CENTRALENGINEPORT = getTagContent(doc,"CentralEnginePort");
                 RESOURCEALLOCATORPORT = getTagContent(doc,"ResourceAllocatorPort");
                 usersdir = getTagContent(doc,"UsersPath");
                 REMOTEUSERSDIRECTORY = usersdir;
-                XMLREMOTEDIR = "/home/tscguest/twister/config/testsuites.xml";
+                XMLREMOTEDIR = USERHOME+"/twister/config/testsuites.xml";
 //                 getTagContent(doc,"MasterXMLTestSuite");
                 XMLDIRECTORY = Repository.temp+bar+"Twister"+bar+"XML"+
                                         bar+XMLREMOTEDIR.split("/")[XMLREMOTEDIR.split("/").length-1];
@@ -959,8 +960,7 @@ public class Repository{
             if(plugins==null){
                 inifile.add("plugins", new JsonArray());
                 writeJSon();
-                plugins = inifile.getAsJsonArray("plugins");}
-            System.out.println("Editors: "+editors.toString());}
+                plugins = inifile.getAsJsonArray("plugins");}}
         catch(Exception e){
             System.out.print("Could not parse ini file: ");
             try{System.out.println(ini.getCanonicalPath());}
@@ -1601,8 +1601,9 @@ public class Repository{
                                         "Warning", "Could not get :"+USERHOME+
                                         "/twister/config/");
                 return false;}
-            try{System.out.println("plugins.xml size on sftp: "+
-                        c.lstat("plugins.xml").getSize()+" bytes");
+            try{
+//                 System.out.println("plugins.xml size on sftp: "+
+//                         c.lstat("plugins.xml").getSize()+" bytes");
                 in = c.get("plugins.xml");}
             catch(Exception e){
                 CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, Repository.window,
@@ -1622,7 +1623,7 @@ public class Repository{
             writer.close();
             inputStreamReader.close();
             in.close();
-            System.out.println("plugins.xml local size: "+file.length()+" bytes");
+//             System.out.println("plugins.xml local size: "+file.length()+" bytes");
             intro.setStatus("Finished getting plugins");
             intro.repaint();
             return true;
