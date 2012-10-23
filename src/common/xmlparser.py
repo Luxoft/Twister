@@ -60,12 +60,25 @@ class TSCParser:
     def __init__(self, base_config='', files_config=''):
 
         if os.path.isfile(base_config):
-            self.xmlDict = BeautifulStoneSoup(open(base_config))
+            base_config = open(base_config).read()
         elif base_config and ( type(base_config)==type('') or type(base_config)==type(u'') ) \
                 and ( base_config[0] == '<' and base_config[-1] == '>' ):
-            self.xmlDict = BeautifulStoneSoup(base_config)
+            pass
         else:
             raise Exception('Parser ERROR: Invalid config data type: `%s`!' % type(config_data))
+
+        base_config = base_config.replace('<logRunning/>', '<logRunning></logRunning>')
+        base_config = base_config.replace('<logDebug/>',   '<logDebug></logDebug>')
+        base_config = base_config.replace('<logSummary/>', '<logSummary></logSummary>')
+        base_config = base_config.replace('<logTest/>',    '<logTest></logTest>')
+        base_config = base_config.replace('<logCli/>',     '<logCli></logCli>')
+
+        base_config = base_config.replace('<EPIdsFile/>',      '<EPIdsFile></EPIdsFile>')
+        base_config = base_config.replace('<UsersPath/>',      '<UsersPath></UsersPath>')
+        base_config = base_config.replace('<LogsPath/>',       '<LogsPath></LogsPath>')
+        base_config = base_config.replace('<DbConfigFile/>',   '<DbConfigFile></DbConfigFile>')
+        base_config = base_config.replace('<HardwareConfig/>', '<HardwareConfig></HardwareConfig>')
+        self.xmlDict = BeautifulStoneSoup(base_config)
 
         if not self.xmlDict.root:
             raise Exception('Parser ERROR: Cannot access XML config data!')
@@ -84,6 +97,7 @@ class TSCParser:
         """
         self.file_no = 1000
         self.suite_no = 100
+        self.files_config = ''
 
         if files_config and ( type(files_config)==type('') or type(files_config)==type(u'') ) \
                 and ( files_config[0] == '<' and files_config[-1] == '>' ):
@@ -97,7 +111,7 @@ class TSCParser:
 
             if not files_config or not os.path.isfile(files_config):
                 # Get path to Test-Suites XML from Master config
-                files_config = str(self.xmlDict.root.masterxmltestsuite.text)
+                files_config = self.files_config
 
             if files_config.startswith('~'):
                 files_config = os.getenv('HOME') + files_config[1:]
@@ -113,6 +127,8 @@ class TSCParser:
 
             config_ts = config_ts.replace('<ScriptPre/>',  '<ScriptPre></ScriptPre>')
             config_ts = config_ts.replace('<ScriptPost/>', '<ScriptPost></ScriptPost>')
+            config_ts = config_ts.replace('<dbautosave/>', '<dbautosave></dbautosave>')
+            config_ts = config_ts.replace('<tcdelay/>',    '<tcdelay></tcdelay>')
 
         if self.configHash != newConfigHash:
             print('Parser: Test-Suites XML file changed, rebuilding internal structure...\n')
@@ -121,16 +137,11 @@ class TSCParser:
             # Create Beautiful Soup class from the new XML file
             self.configTS = BeautifulStoneSoup(config_ts)
 
+        self.files_config = files_config
+
         if not self.configTS.root:
             print('Parser ERROR: Cannot access Test-Suites XML data!')
             return -1
-
-
-    def getTestSuitePath(self):
-        res = str(self.xmlDict.root.masterxmltestsuite.text)
-        if res.startswith('~'):
-            res = os.getenv('HOME') + res[1:]
-        return res
 
 
     def getDbConfigPath(self):
@@ -172,20 +183,41 @@ class TSCParser:
         return baseLogsPath + os.sep + str(logFile.text)
 
 
-    def getExitOnTestFail(self):
+    def getProjectGlobals(self):
         """
-        Returns the value of the tag "Exit On Test Fail".
+        Returns the value of many global tags like:
+        - Exit On Test Fail
+        - ScriptPre and ScriptPost
+        - Database Autosave
+        - Testcase Delay
         """
         if not self.configTS:
-            print('Parser: Cannot get Exit on test fail status, because Test-Suites XML is invalid!')
+            print('Parser: Cannot get project globals, because Test-Suites XML is invalid!')
             return False
-        res = self.configTS.root.stoponfail
-        if not res:
-            return False
-        if res.text.lower() == 'true':
-            return True
-        else:
-            return False
+
+        res = {
+            'ExitOnTestFail': False,
+            'ScriptPre': '',
+            'ScriptPost': '',
+            'DbAutoSave': False,
+            'TestcaseDelay': 0
+        }
+
+        if self.configTS.stoponfail:
+            if self.configTS.stoponfail.text.lower() == 'true':
+                res['ExitOnTestFail'] = True
+
+        res['ScriptPre'], res['ScriptPost'] = self.getScripts()
+
+        if self.configTS.dbautosave:
+            if self.configTS.dbautosave.text.lower() == 'true':
+                res['DbAutoSave'] = True
+
+        if self.configTS.tcdelay:
+            try: res['TestcaseDelay'] = int(self.configTS.tcdelay.text)
+            except: print('Parser: Cannot get testcase delay value from string `%s`!' % self.configTS.tcdelay.text)
+
+        return res
 
 
     def getScripts(self):
@@ -195,8 +227,8 @@ class TSCParser:
         if not self.configTS:
             print('Parser: Cannot get Exit on test fail status, because Test-Suites XML is invalid!')
             return False
-        p0 = self.configTS.root.scriptpre
-        p1 = self.configTS.root.scriptpost
+        p0 = self.configTS.scriptpre
+        p1 = self.configTS.scriptpost
         if not p0:
             p0 = ''
         else:

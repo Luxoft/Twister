@@ -71,7 +71,9 @@ public class XMLBuilder{
                 if(getRunning(item.getSubItem(i)))return true;}
             return false;}}
         
-    public void createXML(boolean skip, boolean stoponfail, boolean temp, String prescript, String postscript){//skip checks if it is user or test xml
+    public void createXML(boolean skip, boolean stoponfail,
+                          boolean temp, String prescript, String postscript,
+                          boolean savedb, String delay){//skip checks if it is user or test xml
         this.skip = skip;
         Element root = document.createElement("Root");
         document.appendChild(root);
@@ -88,6 +90,18 @@ public class XMLBuilder{
         em2 = document.createElement("ScriptPost");
         em2.appendChild(document.createTextNode(postscript));
         root.appendChild(em2);
+        
+        em2 = document.createElement("dbautosave");;
+        if(savedb){
+            em2.appendChild(document.createTextNode("true"));
+        } else {
+            em2.appendChild(document.createTextNode("false"));
+        }
+        root.appendChild(em2);
+        em2 = document.createElement("tcdelay");
+        em2.appendChild(document.createTextNode(delay));
+        root.appendChild(em2);
+        
         int nrsuite = suite.size();        
         for(int i=0;i<nrsuite;i++){
             int nrtc = suite.get(i).getSubItemsNr();
@@ -412,6 +426,7 @@ public class XMLBuilder{
                             result2.append("/");}}
                     Repository.c.cd(result2.toString());
                     FileInputStream in = new FileInputStream(file);
+                    System.out.println("TEST: "+Repository.c.pwd()+"file.getName(): "+file.getName());
                     Repository.c.put(in, file.getName());
                     in.close();}
                 else{

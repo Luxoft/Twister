@@ -234,6 +234,13 @@ public class Panel1 extends JPanel{
             public void actionPerformed(ActionEvent ev){
                 saveSuiteFile();}});
         filemenu.add(saveuser);
+        
+        JMenuItem saveuseras = new JMenuItem("Save project as");
+        saveuseras.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent ev){
+                saveSuiteAs();}});
+        filemenu.add(saveuseras);
+        
         JMenuItem deleteuser = new JMenuItem("Delete project file");
         deleteuser.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent ev){
@@ -328,6 +335,30 @@ public class Panel1 extends JPanel{
                 sc.g.repaint();
                 return;
     }}
+    
+    
+    /*
+     * save opened suite file
+     * on server with name provided by user
+     */
+    private void saveSuiteAs(){
+        if(!sc.g.getUser().equals("")){
+            String user = CustomDialog.showInputDialog(JOptionPane.QUESTION_MESSAGE,
+                                                    JOptionPane.OK_CANCEL_OPTION, Repository.window,
+                                                    "File Name", "Please enter project file name").
+                                                    toUpperCase();
+            
+            if(user!=null&&!user.equals("")){
+                if(sc.g.printXML(user+".xml", false,false,
+                             Repository.window.mainpanel.p1.suitaDetails.stopOnFail(),
+                             Repository.window.mainpanel.p1.suitaDetails.saveDB(),
+                             Repository.window.mainpanel.p1.suitaDetails.getDelay()))
+                    CustomDialog.showInfo(JOptionPane.PLAIN_MESSAGE, 
+                                            Repository.window, "Succes",
+                                            "File successfully saved");
+                else CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, 
+                                            Repository.window, "Warning", 
+                                            "Warning, file not saved");}}}
         
     /*
      * save opened suite file
@@ -336,7 +367,10 @@ public class Panel1 extends JPanel{
     private void saveSuiteFile(){
         if(!sc.g.getUser().equals("")){
             if(sc.g.printXML(sc.g.getUser(), false,false,
-                             Repository.window.mainpanel.p1.suitaDetails.stopOnFail()))
+                             Repository.window.mainpanel.p1.suitaDetails.stopOnFail(),
+                             Repository.window.mainpanel.p1.suitaDetails.saveDB(),
+                             Repository.window.mainpanel.p1.suitaDetails.getDelay()
+                             ))
                 CustomDialog.showInfo(JOptionPane.PLAIN_MESSAGE, 
                                         Repository.window, "Succes",
                                         "File successfully saved");
@@ -589,6 +623,7 @@ public class Panel1 extends JPanel{
      * generate master suites XML
      */
     private void generate(){
+        Repository.window.mainpanel.p2.setSaveDB(suitaDetails.saveDB());
 //         String result="";//server status
 //         try{result = (String)Repository.getRPCClient().execute("getExecStatusAll",new Object[]{Repository.getUser()});}
 //         catch(Exception e){
@@ -612,6 +647,7 @@ public class Panel1 extends JPanel{
 //             if(!execute)break;
         }       
         if(execute){
+//             System.out.println("savedb: "+suitaDetails.saveDB());
                 String [] s = sc.g.getUser().split("\\\\");
                 if(s.length>0){
                     s[s.length-1] = "last_edited.xml";
@@ -623,7 +659,10 @@ public class Panel1 extends JPanel{
                     st.deleteCharAt(st.length()-1);
                     String user = st.toString();
                     if(sc.g.printXML(user, false,false,
-                                     suitaDetails.stopOnFail())){}
+                                     suitaDetails.stopOnFail(),
+                                     suitaDetails.saveDB(),
+                                     suitaDetails.getDelay()
+                                     )){}
     //                     CustomDialog.showInfo(JOptionPane.PLAIN_MESSAGE, 
     //                                             Repository.window, "Succes",
     //                                             "File successfully saved");
@@ -631,7 +670,9 @@ public class Panel1 extends JPanel{
                                                 Repository.window, "Warning", 
                                                 "Warning, temp file not saved");                    
                 }
-                sc.g.printXML(Repository.getTestXMLDirectory(),true,false,suitaDetails.stopOnFail());
+                sc.g.printXML(Repository.getTestXMLDirectory(),true,false,
+                              suitaDetails.stopOnFail(),suitaDetails.saveDB(),
+                              suitaDetails.getDelay());
                 Repository.emptyTestRepository();
                 File xml = new File(Repository.getTestXMLDirectory());
                 int size = Repository.getLogs().size();
@@ -717,7 +758,7 @@ public class Panel1 extends JPanel{
                         sc.g.setUser((new StringBuilder()).append(Repository.getUsersDirectory()).
                                                                     append(System.getProperty("file.separator")).
                                                                     append(user).append(".xml").toString());
-                        sc.g.printXML(sc.g.getUser(),false,false,false);}}
+                        sc.g.printXML(sc.g.getUser(),false,false,false,false,"");}}
                 else if(user != null){
                     sc.g.setUser((new StringBuilder()).append(Repository.getUsersDirectory()).
                                                                 append(System.getProperty("file.separator")).
@@ -758,7 +799,7 @@ public class Panel1 extends JPanel{
                 chooser.setDialogTitle("Choose Location");         
                 chooser.setAcceptAllFileFilterUsed(false);    
                 if (chooser.showOpenDialog(Panel1.this) == JFileChooser.APPROVE_OPTION) {
-                    if(sc.g.printXML(chooser.getSelectedFile()+".xml", false,true,false)){
+                    if(sc.g.printXML(chooser.getSelectedFile()+".xml", false,true,false,false,"")){
                         CustomDialog.showInfo(JOptionPane.PLAIN_MESSAGE, Panel1.this,
                                                 "Success","File successfully saved ");}
                     else{
@@ -809,7 +850,7 @@ public class Panel1 extends JPanel{
             Repository.window.mainpanel.p1.sc.g.setUser(Repository.getUsersDirectory()+
                                                                 System.getProperty("file.separator")+
                                                                 user+".xml");
-            sc.g.printXML(sc.g.getUser(),false,false,false);
+            sc.g.printXML(sc.g.getUser(),false,false,false,false,"");
             sc.g.updateScroll();
             sc.g.repaint();
             Repository.emptySuites();}}

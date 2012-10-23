@@ -73,6 +73,7 @@ public class Panel2 extends JPanel{
     private boolean runned = false;
     public JButton stop,play;
     private boolean first = true;
+    private boolean savedb;
 
     public Panel2(final boolean applet){
         Repository.intro.setStatus("Started Monitoring interface initialization");
@@ -161,7 +162,7 @@ public class Panel2 extends JPanel{
                 Repository.window.mainpanel.p1.edit.setEnabled(true);
                 play.setText("Run");
                 play.setIcon(new ImageIcon(Repository.playicon));
-                if(runned){
+                if(runned && !savedb){
                     new Thread(){
                         public void run(){
                             try{
@@ -213,10 +214,14 @@ public class Panel2 extends JPanel{
                 first = false;
             }
             try{Thread.sleep(1000);}
-            catch(Exception ex){ex.printStackTrace();}
+            catch(Exception ex){
+                ex.printStackTrace();
+            }
             System.out.println("Could not connect to: "+Repository.host+" on port"+
                                 Repository.getCentralEnginePort());
+                                
             e.printStackTrace();
+            
             if(play.isEnabled()){
                 play.setEnabled(false);
                 stop.setEnabled(false);
@@ -442,6 +447,10 @@ public class Panel2 extends JPanel{
                 index2 = manageSubchildren(item.getSubItem(i),statuses,index2);}
             return index2;}
         return index2;}
+        
+    public void setSaveDB(boolean savedb){
+        this.savedb = savedb;
+    }
      
     /*
      * return status of stop button

@@ -2176,12 +2176,14 @@ public class Grafic extends JPanel{
      * if skip => master xml
      */
     public boolean printXML(String user, boolean skip,
-                            boolean local, boolean stoponfail){
+                            boolean local, boolean stoponfail,
+                            boolean savedb, String delay){
         //skip = true
         try{XMLBuilder xml = new XMLBuilder(Repository.getSuite());
             xml.createXML(skip,stoponfail,false,
                           Repository.window.mainpanel.p1.suitaDetails.getPreScript(),
-                          Repository.window.mainpanel.p1.suitaDetails.getPostScript());
+                          Repository.window.mainpanel.p1.suitaDetails.getPostScript(),
+                          savedb,delay);
             xml.writeXMLFile(user,local,false);
             return true;}
         catch(Exception e){

@@ -181,11 +181,16 @@ class CentralEngine(_cptools.XMLRPCController):
         This function is called from the Java GUI, or from an EP.
         '''
 
-        logDebug('CE: Preparing to save into database...')
-        time.sleep(3)
-        ret = self.project.saveToDatabase(user)
-        logDebug('CE: Done saving to database!')
-        return ret
+        db_auto_save = self.project.getUserInfo(user, 'db_auto_save')
+
+        if db_auto_save:
+            logDebug('CE: Preparing to save into database...')
+            time.sleep(3)
+            ret = self.project.saveToDatabase(user)
+            logDebug('CE: Done saving to database!')
+            return ret
+        else:
+            return False
 
 
 # --------------------------------------------------------------------------------------------------
@@ -411,7 +416,7 @@ class CentralEngine(_cptools.XMLRPCController):
                     self.sendMail(user)
 
                     # On Central Engine stop, save to database?
-                    #self.commitToDatabase()
+                    self.commitToDatabase(user)
 
                     # Execute "Post Script"
                     script_post = self.project.getUserInfo(user, 'script_post')

@@ -136,6 +136,9 @@ class Project:
         else:
             base_config = '/home/%s/twister/config/fwmconfig.xml' % user
 
+        if not files_config:
+            files_config = '/home/%s/twister/config/testsuites.xml' % user
+
         # User data + User parser
         self.users[user] = {'status': STATUS_STOP, 'eps': OrderedDict()}
         if config_data:
@@ -159,17 +162,26 @@ class Project:
 
         # Add framework config info to default user
         self.users[user]['config_path'] = base_config
-        self.users[user]['tests_path'] = self.parsers[user].getTestSuitePath()
+        self.users[user]['tests_path'] = files_config
         self.users[user]['logs_path'] = self.parsers[user].getLogsPath()
         self.users[user]['log_types'] = {}
 
+        # Get project global variables from XML
+        project_globals = self.parsers[user].getProjectGlobals()
+
         # Add the `exit on test Fail` value
-        self.users[user]['exit_on_test_fail'] = self.parsers[user].getExitOnTestFail()
+        self.users[user]['exit_on_test_fail'] = project_globals['ExitOnTestFail']
 
         # Add the `Pre and Post` project Scripts
-        script_pre, script_post = self.parsers[user].getScripts()
-        self.users[user]['script_pre'] = script_pre
-        self.users[user]['script_post'] = script_post
+        self.users[user]['script_pre'] = project_globals['ScriptPre']
+        self.users[user]['script_post'] = project_globals['ScriptPost']
+
+        # Add the `Database Autosave` value
+        self.users[user]['db_auto_save'] = project_globals['DbAutoSave']
+
+        # Add the `Testcase Delay` value
+        self.users[user]['tc_delay'] = project_globals['TestcaseDelay']
+        del project_globals
 
         for logType in self.parsers[user].getLogTypes():
             self.users[user]['log_types'][logType] = self.parsers[user].getLogFileForType(logType)
@@ -250,11 +262,16 @@ class Project:
         r = self.changeUser(user)
         if not r: return False
 
-        logDebug('Project: RESET configuration for user `{0}`...'.format(user)) ; ti = time.clock()
+        ti = time.clock()
 
-        # User config XML
+        # User config XML files
         if not base_config:
             base_config = self.users[user]['config_path']
+        if not files_config:
+            files_config = self.users[user]['tests_path']
+
+        logDebug('Project: RESET configuration for user `{0}`, using config files `{1}` and `{2}`.'.format(
+            user, base_config, files_config))
         self.parsers[user] = TSCParser(base_config, files_config)
 
         # Calculate the Suites for each EP and the Files for each Suite
@@ -269,17 +286,26 @@ class Project:
 
         # Add framework config info to default user
         self.users[user]['config_path'] = base_config
-        self.users[user]['tests_path'] = self.parsers[user].getTestSuitePath()
+        self.users[user]['tests_path'] = files_config
         self.users[user]['logs_path'] = self.parsers[user].getLogsPath()
         self.users[user]['log_types'] = {}
 
+        # Get project global variables from XML
+        project_globals = self.parsers[user].getProjectGlobals()
+
         # Add the `exit on test Fail` value
-        self.users[user]['exit_on_test_fail'] = self.parsers[user].getExitOnTestFail()
+        self.users[user]['exit_on_test_fail'] = project_globals['ExitOnTestFail']
 
         # Add the `Pre and Post` project Scripts
-        script_pre, script_post = self.parsers[user].getScripts()
-        self.users[user]['script_pre'] = script_pre
-        self.users[user]['script_post'] = script_post
+        self.users[user]['script_pre'] = project_globals['ScriptPre']
+        self.users[user]['script_post'] = project_globals['ScriptPost']
+
+        # Add the `Database Autosave` value
+        self.users[user]['db_auto_save'] = project_globals['DbAutoSave']
+
+        # Add the `Testcase Delay` value
+        self.users[user]['tc_delay'] = project_globals['TestcaseDelay']
+        del project_globals
 
         for logType in self.parsers[user].getLogTypes():
             self.users[user]['log_types'][logType] = self.parsers[user].getLogFileForType(logType)

@@ -210,7 +210,6 @@ public class DBConfig extends JPanel{
         try{
             InputStream in = null;
             try{Repository.c.cd(Repository.REMOTEDATABASECONFIGPATH);
-                System.out.println("changed to:"+ Repository.REMOTEDATABASECONFIGPATH);
                 in = Repository.c.get(Repository.REMOTEDATABASECONFIGFILE);}
             catch(Exception e){e.printStackTrace();
                 System.out.println("Could not get: "+Repository.REMOTEDATABASECONFIGFILE);}
