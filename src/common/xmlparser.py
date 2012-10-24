@@ -313,11 +313,12 @@ class TSCParser:
             return []
         for ep in self.configTS('epid'):
             activeEPs.append(ep.text)
-        activeEPs = list(set(activeEPs))
+        activeEPs = (';'.join(activeEPs)).split(';')
+        activeEPs = sorted(list(set(activeEPs)))
         return activeEPs
 
 
-    def getSuiteInfo(self, suite_soup):
+    def getSuiteInfo(self, epname, suite_soup):
         """
         Returns a dict with information about 1 Suite from Test-Suites XML.
         The "suite" must be a BeautifulSoup class.
@@ -329,7 +330,7 @@ class TSCParser:
         res.update( dict(zip([p.text for p in prop_keys], [p.text for p in prop_vals])) ) # Pack Key + Value
 
         res['files'] = OrderedDict()
-        res['ep'] = suite_soup.epid.text
+        res['ep'] = epname
 
         for file_tag in suite_soup('tcname'):
             file_data = self.getFileInfo(file_tag.parent)
@@ -355,9 +356,9 @@ class TSCParser:
 
         res = OrderedDict()
 
-        for suite in [k.parent for k in self.configTS(name='epid') if k.text==epname]:
+        for suite in [k.parent for k in self.configTS(name='epid') if epname in k.text.split(';')]:
             suite_str = str(self.suite_no)
-            res[suite_str] = self.getSuiteInfo(suite)
+            res[suite_str] = self.getSuiteInfo(epname, suite)
             # Add the suite ID for all files in the suite
             for file_id in res[suite_str]['files']:
                 res[suite_str]['files'][file_id]['suite'] = suite_str
