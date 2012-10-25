@@ -1,5 +1,5 @@
 
-twister_openflow_config=[
+twister_openflow_config = [
     {
         'cfgtype':'virtual',
         'epname':'EP-1001',
@@ -41,16 +41,15 @@ twister_openflow_config=[
             'port_map':{1: 'eth1', 2: 'eth2', 3: 'eth3', 4: 'eth4'},
         }
      }
-
 ]
 
-#default openflow config used by oftest is first entry in list
-openflow_config=twister_openflow_config[0]['config']
+# Default openflow config used by oftest is first entry in list
+openflow_config = twister_openflow_config[0]['config']
 
-#call this in the twister openflow test to set a new config
+# Call this in the twister openflow test to set a new config
 def getOpenflowConfig(epid):
     for cfg in twister_openflow_config:
-        if (cfg['epname']==epid):
+        if cfg['epname'] == epid:
             print "Found config for %s" % epid
             return cfg['config']
     print "Config not found, return default config"

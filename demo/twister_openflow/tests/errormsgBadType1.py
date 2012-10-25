@@ -2,12 +2,11 @@
 from ce_libs import *
 
 try:
-    errormsg.config=getOpenflowConfig(globEpName)
-    errormsg.errormsg_port_map= pktact.pa_config['port_map']
+    errormsg.config = getOpenflowConfig(globEpName)
+    errormsg.errormsg_port_map = pktact.pa_config['port_map']
 except:
-    print "Error: Invalid configuration for EPNAME: " + str(globEpName)
+    print 'Error: Invalid configuration for EPNAME: ' + str(globEpName)
 
-#class body
 class BadType1(basic.SimpleProtocol):
     """
     When the controller sends a request message which 

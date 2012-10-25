@@ -1,6 +1,27 @@
 
-Prerequisites: you must have openvswitch running, or a physical OpenFlow switch.
-The configuration is made in file of_config.py.
+For OpenFlow tests, the Execution Process must be run with `sudo python start_ep.py`.
 
-To run the tests with Twister Framework, you must copy of_config.py, all Python files from oflib folder
-  and oflib/oflib.zip into twister/lib, on Central Engine.
+Prerequisites: you must have Openvswitch running, or a physical OpenFlow switch.
+The configuration is made in file `of_config.py`.
+
+To run the tests with Twister Framework, you must copy:
+- `of_config.py`,
+- `oflib/oflib.zip`,
+- all Python files from `oflib` folder,
+  into Central Engine lib folder, located at `/opt/twister/lib`.
+
+
+Troubleshooting:
+
+If following errors appears in the applet EP-*_CLI.log tab:
+
+	NameError: name 'SimpleProtocol' is not defined
+	Check if you copied all libraries into `/opt/twister/lib`.
+
+	ImportError: No module named oftest.controller
+	Check if you copied `oflib/oflib.zip` into `/opt/twister/lib`.
+
+	If the tests are locked at lines :
+	** START TEST CASE <__builtin__.Echo instance at 0xXXXXXXX>
+	Connected None...
+	Stop the tests and check if you started the Openvswitch and if it's configured correctly in `of_config.py`.

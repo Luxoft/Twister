@@ -1,10 +1,11 @@
 
 from ce_libs import *
+
 try:
-    caps.caps_config = getOpenflowConfig(globEpName)
+    caps.caps_config = getOpenflowConfig(EP)
     caps.caps_port_map = caps.caps_config['port_map']
 except:
-    print "Error: Invalid configuration for EPNAME: " + str(globEpName)
+    print 'Error: Invalid configuration for EPNAME: ' + str(EP)
 
 class FillTableExact(basic.SimpleProtocol):
     """
@@ -28,5 +29,5 @@ class FillTableExact(basic.SimpleProtocol):
         flow_caps_common(self)
 
 
-tc=FillTableExact()
+tc = FillTableExact()
 _RESULT = tc.run()
