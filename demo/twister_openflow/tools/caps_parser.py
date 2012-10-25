@@ -3,15 +3,16 @@ from oftest_parser import *
 
 template="""
 from ce_libs import *
+
 try:
-    caps.caps_config = getOpenflowConfig(globEpName)
-    caps.caps_port_map = caps.caps_config[\'port_map\']
+    caps.caps_config = getOpenflowConfig(EP)
+    caps.caps_port_map = caps.caps_config['port_map']
 except:
-    print \"Error: Invalid configuration for EPNAME: \" + str(globEpName)
+    print 'Error: Invalid configuration for EPNAME: ' + str(EP)
 
 %s
 
-tc=%s()
+tc = %s()
 _RESULT = tc.run()
 """
 

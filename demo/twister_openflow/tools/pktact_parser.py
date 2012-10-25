@@ -5,10 +5,10 @@ template="""
 from ce_libs import *
 
 try:
-    pktact.pa_config=getOpenflowConfig(globEpName)
-    pktact.pa_port_map= pktact.pa_config[\'port_map\']
+    pktact.pa_config = getOpenflowConfig(globEpName)
+    pktact.pa_port_map = pktact.pa_config['port_map']
 except:
-    print \"Error: Invalid configuration for EPNAME: \" + str(globEpName)
+    print 'Error: Invalid configuration for EPNAME: ' + str(globEpName)
 
 %s
 
