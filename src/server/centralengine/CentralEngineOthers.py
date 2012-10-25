@@ -25,7 +25,8 @@
 Project Class
 *************
 
-The **Project** class collects and organizes all the information for the Central Engine.
+The **Project** class collects and organizes all the information for
+ the Central Engine.
 
 Information about *users*:
 
@@ -106,10 +107,10 @@ class Project:
         self.parsers = {}
         self.test_ids = {}
 
-        self.usr_lock = thread.allocate_lock() # User change lock
-        self.int_lock = thread.allocate_lock() # Internal use lock
-        self.eml_lock = thread.allocate_lock() # E-mail lock
-        self.db_lock  = thread.allocate_lock() # Database lock
+        self.usr_lock = thread.allocate_lock()  # User change lock
+        self.int_lock = thread.allocate_lock()  # Internal use lock
+        self.eml_lock = thread.allocate_lock()  # E-mail lock
+        self.db_lock  = thread.allocate_lock()  # Database lock
 
 
     def createUser(self, user, base_config='', files_config=''):
