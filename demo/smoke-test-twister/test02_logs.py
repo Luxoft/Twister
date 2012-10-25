@@ -9,48 +9,48 @@ import binascii
 
 #
 
-def test(proxy, userName):
+def test(PROXY, USER):
 
-    proxy.setStartedBy(userName, 'gigi')
+    PROXY.setStartedBy(USER, 'gigi')
     time.sleep(0.5)
 
-    r = proxy.resetLog(userName, 'log_debug.log')
+    r = PROXY.resetLog(USER, 'log_debug.log')
     if not r:
         print('Failure! Cannot reset log_debug!')
         return 'Fail'
     print 'Reset log:',  r
 
-    r = proxy.resetLogs(userName)
+    r = PROXY.resetLogs(USER)
     if not r:
         print('Failure! Cannot reset logs!')
         return 'Fail'
     print 'Reset logs:', r
 
-    print 'Logs path:', proxy.getLogsPath(userName)
-    print 'Log types:', proxy.getLogTypes(userName)
+    print 'Logs path:', PROXY.getLogsPath(USER)
+    print 'Log types:', PROXY.getLogTypes(USER)
     time.sleep(0.5)
     print
 
     print 'Writing in logRunning...'
-    r = proxy.logMessage(userName, 'logRunning', 'Run run run run run...')
+    r = PROXY.logMessage(USER, 'logRunning', 'Run run run run run...')
     if not r:
         print('Failure! Cannot use logMessage!')
         return 'Fail'
-    print 'Reading from logRunning: ', binascii.a2b_base64( proxy.getLogFile(userName, 1, 0, 'log_running.log') )
+    print 'Reading from logRunning: ', binascii.a2b_base64( PROXY.getLogFile(USER, 1, 0, 'log_running.log') )
     time.sleep(0.5)
     print
 
     print 'Writing in logDebug...'
-    r = proxy.logMessage(userName, 'logDebug', 'Debug debug debug debug debug...')
+    r = PROXY.logMessage(USER, 'logDebug', 'Debug debug debug debug debug...')
     if not r:
         print('Failure! Cannot use logDebug!')
         return 'Fail'
-    print 'Reading from logDebug: ', binascii.a2b_base64( proxy.getLogFile(userName, 1, 0, 'log_debug.log') )
+    print 'Reading from logDebug: ', binascii.a2b_base64( PROXY.getLogFile(USER, 1, 0, 'log_debug.log') )
     time.sleep(0.5)
     print
 
-    for epname in proxy.listEPs(userName).split(','):
-        r = proxy.logLIVE(userName, epname, binascii.b2a_base64('Some log live message for `%s`...' % epname))
+    for epname in PROXY.listEPs(USER).split(','):
+        r = PROXY.logLIVE(USER, epname, binascii.b2a_base64('Some log live message for `%s`...' % epname))
         if not r:
             print('Failure! Cannot use log Live!')
             return 'Fail'
@@ -59,6 +59,6 @@ def test(proxy, userName):
 
 #
 
-_RESULT = test(proxy, userName)
+_RESULT = test(PROXY, USER)
 
 # Eof()

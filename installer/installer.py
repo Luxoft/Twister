@@ -433,7 +433,7 @@ for fname in glob.glob(INSTALL_PATH + 'bin/*'):
 # Fix FWM Config XML
 if TO_INSTALL == 'client':
     fwm = Template( open(INSTALL_PATH + 'config/fwmconfig.xml', 'r').read() )
-    open(INSTALL_PATH + 'config/fwmconfig.xml', 'w').write( fwm.substitute(HOME=os.getenv('HOME')) )
+    open(INSTALL_PATH + 'config/fwmconfig.xml', 'w').write( fwm.substitute(HOME=os.getenv('HOME').rstrip('/')) )
     del fwm
 
 #

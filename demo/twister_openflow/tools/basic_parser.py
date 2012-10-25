@@ -5,10 +5,10 @@ template="""
 from ce_libs import *
 
 try:
-    basic.basic_config=getOpenflowConfig(globEpName)
-    basic.basic_port_map=basic.basic_config[\'port_map\']
+    basic.basic_config = getOpenflowConfig(EP)
+    basic.basic_port_map = basic.basic_config['port_map']
 except:
-    print \"Error: Invalid configuration for EPNAME: \" + str(globEpName)
+    print 'Error: Invalid configuration for EPNAME: ' + str(EP)
 
 %s
 

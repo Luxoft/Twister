@@ -34,7 +34,13 @@ for val in eps:
         proxy = xmlrpclib.ServerProxy("http://{0}:{1}/".format(val['CE_IP'], val['CE_PORT']))
 
         now_dtime = datetime.today()
-        last_seen_alive = proxy.getEpVariable(user_name, val['ID'], 'last_seen_alive')
+
+        try:
+            last_seen_alive = proxy.getEpVariable(user_name, val['ID'], 'last_seen_alive')
+        except:
+            print('Error: Cannot connect to Central Engine to check the EP! Exiting!\n')
+            exit(1)
+
         if last_seen_alive:
             diff = now_dtime - datetime.strptime(last_seen_alive, '%Y-%m-%d %H:%M:%S')
             if diff.seconds < 5:
