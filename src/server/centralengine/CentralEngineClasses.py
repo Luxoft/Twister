@@ -977,33 +977,6 @@ class CentralEngine(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
-    def findLog(self, user, epname, filename):
-        '''
-        Parses the log file of one EP and returns the log of one test file.
-        '''
-        logPath = self.project.getUserInfo(user, 'logs_path') + os.sep + epname + '_CLI.log'
-
-        try:
-            data = open(logPath, 'r').read()
-        except:
-            logError("CE ERROR! Log file `%s` cannot be read!" % logPath)
-            return False
-
-        try:
-            log = re.search(('(?:.*>>> File `.*` returned `\w+`. <<<)(.+?>>> File `%s` returned `\w+`. <<<)' %
-                             filename), data, re.S).group(1)
-        except:
-            try:
-                log = re.search(('(?:.*===== ===== ===== ===== =====)(.+?>>> File `%s` returned `\w+`. <<<)' %
-                                 filename), data, re.S).group(1)
-            except:
-                logError("CE ERROR! Cannot find file {0} in the log for {1}!".format(filename, epname))
-                return '*no log*'
-
-        return log.replace("'", "\\'")
-
-
-    @cherrypy.expose
     def resetLogs(self, user):
         '''
         All logs defined in master config are erased.
