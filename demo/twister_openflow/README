@@ -1,14 +1,17 @@
 
 For OpenFlow tests, the Execution Process must be run with `sudo python start_ep.py`.
 
-Prerequisites: you must have Openvswitch running, or a physical OpenFlow switch.
-The configuration is made in file `of_config.py`.
-
-To run the tests with Twister Framework, you must copy:
+To run the tests with Twister Framework, you must copy into Central Engine lib folder
+  located at `/opt/twister/lib`:
 - `of_config.py`,
 - `oflib/oflib.zip`,
-- all Python files from `oflib` folder,
-  into Central Engine lib folder, located at `/opt/twister/lib`.
+- all Python files from `oflib` folder.
+
+Prerequisites: you must have OpenVswitch (openvswitch.org) running, OR a physical OpenFlow switch.
+
+By default, in `of_config.py` the physical switch is configured for EP-1003,
+  the rest (EP-1001 and EP-1002) are for virtual switch (OpenVswitch).
+
 
 
 Troubleshooting:
@@ -24,4 +27,5 @@ If following errors appears in the applet EP-*_CLI.log tab:
 	If the tests are locked at lines :
 	** START TEST CASE <__builtin__.Echo instance at 0xXXXXXXX>
 	Connected None...
-	Stop the tests and check if you started the Openvswitch and if it's configured correctly in `of_config.py`.
+	Stop the tests and check if you started the OpenVswitch OR if you have a physical switch,
+	if it's configured correctly in `/opt/twister/lib/of_config.py`.
