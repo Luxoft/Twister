@@ -68,6 +68,7 @@ import time
 import json
 import thread
 import subprocess
+import platform
 import smtplib
 import MySQLdb
 
@@ -786,6 +787,8 @@ class Project:
             scripts = db_parser.getScripts() # List
             del db_parser
 
+            system = platform.machine() +' '+ platform.system() +', '+ ' '.join(platform.linux_distribution())
+
             #
             conn = MySQLdb.connect(host=db_config.get('server'), db=db_config.get('database'),
                 user=db_config.get('user'), passwd=db_config.get('password'))
@@ -806,9 +809,13 @@ class Project:
                         subst_data.update( self.users[user]['eps'][epname]['suites'][suite_id]['files'][file_id] )
 
                         # Insert/ fix DB variables
+                        subst_data['twister_ce_os'] = system
+                        subst_data['twister_ep_name'] = epname
                         subst_data['twister_suite_name'] = self.users[user]['eps'][epname]['suites'][suite_id]['name']
                         subst_data['twister_tc_full_path'] = self.users[user]['eps'][epname]['suites'][suite_id]['files'][file_id]['file']
                         subst_data['twister_tc_name'] = os.path.split(subst_data['twister_tc_full_path'])[1]
+                        subst_data['twister_tc_title'] = ''
+                        subst_data['twister_tc_description'] = ''
 
                         # Prerequisite files will not be saved to database
                         if subst_data.get('Prerequisite'):
