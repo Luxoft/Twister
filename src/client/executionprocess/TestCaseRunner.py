@@ -374,7 +374,8 @@ if __name__=='__main__':
             suite_number += 1
             continue
         else:
-            print('TC debug: Stats from last run : {0}'.format(tStats))
+            # print('TC debug: Stats from last run : {0}'.format(tStats))
+            pass
 
 
         for iIndex in range(len(tList)):
@@ -399,7 +400,7 @@ if __name__=='__main__':
             else:
                 args = []
 
-            print('Starting to RUN filename: `%s`, dependancy = `%s`, prereq = `%s`, optional = `%s` ...\n' %
+            print('<<< START filename: `%s` >>>\n\nDebug: dependancy = `%s`, prereq = `%s`, optional = `%s` ...\n' %
                   (filename, dependancy, prerequisite, optional_test))
 
             # Reset abort suite variable for every first file in the suite
@@ -542,6 +543,8 @@ if __name__=='__main__':
             # END OF TEST!
             timer_f = time.time() - timer_i
             # --------------------------------------------------
+
+            print('<<< END filename: `%s` >>>\n' % filename)
 
             if result==STATUS_PASS or result == 'PASS':
                 proxySetTestStatus(file_id, STATUS_PASS, timer_f) # File status PASS

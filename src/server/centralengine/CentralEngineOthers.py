@@ -767,6 +767,27 @@ class Project:
 # # #
 
 
+    def findLog(self, user, epname, fname):
+        '''
+        Parses the log file of one EP and returns the log of one test file.
+        '''
+        logPath = self.getUserInfo(user, 'logs_path') + os.sep + epname + '_CLI.log'
+
+        try:
+            data = open(logPath, 'r').read()
+        except:
+            logError("Find Log: File `%s` cannot be read!" % logPath)
+            return '*no log*'
+
+        try:
+            log = re.search(('(<<< START filename: `%s` >>>)(.*?)(<<< END filename: `%s` >>>)' % (fname, fname)), data, re.S).group(2)
+        except:
+            logError("CE ERROR! Cannot find file {0} in the log for {1}!".format(fname, epname))
+            return '*no log*'
+
+        return log.replace("'", "\\'")
+
+
     def saveToDatabase(self, user):
         """
         Save all data from a user: Ep, Suite, File, into database,
@@ -817,6 +838,13 @@ class Project:
                         subst_data['twister_tc_title'] = ''
                         subst_data['twister_tc_description'] = ''
 
+                        try:
+                            subst_data['twister_tc_log'] = open(self.getUserInfo(user, 'logs_path') +os.sep+ epname + '_CLI.log').read()
+                            subst_data['twister_tc_log'] = subst_data['twister_tc_log'].replace('\n', '<BR>')
+                            #self.findLog(user, epname, subst_data['twister_tc_full_path'])
+                        except:
+                            subst_data['twister_tc_log'] = '*no log*'
+
                         # Prerequisite files will not be saved to database
                         if subst_data.get('Prerequisite'):
                             continue
@@ -852,7 +880,7 @@ class Project:
                                 u_query = fields.get(field.replace('@', ''))
 
                                 if not u_query:
-                                    logError('File: {0}, cannot build query! Field {1} is not defined in the fields section!'\
+                                    logError('File: `{0}`, cannot build query! Field `{1}` is not defined in the fields section!'\
                                         ''.format(subst_data['file'], field))
                                     return False
 
@@ -869,7 +897,7 @@ class Project:
                             try:
                                 query = tmpl.substitute(subst_data)
                             except Exception, e:
-                                logError('User `{0}`, file {1}: Cannot build query! Error on `{2}`!'\
+                                logError('User `{0}`, file `{1}`: Cannot build query! Error on `{2}`!'\
                                     ''.format(user, subst_data['file'], str(e)))
                                 return False
 
