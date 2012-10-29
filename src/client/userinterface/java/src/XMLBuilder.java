@@ -120,14 +120,14 @@ public class XMLBuilder{
             if(suite.get(i).getEpId()!=null&&suite.get(i).getEpId().length>0){
                 Element EP = document.createElement("EpId");
                 StringBuilder b = new StringBuilder();
-//                 for(String s:suite.get(i).getEpId()){
-//                     b.append(s+";");
-//                 }
-//                 b.deleteCharAt(b.length()-1);
                 for(String s:suite.get(i).getEpId()){
-                    b.append(s);
-                    break;
+                    b.append(s+";");
                 }
+                b.deleteCharAt(b.length()-1);
+//                 for(String s:suite.get(i).getEpId()){
+//                     b.append(s);
+//                     break;
+//                 }
                 EP.appendChild(document.createTextNode(b.toString()));
 //                 EP.appendChild(document.createTextNode(suite.get(i).getEpId()));
                 rootElement.appendChild(EP);}
@@ -359,14 +359,14 @@ public class XMLBuilder{
             if(item.getEpId()!=null&&!item.getEpId().equals("")){
                 Element EP = document.createElement("EpId");
                 StringBuilder b = new StringBuilder();
-//                 for(String s:item.getEpId()){
-//                     b.append(s+";");
-//                 }
-//                 b.deleteCharAt(b.length()-1);   
                 for(String s:item.getEpId()){
-                    b.append(s);
-                    break;
+                    b.append(s+";");
                 }
+                b.deleteCharAt(b.length()-1);   
+//                 for(String s:item.getEpId()){
+//                     b.append(s);
+//                     break;
+//                 }
                 
                 EP.appendChild(document.createTextNode(b.toString()));
 //                 EP.appendChild(document.createTextNode(item.getEpId()));

@@ -40,10 +40,7 @@ import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
 import java.awt.Component;
 import java.util.ArrayList;
-import net.sf.vfsjfilechooser.VFSJFileChooser;
-import net.sf.vfsjfilechooser.VFSJFileChooser.RETURN_TYPE;
 import org.apache.commons.vfs.FileObject;
-import net.sf.vfsjfilechooser.utils.VFSUtils;
 import javax.swing.JFrame;
 import javax.swing.JCheckBox;
 import javax.swing.LayoutStyle;
@@ -60,6 +57,7 @@ import javax.swing.JList;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.event.ListSelectionEvent;
 import java.util.Arrays;
+import java.awt.Container;
 
 public class SuitaDetails extends JPanel {
     private JPanel defsContainer,global, suiteoptions, tcoptions, summary;
@@ -69,7 +67,6 @@ public class SuitaDetails extends JPanel {
     private JCheckBox stoponfail, runnable, optional, prerequisites, savedb;
     private JTextField tprescript, tpostscript;
     private JButton browse1,browse2;
-    private VFSJFileChooser fileChooser;
     private Item parent;
     private JTextField tsuite,ttcname,ttcdelay;
     private JList combo;
@@ -186,45 +183,58 @@ public class SuitaDetails extends JPanel {
         
         browse1.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent evt) {
-                if(fileChooser==null)initializeFileBrowser();
-                try{RETURN_TYPE answer = fileChooser.showOpenDialog(SuitaDetails.this);
-                    if (answer == RETURN_TYPE.APPROVE){
-                        FileObject aFileObject = fileChooser.getSelectedFile();
-                        String safeName = VFSUtils.getFriendlyName(aFileObject.toString());
-                        safeName = safeName.substring(safeName.indexOf(Repository.host)+
-                                                        Repository.host.length());
-                        String [] check = safeName.split("/");
-                        if(check[check.length-1].equals(check[check.length-2])){
-                            StringBuffer buffer = new StringBuffer();
-                            for(int i=0;i<check.length-1;i++){
-                                buffer.append(check[i]+"/");}
-                            safeName = buffer.toString();}
-                        tprescript.setText(safeName);}}
-                 catch(Exception e){
-                     fileChooser=null;
-                     e.printStackTrace();}
+//                 if(fileChooser==null)initializeFileBrowser();
+//                 try{RETURN_TYPE answer = fileChooser.showOpenDialog(SuitaDetails.this);
+//                     if (answer == RETURN_TYPE.APPROVE){
+//                         FileObject aFileObject = fileChooser.getSelectedFile();
+//                         String safeName = VFSUtils.getFriendlyName(aFileObject.toString());
+//                         safeName = safeName.substring(safeName.indexOf(Repository.host)+
+//                                                         Repository.host.length());
+//                         String [] check = safeName.split("/");
+//                         if(check[check.length-1].equals(check[check.length-2])){
+//                             StringBuffer buffer = new StringBuffer();
+//                             for(int i=0;i<check.length-1;i++){
+//                                 buffer.append(check[i]+"/");}
+//                             safeName = buffer.toString();}
+                            
+                        Container c;
+                        if(Repository.container!=null)c = Repository.container.getParent();
+                        else c = Repository.window;
+                        new MySftpBrowser(Repository.c,tprescript,c);
+//                         tprescript.setText(safeName);
+                    
+//                     }}
+//                  catch(Exception e){
+//                      fileChooser=null;
+//                      e.printStackTrace();}
             }
         });
 
         browse2.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent evt) {
-                if(fileChooser==null)initializeFileBrowser();
-                try{RETURN_TYPE answer = fileChooser.showOpenDialog(SuitaDetails.this);
-                    if (answer == RETURN_TYPE.APPROVE){
-                        FileObject aFileObject = fileChooser.getSelectedFile();
-                        String safeName = VFSUtils.getFriendlyName(aFileObject.toString());
-                        safeName = safeName.substring(safeName.indexOf(Repository.host)+
-                                                        Repository.host.length());
-                        String [] check = safeName.split("/");
-                        if(check[check.length-1].equals(check[check.length-2])){
-                            StringBuffer buffer = new StringBuffer();
-                            for(int i=0;i<check.length-1;i++){
-                                buffer.append(check[i]+"/");}
-                            safeName = buffer.toString();}
-                        tpostscript.setText(safeName);}}
-                 catch(Exception e){
-                     fileChooser=null;
-                     e.printStackTrace();}
+                
+//                 if(fileChooser==null)initializeFileBrowser();
+//                 try{RETURN_TYPE answer = fileChooser.showOpenDialog(SuitaDetails.this);
+//                     if (answer == RETURN_TYPE.APPROVE){
+//                         FileObject aFileObject = fileChooser.getSelectedFile();
+//                         String safeName = VFSUtils.getFriendlyName(aFileObject.toString());
+//                         safeName = safeName.substring(safeName.indexOf(Repository.host)+
+//                                                         Repository.host.length());
+//                         String [] check = safeName.split("/");
+//                         if(check[check.length-1].equals(check[check.length-2])){
+//                             StringBuffer buffer = new StringBuffer();
+//                             for(int i=0;i<check.length-1;i++){
+//                                 buffer.append(check[i]+"/");}
+//                             safeName = buffer.toString();}
+                        Container c;
+                        if(Repository.container!=null)c = Repository.container.getParent();
+                        else c = Repository.window;
+                        new MySftpBrowser(Repository.c,tpostscript,c);
+//                         tpostscript.setText(safeName);
+//                     }}
+//                  catch(Exception e){
+//                      fileChooser=null;
+//                      e.printStackTrace();}
             }
         });
         
@@ -745,13 +755,13 @@ public class SuitaDetails extends JPanel {
     }
         
         
-    public void initializeFileBrowser(){
-        fileChooser = new VFSJFileChooser("sftp://"+Repository.user+":"+
-                                           Repository.password+"@"+Repository.host+
-                                           "/home/"+Repository.user+"/twister/config/");        
-        fileChooser.setFileHidingEnabled(true);
-        fileChooser.setMultiSelectionEnabled(false);
-        fileChooser.setFileSelectionMode(VFSJFileChooser.SELECTION_MODE.FILES_AND_DIRECTORIES);}
+//     public void initializeFileBrowser(){
+//         fileChooser = new VFSJFileChooser("sftp://"+Repository.user+":"+
+//                                            Repository.password+"@"+Repository.host+
+//                                            "/home/"+Repository.user+"/twister/config/");        
+//         fileChooser.setFileHidingEnabled(true);
+//         fileChooser.setMultiSelectionEnabled(false);
+//         fileChooser.setFileSelectionMode(VFSJFileChooser.SELECTION_MODE.FILES_AND_DIRECTORIES);}
     
     class MyListSelectionListener implements ListSelectionListener {
         public void valueChanged(ListSelectionEvent evt) {
@@ -857,28 +867,15 @@ class DefPanel extends JPanel{
             add(script);
             script.addActionListener(new ActionListener(){
                 public void actionPerformed(ActionEvent ev){
-                    VFSJFileChooser fileChooser = Repository.window.mainpanel.p4.getConfig().
-                                                                                getChooser();
-                    try{RETURN_TYPE answer = fileChooser.showOpenDialog(DefPanel.this);
-                        if (answer == RETURN_TYPE.APPROVE){
-                            FileObject aFileObject = fileChooser.getSelectedFile();
-                            String safeName = VFSUtils.getFriendlyName(aFileObject.toString());
-                            safeName = safeName.substring(safeName.indexOf(Repository.host)+
-                                                            Repository.host.length());
-                            String [] check = safeName.split("/");
-                            if(check[check.length-1].equals(check[check.length-2])){
-                                StringBuffer buffer = new StringBuffer();
-                                for(int i=0;i<check.length-1;i++){
-                                    buffer.append(check[i]+"/");}
-                                safeName = buffer.toString();}
-                            userDefinition.setText(safeName);
-                            if(parent!=null){
-                                setParentField(userDefinition.getText(),false);}
-                        }}
-                    catch(Exception e){
-                        e.printStackTrace();
+                    Container c;
+                    if(Repository.container!=null)c = Repository.container.getParent();
+                    else c = Repository.window;
+                    new MySftpBrowser(Repository.c,userDefinition,c);
+                    if(parent!=null){
+                        setParentField(userDefinition.getText(),false);}
                     }
-                }});
+                    
+                });
             filedsGap = new JPanel();
             filedsGap.setBackground(new Color(255, 255, 255));
             filedsGap.setMaximumSize(new Dimension(10, 10));

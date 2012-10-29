@@ -2222,7 +2222,11 @@ public class Grafic extends JPanel{
                                                                 getPathCount()-2]+"/"+Repository.window.mainpanel.p1.
                                                                 ep.getSelected()[i].getPath()[Repository.window.
                                                                 mainpanel.p1.ep.getSelected()[i].getPathCount()-1];
-                    name = name.split(Repository.getTestSuitePath())[1];
+                    
+                    try{name = name.split(Repository.getTestSuitePath())[1];}
+                    catch(Exception e){
+                        System.out.println("Could not find projects path:"+Repository.getTestSuitePath()+" in filename:"+name);
+                        e.printStackTrace();}
                     FontMetrics metrics = getGraphics().getFontMetrics(new Font("TimesRoman", Font.PLAIN, 13));
                     Item newItem = new Item(name,1, -1, -1, metrics.stringWidth(name)+48, 20, null);
                     ArrayList<Integer> pos = new ArrayList <Integer>();

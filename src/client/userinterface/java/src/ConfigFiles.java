@@ -20,10 +20,6 @@ import javax.swing.JPanel;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import javax.swing.JButton;
-import net.sf.vfsjfilechooser.VFSJFileChooser;
-import net.sf.vfsjfilechooser.accessories.DefaultAccessoriesPanel;
-import net.sf.vfsjfilechooser.VFSJFileChooser.RETURN_TYPE;
-import net.sf.vfsjfilechooser.utils.VFSUtils;
 import org.apache.commons.vfs.FileObject;
 import javax.swing.JLabel;
 import javax.swing.JTextField;
@@ -77,7 +73,6 @@ import javax.swing.JComboBox;
 import java.util.Arrays;
 
 public class ConfigFiles extends JPanel{
-    private VFSJFileChooser fileChooser;
     private static JTextField ttcpath,tMasterXML,tUsers,tepid,
                               tlog,trunning,tname,thardwareconfig,
                               tdebug,tsummary,tinfo,tcli,tdbfile,
@@ -379,24 +374,11 @@ public class ConfigFiles extends JPanel{
             b.setPreferredSize(new Dimension(50,20));
             if(actionlistener==null){
                 b.addActionListener(new AbstractAction(){
-                    public void actionPerformed(ActionEvent ev){                        
-                        if(fileChooser==null)initializeFileBrowser();
-                        try{RETURN_TYPE answer = fileChooser.showOpenDialog(ConfigFiles.this);
-                            if (answer == RETURN_TYPE.APPROVE){
-                                FileObject aFileObject = fileChooser.getSelectedFile();
-                                String safeName = VFSUtils.getFriendlyName(aFileObject.toString());
-                                safeName = safeName.substring(safeName.indexOf(Repository.host)+
-                                                                Repository.host.length());
-                                String [] check = safeName.split("/");
-                                if(check[check.length-1].equals(check[check.length-2])){
-                                    StringBuffer buffer = new StringBuffer();
-                                    for(int i=0;i<check.length-1;i++){
-                                        buffer.append(check[i]+"/");}
-                                    safeName = buffer.toString();}
-                                textfield.setText(safeName);}}
-                         catch(Exception e){
-                             fileChooser=null;
-                             e.printStackTrace();}}});}  
+                    public void actionPerformed(ActionEvent ev){ 
+                        Container c;
+                        if(Repository.container!=null)c = Repository.container.getParent();
+                        else c = Repository.window;
+                        new MySftpBrowser(Repository.c,textfield,c);}});}
             else{b.addActionListener(actionlistener);
                 b.setText("Save");
                 b.setMaximumSize(new Dimension(70,20));
@@ -489,18 +471,12 @@ public class ConfigFiles extends JPanel{
         else temp = tagcontent;            
         rootElement.appendChild(document.createTextNode(temp));}
         
-    public VFSJFileChooser getChooser(){
-        if(fileChooser==null){
-            initializeFileBrowser();
-        }
-        fileChooser.rescanCurrentDirectory();
-        return fileChooser;
+//     public void initializeFileBrowser(){
+//         fileChooser = new VFSJFileChooser("sftp://"+Repository.user+":"+
+//                                            Repository.password+"@"+Repository.host+
+//                                            "/home/"+Repository.user+"/twister/config/");        
+//         //fileChooser.setFileHidingEnabled(true);
+//         fileChooser.setMultiSelectionEnabled(false);
+//         fileChooser.setFileSelectionMode(VFSJFileChooser.SELECTION_MODE.FILES_AND_DIRECTORIES);}
+    
     }
-        
-    public void initializeFileBrowser(){
-        fileChooser = new VFSJFileChooser("sftp://"+Repository.user+":"+
-                                           Repository.password+"@"+Repository.host+
-                                           "/home/"+Repository.user+"/twister/config/");        
-        //fileChooser.setFileHidingEnabled(true);
-        fileChooser.setMultiSelectionEnabled(false);
-        fileChooser.setFileSelectionMode(VFSJFileChooser.SELECTION_MODE.FILES_AND_DIRECTORIES);}}
