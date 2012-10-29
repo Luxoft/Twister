@@ -25,7 +25,8 @@
 Project Class
 *************
 
-The **Project** class collects and organizes all the information for the Central Engine.
+The **Project** class collects and organizes all the information for
+ the Central Engine.
 
 Information about *users*:
 
@@ -67,6 +68,7 @@ import time
 import json
 import thread
 import subprocess
+import platform
 import smtplib
 import MySQLdb
 
@@ -106,10 +108,10 @@ class Project:
         self.parsers = {}
         self.test_ids = {}
 
-        self.usr_lock = thread.allocate_lock() # User change lock
-        self.int_lock = thread.allocate_lock() # Internal use lock
-        self.eml_lock = thread.allocate_lock() # E-mail lock
-        self.db_lock  = thread.allocate_lock() # Database lock
+        self.usr_lock = thread.allocate_lock()  # User change lock
+        self.int_lock = thread.allocate_lock()  # Internal use lock
+        self.eml_lock = thread.allocate_lock()  # E-mail lock
+        self.db_lock  = thread.allocate_lock()  # Database lock
 
 
     def createUser(self, user, base_config='', files_config=''):
@@ -765,6 +767,27 @@ class Project:
 # # #
 
 
+    def findLog(self, user, epname, fname):
+        '''
+        Parses the log file of one EP and returns the log of one test file.
+        '''
+        logPath = self.getUserInfo(user, 'logs_path') + os.sep + epname + '_CLI.log'
+
+        try:
+            data = open(logPath, 'r').read()
+        except:
+            logError("Find Log: File `%s` cannot be read!" % logPath)
+            return '*no log*'
+
+        try:
+            log = re.search(('(<<< START filename: `%s` >>>)(.*?)(<<< END filename: `%s` >>>)' % (fname, fname)), data, re.S).group(2)
+        except:
+            logError("CE ERROR! Cannot find file {0} in the log for {1}!".format(fname, epname))
+            return '*no log*'
+
+        return log.replace("'", "\\'")
+
+
     def saveToDatabase(self, user):
         """
         Save all data from a user: Ep, Suite, File, into database,
@@ -784,6 +807,8 @@ class Project:
             fields  = db_parser.getFields()  # Dictionary
             scripts = db_parser.getScripts() # List
             del db_parser
+
+            system = platform.machine() +' '+ platform.system() +', '+ ' '.join(platform.linux_distribution())
 
             #
             conn = MySQLdb.connect(host=db_config.get('server'), db=db_config.get('database'),
@@ -805,9 +830,20 @@ class Project:
                         subst_data.update( self.users[user]['eps'][epname]['suites'][suite_id]['files'][file_id] )
 
                         # Insert/ fix DB variables
+                        subst_data['twister_ce_os'] = system
+                        subst_data['twister_ep_name'] = epname
                         subst_data['twister_suite_name'] = self.users[user]['eps'][epname]['suites'][suite_id]['name']
                         subst_data['twister_tc_full_path'] = self.users[user]['eps'][epname]['suites'][suite_id]['files'][file_id]['file']
                         subst_data['twister_tc_name'] = os.path.split(subst_data['twister_tc_full_path'])[1]
+                        subst_data['twister_tc_title'] = ''
+                        subst_data['twister_tc_description'] = ''
+
+                        try:
+                            subst_data['twister_tc_log'] = open(self.getUserInfo(user, 'logs_path') +os.sep+ epname + '_CLI.log').read()
+                            subst_data['twister_tc_log'] = subst_data['twister_tc_log'].replace('\n', '<BR>')
+                            #self.findLog(user, epname, subst_data['twister_tc_full_path'])
+                        except:
+                            subst_data['twister_tc_log'] = '*no log*'
 
                         # Prerequisite files will not be saved to database
                         if subst_data.get('Prerequisite'):
@@ -844,7 +880,7 @@ class Project:
                                 u_query = fields.get(field.replace('@', ''))
 
                                 if not u_query:
-                                    logError('File: {0}, cannot build query! Field {1} is not defined in the fields section!'\
+                                    logError('File: `{0}`, cannot build query! Field `{1}` is not defined in the fields section!'\
                                         ''.format(subst_data['file'], field))
                                     return False
 
@@ -861,7 +897,7 @@ class Project:
                             try:
                                 query = tmpl.substitute(subst_data)
                             except Exception, e:
-                                logError('User `{0}`, file {1}: Cannot build query! Error on `{2}`!'\
+                                logError('User `{0}`, file `{1}`: Cannot build query! Error on `{2}`!'\
                                     ''.format(user, subst_data['file'], str(e)))
                                 return False
 

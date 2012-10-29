@@ -6,6 +6,7 @@ if [ -n "$TWISTER_PATH" ]
 then
 	echo TWISTER_PATH set to: "$TWISTER_PATH".
 	nohup $PYTHON -u $TWISTER_PATH/server/centralengine/CentralEngine.py 8000 > ce_log.log &
+	echo "Central Engine is now running in background."
 else
 	echo TWISTER_PATH variable enviroment is not defined!
 fi
