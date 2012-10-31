@@ -767,7 +767,7 @@ class Project:
 # # #
 
 
-    def findLog(self, user, epname, fname):
+    def findLog(self, user, epname, file_id, file_name):
         '''
         Parses the log file of one EP and returns the log of one test file.
         '''
@@ -779,13 +779,11 @@ class Project:
             logError("Find Log: File `%s` cannot be read!" % logPath)
             return '*no log*'
 
-        try:
-            log = re.search(('(<<< START filename: `%s` >>>)(.*?)(<<< END filename: `%s` >>>)' % (fname, fname)), data, re.S).group(2)
-        except:
-            logError("CE ERROR! Cannot find file {0} in the log for {1}!".format(fname, epname))
-            return '*no log*'
+        fbegin = data.find('<<< START filename: `%s:%s' % (file_id, file_name))
+        fend = data.find('<<< END filename: `%s:%s' % (file_id, file_name))
+        fend += len('<<< END filename: `%s:%s` >>>' % (file_id, file_name))
 
-        return log.replace("'", "\\'")
+        return data[fbegin:fend]
 
 
     def saveToDatabase(self, user):
@@ -811,9 +809,13 @@ class Project:
             system = platform.machine() +' '+ platform.system() +', '+ ' '.join(platform.linux_distribution())
 
             #
-            conn = MySQLdb.connect(host=db_config.get('server'), db=db_config.get('database'),
-                user=db_config.get('user'), passwd=db_config.get('password'))
-            curs = conn.cursor()
+            try:
+                conn = MySQLdb.connect(host=db_config.get('server'), db=db_config.get('database'),
+                    user=db_config.get('user'), passwd=db_config.get('password'))
+                curs = conn.cursor()
+            except MySQLdb.Error, e:
+                logError('MySQL Error %d: %s!' % (e.args[0], e.args[1]))
+                return False
             #
 
             for epname in self.users[user]['eps']:
@@ -839,9 +841,8 @@ class Project:
                         subst_data['twister_tc_description'] = ''
 
                         try:
-                            subst_data['twister_tc_log'] = open(self.getUserInfo(user, 'logs_path') +os.sep+ epname + '_CLI.log').read()
-                            subst_data['twister_tc_log'] = subst_data['twister_tc_log'].replace('\n', '<BR>')
-                            #self.findLog(user, epname, subst_data['twister_tc_full_path'])
+                            subst_data['twister_tc_log'] = self.findLog(user, epname, file_id, subst_data['twister_tc_full_path'])
+                            subst_data['twister_tc_log'].replace('\n', '<BR>\n')
                         except:
                             subst_data['twister_tc_log'] = '*no log*'
 
