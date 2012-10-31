@@ -118,7 +118,7 @@ public class Repository{
     public static Image passicon,testbedicon,porticon,suitaicon, tcicon, propicon,
                         failicon, passwordicon, playicon, stopicon, pauseicon,
                         background,notexecicon,pendingicon,skipicon,stoppedicon,
-                        timeouticon,waiticon,workingicon,moduleicon,deviceicon,
+                        timeouticon,waiticon,workingicon,moduleicon,deviceicon,upicon,
                         addsuitaicon,removeicon,vlcclient,vlcserver,switche,optional,
                         flootw,rack150,rack151,rack152,switche2,inicon,outicon,baricon;
     public static boolean run = true;//signal that Twister is not closing
@@ -134,7 +134,7 @@ public class Repository{
     private static JsonObject editors, looks, layout, inifile;//json structure of conf file saved localy;editors saved by user localy
     private static JsonArray plugins;
     private static String[] lookAndFeels;
-    private static Applet container;
+    public static Applet container;
     private static Document pluginsconfig;
     
     /*
@@ -322,7 +322,8 @@ public class Repository{
                 intro.dispose();
                 run = false;
                 if(!applet)System.exit(0);}}
-        catch(Exception e){e.printStackTrace();}}
+        catch(Exception e){e.printStackTrace();}
+    }
         
     /*
      * method to create general plugin
@@ -410,6 +411,8 @@ public class Repository{
         addsuitaicon = new ImageIcon(ImageIO.read(in)).getImage();
         in = Repository.class.getResourceAsStream("Icons"+bar+"device.png"); 
         deviceicon = new ImageIcon(ImageIO.read(in)).getImage();
+        in = Repository.class.getResourceAsStream("Icons"+bar+"up.png"); 
+        upicon = new ImageIcon(ImageIO.read(in)).getImage();
         in = Repository.class.getResourceAsStream("Icons"+bar+"module.png"); 
         moduleicon = new ImageIcon(ImageIO.read(in)).getImage();
         in = Repository.class.getResourceAsStream("Icons"+bar+"tc.png"); 

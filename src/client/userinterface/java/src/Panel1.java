@@ -106,7 +106,7 @@ public class Panel1 extends JPanel{
                 sc.g.removeSelected();}});
         generate = new JButton("Run",new ImageIcon(Repository.getPlayIcon()));
         generate.setBounds(94,20,105,25);
-        generate.setToolTipText("Generate XML");
+        generate.setToolTipText("Run suite");
         add(generate);
         showoptionals = new JButton("Show optionals");
         showoptionals.setBounds(205,20,150,25);
