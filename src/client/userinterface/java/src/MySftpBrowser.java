@@ -76,6 +76,11 @@ public class MySftpBrowser extends JFrame {
     private ItemListener listener;
     private Container container;
     
+    /*
+     * c - SFTP connection initialized in repository
+     * text - the jtextfield that holds the path
+     * container - the parent for sftp browser
+     */
     public MySftpBrowser(ChannelSftp c, JTextField text, final Container container) {
         this.text = text;
         this.c = c;
@@ -108,6 +113,11 @@ public class MySftpBrowser extends JFrame {
         }
     }
     
+    /*
+     * method to populate the
+     * combobox that holds the tree to browse
+     * with the curent location of the sftp connection
+     */
     private void populateTree(){
         try{
             for(ItemListener it:tree.getItemListeners()){
@@ -128,6 +138,11 @@ public class MySftpBrowser extends JFrame {
         }
     }
     
+    /*
+     * method to populate the main window
+     * with files and folders according to
+     * current location of sftp connection
+     */
     private void populateBrowser(){
         try{
             model.clear();
@@ -168,6 +183,11 @@ public class MySftpBrowser extends JFrame {
         }
     }
     
+    /*
+     * method to replace the jtextfield
+     * that was passed as a parametero to the constructor
+     * with the selection of the user
+     */
     public void save(){
         StringBuilder s = new StringBuilder();
         s.append("/");
@@ -178,6 +198,9 @@ public class MySftpBrowser extends JFrame {
         text.setText(s.toString());
     }
     
+    /*
+     * initialization method
+     */
     private void initComponents() {
         up = new JButton(new ImageIcon(Repository.upicon));
         main = new JPanel();
@@ -247,9 +270,6 @@ public class MySftpBrowser extends JFrame {
             }
         });
         
-        
-        
-        
         listener = new ItemListener(){
             public void itemStateChanged(ItemEvent evt) {        
                 if (evt.getStateChange() == ItemEvent.SELECTED) {
@@ -275,29 +295,6 @@ public class MySftpBrowser extends JFrame {
         };
         
         tree.addItemListener(listener);
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
         look.setFont(new java.awt.Font("Tahoma", 1, 12)); // NOI18N
         look.setText("Look in:");
 
@@ -374,6 +371,10 @@ public class MySftpBrowser extends JFrame {
     }
 }
 
+/*
+ * my implementation of a DefaultListCellRenderer
+ * to represent folders and files in main browser
+ */
 class IconListRenderer extends DefaultListCellRenderer {
     EmptyBorder border = new EmptyBorder(2,3,2,3);
 
@@ -388,6 +389,10 @@ class IconListRenderer extends DefaultListCellRenderer {
     }
 }
 
+/*
+ * my implementation of jlabel to hold the
+ * type of jlabel(folder or file) and icon
+ */
 class MyLabel extends JLabel{
     private int type;
     //0 folder;1 file;

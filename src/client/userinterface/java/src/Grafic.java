@@ -2442,9 +2442,9 @@ public class Grafic extends JPanel{
                 Item item = new Item(namefield.getText(),2, -1, 5, width+40,25 , indexpos);
                 
                 
-                String [] selected = new String[epidfield.getSelectedValues().length];
-                for(int i=0;i<epidfield.getSelectedValues().length;i++){
-                    selected[i] = epidfield.getSelectedValues()[i].toString();
+                String [] selected = new String[epidfield.getSelectedValuesList().size()];
+                for(int i=0;i<epidfield.getSelectedValuesList().size();i++){
+                    selected[i] = epidfield.getSelectedValuesList().get(i).toString();
                 }
                 item.setEpId(selected);
                 
