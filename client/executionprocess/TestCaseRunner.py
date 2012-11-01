@@ -378,6 +378,8 @@ if __name__=='__main__':
             pass
 
 
+        # Cycle for Files
+
         for iIndex in range(len(tList)):
 
             file_id = tList[iIndex]
@@ -400,8 +402,8 @@ if __name__=='__main__':
             else:
                 args = []
 
-            print('<<< START filename: `%s` >>>\n\nDebug: dependancy = `%s`, prereq = `%s`, optional = `%s` ...\n' %
-                  (filename, dependancy, prerequisite, optional_test))
+            print('<<< START filename: `%s:%s` >>>\n\nDebug: dependancy = `%s`, prereq = `%s`, optional = `%s` ...\n' %
+                  (file_id, filename, dependancy, prerequisite, optional_test))
 
             # Reset abort suite variable for every first file in the suite
             if iIndex == 0:
@@ -411,6 +413,7 @@ if __name__=='__main__':
             if abort_suite:
                 print('TC debug: Abort file `{0}` because of prerequisite file!\n'.format(filename))
                 proxySetTestStatus(file_id, STATUS_ABORTED, 0.0) # File status ABORTED
+                print('<<< END filename: `%s:%s` >>>\n' % (file_id, filename))
                 continue
 
             # Reset the TIMEOUT status for the next execution!
@@ -422,6 +425,7 @@ if __name__=='__main__':
             if '7' in tStats and iIndex != 0 and iIndex <= Rindex(tStats, '7'):
                 print('TC debug: Skipping file {0}: `{1}` with status {2}, aborted because of timeout!\n'.format(
                     iIndex, filename, status))
+                print('<<< END filename: `%s:%s` >>>\n' % (file_id, filename))
                 continue
 
             # Reload config file written by EP
@@ -472,10 +476,13 @@ if __name__=='__main__':
             if str_to_execute == '':
                 print('TC debug: File path `{0}` does not exist!\n'.format(filename))
                 proxySetTestStatus(file_id, STATUS_SKIPPED, 0.0) # Status SKIPPED
+                print('<<< END filename: `%s:%s` >>>\n' % (file_id, filename))
                 continue
+
             elif not str_to_execute:
                 print('TC debug: File `{0}` will be skipped.\n'.format(filename))
                 proxySetTestStatus(file_id, STATUS_SKIPPED, 0.0) # Status SKIPPED
+                print('<<< END filename: `%s:%s` >>>\n' % (file_id, filename))
                 continue
 
             file_ext = os.path.splitext(filename)[1].lower()
@@ -509,6 +516,7 @@ if __name__=='__main__':
             else:
                 print('TC warning: Extension type `%s` is unknown and will be ignored!' % file_ext)
                 proxySetTestStatus(file_id, STATUS_NOT_EXEC, 0.0) # Status NOT_EXEC
+                print('<<< END filename: `%s:%s` >>>\n' % (file_id, filename))
                 continue
 
             # If there is a delay between tests, wait here
@@ -537,14 +545,13 @@ if __name__=='__main__':
 
                 proxy.echo('TC error: Error executing file `%s`!' % filename)
 
-                proxySetTestStatus(file_id, STATUS_FAIL, 0.0) # File status FAIL
-                proxy.setFileVariable(userName, globEpName, suite_id, file_id, 'twister_tc_crash_detected', 1) # Crash detected True
+                proxySetTestStatus(file_id, STATUS_FAIL, 0.0)
+                # When crash detected = True
+                proxy.setFileVariable(userName, globEpName, suite_id, file_id, 'twister_tc_crash_detected', 1)
 
             # END OF TEST!
             timer_f = time.time() - timer_i
             # --------------------------------------------------
-
-            print('<<< END filename: `%s` >>>\n' % filename)
 
             if result==STATUS_PASS or result == 'PASS':
                 proxySetTestStatus(file_id, STATUS_PASS, timer_f) # File status PASS
@@ -564,15 +571,19 @@ if __name__=='__main__':
                 # If status is FAIL, and the file is not Optional and Exit on test fail is ON, CLOSE the runner
                 if not optional_test and exit_on_test_fail:
                     print('TC error: Mandatory file `{0}` returned FAIL! Closing the runner!'.format(filename))
-                    proxy.echo('TC error: Mandatory file `{0}::{1}::{2}` returned FAIL! Closing the runner!'.format(
-                        globEpName, suite_name, filename))
+                    proxy.echo('TC error: Mandatory file `{0}::{1}::{2}` returned FAIL! Closing the runner!'\
+                        ''.format(globEpName, suite_name, filename))
+                    print('<<< END filename: `%s:%s` >>>\n' % (file_id, filename))
                     exit(1)
 
                 # If status is FAIL, and the file is prerequisite, CANCEL all suite
                 if iIndex == 0 and prerequisite:
                     abort_suite = True
                     print('TC error: Prerequisite file for suite `%s` returned FAIL! All suite will be ABORTED!' % suite_name)
-                    proxy.echo('TC error: Prerequisite file for `{0}::{1}` returned FAIL! All suite will be ABORTED!'.format(globEpName, suite_name))
+                    proxy.echo('TC error: Prerequisite file for `{0}::{1}` returned FAIL! All suite will be ABORTED!'\
+                        ''.format(globEpName, suite_name))
+
+            print('<<< END filename: `%s:%s` >>>\n' % (file_id, filename))
 
             sys.stdout.flush() # Flush just in case
 
@@ -595,4 +606,5 @@ if __name__=='__main__':
     del tc_tcl, tc_perl, tc_python
 
 #
+
 
