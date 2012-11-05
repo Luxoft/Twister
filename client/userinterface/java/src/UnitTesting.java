@@ -343,9 +343,9 @@ public class UnitTesting extends JFrame {
         Item test = new Item(tempfile,1, -1, 5, 0,0 , null);
         
         parent.addSubItem(test);        
-        selected = new String[eplist.getSelectedValues().length];
-        for(int i=0;i<eplist.getSelectedValues().length;i++){
-            selected[i] = eplist.getSelectedValues()[i].toString();
+        selected = new String[eplist.getSelectedValuesList().size()];
+        for(int i=0;i<eplist.getSelectedValuesList().size();i++){
+            selected[i] = eplist.getSelectedValuesList().get(i).toString();
         }
         if(selected.length == 0){
             CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, Repository.window,

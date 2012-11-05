@@ -41,7 +41,6 @@ public class XMLBuilder{
     private DOMSource source;
     private ArrayList <Item> suite;
     private boolean skip;
-    //private int id = 1000;
 
     public XMLBuilder(ArrayList <Item> suite){
         try{documentBuilderFactory = DocumentBuilderFactory.newInstance();
@@ -369,8 +368,25 @@ public class XMLBuilder{
 //                 }
                 
                 EP.appendChild(document.createTextNode(b.toString()));
+                
 //                 EP.appendChild(document.createTextNode(item.getEpId()));
-                rootElement2.appendChild(EP);}
+                rootElement2.appendChild(EP);
+            
+                //temporary solution for CE
+                if(skip){
+                    Item parent = suite.get(item.getPos().get(0));            
+                    for(int j=0;j<parent.getUserDefNr();j++){
+                        Element userdef = document.createElement("UserDefined");
+                        Element pname = document.createElement("propName");
+                        pname.appendChild(document.createTextNode(parent.getUserDef(j)[0]));
+                        userdef.appendChild(pname);
+                        Element pvalue = document.createElement("propValue");
+                        pvalue.appendChild(document.createTextNode(parent.getUserDef(j)[1]));
+                        userdef.appendChild(pvalue);
+                        rootElement2.appendChild(userdef);}
+                }
+                //end solution for CE
+            }
             for(int i=0;i<item.getSubItemsNr();i++){
                 addSubElement(rootElement2,item.getSubItem(i),skip,temp);}}}
                     

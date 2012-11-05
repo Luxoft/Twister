@@ -926,9 +926,9 @@ public class Panel1 extends JPanel{
                                                             JOptionPane.OK_CANCEL_OPTION,sc.g,
                                                             "Please select EP to run on",null);
                 if(resp==JOptionPane.OK_OPTION){
-                    String [] selected = new String[combo.getSelectedValues().length];
-                    for(int i=0;i<combo.getSelectedValues().length;i++){
-                        selected[i] = combo.getSelectedValues()[i].toString();
+                    String [] selected = new String[combo.getSelectedValuesList().size()];
+                    for(int i=0;i<combo.getSelectedValuesList().size();i++){
+                        selected[i] = combo.getSelectedValuesList().get(i).toString();
                     }
                     theone.setEpId(selected);
                     repaint();}}

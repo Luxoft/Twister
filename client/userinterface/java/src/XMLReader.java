@@ -84,8 +84,23 @@ public class XMLReader{
                 fstNmElmnt = (Element)fstNmElmntLst.item(0);
                 fstNm = fstNmElmnt.getChildNodes();
                 theone.setEpId(fstNm.item(0).getNodeValue().split(";"));
-//                 theone.setEpId(fstNm.item(0).getNodeValue());
-                k=4;}
+                
+                //temporary solution for CE
+                if(test){
+                   try{fstNmElmntLst = ((Element)node).getElementsByTagName("UserDefined");
+                        int userdefinitions = fstNmElmntLst.getLength();
+                        System.out.println("userdefinitions:"+userdefinitions);
+                        k=4+(userdefinitions*2);
+                    } catch(Exception e){
+                        e.printStackTrace();
+                        k=4;
+                    } 
+                } else {
+                    k=4;    
+                }
+                //temporary solution for CE
+                
+            }
             else{secNmElmntLst = ((Element)node).getElementsByTagName("tcName");
                 secNmElmnt = (Element)secNmElmntLst.item(0);
                 secNm = secNmElmnt.getChildNodes();
@@ -233,23 +248,57 @@ public class XMLReader{
             fstNm = fstNmElmnt.getChildNodes();
 //             suitatemp.setEpId(fstNm.item(0).getNodeValue());
             suitatemp.setEpId(fstNm.item(0).getNodeValue().split(";"));
-            fstNmElmntLst = fstElmnt.getElementsByTagName("UserDefined");
-            int userdefinitions = fstNmElmntLst.getLength();
-            for(int l=0;l<userdefinitions;l++){
-                Element element = (Element)fstNmElmntLst.item(l);                
-                NodeList propname = element.getElementsByTagName("propName");
-                Element el1 = (Element)propname.item(0);
-                fstNm = el1.getChildNodes();
-                String prop ;
-                if(fstNm.getLength()>0)prop= fstNm.item(0).getNodeValue();
-                else prop = "";
-                NodeList propvalue = element.getElementsByTagName("propValue");
-                Element el2 = (Element)propvalue.item(0);
-                fstNm = el2.getChildNodes();
-                String val ;
-                if(fstNm.getLength()>0)val = fstNm.item(0).getNodeValue();
-                else val = "";
-                suitatemp.addUserDef(new String[]{prop,val});}
+            
+            
+            
+            //temp solution for CE
+            int items = fstElmnt.getChildNodes().getLength();
+            int userdefinitions = 0;
+            for(int i=0;i<items;i++){
+                if(fstElmnt.getChildNodes().item(i).getNodeName().equals("UserDefined"))userdefinitions++;
+            }
+            for(int i=0;i<items;i++){
+                if(fstElmnt.getChildNodes().item(i).getNodeName().equals("UserDefined")){
+                    Element element = (Element)fstElmnt.getChildNodes().item(i);                
+                    NodeList propname = element.getElementsByTagName("propName");
+                    Element el1 = (Element)propname.item(0);
+                    fstNm = el1.getChildNodes();
+                    String prop ;
+                    if(fstNm.getLength()>0)prop= fstNm.item(0).getNodeValue();
+                    else prop = "";
+                    NodeList propvalue = element.getElementsByTagName("propValue");
+                    Element el2 = (Element)propvalue.item(0);
+                    fstNm = el2.getChildNodes();
+                    String val ;
+                    if(fstNm.getLength()>0)val = fstNm.item(0).getNodeValue();
+                    else val = "";
+                    suitatemp.addUserDef(new String[]{prop,val});
+                }
+            }
+            //temp solution for CE
+            
+            
+            
+//             fstNmElmntLst = fstElmnt.getElementsByTagName("UserDefined");
+//             int userdefinitions = fstNmElmntLst.getLength();            
+//             for(int l=0;l<userdefinitions;l++){
+//                 Element element = (Element)fstNmElmntLst.item(l);                
+//                 NodeList propname = element.getElementsByTagName("propName");
+//                 Element el1 = (Element)propname.item(0);
+//                 fstNm = el1.getChildNodes();
+//                 String prop ;
+//                 if(fstNm.getLength()>0)prop= fstNm.item(0).getNodeValue();
+//                 else prop = "";
+//                 NodeList propvalue = element.getElementsByTagName("propValue");
+//                 Element el2 = (Element)propvalue.item(0);
+//                 fstNm = el2.getChildNodes();
+//                 String val ;
+//                 if(fstNm.getLength()>0)val = fstNm.item(0).getNodeValue();
+//                 else val = "";
+//                 suitatemp.addUserDef(new String[]{prop,val});}
+                
+                
+                
             int subchildren = fstElmnt.getChildNodes().getLength();
             int index=0;
             indexsuita++;

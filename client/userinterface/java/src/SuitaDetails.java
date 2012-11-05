@@ -767,9 +767,9 @@ public class SuitaDetails extends JPanel {
         public void valueChanged(ListSelectionEvent evt) {
             if (!evt.getValueIsAdjusting()) {
                 JList list = (JList)evt.getSource();
-                String [] selected = new String[list.getSelectedValues().length];
-                for(int i=0;i<list.getSelectedValues().length;i++){
-                    selected[i] = list.getSelectedValues()[i].toString();
+                String [] selected = new String[list.getSelectedValuesList().size()];
+                for(int i=0;i<list.getSelectedValuesList().size();i++){
+                    selected[i] = list.getSelectedValuesList().get(i).toString();
                 }
                 getItemParent().setEpId(selected);
                 Repository.window.mainpanel.p1.sc.g.repaint();
