@@ -842,7 +842,9 @@ class Project:
 
                         try:
                             subst_data['twister_tc_log'] = self.findLog(user, epname, file_id, subst_data['twister_tc_full_path'])
-                            subst_data['twister_tc_log'].replace('\n', '<BR>\n')
+                            subst_data['twister_tc_log'] = conn.escape_string( subst_data['twister_tc_log'].replace('\n', '<br>\n') )
+                            subst_data['twister_tc_log'] = subst_data['twister_tc_log'].replace('<div', '&lt;div')
+                            subst_data['twister_tc_log'] = subst_data['twister_tc_log'].replace('</div', '&lt;/div')
                         except:
                             subst_data['twister_tc_log'] = '*no log*'
 

@@ -413,7 +413,7 @@ if TO_INSTALL == 'client':
 
     # If root, fix owner
     if os.getuid() == 0:
-        os.system('chown %s:%s %s -R' % (os.getenv('USER'), os.getenv('USER'), INSTALL_PATH))
+        os.system('chown %s:%s %s -R' % (os.getenv('SUDO_USER'), os.getenv('SUDO_USER'), INSTALL_PATH))
 
 tcr_proc = subprocess.Popen(['chmod', '775', INSTALL_PATH, '-R'],)
 tcr_proc.wait()
