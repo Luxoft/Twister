@@ -846,6 +846,9 @@ class Project:
                         subst_data['twister_tc_title'] = ''
                         subst_data['twister_tc_description'] = ''
 
+                        # Escape all unicodes variables before sql statements
+                        subst_data = {k: conn.escape_string(v) if isinstance(v, unicode) else v for k,v in subst_data.iteritems()}
+
                         try:
                             subst_data['twister_tc_log'] = self.findLog(user, epname, file_id, subst_data['twister_tc_full_path'])
                             subst_data['twister_tc_log'] = conn.escape_string( subst_data['twister_tc_log'].replace('\n', '<br>\n') )
