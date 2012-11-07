@@ -776,10 +776,13 @@ class Project:
         try:
             data = open(logPath, 'r').read()
         except:
-            logError("Find Log: File `%s` cannot be read!" % logPath)
+            logError('Find Log: File `{0}` cannot be read!'.format(logPath))
             return '*no log*'
 
         fbegin = data.find('<<< START filename: `%s:%s' % (file_id, file_name))
+        if fbegin == -1:
+            logDebug('Find Log: Cannot find `{0}:{1}` in log `{2}`!'.format(file_id, file_name, logPath))
+
         fend = data.find('<<< END filename: `%s:%s' % (file_id, file_name))
         fend += len('<<< END filename: `%s:%s` >>>' % (file_id, file_name))
 
@@ -817,6 +820,9 @@ class Project:
                 logError('MySQL Error %d: %s!' % (e.args[0], e.args[1]))
                 return False
             #
+
+            conn.autocommit = False
+            conn.begin()
 
             for epname in self.users[user]['eps']:
 
@@ -885,6 +891,7 @@ class Project:
                                 if not u_query:
                                     logError('File: `{0}`, cannot build query! Field `{1}` is not defined in the fields section!'\
                                         ''.format(subst_data['file'], field))
+                                    conn.rollback()
                                     return False
 
                                 # Execute User Query
@@ -902,6 +909,7 @@ class Project:
                             except Exception, e:
                                 logError('User `{0}`, file `{1}`: Cannot build query! Error on `{2}`!'\
                                     ''.format(user, subst_data['file'], str(e)))
+                                conn.rollback()
                                 return False
 
                             # :: For DEBUG ::
@@ -913,6 +921,7 @@ class Project:
                             except MySQLdb.Error, e:
                                 logError('Error in query ``{0}``'.format(query))
                                 logError('MySQL Error %d: %s!' % (e.args[0], e.args[1]))
+                                conn.rollback()
                                 return False
 
             #
