@@ -56,6 +56,7 @@ PYTHON_EXE = sys.executable
 # And `setuptools` is not installed, or some dependencies are missing
 HTTP_PROXY = 'http://UserName:PassWord@http-proxy:3128'
 
+os.chdir(os.path.split(__file__)[0])
 
 # --------------------------------------------------------------------------------------------------
 # Install  Server  or  Client ?
