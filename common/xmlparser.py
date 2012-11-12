@@ -34,7 +34,7 @@ if not TWISTER_PATH:
     exit(1)
 sys.path.append(TWISTER_PATH)
 
-from trd_party.BeautifulSoup import BeautifulStoneSoup
+from lxml import etree
 from plugins import BasePlugin
 
 __all__ = ['TSCParser', 'DBParser', 'PluginParser']
@@ -47,7 +47,7 @@ __all__ = ['TSCParser', 'DBParser', 'PluginParser']
 
 class TSCParser:
     """
-    Requirements: BeautifulSoup.
+    Requirements: LXML.
     This parser is specific for TSC project.
     It returns information like:
     - Test Suite (Test Plan) Config File
@@ -67,20 +67,9 @@ class TSCParser:
         else:
             raise Exception('Parser ERROR: Invalid config data type: `%s`!' % type(config_data))
 
-        base_config = base_config.replace('<logRunning/>', '<logRunning></logRunning>')
-        base_config = base_config.replace('<logDebug/>',   '<logDebug></logDebug>')
-        base_config = base_config.replace('<logSummary/>', '<logSummary></logSummary>')
-        base_config = base_config.replace('<logTest/>',    '<logTest></logTest>')
-        base_config = base_config.replace('<logCli/>',     '<logCli></logCli>')
-
-        base_config = base_config.replace('<EPIdsFile/>',      '<EPIdsFile></EPIdsFile>')
-        base_config = base_config.replace('<UsersPath/>',      '<UsersPath></UsersPath>')
-        base_config = base_config.replace('<LogsPath/>',       '<LogsPath></LogsPath>')
-        base_config = base_config.replace('<DbConfigFile/>',   '<DbConfigFile></DbConfigFile>')
-        base_config = base_config.replace('<HardwareConfig/>', '<HardwareConfig></HardwareConfig>')
-        self.xmlDict = BeautifulStoneSoup(base_config)
-
-        if not self.xmlDict.root:
+        try:
+            self.xmlDict = etree.fromstring(base_config)
+        except:
             raise Exception('Parser ERROR: Cannot access XML config data!')
 
         self.configTS = None
@@ -125,51 +114,59 @@ class TSCParser:
             # Hash check the XML file, to see if is changed
             newConfigHash = hashlib.md5(config_ts).hexdigest()
 
-            config_ts = config_ts.replace('<ScriptPre/>',  '<ScriptPre></ScriptPre>')
-            config_ts = config_ts.replace('<ScriptPost/>', '<ScriptPost></ScriptPost>')
-            config_ts = config_ts.replace('<dbautosave/>', '<dbautosave></dbautosave>')
-            config_ts = config_ts.replace('<tcdelay/>',    '<tcdelay></tcdelay>')
-
         if self.configHash != newConfigHash:
             print('Parser: Test-Suites XML file changed, rebuilding internal structure...\n')
             # Use the new hash
             self.configHash = newConfigHash
-            # Create Beautiful Soup class from the new XML file
-            self.configTS = BeautifulStoneSoup(config_ts)
+            # Create XML Soup from the new XML file
+            try:
+                self.configTS = etree.fromstring(config_ts)
+            except:
+                print('Parser ERROR: Cannot access Test-Suites XML data!')
+                self.configTS = None
+                return -1
 
         self.files_config = files_config
 
-        if not self.configTS.root:
-            print('Parser ERROR: Cannot access Test-Suites XML data!')
-            return -1
-
 
     def getDbConfigPath(self):
-        res = str(self.xmlDict.root.dbconfigfile.text)
+        res = ''
+        if self.xmlDict.xpath('DbConfigFile/text()'):
+            res = self.xmlDict.xpath('DbConfigFile')[0].text
         if res.startswith('~'):
             res = os.getenv('HOME') + res[1:]
         return res
 
 
     def getLogsPath(self):
-        res = str(self.xmlDict.root.logspath.text)
+        res = ''
+        if self.xmlDict.xpath('LogsPath/text()'):
+            res = self.xmlDict.xpath('LogsPath')[0].text
         if res.startswith('~'):
             res = os.getenv('HOME') + res[1:]
         return res
 
 
-    def getReportsPath(self):
-        res = str(self.xmlDict.root.reportspath.text)
-        if res.startswith('~'):
-            res = os.getenv('HOME') + res[1:]
-        return res
+    def _fixLogType(self, logType):
+
+        if logType.lower() == 'logrunning':
+            logType = 'logRunning'
+        elif logType.lower() == 'logdebug':
+            logType = 'logDebug'
+        elif logType.lower() == 'logsummary':
+            logType = 'logSummary'
+        elif logType.lower() == 'logtest':
+            logType = 'logTest'
+        elif logType.lower() == 'logcli':
+            logType = 'logCli'
+        return logType
 
 
     def getLogTypes(self):
         """
         All types of logs exposed from Python to the test cases.
         """
-        return [str(log.name) for log in self.xmlDict.root.logfiles.findAll()]
+        return [ self._fixLogType(log.tag) for log in self.xmlDict.xpath('LogFiles/*')]
 
 
     def getLogFileForType(self, logType):
@@ -178,66 +175,58 @@ class TSCParser:
         CE will use this path to write the log received from EP.
         """
         baseLogsPath = self.getLogsPath()
-        logType = str(logType).lower()
-        logFile = self.xmlDict.root.logfiles.find(logType)
-        return baseLogsPath + os.sep + str(logFile.text)
+        logType = self._fixLogType(logType)
+        logFile = self.xmlDict.xpath('//{0}/text()'.format(logType))
+
+        if logFile:
+            return baseLogsPath + os.sep + logFile[0]
+        else:
+            return ''
 
 
     def getProjectGlobals(self):
         """
         Returns the value of many global tags like:
         - Exit On Test Fail
-        - ScriptPre and ScriptPost
         - Database Autosave
         - Testcase Delay
+        - ScriptPre and ScriptPost
+        - Libraries
         """
-        if not self.configTS:
+        if self.configTS is None:
             print('Parser: Cannot get project globals, because Test-Suites XML is invalid!')
             return False
 
         res = {
             'ExitOnTestFail': False,
+            'DbAutoSave': False,
+            'TestcaseDelay': 0,
             'ScriptPre': '',
             'ScriptPost': '',
-            'DbAutoSave': False,
-            'TestcaseDelay': 0
+            'Libraries': '',
         }
 
-        if self.configTS.stoponfail:
-            if self.configTS.stoponfail.text.lower() == 'true':
+        if self.configTS.xpath('stoponfail/text()'):
+            if self.configTS.xpath('stoponfail/text()')[0].lower() == 'true':
                 res['ExitOnTestFail'] = True
 
-        res['ScriptPre'], res['ScriptPost'] = self.getScripts()
-
-        if self.configTS.dbautosave:
-            if self.configTS.dbautosave.text.lower() == 'true':
+        if self.configTS.xpath('dbautosave/text()'):
+            if self.configTS.xpath('dbautosave/text()')[0].lower() == 'true':
                 res['DbAutoSave'] = True
 
-        if self.configTS.tcdelay:
-            try: res['TestcaseDelay'] = int(self.configTS.tcdelay.text)
-            except: print('Parser: Cannot get testcase delay value from string `%s`!' % self.configTS.tcdelay.text)
+        if self.configTS.xpath('tcdelay/text()'):
+            res['TestcaseDelay'] = self.configTS.xpath('round(tcdelay)')
+
+        if self.configTS.xpath('ScriptPre/text()'):
+            res['ScriptPre'] = self.configTS.xpath('ScriptPre')[0].text
+
+        if self.configTS.xpath('ScriptPost/text()'):
+            res['ScriptPost'] = self.configTS.xpath('ScriptPost')[0].text
+
+        if self.configTS.xpath('Libraries/text()'):
+            res['libraries'] = self.configTS.xpath('libraries')[0].text
 
         return res
-
-
-    def getScripts(self):
-        """
-        Returns the value of the tags "ScriptPre" and "ScriptPost".
-        """
-        if not self.configTS:
-            print('Parser: Cannot get Exit on test fail status, because Test-Suites XML is invalid!')
-            return False
-        p0 = self.configTS.scriptpre
-        p1 = self.configTS.scriptpost
-        if not p0:
-            p0 = ''
-        else:
-            p0 = p0.text
-        if not p1:
-            p1 = ''
-        else:
-            p1 = p1.text
-        return (p0, p1)
 
 
     def getEmailConfig(self):
@@ -246,14 +235,19 @@ class TSCParser:
         After Central Engine stops, an e-mail must be sent to the people interested.
         """
         # Read email.xml
-        e_file = str(self.xmlDict.root.emailconfigfile.text)
+        e_file = ''
+        if self.xmlDict.xpath('EmailConfigFile/text()'):
+            e_file = self.xmlDict.xpath('EmailConfigFile')[0].text
+        else:
+            print('Parser: E-mail Config file is not defined! Please check framework config XML file!')
+            return {}
         if e_file.startswith('~'):
             e_file = os.getenv('HOME') + e_file[1:]
         if not os.path.isfile(e_file):
             print('Parser: E-mail Config file `%s` does not exist! Please check framework config XML file!' % e_file)
             return {}
 
-        econfig = BeautifulStoneSoup(open(e_file))
+        econfig = etree.parse(e_file)
 
         res = {}
         res['Enabled'] = ''
@@ -265,22 +259,23 @@ class TSCParser:
         res['Subject'] = ''
         res['Message'] = ''
 
-        if econfig.enabled:
-            res['Enabled'] = econfig.enabled.text
-        if econfig.smtppath:
-            res['SMTPPath'] = econfig.smtppath.text
-        if econfig.smtpuser:
-            res['SMTPUser'] = econfig.smtpuser.text
-        if econfig.smtppwd:
-            res['SMTPPwd'] = econfig.smtppwd.text
-        if econfig('from'):
-            res['From'] = econfig('from')[0].text
-        if econfig('to'):
-            res['To'] = econfig('to')[0].text
-        if econfig.subject:
-            res['Subject'] = econfig.subject.text
-        if econfig.message:
-            res['Message'] = econfig.message.text
+        if econfig.xpath('Enabled/text()'):
+            res['Enabled'] = econfig.xpath('Enabled')[0].text
+        if econfig.xpath('SMTPPath/text()'):
+            res['SMTPPath'] = econfig.xpath('SMTPPath')[0].text
+        if econfig.xpath('SMTPUser/text()'):
+            res['SMTPUser'] = econfig.xpath('SMTPUser')[0].text
+        if econfig.xpath('SMTPPwd/text()'):
+            res['SMTPPwd'] = econfig.xpath('SMTPPwd')[0].text
+
+        if econfig.xpath('From/text()'):
+            res['From'] = econfig.xpath('From')[0].text
+        if econfig.xpath('To/text()'):
+            res['To'] = econfig.xpath('To')[0].text
+        if econfig.xpath('Subject/text()'):
+            res['Subject'] = econfig.xpath('Subject')[0].text
+        if econfig.xpath('Message/text()'):
+            res['Message'] = econfig.xpath('Message')[0].text
         return res
 
 
@@ -288,7 +283,12 @@ class TSCParser:
         """
         Returns a list with all available EP names.
         """
-        res = str(self.xmlDict.root.epidsfile.text)
+        res = ''
+        if self.xmlDict.xpath('EPIdsFile/text()'):
+            res = self.xmlDict.xpath('EPIdsFile')[0].text
+        else:
+            print('Parser: EP Names file is not defined! Please check framework config XML file!' % res)
+            return None
         if res.startswith('~'):
             res = os.getenv('HOME') + res[1:]
         if not os.path.isfile(res):
@@ -296,6 +296,7 @@ class TSCParser:
             return None
 
         self.epnames = []
+
         for line in open(res).readlines():
             line = line.strip()
             if not line: continue
@@ -307,12 +308,14 @@ class TSCParser:
         """
         Returns a list with all active EPs from Test-Suites XML.
         """
-        activeEPs = []
-        if not self.configTS:
+        if self.configTS is None:
             print('Parser: Cannot get active EPs, because Test-Suites XML is invalid!')
             return []
-        for ep in self.configTS('epid'):
-            activeEPs.append(ep.text)
+
+        activeEPs = []
+        for epname in self.configTS.xpath('//EpId/text()'):
+            activeEPs.append( str(epname) )
+
         activeEPs = (';'.join(activeEPs)).split(';')
         activeEPs = sorted(list(set(activeEPs)))
         return activeEPs
@@ -321,19 +324,22 @@ class TSCParser:
     def getSuiteInfo(self, epname, suite_soup):
         """
         Returns a dict with information about 1 Suite from Test-Suites XML.
-        The "suite" must be a BeautifulSoup class.
+        The "suite" must be a XML Soup class.
         """
 
-        res = OrderedDict([['name', suite_soup.tsname.text]])
-        prop_keys = suite_soup(lambda tag: tag.name=='propname' and tag.parent.name=='userdefined')
-        prop_vals = suite_soup(lambda tag: tag.name=='propvalue' and tag.parent.name=='userdefined')
-        res.update( dict(zip([p.text for p in prop_keys], [p.text for p in prop_vals])) ) # Pack Key + Value
+        res = OrderedDict([ ['name', suite_soup.xpath('tsName/text()')[0]] ])
+        res['ep'] = epname
+        res['libraries'] = ''
+
+        prop_keys = suite_soup.xpath('UserDefined/propName')
+        prop_vals = suite_soup.xpath('UserDefined/propValue')
+
+        res.update( dict(zip( [k.text for k in prop_keys], [v.text for v in prop_vals] )) ) # Pack Key + Value
 
         res['files'] = OrderedDict()
-        res['ep'] = epname
 
-        for file_tag in suite_soup('tcname'):
-            file_data = self.getFileInfo(file_tag.parent)
+        for file_soup in suite_soup.xpath('TestCase'):
+            file_data = self.getFileInfo(file_soup)
             res['files'][str(self.file_no)] = file_data
             self.file_no += 1
 
@@ -345,7 +351,7 @@ class TSCParser:
         Returns a list with data for all suites of one EP.
         Also returns the file list, with all file data.
         """
-        if not self.configTS:
+        if self.configTS is None:
             print('Parser: Cannot parse Test Suite XML! Exiting!')
             return {}
 
@@ -356,28 +362,29 @@ class TSCParser:
 
         res = OrderedDict()
 
-        for suite in [k.parent for k in self.configTS(name='epid') if epname in k.text.split(';')]:
+        for suite in [s for s in self.configTS.xpath('//TestSuite') if epname in s.xpath('EpId/text()')[0].split(';')]:
             suite_str = str(self.suite_no)
             res[suite_str] = self.getSuiteInfo(epname, suite)
             # Add the suite ID for all files in the suite
             for file_id in res[suite_str]['files']:
                 res[suite_str]['files'][file_id]['suite'] = suite_str
             self.suite_no += 1
+
         return res
 
 
     def getFileInfo(self, file_soup):
         """
         Returns a dict with information about 1 File from Test-Suites XML.
-        The "file" must be a BeautifulSoup class.
+        The "file" must be a XML class.
         """
         res = OrderedDict()
-        res['file']  = file_soup.tcname.text
+        res['file']  = file_soup.xpath('tcName')[0].text
         res['suite'] = None
-        res['dependancy'] = file_soup.dependancy.text if file_soup.dependancy else ''
+        res['dependancy'] = file_soup.xpath('tcName')[0].text if file_soup.xpath('tcName/text()') else ''
 
-        prop_keys = file_soup(lambda tag: tag.name=='propname')
-        prop_vals = file_soup(lambda tag: tag.name=='propvalue')
+        prop_keys = file_soup.xpath('Property/propName')
+        prop_vals = file_soup.xpath('Property/propValue')
         params = ''
 
         # The order of the properties is important!
@@ -399,11 +406,11 @@ class TSCParser:
         """
         Returns a list with ALL files defined for current suite, in order.
         """
-        if not self.configTS:
+        if self.configTS is None:
             print('Parser: Fatal error! Cannot parse Test Suite XML!')
             return []
 
-        files = self.configTS('tcname')
+        files = self.configTS.xpath('//tcName')
 
         if not files:
             print('Parser: Current suite has no files!')
@@ -420,7 +427,7 @@ class TSCParser:
 
 class DBParser():
     """
-    Requirements: BeautifulSoup.
+    Requirements: LXML.
     This parser will read DB.xml.
     """
 
@@ -443,21 +450,22 @@ class DBParser():
             print('DBParser: Database XML file changed, rebuilding internal structure...\n')
 
             if os.path.isfile(config_data):
-                self.xmlDict = BeautifulStoneSoup(open(config_data))
+                try: self.xmlDict = etree.fromstring(open(config_data).read())
+                except: raise Exception('DBParser: Cannot parse DB config file!')
             elif config_data and type(config_data)==type('') or type(config_data)==type(u''):
-                self.xmlDict = BeautifulStoneSoup(config_data)
+                try: self.xmlDict = etree.fromstring(config_data)
+                except: raise Exception('DBParser: Cannot parse DB config file!')
             else:
                 raise Exception('DBParser: Invalid config data type: `%s`!' % type(config_data))
 
-            if self.xmlDict.db_config:
-                if self.xmlDict.db_config.server:
-                    self.db_config['server']    = self.xmlDict.db_config.server.text
-                if self.xmlDict.db_config.database:
-                    self.db_config['database']  = self.xmlDict.db_config.database.text
-                if self.xmlDict.db_config.user:
-                    self.db_config['user']      = self.xmlDict.db_config.user.text
-                if self.xmlDict.db_config.password:
-                    self.db_config['password']  = self.xmlDict.db_config.password.text
+            if self.xmlDict.xpath('db_config/server/text()'):
+                self.db_config['server']    = self.xmlDict.xpath('db_config/server')[0].text
+            if self.xmlDict.xpath('db_config/database/text()'):
+                self.db_config['database']  = self.xmlDict.xpath('db_config/database')[0].text
+            if self.xmlDict.xpath('db_config/user/text()'):
+                self.db_config['user']      = self.xmlDict.xpath('db_config/user')[0].text
+            if self.xmlDict.xpath('db_config/password/text()'):
+                self.db_config['password']  = self.xmlDict.xpath('db_config/password')[0].text
 
 # --------------------------------------------------------------------------------------------------
 #           USED BY CENTRAL ENGINE
@@ -466,14 +474,16 @@ class DBParser():
     def getFields(self):
         """
         Used by Central Engine.
-        Returns a dictionary with field ID : SQL select.
+        Returns a dictionary with field ID : DB select.
         """
-        try:
-            res = self.xmlDict.field_section('field', type="DbSelect")
-        except:
-            print('DBParser: Cannot find field_section in DB config!')
+        if not self.xmlDict.xpath('twister_user_defined/field_section/field'):
+            print('DBParser: There are no fields in the field_section, in DB config!')
             return {}
-        return {field['id']:field['sqlquery'] for field in res}
+
+        ids = self.xmlDict.xpath('twister_user_defined/field_section/field[@Type="DbSelect"]/@ID')
+        sqls = self.xmlDict.xpath('twister_user_defined/field_section/field[@Type="DbSelect"]/@SQLQuery')
+
+        return dict(zip( [str(x) for x in ids], [str(x) for x in sqls] ))
 
 
     def getScripts(self):
@@ -481,28 +491,29 @@ class DBParser():
         Used by Central Engine.
         Returns a list with field IDs.
         """
-        try:
-            res = self.xmlDict.field_section('field', type="UserScript")
-        except:
-            print('DBParser: Cannot find field_section in DB config!')
+        if not self.xmlDict.xpath('twister_user_defined/field_section/field'):
+            print('DBParser: There are no fields in the field_section, in DB config!')
             return {}
-        return [field['id'] for field in res]
+
+        scripts = self.xmlDict.xpath('twister_user_defined/field_section/field[@Type="UserScript"]/@ID')
+
+        return [str(x) for x in scripts]
 
 
     def getQuery(self, field_id):
         """ Used by Central Engine. """
-        res = self.xmlDict.field_section('field', id=field_id)
+        res =  self.xmlDict.xpath('twister_user_defined/field_section/field[@ID="%s"]' % field_id)
         if not res:
             print('DBParser: Cannot find field ID `%s`!' % field_id)
             return False
-        query = res[0].get('sqlquery')
+
+        query = res[0].get('SQLQuery')
         return query
 
 
     def getQueries(self):
         """ Used by Central Engine. """
-        res = self.xmlDict('sql_statement')
-        return [field.text for field in res]
+        return [q.text for q in self.xmlDict.xpath('twister_user_defined/insert_section/sql_statement')]
 
 # --------------------------------------------------------------------------------------------------
 #           USED BY WEB SERVER - REPORTS
@@ -512,19 +523,20 @@ class DBParser():
         """ Used by HTTP Server. """
         self.updateConfig()
 
-        try:
-            fields = self.xmlDict.reports_section('field')
-        except:
-            print('DBParser: Cannot load the database reports section!')
+        fields = self.xmlDict.xpath('twister_user_defined/reports_section/field')
+
+        if not fields:
+            print('DBParser: Cannot load the reports fields section!')
             return {}
+
         res = OrderedDict()
 
         for field in fields:
             d = {}
-            d['id']       = field.get('id', '')
-            d['type']     = field.get('type', '')
-            d['label']    = field.get('label', d['id'])
-            d['sqlquery'] = field.get('sqlquery', '')
+            d['id']       = field.get('ID', '')
+            d['type']     = field.get('Type', '')
+            d['label']    = field.get('Label', d['id'])
+            d['sqlquery'] = field.get('SQLQuery', '')
             res[d['id']]  = d
 
         return res
@@ -534,21 +546,22 @@ class DBParser():
         """ Used by HTTP Server. """
         self.updateConfig()
 
-        try:
-            reports = self.xmlDict.reports_section('report')
-        except:
-            print('DBParser: Cannot load the database fields section!')
+        reports = self.xmlDict.xpath('twister_user_defined/reports_section/report')
+
+        if not reports:
+            print('DBParser: Cannot load the database reports section!')
             return {}
+
         res = OrderedDict()
 
         for report in reports:
             d = {}
-            d['id']       = report.get('id', '')
-            d['type']     = report.get('type', '')
-            d['path']     = report.get('path', '')
-            d['sqlquery'] = report.get('sqlquery', '')
-            d['sqltotal'] = report.get('sqltotal', '') # SQL Total Query
-            d['sqlcompr'] = report.get('sqlcompare', '') # SQL Query Compare side by side
+            d['id']       = report.get('ID', '')
+            d['type']     = report.get('Type', '')
+            d['path']     = report.get('Path', '')
+            d['sqlquery'] = report.get('SQLQuery', '')
+            d['sqltotal'] = report.get('SQLTotal', '')   # SQL Total Query
+            d['sqlcompr'] = report.get('SQLCompare', '') # SQL Query Compare side by side
             res[d['id']]  = d
 
         return res
@@ -558,17 +571,18 @@ class DBParser():
         """ Used by HTTP Server. """
         self.updateConfig()
 
-        try:
-            reports = self.xmlDict.reports_section('redirect')
-        except:
-            print('DBParser: Cannot load the database redirect section!')
+        redirects = self.xmlDict.xpath('twister_user_defined/reports_section/redirect')
+
+        if not redirects:
+            print('DBParser: Cannot load the database redirects section!')
             return {}
+
         res = OrderedDict()
 
-        for redirect in reports:
+        for redirect in redirects:
             d = {}
-            d['id']       = redirect.get('id', '')
-            d['path']     = redirect.get('path', '')
+            d['id']       = redirect.get('ID', '')
+            d['path']     = redirect.get('Path', '')
             res[d['id']]  = d
 
         return res
@@ -605,33 +619,31 @@ class PluginParser:
         config_data = open(self.config_data).read()
         newConfigHash = hashlib.md5(config_data).hexdigest()
 
-        config_data = config_data.replace('<pyfile/>', '<pyfile></pyfile>')
-        config_data = config_data.replace('<jarfile/>', '<jarfile></jarfile>')
-
         if self.configHash != newConfigHash:
             self.configHash = newConfigHash
             #print('PluginParser: Plugin XML file changed, rebuilding internal structure...\n')
 
-            self.xmlDict = BeautifulStoneSoup(config_data)
-            if not self.xmlDict.root:
+            try:
+                self.xmlDict = etree.fromstring(config_data)
+            except:
                 print('PluginParser ERROR: Cannot access XML config data!')
                 return False
 
-            for plugin in self.xmlDict.root('plugin'):
-                name = plugin('name')
-                if not name:
+            for plugin in self.xmlDict.xpath('Plugin'):
+
+                if (not plugin.xpath('name/text()')) or (not plugin.xpath('pyfile')) or (not plugin.xpath('jarfile')):
                     print('PluginParser ERROR: Invalid plugin: `%s`!' % str(plugin))
                     continue
-                name = name[0].text
+                name = plugin.xpath('name')[0].text
 
-                prop_keys = plugin(lambda tag: tag.name=='propname' and tag.parent.name=='property')
-                prop_vals = plugin(lambda tag: tag.name=='propvalue' and tag.parent.name=='property')
-                res = dict(zip([p.text for p in prop_keys], [p.text for p in prop_vals])) # Pack Key + Value
+                prop_keys = plugin.xpath('property/propname')
+                prop_vals = plugin.xpath('property/propvalue')
+                res = dict(zip([k.text for k in prop_keys], [v.text for v in prop_vals])) # Pack Key + Value
 
                 self.p_config[name] = res
-                self.p_config[name]['jarfile'] = plugin.jarfile.text
-                self.p_config[name]['pyfile']  = plugin.pyfile.text
-                self.p_config[name]['status']  = plugin.status.text
+                self.p_config[name]['jarfile'] = plugin.xpath('jarfile')[0].text
+                self.p_config[name]['pyfile']  = plugin.xpath('pyfile')[0].text
+                self.p_config[name]['status']  = plugin.xpath('status')[0].text
 
 
     def getPlugins(self):

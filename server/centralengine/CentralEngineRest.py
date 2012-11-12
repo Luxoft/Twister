@@ -256,7 +256,8 @@ class CentralEngineRest:
         if user and log:
             logs = self.project.getUserInfo(user, 'log_types')
             logsPath = self.project.getUserInfo(user, 'logs_path')
-            if log.startswith('logcli_'):
+
+            if log.startswith('logCli_'):
                 epname = '_'.join(log.split('_')[1:])
                 log = logsPath + os.sep + decode(epname) + '_CLI.log'
             else:

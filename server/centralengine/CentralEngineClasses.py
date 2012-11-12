@@ -596,7 +596,7 @@ class CentralEngine(_cptools.XMLRPCController):
         status_str = reversed[new_status]
 
         # Get logSummary path from framework config
-        logPath = self.project.getUserInfo(user, 'log_types')['logsummary']
+        logPath = self.project.getUserInfo(user, 'log_types')['logSummary']
 
         # Write all statuses in logs, because all files will be saved to database
         if status_str=='not executed': status_str='*NO EXEC*'
@@ -916,7 +916,7 @@ class CentralEngine(_cptools.XMLRPCController):
         '''
         This function is exposed in all tests, all logs are centralized.
         '''
-        logType = str(logType).lower()
+        logType = str(logType)
         logTypes = self.project.getUserInfo(user, 'log_types')
 
         if logType == 'logcli' or logType == 'logsummary':

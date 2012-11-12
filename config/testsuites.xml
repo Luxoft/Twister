@@ -1,7 +1,13 @@
 <Root>
+    <stoponfail>false</stoponfail>
+    <dbautosave>false</dbautosave>
+    <libraries></libraries>
+    <ScriptPre></ScriptPre>
+    <ScriptPost></ScriptPost>
     <TestSuite>
         <tsName>S1</tsName>
-        <EpId>EP-1001</EpId>
+        <EpId>EP-1001;EP-1002</EpId>
+        <libraries></libraries>
         <UserDefined>
             <propName>release_id</propName>
             <propValue>1</propValue>
@@ -25,9 +31,9 @@
         <TestSuite>
             <tsName>S-11</tsName>
             <EpId>EP-1001</EpId>
+            <libraries></libraries>
             <TestCase>
                 <tcName>~/twister/demo/testsuite-python/init.py</tcName>
-                <tcID>1000</tcID>
                 <Title/>
                 <Summary/>
                 <Priority>Medium</Priority>
@@ -43,7 +49,6 @@
             </TestCase>
             <TestCase>
                 <tcName>~/twister/demo/testsuite-python/test001.py</tcName>
-                <tcID>1001</tcID>
                 <Title/>
                 <Summary/>
                 <Priority>Medium</Priority>
@@ -59,7 +64,6 @@
             <EpId>EP-1001</EpId>
             <TestCase>
                 <tcName>~/twister/demo/testsuite-python/init.py</tcName>
-                <tcID>1002</tcID>
                 <Title/>
                 <Summary/>
                 <Priority>Medium</Priority>
@@ -75,7 +79,6 @@
             </TestCase>
             <TestCase>
                 <tcName>~/twister/demo/testsuite-python/test002.py</tcName>
-                <tcID>1003</tcID>
                 <Title/>
                 <Summary/>
                 <Priority>Medium</Priority>
@@ -87,7 +90,6 @@
             </TestCase>
             <TestCase>
                 <tcName>~/twister/demo/testsuite-python/test004.py</tcName>
-                <tcID>1004</tcID>
                 <Title/>
                 <Summary/>
                 <Priority>Medium</Priority>
@@ -103,7 +105,6 @@
             <EpId>EP-1001</EpId>
             <TestCase>
                 <tcName>~/twister/demo/testsuite-python/init.py</tcName>
-                <tcID>1005</tcID>
                 <Title/>
                 <Summary/>
                 <Priority>Medium</Priority>
@@ -115,7 +116,6 @@
             </TestCase>
             <TestCase>
                 <tcName>~/twister/demo/testsuite-python/test006.py</tcName>
-                <tcID>1006</tcID>
                 <Title/>
                 <Summary/>
                 <Priority>Medium</Priority>
@@ -129,7 +129,7 @@
     </TestSuite>
     <TestSuite>
         <tsName>S2</tsName>
-        <EpId>EP-1002</EpId>
+        <EpId>EP-1002;EP-1003</EpId>
         <UserDefined>
             <propName>release_id</propName>
             <propValue>2</propValue>
@@ -152,7 +152,6 @@
         </UserDefined>
         <TestCase>
             <tcName>~/twister/demo/testsuite-python/init.py</tcName>
-            <tcID>1007</tcID>
             <Title/>
             <Summary/>
             <Priority>Medium</Priority>
@@ -164,7 +163,6 @@
         </TestCase>
         <TestCase>
             <tcName>~/twister/demo/testsuite-python/test002.py</tcName>
-            <tcID>1008</tcID>
             <Title/>
             <Summary/>
             <Priority>Medium</Priority>

@@ -809,6 +809,10 @@ class Project:
             scripts = db_parser.getScripts() # List
             del db_parser
 
+            if not queries:
+                logDebug('Database: There are no queries defined! Nothing to do!')
+                return False
+
             system = platform.machine() +' '+ platform.system() +', '+ ' '.join(platform.linux_distribution())
 
             #
@@ -868,7 +872,8 @@ class Project:
                         for query in queries:
 
                             # All variables of type `UserScript` must be replaced with the script result
-                            vars_to_replace = re.findall('(\$.+?)[,\'"\s]', query)
+                            try: vars_to_replace = re.findall('(\$.+?)[,\'"\s]', query)
+                            except: vars_to_replace = []
 
                             for field in vars_to_replace:
                                 field = field[1:]
@@ -885,7 +890,8 @@ class Project:
                                 else: subst_data[field] = ''
 
                             # All variables of type `DbSelect` must be replaced with the SQL result
-                            vars_to_replace = re.findall('(@.+?@)', query)
+                            try: vars_to_replace = re.findall('(@.+?@)', query)
+                            except: vars_to_replace = []
 
                             for field in vars_to_replace:
                                 # Delete the @ character
@@ -916,7 +922,7 @@ class Project:
                                 return False
 
                             # :: For DEBUG ::
-                            #open(TWISTER_PATH + '/Query.debug', 'a').write('File Query:: `{0}` ::\n{1}\n\n\n'.format(subst_data['file'], query))
+                            #open(TWISTER_PATH + '/common/Query.debug', 'a').write('File Query:: `{0}` ::\n{1}\n\n\n'.format(subst_data['file'], query))
 
                             # Execute MySQL Query!
                             try:
