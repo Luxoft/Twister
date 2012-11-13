@@ -39,6 +39,7 @@ This script should NOT be run manually.
 
 import os
 import sys
+import shutil
 import time
 import csv
 import pickle
@@ -82,13 +83,14 @@ def loadConfig():
 
 def saveLibraries(proxy):
     '''
-    Saves all libraries from CE.
+    Downloads all libraries from Central Engine.
     Not used in offline mode.
     '''
-    global globEpName
-    global TWISTER_PATH
-    libs_list = proxy.getLibrariesList()
+    global userName, globEpName, TWISTER_PATH
+    libs_list = proxy.getLibrariesList(userName)
     libs_path = '{0}/.twister_cache/{1}/ce_libs'.format(TWISTER_PATH, globEpName)
+
+    shutil.rmtree(libs_path, ignore_errors=True)
 
     try: os.makedirs(libs_path)
     except: pass
@@ -100,6 +102,8 @@ def saveLibraries(proxy):
     zip_libs=[]
 
     for lib in libs_list:
+        if not lib:
+            continue
         if not lib.endswith('.zip'):
             all_libs.append(lib)
         else:
