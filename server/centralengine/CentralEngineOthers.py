@@ -181,6 +181,9 @@ class Project:
         # Add the `Database Autosave` value
         self.users[user]['db_auto_save'] = project_globals['DbAutoSave']
 
+        # Add the 'Libraries'
+        self.users[user]['libraries'] = project_globals['Libraries']
+
         # Add the `Testcase Delay` value
         self.users[user]['tc_delay'] = project_globals['TestcaseDelay']
         del project_globals
@@ -304,6 +307,9 @@ class Project:
 
         # Add the `Database Autosave` value
         self.users[user]['db_auto_save'] = project_globals['DbAutoSave']
+
+        # Add the 'Libraries'
+        self.users[user]['libraries'] = project_globals['Libraries']
 
         # Add the `Testcase Delay` value
         self.users[user]['tc_delay'] = project_globals['TestcaseDelay']

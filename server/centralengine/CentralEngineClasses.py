@@ -181,19 +181,14 @@ class CentralEngine(_cptools.XMLRPCController):
         This function is called from the Java GUI, or from an EP.
         '''
 
-        db_auto_save = self.project.getUserInfo(user, 'db_auto_save')
-
-        if db_auto_save:
-            logDebug('CE: Preparing to save into database...')
-            time.sleep(3)
-            ret = self.project.saveToDatabase(user)
-            if ret:
-                logDebug('CE: Saving to database was successful!')
-            else:
-                logDebug('CE: Could not save to database!')
-            return ret
+        logDebug('CE: Preparing to save into database...')
+        time.sleep(3)
+        ret = self.project.saveToDatabase(user)
+        if ret:
+            logDebug('CE: Saving to database was successful!')
         else:
-            return False
+            logDebug('CE: Could not save to database!')
+        return ret
 
 
 # --------------------------------------------------------------------------------------------------
@@ -415,11 +410,12 @@ class CentralEngine(_cptools.XMLRPCController):
 
                 # If this run is Not temporary
                 if not (user + '_old' in self.project.users):
-                    # On Central Engine stop, send e-mail?
+                    # On Central Engine stop, send e-mail
                     self.sendMail(user)
 
-                    # On Central Engine stop, save to database?
-                    self.commitToDatabase(user)
+                    # On Central Engine stop, save to database
+                    db_auto_save = self.project.getUserInfo(user, 'db_auto_save')
+                    if db_auto_save: self.commitToDatabase(user)
 
                     # Execute "Post Script"
                     script_post = self.project.getUserInfo(user, 'script_post')

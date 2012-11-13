@@ -223,8 +223,8 @@ class TSCParser:
         if self.configTS.xpath('ScriptPost/text()'):
             res['ScriptPost'] = self.configTS.xpath('ScriptPost')[0].text
 
-        if self.configTS.xpath('Libraries/text()'):
-            res['libraries'] = self.configTS.xpath('libraries')[0].text
+        if self.configTS.xpath('libraries/text()'):
+            res['Libraries'] = self.configTS.xpath('libraries')[0].text
 
         return res
 
