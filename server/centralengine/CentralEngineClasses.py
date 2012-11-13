@@ -187,7 +187,10 @@ class CentralEngine(_cptools.XMLRPCController):
             logDebug('CE: Preparing to save into database...')
             time.sleep(3)
             ret = self.project.saveToDatabase(user)
-            logDebug('CE: Done saving to database!')
+            if ret:
+                logDebug('CE: Saving to database was successful!')
+            else:
+                logDebug('CE: Could not save to database!')
             return ret
         else:
             return False
@@ -747,7 +750,7 @@ class CentralEngine(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
-    def getLibrariesList(self):
+    def getLibrariesList(self, user=''):
         '''
         Returns the list of exposed libraries, from CE libraries folder.\n
         This list will be used to syncronize the libs on all EP computers.\n
@@ -755,11 +758,21 @@ class CentralEngine(_cptools.XMLRPCController):
         '''
         global TWISTER_PATH
         libs_path = TWISTER_PATH + os.sep + 'lib'
+        libs = []
+
+        # All libraries for user
+        if user:
+            tmp_libs = self.project.getUserInfo(user, 'libraries') or ''
+            libs = [x.strip() for x in tmp_libs.split(';')]
+            del tmp_libs
+
         # All Python source files from Libraries folder
-        libs = [d for d in os.listdir(libs_path) if\
-                os.path.isfile(libs_path + os.sep + d) and\
-                '__init__.py' not in d and\
-                os.path.splitext(d)[1] in ['.py', '.zip']]
+        if not libs:
+            libs = [d for d in os.listdir(libs_path) if\
+                    os.path.isfile(libs_path + os.sep + d) and\
+                    '__init__.py' not in d and\
+                    os.path.splitext(d)[1] in ['.py', '.zip']]
+
         return sorted(libs)
 
 
@@ -770,7 +783,7 @@ class CentralEngine(_cptools.XMLRPCController):
         Called from the Runner.
         '''
         global TWISTER_PATH
-        filename = TWISTER_PATH + os.sep + 'lib' +os.sep + filename
+        filename = TWISTER_PATH + os.sep + 'lib' + os.sep + filename
         if not os.path.isfile(filename):
             logError('CE ERROR! Library file: `%s` does not exist!' % filename)
             return False
