@@ -56,7 +56,8 @@ PYTHON_EXE = sys.executable
 # And `setuptools` is not installed, or some dependencies are missing
 HTTP_PROXY = 'http://UserName:PassWord@http-proxy:3128'
 
-os.chdir(os.path.split(__file__)[0])
+__dir__ = os.path.split(__file__)[0]
+if __dir__: os.chdir(__dir__)
 
 # --------------------------------------------------------------------------------------------------
 # Install  Server  or  Client ?
@@ -100,23 +101,39 @@ else:
 if TO_INSTALL == 'server':
 
     if os.getuid() != 0:
-        print('Installer must be run as ROOT! Exiting!\n')
+        print('To install servers, must be run as ROOT! Exiting!\n')
+        exit(1)
+
+    print('Please type where you wish to install the servers.')
+    print('Leave empty to install in default path `/opt/twister`:')
+    selected = raw_input('Path : ')
+    if selected and not os.path.exists( os.path.split(selected)[0] ):
+        print('The path to `{0}` does not exist! Exiting\n'.format(os.path.split(selected)[0]))
         exit(1)
 
     # Twister server path
-    INSTALL_PATH = '/opt/twister/'
+    if selected:
+        # Use the path from user, add '/' at the end
+        INSTALL_PATH = selected if selected[-1]=='/' else selected + os.sep
+    else:
+        INSTALL_PATH = '/opt/twister/'
+    del selected
 
     # Deleting previous versions of Twister
     try:
         dir_util.remove_tree(INSTALL_PATH)
         print('Removed folder `%s`.' % INSTALL_PATH)
-    except: print('Error! Cannot delete Twister dir `{0}` !'.format(INSTALL_PATH))
+    except: print('Warning! Cannot delete Twister dir `{0}` !'.format(INSTALL_PATH))
     try:
-        os.mkdir(INSTALL_PATH)
+        os.makedirs(INSTALL_PATH)
         print('Created folder `%s`.' % INSTALL_PATH)
-    except: print('Error! Cannot create Twister dir `{0}` !'.format(INSTALL_PATH))
+    except: print('Warning! Cannot create Twister dir `{0}` !'.format(INSTALL_PATH))
 
 else:
+
+    if os.getuid() == 0:
+        print('To install client, must be a normal user, not ROOT! Exiting!\n')
+        exit(1)
 
     # Twister client path
     INSTALL_PATH = os.getenv('HOME') + os.sep + 'twister/'
@@ -302,13 +319,14 @@ if TO_INSTALL == 'server':
                 print('\n~~~ Installing `%s` from System repositories ~~~\n' % lib_name)
 
                 if platform.dist()[0] == 'SuSE':
-                    tcr_proc = subprocess.Popen(['zypper', 'install', 'python-mysql'], cwd=pkg_path)
-                if platform.dist()[0] == 'fedora':
+                    tcr_proc = subprocess.Popen(['zypper', 'install', '-yl', 'python-mysql'], cwd=pkg_path)
+                elif platform.dist()[0] == 'fedora':
                     tcr_proc = subprocess.Popen(['yum', '-y', 'install', 'python-mysql'], cwd=pkg_path)
                 else:
                     tcr_proc = subprocess.Popen(['apt-get', 'install', 'python-mysqldb', '--yes'], cwd=pkg_path)
 
-                tcr_proc.wait()
+                try: tcr_proc.wait()
+                except: print('Error while installing `MySQL-python`!')
 
             # All other packages are installed with easy_install
             else:
@@ -318,6 +336,7 @@ if TO_INSTALL == 'server':
 
             if tcr_proc.returncode:
                 print('\n~~~ `%s` cannot be installed! It MUST be installed manually! ~~~\n' % lib_name)
+                library_err.append(lib_name)
             else:
                 print('\n~~~ Successfully installed %s ~~~\n' % lib_name)
 
@@ -411,10 +430,6 @@ if TO_INSTALL == 'client':
     except: pass
     try: os.mkdir(INSTALL_PATH +os.sep+ 'logs')
     except: pass
-
-    # If root, fix owner
-    if os.getuid() == 0:
-        os.system('chown %s:%s %s -R' % (os.getenv('SUDO_USER'), os.getenv('SUDO_USER'), INSTALL_PATH))
 
 tcr_proc = subprocess.Popen(['chmod', '775', INSTALL_PATH, '-R'],)
 tcr_proc.wait()
