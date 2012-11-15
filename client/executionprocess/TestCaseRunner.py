@@ -44,6 +44,7 @@ import time
 import csv
 import pickle
 import xmlrpclib
+import tarfile
 import traceback
 from threading import Timer
 
@@ -98,24 +99,25 @@ def saveLibraries(proxy):
     __init = open(libs_path + os.sep + '__init__.py', 'w')
     __init.write('\nimport os, sys\n')
     __init.write('\nPROXY = "%s"\n' % CE_Path)
-    all_libs=[]
-    zip_libs=[]
+    all_libs = []
+    zip_libs = []
 
     for lib in libs_list:
         if not lib:
             continue
-        if not lib.endswith('.zip'):
-            all_libs.append(lib)
-        else:
+        if lib.endswith('.zip'):
             zip_libs.append(lib)
+        else:
+            all_libs.append(lib)
 
     for lib_file in zip_libs:
         # Write in __init__ file.
         __init.write('\nsys.path.append(os.path.split(__file__)[0] + "/%s")\n\n' % lib_file)
         lib_pth = libs_path + os.sep + lib_file
+
         print('Downloading Zip library `{0}` ...'.format(lib_pth))
         f = open(lib_pth, 'wb')
-        lib_data = proxy.getLibraryFile(lib_file)
+        lib_data = proxy.downloadLibrary(lib_file)
         f.write(lib_data.data)
         f.close() ; del f
 
@@ -126,11 +128,21 @@ def saveLibraries(proxy):
         __init.write('import %s\n' % ext[0])
         __init.write('from %s import *\n\n' % ext[0])
         lib_pth = libs_path + os.sep + lib_file
+
         print('Downloading library `{0}` ...'.format(lib_pth))
         f = open(lib_pth, 'wb')
-        lib_data = proxy.getLibraryFile(lib_file)
+        lib_data = proxy.downloadLibrary(lib_file)
         f.write(lib_data.data)
         f.close() ; del f
+
+        # If the file doesn't have and ext, it's a TGZ library and must be extracted
+        if not ext[1]:
+            # Rename the TGZ
+            tgz = lib_pth + '.tgz'
+            os.rename(lib_pth, tgz)
+            with tarfile.open(tgz, 'r:gz') as binary:
+                os.chdir(libs_path)
+                binary.extractall()
 
     __init.close()
 

@@ -38,6 +38,7 @@ import glob
 import time
 import datetime
 import binascii
+import tarfile
 import xmlrpclib
 import urlparse
 import MySQLdb
@@ -753,39 +754,57 @@ class CentralEngine(_cptools.XMLRPCController):
         Called from the Runner.
         '''
         global TWISTER_PATH
-        libs_path = TWISTER_PATH + os.sep + 'lib'
+        libs_path = (TWISTER_PATH + '/lib/').replace('//', '/')
         libs = []
 
         # All libraries for user
         if user:
+            # If `libraries` is empty, will default to ALL libraries
             tmp_libs = self.project.getUserInfo(user, 'libraries') or ''
-            libs = [x.strip() for x in tmp_libs.split(';')]
+            libs = [x.strip() for x in tmp_libs.split(';')] if tmp_libs else []
             del tmp_libs
 
-        # All Python source files from Libraries folder
+        # All Python source files from Libraries folder AND all library folders
         if not libs:
-            libs = [d for d in os.listdir(libs_path) if\
-                    os.path.isfile(libs_path + os.sep + d) and\
-                    '__init__.py' not in d and\
-                    os.path.splitext(d)[1] in ['.py', '.zip']]
+            libs = [d for d in os.listdir(libs_path) if \
+                    ( os.path.isfile(libs_path + d) and \
+                    '__init__.py' not in d and \
+                    os.path.splitext(d)[1] in ['.py', '.zip']) or \
+                    os.path.isdir(libs_path + d) ]
 
         return sorted(libs)
 
 
     @cherrypy.expose
-    def getLibraryFile(self, filename):
+    def downloadLibrary(self, name):
         '''
         Sends required library to EP, to be syncronized.\n
         Called from the Runner.
         '''
         global TWISTER_PATH
-        filename = TWISTER_PATH + os.sep + 'lib' + os.sep + filename
-        if not os.path.isfile(filename):
-            logError('CE ERROR! Library file: `%s` does not exist!' % filename)
+        name = (TWISTER_PATH + '/lib/' + name).replace('//', '/')
+        if not os.path.exists(name):
+            logError('CE ERROR! Library `{0}` does not exist!'.format(name))
             return False
-        logDebug('CE: Requested library: ' + filename)
-        with open(filename, 'rb') as handle:
-            return xmlrpclib.Binary(handle.read())
+
+        # Python and Zip files
+        if os.path.isfile(name):
+            logDebug('CE: Requested library file: `{0}`.'.format(name))
+            with open(name, 'rb') as binary:
+                return xmlrpclib.Binary(binary.read())
+
+        # Library folders must be compressed
+        else:
+            logDebug('CE: Requested library folder: `{0}`.'.format(name))
+            split_name = os.path.split(name)
+            tgz = split_name[1] + '.tgz'
+            os.chdir(split_name[0])
+            with tarfile.open(tgz, 'w:gz') as binary:
+                binary.add(name=split_name[1], recursive=True)
+            with open(tgz, 'r') as binary:
+                data = xmlrpclib.Binary(binary.read())
+            os.remove(tgz)
+            return data
 
 
     @cherrypy.expose

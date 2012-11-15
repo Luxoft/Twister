@@ -107,14 +107,16 @@ if TO_INSTALL == 'server':
     print('Please type where you wish to install the servers.')
     print('Leave empty to install in default path `/opt/twister`:')
     selected = raw_input('Path : ')
-    if selected and not os.path.exists( os.path.split(selected)[0] ):
-        print('The path to `{0}` does not exist! Exiting\n'.format(os.path.split(selected)[0]))
+    selected = selected.rstrip('/')
+
+    if selected and not os.path.isdir( os.path.split(selected)[0] ):
+        print('The path to `{0}` does not exist! Exiting!\n'.format(os.path.split(selected)[0]))
         exit(1)
 
     # Twister server path
     if selected:
         # Use the path from user, add '/' at the end
-        INSTALL_PATH = selected if selected[-1]=='/' else selected + os.sep
+        INSTALL_PATH = selected + os.sep
     else:
         INSTALL_PATH = '/opt/twister/'
     del selected
@@ -173,6 +175,7 @@ if TO_INSTALL == 'server':
         'Beaker',
         'Mako',
         'CherryPy',
+        'LXML-Python',
         'MySQL-python',
     ]
 
@@ -181,6 +184,7 @@ if TO_INSTALL == 'server':
         'beaker',
         'mako',
         'cherrypy',
+        'lxml',
         'MySQLdb',
     ]
 
@@ -189,6 +193,7 @@ if TO_INSTALL == 'server':
         '1.6',
         '0.7',
         '3.2',
+        '2.0',
         '1.2',
     ]
 
@@ -327,6 +332,14 @@ if TO_INSTALL == 'server':
 
                 try: tcr_proc.wait()
                 except: print('Error while installing `MySQL-python`!')
+
+            elif lib_name == 'LXML-Python':
+                print('\n~~~ Installing `%s` from System repositories ~~~\n' % lib_name)
+
+                tcr_proc = subprocess.Popen(['apt-get', 'install', 'python-lxml', '--yes'], cwd=pkg_path)
+
+                try: tcr_proc.wait()
+                except: print('Error while installing `Python LXML`!')
 
             # All other packages are installed with easy_install
             else:
