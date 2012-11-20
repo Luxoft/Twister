@@ -331,6 +331,9 @@ class TSCParser:
         res['ep'] = epname
         res['libraries'] = ''
 
+        if suite_soup.xpath('libraries/text()'):
+            res['libraries'] = suite_soup.xpath('libraries')[0].text
+
         prop_keys = suite_soup.xpath('UserDefined/propName')
         prop_vals = suite_soup.xpath('UserDefined/propValue')
 
@@ -447,7 +450,7 @@ class DBParser():
 
         if self.configHash != newConfigHash:
             self.configHash = newConfigHash
-            print('DBParser: Database XML file changed, rebuilding internal structure...\n')
+            # print('DBParser: Database XML file changed, rebuilding internal structure...\n')
 
             if os.path.isfile(config_data):
                 try: self.xmlDict = etree.fromstring(open(config_data).read())

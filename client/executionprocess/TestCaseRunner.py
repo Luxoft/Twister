@@ -82,25 +82,40 @@ def loadConfig():
 
 #
 
-def saveLibraries(proxy):
+def saveLibraries(proxy, libs_list=''):
     '''
     Downloads all libraries from Central Engine.
     Not used in offline mode.
     '''
     global userName, globEpName, TWISTER_PATH
-    libs_list = proxy.getLibrariesList(userName)
+
     libs_path = '{0}/.twister_cache/{1}/ce_libs'.format(TWISTER_PATH, globEpName)
+    reset_libs = False
 
-    shutil.rmtree(libs_path, ignore_errors=True)
+    if not libs_list:
+        libs_list = proxy.getLibrariesList(userName)
+        reset_libs = True
+    else:
+        libs_list = [lib.strip() for lib in libs_list.split(';')]
 
-    try: os.makedirs(libs_path)
-    except: pass
+    if reset_libs:
+        # Remove libs path only if saving libraries for all project
+        shutil.rmtree(libs_path, ignore_errors=True)
+        # Create the path, after removal
+        try: os.makedirs(libs_path)
+        except: pass
 
-    __init = open(libs_path + os.sep + '__init__.py', 'w')
-    __init.write('\nimport os, sys\n')
-    __init.write('\nPROXY = "%s"\n' % CE_Path)
-    all_libs = []
-    zip_libs = []
+    all_libs = [] # Normal python files or folders
+    zip_libs = [] # Zip libraries
+
+    # If Reseting libs, open and destroy
+    if reset_libs:
+        __init = open(libs_path + os.sep + '__init__.py', 'w')
+        __init.write('\nimport os, sys\n')
+        __init.write('\nPROXY = "%s"\n' % CE_Path)
+    # If not Reseting, just append
+    else:
+        __init = open(libs_path + os.sep + '__init__.py', 'a')
 
     for lib in libs_list:
         if not lib:
@@ -110,8 +125,13 @@ def saveLibraries(proxy):
         else:
             all_libs.append(lib)
 
+    if reset_libs:
+        __init.write('\nall = ["%s"]\n\n' % ('", "'.join([os.path.splitext(lib)[0] for lib in all_libs])))
+    else:
+        __init.write('\nall += ["%s"]\n\n' % ('", "'.join([os.path.splitext(lib)[0] for lib in all_libs])))
+
     for lib_file in zip_libs:
-        # Write in __init__ file.
+        # Write ZIP imports.
         __init.write('\nsys.path.append(os.path.split(__file__)[0] + "/%s")\n\n' % lib_file)
         lib_pth = libs_path + os.sep + lib_file
 
@@ -121,10 +141,9 @@ def saveLibraries(proxy):
         f.write(lib_data.data)
         f.close() ; del f
 
-    __init.write('\nall = ["%s"]\n\n' % ('", "'.join([os.path.splitext(lib)[0] for lib in all_libs])))
-
     for lib_file in all_libs:
         ext = os.path.splitext(lib_file)
+        # Write normal imports.
         __init.write('import %s\n' % ext[0])
         __init.write('from %s import *\n\n' % ext[0])
         lib_pth = libs_path + os.sep + lib_file
@@ -135,7 +154,7 @@ def saveLibraries(proxy):
         f.write(lib_data.data)
         f.close() ; del f
 
-        # If the file doesn't have and ext, it's a TGZ library and must be extracted
+        # If the file doesn't have an ext, it's a TGZ library and must be extracted
         if not ext[1]:
             # Rename the TGZ
             tgz = lib_pth + '.tgz'
@@ -392,6 +411,12 @@ if __name__=='__main__':
         else:
             # print('TC debug: Stats from last run : {0}'.format(tStats))
             pass
+
+        # Get list of libraries for current suite
+        libList = proxy.getSuiteVariable(userName, globEpName, suite_id, 'libraries')
+        if libList:
+            saveLibraries(proxy, libList)
+            print('')
 
 
         # Cycle for Files
