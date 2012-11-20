@@ -735,7 +735,7 @@ class CentralEngine(_cptools.XMLRPCController):
             self.project.setEpInfo(user, epname, 'status', STATUS_RUNNING)
 
         while self.project.getUserInfo(user, 'status') == STATUS_RUNNING:
-            print 'Temporary user `{0}` is still running ...'.format(user)
+            logInfo('Temporary user `{0}` is still running ...'.format(user))
             time.sleep(1)
 
         # Delete temporary user
