@@ -173,6 +173,9 @@ public class XMLReader{
     }
             
     public void parseXML(Graphics g,boolean test){
+        if(!test){
+            Repository.window.mainpanel.p1.suitaDetails.setGlobalLibs(null);
+        }
         Repository.window.mainpanel.p1.suitaDetails.setSaveDB(false);
         Repository.window.mainpanel.p1.suitaDetails.setDelay("");
         NodeList nodeLst = doc.getChildNodes().item(0).getChildNodes();
@@ -228,6 +231,15 @@ public class XMLReader{
                     }
                     continue;
                 }
+                else if(fstNode.getNodeName().equals("libraries")){
+                    try{
+                        String [] libraries = fstNode.getChildNodes().item(0).getNodeValue().toString().split(";");
+                        Repository.window.mainpanel.p1.suitaDetails.setGlobalLibs(libraries);}
+                    catch(Exception e){
+                        e.printStackTrace();
+                    }
+                    continue;
+                }
             }
             if(!fstNode.getNodeName().equals("TestSuite"))continue;            
             ArrayList <Integer> indexpos = new ArrayList <Integer> ();
@@ -243,6 +255,19 @@ public class XMLReader{
                                          2,-1,10, width+50,25,indexpos);
             else suitatemp=  new Item(fstNm.item(0).getNodeValue(),
                                       2,-1,10, width+120,25,indexpos);
+                                      
+            int k=4;   
+            System.out.println("nodename:"+fstElmnt.getNodeName());
+            fstNmElmntLst = fstElmnt.getElementsByTagName("libraries");
+            System.out.println("size is: "+fstNmElmntLst.getLength());
+            if(fstNmElmntLst.getLength()>0){
+                fstNmElmnt = (Element)fstNmElmntLst.item(0);
+                fstNm = fstNmElmnt.getChildNodes();
+                suitatemp.setLibs(fstNm.item(0).getNodeValue().split(";"));
+                k+=2;
+            }
+            
+                                      
             fstNmElmntLst = fstElmnt.getElementsByTagName("EpId");
             fstNmElmnt = (Element)fstNmElmntLst.item(0);
             fstNm = fstNmElmnt.getChildNodes();
@@ -302,7 +327,7 @@ public class XMLReader{
             int subchildren = fstElmnt.getChildNodes().getLength();
             int index=0;
             indexsuita++;
-            for(int k=4+(userdefinitions*2);k<subchildren-1;k++){
+            for( k+=(userdefinitions*2);k<subchildren-1;k++){
                 k++;
                 ArrayList <Integer> temp =(ArrayList <Integer>)indexpos.clone();
                 temp.add(new Integer(index));

@@ -151,7 +151,7 @@ public class UnitTesting extends JFrame {
         textarea = new JEditTextArea();
         jPanel1 = new JSplitPane(JSplitPane.VERTICAL_SPLIT,textarea,p1);
         
-         try{
+        try{
             SwingUtilities.invokeLater(new Runnable() {
                 public void run() {
                     jPanel1.setDividerLocation(Repository.getLayouts().
@@ -355,7 +355,7 @@ public class UnitTesting extends JFrame {
         parent.setEpId(selected);
         items.add(parent);
         XMLBuilder xml = new XMLBuilder(items);
-        xml.createXML(false,false,true,"","",false,"");
+        xml.createXML(false,false,true,"","",false,"",null);
         String dir = Repository.getXMLRemoteDir();
         String [] path = dir.split("/");
         StringBuffer result2 = new StringBuffer();

@@ -2183,7 +2183,7 @@ public class Grafic extends JPanel{
             xml.createXML(skip,stoponfail,false,
                           Repository.window.mainpanel.p1.suitaDetails.getPreScript(),
                           Repository.window.mainpanel.p1.suitaDetails.getPostScript(),
-                          savedb,delay);
+                          savedb,delay,Repository.window.mainpanel.p1.suitaDetails.getGlobalLibs());
             xml.writeXMLFile(user,local,false);
             return true;}
         catch(Exception e){
