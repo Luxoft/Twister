@@ -9,7 +9,6 @@ extlibs/ws-commons-util-1.0.2.jar:\
 extlibs/commons-vfs-1.0.jar:\
 extlibs/jgoodies-looks-2.5.1.jar:\
 extlibs/jgoodies-common-1.3.1.jar:\
-extlibs/VFSJFileChooser-0.0.3.jar:\
 extlibs/jxl.jar:\
 extlibs/ws-commons-util-1.0.2.jar:\
 extlibs/xmlrpc-client-3.1.3.jar:\

@@ -80,7 +80,7 @@ public class Log extends JPanel{
         final JTextField find = new JTextField();
         next.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
-                findNext(find.getText());}});
+                findNext(find.getText(),false,null);}});
         find.setPreferredSize(new Dimension(150,25));
         findpanel.add(find);        
         JButton prev = new JButton("Prev");
@@ -179,7 +179,7 @@ public class Log extends JPanel{
      * find next occurrence of "toFind"
      * in this log
      */
-    public void findNext(String toFind){
+    public void findNext(String toFind, boolean start, String stext){
         Element paragraph = textarea.getDocument().getDefaultRootElement();
         int contentCount = paragraph.getElementCount();     
         if(contentCount==1)return;
@@ -188,9 +188,19 @@ public class Log extends JPanel{
             int rangeStart = e.getStartOffset();
             int rangeEnd = e.getEndOffset();
             try{if(textarea.getText(rangeStart, rangeEnd-rangeStart).indexOf(toFind)!=-1){
-                    lastIndexFound = i;
-                    highlite(toFind,rangeStart,rangeEnd);
-                    break;}}
+                    if(start){
+                        if(textarea.getText(rangeStart, rangeEnd-rangeStart).indexOf(stext)!=-1){
+                            lastIndexFound = i;
+                            highlite(toFind,rangeStart,rangeEnd);
+                            break;
+                        }
+                    } else {
+                        lastIndexFound = i;
+                        highlite(toFind,rangeStart,rangeEnd);
+                        break;
+                    }
+                }
+            }
             catch (BadLocationException ex){}
             catch(Exception ex){ex.printStackTrace();}
             if(i==(contentCount-1)){

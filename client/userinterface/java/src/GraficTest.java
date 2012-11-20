@@ -141,7 +141,7 @@ public class GraficTest extends JPanel{
                     }                    
                 }
                 for(Log l:logs){
-                    l.findNext(item.getName()+"` >>>");
+                    l.findNext(item.getName()+"` >>>",true,"<<< START filename: `");
                 }
             }
             else if(keypress==2){
