@@ -18,6 +18,7 @@
 			text-shadow: 0px 1px 3px #555;
 		}
 		.logs_content {
+			font-size: 14px;
 			font-family: Monospace, DejaVu Sans Mono, Courier New, Courier;
 		}
 	</style>
@@ -51,8 +52,10 @@
 			</td></tr>
 			<tr><td><b>Master config</b></td><td><span id="master_config">${master_config}</span></td></tr>
 			<tr><td><b>Project config</b></td><td><span id="proj_config">${proj_config}</span></td></tr>
+			<tr><td><b>DB config path</b></td><td><span id="db_config">${db_config}</span></td></tr>
+			<tr><td><b>E-mail config path</b></td><td><span id="eml_config">${eml_config}</span></td></tr>
+			<tr><td><b>EPs file</b></td><td><span id="eps_file">${eps_file}</span></td></tr>
 			<tr><td><b>Logs path</b></td><td><span id="logs_path">${logs_path}</span></td></tr>
-			<tr><td><b>EP files</b></td><td>${eps_file}</td></tr>
 		</table>
 	</div>
 	</div> <!-- End of tab-1 -->
@@ -82,7 +85,7 @@ for ep in eps:
 		<ul class="nav nav-tabs">
 		% for ep in eps:
 			<li${' class="refresh_eps active"' if loop.first else ' class="refresh_eps"'}><a data-target="#${encode(ep)}" data-toggle="tab">
-			<i class="${'icon-ok-sign' if diffs[loop.index] < 10 else 'icon-warning-sign'}"></i>
+			<i class="${'icon-ok-sign' if diffs[loop.index] < 10 else 'icon-time'}"></i>
 			% if ep_statuses[loop.index] == 'running':
 			<i class="icon-play"></i>
 			% elif ep_statuses[loop.index] == 'paused':
@@ -103,8 +106,11 @@ for ep in eps:
 				&nbsp; <a href="/rest/setEpStatus/${user}/${ep}/0"><i class="icon-stop"></i> </a>&nbsp;|
 				&nbsp; <a class="tree_edit" style="cursor:pointer"><i class="icon-pencil"></i> </a>
 				</div>
+				<!-- First file tree -->
 				<div id="t_${encode(ep)}" style="float:left;position:relative;background:transparent;height:auto"></div>
+				<!-- Second file tree
 				<div id="b_${encode(ep)}" style="float:left;position:relative;margin-left:50px;background:transparent;height:auto"></div>
+				-->
 			</div>
 		% endfor
 		</div>
@@ -169,6 +175,9 @@ function updateUserStats() {
 				$("span#user_status").text(status_dict[ jdata["${user}"]["status"] ]); // User status
 				$("span#master_config").text(jdata["${user}"]["config_path"]); // User master config
 				$("span#proj_config").text(jdata["${user}"]["tests_path"]);    // User project config
+				$("span#db_config").text(jdata["${user}"]["db_config"]);       // Database config
+				$("span#eml_config").text(jdata["${user}"]["eml_config"]);     // E-mail config
+				$("span#eps_file").text(jdata["${user}"]["eps_file"]);         // EPs file
 				$("span#logs_path").text(jdata["${user}"]["logs_path"]);       // User logs
 			});
 		// setTimeout(updt_usr, refresh_int); // Thread
