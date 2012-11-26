@@ -372,9 +372,11 @@ public class UnitTesting extends JFrame {
         new Thread(){
             public void run(){
                 try{
+                    run.setEnabled(false);
                     String result = Repository.getRPCClient().execute("runTemporary",
                                                         new Object[]{Repository.getUser(),
                                                                     filelocation})+"";
+                    run.setEnabled(true);                    
                     if(result.indexOf("ERROR")!=-1){
                         CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, 
                                               UnitTesting.this, "Failed", 
@@ -383,6 +385,7 @@ public class UnitTesting extends JFrame {
                 }
                 catch(Exception e){
                     e.printStackTrace();
+                    run.setEnabled(true);
                 }
             }
         }.start();

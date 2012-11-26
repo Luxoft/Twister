@@ -295,10 +295,10 @@ public class MySftpBrowser extends JFrame {
         };
         
         tree.addItemListener(listener);
-        look.setFont(new java.awt.Font("Tahoma", 1, 12)); // NOI18N
+        look.setFont(new java.awt.Font("Tahoma", 1, 12));
         look.setText("Look in:");
 
-        filename.setFont(new java.awt.Font("Tahoma", 1, 12)); // NOI18N
+        filename.setFont(new java.awt.Font("Tahoma", 1, 12));
         filename.setText("File name:");
 
         cancel.addActionListener(new ActionListener(){
@@ -395,7 +395,7 @@ class IconListRenderer extends DefaultListCellRenderer {
  */
 class MyLabel extends JLabel{
     private int type;
-    //0 folder;1 file;
+    //0 folder , 1 file;
     public MyLabel(String text, ImageIcon icon, int i, int type){
         super(text,icon,i);
         this.type = type;

@@ -88,9 +88,11 @@ public class XMLBuilder{
         root.appendChild(em2);
         em2 = document.createElement("libraries");
         StringBuilder sb = new StringBuilder();
-        for(String s:globallibs){
-            sb.append(s);
-            sb.append(";");
+        if(globallibs!=null){
+            for(String s:globallibs){
+                sb.append(s);
+                sb.append(";");
+            }
         }
         em2.appendChild(document.createTextNode(sb.toString()));
         root.appendChild(em2);

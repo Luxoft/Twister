@@ -28,11 +28,16 @@ import java.awt.RenderingHints;
 
 public class RoundButton extends JButton {
     Shape shape;
+    int rad = 15;
     
     public RoundButton(String label) {
         super(label);
         setFocusPainted(false);
         setContentAreaFilled(false);}
+        
+    public void setRadius(int rad){
+        this.rad = rad;
+    }
 
     protected void paintComponent(Graphics g) { 
         Graphics2D g2 = (Graphics2D)g;
@@ -46,13 +51,13 @@ public class RoundButton extends JButton {
             g2.setPaint(new GradientPaint(new Point(0, 10), Color.WHITE, 
                                           new Point(0, getHeight()+30), 
                                           new Color(66,85,255),true));}
-        g2.fillRoundRect(0, 0,getSize().width-1 ,getSize().height-1, 15, 15);
+        g2.fillRoundRect(0, 0,getSize().width-1 ,getSize().height-1, rad, rad);
         super.paintComponent(g2);} 
 
     protected void paintBorder(Graphics g) {
         g.setColor(new Color(150,150,150));
         if(!getModel().isArmed()){
-            g.drawRoundRect(1, 1,getSize().width-2 ,getSize().height-2, 15, 15);}}
+            g.drawRoundRect(1, 1,getSize().width-2 ,getSize().height-2, rad, rad);}}
 
     public boolean contains(int x, int y) {
         if (shape == null || !shape.getBounds().equals(getBounds())){
