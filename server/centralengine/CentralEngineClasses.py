@@ -170,7 +170,8 @@ class CentralEngine(_cptools.XMLRPCController):
         try:
             ret = self.project.sendMail(user)
             return ret
-        except:
+        except Exception, e:
+            logError('E-mail: Sending e-mail exception `{0}` !'.format(e))
             return False
 
 
@@ -477,8 +478,26 @@ class CentralEngine(_cptools.XMLRPCController):
             logError("CE ERROR! Status value `%s` is not in the list of defined statuses: `%s`!" % \
                 (str(new_status), str(execStatus.values())) )
             return False
+
+        # If this is a Temporary user
         if cherrypy.request.headers['User-Agent'].startswith('Apache XML RPC') and (user+'_old') in self.project.users:
-            return '*ERROR*! Cannot change status while running temporary!'
+            if msg.lower() != 'kill' and new_status != STATUS_STOP:
+                return '*ERROR*! Cannot change status while running temporary!'
+            else:
+                # Update status for User
+                self.project.setUserInfo(user, 'status', STATUS_STOP)
+
+                # Update status for all active EPs
+                active_eps = self.project.parsers[user].getActiveEps()
+                for epname in active_eps:
+                    self.project.setEpInfo(user, epname, 'status', STATUS_STOP)
+
+                reversed = dict((v,k) for k,v in execStatus.iteritems())
+                if msg:
+                    logDebug("CE: Status chang for TEMP `%s %s` -> %s. Message: `%s`.\n" % (user, active_eps, reversed[STATUS_STOP], str(msg)))
+                else:
+                    logDebug("CE: Status chang for TEMP `%s %s` -> %s.\n" % (user, active_eps, reversed[STATUS_STOP]))
+                return reversed[STATUS_STOP]
 
         # Status resume => start running. The logs must not reset on resume
         if new_status == STATUS_RESUME:
@@ -764,9 +783,13 @@ class CentralEngine(_cptools.XMLRPCController):
         for epname in active_eps:
             self.project.setEpInfo(user, epname, 'status', STATUS_RUNNING)
 
+        i = 0
         while self.project.getUserInfo(user, 'status') == STATUS_RUNNING:
-            logInfo('Temporary user `{0}` is still running ...'.format(user))
-            time.sleep(1)
+            i += 1
+            if i == 10:
+                logInfo('Temporary user `{0}` is still running ...'.format(user))
+                i = 0
+            time.sleep(2)
 
         # Delete temporary user
         self.project.deleteUser(user)

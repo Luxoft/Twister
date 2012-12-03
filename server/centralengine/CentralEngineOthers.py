@@ -694,8 +694,12 @@ class Project:
                 logWarning('E-mail: Nothing to do here.')
                 return False
 
-            logPath = self.users[user]['log_types']['logsummary']
-            logSummary = open(logPath).read()
+            try:
+                logPath = self.users[user]['log_types']['logSummary']
+                logSummary = open(logPath).read()
+            except:
+                logError('E-mail: Cannot open Summary Log `{0}` for reading !'.format(logPath))
+                return False
 
             if not logSummary:
                 logDebug('E-mail: Nothing to send!')
