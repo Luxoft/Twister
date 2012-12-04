@@ -124,7 +124,7 @@ class CentralEngine(_cptools.XMLRPCController):
         Selects from database.
         This function is called from the Java GUI.
         '''
-        dbparser = DBParser( self.project.parsers[user].getDbConfigPath() )
+        dbparser = DBParser( self.project.getUserInfo(user, 'db_config') )
         query = dbparser.getQuery(field_id)
         db_config = dbparser.db_config
         del dbparser
@@ -170,7 +170,8 @@ class CentralEngine(_cptools.XMLRPCController):
         try:
             ret = self.project.sendMail(user)
             return ret
-        except:
+        except Exception, e:
+            logError('E-mail: Sending e-mail exception `{0}` !'.format(e))
             return False
 
 
@@ -190,6 +191,35 @@ class CentralEngine(_cptools.XMLRPCController):
         else:
             logDebug('CE: Could not save to database!')
         return ret
+
+
+# --------------------------------------------------------------------------------------------------
+#           S E T T I N G S
+# --------------------------------------------------------------------------------------------------
+
+
+    @cherrypy.expose
+    def listSettings(self, user, config='', x_filter=''):
+        '''
+        List all available settings, for 1 config of a user.
+        '''
+        return self.project.listSettings(user, config, x_filter)
+
+
+    @cherrypy.expose
+    def getSettingsValue(self, user, config, key):
+        '''
+        Fetch a value from 1 config of a user.
+        '''
+        return self.project.getSettingsValue(user, config, key)
+
+
+    @cherrypy.expose
+    def setSettingsValue(self, user, config, key, value):
+        '''
+        Set a value for a key in the config of a user.
+        '''
+        return self.project.setSettingsValue(user, config, key, value)
 
 
 # --------------------------------------------------------------------------------------------------
@@ -448,8 +478,26 @@ class CentralEngine(_cptools.XMLRPCController):
             logError("CE ERROR! Status value `%s` is not in the list of defined statuses: `%s`!" % \
                 (str(new_status), str(execStatus.values())) )
             return False
+
+        # If this is a Temporary user
         if cherrypy.request.headers['User-Agent'].startswith('Apache XML RPC') and (user+'_old') in self.project.users:
-            return '*ERROR*! Cannot change status while running temporary!'
+            if msg.lower() != 'kill' and new_status != STATUS_STOP:
+                return '*ERROR*! Cannot change status while running temporary!'
+            else:
+                # Update status for User
+                self.project.setUserInfo(user, 'status', STATUS_STOP)
+
+                # Update status for all active EPs
+                active_eps = self.project.parsers[user].getActiveEps()
+                for epname in active_eps:
+                    self.project.setEpInfo(user, epname, 'status', STATUS_STOP)
+
+                reversed = dict((v,k) for k,v in execStatus.iteritems())
+                if msg:
+                    logDebug("CE: Status chang for TEMP `%s %s` -> %s. Message: `%s`.\n" % (user, active_eps, reversed[STATUS_STOP], str(msg)))
+                else:
+                    logDebug("CE: Status chang for TEMP `%s %s` -> %s.\n" % (user, active_eps, reversed[STATUS_STOP]))
+                return reversed[STATUS_STOP]
 
         # Status resume => start running. The logs must not reset on resume
         if new_status == STATUS_RESUME:
@@ -616,10 +664,11 @@ class CentralEngine(_cptools.XMLRPCController):
                 (now - datetime.timedelta(seconds=time_elapsed)).isoformat())
             self.project.setFileInfo(user, epname, suite, file_id, 'twister_tc_date_finished',
                 (now.isoformat()))
+            suite_name = self.project.getSuiteInfo(user, epname, suite).get('name')
 
             with open(logPath, 'a') as status_file:
                 status_file.write(' {ep}::{suite}::{file} | {status} | {elapsed} | {date}\n'.format(
-                    ep = epname.center(9), suite = suite.center(9), file = filename.center(28),
+                    ep = epname.center(9), suite = suite_name.center(9), file = filename.center(28),
                     status = status_str.center(11),
                     elapsed = ('%.2fs' % time_elapsed).center(10),
                     date = now.strftime('%a %b %d, %H:%M:%S')))
@@ -734,9 +783,13 @@ class CentralEngine(_cptools.XMLRPCController):
         for epname in active_eps:
             self.project.setEpInfo(user, epname, 'status', STATUS_RUNNING)
 
+        i = 0
         while self.project.getUserInfo(user, 'status') == STATUS_RUNNING:
-            logInfo('Temporary user `{0}` is still running ...'.format(user))
-            time.sleep(1)
+            i += 1
+            if i == 10:
+                logInfo('Temporary user `{0}` is still running ...'.format(user))
+                i = 0
+            time.sleep(2)
 
         # Delete temporary user
         self.project.deleteUser(user)

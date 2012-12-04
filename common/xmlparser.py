@@ -74,8 +74,12 @@ class TSCParser:
 
         self.configTS = None
         self.configHash = None
-        self.getEpList()
+        self.epnames = []
+        self.project_globals = {}
+
         self.updateConfigTS(files_config)
+        self.updateProjectGlobals()
+        self.getEpList()
 
 
     def updateConfigTS(self, files_config=''):
@@ -129,26 +133,180 @@ class TSCParser:
         self.files_config = files_config
 
 
-    def getDbConfigPath(self):
-        res = ''
+    def updateProjectGlobals(self):
+        """
+        Returns the values of many global tags, from FWM and Test-Suites XML.
+        """
+        if self.configTS is None:
+            print('Parser: Cannot get project globals, because Test-Suites XML is invalid!')
+            return False
+
+        # Reset globals
+        self.project_globals = OrderedDict([
+            ('EpsFile', ''),
+            ('DbConfig', ''),
+            ('EmailConfig', ''),
+            ('LogsPath', ''),
+            ('ExitOnTestFail', False),
+            ('DbAutoSave', False),
+            ('TestcaseDelay', 0),
+            ('ScriptPre', ''),
+            ('ScriptPost', ''),
+            ('Libraries', ''),
+        ])
+
+        # From FWM Config
+        if self.xmlDict.xpath('EPIdsFile/text()'):
+            path = self.xmlDict.xpath('EPIdsFile')[0].text
+            if path.startswith('~'):
+                path = os.getenv('HOME') + path[1:]
+            self.project_globals['EpsFile'] = path
+
         if self.xmlDict.xpath('DbConfigFile/text()'):
-            res = self.xmlDict.xpath('DbConfigFile')[0].text
-        if res.startswith('~'):
-            res = os.getenv('HOME') + res[1:]
-        return res
+            path = self.xmlDict.xpath('DbConfigFile')[0].text
+            if path.startswith('~'):
+                path = os.getenv('HOME') + path[1:]
+            self.project_globals['DbConfig'] = path
 
+        if self.xmlDict.xpath('EmailConfigFile/text()'):
+            path = self.xmlDict.xpath('EmailConfigFile')[0].text
+            if path.startswith('~'):
+                path = os.getenv('HOME') + path[1:]
+            self.project_globals['EmailConfig'] = path
 
-    def getLogsPath(self):
-        res = ''
         if self.xmlDict.xpath('LogsPath/text()'):
-            res = self.xmlDict.xpath('LogsPath')[0].text
-        if res.startswith('~'):
-            res = os.getenv('HOME') + res[1:]
-        return res
+            path = self.xmlDict.xpath('LogsPath')[0].text
+            if path.startswith('~'):
+                path = os.getenv('HOME') + path[1:]
+            self.project_globals['LogsPath'] = path
+
+        # From Project Config
+        if self.configTS.xpath('stoponfail/text()'):
+            if self.configTS.xpath('stoponfail/text()')[0].lower() == 'true':
+                self.project_globals['ExitOnTestFail'] = True
+
+        if self.configTS.xpath('dbautosave/text()'):
+            if self.configTS.xpath('dbautosave/text()')[0].lower() == 'true':
+                self.project_globals['DbAutoSave'] = True
+
+        if self.configTS.xpath('tcdelay/text()'):
+            self.project_globals['TestcaseDelay'] = self.configTS.xpath('round(tcdelay)')
+
+        if self.configTS.xpath('ScriptPre/text()'):
+            self.project_globals['ScriptPre'] = self.configTS.xpath('ScriptPre')[0].text
+
+        if self.configTS.xpath('ScriptPost/text()'):
+            self.project_globals['ScriptPost'] = self.configTS.xpath('ScriptPost')[0].text
+
+        if self.configTS.xpath('libraries/text()'):
+            self.project_globals['Libraries'] = self.configTS.xpath('libraries')[0].text
+
+        return True
+
+
+    def getEpList(self):
+        """
+        Returns a list with all available EP names.
+        """
+        eps_file = self.project_globals['EpsFile']
+
+        if not eps_file:
+            print('Parser: EP Names file is not defined! Please check framework config XML file!')
+            return None
+        if not os.path.isfile(eps_file):
+            print('Parser: EP Names file `%s` does not exist! Please check framework config XML file!' % eps_file)
+            return None
+
+        # Reset EP list
+        self.epnames = []
+
+        for line in open(eps_file).readlines():
+            line = line.strip()
+            if not line: continue
+            self.epnames.append(line)
+        return self.epnames
+
+
+    def getActiveEps(self):
+        """
+        Returns a list with all active EPs from Test-Suites XML.
+        """
+        if self.configTS is None:
+            print('Parser: Cannot get active EPs, because Test-Suites XML is invalid!')
+            return []
+
+        activeEPs = []
+        for epname in self.configTS.xpath('//EpId/text()'):
+            activeEPs.append( str(epname) )
+
+        activeEPs = (';'.join(activeEPs)).split(';')
+        activeEPs = sorted(list(set(activeEPs)))
+        return activeEPs
+
+
+    def listSettings(self, xmlFile, xFilter=''):
+        """
+        High level functions.
+        """
+        if not os.path.isfile(xmlFile):
+            print('Parse settings error! File path `{0}` does not exist!'.format(xmlFile))
+            return False
+        xmlSoup = etree.parse(xmlFile)
+        if xFilter:
+            return [x.tag for x in xmlSoup.xpath('//*') if xFilter in x.tag]
+        else:
+            return [x.tag for x in xmlSoup.xpath('//*')]
+
+
+    def getSettingsValue(self, xmlFile, key):
+        """
+        High level functions.
+        """
+        if not os.path.isfile(xmlFile):
+            print('Parse settings error! File path `{0}` does not exist!'.format(xmlFile))
+            return False
+        if not key:
+            return False
+        else:
+            key = str(key)
+
+        xmlSoup = etree.parse(xmlFile)
+        if xmlSoup.xpath(key):
+            txt = xmlSoup.xpath(key)[0].text
+            return (txt or '')
+        else:
+            return False
+
+
+    def setSettingsValue(self, xmlFile, key, value):
+        """
+        High level functions.
+        """
+        if not os.path.isfile(xmlFile):
+            print('Parse settings error! File path `{0}` does not exist!'.format(xmlFile))
+            return False
+        if not key:
+            return False
+        else:
+            key = str(key)
+        if not value:
+            value = ''
+        else:
+            value = str(value)
+
+        xmlSoup = etree.parse(xmlFile)
+        if xmlSoup.xpath(key):
+            xmlSoup.xpath(key)[0].text = value
+            xmlSoup.write(xmlFile)
+            return True
+        else:
+            return False
 
 
     def _fixLogType(self, logType):
-
+        """
+        Helper function to fix log names.
+        """
         if logType.lower() == 'logrunning':
             logType = 'logRunning'
         elif logType.lower() == 'logdebug':
@@ -174,59 +332,22 @@ class TSCParser:
         Returns the path for one type of log.
         CE will use this path to write the log received from EP.
         """
-        baseLogsPath = self.getLogsPath()
+        logs_path = self.project_globals['LogsPath']
+
+        if not logs_path:
+            print('Parser: Logs path is not defiled! Please check framework config XML file!')
+            return {}
+        if not os.path.isdir(logs_path):
+            print('Parser: Invalid logs path `{0}`!'.format(logs_path))
+            return ''
+
         logType = self._fixLogType(logType)
         logFile = self.xmlDict.xpath('//{0}/text()'.format(logType))
 
         if logFile:
-            return baseLogsPath + os.sep + logFile[0]
+            return logs_path + os.sep + logFile[0]
         else:
             return ''
-
-
-    def getProjectGlobals(self):
-        """
-        Returns the value of many global tags like:
-        - Exit On Test Fail
-        - Database Autosave
-        - Testcase Delay
-        - ScriptPre and ScriptPost
-        - Libraries
-        """
-        if self.configTS is None:
-            print('Parser: Cannot get project globals, because Test-Suites XML is invalid!')
-            return False
-
-        res = {
-            'ExitOnTestFail': False,
-            'DbAutoSave': False,
-            'TestcaseDelay': 0,
-            'ScriptPre': '',
-            'ScriptPost': '',
-            'Libraries': '',
-        }
-
-        if self.configTS.xpath('stoponfail/text()'):
-            if self.configTS.xpath('stoponfail/text()')[0].lower() == 'true':
-                res['ExitOnTestFail'] = True
-
-        if self.configTS.xpath('dbautosave/text()'):
-            if self.configTS.xpath('dbautosave/text()')[0].lower() == 'true':
-                res['DbAutoSave'] = True
-
-        if self.configTS.xpath('tcdelay/text()'):
-            res['TestcaseDelay'] = self.configTS.xpath('round(tcdelay)')
-
-        if self.configTS.xpath('ScriptPre/text()'):
-            res['ScriptPre'] = self.configTS.xpath('ScriptPre')[0].text
-
-        if self.configTS.xpath('ScriptPost/text()'):
-            res['ScriptPost'] = self.configTS.xpath('ScriptPost')[0].text
-
-        if self.configTS.xpath('libraries/text()'):
-            res['Libraries'] = self.configTS.xpath('libraries')[0].text
-
-        return res
 
 
     def getEmailConfig(self):
@@ -234,20 +355,16 @@ class TSCParser:
         Returns the e-mail configuration.
         After Central Engine stops, an e-mail must be sent to the people interested.
         """
-        # Read email.xml
-        e_file = ''
-        if self.xmlDict.xpath('EmailConfigFile/text()'):
-            e_file = self.xmlDict.xpath('EmailConfigFile')[0].text
-        else:
-            print('Parser: E-mail Config file is not defined! Please check framework config XML file!')
+        eml_file = self.project_globals['EmailConfig']
+
+        if not eml_file:
+            print('Parser: E-mail Config file is not defiled! Please check framework config XML file!')
             return {}
-        if e_file.startswith('~'):
-            e_file = os.getenv('HOME') + e_file[1:]
-        if not os.path.isfile(e_file):
-            print('Parser: E-mail Config file `%s` does not exist! Please check framework config XML file!' % e_file)
+        if not os.path.isfile(eml_file):
+            print('Parser: E-mail Config file `%s` does not exist! Please check framework config XML file!' % eml_file)
             return {}
 
-        econfig = etree.parse(e_file)
+        econfig = etree.parse(eml_file)
 
         res = {}
         res['Enabled'] = ''
@@ -277,48 +394,6 @@ class TSCParser:
         if econfig.xpath('Message/text()'):
             res['Message'] = econfig.xpath('Message')[0].text
         return res
-
-
-    def getEpList(self):
-        """
-        Returns a list with all available EP names.
-        """
-        res = ''
-        if self.xmlDict.xpath('EPIdsFile/text()'):
-            res = self.xmlDict.xpath('EPIdsFile')[0].text
-        else:
-            print('Parser: EP Names file is not defined! Please check framework config XML file!' % res)
-            return None
-        if res.startswith('~'):
-            res = os.getenv('HOME') + res[1:]
-        if not os.path.isfile(res):
-            print('Parser: EP Names file `%s` does not exist! Please check framework config XML file!' % res)
-            return None
-
-        self.epnames = []
-
-        for line in open(res).readlines():
-            line = line.strip()
-            if not line: continue
-            self.epnames.append(line)
-        return self.epnames
-
-
-    def getActiveEps(self):
-        """
-        Returns a list with all active EPs from Test-Suites XML.
-        """
-        if self.configTS is None:
-            print('Parser: Cannot get active EPs, because Test-Suites XML is invalid!')
-            return []
-
-        activeEPs = []
-        for epname in self.configTS.xpath('//EpId/text()'):
-            activeEPs.append( str(epname) )
-
-        activeEPs = (';'.join(activeEPs)).split(';')
-        activeEPs = sorted(list(set(activeEPs)))
-        return activeEPs
 
 
     def getSuiteInfo(self, epname, suite_soup):

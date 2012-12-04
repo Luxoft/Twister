@@ -122,7 +122,9 @@ def dirList(path, newdict):
         newpath = path + os.sep + nitem['data']
         dirList(newpath, nitem)
 
+
 # # # # #
+
 
 class CentralEngineRest:
 
@@ -172,17 +174,21 @@ class CentralEngineRest:
         master_config = self.project.getUserInfo(user, 'config_path')
         proj_config = self.project.getUserInfo(user, 'tests_path')
         logs_path = self.project.getUserInfo(user, 'logs_path')
-        try: eps_file = self.project.parsers[user].xmlDict.root.epidsfile.text
+        db_config = self.project.getUserInfo(user, 'db_config')
+        eml_config = self.project.getUserInfo(user, 'eml_config')
+        try: eps_file = self.project.parsers[user].project_globals['EpsFile']
         except: eps_file = ''
+
         eps = self.project.getUserInfo(user, 'eps')
         ep_statuses = [ reversed[eps[ep].get('status', STATUS_INVALID)] for ep in eps ]
         logs = self.project.getUserInfo(user, 'log_types')
 
         output = Template(filename=TWISTER_PATH + '/server/centralengine/template_user.htm')
         return output.render(host=host, user=user, status=status, master_config=master_config, proj_config=proj_config,
-               exec_status=reversed, logs_path=logs_path, eps_file=eps_file, eps=eps, ep_statuses=ep_statuses, logs=logs)
+               exec_status=reversed, logs_path=logs_path, db_config=db_config, eml_config=eml_config,
+               eps_file=eps_file, eps=eps, ep_statuses=ep_statuses, logs=logs)
 
-#
+# # #
 
     @cherrypy.expose
     def json_stats(self):
@@ -269,7 +275,7 @@ class CentralEngineRest:
         cherrypy.response.headers['Expires'] = 0
         return json.dumps(prepareLog(log or LOG_FILE))
 
-#
+# # #
 
     @cherrypy.expose
     def resetUser(self, user):
@@ -307,6 +313,6 @@ class CentralEngineRest:
             host = cherrypy.request.headers['Host'], user = user, epname = epname
         ))
 
-#
+# # #
 
 # Eof()

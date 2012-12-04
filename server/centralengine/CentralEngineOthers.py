@@ -142,6 +142,7 @@ class Project:
             files_config = '/home/%s/twister/config/testsuites.xml' % user
 
         # User data + User parser
+        # Parsers contain the list of all EPs and the list of all Project Globals
         self.users[user] = {'status': STATUS_STOP, 'eps': OrderedDict()}
         if config_data:
             self.parsers[user] = TSCParser(config_data, files_config)
@@ -149,9 +150,9 @@ class Project:
             self.parsers[user] = TSCParser(base_config, files_config)
 
         # List with all EPs for this User
-        epList = self.parsers[user].getEpList()
+        epList = self.parsers[user].epnames
         if not epList:
-            logError('Project ERROR: Cannot load the list of EPs for user `%s` !' % user)
+            logCritical('Project ERROR: Cannot load the list of EPs for user `%s` !' % user)
             return False
 
         # Calculate the Suites for each EP and the Files for each Suite
@@ -162,20 +163,25 @@ class Project:
         # Ordered list of file IDs, used for Get Status ALL
         self.test_ids[user] = self.parsers[user].getAllTestFiles()
 
+        # Get project global variables from XML
+        project_globals = self.parsers[user].project_globals
+
         # Add framework config info to default user
         self.users[user]['config_path'] = base_config
         self.users[user]['tests_path'] = files_config
-        self.users[user]['logs_path'] = self.parsers[user].getLogsPath()
+        self.users[user]['logs_path'] = project_globals['LogsPath']
         self.users[user]['log_types'] = {}
 
-        # Get project global variables from XML
-        project_globals = self.parsers[user].getProjectGlobals()
+
+        # Add path to DB and E-mail XML
+        self.users[user]['db_config']  = project_globals['DbConfig']
+        self.users[user]['eml_config'] = project_globals['EmailConfig']
 
         # Add the `exit on test Fail` value
         self.users[user]['exit_on_test_fail'] = project_globals['ExitOnTestFail']
 
         # Add the `Pre and Post` project Scripts
-        self.users[user]['script_pre'] = project_globals['ScriptPre']
+        self.users[user]['script_pre'] =  project_globals['ScriptPre']
         self.users[user]['script_post'] = project_globals['ScriptPost']
 
         # Add the `Database Autosave` value
@@ -289,20 +295,24 @@ class Project:
         # Ordered list of file IDs, used for Get Status ALL
         self.test_ids[user] = self.parsers[user].getAllTestFiles()
 
+        # Get project global variables from XML
+        project_globals = self.parsers[user].project_globals
+
         # Add framework config info to default user
         self.users[user]['config_path'] = base_config
         self.users[user]['tests_path'] = files_config
-        self.users[user]['logs_path'] = self.parsers[user].getLogsPath()
+        self.users[user]['logs_path'] = project_globals['LogsPath']
         self.users[user]['log_types'] = {}
 
-        # Get project global variables from XML
-        project_globals = self.parsers[user].getProjectGlobals()
+        # Add path to DB and E-mail XML
+        self.users[user]['db_config']  = project_globals['DbConfig']
+        self.users[user]['eml_config'] = project_globals['EmailConfig']
 
         # Add the `exit on test Fail` value
         self.users[user]['exit_on_test_fail'] = project_globals['ExitOnTestFail']
 
         # Add the `Pre and Post` project Scripts
-        self.users[user]['script_pre'] = project_globals['ScriptPre']
+        self.users[user]['script_pre']  = project_globals['ScriptPre']
         self.users[user]['script_post'] = project_globals['ScriptPost']
 
         # Add the `Database Autosave` value
@@ -332,6 +342,62 @@ class Project:
             with open(TWISTER_PATH + '/common/project_users.json', 'w') as f:
                 try: json.dump(self.users, f, indent=4)
                 except: pass
+
+
+# # #
+
+
+    def _getConfigPath(self, user, _config):
+        """
+        Helper function.
+        """
+        config = _config.lower()
+
+        if config in ['', 'fwmconfig', 'baseconfig']:
+            return self.users[user]['config_path']
+
+        elif config in ['project', 'testsuites']:
+            return self.users[user]['tests_path']
+
+        elif config in ['db', 'database']:
+            return self.users[user]['db_config']
+
+        elif config in ['email', 'e-mail']:
+            return self.users[user]['eml_config']
+
+        else:
+            # Unchanged config
+            return _config
+
+
+    def listSettings(self, user, config, x_filter):
+        """
+        List all available settings, for 1 config of a user.
+        """
+        r = self.changeUser(user)
+        if not r: return False
+        cfg_path = self._getConfigPath(user, config)
+        return self.parsers[user].listSettings(cfg_path, x_filter)
+
+
+    def getSettingsValue(self, user, config, key):
+        """
+        Fetch a value from 1 config of a user.
+        """
+        r = self.changeUser(user)
+        if not r: return False
+        cfg_path = self._getConfigPath(user, config)
+        return self.parsers[user].getSettingsValue(cfg_path, key)
+
+
+    def setSettingsValue(self, user, config, key, value):
+        """
+        Set a value for a key in the config of a user.
+        """
+        r = self.changeUser(user)
+        if not r: return False
+        cfg_path = self._getConfigPath(user, config)
+        return self.parsers[user].setSettingsValue(cfg_path, key, value)
 
 
 # # #
@@ -628,8 +694,12 @@ class Project:
                 logWarning('E-mail: Nothing to do here.')
                 return False
 
-            logPath = self.users[user]['log_types']['logsummary']
-            logSummary = open(logPath).read()
+            try:
+                logPath = self.users[user]['log_types']['logSummary']
+                logSummary = open(logPath).read()
+            except:
+                logError('E-mail: Cannot open Summary Log `{0}` for reading !'.format(logPath))
+                return False
 
             if not logSummary:
                 logDebug('E-mail: Nothing to send!')
@@ -807,7 +877,7 @@ class Project:
 
             # Database parser, fields, queries
             # This is created every time the Save is called
-            db_path = self.parsers[user].getDbConfigPath()
+            db_path = self.users[user]['db_config']
             db_parser = DBParser(db_path)
             db_config = db_parser.db_config
             queries = db_parser.getQueries() # List
