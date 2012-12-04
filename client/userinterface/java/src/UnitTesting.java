@@ -58,6 +58,8 @@ import java.awt.event.WindowEvent;
 import javax.swing.SwingUtilities;
 import javax.swing.JScrollPane;
 import javax.swing.text.DefaultCaret;
+import java.awt.Color;
+import java.awt.Font;
 
 public class UnitTesting extends JFrame {
     private JButton run;
@@ -143,13 +145,16 @@ public class UnitTesting extends JFrame {
         log = new JTextArea();
         ((DefaultCaret)log.getCaret()).setUpdatePolicy(DefaultCaret.ALWAYS_UPDATE);
         log.setEditable(false);
+        log.setBackground(Color.BLACK);
+        log.setForeground(Color.WHITE);
+        log.setFont(new Font("Monospaced",Font.PLAIN, 12));
         JPanel p1 = new JPanel();
         p1.setLayout(new CardLayout());
         p1.setBorder(BorderFactory.createTitledBorder("CLI logs"));
         sc = new JScrollPane(log);
         p1.add(sc);
         textarea = new JEditTextArea();
-        jPanel1 = new JSplitPane(JSplitPane.VERTICAL_SPLIT,textarea,p1);
+        jPanel1 = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,textarea,p1);
         
         try{
             SwingUtilities.invokeLater(new Runnable() {
@@ -328,67 +333,79 @@ public class UnitTesting extends JFrame {
     }
     
     public void run(String remotefile,String localfile){
-        ArrayList<Item> items = new ArrayList<Item>();        
-        String [] names = remotefile.split("/");       
-        names[names.length-1] = "temp_"+names[names.length-1];
-        StringBuilder bu = new StringBuilder();
-        for(String s:names){
-            bu.append(s);
-            bu.append("/");
-        }
-        bu.deleteCharAt(bu.length()-1);
-        String tempfile = bu.toString();
-        
-        Item parent = new Item("temp",2, -1, 5, 0,0 , null);
-        Item test = new Item(tempfile,1, -1, 5, 0,0 , null);
-        
-        parent.addSubItem(test);        
-        selected = new String[eplist.getSelectedValuesList().size()];
-        for(int i=0;i<eplist.getSelectedValuesList().size();i++){
-            selected[i] = eplist.getSelectedValuesList().get(i).toString();
-        }
-        if(selected.length == 0){
-            CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, Repository.window,
-                                            "Warning","Please select at least one EP to run on");
-            return;
-        }
-        parent.setEpId(selected);
-        items.add(parent);
-        XMLBuilder xml = new XMLBuilder(items);
-        xml.createXML(false,false,true,"","",false,"",null);
-        String dir = Repository.getXMLRemoteDir();
-        String [] path = dir.split("/");
-        StringBuffer result2 = new StringBuffer();
-        if (path.length > 0){
-            for (int i=0; i<path.length-1; i++){
-                result2.append(path[i]);
-                result2.append("/");}}
-        final String filelocation = result2.toString()+"testsuites_temp.xml";
-        if(!xml.writeXMLFile("testsuites_temp.xml", false,true)){
-            System.out.println("Could not write testsuites_temp.xml");
-            return;
-        }
-        saveFile(new File(localfile),tempfile,true);
-        new Thread(){
-            public void run(){
-                try{
-                    run.setEnabled(false);
-                    String result = Repository.getRPCClient().execute("runTemporary",
-                                                        new Object[]{Repository.getUser(),
-                                                                    filelocation})+"";
-                    run.setEnabled(true);                    
-                    if(result.indexOf("ERROR")!=-1){
-                        CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, 
-                                              UnitTesting.this, "Failed", 
-                                              result);
+        if(run.getText().equals("Stop")){
+            try{String status = (String)Repository.getRPCClient().execute("setExecStatusAll",
+                                                                          new Object[]{Repository.getUser(),0,"kill"});
+                if(status.equals("stopped"))run.setText("Run");
+            } catch (Exception e){
+                e.printStackTrace();
+            }
+        } else {
+            ArrayList<Item> items = new ArrayList<Item>();        
+            String [] names = remotefile.split("/");       
+            names[names.length-1] = "temp_"+names[names.length-1];
+            StringBuilder bu = new StringBuilder();
+            for(String s:names){
+                bu.append(s);
+                bu.append("/");
+            }
+            bu.deleteCharAt(bu.length()-1);
+            String tempfile = bu.toString();
+            
+            Item parent = new Item("temp",2, -1, 5, 0,0 , null);
+            Item test = new Item(tempfile,1, -1, 5, 0,0 , null);
+            
+            parent.addSubItem(test);        
+            selected = new String[eplist.getSelectedValuesList().size()];
+            for(int i=0;i<eplist.getSelectedValuesList().size();i++){
+                selected[i] = eplist.getSelectedValuesList().get(i).toString();
+            }
+            if(selected.length == 0){
+                CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, Repository.window,
+                                                "Warning","Please select at least one EP to run on");
+                return;
+            }
+            parent.setEpId(selected);
+            items.add(parent);
+            XMLBuilder xml = new XMLBuilder(items);
+            xml.createXML(false,false,true,"","",false,"",null);
+            String dir = Repository.getXMLRemoteDir();
+            String [] path = dir.split("/");
+            StringBuffer result2 = new StringBuffer();
+            if (path.length > 0){
+                for (int i=0; i<path.length-1; i++){
+                    result2.append(path[i]);
+                    result2.append("/");}}
+            final String filelocation = result2.toString()+"testsuites_temp.xml";
+            if(!xml.writeXMLFile("testsuites_temp.xml", false,true)){
+                System.out.println("Could not write testsuites_temp.xml");
+                return;
+            }
+            saveFile(new File(localfile),tempfile,true);
+            new Thread(){
+                public void run(){
+                    try{
+                        run.setText("Stop");
+//                         run.setEnabled(false);
+                        String result = Repository.getRPCClient().execute("runTemporary",
+                                                            new Object[]{Repository.getUser(),
+                                                                        filelocation})+"";
+                        run.setText("Run");
+//                         run.setEnabled(true);                    
+                        if(result.indexOf("ERROR")!=-1){
+                            CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, 
+                                                  UnitTesting.this, "Failed", 
+                                                  result);
+                        }
+                    }
+                    catch(Exception e){
+                        e.printStackTrace();
+                        run.setEnabled(true);
+                        run.setText("Run");
                     }
                 }
-                catch(Exception e){
-                    e.printStackTrace();
-                    run.setEnabled(true);
-                }
-            }
-        }.start();
+            }.start();
+        }
     }
     
     public void readLogs(){

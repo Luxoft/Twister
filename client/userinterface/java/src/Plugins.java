@@ -274,7 +274,7 @@ public class Plugins extends JPanel{
         
    /*
     * manages adding or removing plugin
-    * based on button
+    * based on button press
     */   
     public void addRemovePlugin(MyButton addremove, String filename){
         File pluginfile = new File(Repository.PLUGINSDIRECTORY+
@@ -346,6 +346,7 @@ public class Plugins extends JPanel{
                 String name;
                 String description;
                 while(iterator.hasNext()){
+                    System.out.println("One plugin");
                     name = iterator.next().toString();
                     TwisterPluginInterface plugin = (TwisterPluginInterface)plugins.get(name);
                     description = plugin.getDescription();

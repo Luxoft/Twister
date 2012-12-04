@@ -255,11 +255,8 @@ public class XMLReader{
                                          2,-1,10, width+50,25,indexpos);
             else suitatemp=  new Item(fstNm.item(0).getNodeValue(),
                                       2,-1,10, width+120,25,indexpos);
-                                      
-            int k=4;   
-            System.out.println("nodename:"+fstElmnt.getNodeName());
+            int k=4;
             fstNmElmntLst = fstElmnt.getElementsByTagName("libraries");
-            System.out.println("size is: "+fstNmElmntLst.getLength());
             if(fstNmElmntLst.getLength()>0){
                 fstNmElmnt = (Element)fstNmElmntLst.item(0);
                 fstNm = fstNmElmnt.getChildNodes();

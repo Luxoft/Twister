@@ -59,6 +59,7 @@ import javax.swing.event.ListSelectionListener;
 import javax.swing.event.ListSelectionEvent;
 import java.util.Arrays;
 import java.awt.Container;
+import com.twister.MySftpBrowser;
 
 public class SuitaDetails extends JPanel {
     private JPanel defsContainer,global, suiteoptions, tcoptions, summary;
