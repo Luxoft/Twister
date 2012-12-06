@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>Help Pages</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta name="description" content="Twister reporting">
+	<meta name="author" content="Luxoft">
+
+	<link type="text/css" rel="stylesheet" href="/static/css/bootstrap.css" />
+	<link type="text/css" rel="stylesheet" href="/static/css/dt_bootstrap.css" />
+
+	<!-- Le HTML5 shim, for IE6-8 support of HTML5 elements -->
+	<!--[if lt IE 9]><script src="static/js/html5.js"></script><![endif]-->
+	<link type="image/ico" rel="shortcut icon" href="/static/favicon.ico">
+</head>
+<body style="width:99%">
+
+<div class="row-fluid" style="margin-left:15px;margin-top:15px;">
+
+	<div class="span2">
+	<ul class="nav nav-pills nav-stacked">
+	% for link in links:
+		% if link == 'Home' and link == title:
+		<li class="active"><a href="/home/${usr}"><i class="icon-home"></i> ${link}</a></li>
+		% elif link == 'Help' and link == title:
+		<li class="active"><a href="/help/${usr}"><i class="icon-flag"></i> ${link}</a></li>
+		% elif link == 'Home':
+		<li><a href="/home/${usr}"><i class="icon-home"></i> ${link}</a></li>
+		% elif link == 'Help':
+		<li><a href="/help/${usr}"><i class="icon-flag"></i> ${link}</a></li>
+		% elif link.startswith('goto'):
+		<li><a href="/rep/${link}/${usr}"><i class="icon-share-alt"></i> ${link}</a></li>
+		% elif link == title:
+		<li class="active"><a href="/rep/${link}/${usr}"><i class="icon-asterisk"></i> ${link}</a></li>
+		% else:
+		<li><a href="/rep/${link}/${usr}"><i class="icon-arrow-right"></i> ${link}</a></li>
+		% endif
+	% endfor
+	</ul>
+	</div> <!-- /span 2 -->
+
+	<div class="span8">
+	<div class="hero-unit">
+
+	<p><h2>Reports</h2><br>
+		<div class="alert alert-info">Reports are pages of statistics. They are generated automatically, using the defined SQL query. There are 4 types of reports: <b>Table</b>, <b>PieChart</b>, <b>BarChart</b> and <b>LineChart</b>.</div>
+		<span class="label label-info">Table</span> is a page of interactive data. It can be sorted and filtered dynamically.<br><br>
+		<span class="label label-info">PieChart</span> generates the table + a pie chart.<br><br>
+		<span class="label label-info">BarChart</span> shows the table + a bar chart.<br><br>
+		<span class="label label-info">LineChart</span> shows the table + a line chart.<br><br>
+		<div class="alert alert-info">Mandatory fields: <b>ID, Type, SQLQuery</b>. Optional fields: <b>SQLQueryTotal</b>.</div>
+	</p><hr>
+
+	<p><h2>Fields</h2><br>
+		<div class="alert alert-info">Fields are choices for the user. There are 2 types: <b>UserSelect</b> and <b>UserText</b>.</div>
+		<span class="label label-info">UserSelect</span> is a list of pre-defined values, selected from the database, using a defined SQL query.<br><br>
+		<span class="label label-info">UserText</span> is just free text. It can be used to manually type aditional sorts or filters.<br><br>
+		<div class="alert alert-info">Mandatory fields: <b>ID, Type</b>. For UserSelect fields, the <b>SQLQuery</b> is also mandatory. Optional fields: <b>Label</b>.</div>
+	</p><hr>
+
+	<p><h2>Redirects</h2><br>
+		<div class="alert alert-info"><big>Redirects are just links to other pages.</big></div>
+		Redirects can be used to forward to other static, or generated HTML pages.<br><br>
+		For example, a redirect can be: a link to PhpMyAdmin for the current database, or a user defined report made in PHP.<br><br>
+		<div class="alert alert-info">Mandatory fields: <b>ID</b> and <b>Path</b>.</div>
+	</p>
+
+	</div>
+	</div> <!-- /span 8 -->
+</div> <!-- /row fluid -->
+
+<!-- Le javascript is placed at the end of the document so the page loads faster -->
+<script type="text/javascript" src="/static/js/jquery.min.js"></script>
+<script type="text/javascript" src="/static/js/bootstrap.min.js"></script>
+
+</body>
+</html>
