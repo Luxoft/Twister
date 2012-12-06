@@ -8,7 +8,7 @@
   need to define a suite with only one test case for that. The user selects the test from the available
   list and choose to do unit testing.
 - plugin and backend code implemented for integration with Jira. By activating the Jira plugin, the
-  user can create Jira issues from GUI. The login information ( Jira server/user/password ... ) is 
+  user can create Jira issues from GUI. The login information ( Jira server/user/password ... ) is
   defined in GUI, inside the plugin
 - OpenFlow 1.0 module included in Twister. The module can be used to do conformance testing against
   switches for OpenFlow protocol, version 1.0.1

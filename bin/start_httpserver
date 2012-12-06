@@ -6,6 +6,7 @@ if [ -n "$TWISTER_PATH" ]
 then
 	echo TWISTER_PATH set to: "$TWISTER_PATH".
 	nohup $PYTHON -u $TWISTER_PATH/server/httpserver/httpserver.py 8080 > http_log.log &
+	echo "HTTP Server is now running in background."
 else
 	echo TWISTER_PATH variable enviroment is not defined!
 fi
