@@ -1,4 +1,14 @@
-15th October changes:
+6th December 2012 changes:
+
+- updated the unit testing interface to be more user friendly and to offer more information
+- implemented a mechanism so the user can specify what are the libraries ( modules ) that has to
+  be imported by every suite. There is no point to send all the libraries ( modules ) to every 
+  suite, since it might not need the library ( module )
+- implemented a mechanism to save the CLI log per test case into the mysql database. This is very
+  usefull in finding the possible issues when a test case fails.
+- minor updates
+
+15th October 2012 changes:
 
 - implemented a mechanism to execute scripts before starting the test cases and after their execution.
   The user can select the scripts using GUI to browse the files present on Twister server.
@@ -13,7 +23,7 @@
 - OpenFlow 1.0 module included in Twister. The module can be used to do conformance testing against
   switches for OpenFlow protocol, version 1.0.1
 
-30th July changes:
+30th July 2012 changes:
 
 - implemented "stop on fail". If a test file fails, and the file is mandatory, and the "stop on fail"
   flag is activated, the execution process stops. The files that are optional must not stop the
@@ -24,7 +34,7 @@
 - bug fixing.
 
 
-16th July changes:
+16th July 2012 changes:
 
 - implemented plugins for Central Engine and GUI
 - added SVN plugin
@@ -34,7 +44,7 @@
   recorded in database ).
 
 
-5th July changes:
+5th July 2012 changes:
 
 - added support for multi tenancy
 - added plugins mechanism for GUI
