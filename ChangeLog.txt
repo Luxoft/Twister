@@ -1,3 +1,17 @@
+15th October changes:
+
+- implemented a mechanism to execute scripts before starting the test cases and after their execution.
+  The user can select the scripts using GUI to browse the files present on Twister server.
+- many GUI changes to make the interface much user friendly and to offer more information needed during
+  test case execution.
+- implemente a mechanism for unit testing. A test case can be selected and executed alone. There is no
+  need to define a suite with only one test case for that. The user selects the test from the available
+  list and choose to do unit testing.
+- plugin and backend code implemented for integration with Jira. By activating the Jira plugin, the
+  user can create Jira issues from GUI. The login information ( Jira server/user/password ... ) is
+  defined in GUI, inside the plugin
+- OpenFlow 1.0 module included in Twister. The module can be used to do conformance testing against
+  switches for OpenFlow protocol, version 1.0.1
 
 30th July changes:
 
