@@ -84,8 +84,23 @@ public class XMLReader{
                 fstNmElmnt = (Element)fstNmElmntLst.item(0);
                 fstNm = fstNmElmnt.getChildNodes();
                 theone.setEpId(fstNm.item(0).getNodeValue().split(";"));
-//                 theone.setEpId(fstNm.item(0).getNodeValue());
-                k=4;}
+                
+                //temporary solution for CE
+                if(test){
+                   try{fstNmElmntLst = ((Element)node).getElementsByTagName("UserDefined");
+                        int userdefinitions = fstNmElmntLst.getLength();
+                        System.out.println("userdefinitions:"+userdefinitions);
+                        k=4+(userdefinitions*2);
+                    } catch(Exception e){
+                        e.printStackTrace();
+                        k=4;
+                    } 
+                } else {
+                    k=4;    
+                }
+                //temporary solution for CE
+                
+            }
             else{secNmElmntLst = ((Element)node).getElementsByTagName("tcName");
                 secNmElmnt = (Element)secNmElmntLst.item(0);
                 secNm = secNmElmnt.getChildNodes();
@@ -158,6 +173,9 @@ public class XMLReader{
     }
             
     public void parseXML(Graphics g,boolean test){
+        if(!test){
+            Repository.window.mainpanel.p1.suitaDetails.setGlobalLibs(null);
+        }
         Repository.window.mainpanel.p1.suitaDetails.setSaveDB(false);
         Repository.window.mainpanel.p1.suitaDetails.setDelay("");
         NodeList nodeLst = doc.getChildNodes().item(0).getChildNodes();
@@ -213,6 +231,15 @@ public class XMLReader{
                     }
                     continue;
                 }
+                else if(fstNode.getNodeName().equals("libraries")){
+                    try{
+                        String [] libraries = fstNode.getChildNodes().item(0).getNodeValue().toString().split(";");
+                        Repository.window.mainpanel.p1.suitaDetails.setGlobalLibs(libraries);}
+                    catch(Exception e){
+                        e.printStackTrace();
+                    }
+                    continue;
+                }
             }
             if(!fstNode.getNodeName().equals("TestSuite"))continue;            
             ArrayList <Integer> indexpos = new ArrayList <Integer> ();
@@ -228,32 +255,76 @@ public class XMLReader{
                                          2,-1,10, width+50,25,indexpos);
             else suitatemp=  new Item(fstNm.item(0).getNodeValue(),
                                       2,-1,10, width+120,25,indexpos);
+            int k=4;
+            fstNmElmntLst = fstElmnt.getElementsByTagName("libraries");
+            if(fstNmElmntLst.getLength()>0){
+                fstNmElmnt = (Element)fstNmElmntLst.item(0);
+                fstNm = fstNmElmnt.getChildNodes();
+                suitatemp.setLibs(fstNm.item(0).getNodeValue().split(";"));
+                k+=2;
+            }
+            
+                                      
             fstNmElmntLst = fstElmnt.getElementsByTagName("EpId");
             fstNmElmnt = (Element)fstNmElmntLst.item(0);
             fstNm = fstNmElmnt.getChildNodes();
 //             suitatemp.setEpId(fstNm.item(0).getNodeValue());
             suitatemp.setEpId(fstNm.item(0).getNodeValue().split(";"));
-            fstNmElmntLst = fstElmnt.getElementsByTagName("UserDefined");
-            int userdefinitions = fstNmElmntLst.getLength();
-            for(int l=0;l<userdefinitions;l++){
-                Element element = (Element)fstNmElmntLst.item(l);                
-                NodeList propname = element.getElementsByTagName("propName");
-                Element el1 = (Element)propname.item(0);
-                fstNm = el1.getChildNodes();
-                String prop ;
-                if(fstNm.getLength()>0)prop= fstNm.item(0).getNodeValue();
-                else prop = "";
-                NodeList propvalue = element.getElementsByTagName("propValue");
-                Element el2 = (Element)propvalue.item(0);
-                fstNm = el2.getChildNodes();
-                String val ;
-                if(fstNm.getLength()>0)val = fstNm.item(0).getNodeValue();
-                else val = "";
-                suitatemp.addUserDef(new String[]{prop,val});}
+            
+            
+            
+            //temp solution for CE
+            int items = fstElmnt.getChildNodes().getLength();
+            int userdefinitions = 0;
+            for(int i=0;i<items;i++){
+                if(fstElmnt.getChildNodes().item(i).getNodeName().equals("UserDefined"))userdefinitions++;
+            }
+            for(int i=0;i<items;i++){
+                if(fstElmnt.getChildNodes().item(i).getNodeName().equals("UserDefined")){
+                    Element element = (Element)fstElmnt.getChildNodes().item(i);                
+                    NodeList propname = element.getElementsByTagName("propName");
+                    Element el1 = (Element)propname.item(0);
+                    fstNm = el1.getChildNodes();
+                    String prop ;
+                    if(fstNm.getLength()>0)prop= fstNm.item(0).getNodeValue();
+                    else prop = "";
+                    NodeList propvalue = element.getElementsByTagName("propValue");
+                    Element el2 = (Element)propvalue.item(0);
+                    fstNm = el2.getChildNodes();
+                    String val ;
+                    if(fstNm.getLength()>0)val = fstNm.item(0).getNodeValue();
+                    else val = "";
+                    suitatemp.addUserDef(new String[]{prop,val});
+                }
+            }
+            //temp solution for CE
+            
+            
+            
+//             fstNmElmntLst = fstElmnt.getElementsByTagName("UserDefined");
+//             int userdefinitions = fstNmElmntLst.getLength();            
+//             for(int l=0;l<userdefinitions;l++){
+//                 Element element = (Element)fstNmElmntLst.item(l);                
+//                 NodeList propname = element.getElementsByTagName("propName");
+//                 Element el1 = (Element)propname.item(0);
+//                 fstNm = el1.getChildNodes();
+//                 String prop ;
+//                 if(fstNm.getLength()>0)prop= fstNm.item(0).getNodeValue();
+//                 else prop = "";
+//                 NodeList propvalue = element.getElementsByTagName("propValue");
+//                 Element el2 = (Element)propvalue.item(0);
+//                 fstNm = el2.getChildNodes();
+//                 String val ;
+//                 if(fstNm.getLength()>0)val = fstNm.item(0).getNodeValue();
+//                 else val = "";
+//                 suitatemp.addUserDef(new String[]{prop,val});}
+                
+                
+                
             int subchildren = fstElmnt.getChildNodes().getLength();
             int index=0;
             indexsuita++;
-            for(int k=4+(userdefinitions*2);k<subchildren-1;k++){
+            for( k+=(userdefinitions*2);k<subchildren-1;k++){
                 k++;
                 ArrayList <Integer> temp =(ArrayList <Integer>)indexpos.clone();
                 temp.add(new Integer(index));

@@ -2183,7 +2183,7 @@ public class Grafic extends JPanel{
             xml.createXML(skip,stoponfail,false,
                           Repository.window.mainpanel.p1.suitaDetails.getPreScript(),
                           Repository.window.mainpanel.p1.suitaDetails.getPostScript(),
-                          savedb,delay);
+                          savedb,delay,Repository.window.mainpanel.p1.suitaDetails.getGlobalLibs());
             xml.writeXMLFile(user,local,false);
             return true;}
         catch(Exception e){
@@ -2222,7 +2222,11 @@ public class Grafic extends JPanel{
                                                                 getPathCount()-2]+"/"+Repository.window.mainpanel.p1.
                                                                 ep.getSelected()[i].getPath()[Repository.window.
                                                                 mainpanel.p1.ep.getSelected()[i].getPathCount()-1];
-                    name = name.split(Repository.getTestSuitePath())[1];
+                    
+                    try{name = name.split(Repository.getTestSuitePath())[1];}
+                    catch(Exception e){
+                        System.out.println("Could not find projects path:"+Repository.getTestSuitePath()+" in filename:"+name);
+                        e.printStackTrace();}
                     FontMetrics metrics = getGraphics().getFontMetrics(new Font("TimesRoman", Font.PLAIN, 13));
                     Item newItem = new Item(name,1, -1, -1, metrics.stringWidth(name)+48, 20, null);
                     ArrayList<Integer> pos = new ArrayList <Integer>();
@@ -2438,9 +2442,9 @@ public class Grafic extends JPanel{
                 Item item = new Item(namefield.getText(),2, -1, 5, width+40,25 , indexpos);
                 
                 
-                String [] selected = new String[epidfield.getSelectedValues().length];
-                for(int i=0;i<epidfield.getSelectedValues().length;i++){
-                    selected[i] = epidfield.getSelectedValues()[i].toString();
+                String [] selected = new String[epidfield.getSelectedValuesList().size()];
+                for(int i=0;i<epidfield.getSelectedValuesList().size();i++){
+                    selected[i] = epidfield.getSelectedValuesList().get(i).toString();
                 }
                 item.setEpId(selected);
                 

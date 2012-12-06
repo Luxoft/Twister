@@ -38,6 +38,7 @@ import glob
 import time
 import datetime
 import binascii
+import tarfile
 import xmlrpclib
 import urlparse
 import MySQLdb
@@ -123,7 +124,7 @@ class CentralEngine(_cptools.XMLRPCController):
         Selects from database.
         This function is called from the Java GUI.
         '''
-        dbparser = DBParser( self.project.parsers[user].getDbConfigPath() )
+        dbparser = DBParser( self.project.getUserInfo(user, 'db_config') )
         query = dbparser.getQuery(field_id)
         db_config = dbparser.db_config
         del dbparser
@@ -169,7 +170,8 @@ class CentralEngine(_cptools.XMLRPCController):
         try:
             ret = self.project.sendMail(user)
             return ret
-        except:
+        except Exception, e:
+            logError('E-mail: Sending e-mail exception `{0}` !'.format(e))
             return False
 
 
@@ -181,16 +183,43 @@ class CentralEngine(_cptools.XMLRPCController):
         This function is called from the Java GUI, or from an EP.
         '''
 
-        db_auto_save = self.project.getUserInfo(user, 'db_auto_save')
-
-        if db_auto_save:
-            logDebug('CE: Preparing to save into database...')
-            time.sleep(3)
-            ret = self.project.saveToDatabase(user)
-            logDebug('CE: Done saving to database!')
-            return ret
+        logDebug('CE: Preparing to save into database...')
+        time.sleep(3)
+        ret = self.project.saveToDatabase(user)
+        if ret:
+            logDebug('CE: Saving to database was successful!')
         else:
-            return False
+            logDebug('CE: Could not save to database!')
+        return ret
+
+
+# --------------------------------------------------------------------------------------------------
+#           S E T T I N G S
+# --------------------------------------------------------------------------------------------------
+
+
+    @cherrypy.expose
+    def listSettings(self, user, config='', x_filter=''):
+        '''
+        List all available settings, for 1 config of a user.
+        '''
+        return self.project.listSettings(user, config, x_filter)
+
+
+    @cherrypy.expose
+    def getSettingsValue(self, user, config, key):
+        '''
+        Fetch a value from 1 config of a user.
+        '''
+        return self.project.getSettingsValue(user, config, key)
+
+
+    @cherrypy.expose
+    def setSettingsValue(self, user, config, key, value):
+        '''
+        Set a value for a key in the config of a user.
+        '''
+        return self.project.setSettingsValue(user, config, key, value)
 
 
 # --------------------------------------------------------------------------------------------------
@@ -412,11 +441,12 @@ class CentralEngine(_cptools.XMLRPCController):
 
                 # If this run is Not temporary
                 if not (user + '_old' in self.project.users):
-                    # On Central Engine stop, send e-mail?
+                    # On Central Engine stop, send e-mail
                     self.sendMail(user)
 
-                    # On Central Engine stop, save to database?
-                    self.commitToDatabase(user)
+                    # On Central Engine stop, save to database
+                    db_auto_save = self.project.getUserInfo(user, 'db_auto_save')
+                    if db_auto_save: self.commitToDatabase(user)
 
                     # Execute "Post Script"
                     script_post = self.project.getUserInfo(user, 'script_post')
@@ -448,8 +478,26 @@ class CentralEngine(_cptools.XMLRPCController):
             logError("CE ERROR! Status value `%s` is not in the list of defined statuses: `%s`!" % \
                 (str(new_status), str(execStatus.values())) )
             return False
+
+        # If this is a Temporary user
         if cherrypy.request.headers['User-Agent'].startswith('Apache XML RPC') and (user+'_old') in self.project.users:
-            return '*ERROR*! Cannot change status while running temporary!'
+            if msg.lower() != 'kill' and new_status != STATUS_STOP:
+                return '*ERROR*! Cannot change status while running temporary!'
+            else:
+                # Update status for User
+                self.project.setUserInfo(user, 'status', STATUS_STOP)
+
+                # Update status for all active EPs
+                active_eps = self.project.parsers[user].getActiveEps()
+                for epname in active_eps:
+                    self.project.setEpInfo(user, epname, 'status', STATUS_STOP)
+
+                reversed = dict((v,k) for k,v in execStatus.iteritems())
+                if msg:
+                    logDebug("CE: Status chang for TEMP `%s %s` -> %s. Message: `%s`.\n" % (user, active_eps, reversed[STATUS_STOP], str(msg)))
+                else:
+                    logDebug("CE: Status chang for TEMP `%s %s` -> %s.\n" % (user, active_eps, reversed[STATUS_STOP]))
+                return reversed[STATUS_STOP]
 
         # Status resume => start running. The logs must not reset on resume
         if new_status == STATUS_RESUME:
@@ -596,7 +644,7 @@ class CentralEngine(_cptools.XMLRPCController):
         status_str = reversed[new_status]
 
         # Get logSummary path from framework config
-        logPath = self.project.getUserInfo(user, 'log_types')['logsummary']
+        logPath = self.project.getUserInfo(user, 'log_types')['logSummary']
 
         # Write all statuses in logs, because all files will be saved to database
         if status_str=='not executed': status_str='*NO EXEC*'
@@ -616,10 +664,11 @@ class CentralEngine(_cptools.XMLRPCController):
                 (now - datetime.timedelta(seconds=time_elapsed)).isoformat())
             self.project.setFileInfo(user, epname, suite, file_id, 'twister_tc_date_finished',
                 (now.isoformat()))
+            suite_name = self.project.getSuiteInfo(user, epname, suite).get('name')
 
             with open(logPath, 'a') as status_file:
                 status_file.write(' {ep}::{suite}::{file} | {status} | {elapsed} | {date}\n'.format(
-                    ep = epname.center(9), suite = suite.center(9), file = filename.center(28),
+                    ep = epname.center(9), suite = suite_name.center(9), file = filename.center(28),
                     status = status_str.center(11),
                     elapsed = ('%.2fs' % time_elapsed).center(10),
                     date = now.strftime('%a %b %d, %H:%M:%S')))
@@ -734,9 +783,13 @@ class CentralEngine(_cptools.XMLRPCController):
         for epname in active_eps:
             self.project.setEpInfo(user, epname, 'status', STATUS_RUNNING)
 
+        i = 0
         while self.project.getUserInfo(user, 'status') == STATUS_RUNNING:
-            print 'Temporary user `{0}` is still running ...'.format(user)
-            time.sleep(1)
+            i += 1
+            if i == 10:
+                logInfo('Temporary user `{0}` is still running ...'.format(user))
+                i = 0
+            time.sleep(2)
 
         # Delete temporary user
         self.project.deleteUser(user)
@@ -747,36 +800,64 @@ class CentralEngine(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
-    def getLibrariesList(self):
+    def getLibrariesList(self, user=''):
         '''
         Returns the list of exposed libraries, from CE libraries folder.\n
         This list will be used to syncronize the libs on all EP computers.\n
         Called from the Runner.
         '''
         global TWISTER_PATH
-        libs_path = TWISTER_PATH + os.sep + 'lib'
-        # All Python source files from Libraries folder
-        libs = [d for d in os.listdir(libs_path) if\
-                os.path.isfile(libs_path + os.sep + d) and\
-                '__init__.py' not in d and\
-                os.path.splitext(d)[1] in ['.py', '.zip']]
+        libs_path = (TWISTER_PATH + '/lib/').replace('//', '/')
+        libs = []
+
+        # All libraries for user
+        if user:
+            # If `libraries` is empty, will default to ALL libraries
+            tmp_libs = self.project.getUserInfo(user, 'libraries') or ''
+            libs = [x.strip() for x in tmp_libs.split(';')] if tmp_libs else []
+            del tmp_libs
+
+        # All Python source files from Libraries folder AND all library folders
+        if not libs:
+            libs = [d for d in os.listdir(libs_path) if \
+                    ( os.path.isfile(libs_path + d) and \
+                    '__init__.py' not in d and \
+                    os.path.splitext(d)[1] in ['.py', '.zip']) or \
+                    os.path.isdir(libs_path + d) ]
+
         return sorted(libs)
 
 
     @cherrypy.expose
-    def getLibraryFile(self, filename):
+    def downloadLibrary(self, name):
         '''
         Sends required library to EP, to be syncronized.\n
         Called from the Runner.
         '''
         global TWISTER_PATH
-        filename = TWISTER_PATH + os.sep + 'lib' +os.sep + filename
-        if not os.path.isfile(filename):
-            logError('CE ERROR! Library file: `%s` does not exist!' % filename)
+        name = (TWISTER_PATH + '/lib/' + name).replace('//', '/')
+        if not os.path.exists(name):
+            logError('CE ERROR! Library `{0}` does not exist!'.format(name))
             return False
-        logDebug('CE: Requested library: ' + filename)
-        with open(filename, 'rb') as handle:
-            return xmlrpclib.Binary(handle.read())
+
+        # Python and Zip files
+        if os.path.isfile(name):
+            logDebug('CE: Requested library file: `{0}`.'.format(name))
+            with open(name, 'rb') as binary:
+                return xmlrpclib.Binary(binary.read())
+
+        # Library folders must be compressed
+        else:
+            logDebug('CE: Requested library folder: `{0}`.'.format(name))
+            split_name = os.path.split(name)
+            tgz = split_name[1] + '.tgz'
+            os.chdir(split_name[0])
+            with tarfile.open(tgz, 'w:gz') as binary:
+                binary.add(name=split_name[1], recursive=True)
+            with open(tgz, 'r') as binary:
+                data = xmlrpclib.Binary(binary.read())
+            os.remove(tgz)
+            return data
 
 
     @cherrypy.expose
@@ -916,7 +997,7 @@ class CentralEngine(_cptools.XMLRPCController):
         '''
         This function is exposed in all tests, all logs are centralized.
         '''
-        logType = str(logType).lower()
+        logType = str(logType)
         logTypes = self.project.getUserInfo(user, 'log_types')
 
         if logType == 'logcli' or logType == 'logsummary':

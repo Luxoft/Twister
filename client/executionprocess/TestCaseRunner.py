@@ -39,10 +39,12 @@ This script should NOT be run manually.
 
 import os
 import sys
+import shutil
 import time
 import csv
 import pickle
 import xmlrpclib
+import tarfile
 import traceback
 from threading import Timer
 
@@ -80,53 +82,86 @@ def loadConfig():
 
 #
 
-def saveLibraries(proxy):
+def saveLibraries(proxy, libs_list=''):
     '''
-    Saves all libraries from CE.
+    Downloads all libraries from Central Engine.
     Not used in offline mode.
     '''
-    global globEpName
-    global TWISTER_PATH
-    libs_list = proxy.getLibrariesList()
+    global userName, globEpName, TWISTER_PATH
+
     libs_path = '{0}/.twister_cache/{1}/ce_libs'.format(TWISTER_PATH, globEpName)
+    reset_libs = False
 
-    try: os.makedirs(libs_path)
-    except: pass
+    if not libs_list:
+        libs_list = proxy.getLibrariesList(userName)
+        reset_libs = True
+    else:
+        libs_list = [lib.strip() for lib in libs_list.split(';')]
 
-    __init = open(libs_path + os.sep + '__init__.py', 'w')
-    __init.write('\nimport os, sys\n')
-    __init.write('\nPROXY = "%s"\n' % CE_Path)
-    all_libs=[]
-    zip_libs=[]
+    if reset_libs:
+        # Remove libs path only if saving libraries for all project
+        shutil.rmtree(libs_path, ignore_errors=True)
+        # Create the path, after removal
+        try: os.makedirs(libs_path)
+        except: pass
+
+    all_libs = [] # Normal python files or folders
+    zip_libs = [] # Zip libraries
+
+    # If Reseting libs, open and destroy
+    if reset_libs:
+        __init = open(libs_path + os.sep + '__init__.py', 'w')
+        __init.write('\nimport os, sys\n')
+        __init.write('\nPROXY = "%s"\n' % CE_Path)
+    # If not Reseting, just append
+    else:
+        __init = open(libs_path + os.sep + '__init__.py', 'a')
 
     for lib in libs_list:
-        if not lib.endswith('.zip'):
-            all_libs.append(lib)
-        else:
+        if not lib:
+            continue
+        if lib.endswith('.zip'):
             zip_libs.append(lib)
+        else:
+            all_libs.append(lib)
+
+    if reset_libs:
+        __init.write('\nall = ["%s"]\n\n' % ('", "'.join([os.path.splitext(lib)[0] for lib in all_libs])))
+    else:
+        __init.write('\nall += ["%s"]\n\n' % ('", "'.join([os.path.splitext(lib)[0] for lib in all_libs])))
 
     for lib_file in zip_libs:
-        # Write in __init__ file.
+        # Write ZIP imports.
         __init.write('\nsys.path.append(os.path.split(__file__)[0] + "/%s")\n\n' % lib_file)
         lib_pth = libs_path + os.sep + lib_file
+
         print('Downloading Zip library `{0}` ...'.format(lib_pth))
         f = open(lib_pth, 'wb')
-        lib_data = proxy.getLibraryFile(lib_file)
+        lib_data = proxy.downloadLibrary(lib_file)
         f.write(lib_data.data)
         f.close() ; del f
-
-    __init.write('\nall = ["%s"]\n\n' % ('", "'.join([os.path.splitext(lib)[0] for lib in all_libs])))
 
     for lib_file in all_libs:
         ext = os.path.splitext(lib_file)
+        # Write normal imports.
         __init.write('import %s\n' % ext[0])
         __init.write('from %s import *\n\n' % ext[0])
         lib_pth = libs_path + os.sep + lib_file
+
         print('Downloading library `{0}` ...'.format(lib_pth))
         f = open(lib_pth, 'wb')
-        lib_data = proxy.getLibraryFile(lib_file)
+        lib_data = proxy.downloadLibrary(lib_file)
         f.write(lib_data.data)
         f.close() ; del f
+
+        # If the file doesn't have an ext, it's a TGZ library and must be extracted
+        if not ext[1]:
+            # Rename the TGZ
+            tgz = lib_pth + '.tgz'
+            os.rename(lib_pth, tgz)
+            with tarfile.open(tgz, 'r:gz') as binary:
+                os.chdir(libs_path)
+                binary.extractall()
 
     __init.close()
 
@@ -377,6 +412,14 @@ if __name__=='__main__':
             # print('TC debug: Stats from last run : {0}'.format(tStats))
             pass
 
+        # Get list of libraries for current suite
+        libList = proxy.getSuiteVariable(userName, globEpName, suite_id, 'libraries')
+        if libList:
+            saveLibraries(proxy, libList)
+            print('')
+
+
+        # Cycle for Files
 
         for iIndex in range(len(tList)):
 
@@ -400,8 +443,8 @@ if __name__=='__main__':
             else:
                 args = []
 
-            print('<<< START filename: `%s` >>>\n\nDebug: dependancy = `%s`, prereq = `%s`, optional = `%s` ...\n' %
-                  (filename, dependancy, prerequisite, optional_test))
+            print('<<< START filename: `%s:%s` >>>\n\nDebug: dependancy = `%s`, prereq = `%s`, optional = `%s` ...\n' %
+                  (file_id, filename, dependancy, prerequisite, optional_test))
 
             # Reset abort suite variable for every first file in the suite
             if iIndex == 0:
@@ -411,6 +454,7 @@ if __name__=='__main__':
             if abort_suite:
                 print('TC debug: Abort file `{0}` because of prerequisite file!\n'.format(filename))
                 proxySetTestStatus(file_id, STATUS_ABORTED, 0.0) # File status ABORTED
+                print('<<< END filename: `%s:%s` >>>\n' % (file_id, filename))
                 continue
 
             # Reset the TIMEOUT status for the next execution!
@@ -422,6 +466,7 @@ if __name__=='__main__':
             if '7' in tStats and iIndex != 0 and iIndex <= Rindex(tStats, '7'):
                 print('TC debug: Skipping file {0}: `{1}` with status {2}, aborted because of timeout!\n'.format(
                     iIndex, filename, status))
+                print('<<< END filename: `%s:%s` >>>\n' % (file_id, filename))
                 continue
 
             # Reload config file written by EP
@@ -472,10 +517,13 @@ if __name__=='__main__':
             if str_to_execute == '':
                 print('TC debug: File path `{0}` does not exist!\n'.format(filename))
                 proxySetTestStatus(file_id, STATUS_SKIPPED, 0.0) # Status SKIPPED
+                print('<<< END filename: `%s:%s` >>>\n' % (file_id, filename))
                 continue
+
             elif not str_to_execute:
                 print('TC debug: File `{0}` will be skipped.\n'.format(filename))
                 proxySetTestStatus(file_id, STATUS_SKIPPED, 0.0) # Status SKIPPED
+                print('<<< END filename: `%s:%s` >>>\n' % (file_id, filename))
                 continue
 
             file_ext = os.path.splitext(filename)[1].lower()
@@ -509,6 +557,7 @@ if __name__=='__main__':
             else:
                 print('TC warning: Extension type `%s` is unknown and will be ignored!' % file_ext)
                 proxySetTestStatus(file_id, STATUS_NOT_EXEC, 0.0) # Status NOT_EXEC
+                print('<<< END filename: `%s:%s` >>>\n' % (file_id, filename))
                 continue
 
             # If there is a delay between tests, wait here
@@ -537,14 +586,13 @@ if __name__=='__main__':
 
                 proxy.echo('TC error: Error executing file `%s`!' % filename)
 
-                proxySetTestStatus(file_id, STATUS_FAIL, 0.0) # File status FAIL
-                proxy.setFileVariable(userName, globEpName, suite_id, file_id, 'twister_tc_crash_detected', 1) # Crash detected True
+                proxySetTestStatus(file_id, STATUS_FAIL, 0.0)
+                # When crash detected = True
+                proxy.setFileVariable(userName, globEpName, suite_id, file_id, 'twister_tc_crash_detected', 1)
 
             # END OF TEST!
             timer_f = time.time() - timer_i
             # --------------------------------------------------
-
-            print('<<< END filename: `%s` >>>\n' % filename)
 
             if result==STATUS_PASS or result == 'PASS':
                 proxySetTestStatus(file_id, STATUS_PASS, timer_f) # File status PASS
@@ -564,15 +612,19 @@ if __name__=='__main__':
                 # If status is FAIL, and the file is not Optional and Exit on test fail is ON, CLOSE the runner
                 if not optional_test and exit_on_test_fail:
                     print('TC error: Mandatory file `{0}` returned FAIL! Closing the runner!'.format(filename))
-                    proxy.echo('TC error: Mandatory file `{0}::{1}::{2}` returned FAIL! Closing the runner!'.format(
-                        globEpName, suite_name, filename))
+                    proxy.echo('TC error: Mandatory file `{0}::{1}::{2}` returned FAIL! Closing the runner!'\
+                        ''.format(globEpName, suite_name, filename))
+                    print('<<< END filename: `%s:%s` >>>\n' % (file_id, filename))
                     exit(1)
 
                 # If status is FAIL, and the file is prerequisite, CANCEL all suite
                 if iIndex == 0 and prerequisite:
                     abort_suite = True
                     print('TC error: Prerequisite file for suite `%s` returned FAIL! All suite will be ABORTED!' % suite_name)
-                    proxy.echo('TC error: Prerequisite file for `{0}::{1}` returned FAIL! All suite will be ABORTED!'.format(globEpName, suite_name))
+                    proxy.echo('TC error: Prerequisite file for `{0}::{1}` returned FAIL! All suite will be ABORTED!'\
+                        ''.format(globEpName, suite_name))
+
+            print('<<< END filename: `%s:%s` >>>\n' % (file_id, filename))
 
             sys.stdout.flush() # Flush just in case
 
@@ -595,4 +647,5 @@ if __name__=='__main__':
     del tc_tcl, tc_perl, tc_python
 
 #
+
 

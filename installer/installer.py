@@ -56,6 +56,8 @@ PYTHON_EXE = sys.executable
 # And `setuptools` is not installed, or some dependencies are missing
 HTTP_PROXY = 'http://UserName:PassWord@http-proxy:3128'
 
+__dir__ = os.path.split(__file__)[0]
+if __dir__: os.chdir(__dir__)
 
 # --------------------------------------------------------------------------------------------------
 # Install  Server  or  Client ?
@@ -99,23 +101,41 @@ else:
 if TO_INSTALL == 'server':
 
     if os.getuid() != 0:
-        print('Installer must be run as ROOT! Exiting!\n')
+        print('To install servers, must be run as ROOT! Exiting!\n')
+        exit(1)
+
+    print('Please type where you wish to install the servers.')
+    print('Leave empty to install in default path `/opt/twister`:')
+    selected = raw_input('Path : ')
+    selected = selected.rstrip('/')
+
+    if selected and not os.path.isdir( os.path.split(selected)[0] ):
+        print('The path to `{0}` does not exist! Exiting!\n'.format(os.path.split(selected)[0]))
         exit(1)
 
     # Twister server path
-    INSTALL_PATH = '/opt/twister/'
+    if selected:
+        # Use the path from user, add '/' at the end
+        INSTALL_PATH = selected + os.sep
+    else:
+        INSTALL_PATH = '/opt/twister/'
+    del selected
 
     # Deleting previous versions of Twister
     try:
         dir_util.remove_tree(INSTALL_PATH)
         print('Removed folder `%s`.' % INSTALL_PATH)
-    except: print('Error! Cannot delete Twister dir `{0}` !'.format(INSTALL_PATH))
+    except: print('Warning! Cannot delete Twister dir `{0}` !'.format(INSTALL_PATH))
     try:
-        os.mkdir(INSTALL_PATH)
+        os.makedirs(INSTALL_PATH)
         print('Created folder `%s`.' % INSTALL_PATH)
-    except: print('Error! Cannot create Twister dir `{0}` !'.format(INSTALL_PATH))
+    except: print('Warning! Cannot create Twister dir `{0}` !'.format(INSTALL_PATH))
 
 else:
+
+    if os.getuid() == 0:
+        print('To install client, must be a normal user, not ROOT! Exiting!\n')
+        exit(1)
 
     # Twister client path
     INSTALL_PATH = os.getenv('HOME') + os.sep + 'twister/'
@@ -155,6 +175,7 @@ if TO_INSTALL == 'server':
         'Beaker',
         'Mako',
         'CherryPy',
+        'LXML-Python',
         'MySQL-python',
     ]
 
@@ -163,6 +184,7 @@ if TO_INSTALL == 'server':
         'beaker',
         'mako',
         'cherrypy',
+        'lxml',
         'MySQLdb',
     ]
 
@@ -171,6 +193,7 @@ if TO_INSTALL == 'server':
         '1.6',
         '0.7',
         '3.2',
+        '2.0',
         '1.2',
     ]
 
@@ -180,11 +203,11 @@ if TO_INSTALL == 'server':
         'bin/start_ra',
         'bin/start_httpserver',
         'doc/',
-        'src/server/',
-        'src/common/',
-        'src/lib/',
-        'src/trd_party/',
-        'src/plugins/',
+        'server/',
+        'common/',
+        'lib/',
+        'trd_party/',
+        'plugins/',
     ]
 
 elif TO_INSTALL == 'client':
@@ -199,10 +222,10 @@ elif TO_INSTALL == 'client':
         'bin/config_ep.json',
         'doc/',
         'demo/',
-        'src/config/',
-        'src/client/',
-        'src/common/__init__.py',
-        'src/common/constants.py',
+        'config/',
+        'client/',
+        'common/__init__.py',
+        'common/constants.py',
     ]
 
 else:
@@ -267,6 +290,8 @@ if TO_INSTALL == 'server':
     # If a package does not exists, or is an old version, it must be installed
     # --------------------------------------------------------------------------------------------------
 
+    library_err = [] # Used to keep the libraries that could not be installed
+
     for i in range(len(dependencies)):
 
         lib_name = dependencies[i]
@@ -286,7 +311,7 @@ if TO_INSTALL == 'server':
                 print('Testing: Imported `%s` ver %s OK. No need to re-install.' % (import_name, ver))
                 continue
         except:
-            print('Testing: Python library `%s` will be installed...' % import_name)
+            print('Python library `%s` is not installed...' % import_name)
 
         # ----------------------------------------------------------------------------------------------
         # Internet connection available
@@ -299,13 +324,22 @@ if TO_INSTALL == 'server':
                 print('\n~~~ Installing `%s` from System repositories ~~~\n' % lib_name)
 
                 if platform.dist()[0] == 'SuSE':
-                    tcr_proc = subprocess.Popen(['zypper', 'install', 'python-mysql'], cwd=pkg_path)
-                if platform.dist()[0] == 'fedora':
+                    tcr_proc = subprocess.Popen(['zypper', 'install', '-yl', 'python-mysql'], cwd=pkg_path)
+                elif platform.dist()[0] == 'fedora':
                     tcr_proc = subprocess.Popen(['yum', '-y', 'install', 'python-mysql'], cwd=pkg_path)
                 else:
                     tcr_proc = subprocess.Popen(['apt-get', 'install', 'python-mysqldb', '--yes'], cwd=pkg_path)
 
-                tcr_proc.wait()
+                try: tcr_proc.wait()
+                except: print('Error while installing `MySQL-python`!')
+
+            elif lib_name == 'LXML-Python':
+                print('\n~~~ Installing `%s` from System repositories ~~~\n' % lib_name)
+
+                tcr_proc = subprocess.Popen(['apt-get', 'install', 'python-lxml', '--yes'], cwd=pkg_path)
+
+                try: tcr_proc.wait()
+                except: print('Error while installing `Python LXML`!')
 
             # All other packages are installed with easy_install
             else:
@@ -315,6 +349,7 @@ if TO_INSTALL == 'server':
 
             if tcr_proc.returncode:
                 print('\n~~~ `%s` cannot be installed! It MUST be installed manually! ~~~\n' % lib_name)
+                library_err.append(lib_name)
             else:
                 print('\n~~~ Successfully installed %s ~~~\n' % lib_name)
 
@@ -323,12 +358,13 @@ if TO_INSTALL == 'server':
         # ----------------------------------------------------------------------------------------------
 
         else:
-            print('\n~~~ Installing `%s` from tar files ~~~\n' % lib_name)
+            print('\n~~~ Installing `%s` from tar files ~~~' % lib_name)
 
             p_library = glob.glob(pkg_path + lib_name + '*.tar.gz')
 
             if not p_library:
                 print('\n~~~ Cannot find `%s`! You MUST install it manually! ~~~\n' % (lib_name+'*.tar.gz'))
+                library_err.append(lib_name)
                 continue
 
             fopen = tarfile.open(p_library[0])
@@ -349,6 +385,10 @@ if TO_INSTALL == 'server':
             else:
                 print('\n~~~ Successfully installed `%s` ~~~\n' % lib_name)
 
+    if library_err:
+        print('The following libraries could not be installed: `%s`.\n'
+              'Twister Framework will not run without them!' % ', '.join(library_err))
+
 
 # --------------------------------------------------------------------------------------------------
 # Start copying files
@@ -359,10 +399,6 @@ print('')
 for fname in to_copy:
     fpath = ROOT_FOLDER + os.sep + fname
     dpath = os.path.dirname(fname)
-
-    # Copy into folder without `src`
-    if dpath.startswith('src/'):
-        dpath = dpath[4:]
 
     if dpath and ( not os.path.exists(INSTALL_PATH+dpath) ):
         try:
@@ -379,8 +415,6 @@ for fname in to_copy:
             print('Cannot copy dir `%s` to `%s`!' % (fpath, INSTALL_PATH+dpath))
 
     elif os.path.isfile(fpath):
-        if fname.startswith('src/'):
-            fname = fname[4:]
         try:
             file_util.copy_file(fpath, INSTALL_PATH + dpath)
             print('Copied file `%s` to `%s`.' % (fpath, INSTALL_PATH+dpath))
@@ -394,7 +428,7 @@ for fname in to_copy:
 
 # Restore Config folder, if any
 if os.path.exists(cwd_path + 'config'):
-    print('Moving `config` folder back (from `{0}` to `{1}`)...'.format(cwd_path+'config', INSTALL_PATH+'config'))
+    print('\nMoving `config` folder back (from `{0}` to `{1}`)...'.format(cwd_path+'config', INSTALL_PATH+'config'))
     dir_util.copy_tree(cwd_path + 'config', INSTALL_PATH+'config')
     dir_util.remove_tree(cwd_path + 'config')
     print('Moving `config_ep` file back (from `{0}` to `{1}`)...'.format(os.getcwd()+'/config_ep.json', INSTALL_PATH+'bin/config_ep.json'))
@@ -410,16 +444,13 @@ if TO_INSTALL == 'client':
     try: os.mkdir(INSTALL_PATH +os.sep+ 'logs')
     except: pass
 
-tcr_proc = subprocess.Popen(['chmod', '774', INSTALL_PATH, '-R'],)
+tcr_proc = subprocess.Popen(['chmod', '775', INSTALL_PATH, '-R'],)
 tcr_proc.wait()
-os.system('chmod 774 %s -R' % INSTALL_PATH)
 
-os.system('find %s -name "*.txt" -exec chmod 664 {} \;' % INSTALL_PATH)
-os.system('find %s -name "*.xml" -exec chmod 664 {} \;' % INSTALL_PATH)
-os.system('find %s -name "*.htm" -exec chmod 664 {} \;' % INSTALL_PATH)
-os.system('find %s -name "*.json" -exec chmod 664 {} \;' % INSTALL_PATH)
-os.system('find %s -name "*.py" -exec chmod 664 {} \;' % INSTALL_PATH)
-os.system('find %s -name "*.tcl" -exec chmod 664 {} \;' % INSTALL_PATH)
+for ext in ['txt', 'xml', 'py', 'tcl', 'plx', 'json', 'htm', 'js', 'css']:
+    os.system('find %s -name "*.%s" -exec chmod 664 {} \;' % (INSTALL_PATH, ext))
+
+os.system('find %s -name "start_ep.py" -exec chmod +x {} \;' % INSTALL_PATH)
 
 # Add twister path export
 for fname in glob.glob(INSTALL_PATH + 'bin/*'):

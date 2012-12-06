@@ -59,6 +59,7 @@ public class applet extends Applet{
             Repository.background = loadIcon("background.png");
             Repository.pendingicon = loadIcon("pending.png");
             Repository.deviceicon = loadIcon("device.png");
+            Repository.upicon = loadIcon("up.png");
             Repository.moduleicon = loadIcon("module.png");
             Repository.notexecicon = loadIcon("notexec.png");
             Repository.skipicon = loadIcon("skip.png");

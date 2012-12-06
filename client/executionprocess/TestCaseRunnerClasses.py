@@ -32,7 +32,6 @@ import sys
 import time
 import subprocess
 
-import imp  # For PYC / PYO files
 from collections import OrderedDict # For dumping TCL
 
 TWISTER_PATH = os.getenv('TWISTER_PATH')
@@ -80,7 +79,7 @@ class TCRunTcl:
         dir(ce_libs) # Update ?
 
         self.tcl = Tkinter.Tcl()
-        # Expose all function to TCL
+        # Expose all known function, in TCL
         self.tcl.createcommand('logMessage',          ce_libs.logMsg)
         self.tcl.createcommand('setProperty',         ce_libs.setProperty)
         self.tcl.createcommand('getProperty',         ce_libs.getProperty)
@@ -203,7 +202,7 @@ class TCRunPython:
         global TWISTER_PATH
         if not TWISTER_LIBS_PATH in sys.path:
             sys.path.append(TWISTER_LIBS_PATH) # Injected EP name
-        #
+
         # Start injecting inside tests
         globs_copy = {}
         globs_copy['os']   = os
@@ -222,23 +221,22 @@ class TCRunPython:
         to_execute = str_to_execute.data
         to_execute = '\nimport os, sys\nsys.argv = %s\n' % str(["file.py"] + params) + to_execute
         to_execute = '\nsys.path.append(os.getenv("TWISTER_PATH") + "/.twister_cache/")\n' + to_execute
-        #
+
         # *.pyc or *.pyo files
         if to_execute[:4] == '\x03\xf3\r\n':
-            print('TC Python: Binary Python file detected!')
             fname = '/__to_execute.pyc'
         else:
             fname = '/__to_execute.py'
-        #
+
         fname = TWISTER_PATH + '/.twister_cache/' + globEpName + fname
         f = open(fname, 'wb')
         f.write(to_execute)
         f.close() ; del f
-        #
+
         execfile(fname, globs_copy)
         try: os.remove(fname)
         except: pass
-        #
+
         # The _RESULT must be injected from within the python script
         return globs_copy.get('_RESULT')
         #
@@ -266,7 +264,9 @@ class TCRunPerl:
         ret = proc.communicate()
         time.sleep(0.5)
         #
-        os.remove('__to_execute.plx')
+        try: os.remove('__to_execute.plx')
+        except: pass
+        #
         # The _RESULT must be injected from within the perl script
         return _RESULT
         #

@@ -20,10 +20,6 @@ import javax.swing.JPanel;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import javax.swing.JButton;
-import net.sf.vfsjfilechooser.VFSJFileChooser;
-import net.sf.vfsjfilechooser.accessories.DefaultAccessoriesPanel;
-import net.sf.vfsjfilechooser.VFSJFileChooser.RETURN_TYPE;
-import net.sf.vfsjfilechooser.utils.VFSUtils;
 import org.apache.commons.vfs.FileObject;
 import javax.swing.JLabel;
 import javax.swing.JTextField;
@@ -75,9 +71,9 @@ import javax.swing.JFrame;
 import javax.swing.JProgressBar;
 import javax.swing.JComboBox;
 import java.util.Arrays;
+import com.twister.MySftpBrowser;
 
 public class ConfigFiles extends JPanel{
-    private VFSJFileChooser fileChooser;
     private static JTextField ttcpath,tMasterXML,tUsers,tepid,
                               tlog,trunning,tname,thardwareconfig,
                               tdebug,tsummary,tinfo,tcli,tdbfile,
@@ -379,24 +375,11 @@ public class ConfigFiles extends JPanel{
             b.setPreferredSize(new Dimension(50,20));
             if(actionlistener==null){
                 b.addActionListener(new AbstractAction(){
-                    public void actionPerformed(ActionEvent ev){                        
-                        if(fileChooser==null)initializeFileBrowser();
-                        try{RETURN_TYPE answer = fileChooser.showOpenDialog(ConfigFiles.this);
-                            if (answer == RETURN_TYPE.APPROVE){
-                                FileObject aFileObject = fileChooser.getSelectedFile();
-                                String safeName = VFSUtils.getFriendlyName(aFileObject.toString());
-                                safeName = safeName.substring(safeName.indexOf(Repository.host)+
-                                                                Repository.host.length());
-                                String [] check = safeName.split("/");
-                                if(check[check.length-1].equals(check[check.length-2])){
-                                    StringBuffer buffer = new StringBuffer();
-                                    for(int i=0;i<check.length-1;i++){
-                                        buffer.append(check[i]+"/");}
-                                    safeName = buffer.toString();}
-                                textfield.setText(safeName);}}
-                         catch(Exception e){
-                             fileChooser=null;
-                             e.printStackTrace();}}});}  
+                    public void actionPerformed(ActionEvent ev){ 
+                        Container c;
+                        if(Repository.container!=null)c = Repository.container.getParent();
+                        else c = Repository.window;
+                        new MySftpBrowser(Repository.c,textfield,c);}});}
             else{b.addActionListener(actionlistener);
                 b.setText("Save");
                 b.setMaximumSize(new Dimension(70,20));
@@ -431,24 +414,40 @@ public class ConfigFiles extends JPanel{
             Element rootElement = document.createElement("FileType");
             root.appendChild(rootElement);
             rootElement.appendChild(document.createTextNode("config"));
-            addTag("CentralEnginePort",tceport.getText(),root,blank,document);
-            addTag("ResourceAllocatorPort",traPort.getText(),root,blank,document);
-            addTag("HttpServerPort",thttpPort.getText(),root,blank,document);
-            addTag("TestCaseSourcePath",ttcpath.getText(),root,blank,document);
-            addTag("MasterXMLTestSuite",tMasterXML.getText(),root,blank,document);
-            addTag("UsersPath",tUsers.getText(),root,blank,document);
-            addTag("LogsPath",tlog.getText(),root,blank,document);
+            try{addTag("CentralEnginePort",tceport.getText(),root,blank,document);}
+            catch(Exception e){addTag("CentralEnginePort","",root,blank,document);}
+            try{addTag("ResourceAllocatorPort",traPort.getText(),root,blank,document);}
+            catch(Exception e){addTag("ResourceAllocatorPort","",root,blank,document);}
+            try{addTag("HttpServerPort",thttpPort.getText(),root,blank,document);}
+            catch(Exception e){addTag("HttpServerPort","",root,blank,document);}
+            try{addTag("TestCaseSourcePath",ttcpath.getText(),root,blank,document);}
+            catch(Exception e){addTag("TestCaseSourcePath","",root,blank,document);}
+            try{addTag("MasterXMLTestSuite",tMasterXML.getText(),root,blank,document);}
+            catch(Exception e){addTag("MasterXMLTestSuite","",root,blank,document);}
+            try{addTag("UsersPath",tUsers.getText(),root,blank,document);}
+            catch(Exception e){addTag("UsersPath","",root,blank,document);}
+            try{addTag("LogsPath",tlog.getText(),root,blank,document);}
+            catch(Exception e){addTag("LogsPath","",root,blank,document);}
             rootElement = document.createElement("LogFiles");
             root.appendChild(rootElement);
-            addTag("logRunning",trunning.getText(),rootElement,blank,document);
-            addTag("logDebug",tdebug.getText(),rootElement,blank,document);
-            addTag("logSummary",tsummary.getText(),rootElement,blank,document);
-            addTag("logTest",tinfo.getText(),rootElement,blank,document);
-            addTag("logCli",tcli.getText(),rootElement,blank,document);
-            addTag("DbConfigFile",tdbfile.getText(),root,blank,document);
-            addTag("EPIdsFile",tepid.getText(),root,blank,document);
-            addTag("HardwareConfig",thardwareconfig.getText(),root,blank,document);
-            addTag("EmailConfigFile",temailfile.getText(),root,blank,document);
+            try{addTag("logRunning",trunning.getText(),rootElement,blank,document);}
+            catch(Exception e){addTag("logRunning","",rootElement,blank,document);}
+            try{addTag("logDebug",tdebug.getText(),rootElement,blank,document);}
+            catch(Exception e){addTag("logDebug","",rootElement,blank,document);}
+            try{addTag("logSummary",tsummary.getText(),rootElement,blank,document);}
+            catch(Exception e){addTag("logSummary","",rootElement,blank,document);}
+            try{addTag("logTest",tinfo.getText(),rootElement,blank,document);}
+            catch(Exception e){addTag("logTest","",rootElement,blank,document);}
+            try{addTag("logCli",tcli.getText(),rootElement,blank,document);}
+            catch(Exception e){addTag("logCli","",rootElement,blank,document);}
+            try{addTag("DbConfigFile",tdbfile.getText(),root,blank,document);}
+            catch(Exception e){addTag("DbConfigFile","",root,blank,document);}
+            try{addTag("EPIdsFile",tepid.getText(),root,blank,document);}
+            catch(Exception e){addTag("EPIdsFile","",root,blank,document);}
+            try{addTag("HardwareConfig",thardwareconfig.getText(),root,blank,document);}
+            catch(Exception e){addTag("HardwareConfig","",root,blank,document);}
+            try{addTag("EmailConfigFile",temailfile.getText(),root,blank,document);}
+            catch(Exception e){addTag("EmailConfigFile","",root,blank,document);}
             String temp;
             if(blank) temp ="fwmconfig";
             else temp = tname.getText();
@@ -473,7 +472,7 @@ public class ConfigFiles extends JPanel{
             saved = false;}
         if(saved){
             CustomDialog.showInfo(JOptionPane.INFORMATION_MESSAGE,
-                                  Repository.window.mainpanel.p4.getConfig(),
+                                  Repository.window,
                                   "Successfull", "File successfully saved");}
         else{
             CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,
@@ -488,19 +487,4 @@ public class ConfigFiles extends JPanel{
         if(blank) temp ="";
         else temp = tagcontent;            
         rootElement.appendChild(document.createTextNode(temp));}
-        
-    public VFSJFileChooser getChooser(){
-        if(fileChooser==null){
-            initializeFileBrowser();
-        }
-        fileChooser.rescanCurrentDirectory();
-        return fileChooser;
     }
-        
-    public void initializeFileBrowser(){
-        fileChooser = new VFSJFileChooser("sftp://"+Repository.user+":"+
-                                           Repository.password+"@"+Repository.host+
-                                           "/home/"+Repository.user+"/twister/config/");        
-        //fileChooser.setFileHidingEnabled(true);
-        fileChooser.setMultiSelectionEnabled(false);
-        fileChooser.setFileSelectionMode(VFSJFileChooser.SELECTION_MODE.FILES_AND_DIRECTORIES);}}

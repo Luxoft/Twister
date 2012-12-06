@@ -6,7 +6,7 @@ Twister supports TCL, Python and Perl, three of the most common scripting langua
 Twister offers an intuitive, web-based user interface for configuration, control, and reporting with remote access availability. 
 This makes it easy to build the testing suite, execute it, and accurately monitor the result logs.
 
-[UserGuide](https://github.com/Luxoft/Twister/raw/git_hub_branch/doc/Twister%20Guide.pdf)
+[UserGuide](https://github.com/Luxoft/Twister/blob/git_hub_branch/doc/Twister%20Guide.pdf)
 
 Please check the [Wiki] (https://github.com/Luxoft/Twister/wiki) page for the feature set.
   

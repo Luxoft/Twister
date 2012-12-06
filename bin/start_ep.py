@@ -23,6 +23,8 @@ if os.path.exists(os.getenv('HOME') + '/twister/src'):
 else:
     os.environ['TWISTER_PATH'] = os.getenv('HOME') + '/twister'
 
+os.chdir(os.getenv('TWISTER_PATH') + '/bin')
+
 eps = json.load(open('config_ep.json'))
 
 #

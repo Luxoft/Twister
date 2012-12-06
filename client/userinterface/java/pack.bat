@@ -12,7 +12,6 @@ jarsigner ../extlibs/commons-logging-1.1.1.jar Twister -storepass password
 jarsigner ../extlibs/commons-vfs-1.0.jar Twister -storepass password
 jarsigner ../extlibs/jsch-0.1.44.jar Twister -storepass password
 jarsigner ../extlibs/jxl.jar Twister -storepass password
-jarsigner ../extlibs/VFSJFileChooser-0.0.3.jar Twister -storepass password
 jarsigner ../extlibs/ws-commons-util-1.0.2.jar Twister -storepass password
 jarsigner ../extlibs/xmlrpc-client-3.1.3.jar Twister -storepass password
 jarsigner ../extlibs/xmlrpc-common-3.1.3.jar Twister -storepass password

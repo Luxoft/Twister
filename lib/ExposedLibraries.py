@@ -28,6 +28,7 @@ This module contains all functions exposed to TCL, Python and Perl tests.
 import os, sys
 import platform
 import xmlrpclib
+from xml.dom.minidom import parse
 
 TWISTER_PATH = os.getenv('TWISTER_PATH')
 if not TWISTER_PATH:
@@ -43,6 +44,11 @@ except:
 
 platform_sys = platform.system().lower()
 
+fwmconfig_file = open(TWISTER_PATH + '/config/fwmconfig.xml')
+fwmconfig_data = parse(fwmconfig_file)
+centralEngPort = fwmconfig_data.getElementsByTagName('CentralEnginePort')[0].childNodes[0].data
+resAllocPort = fwmconfig_data.getElementsByTagName('ResourceAllocatorPort')[0].childNodes[0].data
+
 #
 
 # If this computer is Linux
@@ -53,7 +59,7 @@ if platform_sys=='linux' or platform_sys=='sunos':
     from __init__ import PROXY
 
     # Parse test suites devices configuration
-    raClient = ResourceAllocatorClient(PROXY.replace('8000', '8001'))
+    raClient = ResourceAllocatorClient(PROXY.replace(centralEngPort, resAllocPort))
 
     def queryResource(query):
         return raClient.queryResource(query)

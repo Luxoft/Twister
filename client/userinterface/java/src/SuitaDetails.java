@@ -16,6 +16,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+import javax.swing.JOptionPane;
 import com.twister.Item;
 import javax.swing.JPanel;
 import javax.swing.JLabel;
@@ -39,11 +40,8 @@ import javax.swing.JButton;
 import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
 import java.awt.Component;
-import java.util.ArrayList;
-import net.sf.vfsjfilechooser.VFSJFileChooser;
-import net.sf.vfsjfilechooser.VFSJFileChooser.RETURN_TYPE;
+import java.util.List;
 import org.apache.commons.vfs.FileObject;
-import net.sf.vfsjfilechooser.utils.VFSUtils;
 import javax.swing.JFrame;
 import javax.swing.JCheckBox;
 import javax.swing.LayoutStyle;
@@ -60,6 +58,8 @@ import javax.swing.JList;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.event.ListSelectionEvent;
 import java.util.Arrays;
+import java.awt.Container;
+import com.twister.MySftpBrowser;
 
 public class SuitaDetails extends JPanel {
     private JPanel defsContainer,global, suiteoptions, tcoptions, summary;
@@ -68,13 +68,14 @@ public class SuitaDetails extends JPanel {
     private TitledBorder border;    
     private JCheckBox stoponfail, runnable, optional, prerequisites, savedb;
     private JTextField tprescript, tpostscript;
-    private JButton browse1,browse2;
-    private VFSJFileChooser fileChooser;
+    private JButton browse1,browse2,suitelib;
     private Item parent;
     private JTextField tsuite,ttcname,ttcdelay;
     private JList combo;
     private JLabel ep, tcdelay;
     private JLabel stats [] = new JLabel[10];
+    private String [] globallib;
+    
     
     public void setEnabled(boolean enabled) {
         //super.setEnabled(enabled);
@@ -138,6 +139,7 @@ public class SuitaDetails extends JPanel {
         tsuite = new JTextField();
         ep = new JLabel("Run on EP:");
         combo = new JList();
+        suitelib = new JButton("Libraries");
         
         JScrollPane scroll = new JScrollPane();
         scroll.setViewportView(combo);
@@ -150,6 +152,8 @@ public class SuitaDetails extends JPanel {
                 .addComponent(suite)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(tsuite, javax.swing.GroupLayout.PREFERRED_SIZE, 145, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(21, 21, 21)
+                .addComponent(suitelib)
                 .addGap(18, 18, 18)
                 .addComponent(ep)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
@@ -163,6 +167,7 @@ public class SuitaDetails extends JPanel {
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(suite)
                     .addComponent(tsuite, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(suitelib)
                     .addComponent(ep)
                     .addComponent(scroll, 60, 70, 100))
                 .addContainerGap())
@@ -170,6 +175,7 @@ public class SuitaDetails extends JPanel {
         tcdelay = new JLabel("TC delay");
         savedb = new JCheckBox("DB autosave");
         ttcdelay = new JTextField();
+        JButton globallib = new JButton("Libraries");
         savedb.setBackground(Color.WHITE);
         stoponfail = new JCheckBox("Stop on fail");
         stoponfail.setBackground(Color.WHITE);
@@ -179,52 +185,37 @@ public class SuitaDetails extends JPanel {
         tpostscript = new JTextField();
         browse1 = new JButton("...");
         browse2 = new JButton("...");
-
-//         stoponfail.setText();
+//        stoponfail.setText();
         prescript.setText("Pre execution script:");
         postscript.setText("Post execution script:");
         
+        globallib.addActionListener(new ActionListener(){
+            public void actionPerformed(ActionEvent ev){
+                showLib();
+            }
+        });
+        
+        suitelib.addActionListener(new ActionListener(){
+            public void actionPerformed(ActionEvent ev){
+                showSuiteLib();
+            }
+        });
+        
         browse1.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent evt) {
-                if(fileChooser==null)initializeFileBrowser();
-                try{RETURN_TYPE answer = fileChooser.showOpenDialog(SuitaDetails.this);
-                    if (answer == RETURN_TYPE.APPROVE){
-                        FileObject aFileObject = fileChooser.getSelectedFile();
-                        String safeName = VFSUtils.getFriendlyName(aFileObject.toString());
-                        safeName = safeName.substring(safeName.indexOf(Repository.host)+
-                                                        Repository.host.length());
-                        String [] check = safeName.split("/");
-                        if(check[check.length-1].equals(check[check.length-2])){
-                            StringBuffer buffer = new StringBuffer();
-                            for(int i=0;i<check.length-1;i++){
-                                buffer.append(check[i]+"/");}
-                            safeName = buffer.toString();}
-                        tprescript.setText(safeName);}}
-                 catch(Exception e){
-                     fileChooser=null;
-                     e.printStackTrace();}
+            public void actionPerformed(ActionEvent evt) {                            
+                Container c;
+                if(Repository.container!=null)c = Repository.container.getParent();
+                else c = Repository.window;
+                new MySftpBrowser(Repository.c,tprescript,c);
             }
         });
 
         browse2.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent evt) {
-                if(fileChooser==null)initializeFileBrowser();
-                try{RETURN_TYPE answer = fileChooser.showOpenDialog(SuitaDetails.this);
-                    if (answer == RETURN_TYPE.APPROVE){
-                        FileObject aFileObject = fileChooser.getSelectedFile();
-                        String safeName = VFSUtils.getFriendlyName(aFileObject.toString());
-                        safeName = safeName.substring(safeName.indexOf(Repository.host)+
-                                                        Repository.host.length());
-                        String [] check = safeName.split("/");
-                        if(check[check.length-1].equals(check[check.length-2])){
-                            StringBuffer buffer = new StringBuffer();
-                            for(int i=0;i<check.length-1;i++){
-                                buffer.append(check[i]+"/");}
-                            safeName = buffer.toString();}
-                        tpostscript.setText(safeName);}}
-                 catch(Exception e){
-                     fileChooser=null;
-                     e.printStackTrace();}
+                Container c;
+                if(Repository.container!=null)c = Repository.container.getParent();
+                else c = Repository.window;
+                new MySftpBrowser(Repository.c,tpostscript,c);
             }
         });
         
@@ -233,46 +224,50 @@ public class SuitaDetails extends JPanel {
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
-                .addContainerGap()
-                .addComponent(stoponfail, javax.swing.GroupLayout.PREFERRED_SIZE, 105, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(savedb, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(40, 40, 40)
-                .addComponent(tcdelay)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(ttcdelay, javax.swing.GroupLayout.DEFAULT_SIZE, 162, Short.MAX_VALUE)
-                .addGap(65, 65, 65))
-            .addGroup(layout.createSequentialGroup()
-                .addGap(10, 10, 10)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(layout.createSequentialGroup()
-                        .addComponent(prescript)
-                        .addGap(20, 20, 20))
-                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                        .addComponent(postscript)
-                        .addGap(18, 18, 18)))
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(tprescript)
-                    .addComponent(tpostscript))
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addContainerGap()
+                        .addComponent(stoponfail, javax.swing.GroupLayout.PREFERRED_SIZE, 105, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(savedb, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(tcdelay)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(ttcdelay, javax.swing.GroupLayout.DEFAULT_SIZE, 160, Short.MAX_VALUE)
+                        .addGap(12, 12, 12)
+                        .addComponent(globallib))
                     .addGroup(layout.createSequentialGroup()
                         .addGap(10, 10, 10)
-                        .addComponent(browse1))
-                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(browse2)))
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addGroup(layout.createSequentialGroup()
+                                .addComponent(prescript)
+                                .addGap(20, 20, 20))
+                            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
+                                .addComponent(postscript)
+                                .addGap(18, 18, 18)))
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addComponent(tprescript)
+                            .addComponent(tpostscript))
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addGroup(layout.createSequentialGroup()
+                                .addGap(10, 10, 10)
+                                .addComponent(browse1))
+                            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(browse2)))))
                 .addContainerGap())
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
-                .addGap(13, 13, 13)
+                .addGap(12, 12, 12)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.CENTER)
                     .addComponent(stoponfail, javax.swing.GroupLayout.PREFERRED_SIZE, 20, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(savedb, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(tcdelay)
-                    .addComponent(ttcdelay, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addGap(13, 13, 13)
+                    .addComponent(ttcdelay, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(globallib))
+                .addGap(11, 11, 11)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(prescript)
                     .addComponent(tprescript, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
@@ -288,94 +283,134 @@ public class SuitaDetails extends JPanel {
         layout.linkSize(javax.swing.SwingConstants.VERTICAL, new java.awt.Component[] {browse1, tprescript});
 
         layout.linkSize(javax.swing.SwingConstants.VERTICAL, new java.awt.Component[] {browse2, tpostscript});
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
+    }
+    
+    // show libraries selection window for root suite
+    private void showSuiteLib(){
 
-//         layout = new GroupLayout(global);
-//         global.setLayout(layout);
-//         layout.setHorizontalGroup(
-//             layout.createParallelGroup(GroupLayout.Alignment.LEADING)
-//             .addGroup(layout.createSequentialGroup()
-//                 .addContainerGap()
-//                 .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
-//                     .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
-//                         .addGroup(GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-//                             .addGap(5, 5, 5)
-//                             .addComponent(prescript))
-//                         .addComponent(stoponfail, GroupLayout.PREFERRED_SIZE, 120,
-//                                      GroupLayout.PREFERRED_SIZE)
-//                         .addComponent(savedb, GroupLayout.PREFERRED_SIZE, 120,
-//                                      GroupLayout.PREFERRED_SIZE)
-//                                      
-//                                      )
-//                     .addGroup(layout.createSequentialGroup()
-//                         .addGap(5, 5, 5)
-//                         .addComponent(postscript)))
-//                 .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
-//                 .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
-//                     .addComponent(tprescript, GroupLayout.DEFAULT_SIZE, 216, Short.MAX_VALUE)
-//                     .addComponent(tpostscript))
-//                 .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
-//                 .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
-//                     .addComponent(browse1)
-//                     .addComponent(browse2))
-//                 .addGap(10, 10, 10)));
-//                 
-//         layout.setVerticalGroup(
-//             layout.createParallelGroup(GroupLayout.Alignment.LEADING)
-//             .addGroup(layout.createSequentialGroup()
-//                 .addContainerGap()
-//                 
-//                 .addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
-//                     .addComponent(stoponfail)
-//                     .addComponent(savedb)
-// //                     , GroupLayout.PREFERRED_SIZE, 
-// //                                   GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-// //                     .addComponent(browse1)
-//                     )
-//                 
-//                 
-// //                 .addComponent(stoponfail)
-//                 
-// //                 .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
-//                 
-// //                 .addComponent(savedb)
-// 
-// 
-// 
-// 
-//                 .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
-//                 .addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
-//                     .addComponent(prescript)
-//                     .addComponent(tprescript, GroupLayout.PREFERRED_SIZE, 
-//                                   GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-//                     .addComponent(browse1))
-//                 .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
-//                 .addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
-//                     .addComponent(tpostscript, GroupLayout.PREFERRED_SIZE, 
-//                                   GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-//                     .addComponent(browse2)
-//                     .addComponent(postscript))
-//                 .addContainerGap(GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)));
-                
-                
-}
+        JScrollPane jScrollPane1 = new JScrollPane();
+        JList jList1 = new JList();
+        JPanel libraries = new JPanel();
+        jScrollPane1.setViewportView(jList1);
+        GroupLayout layout = new GroupLayout(libraries);
+        libraries.setLayout(layout);
+        layout.setHorizontalGroup(
+            layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+            .addComponent(jScrollPane1, GroupLayout.DEFAULT_SIZE, 150, Short.MAX_VALUE)
+        );
+        layout.setVerticalGroup(
+            layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+            .addComponent(jScrollPane1, GroupLayout.DEFAULT_SIZE, 300, Short.MAX_VALUE)
+        );
         
+        try{Object [] s = (Object [])Repository.getRPCClient().execute("getLibrariesList",
+                                                                        new Object[]{});
+            String [] libs = new String[s.length];
+            for(int i=0;i<s.length;i++){
+                libs[i] = s[i].toString();
+            }
+            ArrayList<Integer> ind = new ArrayList<Integer>();
+            jList1.setModel(new DefaultComboBoxModel(libs));
+            if(parent.getLibs()!=null){
+                for(String st:parent.getLibs()){
+                    for(int i=0;i<libs.length;i++){
+                        if(libs[i].equals(st)){
+                            ind.add(new Integer(i));
+                        }
+                    }
+                }
+                int [] indices = new int [ind.size()];
+                for(int i=0;i<ind.size();i++){
+                    indices[i]=ind.get(i);
+                }
+                jList1.setSelectedIndices(indices);
+            }
+            
+        } catch(Exception e){
+            System.out.println("There was an error on calling getLibrariesList on CE");
+            e.printStackTrace();
+        }
+        int resp = (Integer)CustomDialog.showDialog(libraries,JOptionPane.PLAIN_MESSAGE,
+                                                        JOptionPane.OK_CANCEL_OPTION, 
+                                                        Repository.window, "Libraries",
+                                                        null);
+        if(resp == JOptionPane.OK_OPTION){
+            Object[] val = jList1.getSelectedValues();
+            String [] libs = new String[val.length];
+            for(int s=0;s<val.length;s++){
+                libs[s]=val[s].toString();
+            }
+            parent.setLibs(libs);
+        }
+        
+        
+    }
+    
+    // show libraries selection window for project 
+    private void showLib(){
+        JScrollPane jScrollPane1 = new JScrollPane();
+        JList jList1 = new JList();
+        JPanel libraries = new JPanel();
+        jScrollPane1.setViewportView(jList1);
+        GroupLayout layout = new GroupLayout(libraries);
+        libraries.setLayout(layout);
+        layout.setHorizontalGroup(
+            layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+            .addComponent(jScrollPane1, GroupLayout.DEFAULT_SIZE, 150, Short.MAX_VALUE)
+        );
+        layout.setVerticalGroup(
+            layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+            .addComponent(jScrollPane1, GroupLayout.DEFAULT_SIZE, 300, Short.MAX_VALUE)
+        );
+        
+        try{Object [] s = (Object [])Repository.getRPCClient().execute("getLibrariesList",
+                                                                        new Object[]{});
+            String [] libs = new String[s.length];
+            for(int i=0;i<s.length;i++){
+                libs[i] = s[i].toString();
+            }
+            ArrayList<Integer> ind = new ArrayList<Integer>();
+            jList1.setModel(new DefaultComboBoxModel(libs));
+            for(String st:globallib){
+                for(int i=0;i<libs.length;i++){
+                    if(libs[i].equals(st)){
+                        ind.add(new Integer(i));
+                    }
+                }
+            }
+            int [] indices = new int [ind.size()];
+            for(int i=0;i<ind.size();i++){
+                indices[i]=ind.get(i);
+            }
+            jList1.setSelectedIndices(indices);
+            
+        } catch(Exception e){
+            System.out.println("There was an error on calling getLibrariesList on CE");
+            e.printStackTrace();
+        }
+        int resp = (Integer)CustomDialog.showDialog(libraries,JOptionPane.PLAIN_MESSAGE,
+                                                        JOptionPane.OK_CANCEL_OPTION, 
+                                                        Repository.window, "Libraries",
+                                                        null);
+        if(resp == JOptionPane.OK_OPTION){
+            Object[] val = jList1.getSelectedValues();
+            globallib = new String[val.length];
+            for(int s=0;s<val.length;s++){
+                globallib[s]=val[s].toString();
+            }
+        }
+        
+    }
+    
+    public String[] getGlobalLibs(){
+        return globallib;
+    }
+    
+    public void setGlobalLibs(String [] globallib){
+        this.globallib = globallib;
+    }
+    
+            
     private void initComponents(ArrayList<String []> descriptions){
         global = new JPanel();
         global.setBackground(Color.WHITE);
@@ -560,13 +595,10 @@ public class SuitaDetails extends JPanel {
                 inputStreamReader.close();
                 in.close();
                 String result = b.toString();
-                String [] vecresult = result.split(";");                
-                
-
+                String [] vecresult = result.split(";");   
                 for(ListSelectionListener l:combo.getListSelectionListeners()){
                     combo.removeListSelectionListener(l);
                 }
-
                 combo.setModel(new DefaultComboBoxModel(vecresult));
                 String [] strings = parent.getEpId();
                 ArrayList<String> array = new ArrayList<String>(Arrays.asList(vecresult));
@@ -576,15 +608,11 @@ public class SuitaDetails extends JPanel {
                 }
                 combo.setSelectedIndices(sel);
                 combo.addListSelectionListener(new MyListSelectionListener());
-                
-
-                
                 tsuite.setText(parent.getName());
                 KeyListener k [] = combo.getKeyListeners();
                 for(KeyListener t : k){
                     tsuite.removeKeyListener(t);
                 }
-
                 tsuite.addKeyListener(new KeyAdapter(){
                     public void keyReleased(KeyEvent ev){
                         String name = tsuite.getText();
@@ -672,10 +700,12 @@ public class SuitaDetails extends JPanel {
         if(rootsuite){
             combo.setEnabled(true);
             ep.setEnabled(true);
+            suitelib.setEnabled(true);
             for(DefPanel p:definitions){
                 defsContainer.add(p);
             }         
         } else {
+            suitelib.setEnabled(false);
             combo.setEnabled(false);
             ep.setEnabled(false);
             for(DefPanel p:definitions){
@@ -737,29 +767,19 @@ public class SuitaDetails extends JPanel {
     public void setBorderTitle(String title){
         ((TitledBorder)getBorder()).setTitle(title);
         repaint();
-//         container.setTitle(title);
     }
     
     public Item getItemParent(){
         return this.parent;
     }
-        
-        
-    public void initializeFileBrowser(){
-        fileChooser = new VFSJFileChooser("sftp://"+Repository.user+":"+
-                                           Repository.password+"@"+Repository.host+
-                                           "/home/"+Repository.user+"/twister/config/");        
-        fileChooser.setFileHidingEnabled(true);
-        fileChooser.setMultiSelectionEnabled(false);
-        fileChooser.setFileSelectionMode(VFSJFileChooser.SELECTION_MODE.FILES_AND_DIRECTORIES);}
     
     class MyListSelectionListener implements ListSelectionListener {
         public void valueChanged(ListSelectionEvent evt) {
             if (!evt.getValueIsAdjusting()) {
                 JList list = (JList)evt.getSource();
-                String [] selected = new String[list.getSelectedValues().length];
-                for(int i=0;i<list.getSelectedValues().length;i++){
-                    selected[i] = list.getSelectedValues()[i].toString();
+                String [] selected = new String[list.getSelectedValuesList().size()];
+                for(int i=0;i<list.getSelectedValuesList().size();i++){
+                    selected[i] = list.getSelectedValuesList().get(i).toString();
                 }
                 getItemParent().setEpId(selected);
                 Repository.window.mainpanel.p1.sc.g.repaint();
@@ -857,28 +877,14 @@ class DefPanel extends JPanel{
             add(script);
             script.addActionListener(new ActionListener(){
                 public void actionPerformed(ActionEvent ev){
-                    VFSJFileChooser fileChooser = Repository.window.mainpanel.p4.getConfig().
-                                                                                getChooser();
-                    try{RETURN_TYPE answer = fileChooser.showOpenDialog(DefPanel.this);
-                        if (answer == RETURN_TYPE.APPROVE){
-                            FileObject aFileObject = fileChooser.getSelectedFile();
-                            String safeName = VFSUtils.getFriendlyName(aFileObject.toString());
-                            safeName = safeName.substring(safeName.indexOf(Repository.host)+
-                                                            Repository.host.length());
-                            String [] check = safeName.split("/");
-                            if(check[check.length-1].equals(check[check.length-2])){
-                                StringBuffer buffer = new StringBuffer();
-                                for(int i=0;i<check.length-1;i++){
-                                    buffer.append(check[i]+"/");}
-                                safeName = buffer.toString();}
-                            userDefinition.setText(safeName);
-                            if(parent!=null){
-                                setParentField(userDefinition.getText(),false);}
-                        }}
-                    catch(Exception e){
-                        e.printStackTrace();
+                    Container c;
+                    if(Repository.container!=null)c = Repository.container.getParent();
+                    else c = Repository.window;
+                    new MySftpBrowser(Repository.c,userDefinition,c);
+                    if(parent!=null){
+                        setParentField(userDefinition.getText(),false);}
                     }
-                }});
+                });
             filedsGap = new JPanel();
             filedsGap.setBackground(new Color(255, 255, 255));
             filedsGap.setMaximumSize(new Dimension(10, 10));

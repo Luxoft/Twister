@@ -141,7 +141,7 @@ public class GraficTest extends JPanel{
                     }                    
                 }
                 for(Log l:logs){
-                    l.findNext("Starting to RUN filename: `"+item.getName());
+                    l.findNext(item.getName()+"` >>>",true,"<<< START filename: `");
                 }
             }
             else if(keypress==2){
@@ -285,7 +285,8 @@ public class GraficTest extends JPanel{
                           Repository.window.mainpanel.p1.suitaDetails.getPreScript(),
                           Repository.window.mainpanel.p1.suitaDetails.getPostScript(),
                           Repository.window.mainpanel.p1.suitaDetails.saveDB(),
-                          Repository.window.mainpanel.p1.suitaDetails.getDelay());
+                          Repository.window.mainpanel.p1.suitaDetails.getDelay(),
+                          Repository.window.mainpanel.p1.suitaDetails.getGlobalLibs());
             String dir = Repository.getXMLRemoteDir();
             String [] path = dir.split("/");
             StringBuffer result2 = new StringBuffer();

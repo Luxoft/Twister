@@ -9,7 +9,6 @@ extlibs/ws-commons-util-1.0.2.jar:\
 extlibs/commons-vfs-1.0.jar:\
 extlibs/jgoodies-looks-2.5.1.jar:\
 extlibs/jgoodies-common-1.3.1.jar:\
-extlibs/VFSJFileChooser-0.0.3.jar:\
 extlibs/jxl.jar:\
 extlibs/ws-commons-util-1.0.2.jar:\
 extlibs/xmlrpc-client-3.1.3.jar:\
@@ -36,8 +35,6 @@ echo "Signing jar file jsch-0.1.44.jar"
 $JDK_PATH/jarsigner ../extlibs/jsch-0.1.44.jar Twister -storepass password
 echo "Signing jar file jxl.jar"
 $JDK_PATH/jarsigner ../extlibs/jxl.jar Twister -storepass password
-echo "Signing jar file VFSJFileChooser-0.0.3.jar"
-$JDK_PATH/jarsigner ../extlibs/VFSJFileChooser-0.0.3.jar Twister -storepass password
 echo "Signing jar file ws-commons-util-1.0.2.jar"
 $JDK_PATH/jarsigner ../extlibs/ws-commons-util-1.0.2.jar Twister -storepass password
 echo "Signing jar file xmlrpc-client-3.1.3.jar"
