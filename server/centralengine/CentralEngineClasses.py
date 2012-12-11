@@ -97,7 +97,8 @@ class CentralEngine(_cptools.XMLRPCController):
         '''
         Simple echo function, for testing connection.
         '''
-        logInfo(':: %s' % str(msg))
+        if msg != 'ping':
+            logInfo(':: %s' % str(msg))
         return 'CE reply: ' + msg
 
 

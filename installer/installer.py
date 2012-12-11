@@ -262,6 +262,14 @@ if TO_INSTALL == 'server':
         INTERNET = False
         print('Cannot connect! Check the internet connection, or the Proxy settings!\n')
 
+
+    if not INTERNET:
+        selected = raw_input('Internet connection NOT available. The required packages will not be installed.\n'
+            'Are you sure you want to continue? (yes/no): \n')
+        if selected.strip().lower() not in ['y', 'yes']:
+            exit(0)
+
+
     # --------------------------------------------------------------------------------------------------
     # Starting the install process
     # --------------------------------------------------------------------------------------------------
