@@ -74,7 +74,6 @@ public class Plugins extends JPanel{
     public JSplitPane horizontalsplit, verticalsplit;
     
     public Plugins(){
-        System.out.println("Init plugins called");
         copyPreConfiguredPlugins();
         PluginsLoader.setClassPath();
         getPlugins();
