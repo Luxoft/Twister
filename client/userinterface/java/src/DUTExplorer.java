@@ -40,6 +40,7 @@ import javax.swing.JButton;
 import javax.swing.BoxLayout;
 import javax.swing.JLabel;
 import java.awt.BorderLayout;
+import com.twister.CustomDialog;
 
 public class DUTExplorer extends JPanel{
     JTree tree;

@@ -60,6 +60,7 @@ import javax.swing.JScrollPane;
 import javax.swing.text.DefaultCaret;
 import java.awt.Color;
 import java.awt.Font;
+import com.twister.CustomDialog;
 
 public class UnitTesting extends JFrame {
     private JButton run;

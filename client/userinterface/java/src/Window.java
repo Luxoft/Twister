@@ -36,6 +36,7 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Toolkit;
 import javax.swing.JLabel;
+import com.twister.CustomDialog;
 
 /*
  * main window displayed if twister is running local

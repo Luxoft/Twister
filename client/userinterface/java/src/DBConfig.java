@@ -48,6 +48,7 @@ import javax.xml.transform.Transformer;
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.dom.DOMSource;
 import javax.swing.JOptionPane;
+import com.twister.CustomDialog;
 
 public class DBConfig extends JPanel{
     Document doc=null;

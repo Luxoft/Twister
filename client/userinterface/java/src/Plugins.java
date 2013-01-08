@@ -74,6 +74,7 @@ public class Plugins extends JPanel{
     public JSplitPane horizontalsplit, verticalsplit;
     
     public Plugins(){
+        System.out.println("Init plugins called");
         copyPreConfiguredPlugins();
         PluginsLoader.setClassPath();
         getPlugins();
@@ -203,7 +204,6 @@ public class Plugins extends JPanel{
                         try{
                             long remotesize = Repository.c.lstat(pluginfile).getSize();
                             long localsize = myfile.length();
-                            System.out.println(pluginfile+" "+remotesize+" "+localsize);
                             if(remotesize==localsize)found = true;
                         }
                         catch(Exception e){
@@ -211,7 +211,6 @@ public class Plugins extends JPanel{
                         }
                         break;}}
                 if(!found){
-                    System.out.println("copying "+pluginfile);
                     copyPlugin(pluginfile);}}}
         catch(Exception e){
             System.out.println("Could not get Plugins Array from local config");
@@ -346,7 +345,6 @@ public class Plugins extends JPanel{
                 String name;
                 String description;
                 while(iterator.hasNext()){
-                    System.out.println("One plugin");
                     name = iterator.next().toString();
                     TwisterPluginInterface plugin = (TwisterPluginInterface)plugins.get(name);
                     description = plugin.getDescription();
@@ -477,7 +475,7 @@ public class Plugins extends JPanel{
             //wait for MainPanel to be initialized
             new Thread(){
                 public void run(){
-                    while(Repository.window==null){
+                    while(Repository.initialized == false){
                         try{Thread.sleep(200);}
                         catch(Exception e){e.printStackTrace();}
                     }
@@ -521,24 +519,29 @@ public class Plugins extends JPanel{
      * method to display or remove
      * plugin from mainpanel
      */
-    public void pluginClicked(MyCheck check){
+    public void pluginClicked(final MyCheck check){
         String pluginname = check.getName();
-        TwisterPluginInterface plugin = (TwisterPluginInterface)plugins.get(pluginname);
-        MainPanel main = Repository.window.mainpanel;
+        final TwisterPluginInterface plugin = (TwisterPluginInterface)plugins.get(pluginname);
+        final MainPanel main = Repository.window.mainpanel;
         if(check.isSelected()){
-            plugin.init(Repository.getSuite(),
+            new Thread(){
+                public void run(){
+                    plugin.init(Repository.getSuite(),
                         Repository.getTestSuite(),
                         Repository.getVariables(),
                         Repository.getPluginsConfig());
-            main.addTab(plugin.getName(), plugin.getContent());
-            main.revalidate();
-            main.repaint();}
+                    main.addTab(plugin.getName(), plugin.getContent());
+                    main.revalidate();
+                    main.repaint();
+                }
+            }.start();
+        }
         else{
             if(plugin.getContent()!=null){
                 main.remove(plugin.getContent());
+                plugin.terminate();
                 main.revalidate();
                 main.repaint();}
-            plugin.terminate();
         }
         enablePlugin(check.isSelected(),pluginname);
     }
@@ -634,7 +637,7 @@ public class Plugins extends JPanel{
                 compare = (Element)item.getElementsByTagName("status").item(0);
                 if(value)compare.getChildNodes().item(0).setNodeValue("enabled");
                 else compare.getChildNodes().item(0).setNodeValue("disabled");
-                Repository.uploadPluginsFile();
+                boolean res = Repository.uploadPluginsFile();
                 return;
             }
         }

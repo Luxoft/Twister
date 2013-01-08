@@ -49,6 +49,7 @@ import javax.xml.transform.OutputKeys;
 import javax.xml.transform.dom.DOMSource;
 import java.io.FileInputStream;
 import javax.swing.JOptionPane;
+import com.twister.CustomDialog;
 
 public class Emails extends JPanel{
     public  JPanel p1;

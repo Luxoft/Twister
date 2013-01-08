@@ -44,6 +44,7 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JTextField;
 import javax.swing.JOptionPane;
+import com.twister.CustomDialog;
 
 public class GraficTest extends JPanel{
     private static final long serialVersionUID = 1L;

@@ -60,6 +60,7 @@ import java.io.File;
 import jxl.Workbook;
 import jxl.CellView;
 import javax.swing.SwingUtilities;
+import com.twister.CustomDialog;
 
 public class Panel2 extends JPanel{
     private static final long serialVersionUID = 1L;

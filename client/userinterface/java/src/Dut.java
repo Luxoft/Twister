@@ -72,6 +72,7 @@ import java.awt.Color;
 import javax.swing.GroupLayout;
 import javax.swing.LayoutStyle.ComponentPlacement;
 import javax.swing.JComboBox;
+import com.twister.CustomDialog;
 
 public class Dut extends JPanel {
 
@@ -104,7 +105,8 @@ public class Dut extends JPanel {
     
     public Dut(){
         initComponents();
-        load("hwconfig.xml");}
+        //load("hwconfig.xml");
+    }
     
     private void initComponents() {
         explorer = new DUTExplorer();

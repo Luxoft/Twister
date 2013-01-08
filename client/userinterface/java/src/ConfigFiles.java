@@ -72,6 +72,7 @@ import javax.swing.JProgressBar;
 import javax.swing.JComboBox;
 import java.util.Arrays;
 import com.twister.MySftpBrowser;
+import com.twister.CustomDialog;
 
 public class ConfigFiles extends JPanel{
     private static JTextField ttcpath,tMasterXML,tUsers,tepid,

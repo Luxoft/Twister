@@ -114,6 +114,7 @@ import javax.swing.GroupLayout;
 import java.awt.event.ItemListener;
 import java.awt.event.ItemEvent;
 import com.twister.Item;
+import com.twister.CustomDialog;
 
 public class ExplorerPanel extends JPanel {
 

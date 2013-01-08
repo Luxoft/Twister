@@ -45,6 +45,7 @@ import javax.swing.JPanel;
 import java.awt.Dimension;
 import javax.swing.JOptionPane;
 import java.awt.Point;
+import com.twister.CustomDialog;
 
 /*
  * Editors window 

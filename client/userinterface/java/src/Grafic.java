@@ -72,6 +72,7 @@ import java.awt.BorderLayout;
 import com.twister.Item;
 import javax.swing.JList;
 import javax.swing.JScrollPane;
+import com.twister.CustomDialog;
 
 public class Grafic extends JPanel{
     private static final long serialVersionUID = 1L;
@@ -2165,10 +2166,6 @@ public class Grafic extends JPanel{
      * parses xml and represents in grafic
      */    
     public void parseXML(File file){
-//         Graphics g =null;
-//         while(g==null){
-//             g = getGraphics();
-//             if(g==null)Repository.window.mainpanel.p2.sc.g.getGraphics();}
         new XMLReader(file).parseXML(getGraphics(),false);}
         
     /*

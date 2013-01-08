@@ -93,6 +93,7 @@ import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Transformer;
 import java.net.URLClassLoader;
 import java.awt.Point;
+import com.twister.CustomDialog;
 
 /*
  * static class to hold
@@ -122,7 +123,7 @@ public class Repository{
                         addsuitaicon,removeicon,vlcclient,vlcserver,switche,optional,
                         flootw,rack150,rack151,rack152,switche2,inicon,outicon,baricon;
     public static boolean run = true;//signal that Twister is not closing
-    public static boolean applet; //keeps track if twister is run from applet or localy
+    public static boolean applet,initialized; //keeps track if twister is run from applet or localy
     public static IntroScreen intro;    
     private static ArrayList <String []> databaseUserFields = new ArrayList<String[]>();
     public static int LABEL = 0;    
@@ -193,7 +194,7 @@ public class Repository{
                 if(new File(twisterhome.getCanonicalPath()+bar+"twister.conf").createNewFile()){
                     generateJSon();}
                 else System.out.println("Could not create twister.conf");}
-            parseIni(twisterini);            
+            parseIni(twisterini);
         }//parse configuration file
         catch(Exception e){e.printStackTrace();}
         Repository.host = host;
@@ -281,6 +282,8 @@ public class Repository{
                 intro.addPercent(0.035);
                 intro.repaint();
                 
+                Plugins.deletePlugins();
+                
                 parseDBConfig(Repository.REMOTEDATABASECONFIGFILE,true);
                 window = new Window(applet,container);
                 parseEmailConfig(Repository.REMOTEEMAILCONFIGFILE,true);
@@ -323,6 +326,7 @@ public class Repository{
                 run = false;
                 if(!applet)System.exit(0);}}
         catch(Exception e){e.printStackTrace();}
+        initialized  = true;
     }
         
     /*
@@ -522,11 +526,12 @@ public class Repository{
                     System.out.println("Attempting to connect to: "+host+
                         " with user: "+user1.getText()+" and password: "+
                         password1.getPassword());
-                    JSch jsch = new JSch();
                     user = user1.getText();
+                    password = new String(password1.getPassword());
+                    
+                    JSch jsch = new JSch();
                     Session session = jsch.getSession(user, host, 22);
-                    Repository.password = new String(password1.getPassword());
-                    session.setPassword(new String(password1.getPassword()));
+                    session.setPassword(password);
                     Properties config = new Properties();
                     config.put("StrictHostKeyChecking", "no");
                     session.setConfig(config);
@@ -893,7 +898,6 @@ public class Repository{
                 intro.setStatus("Started getting xml file");
                 intro.addPercent(0.035);
                 intro.repaint();
-                System.out.println("XMLREMOTEDIR: "+XMLREMOTEDIR);
                 in = c.get(XMLREMOTEDIR);                
                 data = new byte[900];
                 buffer = new ByteArrayOutputStream();
@@ -1430,10 +1434,22 @@ public class Repository{
             transformer.setOutputProperty(OutputKeys.INDENT, "yes");
             transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "4");
             transformer.transform(source, result);
-            c.cd(Repository.USERHOME+"/twister/config/");
-            System.out.println("Saving "+file.getName()+" to: "+Repository.USERHOME+"/twister/config/");
+            System.out.println("Saving "+file.getName()+" to: "+Repository.USERHOME+"/twister/config/");            
+            //System.out.println(Repository.USERHOME+"/twister/config/");
             FileInputStream in = new FileInputStream(file);
-            Repository.c.put(in, file.getName());
+            
+            JSch jsch = new JSch();
+            Session session = jsch.getSession(user, host, 22);
+            session.setPassword(password);
+            Properties config = new Properties();
+            config.put("StrictHostKeyChecking", "no");
+            session.setConfig(config);
+            session.connect();
+            Channel channel = session.openChannel("sftp");
+            channel.connect();
+            ChannelSftp ch = (ChannelSftp)channel;
+            ch.cd(USERHOME+"/twister/config/");
+            ch.put(in, file.getName());
             in.close();
             return true;}
         catch(Exception e){
@@ -1474,19 +1490,22 @@ public class Repository{
      * open project file from server
      */
     public static void openProjectFile(){
-        try{c.cd(REMOTEUSERSDIRECTORY);}
-        catch(Exception e){
-            System.out.println("Could not get to "+REMOTEUSERSDIRECTORY+"on sftp");}
-        int subdirnr = REMOTEUSERSDIRECTORY.split("/").length-1;
-        int size ;
-        try{size= c.ls(REMOTEUSERSDIRECTORY).size();}
+//         try{c.cd(REMOTEUSERSDIRECTORY);}
+//         catch(Exception e){
+//             System.out.println("Could not get to "+REMOTEUSERSDIRECTORY+"on sftp");}
+        //int subdirnr = REMOTEUSERSDIRECTORY.split("/").length-1;
+        int size;
+        Vector v=null;
+        try{v = c.ls(REMOTEUSERSDIRECTORY);
+            size = v.size();}
         catch(Exception e){
             System.out.println("No suites xml");
             size=0;}
         ArrayList<String> files = new ArrayList<String>();
         String name=null;
+        
         for(int i=0;i<size;i++){
-            try{name = ((LsEntry)c.ls(REMOTEUSERSDIRECTORY).get(i)).getFilename();
+            try{name = ((LsEntry)v.get(i)).getFilename();
                 if(name.split("\\.").length==0)continue; 
                 if(name.toLowerCase().indexOf(".xml")==-1)continue;
                 if(name.equals("last_edited.xml"))continue;
@@ -1526,7 +1545,7 @@ public class Repository{
                     window.mainpanel.p1.sc.g.printXML( window.mainpanel.p1.sc.g.getUser(),false,false,false,false,"");}}
             else{
                 try{
-                    InputStream in = c.get(user);
+                    InputStream in = c.get(REMOTEUSERSDIRECTORY+"/"+user);
                     InputStreamReader inputStreamReader = new InputStreamReader(in);
                     BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
                     File file = new File(temp+bar+"Twister"+bar+"Users"+bar+user);
@@ -1548,9 +1567,7 @@ public class Repository{
                                             append(Repository.getBar()).append(user).toString()));}
                 catch(Exception e){
                     e.printStackTrace();
-                }
-                                    
-                                    
+                }         
                                     }
                                     if(Repository.getSuiteNr() > 0){
             Repository.window.mainpanel.p1.sc.g.updateLocations(Repository.getSuita(0));}

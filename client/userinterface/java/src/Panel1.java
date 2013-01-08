@@ -65,6 +65,7 @@ import java.util.Arrays;
 import javax.swing.SwingUtilities;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
+import com.twister.CustomDialog;
 
 /*
  * Suites generation panel
