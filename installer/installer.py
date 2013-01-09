@@ -265,8 +265,9 @@ if TO_INSTALL == 'server':
 
     if not INTERNET:
         selected = raw_input('Internet connection NOT available. The required packages will not be installed.\n'
-            'Are you sure you want to continue? (yes/no): \n')
+            'Are you sure you want to continue? (yes/no): ')
         if selected.strip().lower() not in ['y', 'yes']:
+            print('\nExiting.\n')
             exit(0)
 
 

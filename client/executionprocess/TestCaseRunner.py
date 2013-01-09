@@ -466,6 +466,9 @@ if __name__=='__main__':
             if '7' in tStats and iIndex != 0 and iIndex <= Rindex(tStats, '7'):
                 print('TC debug: Skipping file {0}: `{1}` with status {2}, aborted because of timeout!\n'.format(
                     iIndex, filename, status))
+                if iIndex == 0 and prerequisite:
+                    abort_suite = True
+                    print('TC error: Prerequisite file for suite `%s` returned FAIL! All suite will be ABORTED!' % suite_name)
                 print('<<< END filename: `%s:%s` >>>\n' % (file_id, filename))
                 continue
 
@@ -516,12 +519,16 @@ if __name__=='__main__':
             # If CE sent False, it means the file is empty, does not exist, or it's not runnable.
             if str_to_execute == '':
                 print('TC debug: File path `{0}` does not exist!\n'.format(filename))
+                if iIndex == 0 and prerequisite:
+                    abort_suite = True
+                    print('TC error: Prerequisite file for suite `%s` returned FAIL! All suite will be ABORTED!' % suite_name)
                 proxySetTestStatus(file_id, STATUS_SKIPPED, 0.0) # Status SKIPPED
                 print('<<< END filename: `%s:%s` >>>\n' % (file_id, filename))
                 continue
 
             elif not str_to_execute:
                 print('TC debug: File `{0}` will be skipped.\n'.format(filename))
+                # Skipped prerequisite are ok.
                 proxySetTestStatus(file_id, STATUS_SKIPPED, 0.0) # Status SKIPPED
                 print('<<< END filename: `%s:%s` >>>\n' % (file_id, filename))
                 continue
@@ -556,6 +563,9 @@ if __name__=='__main__':
             # Unknown file type
             else:
                 print('TC warning: Extension type `%s` is unknown and will be ignored!' % file_ext)
+                if iIndex == 0 and prerequisite:
+                    abort_suite = True
+                    print('TC error: Prerequisite file for suite `%s` returned FAIL! All suite will be ABORTED!' % suite_name)
                 proxySetTestStatus(file_id, STATUS_NOT_EXEC, 0.0) # Status NOT_EXEC
                 print('<<< END filename: `%s:%s` >>>\n' % (file_id, filename))
                 continue
@@ -647,5 +657,3 @@ if __name__=='__main__':
     del tc_tcl, tc_perl, tc_python
 
 #
-
-
