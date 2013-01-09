@@ -92,7 +92,8 @@ public class Window extends JFrame{
             addWindowListener(new WindowAdapter(){
                 public void windowClosing(WindowEvent e){
                     Repository.saveMainLayout();
-                    Repository.uploadPluginsFile();
+//                     Repository.uploadPluginsFile();
+                    mainpanel.p4.getPlugins().uploadPluginsFile();
                     int r = (Integer)CustomDialog.showDialog(
                                 new JLabel("Save your Suite XML before exiting ?"),
                                 JOptionPane.QUESTION_MESSAGE, 

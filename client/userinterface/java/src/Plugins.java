@@ -61,6 +61,18 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import java.net.URLClassLoader;
+import com.jcraft.jsch.JSch;
+import com.jcraft.jsch.Session;
+import com.jcraft.jsch.Channel;
+import com.jcraft.jsch.ChannelSftp;
+import java.util.Properties;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.Result;
+import javax.xml.transform.stream.StreamResult;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.OutputKeys;
+import java.io.FileInputStream;
 
 /*
  * plugins panel displayed
@@ -72,13 +84,73 @@ public class Plugins extends JPanel{
     private JScrollPane pluginsscroll;
     private JPanel plugintable, titleborder, downloadtable, localtable, remotetable2;
     public JSplitPane horizontalsplit, verticalsplit;
+    private ChannelSftp ch;
+    private boolean finished = true;
     
     public Plugins(){
+        initSftp();
         copyPreConfiguredPlugins();
         PluginsLoader.setClassPath();
         getPlugins();
         initComponents();
         loadRemotePluginList();
+    }
+    
+    /*
+     * initialize SFTP connection used
+     * for plugins and configuration files transfer
+     */
+    public void initSftp(){
+        try{
+            JSch jsch = new JSch();
+            Session session = jsch.getSession(Repository.user, Repository.host, 22);
+            session.setPassword(Repository.password);
+            Properties config = new Properties();
+            config.put("StrictHostKeyChecking", "no");
+            session.setConfig(config);
+            session.connect();
+            Channel channel = session.openChannel("sftp");
+            channel.connect();
+            ch = (ChannelSftp)channel;
+        } catch (Exception e){
+            System.out.println("ERROR: Could not initialize SFTP for plugins");
+            e.printStackTrace();
+        }
+    }
+    
+    
+    /*
+     * method to copy plugins configuration file
+     * to server 
+     */
+    public boolean uploadPluginsFile(){
+        try{
+            while(!finished){
+                try{Thread.sleep(100);}
+                catch(Exception e){e.printStackTrace();}
+            }
+            finished = false;
+            DOMSource source = new DOMSource(Repository.getPluginsConfig());
+            File file = new File(Repository.PLUGINSLOCALGENERALCONF);
+            Result result = new StreamResult(file);
+            TransformerFactory transformerFactory = TransformerFactory.newInstance();
+            Transformer transformer = transformerFactory.newTransformer();
+            transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+            transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "4");
+            transformer.transform(source, result);
+            System.out.println("Saving "+file.getName()+" to: "+Repository.USERHOME+"/twister/config/");            
+            //System.out.println(Repository.USERHOME+"/twister/config/");
+            FileInputStream in = new FileInputStream(file);
+            ch.cd(Repository.USERHOME+"/twister/config/");
+            ch.put(in, file.getName());
+            in.close();
+            finished = true;
+            return true;}
+        catch(Exception e){
+            e.printStackTrace();
+            finished = true;
+            return false;
+        }
     }
         
     /*
@@ -194,14 +266,14 @@ public class Plugins extends JPanel{
                     if(file.equals(pluginfile)){
                         File myfile = new File(Repository.PLUGINSDIRECTORY+
                                             Repository.getBar()+pluginfile);
-                        try{Repository.c.cd(Repository.REMOTEPLUGINSDIR);}
+                        try{ch.cd(Repository.REMOTEPLUGINSDIR);}
                         catch(Exception e){
                             System.out.println("Could not get :"+
                                                 Repository.REMOTEPLUGINSDIR+
                                                 " as remote plugins dir");
                         }
                         try{
-                            long remotesize = Repository.c.lstat(pluginfile).getSize();
+                            long remotesize = ch.lstat(pluginfile).getSize();
                             long localsize = myfile.length();
                             if(remotesize==localsize)found = true;
                         }
@@ -347,8 +419,11 @@ public class Plugins extends JPanel{
                     name = iterator.next().toString();
                     TwisterPluginInterface plugin = (TwisterPluginInterface)plugins.get(name);
                     description = plugin.getDescription();
-                    addPlugin(name,description,plugin);}
-                }}}
+                    addPlugin(name,description,plugin);
+                }   
+            }   
+        }
+    }
      
     /*
      * method te get plugins from server
@@ -358,18 +433,18 @@ public class Plugins extends JPanel{
         ArrayList list = new ArrayList<String>();
         Iterator iterator = plugins.keySet().iterator();
         String description;
-        try{Repository.c.cd(Repository.REMOTEPLUGINSDIR);}
+        try{ch.cd(Repository.REMOTEPLUGINSDIR);}
         catch(Exception e){
             System.out.println("Could not get :"+
                 Repository.REMOTEPLUGINSDIR);
             e.printStackTrace();}
         int size;
-        try{size= Repository.c.ls(".").size();}
+        try{size= ch.ls(".").size();}
         catch(Exception e){
             System.out.println("No plugins");
             size=0;}
         Vector<LsEntry> plugins = null;
-        try{plugins = Repository.c.ls(".");}
+        try{plugins = ch.ls(".");}
         catch(Exception e){
             System.out.println("Error in getting plugins "+
                 "from Plugins remote directory");
@@ -598,18 +673,20 @@ public class Plugins extends JPanel{
      * to local twister plugins directory
      * @param filename- the plugin filename to copy localy
      */
-    public static boolean copyPlugin(String filename){
+    public boolean copyPlugin(String filename){
         File file = new File(Repository.PLUGINSDIRECTORY+Repository.getBar()+filename);
         InputStream in = null;
         InputStreamReader inputStreamReader = null;
         BufferedReader bufferedReader = null;  
         BufferedWriter writer=null;
-        try{Repository.c.cd(Repository.REMOTEPLUGINSDIR);}
+        try{
+            ch.cd(Repository.REMOTEPLUGINSDIR);
+        }
         catch(Exception e){
             System.out.println("Could not get :"+Repository.REMOTEPLUGINSDIR+" as remote plugins dir");
             return false;}
         try{System.out.print("Getting "+filename+" ....");
-            in = Repository.c.get(filename);    
+            in = ch.get(filename);    
             file = new File(Repository.PLUGINSDIRECTORY+Repository.getBar()+filename);
             OutputStream out=new FileOutputStream(file);
             byte buf[]=new byte[100];
@@ -621,6 +698,7 @@ public class Plugins extends JPanel{
             System.out.println("successfull");
             return true;}
         catch(Exception e){
+            e.printStackTrace();
             System.out.println("Error in copying plugin" +filename+ " localy");
             return false;}}
                 
@@ -636,7 +714,7 @@ public class Plugins extends JPanel{
                 compare = (Element)item.getElementsByTagName("status").item(0);
                 if(value)compare.getChildNodes().item(0).setNodeValue("enabled");
                 else compare.getChildNodes().item(0).setNodeValue("disabled");
-                boolean res = Repository.uploadPluginsFile();
+                boolean res = uploadPluginsFile();
                 return;
             }
         }
