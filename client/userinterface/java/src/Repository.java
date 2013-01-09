@@ -90,7 +90,6 @@ import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.OutputKeys;
-import javax.xml.transform.Transformer;
 import java.net.URLClassLoader;
 import java.awt.Point;
 import com.twister.CustomDialog;
@@ -238,11 +237,11 @@ public class Repository{
                 else System.out.println("Could not create "+temp+bar+"Twister"+
                     bar+"Users folder");
                 if(new File(temp+bar+"Twister"+bar+"config").mkdir()){
-                    CONFIGDIRECTORY = Repository.temp+bar+"Twister"+bar+"config";
                     System.out.println(temp+bar+"Twister"+bar+
                         "config folder successfully created");}
                 else System.out.println("Could not create "+temp+bar+
                     "Twister"+bar+"config folder");
+                CONFIGDIRECTORY = Repository.temp+bar+"Twister"+bar+"config";
                 File pluginsdirectory = new File(twisterhome.getCanonicalPath()+
                                                  bar+"Plugins");
                 REMOTEPLUGINSDIR = "/opt/twister/plugins";
@@ -1420,43 +1419,43 @@ public class Repository{
         }
     }
     
-    /*
-     * method to copy plugins configuration file
-     * to server 
-     */
-    public static boolean uploadPluginsFile(){
-        try{
-            DOMSource source = new DOMSource(pluginsconfig);
-            File file = new File(Repository.PLUGINSLOCALGENERALCONF);
-            Result result = new StreamResult(file);
-            TransformerFactory transformerFactory = TransformerFactory.newInstance();
-            Transformer transformer = transformerFactory.newTransformer();
-            transformer.setOutputProperty(OutputKeys.INDENT, "yes");
-            transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "4");
-            transformer.transform(source, result);
-            System.out.println("Saving "+file.getName()+" to: "+Repository.USERHOME+"/twister/config/");            
-            //System.out.println(Repository.USERHOME+"/twister/config/");
-            FileInputStream in = new FileInputStream(file);
-            
-            JSch jsch = new JSch();
-            Session session = jsch.getSession(user, host, 22);
-            session.setPassword(password);
-            Properties config = new Properties();
-            config.put("StrictHostKeyChecking", "no");
-            session.setConfig(config);
-            session.connect();
-            Channel channel = session.openChannel("sftp");
-            channel.connect();
-            ChannelSftp ch = (ChannelSftp)channel;
-            ch.cd(USERHOME+"/twister/config/");
-            ch.put(in, file.getName());
-            in.close();
-            return true;}
-        catch(Exception e){
-            e.printStackTrace();
-            return false;
-        }
-    }
+//     /*
+//      * method to copy plugins configuration file
+//      * to server 
+//      */
+//     public static boolean uploadPluginsFile(){
+//         try{
+//             DOMSource source = new DOMSource(pluginsconfig);
+//             File file = new File(Repository.PLUGINSLOCALGENERALCONF);
+//             Result result = new StreamResult(file);
+//             TransformerFactory transformerFactory = TransformerFactory.newInstance();
+//             Transformer transformer = transformerFactory.newTransformer();
+//             transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+//             transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "4");
+//             transformer.transform(source, result);
+//             System.out.println("Saving "+file.getName()+" to: "+Repository.USERHOME+"/twister/config/");            
+//             //System.out.println(Repository.USERHOME+"/twister/config/");
+//             FileInputStream in = new FileInputStream(file);
+//             
+//             JSch jsch = new JSch();
+//             Session session = jsch.getSession(user, host, 22);
+//             session.setPassword(password);
+//             Properties config = new Properties();
+//             config.put("StrictHostKeyChecking", "no");
+//             session.setConfig(config);
+//             session.connect();
+//             Channel channel = session.openChannel("sftp");
+//             channel.connect();
+//             ChannelSftp ch = (ChannelSftp)channel;
+//             ch.cd(USERHOME+"/twister/config/");
+//             ch.put(in, file.getName());
+//             in.close();
+//             return true;}
+//         catch(Exception e){
+//             e.printStackTrace();
+//             return false;
+//         }
+//     }
     
     /*
      * save the layouts of the frameworks
@@ -1499,7 +1498,7 @@ public class Repository{
         try{v = c.ls(REMOTEUSERSDIRECTORY);
             size = v.size();}
         catch(Exception e){
-            System.out.println("No suites xml");
+            System.out.println("No suites xml found in: "+REMOTEUSERSDIRECTORY+" directory");
             size=0;}
         ArrayList<String> files = new ArrayList<String>();
         String name=null;
