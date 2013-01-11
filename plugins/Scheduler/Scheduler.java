@@ -19,14 +19,13 @@ limitations under the License.
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Cursor;
+import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Image;
 import java.awt.Point;
 import java.awt.RenderingHints;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.awt.event.MouseAdapter;
@@ -51,8 +50,6 @@ import javax.swing.BorderFactory;
 import javax.swing.DefaultListCellRenderer;
 import javax.swing.Icon;
 import javax.swing.ImageIcon;
-import javax.swing.JButton;
-import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JFrame;
@@ -68,6 +65,7 @@ import javax.swing.SpinnerDateModel;
 import javax.swing.SpinnerModel;
 import javax.swing.border.BevelBorder;
 import javax.swing.plaf.basic.BasicComboBoxUI;
+import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableColumn;
 
 import com.jcraft.jsch.Channel;
@@ -79,7 +77,6 @@ import com.toedter.calendar.JDateChooser;
 import com.toedter.calendar.JTextFieldDateEditor;
 import com.twister.CustomDialog;
 import com.twister.Item;
-import com.twister.MySftpBrowser;
 import com.twister.plugin.baseplugin.BasePlugin;
 import com.twister.plugin.twisterinterface.TwisterPluginInterface;
 
@@ -107,7 +104,12 @@ public class Scheduler extends BasePlugin implements TwisterPluginInterface {
 	private MyCalendar mycalendar;
 	private ArrayList schedules [] = new ArrayList[31];
 	private JTable jTable1;
+	private int initialx, initialy;
 	
+	
+	/*
+	 * method used local
+	 */
 	public static void main(String [] args){
 		try{XmlRpcClientConfigImpl configuration = new XmlRpcClientConfigImpl();
 	    	configuration.setServerURL(new URL("http://11.126.32.14:88/"));
@@ -133,12 +135,15 @@ public class Scheduler extends BasePlugin implements TwisterPluginInterface {
 		this.client = client;
 	}
 
+	
+	/*
+	 * main initialization method
+	 */
 	@Override
 	public void init(ArrayList<Item> suite, ArrayList<Item> suitetest,
 			final Hashtable<String, String> variables,final Document pluginsConfig) {
 		super.init(suite, suitetest, variables,pluginsConfig);
 		System.out.println("Initializing "+getName()+" ...");
-		System.out.println("Testing  ...");
 		calendar = Calendar.getInstance();
 		initializeSFTP();
 		initializeRPC();
@@ -161,12 +166,13 @@ public class Scheduler extends BasePlugin implements TwisterPluginInterface {
 		jScrollPane1.setBounds(54,469,694,105);
 		jScrollPane1.setBorder(null);
 		jTable1 = new JTable();
+		jTable1.getTableHeader().setReorderingAllowed(false);
 		
 		panel1.setLayout(null);
 		
-        panel1.setMaximumSize(new java.awt.Dimension(800, 600));
-        panel1.setMinimumSize(new java.awt.Dimension(800, 600));
-        panel1.setPreferredSize(new java.awt.Dimension(800, 600));
+        panel1.setMaximumSize(new Dimension(800, 600));
+        panel1.setMinimumSize(new Dimension(800, 600));
+        panel1.setPreferredSize(new Dimension(800, 600));
         
         
         mycalendar = new MyCalendar(calendar,jTable1);
@@ -189,8 +195,6 @@ public class Scheduler extends BasePlugin implements TwisterPluginInterface {
 				public void mouseEntered(MouseEvent ev){
 					modify.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 				}
-				public void mouseExited(MouseEvent ev){
-				}
 				public void mousePressed(MouseEvent ev){
 					modify.setIcon(modify1);
 				}
@@ -211,8 +215,6 @@ public class Scheduler extends BasePlugin implements TwisterPluginInterface {
 			remove.addMouseListener(new MouseAdapter() {
 				public void mouseEntered(MouseEvent ev){
 					remove.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-				}
-				public void mouseExited(MouseEvent ev){
 				}
 				public void mousePressed(MouseEvent ev){
 					remove.setIcon(remove1);
@@ -257,8 +259,6 @@ public class Scheduler extends BasePlugin implements TwisterPluginInterface {
 			right.addMouseListener(new MouseAdapter() {
 				public void mouseEntered(MouseEvent ev){
 					right.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-				}
-				public void mouseExited(MouseEvent ev){
 				}
 				public void mousePressed(MouseEvent ev){
 					right.setIcon(right1);
@@ -348,12 +348,16 @@ public class Scheduler extends BasePlugin implements TwisterPluginInterface {
 			e.printStackTrace();
 		}
 
-        jTable1.setModel(new javax.swing.table.DefaultTableModel(
+        jTable1.setModel(new DefaultTableModel(
             new Object [][] {},
-            new String [] {
-                "Project","Date","Hour","Force","Time Limit","Description","User",""
-            }
-        ));
+            new String [] {"Project","Date","Hour",
+            			   "Force","Time Limit",
+            			   "Description","User",""}){
+			private static final long serialVersionUID = 1L;
+			public boolean isCellEditable(int row, int col){
+        		return false;  
+        }});
+        
         TableColumn column = jTable1.getColumnModel().getColumn(7);
         column.setMaxWidth(0);
         column.setMinWidth(0);
@@ -363,21 +367,40 @@ public class Scheduler extends BasePlugin implements TwisterPluginInterface {
         p.add(panel1);
 	}
 	
+	/*
+	 * method used for creation and
+	 * initialization of the window
+	 * on adding or modifying a schedule
+	 */
 	public void scheduleWindow(final boolean modify){		
 		final JFrame f = new JFrame();
 		final JPanel panel = new JPanel();
+		
 		JLabel project = new JLabel("Project:");
 		project.setBounds(10, 10, 48, 20);
+		//implementing drag behavior
+		panel.addMouseMotionListener(new MouseAdapter() {			
+			public void mouseDragged(MouseEvent arg0) {
+				int X = initialx-arg0.getX();
+				int Y = initialy-arg0.getY();
+				Point p = f.getLocation();
+				f.setLocation(p.x-X, p.y-Y);
+				initialx = arg0.getX()+X;
+				initialy = arg0.getY()+Y;
+			}
+			public void mouseMoved(MouseEvent arg0) {
+				initialx = arg0.getX();
+				initialy = arg0.getY();
+			}
+		});
 		
 		
-		try{//c.cd("/home/tscguest/twister/config/users/");
-			c.cd(variables.get("remoteusersdir"));
+		try{c.cd(variables.get("remoteusersdir"));
 		}
         catch(Exception e){
             System.out.println("Could not get to "+variables.get("remoteusersdir")+"on sftp");}
         int size ;
-        try{//size= c.ls("/home/tscguest/twister/config/users/").size();
-        	size= c.ls(variables.get("remoteusersdir")).size();
+        try{size= c.ls(variables.get("remoteusersdir")).size();
         	}
         catch(Exception e){
             System.out.println("No suites xml");
@@ -385,8 +408,7 @@ public class Scheduler extends BasePlugin implements TwisterPluginInterface {
         ArrayList<String> files = new ArrayList<String>();
         String name=null;
         for(int i=0;i<size;i++){
-            try{//name = ((LsEntry)c.ls("/home/tscguest/twister/config/users/").get(i)).getFilename();
-            	name = ((LsEntry)c.ls(variables.get("remoteusersdir")).get(i)).getFilename();
+            try{name = ((LsEntry)c.ls(variables.get("remoteusersdir")).get(i)).getFilename();
                 if(name.split("\\.").length==0)continue; 
                 if(name.toLowerCase().indexOf(".xml")==-1)continue;
                 if(name.equals("last_edited.xml"))continue;
@@ -399,8 +421,6 @@ public class Scheduler extends BasePlugin implements TwisterPluginInterface {
         for(int i=0;i<files.size();i++){
             users[i] = files.get(i);
         }
-		
-		
 		final JComboBox<String> tproject = new JComboBox<String>(users);
 		tproject.setUI(new BasicComboBoxUI());
 		tproject.setBounds(76,10,140,23);
@@ -444,15 +464,9 @@ public class Scheduler extends BasePlugin implements TwisterPluginInterface {
 				if(x>54&&x<69&&y>250&&y<265){
 					tick.setVisible(!tick.isVisible());
 				}
-				
 			}
-		
 		});
 		
-		
-		JLabel hour = new JLabel("Hour:");
-		hour.setBounds(10, 40, 35, 20);
-		//panel.add(hour);
 		
 		SpinnerModel model = new SpinnerDateModel();
 		final JSpinner timeSpinner = new JSpinner(model);
@@ -462,32 +476,17 @@ public class Scheduler extends BasePlugin implements TwisterPluginInterface {
 		timeSpinner.setBounds(121,40,95,23);
 		panel.add(timeSpinner);
 		
-		final JCheckBox force = new JCheckBox("Force");
-		force.setBounds(120,199,58,20);
-		force.setBackground(new Color(220,220,220));
-		//panel.add(force);
-		
-		JLabel limit = new JLabel("Limit:");
-		limit.setBounds(10, 200, 40, 20);
 		final JTextField tlimit = new JTextField();
 		tlimit.setBounds(78,216,70,22);
 		tlimit.setBorder(null);
-		//panel.add(limit);
 		panel.add(tlimit);
-		
-		JLabel desc = new JLabel("Description:");
-		desc.setBounds(10, 70, 70, 20);
 		final JTextArea tdesc = new JTextArea();
 		tdesc.setWrapStyleWord(true);
 		tdesc.setLineWrap(true);
 		JScrollPane scroll = new JScrollPane(tdesc);
 		scroll.setBorder(null);
 		scroll.setBounds(5,96,210,45);
-		//panel.add(desc);
 		panel.add(scroll);
-		
-		JLabel type = new JLabel("Project type:");
-		type.setBounds(10, 140, 75, 20);
 		final JComboBox<String> ttype = new JComboBox<String>(new String[]{"onetime","daily","weekley"});
 		ttype.setBounds(125,144,90,21);
 		ttype.setUI(new BasicComboBoxUI());
@@ -515,7 +514,6 @@ public class Scheduler extends BasePlugin implements TwisterPluginInterface {
 				
 			}
 		});
-		//panel.add(type);
 		panel.add(ttype);
 		
 		panel.setLayout(null);
@@ -526,97 +524,15 @@ public class Scheduler extends BasePlugin implements TwisterPluginInterface {
 		f.setLayout(null);
 		f.setVisible(true);
 		f.setAlwaysOnTop(true);
-		JButton close = new JButton("Cancel");
-		close.setBounds(118,280,75,20);
-		close.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent arg0) {
-				f.dispose();
-			}
-		});
-		//panel.add(close);
-		JButton ok = new JButton("OK");
-		ok.setBounds(58,280,55,20);
-		//panel.add(ok);
-		ok.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent arg0) {
-				String selectedproject = variables.get("remoteusersdir")+"/"+tproject.getSelectedItem().toString();
-				//String selectedproject = "/home/tscguest/twister/config/users/"+tproject.getSelectedItem().toString();
-				String selecteddate = date.getText();
-				String selectedhour = ((JSpinner.DefaultEditor) timeSpinner.getEditor()).getTextField().getText();
-				String isforced ;
-				if(tick.isVisible()){
-					isforced = "1";
-				} else {
-					isforced = "0";
-				}
-				String type = ttype.getSelectedItem().toString();
-				
-				if(type.equals("daily")){
-					selecteddate = "";
-				} else if(type.equals("weekley")){
-					String []st = selecteddate.split("-");
-					if(st.length==3){
-						Calendar temp = Calendar.getInstance();
-						temp.set(Calendar.YEAR, Integer.parseInt(st[0]));
-						temp.set(Calendar.MONTH, Integer.parseInt(st[1])-1);
-						temp.set(Calendar.DAY_OF_MONTH, Integer.parseInt(st[2]));
-						selecteddate = new SimpleDateFormat("EEEE",Locale.US).format(temp.getTime()).toLowerCase();
-						StringBuilder sb = new StringBuilder();
-						sb.append(Character.toUpperCase(selecteddate.charAt(0)));
-						sb.append(selecteddate.substring(1));
-						selecteddate = sb.toString();
-					}
-				}
-				
-				String selectedlimit = tlimit.getText();
-				String selecteddesc = tdesc.getText();
-				String user = variables.get("user");
-				//String user = "tscguest";
-				HashMap<String, String> hash = new HashMap<String, String>();
-				hash.put("project-file", selectedproject);
-				if(selecteddate.equals("")){
-					hash.put("date-time", selectedhour);
-				} else {
-					hash.put("date-time", selecteddate+" "+selectedhour);
-				}
-				hash.put("force", isforced);
-				hash.put("time-limit", selectedlimit);
-				hash.put("description", selecteddesc);
-				try {
-					if(modify){
-						int row = jTable1.getSelectedRow();
-						String key = jTable1.getModel().getValueAt(row, 7).toString();
-						String st = client.execute("Change",new Object[]{key,hash}).toString();
-						updateSchedules();
-						System.out.println(st);
-						p.repaint();
-					} else {
-						System.out.println(hash.toString());
-						String st = client.execute("Add",new Object[]{user,hash}).toString();
-						updateSchedules();
-						System.out.println(st);
-						p.repaint();
-					}
-					mycalendar.days.updateSelectedDay(mycalendar.days.getSelectedDaynr());
-				} catch (XmlRpcException e) {
-					e.printStackTrace();
-				}
-				f.dispose();
-			}
-		});
 		if(modify){
 			if(jTable1.getSelectedRow()!=-1){
 				int row = jTable1.getSelectedRow();
-				//String key = jTable1.getModel().getValueAt(row, 7).toString();
 				String cproject =jTable1.getModel().getValueAt(row, 0).toString();
 				String cdate =jTable1.getModel().getValueAt(row, 1).toString();
 				String chour =jTable1.getModel().getValueAt(row, 2).toString();
 				String cforce = jTable1.getModel().getValueAt(row, 3).toString();
 				String ctimelimit = jTable1.getModel().getValueAt(row, 4).toString();
 				String cdescription =jTable1.getModel().getValueAt(row, 5).toString();
-				//String cuser = jTable1.getModel().getValueAt(row, 6).toString();
 				String [] s = cproject.split("/");
 				cproject = s[s.length-1];
 				for(int i=0;i<tproject.getItemCount();i++){
@@ -637,8 +553,6 @@ public class Scheduler extends BasePlugin implements TwisterPluginInterface {
 		}
 		
 		panel.add(tick);
-		
-		
 		final JLabel cancel = new JLabel(cancel0);
 		cancel.setBounds(122,277,87,22);
         panel.add(cancel);
@@ -646,7 +560,6 @@ public class Scheduler extends BasePlugin implements TwisterPluginInterface {
         	public void mouseEntered(MouseEvent ev){
         		cancel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 			}
-        	
         	public void mouseReleased(MouseEvent ev){
         		f.dispose();
         	}
@@ -670,7 +583,6 @@ public class Scheduler extends BasePlugin implements TwisterPluginInterface {
         	
         	public void mouseReleased(MouseEvent ev){
         		String selectedproject = variables.get("remoteusersdir")+"/"+tproject.getSelectedItem().toString();
-				//String selectedproject = "/home/tscguest/twister/config/users/"+tproject.getSelectedItem().toString();
 				String selecteddate = date.getText();
 				String selectedhour = ((JSpinner.DefaultEditor) timeSpinner.getEditor()).getTextField().getText();
 				String isforced ;
@@ -701,7 +613,6 @@ public class Scheduler extends BasePlugin implements TwisterPluginInterface {
 				String selectedlimit = tlimit.getText();
 				String selecteddesc = tdesc.getText();
 				String user = variables.get("user");
-				//String user = "tscguest";
 				HashMap<String, String> hash = new HashMap<String, String>();
 				hash.put("project-file", selectedproject);
 				if(selecteddate.equals("")){
@@ -742,7 +653,6 @@ public class Scheduler extends BasePlugin implements TwisterPluginInterface {
         background.setBounds(0, 0, 220, 308);
         panel.add(background);
         
-		
 		Point point = jTable1.getLocationOnScreen();
 		f.setBounds(point.x+200,point.y-210,220,308);
 		panel.setBounds(0, 0,220,308);
@@ -792,12 +702,15 @@ public class Scheduler extends BasePlugin implements TwisterPluginInterface {
         }
 	}
 	
+	/*
+	 * method to remove a schedule 
+	 * based on selected row
+	 */
 	public void removeSchedule(){
 		if(jTable1.getSelectedRow()!=-1){
 			int row = jTable1.getSelectedRow();
 			try {
 				String s = client.execute("Delete",new Object[]{"tscguest",jTable1.getModel().getValueAt(row, 7)}).toString();
-				//String s = client.execute("Delete",new Object[]{variables.get("user"),jTable1.getModel().getValueAt(row, 7)}).toString();
 				if(Boolean.parseBoolean(s)){
 					updateSchedules();
 					mycalendar.days.updateSelectedDay(mycalendar.days.getSelectedDaynr());
@@ -910,12 +823,9 @@ public class Scheduler extends BasePlugin implements TwisterPluginInterface {
 		try{
 			JSch jsch = new JSch();
             String user = variables.get("user");
-			//String user = "tscguest";
-            Session session = jsch.getSession(user, variables.get("host"), 22);
-			//Session session = jsch.getSession(user, "tsc-server", 22);
-            session.setPassword(variables.get("password"));
-			//session.setPassword("    ");
-            Properties config = new Properties();
+			Session session = jsch.getSession(user, variables.get("host"), 22);
+			session.setPassword(variables.get("password"));
+			Properties config = new Properties();
             config.put("StrictHostKeyChecking", "no");
             session.setConfig(config);
             session.connect();
@@ -946,8 +856,6 @@ public class Scheduler extends BasePlugin implements TwisterPluginInterface {
 		try{
 			XmlRpcClientConfigImpl configuration = new XmlRpcClientConfigImpl();
 	        configuration.setServerURL(new URL("http://"+variables.get("host")+":88/"));
-//	        XmlRpcClientConfigImpl configuration = new XmlRpcClientConfigImpl();
-//	        configuration.setServerURL(new URL("http://tsc-server:88/"));
 	        client = new XmlRpcClient();
 	        client.setConfig(configuration);
 	        System.out.println("Client initialized: "+client);}
@@ -967,8 +875,7 @@ public class Scheduler extends BasePlugin implements TwisterPluginInterface {
             TransformerFactory transformerFactory = TransformerFactory.newInstance();
             Transformer transformer = transformerFactory.newTransformer();
             transformer.setOutputProperty(OutputKeys.INDENT, "yes");
-            transformer.setOutputProperty("{http:xml.apache.org/xslt}indent-amount",
-            																	 "4");
+            transformer.setOutputProperty("{http:xml.apache.org/xslt}indent-amount","4");
             transformer.transform(source, result);
             c.cd(variables.get("remoteuserhome")+"/twister/config/");
             FileInputStream in = new FileInputStream(file);
