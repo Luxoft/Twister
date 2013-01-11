@@ -673,7 +673,7 @@ class DBParser():
 
 class PluginParser:
     """
-    Requirements: BeautifulSoup.
+    Requirements: LXML.
     This parser will read Plugins.xml.
     """
 
