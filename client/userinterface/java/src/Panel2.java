@@ -153,6 +153,12 @@ public class Panel2 extends JPanel{
             }
             else if(result.equals("stopped")){
                 if(first){
+                    while(!Repository.initialized){
+                        try{Thread.sleep(1000);}
+                        catch(Exception ex){
+                            ex.printStackTrace();
+                        }
+                }
                     Repository.openProjectFile();
 //                     Repository.window.mainpanel.askForFile();
                     first = false;
@@ -210,6 +216,12 @@ public class Panel2 extends JPanel{
             }
         catch(Exception e){
             if(first){
+                while(!Repository.initialized){
+                    try{Thread.sleep(1000);}
+                    catch(Exception ex){
+                        ex.printStackTrace();
+                    }
+                }
                 Repository.openProjectFile();
 //                 Repository.window.mainpanel.askForFile();
                 first = false;
