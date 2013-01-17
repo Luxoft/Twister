@@ -44,10 +44,10 @@ except:
 
 platform_sys = platform.system().lower()
 
-fwmconfig_file = open(TWISTER_PATH + '/config/fwmconfig.xml')
-fwmconfig_data = parse(fwmconfig_file)
+fwmconfig_data = parse( open(TWISTER_PATH + '/config/fwmconfig.xml') )
 centralEngPort = fwmconfig_data.getElementsByTagName('CentralEnginePort')[0].childNodes[0].data
 resAllocPort = fwmconfig_data.getElementsByTagName('ResourceAllocatorPort')[0].childNodes[0].data
+del fwmconfig_data
 
 #
 
@@ -55,60 +55,59 @@ resAllocPort = fwmconfig_data.getElementsByTagName('ResourceAllocatorPort')[0].c
 if platform_sys=='linux' or platform_sys=='sunos':
 
     # This is executed in TEMP
-    from client.resourceallocator.ResourceAllocatorClient import *
     from __init__ import PROXY
 
-    # Parse test suites devices configuration
-    raClient = ResourceAllocatorClient(PROXY.replace(centralEngPort, resAllocPort))
+    # # Parse test suites devices configuration
+    # raClient = ResourceAllocatorClient(PROXY.replace(centralEngPort, resAllocPort))
 
-    def queryResource(query):
-        return raClient.queryResource(query)
+    # def queryResource(query):
+    #     return raClient.queryResource(query)
 
-    def createEmptyResource(lvl):
-        return raClient.createEmptyResource(lvl)
+    # def createEmptyResource(lvl):
+    #     return raClient.createEmptyResource(lvl)
 
-    def delResource(resid):
-        return raClient.delResourceLocal(resid)
+    # def delResource(resid):
+    #     return raClient.delResourceLocal(resid)
 
-    def setProperty(resid,prop,value):
-        return raClient.setProperty(resid,prop,value)
+    # def setProperty(resid,prop,value):
+    #     return raClient.setProperty(resid,prop,value)
 
-    def getProperty(resid,prop):
-        return raClient.getProperty(resid,prop)
+    # def getProperty(resid,prop):
+    #     return raClient.getProperty(resid,prop)
 
-    def setPropertyLocal(resid,prop,value):
-        return raClient.setPropertyLocal(resid,prop,value)
+    # def setPropertyLocal(resid,prop,value):
+    #     return raClient.setPropertyLocal(resid,prop,value)
 
-    def getPropertyLocal(resid,prop):
-        return raClient.getPropertyLocal(resid,prop)
+    # def getPropertyLocal(resid,prop):
+    #     return raClient.getPropertyLocal(resid,prop)
 
 elif platform_sys=='windows' or platform_sys=='java':
     # For Windows, the IP and PORT must be specified manually
-    PROXY = 'http://11.126.32.9:8000/'
+    PROXY = 'http://127.0.0.1:{0}/'.format(centralEngPort)
 
 else:
     print('Exposed Libraries: PLATFORM UNSUPPORTED `{0}` !'.format(platform_sys))
 
-    def queryResource(query):
-        pass
+    # def queryResource(query):
+    #     pass
 
-    def createEmptyResource(lvl):
-        pass
+    # def createEmptyResource(lvl):
+    #     pass
 
-    def delResource(resid):
-        pass
+    # def delResource(resid):
+    #     pass
 
-    def setProperty(resid,prop,value):
-        pass
+    # def setProperty(resid,prop,value):
+    #     pass
 
-    def getProperty(resid,prop):
-        pass
+    # def getProperty(resid,prop):
+    #     pass
 
-    def setPropertyLocal(resid,prop,value):
-        pass
+    # def setPropertyLocal(resid,prop,value):
+    #     pass
 
-    def getPropertyLocal(resid,prop):
-        pass
+    # def getPropertyLocal(resid,prop):
+    #     pass
 
 #
 def logMessage(logType, logMessage):

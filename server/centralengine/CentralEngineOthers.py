@@ -106,6 +106,7 @@ class Project:
 
         self.users = {}
         self.parsers = {}
+        self.plugins = {}
         self.test_ids = {}
 
         self.usr_lock = thread.allocate_lock()  # User change lock

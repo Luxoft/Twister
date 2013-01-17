@@ -286,12 +286,6 @@ class SchedulerServer(_cptools.XMLRPCController):
             dt, proj_type = _fix_date(proj_dt)
             if not dt: return False
 
-        # Duplicate dates?
-        if proj_dt in [v['date-time'] for v in self.tasks.values()]:
-            msg = 'Add task: Duplicate date-time: `{0}` !'.format(proj_dt)
-            log.error(msg)
-            return '*ERROR* ' + msg
-
         # If user wants to change Force
         if proj_force:
             if proj_force != '0':

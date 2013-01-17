@@ -153,6 +153,7 @@ class TSCParser:
             ('ScriptPre', ''),
             ('ScriptPost', ''),
             ('Libraries', ''),
+            ('GlobalParams', ''),
         ])
 
         # From FWM Config
@@ -200,6 +201,9 @@ class TSCParser:
 
         if self.configTS.xpath('libraries/text()'):
             self.project_globals['Libraries'] = self.configTS.xpath('libraries')[0].text
+
+        if self.configTS.xpath('GlobalParams/text()'):
+            self.project_globals['GlobalParams'] = self.configTS.xpath('GlobalParams')[0].text
 
         return True
 
@@ -358,7 +362,7 @@ class TSCParser:
         eml_file = self.project_globals['EmailConfig']
 
         if not eml_file:
-            print('Parser: E-mail Config file is not defiled! Please check framework config XML file!')
+            print('Parser: E-mail Config file is not defined! Please check framework config XML file!')
             return {}
         if not os.path.isfile(eml_file):
             print('Parser: E-mail Config file `%s` does not exist! Please check framework config XML file!' % eml_file)
@@ -496,6 +500,33 @@ class TSCParser:
         ids = range(1000, 1000 + len(files))
 
         return [str(i) for i in ids]
+
+
+    def getGlobalParams(self):
+        """
+        Returns a dictionary containing All global parameters,
+        that will be available for all tests.
+        """
+        globs_file = self.project_globals['GlobalParams']
+
+        if not globs_file:
+            print('Parser: Globals Config file is not defined! Please check framework config XML file!')
+            return {}
+        if not os.path.isfile(globs_file):
+            print('Parser: Globals Config file `%s` does not exist! Please check framework config XML file!' % globs_file)
+            return {}
+
+        params_xml = etree.parse(globs_file)
+        gparams = {}
+
+        def recursive():
+            for folder in params_xml.xpath('folder'):
+                tmp = {gparam.find('name').text: gparam.find('value').text for gparam in folder.xpath('param')}
+                tmp.update( recursive(folder, tmp) )
+                gparams[folder.find('fname').text] = tmp
+
+        recursive()
+        return gparams
 
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #

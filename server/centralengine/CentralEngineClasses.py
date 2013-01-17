@@ -698,6 +698,14 @@ class CentralEngine(_cptools.XMLRPCController):
         All the data
         """
 
+        # The pointer to the plugin = User name and Plugin name
+        key = user +' '+ plugin
+
+        if key in self.project.plugins:
+            plugin = self.project.plugins.get(key)
+            return plugin
+
+        # If the plugin is not initialised
         parser = PluginParser(user)
         pdict = parser.getPlugins().get(plugin)
         if not pdict:
@@ -713,6 +721,7 @@ class CentralEngine(_cptools.XMLRPCController):
         del data['plugin']
 
         plugin = pdict['plugin'](user, data)
+        self.project.plugins[key] = plugin
         return plugin
 
 
