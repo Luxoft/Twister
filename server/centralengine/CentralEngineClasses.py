@@ -341,6 +341,16 @@ class CentralEngine(_cptools.XMLRPCController):
         return 1
 
 
+    @cherrypy.expose
+    def getGlobalVariables(self, user):
+        '''
+        Sending global variables.
+        '''
+
+        ret = self.project.parsers[user].getGlobalParams()
+        return ret
+
+
 # --------------------------------------------------------------------------------------------------
 #           E X E C U T I O N   S T A T U S
 # --------------------------------------------------------------------------------------------------
