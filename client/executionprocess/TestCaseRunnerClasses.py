@@ -107,6 +107,8 @@ class TCRunTcl:
         as return value.
         '''
         #
+        self.tcl.setvar('gparam', globs['gparam'])
+        #
         to_execute = str_to_execute.data
         #
         to_execute = '\nset argc %i\n' % len(params) + to_execute
@@ -216,6 +218,7 @@ class TCRunPython:
         globs_copy['USER']       = globs['userName']
         globs_copy['EP']         = globs['globEpName']
         globs_copy['PROXY']      = globs['proxy']
+        globs_copy['gparam']     = globs['gparam']
 
         globEpName = globs_copy['EP']
         to_execute = str_to_execute.data
