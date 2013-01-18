@@ -13,6 +13,7 @@
     <EPIdsFile>$HOME/twister/config/epname.txt</EPIdsFile>
     <HardwareConfig>$HOME/twister/config/hwconfig.xml</HardwareConfig>
     <EmailConfigFile>$HOME/twister/config/email.xml</EmailConfigFile>
+    <GlobalParams>>$HOME/twister/config/globalparams.xml</GlobalParams>
     <LogsPath>$HOME/twister/logs</LogsPath>
     <LogFiles>
         <logRunning>log_running.log</logRunning>

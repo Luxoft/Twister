@@ -181,6 +181,12 @@ class TSCParser:
                 path = os.getenv('HOME') + path[1:]
             self.project_globals['LogsPath'] = path
 
+        if self.xmlDict.xpath('GlobalParams/text()'):
+            path = self.xmlDict.xpath('GlobalParams')[0].text
+            if path.startswith('~'):
+                path = os.getenv('HOME') + path[1:]
+            self.project_globals['GlobalParams'] = path
+
         # From Project Config
         if self.configTS.xpath('stoponfail/text()'):
             if self.configTS.xpath('stoponfail/text()')[0].lower() == 'true':
@@ -201,9 +207,6 @@ class TSCParser:
 
         if self.configTS.xpath('libraries/text()'):
             self.project_globals['Libraries'] = self.configTS.xpath('libraries')[0].text
-
-        if self.configTS.xpath('GlobalParams/text()'):
-            self.project_globals['GlobalParams'] = self.configTS.xpath('GlobalParams')[0].text
 
         return True
 
