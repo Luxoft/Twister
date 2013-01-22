@@ -81,16 +81,16 @@ class TCRunTcl:
         self.tcl = Tkinter.Tcl()
         # Expose all known function, in TCL
         self.tcl.createcommand('logMessage',          ce_libs.logMsg)
-        self.tcl.createcommand('setProperty',         ce_libs.setProperty)
-        self.tcl.createcommand('getProperty',         ce_libs.getProperty)
-        self.tcl.createcommand('delResource',         ce_libs.delResource)
-        self.tcl.createcommand('createEmptyResource', ce_libs.createEmptyResource)
+        # self.tcl.createcommand('setProperty',         ce_libs.setProperty)
+        # self.tcl.createcommand('getProperty',         ce_libs.getProperty)
+        # self.tcl.createcommand('delResource',         ce_libs.delResource)
+        # self.tcl.createcommand('createEmptyResource', ce_libs.createEmptyResource)
 
         if os.path.exists(os.getcwd()+'/__recomposed.tcl'):
             # Restore all variables and functions
             self.tcl.evalfile(os.getcwd()+'/__recomposed.tcl')
 
-        self.tcl.eval('package require Expect')
+        # self.tcl.eval('package require Expect')
 
     def __del__(self):
         #
