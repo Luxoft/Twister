@@ -2,8 +2,8 @@
 import pexpect
 
 from ce_libs import logMsg
-from ce_libs import queryResource, setPropertyLocal, getPropertyLocal
-from ce_libs import createEmptyResource, delResource
+from ce_libs import getResource, setResource
+from ce_libs import allocResource, reserveResource, freeResource
 
 #
 # <title>test 006</title>
@@ -18,18 +18,17 @@ def test006():
 
 	error_code = "PASS"
 
-	print 'Queried...', queryResource("devicevendor:Avaya&&devicetype:PBX,moduletype:?")
-	print 'Queried...', queryResource("devicetype:Contivity&&devicefamily:27XX&&devicemodel:2750SY")
+	print 'Query Root...',   getResource(1)
+	print 'Query Root...', getResource('/')
+	print
 
-	resid = createEmptyResource(0)
+	print 'Device 1::', getResource('/dev1')
+	print 'Device 1::', getResource(101)
+	print
 
-	setPropertyLocal(resid, "prop_1", "value_1")
-	setPropertyLocal(resid, "prop_2", "value_2")
-
-	print 'Prop 1:', getPropertyLocal(resid, "prop_1")
-	print 'Prop 2:', getPropertyLocal(resid, "prop_2")
-
-	print 'Deleting resource %s... %s.' % (resid, str(delResource(resid)))
+	print 'Meta 1::', getResource('dev3/mod12:meta1')
+	print 'Meta 2::', getResource('dev3/mod12:meta2')
+	print
 
 	logMsg('logTest', "TestCase:%s %s\n" % (testName, error_code))
 	return error_code

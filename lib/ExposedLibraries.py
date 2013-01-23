@@ -57,66 +57,63 @@ if platform_sys=='linux' or platform_sys=='sunos':
     # This is executed in TEMP
     from __init__ import PROXY
 
-    # # Parse test suites devices configuration
-    # raClient = ResourceAllocatorClient(PROXY.replace(centralEngPort, resAllocPort))
+    ra_proxy = xmlrpclib.ServerProxy(PROXY.replace(':'+centralEngPort, ':'+resAllocPort))
 
-    # def queryResource(query):
-    #     return raClient.queryResource(query)
+    try: ra_proxy.echo('Exposed-Libraries: Checking connection...')
+    except: pass
 
-    # def createEmptyResource(lvl):
-    #     return raClient.createEmptyResource(lvl)
+    def getResource(query):
+        try: return ra_proxy.getResource(query)
+        except: return None
 
-    # def delResource(resid):
-    #     return raClient.delResourceLocal(resid)
+    def setResource(name, parent=None, props={}):
+        try: return ra_proxy.setResource(query)
+        except: return None
 
-    # def setProperty(resid,prop,value):
-    #     return raClient.setProperty(resid,prop,value)
+    def allocResource(query):
+        try: return ra_proxy.allocResource(query)
+        except: return None
 
-    # def getProperty(resid,prop):
-    #     return raClient.getProperty(resid,prop)
+    def reserveResource(query):
+        try: return ra_proxy.reserveResource(query)
+        except: return None
 
-    # def setPropertyLocal(resid,prop,value):
-    #     return raClient.setPropertyLocal(resid,prop,value)
+    def freeResource(query):
+        try: return ra_proxy.freeResource(query)
+        except: return None
 
-    # def getPropertyLocal(resid,prop):
-    #     return raClient.getPropertyLocal(resid,prop)
 
 elif platform_sys=='windows' or platform_sys=='java':
     # For Windows, the IP and PORT must be specified manually
     PROXY = 'http://127.0.0.1:{0}/'.format(centralEngPort)
 
+
 else:
     print('Exposed Libraries: PLATFORM UNSUPPORTED `{0}` !'.format(platform_sys))
 
-    # def queryResource(query):
-    #     pass
+    def getResource(query):
+        pass
 
-    # def createEmptyResource(lvl):
-    #     pass
+    def setResource(query):
+        pass
 
-    # def delResource(resid):
-    #     pass
+    def allocResource(query):
+        pass
 
-    # def setProperty(resid,prop,value):
-    #     pass
+    def reserveResource(query):
+        pass
 
-    # def getProperty(resid,prop):
-    #     pass
-
-    # def setPropertyLocal(resid,prop,value):
-    #     pass
-
-    # def getPropertyLocal(resid,prop):
-    #     pass
+    def freeResource(query):
+        pass
 
 #
 def logMessage(logType, logMessage):
-    proxy.logMessage(user_name, logType, logMessage)
+    ce_proxy.logMessage(user_name, logType, logMessage)
 #
 
 try:
-    proxy = xmlrpclib.ServerProxy(PROXY)
-    proxy.echo('exposed-libraries: checking connection...')
+    ce_proxy = xmlrpclib.ServerProxy(PROXY)
+    ce_proxy.echo('Exposed-Libraries: Checking connection...')
     logMsg = logMessage
 except:
     def logMsg(logType, logMessage):
