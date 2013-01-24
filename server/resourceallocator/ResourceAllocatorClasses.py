@@ -50,13 +50,13 @@ def _recursive_find_id(parent_node, node_id, path=[]):
     Node ID is a unique ID.
     '''
     if not parent_node:
-        return None
+        return False
     if parent_node.get('id') == node_id:
         result = dict(parent_node)
         result['path'] = path
         return result
     if not parent_node.get('children'):
-        return None
+        return False
 
     try: path.pop(-1)
     except: pass
@@ -81,7 +81,7 @@ def _find_pointer(parent_node, node_path=[]):
         if node in pointer['children']:
             pointer = pointer['children'][node]
         else:
-            return None
+            return False
 
     return pointer
 
@@ -172,7 +172,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
             result['path'] = [p for p in parts if p]
 
         if not result:
-            return None
+            return False
 
         result = dict(result)
 
@@ -194,8 +194,8 @@ class ResourceAllocator(_cptools.XMLRPCController):
         else:
             try:
                 resource_path = _recursive_find_id(self.resources, query)['path']
-                resource_p = _find_pointer(self.resources, resource)
-                del resource
+                resource_p = _find_pointer(self.resources, resource_path)
+                del resource_path
             except:
                 resource_p = None
 
@@ -229,6 +229,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
             child_p['meta'].update(props)
             # Write changes.
             self._save()
+            logDebug('Updated resource `{0}` : `{1}`.'.format(child_p['id'], props))
             return True
 
         # If the resource is new, create it.
@@ -237,6 +238,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
             parent_p['children'][name] = {'id': res_id, 'meta': props, 'children': {}}
             # Write changes.
             self._save()
+            logDebug('Created resource `{0}` : `{1}`.'.format(res_id, props))
             return res_id
 
 
@@ -267,11 +269,27 @@ class ResourceAllocator(_cptools.XMLRPCController):
 #
 
     @cherrypy.expose
-    def allocResource(self, query):
-        res_p = self._get_res_pointer(query)
+    def getResourceStatus(self, res_query):
+        '''
+        Returns the status of a given resource.
+        '''
+        res_p = self.getResource(res_query)
 
         if not res_p:
-            msg = 'Alloc Resource: Cannot find resource path or ID `{0}` !'.format(query)
+            msg = 'Get Status: Cannot find resource path or ID `{0}` !'.format(res_query)
+            logError(msg)
+            return '*ERROR* ' + msg
+
+        return res_p.get('status', RESOURCE_FREE)
+
+
+    @cherrypy.expose
+    def allocResource(self, res_query):
+
+        res_p = self._get_res_pointer(res_query)
+
+        if not res_p:
+            msg = 'Alloc Resource: Cannot find resource path or ID `{0}` !'.format(res_query)
             logError(msg)
             return '*ERROR* ' + msg
         if res_p.get('status') == RESOURCE_BUSY:
@@ -286,15 +304,16 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
-    def reserveResource(self, query):
-        res_p = self._get_res_pointer(query)
+    def reserveResource(self, res_query):
+
+        res_p = self._get_res_pointer(res_query)
 
         if not res_p:
-            msg = 'Alloc Resource: Cannot find resource path or ID `{0}` !'.format(query)
+            msg = 'Reserve Resource: Cannot find resource path or ID `{0}` !'.format(res_query)
             logError(msg)
             return '*ERROR* ' + msg
         if res_p.get('status') == RESOURCE_BUSY:
-            msg = 'Alloc Resource: Cannot allocate ! The resource is already busy !'
+            msg = 'Reserve Resource: Cannot allocate ! The resource is already busy !'
             logError(msg)
             return '*ERROR* ' + msg
 
@@ -305,11 +324,12 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
-    def freeResource(self, query):
-        res_p = self._get_res_pointer(query)
+    def freeResource(self, res_query):
+
+        res_p = self._get_res_pointer(res_query)
 
         if not res_p:
-            msg = 'Alloc Resource: Cannot find resource path or ID `{0}` !'.format(query)
+            msg = 'Free Resource: Cannot find resource path or ID `{0}` !'.format(res_query)
             logError(msg)
             return '*ERROR* ' + msg
 

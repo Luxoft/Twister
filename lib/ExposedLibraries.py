@@ -67,7 +67,15 @@ if platform_sys=='linux' or platform_sys=='sunos':
         except: return None
 
     def setResource(name, parent=None, props={}):
-        try: return ra_proxy.setResource(query)
+        try: return ra_proxy.setResource(name, parent, props)
+        except: return None
+
+    def deleteResource(query):
+        try: return ra_proxy.deleteResource(query)
+        except: return None
+
+    def getResourceStatus(query):
+        try: return ra_proxy.getResourceStatus(query)
         except: return None
 
     def allocResource(query):
@@ -95,6 +103,12 @@ else:
         pass
 
     def setResource(query):
+        pass
+
+    def deleteResource(query):
+        pass
+
+    def getResourceStatus(query):
         pass
 
     def allocResource(query):

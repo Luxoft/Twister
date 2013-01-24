@@ -80,12 +80,14 @@ class TCRunTcl:
 
         self.tcl = Tkinter.Tcl()
         # Expose all known function, in TCL
-        self.tcl.createcommand('logMessage',       ce_libs.logMsg)
-        self.tcl.createcommand('getResource',      ce_libs.getResource)
-        self.tcl.createcommand('setResource',      ce_libs.setResource)
-        self.tcl.createcommand('allocResource',    ce_libs.allocResource)
-        self.tcl.createcommand('reserveResource',  ce_libs.reserveResource)
-        self.tcl.createcommand('freeResource',     ce_libs.freeResource)
+        self.tcl.createcommand('logMessage',        ce_libs.logMsg)
+        self.tcl.createcommand('getResource',       ce_libs.getResource)
+        self.tcl.createcommand('setResource',       ce_libs.setResource)
+        self.tcl.createcommand('deleteResource',    ce_libs.deleteResource)
+        self.tcl.createcommand('getResourceStatus', ce_libs.getResourceStatus)
+        self.tcl.createcommand('allocResource',     ce_libs.allocResource)
+        self.tcl.createcommand('reserveResource',   ce_libs.reserveResource)
+        self.tcl.createcommand('freeResource',      ce_libs.freeResource)
 
         if os.path.exists(os.getcwd()+'/__recomposed.tcl'):
             # Restore all variables and functions
