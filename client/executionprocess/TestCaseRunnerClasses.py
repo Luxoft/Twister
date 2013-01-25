@@ -41,6 +41,17 @@ if not TWISTER_PATH:
 
 #
 
+def flatten(d, parent_key=''):
+    items = []
+    for k, v in d.items():
+        new_key = parent_key + '/' + k if parent_key else k
+        if isinstance(v, dict):
+            items.extend(flatten(v, new_key).items())
+        else:
+            items.append((new_key, v))
+    return dict(items)
+
+
 class TCRunTcl:
 
     def __init__(self):
@@ -110,7 +121,10 @@ class TCRunTcl:
         as return value.
         '''
         #
-        self.tcl.setvar('gparam', globs['gparam'])
+        gparam = []
+        [gparam.extend([k, v]) for k, v in flatten(globs['gparam']).items()]
+        #
+        self.tcl.eval('array set gparam [list {0}]'.format(' '.join(['"'+str(x)+'"' for x in gparam])))
         #
         to_execute = str_to_execute.data
         #

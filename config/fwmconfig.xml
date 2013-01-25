@@ -9,6 +9,7 @@
     <TestCaseSourcePath>$HOME/twister/demo</TestCaseSourcePath>
     <MasterXMLTestSuite>$HOME/twister/config/testsuites.xml</MasterXMLTestSuite>
     <UsersPath>$HOME/twister/config/users</UsersPath>
+    <GlobalParams>$HOME/twister/config/globals.xml</GlobalParams>
     <DbConfigFile>$HOME/twister/config/db.xml</DbConfigFile>
     <EPIdsFile>$HOME/twister/config/epname.txt</EPIdsFile>
     <HardwareConfig>$HOME/twister/config/hwconfig.xml</HardwareConfig>

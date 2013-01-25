@@ -1,40 +1,40 @@
 <root>
 
-<!-- Level 1 -->
+<!-- Level_1 -->
 <folder>
-	<fname>Level 1</fname>
+	<fname>Level_1</fname>
 	<param>
 		<name>global1</name>
 		<value>value 1</value>
 	</param>
 	<param>
 		<name>global2</name>
-		<value>value 1</value>
+		<value>value 2</value>
 	</param>
 	<param>
 		<name>global3</name>
-		<value>value 1</value>
+		<value>value 3</value>
 	</param>
 
-	<!-- Level 2 -->
+	<!-- Level_2 -->
 	<folder>
-		<fname>Level 2</fname>
+		<fname>Level_2</fname>
 		<param>
 			<name>global2.1</name>
-			<value>value 1</value>
+			<value>value 2.1</value>
 		</param>
 		<param>
 			<name>global2.2</name>
-			<value>value 1</value>
+			<value>value 2.2</value>
 		</param>
 		<param>
 			<name>global2.3</name>
-			<value>value 1</value>
+			<value>value 2.3</value>
 		</param>
 
-		<!-- Level 3 -->
+		<!-- Level_3 -->
 		<folder>
-			<fname>Level 3</fname>
+			<fname>Level_3</fname>
 			<param>
 				<name>global3.1</name>
 				<value>value 1</value>
@@ -48,9 +48,9 @@
 				<value>value 1</value>
 			</param>
 
-			<!-- Level 4.a -->
+			<!-- Level_4.a -->
 			<folder>
-				<fname>Level 4.a</fname>
+				<fname>Level_4.a</fname>
 				<param>
 					<name>global4a</name>
 					<value>value 1</value>
@@ -65,9 +65,9 @@
 				</param>
 			</folder>
 
-			<!-- Level 4.b -->
+			<!-- Level_4.b -->
 			<folder>
-				<fname>Level 4.b</fname>
+				<fname>Level_4.b</fname>
 				<param>
 					<name>global4a</name>
 					<value>value 1</value>
@@ -89,9 +89,9 @@
 </folder>
 
 
-<!-- Level 1 -->
+<!-- Level_1 -->
 <folder>
-	<fname>Level 1.b</fname>
+	<fname>Level_1.b</fname>
 	<param>
 		<name>global1</name>
 		<value>value 1.b</value>
@@ -105,9 +105,9 @@
 		<value>value 1.b</value>
 	</param>
 
-	<!-- Level 2 -->
+	<!-- Level_2 -->
 	<folder>
-		<fname>Level 2</fname>
+		<fname>Level_2</fname>
 		<param>
 			<name>global2.1</name>
 			<value>value 1</value>
@@ -121,9 +121,9 @@
 			<value>value 1</value>
 		</param>
 
-		<!-- Level 3 -->
+		<!-- Level_3 -->
 		<folder>
-			<fname>Level 3</fname>
+			<fname>Level_3</fname>
 			<param>
 				<name>global3.1</name>
 				<value>value 1</value>
@@ -137,9 +137,9 @@
 				<value>value 1</value>
 			</param>
 
-			<!-- Level 4.a -->
+			<!-- Level_4.a -->
 			<folder>
-				<fname>Level 4.a</fname>
+				<fname>Level_4.a</fname>
 				<param>
 					<name>global4a</name>
 					<value>value 1</value>
@@ -154,9 +154,9 @@
 				</param>
 			</folder>
 
-			<!-- Level 4.b -->
+			<!-- Level_4.b -->
 			<folder>
-				<fname>Level 4.b</fname>
+				<fname>Level_4.b</fname>
 				<param>
 					<name>global4a</name>
 					<value>value 1</value>

@@ -520,15 +520,15 @@ class TSCParser:
             return {}
 
         params_xml = etree.parse(globs_file)
-        gparams = {}
 
-        def recursive():
-            for folder in params_xml.xpath('folder'):
+        def recursive(xml, gparams):
+            for folder in xml.xpath('folder'):
                 tmp = {gparam.find('name').text: gparam.find('value').text for gparam in folder.xpath('param')}
                 tmp.update( recursive(folder, tmp) )
                 gparams[folder.find('fname').text] = tmp
+            return gparams
 
-        recursive()
+        gparams = recursive(params_xml, {})
         return gparams
 
 
