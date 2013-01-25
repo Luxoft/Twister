@@ -5,7 +5,7 @@ PYTHON=/usr/bin/python
 if [ -n "$TWISTER_PATH" ]
 then
 	echo TWISTER_PATH set to: "$TWISTER_PATH".
-	nohup $PYTHON -u $TWISTER_PATH/server/resourceallocator/ResourceAllocator.py 8001 > alloc_log.log &
+	nohup $PYTHON -u $TWISTER_PATH/server/resourceallocator/ResourceAllocator.py 8001 > $TWISTER_PATH/alloc_log.log &
 	echo "Resource Allocator is now running in background."
 else
 	echo TWISTER_PATH variable enviroment is not defined!
