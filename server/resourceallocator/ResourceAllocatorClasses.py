@@ -47,15 +47,21 @@ RESOURCE_RESERVED = 3
 def _recursive_find_id(parent_node, node_id, path=[]):
     '''
     Parent Node is a dict of nodes with structure Name: {Id, Meta, Children}.
-    Node ID is a unique ID.
+    Node ID must be a unique ID.
     '''
+    # The node is valid ?
     if not parent_node:
         return False
+    # Found the node with the correct id !
     if parent_node.get('id') == node_id:
         result = dict(parent_node)
         result['path'] = path
         return result
+    # This node has children ?
     if not parent_node.get('children'):
+        return False
+    # Check depth
+    if len(path) > 25:
         return False
 
     try: path.pop(-1)
@@ -72,18 +78,38 @@ def _recursive_find_id(parent_node, node_id, path=[]):
 def _find_pointer(parent_node, node_path=[]):
     '''
     Returns the pointer to a dictionary, following the path.
+    The pointer can be used to add meta tags, or add/ delete children.
     '''
-    pointer = parent_node
-
     for node in node_path:
         if not node:
             continue
-        if node in pointer['children']:
-            pointer = pointer['children'][node]
+        if node in parent_node['children']:
+            parent_node = parent_node['children'][node]
         else:
             return False
 
-    return pointer
+    return parent_node
+
+
+def _get_res_pointer(parent_node, query):
+    '''
+    Helper function.
+    '''
+    query = str(query)
+
+    # If the query is a path
+    if '/' in query:
+        resource_p = _find_pointer(parent_node, query.split('/'))
+    # If the query is an ID
+    else:
+        try:
+            resource_path = _recursive_find_id(parent_node, query)['path']
+            resource_p = _find_pointer(parent_node, resource_path)
+            del resource_path
+        except:
+            resource_p = None
+
+    return resource_p
 
 #
 
@@ -113,7 +139,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
     def _save(self):
 
-        # Write changes.
+        # Write changes, using the Access Lock.
         with self.acc_lock:
             f = open(self.cfg_file, 'w')
             json.dump(self.resources, f, indent=4)
@@ -134,7 +160,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
     def getResource(self, query):
         '''
         Show all the properties, or just 1 property of a resource.
-        Must provide a Resource ID or a Query.
+        Must provide a Resource ID, or a Query.
         '''
 
         if not query:
@@ -144,6 +170,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
         query = str(query)
 
+        # If the query asks for a specific Meta Tag
         if query.count(':') > 1:
             msg = 'Get Resource: Invalid query ! Cannot access more than 1 meta info !'
             logError(msg)
@@ -155,11 +182,11 @@ class ResourceAllocator(_cptools.XMLRPCController):
         else:
             resource = ''
 
-        # If the query is and ID
+        # If the query is an ID
         if '/' not in query:
             result = _recursive_find_id(self.resources, query)
 
-        # If the query is a / string query
+        # If the query is a slash string query
         else:
             parts = query.split('/')
             result = self.resources
@@ -185,32 +212,12 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
 #
 
-    def _get_res_pointer(self, query):
-
-        # If the query is a path
-        if '/' in query:
-            resource_p = _find_pointer(self.resources, query.split('/'))
-        # If the query is an ID
-        else:
-            try:
-                resource_path = _recursive_find_id(self.resources, query)['path']
-                resource_p = _find_pointer(self.resources, resource_path)
-                del resource_path
-            except:
-                resource_p = None
-
-        return resource_p
-
-
     @cherrypy.expose
     def setResource(self, name, parent=None, props={}):
         '''
         Create or change a resource, using a name, a parent Path or ID and some properties.
         '''
-
-        parent = str(parent)
-
-        parent_p = self._get_res_pointer(parent)
+        parent_p = _get_res_pointer(self.resources, parent)
 
         if not parent_p:
             msg = 'Set Resource: Cannot find parent path or ID `{0}` !'.format(parent)
@@ -286,7 +293,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
     @cherrypy.expose
     def allocResource(self, res_query):
 
-        res_p = self._get_res_pointer(res_query)
+        res_p = _get_res_pointer(self.resources, res_query)
 
         if not res_p:
             msg = 'Alloc Resource: Cannot find resource path or ID `{0}` !'.format(res_query)
@@ -306,7 +313,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
     @cherrypy.expose
     def reserveResource(self, res_query):
 
-        res_p = self._get_res_pointer(res_query)
+        res_p = _get_res_pointer(self.resources, res_query)
 
         if not res_p:
             msg = 'Reserve Resource: Cannot find resource path or ID `{0}` !'.format(res_query)
@@ -326,7 +333,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
     @cherrypy.expose
     def freeResource(self, res_query):
 
-        res_p = self._get_res_pointer(res_query)
+        res_p = _get_res_pointer(self.resources, res_query)
 
         if not res_p:
             msg = 'Free Resource: Cannot find resource path or ID `{0}` !'.format(res_query)
