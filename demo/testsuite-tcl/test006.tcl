@@ -11,9 +11,11 @@ proc T-006 {} {
 
     set error_code "PASS"
 
+    global gparam
+
     puts $gparam(Level_1/global2)
 
-    puts $gparam(Level_1/Level_2/global2.3)
+    puts "$gparam(Level_1/Level_2/global2.3)\n"
 
     puts [array names gparam]
 

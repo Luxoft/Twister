@@ -126,15 +126,18 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
     def _load(self, v=False):
 
-        try:
-            f = open(self.cfg_file, 'r')
-            self.resources = json.load(f)
-            f.close() ; del f
-            if v:
-                logDebug('RA: Resources loaded successfully.')
-        except:
-            if v:
-                logDebug('RA: There are no resources to load.')
+        with self.acc_lock:
+            try:
+                f = open(self.cfg_file, 'r')
+                self.resources = json.load(f)
+                f.close() ; del f
+                if v:
+                    logDebug('RA: Resources loaded successfully.')
+            except:
+                if v:
+                    logDebug('RA: There are no resources to load.')
+
+        return True
 
 
     def _save(self):
@@ -144,6 +147,8 @@ class ResourceAllocator(_cptools.XMLRPCController):
             f = open(self.cfg_file, 'w')
             json.dump(self.resources, f, indent=4)
             f.close() ; del f
+
+        return True
 
 
     @cherrypy.expose
@@ -162,6 +167,12 @@ class ResourceAllocator(_cptools.XMLRPCController):
         Show all the properties, or just 1 property of a resource.
         Must provide a Resource ID, or a Query.
         '''
+        self._load(v=False)
+        # If no resources...
+        if not self.resources['children']:
+            msg = 'Get Resource: There are no resources defined !'
+            logError(msg)
+            return '*ERROR* ' + msg
 
         if not query:
             msg = 'Get Resource: Cannot get a null resource !'
@@ -186,20 +197,20 @@ class ResourceAllocator(_cptools.XMLRPCController):
         if '/' not in query:
             result = _recursive_find_id(self.resources, query)
 
+            if not result:
+                return False
+
         # If the query is a slash string query
         else:
-            parts = query.split('/')
+            parts = [q for q in query.split('/') if q]
             result = self.resources
 
             for part in parts:
-                if not part:
-                    continue
                 result = result['children'].get(part)
+            if not result:
+                return False
 
             result['path'] = [p for p in parts if p]
-
-        if not result:
-            return False
 
         result = dict(result)
 
@@ -217,10 +228,26 @@ class ResourceAllocator(_cptools.XMLRPCController):
         '''
         Create or change a resource, using a name, a parent Path or ID and some properties.
         '''
+        self._load(v=False)
+
         parent_p = _get_res_pointer(self.resources, parent)
 
         if not parent_p:
             msg = 'Set Resource: Cannot find parent path or ID `{0}` !'.format(parent)
+            logError(msg)
+            return '*ERROR* ' + msg
+
+        if isinstance(props, dict):
+            pass
+        elif (isinstance(props, str) or isinstance(props, unicode)):
+            try:
+                props = json.loads(props)
+            except:
+                msg = 'Set Resource: Cannot use properties `{0}` !'.format(props)
+                logError(msg)
+                return '*ERROR* ' + msg
+        else:
+            msg = 'Set Resource: Invalid properties `{0}` !'.format(props)
             logError(msg)
             return '*ERROR* ' + msg
 
@@ -254,6 +281,12 @@ class ResourceAllocator(_cptools.XMLRPCController):
         '''
         Permanently delete a resource.
         '''
+        self._load(v=False)
+        # If no resources...
+        if not self.resources['children']:
+            msg = 'Get Resource: There are no resources defined !'
+            logError(msg)
+            return '*ERROR* ' + msg
 
         # Find the resource.
         res_p = self.getResource(res_query)
@@ -266,7 +299,14 @@ class ResourceAllocator(_cptools.XMLRPCController):
         # Correct node path
         node_path = [p for p in res_p['path'].split('/') if p]
 
+        if not node_path:
+            msg = 'Del Resource: Cannot find resource node path `{0}` !'.format(node_path)
+            logError(msg)
+            return '*ERROR* ' + msg
+
         exec( 'del self.resources["children"]["{0}"]'.format('"]["children"]["'.join(node_path)) )
+
+        logDebug('Deleted resource path `{0}`.'.format('/'.join(node_path)))
 
         # Write changes.
         self._save()
@@ -280,6 +320,13 @@ class ResourceAllocator(_cptools.XMLRPCController):
         '''
         Returns the status of a given resource.
         '''
+        self._load(v=False)
+        # If no resources...
+        if not self.resources['children']:
+            msg = 'Get Resource: There are no resources defined !'
+            logError(msg)
+            return '*ERROR* ' + msg
+
         res_p = self.getResource(res_query)
 
         if not res_p:
@@ -293,6 +340,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
     @cherrypy.expose
     def allocResource(self, res_query):
 
+        self._load(v=False)
         res_p = _get_res_pointer(self.resources, res_query)
 
         if not res_p:
@@ -313,6 +361,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
     @cherrypy.expose
     def reserveResource(self, res_query):
 
+        self._load(v=False)
         res_p = _get_res_pointer(self.resources, res_query)
 
         if not res_p:
@@ -333,6 +382,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
     @cherrypy.expose
     def freeResource(self, res_query):
 
+        self._load(v=False)
         res_p = _get_res_pointer(self.resources, res_query)
 
         if not res_p:
