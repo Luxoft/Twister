@@ -103,7 +103,7 @@ def _get_res_pointer(parent_node, query):
     # If the query is an ID
     else:
         try:
-            resource_path = _recursive_find_id(parent_node, query)['path']
+            resource_path = _recursive_find_id(parent_node, query, [])['path']
             resource_p = _find_pointer(parent_node, resource_path)
             del resource_path
         except:
@@ -135,7 +135,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
                     logDebug('RA: Resources loaded successfully.')
             except:
                 if v:
-                    logDebug('RA: There are no resources to load.')
+                    logDebug('RA: There are no resources to load! Invalid path `{0}`!'.format(self.cfg_file))
 
         return True
 
@@ -195,8 +195,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
         # If the query is an ID
         if '/' not in query:
-            result = _recursive_find_id(self.resources, query)
-
+            result = _recursive_find_id(self.resources, query, [])
             if not result:
                 return False
 
@@ -268,7 +267,14 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
         # If the resource is new, create it.
         else:
-            res_id = hexlify(os.urandom(4))
+            res_id = False
+
+            while not res_id:
+                res_id = hexlify(os.urandom(5))
+                # If by any chance, this ID already exists, generate another one!
+                if _recursive_find_id(self.resources, res_id, []):
+                    res_id = False
+
             parent_p['children'][name] = {'id': res_id, 'meta': props, 'children': {}}
             # Write changes.
             self._save()
