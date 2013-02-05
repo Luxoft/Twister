@@ -188,10 +188,10 @@ class ResourceAllocator(_cptools.XMLRPCController):
             return '*ERROR* ' + msg
 
         if ':' in query:
-            resource = query.split(':')[1]
-            query    = query.split(':')[0]
+            meta  = query.split(':')[1]
+            query = query.split(':')[0]
         else:
-            resource = ''
+            meta = ''
 
         # If the query is an ID
         if '/' not in query:
@@ -213,12 +213,12 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
         result = dict(result)
 
-        if not resource:
+        if not meta:
             result['children'] = sorted([result['children'][node]['id'] for node in result.get('children') or []])
             result['path'] = '/'.join(result.get('path', ''))
             return result
         else:
-            return result['meta'].get(resource, '')
+            return result['meta'].get(meta, '')
 
 #
 
@@ -239,10 +239,11 @@ class ResourceAllocator(_cptools.XMLRPCController):
         if isinstance(props, dict):
             pass
         elif (isinstance(props, str) or isinstance(props, unicode)):
+            props = props.replace("'", '"')
             try:
                 props = json.loads(props)
             except:
-                msg = 'Set Resource: Cannot use properties `{0}` !'.format(props)
+                msg = 'Set Resource: Cannot parse properties: `{0}` !'.format(props)
                 logError(msg)
                 return '*ERROR* ' + msg
         else:
@@ -294,6 +295,12 @@ class ResourceAllocator(_cptools.XMLRPCController):
             logError(msg)
             return '*ERROR* ' + msg
 
+        if ':' in res_query:
+            meta      = res_query.split(':')[1]
+            res_query = res_query.split(':')[0]
+        else:
+            meta = ''
+
         # Find the resource.
         res_p = self.getResource(res_query)
 
@@ -310,9 +317,24 @@ class ResourceAllocator(_cptools.XMLRPCController):
             logError(msg)
             return '*ERROR* ' + msg
 
-        exec( 'del self.resources["children"]["{0}"]'.format('"]["children"]["'.join(node_path)) )
+        exec_string = 'self.resources["children"]["{0}"]'.format('"]["children"]["'.join(node_path))
 
-        logDebug('Deleted resource path `{0}`.'.format('/'.join(node_path)))
+        # If must delete a Meta info
+        if meta:
+            exec( 'val = {0}["meta"].get("{1}")'.format(exec_string, meta) )
+
+            if not val:
+                msg = 'Del Resource: Cannot find resource meta info `{0}` !'.format(meta)
+                logError(msg)
+                return '*ERROR* ' + msg
+
+            exec( 'del {0}["meta"]["{1}"]'.format(exec_string, meta) )
+            logDebug('Deleted resource meta `{0}:{1}`.'.format('/'.join(node_path), meta))
+
+        # If must delete a normal node
+        else:
+            exec( 'del ' + exec_string )
+            logDebug('Deleted resource path `{0}`.'.format('/'.join(node_path)))
 
         # Write changes.
         self._save()

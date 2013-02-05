@@ -4,6 +4,7 @@ PYTHON=/usr/bin/python
 
 if [ -n "$TWISTER_PATH" ]
 then
+	kill -9 `ps ax | grep python | grep CentralEngine.py | awk '{print $1}'`
 	echo TWISTER_PATH set to: "$TWISTER_PATH".
 	nohup $PYTHON -u $TWISTER_PATH/server/centralengine/CentralEngine.py 8000 > $TWISTER_PATH/ce_log.log &
 	echo "Central Engine is now running in background."
