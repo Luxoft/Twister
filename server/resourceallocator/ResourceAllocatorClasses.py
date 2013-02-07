@@ -323,7 +323,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
         if meta:
             exec( 'val = {0}["meta"].get("{1}")'.format(exec_string, meta) )
 
-            if not val:
+            if val is None:
                 msg = 'Del Resource: Cannot find resource meta info `{0}` !'.format(meta)
                 logError(msg)
                 return '*ERROR* ' + msg
