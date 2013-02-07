@@ -1,7 +1,6 @@
 
 import pexpect
 
-from ce_libs import logMsg
 from ce_libs import getResource, setResource, deleteResource, getResourceStatus
 from ce_libs import allocResource, reserveResource, freeResource
 

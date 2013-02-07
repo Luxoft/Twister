@@ -51,6 +51,7 @@ def flatten(d, parent_key=''):
             items.append((new_key, v))
     return dict(items)
 
+#
 
 class TCRunTcl:
 
@@ -87,18 +88,13 @@ class TCRunTcl:
 
         import ce_libs
 
-        dir(ce_libs) # Update ?
+        to_inject = [ f for f in dir(ce_libs) if callable(getattr(ce_libs, f)) ]
 
         self.tcl = Tkinter.Tcl()
-        # Expose all known function, in TCL
-        self.tcl.createcommand('logMessage',        ce_libs.logMsg)
-        self.tcl.createcommand('getResource',       ce_libs.getResource)
-        self.tcl.createcommand('setResource',       ce_libs.setResource)
-        self.tcl.createcommand('deleteResource',    ce_libs.deleteResource)
-        self.tcl.createcommand('getResourceStatus', ce_libs.getResourceStatus)
-        self.tcl.createcommand('allocResource',     ce_libs.allocResource)
-        self.tcl.createcommand('reserveResource',   ce_libs.reserveResource)
-        self.tcl.createcommand('freeResource',      ce_libs.freeResource)
+
+        # Expose all known function in TCL
+        for f in to_inject:
+            self.tcl.createcommand( f, getattr(ce_libs, f) )
 
         if os.path.exists(os.getcwd()+'/__recomposed.tcl'):
             # Restore all variables and functions
@@ -121,9 +117,16 @@ class TCRunTcl:
         as return value.
         '''
         #
+        def logMessage(logType, logMessage):
+            globs['proxy'].logMessage(globs['userName'], logType, logMessage)
+        #
+        # Inject Log Message function
+        self.tcl.createcommand('logMessage', logMessage)
+        #
         gparam = []
         [gparam.extend([k, v]) for k, v in flatten(globs['gparam']).items()]
         #
+        # Inject Global Parameters
         self.tcl.eval('array set gparam [list {0}]'.format(' '.join(['"'+str(x)+'"' for x in gparam])))
         #
         to_execute = str_to_execute.data
@@ -236,6 +239,11 @@ class TCRunPython:
         globs_copy['EP']         = globs['globEpName']
         globs_copy['PROXY']      = globs['proxy']
         globs_copy['gparam']     = globs['gparam']
+
+        def logMsg(logType, logMessage):
+            globs['proxy'].logMessage(globs['userName'], logType, logMessage)
+
+        globs_copy['logMsg']     = logMsg
 
         globEpName = globs_copy['EP']
         to_execute = str_to_execute.data

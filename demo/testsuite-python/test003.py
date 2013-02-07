@@ -1,7 +1,6 @@
 
 import time
 import telnetlib
-from ce_libs import logMsg
 
 #
 # <title>test 003</title>

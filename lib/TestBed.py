@@ -1,7 +1,7 @@
 
-# File: ExposedLibraries.py ; This file is part of Twister.
+# File: TestBed.py ; This file is part of Twister.
 
-# Copyright (C) 2012 , Luxoft
+# Copyright (C) 2012-2013 , Luxoft
 
 # Authors:
 #    Andrei Costachi <acostachi@luxoft.com>
@@ -22,7 +22,7 @@
 # limitations under the License.
 
 '''
-This module contains all functions exposed to TCL, Python and Perl tests.
+This module contains Functions needed to communicate with Resource Allocator Server.
 '''
 
 import os, sys
@@ -35,12 +35,6 @@ if not TWISTER_PATH:
     print('TWISTER_PATH environment variable is not set! Exiting!')
     exit(1)
 sys.path.append(TWISTER_PATH)
-
-try:
-    user_name = os.getenv('USER')
-except:
-    print('Cannot guess user name for this Execution Process! Exiting!')
-    exit(1)
 
 platform_sys = platform.system().lower()
 
@@ -119,18 +113,5 @@ else:
 
     def freeResource(query):
         pass
-
-#
-def logMessage(logType, logMessage):
-    ce_proxy.logMessage(user_name, logType, logMessage)
-#
-
-try:
-    ce_proxy = xmlrpclib.ServerProxy(PROXY)
-    ce_proxy.echo('Exposed-Libraries: Checking connection...')
-    logMsg = logMessage
-except:
-    def logMsg(logType, logMessage):
-        print('[{0}]: {1}'.format(logType, logMessage))
 
 #
