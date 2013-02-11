@@ -78,7 +78,10 @@ public class ConfigFiles extends JPanel{
     private static JTextField ttcpath,tMasterXML,tUsers,tepid,
                               tlog,trunning,tname,thardwareconfig,
                               tdebug,tsummary,tinfo,tcli,tdbfile,
-                              temailfile,tceport,traPort,thttpPort;
+                              temailfile,tceport,
+                              //traPort,
+                              thttpPort,
+                              tglobalsfile;
     JPanel paths;
     
     public ConfigFiles(Dimension screensize){  
@@ -86,7 +89,7 @@ public class ConfigFiles extends JPanel{
         paths = new JPanel();
         paths.setBackground(Color.WHITE);
         paths.setLayout(null);
-        paths.setPreferredSize(new Dimension(970,1040));
+        paths.setPreferredSize(new Dimension(970,1000));
         paths.setBorder(BorderFactory.createBevelBorder(BevelBorder.LOWERED));
         setLayout(null);
         ttcpath = new JTextField();
@@ -170,16 +173,24 @@ public class ConfigFiles extends JPanel{
         tdbfile = new JTextField();
         addPanel("Database XML path","File location for database configuration",    
                 tdbfile,Repository.REMOTEDATABASECONFIGPATH+Repository.REMOTEDATABASECONFIGFILE,
-                535,true,null);                
+                535,true,null);
         temailfile = new JTextField();
         addPanel("Email XML path","File location for email configuration",temailfile,
                 Repository.REMOTEEMAILCONFIGPATH+Repository.REMOTEEMAILCONFIGFILE,604,true,null);                
+        
+               
+        tglobalsfile = new JTextField();
+        addPanel("Globals XML file","File location for globals parameters",tglobalsfile,
+                Repository.GLOBALSREMOTEFILE,672,true,null);               
+                
+                
+        
         tceport = new JTextField();
         addPanel("Central Engine Port","Central Engine port",
-                tceport,Repository.getCentralEnginePort(),672,false,null);                
-        traPort = new JTextField();
-        addPanel("Resource Allocator Port","Resource Allocator Port",
-                traPort,Repository.getResourceAllocatorPort(),740,false,null);                
+                tceport,Repository.getCentralEnginePort(),740,false,null);                
+//         traPort = new JTextField();
+//         addPanel("Resource Allocator Port","Resource Allocator Port",
+//                 traPort,Repository.getResourceAllocatorPort(),808,false,null);                
         thttpPort = new JTextField();
         addPanel("HTTP Server Port","HTTP Server Port",thttpPort,
                 Repository.getHTTPServerPort(),808,false,null);
@@ -224,7 +235,7 @@ public class ConfigFiles extends JPanel{
                                 progress.dispose();
                                 setEnabledTabs(true);}}.start();}}
                 catch(Exception e){e.printStackTrace();}}});
-        loadXML.setBounds(760,970,120,20);
+        loadXML.setBounds(760,960,120,20);
         paths.add(loadXML);}
         
     public void setEnabledTabs(boolean enable){
@@ -287,6 +298,7 @@ public class ConfigFiles extends JPanel{
                         Repository.window.mainpanel.setComponentAt(1, Repository.window.mainpanel.p2);
                         Repository.window.mainpanel.p1.ep.refreshStructure();
                         Repository.window.mainpanel.p4.getDBConfig().refresh();
+                        Repository.window.mainpanel.p4.getGlobals().refresh();
                         Repository.resetDBConf(Repository.REMOTEDATABASECONFIGFILE,true);
                         Repository.resetEmailConf(Repository.REMOTEEMAILCONFIGFILE,true);
                         tdbfile.setText(Repository.REMOTEDATABASECONFIGFILE);
@@ -307,8 +319,9 @@ public class ConfigFiles extends JPanel{
                                         Repository.REMOTEDATABASECONFIGFILE);
                         temailfile.setText(Repository.REMOTEEMAILCONFIGPATH+
                                             Repository.REMOTEEMAILCONFIGFILE);
+                        tglobalsfile.setText(Repository.GLOBALSREMOTEFILE);
                         thttpPort.setText(Repository.getHTTPServerPort());
-                        traPort.setText(Repository.getResourceAllocatorPort());
+                        //traPort.setText(Repository.getResourceAllocatorPort());
                         tceport.setText(Repository.getCentralEnginePort());}
                     else{
                         CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, 
@@ -394,6 +407,7 @@ public class ConfigFiles extends JPanel{
         p1.add(p11);
         p1.add(p12);}
         
+        
     public static void saveXML(boolean blank){
         boolean saved = true;
         try{DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
@@ -417,8 +431,8 @@ public class ConfigFiles extends JPanel{
             rootElement.appendChild(document.createTextNode("config"));
             try{addTag("CentralEnginePort",tceport.getText(),root,blank,document);}
             catch(Exception e){addTag("CentralEnginePort","",root,blank,document);}
-            try{addTag("ResourceAllocatorPort",traPort.getText(),root,blank,document);}
-            catch(Exception e){addTag("ResourceAllocatorPort","",root,blank,document);}
+//             try{addTag("ResourceAllocatorPort",traPort.getText(),root,blank,document);}
+//             catch(Exception e){addTag("ResourceAllocatorPort","",root,blank,document);}
             try{addTag("HttpServerPort",thttpPort.getText(),root,blank,document);}
             catch(Exception e){addTag("HttpServerPort","",root,blank,document);}
             try{addTag("TestCaseSourcePath",ttcpath.getText(),root,blank,document);}
@@ -449,6 +463,10 @@ public class ConfigFiles extends JPanel{
             catch(Exception e){addTag("HardwareConfig","",root,blank,document);}
             try{addTag("EmailConfigFile",temailfile.getText(),root,blank,document);}
             catch(Exception e){addTag("EmailConfigFile","",root,blank,document);}
+            
+            try{addTag("GlobalParams",tglobalsfile.getText(),root,blank,document);}
+            catch(Exception e){addTag("GlobalParams","",root,blank,document);}
+            
             String temp;
             if(blank) temp ="fwmconfig";
             else temp = tname.getText();
@@ -480,6 +498,7 @@ public class ConfigFiles extends JPanel{
                                   Repository.window.mainpanel.p4.getConfig(),
                                   "Warning", "File could not be saved ");}}
         
+                                  
     public static void addTag(String tagname, String tagcontent ,
                               Element root,boolean blank,Document document){
         Element rootElement = document.createElement(tagname);

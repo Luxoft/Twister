@@ -109,12 +109,13 @@ public class Repository{
     public static Hashtable variables = new Hashtable(5,0.5f);
     public static String user,host,password,temp,TWISTERINI, USERHOME, REMOTECONFIGDIRECTORY,
                          PLUGINSDIRECTORY,HTTPSERVERPORT, CENTRALENGINEPORT,
-                         RESOURCEALLOCATORPORT, REMOTEDATABASECONFIGPATH,
+                         //RESOURCEALLOCATORPORT,
+                         REMOTEDATABASECONFIGPATH,
                          REMOTEDATABASECONFIGFILE, REMOTEEMAILCONFIGPATH,
                          REMOTEEMAILCONFIGFILE,CONFIGDIRECTORY, USERSDIRECTORY,
                          XMLDIRECTORY,  TESTSUITEPATH, LOGSPATH ,XMLREMOTEDIR,REMOTEPLUGINSDIR,
                          REMOTEUSERSDIRECTORY, REMOTEEPIDDIR, REMOTEHARDWARECONFIGDIRECTORY,
-                         PLUGINSLOCALGENERALCONF;
+                         PLUGINSLOCALGENERALCONF, GLOBALSREMOTEFILE;
     public static Image passicon,testbedicon,porticon,suitaicon, tcicon, propicon,
                         failicon, passwordicon, playicon, stopicon, pauseicon,
                         background,notexecicon,pendingicon,skipicon,stoppedicon,
@@ -296,12 +297,13 @@ public class Repository{
                 variables.put("localplugindir",PLUGINSDIRECTORY);  
                 variables.put("httpserverport",HTTPSERVERPORT);  
                 variables.put("centralengineport",CENTRALENGINEPORT);  
-                variables.put("resourceallocatorport",RESOURCEALLOCATORPORT);  
+                //variables.put("resourceallocatorport",RESOURCEALLOCATORPORT);  
                 variables.put("remotedatabaseparth",REMOTEDATABASECONFIGPATH);
                 variables.put("remotedatabasefile",REMOTEDATABASECONFIGFILE);
                 variables.put("remoteemailpath",REMOTEEMAILCONFIGPATH);
                 variables.put("remoteemailfile",REMOTEEMAILCONFIGFILE);
                 variables.put("configdir",CONFIGDIRECTORY);
+                System.out.println("USERSDIRECTORY: "+USERSDIRECTORY);
                 variables.put("usersdir",USERSDIRECTORY);
                 variables.put("masterxmldir",XMLDIRECTORY);
                 variables.put("testsuitepath",TESTSUITEPATH);
@@ -312,6 +314,7 @@ public class Repository{
                 variables.put("remoteusersdir",REMOTEUSERSDIRECTORY);
                 variables.put("pluginslocalgeneralconf",PLUGINSLOCALGENERALCONF);
                 variables.put("remotegeneralpluginsdir",REMOTEPLUGINSDIR);
+                variables.put("globalremotefile",GLOBALSREMOTEFILE);
             }
             else{
                 /*
@@ -794,7 +797,7 @@ public class Repository{
                     logs.add(getTagContent(doc,"logCli"));}
                 HTTPSERVERPORT = getTagContent(doc,"HttpServerPort");
                 CENTRALENGINEPORT = getTagContent(doc,"CentralEnginePort");
-                RESOURCEALLOCATORPORT = getTagContent(doc,"ResourceAllocatorPort");
+                //RESOURCEALLOCATORPORT = getTagContent(doc,"ResourceAllocatorPort");
                 usersdir = getTagContent(doc,"UsersPath");
                 REMOTEUSERSDIRECTORY = usersdir;
                 XMLREMOTEDIR = USERHOME+"/twister/config/testsuites.xml";
@@ -821,7 +824,9 @@ public class Repository{
                 REMOTEEMAILCONFIGPATH = result.toString();
                 REMOTEEMAILCONFIGFILE = path[path.length-1];
                 TESTSUITEPATH = getTagContent(doc,"TestCaseSourcePath");
-                REMOTEHARDWARECONFIGDIRECTORY = getTagContent(doc,"HardwareConfig");}
+                REMOTEHARDWARECONFIGDIRECTORY = getTagContent(doc,"HardwareConfig");
+                GLOBALSREMOTEFILE = getTagContent(doc,"GlobalParams");
+            }
             catch(Exception e){e.printStackTrace();}
             intro.setStatus("Finished initializing variables fwmconfig");
             intro.addPercent(0.035);
@@ -1043,8 +1048,8 @@ public class Repository{
     /*
      * ResourceAllocatorPort set by fwmconfig file
      */ 
-    public static String getResourceAllocatorPort(){
-        return RESOURCEALLOCATORPORT;}
+//     public static String getResourceAllocatorPort(){
+//         return RESOURCEALLOCATORPORT;}
         
     /*
      * test suite xml directory from server

@@ -5,8 +5,10 @@ public class Node{
     private String id,path,name;
     private HashMap<String,Node> children = new HashMap<String,Node>();
     private HashMap<String,String> properties = new HashMap<String,String>();
+    private Node parent;
 
-    public Node(String id, String path, String name){
+    public Node(String id, String path, String name, Node parent){
+        this.parent = parent;
         this.id = id;
         this.path = path;
         this.name=name;
@@ -31,8 +33,15 @@ public class Node{
     public String getName(){
         return name;
     }
+    public Node getParent(){
+        return parent;
+    }
     
-    public void gstID(String id){
+    public void setParent(Node parent){
+        this.parent=parent;
+    }
+    
+    public void setID(String id){
         this.id=id;
     }
     
@@ -61,10 +70,6 @@ public class Node{
     }
     
     public void addProperty(String name, String value){
-        properties.put(name, value);
-    }
-    
-    public void setPropery(String name, String value){
         properties.put(name, value);
     }
     

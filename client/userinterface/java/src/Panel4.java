@@ -1,3 +1,4 @@
+
 /*
 File: Panel4.java ; This file is part of Twister.
 
@@ -27,6 +28,7 @@ import javax.swing.BorderFactory;
 import javax.swing.JScrollPane;
 import java.awt.FlowLayout;
 import javax.swing.border.TitledBorder;
+import java.awt.BorderLayout;
 
 public class Panel4 extends JPanel{
     private ConfigFiles config;
@@ -35,7 +37,9 @@ public class Panel4 extends JPanel{
     private JPanel main; 
     private Plugins plugins;
     private JScrollPane scroll = new JScrollPane();
-    private Dut dut = new Dut();
+//     private Dut dut = new Dut();
+    private TB tb = new TB();
+    private Globals glob;
     
 
     public Panel4(){
@@ -44,6 +48,7 @@ public class Panel4 extends JPanel{
         config = new ConfigFiles(screenSize);
         dbconfig = new DBConfig();
         emails = new Emails();
+        glob = new Globals();
         plugins = new Plugins();
         main = new JPanel();        
         main.setLayout(null);
@@ -68,14 +73,24 @@ public class Panel4 extends JPanel{
             public void actionPerformed(ActionEvent ev){
                 setDatabase();}});
         add(database);
-        RoundButton duts = new RoundButton("Device Under Test");
+        RoundButton duts = new RoundButton("Test Beds");
         duts.setBounds(20,130,200,25);
         duts.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 setDuts();}});
-        add(duts);        
+        add(duts);   
+        
+        
+        RoundButton globals = new RoundButton("Global Parameters");
+        globals.setBounds(20,160,200,25);
+        globals.addActionListener(new ActionListener(){
+            public void actionPerformed(ActionEvent ev){
+                setGlobals();}});
+        add(globals); 
+        
+        
         RoundButton plugins = new RoundButton("Plugins");
-        plugins.setBounds(20,160,200,25);
+        plugins.setBounds(20,190,200,25);
         plugins.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){                
                 setPlugins();}});
@@ -116,9 +131,12 @@ public class Panel4 extends JPanel{
     public void setDuts(){        
         main.removeAll();
         main.setLayout(new FlowLayout());
-        dut.setPreferredSize(new Dimension(main.getWidth()-5,
+//         dut.setPreferredSize(new Dimension(main.getWidth()-5,
+//                                             main.getHeight()-5));
+//         main.add(dut);
+        tb.setPreferredSize(new Dimension(main.getWidth()-5,
                                             main.getHeight()-5));
-        main.add(dut);
+        main.add(tb);
         main.repaint();
         main.revalidate();}
     
@@ -134,6 +152,20 @@ public class Panel4 extends JPanel{
         scroll.setBounds(5,15,main.getWidth()-10,main.getHeight()-20);
         scroll.getVerticalScrollBar().setValue(0);
         main.add(scroll);
+        main.repaint();
+        main.revalidate();}
+        
+        
+     /*
+     * set globals content
+     * into this window
+     */
+    public void setGlobals(){
+        main.removeAll();
+        main.setLayout(new BorderLayout());
+        plugins.setPreferredSize(new Dimension(main.getWidth()-5,
+                                                main.getHeight()-5));
+        main.add(glob.panel,BorderLayout.CENTER);
         main.repaint();
         main.revalidate();}
     
@@ -154,8 +186,10 @@ public class Panel4 extends JPanel{
     public Plugins getPlugins(){
         return plugins;}    
     
-    public Dut getDut(){
-        return dut;}
+    public TB getDut(){
+//             return dut;
+        return tb;
+    }
         
     public Emails getEmails(){
         return emails;}
@@ -165,6 +199,10 @@ public class Panel4 extends JPanel{
         
     public ConfigFiles getConfig(){
         return config;}
+        
+    public Globals getGlobals(){
+        return glob;
+    }
     
     public JScrollPane getScroll(){
         return scroll;}

@@ -23,21 +23,40 @@ import java.awt.Component;
 import javax.swing.tree.DefaultMutableTreeNode;
 
 class CustomIconRenderer extends DefaultTreeCellRenderer {
-    ImageIcon port,device,module,testbed;
+//     ImageIcon port,device,module,testbed;
+    ImageIcon device,TB,folder,file;
      
     public CustomIconRenderer() {
-        port = new ImageIcon(Repository.porticon);
+//         port = new ImageIcon(Repository.porticon);
         device = new ImageIcon(Repository.deviceicon);
-        module = new ImageIcon(Repository.moduleicon);
-        testbed = new ImageIcon(Repository.testbedicon);}
+        TB = new ImageIcon(Repository.testbedicon);
+        folder = new ImageIcon(Repository.suitaicon);
+        file = new ImageIcon(Repository.tcicon);
+//         module = new ImageIcon(Repository.moduleicon);
+//         testbed = new ImageIcon(Repository.testbedicon);
+    }
      
     public Component getTreeCellRendererComponent(JTree tree,Object value,
                                                  boolean sel,boolean expanded,
                                                  boolean leaf,int row,boolean hasFocus){
         super.getTreeCellRendererComponent(tree, value, sel,expanded, leaf, row, hasFocus);
+//         Object nodeObj = ((DefaultMutableTreeNode)value).getUserObject();
+//         if (nodeObj instanceof DevicePort) setIcon(port);
+//         else if (nodeObj instanceof Device) setIcon(device);
+//         else if (nodeObj instanceof DeviceModule) setIcon(module);
+//         else if (nodeObj instanceof TestBed) setIcon(testbed);
+//         return this;
         Object nodeObj = ((DefaultMutableTreeNode)value).getUserObject();
-        if (nodeObj instanceof DevicePort) setIcon(port);
-        else if (nodeObj instanceof Device) setIcon(device);
-        else if (nodeObj instanceof DeviceModule) setIcon(module);
-        else if (nodeObj instanceof TestBed) setIcon(testbed);
-        return this;}}
+        if (nodeObj instanceof Node){
+            if(((Node)nodeObj).getParent().getParent()==null){
+                setIcon(TB);
+            } else {
+                setIcon(device);
+            }
+        } else if(nodeObj instanceof MyFolder){
+            setIcon(folder);
+        } else if(nodeObj instanceof MyParam){
+            setIcon(file);
+        }
+        return this;
+    }}

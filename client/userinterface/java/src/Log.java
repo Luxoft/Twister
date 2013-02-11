@@ -123,7 +123,7 @@ public class Log extends JPanel{
                 if(response==length){
                     result = Repository.getRPCClient().execute("getLogFile",
                                                                 new Object[]{Repository.getUser(),
-                                                                                "0","0",log})+"";
+                                                                                "0","0",log}).toString();
                     response = Long.parseLong(result);}
                 if(response>length){
                     result = Repository.getRPCClient().execute("getLogFile",

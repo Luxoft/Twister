@@ -38,6 +38,7 @@ import javax.swing.UIManager;
 import javax.swing.SwingUtilities;
 import java.net.URLClassLoader;
 import com.twister.MySecurityManager;
+import java.net.URL;
 
 public class applet extends Applet{ 
     private static final long serialVersionUID = 1L;
@@ -100,7 +101,14 @@ public class applet extends Applet{
          * host - server address
          * this - as container
          */
-        Repository.initialize(true, getCodeBase().getHost(),applet.this);}
+        Repository.initialize(true, getCodeBase().getHost(),applet.this);
+        try{
+            getAppletContext().showDocument(new URL("javascript:resize()"));
+        } catch (Exception e) {
+            System.err.println("Failed to call JavaScript function appletLoaded()");
+        }
+    
+    }
         
         
     /*

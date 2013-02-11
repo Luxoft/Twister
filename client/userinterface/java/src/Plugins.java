@@ -86,7 +86,7 @@ public class Plugins extends JPanel{
     public JSplitPane horizontalsplit, verticalsplit;
     private ChannelSftp ch;
     private boolean finished = true;
-    
+
     public Plugins(){
         initSftp();
         copyPreConfiguredPlugins();
@@ -117,7 +117,6 @@ public class Plugins extends JPanel{
             e.printStackTrace();
         }
     }
-    
     
     /*
      * method to copy plugins configuration file
