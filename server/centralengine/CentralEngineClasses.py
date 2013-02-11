@@ -1,9 +1,10 @@
 
 # File: CentralEngineClasses.py ; This file is part of Twister.
 
-# Copyright (C) 2012 , Luxoft
+# Copyright (C) 2012-2013 , Luxoft
 
 # Authors:
+#    Adrian Toader <adtoader@luxoft.com>
 #    Andrei Costachi <acostachi@luxoft.com>
 #    Andrei Toma <atoma@luxoft.com>
 #    Cristi Constantin <crconstantin@luxoft.com>
@@ -60,6 +61,7 @@ from cherrypy import _cptools
 
 from CentralEngineOthers import Project
 from CentralEngineRest import CentralEngineRest
+from ResourceAllocator import ResourceAllocator
 
 from common.constants import *
 from common.tsclogging import *
@@ -85,6 +87,7 @@ class CentralEngine(_cptools.XMLRPCController):
         self.project = Project()
         logDebug('CE: Initialization took %.4f seconds.' % (time.clock()-ti))
         self.rest = CentralEngineRest(self, self.project)
+        self.ra = ResourceAllocator()
 
 
 # --------------------------------------------------------------------------------------------------
@@ -339,6 +342,16 @@ class CentralEngine(_cptools.XMLRPCController):
         logDebug('CE: Started by user name `%s`.'  % str(name))
         self.project.setUserInfo(user, 'started_by', str(name))
         return 1
+
+
+    @cherrypy.expose
+    def getGlobalVariables(self, user):
+        '''
+        Sending global variables.
+        '''
+
+        ret = self.project.parsers[user].getGlobalParams()
+        return ret
 
 
 # --------------------------------------------------------------------------------------------------
@@ -698,6 +711,14 @@ class CentralEngine(_cptools.XMLRPCController):
         All the data
         """
 
+        # The pointer to the plugin = User name and Plugin name
+        key = user +' '+ plugin
+
+        if key in self.project.plugins:
+            plugin = self.project.plugins.get(key)
+            return plugin
+
+        # If the plugin is not initialised
         parser = PluginParser(user)
         pdict = parser.getPlugins().get(plugin)
         if not pdict:
@@ -713,6 +734,7 @@ class CentralEngine(_cptools.XMLRPCController):
         del data['plugin']
 
         plugin = pdict['plugin'](user, data)
+        self.project.plugins[key] = plugin
         return plugin
 
 
@@ -1053,7 +1075,20 @@ class CentralEngine(_cptools.XMLRPCController):
             logError("CE ERROR! Log file `%s` cannot be written!" % logPath)
             return False
 
-        f.write(binascii.a2b_base64(logMessage))
+        log_string = binascii.a2b_base64(logMessage)
+
+        # Execute "onLog" for all plugins
+        parser = PluginParser(user)
+        plugins = parser.getPlugins()
+        for pname in plugins:
+            plugin = self._buildPlugin(user, pname, {'log_type': 'cli'})
+            try:
+                plugin.onLog(epname, log_string)
+            except Exception, e:
+                logWarning('Error on running plugin `%s onStop` - Exception: `%s`!' % (pname, str(e)))
+        del parser, plugins
+
+        f.write(log_string)
         f.close()
         return True
 

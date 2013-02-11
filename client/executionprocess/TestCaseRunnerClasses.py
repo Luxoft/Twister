@@ -41,6 +41,18 @@ if not TWISTER_PATH:
 
 #
 
+def flatten(d, parent_key=''):
+    items = []
+    for k, v in d.items():
+        new_key = parent_key + '/' + k if parent_key else k
+        if isinstance(v, dict):
+            items.extend(flatten(v, new_key).items())
+        else:
+            items.append((new_key, v))
+    return dict(items)
+
+#
+
 class TCRunTcl:
 
     def __init__(self):
@@ -74,23 +86,22 @@ class TCRunTcl:
         self.all_procs = 0
         self.all_procs_values = 0
 
+        self.tcl = Tkinter.Tcl()
+
         import ce_libs
 
-        dir(ce_libs) # Update ?
+        # Find all functions from CE Libs
+        to_inject = [ f for f in dir(ce_libs) if callable(getattr(ce_libs, f)) ]
 
-        self.tcl = Tkinter.Tcl()
-        # Expose all known function, in TCL
-        self.tcl.createcommand('logMessage',          ce_libs.logMsg)
-        self.tcl.createcommand('setProperty',         ce_libs.setProperty)
-        self.tcl.createcommand('getProperty',         ce_libs.getProperty)
-        self.tcl.createcommand('delResource',         ce_libs.delResource)
-        self.tcl.createcommand('createEmptyResource', ce_libs.createEmptyResource)
+        # Expose all known function in TCL
+        for f in to_inject:
+            self.tcl.createcommand( f, getattr(ce_libs, f) )
 
         if os.path.exists(os.getcwd()+'/__recomposed.tcl'):
             # Restore all variables and functions
             self.tcl.evalfile(os.getcwd()+'/__recomposed.tcl')
 
-        self.tcl.eval('package require Expect')
+        # self.tcl.eval('package require Expect')
 
     def __del__(self):
         #
@@ -106,6 +117,18 @@ class TCRunTcl:
         After executing a TCL statement, the last value will be used
         as return value.
         '''
+        #
+        def logMessage(logType, logMessage):
+            globs['proxy'].logMessage(globs['userName'], logType, logMessage)
+        #
+        # Inject Log Message function
+        self.tcl.createcommand('logMessage', logMessage)
+        #
+        gparam = []
+        [gparam.extend([k, v]) for k, v in flatten(globs['gparam']).items()]
+        #
+        # Inject Global Parameters
+        self.tcl.eval('array set gparam [list {0}]'.format(' '.join(['"'+str(x)+'"' for x in gparam])))
         #
         to_execute = str_to_execute.data
         #
@@ -216,6 +239,12 @@ class TCRunPython:
         globs_copy['USER']       = globs['userName']
         globs_copy['EP']         = globs['globEpName']
         globs_copy['PROXY']      = globs['proxy']
+        globs_copy['gparam']     = globs['gparam']
+
+        def logMsg(logType, logMessage):
+            globs['proxy'].logMessage(globs['userName'], logType, logMessage)
+
+        globs_copy['logMsg']     = logMsg
 
         globEpName = globs_copy['EP']
         to_execute = str_to_execute.data

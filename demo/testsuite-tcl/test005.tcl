@@ -11,18 +11,30 @@ proc T-005 {} {
 
     set error_code "PASS"
 
-    puts queryResource "devicevendor:Avaya&&devicetype:PBX,moduletype:?"
-    puts queryResource "devicetype:Contivity&&devicefamily:27XX&&devicemodel:2750SY"
+    puts "Query Root... [getResource 1]"
+    puts "Query Root... [getResource /]\n"
 
-    set resid [createEmptyResource 0]
+    puts "Device 1:: [getResource /dev1]"
+    puts "Device 1:: [getResource 101]\n"
 
-    setPropertyLocal $resid "prop_1" "value_1"
-    setPropertyLocal $resid "prop_2" "value_2"
+    puts "Meta 1:: [getResource dev3/mod12:meta1]"
+    puts "Meta 2:: [getResource dev3/mod12:meta2]\n"
 
-    puts getPropertyLocal $resid "prop_1"
-    puts getPropertyLocal $resid "prop_2"
+    set id1 [setResource test1 dev3/mod12]
+    puts "Create resource:: $id1"
+    puts "Check info:: [getResource $id1]\n"
 
-    delResource $resid
+    puts "Update resource..."
+    setResource "test1" "dev3/mod12" {{"more-info": "y"}}
+    puts "Check info:: [getResource $id1]\n"
+
+    puts "Check status 1:: [getResourceStatus $id1]"
+    puts "Reserve resource:: [reserveResource $id1]"
+    puts "Check status 2:: [getResourceStatus $id1]\n"
+
+    puts "Delete resource:: [deleteResource $id1]"
+    puts "Delete resource:: [deleteResource dev3/mod12/test1]"
+    puts "Check info:: [getResource $id1]\n"
 
     puts "\nFinished test $testName, exit code $error_code\n**********\n"
     logMessage logTest "TestCase: $testName $error_code\n"

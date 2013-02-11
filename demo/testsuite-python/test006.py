@@ -1,9 +1,8 @@
 
 import pexpect
 
-from ce_libs import logMsg
-from ce_libs import queryResource, setPropertyLocal, getPropertyLocal
-from ce_libs import createEmptyResource, delResource
+from ce_libs import getResource, setResource, deleteResource, getResourceStatus
+from ce_libs import allocResource, reserveResource, freeResource
 
 #
 # <title>test 006</title>
@@ -12,24 +11,40 @@ from ce_libs import createEmptyResource, delResource
 
 def test006():
 
-
 	testName = 'test006.py'
 	logMsg('logTest', "\nTestCase:%s starting\n" % testName)
 
 	error_code = "PASS"
 
-	print 'Queried...', queryResource("devicevendor:Avaya&&devicetype:PBX,moduletype:?")
-	print 'Queried...', queryResource("devicetype:Contivity&&devicefamily:27XX&&devicemodel:2750SY")
+	print 'Query Root...', getResource(1)
+	print 'Query Root...', getResource('/')
+	print
 
-	resid = createEmptyResource(0)
+	print 'Device 1::', getResource('/dev1')
+	print 'Device 1::', getResource(101)
+	print
 
-	setPropertyLocal(resid, "prop_1", "value_1")
-	setPropertyLocal(resid, "prop_2", "value_2")
+	print 'Meta 1::', getResource('dev3/mod12:meta1')
+	print 'Meta 2::', getResource('dev3/mod12:meta2')
+	print
 
-	print 'Prop 1:', getPropertyLocal(resid, "prop_1")
-	print 'Prop 2:', getPropertyLocal(resid, "prop_2")
+	id1 = setResource('test1', 'dev3/mod12', {'extra-info': 'yes'})
+	print 'Create resource::', id1
+	print 'Check info::', getResource(id1)
+	print
 
-	print 'Deleting resource %s... %s.' % (resid, str(delResource(resid)))
+	print 'Update resource::', setResource('test1', 'dev3/mod12', {'more-info': 'y'})
+	print 'Check status::', getResource(id1)
+	print
+
+	print 'Check status 1::', getResourceStatus(id1)
+	print 'Reserve resource::', reserveResource(id1)
+	print 'Check status 2::', getResourceStatus(id1)
+	print
+
+	print 'Delete resource::', deleteResource(id1)
+	print 'Check info::', getResource(id1)
+	print
 
 	logMsg('logTest', "TestCase:%s %s\n" % (testName, error_code))
 	return error_code

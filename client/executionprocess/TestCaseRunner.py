@@ -535,6 +535,8 @@ if __name__=='__main__':
 
             file_ext = os.path.splitext(filename)[1].lower()
 
+            gparam = proxy.getGlobalVariables(userName)
+
             # --------------------------------------------------
             # Start TIMER
             interval = 5 # The interval should be in Test-Suites.XML.
@@ -584,7 +586,9 @@ if __name__=='__main__':
             # --------------------------------------------------
             # RUN CURRENT TEST!
             try:
-                result = current_runner._eval(str_to_execute, globals(), args)
+                globs = globals()
+                globs['gparam'] = gparam
+                result = current_runner._eval(str_to_execute, globs, args)
                 result = str(result).upper()
                 print('\n>>> File `%s` returned `%s`. <<<\n' % (filename, result))
 

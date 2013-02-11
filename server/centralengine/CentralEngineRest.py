@@ -1,9 +1,10 @@
 
 # File: CentralEngineRest.py ; This file is part of Twister.
 
-# Copyright (C) 2012 , Luxoft
+# Copyright (C) 2012-2013 , Luxoft
 
 # Authors:
+#    Adrian Toader <adtoader@luxoft.com>
 #    Andrei Costachi <acostachi@luxoft.com>
 #    Andrei Toma <atoma@luxoft.com>
 #    Cristi Constantin <crconstantin@luxoft.com>
@@ -33,6 +34,7 @@ import glob
 import json
 import time
 import platform
+
 import cherrypy
 import mako
 from mako.template import Template

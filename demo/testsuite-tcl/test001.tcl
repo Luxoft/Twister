@@ -17,12 +17,12 @@ proc T-001 {} {
 
     for {set i 0} {$i < 10} {incr i} {
         # Python function:
-        logMessage logRunning "TEST 1: working $i...\n"
+        logMessage logRunning "Tcl TEST 1: working $i...\n"
         after 500
     }
 
     # Python function:
-    logMessage logDebug "TEST: working even more ...\n"
+    logMessage logDebug "Tcl TEST: working even more ...\n"
     after 100
 
     puts "\nFinished test $testName, exit code $error_code\n**********\n"
