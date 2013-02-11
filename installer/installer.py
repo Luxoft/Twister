@@ -467,7 +467,7 @@ for fname in glob.glob(INSTALL_PATH + 'bin/*'):
     if os.path.splitext(fname)[1]: continue
 
     lines = open(fname).readlines()
-    lines.insert(4, ('export TWISTER_PATH=%s\n\n' % INSTALL_PATH))
+    lines.insert(4, ('export TWISTER_PATH=%s\n\n' % INSTALL_PATH.rstrip('/')))
     open(fname, 'w').write(''.join(lines))
 
 # Fix FWM Config XML

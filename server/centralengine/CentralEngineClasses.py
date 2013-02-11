@@ -1072,7 +1072,20 @@ class CentralEngine(_cptools.XMLRPCController):
             logError("CE ERROR! Log file `%s` cannot be written!" % logPath)
             return False
 
-        f.write(binascii.a2b_base64(logMessage))
+        log_string = binascii.a2b_base64(logMessage)
+
+        # Execute "onLog" for all plugins
+        parser = PluginParser(user)
+        plugins = parser.getPlugins()
+        for pname in plugins:
+            plugin = self._buildPlugin(user, pname, {'log_type': 'cli'})
+            try:
+                plugin.onLog(epname, log_string)
+            except Exception, e:
+                logWarning('Error on running plugin `%s onStop` - Exception: `%s`!' % (pname, str(e)))
+        del parser, plugins
+
+        f.write(log_string)
         f.close()
         return True
 

@@ -69,6 +69,13 @@ class BasePlugin(object):
         """
         pass
 
+
+    def onLog(self, epname, log_string):
+        """
+        This function is called every time the EP sends a CLI log.
+        """
+        pass
+
 #
 
 # Eof()
