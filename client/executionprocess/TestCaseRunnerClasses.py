@@ -86,11 +86,12 @@ class TCRunTcl:
         self.all_procs = 0
         self.all_procs_values = 0
 
+        self.tcl = Tkinter.Tcl()
+
         import ce_libs
 
+        # Find all functions from CE Libs
         to_inject = [ f for f in dir(ce_libs) if callable(getattr(ce_libs, f)) ]
-
-        self.tcl = Tkinter.Tcl()
 
         # Expose all known function in TCL
         for f in to_inject:

@@ -1,9 +1,10 @@
 
 # File: CentralEngineClasses.py ; This file is part of Twister.
 
-# Copyright (C) 2012 , Luxoft
+# Copyright (C) 2012-2013 , Luxoft
 
 # Authors:
+#    Adrian Toader <adtoader@luxoft.com>
 #    Andrei Costachi <acostachi@luxoft.com>
 #    Andrei Toma <atoma@luxoft.com>
 #    Cristi Constantin <crconstantin@luxoft.com>
@@ -60,6 +61,7 @@ from cherrypy import _cptools
 
 from CentralEngineOthers import Project
 from CentralEngineRest import CentralEngineRest
+from ResourceAllocator import ResourceAllocator
 
 from common.constants import *
 from common.tsclogging import *
@@ -85,6 +87,7 @@ class CentralEngine(_cptools.XMLRPCController):
         self.project = Project()
         logDebug('CE: Initialization took %.4f seconds.' % (time.clock()-ti))
         self.rest = CentralEngineRest(self, self.project)
+        self.ra = ResourceAllocator()
 
 
 # --------------------------------------------------------------------------------------------------

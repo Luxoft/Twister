@@ -6,7 +6,7 @@ proc T-004 {} {
     logMessage logTest "\n\nTestCase: $testName starting\n"
 
     set purpose "<title>Testing Expect take 2</title>"
-    set description "<description>Some description for test 4</description>"
+    set description "<description>Testing SSH</description>"
     logMessage logTest "\nTest purpose: $purpose\nTest description: $description\n"
 
     set error_code "PASS"

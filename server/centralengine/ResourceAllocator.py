@@ -1,12 +1,13 @@
 
-# File: ResourceAllocatorClasses.py ; This file is part of Twister.
+# File: ResourceAllocator.py ; This file is part of Twister.
 
 # Copyright (C) 2012-2013 , Luxoft
 
 # Authors:
+#    Adrian Toader <adtoader@luxoft.com>
 #    Andrei Costachi <acostachi@luxoft.com>
 #    Andrei Toma <atoma@luxoft.com>
-#    Cristian Constantin <crconstantin@luxoft.com>
+#    Cristi Constantin <crconstantin@luxoft.com>
 #    Daniel Cioata <dcioata@luxoft.com>
 
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,8 +22,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
-import sys
+"""
+Resource Allocator functions
+****************************
+
+All functions are exposed and can be accessed using the browser.
+"""
+
+import os, sys
 import json
 import thread
 import cherrypy
