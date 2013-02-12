@@ -2,9 +2,10 @@
 
 # File: installer.py ; This file is part of Twister.
 
-# Copyright (C) 2012 , Luxoft
+# Copyright (C) 2012-2013 , Luxoft
 
 # Authors:
+#    Adrian Toader <adtoader@luxoft.com>
 #    Andrei Costachi <acostachi@luxoft.com>
 #    Andrei Toma <atoma@luxoft.com>
 #    Cristi Constantin <crconstantin@luxoft.com>
@@ -200,7 +201,6 @@ if TO_INSTALL == 'server':
     # Files to move in Server folder
     to_copy = [
         'bin/start_ce',
-        'bin/start_ra',
         'bin/start_httpserver',
         'doc/',
         'server/',

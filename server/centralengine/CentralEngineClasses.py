@@ -86,6 +86,7 @@ class CentralEngine(_cptools.XMLRPCController):
         logDebug('CE: Starting Central Engine...') ; ti = time.clock()
         self.project = Project()
         logDebug('CE: Initialization took %.4f seconds.' % (time.clock()-ti))
+
         self.rest = CentralEngineRest(self, self.project)
         self.ra = ResourceAllocator()
 
@@ -729,6 +730,7 @@ class CentralEngine(_cptools.XMLRPCController):
         data = dict(self.project.getUserInfo(user))
         data.update(pdict)
         data.update(extra_data)
+        data['ce'] = self
         del data['eps']
         del data['status']
         del data['plugin']

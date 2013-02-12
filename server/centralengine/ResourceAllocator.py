@@ -348,6 +348,35 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
         return True
 
+
+    @cherrypy.expose
+    def findEpname(self, tbname):
+        '''
+        Calculate EP Name, based on test bed.
+        '''
+        self._load(v=False)
+        # If no resources...
+        if not self.resources['children']:
+            msg = 'Find Epname: There are no resources defined !'
+            logError(msg)
+            return '*ERROR* ' + msg
+
+        tbvalue = self.resources['children'].get(tbname)
+
+        if not tbvalue:
+            msg = 'Find Epname: Cannot find TestBed `{0}` !'.format(tbname)
+            logError(msg)
+            return '*ERROR* ' + msg
+
+        ep = tbvalue['meta'].get('epnames')
+
+        if not ep:
+            msg = 'Find Epname: TestBed `{0}` does not have any EPs !'.format(tbname)
+            logError(msg)
+            return '*ERROR* ' + msg
+
+        return ep
+
 #
 
     @cherrypy.expose
