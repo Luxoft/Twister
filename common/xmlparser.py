@@ -1,9 +1,10 @@
 
 # File: xmlparser.py ; This file is part of Twister.
 
-# Copyright (C) 2012 , Luxoft
+# Copyright (C) 2012-2013 , Luxoft
 
 # Authors:
+#    Adrian Toader <adtoader@luxoft.com>
 #    Andrei Costachi <acostachi@luxoft.com>
 #    Andrei Toma <atoma@luxoft.com>
 #    Cristi Constantin <crconstantin@luxoft.com>
@@ -248,6 +249,7 @@ class TSCParser:
 
         activeEPs = (';'.join(activeEPs)).split(';')
         activeEPs = sorted(list(set(activeEPs)))
+        activeEPs = [ep.strip() for ep in activeEPs if ep.strip()]
         return activeEPs
 
 
@@ -411,10 +413,14 @@ class TSCParser:
 
         res = OrderedDict([ ['name', suite_soup.xpath('tsName/text()')[0]] ])
         res['ep'] = epname
+        res['tb'] = ''
         res['libraries'] = ''
 
         if suite_soup.xpath('libraries/text()'):
             res['libraries'] = suite_soup.xpath('libraries')[0].text
+
+        if suite_soup.xpath('TbName/text()'):
+            res['tb'] = suite_soup.xpath('TbName')[0].text
 
         prop_keys = suite_soup.xpath('UserDefined/propName')
         prop_vals = suite_soup.xpath('UserDefined/propValue')

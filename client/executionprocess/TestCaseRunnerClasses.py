@@ -240,6 +240,7 @@ class TCRunPython:
         globs_copy['EP']         = globs['globEpName']
         globs_copy['PROXY']      = globs['proxy']
         globs_copy['gparam']     = globs['gparam']
+        globs_copy['currentTB']  = globs['tbname']
 
         def logMsg(logType, logMessage):
             globs['proxy'].logMessage(globs['userName'], logType, logMessage)

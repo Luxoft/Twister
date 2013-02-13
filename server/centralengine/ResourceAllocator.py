@@ -212,9 +212,10 @@ class ResourceAllocator(_cptools.XMLRPCController):
             result = self.resources
 
             for part in parts:
+                if not result: return False
                 result = result['children'].get(part)
-            if not result:
-                return False
+
+            if not result: return False
 
             result['path'] = [p for p in parts if p]
 

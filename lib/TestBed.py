@@ -48,7 +48,7 @@ if platform_sys=='linux' or platform_sys=='sunos':
 
     ce_proxy = xmlrpclib.ServerProxy(PROXY.rstrip('/') + '/ra/')
 
-    try: ce_proxy.echo('Exposed-Libraries: Checking connection...')
+    try: ce_proxy.echo('TestBed: Checking connection...')
     except: pass
 
     def getResource(query):
@@ -86,7 +86,7 @@ elif platform_sys=='windows' or platform_sys=='java':
 
 
 else:
-    print('Exposed Libraries: PLATFORM UNSUPPORTED `{0}` !'.format(platform_sys))
+    print('TestBed: PLATFORM UNSUPPORTED `{0}` !'.format(platform_sys))
 
     def getResource(query):
         pass
