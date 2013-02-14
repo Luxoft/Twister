@@ -174,9 +174,10 @@ class Project:
         self.users[user]['log_types'] = {}
 
 
-        # Add path to DB and E-mail XML
+        # Add path to DB, E-mail XML, Globals
         self.users[user]['db_config']  = project_globals['DbConfig']
         self.users[user]['eml_config'] = project_globals['EmailConfig']
+        self.users[user]['glob_params'] = project_globals['GlobalParams']
 
         # Add the `exit on test Fail` value
         self.users[user]['exit_on_test_fail'] = project_globals['ExitOnTestFail']
@@ -305,9 +306,10 @@ class Project:
         self.users[user]['logs_path'] = project_globals['LogsPath']
         self.users[user]['log_types'] = {}
 
-        # Add path to DB and E-mail XML
+        # Add path to DB, E-mail XML, Globals
         self.users[user]['db_config']  = project_globals['DbConfig']
         self.users[user]['eml_config'] = project_globals['EmailConfig']
+        self.users[user]['glob_params'] = project_globals['GlobalParams']
 
         # Add the `exit on test Fail` value
         self.users[user]['exit_on_test_fail'] = project_globals['ExitOnTestFail']
@@ -365,6 +367,9 @@ class Project:
 
         elif config in ['email', 'e-mail']:
             return self.users[user]['eml_config']
+
+        elif config in ['glob', 'globals']:
+            return self.users[user]['glob_params']
 
         else:
             # Unchanged config
