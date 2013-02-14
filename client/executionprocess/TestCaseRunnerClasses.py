@@ -1,12 +1,13 @@
 
 # File: TestCaseRunnerClasses.py ; This file is part of Twister.
 
-# Copyright (C) 2012 , Luxoft
+# Copyright (C) 2012-2013 , Luxoft
 
 # Authors:
+#    Adrian Toader <adtoader@luxoft.com>
 #    Andrei Costachi <acostachi@luxoft.com>
 #    Andrei Toma <atoma@luxoft.com>
-#    Cristian Constantin <crconstantin@luxoft.com>
+#    Cristi Constantin <crconstantin@luxoft.com>
 #    Daniel Cioata <dcioata@luxoft.com>
 
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -120,21 +121,29 @@ class TCRunTcl:
         #
         def logMessage(logType, logMessage):
             globs['proxy'].logMessage(globs['userName'], logType, logMessage)
-        #
+
         # Inject Log Message function
         self.tcl.createcommand('logMessage', logMessage)
-        #
+
         gparam = []
         [gparam.extend([k, v]) for k, v in flatten(globs['gparam']).items()]
-        #
+
         # Inject Global Parameters
         self.tcl.eval('array set gparam [list {0}]'.format(' '.join(['"'+str(x)+'"' for x in gparam])))
-        #
+
+        # Inject variables
+        self.tcl.setvar('SUITE_ID',   globs['suite_id'])
+        self.tcl.setvar('SUITE_NAME', globs['suite_name'])
+        self.tcl.setvar('FILE_ID',    globs['file_id'])
+        self.tcl.setvar('FILE_NAME',  globs['filename'])
+        self.tcl.setvar('USER',       globs['userName'])
+        self.tcl.setvar('EP',         globs['globEpName'])
+        self.tcl.setvar('currentTB',  globs['tbname'])
+
         to_execute = str_to_execute.data
-        #
         to_execute = '\nset argc %i\n' % len(params) + to_execute
         to_execute = 'set argv {%s}\n' % str(params)[1:-1] + to_execute
-        #
+
         _RESULT = self.tcl.eval(to_execute)
         return _RESULT
         #

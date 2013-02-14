@@ -13,6 +13,11 @@ puts "TCL debug: argc = $argc  and  argv = $argv"
 
 logMessage logTest "\n\nTestCase: init.tcl starting\n"
 
+puts "User name :: $USER"
+puts "Exec process:: $EP"
+puts "Suite name :: $SUITE_NAME"
+puts "TestBed :: $currentTB"
+
 # Load Expect and some demo library
 package require Expect
 package require DemoLib
