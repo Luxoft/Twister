@@ -1118,6 +1118,9 @@ class CentralEngine(_cptools.XMLRPCController):
                 logWarning('Error on running plugin `%s onStop` - Exception: `%s`!' % (pname, str(e)))
         del parser, plugins
 
+        # Calling Panic Detect
+        self.project.panicDetectLogParse(user, epname, log_string)
+
         f.write(log_string)
         f.close()
         return True
@@ -1186,5 +1189,36 @@ class CentralEngine(_cptools.XMLRPCController):
         except:
             logError("CE ERROR! Log file `%s` cannot be reset!" % logPath)
             return False
+
+
+
+    def panicDetectLogParse(self, user, epname, log_string):
+        """ Panic Detect parse log mechanism """
+
+        status = False
+
+        if not self.project.panicDetectRegularExpressions.has_key(user):
+            return status
+
+        for (key, value in
+            self.project.panicDetectRegularExpressions[user].iteritems()):
+            try:
+                if re.search(value['expresion'], log_string) is not None:
+                    if value['enabled']:
+                        # stop ep action
+                        self.setExecStatus(self.user, epname,
+                            'STATUS_STOP', msg='panic detected; status chaged')
+                        status = True
+            except Exception, e:
+                logError(e)
+
+        return status
+
+
+    @cherrypy.expose
+    def panicDetectConfig(self, user, args):
+        """ Configure Panic Detect """
+
+        return self.project.panicDetectConfig(user, args)
 
 # Eof()

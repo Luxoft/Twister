@@ -74,6 +74,7 @@ import MySQLdb
 
 
 from string import Template
+from ast import literal_eval
 from collections import OrderedDict
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -113,6 +114,18 @@ class Project:
         self.int_lock = thread.allocate_lock()  # Internal use lock
         self.eml_lock = thread.allocate_lock()  # E-mail lock
         self.db_lock  = thread.allocate_lock()  # Database lock
+
+        ## Panic Detect __init__ ##
+        # load config for current user
+        self.panicDetectConfigPath = TWISTER_PATH + '/common/PanicDetectData.json'
+        if not os.path.exists(self.panicDetectConfigPath):
+            with self.int_lock:
+                config = open(self.panicDetectConfigPath, 'wb')
+                config.write('{}')
+                config.close()
+        config = open(self.panicDetectConfigPath, 'rb')
+        self.panicDetectRegularExpressions = json.load(config)
+        config.close()
 
 
     def createUser(self, user, base_config='', files_config=''):
@@ -1022,6 +1035,147 @@ class Project:
             #
 
             return True
+
+
+    def panicDetectConfig(self, user, args):
+        """ Panic Detect mechanism
+        valid commands: list, add, update, remove regular expression;
+
+        list command: {'command': 'list'}
+        add command: {'command': 'add', 'data': "{'expression': 'reg_exp_string'}"}
+        update command: {'command': 'update', 'data': "{'id': 'reg_exp_id',
+                                    expression': 'reg_exp_modified_string'}"}
+        remove command:  {'command': 'remove', 'data': 'reg_exp_id'}
+        """
+
+        panicDetectCommands = {
+            'simple': [
+                'list',
+            ],
+            'argumented': [
+                'add', 'update', 'remove',
+            ]
+        }
+
+        args = {k: v[0] if isinstance(v, list) else v for k,v in args.iteritems()}
+
+        # response structure
+        response = {
+            'status': {
+                'success': True,
+                'message': 'None', # error message
+            },
+            'type': 'reply', # reply type
+            'data': 'None', # response data
+        }
+
+        if (not args.has_key('command') or args['command'] not
+            in panicDetectCommands['argumented'] + panicDetectCommands['simple']):
+            response['type'] = 'error reply'
+
+            response['status']['success'] = False
+            response['status']['message'] = 'unknown command'
+
+        elif (args['command'] in panicDetectCommands['argumented']
+                and not args.has_key('data')):
+            response['type'] = 'error reply'
+
+            response['status']['success'] = False
+            response['status']['message'] = 'no command data specified'
+
+
+        # list_regular_expresions
+        elif args['command'] == 'list':
+            response['type'] = 'list_regular_expressions reply'
+
+            response['data'] = json.dumps(self.panicDetectRegularExpressions)
+
+
+        # add_regular_expression
+        elif args['command'] == 'add':
+            response['type'] = 'add_regular_expression reply'
+
+            try:
+                _args = literal_eval(args['data'])
+                regExpData = {}
+
+                regExpData.update([('expression', _args['expression']), ])
+
+                if regExpData.has_key('enabled'):
+                    regExpData.update([('enabled', _args['enabled']), ])
+                else:
+                    regExpData.update([('enabled', False), ])
+
+                regExpID = str(time.time()).replace('.', '|')
+
+                if not self.panicDetectRegularExpressions.has_key(user):
+                    self.panicDetectRegularExpressions.update([(user, {}), ])
+
+                self.panicDetectRegularExpressions[user].update(
+                                                    [(regExpID, regExpData), ])
+
+                with self.int_lock:
+                    config = open(self.panicDetectConfigPath, 'wb')
+                    json.dump(self.panicDetectRegularExpressions, config)
+                    config.close()
+
+                response['data'] = regExpID
+                logDebug('Panic Detect: added regular expression for user: {u}'.format(u=user))
+            except Exception, e:
+                response['status']['success'] = False
+                response['status']['message'] = '{er}'.format(er=e)
+
+
+        # update_regular_expression
+        elif args['command'] == 'update':
+            response['type'] = 'update_regular_expression reply'
+
+            try:
+                _args = literal_eval(args['data'])
+                regExpID = _args.pop('id')
+                regExpData = self.panicDetectRegularExpressions[user].pop(regExpID)
+
+                regExpData.update([('expression', _args['expression']), ])
+
+                if _args.has_key('enabled'):
+                    regExpData.update([('enabled', _args['enabled']), ])
+                else:
+                    regExpData.update([('enabled', regExpData['enabled']), ])
+
+                self.panicDetectRegularExpressions[user].update(
+                                                    [(regExpID, regExpData), ])
+                with self.int_lock:
+                    config = open(self.panicDetectConfigPath, 'wb')
+                    json.dump(self.panicDetectRegularExpressions, config)
+                    config.close()
+
+                response['data'] = regExpID
+                logDebug('Panic Detect: updated regular expression for user: {u}'.format(u=user))
+            except Exception, e:
+                response['status']['success'] = False
+                response['status']['message'] = '{er}'.format(er=e)
+
+        # remove_regular_expression
+        elif args['command'] == 'remove':
+            response['type'] = 'remove_regular_expression reply'
+
+            try:
+                regExpID = args['data']
+                regExpData = self.panicDetectRegularExpressions[user].pop(regExpID)
+                del(regExpData)
+
+                with self.int_lock:
+                    config = open(self.panicDetectConfigPath, 'wb')
+                    json.dump(self.panicDetectRegularExpressions, config)
+                    config.close()
+
+                response['data'] = regExpID
+                logDebug('Panic Detect: removed regular expresion for user: {u}'.format(u=user))
+            except Exception, e:
+                response['status']['success'] = False
+                response['status']['message'] = '{er}'.format(er=e)
+
+        return response
 
 # # #
 
