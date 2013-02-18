@@ -109,20 +109,12 @@ class CentralEngine(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
-    def getLogsPath(self, user):
+    def serviceManagerCommand(self, command, name='', args={}):
         """
-        Returns the path to Logs files.
+        Send commands to Service Manager.\n
+        Valid commands are: list, start, stop, status, get config, save config, get log.
         """
-        return self.project.getUserInfo(user, 'logs_path')
-
-
-    @cherrypy.expose
-    def getLogTypes(self, user):
-        """
-        Returns a list with all types of logs defined in Master config.
-        All logs will be exposed to the testing environment.
-        """
-        return self.project.getUserInfo(user, 'log_types')
+        return self.manager.sendCommand(command, name, args)
 
 
     @cherrypy.expose
@@ -1228,8 +1220,7 @@ class CentralEngine(_cptools.XMLRPCController):
         if not self.project.panicDetectRegularExpressions.has_key(user):
             return status
 
-        for (key, value in
-            self.project.panicDetectRegularExpressions[user].iteritems()):
+        for key, value in self.project.panicDetectRegularExpressions[user].iteritems():
             try:
                 if re.search(value['expresion'], log_string) is not None:
                     if value['enabled']:
