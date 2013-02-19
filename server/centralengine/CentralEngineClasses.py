@@ -1224,6 +1224,14 @@ class CentralEngine(_cptools.XMLRPCController):
         if not self.project.panicDetectRegularExpressions.has_key(user):
             return status
 
+        # verify if for current suite Panic Detect is enabled
+        suiteID = self.getEpVariable(user, epname, 'curent_suite')
+        enabled = self.getSuiteVariable(user, epname, suiteID, 'pd')
+        if enabled.lower() == 'false':
+            status = True
+
+            return status
+
         for key, value in self.project.panicDetectRegularExpressions[user].iteritems():
             try:
                 if re.search(value['expresion'], log_string) is not None:
