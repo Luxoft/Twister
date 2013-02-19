@@ -1060,11 +1060,11 @@ class Project:
         """ Panic Detect mechanism
         valid commands: list, add, update, remove regular expression;
 
-        list command: {'command': 'list'}
-        add command: {'command': 'add', 'data': "{'expression': 'reg_exp_string'}"}
-        update command: {'command': 'update', 'data': "{'id': 'reg_exp_id',
+        list command: args = {'command': 'list'}
+        add command: args = {'command': 'add', 'data': "{'expression': 'reg_exp_string'}"}
+        update command: args = {'command': 'update', 'data': "{'id': 'reg_exp_id',
                                     expression': 'reg_exp_modified_string'}"}
-        remove command:  {'command': 'remove', 'data': 'reg_exp_id'}
+        remove command:  args = {'command': 'remove', 'data': 'reg_exp_id'}
         """
 
         panicDetectCommands = {
