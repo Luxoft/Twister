@@ -273,6 +273,8 @@ if __name__=='__main__':
         tStats = proxy.getFileStatusAll(userName, globEpName, suite_id).split(',')
         # File list for current Suite
         tList = proxy.getSuiteFiles(userName, globEpName, suite_id)
+        # Set suite = current suite
+        proxy.setEpVariable(userName, globEpName, 'current_suite', suite_id)
 
         if not tList:
             print('TC warning: Nothing to do in suite `%s`!\n' % suite_str)
