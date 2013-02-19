@@ -118,12 +118,16 @@ class TCRunTcl:
         After executing a TCL statement, the last value will be used
         as return value.
         '''
-        #
+
         def logMessage(logType, logMessage):
             globs['proxy'].logMessage(globs['userName'], logType, logMessage)
 
+        def setGlobal(variable, value):
+            globs['proxy'].setGlobalVariable(globs['userName'], variable, value)
+
         # Inject Log Message function
         self.tcl.createcommand('logMessage', logMessage)
+        self.tcl.createcommand('setGlobal',  setGlobal)
 
         gparam = []
         [gparam.extend([k, v]) for k, v in flatten(globs['gparam']).items()]
@@ -254,7 +258,11 @@ class TCRunPython:
         def logMsg(logType, logMessage):
             globs['proxy'].logMessage(globs['userName'], logType, logMessage)
 
-        globs_copy['logMsg']     = logMsg
+        def setGlobal(variable, value):
+            globs['proxy'].setGlobalVariable(globs['userName'], variable, value)
+
+        globs_copy['logMsg']    = logMsg
+        globs_copy['setGlobal'] = setGlobal
 
         globEpName = globs_copy['EP']
         to_execute = str_to_execute.data

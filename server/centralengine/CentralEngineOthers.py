@@ -116,14 +116,12 @@ class Project:
         self.eml_lock = thread.allocate_lock()  # E-mail lock
         self.db_lock  = thread.allocate_lock()  # Database lock
 
-        ## Panic Detect __init__ ##
-        # load config for current user
+        # Panic Detect, load config for current user
         self.panicDetectConfigPath = TWISTER_PATH + '/common/PanicDetectData.json'
         if not os.path.exists(self.panicDetectConfigPath):
-            with self.int_lock:
-                config = open(self.panicDetectConfigPath, 'wb')
-                config.write('{}')
-                config.close()
+            config = open(self.panicDetectConfigPath, 'wb')
+            config.write('{}')
+            config.close()
         config = open(self.panicDetectConfigPath, 'rb')
         self.panicDetectRegularExpressions = json.load(config)
         config.close()
@@ -650,6 +648,26 @@ class Project:
 
         self._dump()
         return True
+
+
+    def setPersistentSuite(self, user, suite, info={}, order=-1):
+        """
+        Create a new suite, or overwrite a suite that already exists.\n
+        This function writes in TestSuites.XML file.
+        """
+        r = self.changeUser(user)
+        if not r: return False
+        pass
+
+
+    def setPersistentFile(self, user, fname, suite, info={}, order=-1):
+        """
+        Create a new file in a suite, or overwrite a file that already exists.\n
+        This function writes in TestSuites.XML file.
+        """
+        r = self.changeUser(user)
+        if not r: return False
+        pass
 
 
 # # #

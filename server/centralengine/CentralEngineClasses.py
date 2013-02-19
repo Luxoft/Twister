@@ -385,21 +385,25 @@ class CentralEngine(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
-    def setPersistentSuite(self, user, suite, order=0, info={}):
+    def setPersistentSuite(self, user, suite, info={}, order=-1):
         """
         Create a new suite, or overwrite a suite that already exists.\n
-        This function writes in TestSuites.XML file.
+        This function writes in TestSuites.XML file.\n
+        The changes will be available at the next START.
         """
-        pass
+
+        return setPersistentSuite(user, suite, info, order)
 
 
     @cherrypy.expose
-    def setPersistentFile(self, user, file, suite, order=0, info={}):
+    def setPersistentFile(self, user, fname, suite, info={}, order=-1):
         """
         Create a new file in a suite, or overwrite a file that already exists.\n
-        This function writes in TestSuites.XML file.
+        This function writes in TestSuites.XML file.\n
+        The changes will be available at the next START.
         """
-        pass
+
+        return setPersistentFile(user, fname, suite, info, order)
 
 
 # --------------------------------------------------------------------------------------------------
@@ -1138,7 +1142,7 @@ class CentralEngine(_cptools.XMLRPCController):
         del parser, plugins
 
         # Calling Panic Detect
-        self.project.panicDetectLogParse(user, epname, log_string)
+        self.panicDetectLogParse(user, epname, log_string)
 
         f.write(log_string)
         f.close()
