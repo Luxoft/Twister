@@ -418,6 +418,16 @@ class Project:
         return self.parsers[user].setSettingsValue(cfg_path, key, value)
 
 
+    def delSettingsKey(self, user, config, key, del_all=False):
+        """
+        Del a key from the config of a user.
+        """
+        r = self.changeUser(user)
+        if not r: return False
+        cfg_path = self._getConfigPath(user, config)
+        return self.parsers[user].delSettingsKey(cfg_path, key, del_all)
+
+
 # # #
 
 
@@ -650,24 +660,51 @@ class Project:
         return True
 
 
+# # #
+
+
     def setPersistentSuite(self, user, suite, info={}, order=-1):
         """
-        Create a new suite, or overwrite a suite that already exists.\n
         This function writes in TestSuites.XML file.
         """
         r = self.changeUser(user)
         if not r: return False
-        pass
+        cfg_path = self._getConfigPath(user, 'project')
+        logDebug('Create Suite: Will create suite `{0}` for user `{1}` project.'.format(suite, user))
+        return self.parsers[user].setPersistentSuite(cfg_path, suite, info, order)
 
 
-    def setPersistentFile(self, user, fname, suite, info={}, order=-1):
+    def delPersistentSuite(self, user, suite):
         """
-        Create a new file in a suite, or overwrite a file that already exists.\n
         This function writes in TestSuites.XML file.
         """
         r = self.changeUser(user)
         if not r: return False
-        pass
+        xpath_suite = '/Root/TestSuite[tsName="{0}"]'.format(suite)
+        logDebug('Del Suite: Will remove suite `{0}` from user `{1}` project.'.format(suite, user))
+        return self.delSettingsKey(user, 'project', xpath_suite)
+
+
+    def setPersistentFile(self, user, suite, fname, info={}, order=-1):
+        """
+        This function writes in TestSuites.XML file.
+        """
+        r = self.changeUser(user)
+        if not r: return False
+        cfg_path = self._getConfigPath(user, 'project')
+        logDebug('Create File: Will create file `{0} - {1}` for user `{2}` project.'.format(suite, fname, user))
+        return self.parsers[user].setPersistentFile(cfg_path, suite, fname, info, order)
+
+
+    def delPersistentFile(self, user, suite, fname):
+        """
+        This function writes in TestSuites.XML file.
+        """
+        r = self.changeUser(user)
+        if not r: return False
+        xpath_file = '/Root/TestSuite[tsName="{0}"]/TestCase[tcName="{1}"]'.format(suite, fname)
+        logDebug('Del File: Will remove file `{0} - {1}` from user `{2}` project.'.format(suite, fname, user))
+        return self.delSettingsKey(user, 'project', xpath_file)
 
 
 # # #

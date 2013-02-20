@@ -252,10 +252,11 @@ class TSCParser:
         activeEPs = [ep.strip() for ep in activeEPs if ep.strip()]
         return activeEPs
 
+# # #
 
     def listSettings(self, xmlFile, xFilter=''):
         """
-        High level functions.
+        High level function for listing all settings from a Twister XML config file.
         """
         if not os.path.isfile(xmlFile):
             print('Parse settings error! File path `{0}` does not exist!'.format(xmlFile))
@@ -269,7 +270,7 @@ class TSCParser:
 
     def getSettingsValue(self, xmlFile, key):
         """
-        High level functions.
+        High level function for getting a value from a Twister XML config file.
         """
         if not os.path.isfile(xmlFile):
             print('Parse settings error! File path `{0}` does not exist!'.format(xmlFile))
@@ -289,7 +290,7 @@ class TSCParser:
 
     def setSettingsValue(self, xmlFile, key, value):
         """
-        High level functions.
+        High level function for setting a value in a Twister XML config file.
         """
         if not os.path.isfile(xmlFile):
             print('Parse settings error! File path `{0}` does not exist!'.format(xmlFile))
@@ -304,13 +305,178 @@ class TSCParser:
             value = str(value)
 
         xmlSoup = etree.parse(xmlFile)
-        if xmlSoup.xpath(key):
-            xmlSoup.xpath(key)[0].text = value
+        xml_key = xmlSoup.xpath(key)
+
+        # If the key is found, update it
+        if xml_key:
+            xml_key[0].text = value
             xmlSoup.write(xmlFile)
             return True
         else:
             return False
 
+
+    def delSettingsKey(self, xmlFile, key, index=0):
+        """
+        High level function for deleting a value from a Twister XML config file.
+        If the `index` is specified and the `key` returns more values, only the
+        index-th value is deleted.
+        """
+        if not os.path.isfile(xmlFile):
+            print('Parse settings error! File path `{0}` does not exist!'.format(xmlFile))
+            return False
+        # The key must be string
+        if not (isinstance(key, str) or isinstance(key, unicode)):
+            return False
+        # The index must be integer
+        if not isinstance(index, int):
+            return False
+        # The key must not be Null
+        if not key:
+            return False
+        else:
+            key = str(key)
+
+        xmlSoup = etree.parse(xmlFile)
+        xml_key = xmlSoup.xpath(key)
+
+        if not xml_key:
+            return False
+
+        # Use the index-th occurence, or, if the index is wrong, exit
+        try: xml_key = xml_key[index]
+        except: return False
+
+        xml_parent = xml_key.getparent()
+        xml_parent.remove(xml_key)
+
+        xmlSoup.write(xmlFile)
+        return True
+
+
+    def setPersistentSuite(self, xmlFile, suite, info={}, order=-1):
+        """
+        This function writes in TestSuites.XML file.
+        """
+        if not os.path.isfile(xmlFile):
+            print('Parse settings error! File path `{0}` does not exist!'.format(xmlFile))
+            return False
+        if not suite:
+            return False
+        else:
+            suite = str(suite)
+        try: order = int(order)
+        except: return False
+
+        # Root element from Project XML
+        xmlSoup = etree.parse(xmlFile)
+        xml_root = xmlSoup.getroot()
+        suites_index = [xml_root.index(s) for s in xml_root.xpath('/Root/TestSuite')]
+        if not suites_index: suites_index = [0]
+
+        if order == 0:
+            # Add before the first suite
+            insert_pos = suites_index[order]
+        elif order > len(suites_index):
+            # Add after the last suite
+            insert_pos = suites_index[-1] + 1
+        elif abs(order) > len(suites_index):
+            # If the negative pos is bigger than the index, add before the first suite
+            insert_pos = suites_index[0]
+        else:
+            # If another position, add there
+            insert_pos = suites_index[order-1] + 1
+
+        # Suite XML object
+        suite_xml = etree.Element('TestSuite')
+        suite_xml.text = '\n' ; suite_xml.tail = '\n\n'
+        tsName = etree.SubElement(suite_xml, 'tsName')
+        tsName.text = suite ; tsName.tail = '\n'
+        epName = etree.SubElement(suite_xml, 'EpId')
+        epName.text = info.get('ep', ' ')
+        epName.tail = '\n'
+        try: del info['ep']
+        except: pass
+
+        for k, v in info.iteritems():
+            tag = etree.SubElement(suite_xml, 'UserDefined')
+            tag.text = '\n' ; tag.tail = '\n'
+            prop = etree.SubElement(tag, 'propName')
+            prop.text = str(k) ; prop.tail = '\n'
+            val  = etree.SubElement(tag, 'propValue')
+            val.text = str(v) ; val.tail = '\n'
+
+        # Insert the new suite and save
+        xml_root.insert(insert_pos, suite_xml)
+        xmlSoup.write(xmlFile)
+        return True
+
+
+    def setPersistentFile(self, xmlFile, suite, fname, info={}, order=-1):
+        """
+        This function writes in TestSuites.XML file.
+        """
+        if not os.path.isfile(xmlFile):
+            print('Parse settings error! File path `{0}` does not exist!'.format(xmlFile))
+            return False
+        if not suite:
+            return False
+        else:
+            suite = str(suite)
+        if not fname:
+            return False
+        else:
+            fname = str(fname)
+        try: order = int(order)
+        except: return False
+
+        # Root element from Project XML
+        xmlSoup = etree.parse(xmlFile)
+        xml_root = xmlSoup.getroot()
+
+        suite_xml = xml_root.xpath('/Root/TestSuite[tsName="{0}"]'.format(suite))
+        if not suite_xml: return False
+        else: suite_xml = suite_xml[0]
+
+        files_index = [ suite_xml.index(s) for s in \
+            suite_xml.xpath('/Root/TestSuite[tsName="{0}"]/TestCase'.format(suite)) ]
+
+        if order == 0:
+            # Add before the first file
+            insert_pos = 2
+        elif abs(order) > len(files_index):
+            # If the negative pos is bigger than the index, add before the first file
+            insert_pos = 2
+        elif order > len(files_index):
+            # Add after the last file
+            if not files_index: insert_pos = 2
+            else: insert_pos = files_index[-1] + 1
+        else:
+            # If another position, add there
+            if order > 0: order -= 1
+            if not files_index: insert_pos = 2
+            else: insert_pos = files_index[order] + 1
+
+        # File XML object
+        file_xml = etree.Element('TestCase')
+        file_xml.text = '\n' ; file_xml.tail = '\n'
+        tcName = etree.SubElement(file_xml, 'tcName')
+        tcName.text = fname ; tcName.tail = '\n'
+
+        for k, v in info.iteritems():
+            tag = etree.SubElement(file_xml, 'Property')
+            tag.text = '\n' ; tag.tail = '\n'
+            prop = etree.SubElement(tag, 'propName')
+            prop.text = str(k) ; prop.tail = '\n'
+            val  = etree.SubElement(tag, 'propValue')
+            val.text = str(v) ; val.tail = '\n'
+
+        # Insert the new file and save
+        suite_xml.insert(insert_pos, file_xml)
+        xmlSoup.write(xmlFile)
+        return True
+
+# # #
 
     def _fixLogType(self, logType):
         """
@@ -414,6 +580,7 @@ class TSCParser:
         res = OrderedDict([ ['name', suite_soup.xpath('tsName/text()')[0]] ])
         res['ep'] = epname
         res['tb'] = ''
+        res['pd'] = ''
         res['libraries'] = ''
 
         if suite_soup.xpath('libraries/text()'):
@@ -421,6 +588,9 @@ class TSCParser:
 
         if suite_soup.xpath('TbName/text()'):
             res['tb'] = suite_soup.xpath('TbName')[0].text
+
+        if suite_soup.xpath('PanicDetect/text()'):
+            res['pd'] = suite_soup.xpath('PanicDetect')[0].text
 
         prop_keys = suite_soup.xpath('UserDefined/propName')
         prop_vals = suite_soup.xpath('UserDefined/propValue')
