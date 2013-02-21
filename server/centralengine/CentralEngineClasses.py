@@ -1179,7 +1179,7 @@ class CentralEngine(_cptools.XMLRPCController):
         f.close()
 
         # Calling Panic Detect
-        self.panicDetectLogParse(user, epname, log_string)
+        #self.panicDetectLogParse(user, epname, log_string)
         return True
 
 
