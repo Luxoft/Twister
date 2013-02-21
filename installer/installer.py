@@ -337,7 +337,7 @@ if TO_INSTALL == 'server':
                 elif platform.dist()[0] == 'fedora':
                     tcr_proc = subprocess.Popen(['yum', '-y', 'install', 'python-mysql'], cwd=pkg_path)
                 else:
-                    tcr_proc = subprocess.Popen(['apt-get', 'install', 'python-mysqldb', '--yes'], cwd=pkg_path)
+                    tcr_proc = subprocess.Popen(['apt-get', 'install', 'python-mysqldb', '-y', '--force-yes'], cwd=pkg_path)
 
                 try: tcr_proc.wait()
                 except: print('Error while installing `MySQL-python`!')
@@ -345,7 +345,7 @@ if TO_INSTALL == 'server':
             elif lib_name == 'LXML-Python':
                 print('\n~~~ Installing `%s` from System repositories ~~~\n' % lib_name)
 
-                tcr_proc = subprocess.Popen(['apt-get', 'install', 'python-lxml', '--yes'], cwd=pkg_path)
+                tcr_proc = subprocess.Popen(['apt-get', 'install', 'python-lxml', '-y', '--force-yes'], cwd=pkg_path)
 
                 try: tcr_proc.wait()
                 except: print('Error while installing `Python LXML`!')

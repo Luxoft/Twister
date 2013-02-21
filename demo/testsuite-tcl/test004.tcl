@@ -13,19 +13,19 @@ proc T-004 {} {
 
     # Testing Expect
     set timeout 100
-    spawn ssh user@11.126.32.9
+    spawn ssh user@localhost
 
     #expect "Are you sure you want to continue connecting (yes/no)?"
     expect "*?assword:*"
     send "password\n"
 
-    expect "user@tsc-server"
+    expect "user@localhost"
     send "cd twister\n"
 
-    expect "user@tsc-server"
+    expect "user@localhost"
     send "ls -la\n"
 
-    expect "user@tsc-server"
+    expect "user@localhost"
     send "exit\n"
 
     logMessage logDebug "Message from test $testName"

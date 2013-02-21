@@ -21,7 +21,7 @@ proc T-002 {} {
         after 500
     }
 
-    # Python function:
+    # Call a Python function:
     logMessage logDebug "Tcl TEST: working even more ...\n"
     after 100
 

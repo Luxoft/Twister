@@ -20,20 +20,20 @@ def test006():
 	print 'Query Root...', getResource('/')
 	print
 
-	print 'Device 1::', getResource('/dev1')
+	print 'Device 1::', getResource('/tb1')
 	print 'Device 1::', getResource(101)
 	print
 
-	print 'Meta 1::', getResource('dev3/mod12:meta1')
-	print 'Meta 2::', getResource('dev3/mod12:meta2')
+	print 'Meta 1::', getResource('tb1/module1:meta1')
+	print 'Meta 2::', getResource('tb1/module1:meta2')
 	print
 
-	id1 = setResource('test1', 'dev3/mod12', {'extra-info': 'yes'})
+	id1 = setResource('test1', 'tb3/module_x', {'extra-info': 'yes'})
 	print 'Create resource::', id1
 	print 'Check info::', getResource(id1)
 	print
 
-	print 'Update resource::', setResource('test1', 'dev3/mod12', {'more-info': 'y'})
+	print 'Update resource::', setResource('test1', 'dev3/module_x', {'more-info': 'y'})
 	print 'Check status::', getResource(id1)
 	print
 

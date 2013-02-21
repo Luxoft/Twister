@@ -1,10 +1,10 @@
 <?xml version="1.0"?>
 <root>
 <db_config>
-	<server>11.126.32.81</server>
+	<server>localhost</server>
 	<database>phoenix</database>
-	<user>usr</user>
-	<password>pwd</password>
+	<user>user</user>
+	<password>password</password>
 </db_config>
 
 <twister_user_defined>
@@ -72,7 +72,7 @@
 		ORDER BY suite_id DESC LIMIT 1) t1 ) AND results.suite_id = suite.suite_id "
 		/>
 
-	<redirect ID="goto PHP MyAdmin" Path="http://11.126.32.81/phpmyadmin" />
+	<redirect ID="goto PhpMyAdmin" Path="http://localhost/phpmyadmin/" />
 
 </reports_section>
 </twister_user_defined>

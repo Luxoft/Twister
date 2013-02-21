@@ -15,26 +15,26 @@ def test005():
 	error_code = "PASS"
 
 	print '=== Connecting to SSH ==='
-	child = pexpect.spawn('ssh user@11.126.32.9')
+	child = pexpect.spawn('ssh user@localhost')
 
 	child.expect('.+assword:', timeout=60)
 	child.sendline("password")
 	print child.before[:-4]
 	time.sleep(1)
 
-	child.expect('user@tsc-server:', timeout=10)
+	child.expect('user@localhost:', timeout=5)
 	child.sendline("cd twister")
 	print child.before[:-4]
 	print child.after
 	time.sleep(1)
 
-	child.expect('user@tsc-server:', timeout=10)
+	child.expect('user@localhost:', timeout=5)
 	child.sendline("ls -la")
 	print child.before[:-4]
 	print child.after
 	time.sleep(1)
 
-	child.expect('user@tsc-server:', timeout=10)
+	child.expect('user@localhost:', timeout=5)
 	child.sendline("exit")
 	print child.before[:-4]
 	print child.after
