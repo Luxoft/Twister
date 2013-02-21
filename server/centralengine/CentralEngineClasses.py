@@ -1290,7 +1290,7 @@ class CentralEngine(_cptools.XMLRPCController):
         _data = literal_eval(data)
 
         args = {
-            'command' = command,
+            'command': command,
             'data': data,
         }
 
