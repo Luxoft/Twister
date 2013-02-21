@@ -56,7 +56,7 @@ if not TWISTER_PATH:
     exit(1)
 sys.path.append(TWISTER_PATH)
 
-
+from ast import literal_eval
 from cherrypy import _cptools
 
 from CentralEngineOthers import Project
@@ -1247,10 +1247,18 @@ class CentralEngine(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
-    def panicDetectConfig(self, user, args):
+    def panicDetectConfig(self, user, command, data=None):
         """
         Configure Panic Detect.
         """
+
+        data = {k: v[0] if isinstance(v, list) else v for k,v in data.iteritems()}
+        _data = literal_eval(data)
+
+        args = {
+            'command' = command,
+            'data': data,
+        }
 
         return self.project.panicDetectConfig(user, args)
 

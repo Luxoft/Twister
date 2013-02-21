@@ -75,7 +75,6 @@ import MySQLdb
 
 
 from string import Template
-from ast import literal_eval
 from collections import OrderedDict
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -1061,9 +1060,9 @@ class Project:
         valid commands: list, add, update, remove regular expression;
 
         list command: args = {'command': 'list'}
-        add command: args = {'command': 'add', 'data': "{'expression': 'reg_exp_string'}"}
-        update command: args = {'command': 'update', 'data': "{'id': 'reg_exp_id',
-                                    expression': 'reg_exp_modified_string'}"}
+        add command: args = {'command': 'add', 'data': {'expression': 'reg_exp_string'}}
+        update command: args = {'command': 'update', 'data': {'id': 'reg_exp_id',
+                                    expression': 'reg_exp_modified_string'}}
         remove command:  args = {'command': 'remove', 'data': 'reg_exp_id'}
         """
 
@@ -1075,8 +1074,6 @@ class Project:
                 'add', 'update', 'remove',
             ]
         }
-
-        args = {k: v[0] if isinstance(v, list) else v for k,v in args.iteritems()}
 
         # response structure
         response = {
@@ -1115,7 +1112,7 @@ class Project:
             response['type'] = 'add_regular_expression reply'
 
             try:
-                _args = literal_eval(args['data'])
+                _args = args['data']
                 regExpData = {}
 
                 regExpData.update([('expression', _args['expression']), ])
@@ -1138,11 +1135,13 @@ class Project:
                     json.dump(self.panicDetectRegularExpressions, config)
                     config.close()
 
-                response['data'] = regExpID
+                #response['data'] = regExpID
+                response = regExpID
                 logDebug('Panic Detect: added regular expression for user: {u}'.format(u=user))
             except Exception, e:
-                response['status']['success'] = False
-                response['status']['message'] = '{er}'.format(er=e)
+                #response['status']['success'] = False
+                #response['status']['message'] = '{er}'.format(er=e)
+                response = False
 
 
         # update_regular_expression
@@ -1150,7 +1149,7 @@ class Project:
             response['type'] = 'update_regular_expression reply'
 
             try:
-                _args = literal_eval(args['data'])
+                _args = args['data']
                 regExpID = _args.pop('id')
                 regExpData = self.panicDetectRegularExpressions[user].pop(regExpID)
 
@@ -1168,11 +1167,13 @@ class Project:
                     json.dump(self.panicDetectRegularExpressions, config)
                     config.close()
 
-                response['data'] = regExpID
+                #response['data'] = regExpID
+                response = True
                 logDebug('Panic Detect: updated regular expression for user: {u}'.format(u=user))
             except Exception, e:
-                response['status']['success'] = False
-                response['status']['message'] = '{er}'.format(er=e)
+                #response['status']['success'] = False
+                #response['status']['message'] = '{er}'.format(er=e)
+                response = False
 
         # remove_regular_expression
         elif args['command'] == 'remove':
@@ -1188,11 +1189,13 @@ class Project:
                     json.dump(self.panicDetectRegularExpressions, config)
                     config.close()
 
-                response['data'] = regExpID
+                #response['data'] = regExpID
+                response = True
                 logDebug('Panic Detect: removed regular expresion for user: {u}'.format(u=user))
             except Exception, e:
-                response['status']['success'] = False
-                response['status']['message'] = '{er}'.format(er=e)
+                #response['status']['success'] = False
+                #response['status']['message'] = '{er}'.format(er=e)
+                response = False
 
         return response
 
