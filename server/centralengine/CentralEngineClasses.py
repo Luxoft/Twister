@@ -109,6 +109,14 @@ class CentralEngine(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
+    def getLogsPath(self, user):
+        '''
+        Returns the path to Logs files.
+        '''
+        return self.project.getUserInfo(user, 'logs_path')
+
+
+    @cherrypy.expose
     def serviceManagerCommand(self, command, name='', args={}):
         """
         Send commands to Service Manager.\n
@@ -219,6 +227,14 @@ class CentralEngine(_cptools.XMLRPCController):
         Set a value for a key in the config of a user.
         """
         return self.project.setSettingsValue(user, config, key, value)
+
+
+    @cherrypy.expose
+    def delSettingsKey(self, user, config, key, del_all=False):
+        """
+        Del a key from the config of a user.
+        """
+        return self.project.delSettingsKey(user, config, key, del_all)
 
 
 # --------------------------------------------------------------------------------------------------
@@ -387,23 +403,41 @@ class CentralEngine(_cptools.XMLRPCController):
     @cherrypy.expose
     def setPersistentSuite(self, user, suite, info={}, order=-1):
         """
-        Create a new suite, or overwrite a suite that already exists.\n
+        Create a new suite, using the INFO, at the position specified.\n
         This function writes in TestSuites.XML file.\n
         The changes will be available at the next START.
         """
-
-        return setPersistentSuite(user, suite, info, order)
+        return self.project.setPersistentSuite(user, suite, info, order)
 
 
     @cherrypy.expose
-    def setPersistentFile(self, user, fname, suite, info={}, order=-1):
+    def delPersistentSuite(self, user, suite):
         """
-        Create a new file in a suite, or overwrite a file that already exists.\n
+        Delete an XML suite, using a name ; if there are more suites with the same name,
+        only the first one is deleted.\n
+        This function writes in TestSuites.XML file.
+        """
+        return self.project.delPersistentSuite(user, suite)
+
+
+    @cherrypy.expose
+    def setPersistentFile(self, user, suite, fname, info={}, order=-1):
+        """
+        Create a new file in a suite, using the INFO, at the position specified.\n
         This function writes in TestSuites.XML file.\n
         The changes will be available at the next START.
         """
+        return self.project.setPersistentFile(user, suite, fname, info, order)
 
-        return setPersistentFile(user, fname, suite, info, order)
+
+    @cherrypy.expose
+    def delPersistentFile(self, user, suite, fname):
+        """
+        Delete an XML file from a suite, using a name ; if there are more files
+        with the same name, only the first one is deleted.\n
+        This function writes in TestSuites.XML file.
+        """
+        return self.project.delPersistentFile(user, suite, fname)
 
 
 # --------------------------------------------------------------------------------------------------
@@ -1141,11 +1175,11 @@ class CentralEngine(_cptools.XMLRPCController):
                 logWarning('Error on running plugin `%s onStop` - Exception: `%s`!' % (pname, str(e)))
         del parser, plugins
 
-        # Calling Panic Detect
-        self.panicDetectLogParse(user, epname, log_string)
-
         f.write(log_string)
         f.close()
+
+        # Calling Panic Detect
+        #self.panicDetectLogParse(user, epname, log_string)
         return True
 
 

@@ -74,7 +74,7 @@ class ServiceManager():
 
     def sendCommand(self, command, name='', args={}):
 
-        if command==SM_LIST or command=sm_command_map[SM_LIST]:
+        if command==SM_LIST or command==sm_command_map[SM_LIST]:
             return self.listServices()
 
         found = False
