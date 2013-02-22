@@ -1141,7 +1141,8 @@ class Project:
         elif args['command'] == 'list':
             response['type'] = 'list_regular_expressions reply'
 
-            response['data'] = json.dumps(self.panicDetectRegularExpressions)
+            #response['data'] = json.dumps(self.panicDetectRegularExpressions)
+            response = json.dumps(self.panicDetectRegularExpressions)
 
 
         # add_regular_expression
@@ -1178,7 +1179,7 @@ class Project:
             except Exception, e:
                 #response['status']['success'] = False
                 #response['status']['message'] = '{er}'.format(er=e)
-                response = False
+                response = str(e)
 
 
         # update_regular_expression
@@ -1210,7 +1211,7 @@ class Project:
             except Exception, e:
                 #response['status']['success'] = False
                 #response['status']['message'] = '{er}'.format(er=e)
-                response = False
+                response = str(e)
 
         # remove_regular_expression
         elif args['command'] == 'remove':
@@ -1232,7 +1233,7 @@ class Project:
             except Exception, e:
                 #response['status']['success'] = False
                 #response['status']['message'] = '{er}'.format(er=e)
-                response = False
+                response = str(e)
 
         return response
 

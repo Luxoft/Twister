@@ -56,7 +56,6 @@ if not TWISTER_PATH:
     exit(1)
 sys.path.append(TWISTER_PATH)
 
-from ast import literal_eval
 from cherrypy import _cptools
 
 from CentralEngineOthers import Project
@@ -1286,13 +1285,26 @@ class CentralEngine(_cptools.XMLRPCController):
         Configure Panic Detect.
         """
 
-        data = {k: v[0] if isinstance(v, list) else v for k,v in data.iteritems()}
-        _data = literal_eval(data)
+        # If argument is a string
+        if type(data) == type(str()):
+            try:
+                _data = urlparse.parse_qs(data)
+                if _data:
+                    data = {k: v[0] if isinstance(v, list) else v for k,v in _data.iteritems()}
+            except:
+                msg = 'CE ERROR: PD cannot parse data: {d}!'.format(d=data)
+                logError(msg)
+                return msg
 
-        args = {
-            'command': command,
-            'data': data,
-        }
+        if data:
+            args = {
+                'command': command,
+                'data': data,
+            }
+        else:
+            args = {
+                'command': command,
+            }
 
         return self.project.panicDetectConfig(user, args)
 
