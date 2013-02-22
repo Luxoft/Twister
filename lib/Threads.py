@@ -23,14 +23,12 @@
 # limitations under the License.
 
 '''
-This module contains Functions needed to communicate with Resource Allocator Server.
+This module contains Threading Functions.\n
+Use `tasks_append` to insert functions that take a long time to finish.\n
+Use `tasks_start` to spawn all the functions from the queue.
 '''
 
-import gevent
-from gevent import *
-
-from gevent import monkey
-monkey.patch_all()
+from threading import Thread
 
 #
 
@@ -38,33 +36,40 @@ tasks = []
 
 #
 
+class ThreadWithReturnValue(Thread):
+    def __init__(self, group=None, target=None, name=None, args=(), kwargs={}, Verbose=None):
+        Thread.__init__(self, group, target, name, args, kwargs, Verbose)
+        self.daemon = False
+        self._return = None
+
+    def run(self):
+        if self._Thread__target is not None:
+            self._return = self._Thread__target(*self._Thread__args, **self._Thread__kwargs)
+
+#
+
 def tasks_reset():
-    print 'Threads:: Reseting tasks...'
     global tasks
+    print 'Threads:: Reseting tasks...'
+    del tasks
     tasks = []
 
 #
 
 def tasks_append(func, *args, **kwargs):
-    if not callable(func):
-        print 'Threads:: Cannot append object `{0}`, because it\'s not a function!'.format(func)
-        return False
+    global tasks
     print 'Threads:: Appending function', func, args, kwargs
-    g = spawn(func, *args, **kwargs)
+    g = ThreadWithReturnValue(target=func, args=args, kwargs=kwargs)
     tasks.append(g)
     return True
 
 #
 
-def tcl_tasks_append(string):
-    # TODO ...
-    return True
-
-#
-
-def tasks_start():
+def tasks_start(timeout=None):
     global tasks
     print 'Threads:: Starting tasks...'
-    gevent.joinall(tasks)
+    [t.start() for t in tasks]
+    [t.join(timeout) for t in tasks]
+    result = [t._return for t in tasks]
     print 'Threads:: Finished tasks!'
-    return [t.get() for t in tasks]
+    return result
