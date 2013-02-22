@@ -1181,7 +1181,7 @@ class Project:
             except Exception, e:
                 #response['status']['success'] = False
                 #response['status']['message'] = '{er}'.format(er=e)
-                response = str(e)
+                response = 'error: {er}'.format(er=e)
 
 
         # update_regular_expression
@@ -1213,7 +1213,7 @@ class Project:
             except Exception, e:
                 #response['status']['success'] = False
                 #response['status']['message'] = '{er}'.format(er=e)
-                response = str(e)
+                response = 'error: {er}'.format(er=e)
 
         # remove_regular_expression
         elif args['command'] == 'remove':
@@ -1235,7 +1235,7 @@ class Project:
             except Exception, e:
                 #response['status']['success'] = False
                 #response['status']['message'] = '{er}'.format(er=e)
-                response = str(e)
+                response = 'error: {er}'.format(er=e)
 
         return response
 
