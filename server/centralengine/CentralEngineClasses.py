@@ -229,11 +229,11 @@ class CentralEngine(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
-    def delSettingsKey(self, user, config, key, del_all=False):
+    def delSettingsKey(self, user, config, key, index=0):
         """
         Del a key from the config of a user.
         """
-        return self.project.delSettingsKey(user, config, key, del_all)
+        return self.project.delSettingsKey(user, config, key, index)
 
 
 # --------------------------------------------------------------------------------------------------

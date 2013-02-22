@@ -414,17 +414,19 @@ class Project:
         r = self.changeUser(user)
         if not r: return False
         cfg_path = self._getConfigPath(user, config)
+        logDebug('Updating XML config `{0}`, `{1}` = `{2}`...'.format(config, key, value))
         return self.parsers[user].setSettingsValue(cfg_path, key, value)
 
 
-    def delSettingsKey(self, user, config, key, del_all=False):
+    def delSettingsKey(self, user, config, key, index=0):
         """
         Del a key from the config of a user.
         """
         r = self.changeUser(user)
         if not r: return False
         cfg_path = self._getConfigPath(user, config)
-        return self.parsers[user].delSettingsKey(cfg_path, key, del_all)
+        logDebug('Deleting XML config `{0}`, key `{1}`, index `{2}`...'.format(config, key, index))
+        return self.parsers[user].delSettingsKey(cfg_path, key, index)
 
 
 # # #

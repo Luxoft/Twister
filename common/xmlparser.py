@@ -372,20 +372,22 @@ class TSCParser:
         xmlSoup = etree.parse(xmlFile)
         xml_root = xmlSoup.getroot()
         suites_index = [xml_root.index(s) for s in xml_root.xpath('/Root/TestSuite')]
-        if not suites_index: suites_index = [0]
 
         if order == 0:
             # Add before the first suite
-            insert_pos = suites_index[order]
-        elif order > len(suites_index):
-            # Add after the last suite
-            insert_pos = suites_index[-1] + 1
+            insert_pos = 2
         elif abs(order) > len(suites_index):
             # If the negative pos is bigger than the index, add before the first suite
-            insert_pos = suites_index[0]
+            insert_pos = 2
+        elif order > len(suites_index):
+            # Add after the last suite
+            if not suites_index: insert_pos = 2
+            else: insert_pos = suites_index[-1] + 1
         else:
             # If another position, add there
-            insert_pos = suites_index[order-1] + 1
+            if order > 0: order -= 1
+            if not suites_index: insert_pos = 2
+            else: insert_pos = suites_index[order] + 1
 
         # Suite XML object
         suite_xml = etree.Element('TestSuite')
