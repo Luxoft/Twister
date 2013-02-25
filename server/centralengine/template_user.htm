@@ -172,7 +172,7 @@ function updateUserStats() {
 	var refresh_int = 1500; // update every X ms
 	var status_dict = ${exec_status};
 	//var updt_usr = function() {
-		$.getJSON("/rest/json_all",
+		$.getJSON("/rest/json_get_project",
 			// On success, execute the following :
 			function(jdata) {
 				$("span#user_status").text(status_dict[ jdata["${user}"]["status"] ]); // User status
@@ -234,7 +234,7 @@ function updateBrowseTree(ep_name) {
 	var tconfig = {
 		"plugins" : ["json_data", "themes", "ui", "types", "dnd"],
 		"initially_open" : ["root"],
-		"json_data" : { "ajax" : { "url" : "/rest/json_folders" } },
+		"json_data" : { "ajax" : { "url" : "/rest/json_folders/${user}/" } },
 		"themes" : { "theme" : "classic", "dots" : true, "icons" : true },
 		"types" : {
 			"valid_children" : ["default"],
@@ -249,7 +249,7 @@ function updateBrowseTree(ep_name) {
 
 function updateUserLogs(log_name) {
 	$.getJSON("/rest/json_logs/${user}/" + log_name,
-		// Update on success
+		// Update log on success
 		function(html) {
 			$("#" + log_name).html(html);
 	});
@@ -266,14 +266,23 @@ $(".refresh_logs").click(function() {
 	updateUserLogs( $(this).find("a").attr("data-target").replace("#", "") );
 });
 
-function treeSave() {
+function treeSave(elem) {
 	can_edit = false;
+	var ep_name = $(elem).parent().parent().parent().attr("id");
+	var json_repr = $("#t_" + ep_name).jstree("get_json", -1);
 	$(".tree_edit").show();
 	$(".can_edit_tree").remove();
-	alert("Should save... !");
+	$.ajax( "/rest/json_save_project/${user}/" + ep_name,
+			{
+				data : JSON.stringify(json_repr),
+				contentType : 'application/json',
+				type : 'POST'
+			} )
+		.done(function() { alert("Success!"); })
+		.fail(function() { alert("Error!"); });
 };
 
-function treeCancel() {
+function treeCancel(elem) {
 	can_edit = false;
 	$(".tree_edit").show();
 	$(".can_edit_tree").remove();
@@ -300,8 +309,8 @@ $(function () {
 		if (can_edit) {
 			$(".tree_edit").hide();
 			$(this).after('<span class="can_edit_tree">&nbsp;&nbsp;&nbsp;<b>Edit ... </b>&nbsp;&nbsp;' +
-				'<a onclick="treeSave()" style="cursor:pointer"><i class="icon-ok"></i></a>&nbsp;&nbsp;' +
-				'<a onclick="treeCancel()" style="cursor:pointer"><i class="icon-remove"></i></a></span>');
+				'<a onclick="treeSave(this)" style="cursor:pointer"><i class="icon-ok"></i></a>&nbsp;&nbsp;' +
+				'<a onclick="treeCancel(this)" style="cursor:pointer"><i class="icon-remove"></i></a></span>');
 		}
 		else {
 			$(".tree_edit").show();

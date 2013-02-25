@@ -320,7 +320,8 @@ class TSCParser:
         """
         High level function for deleting a value from a Twister XML config file.
         If the `index` is specified and the `key` returns more values, only the
-        index-th value is deleted.
+        index-th value is deleted; unless the `index` is -1, in this case, all
+        values are deleted.
         """
         if not os.path.isfile(xmlFile):
             print('Parse settings error! File path `{0}` does not exist!'.format(xmlFile))
@@ -343,12 +344,18 @@ class TSCParser:
         if not xml_key:
             return False
 
-        # Use the index-th occurence, or, if the index is wrong, exit
-        try: xml_key = xml_key[index]
-        except: return False
+        # For index -1, delete all matches
+        if index == -1:
+            for xml_v in xml_key:
+                xml_parent = xml_v.getparent()
+                xml_parent.remove(xml_v)
+        else:
+            # Use the index-th occurence, or, if the index is wrong, exit
+            try: xml_key = xml_key[index]
+            except: return False
 
-        xml_parent = xml_key.getparent()
-        xml_parent.remove(xml_key)
+            xml_parent = xml_key.getparent()
+            xml_parent.remove(xml_key)
 
         xmlSoup.write(xmlFile)
         return True

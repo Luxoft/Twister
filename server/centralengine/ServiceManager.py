@@ -68,6 +68,13 @@ class ServiceManager():
                 'config'  : 'of_config',
                 'pid'     : 0,
                 'logfile' : 'console.log'
+            },
+            {
+                'name'    : 'Scheduler',
+                'script'  : 'SchedulerServer.py',
+                'config'  : 'scheduler_cfg',
+                'pid'     : 0,
+                'logfile' : 'logs/Log'
             }
         ]
 
@@ -162,7 +169,9 @@ class ServiceManager():
                 service['name'], config_path))
             return False
 
-        with open(service['logfile'], 'wb') as out:
+        log_path = '{0}/server/{1}/{2}'.format(TWISTER_PATH, service['name'], service['logfile'])
+
+        with open(log_path, 'wb') as out:
             tprocess = subprocess.Popen(['python', script_path, config_path], stdout=out)
 
         service['pid'] = tprocess

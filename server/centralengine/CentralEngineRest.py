@@ -206,7 +206,7 @@ class CentralEngineRest:
 
 
     @cherrypy.expose
-    def json_all(self):
+    def json_get_project(self):
         if self.user_agent() == 'x':
             return 0
 
@@ -215,6 +215,31 @@ class CentralEngineRest:
         cherrypy.response.headers['Pragma']  = 'no-cache'
         cherrypy.response.headers['Expires'] = 0
         return open(TWISTER_PATH + '/common/project_users.json', 'r').read()
+
+
+    @cherrypy.expose
+    def json_save_project(self, user, epname):
+        if self.user_agent() == 'x':
+            return 0
+
+        cl = cherrypy.request.headers['Content-Length']
+        raw_data = cherrypy.request.body.read(int(cl))
+        json_data = json.loads(raw_data)
+        del cl, raw_data
+
+        # Delete all suites from root xml
+        self.project.delSettingsKey(user, 'project', '/Root/TestSuite', -1)
+        changes = 'Reset project file.\n'
+
+        for suite_data in json_data:
+            self.project.setPersistentSuite(user, suite_data['data'], {'ep':epname})
+            changes += 'Created suite: {0}.\n'.format(suite_data['data'])
+            for file_data in suite_data['children']:
+                changes += 'Created file: {0}.\n'.format(file_data['data'])
+                self.project.setPersistentFile(user, suite_data['data'], file_data['data'], {})
+            changes += '>.<\n'
+
+        logDebug(changes)
 
 
     @cherrypy.expose
@@ -245,12 +270,12 @@ class CentralEngineRest:
 
 
     @cherrypy.expose
-    def json_folders(self):
+    def json_folders(self, user):
         if self.user_agent() == 'x':
             return 0
 
         newdict = {'data':'root','children':[]}
-        dirpath = '/home/cro/twister'
+        dirpath = '/home/{0}/twister'.format(user)
         dirList(dirpath, newdict)
 
         return json.dumps(newdict)
