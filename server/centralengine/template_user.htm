@@ -53,12 +53,13 @@
 				<a href="http://${host}/rest/setUserStatus/${user}/0"><i class="icon-stop"></i> stop</a>&nbsp; |
 				<a href="http://${host}/rest/resetUser/${user}"><i class="icon-warning-sign"></i> reset!</a> )</small>
 			</td></tr>
-			<tr><td><b>Master config</b></td><td><span id="master_config">${master_config}</span></td></tr>
-			<tr><td><b>Project config</b></td><td><span id="proj_config">${proj_config}</span></td></tr>
-			<tr><td><b>DB config path</b></td><td><span id="db_config">${db_config}</span></td></tr>
-			<tr><td><b>E-mail config path</b></td><td><span id="eml_config">${eml_config}</span></td></tr>
+			<tr><td><b>Master config</b></td><td><span id="master_path"></span></td></tr>
+			<tr><td><b>Project config</b></td><td><span id="project_path"></span></td></tr>
+			<tr><td><b>DB config path</b></td><td><span id="db_config"></span></td></tr>
+			<tr><td><b>E-mail config path</b></td><td><span id="eml_config"></span></td></tr>
 			<tr><td><b>EPs file</b></td><td><span id="eps_file">${eps_file}</span></td></tr>
-			<tr><td><b>Logs path</b></td><td><span id="logs_path">${logs_path}</span></td></tr>
+			<tr><td><b>Logs path</b></td><td><span id="logs_path"></span></td></tr>
+			<tr><td><b>Tests path</b></td><td><span id="tests_path"></span></td></tr>
 		</table>
 	</div>
 	</div> <!-- End of tab-1 -->
@@ -103,16 +104,18 @@ for ep in eps:
 		<div class="tab-content">
 		% for ep in eps:
 			<div class="tab-pane${' active' if loop.first else ''}" id="${encode(ep)}">
-				<div class="well well-small" style="width:310px">
+				<div class="well well-small" style="width:350px">
 				Actions:&nbsp;<a href="/rest/setEpStatus/${user}/${ep}/2"><i class="icon-play"></i> </a>&nbsp;|
 				&nbsp; <a href="/rest/setEpStatus/${user}/${ep}/1"><i class="icon-pause"></i> </a>&nbsp;|
 				&nbsp; <a href="/rest/setEpStatus/${user}/${ep}/0"><i class="icon-stop"></i> </a>&nbsp;|
 				&nbsp; <a class="tree_edit" style="cursor:pointer"><i class="icon-pencil"></i> </a>
 				</div>
 				<!-- First file tree -->
-				<div id="t_${encode(ep)}" style="float:left;position:relative;background:transparent;height:auto"></div>
-				<!-- Second file tree
-				<div id="b_${encode(ep)}" style="float:left;position:relative;margin-left:50px;background:transparent;height:auto"></div>
+				<div id="t_${encode(ep)}" style="float:left;position:relative;background:transparent;height:auto;margin-bottom:20px"></div>
+				<!-- Second file tree -->
+				<div id="b_${encode(ep)}" style="float:left;position:relative;margin-left:50px;background:transparent;height:auto;visibility:hidden"></div>
+				<!-- Info about selected file or suite
+				<div id="i_${encode(ep)}" style="border:1px solid #aaf;margin-top:-40px;height:auto;clear:both;">&nbsp;</div>
 				-->
 			</div>
 		% endfor
@@ -176,19 +179,19 @@ function updateUserStats() {
 			// On success, execute the following :
 			function(jdata) {
 				$("span#user_status").text(status_dict[ jdata["${user}"]["status"] ]); // User status
-				$("span#master_config").text(jdata["${user}"]["config_path"]); // User master config
-				$("span#proj_config").text(jdata["${user}"]["tests_path"]);    // User project config
+				$("span#master_path").text(jdata["${user}"]["config_path"]);   // User master config
+				$("span#project_path").text(jdata["${user}"]["project_path"]); // User project config
 				$("span#db_config").text(jdata["${user}"]["db_config"]);       // Database config
 				$("span#eml_config").text(jdata["${user}"]["eml_config"]);     // E-mail config
-				$("span#eps_file").text(jdata["${user}"]["eps_file"]);         // EPs file
 				$("span#logs_path").text(jdata["${user}"]["logs_path"]);       // User logs
+				$("span#tests_path").text(jdata["${user}"]["tests_path"]);     // User logs
 			});
 		// setTimeout(updt_usr, refresh_int); // Thread
 	//}
 	// setTimeout(updt_usr, refresh_int); // Thread
 };
 
-function updateEpTree(ep_name) {
+function createTree(ep_name) {
 	// jsTree config
 	var tconfig = {
 		"plugins" : ["json_data", "themes", "ui", "types", "crrm", "hotkeys", "dnd"],
@@ -224,12 +227,14 @@ function updateEpTree(ep_name) {
 			}
 		}
 	};
-	$("#t_" + ep_name).jstree(tconfig).bind("loaded.jstree", function (e, data) {
+	$("#t_" + ep_name).jstree(tconfig)
+	.bind("loaded.jstree", function (e, data) {
 		data.inst.open_all();
+		console.log("Done opening all!")
 	});
 };
 
-function updateBrowseTree(ep_name) {
+function createFileTree(ep_name) {
 	// jsTree config
 	var tconfig = {
 		"plugins" : ["json_data", "themes", "ui", "types", "dnd"],
@@ -258,8 +263,8 @@ function updateUserLogs(log_name) {
 // Refresh eps on tab click
 $(".refresh_eps").click(function() {
 	var ep_name = $(this).find("a").attr("data-target").replace("#", "");
-	updateEpTree( ep_name );
-	updateBrowseTree( ep_name );
+	createTree( ep_name );
+	createFileTree( ep_name );
 });
 // Refresh logs on tab click
 $(".refresh_logs").click(function() {
@@ -271,6 +276,7 @@ function treeSave(elem) {
 	var ep_name = $(elem).parent().parent().parent().attr("id");
 	var json_repr = $("#t_" + ep_name).jstree("get_json", -1);
 	$(".tree_edit").show();
+	$("#b_" + ep_name).css('visibility', 'hidden');
 	$(".can_edit_tree").remove();
 	$.ajax( "/rest/json_save_project/${user}/" + ep_name,
 			{
@@ -278,14 +284,34 @@ function treeSave(elem) {
 				contentType : 'application/json',
 				type : 'POST'
 			} )
-		.done(function() { alert("Success!"); })
-		.fail(function() { alert("Error!"); });
+		.done(function() {
+			$("#" + ep_name).parent().after('<span id="saving_project" style="float:left;position:relative;">' +
+				'<br>Project saved.<br>You must START or RESET before you can see the changes.</span>');
+			$("#saving_project").fadeToggle(2500, "linear", function() {$("#saving_project").remove()});
+		})
+		.fail(function() {
+			$("#" + ep_name).parent().after('<span id="saving_project" style="float:left;position:relative;">' +
+				'<br>Project cannot be saved !</span>');
+			$("#saving_project").fadeToggle(2500, "linear", function() {$("#saving_project").remove()});
+		});
 };
-
 function treeCancel(elem) {
 	can_edit = false;
+	var ep_name = $(elem).parent().parent().parent().attr("id");
 	$(".tree_edit").show();
+	$("#b_" + ep_name).css('visibility', 'hidden');
 	$(".can_edit_tree").remove();
+	// Restore all tree, before it was changed
+	$("#t_" + ep_name).jstree("refresh");
+};
+
+function treeCreate(elem) {
+	var ep_name = $(elem).parent().parent().parent().attr("id");
+	$("#t_" + ep_name).jstree("create", "last");
+};
+function treeRemove(elem) {
+	var ep_name = $(elem).parent().parent().parent().attr("id");
+	$("#t_" + ep_name).jstree("remove");
 };
 
 // Run this on page load
@@ -301,19 +327,24 @@ $(function () {
 	$(".refresh_eps.active").click();
 	// Update first user log
 	$(".refresh_logs.active").click();
+
 	// Toggle edit mode
 	$(".tree_edit").click(function () {
 		can_edit = !can_edit;
 		var ep_name = $(this).parent().parent().attr("id");
-		console.log( ep_name );
 		if (can_edit) {
 			$(".tree_edit").hide();
+			$("#b_" + ep_name).css('visibility', 'visible');
 			$(this).after('<span class="can_edit_tree">&nbsp;&nbsp;&nbsp;<b>Edit ... </b>&nbsp;&nbsp;' +
-				'<a onclick="treeSave(this)" style="cursor:pointer"><i class="icon-ok"></i></a>&nbsp;&nbsp;' +
-				'<a onclick="treeCancel(this)" style="cursor:pointer"><i class="icon-remove"></i></a></span>');
+				'<a onclick="treeSave(this)" style="cursor:pointer" title="Save"><i class="icon-ok"></i></a>&nbsp;&nbsp;' +
+				'<a onclick="treeCancel(this)" style="cursor:pointer" title="Cancel"><i class="icon-remove"></i></a> | ' +
+				'<a onclick="treeCreate(this)" style="cursor:pointer"><i class="icon-folder-open" title="Create suite"></i></a>&nbsp;&nbsp;' +
+				'<a onclick="treeRemove(this)" style="cursor:pointer"><i class="icon-trash" title="Remove suite"></i></a>&nbsp;&nbsp;' +
+				'</span>');
 		}
 		else {
 			$(".tree_edit").show();
+			$("#b_" + ep_name).css('visibility', 'hidden');
 			$(".can_edit_tree").remove();
 		}
 	});

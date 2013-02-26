@@ -180,7 +180,8 @@ class Project:
 
         # Add framework config info to default user
         self.users[user]['config_path'] = base_config
-        self.users[user]['tests_path'] = files_config
+        self.users[user]['project_path'] = files_config
+        self.users[user]['tests_path'] = project_globals['TestsPath']
         self.users[user]['logs_path'] = project_globals['LogsPath']
         self.users[user]['log_types'] = {}
 
@@ -292,7 +293,7 @@ class Project:
         if not base_config:
             base_config = self.users[user]['config_path']
         if not files_config:
-            files_config = self.users[user]['tests_path']
+            files_config = self.users[user]['project_path']
 
         logDebug('Project: RESET configuration for user `{0}`, using config files `{1}` and `{2}`.'.format(
             user, base_config, files_config))
@@ -313,7 +314,8 @@ class Project:
 
         # Add framework config info to default user
         self.users[user]['config_path'] = base_config
-        self.users[user]['tests_path'] = files_config
+        self.users[user]['project_path'] = files_config
+        self.users[user]['tests_path'] = project_globals['TestsPath']
         self.users[user]['logs_path'] = project_globals['LogsPath']
         self.users[user]['log_types'] = {}
 
@@ -371,7 +373,7 @@ class Project:
             return self.users[user]['config_path']
 
         elif config in ['project', 'testsuites']:
-            return self.users[user]['tests_path']
+            return self.users[user]['project_path']
 
         elif config in ['db', 'database']:
             return self.users[user]['db_config']

@@ -38,6 +38,8 @@ sys.path.append(TWISTER_PATH)
 from lxml import etree
 from plugins import BasePlugin
 
+from common.tsclogging import *
+
 __all__ = ['TSCParser', 'DBParser', 'PluginParser']
 
 
@@ -145,6 +147,7 @@ class TSCParser:
         # Reset globals
         self.project_globals = OrderedDict([
             ('EpsFile', ''),
+            ('TestsPath', ''),
             ('DbConfig', ''),
             ('EmailConfig', ''),
             ('LogsPath', ''),
@@ -160,9 +163,11 @@ class TSCParser:
         # From FWM Config
         if self.xmlDict.xpath('EPIdsFile/text()'):
             path = self.xmlDict.xpath('EPIdsFile')[0].text
-            if path.startswith('~'):
-                path = os.getenv('HOME') + path[1:]
             self.project_globals['EpsFile'] = path
+
+        if self.xmlDict.xpath('TestCaseSourcePath/text()'):
+            path = self.xmlDict.xpath('TestCaseSourcePath')[0].text
+            self.project_globals['TestsPath'] = path
 
         if self.xmlDict.xpath('DbConfigFile/text()'):
             path = self.xmlDict.xpath('DbConfigFile')[0].text
@@ -918,18 +923,17 @@ class PluginParser:
 
         if self.configHash != newConfigHash:
             self.configHash = newConfigHash
-            #print('PluginParser: Plugin XML file changed, rebuilding internal structure...\n')
 
             try:
                 self.xmlDict = etree.fromstring(config_data)
             except:
-                print('PluginParser ERROR: Cannot access XML config data!')
+                logError('PluginParser ERROR: Cannot access plugins XML data!')
                 return False
 
             for plugin in self.xmlDict.xpath('Plugin'):
 
                 if (not plugin.xpath('name/text()')) or (not plugin.xpath('pyfile')) or (not plugin.xpath('jarfile')):
-                    print('PluginParser ERROR: Invalid plugin: `%s`!' % str(plugin))
+                    logError('PluginParser ERROR: Invalid plugin: `%s`!' % str(plugin))
                     continue
                 name = plugin.xpath('name')[0].text
 
@@ -963,15 +967,15 @@ class PluginParser:
                 mm = reload(mm)
                 plug = mm.Plugin
             except Exception, e:
-                print 'ERROR in module `{0}`! Exception: {1}!'.format(mod, e)
+                logError('PluginParser ERROR: Unhandled exception in plugin file `{0}`! Exception: {1}!'.format(mod, e))
                 continue
 
             if not plug:
-                print('Plugin `%s` must not be Null!' % plug)
+                logError('PluginParser ERROR: Plugin `%s` cannot be Null!' % plug)
                 continue
             # Check plugin parent. Must be Base Plugin.
             if not issubclass(plug, Base):
-                print('Plugin `%s` must be inherited from Base Plugin!' % plug)
+                logError('PluginParser ERROR: Plugin `%s` must be inherited from Base Plugin!' % plug)
                 continue
 
             # Append plugin classes to plugins list

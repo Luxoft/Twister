@@ -27,18 +27,20 @@ import json
 import time
 import subprocess
 
-SM_START      = 0
-SM_STOP       = 1
-SM_STATUS     = 2
-SM_GET_CONFIG = 3
-SM_SET_CONFIG = 4
-SM_GET_LOG    = 5
-SM_LIST       = 6
+SM_LIST       = 0
+SM_START      = 1
+SM_STOP       = 2
+SM_STATUS     = 3
+SM_DESCRIP    = 4
+SM_GET_CONFIG = 5
+SM_SET_CONFIG = 6
+SM_GET_LOG    = 7
 
 sm_command_map = {
     SM_START      : 'start',
     SM_STOP       : 'stop',
     SM_STATUS     : 'status',
+    SM_DESCRIP    : 'description',
     SM_GET_CONFIG : 'get config',
     SM_SET_CONFIG : 'set config',
     SM_GET_LOG    : 'get log',
@@ -64,6 +66,7 @@ class ServiceManager():
         self.twister_services = [
             {
                 'name'    : 'of_controller',
+                'descrip' : 'Openflow controller',
                 'script'  : 'of_controller.py',
                 'config'  : 'of_config',
                 'pid'     : 0,
@@ -71,6 +74,7 @@ class ServiceManager():
             },
             {
                 'name'    : 'Scheduler',
+                'descrip' : 'Scheduler server',
                 'script'  : 'SchedulerServer.py',
                 'config'  : 'scheduler_cfg',
                 'pid'     : 0,
@@ -97,6 +101,9 @@ class ServiceManager():
 
         elif command==SM_STATUS or command==sm_command_map[SM_STATUS]:
             return self.serviceStatus(service)
+
+        elif command==SM_DESCRIP or command==sm_command_map[SM_DESCRIP]:
+            return service.get('descrip')
 
         if command==SM_START or command==sm_command_map[SM_START]:
             return self.serviceStart(service)
@@ -125,6 +132,8 @@ class ServiceManager():
 
 
     def serviceStatus(self, service):
+        # Values are: -1, 0, or any error code
+        # -1 means the app is still running
 
         tprocess = service.get('pid', 0)
         rc = 0
@@ -134,10 +143,10 @@ class ServiceManager():
             rc = tprocess.returncode
 
         if rc is None:
-            logDebug('SM: Service `{0}` is currently running.'.format(service['name']))
+            # logDebug('SM: Service `{0}` is currently running.'.format(service['name']))
             rc = -1
         else:
-            logDebug('SM: Service `{0}` is not running.'.format(service['name']))
+            # logDebug('SM: Service `{0}` is not running.'.format(service['name']))
             service['pid'] = 0
 
         return rc

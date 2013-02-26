@@ -850,15 +850,18 @@ class CentralEngine(_cptools.XMLRPCController):
         else:
             return 'CE ERROR: Invalid type of argument for plugin `%s` : %s !' % (plugin, type(args))
 
-        logDebug('Running plugin:: {0} ; {1} ; {2}'.format(user, plugin, args))
+        plugin_p = self._buildPlugin(user, plugin)
 
-        plugin = self._buildPlugin(user, plugin)
+        if not plugin_p:
+            logError('CE ERROR: Plugin `{0}` does not exist for user `{1}`!'.format())
+        else:
+            logDebug('Running plugin:: `{0}` ; user `{1}` ; {2}'.format(plugin, user, args))
 
         try:
-            return plugin.run(args)
+            return plugin_p.run(args)
         except Exception, e:
-            logError('CE ERROR: Plugin `%s`, ran with arguments `%s` and returned EXCEPTION: `%s`!' %
-                     (plugin, args, e))
+            logError('CE ERROR: Plugin `{0}`, ran with arguments `{1}` and returned EXCEPTION: `{2}`!'\
+                     .format(plugin, args, e))
             return 'Error on running plugin %s - Exception: `%s`!' % (plugin, str(e))
 
 
@@ -1020,8 +1023,8 @@ class CentralEngine(_cptools.XMLRPCController):
         runnable = data.get('Runnable', 'not set')
 
         if runnable=='true' or runnable=='not set':
-            if filename.startswith('~'):
-                filename = os.getenv('HOME') + filename[1:]
+            # if filename.startswith('~'): # Should use USER path
+            #    filename = os.getenv('HOME') + filename[1:]
             if not os.path.isfile(filename):
                 logError('CE ERROR! TestCase file: `%s` does not exist!' % filename)
                 return ''
@@ -1081,13 +1084,13 @@ class CentralEngine(_cptools.XMLRPCController):
 
         if not fpath or not os.path.exists(fpath):
             return '*ERROR for {0}!* Logs path `{1}` is invalid! Using master config `{2}` and suites config `{3}`.'\
-                .format(user, fpath, self.project.getUserInfo(user, 'config_path'), self.project.getUserInfo(user, 'tests_path'))
+                .format(user, fpath, self.project.getUserInfo(user, 'config_path'), self.project.getUserInfo(user, 'project_path'))
 
         filename = fpath + os.sep + filename
 
         if not os.path.exists(filename):
             return '*ERROR for {0}!* File `{1}` does not exist! Using master config `{2}` and suites config `{3}`'.\
-                format(user, filename, self.project.getUserInfo(user, 'config_path'), self.project.getUserInfo(user, 'tests_path'))
+                format(user, filename, self.project.getUserInfo(user, 'config_path'), self.project.getUserInfo(user, 'project_path'))
 
         if not read or read=='0':
             return os.path.getsize(filename)

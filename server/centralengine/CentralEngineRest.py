@@ -173,11 +173,6 @@ class CentralEngineRest:
         host = cherrypy.request.headers['Host']
         reversed = dict((v,k) for k,v in execStatus.iteritems())
         status = reversed[self.project.getUserInfo(user, 'status')]
-        master_config = self.project.getUserInfo(user, 'config_path')
-        proj_config = self.project.getUserInfo(user, 'tests_path')
-        logs_path = self.project.getUserInfo(user, 'logs_path')
-        db_config = self.project.getUserInfo(user, 'db_config')
-        eml_config = self.project.getUserInfo(user, 'eml_config')
         try: eps_file = self.project.parsers[user].project_globals['EpsFile']
         except: eps_file = ''
 
@@ -186,8 +181,7 @@ class CentralEngineRest:
         logs = self.project.getUserInfo(user, 'log_types')
 
         output = Template(filename=TWISTER_PATH + '/server/centralengine/template_user.htm')
-        return output.render(host=host, user=user, status=status, master_config=master_config, proj_config=proj_config,
-               exec_status=reversed, logs_path=logs_path, db_config=db_config, eml_config=eml_config,
+        return output.render(host=host, user=user, status=status, exec_status=reversed,
                eps_file=eps_file, eps=eps, ep_statuses=ep_statuses, logs=logs)
 
 # # #
@@ -232,13 +226,13 @@ class CentralEngineRest:
         changes = 'Reset project file.\n'
 
         for suite_data in json_data:
-            self.project.setPersistentSuite(user, suite_data['data'], {'ep':epname})
+            self.project.setPersistentSuite(user, suite_data['data'], {'ep': decode(epname)})
             changes += 'Created suite: {0}.\n'.format(suite_data['data'])
-            for file_data in suite_data['children']:
+            for file_data in suite_data.get('children', []):
                 changes += 'Created file: {0}.\n'.format(file_data['data'])
                 self.project.setPersistentFile(user, suite_data['data'], file_data['data'], {})
-            changes += '>.<\n'
 
+        changes += '>.<\n'
         logDebug(changes)
 
 
@@ -275,7 +269,7 @@ class CentralEngineRest:
             return 0
 
         newdict = {'data':'root','children':[]}
-        dirpath = '/home/{0}/twister'.format(user)
+        dirpath = self.project.getUserInfo(user, 'tests_path')
         dirList(dirpath, newdict)
 
         return json.dumps(newdict)
