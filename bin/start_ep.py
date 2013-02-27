@@ -18,6 +18,14 @@ except:
     print('Cannot guess user name for this Execution Process! Exiting!')
     exit(1)
 
+pipe = subprocess.Popen('ps ax | grep start_packets_twist.py',
+                                    shell=True, stdout=subprocess.PIPE).stdout
+for line in pipe.read().splitlines():
+    try:
+        kill(int(line.split()[0]), 9)
+    except Exception, e:
+        pass
+
 if os.path.exists(os.getenv('HOME') + '/twister/src'):
     os.environ['TWISTER_PATH'] = os.getenv('HOME') + '/twister/src'
 else:
