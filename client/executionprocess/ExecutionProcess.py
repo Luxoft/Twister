@@ -82,6 +82,27 @@ def saveConfig():
 
 #
 
+def packetsTwistStatus(ce):
+    """  """
+    global sniffer
+
+    pipe = subprocess.Popen('ps ax | grep start_packets_twist.py',
+                                    shell=True, stdout=subprocess.PIPE).stdout
+    lines = pipe.read().splitlines()
+    if len(lines) > 1: return
+
+    if not sniffer:
+        args = {'command': 'echo'}
+        result = ce.runPlugin(userName, 'SNIFF', args)
+
+        if result == 'running':
+            scriptPath =  os.path.join(TWISTER_PATH, 'bin/start_packets_twist.py')
+            command = ['sudo', 'python', scriptPath, '-u', userName]
+            sniffer = subprocess.Popen(command, shell=False)
+            print 'Packets Twist started'
+
+#
+
 class threadCheckStatus(threading.Thread):
     '''
     Threaded class for checking CE Status.
@@ -122,6 +143,7 @@ class threadCheckStatus(threading.Thread):
             epStatus = newEpStatus
 
             saveConfig() # Save configuration EVERY cycle
+            packetsTwistStatus(self.proxy) # Check Packets Twist EVERY cycle
 
             # Save EP info like OS, IP, user id, user group, EVERY 10 cycles
             if not self.cycle:
@@ -206,6 +228,7 @@ if __name__=='__main__':
     filelist = ''
     programExit = False
     OFFLINE = False
+    sniffer = None
 
     try: os.mkdir(TWISTER_PATH + '/.twister_cache/')
     except: pass
