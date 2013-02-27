@@ -116,7 +116,7 @@ class Project:
         self.db_lock  = thread.allocate_lock()  # Database lock
 
         # Panic Detect, load config for current user
-        self.panicDetectConfigPath = TWISTER_PATH + '/common/PanicDetectData.json'
+        self.panicDetectConfigPath = TWISTER_PATH + '/config/PanicDetectData.json'
         if not os.path.exists(self.panicDetectConfigPath):
             config = open(self.panicDetectConfigPath, 'wb')
             config.write('{}')
@@ -144,14 +144,14 @@ class Project:
         if base_config and not os.path.exists(base_config):
             logError('Project ERROR: Config path `%s` does not exist !' % base_config)
             return False
-        elif not os.path.exists('/home/%s/twister' % user):
+        elif not os.path.exists( '{0}/twister'.format(userHome(user)) ):
             logError('Project ERROR: Cannot find Twister for user `%s` !' % user)
             return False
         else:
-            base_config = '/home/%s/twister/config/fwmconfig.xml' % user
+            base_config = '{0}/twister/config/fwmconfig.xml'.format(userHome(user))
 
         if not files_config:
-            files_config = '/home/%s/twister/config/testsuites.xml' % user
+            files_config = '{0}/twister/config/testsuites.xml'.format(userHome(user))
 
         # User data + User parser
         # Parsers contain the list of all EPs and the list of all Project Globals
@@ -355,7 +355,7 @@ class Project:
         """
         with self.int_lock:
 
-            with open(TWISTER_PATH + '/common/project_users.json', 'w') as f:
+            with open(TWISTER_PATH + '/config/project_users.json', 'w') as f:
                 try: json.dump(self.users, f, indent=4)
                 except: pass
 
@@ -1076,7 +1076,7 @@ class Project:
                                 return False
 
                             # :: For DEBUG ::
-                            #open(TWISTER_PATH + '/common/Query.debug', 'a').write('File Query:: `{0}` ::\n{1}\n\n\n'.format(subst_data['file'], query))
+                            #open(TWISTER_PATH + '/config/Query.debug', 'a').write('File Query:: `{0}` ::\n{1}\n\n\n'.format(subst_data['file'], query))
 
                             # Execute MySQL Query!
                             try:

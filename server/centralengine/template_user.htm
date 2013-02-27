@@ -114,9 +114,8 @@ for ep in eps:
 				<div id="t_${encode(ep)}" style="float:left;position:relative;background:transparent;height:auto;margin-bottom:20px"></div>
 				<!-- Second file tree -->
 				<div id="b_${encode(ep)}" style="float:left;position:relative;margin-left:50px;background:transparent;height:auto;visibility:hidden"></div>
-				<!-- Info about selected file or suite
-				<div id="i_${encode(ep)}" style="border:1px solid #aaf;margin-top:-40px;height:auto;clear:both;">&nbsp;</div>
-				-->
+				<!-- Info about selected file or suite -->
+				<div class="project_info" style="border:1px solid #aaf;margin-top:-40px;height:auto;clear:both;padding:5px">&nbsp;</div>
 			</div>
 		% endfor
 		</div>
@@ -228,9 +227,12 @@ function createTree(ep_name) {
 		}
 	};
 	$("#t_" + ep_name).jstree(tconfig)
-	.bind("loaded.jstree", function (e, data) {
+	.bind("loaded.jstree", function (event, data) {
 		data.inst.open_all();
-		console.log("Done opening all!")
+	})
+	.bind("select_node.jstree", function (event, data) {
+		var file_id = data.rslt.obj.attr("id");
+		$(".project_info").text("Selected: " + JSON.stringify(data.rslt.obj));
 	});
 };
 

@@ -2,5 +2,5 @@
 
 PYTHON=/usr/bin/python
 
-nohup $PYTHON -u SchedulerServer.py > ce_log.log &
+nohup $PYTHON -u SchedulerServer.py > sched_log.log &
 echo "Scheduler Server is now running in background."

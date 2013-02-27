@@ -208,7 +208,7 @@ class CentralEngineRest:
         cherrypy.response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
         cherrypy.response.headers['Pragma']  = 'no-cache'
         cherrypy.response.headers['Expires'] = 0
-        return open(TWISTER_PATH + '/common/project_users.json', 'r').read()
+        return open(TWISTER_PATH + '/config/project_users.json', 'r').read()
 
 
     @cherrypy.expose
@@ -253,14 +253,17 @@ class CentralEngineRest:
         for suite in epinfo['suites']:
             sdata = {
                 'data': epinfo['suites'][suite]['name'],
+                'metadata': suite,
                 'attr': {'id': suite, 'rel': 'suite'},
                 'children': [],
             }
             if epinfo['suites'][suite]['files']:
-                sdata['children'] = [epinfo['suites'][suite]['files'][k]['file'] for k in epinfo['suites'][suite]['files'].keys()]
+                sdata['children'] = [
+                    {'data': epinfo['suites'][suite]['files'][k]['file'], 'attr': {'id': k}}
+                    for k in epinfo['suites'][suite]['files'].keys()]
             data.append(sdata)
 
-        return json.dumps(data)
+        return json.dumps(data, indent=2)
 
 
     @cherrypy.expose

@@ -5,16 +5,17 @@
 
 import os
 import sys
-import json
 import thread
 import threading
 import urlparse
 import xmlrpclib
 import logging
+import json
 
 import time
 import calendar
 from datetime import datetime
+from ConfigParser import SafeConfigParser
 
 import cherrypy
 from cherrypy import _cptools
@@ -481,14 +482,21 @@ class threadCheckTasks(threading.Thread):
 def load_config():
 
     global __dir__
+    cfg_folder = __dir__ + '/config.ini'
+    cfg_dict   =  {'ce_ip': '127.0.0.1', 'ce_port': '8000',
+                   'sched_ip': '0.0.0.0', 'sched_port': '333'}
+    cfg = SafeConfigParser({'ALL': '0.0.0.0'})
+    cfg.read(cfg_folder)
 
-    if not os.path.exists(__dir__ + '/config.json'):
-        cfg = {'ce_ip': '127.0.0.1', 'ce_port': 8000, 'sched_ip': '0.0.0.0', 'sched_port': 333}
-        json.dump(cfg, open(__dir__ + '/config.json', 'w'), sort_keys=True, indent=4)
+    if not os.path.isfile(cfg_folder):
+        cfg.add_section('CONFIG')
+        for k, v in cfg_dict.iteritems():
+            cfg.set('CONFIG', k, v)
+        cfg.write(open(cfg_folder, 'w'))
     else:
-        cfg = json.load( open(__dir__ + '/config.json', 'r') )
+        cfg_dict.update( dict(cfg.items('CONFIG')) )
 
-    return cfg
+    return cfg_dict
 
 
 def close():

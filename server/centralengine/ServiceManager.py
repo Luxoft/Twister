@@ -54,6 +54,7 @@ if not TWISTER_PATH:
 sys.path.append(TWISTER_PATH)
 
 from common.tsclogging import *
+from common import iniparser
 
 #
 
@@ -63,24 +64,18 @@ class ServiceManager():
 
         logDebug('SM: Starting Service Manager...')
 
-        self.twister_services = [
-            {
-                'name'    : 'of_controller',
-                'descrip' : 'Openflow controller',
-                'script'  : 'of_controller.py',
-                'config'  : 'of_config',
-                'pid'     : 0,
-                'logfile' : 'console.log'
-            },
-            {
-                'name'    : 'Scheduler',
-                'descrip' : 'Scheduler server',
-                'script'  : 'SchedulerServer.py',
-                'config'  : 'scheduler_cfg',
-                'pid'     : 0,
-                'logfile' : 'logs/Log'
-            }
-        ]
+        self.twister_services = []
+        cfg_path = '{0}/config/services.ini'.format(TWISTER_PATH)
+        cfg = iniparser.ConfigObj(cfg_path)
+
+        for service in cfg:
+            if service == 'DEFAULT':
+                continue
+            cfg[service]['name'] = service
+            self.twister_services.append(cfg[service])
+
+        logDebug('SM: Found `{0}` services: `{1}`.'.format(len(self.twister_services), ', '.join(cfg.keys())))
+        del cfg, cfg_path
 
 
     def sendCommand(self, command, name='', args={}):

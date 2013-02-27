@@ -126,7 +126,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
         self.resources = {'name': '/', 'meta': {}, 'children': {}}
         self.acc_lock = thread.allocate_lock() # Task change lock
-        self.cfg_file = '{0}/common/resources.json'.format(TWISTER_PATH)
+        self.cfg_file = '{0}/config/resources.json'.format(TWISTER_PATH)
         self._load(v=True)
 
 #

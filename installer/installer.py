@@ -206,7 +206,8 @@ if TO_INSTALL == 'server':
         'server/',
         'common/',
         'lib/',
-        'trd_party/',
+        'config/resources.json',
+        'config/services.ini',
         'plugins/',
     ]
 

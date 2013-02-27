@@ -853,9 +853,11 @@ class CentralEngine(_cptools.XMLRPCController):
         plugin_p = self._buildPlugin(user, plugin)
 
         if not plugin_p:
-            logError('CE ERROR: Plugin `{0}` does not exist for user `{1}`!'.format())
-        else:
-            logDebug('Running plugin:: `{0}` ; user `{1}` ; {2}'.format(plugin, user, args))
+            msg = 'CE ERROR: Plugin `{0}` does not exist for user `{1}`!'.format()
+            logError(msg)
+            return msg
+        # else:
+        #    logDebug('Running plugin:: `{0}` ; user `{1}` ; {2}'.format(plugin, user, args))
 
         try:
             return plugin_p.run(args)

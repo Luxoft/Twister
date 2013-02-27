@@ -40,8 +40,21 @@ from plugins import BasePlugin
 
 from common.tsclogging import *
 
-__all__ = ['TSCParser', 'DBParser', 'PluginParser']
+__all__ = ['TSCParser', 'DBParser', 'PluginParser', 'userHome']
 
+#
+
+def userHome(user):
+    """
+    Find the home folder for the given user, using /etc/passwd file.
+    """
+    lines = open('/etc/passwd').readlines()
+    user_line = [line for line in lines if line.startswith(user + ':')]
+    if not user_line: return False
+    user_line = user_line[0].split(':')
+    return user_line[-2]
+
+#
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # TSC
@@ -903,9 +916,9 @@ class PluginParser:
 
     def __init__(self, user):
 
-        if not os.path.exists('/home/%s/twister' % user):
+        if not os.path.exists('{0}/twister'.format(userHome(user))):
             raise Exception('PluginParser ERROR: Cannot find Twister for user `%s` !' % user)
-        config_data = '/home/%s/twister/config/plugins.xml' % user
+        config_data = '{0}/twister/config/plugins.xml'.format(userHome(user))
         if not os.path.exists(config_data):
             raise Exception('PluginParser ERROR: Cannot find Plugins for user `%s` !' % user)
 
