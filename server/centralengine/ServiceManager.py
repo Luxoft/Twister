@@ -138,11 +138,7 @@ class ServiceManager():
             rc = tprocess.returncode
 
         if rc is None:
-            # logDebug('SM: Service `{0}` is currently running.'.format(service['name']))
             rc = -1
-        else:
-            # logDebug('SM: Service `{0}` is not running.'.format(service['name']))
-            service['pid'] = 0
 
         return rc
 
@@ -159,7 +155,7 @@ class ServiceManager():
         script_path = '{0}/server/{1}/{2}'.format(TWISTER_PATH, service['name'], service['script'])
 
         if service['config']:
-            config_path = '{0}/server/{1}/{2}'.format(TWISTER_PATH, service['name'], service['script'])
+            config_path = '{0}/server/{1}/{2}'.format(TWISTER_PATH, service['name'], service['config'])
         else:
             config_path = ''
 
@@ -176,7 +172,7 @@ class ServiceManager():
         log_path = '{0}/server/{1}/{2}'.format(TWISTER_PATH, service['name'], service['logfile'])
 
         with open(log_path, 'wb') as out:
-            tprocess = subprocess.Popen(['python', script_path, config_path], stdout=out)
+            tprocess = subprocess.Popen(['python', '-u', script_path, config_path], stdout=out)
 
         service['pid'] = tprocess
         logDebug('Started service `{}`, using script `{}` and config `{}`, with PID `{}`.'.format(
@@ -193,8 +189,11 @@ class ServiceManager():
 
         logWarning('SM: Stopping service: `{0}`.'.format(service['name']))
         tprocess = service.get('pid', 0)
-        tprocess.terminate()
 
+        if isinstance(tprocess, int):
+            logError('SM: Cannot stop service `{0}`!'.format(service['name']))
+
+        tprocess.terminate()
         return True
 
 
@@ -214,7 +213,7 @@ class ServiceManager():
 
     def readConfig(self, service):
 
-        config_path = '{0}/server/{1}/{2}.py'.format(TWISTER_PATH, service['name'], service['config'])
+        config_path = '{0}/server/{1}/{2}'.format(TWISTER_PATH, service['name'], service['config'])
 
         if not os.path.isfile(config_path):
             logError('SM: No such config file `{0}`!'.format(config_path))
@@ -228,7 +227,7 @@ class ServiceManager():
 
     def saveConfig(self, service, data):
 
-        config_path = '{0}/server/{1}/{2}.py'.format(TWISTER_PATH, service['name'], service['config'])
+        config_path = '{0}/server/{1}/{2}'.format(TWISTER_PATH, service['name'], service['config'])
 
         if not os.path.isfile(config_path):
             logError('SM: No such config file `{0}`!'.format(config_path))
