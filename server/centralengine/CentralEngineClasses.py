@@ -116,12 +116,12 @@ class CentralEngine(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
-    def serviceManagerCommand(self, command, name='', args={}):
+    def serviceManagerCommand(self, command, name='', *args, **kwargs):
         """
         Send commands to Service Manager.\n
         Valid commands are: list, start, stop, status, get config, save config, get log.
         """
-        return self.manager.sendCommand(command, name, args)
+        return self.manager.sendCommand(command, name, args, kwargs)
 
 
     @cherrypy.expose
@@ -1078,7 +1078,7 @@ class CentralEngine(_cptools.XMLRPCController):
         Called in the Java GUI to show the logs.
         """
         if fstart is None:
-            return '*ERROR for {0}!* Parameter FEND is NULL!'.format(user)
+            return '*ERROR for {0}!* Parameter FSTART is NULL!'.format(user)
         if not filename:
             return '*ERROR for {0}!* Parameter FILENAME is NULL!'.format(user)
 
@@ -1097,7 +1097,7 @@ class CentralEngine(_cptools.XMLRPCController):
         if not read or read=='0':
             return os.path.getsize(filename)
 
-        fstart = int(fstart)
+        fstart = long(fstart)
         f = open(filename)
         f.seek(fstart)
         data = f.read()
@@ -1256,7 +1256,6 @@ class CentralEngine(_cptools.XMLRPCController):
         """
         Panic Detect parse log mechanism.
         """
-
         status = False
 
         if not self.project.panicDetectRegularExpressions.has_key(user):
@@ -1289,7 +1288,6 @@ class CentralEngine(_cptools.XMLRPCController):
         """
         Configure Panic Detect.
         """
-
         # If argument is a string
         if type(data) == type(str()):
             try:

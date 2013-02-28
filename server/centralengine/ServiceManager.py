@@ -26,6 +26,7 @@ import os, sys
 import json
 import time
 import subprocess
+import binascii
 
 SM_LIST       = 0
 SM_START      = 1
@@ -78,7 +79,7 @@ class ServiceManager():
         del cfg, cfg_path
 
 
-    def sendCommand(self, command, name='', args={}):
+    def sendCommand(self, command, name='', *args, **kwargs):
 
         if command==SM_LIST or command==sm_command_map[SM_LIST]:
             return self.listServices()
@@ -113,7 +114,8 @@ class ServiceManager():
             return self.saveConfig(service, args)
 
         elif command==SM_GET_LOG or command==sm_command_map[SM_GET_LOG]:
-            return self.getConsoleLog(service)
+            try: return self.getConsoleLog(service, read=args[0][0], fstart=args[0][1])
+            except: return 'SM: Invalid number of parameters for read log!'
 
         else:
             return 'SM: Unknown command number: `{0}`!'.format(command)
@@ -138,11 +140,7 @@ class ServiceManager():
             rc = tprocess.returncode
 
         if rc is None:
-            # logDebug('SM: Service `{0}` is currently running.'.format(service['name']))
             rc = -1
-        else:
-            # logDebug('SM: Service `{0}` is not running.'.format(service['name']))
-            service['pid'] = 0
 
         return rc
 
@@ -159,7 +157,7 @@ class ServiceManager():
         script_path = '{0}/server/{1}/{2}'.format(TWISTER_PATH, service['name'], service['script'])
 
         if service['config']:
-            config_path = '{0}/server/{1}/{2}'.format(TWISTER_PATH, service['name'], service['script'])
+            config_path = '{0}/server/{1}/{2}'.format(TWISTER_PATH, service['name'], service['config'])
         else:
             config_path = ''
 
@@ -176,7 +174,7 @@ class ServiceManager():
         log_path = '{0}/server/{1}/{2}'.format(TWISTER_PATH, service['name'], service['logfile'])
 
         with open(log_path, 'wb') as out:
-            tprocess = subprocess.Popen(['python', script_path, config_path], stdout=out)
+            tprocess = subprocess.Popen(['python', '-u', script_path, config_path], stdout=out)
 
         service['pid'] = tprocess
         logDebug('Started service `{}`, using script `{}` and config `{}`, with PID `{}`.'.format(
@@ -193,8 +191,11 @@ class ServiceManager():
 
         logWarning('SM: Stopping service: `{0}`.'.format(service['name']))
         tprocess = service.get('pid', 0)
-        tprocess.terminate()
 
+        if isinstance(tprocess, int):
+            logError('SM: Cannot stop service `{0}`!'.format(service['name']))
+
+        tprocess.terminate()
         return True
 
 
@@ -214,7 +215,7 @@ class ServiceManager():
 
     def readConfig(self, service):
 
-        config_path = '{0}/server/{1}/{2}.py'.format(TWISTER_PATH, service['name'], service['config'])
+        config_path = '{0}/server/{1}/{2}'.format(TWISTER_PATH, service['name'], service['config'])
 
         if not os.path.isfile(config_path):
             logError('SM: No such config file `{0}`!'.format(config_path))
@@ -228,7 +229,7 @@ class ServiceManager():
 
     def saveConfig(self, service, data):
 
-        config_path = '{0}/server/{1}/{2}.py'.format(TWISTER_PATH, service['name'], service['config'])
+        config_path = '{0}/server/{1}/{2}'.format(TWISTER_PATH, service['name'], service['config'])
 
         if not os.path.isfile(config_path):
             logError('SM: No such config file `{0}`!'.format(config_path))
@@ -240,18 +241,28 @@ class ServiceManager():
         return True
 
 
-    def getConsoleLog(self, service):
+    def getConsoleLog(self, service, read, fstart):
+        """
+        Called in the Java GUI to show the logs.
+        """
+        if fstart is None:
+            return '*ERROR for {0}!* Parameter FSTART is NULL!'.format(service['name'])
 
-        log_path = '{0}/server/{1}/{2}'.format(TWISTER_PATH, service['name'], service['logfile'])
+        filename = '{0}/server/{1}/{2}'.format(TWISTER_PATH, service['name'], service['logfile'])
 
-        if not os.path.isfile(log_path):
-            logError('SM: No such log file `{0}`!'.format(log_path))
-            return False
+        if not os.path.exists(filename):
+            return '*ERROR for {0}!* No such log file `{0}`!'.format(service['name'], filename)
 
-        with open(log_path, 'rb') as log:
-            data = log.read()
+        if not read or read=='0':
+            return os.path.getsize(filename)
 
-        return data
+        fstart = long(fstart)
+        f = open(filename)
+        f.seek(fstart)
+        data = f.read()
+        f.close()
+
+        return binascii.b2a_base64(data)
 
 
 # Eof()
