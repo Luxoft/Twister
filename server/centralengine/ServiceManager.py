@@ -93,7 +93,7 @@ class ServiceManager():
 
         if not found:
             logDebug('SM: Invalid service name: `%s`!'.format(name))
-            return None
+            return False
 
         elif command==SM_STATUS or command==sm_command_map[SM_STATUS]:
             return self.serviceStatus(service)
@@ -111,7 +111,8 @@ class ServiceManager():
             return self.readConfig(service)
 
         elif command==SM_SET_CONFIG or command==sm_command_map[SM_SET_CONFIG]:
-            return self.saveConfig(service, args)
+            try: return self.saveConfig(service, args[0][0])
+            except: return 'SM: Invalid number of parameters for save config!'
 
         elif command==SM_GET_LOG or command==sm_command_map[SM_GET_LOG]:
             try: return self.getConsoleLog(service, read=args[0][0], fstart=args[0][1])
@@ -148,11 +149,17 @@ class ServiceManager():
     def serviceStart(self, service):
 
         tprocess = service.get('pid', 0)
+
         if tprocess:
-            logDebug('SM: Service name `{0}` is already running with PID `{1}`.'.format(
-                service['name'], tprocess.pid
-                ))
-            return True
+            # Check if child process has terminated
+            tprocess.poll()
+
+            if tprocess.returncode is None:
+                logDebug('SM: Service name `{0}` is already running with PID `{1}`.'.format(
+                    service['name'], tprocess.pid))
+                return True
+
+        del tprocess
 
         script_path = '{0}/server/{1}/{2}'.format(TWISTER_PATH, service['name'], service['script'])
 
@@ -224,7 +231,7 @@ class ServiceManager():
         with open(config_path, 'rb') as out:
             data = out.read()
 
-        return data
+        return data or ''
 
 
     def saveConfig(self, service, data):
