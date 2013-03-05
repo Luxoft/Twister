@@ -169,19 +169,32 @@ class ServiceManager():
             config_path = ''
 
         if not os.path.isfile(script_path):
-            logError('SM: Cannot start service `{0}`! No such script file `{1}`!'.format(
-                service['name'], script_path))
-            return False
+            error = 'SM: Cannot start service `{0}`! No such script file `{1}`!'.format(
+                service['name'], script_path)
+            logError(error)
+            return error
 
         if service['config'] and (not config_path):
-            logError('SM: Cannot start service `{0}`! No such config file `{1}`!'.format(
-                service['name'], config_path))
-            return False
+            error = 'SM: Cannot start service `{0}`! No such config file `{1}`!'.format(
+                service['name'], config_path)
+            logError(error)
+            return error
+
+        service['pid'] = 0 # Delete process here
+        env = os.environ
+        env.update({'TWISTER_PATH': TWISTER_PATH})
 
         log_path = '{0}/server/{1}/{2}'.format(TWISTER_PATH, service['name'], service['logfile'])
 
         with open(log_path, 'wb') as out:
-            tprocess = subprocess.Popen(['python', '-u', script_path, config_path], stdout=out)
+            try:
+                tprocess = subprocess.Popen(['python', '-u', script_path, config_path],
+                           stdout=out, stderr=out, env=env)
+            except Exception, e:
+                error = 'SM: Cannot start service `{0}` with config file `{1}`!\n'\
+                    'Exception: `{2}`!'.format(service['name'], config_path, e)
+                logError(error)
+                return error
 
         service['pid'] = tprocess
         logDebug('Started service `{}`, using script `{}` and config `{}`, with PID `{}`.'.format(
@@ -196,14 +209,18 @@ class ServiceManager():
             logDebug('SM: Service name `{0}` is not running.'.format(service['name']))
             return False
 
-        logWarning('SM: Stopping service: `{0}`.'.format(service['name']))
         tprocess = service.get('pid', 0)
 
         if isinstance(tprocess, int):
             logError('SM: Cannot stop service `{0}`!'.format(service['name']))
 
-        tprocess.terminate()
-        return True
+        try:
+            tprocess.terminate()
+            logWarning('SM: Stopped service: `{0}`.'.format(service['name']))
+            return True
+        except Exception, e:
+            logError('SM: Cannot stop service: `{0}`, exception `{1}`!'.format(service['name'], e))
+            return False
 
 
     def serviceKill(self, service):
@@ -213,11 +230,18 @@ class ServiceManager():
             logDebug('SM: Service name `{0}` is not running.'.format(service['name']))
             return False
 
-        logWarning('SM: Killing service: `{0}`.'.format(service['name']))
         tprocess = service.get('pid', 0)
-        tprocess.kill()
 
-        return True
+        if isinstance(tprocess, int):
+            logError('SM: Cannot kill service `{0}`!'.format(service['name']))
+
+        try:
+            tprocess.kill()
+            logError('SM: Killed service: `{0}`.'.format(service['name']))
+            return True
+        except Exception, e:
+            logError('SM: Cannot stop service: `{0}`, exception `{1}`!'.format(service['name'], e))
+            return False
 
 
     def readConfig(self, service):
