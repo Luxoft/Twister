@@ -357,41 +357,20 @@ class CentralEngine(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
-    def getGlobalVariables(self, user):
+    def getGlobalVariable(self, user, var_path):
         """
-        Sending global variables.
+        Sending a global variable, using a path.
         """
-
-        if not user in self.project.users:
-            return False
-        ret = self.project.parsers[user].getGlobalParams()
-        return ret
+        return self.project.getGlobalVariable(user, var_path)
 
 
     @cherrypy.expose
-    def setGlobalVariable(self, user, variable, value):
+    def setGlobalVariable(self, user, var_path, value):
         """
-        Set a global variable, for a user. This change is written in Globals.XML.\n
-        The "Variable" must be a valid path in the Globals XML Tree.
+        Set a global variable path, for a user.\n
+        The change is not persistent.
         """
-
-        variable = variable.strip('/')   # Strip extra slash...
-        variable = '/'.join([v for v in variable.split('/') if v]) # Clean extra slash inside...
-        xvar  = variable.split('/')[-1]  # The variable name
-        xpath = variable.split('/')[:-1] # The full path
-
-        src_path = '/root/' + '/'.join(['folder[fname="{0}"]'.format(x) for x in xpath])
-        get_path = src_path + ( '/param[name="{0}"]/name'.format(xvar) )  # This path is for checking
-        set_path = src_path + ( '/param[name="{0}"]/value'.format(xvar) ) # This path is for setting the value
-
-        if not self.project.getSettingsValue(user, 'globals', get_path):
-            logDebug('Invalid Globals XML path `{0}`!'.format(variable))
-            return False
-
-        ret = self.project.setSettingsValue(user, 'globals', set_path, value)
-        if ret: logDebug('Setting Globals XML path `{0}` with value `{1}`.'.format(variable, value))
-        else: logDebug('Cannot set Globals XML path `{0}`!'.format(variable))
-        return ret
+        return self.project.setGlobalVariable(user, var_path, value)
 
 
 # --------------------------------------------------------------------------------------------------
