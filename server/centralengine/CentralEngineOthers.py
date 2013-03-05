@@ -141,18 +141,21 @@ class Project:
         and ( base_config[0] == '<' and base_config[-1] == '>' ):
             config_data, base_config = base_config, ''
 
+        user_home = userHome(user)
+
         # If it's a valid path
         if base_config and not os.path.exists(base_config):
-            logError('Project ERROR: Config path `%s` does not exist !' % base_config)
+            logCritical('Project ERROR: Config path `%s` does not exist !' % base_config)
             return False
-        elif not os.path.exists( '{0}/twister'.format(userHome(user)) ):
-            logError('Project ERROR: Cannot find Twister for user `%s` !' % user)
+        elif not os.path.exists( '{0}/twister'.format(user_home) ):
+            logCritical('Project ERROR: Cannot find Twister for user `{0}`, '\
+                'in path `{1}/twister`!'.format(user, user_home))
             return False
         else:
-            base_config = '{0}/twister/config/fwmconfig.xml'.format(userHome(user))
+            base_config = '{0}/twister/config/fwmconfig.xml'.format(user_home)
 
         if not files_config:
-            files_config = '{0}/twister/config/testsuites.xml'.format(userHome(user))
+            files_config = '{0}/twister/config/testsuites.xml'.format(user_home)
 
         # User data + User parser
         # Parsers contain the list of all EPs and the list of all Project Globals

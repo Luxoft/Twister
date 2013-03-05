@@ -48,9 +48,10 @@ def userHome(user):
     """
     Find the home folder for the given user, using /etc/passwd file.
     """
+    user = str(user)
     lines = open('/etc/passwd').readlines()
     user_line = [line for line in lines if line.startswith(user + ':')]
-    if not user_line: return False
+    if not user_line: return '/home/' + user
     user_line = user_line[0].split(':')
     return user_line[-2]
 
@@ -916,11 +917,16 @@ class PluginParser:
 
     def __init__(self, user):
 
-        if not os.path.exists('{0}/twister'.format(userHome(user))):
-            raise Exception('PluginParser ERROR: Cannot find Twister for user `%s` !' % user)
-        config_data = '{0}/twister/config/plugins.xml'.format(userHome(user))
+        user_home = userHome(user)
+
+        if not os.path.exists('{0}/twister'.format(user_home)):
+            raise Exception('PluginParser ERROR: Cannot find Twister for user `{0}`, '\
+                'in path `{1}/twister`!'.format(user, user_home))
+
+        config_data = '{0}/twister/config/plugins.xml'.format(user_home)
         if not os.path.exists(config_data):
-            raise Exception('PluginParser ERROR: Cannot find Plugins for user `%s` !' % user)
+            raise Exception('PluginParser ERROR: Cannot find Plugins for user `{0}`, '\
+                'in path `{1}/twister/config`!'.format(user, user_home))
 
         self.config_data = config_data
         self.configHash = None
