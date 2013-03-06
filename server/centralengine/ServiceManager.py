@@ -161,10 +161,10 @@ class ServiceManager():
 
         del tprocess
 
-        script_path = '{0}/server/{1}/{2}'.format(TWISTER_PATH, service['name'], service['script'])
+        script_path = '{0}/services/{1}/{2}'.format(TWISTER_PATH, service['name'], service['script'])
 
         if service['config']:
-            config_path = '{0}/server/{1}/{2}'.format(TWISTER_PATH, service['name'], service['config'])
+            config_path = '{0}/services/{1}/{2}'.format(TWISTER_PATH, service['name'], service['config'])
         else:
             config_path = ''
 
@@ -184,7 +184,7 @@ class ServiceManager():
         env = os.environ
         env.update({'TWISTER_PATH': TWISTER_PATH})
 
-        log_path = '{0}/server/{1}/{2}'.format(TWISTER_PATH, service['name'], service['logfile'])
+        log_path = '{0}/services/{1}/{2}'.format(TWISTER_PATH, service['name'], service['logfile'])
 
         with open(log_path, 'wb') as out:
             try:
@@ -246,7 +246,7 @@ class ServiceManager():
 
     def readConfig(self, service):
 
-        config_path = '{0}/server/{1}/{2}'.format(TWISTER_PATH, service['name'], service['config'])
+        config_path = '{0}/services/{1}/{2}'.format(TWISTER_PATH, service['name'], service['config'])
 
         if not os.path.isfile(config_path):
             logError('SM: No such config file `{0}`!'.format(config_path))
@@ -260,7 +260,7 @@ class ServiceManager():
 
     def saveConfig(self, service, data):
 
-        config_path = '{0}/server/{1}/{2}'.format(TWISTER_PATH, service['name'], service['config'])
+        config_path = '{0}/services/{1}/{2}'.format(TWISTER_PATH, service['name'], service['config'])
 
         if not os.path.isfile(config_path):
             logError('SM: No such config file `{0}`!'.format(config_path))
@@ -279,7 +279,7 @@ class ServiceManager():
         if fstart is None:
             return '*ERROR for {0}!* Parameter FSTART is NULL!'.format(service['name'])
 
-        filename = '{0}/server/{1}/{2}'.format(TWISTER_PATH, service['name'], service['logfile'])
+        filename = '{0}/services/{1}/{2}'.format(TWISTER_PATH, service['name'], service['logfile'])
 
         if not os.path.exists(filename):
             return '*ERROR for {0}!* No such log file `{0}`!'.format(service['name'], filename)

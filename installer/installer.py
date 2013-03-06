@@ -123,7 +123,7 @@ if TO_INSTALL == 'server':
     del selected
 
     if os.path.exists(INSTALL_PATH):
-        print('WARNING! Another version of Twister is installed at `%s`!' % INSTALL_PATH)
+        print('\nWARNING! Another version of Twister is installed at `%s`!' % INSTALL_PATH)
         print('If you continue, all files from that folder will be PERMANENTLY DELETED!')
         print('If you created custom libs (in folder lib/) and plugins (in folder plugin),')
         print('you should make a back-up.')
@@ -164,8 +164,6 @@ else:
             if os.path.exists(INSTALL_PATH + 'config'):
                 print('\nBack-up `config` folder (from `{0}` to `{1}`)...'.format(INSTALL_PATH+'config', os.getcwd()))
                 shutil.move(INSTALL_PATH + 'config', os.getcwd())
-                print('Back-up `config_ep` file (from `{0}` to `{1}`)...'.format(INSTALL_PATH+'bin/config_ep.json', os.getcwd()))
-                shutil.move(INSTALL_PATH + 'bin/config_ep.json', os.getcwd())
 
             # Deleting previous versions of Twister
             try: dir_util.remove_tree(INSTALL_PATH)
@@ -452,8 +450,6 @@ if os.path.exists(cwd_path + 'config'):
     print('\nMoving `config` folder back (from `{0}` to `{1}`)...'.format(cwd_path+'config', INSTALL_PATH+'config'))
     dir_util.copy_tree(cwd_path + 'config', INSTALL_PATH+'config')
     dir_util.remove_tree(cwd_path + 'config')
-    print('Moving `config_ep` file back (from `{0}` to `{1}`)...'.format(os.getcwd()+'/config_ep.json', INSTALL_PATH+'bin/config_ep.json'))
-    shutil.move(os.getcwd() + '/config_ep.json', INSTALL_PATH + 'bin/config_ep.json')
 
 #
 
