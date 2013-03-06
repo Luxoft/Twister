@@ -36,6 +36,7 @@ if not TWISTER_PATH:
 sys.path.append(TWISTER_PATH)
 
 from lxml import etree
+from ConfigParser import SafeConfigParser
 from plugins import BasePlugin
 
 from common.tsclogging import *
@@ -235,22 +236,26 @@ class TSCParser:
         """
         Returns a list with all available EP names.
         """
+        # Reading the path to Ep Names file, from master config
         eps_file = self.project_globals['EpsFile']
 
         if not eps_file:
-            print('Parser: EP Names file is not defined! Please check framework config XML file!')
+            logError('Parser: EP Names file is not defined! Please check framework config XML file!')
             return None
         if not os.path.isfile(eps_file):
-            print('Parser: EP Names file `%s` does not exist! Please check framework config XML file!' % eps_file)
+            logError('Parser: EP Names file `{0}` does not exist! Please check framework config XML file!'.format(eps_file))
             return None
 
         # Reset EP list
         self.epnames = []
 
-        for line in open(eps_file).readlines():
-            line = line.strip()
-            if not line: continue
-            self.epnames.append(line)
+        cfg = SafeConfigParser()
+        cfg.read(eps_file)
+
+        for epname in cfg.sections():
+            epname = epname.strip()
+            self.epnames.append(epname)
+
         return self.epnames
 
 

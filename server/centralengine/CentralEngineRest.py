@@ -159,7 +159,6 @@ class CentralEngineRest:
         machine = platform.uname()[1]
         system  = ' '.join(platform.linux_distribution())
         users   = sorted([u.split('/')[2] for u in glob.glob('/home/*/twister')])
-        # os.path.expanduser("~user")
 
         output = Template(filename=TWISTER_PATH + '/server/centralengine/template_main.htm')
         return output.render(ip_port=ip_port, machine=machine, system=system, users=users)
@@ -172,7 +171,8 @@ class CentralEngineRest:
 
         host = cherrypy.request.headers['Host']
         reversed = dict((v,k) for k,v in execStatus.iteritems())
-        status = reversed[self.project.getUserInfo(user, 'status')]
+        int_status = self.project.getUserInfo(user, 'status') or STATUS_INVALID
+        status = reversed[int_status]
         try: eps_file = self.project.parsers[user].project_globals['EpsFile']
         except: eps_file = ''
 

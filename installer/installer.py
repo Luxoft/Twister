@@ -122,6 +122,18 @@ if TO_INSTALL == 'server':
         INSTALL_PATH = '/opt/twister/'
     del selected
 
+    if os.path.exists(INSTALL_PATH):
+        print('WARNING! Another version of Twister is installed at `%s`!' % INSTALL_PATH)
+        print('If you continue, all files from that folder will be PERMANENTLY DELETED!')
+        print('If you created custom libs (in folder lib/) and plugins (in folder plugin),')
+        print('you should make a back-up.')
+        selected = raw_input('Are you sure you want to continue? (yes/no): ')
+
+        if selected.strip().lower() not in ['y', 'yes']:
+            print('\nPlease backup your data, then restart the installer.')
+            print('Exiting.\n')
+            exit(0)
+
     # Deleting previous versions of Twister
     try:
         dir_util.remove_tree(INSTALL_PATH)
@@ -143,7 +155,7 @@ else:
 
     if os.path.exists(INSTALL_PATH):
         print('WARNING! Another version of Twister is installed at `%s`!' % INSTALL_PATH)
-        print('If you continue, all files from that folder will be DELETED,')
+        print('If you continue, all files from that folder will be PERMANENTLY DELETED,')
         print('Only the `config` folder will be saved!')
         selected = raw_input('Are you sure you want to continue? (yes/no): ')
 
@@ -162,7 +174,7 @@ else:
             except: print('Error! Cannot create Twister dir `{0}` !'.format(INSTALL_PATH))
 
         else:
-            print('\nPlease backup all your data, then restart the installer.')
+            print('\nPlease backup your data, then restart the installer.')
             print('Exiting.\n')
             exit(0)
 
@@ -220,7 +232,6 @@ elif TO_INSTALL == 'client':
     # Files to move in Client folder
     to_copy = [
         'bin/start_ep.py',
-        'bin/config_ep.json',
         'doc/',
         'demo/',
         'config/',
