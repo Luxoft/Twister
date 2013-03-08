@@ -30,6 +30,7 @@
 			<propvalue>user</propvalue>
 		</property>
 	</Plugin>
+
 	<Plugin>
 		<name>GIT</name>
 		<jarfile>GITPlugin.jar</jarfile>
@@ -38,6 +39,21 @@
 		<property>
 			<propname>path</propname>
 			<propvalue>/home/tscguest/teste</propvalue>
+		</property>
+	</Plugin>
+
+	<Plugin>
+		<name>Jenkins</name>
+		<jarfile>JenkinsPlugin.jar</jarfile>
+		<pyfile>JenkinsPlugin.py</pyfile>
+		<status>disabled</status>
+		<property>
+			<propname>script</propname>
+			<propvalue>/home/user/jenkins/build_script.sh</propvalue>
+		</property>
+		<property>
+			<propname>tests</propname>
+			<propvalue>/home/user/twister/config/testsuites.xml</propvalue>
 		</property>
 	</Plugin>
 </Root>

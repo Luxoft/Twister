@@ -834,7 +834,7 @@ class Project:
         logDebug('CE: Executing script `%s`...' % script_path)
 
         try:
-            txt = subprocess.check_output([script_path])
+            txt = subprocess.check_output(script_path, shell=True)
             return txt.strip()
         except Exception, e:
             logError('Exec script `%s`: Exception - %s' % (script_path, str(e)) )
@@ -1113,11 +1113,12 @@ class Project:
                         for query in queries:
 
                             # All variables of type `UserScript` must be replaced with the script result
-                            try: vars_to_replace = re.findall('(\$.+?)[,\'"\s]', query)
+                            try: vars_to_replace = re.findall('(\$.+?)[,\.\'"\s]', query)
                             except: vars_to_replace = []
 
                             for field in vars_to_replace:
                                 field = field[1:]
+
                                 # If the field is not `UserScript`, ignore it
                                 if field not in scripts:
                                     continue
