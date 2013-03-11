@@ -59,8 +59,8 @@ class TCRunTcl:
     def __init__(self):
 
         global TWISTER_PATH
-        if not TWISTER_LIBS_PATH in sys.path:
-            sys.path.append(TWISTER_LIBS_PATH) # Injected EP name
+        if not TWISTER_PATH in sys.path:
+            sys.path.append(TWISTER_PATH) # Injected EP name
 
         try:
             import Tkinter
@@ -123,18 +123,22 @@ class TCRunTcl:
         def logMessage(logType, logMessage):
             globs['proxy'].logMessage(globs['userName'], logType, logMessage)
 
+        def getGlobal(variable):
+            return globs['proxy'].getGlobalVariable(globs['userName'], variable)
+
         def setGlobal(variable, value):
-            globs['proxy'].setGlobalVariable(globs['userName'], variable, value)
+            return globs['proxy'].setGlobalVariable(globs['userName'], variable, value)
 
         # Inject Log Message function
         self.tcl.createcommand('logMessage', logMessage)
+        self.tcl.createcommand('getGlobal',  getGlobal)
         self.tcl.createcommand('setGlobal',  setGlobal)
 
-        gparam = []
-        [gparam.extend([k, v]) for k, v in flatten(globs['gparam']).items()]
+        # gparam = []
+        # [gparam.extend([k, v]) for k, v in flatten(globs['gparam']).items()]
 
-        # Inject Global Parameters
-        self.tcl.eval('array set gparam [list {0}]'.format(' '.join(['"'+str(x)+'"' for x in gparam])))
+        # # Inject Global Parameters
+        # self.tcl.eval('array set gparam [list {0}]'.format(' '.join(['"'+str(x)+'"' for x in gparam])))
 
         # Inject variables
         self.tcl.setvar('SUITE_ID',   globs['suite_id'])
@@ -237,8 +241,8 @@ class TCRunPython:
         '''
         #
         global TWISTER_PATH
-        if not TWISTER_LIBS_PATH in sys.path:
-            sys.path.append(TWISTER_LIBS_PATH) # Injected EP name
+        if not TWISTER_PATH in sys.path:
+            sys.path.append(TWISTER_PATH) # Injected EP name
 
         # Start injecting inside tests
         globs_copy = {}
@@ -253,16 +257,19 @@ class TCRunPython:
         globs_copy['USER']       = globs['userName']
         globs_copy['EP']         = globs['globEpName']
         globs_copy['PROXY']      = globs['proxy']
-        globs_copy['gparam']     = globs['gparam']
         globs_copy['currentTB']  = globs['tbname']
 
         def logMsg(logType, logMessage):
             globs['proxy'].logMessage(globs['userName'], logType, logMessage)
 
+        def getGlobal(variable):
+            return globs['proxy'].getGlobalVariable(globs['userName'], variable)
+
         def setGlobal(variable, value):
-            globs['proxy'].setGlobalVariable(globs['userName'], variable, value)
+            return globs['proxy'].setGlobalVariable(globs['userName'], variable, value)
 
         globs_copy['logMsg']    = logMsg
+        globs_copy['getGlobal'] = getGlobal
         globs_copy['setGlobal'] = setGlobal
 
         globEpName = globs_copy['EP']
@@ -298,8 +305,9 @@ class TCRunPerl:
         Perl test runner.
         '''
         #
-        if not TWISTER_LIBS_PATH in sys.path:
-            sys.path.append(TWISTER_LIBS_PATH) # Injected EP name
+        global TWISTER_PATH
+        if not TWISTER_PATH in sys.path:
+            sys.path.append(TWISTER_PATH) # Injected EP name
         #
         _RESULT = None
         to_execute = str_to_execute.data

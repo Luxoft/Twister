@@ -10,7 +10,7 @@
     <UsersPath>$HOME/twister/config/users</UsersPath>
     <GlobalParams>$HOME/twister/config/globals.xml</GlobalParams>
     <DbConfigFile>$HOME/twister/config/db.xml</DbConfigFile>
-    <EPIdsFile>$HOME/twister/config/epname.txt</EPIdsFile>
+    <EPIdsFile>$HOME/twister/config/epname.ini</EPIdsFile>
     <HardwareConfig>$HOME/twister/config/hwconfig.xml</HardwareConfig>
     <EmailConfigFile>$HOME/twister/config/email.xml</EmailConfigFile>
     <GlobalParams>>$HOME/twister/config/globalparams.xml</GlobalParams>

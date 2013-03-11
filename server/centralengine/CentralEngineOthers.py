@@ -112,6 +112,7 @@ class Project:
 
         self.usr_lock = thread.allocate_lock()  # User change lock
         self.int_lock = thread.allocate_lock()  # Internal use lock
+        self.glb_lock = thread.allocate_lock()  # Global variables lock
         self.eml_lock = thread.allocate_lock()  # E-mail lock
         self.db_lock  = thread.allocate_lock()  # Database lock
 
@@ -140,18 +141,21 @@ class Project:
         and ( base_config[0] == '<' and base_config[-1] == '>' ):
             config_data, base_config = base_config, ''
 
+        user_home = userHome(user)
+
         # If it's a valid path
         if base_config and not os.path.exists(base_config):
-            logError('Project ERROR: Config path `%s` does not exist !' % base_config)
+            logCritical('Project ERROR: Config path `%s` does not exist !' % base_config)
             return False
-        elif not os.path.exists( '{0}/twister'.format(userHome(user)) ):
-            logError('Project ERROR: Cannot find Twister for user `%s` !' % user)
+        elif not os.path.exists( '{0}/twister'.format(user_home) ):
+            logCritical('Project ERROR: Cannot find Twister for user `{0}`, '\
+                'in path `{1}/twister`!'.format(user, user_home))
             return False
         else:
-            base_config = '{0}/twister/config/fwmconfig.xml'.format(userHome(user))
+            base_config = '{0}/twister/config/fwmconfig.xml'.format(user_home)
 
         if not files_config:
-            files_config = '{0}/twister/config/testsuites.xml'.format(userHome(user))
+            files_config = '{0}/twister/config/testsuites.xml'.format(user_home)
 
         # User data + User parser
         # Parsers contain the list of all EPs and the list of all Project Globals
@@ -186,6 +190,9 @@ class Project:
         self.users[user]['log_types'] = {}
 
 
+        # Global params for user
+        self.users[user]['global_params'] = self.parsers[user].getGlobalParams()
+
         # Add path to DB, E-mail XML, Globals
         self.users[user]['db_config']  = project_globals['DbConfig']
         self.users[user]['eml_config'] = project_globals['EmailConfig']
@@ -215,6 +222,86 @@ class Project:
         self._dump()
         logDebug('Project: Created user `%s` ...' % user)
 
+        return True
+
+
+    def reset(self, user, base_config='', files_config=''):
+        """
+        Reset user parser, all EPs to STOP, all files to PENDING.
+        """
+        if not user or user not in self.users:
+            logError('Project ERROR: Invalid user `{0}` !'.format(user))
+            return False
+
+        if base_config and not os.path.isfile(base_config):
+            logError('Project ERROR: Config path `%s` does not exist! Using default config!' % base_config)
+            base_config = False
+
+        r = self.changeUser(user)
+        if not r: return False
+
+        ti = time.clock()
+
+        # User config XML files
+        if not base_config:
+            base_config = self.users[user]['config_path']
+        if not files_config:
+            files_config = self.users[user]['project_path']
+
+        logDebug('Project: RESET configuration for user `{0}`, using config files `{1}` and `{2}`.'.format(
+            user, base_config, files_config))
+        self.parsers[user] = TSCParser(base_config, files_config)
+
+        # Calculate the Suites for each EP and the Files for each Suite
+        for epname in self.users[user]['eps']:
+            # All EPs must have status STOP
+            self.users[user]['eps'][epname]['status'] = STATUS_STOP
+            self.users[user]['eps'][epname] = {}
+            self.users[user]['eps'][epname]['suites'] = self.parsers[user].getAllSuitesInfo(epname)
+
+        # Ordered list of file IDs, used for Get Status ALL
+        self.test_ids[user] = self.parsers[user].getAllTestFiles()
+
+        # Get project global variables from XML
+        project_globals = self.parsers[user].project_globals
+
+        # Add framework config info to default user
+        self.users[user]['config_path'] = base_config
+        self.users[user]['project_path'] = files_config
+        self.users[user]['tests_path'] = project_globals['TestsPath']
+        self.users[user]['logs_path'] = project_globals['LogsPath']
+        self.users[user]['log_types'] = {}
+
+
+        # Global params for user
+        self.users[user]['global_params'] = self.parsers[user].getGlobalParams()
+
+        # Add path to DB, E-mail XML, Globals
+        self.users[user]['db_config']  = project_globals['DbConfig']
+        self.users[user]['eml_config'] = project_globals['EmailConfig']
+        self.users[user]['glob_params'] = project_globals['GlobalParams']
+
+        # Add the `exit on test Fail` value
+        self.users[user]['exit_on_test_fail'] = project_globals['ExitOnTestFail']
+
+        # Add the `Pre and Post` project Scripts
+        self.users[user]['script_pre']  = project_globals['ScriptPre']
+        self.users[user]['script_post'] = project_globals['ScriptPost']
+
+        # Add the `Database Autosave` value
+        self.users[user]['db_auto_save'] = project_globals['DbAutoSave']
+
+        # Add the 'Libraries'
+        self.users[user]['libraries'] = project_globals['Libraries']
+
+        # Add the `Testcase Delay` value
+        self.users[user]['tc_delay'] = project_globals['TestcaseDelay']
+        del project_globals
+
+        for logType in self.parsers[user].getLogTypes():
+            self.users[user]['log_types'][logType] = self.parsers[user].getLogFileForType(logType)
+
+        logDebug('Project: RESET operation took %.4f seconds.' % (time.clock()-ti))
         return True
 
 
@@ -269,82 +356,6 @@ class Project:
                 r = self.createUser(user)
                 if not r: return False
 
-        return True
-
-
-    def reset(self, user, base_config='', files_config=''):
-        """
-        Reset user parser, all EPs to STOP, all files to PENDING.
-        """
-        if not user or user not in self.users:
-            logError('Project ERROR: Invalid user `{0}` !'.format(user))
-            return False
-
-        if base_config and not os.path.isfile(base_config):
-            logError('Project ERROR: Config path `%s` does not exist! Using default config!' % base_config)
-            base_config = False
-
-        r = self.changeUser(user)
-        if not r: return False
-
-        ti = time.clock()
-
-        # User config XML files
-        if not base_config:
-            base_config = self.users[user]['config_path']
-        if not files_config:
-            files_config = self.users[user]['project_path']
-
-        logDebug('Project: RESET configuration for user `{0}`, using config files `{1}` and `{2}`.'.format(
-            user, base_config, files_config))
-        self.parsers[user] = TSCParser(base_config, files_config)
-
-        # Calculate the Suites for each EP and the Files for each Suite
-        for epname in self.users[user]['eps']:
-            # All EPs must have status STOP
-            self.users[user]['eps'][epname]['status'] = STATUS_STOP
-            self.users[user]['eps'][epname] = {}
-            self.users[user]['eps'][epname]['suites'] = self.parsers[user].getAllSuitesInfo(epname)
-
-        # Ordered list of file IDs, used for Get Status ALL
-        self.test_ids[user] = self.parsers[user].getAllTestFiles()
-
-        # Get project global variables from XML
-        project_globals = self.parsers[user].project_globals
-
-        # Add framework config info to default user
-        self.users[user]['config_path'] = base_config
-        self.users[user]['project_path'] = files_config
-        self.users[user]['tests_path'] = project_globals['TestsPath']
-        self.users[user]['logs_path'] = project_globals['LogsPath']
-        self.users[user]['log_types'] = {}
-
-        # Add path to DB, E-mail XML, Globals
-        self.users[user]['db_config']  = project_globals['DbConfig']
-        self.users[user]['eml_config'] = project_globals['EmailConfig']
-        self.users[user]['glob_params'] = project_globals['GlobalParams']
-
-        # Add the `exit on test Fail` value
-        self.users[user]['exit_on_test_fail'] = project_globals['ExitOnTestFail']
-
-        # Add the `Pre and Post` project Scripts
-        self.users[user]['script_pre']  = project_globals['ScriptPre']
-        self.users[user]['script_post'] = project_globals['ScriptPost']
-
-        # Add the `Database Autosave` value
-        self.users[user]['db_auto_save'] = project_globals['DbAutoSave']
-
-        # Add the 'Libraries'
-        self.users[user]['libraries'] = project_globals['Libraries']
-
-        # Add the `Testcase Delay` value
-        self.users[user]['tc_delay'] = project_globals['TestcaseDelay']
-        del project_globals
-
-        for logType in self.parsers[user].getLogTypes():
-            self.users[user]['log_types'][logType] = self.parsers[user].getLogFileForType(logType)
-
-        logDebug('Project: RESET operation took %.4f seconds.' % (time.clock()-ti))
         return True
 
 
@@ -666,6 +677,82 @@ class Project:
 # # #
 
 
+    def _findGlobalVariable(self, user, node_path):
+        """
+        Helper function.
+        """
+        var_pointer = self.users[user]['global_params']
+
+        for node in node_path:
+            if node in var_pointer:
+                var_pointer = var_pointer[node]
+            else:
+                # Invalid variable path
+                return False
+
+        return var_pointer
+
+
+    def getGlobalVariable(self, user, variable):
+        """
+        Sending a global variable, using a path.
+        """
+        r = self.changeUser(user)
+        if not r: return False
+
+        try: node_path = [v for v in variable.split('/') if v]
+        except:
+            logError('Global Variable: Invalid variable type `{0}`, for user `{1}`!'.format(variable, user))
+            return False
+
+        var_pointer = self._findGlobalVariable(user, node_path)
+
+        if not var_pointer:
+            logError('Global Variable: Invalid variable path `{0}`, for user `{1}`!'.format(node_path, user))
+            return False
+
+        return var_pointer
+
+
+    def setGlobalVariable(self, user, variable, value):
+        """
+        Set a global variable path, for a user.\n
+        The change is not persistent.
+        """
+        r = self.changeUser(user)
+        if not r: return False
+
+        try: node_path = [v for v in variable.split('/') if v]
+        except:
+            logError('Global Variable: Invalid variable type `{0}`, for user `{1}`!'.format(variable, user))
+            return False
+
+        if (not value) or (not str(value)):
+            logError('Global Variable: Invalid value `{0}`, for global variable `{1}` from user `{2}`!'\
+                ''.format(value, variable, user))
+            return False
+
+        # If the path is in ROOT, it's a root variable
+        if len(node_path) == 1:
+            with self.glb_lock:
+                self.users[user]['global_params'][node_path[0]] = value
+            return True
+
+        # If the path is more complex, the pointer here will go to the parent
+        var_pointer = self._findGlobalVariable(user, node_path[:-1])
+
+        if not var_pointer:
+            logError('Global Variable: Invalid variable path `{0}`, for user `{1}`!'.format(node_path, user))
+            return False
+
+        with self.glb_lock:
+            var_pointer[node_path[-1]] = value
+        return True
+
+
+# # #
+
+
     def setPersistentSuite(self, user, suite, info={}, order=-1):
         """
         This function writes in TestSuites.XML file.
@@ -747,7 +834,7 @@ class Project:
         logDebug('CE: Executing script `%s`...' % script_path)
 
         try:
-            txt = subprocess.check_output([script_path])
+            txt = subprocess.check_output(script_path, shell=True)
             return txt.strip()
         except Exception, e:
             logError('Exec script `%s`: Exception - %s' % (script_path, str(e)) )
@@ -1026,11 +1113,12 @@ class Project:
                         for query in queries:
 
                             # All variables of type `UserScript` must be replaced with the script result
-                            try: vars_to_replace = re.findall('(\$.+?)[,\'"\s]', query)
+                            try: vars_to_replace = re.findall('(\$.+?)[,\.\'"\s]', query)
                             except: vars_to_replace = []
 
                             for field in vars_to_replace:
                                 field = field[1:]
+
                                 # If the field is not `UserScript`, ignore it
                                 if field not in scripts:
                                     continue

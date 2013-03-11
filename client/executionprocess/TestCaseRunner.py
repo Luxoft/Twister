@@ -423,8 +423,6 @@ if __name__=='__main__':
 
             file_ext = os.path.splitext(filename)[1].lower()
 
-            gparam = proxy.getGlobalVariables(userName)
-
             # --------------------------------------------------
             # Start TIMER
             interval = 5 # The interval should be in Test-Suites.XML.
@@ -475,7 +473,6 @@ if __name__=='__main__':
             # RUN CURRENT TEST!
             try:
                 globs = globals()
-                globs['gparam'] = gparam
                 globs['tbname'] = tbname
                 result = current_runner._eval(str_to_execute, globs, args)
                 result = str(result).upper()
