@@ -51,23 +51,13 @@ def __main__():
 
         exit(1)
 
-    """
-    try:
-        user_name = getenv('USER')
-        if user_name=='root':
-            user_name = getenv('SUDO_USER')
-    except Exception, e:
-        print('Cannot guess user name for this Execution Process! Exiting!')
-        exit(1)
-    """
-
     environ['TWISTER_PATH'] = getenv('HOME') + '/twister'
 
     # load execution process configuration
-    eps = load(open(getenv('TWISTER_PATH') + '/bin/config_ep.json'))
+    epConfig = load(open(getenv('TWISTER_PATH') + '/bin/config_ep.json'))
 
     # initiate and start sniffer
-    pt = PacketsTwist(options.user, eps, options.of_port)
+    pt = PacketsTwist(options.user, epConfig, options.of_port)
 
     pt.run()
 

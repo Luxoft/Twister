@@ -51,6 +51,7 @@ class Plugin(BasePlugin):
         self.pcapPath = getenv('HOME') + '/twister/tmp'
         self.packetsIndexLimit = (self.data['historyLength']
                                     - self.data['packetsBuffer'])
+        self.filters = {}
         self.sniffers = {}
 
         self.commands = {
@@ -59,10 +60,12 @@ class Plugin(BasePlugin):
                 'pause', 'resume',
                 'restart', 'reset',
                 'savepcap',
+                'getfilters',
             ],
             'argumented': [
                 'query', 'querypkt', 'pushpkt',
                 'registersniff', 'restarted',
+                'setfilters',
             ]
         }
 
@@ -99,12 +102,13 @@ class Plugin(BasePlugin):
             if args.has_key('data'):
                 try:
                     response['state'] = self.sniffers[args['data']]
+                    response['data'] = {'filters': self.filters}
                 except Exception, e:
                     response['status']['success'] = False
                     response['status']['message'] = 'command data not valid: \
                                                         {err}'.format(err=e)
             else:
-                response = self.status ##
+                response = self.status
 
         # registersniff
         elif args['command'] == 'registersniff':
@@ -112,6 +116,27 @@ class Plugin(BasePlugin):
 
             try:
                 self.sniffers.update([(args['data'], self.status), ])
+            except Exception, e:
+                response['status']['success'] = False
+                response['status']['message'] = 'error: {err}'.format(err=e)
+
+        # get / set filters
+        elif args['command'] == 'getfilters':
+            response['type'] = 'getfilters reply'
+
+            response = self.filters
+        elif args['command'] == 'setfilters':
+            response['type'] = 'setfilters reply'
+
+            try:
+                data = args['data'].split()
+                data = {data[i]: data[i+1] for i in range(0, len(data)-1, 2)}
+
+                self.filters = dict((k,v) for k,v in data.iteritems() if v is not None)
+
+                self.packets = []
+                response['data'] = {'index': 0}
+
             except Exception, e:
                 response['status']['success'] = False
                 response['status']['message'] = 'error: {err}'.format(err=e)

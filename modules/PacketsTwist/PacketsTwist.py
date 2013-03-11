@@ -20,7 +20,7 @@ from socket import gethostname, gethostbyname
 from xmlrpclib import ServerProxy
 from uuid import uuid4
 from time import sleep, time
-from scapy.all import Automaton, ATMT, TCP, bind_layers
+from scapy.all import Automaton, ATMT, TCP, bind_layers, conf, NoPayload
 
 from PacketsTwistClasses import OpenFlow, CentralEngineObject
 
@@ -32,7 +32,7 @@ class PacketsTwist(Automaton):
     Packets Twist Scapy Automaton
     """
 
-    def parse_args(self, user, epsConfig, OFPort=None, _uid=None, **kargs):
+    def parse_args(self, user, epConfig, OFPort=None, _uid=None, **kargs):
         Automaton.parse_args(self, **kargs)
         self.PAUSED = False
         self.OFPort = (OFPort, 6633)[OFPort is None]
@@ -41,32 +41,129 @@ class PacketsTwist(Automaton):
         bind_layers(TCP, OpenFlow, sport=self.OFPort)
         bind_layers(TCP, OpenFlow, dport=self.OFPort)
 
-        self.username = user
+        # packet filters
+        self.filters = kargs.pop('filters', None)
 
-        self.epsConfig = epsConfig
-        _epsConfig = list(set([(ep['CE_IP'], ep['CE_PORT'])
-                                    for ep in self.epsConfig if ep['ENABLED']]))
+        # user
+        self.username = user
+        self.userip = gethostbyname(gethostname())
+        self.userhost = gethostname()
+
+        self.epConfig = epConfig
+        _epConfig = list(set([(ep['CE_IP'], ep['CE_PORT'])
+                                    for ep in self.epConfig if ep['ENABLED']]))
         self.ceObjects = [
             CentralEngineObject(
                 ServerProxy('http://{ip}:{port}/'.format(ip=ep[0], port=ep[1])),
             )
-            for ep in _epsConfig
+            for ep in _epConfig
         ]
+
+        self.ceTraffic = [(ep[0], ep[1]) for ep in _epConfig]
 
         self.uid = (uuid4(), _uid)[_uid is not None]
 
         self.reinitRetries = 0
         self.reinitMaxRetries = 4
 
-    def master_filter(self, pkt):
-        # no default filter
-        return True
+    def master_filter(self, packet):
+        # default filter: exclude CE traffic
+        packetHead = self.packet_head(packet)
+        if ((packet_head['source']['ip'], packet_head['source']['port'])
+                                                            in self.ceTraffic or
+            (packet_head['destination']['ip'], packet_head['destination']['port'])
+                                                            in self.ceTraffic):
+            return False
 
+        if not self.filter: return True
+
+        filterStatus = True
+        if self.filters.has_key('-i'):
+            try:
+                conf.iface = self.filters['-i']
+            except Exception, e:
+                filterStatus = False
+
+                print 'PT debug: parse arguments exception: {ex}'.format(ex=e)
+
+        if self.filters.has_key('-proto'):
+            pkt = packet
+            protocols = []
+            while not isinstance(pkt, NoPayload):
+                protocols.append(pkt.name)
+                pkt = pkt.payload
+
+            filterStatus = self.filters['-proto'] in protocols
+
+        if self.filters.has_key('-mac_src'):
+            filterStatus = (self.filters['-mac_src'] ==
+                                            packetHead['source']['mac'])
+
+        if self.filters.has_key('-mac_dst'):
+            filterStatus = (self.filters['-mac_dst'] ==
+                                            packetHead['destination']['mac'])
+
+        if self.filters.has_key('-port_src'):
+            filterStatus = (self.filters['-port_src'] ==
+                                            packetHead['source']['port'])
+
+        if self.filters.has_key('-port_dst'):
+            filterStatus = (self.filters['-port_dst'] ==
+                                            packetHead['destination']['port'])
+
+        if self.filters.has_key('-ip_src'):
+            filterStatus = (self.filters['-ip_src'] ==
+                                            packetHead['source']['ip'])
+
+        if self.filters.has_key('-ip_dst'):
+            filterStatus = (self.filters['-ip_dst'] ==
+                                            packetHead['destination']['ip'])
+
+        return filterStatus
+
+
+    def packet_parse(packet):
+        source = {}
+        destination = {}
+        try:
+            source['mac'] = packet.fields['src']
+            destination['mac'] = packet.fields['dst']
+
+            try:
+                source['ip'] = packet.payload.fields['src']
+                destination['ip'] = packet.payload.fields['dst']
+            except Exception, e:
+                source['ip'] = 'None'
+                destination['ip'] = 'None'
+
+                print 'PT debug: packet head exception (ip): {ex}'.format(ex=e)
+
+            try:
+                source['port'] = packet.payload.payload.fields['sport']
+                destination['port'] = packet.payload.payload.fields['dport']
+            except Exception, e:
+                source['port'] = 'None'
+                destination['port'] = 'None'
+
+                print 'PT debug: packet head exception (port): {ex}'.format(ex=e)
+        except Exception, e:
+            source['mac'] = 'None'
+            destination['mac'] = 'None'
+
+            print 'PT debug: packet head exception (mac): {ex}'.format(ex=e)
+
+        data = {
+            'protocol': packet.payload.payload.name,
+            'source': source,
+            'destination': destination,
+        }
+
+        return data
 
     def reinit(self):
         print 'PT debug: reinit ..'
 
-        self.parse_args(self.username, self.epsConfig, self.OFPort, self.uid)
+        self.parse_args(self.username, self.epConfig, self.OFPort, self.uid)
 
         raise self.BEGIN()
 
@@ -87,14 +184,14 @@ class PacketsTwist(Automaton):
                                 will retry [{r}] ..'.format(r=self.reinitRetries)
                         self.reinitRetries += 1
 
-                        _epsConfig = list(set([(ep['CE_IP'], ep['CE_PORT'])
-                                    for ep in self.epsConfig if ep['ENABLED']]))
+                        _epConfig = list(set([(ep['CE_IP'], ep['CE_PORT'])
+                                    for ep in self.epConfig if ep['ENABLED']]))
                         self.ceObjects = [
                             CentralEngineObject(
                                 ServerProxy('http://{ip}:{port}/'.format(ip=ep[0],
                                                                     port=ep[1])),
                             )
-                            for ep in _epsConfig
+                            for ep in _epConfig
                         ]
 
                         sleep(2)
@@ -151,6 +248,7 @@ class PacketsTwist(Automaton):
                 pluginData = ce.proxy.runPlugin(self.username, 'SNIFF', args)
 
                 ce.pluginStatus = pluginData['state']
+                self.filters = pluginData['data']['filters']
 
                 if ce.pluginStatus == 'restart':
                     args['command'] = 'restarted'
@@ -186,49 +284,16 @@ class PacketsTwist(Automaton):
     # RECEIVED
     @ATMT.state()
     def RECEIVING(self, packet):
-        source = {}
-        destination = {}
-        try:
-            source['mac'] = packet.fields['src']
-            destination['mac'] = packet.fields['dst']
-
-            try:
-                source['ip'] = packet.payload.fields['src']
-                destination['ip'] = packet.payload.fields['dst']
-            except Exception, e:
-                source['ip'] = 'None'
-                destination['ip'] = 'None'
-
-                print 'PT debug: packet head exception (ip): {ex}'.format(ex=e)
-
-            try:
-                source['port'] = packet.payload.payload.fields['sport']
-                destination['port'] = packet.payload.payload.fields['dport']
-            except Exception, e:
-                source['port'] = 'None'
-                destination['port'] = 'None'
-
-                print 'PT debug: packet head exception (port): {ex}'.format(ex=e)
-        except Exception, e:
-            source['mac'] = 'None'
-            destination['mac'] = 'None'
-
-            print 'PT debug: packet head exception (mac): {ex}'.format(ex=e)
-
         data = {
             'sniffer': {
-                'ip': gethostbyname(gethostname()),
-                'hostname': gethostname(),
+                'ip': self.userip,
+                'hostname': self.userhost,
                 'username': self.username,
             },
-            'packet_head': {
-                'id': str(time()),
-                'protocol': packet.payload.payload.name,
-                'source': source,
-                'destination': destination,
-            },
+            'packet_head': self.packet_head(packet),
             'packet': str(packet),
         }
+        data['packet_head'].update([('id', str(time())), ])
         data = b2a_base64(str(data))
 
         self.ce_status_update()

@@ -5,6 +5,7 @@
 # Copyright (C) 2012 , Luxoft
 
 # Authors:
+#    Adrian Toader <adtoader@luxoft.com>
 #    Andrei Costachi <acostachi@luxoft.com>
 #    Andrei Toma <atoma@luxoft.com>
 #    Cristian Constantin <crconstantin@luxoft.com>
@@ -83,13 +84,14 @@ def saveConfig():
 #
 
 def packetsTwistStatus(ce):
-    """  """
+    """ Check Packets Twist plugin status """
+
     global sniffer
 
     pipe = subprocess.Popen('ps ax | grep start_packets_twist.py',
                                     shell=True, stdout=subprocess.PIPE).stdout
     lines = pipe.read().splitlines()
-    if len(lines) > 1: return
+    if len(lines) > 2: return
 
     if not sniffer:
         args = {'command': 'echo'}
