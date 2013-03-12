@@ -219,6 +219,7 @@ if TO_INSTALL == 'server':
         'config/resources.json',
         'config/services.ini',
         'plugins/',
+        'services/',
     ]
 
 elif TO_INSTALL == 'client':

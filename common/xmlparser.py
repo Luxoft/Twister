@@ -40,6 +40,7 @@ from ConfigParser import SafeConfigParser
 from plugins import BasePlugin
 
 from common.tsclogging import *
+from common.constants import FWMCONFIG_TAGS, PROJECTCONFIG_TAGS
 
 __all__ = ['TSCParser', 'DBParser', 'PluginParser', 'userHome']
 
@@ -47,7 +48,8 @@ __all__ = ['TSCParser', 'DBParser', 'PluginParser', 'userHome']
 
 def userHome(user):
     """
-    Find the home folder for the given user, using /etc/passwd file.
+    Find the home folder for the given user, using /etc/passwd file.\n
+    This function is run from a ROOT user.
     """
     user = str(user)
     lines = open('/etc/passwd').readlines()
@@ -75,7 +77,7 @@ class TSCParser:
     - Test files for specific EP
     """
 
-    def __init__(self, base_config='', files_config=''):
+    def __init__(self, user, base_config='', files_config=''):
 
         if os.path.isfile(base_config):
             base_config = open(base_config).read()
@@ -89,6 +91,9 @@ class TSCParser:
             self.xmlDict = etree.fromstring(base_config)
         except:
             raise Exception('Parser ERROR: Cannot access XML config data!')
+
+        self.user = user
+        self.user_home = userHome(user)
 
         self.configTS = None
         self.configHash = None
@@ -160,74 +165,37 @@ class TSCParser:
             return False
 
         # Reset globals
-        self.project_globals = OrderedDict([
-            ('EpsFile', ''),
-            ('TestsPath', ''),
-            ('DbConfig', ''),
-            ('EmailConfig', ''),
-            ('LogsPath', ''),
-            ('ExitOnTestFail', False),
-            ('DbAutoSave', False),
-            ('TestcaseDelay', 0),
-            ('ScriptPre', ''),
-            ('ScriptPost', ''),
-            ('Libraries', ''),
-            ('GlobalParams', ''),
-        ])
+        self.project_globals = OrderedDict()
 
-        # From FWM Config
-        if self.xmlDict.xpath('EPIdsFile/text()'):
-            path = self.xmlDict.xpath('EPIdsFile')[0].text
-            self.project_globals['EpsFile'] = path
+        # Parse all known FWMCONFIG tags
+        for tag_dict in FWMCONFIG_TAGS:
+            # Create default entry
+            self.project_globals[tag_dict['name']] = tag_dict['default']
+            # Update value from XML
+            if self.xmlDict.xpath(tag_dict['tag'] + '/text()'):
+                path = self.xmlDict.xpath(tag_dict['tag'])[0].text
+                if path[0] == '~':
+                    path = self.user_home + path[1:]
+                self.project_globals[tag_dict['name']] = path
 
-        if self.xmlDict.xpath('TestCaseSourcePath/text()'):
-            path = self.xmlDict.xpath('TestCaseSourcePath')[0].text
-            self.project_globals['TestsPath'] = path
-
-        if self.xmlDict.xpath('DbConfigFile/text()'):
-            path = self.xmlDict.xpath('DbConfigFile')[0].text
-            if path.startswith('~'):
-                path = os.getenv('HOME') + path[1:]
-            self.project_globals['DbConfig'] = path
-
-        if self.xmlDict.xpath('EmailConfigFile/text()'):
-            path = self.xmlDict.xpath('EmailConfigFile')[0].text
-            if path.startswith('~'):
-                path = os.getenv('HOME') + path[1:]
-            self.project_globals['EmailConfig'] = path
-
-        if self.xmlDict.xpath('LogsPath/text()'):
-            path = self.xmlDict.xpath('LogsPath')[0].text
-            if path.startswith('~'):
-                path = os.getenv('HOME') + path[1:]
-            self.project_globals['LogsPath'] = path
-
-        if self.xmlDict.xpath('GlobalParams/text()'):
-            path = self.xmlDict.xpath('GlobalParams')[0].text
-            if path.startswith('~'):
-                path = os.getenv('HOME') + path[1:]
-            self.project_globals['GlobalParams'] = path
-
-        # From Project Config
-        if self.configTS.xpath('stoponfail/text()'):
-            if self.configTS.xpath('stoponfail/text()')[0].lower() == 'true':
-                self.project_globals['ExitOnTestFail'] = True
-
-        if self.configTS.xpath('dbautosave/text()'):
-            if self.configTS.xpath('dbautosave/text()')[0].lower() == 'true':
-                self.project_globals['DbAutoSave'] = True
-
-        if self.configTS.xpath('tcdelay/text()'):
-            self.project_globals['TestcaseDelay'] = self.configTS.xpath('round(tcdelay)')
-
-        if self.configTS.xpath('ScriptPre/text()'):
-            self.project_globals['ScriptPre'] = self.configTS.xpath('ScriptPre')[0].text
-
-        if self.configTS.xpath('ScriptPost/text()'):
-            self.project_globals['ScriptPost'] = self.configTS.xpath('ScriptPost')[0].text
-
-        if self.configTS.xpath('libraries/text()'):
-            self.project_globals['Libraries'] = self.configTS.xpath('libraries')[0].text
+        # Parse all known PROJECT tags
+        for tag_dict in PROJECTCONFIG_TAGS:
+            # Create default entry
+            self.project_globals[tag_dict['name']] = tag_dict['default']
+            # Update value from XML
+            if self.configTS.xpath(tag_dict['tag'] + '/text()'):
+                # If the variable should be a Boolean
+                if tag_dict.get('type') == 'bool':
+                    if self.configTS.xpath(tag_dict['tag'] + '/text()')[0].lower() == 'true':
+                        value = True
+                    else:
+                        value = False
+                # If the variable should be a Number
+                elif tag_dict.get('type') == 'number':
+                    value = self.configTS.xpath('round({})'.format(tag_dict['tag']))
+                else:
+                    value = self.configTS.xpath(tag_dict['tag'])[0].text
+                self.project_globals[tag_dict['name']] = value
 
         return True
 
@@ -237,7 +205,7 @@ class TSCParser:
         Returns a list with all available EP names.
         """
         # Reading the path to Ep Names file, from master config
-        eps_file = self.project_globals['EpsFile']
+        eps_file = self.project_globals['EpNames']
 
         if not eps_file:
             logError('Parser: EP Names file is not defined! Please check framework config XML file!')

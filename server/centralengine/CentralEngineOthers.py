@@ -161,9 +161,9 @@ class Project:
         # Parsers contain the list of all EPs and the list of all Project Globals
         self.users[user] = {'status': STATUS_STOP, 'eps': OrderedDict()}
         if config_data:
-            self.parsers[user] = TSCParser(config_data, files_config)
+            self.parsers[user] = TSCParser(user, config_data, files_config)
         else:
-            self.parsers[user] = TSCParser(base_config, files_config)
+            self.parsers[user] = TSCParser(user, base_config, files_config)
 
         # List with all EPs for this User
         epList = self.parsers[user].epnames
@@ -250,7 +250,7 @@ class Project:
 
         logDebug('Project: RESET configuration for user `{0}`, using config files `{1}` and `{2}`.'.format(
             user, base_config, files_config))
-        self.parsers[user] = TSCParser(base_config, files_config)
+        self.parsers[user] = TSCParser(user, base_config, files_config)
 
         # Calculate the Suites for each EP and the Files for each Suite
         for epname in self.users[user]['eps']:

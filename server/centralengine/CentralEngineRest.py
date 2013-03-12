@@ -173,7 +173,7 @@ class CentralEngineRest:
         reversed = dict((v,k) for k,v in execStatus.iteritems())
         int_status = self.project.getUserInfo(user, 'status') or STATUS_INVALID
         status = reversed[int_status]
-        try: eps_file = self.project.parsers[user].project_globals['EpsFile']
+        try: eps_file = self.project.parsers[user].project_globals['EpNames']
         except: eps_file = ''
 
         eps = self.project.getUserInfo(user, 'eps')
