@@ -88,6 +88,8 @@ def prepareLog(log_file, pos=0):
     log = f.read().rstrip()
     f.close() ; del f
 
+    log = log.replace('<', '&lt;').replace('\n', '<br>\n').replace(' ', '&nbsp;')
+
     body = '''
     <style>
     .nfo {color:gray; text-shadow: 1px 1px 1px #aaa}
@@ -97,7 +99,7 @@ def prepareLog(log_file, pos=0):
     .crit {color:red; text-shadow: 1px 1px 1px #aaa}
     </style>
     '''
-    body += log.replace('\n', '<br>\n').replace(' ', '&nbsp;')
+    body += log
     del log
     body = body.replace(';INFO&',   ';<b class="nfo">INFO</b>&')
     body = body.replace(';DEBUG&',  ';<b class="dbg">DEBUG</b>&')

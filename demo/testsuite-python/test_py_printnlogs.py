@@ -1,12 +1,12 @@
 
 #
-# <title>test 001</title>
-# <description>This test doesn't do anything spectacular, it just counts to 10, in 10 seconds.</description>
+# <title>test print and logs</title>
+# <description>This test doesn't do anything spectacular, prints and sends some logs.</description>
 #
 
-def test001():
+def test():
 
-	testName = 'test001.py'
+	testName = 'test_py_printnlogs.py'
 	logMsg('logTest', "\nTestCase:%s starting\n" % testName)
 	print "\nTestCase:%s starting\n" % testName
 	error_code = "PASS"
@@ -27,4 +27,4 @@ def test001():
 
 #
 
-_RESULT = test001()
+_RESULT = test()

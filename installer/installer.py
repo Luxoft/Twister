@@ -465,7 +465,7 @@ if TO_INSTALL == 'client':
 tcr_proc = subprocess.Popen(['chmod', '775', INSTALL_PATH, '-R'],)
 tcr_proc.wait()
 
-for ext in ['txt', 'xml', 'py', 'tcl', 'plx', 'json', 'htm', 'js', 'css']:
+for ext in ['txt', 'xml', 'py', 'tcl', 'plx', 'json', 'ini', 'htm', 'js', 'css']:
     os.system('find %s -name "*.%s" -exec chmod 664 {} \;' % (INSTALL_PATH, ext))
 
 os.system('find %s -name "start_ep.py" -exec chmod +x {} \;' % INSTALL_PATH)

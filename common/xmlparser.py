@@ -41,6 +41,7 @@ from plugins import BasePlugin
 
 from common.tsclogging import *
 from common.constants import FWMCONFIG_TAGS, PROJECTCONFIG_TAGS
+from common.constants import SUITES_TAGS, TESTS_TAGS
 
 __all__ = ['TSCParser', 'DBParser', 'PluginParser', 'userHome']
 
@@ -572,42 +573,6 @@ class TSCParser:
         return res
 
 
-    def getSuiteInfo(self, epname, suite_soup):
-        """
-        Returns a dict with information about 1 Suite from Test-Suites XML.
-        The "suite" must be a XML Soup class.
-        """
-
-        res = OrderedDict([ ['name', suite_soup.xpath('tsName/text()')[0]] ])
-        res['ep'] = epname
-        res['tb'] = ''
-        res['pd'] = ''
-        res['libraries'] = ''
-
-        if suite_soup.xpath('libraries/text()'):
-            res['libraries'] = suite_soup.xpath('libraries')[0].text
-
-        if suite_soup.xpath('TbName/text()'):
-            res['tb'] = suite_soup.xpath('TbName')[0].text
-
-        if suite_soup.xpath('PanicDetect/text()'):
-            res['pd'] = suite_soup.xpath('PanicDetect')[0].text
-
-        prop_keys = suite_soup.xpath('UserDefined/propName')
-        prop_vals = suite_soup.xpath('UserDefined/propValue')
-
-        res.update( dict(zip( [k.text for k in prop_keys], [v.text for v in prop_vals] )) ) # Pack Key + Value
-
-        res['files'] = OrderedDict()
-
-        for file_soup in suite_soup.xpath('TestCase'):
-            file_data = self.getFileInfo(file_soup)
-            res['files'][str(self.file_no)] = file_data
-            self.file_no += 1
-
-        return res
-
-
     def getAllSuitesInfo(self, epname):
         """
         Returns a list with data for all suites of one EP.
@@ -635,16 +600,56 @@ class TSCParser:
         return res
 
 
+    def getSuiteInfo(self, epname, suite_soup):
+        """
+        Returns a dict with information about 1 Suite from Test-Suites XML.
+        The "suite" must be a XML Soup class.
+        """
+        # A suite can be a part of more EPs
+        res = OrderedDict([ ('ep', epname) ])
+
+        # Parse all known Suites Tags
+        for tag_dict in SUITES_TAGS:
+            # Create default entry
+            res[tag_dict['name']] = tag_dict['default']
+            # Update value from XML
+            if suite_soup.xpath(tag_dict['tag'] + '/text()'):
+                value = suite_soup.xpath(tag_dict['tag'])[0].text
+                res[tag_dict['name']] = value
+
+        # Add property/ value tags
+        prop_keys = suite_soup.xpath('UserDefined/propName')
+        prop_vals = suite_soup.xpath('UserDefined/propValue')
+
+        res.update( dict(zip( [k.text for k in prop_keys], [v.text for v in prop_vals] )) ) # Pack Key + Value
+
+        res['files'] = OrderedDict()
+
+        for file_soup in suite_soup.xpath('TestCase'):
+            file_data = self.getFileInfo(file_soup)
+            res['files'][str(self.file_no)] = file_data
+            self.file_no += 1
+
+        return res
+
+
     def getFileInfo(self, file_soup):
         """
         Returns a dict with information about 1 File from Test-Suites XML.
         The "file" must be a XML class.
         """
-        res = OrderedDict()
-        res['file']  = file_soup.xpath('tcName')[0].text
-        res['suite'] = None
-        res['dependancy'] = file_soup.xpath('tcName')[0].text if file_soup.xpath('tcName/text()') else ''
+        res = OrderedDict([ ('suite', None) ])
 
+        # Parse all known File Tags
+        for tag_dict in TESTS_TAGS:
+            # Create default entry
+            res[tag_dict['name']] = tag_dict['default']
+            # Update value from XML
+            if file_soup.xpath(tag_dict['tag'] + '/text()'):
+                value = file_soup.xpath(tag_dict['tag'])[0].text
+                res[tag_dict['name']] = value
+
+        # Add property/ value tags
         prop_keys = file_soup.xpath('Property/propName')
         prop_vals = file_soup.xpath('Property/propValue')
         params = ''

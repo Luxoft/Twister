@@ -1,17 +1,15 @@
 
-import pexpect
-
 from ce_libs import getResource, setResource, deleteResource, getResourceStatus
 from ce_libs import allocResource, reserveResource, freeResource
 
 #
-# <title>test 006</title>
+# <title>Test Resource Allocator</title>
 # <description>This test is checking the Resource Allocator.</description>
 #
 
-def test006():
+def test():
 
-	testName = 'test006.py'
+	testName = 'test_py_resources.py'
 	logMsg('logTest', "\nTestCase:%s starting\n" % testName)
 
 	error_code = "PASS"
@@ -51,4 +49,4 @@ def test006():
 
 #
 
-_RESULT = test006()
+_RESULT = test()

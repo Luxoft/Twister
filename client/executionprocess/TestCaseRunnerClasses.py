@@ -31,8 +31,9 @@ This script CANNOT run separately, it must be called from TestCaseRunner.
 import os
 import sys
 import time
-import subprocess
+import glob
 
+import subprocess # For running Perl
 from collections import OrderedDict # For dumping TCL
 
 TWISTER_PATH = os.getenv('TWISTER_PATH')
@@ -42,25 +43,9 @@ if not TWISTER_PATH:
 
 #
 
-def flatten(d, parent_key=''):
-    items = []
-    for k, v in d.items():
-        new_key = parent_key + '/' + k if parent_key else k
-        if isinstance(v, dict):
-            items.extend(flatten(v, new_key).items())
-        else:
-            items.append((new_key, v))
-    return dict(items)
-
-#
-
 class TCRunTcl:
 
     def __init__(self):
-
-        global TWISTER_PATH
-        if not TWISTER_PATH in sys.path:
-            sys.path.append(TWISTER_PATH) # Injected EP name
 
         try:
             import Tkinter
@@ -119,27 +104,6 @@ class TCRunTcl:
         After executing a TCL statement, the last value will be used
         as return value.
         '''
-
-        def logMessage(logType, logMessage):
-            globs['proxy'].logMessage(globs['userName'], logType, logMessage)
-
-        def getGlobal(variable):
-            return globs['proxy'].getGlobalVariable(globs['userName'], variable)
-
-        def setGlobal(variable, value):
-            return globs['proxy'].setGlobalVariable(globs['userName'], variable, value)
-
-        # Inject Log Message function
-        self.tcl.createcommand('logMessage', logMessage)
-        self.tcl.createcommand('getGlobal',  getGlobal)
-        self.tcl.createcommand('setGlobal',  setGlobal)
-
-        # gparam = []
-        # [gparam.extend([k, v]) for k, v in flatten(globs['gparam']).items()]
-
-        # # Inject Global Parameters
-        # self.tcl.eval('array set gparam [list {0}]'.format(' '.join(['"'+str(x)+'"' for x in gparam])))
-
         # Inject variables
         self.tcl.setvar('SUITE_ID',   globs['suite_id'])
         self.tcl.setvar('SUITE_NAME', globs['suite_name'])
@@ -148,6 +112,11 @@ class TCRunTcl:
         self.tcl.setvar('USER',       globs['userName'])
         self.tcl.setvar('EP',         globs['globEpName'])
         self.tcl.setvar('currentTB',  globs['tbname'])
+
+        # Inject common functions
+        self.tcl.createcommand('logMessage', globs['logMsg'])
+        self.tcl.createcommand('getGlobal',  globs['getGlobal'])
+        self.tcl.createcommand('setGlobal',  globs['setGlobal'])
 
         to_execute = str_to_execute.data
         to_execute = '\nset argc %i\n' % len(params) + to_execute
@@ -241,8 +210,7 @@ class TCRunPython:
         '''
         #
         global TWISTER_PATH
-        if not TWISTER_PATH in sys.path:
-            sys.path.append(TWISTER_PATH) # Injected EP name
+        self.epname = globs['globEpName']
 
         # Start injecting inside tests
         globs_copy = {}
@@ -255,45 +223,43 @@ class TCRunPython:
         globs_copy['FILE_ID']    = globs['file_id']
         globs_copy['FILE_NAME']  = globs['filename']
         globs_copy['USER']       = globs['userName']
-        globs_copy['EP']         = globs['globEpName']
+        globs_copy['EP']         = self.epname
         globs_copy['PROXY']      = globs['proxy']
         globs_copy['currentTB']  = globs['tbname']
 
-        def logMsg(logType, logMessage):
-            globs['proxy'].logMessage(globs['userName'], logType, logMessage)
+        # Functions
+        globs_copy['logMsg']     = globs['logMsg']
+        globs_copy['getGlobal']  = globs['getGlobal']
+        globs_copy['setGlobal']  = globs['setGlobal']
 
-        def getGlobal(variable):
-            return globs['proxy'].getGlobalVariable(globs['userName'], variable)
+        to_execute = r"""
+import os, sys
+sys.argv = %s
+""" % str(["file.py"] + params)
 
-        def setGlobal(variable, value):
-            return globs['proxy'].setGlobalVariable(globs['userName'], variable, value)
-
-        globs_copy['logMsg']    = logMsg
-        globs_copy['getGlobal'] = getGlobal
-        globs_copy['setGlobal'] = setGlobal
-
-        globEpName = globs_copy['EP']
-        to_execute = str_to_execute.data
-        to_execute = '\nimport os, sys\nsys.argv = %s\n' % str(["file.py"] + params) + to_execute
-        to_execute = '\nsys.path.append(os.getenv("TWISTER_PATH") + "/.twister_cache/")\n' + to_execute
-
-        # *.pyc or *.pyo files
-        if to_execute[:4] == '\x03\xf3\r\n':
-            fname = '/__to_execute.pyc'
-        else:
-            fname = '/__to_execute.py'
-
-        fname = TWISTER_PATH + '/.twister_cache/' + globEpName + fname
-        f = open(fname, 'wb')
+        fname = os.path.split(globs['filename'])[1]
+        fpath = '{}/.twister_cache/{}/{}'.format(TWISTER_PATH, self.epname, fname)
+        f = open(fpath, 'wb')
         f.write(to_execute)
+        f.write(str_to_execute.data)
         f.close() ; del f
 
-        execfile(fname, globs_copy)
-        try: os.remove(fname)
-        except: pass
+        execfile(fpath, globs_copy)
 
         # The _RESULT must be injected from within the python script
         return globs_copy.get('_RESULT')
+        #
+
+
+    def __del__(self):
+        #
+        # On exit delete all Python files
+        global TWISTER_PATH
+        fnames = '{0}/.twister_cache/{1}/*.py*'.format(TWISTER_PATH, self.epname)
+        for fpath in glob.glob(fnames):
+            # print 'Cleanup Python file:', fpath
+            try: os.remove(fname)
+            except: pass
         #
 
 #
@@ -304,10 +270,6 @@ class TCRunPerl:
         '''
         Perl test runner.
         '''
-        #
-        global TWISTER_PATH
-        if not TWISTER_PATH in sys.path:
-            sys.path.append(TWISTER_PATH) # Injected EP name
         #
         _RESULT = None
         to_execute = str_to_execute.data

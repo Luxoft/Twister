@@ -3,13 +3,13 @@ import time
 import pexpect
 
 #
-# <title>test 005</title>
+# <title>Test pExpect SSH</title>
 # <description>This test is connecting to a SSH server.</description>
 #
 
-def test005():
+def test():
 
-	testName = 'test005.py'
+	testName = 'test_pexpect_ssh.py'
 	logMsg('logTest', "\nTestCase:%s starting\n" % testName)
 
 	error_code = "PASS"
@@ -17,7 +17,7 @@ def test005():
 	print '=== Connecting to SSH ==='
 	child = pexpect.spawn('ssh user@localhost')
 
-	child.expect('.+assword:', timeout=60)
+	child.expect('.+assword:', timeout=10)
 	child.sendline("password")
 	print child.before[:-4]
 	time.sleep(1)
@@ -45,4 +45,4 @@ def test005():
 
 #
 
-_RESULT = test005()
+_RESULT = test()

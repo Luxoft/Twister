@@ -4,7 +4,7 @@ import time
 from ce_libs import tasks_reset, tasks_append, tasks_start
 
 #
-# <title>test 007</title>
+# <title>Test Threads Library</title>
 # <description>This test is checking the Threads library.</description>
 #
 
@@ -12,6 +12,7 @@ def isPrime(n):
 	return re.match(r'^1?$|^(11+?)\1+$', '1' * n) == None
 
 def primesList(n):
+	time.sleep(0.1)
 	return [nr for nr in range(2, n) if isPrime(nr)]
 
 def long_task(n):
@@ -22,9 +23,9 @@ def long_task(n):
 
 #
 
-def test007():
+def test():
 
-	testName = 'test007.py'
+	testName = 'test_py_threads.py'
 	logMsg('logTest', "\nTestCase:%s starting\n" % testName)
 
 	error_code = "PASS"
@@ -62,4 +63,4 @@ def test007():
 
 #
 
-_RESULT = test007()
+_RESULT = test()

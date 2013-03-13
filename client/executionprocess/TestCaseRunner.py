@@ -44,6 +44,7 @@ import shutil
 import time
 import csv
 import pickle
+import marshal
 import xmlrpclib
 import tarfile
 import traceback
@@ -194,6 +195,34 @@ def proxySetTestStatus(file_id, status, time_t):
 
 #
 
+def logMsg(logType, logMessage):
+    #
+    global proxy, userName
+    proxy.logMessage(userName, logType, logMessage)
+    #
+
+def getGlobal(var):
+    #
+    global proxy, userName, global_vars
+    if var in global_vars:
+        return global_vars[var]
+    # Else...
+    return proxy.getGlobalVariable(userName, var)
+    #
+
+def setGlobal(var, value):
+    #
+    global proxy, userName, global_vars
+    try:
+        marshal.dumps(value)
+        return proxy.setGlobalVariable(userName, var, value)
+    except:
+        global_vars[var] = value
+        return True
+    #
+
+#
+
 if __name__=='__main__':
 
     userName   = sys.argv[1:2]
@@ -211,8 +240,8 @@ if __name__=='__main__':
         globEpName = globEpName[0]
         print('TC debug: TestCaseRunner started with  User: {0} ;  EP: {1}.'.format(userName, globEpName))
 
-    # Inject library path for the current EP
-    TestCaseRunnerClasses.TWISTER_LIBS_PATH = TWISTER_PATH + '/.twister_cache/' + globEpName
+    # Inject libraries path for the current EP
+    sys.path.append(TWISTER_PATH + '/.twister_cache/' + globEpName)
 
     CONFIG = loadConfig()
 
@@ -221,6 +250,9 @@ if __name__=='__main__':
     tSuites = None
     suite_number = 0
     abort_suite = False
+
+    # For storing temporary variables
+    global_vars = {}
 
     CE_Path = CONFIG['PROXY']
 

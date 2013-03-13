@@ -3,16 +3,16 @@ import time
 import telnetlib
 
 #
-# <title>test 003</title>
+# <title>test Telnet Lib</title>
 # <description>This test is connecting to a TELNET host.</description>
 #
 
-def test003():
+def test():
 	'''
-	Testing Python Telnet library.
+	Testing Python standard Telnet library.
 	'''
 
-	testName = 'test003.py'
+	testName = 'test_py_telnet.py'
 	logMsg('logTest', "\nTestCase:%s starting\n" % testName)
 	error_code = "PASS"
 
@@ -48,4 +48,4 @@ def test003():
 
 #
 
-_RESULT = test003()
+_RESULT = test()

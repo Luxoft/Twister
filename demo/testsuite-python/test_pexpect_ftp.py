@@ -3,16 +3,16 @@ import time
 import pexpect
 
 #
-# <title>test 004</title>
+# <title>Test pExpect FTP</title>
 # <description>This test is connecting to a FTP host.</description>
 #
 
-def test004():
+def test():
 	'''
 	Testing Python Expect.
 	'''
 
-	testName = 'test004.py'
+	testName = 'test_pexpect_ftp.py'
 	logMsg('logTest', "\nTestCase:%s starting\n" % testName)
 
 	error_code = "PASS"
@@ -50,4 +50,4 @@ def test004():
 
 #
 
-_RESULT = test004()
+_RESULT = test()

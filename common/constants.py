@@ -50,3 +50,19 @@ PROJECTCONFIG_TAGS = (
 	{'name':'ScriptPre',	'tag':'ScriptPre',			'default':''},
 	{'name':'ScriptPost',	'tag':'ScriptPost',			'default':''},
 )
+
+# Suites Tags, from Project Config XML :
+
+SUITES_TAGS = (
+	{'name':'name',			'tag':'tsName',				'default':''},
+	{'name':'tb',			'tag':'TbName',				'default':''},
+	{'name':'pd',			'tag':'PanicDetect',		'default':''},
+	{'name':'libraries',	'tag':'libraries',			'default':''},
+)
+
+# Tests Tags, from Project Config XML :
+
+TESTS_TAGS = (
+	{'name':'file',			'tag':'tcName',				'default':''},
+	{'name':'dependancy',	'tag':'Dependancy',			'default':''},
+)
