@@ -292,11 +292,12 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
-    def deleteResource(self, res_query):
+    def renameResource(self, res_query, new_name):
         '''
-        Permanently delete a resource.
+        Rename a resource.
         '''
         self._load(v=False)
+
         # If no resources...
         if not self.resources['children']:
             msg = 'Get Resource: There are no resources defined !'
@@ -309,7 +310,80 @@ class ResourceAllocator(_cptools.XMLRPCController):
         else:
             meta = ''
 
-        # Find the resource.
+        # Find the resource pointer.
+        res_p = self.getResource(res_query)
+
+        if not res_p:
+            msg = 'Rename Resource: Cannot find resource path or ID `{0}` !'.format(res_query)
+            logError(msg)
+            return '*ERROR* ' + msg
+
+        if ':' in new_name:
+            msg = 'Rename Resource: New resource name cannot contain `:` !'
+            logError(msg)
+            return '*ERROR* ' + msg
+
+        # Correct node path
+        node_path = [p for p in res_p['path'].split('/') if p]
+        # Renamed node path
+        new_path = list(node_path) ; new_path[-1] = new_name
+
+        if not node_path:
+            msg = 'Rename Resource: Cannot find resource node path `{0}` !'.format(node_path)
+            logError(msg)
+            return '*ERROR* ' + msg
+
+        exec_string = 'self.resources["children"]["{0}"]'.format('"]["children"]["'.join(node_path))
+
+        # If must rename a Meta info
+        if meta:
+            exec( 'val = {0}["meta"].get("{1}")'.format(exec_string, meta) )
+
+            if val is None:
+                msg = 'Rename Resource: Cannot find resource meta info `{0}` !'.format(meta)
+                logError(msg)
+                return '*ERROR* ' + msg
+
+            exec( '{0}["meta"]["{1}"] = {0}["meta"]["{2}"]'.format(exec_string, new_name, meta) )
+            exec( 'del {0}["meta"]["{1}"]'.format(exec_string, meta) )
+
+            logDebug('Renamed resource meta `{0}:{1}` to `{0}:{2}`.'.format('/'.join(node_path), meta, new_name))
+
+        # If must rename a normal node
+        else:
+            new_string = 'self.resources["children"]["{0}"]'.format('"]["children"]["'.join(new_path))
+
+            exec( new_string + ' = ' + exec_string )
+            exec( 'del ' + exec_string )
+
+            logDebug('Renamed resource path `{0}` to `{1}`.'.format('/'.join(node_path), '/'.join(new_path)))
+
+        # # Write changes.
+        self._save()
+
+        return True
+
+
+    @cherrypy.expose
+    def deleteResource(self, res_query):
+        '''
+        Permanently delete a resource.
+        '''
+        self._load(v=False)
+
+        # If no resources...
+        if not self.resources['children']:
+            msg = 'Get Resource: There are no resources defined !'
+            logError(msg)
+            return '*ERROR* ' + msg
+
+        if ':' in res_query:
+            meta      = res_query.split(':')[1]
+            res_query = res_query.split(':')[0]
+        else:
+            meta = ''
+
+        # Find the resource pointer.
         res_p = self.getResource(res_query)
 
         if not res_p:
@@ -378,7 +452,9 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
         return ep
 
-#
+
+# # # Allocation and reservation of resources # # #
+
 
     @cherrypy.expose
     def getResourceStatus(self, res_query):
