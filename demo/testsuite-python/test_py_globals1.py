@@ -4,7 +4,7 @@ from random import randint
 from binascii import hexlify
 
 #
-# <title>test Globals</title>
+# <title>Testing Globals</title>
 # <description>This test is checking the globals. The global variable `global1` will be changed after each run!</description>
 #
 
@@ -35,5 +35,8 @@ for i in range(10):
 	# Value is changed in this test and tests that follow
 	print 'Check value changed::', getGlobal('Level_1/global1')
 
+#
 
-_RESULT = "pass"
+# Must have one of the statuses:
+# 'pass', 'fail', 'skipped', 'aborted', 'not executed', 'timeout', 'invalid'
+_RESULT = 'pass'

@@ -1,6 +1,6 @@
 
 #
-# <title>test Globals</title>
+# <title>Testing Globals</title>
 # <description>This test is getting some complex functions and classes.</description>
 #
 
@@ -37,4 +37,6 @@ print 'Checking instance 2'
 print Class2i
 print '---'
 
+# Must have one of the statuses:
+# 'pass', 'fail', 'skipped', 'aborted', 'not executed', 'timeout', 'invalid'
 _RESULT = 'pass'

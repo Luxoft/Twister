@@ -1002,13 +1002,18 @@ class CentralEngine(_cptools.XMLRPCController):
         data = self.project.getFileInfo(user, file_id)
         filename = data.get('file', 'invalid file!')
         runnable = data.get('Runnable', 'not set')
+        tests_path = self.project.getUserInfo(user, 'tests_path')
 
         if runnable=='true' or runnable=='not set':
-            # if filename.startswith('~'): # Should use USER path
-            #    filename = os.getenv('HOME') + filename[1:]
+            # Should use USER path ?
+            if filename.startswith('~'):
+                filename = userHome(user) + filename[1:]
             if not os.path.isfile(filename):
-                logError('CE ERROR! TestCase file: `%s` does not exist!' % filename)
-                return ''
+                if not os.path.isfile(tests_path + os.sep + filename):
+                    logError('CE ERROR! TestCase file: `%s` does not exist!' % filename)
+                    return ''
+                else:
+                    filename = tests_path + os.sep + filename
 
             logDebug('CE: Station {0} requested file `{1}`'.format(epname, filename))
 

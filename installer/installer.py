@@ -55,7 +55,10 @@ PYTHON_EXE = sys.executable
 
 # The proxy is used only if you need a proxy to connect to internet,
 # And `setuptools` is not installed, or some dependencies are missing
-HTTP_PROXY = 'http://UserName:PassWord@http-proxy:3128'
+if os.getenv('HTTP_PROXY'):
+    HTTP_PROXY = os.getenv('HTTP_PROXY')
+else:
+    HTTP_PROXY = 'http://UserName:PassWord@http-proxy:3128'
 
 __dir__ = os.path.split(__file__)[0]
 if __dir__: os.chdir(__dir__)

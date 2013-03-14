@@ -3,7 +3,7 @@ import time
 import telnetlib
 
 #
-# <title>test Telnet Lib</title>
+# <title>Testing Telnet Lib</title>
 # <description>This test is connecting to a TELNET host.</description>
 #
 
@@ -48,4 +48,6 @@ def test():
 
 #
 
+# Must have one of the statuses:
+# 'pass', 'fail', 'skipped', 'aborted', 'not executed', 'timeout', 'invalid'
 _RESULT = test()

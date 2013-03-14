@@ -1,6 +1,6 @@
 
 #
-# <title>test Globals</title>
+# <title>Testing Globals</title>
 # <description>This test is setting some complex global variables.</description>
 #
 
@@ -31,4 +31,6 @@ setGlobal('Class2i', Class2())
 
 #
 
+# Must have one of the statuses:
+# 'pass', 'fail', 'skipped', 'aborted', 'not executed', 'timeout', 'invalid'
 _RESULT = 'pass'

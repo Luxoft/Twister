@@ -4,7 +4,7 @@ import time
 from ce_libs import tasks_reset, tasks_append, tasks_start
 
 #
-# <title>Test Threads Library</title>
+# <title>Testing Threads Library</title>
 # <description>This test is checking the Threads library.</description>
 #
 
@@ -63,4 +63,6 @@ def test():
 
 #
 
+# Must have one of the statuses:
+# 'pass', 'fail', 'skipped', 'aborted', 'not executed', 'timeout', 'invalid'
 _RESULT = test()
