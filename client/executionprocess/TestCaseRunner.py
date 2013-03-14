@@ -188,30 +188,36 @@ def Suicide(sig=None, msg=None, file_id=None, status_f=None, timer_f=None):
 #
 
 def proxySetTestStatus(file_id, status, time_t):
-    #
+    """
+    Shortcut function for setting Test status.
+    """
     global proxy, userName, globEpName
     proxy.setFileStatus(userName, globEpName, file_id, status, time_t)
-    #
 
-#
 
 def logMsg(logType, logMessage):
-    #
+    """
+    Shortcut function for sending a message in a log to Central Engine.
+    """
     global proxy, userName
     proxy.logMessage(userName, logType, logMessage)
-    #
+
 
 def getGlobal(var):
-    #
+    """
+    Function to get variables saved from Test files.
+    """
     global proxy, userName, global_vars
     if var in global_vars:
         return global_vars[var]
     # Else...
     return proxy.getGlobalVariable(userName, var)
-    #
+
 
 def setGlobal(var, value):
-    #
+    """
+    Function to keep variables sent from Test files.
+    """
     global proxy, userName, global_vars
     try:
         marshal.dumps(value)
@@ -219,7 +225,6 @@ def setGlobal(var, value):
     except:
         global_vars[var] = value
         return True
-    #
 
 #
 
@@ -272,6 +277,11 @@ if __name__=='__main__':
 
     # Save all libraries from CE
     saveLibraries(proxy)
+
+    try: import ce_libs
+    except:
+        print('TC error: TestCaseRunner cannot import the shared libraries!')
+        exit(1)
 
     # Get the `exit on test Fail` value
     exit_on_test_fail = proxy.getUserVariable(userName, 'exit_on_test_fail')
