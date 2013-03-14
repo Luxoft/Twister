@@ -244,12 +244,19 @@ function createFileTree(ep_name) {
 		"json_data" : { "ajax" : { "url" : "/rest/json_folders/${user}/" } },
 		"themes" : { "theme" : "classic", "dots" : true, "icons" : true },
 		"types" : {
-			"valid_children" : ["default"],
+			"valid_children" : ["folder"],
+			"types" : {
+				"folder" : {
+					"icon" : { 'image' : '/static/img/glyphicons_folder.png' },
+					"valid_children": ["default"],
+					"max_depth" : 2
+				},
 				"default" : {
 					"icon" : { 'image' : '/static/img/glyphicons_file.png' },
 					"max_depth" : 1
 				}
 			}
+		},
 	};
 	$("#b_" + ep_name).jstree(tconfig);
 };

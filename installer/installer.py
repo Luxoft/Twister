@@ -124,9 +124,9 @@ if TO_INSTALL == 'server':
 
     if os.path.exists(INSTALL_PATH):
         print('\nWARNING! Another version of Twister is installed at `%s`!' % INSTALL_PATH)
-        print('If you continue, all files from that folder will be PERMANENTLY DELETED!')
-        print('If you created custom libs (in folder lib/) and plugins (in folder plugin),')
-        print('you should make a back-up.')
+        print('If you continue, all files from that folder will be PERMANENTLY DELETED!!')
+        print('If you created custom libs (in lib/ folder) and plugins (in plugin/ folder),')
+        print('you should make a back-up, then restart the installer.')
         selected = raw_input('Are you sure you want to continue? (yes/no): ')
 
         if selected.strip().lower() not in ['y', 'yes']:

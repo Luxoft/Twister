@@ -52,7 +52,9 @@ from common.tsclogging import *
 if mako.__version__ < '0.7':
     logWarning('Warning! Mako-template version is old: `{0}`! Some pages might crash!\n'.format(mako.__version__))
 
+
 # # # # #
+
 
 def calcMemory():
     import subprocess
@@ -111,20 +113,26 @@ def prepareLog(log_file, pos=0):
     body = body.replace(';warning:',  ';<b class="warn">warning</b>:')
     return body
 
-def dirList(path, newdict):
+def dirList(tests_path, path, newdict):
+    """
+    Create recursive list of folders and files from Tests path.
+    """
+    len_path = len(tests_path) + 1
     if os.path.isdir(path):
-        dlist = []
-        flist = []
+        dlist = [] # Folders list
+        flist = [] # Files list
         for fname in sorted(os.listdir(path), key=str.lower):
-            nd = {'data': fname, 'children': []}
+            short_path = (path + os.sep + fname)[len_path:]
+            nd = {'data': short_path, 'children': []}
             if os.path.isdir(path + os.sep + fname):
+                nd['attr'] = {'rel': 'folder'}
                 dlist.append(nd)
             else:
                 flist.append(nd)
+        # Folders first, files after
         newdict['children'] = dlist + flist
     for nitem in newdict['children']:
-        newpath = path + os.sep + nitem['data']
-        dirList(newpath, nitem)
+        dirList(tests_path, tests_path + os.sep + nitem['data'], nitem)
 
 
 # # # # #
@@ -273,11 +281,12 @@ class CentralEngineRest:
         if self.user_agent() == 'x':
             return 0
 
-        newdict = {'data':'root','children':[]}
+        paths = {'data':'Tests Path', 'attr': {'rel': 'folder'}, 'children':[]}
         dirpath = self.project.getUserInfo(user, 'tests_path')
-        dirList(dirpath, newdict)
+        dirList(dirpath, dirpath, paths)
 
-        return json.dumps(newdict)
+        cherrypy.response.headers['Content-Type']  = 'application/json; charset=utf-8'
+        return json.dumps([paths], indent=2)
 
 
     @cherrypy.expose
