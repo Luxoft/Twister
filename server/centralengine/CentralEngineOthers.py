@@ -301,6 +301,8 @@ class Project:
         for logType in self.parsers[user].getLogTypes():
             self.users[user]['log_types'][logType] = self.parsers[user].getLogFileForType(logType)
 
+        # Save everything.
+        self._dump()
         logDebug('Project: RESET operation took %.4f seconds.' % (time.clock()-ti))
         return True
 

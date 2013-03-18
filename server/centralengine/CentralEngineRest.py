@@ -261,16 +261,18 @@ class CentralEngineRest:
         epinfo = self.project.getEpInfo(user, epname)
 
         for suite in epinfo['suites']:
+            dsuite = epinfo['suites'][suite]
             sdata = {
-                'data': epinfo['suites'][suite]['name'],
+                'data': dsuite['name'],
                 'metadata': suite,
-                'attr': {'id': suite, 'rel': 'suite'},
+                'attr': dict({'id': suite, 'rel': 'suite'}, **dsuite),
                 'children': [],
             }
+            del sdata['attr']['files']
             if epinfo['suites'][suite]['files']:
                 sdata['children'] = [
-                    {'data': epinfo['suites'][suite]['files'][k]['file'], 'attr': {'id': k}}
-                    for k in epinfo['suites'][suite]['files'].keys()]
+                    {'data': v['file'], 'attr': dict({'id': k}, **v)}
+                    for k, v in epinfo['suites'][suite]['files'].iteritems()]
             data.append(sdata)
 
         return json.dumps(data, indent=2)

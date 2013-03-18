@@ -111,9 +111,13 @@ for ep in eps:
 				&nbsp; <a class="tree_edit" style="cursor:pointer"><i class="icon-pencil"></i> </a>
 				</div>
 				<!-- First file tree -->
-				<div id="t_${encode(ep)}" style="float:left;position:relative;background:transparent;height:auto;margin-bottom:20px"></div>
+				<div style="float:left;position:relative;width:300px;height:auto;margin-bottom:20px">
+					<div id="t_${encode(ep)}" style="background:transparent"></div>
+				</div>
 				<!-- Second file tree -->
-				<div id="b_${encode(ep)}" style="float:left;position:relative;margin-left:50px;background:transparent;height:auto;visibility:hidden"></div>
+				<div style="float:right;position:relative;margin-right:100px;width:300px;height:auto;margin-bottom:20px">
+					<div id="b_${encode(ep)}" style="background:transparent;visibility:hidden"></div>
+				</div>
 				<!-- Info about selected file or suite -->
 				<div class="project_info" style="border:1px solid #aaf;margin-top:-40px;height:auto;clear:both;padding:5px">&nbsp;</div>
 			</div>
@@ -232,7 +236,17 @@ function createTree(ep_name) {
 	})
 	.bind("select_node.jstree", function (event, data) {
 		var file_id = data.rslt.obj.attr("id");
-		$(".project_info").text("Selected: " + JSON.stringify(data.rslt.obj));
+		var obj = document.getElementById(file_id);
+		var nodes = [];
+		for (var i=0, attrs=obj.attributes, l=attrs.length; i<l; i++){
+			name = attrs.item(i).nodeName;
+			value = attrs.item(i).value;
+			// Ignore tags that are not very interesting
+			if (name == "class" || name == "suite" || value == "suite" ||
+				value == "jstree-last" || value == "jstree-leaf") continue;
+			nodes.push(name + " = " + value);
+		}
+		$(".project_info").html(nodes.sort().join(" ;<br>"));
 	});
 };
 
