@@ -218,6 +218,7 @@ class TCRunPython:
         globs_copy['sys']  = sys
         globs_copy['time'] = time
 
+        globs_copy['TWISTER_ENV'] = True
         globs_copy['SUITE_ID']   = globs['suite_id']
         globs_copy['SUITE_NAME'] = globs['suite_name']
         globs_copy['FILE_ID']    = globs['file_id']

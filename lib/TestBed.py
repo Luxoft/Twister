@@ -46,37 +46,37 @@ if platform_sys=='linux' or platform_sys=='sunos':
     # This is executed in TEMP
     from __init__ import PROXY
 
-    ce_proxy = xmlrpclib.ServerProxy(PROXY.rstrip('/') + '/ra/')
+    ra_proxy = xmlrpclib.ServerProxy(PROXY.rstrip('/') + '/ra/')
 
-    try: ce_proxy.echo('TestBed: Checking connection...')
+    try: ra_proxy.echo('TestBed: Checking connection...')
     except: pass
 
     def getResource(query):
-        try: return ce_proxy.getResource(query)
+        try: return ra_proxy.getResource(query)
         except: return None
 
     def setResource(name, parent=None, props={}):
-        try: return ce_proxy.setResource(name, parent, props)
+        try: return ra_proxy.setResource(name, parent, props)
         except: return None
 
     def deleteResource(query):
-        try: return ce_proxy.deleteResource(query)
+        try: return ra_proxy.deleteResource(query)
         except: return None
 
     def getResourceStatus(query):
-        try: return ce_proxy.getResourceStatus(query)
+        try: return ra_proxy.getResourceStatus(query)
         except: return None
 
     def allocResource(query):
-        try: return ce_proxy.allocResource(query)
+        try: return ra_proxy.allocResource(query)
         except: return None
 
     def reserveResource(query):
-        try: return ce_proxy.reserveResource(query)
+        try: return ra_proxy.reserveResource(query)
         except: return None
 
     def freeResource(query):
-        try: return ce_proxy.freeResource(query)
+        try: return ra_proxy.freeResource(query)
         except: return None
 
 
