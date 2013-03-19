@@ -228,6 +228,25 @@ def setGlobal(var, value):
 
 #
 
+def py_exec(code_string):
+    """
+    Exposed Python function and class instances for TCL.
+    """
+    global global_vars
+
+    if not isinstance(code_string, str):
+        print('py_exec: Error, the code must be a string `{}`!'.format(code_string))
+        return False
+
+    try: ret = eval(code_string, global_vars, global_vars)
+    except Exception, e:
+        print('py_exec: Error execution code `{}`! Exception `{}`!'.format(code_string, e))
+        ret = False
+
+    return ret
+
+#
+
 if __name__=='__main__':
 
     userName   = sys.argv[1:2]

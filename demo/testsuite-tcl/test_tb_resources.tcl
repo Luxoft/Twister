@@ -1,7 +1,7 @@
 
-proc T-005 {} {
+proc Test {} {
     #set testName [lindex [info frame 0] [expr {[llength [info frame 0]] - 3}]]
-    set testName "test005.tcl"
+    set testName "test_tb_resources.tcl"
     puts "\n**********\nStarting test: $testName\n"
     logMessage logTest "\n\nTestCase: $testName starting\n"
 
@@ -14,26 +14,26 @@ proc T-005 {} {
     puts "Query Root... [getResource 1]"
     puts "Query Root... [getResource /]\n"
 
-    puts "Device 1:: [getResource /dev1]"
-    puts "Device 1:: [getResource 101]\n"
+    set id1 [setResource tb_tcl1 / {{"meta1": "data1", "meta2": "data2"}}]
+    puts "Create resource:: $id1\n"
 
-    puts "Meta 1:: [getResource dev3/mod12:meta1]"
-    puts "Meta 2:: [getResource dev3/mod12:meta2]\n"
-
-    set id1 [setResource test1 dev3/mod12]
-    puts "Create resource:: $id1"
-    puts "Check info:: [getResource $id1]\n"
+    puts "Check info..."
+    puts "Testbed 1:: [getResource /tb_tcl1]"
+    puts "Testbed 1:: [getResource $id1]\n"
 
     puts "Update resource..."
-    setResource "test1" "dev3/mod12" {{"more-info": "y"}}
+    setResource "tb_tcl1" "/" {{"more-info": "y"}}
     puts "Check info:: [getResource $id1]\n"
+
+    puts "Meta 1:: [getResource /tb_tcl1:meta1]"
+    puts "Meta 2:: [getResource /tb_tcl1:meta2]\n"
 
     puts "Check status 1:: [getResourceStatus $id1]"
     puts "Reserve resource:: [reserveResource $id1]"
     puts "Check status 2:: [getResourceStatus $id1]\n"
 
     puts "Delete resource:: [deleteResource $id1]"
-    puts "Delete resource:: [deleteResource dev3/mod12/test1]"
+    puts "Delete resource:: [deleteResource /tb_tcl1]"
     puts "Check info:: [getResource $id1]\n"
 
     puts "\nFinished test $testName, exit code $error_code\n**********\n"
@@ -44,4 +44,6 @@ proc T-005 {} {
 }
 
 # Call the test !
-T-005
+# Must return one of the statuses:
+# 'pass', 'fail', 'skipped', 'aborted', 'not executed', 'timeout', 'invalid'
+Test

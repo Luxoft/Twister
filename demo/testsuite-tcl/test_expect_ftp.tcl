@@ -1,7 +1,7 @@
 
-proc T-003 {} {
+proc Test {} {
     #set testName [lindex [info frame 0] [expr {[llength [info frame 0]] - 3}]]
-    set testName "test003.tcl"
+    set testName "test_expect_ftp.tcl"
     puts "\n**********\nStarting test: $testName\n"
     logMessage logTest "\n\nTestCase: $testName starting\n"
 
@@ -40,4 +40,6 @@ proc T-003 {} {
 }
 
 # Call the test !
-T-003
+# Must return one of the statuses:
+# 'pass', 'fail', 'skipped', 'aborted', 'not executed', 'timeout', 'invalid'
+Test

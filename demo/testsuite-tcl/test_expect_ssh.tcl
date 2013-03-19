@@ -1,7 +1,7 @@
 
-proc T-004 {} {
+proc Test {} {
     #set testName [lindex [info frame 0] [expr {[llength [info frame 0]] - 3}]]
-    set testName "test004.tcl"
+    set testName "test_expect_ssh.tcl"
     puts "\n**********\nStarting test: $testName\n"
     logMessage logTest "\n\nTestCase: $testName starting\n"
 
@@ -12,10 +12,12 @@ proc T-004 {} {
     set error_code "PASS"
 
     # Testing Expect
-    set timeout 100
+    set timeout 10
     spawn ssh user@localhost
 
-    #expect "Are you sure you want to continue connecting (yes/no)?"
+    expect "Are you sure you want to continue connecting (yes/no)?"
+    send "yes\n"
+
     expect "*?assword:*"
     send "password\n"
 
@@ -38,4 +40,6 @@ proc T-004 {} {
 }
 
 # Call the test !
-T-004
+# Must return one of the statuses:
+# 'pass', 'fail', 'skipped', 'aborted', 'not executed', 'timeout', 'invalid'
+Test
