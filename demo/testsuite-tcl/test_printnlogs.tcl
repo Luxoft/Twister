@@ -1,7 +1,7 @@
 
-proc T-001 {} {
+proc Test {} {
     #set testName [lindex [info frame 0] [expr {[llength [info frame 0]] - 3}]]
-    set testName "test001.tcl"
+    set testName "test_printnlogs.tcl"
     puts "\n**********\nStarting test: $testName\n"
     logMessage logTest "\n\nTestCase: $testName starting\n"
 
@@ -33,4 +33,6 @@ proc T-001 {} {
 }
 
 # Call the test !
-T-001
+# Must return one of the statuses:
+# 'pass', 'fail', 'skipped', 'aborted', 'not executed', 'timeout', 'invalid'
+Test

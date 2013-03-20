@@ -81,6 +81,7 @@ class TCRunTcl:
 
         # Expose all known function in TCL
         for f in to_inject:
+            # print('DEBUG: Exposing Python command `{}` into TCL...'.format(f))
             self.tcl.createcommand( f, getattr(ce_libs, f) )
 
         if os.path.exists(os.getcwd()+'/__recomposed.tcl'):
@@ -117,6 +118,7 @@ class TCRunTcl:
         self.tcl.createcommand('logMessage', globs['logMsg'])
         self.tcl.createcommand('getGlobal',  globs['getGlobal'])
         self.tcl.createcommand('setGlobal',  globs['setGlobal'])
+        self.tcl.createcommand('py_exec',    globs['py_exec'])
 
         to_execute = str_to_execute.data
         to_execute = '\nset argc %i\n' % len(params) + to_execute
