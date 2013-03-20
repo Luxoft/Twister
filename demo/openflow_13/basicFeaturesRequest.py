@@ -13,6 +13,7 @@ class FeaturesRequest(SimpleProtocol):
         self.assertEqual(response.header.type, ofp.OFPT_FEATURES_REPLY,
                          'response is not features_reply')
         self.assertTrue(len(response) >= 32, "features_reply too short: %d < 32 " % len(response))
+        print response.show()
         
 tc=FeaturesRequest()
 _RESULT=tc.run()

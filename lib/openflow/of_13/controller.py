@@ -8,26 +8,46 @@ import message as message
 from message import *
 from parse import *
 from ofutils import *
-
-agent_config = {"agent_host":"127.0.0.1", "agent_port":7711}
+from twister_config import ResourceManager
 
 class Controller():
-    def __init__(self,host,port):    
-        self.host=host
-        self.port=port
-        proxy_str="http://%s:%d/" % (agent_config["agent_host"],agent_config["agent_port"])        
-        self.proxy = xmlrpclib.ServerProxy(proxy_str)
-        self.channel_id=1
+    #controller_name is used by openflow test to get 
+    #configuration from resource allocator
+    #testbed -> resource allocator testbed (eg 'openflow_testbed')
+    #controller_name -> resource allocator controller name ('controller_1')
+    
+    def __init__(self,host="127.0.0.1",port=6633,ra_proxy=None,testbed=None,controller_name=None):    
         self.logger = logging.getLogger("controller")
-        
         #back compatibility with oftest 1.0
         self.switch_addr=None
         self.switch_socket="None"
+        self.channel_id=1
         
-    #back compatibility functions with oftest 1.0
-    
+        #check if agent is running inside twister            
+        controller_cfg=ResourceManager()
+        #if  'TWISTER_ENV' in globals():
+        if (True):
+            self.logger.info("Running inside twister ...")
+            resDict=controller_cfg.getResources_ra(ra_proxy,testbed,controller_name)                
+            self.host=resDict['host']
+            self.port=resDict['port']
+            self.agent_host=resDict['agent_host']
+            self.agent_port=resDict['agent_port']
+            
+        else:    
+            self.logger.info("Running outside twister ...")
+            resDict=controller_cfg.getResources_default()
+            self.host=resDict['host']
+            self.port=resDict['port']
+            self.agent_host=resDict['agent_host']
+            self.agent_port=resDict['agent_port']
+                        
+        agent_proxy_str="http://"+self.agent_host+":"+str(self.agent_port)
+        self.agentProxy=xmlrpclib.ServerProxy(agent_proxy_str)
+        
+                                                            
     def shutdown(self):
-        self.proxy.shutdown(self.channel_id)
+        self.agentProxy.shutdown(self.channel_id)
         
         
     def join(self):
@@ -38,13 +58,13 @@ class Controller():
                 
     def start(self,timeout=20):
         try:
-            self.proxy.start_controller_server('0.0.0.0',6633)
+            self.agentProxy.start_controller_server(self.host,self.port)
         except:
             self.logger.warning("Unable to connect to: %s:%d" % 
-                (agent_config["agent_host"],agent_config["agent_port"]))
+                (self.agent_port,self.agent_port))
             
     def connect(self,timeout=20):
-        rv=self.proxy.connect(self.channel_id)
+        rv=self.agentProxy.connect(self.channel_id)
         self.active=rv
         if(rv==True):
             self.logger.info("Switch connected")
@@ -65,7 +85,7 @@ class Controller():
         """    
         request=base64.b64encode(outpkt)
         s_msg_xid=str(msg.header.xid)
-        res_msg = self.proxy.transact(self.channel_id,s_msg_xid,request)
+        res_msg = self.agentProxy.transact(self.channel_id,s_msg_xid,request)
         #decode reply
         res_msg=base64.b64decode(res_msg)
         replay, pkt=self.of_message_parse(res_msg)
@@ -74,7 +94,7 @@ class Controller():
         
     def poll(self,exp_msg,timeout=20):
         self.logger.debug("Poll request")
-        raw_msg=self.proxy.poll(self.channel_id, exp_msg)        
+        raw_msg=self.agentProxy.poll(self.channel_id, exp_msg)        
         if(raw_msg==''):
             return (None,None)
         msg=base64.b64decode(raw_msg)
@@ -89,7 +109,7 @@ class Controller():
             outpkt = msg     
             
         request=base64.b64encode(outpkt)
-        self.proxy.message_send(self.channel_id, request)    
+        self.agentProxy.message_send(self.channel_id, request)    
         return 0    
         
     def of_message_parse(self,pkt):

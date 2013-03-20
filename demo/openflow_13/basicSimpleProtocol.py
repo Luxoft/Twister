@@ -17,6 +17,8 @@ import ce_libs.openflow.of_13.parse as parse
 import ce_libs.openflow.of_13.dataplane as dataplane
 import ce_libs.openflow.of_13.testutils as testutils
 import ce_libs.openflow.of_13.twister_testcase as testcase
+
+
 import ipaddr
 
 class SimpleProtocol(testcase.TwisterTestCase):
@@ -42,12 +44,10 @@ class SimpleProtocol(testcase.TwisterTestCase):
         except:
             self.ra_proxy=xmlrpclib.ServerProxy('http://127.0.0.1:8000/ra/')
             
-        chost=self.getControllerHost(self.ra_proxy)    
-        cport=self.getControllerPort(self.ra_proxy)    
-                        
-        self.controller = controller.Controller(host=chost,port=cport)
+        #replace here the testbed with currenttestbed                     
+        self.controller = controller.Controller(ra_proxy=self.ra_proxy,testbed='openflow_testbed',controller_name='controller_1')
         
-        self.port_map=self.getPortMap(self.ra_proxy)
+        self.port_map=self.getPortMap(self.ra_proxy,'openflow_testbed','switch')
         
         # clean_shutdown should be set to False to force quit app
         self.clean_shutdown = True

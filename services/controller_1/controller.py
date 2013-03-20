@@ -14,10 +14,10 @@ import struct
 from gevent.server import StreamServer
 from gevent.queue import Queue,Empty
 
-import ConfigParser
-
 #oftest13 modules
-sys.path.insert(0,"../../lib/openflow")
+sys.path.insert(0,"/opt/twister/lib/openflow")
+import ConfigParser
+from of_13.twister_config import ResourceManager
 
 import of_13.parse as parse_13
 import of_13.cstruct as cstruct_13
@@ -410,7 +410,7 @@ def getLogger():
     #logger.addHandler(fh)
     return oflogger
     
-                     
+    
 def main():
 
     #load configuration from file
@@ -420,15 +420,31 @@ def main():
         exit(0)
     else:    
         config_file=sys.argv[1];
-
-    config = ConfigParser.SafeConfigParser()
-    config.read(config_file)        
-    as_host=config.get('CONTROLLER_CONFIG', 'agent_server_host')    
-    as_port=config.getint('CONTROLLER_CONFIG', 'agent_server_port')
-    
+    controller_cfg=ResourceManager()
+        
+    resDict=controller_cfg.getResources_file(config_file)    
+    try:                
+        config_service=resDict['config_service']
+        testbed=resDict['testbed']
+        controller_name=resDict['controller_name']
+        ra_proxy=xmlrpclib.ServerProxy(config_service)
+        #Get config from resource allocator
+        resDictRa=controller_cfg.getResources_ra(ra_proxy,testbed,controller_name)
+        #agent_host=resDictRa['agent_host']         
+        agent_host="0.0.0.0"
+        agent_port=int(resDictRa['agent_port'])
+        print "Twister ResourceAllocator: *** available ***"   
+    except : 
+        raise
+        print "Twister ResourceAllocator: *** not available ***"
+        agent_host="0.0.0.0"
+        agent_port=int(resDict['agent_port'])
+        print ("  agent_host:%s\n  agent_port:%d" % 
+                (agent_host,agent_port))    
+                
     #start openflow agent server
-    server = ThreadedXMLRPCServer((as_host, as_port),logRequests = False)
-    print "Listening for agent on port %d..." % as_port
+    server = ThreadedXMLRPCServer((agent_host, agent_port),logRequests = False)
+    print "Listening for agent on port %d..." % agent_port
     controller=Controller()
     xmlrpc_handler=AgentHandler(controller)
     server.register_instance(xmlrpc_handler)
