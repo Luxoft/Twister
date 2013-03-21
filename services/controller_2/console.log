@@ -1,0 +1,5 @@
+testbed: openflow_testbed
+device: controller_2
+*** Resource manager config: RESOURCE_ALLOCATOR SUCCESS***
+Twister ResourceAllocator: *** available ***
+Listening for agent on port 7733...

@@ -429,11 +429,10 @@ def main():
         controller_name=resDict['controller_name']
         ra_proxy=xmlrpclib.ServerProxy(config_service)
         #Get config from resource allocator
-        resDictRa=controller_cfg.getResources_ra(ra_proxy,testbed,controller_name)
+        resDictRa=controller_cfg.getResources_ra(ra_proxy,testbed,controller_name)        
         if(resDictRa==False):
             print "Error in getting resource allocator config, exitting"
             exit(0)
-
         #agent_host=resDictRa['agent_host']         
         agent_host="0.0.0.0"
         agent_port=int(resDictRa['agent_port'])

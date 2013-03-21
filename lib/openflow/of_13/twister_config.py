@@ -17,16 +17,19 @@ class ResourceManager():
         }
     
     def getResources_ra(self,ra_proxy,testbed,device):                
-        res="/"+testbed+"/"+device+"/"
-        
+        res="/"+testbed+"/"+device+"/"        
         print "testbed: %s\ndevice: %s" % (testbed,device)
         query=None
         try:            
             q=ra_proxy.getResource(res)
-            pprint.pprint(q['meta'],indent=4)        
+            #pprint.pprint(q['meta'],indent=4)        
+            if(q==False):
+                 print "Twister ResourceAllocator: *** items for :%s,%s not available ***" %(testbed,device)
+                 return False
             query=q['meta']      
             print "*** Resource manager config: RESOURCE_ALLOCATOR SUCCESS***"        
         except:
+            raise
             print "*** Resource manager config: RESOURCE_ALLOCATOR FAILURE ***"
             return None            
           
@@ -45,9 +48,6 @@ class ResourceManager():
             port_map=self.string_to_portmap(port_map_s)
             return port_map
         
-        
-            
-                
     def getResources_file(self,config_file):
         config = ConfigParser.SafeConfigParser()
         config.read(config_file)   
@@ -69,7 +69,8 @@ class ResourceManager():
         port_map={}
         for pm1 in pml:
             l=pm1.split(":")
-            port_map[int(l[0])]=l[1]
+            port_map[int(l[0])]=l[1].strip()
+        print port_map
         return port_map
                         
 def main():

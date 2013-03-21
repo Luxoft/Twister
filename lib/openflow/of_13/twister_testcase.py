@@ -45,7 +45,7 @@ class TwisterTestCase():
         if not first==second:
             self.logger.error("** FAILED ASSERTION: " + msg)
             self.result='FAIL'
-
+    
     def run(self):
         self.init()
         #self.postSetup()
@@ -62,7 +62,9 @@ class TwisterTestCase():
             self.resourceManager=ResourceManager()
         port_map=self.resourceManager.getResources_ra(ra_proxy,testbed,switch_name)
         return port_map                 
-           
+        
+       
+        
 def main():
     ttc=TwisterTestCase()
     ra=xmlrpclib.ServerProxy('http://127.0.0.1:8000/ra/')
