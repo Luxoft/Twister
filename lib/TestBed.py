@@ -59,6 +59,10 @@ if platform_sys=='linux' or platform_sys=='sunos':
         try: return ra_proxy.setResource(name, parent, props)
         except: return None
 
+    def renameResource(res_query, new_name):
+        try: return ra_proxy.renameResource(es_query, new_name)
+        except: return None
+
     def deleteResource(query):
         try: return ra_proxy.deleteResource(query)
         except: return None
@@ -91,7 +95,10 @@ else:
     def getResource(query):
         pass
 
-    def setResource(query):
+    def setResource(name, parent=None, props={}):
+        pass
+
+    def renameResource(res_query, new_name):
         pass
 
     def deleteResource(query):

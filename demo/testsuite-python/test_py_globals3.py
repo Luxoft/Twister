@@ -1,8 +1,8 @@
 
-#
-# <title>Testing Globals</title>
-# <description>This test is getting some complex functions and classes.</description>
-#
+"""
+<title>Testing Globals</title>
+<description>This test is getting some complex functions and classes.</description>
+"""
 
 func1 = getGlobal('func1')
 func2 = getGlobal('func2')

@@ -79,6 +79,17 @@ class ServiceManager():
         del cfg, cfg_path
 
 
+    def __del__(self):
+
+        logDebug('SM: Stopping Service Manager...')
+
+        for service in self.twister_services:
+            if self.serviceStatus(service) == -1:
+                self.serviceStop(service)
+
+        del self.twister_services
+
+
     def sendCommand(self, command, name='', *args, **kwargs):
 
         if command==SM_LIST or command==sm_command_map[SM_LIST]:

@@ -5,8 +5,8 @@ proc Test {} {
     puts "\n**********\nStarting test: $testName\n"
     logMessage logTest "\n\nTestCase: $testName starting\n"
 
-    set purpose "<title>Testing Resource Allocator Client</title>"
-    set description "<description>This test should use all RAC functions in order to test the functionality</description>"
+    set purpose "<title>Testing Resource Allocator connection</title>"
+    set description "<description>This test should use all RA functions in order to test the functionality</description>"
     logMessage logTest "\nTest purpose: $purpose\nTest description: $description\n"
 
     set error_code "PASS"

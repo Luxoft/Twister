@@ -3,6 +3,9 @@
 
 # Copyright (C) 2012 , Luxoft
 
+# Authors:
+#    Cristi Constantin <crconstantin@luxoft.com>
+
 import os
 import sys
 import thread
@@ -19,6 +22,13 @@ from ConfigParser import SafeConfigParser
 
 import cherrypy
 from cherrypy import _cptools
+
+"""
+Scheduler Server
+****************
+
+It's used to schedule the start of Central Engine weekly, daily, or one-time.
+"""
 
 # # #
 

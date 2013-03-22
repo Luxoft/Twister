@@ -23,7 +23,7 @@
 # limitations under the License.
 
 '''
-REQUIRED Python 2.7
+REQUIRED Python 2.7.
 This file contains classes that will run TCL/ Python/ Perl test cases.
 This script CANNOT run separately, it must be called from TestCaseRunner.
 '''

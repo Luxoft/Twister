@@ -4,7 +4,7 @@ import pexpect
 
 #
 # <title>Test pExpect SSH</title>
-# <description>This test is connecting to a SSH server.</description>
+# <description>This test is connecting to a SSH server, using pExpect.</description>
 #
 
 def test():
@@ -41,6 +41,8 @@ def test():
 	time.sleep(1)
 
 	logMsg('logTest', "TestCase:%s %s\n" % (testName, error_code))
+
+	# This return is used by the framework!
 	return error_code
 
 #

@@ -2,17 +2,13 @@
 #
 # -*- coding: utf-8 -*-
 #
-#
 # File: PacketsTwistClasses.py ; This file is part of Twister.
 #
 # Copyright (C) 2012 , Luxoft
 #
-#
 # Authors:
 #    Adrian Toader <adtoader@luxoft.com>
 #
-#
-
 
 from scapy.all import (Packet, ByteField, XByteField, X3BytesField, ByteEnumField,
                         ShortField, XShortField, ShortEnumField, IntField,
@@ -20,8 +16,7 @@ from scapy.all import (Packet, ByteField, XByteField, X3BytesField, ByteEnumFiel
                         StrFixedLenField, MACField, SourceMACField, DestMACField,
                         IPField, SourceIPField, ConditionalField)
 
-
-
+#
 
 ofp_message_type = {
     0: 'Hello', 1: 'Error', 2: 'Echo Request', 3: 'Echo Reply', 4: 'Vendor',

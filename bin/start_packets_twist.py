@@ -15,7 +15,7 @@
 
 
 from os import getuid, chdir, getenv, environ
-from os.path import split, exists
+from os.path import split
 
 from json import load
 from optparse import OptionParser

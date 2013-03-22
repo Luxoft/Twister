@@ -1,8 +1,9 @@
 
-#
-# <title>Testing Globals</title>
-# <description>This test is setting some complex global variables.</description>
-#
+"""
+<title>Testing Globals</title>
+<description>This test is setting some complex global variables, that will be used in the next tests.
+The variables can be accessed both from Python and TCL.</description>
+"""
 
 def func1():
 	print 'Some function #1'

@@ -126,6 +126,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
         self.resources = {'name': '/', 'meta': {}, 'children': {}}
         self.acc_lock = thread.allocate_lock() # Task change lock
+        self.ren_lock = thread.allocate_lock() # Rename lock
         self.cfg_file = '{0}/config/resources.json'.format(TWISTER_PATH)
         self._load(v=True)
 
@@ -300,7 +301,17 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
         # If no resources...
         if not self.resources['children']:
-            msg = 'Get Resource: There are no resources defined !'
+            msg = 'Rename Resource: There are no resources defined !'
+            logError(msg)
+            return '*ERROR* ' + msg
+
+        if '/' in new_name:
+            msg = 'Rename Resource: New resource name cannot contain `/` !'
+            logError(msg)
+            return '*ERROR* ' + msg
+
+        if ':' in new_name:
+            msg = 'Rename Resource: New resource name cannot contain `:` !'
             logError(msg)
             return '*ERROR* ' + msg
 
@@ -318,11 +329,6 @@ class ResourceAllocator(_cptools.XMLRPCController):
             logError(msg)
             return '*ERROR* ' + msg
 
-        if ':' in new_name:
-            msg = 'Rename Resource: New resource name cannot contain `:` !'
-            logError(msg)
-            return '*ERROR* ' + msg
-
         # Correct node path
         node_path = [p for p in res_p['path'].split('/') if p]
         # Renamed node path
@@ -335,31 +341,33 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
         exec_string = 'self.resources["children"]["{0}"]'.format('"]["children"]["'.join(node_path))
 
-        # If must rename a Meta info
-        if meta:
-            exec( 'val = {0}["meta"].get("{1}")'.format(exec_string, meta) )
+        with self.ren_lock:
 
-            if val is None:
-                msg = 'Rename Resource: Cannot find resource meta info `{0}` !'.format(meta)
-                logError(msg)
-                return '*ERROR* ' + msg
+            # If must rename a Meta info
+            if meta:
+                exec( 'val = {0}["meta"].get("{1}")'.format(exec_string, meta) )
 
-            exec( '{0}["meta"]["{1}"] = {0}["meta"]["{2}"]'.format(exec_string, new_name, meta) )
-            exec( 'del {0}["meta"]["{1}"]'.format(exec_string, meta) )
+                if val is None:
+                    msg = 'Rename Resource: Cannot find resource meta info `{0}` !'.format(meta)
+                    logError(msg)
+                    return '*ERROR* ' + msg
 
-            logDebug('Renamed resource meta `{0}:{1}` to `{0}:{2}`.'.format('/'.join(node_path), meta, new_name))
+                exec( '{0}["meta"]["{1}"] = {0}["meta"]["{2}"]'.format(exec_string, new_name, meta) )
+                exec( 'del {0}["meta"]["{1}"]'.format(exec_string, meta) )
 
-        # If must rename a normal node
-        else:
-            new_string = 'self.resources["children"]["{0}"]'.format('"]["children"]["'.join(new_path))
+                logDebug('Renamed resource meta `{0}:{1}` to `{0}:{2}`.'.format('/'.join(node_path), meta, new_name))
 
-            exec( new_string + ' = ' + exec_string )
-            exec( 'del ' + exec_string )
+            # If must rename a normal node
+            else:
+                new_string = 'self.resources["children"]["{0}"]'.format('"]["children"]["'.join(new_path))
 
-            logDebug('Renamed resource path `{0}` to `{1}`.'.format('/'.join(node_path), '/'.join(new_path)))
+                exec( new_string + ' = ' + exec_string )
+                exec( 'del ' + exec_string )
 
-        # # Write changes.
-        self._save()
+                logDebug('Renamed resource path `{0}` to `{1}`.'.format('/'.join(node_path), '/'.join(new_path)))
+
+            # # Write changes.
+            self._save()
 
         return True
 
@@ -373,7 +381,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
         # If no resources...
         if not self.resources['children']:
-            msg = 'Get Resource: There are no resources defined !'
+            msg = 'Del Resource: There are no resources defined !'
             logError(msg)
             return '*ERROR* ' + msg
 

@@ -3,10 +3,11 @@ import os
 from random import randint
 from binascii import hexlify
 
-#
-# <title>Testing Globals</title>
-# <description>This test is checking the globals. The global variable `global1` will be changed after each run!</description>
-#
+"""
+<title>Testing Globals</title>
+<description>This test is checking the globals.
+The global variable `global1` will be updated several times to see if it's working!</description>
+"""
 
 # Print all root level parameters
 print 'Root level params:', getGlobal('/').keys()

@@ -303,7 +303,7 @@ class TSCParser:
         # If the key is found, update it
         if xml_key:
             xml_key[0].text = value
-            xmlSoup.write(xmlFile)
+            xmlSoup.write(xmlFile, pretty_print=True)
             return True
         else:
             return False
@@ -350,7 +350,7 @@ class TSCParser:
             xml_parent = xml_key.getparent()
             xml_parent.remove(xml_key)
 
-        xmlSoup.write(xmlFile)
+        xmlSoup.write(xmlFile, pretty_print=True)
         return True
 
 
@@ -410,7 +410,7 @@ class TSCParser:
 
         # Insert the new suite and save
         xml_root.insert(insert_pos, suite_xml)
-        xmlSoup.write(xmlFile)
+        xmlSoup.write(xmlFile, pretty_print=True)
         return True
 
 
@@ -475,7 +475,7 @@ class TSCParser:
 
         # Insert the new file and save
         suite_xml.insert(insert_pos, file_xml)
-        xmlSoup.write(xmlFile)
+        xmlSoup.write(xmlFile, pretty_print=True)
         return True
 
 # # #

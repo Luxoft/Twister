@@ -4,7 +4,7 @@ import pexpect
 
 #
 # <title>Test pExpect FTP</title>
-# <description>This test is connecting to a FTP host.</description>
+# <description>This test is connecting to a FTP host, using pExpect.</description>
 #
 
 def test():
@@ -46,6 +46,8 @@ def test():
 	time.sleep(1)
 
 	logMsg('logTest', "TestCase:%s %s\n" % (testName, error_code))
+
+	# This return is used by the framework!
 	return error_code
 
 #

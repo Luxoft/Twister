@@ -2,10 +2,11 @@
 import time
 import telnetlib
 
-#
-# <title>Testing Telnet Lib</title>
-# <description>This test is connecting to a TELNET host.</description>
-#
+"""
+<title>Testing Telnet Lib</title>
+<description>This test is connecting to a TELNET host, using the default Pythin lib.
+If you need something more advanced, use Twister Telnet library.</description>
+"""
 
 def test():
 	'''
@@ -44,6 +45,8 @@ def test():
 	print tn.read_very_eager()
 
 	logMsg('logTest', "TestCase:%s %s\n" % (testName, error_code))
+
+	# This return is used by the framework!
 	return error_code
 
 #

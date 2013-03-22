@@ -2,17 +2,13 @@
 #
 # -*- coding: utf-8 -*-
 #
-#
 # File: PacketsTwist.py ; This file is part of Twister.
 #
 # Copyright (C) 2012 , Luxoft
 #
-#
 # Authors:
 #    Adrian Toader <adtoader@luxoft.com>
 #
-#
-
 
 from binascii import b2a_base64
 
@@ -24,8 +20,7 @@ from scapy.all import Automaton, ATMT, TCP, bind_layers, conf, NoPayload
 
 from PacketsTwistClasses import OpenFlow, CentralEngineObject
 
-
-
+#
 
 class PacketsTwist(Automaton):
     """

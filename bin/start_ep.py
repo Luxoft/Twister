@@ -1,5 +1,9 @@
 #!/usr/bin/python
 
+# This file will start ALL Execution Processes that are enabled,
+# from file `twister/config/epname.ini`.
+# This should run as ROOT, to be able to start the packets sniffer.
+
 import os, sys
 import xmlrpclib
 import subprocess
@@ -8,7 +12,7 @@ from datetime import datetime
 from ConfigParser import SafeConfigParser
 
 if not sys.version.startswith('2.7'):
-    print('Python version error! Central Engine must run on Python 2.7!')
+    print('Python version error! Execution Process must run on Python 2.7!')
     exit(1)
 
 try:
@@ -27,6 +31,7 @@ for line in pipe.stdout.read().splitlines():
         pass
 del pipe
 
+# Twister path environment
 os.environ['TWISTER_PATH'] = os.getenv('HOME') + '/twister'
 
 os.chdir(os.getenv('TWISTER_PATH') + '/bin')
@@ -48,13 +53,13 @@ for val in eps:
 
         proxy = xmlrpclib.ServerProxy("http://{0}:{1}/".format(ce_ip, ce_port))
 
-        now_dtime = datetime.today()
-
         try:
             last_seen_alive = proxy.getEpVariable(user_name, val, 'last_seen_alive')
         except:
             print('Error: Cannot connect to Central Engine to check the EP! Exiting!\n')
             exit(1)
+
+        now_dtime = datetime.today()
 
         if last_seen_alive:
             diff = now_dtime - datetime.strptime(last_seen_alive, '%Y-%m-%d %H:%M:%S')
