@@ -1,13 +1,10 @@
 import sys
-#remove sys.path.append before running in twister
-print "REMOVE BELLOW BEFORE RUNNING WITH TWISTER"
-sys.path.append("/home/dancioata/twister/.twister_cache/EP-1001")
 
 import logging
 
 import trace
 
-import unittest
+from xmlrpclib import ServerProxy
 
 import ce_libs.openflow.of_13.match as match
 import ce_libs.openflow.of_13.controller as controller
@@ -27,9 +24,22 @@ class SimpleProtocol(testcase.TwisterTestCase):
     """
     Root class for setting up the controller
     """
-    def __init__(self,testbed):
-        self.testbed=testbed
+    def __init__(self,testbed=None,ra_proxy=None):
+    
+        print ra_proxy
+        print testbed
         
+        testcase.TwisterTestCase.__init__(self)
+        if(testbed==None):
+            self.testbed='openflow_testbed'
+        else:
+            self.testbed=testbed
+       
+        if (isinstance(ra_proxy, ServerProxy)):
+            self.ra_proxy=ra_proxy
+        else:            
+            self.ra_proxy=ServerProxy('http://127.0.0.1:8000/ra/')
+ 
     def sig_handler(self, v1, v2):
         self.logger.critical("Received interrupt signal; exiting")
         print "Received interrupt signal; exiting"
@@ -41,19 +51,11 @@ class SimpleProtocol(testcase.TwisterTestCase):
             
         #signal.signal(signal.SIGINT, self.sig_handler)
         self.logger.info("** START TEST CASE " + str(self))
-        #create or use existing proxy
-        try:            
-            from ce_libs import ra_proxy
-            self.ra_proxy=ra_proxy
-        except:
-            #self.ra_proxy=xmlrpclib.ServerProxy('http://127.0.0.1:8000/ra/')
-            pass
-            
-        #replace here the testbed with currenttestbed                     
-        self.controller = controller.Controller(ra_proxy=self.ra_proxy,testbed='openflow_testbed',controller_name='controller_1')
+                    
+        self.controller = controller.Controller(ra_proxy=self.ra_proxy,testbed=self.testbed,controller_name='controller_1')        
+        self.port_map=self.getPortMap(self.ra_proxy,self.testbed,'switch')
+        print "port_map: "+str(self.port_map) 
         
-        self.port_map=self.getPortMap(self.ra_proxy,'openflow_testbed','switch')
-        print "port_map"+str(self.port_map) 
         # clean_shutdown should be set to False to force quit app
         self.clean_shutdown = True
         self.controller.start()
@@ -82,6 +84,35 @@ class SimpleProtocol(testcase.TwisterTestCase):
         if not cond:
             self.logger.error("** FAILED ASSERTION: " + msg)        
     
-        
-tc=SimpleProtocol()
-_RESULT=tc.run()
+class SimpleDataPlane(SimpleProtocol):
+    """
+    Root class that sets up the controller and dataplane
+    """
+    def init(self):
+        SimpleProtocol.init(self)
+        self.dataplane = dataplane.DataPlane()
+
+        for of_port, ifname in self.port_map.items():
+            self.dataplane.port_add(ifname, of_port)
+
+    def cleanUp(self):
+        self.logger.info("Cleanup for simple dataplane test")
+        SimpleProtocol.cleanUp(self)
+        self.dataplane.kill(join_threads=self.clean_shutdown)
+        self.logger.info("Cleanup done")
+
+    def runTest(self):
+        self.assertTrue(self.controller.switch_socket is not None,
+                        str(self) + 'No connection to switch')
+        # self.dataplane.show()
+        # Would like an assert that checks the data plane
+
+def main():
+    tc_1=SimpleProtocol()
+    tc_1.run()
+    tc_2=SimpleDataPlane()
+    tc_2.run()
+    
+if __name__ == '__main__':
+    main()
+                    
