@@ -30,8 +30,7 @@ from os import remove, rename
 from os.path import dirname, exists, abspath, join, getsize
 from json import load, dump
 
-
-
+#
 
 __dir__ = dirname(abspath(__file__))
 
@@ -48,6 +47,7 @@ class TelnetManager(object):
         # active connection name; is used for all commands as default
         # if no name is specified
         self.activeConnection = None
+
 
     def open_connection(self, name, host, port=23, user=None, password=None,
                         userExpect=None, passwordExpect=None, keepalive=True):
@@ -70,7 +70,6 @@ class TelnetManager(object):
         """ login on telnet connection """
 
         try:
-
             return self.connections[name].login(user, password,
                                             userExpect, passwordExpect)
 
@@ -87,11 +86,9 @@ class TelnetManager(object):
 
         try:
             if name:
-
                 return self.connections[name].write(command)
 
             else:
-
                 return self.connections[self.activeConnection].write(command)
 
         except Exception, e:
@@ -107,11 +104,9 @@ class TelnetManager(object):
 
         try:
             if name:
-
                 return self.connections[name].read()
 
             else:
-
                 return self.connections[self.activeConnection].read()
 
         except Exception, e:
@@ -127,11 +122,9 @@ class TelnetManager(object):
 
         try:
             if name:
-
                 return self.connections[name].read_until(expected)
 
             else:
-
                 return self.connections[self.activeConnection].read_until(expected)
 
         except Exception, e:
@@ -147,11 +140,9 @@ class TelnetManager(object):
 
         try:
             if name:
-
                 return self.connections[name].set_newline(newline)
 
             else:
-
                 return self.connections[self.activeConnection].set_newline(newline)
 
         except Exception, e:
@@ -167,11 +158,9 @@ class TelnetManager(object):
 
         try:
             if name:
-
                 return self.connections[name].set_timeout(timeout)
 
             else:
-
                 return self.connections[self.activeConnection].set_timeout(timeout)
 
         except Exception, e:
@@ -188,11 +177,9 @@ class TelnetManager(object):
 
         try:
             if not name:
-
                 return self.connections[self.activeConnection]
 
             else:
-
                 return self.connections[name]
 
         except Exception, e:
@@ -205,7 +192,6 @@ class TelnetManager(object):
 
         try:
             self.activeConnection = name
-
             return True
 
         except Exception, e:
@@ -255,7 +241,6 @@ class TelnetManager(object):
                 connection.__del__()
 
             del(self.connections)
-
             self.connections = {}
 
             self.activeConnection = None
@@ -266,6 +251,7 @@ class TelnetManager(object):
 
         return True
 
+#
 
 class TelnetConnection:
     """ tsc telnet connection """
@@ -313,6 +299,7 @@ class TelnetConnection:
             self.keepAliveThread = None
             print('telnet connection failed: {er}'.format(er=e))
 
+
     def __del__(self):
         """ delete """
 
@@ -321,6 +308,7 @@ class TelnetConnection:
         sleep(2)
         del(self)
 
+
     def keep_alive(self):
         """ keep connection alive """
 
@@ -328,6 +316,7 @@ class TelnetConnection:
         while not self.connection.eof:
             self.connection.write('')
             sleep(timeout)
+
 
     def alive(self):
         """ check if connection is alive """
@@ -357,18 +346,18 @@ class TelnetConnection:
             print('telnet connection restore failed: {er}'\
                     'retry: {n}!'.format(er=e, n=self.keepAliveRetries))
             self.alive()
-
         return True
+
 
     def set_newline(self, newline):
         """ set the new line char for telnet connection """
 
         if isinstance(newline, str):
             self.newline = newline
-
             return True
 
         return False
+
 
     def set_timeout(self, timeout):
         """ set timeout for operations on telnet connection """
@@ -378,37 +367,33 @@ class TelnetConnection:
                 self.timeout = timeout
             else:
                 self.timeout = 2
-
             return True
 
         return False
+
 
     def read(self):
         """ read from telnet connection """
 
         if not self.alive():
-
             return False
 
         try:
-
             response = self.connection.read_very_eager()
             if response:
-
                 return response
 
         except Exception, e:
             print('read command error: {er}'.format(er=e))
-
             return False
 
         return False
+
 
     def read_until(self, expected):
         """ read from telnet connection until expected """
 
         if not self.alive():
-
             return False
 
         try:
@@ -420,16 +405,15 @@ class TelnetConnection:
 
         except Exception, e:
             print('read until command error: {er}'.format(er=e))
-
             return False
 
         return False
+
 
     def write(self, command, result=True, display=True):
         """ write command to telnet connection """
 
         if not self.alive():
-
             return False
 
         try:
@@ -437,11 +421,9 @@ class TelnetConnection:
             sleep(2)
             if display: print('command: {c}'.format(c=command))
             if result:
-
                 return self.connection.read_very_eager()
 
             else:
-
                 return True
 
         except Exception, e:
@@ -449,11 +431,11 @@ class TelnetConnection:
 
             return False
 
+
     def expect(self, expected, command=None, result=True, display=True):
         """ write command to telnet connection on expected prompt """
 
         if not self.alive():
-
             return False
 
         try:
@@ -476,6 +458,7 @@ class TelnetConnection:
             print('expect send command error: {er}'.format(er=e))
 
             return False
+
 
     def login(self, user=None, password=None,
                      userExpect=None, passwordExpect=None):
@@ -526,8 +509,8 @@ class TelnetConnection:
                 return True
 
         print('fail')
-
         return False
+
 
     def autologin(self):
         """ autologin on telnet connection """
@@ -547,9 +530,10 @@ class TelnetConnection:
                 print self.write(self.loginAccount['password'], True, False)
 
                 return True
-        print('fail')
 
+        print('fail')
         return False
+
 
     def loadLoginDrivers(self):
         """ load the known login drivers """
@@ -577,6 +561,7 @@ class TelnetConnection:
             self.loginDrivers = load(loginDriversFile)
 
         remove(self.loginDriversLockPath)
+
 
     def saveLoginDrivers(self, userExpect, passwordExpect):
         """ save new login driver """

@@ -1,100 +1,50 @@
 
-from ce_libs import TelnetManager
+import time
+import telnetlib
 
 #
-# <title>Testing TSC Telnet Lib</title>
+# <title>Testing Telnet Lib</title>
 # <description>This test is connecting to a TELNET host.</description>
 #
 
 def test():
 	'''
-	Testing TSC Telnet library.
+	Testing Python standard Telnet library.
 	'''
 
-	conn = {
-		'host': '11.126.32.16',
-		'port': 23,
-		'user': 'user',
-		'passwd': 'password',
-		'loging_prompt': 'login:',
-		'passwd_prompt': 'Password',
-	}
+	testName = 'test_py_telnet.py'
+	logMsg('logTest', "\nTestCase:%s starting\n" % testName)
+	error_code = "PASS"
 
-	tm = TelnetManager()
+	tn = telnetlib.Telnet('134.117.136.48', 23, 60)
+	print 'Connected:', tn
+	time.sleep(1)
 
-	print 'begin test'
-	print '||||||||||||||||||||||||||||||||||||||||||||||'
-	print 'open_connection'
-	tm.open_connection('test', conn['host'], , conn['port'], conn['user'], conn['passwd'],
-							conn['loging_prompt'], conn['passwd_prompt'])
-	tm.open_connection('test1', conn['host'], , conn['port'], conn['user'], conn['passwd'],
-							conn['loging_prompt'], conn['passwd_prompt'])
-	tm.open_connection('test2', conn['host'], , conn['port'], conn['user'], conn['passwd'],
-							conn['loging_prompt'], conn['passwd_prompt'])
-	tm.open_connection('test3', conn['host'], , conn['port'], conn['user'], conn['passwd'],
-							conn['loging_prompt'], conn['passwd_prompt'])
+	print tn.read_until('login:', 30)
+	tn.write('guest\n')
+	time.sleep(1)
 
-	print '||||||||||||||||||||||||||||||||||||||||||||||'
-	print 'list_connections'
-	print tm.list_connections()
+	print tn.read_until('any key to continue...', 10)
+	tn.write('\n\n')
+	time.sleep(1)
 
-	print '||||||||||||||||||||||||||||||||||||||||||||||'
-	print 'get_connection'
-	print tm.get_connection()
+	print tn.read_until("'q' to quit", 10)
+	tn.write('q\n')
+	time.sleep(1)
 
-	print '||||||||||||||||||||||||||||||||||||||||||||||'
-	print 'set_active_connection'
-	print tm.set_active_connection('test')
+	print tn.read_until('About the National Capital FreeNet', 10)
+	tn.write('1\n')
+	time.sleep(1)
 
-	print '||||||||||||||||||||||||||||||||||||||||||||||'
-	print 'get_connection'
-	print tm.get_connection()
+	print tn.read_until('Your Choice ==>', 10)
+	tn.write('x\n')
+	tn.write('y\n')
+	time.sleep(1)
 
-	print '||||||||||||||||||||||||||||||||||||||||||||||'
-	print 'set_timeout'
-	print tm.set_timeout(4)
+	print tn.read_very_eager()
 
-	print '||||||||||||||||||||||||||||||||||||||||||||||'
-	print 'set_newline'
-	print tm.set_newline('\r\n')
-
-	print '||||||||||||||||||||||||||||||||||||||||||||||'
-	print 'write'
-	print tm.write('ls')
-
-	print '||||||||||||||||||||||||||||||||||||||||||||||'
-	print 'read'
-	print tm.read()
-
-	print '||||||||||||||||||||||||||||||||||||||||||||||'
-	print 'read_until'
-	print tm.read_until('test')
-
-	print '||||||||||||||||||||||||||||||||||||||||||||||'
-	print 'close_connection default'
-	print tm.close_connection()
-
-	print '||||||||||||||||||||||||||||||||||||||||||||||'
-	print 'list_connections'
-	print tm.list_connections()
-
-	print '||||||||||||||||||||||||||||||||||||||||||||||'
-	print 'close_connection'
-	print tm.close_connection('test3')
-
-	print '||||||||||||||||||||||||||||||||||||||||||||||'
-	print 'list_connections'
-	print tm.list_connections()
-
-	print '||||||||||||||||||||||||||||||||||||||||||||||'
-	print 'close_all_connections'
-	print tm.close_all_connections()
-
-	print '||||||||||||||||||||||||||||||||||||||||||||||'
-	print 'list_connections'
-	print tm.list_connections()
-
-	logMsg('tsc telnet lib test done.')
+	logMsg('logTest', "TestCase:%s %s\n" % (testName, error_code))
+	return error_code
 
 #
 
