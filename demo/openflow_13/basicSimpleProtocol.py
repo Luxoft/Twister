@@ -42,6 +42,7 @@ class SimpleProtocol(testcase.TwisterTestCase):
             from ce_libs import ce_proxy
             self.ra_proxy=ce_proxy
         except:
+            import xmlrpclib
             self.ra_proxy=xmlrpclib.ServerProxy('http://127.0.0.1:8000/ra/')
             
         #replace here the testbed with currenttestbed                     
