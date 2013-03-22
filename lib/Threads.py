@@ -24,6 +24,7 @@
 
 '''
 This module contains Threading Functions.\n
+Use `tasks_reset` before running anything, to cleanup the previous queue!\n
 Use `tasks_append` to insert functions that take a long time to finish.\n
 Use `tasks_start` to spawn all the functions from the queue.
 '''

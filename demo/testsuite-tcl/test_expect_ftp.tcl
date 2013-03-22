@@ -5,8 +5,8 @@ proc Test {} {
     puts "\n**********\nStarting test: $testName\n"
     logMessage logTest "\n\nTestCase: $testName starting\n"
 
-    set purpose "<title>Testing Expect take 1</title>"
-    set description "<description>Some description for test 3</description>"
+    set purpose "<title>Testing Expect FTP</title>"
+    set description "<description>Expect FTP</description>"
     logMessage logTest "\nTest purpose: $purpose\nTest description: $description\n"
 
     set error_code "FAIL"

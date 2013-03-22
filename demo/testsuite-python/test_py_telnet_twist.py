@@ -2,13 +2,13 @@
 from ce_libs import TelnetManager
 
 #
-# <title>Testing TSC Telnet Lib</title>
+# <title>Testing Twister Telnet library</title>
 # <description>This test is connecting to a TELNET host.</description>
 #
 
 def test():
 	'''
-	Testing TSC Telnet library.
+	Testing Twister Telnet library.
 	'''
 
 	conn = {
@@ -94,7 +94,9 @@ def test():
 	print 'list_connections'
 	print tm.list_connections()
 
-	logMsg('tsc telnet lib test done.')
+	logMsg('Twister Telnet test done.')
+	# This return is used by the framework!
+	return "PASS"
 
 #
 

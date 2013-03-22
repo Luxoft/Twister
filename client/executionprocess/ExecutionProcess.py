@@ -31,10 +31,6 @@ When it receives START from CE, it will start the Runner that will execute all t
   send all Runner logs to CE and after the execution, it will wait for another START to repeat the cycle.
 EP is basically a simple service, designed to start and stop the Runner.
 All the hard work is made by the Runner.
-
-EP can also start "offline" (without a connection to CE). This mode is used for debug,
-but it requires that EP was already started "online" once before, because it needs the libraries.
-Alternatively, the required libraries can be manually copied in "src/.twister_cache/ce_libs".
 '''
 
 import os
@@ -84,8 +80,9 @@ def saveConfig():
 #
 
 def packetsTwistStatus(ce):
-    """ Check Packets Twist plugin status """
-
+    """
+    Check Packets Twist plugin status.
+    """
     global sniffer
 
     pipe = subprocess.Popen('ps ax | grep start_packets_twist.py',

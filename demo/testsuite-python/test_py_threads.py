@@ -59,6 +59,8 @@ def test():
 
 	# _________________________________________________________________________
 	logMsg('logTest', "TestCase:%s %s\n" % (testName, error_code))
+
+	# This return is used by the framework!
 	return error_code
 
 #

@@ -24,7 +24,7 @@
 
 '''
 Test Case Runner has the following roles:
- - Connects to CE to receive the files that must be executed on this station.
+ - Connects to CE to receive the libs and files that must be executed on this station.
  - Takes the statuses from last run to see if the last run was killed by timeout,
     and if it was, it must skip the files that were already executed.
  - It reads the START/ STOP/ PAUSE/ RESUME status and if it's PAUSE, it waits for RESUME.
@@ -35,7 +35,8 @@ Test Case Runner has the following roles:
     and will be restarted by EP. If the execution is successful, it sends the status and the time to CE.
  - The files that must be executed can be in many formats, ex: Python, Perl, TCL, the Runner detects
     them by extension.
-This script should NOT be run manually.
+
+This script should NOT be run manually!
 '''
 
 import os

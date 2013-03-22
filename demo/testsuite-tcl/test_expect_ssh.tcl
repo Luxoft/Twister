@@ -5,7 +5,7 @@ proc Test {} {
     puts "\n**********\nStarting test: $testName\n"
     logMessage logTest "\n\nTestCase: $testName starting\n"
 
-    set purpose "<title>Testing Expect take 2</title>"
+    set purpose "<title>Testing Expect SSH</title>"
     set description "<description>Testing SSH</description>"
     logMessage logTest "\nTest purpose: $purpose\nTest description: $description\n"
 
