@@ -1032,21 +1032,23 @@ class CentralEngine(_cptools.XMLRPCController):
         """
         title = ''
         descr = ''
+        a = 0
+        b = 0
 
-        for line in open(fname,'r'):
-            s = line.strip()
-            if '<title>' in line and '</title>' in line:
-                a = s.find('<title>') + len('<title>')
-                b = s.find('</title>')
-                title = s[a:b]
-                if title: continue
-            if '<description>' in line and '</description>' in line:
-                a = s.find('<description>') + len('<description>')
-                b = s.find('</description>')
-                descr = s[a:b]
-                if descr: continue
+        try:
+            text = open(fname,'rb').read()
+        except:
+            return '-'+title+'-;--'+descr
 
-            if title and descr: break
+        if '<title>' in text and '</title>' in text:
+            a = text.find('<title>') + len('<title>')
+            b = text.find('</title>')
+            title = text[a:b]
+
+        if '<description>' in text and '</description>' in text:
+            a = text.find('<description>') + len('<description>')
+            b = text.find('</description>')
+            descr = text[a:b]
 
         return '-'+title+'-;--'+descr
 
