@@ -46,6 +46,24 @@ class instruction_goto_table(ofp_instruction_goto_table):
         outstr += ofp_instruction_goto_table.show(self, prefix)
         return outstr
 
+class instruction_meter_table(ofp_instruction_meter):
+    """
+    Wrapper class for meter instruction object
+
+    Data members inherited from ofp_instruction_meter:
+    @arg type
+    @arg len
+    @arg meter_id
+
+    """
+    def __init__(self):
+        ofp_instruction_meter.__init__(self)
+        self.type = OFPIT_METER
+        self.len = self.__len__()
+    def show(self, prefix=''):
+        outstr = prefix + "instruction_meter\n"
+        outstr += ofp_instruction_meter.show(self, prefix)
+        return outstr
 
 class instruction_write_actions(ofp_instruction_actions):
     """
@@ -140,4 +158,5 @@ instruction_class_list = (
     instruction_clear_actions,
     instruction_goto_table,
     instruction_write_actions,
-    instruction_write_metadata)
+    instruction_write_metadata,
+    instruction_meter_table)

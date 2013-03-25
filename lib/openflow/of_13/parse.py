@@ -46,11 +46,15 @@ multipart_reply_to_class_map = {
     ofp.OFPMP_FLOW                      : message.flow_stats_reply,
     ofp.OFPMP_AGGREGATE                 : message.aggregate_stats_reply,
     ofp.OFPMP_TABLE                     : message.table_stats_reply,
+    ofp.OFPMP_TABLE_FEATURES		: message.table_features_reply,
     ofp.OFPMP_PORT_STATS                : message.port_stats_reply,
     ofp.OFPMP_QUEUE                     : message.queue_stats_reply,
     ofp.OFPMP_GROUP                     : message.group_stats_reply,
     ofp.OFPMP_GROUP_DESC                : message.group_desc_stats_reply,
     ofp.OFPMP_PORT_DESC                 : message.port_desc_stats_reply,
+    ofp.OFPMP_METER_FEATURES		: message.meter_features_reply,
+    ofp.OFPMP_METER			: message.meter_stats_reply,
+    ofp.OFPMP_METER_CONFIG		: message.meter_config_reply,
 #    ofp.OFPMP_EXPERIMENTER
 }
 
@@ -76,7 +80,9 @@ error_to_class_map = {
     ofp.OFPET_PORT_MOD_FAILED           : message.port_mod_failed_error_msg,
     ofp.OFPET_TABLE_MOD_FAILED          : message.table_mod_failed_error_msg,
     ofp.OFPET_QUEUE_OP_FAILED           : message.queue_op_failed_error_msg,
-    ofp.OFPET_SWITCH_CONFIG_FAILED      : message.switch_config_failed_error_msg
+    ofp.OFPET_SWITCH_CONFIG_FAILED      : message.switch_config_failed_error_msg,
+    ofp.OFPET_METER_MOD_FAILED		: message.meter_mod_failed_error_msg,
+    ofp.OFPET_ROLE_REQUEST_FAILED	: message.role_request_failed_error_msg
 }
 
 # Map from header type value to the underlieing message class
