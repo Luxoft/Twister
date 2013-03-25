@@ -1,17 +1,6 @@
 #!/usr/bin/env python
-#
-# -*- coding: utf-8 -*-
-#
-#
-# File: start_packets_twist.py ; This file is part of Twister.
-#
-# Copyright (C) 2012 , Luxoft
-#
-#
-# Authors:
-#    Adrian Toader <adtoader@luxoft.com>
-#
-#
+
+# This file will start Packets Twists
 
 
 from os import getuid, chdir, getenv, environ
@@ -29,8 +18,10 @@ if getuid() != 0:
     print('To run Packets Twist, must be ROOT! Exiting!\n')
     exit(1)
 
+
 __dir__ = split(__file__)[0]
 if __dir__: chdir(__dir__)
+
 
 # # # #
 
