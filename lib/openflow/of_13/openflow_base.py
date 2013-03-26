@@ -14,6 +14,7 @@ import ce_libs.openflow.of_13.parse as parse
 import ce_libs.openflow.of_13.dataplane as dataplane
 import ce_libs.openflow.of_13.testutils as testutils
 import ce_libs.openflow.of_13.twister_testcase as testcase
+import ce_libs.openflow.of_13.meter as meter
 
 import ipaddr
 

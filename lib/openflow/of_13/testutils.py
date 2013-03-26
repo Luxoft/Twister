@@ -1886,3 +1886,13 @@ def ag_flow_stats_get(parent, match_fields = None):
     parent.assertTrue(isinstance(response,message.aggregate_stats_reply),
                       "Expected a flow_stats_reply, but didn't get it")
     return response
+
+def delete_all_meters(ctrl, logger):
+    """
+    Delete all meters
+    """
+    logger.info("Sending meter_mod delete all request")
+    msg = message.meter_mod()
+    msg.command = ofp.OFPMC_DELETE
+    msg.meter_id = ofp.OFPM_ALL 
+    return ctrl.message_send(msg)    
