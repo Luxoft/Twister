@@ -187,7 +187,6 @@ class SwitchChannel():
         
         #wait 2 seconds to before poll packet list"
     def poll(self,msg_type):
-        print "Pool request"
         msg=None        
         for i in range(0,len(self.packets)):
             pkt=self.packets[i][0]
@@ -244,7 +243,12 @@ class SwitchChannel():
         self.active=True
             
         while True:
-            data = socket.recv(MAX_PACKET_LEN)                
+            try:
+                data = socket.recv(MAX_PACKET_LEN)                
+            except:
+                self.logger.error("Switch socket receive error")
+                break;
+
             if( not data):
                 self.logger.info('Closing switch channel')                
                 self.active=False
@@ -275,8 +279,8 @@ class SwitchChannel():
             else:
                 self.logger.warning("Openflow version not match")
                 continue                
-                 
         self.active=False
+        self.switch_socket=None
         
     def message_send(self,msg):
         if self.switch_socket==None:

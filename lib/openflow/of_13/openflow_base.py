@@ -1,10 +1,8 @@
 import sys
-
 import logging
-
 import trace
-
 from xmlrpclib import ServerProxy
+import random
 
 import ce_libs.openflow.of_13.match as match
 import ce_libs.openflow.of_13.controller as controller
@@ -19,11 +17,14 @@ import ce_libs.openflow.of_13.twister_testcase as testcase
 
 import ipaddr
 
+TEST_VID_DEFAULT = 2
+IPV6_ETHERTYPE = 0x86dd 
 IPV4_ETHERTYPE = 0x0800
 ETHERTYPE_VLAN = 0x8100
 ETHERTYPE_MPLS = 0x8847
 TCP_PROTOCOL = 0x6
 UDP_PROTOCOL = 0x11
+ICMPV6_PROTOCOL = 0x3a 
 
 class SimpleProtocol(testcase.TwisterTestCase):
     """
