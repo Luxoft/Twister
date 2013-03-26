@@ -83,6 +83,10 @@ def packetsTwistStatus(ce):
     """
     Check Packets Twist plugin status.
     """
+
+    if not 'SNIFF' in ce.listPlugins(userName):
+        return
+
     global sniffer
 
     pipe = subprocess.Popen('ps ax | grep start_packets_twist.py',
