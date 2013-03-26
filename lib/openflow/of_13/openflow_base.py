@@ -17,8 +17,13 @@ import ce_libs.openflow.of_13.dataplane as dataplane
 import ce_libs.openflow.of_13.testutils as testutils
 import ce_libs.openflow.of_13.twister_testcase as testcase
 
-
 import ipaddr
+
+IPV4_ETHERTYPE = 0x0800
+ETHERTYPE_VLAN = 0x8100
+ETHERTYPE_MPLS = 0x8847
+TCP_PROTOCOL = 0x6
+UDP_PROTOCOL = 0x11
 
 class SimpleProtocol(testcase.TwisterTestCase):
     """
@@ -80,9 +85,6 @@ class SimpleProtocol(testcase.TwisterTestCase):
         self.assertTrue(self.controller.switch_socket is not None,
                         str(self) + 'No connection to switch')
 
-    def assertTrue(self, cond, msg):
-        if not cond:
-            self.logger.error("** FAILED ASSERTION: " + msg)        
     
 class SimpleDataPlane(SimpleProtocol):
     """

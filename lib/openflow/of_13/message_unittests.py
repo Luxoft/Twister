@@ -1,10 +1,10 @@
 #!/usr/bin/python 
 
 import unittest
-from oftest import message
-from oftest import action
-from oftest import instruction
-from oftest import cstruct as ofp
+import message
+import action
+import instruction
+import cstruct as ofp
 
 class flow_stats_pack(unittest.TestCase):
     def runTest(self):

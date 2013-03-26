@@ -17,6 +17,7 @@ instruction_object_map = {
     action.OFPIT_WRITE_ACTIONS       : instruction.instruction_write_actions,       
     action.OFPIT_APPLY_ACTIONS       : instruction.instruction_apply_actions,       
     action.OFPIT_CLEAR_ACTIONS       : instruction.instruction_clear_actions,       
+    action.OFPIT_METER		     : instruction.instruction_meter_table,
 }
 
 class instruction_list(ofp_base_list):
