@@ -806,9 +806,10 @@ class CentralEngine(_cptools.XMLRPCController):
     @cherrypy.expose
     def listPlugins(self, user):
 
-        p = PluginParser(user)
-        logDebug(p.getPlugins())
-        return True
+        parser = PluginParser(user)
+        pluginsList = parser.getPlugins()
+
+        return pluginsList.keys()
 
 
     @cherrypy.expose
