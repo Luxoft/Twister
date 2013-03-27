@@ -3,6 +3,7 @@ import logging
 import trace
 from xmlrpclib import ServerProxy
 import random
+import scapy
 
 import ce_libs.openflow.of_13.match as match
 import ce_libs.openflow.of_13.controller as controller
