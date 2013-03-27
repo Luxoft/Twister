@@ -112,6 +112,75 @@ class SimpleDataPlane(SimpleProtocol):
         # self.dataplane.show()
         # Would like an assert that checks the data plane
 
+class GroupTest(SimpleDataPlane):
+
+    def clear_switch(self):
+        testutils.delete_all_flows(self.controller, self.logger)
+        testutils.delete_all_groups(self.controller, self.logger)
+
+    def send_ctrl_exp_noerror(self, msg, log = 'basic_logger'):
+        self.logger.info('Sending message ' + log)
+        rv = self.controller.message_send(msg)
+        self.assertTrue(rv != -1, 'Error sending!')
+        self.logger.info('Waiting for error messages...')
+        (response, raw) = self.controller.poll(ofp.OFPT_ERROR, 1)
+        self.assertTrue(response is None, 'Unexpected error message received')
+
+        testutils.do_barrier(self.controller);
+
+
+
+    def send_ctrl_exp_error(self, msg, log = '', type = 0, code = 0):
+        self.logger.info('Sending message ' + log)
+        self.logger.debug(msg.show())
+        rv = self.controller.message_send(msg)
+        self.assertTrue(rv != -1, 'Error sending!')
+
+        self.logger.info('Waiting for error messages...')
+        (response, raw) = self.controller.poll(ofp.OFPT_ERROR, 1)
+
+        self.assertTrue(response is not None,
+                        'Did not receive an error message')
+
+        self.assertEqual(response.header.type, ofp.OFPT_ERROR,
+                         'Did not receive an error message')
+
+        if type != 0:
+            self.assertEqual(response.type, type,
+                             'Did not receive a ' + str(type) + ' type error message')
+
+        if code != 0:
+            self.assertEqual(response.code, code,
+                             'Did not receive a ' + str(code) + ' code error message')
+
+        testutils.do_barrier(self.controller);
+
+
+
+    def send_ctrl_exp_reply(self, msg, resp_type = ofp.OFPT_ERROR, log = '', local_xid=None):
+        self.logger.info('Sending message ' + log)
+        self.logger.debug(msg.show())
+        rv = self.controller.message_send(msg)
+        self.assertTrue(rv != -1, 'Error sending!')
+
+        self.logger.info('Waiting for error messages...')
+        (response, raw) = self.controller.poll(resp_type, 1, xid = local_xid)
+
+        self.assertTrue(response is not None, 'Did not receive expected message')
+
+        return response
+
+
+
+    def send_data(self, packet, in_port):
+        self.logger.debug("Send packet on port " + str(in_port))
+        self.dataplane.send(in_port, str(packet))
+
+
+    def recv_data(self, port, expected = None):
+        pkt = testutils.receive_pkt_verify(self, port, expected)
+        return pkt
+
 def main():
     tc_1=SimpleProtocol()
     tc_1.run()

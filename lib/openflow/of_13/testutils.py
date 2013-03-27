@@ -13,7 +13,7 @@ import action as action
 import parse as parse
 import instruction
 from packet import Packet
-
+import bucket
 
 try:
     logging.getLogger("scapy.runtime").setLevel(logging.ERROR)
@@ -36,6 +36,80 @@ TCP_PROTOCOL = 0x6
 UDP_PROTOCOL = 0x11
 ICMPV6_PROTOCOL = 0x3a
 MINSIZE = 0
+
+###########################################################################
+
+def create_group_desc_stats_req():
+    # XXX Zoltan: hack, remove if message module is fixed
+    m = message.group_desc_stats_request()
+    return m
+
+
+
+def create_group_stats_req(group_id = 0):
+    m = message.group_stats_request()
+    m.group_id = group_id
+    return m
+
+
+def create_group_mod_msg(command = ofp.OFPGC_ADD, type = ofp.OFPGT_ALL,
+               group_id = 0, buckets = []):
+    m = message.group_mod()
+    m.command = command
+    m.type = type
+    m.group_id = group_id
+    for b in buckets:
+        m.buckets.add(b)
+    return m
+
+
+def create_bucket(weight = 0, watch_port = 0, watch_group = 0, actions=[]):
+    b = bucket.bucket()
+    b.weight = weight
+    b.watch_port = watch_port
+    b.watch_group = watch_group
+    for a in actions:
+        b.actions.add(a)
+    return b
+
+def create_action(**kwargs):
+    a = kwargs.get('action')
+    if a == ofp.OFPAT_OUTPUT:
+        act = action.action_output()
+        act.port = kwargs.get('port', 1)
+        return act
+    if a == ofp.OFPAT_GROUP:
+        act = action.action_group()
+        act.group_id = kwargs.get('group_id', 0)
+        return act
+    if a == ofp.OFPAT_SET_FIELD:
+        port = kwargs.get('tcp_sport', 0)
+        field_2b_set = oxm_field.tcp_src(port)
+        act = action.action_set_field()
+        act.field = field_2b_set
+    return act;
+
+
+
+def create_flow_msg(packet = None, in_port = None, match = None, apply_action_list = []):
+
+    apply_inst = instruction.instruction_apply_actions()
+
+    if apply_action_list is not None:
+        for act in apply_action_list:
+            apply_inst.actions.add(act)
+    request = message.flow_mod()
+    request.match.type = ofp.OFPMT_OXM
+    if match is None:
+        match = parse.packet_to_flow_match(packet)
+    request.match_fields = match
+    if in_port != None:
+        match_port = oxm_field.in_port(in_port)
+        request.match_fields.tlvs.append(match_port)
+    request.buffer_id = 0xffffffff
+    request.priority = 1000
+    request.instructions.add(apply_inst)
+    return request
 
 ###########################################################################
 
