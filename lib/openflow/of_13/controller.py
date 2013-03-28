@@ -92,7 +92,7 @@ class Controller():
         #print replay.show()
         return (replay, pkt)
         
-    def poll(self,exp_msg,timeout=20):
+    def poll(self,exp_msg,timeout=20,xid=None):
         self.logger.debug("Poll request")
         raw_msg=self.agentProxy.poll(self.channel_id, exp_msg)        
         if(raw_msg==''):
@@ -110,6 +110,7 @@ class Controller():
             
         request=base64.b64encode(outpkt)
         self.agentProxy.message_send(self.channel_id, request)    
+        time.sleep(0.5)
         return 0    
         
     def of_message_parse(self,pkt):
