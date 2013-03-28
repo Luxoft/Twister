@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 # File: CentralEngine.py ; This file is part of Twister.
 
