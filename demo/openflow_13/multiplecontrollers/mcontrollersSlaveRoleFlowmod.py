@@ -67,8 +67,6 @@ class SlaveRoleFlowmod(SimpleProtocol):
         self.assertTrue(rv != -1, " Not able to sent flowmod request.")
         (response, pkt) = self.controller.poll(exp_msg=ofp.OFPT_ERROR,timeout=2)
         self.assertTrue(response is not None, 'Did not receive OFPT_ERROR')
-        logger.debug("Response from switch: ")
-        logger.debug(response.show())
         self.assertTrue(response.type == ofp.OFPET_BAD_REQUEST, 'Erorr is not OFPET_BAD_REQUEST')
         self.assertTrue(response.code == ofp.OFPBRC_IS_SLAVE, 'Error is not OFPBRC_IS_SLAVE')
 

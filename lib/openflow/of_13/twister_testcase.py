@@ -40,11 +40,13 @@ class TwisterTestCase():
         if not cond:
             self.logger.error("** FAILED ASSERTION: " + msg)
             self.result='FAIL'
-        
+            raise Exception("** FAILED ASSERTION: " + msg)
+
     def assertEqual(self, first, second, msg=None):
         if not first==second:
             self.logger.error("** FAILED ASSERTION: " + msg)
             self.result='FAIL'
+            raise Exception("** FAILED ASSERTION: " + msg)
     
     def run(self):
         self.init()

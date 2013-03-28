@@ -105,12 +105,13 @@ msg_type_to_class_map = {
     ofp.OFPT_GROUP_MOD                  : message.group_mod,
     ofp.OFPT_PORT_MOD                   : message.port_mod,
     ofp.OFPT_TABLE_MOD                  : message.table_mod,
-    ofp.OFPT_MULTIPART_REQUEST              : message.multipart_request,
-    ofp.OFPT_MULTIPART_REPLY                : message.multipart_reply,
+    ofp.OFPT_MULTIPART_REQUEST          : message.multipart_request,
+    ofp.OFPT_MULTIPART_REPLY            : message.multipart_reply,
     ofp.OFPT_BARRIER_REQUEST            : message.barrier_request,
     ofp.OFPT_BARRIER_REPLY              : message.barrier_reply,
     ofp.OFPT_QUEUE_GET_CONFIG_REQUEST   : message.queue_get_config_request,
     ofp.OFPT_QUEUE_GET_CONFIG_REPLY     : message.queue_get_config_reply,
+    ofp.OFPT_ROLE_REPLY                 : message.role_reply,
 }
 
 def _of_message_to_object(binary_string):
