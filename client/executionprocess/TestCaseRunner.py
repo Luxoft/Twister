@@ -80,7 +80,7 @@ def loadConfig():
         f.close() ; del f
         return CONFIG
     except:
-        print('TC error: cannot read config file `%s`! Exiting!' % cache_file)
+        print('TC error: cannot read config file `%s`! Exiting!' % EP_CACHE)
         exit(1)
 
 #
