@@ -250,7 +250,6 @@ class TelnetManager(object):
 
         return True
 
-#
 
 class TelnetConnection:
     """ tsc telnet connection """

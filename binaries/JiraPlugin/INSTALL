@@ -1,0 +1,26 @@
+
+-------------------------------------------
+|||| Jira PLugin Installation ||||
+-------------------------------------------
+
+
+Default:
+ - twister server side path: /opt/twister
+ - twister client side path: /home/user/twister
+
+
+	---- SERVER side ----
+
+1. sudo cp /path/to/JiraPlugin/Jira /opt/twister/plugins
+
+2. vim /path/to/twister/config/plugins.xml
+
+append config:
+
+<Plugin>
+	<name>JIRA</name>
+	<jarfile>Jira/JiraPlugin.jar</jarfile>
+	<pyfile>Jira/JiraPlugin.py</pyfile>
+	<status>enabled</status>
+</Plugin>
+

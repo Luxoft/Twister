@@ -1,0 +1,30 @@
+
+-------------------------------------------
+|||| Git PLugin Installation ||||
+-------------------------------------------
+
+
+Default:
+ - twister server side path: /opt/twister
+ - twister client side path: /home/user/twister
+
+
+	---- SERVER side ----
+
+1. sudo cp /path/to/GitPlugin/Git /opt/twister/plugins
+
+2. vim /path/to/twister/config/plugins.xml
+
+append config:
+
+<Plugin>
+	<name>GIT</name>
+	<jarfile>Git/GITPlugin.jar</jarfile>
+	<pyfile>Git/GITPlugin.py</pyfile>
+	<status>enabled</status>
+	<property>
+		<propname>path</propname>
+		<propvalue>/home/user/test</propvalue>
+	</property>
+</Plugin>
+
