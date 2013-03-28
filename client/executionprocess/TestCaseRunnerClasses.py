@@ -88,8 +88,8 @@ class TCRunTcl:
             # Restore all variables and functions
             self.tcl.evalfile(os.getcwd()+'/__recomposed.tcl')
 
-        self.tcl.eval('package require Tcl')
-        self.tcl.eval('package require Expect')
+        # self.tcl.eval('package require Tcl')
+        # self.tcl.eval('package require Expect')
 
     def __del__(self):
         #
