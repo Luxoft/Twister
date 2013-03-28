@@ -90,6 +90,10 @@ def prepareLog(log_file, pos=0):
     log = f.read().rstrip()
     f.close() ; del f
 
+    max_len = 100000
+    if len(log) > max_len:
+        log = '[... log size exceded ...]   ' + log[-max_len:]
+
     log = log.replace('<', '&lt;').replace('\n', '<br>\n').replace(' ', '&nbsp;')
 
     body = '''

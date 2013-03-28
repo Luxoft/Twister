@@ -931,7 +931,7 @@ class CentralEngine(_cptools.XMLRPCController):
         global TWISTER_PATH
         name = (TWISTER_PATH + '/lib/' + name).replace('//', '/')
         if not os.path.exists(name):
-            logError('CE ERROR! Library `{0}` does not exist!'.format(name))
+            logError('ERROR! Library `{0}` does not exist!'.format(name))
             return False
 
         # Python and Zip files

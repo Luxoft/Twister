@@ -512,10 +512,10 @@ class TSCParser:
         logs_path = self.project_globals['LogsPath']
 
         if not logs_path:
-            print('Parser: Logs path is not defiled! Please check framework config XML file!')
+            logError('Parser: Logs path is not defined! Please check framework config XML file!')
             return {}
         if not os.path.isdir(logs_path):
-            print('Parser: Invalid logs path `{0}`!'.format(logs_path))
+            logError('Parser: Invalid logs path `{0}`!'.format(logs_path))
             return ''
 
         logType = self._fixLogType(logType)
@@ -535,10 +535,10 @@ class TSCParser:
         eml_file = self.project_globals['EmailConfig']
 
         if not eml_file:
-            print('Parser: E-mail Config file is not defined! Please check framework config XML file!')
+            logError('Parser: E-mail Config file is not defined! Please check framework config XML file!')
             return {}
         if not os.path.isfile(eml_file):
-            print('Parser: E-mail Config file `%s` does not exist! Please check framework config XML file!' % eml_file)
+            logError('Parser: E-mail Config file `%s` does not exist! Please check framework config XML file!' % eml_file)
             return {}
 
         econfig = etree.parse(eml_file)
@@ -579,17 +579,27 @@ class TSCParser:
         Also returns the file list, with all file data.
         """
         if self.configTS is None:
-            print('Parser: Cannot parse Test Suite XML! Exiting!')
+            logError('Get Suites: Cannot parse Test Suite XML! Exiting!')
             return {}
 
         if epname not in self.epnames:
-            print('Parser: Station `%s` is not in the list of defined EPs: `%s`!' %
+            logError('Get Suites: Station `%s` is not in the list of defined EPs: `%s`!' %
                 (str(epname), str(self.epnames)) )
             return {}
 
         res = OrderedDict()
+        suites = []
 
-        for suite in [s for s in self.configTS.xpath('//TestSuite') if epname in s.xpath('EpId/text()')[0].split(';')]:
+        for suite in self.configTS.xpath('//TestSuite'):
+            # If the suite doesn't have EP, skip
+            if not suite.xpath('EpId/text()'):
+                continue
+            # If the EP is not in the EPs defined for current suite, skip
+            if not epname in suite.xpath('EpId/text()')[0].split(';'):
+                continue
+            suites.append(suite)
+
+        for suite in suites:
             suite_str = str(self.suite_no)
             res[suite_str] = self.getSuiteInfo(epname, suite)
             # Add the suite ID for all files in the suite
@@ -674,13 +684,13 @@ class TSCParser:
         Returns a list with ALL files defined for current suite, in order.
         """
         if self.configTS is None:
-            print('Parser: Fatal error! Cannot parse Test Suite XML!')
+            logError('Get Tests: Fatal error! Cannot parse Test Suite XML!')
             return []
 
         files = self.configTS.xpath('//tcName')
 
         if not files:
-            print('Parser: Current suite has no files!')
+            logError('Get Tests: Current suite has no files!')
 
         ids = range(1000, 1000 + len(files))
 
@@ -695,10 +705,10 @@ class TSCParser:
         globs_file = self.project_globals['GlobalParams']
 
         if not globs_file:
-            print('Parser: Globals Config file is not defined! Please check framework config XML file!')
+            logError('Get Globals: Globals Config file is not defined! Please check framework config XML file!')
             return {}
         if not os.path.isfile(globs_file):
-            print('Parser: Globals Config file `%s` does not exist! Please check framework config XML file!' % globs_file)
+            logError('Get Globals: Globals Config file `%s` does not exist! Please check framework config XML file!' % globs_file)
             return {}
 
         params_xml = etree.parse(globs_file)
