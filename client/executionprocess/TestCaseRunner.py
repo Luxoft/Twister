@@ -134,26 +134,36 @@ def saveLibraries(proxy, libs_list=''):
         __init.write('\nall += ["%s"]\n\n' % ('", "'.join([os.path.splitext(lib)[0] for lib in all_libs])))
 
     for lib_file in zip_libs:
+        lib_data = proxy.downloadLibrary(lib_file)
+        if not lib_data:
+            print('ZIP library `{0}` does not exist!'.format(lib_file))
+            continue
+
+        print('Downloading Zip library `{0}` ...'.format(lib_file))
+
         # Write ZIP imports.
         __init.write('\nsys.path.append(os.path.split(__file__)[0] + "/%s")\n\n' % lib_file)
         lib_pth = libs_path + os.sep + lib_file
 
-        print('Downloading Zip library `{0}` ...'.format(lib_pth))
         f = open(lib_pth, 'wb')
-        lib_data = proxy.downloadLibrary(lib_file)
         f.write(lib_data.data)
         f.close() ; del f
 
     for lib_file in all_libs:
+        lib_data = proxy.downloadLibrary(lib_file)
+        if not lib_data:
+            print('Library `{0}` does not exist!'.format(lib_file))
+            continue
+
+        print('Downloading library `{0}` ...'.format(lib_file))
+
         ext = os.path.splitext(lib_file)
         # Write normal imports.
         __init.write('import %s\n' % ext[0])
         __init.write('from %s import *\n\n' % ext[0])
         lib_pth = libs_path + os.sep + lib_file
 
-        print('Downloading library `{0}` ...'.format(lib_pth))
         f = open(lib_pth, 'wb')
-        lib_data = proxy.downloadLibrary(lib_file)
         f.write(lib_data.data)
         f.close() ; del f
 
