@@ -181,6 +181,44 @@ class GroupTest(SimpleDataPlane):
         pkt = testutils.receive_pkt_verify(self, port, expected)
         return pkt
 
+class MultipleController(SimpleProtocol):
+
+    def init(self):
+            
+        #signal.signal(signal.SIGINT, self.sig_handler)
+        self.logger.info("** START TEST CASE " + str(self))
+                    
+        self.controller = controller.Controller(ra_proxy=self.ra_proxy,testbed=self.testbed,controller_name='controller_1')
+        self.controller2 = controller.Controller(ra_proxy=self.ra_proxy,testbed=self.testbed,controller_name='controller_2')
+        self.controller3 = controller.Controller(ra_proxy=self.ra_proxy,testbed=self.testbed,controller_name='controller_3')
+	
+        self.port_map=self.getPortMap(self.ra_proxy,self.testbed,'switch')
+        print "port_map: "+str(self.port_map) 
+        
+        # clean_shutdown should be set to False to force quit app
+        self.clean_shutdown = True
+        self.controller.start()
+	self.controller2.start()
+	self.controller3.start()
+        #@todo Add an option to wait for a pkt transaction to ensure version
+        # compatibilty?
+        self.controller.connect(timeout=20)
+	self.controller2.connect(timeout=20)
+	self.controller3.connect(timeout=20)
+        if not self.controller.active:
+            print "Controller startup failed; exiting"
+            sys.exit(1)
+        self.logger.info("Connected " + str(self.controller.switch_addr))
+
+    def cleanUp(self):
+        self.logger.info("** END TEST CASE " + str(self))
+        self.controller.shutdown()
+	self.controller2.shutdown()
+	self.controller3.shutdown()
+        #@todo Review if join should be done on clean_shutdown
+        if self.clean_shutdown:
+            self.controller.join()
+
 def main():
     tc_1=SimpleProtocol()
     tc_1.run()
