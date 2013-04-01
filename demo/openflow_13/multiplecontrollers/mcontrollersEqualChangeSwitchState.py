@@ -98,5 +98,5 @@ class EqualChangeSwitchState(MultipleController):
         logMsg('logDebug',response.show())
 
     
-tc = EqualChangeSwitchState()
+tc = EqualChangeSwitchState(testbed=currentTB,ra_proxy=ra_service)
 _RESULT = tc.run()

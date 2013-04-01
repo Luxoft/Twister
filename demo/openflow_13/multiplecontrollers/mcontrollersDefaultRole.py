@@ -13,7 +13,7 @@ try:
 except:
     raise
 
-class DefaultRole(SimpleProtocol):
+class DefaultRole(MultipleController):
 
     """Check default role of the controller is equal"""
 
@@ -38,5 +38,5 @@ class DefaultRole(SimpleProtocol):
         self.assertTrue(response.role == ofp.OFPCR_ROLE_EQUAL, 'Role is not EQUAL')
 
     
-tc = DefaultRole()
+tc = DefaultRole(testbed=currentTB,ra_proxy=ra_service)
 _RESULT = tc.run()

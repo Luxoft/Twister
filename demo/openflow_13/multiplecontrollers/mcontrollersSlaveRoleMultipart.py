@@ -13,7 +13,7 @@ try:
 except:
     raise
 
-class SlaveRoleMultipart(SimpleProtocol):
+class SlaveRoleMultipart(MultipleController):
 
     """A slave controller should be able to send multipart request messages"""
 
@@ -62,5 +62,5 @@ class SlaveRoleMultipart(SimpleProtocol):
         self.assertTrue(response.type == ofp.OFPMP_TABLE, "Response is not OFPMP_TABLE")
 
     
-tc = SlaveRoleMultipart()
+tc = SlaveRoleMultipart(testbed=currentTB,ra_proxy=ra_service)
 _RESULT = tc.run()

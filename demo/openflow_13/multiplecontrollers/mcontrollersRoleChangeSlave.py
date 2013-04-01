@@ -13,7 +13,7 @@ try:
 except:
     raise
 
-class RoleChangeSlave(SimpleProtocol):
+class RoleChangeSlave(MultipleController):
 
     """Send request to change role to SLAVE, verify """
 
@@ -53,5 +53,5 @@ class RoleChangeSlave(SimpleProtocol):
         self.assertTrue(response.role == ofp.OFPCR_ROLE_SLAVE, 'Role is not SLAVE')
 
     
-tc = RoleChangeSlave()
+tc = RoleChangeSlave(testbed=currentTB,ra_proxy=ra_service)
 _RESULT = tc.run()

@@ -13,7 +13,7 @@ try:
 except:
     raise
 
-class BadGenerationID(SimpleProtocol):
+class BadGenerationID(MultipleController):
 
     """Send request to change role to MASTER but with bad generation id, switch should return error STALE """
 
@@ -56,5 +56,5 @@ class BadGenerationID(SimpleProtocol):
         self.assertTrue(response.code == ofp.OFPRRFC_STALE, 'Error is not OFPRRFC_STALE')
 
     
-tc = BadGenerationID()
+tc = BadGenerationID(testbed=currentTB,ra_proxy=ra_service)
 _RESULT = tc.run()

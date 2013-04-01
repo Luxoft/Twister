@@ -13,7 +13,7 @@ try:
 except:
     raise
 
-class RoleRequest(SimpleProtocol):
+class RoleRequest(MultipleController):
 
     """Check controller can send role_request messages"""
 
@@ -37,5 +37,5 @@ class RoleRequest(SimpleProtocol):
         logMsg('logDebug',response.show())
 
     
-tc = RoleRequest()
+tc = RoleRequest(testbed=currentTB,ra_proxy=ra_service)
 _RESULT = tc.run()

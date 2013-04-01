@@ -111,5 +111,5 @@ class MasterSlave(MultipleController):
         logMsg('logDebug',response.show())
         self.assertTrue(response.role == ofp.OFPCR_ROLE_SLAVE, 'Role is not SLAVE')
 	
-tc = MasterSlave()
+tc = MasterSlave(testbed=currentTB,ra_proxy=ra_service)
 _RESULT = tc.run()

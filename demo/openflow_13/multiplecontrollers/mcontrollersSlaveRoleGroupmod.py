@@ -13,7 +13,7 @@ try:
 except:
     raise
 
-class SlaveRoleGroupmod(SimpleProtocol):
+class SlaveRoleGroupmod(MultipleController):
 
     """A slave controller should not be able to send GroupMod messages"""
 
@@ -69,5 +69,5 @@ class SlaveRoleGroupmod(SimpleProtocol):
         self.assertTrue(response.code == ofp.OFPBRC_IS_SLAVE, 'Error is not OFPBRC_IS_SLAVE')
 
     
-tc = SlaveRoleGroupmod()
+tc = SlaveRoleGroupmod(testbed=currentTB,ra_proxy=ra_service)
 _RESULT = tc.run()

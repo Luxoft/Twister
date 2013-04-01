@@ -63,5 +63,5 @@ class MultipleConnections(MultipleController):
         logMsg('logDebug',"Response from switch: ")
         logMsg('logDebug',response.show())
 
-tc = MultipleConnections()
+tc = MultipleConnections(testbed=currentTB,ra_proxy=ra_service)
 _RESULT = tc.run()

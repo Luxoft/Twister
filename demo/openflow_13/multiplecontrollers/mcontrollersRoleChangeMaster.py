@@ -13,7 +13,7 @@ try:
 except:
     raise
 
-class RoleChangeMaster(SimpleProtocol):
+class RoleChangeMaster(MultipleController):
 
     """Send request to change role to MASTER, verify """
 
@@ -53,5 +53,5 @@ class RoleChangeMaster(SimpleProtocol):
         self.assertTrue(response.role == ofp.OFPCR_ROLE_MASTER, 'Role is not MASTER')
 
     
-tc = RoleChangeMaster()
+tc = RoleChangeMaster(testbed=currentTB,ra_proxy=ra_service)
 _RESULT = tc.run()

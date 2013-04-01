@@ -13,7 +13,7 @@ try:
 except:
     raise
 
-class MainAuxID(SimpleProtocol):
+class MainAuxID(MultipleController):
 
     """Check the main connection have aux_id = 0"""
 
@@ -35,5 +35,5 @@ class MainAuxID(SimpleProtocol):
         self.assertTrue(response.auxiliary_id == 0, "Connection aux_id is not 0")
 
     
-tc = MainAuxID()
+tc = MainAuxID(testbed=currentTB,ra_proxy=ra_service)
 _RESULT = tc.run()

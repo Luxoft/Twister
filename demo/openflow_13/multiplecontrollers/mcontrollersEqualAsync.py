@@ -82,5 +82,5 @@ class EqualAsync(MultipleController):
                                                timeout=5)
 	self.assertTrue(response3 is not None, 'Did not receive OFPT_FLOW_REMOVED async from switch')
 
-tc = EqualAsync()
+tc = EqualAsync(testbed=currentTB,ra_proxy=ra_service)
 _RESULT = tc.run()
