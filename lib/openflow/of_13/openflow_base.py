@@ -39,7 +39,7 @@ class SimpleProtocol(testcase.TwisterTestCase):
         
         testcase.TwisterTestCase.__init__(self)
         if(testbed==None):
-            self.testbed='openflow_testbed'
+            self.testbed='openflow_testbed_cpqd'
         else:
             self.testbed=testbed
        
@@ -60,7 +60,7 @@ class SimpleProtocol(testcase.TwisterTestCase):
         #signal.signal(signal.SIGINT, self.sig_handler)
         self.logger.info("** START TEST CASE " + str(self))
                     
-        self.controller = controller.Controller(ra_proxy=self.ra_proxy,testbed=self.testbed,controller_name='controller_1')        
+        self.controller = controller.Controller(ra_proxy=self.ra_proxy,testbed=self.testbed,controller_name='controller')        
         self.port_map=self.getPortMap(self.ra_proxy,self.testbed,'switch')
         print "port_map: "+str(self.port_map) 
         
