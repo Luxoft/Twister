@@ -2,7 +2,7 @@
 
 # File: ExecutionProcess.py ; This file is part of Twister.
 
-# Copyright (C) 2012 , Luxoft
+# Copyright (C) 2012-2013 , Luxoft
 
 # Authors:
 #    Adrian Toader <adtoader@luxoft.com>

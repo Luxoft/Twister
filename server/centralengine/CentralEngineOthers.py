@@ -173,7 +173,11 @@ class Project:
 
         # Calculate the Suites for each EP and the Files for each Suite
         for epname in epList:
-            self.users[user]['eps'][epname] = {}
+            self.users[user]['eps'][epname] = OrderedDict()
+            self.users[user]['eps'][epname]['suites'] = {}
+
+        # Populate active EPs
+        for epname in self.parsers[user].getActiveEps():
             self.users[user]['eps'][epname]['suites'] = self.parsers[user].getAllSuitesInfo(epname)
 
         # Ordered list of file IDs, used for Get Status ALL
@@ -253,10 +257,14 @@ class Project:
         self.parsers[user] = TSCParser(user, base_config, files_config)
 
         # Calculate the Suites for each EP and the Files for each Suite
-        for epname in self.users[user]['eps']:
+        for epname in self.parsers[user].epnames:
             # All EPs must have status STOP
+            self.users[user]['eps'][epname] = OrderedDict()
             self.users[user]['eps'][epname]['status'] = STATUS_STOP
-            self.users[user]['eps'][epname] = {}
+            self.users[user]['eps'][epname]['suites'] = {}
+
+        # Populate active EPs
+        for epname in self.parsers[user].getActiveEps():
             self.users[user]['eps'][epname]['suites'] = self.parsers[user].getAllSuitesInfo(epname)
 
         # Ordered list of file IDs, used for Get Status ALL
@@ -643,17 +651,19 @@ class Project:
                     for file_id in eps[epname]['suites'][suite_id]['files']:
                         s = eps[epname]['suites'][suite_id]['files'][file_id].get('status', -1)
                         statuses[file_id] = str(s)
+        # Default case, no EP and no Suite
         else:
             for epname in eps:
                 for suite_id in eps[epname]['suites']:
-                    for file_id in eps[epname]['suites'][suite_id]['files']:
-                        s = eps[epname]['suites'][suite_id]['files'][file_id].get('status', -1)
+                    for file_id, file_dict in eps[epname]['suites'][suite_id]['files'].items():
+                        s = file_dict.get('status', -1)
                         statuses[file_id] = str(s)
 
         for tcid in self.test_ids[user]:
             if tcid in statuses:
                 final.append(statuses[tcid])
 
+        logDebug('Aha!!! unordered {} ;; final {}'.format(statuses, final))
         return final
 
 

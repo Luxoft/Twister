@@ -558,9 +558,11 @@ if __name__=='__main__':
 
                 proxy.echo('TC error: Error executing file `%s`!' % filename)
 
-                proxySetTestStatus(file_id, STATUS_FAIL, 0.0)
+                proxySetTestStatus(file_id, STATUS_FAIL, (time.time() - timer_i))
                 # When crash detected = True
                 proxy.setFileVariable(userName, globEpName, suite_id, file_id, 'twister_tc_crash_detected', 1)
+                print('<<< END filename: `%s:%s` >>>\n' % (file_id, filename))
+                continue
 
             # END OF TEST!
             timer_f = time.time() - timer_i

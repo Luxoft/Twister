@@ -135,6 +135,8 @@ class ResourceAllocator(_cptools.XMLRPCController):
     def _load(self, v=False):
 
         with self.acc_lock:
+            if not self.resources['children']:
+                self.resources = {'name': '/', 'meta': {}, 'children': {}}
             try:
                 f = open(self.cfg_file, 'r')
                 self.resources = json.load(f)
