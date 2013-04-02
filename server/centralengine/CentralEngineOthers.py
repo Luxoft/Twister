@@ -171,14 +171,19 @@ class Project:
             logCritical('Project ERROR: Cannot load the list of EPs for user `%s` !' % user)
             return False
 
-        # Calculate the Suites for each EP and the Files for each Suite
+        # Generate the list of EPs in order
         for epname in epList:
             self.users[user]['eps'][epname] = OrderedDict()
             self.users[user]['eps'][epname]['suites'] = {}
 
-        # Populate active EPs
-        for epname in self.parsers[user].getActiveEps():
-            self.users[user]['eps'][epname]['suites'] = self.parsers[user].getAllSuitesInfo(epname)
+        # Information about ALL project suites
+        suitesInfo = self.parsers[user].getAllSuitesInfo()
+
+        for s_id, suite in suitesInfo.items():
+            epname = suite['ep']
+            if epname not in self.users[user]['eps']:
+                continue
+            self.users[user]['eps'][epname]['suites'][s_id] = suite
 
         # Ordered list of file IDs, used for Get Status ALL
         self.test_ids[user] = self.parsers[user].getAllTestFiles()
@@ -256,16 +261,27 @@ class Project:
             user, base_config, files_config))
         self.parsers[user] = TSCParser(user, base_config, files_config)
 
-        # Calculate the Suites for each EP and the Files for each Suite
-        for epname in self.parsers[user].epnames:
+        # List with all EPs for this User
+        epList = self.parsers[user].epnames
+        if not epList:
+            logCritical('Project ERROR: Cannot load the list of EPs for user `%s` !' % user)
+            return False
+
+        # Generate the list of EPs in order
+        for epname in epList:
             # All EPs must have status STOP
             self.users[user]['eps'][epname] = OrderedDict()
             self.users[user]['eps'][epname]['status'] = STATUS_STOP
             self.users[user]['eps'][epname]['suites'] = {}
 
-        # Populate active EPs
-        for epname in self.parsers[user].getActiveEps():
-            self.users[user]['eps'][epname]['suites'] = self.parsers[user].getAllSuitesInfo(epname)
+        # Information about ALL project suites
+        suitesInfo = self.parsers[user].getAllSuitesInfo()
+
+        for s_id, suite in suitesInfo.items():
+            epname = suite['ep']
+            if epname not in self.users[user]['eps']:
+                continue
+            self.users[user]['eps'][epname]['suites'][s_id] = suite
 
         # Ordered list of file IDs, used for Get Status ALL
         self.test_ids[user] = self.parsers[user].getAllTestFiles()
@@ -663,7 +679,6 @@ class Project:
             if tcid in statuses:
                 final.append(statuses[tcid])
 
-        logDebug('Aha!!! unordered {} ;; final {}'.format(statuses, final))
         return final
 
 

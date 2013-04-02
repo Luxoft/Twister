@@ -241,7 +241,7 @@ class TSCParser:
             activeEPs.append( str(epname) )
 
         activeEPs = (';'.join(activeEPs)).split(';')
-        activeEPs = sorted(list(set(activeEPs)))
+        activeEPs = list(set(activeEPs))
         activeEPs = [ep.strip() for ep in activeEPs if ep.strip()]
         return activeEPs
 
@@ -573,20 +573,16 @@ class TSCParser:
         return res
 
 
-    def getAllSuitesInfo(self, epname):
+    def getAllSuitesInfo(self):
         """
-        Returns a list with data for all suites of one EP.
-        Also returns the file list, with all file data.
+        Returns a list with data for all suites from current project.
+        Each suite contains the file list, with all file data.
         """
         if self.configTS is None:
             logError('Get Suites: Cannot parse Test Suite XML! Exiting!')
             return {}
 
-        if epname not in self.epnames:
-            logError('Get Suites: Station `%s` is not in the list of defined EPs: `%s`!' %
-                (str(epname), str(self.epnames)) )
-            return {}
-
+        # The suites must be in order
         res = OrderedDict()
         suites = []
 
@@ -594,14 +590,12 @@ class TSCParser:
             # If the suite doesn't have EP, skip
             if not suite.xpath('EpId/text()'):
                 continue
-            # If the EP is not in the EPs defined for current suite, skip
-            if not epname in suite.xpath('EpId/text()')[0].split(';'):
-                continue
             suites.append(suite)
 
         for suite in suites:
             suite_str = str(self.suite_no)
-            res[suite_str] = self.getSuiteInfo(epname, suite)
+            # Create suite ID automatically
+            res[suite_str] = self.getSuiteInfo(suite)
             # Add the suite ID for all files in the suite
             for file_id in res[suite_str]['files']:
                 res[suite_str]['files'][file_id]['suite'] = suite_str
@@ -610,13 +604,16 @@ class TSCParser:
         return res
 
 
-    def getSuiteInfo(self, epname, suite_soup):
+    def getSuiteInfo(self, suite_soup):
         """
         Returns a dict with information about 1 Suite from Test-Suites XML.
         The "suite" must be a XML Soup class.
         """
-        # A suite can be a part of more EPs
-        res = OrderedDict([ ('ep', epname) ])
+        # A suite can be a part of only 1 EP !
+        res = OrderedDict()
+
+        # The first parameter is the EP name
+        res['ep'] = suite_soup.xpath('EpId')[0].text
 
         # Parse all known Suites Tags
         for tag_dict in SUITES_TAGS:
