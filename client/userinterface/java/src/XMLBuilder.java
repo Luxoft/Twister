@@ -32,6 +32,7 @@ import java.io.File;
 import javax.xml.transform.stream.StreamResult;
 import javax.xml.transform.Result;
 import java.io.FileInputStream;
+import java.util.Iterator;
 
 public class XMLBuilder{
     private DocumentBuilderFactory documentBuilderFactory;
@@ -96,8 +97,6 @@ public class XMLBuilder{
         }
         em2.appendChild(document.createTextNode(sb.toString()));
         root.appendChild(em2);
-        
-        
         em2 = document.createElement("ScriptPost");
         em2.appendChild(document.createTextNode(postscript));
         root.appendChild(em2);
@@ -113,7 +112,48 @@ public class XMLBuilder{
         em2.appendChild(document.createTextNode(delay));
         root.appendChild(em2);
         
-        int nrsuite = suite.size();        
+        int nrsuite = suite.size();  
+        
+        
+        if(skip && nrsuite>0){
+             ArrayList <Item> temporary = new <Item> ArrayList();
+             String [] EPS;;
+             for(int i=0;i<nrsuite;i++){
+                 sb.setLength(0);
+                 
+                 Item current = suite.get(i);
+                 Node parent = Repository.window.mainpanel.p4.getTB().getParentNode();
+                 for(String s:current.getEpId()){
+                    Iterator iter = parent.getChildren().keySet().iterator();
+                    while(iter.hasNext()){
+                        Node child = parent.getChild(iter.next().toString());
+                        if(child!=null&&child.getName().equals(s)){
+                            for(String ep:child.getEPs().split(";")){
+                                Item item = current.clone();
+                                String []str = {ep,child.getName()};
+                                item.setEpId(str);
+                                temporary.add(item);
+                                
+//                                 sb.append(ep);
+//                                 sb.append(";"); 
+                            }
+                        }
+                    }
+                }
+//                 sb.deleteCharAt(sb.length()-1);
+//                 EPS = sb.toString().split(";");
+//                 for(String s:EPS){
+//                     Item item = current.clone();
+//                     String []str = {s};
+//                     item.setEpId(str);
+//                     temporary.add(item);
+//                 }
+             }
+             suite = temporary;
+             nrsuite = suite.size();
+        }
+
+
         for(int i=0;i<nrsuite;i++){
             int nrtc = suite.get(i).getSubItemsNr();
             boolean go = false;
@@ -142,15 +182,85 @@ public class XMLBuilder{
             em2 = document.createElement("tsName");
             em2.appendChild(document.createTextNode(suite.get(i).getName()));
             rootElement.appendChild(em2);
+            
+            em2 = document.createElement("PanicDetect");
+            em2.appendChild(document.createTextNode(suite.get(i).isPanicdetect()+""));
+            rootElement.appendChild(em2);
+            
             if(suite.get(i).getEpId()!=null&&suite.get(i).getEpId().length>0){
-                Element EP = document.createElement("EpId");
-                StringBuilder b = new StringBuilder();
-                for(String s:suite.get(i).getEpId()){
-                    b.append(s+";");
+//                 Element EP = document.createElement("EpId");
+//                 StringBuilder b = new StringBuilder();
+//                 for(String s:suite.get(i).getEpId()){
+//                     b.append(s+";");
+//                 }
+//                 b.deleteCharAt(b.length()-1);
+//                 EP.appendChild(document.createTextNode(b.toString()));
+//                 rootElement.appendChild(EP);
+                if(skip){
+                    Element EP = document.createElement("EpId");
+//                     StringBuilder b = new StringBuilder();
+//                     Node parent = Repository.window.mainpanel.p4.getTB().getParentNode();
+//                     for(String s:suite.get(i).getEpId()){
+//                         Iterator iter = parent.getChildren().keySet().iterator();
+//                         while(iter.hasNext()){
+//                             Node child = parent.getChild(iter.next().toString());
+//                             if(child!=null&&child.getName().equals(s)){
+//                                 b.append(child.getEPs());
+//                                 b.append(";");   
+//                             }
+//                         }
+//                     }
+//                     if(b.length()>0)b.deleteCharAt(b.length()-1);   
+                    EP.appendChild(document.createTextNode(suite.get(i).getEpId()[0]));
+                    
+                    rootElement.appendChild(EP);
+                    
+                    EP = document.createElement("TbName");
+                    EP.appendChild(document.createTextNode(suite.get(i).getEpId()[1]));
+                    rootElement.appendChild(EP);
+                } 
+                else {
+                    Element EP = document.createElement("TbName");
+                    StringBuilder b = new StringBuilder();
+                    for(String s:suite.get(i).getEpId()){
+                        b.append(s+";");
+                    }
+                    b.deleteCharAt(b.length()-1);
+                    EP.appendChild(document.createTextNode(b.toString()));
+                    rootElement.appendChild(EP);
                 }
-                b.deleteCharAt(b.length()-1);
-                EP.appendChild(document.createTextNode(b.toString()));
-                rootElement.appendChild(EP);}
+                
+//                 if(skip){
+//                     Element EP = document.createElement("EpId");
+//                     StringBuilder b = new StringBuilder();
+//                     Node parent = Repository.window.mainpanel.p4.getTB().getParentNode();
+//                     for(String s:suite.get(i).getEpId()){
+//                         Iterator iter = parent.getChildren().keySet().iterator();
+//                         while(iter.hasNext()){
+//                             Node child = parent.getChild(iter.next().toString());
+//                             if(child!=null&&child.getName().equals(s)){
+//                                 b.append(child.getEPs());
+//                                 b.append(";");   
+//                             }
+//                         }
+//                     }
+//                     if(b.length()>0)b.deleteCharAt(b.length()-1);   
+//                     EP.appendChild(document.createTextNode(b.toString()));
+//                     rootElement.appendChild(EP);
+//                     
+//                 }
+                
+                
+//                 Element EP = document.createElement("TbName");
+//                 StringBuilder b = new StringBuilder();
+//                 for(String s:suite.get(i).getEpId()){
+//                     b.append(s+";");
+//                 }
+//                 b.deleteCharAt(b.length()-1);
+//                 EP.appendChild(document.createTextNode(b.toString()));
+//                 rootElement.appendChild(EP);
+            
+            }
             for(int j=0;j<suite.get(i).getUserDefNr();j++){
                 Element userdef = document.createElement("UserDefined");
                 Element pname = document.createElement("propName");
@@ -376,21 +486,72 @@ public class XMLBuilder{
             em2.appendChild(document.createTextNode(item.getName()));
             rootElement2.appendChild(em2);
             if(item.getEpId()!=null&&!item.getEpId().equals("")){
-                Element EP = document.createElement("EpId");
-                StringBuilder b = new StringBuilder();
-                for(String s:item.getEpId()){
-                    b.append(s+";");
+                if(skip){
+                    
+                    
+//                     Node parent = Repository.window.mainpanel.p4.getTB().getParentNode();
+//                     for(String s:suite.get(i).getEpId()){
+//                         Iterator iter = parent.getChildren().keySet().iterator();
+//                         while(iter.hasNext()){
+//                             Node child = parent.getChild(iter.next().toString());
+//                             if(child!=null&&child.getName().equals(s)){
+//                                 b.append(child.getEPs());
+//                                 b.append(";");   
+//                             }
+//                         }
+//                     }
+//                     b.deleteCharAt(b.length()-1);                   
+//                     EP.appendChild(document.createTextNode(b.toString()));
+//                     rootElement.appendChild(EP);
+                    
+                    
+                    
+//                     Node parent = Repository.window.mainpanel.p4.getTB().getParentNode();
+                    Element EP = document.createElement("EpId");
+//                     StringBuilder b = new StringBuilder();
+//                     for(String s:item.getEpId()){
+//                         Iterator iter = parent.getChildren().keySet().iterator();
+//                         while(iter.hasNext()){
+//                             Node child = parent.getChild(iter.next().toString());
+//                             if(child!=null&&child.getName().equals(s)){
+//                                 b.append(child.getEPs());
+//                                 b.append(";");
+//                             }
+//                         }
+//                     }
+//                     
+//                     
+//                     
+//                     
+//                     if(b.length()>0)b.deleteCharAt(b.length()-1);  
+//                     EP.appendChild(document.createTextNode(b.toString()));
+//                     rootElement2.appendChild(EP);
+                    
+                    EP.appendChild(document.createTextNode(item.getEpId()[0]));
+                    rootElement2.appendChild(EP);
+                    
+                    EP = document.createElement("TbName");
+                    EP.appendChild(document.createTextNode(item.getEpId()[1]));
+                    rootElement2.appendChild(EP);
+                    
+                    
+                    
+                    
+                } else {
+                    Element EP = document.createElement("TbName");
+                    StringBuilder b = new StringBuilder();
+                    for(String s:item.getEpId()){
+                        b.append(s+";");
+                    }
+                    b.deleteCharAt(b.length()-1);                   
+                    EP.appendChild(document.createTextNode(b.toString()));
+                    rootElement2.appendChild(EP);
                 }
-                b.deleteCharAt(b.length()-1);   
-//                 for(String s:item.getEpId()){
-//                     b.append(s);
-//                     break;
-//                 }
                 
-                EP.appendChild(document.createTextNode(b.toString()));
                 
-//                 EP.appendChild(document.createTextNode(item.getEpId()));
-                rootElement2.appendChild(EP);
+                
+                
+                
             
                 //temporary solution for CE
                 if(skip){
@@ -460,16 +621,24 @@ public class XMLBuilder{
                         for (int i=0; i<path.length-1; i++){
                             result2.append(path[i]);
                             result2.append("/");}}
-                    Repository.c.cd(result2.toString());
+                            
+//                     Repository.c.cd(result2.toString());
                     FileInputStream in = new FileInputStream(file);
-                    System.out.println("TEST: "+Repository.c.pwd()+"file.getName(): "+file.getName());
-                    Repository.c.put(in, file.getName());
-                    in.close();}
+//                     Repository.c.put(in, file.getName());
+//                     in.close();
+                    
+                    Repository.uploadRemoteFile(result2.toString(), in, file.getName());
+                
+                }
                 else{
-                    Repository.c.cd(Repository.getRemoteUsersDirectory());
+//                     Repository.c.cd(Repository.getRemoteUsersDirectory());
                     FileInputStream in = new FileInputStream(file);
-                    Repository.c.put(in, file.getName());
-                    in.close();}}
+//                     Repository.c.put(in, file.getName());
+//                     in.close();
+                    
+                    Repository.uploadRemoteFile(Repository.getRemoteUsersDirectory(), in, file.getName());
+                
+                }}
             catch(Exception e){e.printStackTrace();
                 System.out.println("Could not get XML file to upload on sever");
                 return false;}}

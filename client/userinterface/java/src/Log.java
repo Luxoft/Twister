@@ -46,7 +46,7 @@ import javax.swing.BorderFactory;
 import java.io.FileInputStream;
 import java.io.FileWriter;
 import javax.swing.JFileChooser;
-import sun.misc.BASE64Decoder;
+import javax.xml.bind.DatatypeConverter;
 import javax.swing.text.DefaultCaret;
 
 public class Log extends JPanel{
@@ -119,20 +119,23 @@ public class Log extends JPanel{
     public void updateLog(){
         String result;
         while(Repository.run){
-            try{Thread.sleep(1500);
-                if(response==length){
-                    result = Repository.getRPCClient().execute("getLogFile",
-                                                                new Object[]{Repository.getUser(),
-                                                                                "0","0",log}).toString();
-                    response = Long.parseLong(result);}
-                if(response>length){
-                    result = Repository.getRPCClient().execute("getLogFile",
-                                                                new Object[]{Repository.getUser(),
-                                                                                "1",length+"",log})+"";
-                    readText(result);
-                    length = response;}
-                else if(response<length){
-                    clearScreen();}}
+            try{Thread.sleep(500);
+                if(container.isShowing()){
+                    if(response==length){
+                        result = Repository.getRPCClient().execute("getLogFile",
+                                                                    new Object[]{Repository.getUser(),
+                                                                                    "0","0",log}).toString();
+                        response = Long.parseLong(result);}
+                    if(response>length){
+                        result = Repository.getRPCClient().execute("getLogFile",
+                                                                    new Object[]{Repository.getUser(),
+                                                                                    "1",length+"",log})+"";
+                        readText(result);
+                        length = response;}
+                    else if(response<length){
+                        clearScreen();}
+                }
+            }
             catch (Exception e){
                 e.printStackTrace();
                 clearScreen();
@@ -250,11 +253,16 @@ public class Log extends JPanel{
      * decode string and append to Log screen
      */
     public void readText(String content){
-        BASE64Decoder base64 = new BASE64Decoder();
+        
         byte mydata[]=null;
-        try{mydata = base64.decodeBuffer(content);}
+        try{mydata = DatatypeConverter.parseBase64Binary(content);}
         catch(Exception e){e.printStackTrace();}
         textarea.append(new String(mydata));
+        
+//         byte mydata[]=null;
+//         try{mydata = base64.decodeBuffer(content);}
+//         catch(Exception e){e.printStackTrace();}
+//         textarea.append(new String(mydata));
         scroll.getHorizontalScrollBar().setValue(0);}}
         
 class MyHighlightPainter extends DefaultHighlighter.DefaultHighlightPainter {          

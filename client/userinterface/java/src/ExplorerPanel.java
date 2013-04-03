@@ -115,6 +115,11 @@ import java.awt.event.ItemListener;
 import java.awt.event.ItemEvent;
 import com.twister.Item;
 import com.twister.CustomDialog;
+import com.jcraft.jsch.JSch;
+import com.jcraft.jsch.Session;
+import com.jcraft.jsch.Channel;
+import com.jcraft.jsch.ChannelSftp;
+import java.util.Properties;
 
 public class ExplorerPanel extends JPanel {
 
@@ -125,26 +130,33 @@ public class ExplorerPanel extends JPanel {
     private TreePath[] selected;
     private DefaultMutableTreeNode child2;
     private JEditTextArea textarea;
+    public static ChannelSftp connection;
 
+//     public ExplorerPanel(int x, int y, TreeDropTargetListener tdtl,
+//             boolean applet, ChannelSftp c) {
     public ExplorerPanel(int x, int y, TreeDropTargetListener tdtl,
-            boolean applet, ChannelSftp c) {
+            boolean applet) {
         Repository.intro.setStatus("Started Explorer interface initialization");
         Repository.intro.addPercent(0.035);
         Repository.intro.repaint();
+        initializeSftp();
+        
         root = new DefaultMutableTreeNode("root", true);
         DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
         try {
-            Repository.c.cd(Repository.getTestSuitePath());
+            //Repository.c.cd(Repository.USERHOME+"/twister/config/");
+            connection.cd(Repository.getTestSuitePath());
+            Repository.intro.setStatus("Started retrieving tc directories");
+            Repository.intro.addPercent(0.035);
+            Repository.intro.repaint();
+            getList(root, connection);
+            Repository.intro.setStatus("Finished retrieving tc directories");
+            Repository.intro.addPercent(0.035);
+            Repository.intro.repaint();
         } catch (Exception e) {
             e.printStackTrace();
         }
-        Repository.intro.setStatus("Started retrieving tc directories");
-        Repository.intro.addPercent(0.035);
-        Repository.intro.repaint();
-        getList(root, Repository.c);
-        Repository.intro.setStatus("Finished retrieving tc directories");
-        Repository.intro.addPercent(0.035);
-        Repository.intro.repaint();
+        
         tree = new JTree(root);
         tree.expandRow(1);
         tree.addMouseListener(new MouseAdapter() {
@@ -638,7 +650,7 @@ public class ExplorerPanel extends JPanel {
         InputStream in = null;
         System.out.print("Getting " + filename + " ....");
         try {
-            in = Repository.c.get(filename);
+            in = connection.get(filename);
         } catch (Exception e) {
             System.out.println("Could not get :" + filename);
             e.printStackTrace();
@@ -670,7 +682,7 @@ public class ExplorerPanel extends JPanel {
     public static void sendFileToServer(File localfile, String remotefile) {
         try {
             FileInputStream in = new FileInputStream(localfile);
-            Repository.c.put(in, remotefile);
+            connection.put(in, remotefile);
             in.close();
         } catch (Exception e) {
             e.printStackTrace();
@@ -681,10 +693,13 @@ public class ExplorerPanel extends JPanel {
     }
 
     public void refreshStructure() {
-        root.remove(0);
+        try{root.remove(0);}
+        catch(Exception e){e.printStackTrace();}
         try {
-            Repository.c.cd(Repository.getTestSuitePath());
-            getList(root, Repository.c);
+            System.out.println("getTestSuitePath: "+Repository.getTestSuitePath());
+            connection.cd(Repository.getTestSuitePath());
+            //Repository.c.cd(Repository.USERHOME+"/twister/config/");
+            getList(root, connection);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -766,6 +781,23 @@ public class ExplorerPanel extends JPanel {
                 }
             }
         } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+    
+    private void initializeSftp(){
+        try{
+            JSch jsch = new JSch();
+            Session session = jsch.getSession(Repository.user, Repository.host, 22);
+            session.setPassword(Repository.password);
+            Properties config = new Properties();
+            config.put("StrictHostKeyChecking", "no");
+            session.setConfig(config);
+            session.connect();
+            Channel channel = session.openChannel("sftp");
+            channel.connect();
+            connection = (ChannelSftp)channel;
+        } catch (Exception e){
             e.printStackTrace();
         }
     }

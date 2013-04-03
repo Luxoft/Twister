@@ -90,7 +90,7 @@ public class TCDetails extends JPanel{
     }
 
     public void setLogs(){
-        Repository.window.mainpanel.p2.tabbed.removeAll();
+        Repository.window.mainpanel.getP2().tabbed.removeAll();
             try{
                 Repository.emptyTestRepository();
                 File xml = new File(Repository.getTestXMLDirectory());    
@@ -100,27 +100,27 @@ public class TCDetails extends JPanel{
                 while(g==null){
                     try{Thread.sleep(100);
                         g = Repository.window.mainpanel.p1.sc.g.getGraphics();
-                        if(g==null)g = Repository.window.mainpanel.p2.sc.g.getGraphics();
+                        if(g==null)g = Repository.window.mainpanel.getP2().sc.g.getGraphics();
                     } catch (Exception e){
                         e.printStackTrace();
                     }
                         
                 }
                 new XMLReader(xml).parseXML(g, true);
-                Repository.window.mainpanel.p2.updateTabs();
+                Repository.window.mainpanel.getP2().updateTabs();
             }
             catch(Exception e){
                 e.printStackTrace();
             }
         remove(p1);
         remove(p2);
-        add(Repository.window.mainpanel.p2.tabbed,BorderLayout.CENTER);
+        add(Repository.window.mainpanel.getP2().tabbed,BorderLayout.CENTER);
         revalidate();
         repaint();
     }
     
     public void setTCDetails(){
-        remove(Repository.window.mainpanel.p2.tabbed);
+        remove(Repository.window.mainpanel.getP2().tabbed);
         add(p1,BorderLayout.NORTH);
         add(p2,BorderLayout.CENTER);
         revalidate();

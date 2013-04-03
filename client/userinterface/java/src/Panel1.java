@@ -66,6 +66,9 @@ import javax.swing.SwingUtilities;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import com.twister.CustomDialog;
+import java.util.HashMap;
+import java.util.Set;
+import java.util.Iterator;
 
 /*
  * Suites generation panel
@@ -132,7 +135,7 @@ public class Panel1 extends JPanel{
             public void actionPerformed(ActionEvent ev){
                 sc.g.addSuiteFromButton();}});
         suitemenu.add(item);
-        item = new JMenuItem("Set Ep");
+        item = new JMenuItem("Set TB");
         suitemenu.add(item);
         item.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
@@ -164,7 +167,7 @@ public class Panel1 extends JPanel{
             public void menuSelected(MenuEvent ev){
                 enableSuiteMenu(suitemenu);}});
         final JMenu tcmenu = new JMenu("TestCase");
-        tcmenu.setBounds(100,0,65,20);
+        tcmenu.setBounds(100,0,75,20);
         menu.add(tcmenu);
         item = new JMenuItem("Set Parameters");
         tcmenu.add(item);
@@ -226,7 +229,6 @@ public class Panel1 extends JPanel{
         JMenuItem changeuser = new JMenuItem("Open project file");
         changeuser.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
-//                 openSuiteFile();
                 Repository.openProjectFile();
             }});
         filemenu.add(changeuser);
@@ -261,7 +263,8 @@ public class Panel1 extends JPanel{
         add(menu);
         tdtl = new TreeDropTargetListener(applet);        
         sc = new ScrollGrafic(10, 32, tdtl, user, applet);
-        ep = new ExplorerPanel(470, 32, tdtl, applet, Repository.c);
+        ep = new ExplorerPanel(470, 32, tdtl, applet);
+        //ep = new ExplorerPanel(470, 32, tdtl, applet, Repository.c);
         setLayout(null);    
         splitPane2 = new JSplitPane(JSplitPane.VERTICAL_SPLIT,
                                                 new JScrollPane(ep.tree),
@@ -572,10 +575,20 @@ public class Panel1 extends JPanel{
                     
     public void edit(){
         splitPane3.setLeftComponent(sc.pane);
+        try{
+            SwingUtilities.invokeLater(new Runnable(){
+                public void run() {
+                    splitPane3.setDividerLocation(Repository.getLayouts().
+                                                 get("mainh1splitlocation").getAsInt());
+                }
+            });
+        } catch(Exception e){
+            splitPane3.setDividerLocation(0.5);
+        }   
         remove(edit);
-        remove(Repository.window.mainpanel.p2.play);
-        remove(Repository.window.mainpanel.p2.stop);        
-        remove(Repository.window.mainpanel.p2.cestatus); 
+        remove(Repository.window.mainpanel.getP2().play);
+        remove(Repository.window.mainpanel.getP2().stop);        
+        remove(Repository.window.mainpanel.getP2().cestatus); 
         add(openedfile);
         add(remove);
         add(generate);
@@ -586,26 +599,34 @@ public class Panel1 extends JPanel{
         String user = "last_edited.xml";
         Repository.emptySuites();
         if(Repository.window.mainpanel.p1.sc.g.getUser()==null&&
-          Repository.window.mainpanel.p1.sc.g.getUser().equals("")){
+           Repository.window.mainpanel.p1.sc.g.getUser().equals("")){
               Repository.window.mainpanel.p1.sc.g.setUser(Repository.getUsersDirectory()+
                                                             Repository.getBar()+user);
         }
         
         
         try{
-            InputStream in = Repository.c.get(Repository.getRemoteUsersDirectory()+"/"+user);
-            InputStreamReader inputStreamReader = new InputStreamReader(in);
-            BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
+            
+            
             File file = new File(Repository.temp+Repository.getBar()+"Twister"+Repository.getBar()+"Users"+Repository.getBar()+user);
             BufferedWriter writer = new BufferedWriter(new FileWriter(file));
-            String line;
-            while ((line=bufferedReader.readLine())!= null){
-                writer.write(line);
-                writer.newLine();}
-            bufferedReader.close();
+            String content = Repository.getRemoteFileContent(Repository.getRemoteUsersDirectory()+"/"+user);
+            writer.write(content);
             writer.close();
-            inputStreamReader.close();
-            in.close();
+//             
+//             InputStream in = Repository.c.get(Repository.getRemoteUsersDirectory()+"/"+user);
+//             InputStreamReader inputStreamReader = new InputStreamReader(in);
+//             BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
+//             File file = new File(Repository.temp+Repository.getBar()+"Twister"+Repository.getBar()+"Users"+Repository.getBar()+user);
+//             BufferedWriter writer = new BufferedWriter(new FileWriter(file));
+//             String line;
+//             while ((line=bufferedReader.readLine())!= null){
+//                 writer.write(line);
+//                 writer.newLine();}
+//             bufferedReader.close();
+//             writer.close();
+//             inputStreamReader.close();
+//             in.close();
         } catch (Exception e){
             e.printStackTrace();
         }
@@ -617,14 +638,13 @@ public class Panel1 extends JPanel{
         Repository.window.mainpanel.p1.suitaDetails.setGlobalDetails();
         Repository.window.mainpanel.p1.sc.g.repaint();
         repaint();
-    }
-    
+    }    
        
     /*
      * generate master suites XML
      */
     private void generate(){
-        Repository.window.mainpanel.p2.setSaveDB(suitaDetails.saveDB());
+        Repository.window.mainpanel.getP2().setSaveDB(suitaDetails.saveDB());
 //         String result="";//server status
 //         try{result = (String)Repository.getRPCClient().execute("getExecStatusAll",new Object[]{Repository.getUser()});}
 //         catch(Exception e){
@@ -645,53 +665,73 @@ public class Panel1 extends JPanel{
                                             " for: "+Repository.getSuita(i).getName());
                     execute = false;
                     break;}}
-//             if(!execute)break;
-        }       
-        if(execute){
-//             System.out.println("savedb: "+suitaDetails.saveDB());
-                String [] s = sc.g.getUser().split("\\\\");
-                if(s.length>0){
-                    s[s.length-1] = "last_edited.xml";
-                    StringBuilder st = new StringBuilder();
-                    for(String i:s){
-                        st.append(i);
-                        st.append("\\");
+        }
+        
+        Node parent = Repository.window.mainpanel.p4.getTB().getParentNode();
+        boolean found ;
+        for(Item i:Repository.getSuite()){
+            for(String tb:i.getEpId()){
+                Iterator iter = parent.getChildren().keySet().iterator();
+                found = false;
+                while(iter.hasNext()){
+                    Node child = parent.getChild(iter.next().toString());
+                    if(child!=null&&child.getName().equals(tb)){
+                        if(child.getEPs()==null){
+                            break;
+                        }
+                        if(!child.getEPs().equals("")){
+                            found = true;
+                        }
+                        break;
                     }
-                    st.deleteCharAt(st.length()-1);
-                    String user = st.toString();
-                    if(sc.g.printXML(user, false,false,
-                                     suitaDetails.stopOnFail(),
-                                     suitaDetails.saveDB(),
-                                     suitaDetails.getDelay()
-                                     )){}
-    //                     CustomDialog.showInfo(JOptionPane.PLAIN_MESSAGE, 
-    //                                             Repository.window, "Succes",
-    //                                             "File successfully saved");
-                    else CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, 
-                                                Repository.window, "Warning", 
-                                                "Warning, temp file not saved");                    
+                    if(found)break;
                 }
-                sc.g.printXML(Repository.getTestXMLDirectory(),true,false,
-                              suitaDetails.stopOnFail(),suitaDetails.saveDB(),
-                              suitaDetails.getDelay());
-                Repository.emptyTestRepository();
-                File xml = new File(Repository.getTestXMLDirectory());
-                int size = Repository.getLogs().size();
-                for(int i=5;i<size;i++){Repository.getLogs().remove(5);}
-                new XMLReader(xml).parseXML(sc.g.getGraphics(), true);
-                
-//              Repository.window.mainpanel.p2.updateTabs();
-                
-//                 CustomDialog.showInfo(JOptionPane.PLAIN_MESSAGE, Repository.window,
-//                                         "Info", "File successfully generated ");
-                setRunning();
-                
-
+                if(!found){
+                    CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, Repository.window,
+                                        "Warning","Please set EP for TB: "+ tb);
+                    execute = false;
+                    break;
+                }
+            }
+        }
+        
+        
+        
+        
+        if(execute){
+            String [] s = sc.g.getUser().split("\\\\");
+            if(s.length>0){
+                s[s.length-1] = "last_edited.xml";
+                StringBuilder st = new StringBuilder();
+                for(String i:s){
+                    st.append(i);
+                    st.append("\\");
+                }
+                st.deleteCharAt(st.length()-1);
+                String user = st.toString();
+                if(sc.g.printXML(user, false,false,
+                                 suitaDetails.stopOnFail(),
+                                 suitaDetails.saveDB(),
+                                 suitaDetails.getDelay()
+                                 )){}
+                else CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, 
+                                            Repository.window, "Warning", 
+                                            "Warning, temp file not saved");                    
+            }
+            sc.g.printXML(Repository.getTestXMLDirectory(),true,false,
+                          suitaDetails.stopOnFail(),suitaDetails.saveDB(),
+                          suitaDetails.getDelay());
+            Repository.emptyTestRepository();
+            File xml = new File(Repository.getTestXMLDirectory());
+            int size = Repository.getLogs().size();
+            for(int i=5;i<size;i++){Repository.getLogs().remove(5);}
+            new XMLReader(xml).parseXML(sc.g.getGraphics(), true);
+            setRunning();
         }
     }
     
     public void setRunning(){
-        splitPane3.setLeftComponent(Repository.window.mainpanel.p2.sc.pane);
+        splitPane3.setLeftComponent(Repository.window.mainpanel.getP2().sc.pane);
         try{
             SwingUtilities.invokeLater(new Runnable(){
                 public void run() {
@@ -708,10 +748,10 @@ public class Panel1 extends JPanel{
         remove(showoptionals);
         remove(addsuite);
         add(edit);
-        add(Repository.window.mainpanel.p2.play);
-        add(Repository.window.mainpanel.p2.stop);        
-        add(Repository.window.mainpanel.p2.cestatus);
-        Repository.window.mainpanel.p2.play.doClick();
+        add(Repository.window.mainpanel.getP2().play);
+        add(Repository.window.mainpanel.getP2().stop);        
+        add(Repository.window.mainpanel.getP2().cestatus);
+        Repository.window.mainpanel.getP2().play.doClick();
         suitaDetails.setEnabled(false);
         tcdetails.logs.doClick();
         repaint();
@@ -730,12 +770,17 @@ public class Panel1 extends JPanel{
         if(r == JOptionPane.OK_OPTION){
             Repository.emptySuites();
             try{new File(sc.g.getUser()).delete();
-                try{Repository.c.cd(Repository.getRemoteUsersDirectory());
-                    Repository.c.rm(new File(sc.g.getUser()).getName());}
-                catch(Exception e){
+                if(!Repository.removeRemoteFile(Repository.getRemoteUsersDirectory()+(new File(sc.g.getUser()).getName()))){
                     System.out.println("Could not delete "+new File(sc.g.getUser()).getName()+
                                         " from "+Repository.getRemoteUsersDirectory());
-                    e.printStackTrace();}}
+                }
+//                 try{Repository.c.cd(Repository.getRemoteUsersDirectory());
+//                     Repository.c.rm(new File(sc.g.getUser()).getName());}
+//                 catch(Exception e){
+//                     System.out.println("Could not delete "+new File(sc.g.getUser()).getName()+
+//                                         " from "+Repository.getRemoteUsersDirectory());
+//                     e.printStackTrace();}
+            }
             catch(Exception e){e.printStackTrace();}
             File usersdirectory = new File(Repository.getUsersDirectory());
             String users[] = new String[usersdirectory.list().length + 1];
@@ -854,7 +899,16 @@ public class Panel1 extends JPanel{
             sc.g.printXML(sc.g.getUser(),false,false,false,false,"");
             sc.g.updateScroll();
             sc.g.repaint();
-            Repository.emptySuites();}}
+            Repository.window.mainpanel.p1.suitaDetails.setPreScript("");
+            Repository.window.mainpanel.p1.suitaDetails.setPostScript("");
+            Repository.window.mainpanel.p1.suitaDetails.setGlobalLibs(null);
+            Repository.window.mainpanel.p1.suitaDetails.setDelay("");
+            Repository.window.mainpanel.p1.suitaDetails.setStopOnFail(false);
+            Repository.window.mainpanel.p1.suitaDetails.setSaveDB(false);
+            Repository.emptySuites();
+        
+        
+        }}
     
     /*
      * open existing suite file
@@ -887,19 +941,42 @@ public class Panel1 extends JPanel{
             /*
              * get EP's from EP's file
              */
-            File f = new File(Repository.temp+System.getProperty("file.separator")+
-                            "Twister"+System.getProperty("file.separator")+"EpID.txt");
-            String line = null;  
-            InputStream in = Repository.c.get(Repository.REMOTEEPIDDIR);
-            InputStreamReader inputStreamReader = new InputStreamReader(in);
-            BufferedReader bufferedReader = new BufferedReader(inputStreamReader);  
-            StringBuffer b=new StringBuffer("");
-            while ((line=bufferedReader.readLine())!= null){b.append(line+";");}                        
-            bufferedReader.close();
-            inputStreamReader.close();
-            in.close();
-            String result = b.toString();
-            String  [] vecresult = result.split(";");//EP's list
+            
+//             File f = new File(Repository.temp+System.getProperty("file.separator")+
+//                             "Twister"+System.getProperty("file.separator")+"EpID.txt");
+//             String line = null;  
+//             InputStream in = Repository.c.get(Repository.REMOTEEPIDDIR);
+//             InputStreamReader inputStreamReader = new InputStreamReader(in);
+//             BufferedReader bufferedReader = new BufferedReader(inputStreamReader);  
+//             StringBuffer b=new StringBuffer("");
+//             while ((line=bufferedReader.readLine())!= null){b.append(line+";");}                        
+//             bufferedReader.close();
+//             inputStreamReader.close();
+//             in.close();
+//             String result = b.toString();
+//             String  [] vecresult = result.split(";");//EP's list
+
+
+                StringBuilder b = new StringBuilder();
+                Node parentnode = Repository.window.mainpanel.p4.getTB().getParentNode();
+                HashMap children =  parentnode.getChildren();
+                if(children!=null&&children.size()!=0){
+                    Set keys = children.keySet();
+                    Iterator iter = keys.iterator();
+                    while(iter.hasNext()){
+                        String n = iter.next().toString();
+                        String name = parentnode.getChild(n).getName();
+                        b.append(name);
+                        b.append(";");
+                    }
+                }
+                String [] vecresult = b.toString().split(";");   
+
+
+
+                //String  [] vecresult = Repository.getRemoteFileContent(Repository.REMOTEEPIDDIR).split("\n");
+            
+            
 //             try{JComboBox combo = new JComboBox(vecresult);
 //                 int resp = (Integer)CustomDialog.showDialog(combo,JOptionPane.INFORMATION_MESSAGE,
 //                                                             JOptionPane.OK_CANCEL_OPTION,sc.g,
@@ -925,13 +1002,14 @@ public class Panel1 extends JPanel{
                 
                 int resp = (Integer)CustomDialog.showDialog(new JScrollPane(combo),JOptionPane.INFORMATION_MESSAGE,
                                                             JOptionPane.OK_CANCEL_OPTION,sc.g,
-                                                            "Please select EP to run on",null);
+                                                            "Please select TB to run on",null);
                 if(resp==JOptionPane.OK_OPTION){
                     String [] selected = new String[combo.getSelectedValuesList().size()];
                     for(int i=0;i<combo.getSelectedValuesList().size();i++){
                         selected[i] = combo.getSelectedValuesList().get(i).toString();
                     }
                     theone.setEpId(selected);
+                    suitaDetails.combo.setSelectedIndices(combo.getSelectedIndices());
                     repaint();}}
             catch(Exception e){e.printStackTrace();}}
         catch(Exception e){e.printStackTrace();}}

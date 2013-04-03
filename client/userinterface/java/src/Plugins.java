@@ -73,6 +73,7 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.OutputKeys;
 import java.io.FileInputStream;
+import com.twister.Item;
 
 /*
  * plugins panel displayed
@@ -518,8 +519,8 @@ public class Plugins extends JPanel{
         description.setEditable(false);
         description.setLineWrap(true);
         description.setTabSize(4);
-        if(tdescription.length()<250)description.setText(tdescription);
-        else description.setText(tdescription.substring(0, 250));
+        if(tdescription.length()<80)description.setText(tdescription);
+        else description.setText(tdescription.substring(0, 80)+" ...");
         description.setWrapStyleWord(true);
         description.setAutoscrolls(false);
         description.setMinimumSize(new Dimension(10, 10));
@@ -599,8 +600,14 @@ public class Plugins extends JPanel{
         if(check.isSelected()){
             new Thread(){
                 public void run(){
-                    plugin.init(Repository.getSuite(),
-                        Repository.getTestSuite(),
+                    ArrayList<Item> suites = null; 
+                    ArrayList<Item> tests = null;
+                    try{suites = Repository.getSuite();}
+                    catch(Exception e){e.printStackTrace();}
+                    try{tests =  Repository.getTestSuite();}
+                    catch(Exception e){e.printStackTrace();}
+                    plugin.init(suites,
+                        tests,
                         Repository.getVariables(),
                         Repository.getPluginsConfig());
                     main.addTab(plugin.getName(), plugin.getContent());

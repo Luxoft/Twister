@@ -1,3 +1,22 @@
+
+/*
+File: TB.java ; This file is part of Twister.
+
+Copyright (C) 2012 , Luxoft
+
+Authors: Andrei Costachi <acostachi@luxoft.com>
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 import javax.swing.JPanel;
 import java.awt.Color;
 import java.util.HashMap;
@@ -35,17 +54,40 @@ public class TB extends JPanel{
     private JTree tree;
     private DefaultMutableTreeNode root;
     private NodePanel optpan;
+    private JButton add, remove;
 
     public TB(){
         initializeRPC();
         initPanel();
-        parent = new Node("1","/","parent",null);
+        //parent = new Node("1","/","parent",null,null);
         parent = getTB("/",null);
         buildTree(parent,root);
         ((DefaultTreeModel)tree.getModel()).reload();
     }
 
     public void initPanel(){
+        JPanel buttonPanel = new JPanel();
+        buttonPanel.setLayout(null);
+        
+        add = new JButton("Add TB");
+        add.setBounds(0,5,155,20);
+        buttonPanel.add(add);
+        add.addActionListener(new ActionListener(){
+            public void actionPerformed(ActionEvent ev){
+                addComp();
+            }
+        });
+        
+        remove = new JButton("Remove");
+        remove.setBounds(160,5,100,20);
+        remove.setEnabled(false);
+        buttonPanel.add(remove);
+        remove.addActionListener(new ActionListener(){
+            public void actionPerformed(ActionEvent ev){
+                removeComp();
+            }
+        });
+        
         root = new DefaultMutableTreeNode("root", true);
         tree = new JTree(root);
         tree.setCellRenderer(new CustomIconRenderer());
@@ -53,86 +95,20 @@ public class TB extends JPanel{
         tree.setDragEnabled(false);
         tree.setRootVisible(false);
         tree.getSelectionModel().setSelectionMode(TreeSelectionModel.SINGLE_TREE_SELECTION);
-        
-        
         JScrollPane jScrollPane1 = new JScrollPane();
-        //tree = new javax.swing.JTree();
-//         JPanel optpan = new javax.swing.JPanel();
-//         JLabel name = new javax.swing.JLabel();
-//         JLabel id = new javax.swing.JLabel();
-//         JLabel path = new javax.swing.JLabel();
-//         JTextField tname = new javax.swing.JTextField();
-//         JTextField tid = new javax.swing.JTextField();
-//         JTextField tpath = new javax.swing.JTextField();
-//         JPanel jPanel1 = new javax.swing.JPanel();
-//         JScrollPane jScrollPane2 = new javax.swing.JScrollPane();
-//         JPanel proppanel = new javax.swing.JPanel();
-//         JLabel jLabel1 = new javax.swing.JLabel();
-//         JTextField jTextField1 = new javax.swing.JTextField();
-//         JLabel jLabel2 = new javax.swing.JLabel();
-//         JTextField jTextField2 = new javax.swing.JTextField();
-//         JButton jButton1 = new javax.swing.JButton();
-
         tree.setBorder(BorderFactory.createBevelBorder(BevelBorder.LOWERED));
         jScrollPane1.setViewportView(tree);
-        
-        //optpan.setBorder(javax.swing.BorderFactory.createBevelBorder(javax.swing.border.BevelBorder.RAISED));
-
-//         name.setText("Name: ");
-// 
-//         id.setText("ID: ");
-// 
-//         path.setText("Path:");
-// 
-//         jPanel1.setBorder(javax.swing.BorderFactory.createTitledBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(0, 0, 0)), "Properties"));
-// 
-//         jScrollPane2.setBorder(null);
-//         jScrollPane2.setPreferredSize(new java.awt.Dimension(300, 150));
-// 
-//         proppanel.setPreferredSize(new java.awt.Dimension(280, 150));
-//         proppanel.setLayout(null);
-// 
-//         jLabel1.setText("Name");
-//         proppanel.add(jLabel1);
-//         jLabel1.setBounds(10, 14, 27, 14);
-//         proppanel.add(jTextField1);
-//         jTextField1.setBounds(41, 11, 95, 20);
-// 
-//         jLabel2.setText("Value:");
-//         proppanel.add(jLabel2);
-//         jLabel2.setBounds(146, 14, 30, 14);
-//         proppanel.add(jTextField2);
-//         jTextField2.setBounds(180, 11, 100, 20);
-// 
-//         jButton1.setText("Add");
-//         proppanel.add(jButton1);
-//         jButton1.setBounds(229, 37, 51, 23);
-// 
-//         jScrollPane2.setViewportView(proppanel);
-// 
-//         javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
-//         jPanel1.setLayout(jPanel1Layout);
-//         jPanel1Layout.setHorizontalGroup(
-//             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-//             .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 0, Short.MAX_VALUE)
-//         );
-//         jPanel1Layout.setVerticalGroup(
-//             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-//             .addComponent(jScrollPane2, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-//         );
-
-        
-
-
-        javax.swing.GroupLayout layout = new GroupLayout(this);
+        GroupLayout layout = new GroupLayout(this);
         this.setLayout(layout);
         layout.setHorizontalGroup(
             layout.createParallelGroup(GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
                 .addContainerGap()
-                .addComponent(jScrollPane1, GroupLayout.DEFAULT_SIZE, 240, Short.MAX_VALUE)
+                .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+                    .addComponent(jScrollPane1, GroupLayout.DEFAULT_SIZE, 351, Short.MAX_VALUE)
+                    .addComponent(buttonPanel, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
                 .addGap(18, 18, 18)
-                .addComponent(optpan, GroupLayout.PREFERRED_SIZE, 390, GroupLayout.PREFERRED_SIZE)
+                .addComponent(optpan, GroupLayout.PREFERRED_SIZE, 450, GroupLayout.PREFERRED_SIZE)
                 .addContainerGap())
         );
         layout.setVerticalGroup(
@@ -141,55 +117,13 @@ public class TB extends JPanel{
                 .addContainerGap()
                 .addGroup(layout.createParallelGroup(GroupLayout.Alignment.TRAILING)
                     .addComponent(optpan, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(jScrollPane1, GroupLayout.DEFAULT_SIZE, 444, Short.MAX_VALUE))
+                    .addGroup(layout.createSequentialGroup()
+                        .addComponent(jScrollPane1)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(buttonPanel, GroupLayout.PREFERRED_SIZE, 47, GroupLayout.PREFERRED_SIZE)))
                 .addContainerGap())
         );       
         
-        
-        
-        
-        
-//         JScrollPane jScrollPane1 = new JScrollPane();
-//         JPanel jPanel1 = new JPanel();
-// 
-//         tree.setBorder(BorderFactory.createBevelBorder(BevelBorder.LOWERED));
-//         jScrollPane1.setViewportView(tree);
-// 
-//         jPanel1.setBorder(BorderFactory.createBevelBorder(BevelBorder.RAISED));
-// 
-//         GroupLayout jPanel1Layout = new GroupLayout(jPanel1);
-//         jPanel1.setLayout(jPanel1Layout);
-//         jPanel1Layout.setHorizontalGroup(
-//             jPanel1Layout.createParallelGroup(GroupLayout.Alignment.LEADING)
-//             .addGap(0, 350, Short.MAX_VALUE)
-//         );
-//         jPanel1Layout.setVerticalGroup(
-//             jPanel1Layout.createParallelGroup(GroupLayout.Alignment.LEADING)
-//             .addGap(0, 0, Short.MAX_VALUE)
-//         );
-// 
-//         GroupLayout layout = new GroupLayout(this);
-//         this.setLayout(layout);
-//         layout.setHorizontalGroup(
-//             layout.createParallelGroup(GroupLayout.Alignment.LEADING)
-//             .addGroup(layout.createSequentialGroup()
-//                 .addContainerGap()
-//                 .addComponent(jScrollPane1, GroupLayout.DEFAULT_SIZE, 396, Short.MAX_VALUE)
-//                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-//                 .addComponent(jPanel1, GroupLayout.PREFERRED_SIZE, 
-//                                 GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-//                 .addContainerGap())
-//         );
-//         layout.setVerticalGroup(
-//             layout.createParallelGroup(GroupLayout.Alignment.LEADING)
-//             .addGroup(GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-//                 .addContainerGap()
-//                 .addGroup(layout.createParallelGroup(GroupLayout.Alignment.TRAILING)
-//                     .addComponent(jPanel1, GroupLayout.DEFAULT_SIZE,
-//                                   GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-//                     .addComponent(jScrollPane1, GroupLayout.DEFAULT_SIZE, 442, Short.MAX_VALUE))
-//                 .addContainerGap())
-//         );
         tree.addKeyListener(new KeyAdapter(){
             public void keyReleased(KeyEvent ev){
                 if(ev.getKeyCode()==KeyEvent.VK_DELETE){
@@ -198,6 +132,8 @@ public class TB extends JPanel{
                         DefaultMutableTreeNode treenode = (DefaultMutableTreeNode)tp.getLastPathComponent();
                         Node node = (Node)treenode.getUserObject();
                         removeNode(node,treenode);
+                        add.setText("Add TB");
+                        remove.setEnabled(false);
                     }
                 }
             }
@@ -212,16 +148,28 @@ public class TB extends JPanel{
                             DefaultMutableTreeNode treenode = (DefaultMutableTreeNode)tp.getLastPathComponent();
                             Node node = (Node)treenode.getUserObject();
                             showNodePopUp(treenode,ev,node);
+                            add.setText("Add Component");
+                            remove.setEnabled(true);
                         }
                     } else{
                         if(((DefaultMutableTreeNode)tp.getLastPathComponent()).getUserObject() instanceof Node){
                             DefaultMutableTreeNode treenode = (DefaultMutableTreeNode)tp.getLastPathComponent();
                             Node node = (Node)treenode.getUserObject();
                             optpan.setParent(node,treenode);
+                            add.setText("Add Component");
+                            remove.setEnabled(true);
+                            add.setEnabled(true);
+                        } else {
+                            optpan.setParent(null,null);
+                            add.setEnabled(false);
+                            remove.setEnabled(false);
                         }
                     }
                 } else {
+                    add.setText("Add TB");
+                    remove.setEnabled(false);
                     tree.setSelectionPath(null);
+                    optpan.setParent(null,null);
                     if(ev.getButton() == MouseEvent.BUTTON3){
                         addRootNodePopUp(ev);
                     } 
@@ -230,22 +178,56 @@ public class TB extends JPanel{
     
     public JTree getTree(){
         return tree;
+    }   
+    
+    public void removeComp(){
+        TreePath tp = tree.getSelectionPath();
+        DefaultMutableTreeNode treenode = (DefaultMutableTreeNode)tp.getLastPathComponent();
+        Node node = (Node)treenode.getUserObject();
+        removeNode(node,treenode);
     }
     
+    public void addComp(){
+        if(add.getText().equals("Add TB")){
+            addTestBed();
+        } else {
+            TreePath tp = tree.getSelectionPath();
+            DefaultMutableTreeNode treenode = (DefaultMutableTreeNode)tp.getLastPathComponent();
+            Node node = (Node)treenode.getUserObject();
+            appendNode(treenode,node);
+        }
+    }
     
     public void addRootNodePopUp(MouseEvent ev){
         JPopupMenu p = new JPopupMenu();
         JMenuItem item = new JMenuItem("Add TestBed");
         item.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
-                String resp = CustomDialog.showInputDialog(JOptionPane.PLAIN_MESSAGE,
+                addTestBed();
+            }});
+        p.add(item);
+        p.show(this.tree,ev.getX(),ev.getY());
+    }
+    
+    public void addTestBed(){
+        String resp = CustomDialog.showInputDialog(JOptionPane.PLAIN_MESSAGE,
                                                     JOptionPane.OK_CANCEL_OPTION, 
                                                     TB.this, "Name", "TestBed name: ");
-                if(resp!=null&&!resp.equals("")){
-                    try{
-                        //String id, String path, String name
-                        Node newnode = new Node(null,resp,resp,parent);
-                        resp = client.execute("setResource", new Object[]{resp,"/",null}).toString();
+        if(resp!=null&&!resp.equals("")){
+            boolean goon=true;
+            for(String s:parent.getChildren().keySet()){
+                if(resp.equals(parent.getChildren().get(s).getName())){
+                    goon = false;
+                    break;
+                }
+            }
+            if(goon){
+                try{
+                    //String id, String path, String name
+                    Node newnode = new Node(null,resp,resp,parent,null);
+                    resp = client.execute("setResource", new Object[]{resp,"/",null}).toString();
+                    if(resp.indexOf("ERROR")==-1){
+                        parent.addChild(resp, newnode);
                         newnode.setID(resp);
                         DefaultMutableTreeNode treechild = new DefaultMutableTreeNode(newnode);
                         DefaultMutableTreeNode root = (DefaultMutableTreeNode)((DefaultTreeModel)tree.getModel()).getRoot();
@@ -254,19 +236,24 @@ public class TB extends JPanel{
                         DefaultMutableTreeNode temp = new DefaultMutableTreeNode("ID: "+newnode.getID());
                         ((DefaultTreeModel)tree.getModel()).insertNodeInto(temp, treechild,treechild.getChildCount());
                         
-                        
-                        DefaultMutableTreeNode temp2 = new DefaultMutableTreeNode("Path: "+newnode.getPath());
+                        DefaultMutableTreeNode temp2 = new DefaultMutableTreeNode(newnode.getPath());
                         ((DefaultTreeModel)tree.getModel()).insertNodeInto(temp2, treechild,treechild.getChildCount());
                         
-                        
-                        //((DefaultTreeModel)tree.getModel()).reload();
-                    } catch (Exception e){
-                        e.printStackTrace();
+                        if(root.getChildCount()==1){
+                            ((DefaultTreeModel)tree.getModel()).reload();
+                        }
+                    } else {
+                        CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,Repository.window,"Warning", resp);
                     }
-                }            
-            }});
-        p.add(item);
-        p.show(this.tree,ev.getX(),ev.getY());
+                    //((DefaultTreeModel)tree.getModel()).reload();
+                } catch (Exception e){
+                    e.printStackTrace();
+                }
+            } else {
+                CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,Repository.window,"Warning", 
+                                        "There is a TB with the same name, please use another name.");
+            }
+        }    
     }
     
     /*
@@ -275,7 +262,7 @@ public class TB extends JPanel{
      */
     public void showNodePopUp(final DefaultMutableTreeNode treenode,MouseEvent ev,final Node node){
         JPopupMenu p = new JPopupMenu();
-        JMenuItem item = new JMenuItem("Add component");
+        JMenuItem item = new JMenuItem("Add Component");
         item.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 appendNode(treenode,node);}});
@@ -297,25 +284,36 @@ public class TB extends JPanel{
                                                     JOptionPane.OK_CANCEL_OPTION, 
                                                     this, "Name", "Component name: ");
         if(resp!=null&&!resp.equals("")){
-            try{
-                //String id, String path, String name
-                Node newnode = new Node(null,parent.getPath()+"/"+resp,resp,parent);
-                resp = client.execute("setResource", new Object[]{resp,parent.getID(),null}).toString();
-                newnode.setID(resp);
-                DefaultMutableTreeNode treechild = new DefaultMutableTreeNode(newnode);
-                ((DefaultTreeModel)tree.getModel()).insertNodeInto(treechild, treenode,treenode.getChildCount());
-                
-                DefaultMutableTreeNode temp = new DefaultMutableTreeNode("ID: "+newnode.getID());
-                ((DefaultTreeModel)tree.getModel()).insertNodeInto(temp, treechild,treechild.getChildCount());
-                
-                
-                DefaultMutableTreeNode temp2 = new DefaultMutableTreeNode("Path: "+newnode.getPath());
-                ((DefaultTreeModel)tree.getModel()).insertNodeInto(temp2, treechild,treechild.getChildCount());
-                
-                
-                //((DefaultTreeModel)tree.getModel()).reload();
-            } catch (Exception e){
-                e.printStackTrace();
+            boolean goon=true;
+            for(String s:parent.getChildren().keySet()){
+                if(resp.equals(parent.getChildren().get(s).getName())){
+                    goon = false;
+                    break;
+                }
+            }
+            if(goon){
+                try{
+                    Node newnode = new Node(null,parent.getPath().getPath()+"/"+resp,resp,parent,null);
+                    resp = client.execute("setResource", new Object[]{resp,parent.getID(),null}).toString();
+                    if(resp.indexOf("ERROR")==-1){
+                        newnode.setID(resp);
+                        DefaultMutableTreeNode treechild = new DefaultMutableTreeNode(newnode);
+                        ((DefaultTreeModel)tree.getModel()).insertNodeInto(treechild, treenode,treenode.getChildCount());
+                        
+                        DefaultMutableTreeNode temp = new DefaultMutableTreeNode("ID: "+newnode.getID());
+                        ((DefaultTreeModel)tree.getModel()).insertNodeInto(temp, treechild,treechild.getChildCount());
+                        
+                        DefaultMutableTreeNode temp2 = new DefaultMutableTreeNode(newnode.getPath());
+                        ((DefaultTreeModel)tree.getModel()).insertNodeInto(temp2, treechild,treechild.getChildCount());
+                    } else {
+                        CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,Repository.window,"Warning", resp);
+                    }                
+                } catch (Exception e){
+                    e.printStackTrace();
+                }
+            } else {
+                CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,Repository.window,"Warning", 
+                                    "There is a component with the same name, please use another name.");
             }
         }
     }
@@ -325,10 +323,11 @@ public class TB extends JPanel{
      */
     public void removeNode(Node node,DefaultMutableTreeNode treenode){
         try{String s = client.execute("deleteResource", new Object[]{node.getID()}).toString();
-            System.out.println("removing "+node.getID()+" "+s);
             if(s.equals("true")){
                 Node parent = node.getParent();
-                if(parent!=null)parent.removeChild(node.getID());
+                if(parent!=null){
+                    parent.removeChild(node.getID());
+                }
                 ((DefaultTreeModel)tree.getModel()).removeNodeFromParent(treenode);
                 optpan.setParent(null,null);
             }
@@ -361,18 +360,13 @@ public class TB extends JPanel{
                 String childid = iter.next().toString();
                 
                 Node child = getTB(childid,node);
-                
                 node.addChild(childid, child);
                 DefaultMutableTreeNode treechild = new DefaultMutableTreeNode(child);
                 ((DefaultTreeModel)tree.getModel()).insertNodeInto(treechild, treenode,treenode.getChildCount());
-                
                 DefaultMutableTreeNode temp = new DefaultMutableTreeNode("ID: "+child.getID());
                 ((DefaultTreeModel)tree.getModel()).insertNodeInto(temp, treechild,treechild.getChildCount());
-                
-                
-                DefaultMutableTreeNode temp2 = new DefaultMutableTreeNode("Path: "+child.getPath());
+                DefaultMutableTreeNode temp2 = new DefaultMutableTreeNode(child.getPath());
                 ((DefaultTreeModel)tree.getModel()).insertNodeInto(temp2, treechild,treechild.getChildCount());
-                
                 buildTree(child,treechild);
             }
         } catch(Exception e){
@@ -381,7 +375,7 @@ public class TB extends JPanel{
     }
 
     /*
-     * create a node based om am id
+     * create a node based om an id
      * the node is created from the data 
      * received from server
      */
@@ -389,7 +383,7 @@ public class TB extends JPanel{
         try{HashMap hash= (HashMap)client.execute("getResource", new Object[]{id});
             String path = hash.get("path").toString();
             String name = path.split("/")[path.split("/").length-1];
-            Node node = new Node(id,path,name,parent);
+            Node node = new Node(id,path,name,parent,null);
             Object[] children = (Object[])hash.get("children");
             for(Object o:children){
                 node.addChild(o.toString(), null);
@@ -400,6 +394,10 @@ public class TB extends JPanel{
                 Iterator iter = keys.iterator();
                 while(iter.hasNext()){
                     String n = iter.next().toString();
+                    if(n.equals("epnames")){
+                        node.setEPs(meta.get(n).toString());
+                        continue;
+                    }
                     node.addProperty(n, meta.get(n).toString());
                 }
             }
@@ -408,6 +406,12 @@ public class TB extends JPanel{
             e.printStackTrace();
             return null;
         }
+    }
+    
+    
+    //get the parent Node
+    public Node getParentNode(){
+        return parent;
     }
 
     /*

@@ -73,13 +73,13 @@ public class Emails extends JPanel{
         p1.setLayout(null);    
         p1.setBounds(80,5,350,68);
         JLabel ipname = new JLabel("IP/Name: ");
-        ipname.setBounds(60,18,60,20);
+        ipname.setBounds(40,18,80,20);
         p1.add(ipname);
         tipname = new JTextField();
         tipname.setBounds(125,17,150,25);
         p1.add(tipname);
         JLabel port = new JLabel("Port: ");
-        port.setBounds(60,40,60,20);
+        port.setBounds(40,40,80,20);
         p1.add(port);
         tport = new JTextField();
         tport.setBounds(125,40,150,25);
@@ -94,19 +94,19 @@ public class Emails extends JPanel{
         p2.setLayout(null);    
         p2.setBounds(80,73,350,93);
         JLabel user = new JLabel("User: ");
-        user.setBounds(60,18,60,20);
+        user.setBounds(40,18,80,20);
         p2.add(user);
         tuser = new JTextField();
         tuser.setBounds(125,17,150,25);
         p2.add(tuser);
         JLabel pass = new JLabel("Password: ");
-        pass.setBounds(60,40,80,20);
+        pass.setBounds(40,40,100,20);
         p2.add(pass);
         tpass = new JPasswordField();
         tpass.setBounds(125,40,150,25);
         p2.add(tpass);
         JLabel from = new JLabel("From: ");
-        from.setBounds(60,65,60,20);
+        from.setBounds(40,65,80,20);
         p2.add(from);
         tfrom = new JTextField();
         tfrom.setBounds(125,65,150,25);
@@ -216,14 +216,20 @@ public class Emails extends JPanel{
                         transformer.setOutputProperty(OutputKeys.INDENT, "yes");
                         transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "4");                        
                         transformer.transform(source, result);  
-                        try{Repository.c.cd(Repository.REMOTEEMAILCONFIGPATH);}
-                        catch(Exception e){
-                            System.out.println("could not get "+Repository.REMOTEEMAILCONFIGPATH);
-                            e.printStackTrace();
-                            saved = false;}
                         FileInputStream input = new FileInputStream(theone);
-                        Repository.c.put(input, theone.getName());
-                        input.close();}
+                        
+                        
+//                         try{Repository.c.cd(Repository.REMOTEEMAILCONFIGPATH);}
+//                         catch(Exception e){
+//                             System.out.println("could not get "+Repository.REMOTEEMAILCONFIGPATH);
+//                             e.printStackTrace();
+//                             saved = false;}
+//                         FileInputStream input = new FileInputStream(theone);
+//                         Repository.c.put(input, theone.getName());
+//                         input.close();
+                        Repository.uploadRemoteFile(Repository.REMOTEEMAILCONFIGPATH,input,theone.getName());
+                    
+                    }
                     catch(Exception e){
                         e.printStackTrace();
                         System.out.println("Could not save in file : "+Repository.temp+Repository.getBar()+"Twister"+Repository.getBar()+"Config"+Repository.getBar()+Repository.REMOTEEMAILCONFIGFILE+" and send to "+Repository.REMOTEEMAILCONFIGPATH);
