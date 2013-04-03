@@ -1,0 +1,26 @@
+
+---------------------------------------------
+|||| Service Console PLugin Installation ||||
+---------------------------------------------
+
+
+Default:
+ - twister server side path: /opt/twister
+ - twister client side path: /home/user/twister
+
+
+	---- SERVER side ----
+
+1. sudo cp /path/to/ServiceConsolePlugin/ServiceConsole/* /opt/twister/plugins
+
+2. vim /path/to/twister/config/plugins.xml
+
+append config:
+
+<Plugin>
+	<name>ServiceConsole</name>
+	<jarfile>ServiceConsole.jar</jarfile>
+	<pyfile>ServiceConsole.py</pyfile>
+	<status>disabled</status>
+</Plugin>
+

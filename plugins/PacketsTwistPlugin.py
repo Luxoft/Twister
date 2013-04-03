@@ -48,6 +48,9 @@ class Plugin(BasePlugin):
     """
 
     def __init__(self, user, data):
+        if not data:
+            return None
+
         BasePlugin.__init__(self, user, data)
 
         # history list length, packets buffer size, query buffer size
