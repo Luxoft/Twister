@@ -1,20 +1,50 @@
+
+/*
+File: Node.java ; This file is part of Twister.
+
+Copyright (C) 2012 , Luxoft
+
+Authors: Andrei Costachi <acostachi@luxoft.com>
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 import java.util.ArrayList;
 import java.util.HashMap;
 
 public class Node{
-    private String id,path,name;
+    private String id,name;
+    private Path path;
     private HashMap<String,Node> children = new HashMap<String,Node>();
     private HashMap<String,String> properties = new HashMap<String,String>();
     private Node parent;
+    private String eps;
 
-    public Node(String id, String path, String name, Node parent){
+    public Node(String id, String path, String name, Node parent,String eps){
+        this.eps = eps;
         this.parent = parent;
         this.id = id;
-        this.path = path;
+        this.path = new Path(path);
         this.name=name;
     }
     
-    public HashMap getChildren(){
+    public String getEPs(){
+        return eps;
+    }
+    
+    public void setEPs(String eps){
+        this.eps = eps;
+    }
+    
+    public HashMap<String,Node> getChildren(){
         return children;
     }
     
@@ -26,7 +56,7 @@ public class Node{
         return id;
     }
     
-    public String getPath(){
+    public Path getPath(){
         return path;
     }
     
@@ -46,7 +76,7 @@ public class Node{
     }
     
     public void setPath(String path){
-        this.path=path;
+        this.path.setPath(path);
     }
     
     public void setName(String name){

@@ -28,7 +28,6 @@ import javax.swing.border.TitledBorder;
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
 import java.awt.Dimension;
-import javax.swing.GroupLayout;
 import java.util.ArrayList;
 import java.awt.FontMetrics;
 import java.awt.Font;
@@ -61,25 +60,33 @@ import java.util.Arrays;
 import java.awt.Container;
 import com.twister.MySftpBrowser;
 import com.twister.CustomDialog;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Set;
+import javax.swing.GroupLayout;
+import javax.swing.SwingConstants;
+import javax.swing.Box;
 
 public class SuitaDetails extends JPanel {
     private JPanel defsContainer,global, suiteoptions, tcoptions, summary;
     private JScrollPane scroll;
     private ArrayList <DefPanel> definitions = new ArrayList <DefPanel>();
     private TitledBorder border;    
-    private JCheckBox stoponfail, runnable, optional, prerequisites, savedb;
+    private JCheckBox stoponfail, runnable, optional, prerequisites,
+                      savedb, panicdetect;
     private JTextField tprescript, tpostscript;
     private JButton browse1,browse2,suitelib;
     private Item parent;
     private JTextField tsuite,ttcname,ttcdelay;
-    private JList combo;
+    public JList combo;
     private JLabel ep, tcdelay;
     private JLabel stats [] = new JLabel[10];
     private String [] globallib;
+    private PropPanel prop;
+    private ParamPanel param;
     
     
     public void setEnabled(boolean enabled) {
-        //super.setEnabled(enabled);
         for (Component component : definitions)
             component.setEnabled(enabled);
         for (Component component : defsContainer.getComponents())
@@ -138,9 +145,11 @@ public class SuitaDetails extends JPanel {
         suiteoptions.setBackground(Color.WHITE);
         JLabel suite = new JLabel("Suite name: ");
         tsuite = new JTextField();
-        ep = new JLabel("Run on EP:");
+        ep = new JLabel("Run on TB:");
         combo = new JList();
         suitelib = new JButton("Libraries");
+        panicdetect = new JCheckBox("Panic Detect");
+        panicdetect.setBackground(Color.WHITE);
         
         JScrollPane scroll = new JScrollPane();
         scroll.setViewportView(combo);
@@ -149,28 +158,33 @@ public class SuitaDetails extends JPanel {
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
-                .addGap(21, 21, 21)
-                .addComponent(suite)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(tsuite, javax.swing.GroupLayout.PREFERRED_SIZE, 145, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(21, 21, 21)
-                .addComponent(suitelib)
-                .addGap(18, 18, 18)
-                .addComponent(ep)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(scroll, 60, 70, 100)
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addContainerGap()
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(panicdetect)
+                    .addComponent(suitelib, GroupLayout.PREFERRED_SIZE, 85, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(ep)
+                    .addComponent(suite))
+                .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+                    .addComponent(tsuite)
+                    .addComponent(scroll, GroupLayout.DEFAULT_SIZE, 260, Short.MAX_VALUE))
+                .addContainerGap())
         );
         layout.setVerticalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+            layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+            .addGroup(layout.createSequentialGroup()
+                .addContainerGap()
+                .addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
                     .addComponent(suite)
-                    .addComponent(tsuite, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(suitelib)
-                    .addComponent(ep)
-                    .addComponent(scroll, 60, 70, 100))
+                    .addComponent(tsuite, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
+                .addGap(10, 10, 10)
+                .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+                    .addGroup(layout.createSequentialGroup()
+                        .addComponent(scroll, GroupLayout.DEFAULT_SIZE, 96, Short.MAX_VALUE)
+                        .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
+                        .addComponent(panicdetect)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(suitelib))
+                    .addComponent(ep))
                 .addContainerGap())
         );
         tcdelay = new JLabel("TC delay");
@@ -186,7 +200,6 @@ public class SuitaDetails extends JPanel {
         tpostscript = new JTextField();
         browse1 = new JButton("...");
         browse2 = new JButton("...");
-//        stoponfail.setText();
         prescript.setText("Pre execution script:");
         postscript.setText("Post execution script:");
         
@@ -207,7 +220,8 @@ public class SuitaDetails extends JPanel {
                 Container c;
                 if(Repository.container!=null)c = Repository.container.getParent();
                 else c = Repository.window;
-                new MySftpBrowser(Repository.c,tprescript,c);
+                //new MySftpBrowser(Repository.c,tprescript,c);
+                new MySftpBrowser(Repository.host,Repository.user,Repository.password,tprescript,c);
             }
         });
 
@@ -216,79 +230,87 @@ public class SuitaDetails extends JPanel {
                 Container c;
                 if(Repository.container!=null)c = Repository.container.getParent();
                 else c = Repository.window;
-                new MySftpBrowser(Repository.c,tpostscript,c);
+                //new MySftpBrowser(Repository.c,tpostscript,c);
+                new MySftpBrowser(Repository.host,Repository.user,Repository.password,tpostscript,c);
+            }
+        });
+        
+        panicdetect.addActionListener(new ActionListener(){
+            public void actionPerformed(ActionEvent evt) {
+                parent.setPanicdetect(panicdetect.isSelected());
             }
         });
         
         layout = new GroupLayout(global);
         global.setLayout(layout);
         layout.setHorizontalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            layout.createParallelGroup(GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
                     .addGroup(layout.createSequentialGroup()
                         .addContainerGap()
-                        .addComponent(stoponfail, javax.swing.GroupLayout.PREFERRED_SIZE, 105, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(savedb, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(stoponfail, GroupLayout.PREFERRED_SIZE, 105, GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(savedb, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
                         .addComponent(tcdelay)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(ttcdelay, javax.swing.GroupLayout.DEFAULT_SIZE, 160, Short.MAX_VALUE)
+                        .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(ttcdelay, GroupLayout.DEFAULT_SIZE, 160, Short.MAX_VALUE)
                         .addGap(12, 12, 12)
                         .addComponent(globallib))
                     .addGroup(layout.createSequentialGroup()
                         .addGap(10, 10, 10)
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
                             .addGroup(layout.createSequentialGroup()
                                 .addComponent(prescript)
                                 .addGap(20, 20, 20))
-                            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
+                            .addGroup(GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
                                 .addComponent(postscript)
                                 .addGap(18, 18, 18)))
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
                             .addComponent(tprescript)
                             .addComponent(tpostscript))
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
                             .addGroup(layout.createSequentialGroup()
                                 .addGap(10, 10, 10)
                                 .addComponent(browse1))
-                            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                            .addGroup(GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
+                                .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
                                 .addComponent(browse2)))))
                 .addContainerGap())
         );
         layout.setVerticalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            layout.createParallelGroup(GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
                 .addGap(12, 12, 12)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.CENTER)
-                    .addComponent(stoponfail, javax.swing.GroupLayout.PREFERRED_SIZE, 20, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(savedb, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGroup(layout.createParallelGroup(GroupLayout.Alignment.CENTER)
+                    .addComponent(stoponfail, GroupLayout.PREFERRED_SIZE, 20, GroupLayout.PREFERRED_SIZE)
+                    .addComponent(savedb, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
                     .addComponent(tcdelay)
-                    .addComponent(ttcdelay, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(ttcdelay, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
                     .addComponent(globallib))
                 .addGap(11, 11, 11)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                .addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
                     .addComponent(prescript)
-                    .addComponent(tprescript, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(tprescript, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
                     .addComponent(browse1))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(tpostscript, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+                    .addComponent(tpostscript, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
                     .addComponent(browse2)
                     .addComponent(postscript))
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addContainerGap(GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
 
-        layout.linkSize(javax.swing.SwingConstants.VERTICAL, new java.awt.Component[] {browse1, tprescript});
+        layout.linkSize(SwingConstants.VERTICAL,
+                        new Component[] {browse1, tprescript});
 
-        layout.linkSize(javax.swing.SwingConstants.VERTICAL, new java.awt.Component[] {browse2, tpostscript});
+        layout.linkSize(SwingConstants.VERTICAL, 
+                        new Component[] {browse2, tpostscript});
     }
     
     // show libraries selection window for root suite
-    private void showSuiteLib(){
-
+    public void showSuiteLib(){
         JScrollPane jScrollPane1 = new JScrollPane();
         JList jList1 = new JList();
         JPanel libraries = new JPanel();
@@ -297,11 +319,13 @@ public class SuitaDetails extends JPanel {
         libraries.setLayout(layout);
         layout.setHorizontalGroup(
             layout.createParallelGroup(GroupLayout.Alignment.LEADING)
-            .addComponent(jScrollPane1, GroupLayout.DEFAULT_SIZE, 150, Short.MAX_VALUE)
+            .addComponent(jScrollPane1, GroupLayout.DEFAULT_SIZE,
+                            150, Short.MAX_VALUE)
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(GroupLayout.Alignment.LEADING)
-            .addComponent(jScrollPane1, GroupLayout.DEFAULT_SIZE, 300, Short.MAX_VALUE)
+            .addComponent(jScrollPane1, GroupLayout.DEFAULT_SIZE,
+                            300, Short.MAX_VALUE)
         );
         
         try{Object [] s = (Object [])Repository.getRPCClient().execute("getLibrariesList",
@@ -326,7 +350,6 @@ public class SuitaDetails extends JPanel {
                 }
                 jList1.setSelectedIndices(indices);
             }
-            
         } catch(Exception e){
             System.out.println("There was an error on calling getLibrariesList on CE");
             e.printStackTrace();
@@ -424,12 +447,10 @@ public class SuitaDetails extends JPanel {
         scroll = new JScrollPane();
         defsContainer = new JPanel();
         setLayout(new BorderLayout());
-        defsContainer.setBackground(new Color(255, 255, 255));
+        defsContainer.setBackground(Color.WHITE);
         defsContainer.setBorder(BorderFactory.createEmptyBorder(10, 0, 10, 0));
         defsContainer.setLayout(new BoxLayout(defsContainer, BoxLayout.Y_AXIS));
-        
         defsContainer.add(suiteoptions);
-        
         scroll.setViewportView(global);
         add(scroll, BorderLayout.CENTER);
         JLabel l = new JLabel("test");            
@@ -525,52 +546,225 @@ public class SuitaDetails extends JPanel {
     public void initTCOptions(){
         tcoptions = new JPanel();
         tcoptions.setBackground(Color.WHITE);
-        JLabel tcname = new JLabel();
+        JLabel tcname = new JLabel("TC name:");
         ttcname = new JTextField();
-        runnable = new JCheckBox();
-        optional = new JCheckBox();
-        prerequisites = new JCheckBox();
+        runnable = new JCheckBox("Runnable");
+        runnable.setBackground(Color.WHITE);
+        optional = new JCheckBox("Optional");
+        optional.setBackground(Color.WHITE);
+        prerequisites = new JCheckBox("pre-requisites");
+        prerequisites.setBackground(Color.WHITE);
+        
+        
+        //JPanel prop =new JPanel();
+        
+        
+        
+        
+        
+        
+//         prop.setBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(new Color(153, 153, 153)),
+//                                                         "Properties", TitledBorder.DEFAULT_JUSTIFICATION,
+//                                                         TitledBorder.DEFAULT_POSITION, null, new Color(0, 0, 0)));
+        //prop.setBackground(Color.WHITE);
+//         JPanel jPanel1 = new JPanel();
+//         JScrollPane jScrollPane1 = new JScrollPane(jPanel1);
+//         jPanel1.setBackground(Color.WHITE);
+//         jScrollPane1.setBackground(Color.WHITE);
+//         jScrollPane1.setBorder(null);
+//         jPanel1.setLayout(new BoxLayout(jPanel1, BoxLayout.Y_AXIS));
+//         
+//         JLabel jLabel1 = new JLabel(" Name: ");
+//         JTextField jTextField1 = new JTextField();
+//         JLabel jLabel2 = new JLabel(" Value: ");
+//         JTextField jTextField2 = new JTextField();
+//         JButton jButton1 = new JButton("Remove");
+//         
+//         JPanel proppanel = new JPanel();
+//         proppanel.setMaximumSize(new java.awt.Dimension(32767, 25));
+//         proppanel.setMinimumSize(new java.awt.Dimension(0, 25));
+//         proppanel.setPreferredSize(new java.awt.Dimension(50, 25));
+//         proppanel.setBackground(Color.WHITE);
+//         proppanel.setLayout(new BoxLayout(proppanel, BoxLayout.LINE_AXIS));
+//         proppanel.add(jLabel1);
+//         proppanel.add(jTextField1);
+//         proppanel.add(jLabel2);
+//         proppanel.add(jTextField2);
+//         proppanel.add(Box.createRigidArea(new Dimension(5, 0)));
+//         proppanel.add(jButton1);
+//         proppanel.add(Box.createRigidArea(new Dimension(5, 0)));
+//         jPanel1.add(proppanel);
+        
+        
+        
+//         GroupLayout proppanelLayout = new GroupLayout(proppanel);
+//         proppanel.setLayout(proppanelLayout);
+//         proppanelLayout.setHorizontalGroup(
+//             proppanelLayout.createParallelGroup(GroupLayout.Alignment.LEADING)
+//             .addGroup(proppanelLayout.createSequentialGroup()
+//                 .addComponent(jLabel1)
+//                 .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+//                 .addComponent(jTextField1, GroupLayout.DEFAULT_SIZE, 108, Short.MAX_VALUE)
+//                 .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+//                 .addComponent(jLabel2)
+//                 .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
+//                 .addComponent(jTextField2, GroupLayout.DEFAULT_SIZE, 107, Short.MAX_VALUE)
+//                 .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+//                 .addComponent(jButton1, GroupLayout.PREFERRED_SIZE, 71, GroupLayout.PREFERRED_SIZE))
+//         );
+//         proppanelLayout.setVerticalGroup(
+//             proppanelLayout.createParallelGroup(GroupLayout.Alignment.LEADING)
+//             .addGroup(proppanelLayout.createSequentialGroup()
+//                 .addGroup(proppanelLayout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+//                     .addComponent(jLabel1)
+//                     .addComponent(jTextField1, GroupLayout.PREFERRED_SIZE, 
+//                                                GroupLayout.DEFAULT_SIZE,
+//                                                GroupLayout.PREFERRED_SIZE)
+//                     .addComponent(jLabel2)
+//                     .addComponent(jTextField2, GroupLayout.PREFERRED_SIZE, 
+//                                                GroupLayout.DEFAULT_SIZE,
+//                                                GroupLayout.PREFERRED_SIZE)
+//                     .addComponent(jButton1))
+//                 .addContainerGap(2, Short.MAX_VALUE))
+//         );
 
-        tcname.setText("TC name:");
 
-        runnable.setText("Runnable");
+        
+        
+        
+                
+//         GroupLayout propLayout = new GroupLayout(prop);
+//         prop.setLayout(propLayout);
+//         propLayout.setHorizontalGroup(
+//             propLayout.createParallelGroup(GroupLayout.Alignment.LEADING)
+//             .addComponent(jScrollPane1)
+//         );
+//         propLayout.setVerticalGroup(
+//             propLayout.createParallelGroup(GroupLayout.Alignment.LEADING)
+//             .addComponent(jScrollPane1)
+//         );
+        
+        
+        
+        
+        
+//         GroupLayout parampanelLayout = new GroupLayout(parampanel);
+//         parampanel.setLayout(parampanelLayout);
+//         parampanelLayout.setHorizontalGroup(
+//             parampanelLayout.createParallelGroup(GroupLayout.Alignment.LEADING)
+//             .addGroup(parampanelLayout.createSequentialGroup()
+//                 .addComponent(jLabel18)
+//                 .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+//                 .addComponent(jTextField18, GroupLayout.DEFAULT_SIZE, 237, Short.MAX_VALUE)
+//                 .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+//                 .addComponent(jButton10, GroupLayout.PREFERRED_SIZE, 71, GroupLayout.PREFERRED_SIZE)
+//                 .addGap(3, 3, 3))
+//         );
+//         parampanelLayout.setVerticalGroup(
+//             parampanelLayout.createParallelGroup(GroupLayout.Alignment.LEADING)
+//             .addGroup(parampanelLayout.createSequentialGroup()
+//                 .addGroup(parampanelLayout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+//                     .addComponent(jLabel18)
+//                     .addComponent(jTextField18, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+//                     .addComponent(jButton10))
+//                 .addContainerGap(2, Short.MAX_VALUE))
+//         );
 
-        optional.setText("Optional");
 
-        prerequisites.setText("pre-requisites");
+        
+        
+        
 
+        //jPanel2.add(parampanel);
+        
+        
+        
+        prop = new PropPanel();
+        param = new ParamPanel();
+        
+        
+        
         GroupLayout layout = new GroupLayout(tcoptions);
         tcoptions.setLayout(layout);
         layout.setHorizontalGroup(
             layout.createParallelGroup(GroupLayout.Alignment.LEADING)
-            .addGroup(layout.createSequentialGroup()
-                .addContainerGap()
-                .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+            .addGroup(
+//             layout.createSequentialGroup()
+//                 .addContainerGap()
+//                 .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+//                     .addGroup(layout.createSequentialGroup()
+//                         .addComponent(runnable)
+//                         .addGap(18, 18, 18)
+//                         .addComponent(optional)
+//                         .addGap(18, 18, 18)
+//                         .addComponent(prerequisites))
+//                     .addGroup(layout.createSequentialGroup()
+//                         .addComponent(tcname)
+//                         .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+//                         .addComponent(ttcname, GroupLayout.PREFERRED_SIZE, 275, GroupLayout.PREFERRED_SIZE)))
+//                 .addContainerGap(127, Short.MAX_VALUE))
+
+                layout.createParallelGroup(GroupLayout.Alignment.LEADING)
                     .addGroup(layout.createSequentialGroup()
-                        .addComponent(runnable)
-                        .addGap(18, 18, 18)
-                        .addComponent(optional)
-                        .addGap(18, 18, 18)
-                        .addComponent(prerequisites))
-                    .addGroup(layout.createSequentialGroup()
-                        .addComponent(tcname)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(ttcname, GroupLayout.PREFERRED_SIZE, 275, GroupLayout.PREFERRED_SIZE)))
-                .addContainerGap(127, Short.MAX_VALUE)));
+                        .addContainerGap()
+                        .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+                            .addGroup(layout.createSequentialGroup()
+                                //.addComponent(prop, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                .addComponent(prop, 0, 0, Short.MAX_VALUE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                //.addComponent(param, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                                .addComponent(param, 0, 0, Short.MAX_VALUE))
+                            .addGroup(layout.createSequentialGroup()
+                                .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+                                    .addGroup(layout.createSequentialGroup()
+                                        .addComponent(runnable)
+                                        .addGap(18, 18, 18)
+                                        .addComponent(optional)
+                                        .addGap(18, 18, 18)
+                                        .addComponent(prerequisites))
+                                    .addGroup(layout.createSequentialGroup()
+                                        .addComponent(tcname)
+                                        .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+                                        .addComponent(ttcname, GroupLayout.PREFERRED_SIZE, 116, GroupLayout.PREFERRED_SIZE)))
+                                .addGap(0, 0, Short.MAX_VALUE)))
+                        .addContainerGap()))
+                
+                );
                 
         layout.setVerticalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(layout.createSequentialGroup()
-                .addContainerGap()
-                .addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
-                    .addComponent(tcname)
-                    .addComponent(ttcname, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
-                .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
-                .addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
-                    .addComponent(runnable)
-                    .addComponent(optional)
-                    .addComponent(prerequisites))
-                .addContainerGap(GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)));
+//             layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+//             .addGroup(layout.createSequentialGroup()
+//                 .addContainerGap()
+//                 .addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+//                     .addComponent(tcname)
+//                     .addComponent(ttcname, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
+//                 .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
+//                 .addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+//                     .addComponent(runnable)
+//                     .addComponent(optional)
+//                     .addComponent(prerequisites))
+//                 .addContainerGap(GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                
+                layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+                    .addGroup(GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
+                        .addContainerGap()
+                        .addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+                            .addComponent(tcname)
+                            .addComponent(ttcname, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
+                        .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
+                        .addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+                            .addComponent(runnable)
+                            .addComponent(optional)
+                            .addComponent(prerequisites))
+                        .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
+                        .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+//                             .addComponent(prop, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+//                             .addComponent(param, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                            .addComponent(prop, 0,0, Short.MAX_VALUE)
+                            .addComponent(param, 0,0, Short.MAX_VALUE))
+                        .addContainerGap())
+                
+                );
     }
            
     public int getDefsNr(){
@@ -584,31 +778,11 @@ public class SuitaDetails extends JPanel {
             definitions.get(i).setDescription("");}}
             
     public void setParent(Item parent){ 
+        if(this.parent==parent)return;
         this.parent = parent;
         if(parent!=null&&parent.getType()==2){
-            try{String line = null;  
-                InputStream in = Repository.c.get(Repository.REMOTEEPIDDIR);
-                InputStreamReader inputStreamReader = new InputStreamReader(in);
-                BufferedReader bufferedReader = new BufferedReader(inputStreamReader);  
-                StringBuffer b=new StringBuffer("");
-                while ((line=bufferedReader.readLine())!= null){b.append(line+";");}                        
-                bufferedReader.close();
-                inputStreamReader.close();
-                in.close();
-                String result = b.toString();
-                String [] vecresult = result.split(";");   
-                for(ListSelectionListener l:combo.getListSelectionListeners()){
-                    combo.removeListSelectionListener(l);
-                }
-                combo.setModel(new DefaultComboBoxModel(vecresult));
-                String [] strings = parent.getEpId();
-                ArrayList<String> array = new ArrayList<String>(Arrays.asList(vecresult));
-                int [] sel = new int[strings.length];
-                for(int i=0;i<strings.length;i++){
-                    sel[i]=array.indexOf(strings[i]);
-                }
-                combo.setSelectedIndices(sel);
-                combo.addListSelectionListener(new MyListSelectionListener());
+            try{
+                setComboTBs();
                 tsuite.setText(parent.getName());
                 KeyListener k [] = combo.getKeyListeners();
                 for(KeyListener t : k){
@@ -625,6 +799,7 @@ public class SuitaDetails extends JPanel {
                         Repository.window.mainpanel.p1.sc.g.repaint();
                     }
                 });
+                panicdetect.setSelected(parent.isPanicdetect());
             } catch (Exception e){
                 System.out.println("There was a problem in getting ep list");
                 e.printStackTrace();
@@ -693,8 +868,44 @@ public class SuitaDetails extends JPanel {
                     }
                 }
             });
-            
+            prop.setParent(getItemParent());
+            param.setParent(getItemParent());
         }
+    }
+
+    //update TB;s names in Suite Options
+    //panel when there is a parent selected
+    public void setComboTBs(){
+        if(parent==null)return;
+        for(ListSelectionListener l:combo.getListSelectionListeners()){
+            combo.removeListSelectionListener(l);
+        }
+        StringBuilder b = new StringBuilder();
+        Node parentnode = Repository.window.mainpanel.p4.getTB().getParentNode();
+        HashMap children =  parentnode.getChildren();
+        if(children!=null&&children.size()!=0){
+            Set keys = children.keySet();
+            Iterator iter = keys.iterator();
+            while(iter.hasNext()){
+                String n = iter.next().toString();
+                String name = parentnode.getChild(n).getName();
+                b.append(name);
+                b.append(";");
+            }
+        }
+        String [] vecresult = b.toString().split(";");   
+        combo.setModel(new DefaultComboBoxModel(vecresult));
+        
+        String [] strings = parent.getEpId();
+        ArrayList<String> array = new ArrayList<String>(Arrays.asList(vecresult));
+        int [] sel = new int[strings.length];
+        for(int i=0;i<strings.length;i++){
+            sel[i]=array.indexOf(strings[i]);
+        }
+        combo.setSelectedIndices(sel);
+        combo.addListSelectionListener(new MyListSelectionListener());
+        
+        
     }
 
     public void setSuiteDetails(boolean rootsuite){
@@ -702,11 +913,13 @@ public class SuitaDetails extends JPanel {
             combo.setEnabled(true);
             ep.setEnabled(true);
             suitelib.setEnabled(true);
+            panicdetect.setEnabled(true);
             for(DefPanel p:definitions){
                 defsContainer.add(p);
             }         
         } else {
             suitelib.setEnabled(false);
+            panicdetect.setEnabled(false);
             combo.setEnabled(false);
             ep.setEnabled(false);
             for(DefPanel p:definitions){
@@ -787,6 +1000,232 @@ public class SuitaDetails extends JPanel {
             }
         }
     }  
+}
+
+
+class ParamPanel extends JPanel{
+    private Item parent;
+    private JPanel jPanel2,addpanel;
+    
+    public ParamPanel(){
+        setBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(new Color(153, 153, 153)),
+                                                    "Parameters", TitledBorder.DEFAULT_JUSTIFICATION,
+                                                    TitledBorder.DEFAULT_POSITION, null, new Color(0, 0, 0)));
+        setBackground(Color.WHITE);
+        jPanel2 = new JPanel();
+        jPanel2.setBackground(Color.WHITE);
+        JScrollPane jScrollPane3 = new JScrollPane(jPanel2);
+        jScrollPane3.setBackground(Color.WHITE);
+        jScrollPane3.setBorder(null);
+        jPanel2.setLayout(new BoxLayout(jPanel2, BoxLayout.Y_AXIS));
+        
+        addpanel = new JPanel();
+        addpanel.setMaximumSize(new Dimension(32767, 25));
+        addpanel.setMinimumSize(new Dimension(0, 25));
+        addpanel.setPreferredSize(new Dimension(50, 25));
+        addpanel.setLayout(new BorderLayout());
+        JButton add = new JButton("Add");
+        add.addActionListener(new ActionListener(){
+            public void actionPerformed(ActionEvent ev){
+                ArrayList <Integer> indexpos3 = (ArrayList <Integer>)parent.getPos().clone();
+                indexpos3.add(new Integer(parent.getSubItemsNr()));
+                Item property = new Item("param",0,-1,-1,10,20,indexpos3);
+                property.setSubItemVisible(false);
+                property.setValue("");
+                parent.addSubItem(property);
+                Param prop = new Param(parent,property);
+                jPanel2.remove(addpanel);
+                jPanel2.add(prop);
+                jPanel2.add(addpanel);
+                jPanel2.revalidate();
+                jPanel2.repaint();
+            }
+        });
+        addpanel.add(add,BorderLayout.EAST);
+        addpanel.setBackground(Color.WHITE);
+        GroupLayout paramLayout = new GroupLayout(this);
+        this.setLayout(paramLayout);
+        paramLayout.setHorizontalGroup(
+            paramLayout.createParallelGroup(GroupLayout.Alignment.LEADING)
+            .addComponent(jScrollPane3)
+        );
+        paramLayout.setVerticalGroup(
+            paramLayout.createParallelGroup(GroupLayout.Alignment.LEADING)
+            .addComponent(jScrollPane3)
+        );
+    }
+    
+    public void setParent(Item parent){
+        if(parent!=this.parent){
+            this.parent = parent;
+            initializeParent();
+        }
+    }
+    
+    private void initializeParent(){
+        jPanel2.removeAll();
+        for(Item i:parent.getSubItems()){
+            if(i.getName().equals("param")){
+                Param param = new Param(parent,i);
+                jPanel2.add(param);
+            }
+        }
+        jPanel2.add(addpanel);
+    }
+    
+    class Param extends JPanel{
+        private Item parent,reference;
+        
+        public Param(final Item parent,final Item reference){
+            this.reference = reference; 
+            this.parent = parent;
+            setMaximumSize(new Dimension(32767, 25));
+            setMinimumSize(new Dimension(0, 25));
+            setPreferredSize(new Dimension(50, 25));
+            setBackground(Color.WHITE);
+            setLayout(new BorderLayout(5,0));
+            JLabel jLabel18 = new JLabel(" Parameter:");
+            add(jLabel18, BorderLayout.WEST);
+            final JTextField jTextField18 = new JTextField();
+            jTextField18.setText(reference.getValue());
+            jTextField18.addKeyListener(new KeyAdapter(){
+                public void keyReleased(KeyEvent ev){
+                    reference.setValue(jTextField18.getText());
+                }
+            });
+            add(jTextField18, BorderLayout.CENTER);
+            JButton jButton10 = new JButton("Remove");
+            jButton10.addActionListener(new ActionListener(){
+                public void actionPerformed(ActionEvent ev){
+                    parent.getSubItems().remove(reference);
+                    jPanel2.remove(Param.this);
+                    jPanel2.repaint();
+                    jPanel2.revalidate();
+                }
+            });
+            add(jButton10, java.awt.BorderLayout.EAST);
+        }
+    }
+    
+}
+
+class PropPanel extends JPanel{
+    private Item parent;
+    private JPanel jPanel1,addpanel;
+    
+    public PropPanel(){
+        jPanel1 = new JPanel();
+        addpanel = new JPanel();
+        addpanel.setMaximumSize(new Dimension(32767, 25));
+        addpanel.setMinimumSize(new Dimension(0, 25));
+        addpanel.setPreferredSize(new Dimension(50, 25));
+        addpanel.setLayout(new BorderLayout());
+        JButton add = new JButton("Add");
+        add.addActionListener(new ActionListener(){
+            public void actionPerformed(ActionEvent ev){
+                ArrayList <Integer> indexpos3 = (ArrayList <Integer>)parent.getPos().clone();
+                indexpos3.add(new Integer(parent.getSubItemsNr()));
+                Item property = new Item("",0,-1,-1,10,20,indexpos3);
+                property.setSubItemVisible(false);
+                property.setValue("");
+                parent.addSubItem(property);
+                Prop prop = new Prop(parent,property);
+                jPanel1.remove(addpanel);
+                jPanel1.add(prop);
+                jPanel1.add(addpanel);
+                jPanel1.revalidate();
+                jPanel1.repaint();
+            }
+        });
+        addpanel.add(add,BorderLayout.EAST);
+        addpanel.setBackground(Color.WHITE);
+        JScrollPane jScrollPane1 = new JScrollPane(jPanel1);
+        jPanel1.setBackground(Color.WHITE);
+        jScrollPane1.setBackground(Color.WHITE);
+        jScrollPane1.setBorder(null);
+        jPanel1.setLayout(new BoxLayout(jPanel1, BoxLayout.Y_AXIS));
+        setBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(new Color(153, 153, 153)),
+                                                    "Properties", TitledBorder.DEFAULT_JUSTIFICATION,
+                                                    TitledBorder.DEFAULT_POSITION, null, new Color(0, 0, 0)));
+        setBackground(Color.WHITE);
+        GroupLayout propLayout = new GroupLayout(this);
+        setLayout(propLayout);
+        propLayout.setHorizontalGroup(
+            propLayout.createParallelGroup(GroupLayout.Alignment.LEADING)
+            .addComponent(jScrollPane1)
+        );
+        propLayout.setVerticalGroup(
+            propLayout.createParallelGroup(GroupLayout.Alignment.LEADING)
+            .addComponent(jScrollPane1)
+        );
+    }
+    
+    public void setParent(Item parent){
+        if(parent!=this.parent){
+            this.parent = parent;
+            initializeParent();
+        }
+    }
+    
+    private void initializeParent(){
+        jPanel1.removeAll();
+        for(Item i:parent.getSubItems()){
+            if((!i.getName().equals("Running"))&&(!i.getName().equals("param"))){
+                Prop prop = new Prop(parent,i);
+                jPanel1.add(prop);
+            }
+        }
+        jPanel1.add(addpanel);
+    }
+    
+    class Prop extends JPanel{
+        private Item parent,reference;
+        
+        public Prop(final Item parent,final Item reference){
+            this.reference = reference;
+            this.parent = parent;
+            setMaximumSize(new Dimension(32767, 25));
+            setMinimumSize(new Dimension(0, 25));
+            setPreferredSize(new Dimension(50, 25));
+            setBackground(Color.WHITE);
+            setLayout(new BoxLayout(this, BoxLayout.LINE_AXIS));
+            JLabel jLabel1 = new JLabel(" Name: ");
+            final JTextField jTextField1 = new JTextField();
+            jTextField1.setText(reference.getName());
+            jTextField1.addKeyListener(new KeyAdapter(){
+                public void keyReleased(KeyEvent ev){
+                    reference.setName(jTextField1.getText());
+                    jTextField1.setPreferredSize(new Dimension(25,20));
+                }
+            });
+            JLabel jLabel2 = new JLabel(" Value: ");
+            final JTextField jTextField2 = new JTextField();
+            jTextField2.setText(reference.getValue());
+            jTextField2.addKeyListener(new KeyAdapter(){
+                public void keyReleased(KeyEvent ev){
+                    reference.setValue(jTextField2.getText());
+                    jTextField2.setPreferredSize(new Dimension(25,20));
+                }
+            });
+            JButton jButton1 = new JButton("Remove");
+            jButton1.addActionListener(new ActionListener(){
+                public void actionPerformed(ActionEvent ev){
+                    parent.getSubItems().remove(reference);
+                    jPanel1.remove(Prop.this);
+                    jPanel1.repaint();
+                    jPanel1.revalidate();
+                }
+            });
+            add(jLabel1);
+            add(jTextField1);
+            add(jLabel2);
+            add(jTextField2);
+            add(Box.createRigidArea(new Dimension(5, 0)));
+            add(jButton1);
+            //add(Box.createRigidArea(new Dimension(5, 0)));
+        }
+    }
+    
 }
         
 class DefPanel extends JPanel{
@@ -881,7 +1320,8 @@ class DefPanel extends JPanel{
                     Container c;
                     if(Repository.container!=null)c = Repository.container.getParent();
                     else c = Repository.window;
-                    new MySftpBrowser(Repository.c,userDefinition,c);
+                    //new MySftpBrowser(Repository.c,userDefinition,c);
+                    new MySftpBrowser(Repository.host,Repository.user,Repository.password,userDefinition,c);
                     if(parent!=null){
                         setParentField(userDefinition.getText(),false);}
                     }
@@ -959,4 +1399,4 @@ class DefPanel extends JPanel{
         return descriptions;}
     
     public void setDescription(String desc){
-        userDefinition.setText(desc);}}      
+        userDefinition.setText(desc);}}   

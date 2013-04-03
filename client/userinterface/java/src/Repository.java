@@ -105,7 +105,8 @@ public class Repository{
     private static ArrayList<String> logs = new ArrayList<String>();//logs tracked by twister framwork
     public static String[] columnNames;
     public static Window window;//main window displayed if twister is running local
-    public static ChannelSftp c;//main sftp connection used by Twister
+    //public static ChannelSftp c;//main sftp connection used by Twister
+    public static ChannelSftp connection;//main sftp connection used by Twister
     public static Hashtable variables = new Hashtable(5,0.5f);
     public static String user,host,password,temp,TWISTERINI, USERHOME, REMOTECONFIGDIRECTORY,
                          PLUGINSDIRECTORY,HTTPSERVERPORT, CENTRALENGINEPORT,
@@ -113,8 +114,10 @@ public class Repository{
                          REMOTEDATABASECONFIGPATH,
                          REMOTEDATABASECONFIGFILE, REMOTEEMAILCONFIGPATH,
                          REMOTEEMAILCONFIGFILE,CONFIGDIRECTORY, USERSDIRECTORY,
-                         XMLDIRECTORY,  TESTSUITEPATH, LOGSPATH ,XMLREMOTEDIR,REMOTEPLUGINSDIR,
-                         REMOTEUSERSDIRECTORY, REMOTEEPIDDIR, REMOTEHARDWARECONFIGDIRECTORY,
+                         XMLDIRECTORY,  
+                         TESTSUITEPATH,
+                         LOGSPATH ,XMLREMOTEDIR,REMOTEPLUGINSDIR,
+                         REMOTEUSERSDIRECTORY, REMOTEEPIDDIR, //REMOTEHARDWARECONFIGDIRECTORY,
                          PLUGINSLOCALGENERALCONF, GLOBALSREMOTEFILE;
     public static Image passicon,testbedicon,porticon,suitaicon, tcicon, propicon,
                         failicon, passwordicon, playicon, stopicon, pauseicon,
@@ -123,7 +126,7 @@ public class Repository{
                         addsuitaicon,removeicon,vlcclient,vlcserver,switche,optional,
                         flootw,rack150,rack151,rack152,switche2,inicon,outicon,baricon;
     public static boolean run = true;//signal that Twister is not closing
-    public static boolean applet,initialized; //keeps track if twister is run from applet or localy
+    public static boolean applet,initialized,sftpoccupied; //keeps track if twister is run from applet or localy;;stfpconnection flag
     public static IntroScreen intro;    
     private static ArrayList <String []> databaseUserFields = new ArrayList<String[]>();
     public static int LABEL = 0;    
@@ -137,6 +140,7 @@ public class Repository{
     private static String[] lookAndFeels;
     public static Applet container;
     private static Document pluginsconfig;
+    private static String version = "2.001";
     
     /*
      * repository initialization method
@@ -221,11 +225,11 @@ public class Repository{
                 if(new File(temp+bar+"Twister").mkdir())
                     System.out.println(temp+bar+"Twister"+" folder successfully created");
                 else System.out.println("Could not create "+temp+bar+"Twister"+" folder");
-                if(new File(temp+bar+"Twister"+bar+"HardwareConfig").mkdir())
-                    System.out.println(temp+bar+"Twister"+bar+
-                        "HardwareConfig folder successfully created");
-                else System.out.println("Could not create "+temp+bar+"Twister"+bar+
-                    "HardwareConfig folder");
+//                 if(new File(temp+bar+"Twister"+bar+"HardwareConfig").mkdir())
+//                     System.out.println(temp+bar+"Twister"+bar+
+//                         "HardwareConfig folder successfully created");
+//                 else System.out.println("Could not create "+temp+bar+"Twister"+bar+
+//                     "HardwareConfig folder");
                 if(new File(temp+bar+"Twister"+bar+"XML").mkdir())
                     System.out.println(temp+bar+"Twister"+bar+
                         "XML folder successfully created");
@@ -266,18 +270,7 @@ public class Repository{
                     System.out.println("There was a problem in parsing"+
                                        " plugins configuration");}
                                        
-                /*
-                 * XmlRpc main connection used by Twister framework
-                 */
-                try{XmlRpcClientConfigImpl configuration = new XmlRpcClientConfigImpl();
-                    configuration.setServerURL(new URL("http://"+Repository.host+
-                                                ":"+Repository.getCentralEnginePort()));
-                    client = new XmlRpcClient();
-                    client.setConfig(configuration);
-                    System.out.println("Client initialized: "+client);}
-                catch(Exception e){System.out.println("Could not conect to "+
-                                    Repository.host+" :"+Repository.getCentralEnginePort()+
-                                    "for RPC client initialization");}
+                initializeRPC();
                 intro.setStatus("Finished parsing the config");
                 intro.addPercent(0.035);
                 intro.repaint();
@@ -287,34 +280,7 @@ public class Repository{
                 parseDBConfig(Repository.REMOTEDATABASECONFIGFILE,true);
                 window = new Window(applet,container);
                 parseEmailConfig(Repository.REMOTEEMAILCONFIGFILE,true);
-                variables.put("host",host);
-                variables.put("user",user);
-                variables.put("password",password);  
-                variables.put("temp",temp);
-                variables.put("inifile",TWISTERINI);
-                variables.put("remoteuserhome",USERHOME);  
-                variables.put("remotconfigdir",REMOTECONFIGDIRECTORY);  
-                variables.put("localplugindir",PLUGINSDIRECTORY);  
-                variables.put("httpserverport",HTTPSERVERPORT);  
-                variables.put("centralengineport",CENTRALENGINEPORT);  
-                //variables.put("resourceallocatorport",RESOURCEALLOCATORPORT);  
-                variables.put("remotedatabaseparth",REMOTEDATABASECONFIGPATH);
-                variables.put("remotedatabasefile",REMOTEDATABASECONFIGFILE);
-                variables.put("remoteemailpath",REMOTEEMAILCONFIGPATH);
-                variables.put("remoteemailfile",REMOTEEMAILCONFIGFILE);
-                variables.put("configdir",CONFIGDIRECTORY);
-                System.out.println("USERSDIRECTORY: "+USERSDIRECTORY);
-                variables.put("usersdir",USERSDIRECTORY);
-                variables.put("masterxmldir",XMLDIRECTORY);
-                variables.put("testsuitepath",TESTSUITEPATH);
-                variables.put("logspath",LOGSPATH);
-                variables.put("masterxmlremotedir",XMLREMOTEDIR);
-                variables.put("remotehwconfdir",REMOTEHARDWARECONFIGDIRECTORY);
-                variables.put("remoteepdir",REMOTEEPIDDIR);
-                variables.put("remoteusersdir",REMOTEUSERSDIRECTORY);
-                variables.put("pluginslocalgeneralconf",PLUGINSLOCALGENERALCONF);
-                variables.put("remotegeneralpluginsdir",REMOTEPLUGINSDIR);
-                variables.put("globalremotefile",GLOBALSREMOTEFILE);
+                populatePluginsVariables();
             }
             else{
                 /*
@@ -329,6 +295,34 @@ public class Repository{
                 if(!applet)System.exit(0);}}
         catch(Exception e){e.printStackTrace();}
         initialized  = true;
+    }
+    
+    public static void populatePluginsVariables(){
+        variables.put("host",host);
+        variables.put("user",user);
+        variables.put("password",password);  
+        variables.put("temp",temp);
+        variables.put("inifile",TWISTERINI);
+        variables.put("remoteuserhome",USERHOME);  
+        variables.put("remotconfigdir",REMOTECONFIGDIRECTORY);  
+        variables.put("localplugindir",PLUGINSDIRECTORY);  
+        variables.put("httpserverport",HTTPSERVERPORT);  
+        variables.put("centralengineport",CENTRALENGINEPORT); 
+        variables.put("remotedatabaseparth",REMOTEDATABASECONFIGPATH);
+        variables.put("remotedatabasefile",REMOTEDATABASECONFIGFILE);
+        variables.put("remoteemailpath",REMOTEEMAILCONFIGPATH);
+        variables.put("remoteemailfile",REMOTEEMAILCONFIGFILE);
+        variables.put("configdir",CONFIGDIRECTORY);
+        variables.put("usersdir",USERSDIRECTORY);
+        variables.put("masterxmldir",XMLDIRECTORY);
+        variables.put("testsuitepath",TESTSUITEPATH);
+        variables.put("logspath",LOGSPATH);
+        variables.put("masterxmlremotedir",XMLREMOTEDIR);
+        variables.put("remoteepdir",REMOTEEPIDDIR);
+        variables.put("remoteusersdir",REMOTEUSERSDIRECTORY);
+        variables.put("pluginslocalgeneralconf",PLUGINSLOCALGENERALCONF);
+        variables.put("remotegeneralpluginsdir",REMOTEPLUGINSDIR);
+        variables.put("globalremotefile",GLOBALSREMOTEFILE);
     }
         
     /*
@@ -351,11 +345,18 @@ public class Repository{
             File file = new File(Repository.PLUGINSLOCALGENERALCONF);
             Result result = new StreamResult(file);
             transformer.transform(source, result);
-            c.cd(Repository.USERHOME+"/twister/config/");
-            System.out.println("Saving to: "+Repository.USERHOME+"/twister/config/");
             FileInputStream in = new FileInputStream(file);
-            c.put(in, file.getName());
-            in.close();}
+            
+            Repository.uploadRemoteFile(Repository.USERHOME+"/twister/config/",in,file.getName());
+            
+//             c.cd(Repository.USERHOME+"/twister/config/");
+//             System.out.println("Saving to: "+Repository.USERHOME+"/twister/config/");
+//             FileInputStream in = new FileInputStream(file);
+//             c.put(in, file.getName());
+//             in.close();
+        
+        
+        }
         catch(Exception e){
             System.out.println("There was a problem in generating Plugins general config");
             e.printStackTrace();
@@ -511,6 +512,10 @@ public class Repository{
         while(!passed){
             try{JTextField user1 = new JTextField();   
                 JPasswordField password1 = new JPasswordField();
+                if(!applet){
+                    user1.setText("tscguest");
+                    password1.setText("tscguest");
+                }
                 JComboBox combo = new JComboBox();
                 try{populateLookAndFeels();
                     if(lookAndFeels!=null){
@@ -540,8 +545,8 @@ public class Repository{
                     session.connect();
                     Channel channel = session.openChannel("sftp");
                     channel.connect();
-                    c = (ChannelSftp)channel;
-                    try{USERHOME = c.pwd();}
+                    connection = (ChannelSftp)channel;
+                    try{USERHOME = connection.pwd();}
                     catch(Exception e){
                         System.out.println("ERROR: Could not retrieve remote user home directory");}
                     REMOTECONFIGDIRECTORY = USERHOME+"/twister/config/";
@@ -568,7 +573,6 @@ public class Repository{
      * method used to reset Email config
      */
     public static void resetEmailConf(String filename,boolean server){
-        System.out.println("Reparsing "+filename);
         parseEmailConfig(filename,server);}
         
     /*
@@ -579,32 +583,51 @@ public class Repository{
     public static File getDBConfFile(String name,boolean fromServer){
         File file = new File(temp+bar+"Twister"+bar+"config"+bar+name);
         if(fromServer){
-            InputStream in = null;
-            try{c.cd(Repository.REMOTEDATABASECONFIGPATH);}
-            catch(Exception e){
-                System.out.println("Could not get :"+Repository.REMOTEDATABASECONFIGPATH);}
-            System.out.print("Getting "+name+" as database config file.... ");
-            try{in = c.get(name);
-                InputStreamReader inputStreamReader = new InputStreamReader(in);
-                BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
-                BufferedWriter writer = null;
-                String line;
-                try{writer = new BufferedWriter(new FileWriter(file));
-                    while ((line=bufferedReader.readLine())!= null){
-                        writer.write(line);
-                        writer.newLine();}
-                    bufferedReader.close();
-                    writer.close();
-                    inputStreamReader.close();
-                    in.close();
-                    System.out.println("successfull");}
-                catch(Exception e){
-                    System.out.println("failed");
-                    e.printStackTrace();}}
-            catch(Exception e){
-                System.out.println("Could not get :"+
-                    name+" from: "+Repository.REMOTEDATABASECONFIGPATH+
-                    " as database config file");}}
+//             InputStream in = null;
+            
+            String content= Repository.getRemoteFileContent(Repository.REMOTEDATABASECONFIGPATH+name);
+
+            try{BufferedWriter writer = new BufferedWriter(new FileWriter(file));
+                writer.write(content);
+                writer.close();
+            } catch(Exception e){
+                e.printStackTrace();
+            }
+            
+//             for(String s:content){
+//                 writer.write(s);
+//                 writer.newLine();
+//             }
+//              writer.close();
+            
+//             try{c.cd(Repository.REMOTEDATABASECONFIGPATH);}
+//             catch(Exception e){
+//                 System.out.println("Could not get :"+Repository.REMOTEDATABASECONFIGPATH);}
+//             System.out.print("Getting "+name+" as database config file.... ");
+//             try{in = c.get(name);
+//                 InputStreamReader inputStreamReader = new InputStreamReader(in);
+//                 BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
+//                 BufferedWriter writer = null;
+//                 String line;
+//                 try{writer = new BufferedWriter(new FileWriter(file));
+//                     while ((line=bufferedReader.readLine())!= null){
+//                         writer.write(line);
+//                         writer.newLine();}
+//                     bufferedReader.close();
+//                     writer.close();
+//                     inputStreamReader.close();
+//                     in.close();
+//                     System.out.println("successfull");}
+//                 catch(Exception e){
+//                     System.out.println("failed");
+//                     e.printStackTrace();}}
+//             catch(Exception e){
+//                 System.out.println("Could not get :"+
+//                     name+" from: "+Repository.REMOTEDATABASECONFIGPATH+
+//                     " as database config file");}
+                
+                
+                }
         return file;}
         
         
@@ -616,31 +639,47 @@ public class Repository{
     public static File getEmailConfFile(String name,boolean fromServer){
         File file = new File(temp+bar+"Twister"+bar+"config"+bar+name);
         if(fromServer){
-            InputStream in = null;
-            try{c.cd(Repository.REMOTEEMAILCONFIGPATH);}
-            catch(Exception e){
-                System.out.println("Could not get :"+Repository.REMOTEEMAILCONFIGPATH);}
-            System.out.print("Getting "+name+" as email config file.... ");
-            try{in = c.get(name);
-                InputStreamReader inputStreamReader = new InputStreamReader(in);
-                BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
-                BufferedWriter writer = null;
-                String line;
-                try{writer = new BufferedWriter(new FileWriter(file));
-                    while ((line=bufferedReader.readLine())!= null){
-                        writer.write(line);
-                        writer.newLine();}
-                    bufferedReader.close();
-                    writer.close();
-                    inputStreamReader.close();
-                    in.close();
-                    System.out.println("successfull");}
-                catch(Exception e){
-                    System.out.println("failed");
-                    e.printStackTrace();}}
-            catch(Exception e){
-                System.out.println("Could not get :"+name+
-                " from: "+Repository.REMOTEEMAILCONFIGPATH+" as email config file");}}
+            
+            String content= Repository.getRemoteFileContent(Repository.REMOTEEMAILCONFIGPATH+name);
+            try{BufferedWriter writer = new BufferedWriter(new FileWriter(file));
+                writer.write(content);
+                writer.close();
+            } catch (Exception e){
+                e.printStackTrace();
+            }
+//             for(String s:content){
+//                 writer.write(s);
+//                 writer.newLine();
+//             }
+//             writer.close();
+            
+//             InputStream in = null;
+//             try{c.cd(Repository.REMOTEEMAILCONFIGPATH);}
+//             catch(Exception e){
+//                 System.out.println("Could not get :"+Repository.REMOTEEMAILCONFIGPATH);}
+//             System.out.print("Getting "+name+" as email config file.... ");
+//             try{in = c.get(name);
+//                 InputStreamReader inputStreamReader = new InputStreamReader(in);
+//                 BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
+//                 BufferedWriter writer = null;
+//                 String line;
+//                 try{writer = new BufferedWriter(new FileWriter(file));
+//                     while ((line=bufferedReader.readLine())!= null){
+//                         writer.write(line);
+//                         writer.newLine();}
+//                     bufferedReader.close();
+//                     writer.close();
+//                     inputStreamReader.close();
+//                     in.close();
+//                     System.out.println("successfull");}
+//                 catch(Exception e){
+//                     System.out.println("failed");
+//                     e.printStackTrace();}}
+//             catch(Exception e){
+//                 System.out.println("Could not get :"+name+
+//                 " from: "+Repository.REMOTEEMAILCONFIGPATH+" as email config file");}
+            
+            }
         return file;}
      
     /*
@@ -707,6 +746,16 @@ public class Repository{
      * parse email config file
      */
     public static void parseEmailConfig(String name,boolean fromServer){
+        //clear components
+        window.mainpanel.p4.getEmails().setIPName("");
+        window.mainpanel.p4.getEmails().setPort("");
+        window.mainpanel.p4.getEmails().setUser("");
+        window.mainpanel.p4.getEmails().setFrom("");
+        window.mainpanel.p4.getEmails().setEmails("");
+        window.mainpanel.p4.getEmails().setPassword("");
+        window.mainpanel.p4.getEmails().setMessage("");
+        window.mainpanel.p4.getEmails().setSubject("");
+        
         File dbConf = getEmailConfFile(name,fromServer);
         DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
         try{DocumentBuilder db = dbf.newDocumentBuilder();
@@ -737,15 +786,14 @@ public class Repository{
             OutputStream out=null;
             InputStreamReader inputStreamReader = null;
             BufferedReader bufferedReader = null;  
-            BufferedWriter writer=null;
-            File file;
+//             BufferedWriter writer=null;
+//             File file;
             String line = null;
             String name = null;
-            try{c.cd(USERHOME+"/twister/config/");
-//                 System.out.println("c.ls.size(): "+c.ls(".").size());
-//                 System.out.println("HOME: "+c.getHome());
-            }
-            catch(Exception e){
+            
+            
+//             try{
+            if(Repository.getRemoteFolderContent(USERHOME+"/twister/config/").length==0){
                 System.out.println("Could not get :"+USERHOME+"/twister/config/");
                 CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,Repository.window,
                                         "Warning", "Could not get :"+USERHOME+
@@ -754,30 +802,65 @@ public class Repository{
                     System.out.println(Repository.temp+bar+"Twister deleted successfull");
                 else System.out.println("Could not delete: "+Repository.temp+bar+"Twister");
                 run = false;
-                if(!applet)System.exit(0);}
-            try{
-//                 System.out.println("fwmconfig.xml size on sftp: "+
-//                         c.lstat("fwmconfig.xml").getSize()+" bytes");
-                in = c.get("fwmconfig.xml");}
-            catch(Exception e){
+                if(!applet)System.exit(0);
+            }
+//                 c.cd(USERHOME+"/twister/config/");
+//                 System.out.println("c.ls.size(): "+c.ls(".").size());
+//                 System.out.println("HOME: "+c.getHome());
+//             }
+//             catch(Exception e){
+//                 System.out.println("Could not get :"+USERHOME+"/twister/config/");
+//                 CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,Repository.window,
+//                                         "Warning", "Could not get :"+USERHOME+
+//                                         "/twister/config/");
+//                 if(Window.deleteTemp(new File(Repository.temp+bar+"Twister")))
+//                     System.out.println(Repository.temp+bar+"Twister deleted successfull");
+//                 else System.out.println("Could not delete: "+Repository.temp+bar+"Twister");
+//                 run = false;
+//                 if(!applet)System.exit(0);}
+                
+                
+            String content = Repository.getRemoteFileContent(USERHOME+"/twister/config/fwmconfig.xml");
+            if(content==null){
                 CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, Repository.window,
-                                        "Warning","Could not get fwmconfig.xml from "+
-                                        c.pwd()+" creating a blank one.");
-                System.out.println("Could not get fwmconfig.xml from "+
-                                        c.pwd()+" creating a blank one.");
-                ConfigFiles.saveXML(true);
-                in = c.get("fwmconfig.xml");}
-            inputStreamReader = new InputStreamReader(in);
-            bufferedReader = new BufferedReader(inputStreamReader);  
-            file = new File(temp+bar+"Twister"+bar+"config"+bar+"fwmconfig.xml");
-            writer = new BufferedWriter(new FileWriter(file));
-            while((line=bufferedReader.readLine())!= null){
-                writer.write(line);
-                writer.newLine();}
-            bufferedReader.close();
+                                        "Warning","Could not get fwmconfig.xml from "
+                                        +USERHOME+"+/twister/config/ creating a blank one.");
+                ConfigFiles.saveXML(true,"");
+                //in = c.get("fwmconfig.xml");
+            }
+            
+            
+            File file = new File(temp+bar+"Twister"+bar+"config"+bar+"fwmconfig.xml");
+            BufferedWriter writer = new BufferedWriter(new FileWriter(file));
+            writer.write(content);
             writer.close();
-            inputStreamReader.close();
-            in.close();
+            
+//             try{in = c.get("fwmconfig.xml");}
+//             catch(Exception e){
+//                 CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, Repository.window,
+//                                         "Warning","Could not get fwmconfig.xml from "+
+//                                         c.pwd()+" creating a blank one.");
+//                 System.out.println("Could not get fwmconfig.xml from "+
+//                                         c.pwd()+" creating a blank one.");
+//                 ConfigFiles.saveXML(true);
+//                 in = c.get("fwmconfig.xml");}
+                
+                
+                
+//             inputStreamReader = new InputStreamReader(in);
+//             bufferedReader = new BufferedReader(inputStreamReader);  
+//             file = new File(temp+bar+"Twister"+bar+"config"+bar+"fwmconfig.xml");
+//             writer = new BufferedWriter(new FileWriter(file));
+//             while((line=bufferedReader.readLine())!= null){
+//                 writer.write(line);
+//                 writer.newLine();}
+//             bufferedReader.close();
+//             writer.close();
+//             inputStreamReader.close();
+//             in.close();
+            
+            
+            
 //             System.out.println("fwmconfig.xml local size: "+file.length()+" bytes");
             String usersdir="";
             intro.setStatus("Finished getting fwmconfig");
@@ -790,7 +873,8 @@ public class Repository{
                 LOGSPATH = getTagContent(doc,"LogsPath");
                 if(doc.getElementsByTagName("LogFiles").getLength()==0)
                     System.out.println("LogFiles tag not found in fwmconfig");
-                else{logs.add(getTagContent(doc,"logRunning"));
+                else{
+                    logs.add(getTagContent(doc,"logRunning"));
                     logs.add(getTagContent(doc,"logDebug"));
                     logs.add(getTagContent(doc,"logSummary"));
                     logs.add(getTagContent(doc,"logTest"));
@@ -804,7 +888,8 @@ public class Repository{
 //                 getTagContent(doc,"MasterXMLTestSuite");
                 XMLDIRECTORY = Repository.temp+bar+"Twister"+bar+"XML"+
                                         bar+XMLREMOTEDIR.split("/")[XMLREMOTEDIR.split("/").length-1];
-                REMOTEEPIDDIR = getTagContent(doc,"EPIdsFile");
+                //REMOTEEPIDDIR = getTagContent(doc,"EPIdsFile");
+                REMOTEEPIDDIR = getTagContent(doc,"EpNames");
                 REMOTEDATABASECONFIGFILE = getTagContent(doc,"DbConfigFile");
                 String [] path = REMOTEDATABASECONFIGFILE.split("/");
                 StringBuffer result = new StringBuffer();
@@ -824,7 +909,7 @@ public class Repository{
                 REMOTEEMAILCONFIGPATH = result.toString();
                 REMOTEEMAILCONFIGFILE = path[path.length-1];
                 TESTSUITEPATH = getTagContent(doc,"TestCaseSourcePath");
-                REMOTEHARDWARECONFIGDIRECTORY = getTagContent(doc,"HardwareConfig");
+                //REMOTEHARDWARECONFIGDIRECTORY = getTagContent(doc,"HardwareConfig");
                 GLOBALSREMOTEFILE = getTagContent(doc,"GlobalParams");
             }
             catch(Exception e){e.printStackTrace();}
@@ -891,38 +976,59 @@ public class Repository{
             intro.setStatus("Finished writing xml path");
             intro.addPercent(0.035);
             intro.repaint();
-            int length = 0;
-            try{length = c.ls(result.toString()+path[path.length-2]).size();}
-            catch(Exception e){
-                System.out.println("Could not get "+result.toString()+dir);}
+            int length = Repository.getRemoteFolderContent(result.toString()+path[path.length-2]).length;
+//             try{length = c.ls(result.toString()+path[path.length-2]).size();}
+//             catch(Exception e){
+//                 System.out.println("Could not get "+result.toString()+dir);}
             if(length>2){
-                intro.setStatus("Started looking for xml file");
-                intro.addPercent(0.035);
-                intro.repaint();
-                intro.setStatus("Started getting xml file");
-                intro.addPercent(0.035);
-                intro.repaint();
-                in = c.get(XMLREMOTEDIR);                
-                data = new byte[900];
-                buffer = new ByteArrayOutputStream();
-                while ((nRead = in.read(data, 0, data.length)) != -1){
-                    buffer.write(data, 0, nRead);}
-                intro.setStatus("Finished reading xml ");
-                intro.addPercent(0.035);
-                intro.repaint();
-                buffer.flush();
-                out = new FileOutputStream(temp+bar+"Twister"+bar+"XML"+
-                            bar+XMLREMOTEDIR.split("/")[XMLREMOTEDIR.split("/").length-1]);
+                
+                
+//                 intro.setStatus("Started looking for xml file");
+//                 intro.addPercent(0.035);
+//                 intro.repaint();
+//                 intro.setStatus("Started getting xml file");
+//                 intro.addPercent(0.07);
+//                 intro.repaint();
                 intro.setStatus("Started writing xml file");
                 intro.addPercent(0.035);
                 intro.repaint();
-                buffer.writeTo(out);
-                out.close();
-                buffer.close();
-                in.close();}
-            intro.setStatus("Finished writing xml");
-            intro.addPercent(0.035);
-            intro.repaint();}
+                
+                file = new File(temp+bar+"Twister"+bar+"XML"+
+                            bar+XMLREMOTEDIR.split("/")[XMLREMOTEDIR.split("/").length-1]);
+                writer = new BufferedWriter(new FileWriter(file));
+                content = Repository.getRemoteFileContent(XMLREMOTEDIR);
+                writer.write(content);
+                writer.close();
+                intro.setStatus("Finished writing xml ");
+                intro.addPercent(0.035);
+                intro.repaint();
+                
+                
+                
+//                 in = c.get(XMLREMOTEDIR);                
+//                 data = new byte[900];
+//                 buffer = new ByteArrayOutputStream();
+//                 while ((nRead = in.read(data, 0, data.length)) != -1){
+//                     buffer.write(data, 0, nRead);}
+//                 intro.setStatus("Finished reading xml ");
+//                 intro.addPercent(0.035);
+//                 intro.repaint();
+//                 buffer.flush();
+//                 out = new FileOutputStream(temp+bar+"Twister"+bar+"XML"+
+//                             bar+XMLREMOTEDIR.split("/")[XMLREMOTEDIR.split("/").length-1]);
+//                 intro.setStatus("Started writing xml file");
+//                 intro.addPercent(0.035);
+//                 intro.repaint();
+//                 buffer.writeTo(out);
+//                 out.close();
+//                 buffer.close();
+//                 in.close();
+            
+            }
+//             intro.setStatus("Finished writing xml");
+//             intro.addPercent(0.035);
+//             intro.repaint();
+        }
         catch(Exception e){e.printStackTrace();}}
         
     /*
@@ -1403,6 +1509,109 @@ public class Repository{
     public static Document getPluginsConfig(){
         return pluginsconfig;
     }
+    
+    public static boolean removeRemoteFile(String file){
+        while(sftpoccupied){
+            try{Thread.sleep(100);}
+            catch(Exception e){e.printStackTrace();}
+        }
+        sftpoccupied = true;
+        try{connection.rm(file);
+            sftpoccupied = false;
+            return true;
+        } catch (Exception e){
+            e.printStackTrace();
+            sftpoccupied = false;
+            System.out.println("Could not delete:"+file+" file on server");
+            return false;
+        }
+    }
+    
+    public static String [] getRemoteFolderContent(String folder){
+        while(sftpoccupied){
+            try{Thread.sleep(100);}
+            catch(Exception e){e.printStackTrace();}
+        }
+        sftpoccupied = true;
+        int size;
+        Vector v=null;
+        try{v = connection.ls(folder);
+            size = v.size();}
+        catch(Exception e){
+            System.out.println("No files found in: "+folder+" directory");
+            size=0;}
+        ArrayList<String> files = new ArrayList<String>();
+        String name=null;
+        for(int i=0;i<size;i++){
+            try{name = ((LsEntry)v.get(i)).getFilename();
+                if(name.split("\\.").length==0)continue;
+                files.add(name.toString());
+            }
+            catch(Exception e){
+                e.printStackTrace();
+            }
+        }
+        sftpoccupied = false;
+        String [] resp = new String[files.size()];
+        files.toArray(resp);
+        return resp;
+    }
+    
+    public static String getRemoteFileContent(String file){
+        while(sftpoccupied){
+            try{Thread.sleep(100);}
+            catch(Exception e){e.printStackTrace();}
+        }
+        sftpoccupied = true;
+        String line = null;
+        try{InputStream in = Repository.connection.get(file);
+            InputStreamReader inputStreamReader = new InputStreamReader(in);
+            BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
+            StringBuilder b=new StringBuilder();
+            while ((line=bufferedReader.readLine())!= null){
+                    b.append(line);
+                    b.append("\n");
+            }
+            bufferedReader.close();
+            inputStreamReader.close();
+            in.close();
+            sftpoccupied = false;
+            return b.toString();
+        } catch (Exception e){
+            CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,Repository.window,
+                                        "Warning", "Could not get :"+file);
+            e.printStackTrace();
+            sftpoccupied = false;
+            return null;
+        }
+    }
+    
+    public static boolean uploadRemoteFile(String location,FileInputStream input,String filename){
+        while(sftpoccupied){
+            try{Thread.sleep(100);}
+            catch(Exception e){e.printStackTrace();}
+        }
+        sftpoccupied = true;
+        try{Repository.connection.cd(location);}
+        catch(Exception e){
+            CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,Repository.window,
+                                        "Warning", "Could not get to :"+location);
+            e.printStackTrace();
+            sftpoccupied = false;
+            return false;
+        }
+        try{Repository.connection.put(input, filename);
+            input.close();
+            sftpoccupied = false;
+            return true;
+        } catch (Exception e){
+            CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,Repository.window,
+                                        "Warning", "Could not upload :"+filename);
+            e.printStackTrace();
+            sftpoccupied = false;
+            return false;
+        }
+    }
         
     /* 
      * method to load plugins config from file to
@@ -1500,7 +1709,7 @@ public class Repository{
         //int subdirnr = REMOTEUSERSDIRECTORY.split("/").length-1;
         int size;
         Vector v=null;
-        try{v = c.ls(REMOTEUSERSDIRECTORY);
+        try{v = connection.ls(REMOTEUSERSDIRECTORY);
             size = v.size();}
         catch(Exception e){
             System.out.println("No suites xml found in: "+REMOTEUSERSDIRECTORY+" directory");
@@ -1516,8 +1725,9 @@ public class Repository{
                 files.add(name.toString());
             }
             catch(Exception e){
-                e.printStackTrace();}
+                e.printStackTrace();
             }
+        }
             
         String users[] = new String[files.size()+1];
         for(int i=0;i<files.size();i++){
@@ -1546,22 +1756,35 @@ public class Repository{
                     window.mainpanel.p1.sc.g.setUser((new StringBuilder()).append(Repository.getUsersDirectory()).
                                         append(Repository.getBar()).append(user).append(".XML").
                                         toString());
-                    window.mainpanel.p1.sc.g.printXML( window.mainpanel.p1.sc.g.getUser(),false,false,false,false,"");}}
+                    window.mainpanel.p1.sc.g.printXML( window.mainpanel.p1.sc.g.getUser(),false,false,false,false,"");
+                    Repository.window.mainpanel.p1.suitaDetails.setPreScript("");
+                    Repository.window.mainpanel.p1.suitaDetails.setPostScript("");
+                    Repository.window.mainpanel.p1.suitaDetails.setGlobalLibs(null);
+                    Repository.window.mainpanel.p1.suitaDetails.setDelay("");
+                    Repository.window.mainpanel.p1.suitaDetails.setStopOnFail(false);
+                    Repository.window.mainpanel.p1.suitaDetails.setSaveDB(false);
+                }}
             else{
                 try{
-                    InputStream in = c.get(REMOTEUSERSDIRECTORY+"/"+user);
-                    InputStreamReader inputStreamReader = new InputStreamReader(in);
-                    BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
+                    String content = Repository.getRemoteFileContent(REMOTEUSERSDIRECTORY+"/"+user);                    
                     File file = new File(temp+bar+"Twister"+bar+"Users"+bar+user);
                     BufferedWriter writer = new BufferedWriter(new FileWriter(file));
-                    String line;
-                    while ((line=bufferedReader.readLine())!= null){
-                        writer.write(line);
-                        writer.newLine();}
-                    bufferedReader.close();
+                    writer.write(content);
                     writer.close();
-                    inputStreamReader.close();
-                    in.close();
+                    
+//                     InputStream in = c.get(REMOTEUSERSDIRECTORY+"/"+user);
+//                     InputStreamReader inputStreamReader = new InputStreamReader(in);
+//                     BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
+//                     File file = new File(temp+bar+"Twister"+bar+"Users"+bar+user);
+//                     BufferedWriter writer = new BufferedWriter(new FileWriter(file));
+//                     String line;
+//                     while ((line=bufferedReader.readLine())!= null){
+//                         writer.write(line);
+//                         writer.newLine();}
+//                     bufferedReader.close();
+//                     writer.close();
+//                     inputStreamReader.close();
+//                     in.close();
                     
                     
                     Repository.emptySuites();
@@ -1600,6 +1823,25 @@ public class Repository{
     
     
     }
+    
+    public static String getVersion(){
+        return version;
+    }
+    
+    /*
+     * XmlRpc main connection used by Twister framework
+     */
+    public static void initializeRPC(){
+        try{XmlRpcClientConfigImpl configuration = new XmlRpcClientConfigImpl();
+            configuration.setServerURL(new URL("http://"+Repository.host+
+                                        ":"+Repository.getCentralEnginePort()));
+            client = new XmlRpcClient();
+            client.setConfig(configuration);
+            System.out.println("Client initialized: "+client);}
+        catch(Exception e){System.out.println("Could not conect to "+
+                            Repository.host+" :"+Repository.getCentralEnginePort()+
+                            "for RPC client initialization");}
+    }
         
     /*
      * method to copy plugins configuration file
@@ -1618,36 +1860,57 @@ public class Repository{
             String line = null;
             String name = null;
             System.out.println("Starting getting plugins.xml from "+USERHOME+"/twister/config/");
-            try{c.cd(USERHOME+"/twister/config/");}
-            catch(Exception e){
+            
+            if(Repository.getRemoteFolderContent(USERHOME+"/twister/config/").length==0){
                 System.out.println("Could not get :"+USERHOME+"/twister/config/");
                 CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,Repository.window,
                                         "Warning", "Could not get :"+USERHOME+
                                         "/twister/config/");
-                return false;}
-            try{
-//                 System.out.println("plugins.xml size on sftp: "+
-//                         c.lstat("plugins.xml").getSize()+" bytes");
-                in = c.get("plugins.xml");}
-            catch(Exception e){
+                return false;
+            }
+            
+//             try{c.cd(USERHOME+"/twister/config/");}
+//             catch(Exception e){
+//                 System.out.println("Could not get :"+USERHOME+"/twister/config/");
+//                 CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,Repository.window,
+//                                         "Warning", "Could not get :"+USERHOME+
+//                                         "/twister/config/");
+//                 return false;}
+            
+            String content = Repository.getRemoteFileContent(USERHOME+"/twister/config/plugins.xml");
+            if(content==null){
                 CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, Repository.window,
                                         "Warning","Could not get plugins.xml from "+
-                                        c.pwd());
-                System.out.println("Could not get plugins.xml from "+
-                                        c.pwd());
-                return false;}
-            inputStreamReader = new InputStreamReader(in);
-            bufferedReader = new BufferedReader(inputStreamReader);  
+                                        USERHOME+"/twister/config/");
+                return false;
+            }
+
+//             try{in = c.get("plugins.xml");}
+//             catch(Exception e){
+//                 CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, Repository.window,
+//                                         "Warning","Could not get plugins.xml from "+
+//                                         c.pwd());
+//                 System.out.println("Could not get plugins.xml from "+
+//                                         c.pwd());
+//                 return false;}
+//             inputStreamReader = new InputStreamReader(in);
+//             bufferedReader = new BufferedReader(inputStreamReader);  
+//             file = new File(PLUGINSLOCALGENERALCONF);
+//             writer = new BufferedWriter(new FileWriter(file));
+//             while((line=bufferedReader.readLine())!= null){
+//                 writer.write(line);
+//                 writer.newLine();}
+//             bufferedReader.close();
+//             writer.close();
+//             inputStreamReader.close();
+//             in.close();
+//             System.out.println("plugins.xml local size: "+file.length()+" bytes");
+
             file = new File(PLUGINSLOCALGENERALCONF);
             writer = new BufferedWriter(new FileWriter(file));
-            while((line=bufferedReader.readLine())!= null){
-                writer.write(line);
-                writer.newLine();}
-            bufferedReader.close();
+            writer.write(content);
             writer.close();
-            inputStreamReader.close();
-            in.close();
-//             System.out.println("plugins.xml local size: "+file.length()+" bytes");
+
             intro.setStatus("Finished getting plugins");
             intro.repaint();
             return true;

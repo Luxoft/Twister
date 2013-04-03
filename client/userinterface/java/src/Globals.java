@@ -1,3 +1,22 @@
+
+/*
+File: Globals.java ; This file is part of Twister.
+
+Copyright (C) 2012 , Luxoft
+
+Authors: Andrei Costachi <acostachi@luxoft.com>
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 import javax.swing.JTree;
 import javax.swing.JScrollPane;
 import javax.swing.tree.DefaultMutableTreeNode;
@@ -47,16 +66,24 @@ import com.jcraft.jsch.Channel;
 import java.util.Properties;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
+import javax.swing.JButton;
+import javax.swing.event.AncestorEvent;
+import javax.swing.event.AncestorListener;
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import javax.swing.GroupLayout;
 
 public class Globals {
     private ChannelSftp ch ;
     public JScrollPane panel;
+    public JPanel main;
     private JTree tree;
     private XPath xpath;
     private Document doc;
     private DefaultMutableTreeNode root;
     private File globalsfile;
     private boolean finished = true;
+    private JButton addconf,addparam,remove;
     
     public Globals(){
         initSftp();
@@ -66,6 +93,7 @@ public class Globals {
     }
     
     public void refresh(){
+        ((DefaultMutableTreeNode)tree.getModel().getRoot()).removeAllChildren();
         parseDocument();
         buildTree();
     }
@@ -91,24 +119,70 @@ public class Globals {
         tree.setRootVisible(false);
         tree.setCellRenderer(new CustomIconRenderer());
         panel = new JScrollPane(tree);
+        main = new JPanel();
+        panel = new JScrollPane(tree);
+        JPanel buttonPanel = new JPanel();
+        
+        addconf = new JButton("Add Config");
+        addparam = new JButton("Add Parameter");
+        remove = new JButton("Remove");
+        
+        addconf.setBounds(0,5,120,20);
+        buttonPanel.add(addconf);
+        addconf.addActionListener(new ActionListener(){
+            public void actionPerformed(ActionEvent ev){
+                addConf();
+            }
+        });
+        
+        addparam.setBounds(130,5,140,20);
+        buttonPanel.add(addparam);
+        addparam.setEnabled(false);
+        addparam.addActionListener(new ActionListener(){
+            public void actionPerformed(ActionEvent ev){
+                addParam();
+            }
+        });
+        
+        remove.setBounds(280,5,100,20);
+        remove.setEnabled(false);
+        buttonPanel.add(remove);
+        remove.addActionListener(new ActionListener(){
+            public void actionPerformed(ActionEvent ev){
+                deleteMultiple();
+            }
+        });
+        
+        GroupLayout buttonPanelLayout = new GroupLayout(buttonPanel);
+        buttonPanel.setLayout(buttonPanelLayout);
+        buttonPanelLayout.setHorizontalGroup(
+            buttonPanelLayout.createParallelGroup(GroupLayout.Alignment.LEADING)
+            .addGap(0, 0, Short.MAX_VALUE)
+        );
+        buttonPanelLayout.setVerticalGroup(
+            buttonPanelLayout.createParallelGroup(GroupLayout.Alignment.LEADING)
+            .addGap(0, 50, Short.MAX_VALUE)
+        );
+
+        GroupLayout layout = new GroupLayout(main);
+        main.setLayout(layout);
+        layout.setHorizontalGroup(
+            layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+            .addComponent(panel, GroupLayout.DEFAULT_SIZE, 394, Short.MAX_VALUE)
+            .addComponent(buttonPanel, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+        );
+        layout.setVerticalGroup(
+            layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+            .addGroup(layout.createSequentialGroup()
+                .addComponent(panel, GroupLayout.DEFAULT_SIZE, 235, Short.MAX_VALUE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(buttonPanel, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
+        );
         
         tree.addKeyListener(new KeyAdapter(){
             public void keyReleased(KeyEvent ev){
                 if(ev.getKeyCode()==KeyEvent.VK_DELETE){
-                    TreePath []tps = tree.getSelectionPaths();
-                    for(TreePath pth:tps){
-                        DefaultMutableTreeNode treenode = (DefaultMutableTreeNode)pth.getLastPathComponent();
-                        Object myObj = treenode.getUserObject();
-                        if( myObj instanceof MyFolder){
-                            try{removeFolder((MyFolder)myObj, treenode,false);}
-                            catch(Exception e){e.printStackTrace();}
-                        } else if(myObj instanceof MyParam){
-                            try{removeParam((MyParam)myObj, treenode,false);}
-                            catch(Exception e){e.printStackTrace();}
-                        }
-                    }
-                    writeXML();
-                    uploadFile();
+                    deleteMultiple();
                 }
             }
         });
@@ -123,14 +197,40 @@ public class Globals {
                             DefaultMutableTreeNode treenode = (DefaultMutableTreeNode)tp.getLastPathComponent();
                             MyFolder folder = (MyFolder)treenode.getUserObject();
                             showFolderPopUp(treenode,ev,folder);
+                            addconf.setEnabled(true);
+                            addparam.setEnabled(true);
+                            remove.setEnabled(true);
                         }else if(((DefaultMutableTreeNode)tp.getLastPathComponent()).getUserObject() instanceof MyParam){
                             DefaultMutableTreeNode treenode = (DefaultMutableTreeNode)tp.getLastPathComponent();
                             MyParam param = (MyParam)treenode.getUserObject();
                             showParamPopUp(treenode,ev,param);
+                            remove.setEnabled(true);
+                            addconf.setEnabled(false);
+                            addparam.setEnabled(false);
+                        }
+                    } else if(ev.getButton() == MouseEvent.BUTTON1){
+                        if(tree.getSelectionPaths().length==1){
+                            tp = tree.getSelectionPath();
+                            if(((DefaultMutableTreeNode)tp.getLastPathComponent()).getUserObject() instanceof MyFolder){
+                                remove.setEnabled(true);
+                                addconf.setEnabled(true);
+                            addparam.setEnabled(true);
+                            }else if(((DefaultMutableTreeNode)tp.getLastPathComponent()).getUserObject() instanceof MyParam){
+                                remove.setEnabled(true);
+                                addconf.setEnabled(false);
+                                addparam.setEnabled(false);
+                            }
+                        } else {
+                            remove.setEnabled(true);
+                            addconf.setEnabled(false);
+                            addparam.setEnabled(false);
                         }
                     }
                 } else {
                     tree.setSelectionPath(null);
+                    remove.setEnabled(false);
+                    addconf.setEnabled(true);
+                    addparam.setEnabled(false);
                     if(ev.getButton() == MouseEvent.BUTTON3){
                         showNewFolderPopUp(ev);
                     } 
@@ -140,9 +240,47 @@ public class Globals {
         );
     }
     
+    public void addParam(){
+        TreePath tp = tree.getSelectionPath();
+        DefaultMutableTreeNode treenode = (DefaultMutableTreeNode)tp.getLastPathComponent();
+        MyFolder folder = (MyFolder)treenode.getUserObject();
+        appendParam(treenode,folder);
+    }
+    
+    public void addConf(){
+        TreePath tp = tree.getSelectionPath();
+        if(tp==null){
+            addFolder();
+        } else{
+            DefaultMutableTreeNode treenode = (DefaultMutableTreeNode)tp.getLastPathComponent();
+            MyFolder folder = (MyFolder)treenode.getUserObject();
+            appendFolder(treenode,folder);
+        }
+    }
+    
+    public void deleteMultiple(){
+        TreePath []tps = tree.getSelectionPaths();
+        for(TreePath pth:tps){
+            DefaultMutableTreeNode treenode = (DefaultMutableTreeNode)pth.getLastPathComponent();
+            Object myObj = treenode.getUserObject();
+            if( myObj instanceof MyFolder){
+                try{removeFolder((MyFolder)myObj, treenode,false);}
+                catch(Exception e){e.printStackTrace();}
+            } else if(myObj instanceof MyParam){
+                try{removeParam((MyParam)myObj, treenode,false);}
+                catch(Exception e){e.printStackTrace();}
+            }
+        }
+        remove.setEnabled(false);
+        addconf.setEnabled(true);
+        addparam.setEnabled(false);
+        writeXML();
+        uploadFile();
+    }
+    
     public void showNewFolderPopUp(MouseEvent ev){
         JPopupMenu p = new JPopupMenu();
-        JMenuItem item = new JMenuItem("Add Folder");
+        JMenuItem item = new JMenuItem("Add Config");
         item.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 addFolder();}});
@@ -153,22 +291,21 @@ public class Globals {
     public void addFolder(){
         String resp = CustomDialog.showInputDialog(JOptionPane.PLAIN_MESSAGE,
                                                     JOptionPane.OK_CANCEL_OPTION, 
-                                                    panel, "Name", "Folder name: ");
+                                                    panel, "Name", "Config name: ");
         if(resp!=null&&!resp.equals("")){
             try{
                 Element rootElement = doc.createElement("folder");
-                
                 doc.getFirstChild().appendChild(rootElement);
                 Element fname = doc.createElement("fname");
                 rootElement.appendChild(fname);  
                 Node node = doc.createTextNode(resp);
                 fname.appendChild(node);
-                
                 MyFolder folder = new MyFolder(node);
-                
                 DefaultMutableTreeNode temp = new DefaultMutableTreeNode(folder,true);
                 ((DefaultTreeModel)tree.getModel()).insertNodeInto(temp, root,root.getChildCount());
-                
+                if(root.getChildCount()==1){
+                    ((DefaultTreeModel)tree.getModel()).reload();
+                }
                 writeXML();
                 uploadFile();
                 
@@ -184,12 +321,12 @@ public class Globals {
      */
     public void showParamPopUp(final DefaultMutableTreeNode treenode,MouseEvent ev,final MyParam node){
         JPopupMenu p = new JPopupMenu();
-        JMenuItem item = new JMenuItem("Change param");
+        JMenuItem item = new JMenuItem("Change Parameter");
         item.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 changeParam(treenode,node);}});
         p.add(item);
-        item = new JMenuItem("Remove param");
+        item = new JMenuItem("Remove Parameter");
         item.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 removeParam(node,treenode,true);}});
@@ -207,6 +344,9 @@ public class Globals {
         if(refresh){
             writeXML();
             uploadFile();
+            remove.setEnabled(false);
+            addconf.setEnabled(true);
+            addparam.setEnabled(false);
         }
     }
     
@@ -214,7 +354,26 @@ public class Globals {
      * change parameter node
      */
     public void changeParam(DefaultMutableTreeNode treenode,MyParam node){  
-        JTextField name = new JTextField();   
+        final JTextField name = new JTextField(); 
+        name.addAncestorListener(new AncestorListener() {
+            
+            @Override
+            public void ancestorRemoved(AncestorEvent arg0) {
+                // TODO Auto-generated method stub
+            }
+            
+            @Override
+            public void ancestorMoved(AncestorEvent arg0) {
+                // TODO Auto-generated method stub
+                
+            }
+            
+            @Override
+            public void ancestorAdded(AncestorEvent arg0) {
+                name.requestFocusInWindow();
+                
+            }
+        });
         name.setText(node.getName().getNodeValue());
         JTextField value = new JTextField();
         value.setText(node.getValue().getNodeValue());
@@ -265,22 +424,22 @@ public class Globals {
      */
     public void showFolderPopUp(final DefaultMutableTreeNode treenode,MouseEvent ev,final MyFolder node){
         JPopupMenu p = new JPopupMenu();
-        JMenuItem item = new JMenuItem("Rename folder");
+        JMenuItem item = new JMenuItem("Rename Config");
         item.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 renameFolder(treenode,node);}});
         p.add(item);
-        item = new JMenuItem("Append folder");
+        item = new JMenuItem("Add Config");
         item.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 appendFolder(treenode,node);}});
         p.add(item);
-        item = new JMenuItem("Append param");
+        item = new JMenuItem("Add Parameter");
         item.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 appendParam(treenode,node);}});
         p.add(item);
-        item = new JMenuItem("Remove folder");
+        item = new JMenuItem("Remove Config");
         item.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 removeFolder(node,treenode,true);}});
@@ -289,15 +448,33 @@ public class Globals {
     }
     
     public void renameFolder(DefaultMutableTreeNode treenode, MyFolder parent){
-        JTextField name = new JTextField();   
+        final JTextField name = new JTextField();  
+        name.addAncestorListener(new AncestorListener() {
+            
+            @Override
+            public void ancestorRemoved(AncestorEvent arg0) {
+                // TODO Auto-generated method stub
+            }
+            
+            @Override
+            public void ancestorMoved(AncestorEvent arg0) {
+                // TODO Auto-generated method stub
+                
+            }
+            
+            @Override
+            public void ancestorAdded(AncestorEvent arg0) {
+                name.requestFocusInWindow();
+                
+            }
+        });
         name.setText(parent.toString());
         
         JPanel p = getPropPanel(name,null);
         int r = (Integer)CustomDialog.showDialog(p,JOptionPane.PLAIN_MESSAGE, 
                                                 JOptionPane.OK_CANCEL_OPTION, 
-                                                panel, "Folder name",null);
+                                                panel, "Config name",null);
         if(r == JOptionPane.OK_OPTION&&(!name.getText().equals(""))){
-            //node.getName().setNodeValue(name.getText());
             parent.getNode().setNodeValue(name.getText());
             ((DefaultTreeModel)tree.getModel()).nodeChanged(treenode);
             writeXML();
@@ -311,7 +488,26 @@ public class Globals {
      */
     public void appendParam(DefaultMutableTreeNode treenode, MyFolder parent){
         
-        JTextField name = new JTextField();
+        final JTextField name = new JTextField();
+        name.addAncestorListener(new AncestorListener() {
+            
+            @Override
+            public void ancestorRemoved(AncestorEvent arg0) {
+                // TODO Auto-generated method stub
+            }
+            
+            @Override
+            public void ancestorMoved(AncestorEvent arg0) {
+                // TODO Auto-generated method stub
+                
+            }
+            
+            @Override
+            public void ancestorAdded(AncestorEvent arg0) {
+                name.requestFocusInWindow();
+                
+            }
+        });
         JTextField value = new JTextField();
         JPanel p = getPropPanel(name,value);
         int r = (Integer)CustomDialog.showDialog(p,JOptionPane.PLAIN_MESSAGE, 
@@ -354,6 +550,7 @@ public class Globals {
     }
     
     
+    
     /*
      * create and append new node 
      * to this parent node
@@ -361,7 +558,7 @@ public class Globals {
     public void appendFolder(DefaultMutableTreeNode treenode, MyFolder parent){
         String resp = CustomDialog.showInputDialog(JOptionPane.PLAIN_MESSAGE,
                                                     JOptionPane.OK_CANCEL_OPTION, 
-                                                    panel, "Name", "Folder name: ");
+                                                    panel, "Name", "Config name: ");
         if(resp!=null&&!resp.equals("")){
             Element rootElement = doc.createElement("folder");
             parent.getNode().getParentNode().getParentNode().appendChild(rootElement);
@@ -390,40 +587,33 @@ public class Globals {
             writeXML();
             uploadFile();
         }
+        remove.setEnabled(false);
+        addconf.setEnabled(true);
+        addparam.setEnabled(false);
     }
     
     public File getGlobalsFile(){
         File file = new File(Repository.temp+Repository.getBar()+"Twister"+Repository.getBar()+"config"+Repository.getBar()+"globals.xml");
-        try{InputStream in = Repository.c.get(Repository.GLOBALSREMOTEFILE);
-            InputStreamReader inputStreamReader = new InputStreamReader(in);
-            BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
-            BufferedWriter writer = null;
-            String line;
-            try{writer = new BufferedWriter(new FileWriter(file));
-                while ((line=bufferedReader.readLine())!= null){
-                    writer.write(line);
-                    writer.newLine();}
-                bufferedReader.close();
+        try{
+            
+            String content = Repository.getRemoteFileContent(Repository.GLOBALSREMOTEFILE);
+            try{BufferedWriter writer = new BufferedWriter(new FileWriter(file));
+                writer.write(content);
                 writer.close();
-                inputStreamReader.close();
-                in.close();
-                System.out.println("successfull");}
-            catch(Exception e){
+            } catch(Exception e){
                 e.printStackTrace();
-                return file;
-            }
+            }            
         }
         catch(Exception e){
             e.printStackTrace();
             System.out.println("Could not get :"+
-                                Repository.GLOBALSREMOTEFILE+" as globals param file");
+                                Repository.GLOBALSREMOTEFILE+" as globals parameter file");
             return file;
         }
         return file;
     }
         
-    public void buildTree(){
-        ((DefaultMutableTreeNode)tree.getModel().getRoot()).removeAllChildren();        
+    public void buildTree(){     
         try{xpath = XPathFactory.newInstance().newXPath();
             XPathExpression expr1 = xpath.compile("//root/folder");
             NodeList nodes = (NodeList)expr1.evaluate(doc, XPathConstants.NODESET);
@@ -440,7 +630,6 @@ public class Globals {
     public void parseFolder(Node node,DefaultMutableTreeNode parent){
         try{
             Node n = ((Element)node).getElementsByTagName("fname").item(0);
-            //String fname = n.getFirstChild().getNodeValue();
             MyFolder fname = new MyFolder(n.getFirstChild());
             DefaultMutableTreeNode temp = new DefaultMutableTreeNode(fname,true);
             parent.add(temp);
@@ -449,10 +638,8 @@ public class Globals {
             for(int i=0;i<nodes.getLength();i++){
                 MyParam param = new MyParam();
                 n = ((Element)nodes.item(i)).getElementsByTagName("name").item(0);
-                //String name = n.getFirstChild().getNodeValue();
                 param.setName(n.getFirstChild());
                 n = ((Element)nodes.item(i)).getElementsByTagName("value").item(0);
-                //String value = n.getFirstChild().getNodeValue();
                 param.setValue(n.getFirstChild());
                 temp.add(new DefaultMutableTreeNode(param,true));
             }

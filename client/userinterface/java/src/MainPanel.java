@@ -49,6 +49,10 @@ public class MainPanel extends JTabbedPane{
     public Panel4 p4;//configure tab
 //     public Panel5 p5;
     private boolean applet;
+    
+    public Panel2 getP2(){
+        return p2;
+    }
 
     public MainPanel(boolean applet){
         InputMap map = getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT);
@@ -98,7 +102,8 @@ public class MainPanel extends JTabbedPane{
                         setSelectedIndex(0);}}});}
         Repository.intro.setStatus("Finished Main initialization");
         Repository.intro.addPercent(0.035);
-        Repository.intro.repaint();}
+        Repository.intro.repaint();
+    }
  
     /*
      * ask user for suite file

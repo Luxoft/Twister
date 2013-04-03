@@ -34,9 +34,8 @@ public class ScrollGrafic extends JPanel{
         Repository.intro.repaint();
         g = new Grafic(tdtl,user);
         pane = new JScrollPane(g);
-        pane.setMinimumSize(new Dimension(100,350));
+        pane.setMinimumSize(new Dimension(100,100));
         pane.setMaximumSize(new Dimension(1000,1000));
-        pane.setPreferredSize(new Dimension(450,500));
         pane.getVerticalScrollBar().setUnitIncrement(16);
         add(pane);
         Repository.intro.setStatus("Finished Users Graphics initialization");
