@@ -1,6 +1,6 @@
 """
-<title>EqualAsync<title>
-<description>In equal state, the controller should receive Async messages
+<title>MultipleCommandSources<title>
+<description>Errors and replies only to the initiating controller
 </description>
 """
 
@@ -13,14 +13,14 @@ try:
 except:
     raise
 
-class EqualAsync(MultipleController):
+class MultipleCommandSources(MultipleController):
     """
     In equal state, the controller should receive Async messages
     """ 
     
     def runTest(self):
 
-        self.logger.info("Running EqualAsync test ")
+        self.logger.info("Running MultipleCommandSources test ")
 
         #Send role change request
 	self.logger.info("Generate role request message")
@@ -60,30 +60,25 @@ class EqualAsync(MultipleController):
         self.assertTrue(response.role == ofp.OFPCR_ROLE_EQUAL, 'Role is not SLAVE')
 	######################################################
 
-	self.logger.info("Insert a flow with hard expire set to 1 sec")
-        request = message.flow_mod()
-        request.buffer_id = 0xffffffff
-        request.cookie = random.randint(0,9007199254740992)
-	request.hard_timeout = 1
-	request.table_id = 0 
-        request.flags |= ofp.OFPFF_SEND_FLOW_REM
-        logMsg('logDebug',"Request to switch:")
-        logMsg('logDebug',request.show())
+        request = message.role_request()
+        request.role = ofp.OFPCR_ROLE_NOCHANGE
+
+	self.logger.info("Send a role_request from controller 1 and expect answer only on controller 1")
         rv = self.controller.message_send(request)
-        self.assertTrue(rv != -1, "Error installing flow mod")
-
-	self.logger.info("Waiting for async flow_removed message")
-        (response, pkt) = self.controller.poll(exp_msg=ofp.OFPT_FLOW_REMOVED,
+        self.assertTrue(rv != -1, "Error sending role_request from controller 1")
+	self.logger.info("Polling message on controller 1")
+        (response, pkt) = self.controller.poll(exp_msg=ofp.OFPT_ROLE_REPLY,
                                                timeout=5)
-	self.assertTrue(response is not None, 'Did not receive OFPT_FLOW_REMOVED async from switch')
+	self.assertTrue(response is not None, 'Did not receive OFPT_ROLE_REPLY from controller 1')
 
-        (response2, pkt) = self.controller2.poll(exp_msg=ofp.OFPT_FLOW_REMOVED,
+	self.logger.info("Verify role_reply is not received on controller 2 & 3")
+        (response2, pkt) = self.controller2.poll(exp_msg=ofp.OFPT_ROLE_REPLY,
                                                timeout=5)
-	self.assertTrue(response2 is not None, 'Did not receive OFPT_FLOW_REMOVED async from switch')
+	self.assertTrue(response2 is None, 'Received role_reply from controller 2')
 
-        (response3, pkt) = self.controller3.poll(exp_msg=ofp.OFPT_FLOW_REMOVED,
+        (response3, pkt) = self.controller3.poll(exp_msg=ofp.OFPT_ROLE_REPLY,
                                                timeout=5)
-	self.assertTrue(response3 is not None, 'Did not receive OFPT_FLOW_REMOVED async from switch')
+	self.assertTrue(response3 is None, 'Received role_reply form controller 3')
 
-tc = EqualAsync(testbed=currentTB,ra_proxy=ra_service)
+tc = MultipleCommandSources(testbed=currentTB,ra_proxy=ra_service)
 _RESULT = tc.run()
