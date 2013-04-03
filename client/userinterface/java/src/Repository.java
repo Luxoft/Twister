@@ -512,10 +512,6 @@ public class Repository{
         while(!passed){
             try{JTextField user1 = new JTextField();   
                 JPasswordField password1 = new JPasswordField();
-                if(!applet){
-                    user1.setText("tscguest");
-                    password1.setText("tscguest");
-                }
                 JComboBox combo = new JComboBox();
                 try{populateLookAndFeels();
                     if(lookAndFeels!=null){
