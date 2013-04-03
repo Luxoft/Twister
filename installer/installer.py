@@ -137,6 +137,11 @@ if TO_INSTALL == 'server':
             print('Exiting.\n')
             exit(0)
 
+    # Backup CONFIG folder for server
+    if os.path.exists(INSTALL_PATH + 'config'):
+        print('\nBack-up `config` folder (from `{0}` to `{1}`)...'.format(INSTALL_PATH+'config', os.getcwd()))
+        shutil.move(INSTALL_PATH + 'config', os.getcwd())
+
     # Deleting previous versions of Twister
     try:
         dir_util.remove_tree(INSTALL_PATH)
@@ -164,6 +169,7 @@ else:
 
         if selected.strip().lower() in ['y', 'yes']:
 
+            # Backup CONFIG folder for client
             if os.path.exists(INSTALL_PATH + 'config'):
                 print('\nBack-up `config` folder (from `{0}` to `{1}`)...'.format(INSTALL_PATH+'config', os.getcwd()))
                 shutil.move(INSTALL_PATH + 'config', os.getcwd())
