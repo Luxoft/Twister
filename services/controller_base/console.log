@@ -1,0 +1,24 @@
+Listening for agent on port 7711...
+2013-03-14 15:52:52,198 - ofcontroller - INFO - Starting openflow switch controller server 0.0.0.0:6633
+2013-03-14 15:52:52,198 - ofcontroller - INFO - Controller server waiting for switch connection
+2013-03-14 15:52:52,200 - ofcontroller - INFO - Waiting 10 for switch to connect
+2013-03-14 15:53:02,219 - ofcontroller - INFO - Waiting 10 for switch to connect
+2013-03-14 15:53:12,238 - ofcontroller - INFO - Waiting 10 for switch to connect
+2013-03-14 15:55:24,319 - ofcontroller - INFO - Waiting 10 for switch to connect
+2013-03-14 15:55:34,339 - ofcontroller - INFO - Waiting 10 for switch to connect
+2013-03-14 15:55:44,361 - ofcontroller - INFO - Waiting 10 for switch to connect
+2013-03-14 15:55:54,456 - ofcontroller - INFO - Waiting 10 for switch to connect
+2013-03-14 15:56:04,473 - ofcontroller - INFO - Waiting 10 for switch to connect
+2013-03-14 15:56:14,493 - ofcontroller - INFO - Waiting 10 for switch to connect
+2013-03-14 15:56:24,511 - ofcontroller - INFO - Waiting 10 for switch to connect
+2013-03-14 15:56:34,534 - ofcontroller - INFO - Waiting 10 for switch to connect
+2013-03-14 15:56:44,553 - ofcontroller - INFO - Waiting 10 for switch to connect
+2013-03-14 15:56:54,573 - ofcontroller - INFO - Waiting 10 for switch to connect
+2013-03-14 15:57:04,592 - ofcontroller - INFO - Waiting 10 for switch to connect
+2013-03-14 15:57:14,613 - ofcontroller - INFO - Waiting 10 for switch to connect
+2013-03-14 15:57:24,632 - ofcontroller - INFO - Waiting 10 for switch to connect
+2013-03-14 15:57:34,652 - ofcontroller - INFO - Waiting 10 for switch to connect
+2013-03-14 15:57:44,671 - ofcontroller - INFO - Waiting 10 for switch to connect
+2013-03-14 15:57:54,692 - ofcontroller - INFO - Waiting 10 for switch to connect
+2013-03-14 15:58:04,711 - ofcontroller - INFO - Waiting 10 for switch to connect
+2013-03-14 15:58:14,731 - ofcontroller - INFO - Waiting 10 for switch to connect
