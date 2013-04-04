@@ -1,10 +1,10 @@
 <?xml version="1.0"?>
 <root>
 <db_config>
-	<server>tsc-server</server>
+	<server>localhost</server>
 	<database>interop</database>
-	<user>tsc</user>
-	<password>tsc</password>
+	<user>user</user>
+	<password>password</password>
 </db_config>
 
 <twister_user_defined>
@@ -42,7 +42,7 @@
 		SQLQuery="SELECT CONCAT('Run ',CAST(run_nr AS CHAR))  AS Run_Number,COUNT(status) AS 'Nr of tests' FROM results   GROUP BY run_nr "
 		/>
 
-	<redirect ID="goto Yahoo" Path="http://ro.yahoo.com" />
+	<redirect ID="goto PhpMyAdmin" Path="http://localhost/phpmyadmin/" />
 	<redirect ID="goto Google" Path="http://www.google.ro" />
 </reports_section>
 </twister_user_defined>

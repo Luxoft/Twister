@@ -5,7 +5,7 @@
 #
 
 # Load a few sources
-set DEMO_PATH "/home/tscguest/twister/demo/testsuite-tcl/"
+set DEMO_PATH "/home/user/twister/demo/testsuite-tcl/"
 lappend auto_path $DEMO_PATH
 puts "\nTCL debug: Autopath is: $auto_path"
 
@@ -13,9 +13,14 @@ puts "TCL debug: argc = $argc  and  argv = $argv"
 
 logMessage logTest "\n\nTestCase: init.tcl starting\n"
 
+puts "User name :: $USER"
+puts "Exec process:: $EP"
+puts "Suite name :: $SUITE_NAME"
+puts "TestBed :: $currentTB"
+
 # Load Expect and some demo library
 package require Expect
-package require DemoLib
+#package require DemoLib
 
 # Set a few global variables
 global logRunning

@@ -32,9 +32,9 @@ If all the requirements are met, the client or server files are copied, but noth
       and the reporting framework are all written in Python;
     - Older python versions are not supported;
 
-- BeautifulSoup : (www.crummy.com/software/BeautifulSoup/)
+- LXML : (www.lxml.de/)
     - XML and HTML documents parser;
-    - BeautifulSoup is included in `trd_party` folder and should not be installed;
+    - LXML is included in Ubuntu by default. The other Linux distributions must install it;
 
 - MySQL-python : (mysql-python.sourceforge.net/)
     - Connects to MySQL databases. It is only used by the Central Engine;

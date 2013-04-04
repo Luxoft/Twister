@@ -1,7 +1,8 @@
 /*
 File: Panel4.java ; This file is part of Twister.
+Version: 2.001
 
-Copyright (C) 2012 , Luxoft
+Copyright (C) 2012-2013 , Luxoft
 
 Authors: Andrei Costachi <acostachi@luxoft.com>
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,6 +28,7 @@ import javax.swing.BorderFactory;
 import javax.swing.JScrollPane;
 import java.awt.FlowLayout;
 import javax.swing.border.TitledBorder;
+import java.awt.BorderLayout;
 
 public class Panel4 extends JPanel{
     private ConfigFiles config;
@@ -35,7 +37,11 @@ public class Panel4 extends JPanel{
     private JPanel main; 
     private Plugins plugins;
     private JScrollPane scroll = new JScrollPane();
-    private Dut dut = new Dut();
+    private TB tb = new TB();
+    private Globals glob;
+    private PanicDetect panic;
+    private Services services;
+    private About about;
     
 
     public Panel4(){
@@ -44,7 +50,11 @@ public class Panel4 extends JPanel{
         config = new ConfigFiles(screenSize);
         dbconfig = new DBConfig();
         emails = new Emails();
+        glob = new Globals();
+        panic = new PanicDetect();
+        services = new Services();
         plugins = new Plugins();
+        about = new About();
         main = new JPanel();        
         main.setLayout(null);
         main.setBounds(240,10,(int)screenSize.getWidth()-320,
@@ -68,20 +78,55 @@ public class Panel4 extends JPanel{
             public void actionPerformed(ActionEvent ev){
                 setDatabase();}});
         add(database);
-        RoundButton duts = new RoundButton("Device Under Test");
+        RoundButton duts = new RoundButton("Test Beds");
         duts.setBounds(20,130,200,25);
         duts.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 setDuts();}});
-        add(duts);        
+        add(duts);
+        RoundButton globals = new RoundButton("Global Parameters");
+        globals.setBounds(20,160,200,25);
+        globals.addActionListener(new ActionListener(){
+            public void actionPerformed(ActionEvent ev){
+                setGlobals();}});
+        add(globals);
+        RoundButton panicb = new RoundButton("Panic Detect");
+        panicb.setBounds(20,190,200,25);
+        panicb.addActionListener(new ActionListener(){
+            public void actionPerformed(ActionEvent ev){                
+                setPanic();}});
+        add(panicb);
+        RoundButton servicesb = new RoundButton("Services");
+        servicesb.setBounds(20,220,200,25);
+        servicesb.addActionListener(new ActionListener(){
+            public void actionPerformed(ActionEvent ev){                
+                setServices();}});
+        add(servicesb);
         RoundButton plugins = new RoundButton("Plugins");
-        plugins.setBounds(20,160,200,25);
+        plugins.setBounds(20,250,200,25);
         plugins.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){                
                 setPlugins();}});
         add(plugins);
+        RoundButton about = new RoundButton("About");
+        about.setBounds(20,280,200,25);
+        about.addActionListener(new ActionListener(){
+            public void actionPerformed(ActionEvent ev){                
+                setAbout();}});
+        add(about);
         setPaths();
     }
+    
+    /*
+     * set about section
+     * into this window
+     */
+    public void setAbout(){
+        main.removeAll();
+        main.setLayout(new FlowLayout());
+        main.add(about);
+        main.repaint();
+        main.revalidate();}
        
     /*
      * set email content
@@ -116,9 +161,9 @@ public class Panel4 extends JPanel{
     public void setDuts(){        
         main.removeAll();
         main.setLayout(new FlowLayout());
-        dut.setPreferredSize(new Dimension(main.getWidth()-5,
-                                            main.getHeight()-5));
-        main.add(dut);
+        tb.setPreferredSize(new Dimension(main.getWidth()-5,
+                                          main.getHeight()-5));
+        main.add(tb);
         main.repaint();
         main.revalidate();}
     
@@ -136,6 +181,45 @@ public class Panel4 extends JPanel{
         main.add(scroll);
         main.repaint();
         main.revalidate();}
+        
+        
+    /*
+     * set services content
+     * into this window
+     */    
+    public void setServices(){
+        main.removeAll();
+        main.setLayout(new BorderLayout());
+        main.add(services,BorderLayout.CENTER);
+        scroll = new JScrollPane(services);
+        main.add(scroll,BorderLayout.CENTER);
+        main.repaint();
+        main.revalidate();}
+        
+    /*
+     * set panic detect expressions content
+     * into this window
+     */
+    public void setPanic(){
+        main.removeAll();
+        main.setLayout(new BorderLayout());
+        scroll = new JScrollPane(panic);
+        main.add(scroll,BorderLayout.CENTER);
+        main.repaint();
+        main.revalidate();}
+        
+     /*
+     * set globals content
+     * into this window
+     */
+    public void setGlobals(){
+        main.removeAll();
+        main.setLayout(new BorderLayout());
+        plugins.setPreferredSize(new Dimension(main.getWidth()-5,
+                                               main.getHeight()-5));
+        main.add(glob.main,BorderLayout.CENTER);
+        main.repaint();
+        main.revalidate();}
     
     
     /*
@@ -146,7 +230,7 @@ public class Panel4 extends JPanel{
         main.removeAll();
         main.setLayout(new FlowLayout());
         plugins.setPreferredSize(new Dimension(main.getWidth()-5,
-                                                main.getHeight()-5));
+                                               main.getHeight()-5));
         main.add(plugins);
         main.repaint();
         main.revalidate();}
@@ -154,17 +238,23 @@ public class Panel4 extends JPanel{
     public Plugins getPlugins(){
         return plugins;}    
     
-    public Dut getDut(){
-        return dut;}
+    public TB getTB(){
+        return tb;}
         
     public Emails getEmails(){
         return emails;}
+        
+    public Services getServices(){
+        return services;}
         
     public DBConfig getDBConfig(){
         return dbconfig;}
         
     public ConfigFiles getConfig(){
         return config;}
+        
+    public Globals getGlobals(){
+        return glob;}
     
     public JScrollPane getScroll(){
         return scroll;}

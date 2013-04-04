@@ -1,7 +1,8 @@
 /*
 File: Grafic.java ; This file is part of Twister.
+Version: 2.001
 
-Copyright (C) 2012 , Luxoft
+Copyright (C) 2012-2013 , Luxoft
 
 Authors: Andrei Costachi <acostachi@luxoft.com>
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -72,6 +73,10 @@ import java.awt.BorderLayout;
 import com.twister.Item;
 import javax.swing.JList;
 import javax.swing.JScrollPane;
+import com.twister.CustomDialog;
+import java.util.HashMap;
+import java.util.Set;
+import java.util.Iterator;
 
 public class Grafic extends JPanel{
     private static final long serialVersionUID = 1L;
@@ -1054,7 +1059,8 @@ public class Grafic extends JPanel{
                     if(getItem(selected,false).getCheckRectangle().intersects(
                                   new Rectangle(ev.getX()-1,ev.getY()-1,2,2))){
                         getItem(selected,false).setCheck(!getItem(selected,false).getCheck());}
-                    else if(getItem(selected,false).getSubItemsNr()>0&&ev.getClickCount()==2){
+                    else if(getItem(selected,false).getSubItemsNr()>0&&ev.getClickCount()==2 &&
+                            getItem(selected,false).getType()!=1){
                         if(getItem(selected,false).getType()==2 &&
                         !itemIsExpanded(getItem(selected,false))){
                             if(!onlyOptionals)getItem(selected,false).setVisibleTC();
@@ -1070,7 +1076,8 @@ public class Grafic extends JPanel{
                             }
                         }
                         else getItem(selected,false).setVisible(
-                            !itemIsExpanded(getItem(selected,false)));}
+                            !itemIsExpanded(getItem(selected,false)));
+                        }
                     updateLocations(getItem(selected,false));}
                 else{
                     Repository.window.mainpanel.p1.suitaDetails.setGlobalDetails();}
@@ -2165,10 +2172,6 @@ public class Grafic extends JPanel{
      * parses xml and represents in grafic
      */    
     public void parseXML(File file){
-//         Graphics g =null;
-//         while(g==null){
-//             g = getGraphics();
-//             if(g==null)Repository.window.mainpanel.p2.sc.g.getGraphics();}
         new XMLReader(file).parseXML(getGraphics(),false);}
         
     /*
@@ -2235,6 +2238,7 @@ public class Grafic extends JPanel{
                     pos2.add(new Integer(0));
                     Item property = new Item("Running",0,-1,-1,(metrics.stringWidth("Running:  true"))+28,20,pos2);
                     property.setValue("true");
+                    property.setSubItemVisible(false);
                     newItem.addSubItem(property);
                     newItem.setVisible(false);
                     clone.add(newItem);}
@@ -2269,6 +2273,7 @@ public class Grafic extends JPanel{
                 pos2.add(new Integer(0));
                 Item property = new Item("Running",0,-1,-1,(metrics.stringWidth("Running:  true"))+28,20,pos2);
                 property.setValue("true");
+                property.setSubItemVisible(false);
                 newItem.addSubItem(property);
                 newItem.setVisible(false);
                 clone.add(newItem);
@@ -2296,6 +2301,7 @@ public class Grafic extends JPanel{
         ArrayList <Integer> indexpos2 = (ArrayList <Integer>)indexpos.clone();
         indexpos2.add(new Integer(0));
         Item property = new Item("Running",0,-1,-1,(metrics.stringWidth("Running:  true"))+28,20,indexpos2);
+        property.setSubItemVisible(false);
         property.setValue("true");
         tc.addSubItem(property);
         if(parent.getSubItemsNr()>0){if(!parent.getSubItem(0).isVisible())tc.setSubItemVisible(false);}
@@ -2314,6 +2320,7 @@ public class Grafic extends JPanel{
             ArrayList<Integer>pos2 = (ArrayList <Integer>)pos.clone();
             pos2.add(new Integer(0));
             Item property = new Item("Running",0,-1,-1,(metrics.stringWidth("Running:  true"))+28,20,pos2);
+            property.setSubItemVisible(false);
             property.setValue("true");
             tc.addSubItem(property);
             tc.setVisible(false);}
@@ -2410,7 +2417,6 @@ public class Grafic extends JPanel{
         private static final long serialVersionUID = 1L;
         JButton ok ;
         JTextField namefield;
-//         JComboBox <String>epidfield;
         JList <String>epidfield;
         JComponent mainwindow;
         
@@ -2447,11 +2453,6 @@ public class Grafic extends JPanel{
                     selected[i] = epidfield.getSelectedValuesList().get(i).toString();
                 }
                 item.setEpId(selected);
-                
-                
-                
-//                 item.setEpId((String[])epidfield.getSelectedValues());
-//                 item.setEpId(epidfield.getSelectedItem().toString());
                 Repository.addSuita(item);
                 if(Repository.getSuiteNr()>1)Grafic.this.updateLocations(Repository.getSuita(Repository.getSuiteNr()-2));
                 else Grafic.this.updateLocations(Repository.getSuita(0));}
@@ -2471,37 +2472,62 @@ public class Grafic extends JPanel{
             JLabel name = new JLabel("Suite Name:");
             name.setBounds(5,5,80,20);
             name.setFont(new Font("TimesRoman", Font.PLAIN, 14));
-            JLabel EPId = new JLabel("EP name:");
+            JLabel EPId = new JLabel("TB name:");
             EPId.setBounds(5,30,80,20);
             EPId.setFont(new Font("TimesRoman", Font.PLAIN, 14));
             namefield = new JTextField(30);
             namefield.setBounds(90,2,100,25);        
-            File f = new File(Repository.temp+System.getProperty("file.separator")+
-                                "Twister"+System.getProperty("file.separator")+"Epname.txt");
-            String line = null;                             
-            InputStream in = null;
-            try{String dir = Repository.getRemoteEpIdDir();
-                String [] path = dir.split("/");
-                StringBuffer result = new StringBuffer();
-                if (path.length > 0) {
-                    for (int i=0; i<path.length-1; i++){
-                        result.append(path[i]);
-                        result.append("/");}}
-                Repository.c.cd(result.toString());
-                in = Repository.c.get(path[path.length-1]);}
-            catch(Exception e){e.printStackTrace();};
-            InputStreamReader inputStreamReader = new InputStreamReader(in);
-            BufferedReader bufferedReader = new BufferedReader(inputStreamReader);  
-            StringBuffer b=new StringBuffer("");
-            try{while ((line=bufferedReader.readLine())!= null){b.append(line+";");}
-                bufferedReader.close();
-                inputStreamReader.close();
-                in.close();}
-            catch(Exception e){e.printStackTrace();}        
-            String  [] vecresult = b.toString().split(";");
-//             epidfield = new JComboBox<String>(vecresult);
+            
+            
+            
+//             File f = new File(Repository.temp+System.getProperty("file.separator")+
+//                                 "Twister"+System.getProperty("file.separator")+"Epname.txt");
+//             String line = null;                             
+//             InputStream in = null;
+//             try{String dir = Repository.getRemoteEpIdDir();
+//                 String [] path = dir.split("/");
+//                 StringBuffer result = new StringBuffer();
+//                 if (path.length > 0) {
+//                     for (int i=0; i<path.length-1; i++){
+//                         result.append(path[i]);
+//                         result.append("/");}}
+//                 Repository.c.cd(result.toString());
+//                 in = Repository.c.get(path[path.length-1]);}
+//             catch(Exception e){e.printStackTrace();};
+//             InputStreamReader inputStreamReader = new InputStreamReader(in);
+//             BufferedReader bufferedReader = new BufferedReader(inputStreamReader);  
+//             StringBuffer b=new StringBuffer("");
+//             try{while ((line=bufferedReader.readLine())!= null){b.append(line+";");}
+//                 bufferedReader.close();
+//                 inputStreamReader.close();
+//                 in.close();}
+//             catch(Exception e){e.printStackTrace();}        
+//             String  [] vecresult = b.toString().split(";");
+//             epidfield = new JList<String>(vecresult);
+
+
+            StringBuilder b = new StringBuilder();
+            Node parentnode = Repository.window.mainpanel.p4.getTB().getParentNode();
+            HashMap children =  parentnode.getChildren();
+            if(children!=null&&children.size()!=0){
+                Set keys = children.keySet();
+                Iterator iter = keys.iterator();
+                while(iter.hasNext()){
+                    String n = iter.next().toString();
+                    String tempname = parentnode.getChild(n).getName();
+                    b.append(tempname);
+                    b.append(";");
+                }
+            }
+            
+            String result = b.toString();
+            String [] vecresult = result.split(";");
             epidfield = new JList<String>(vecresult);
-            //epidfield.setBounds(90,30,100,50);
+            try{epidfield.setSelectedIndex(0);}
+            catch(Exception e){e.printStackTrace();}
+            
+            
+            
             add(name);
             add(namefield);
             add(EPId);

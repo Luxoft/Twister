@@ -1,9 +1,12 @@
 
 # File: CentralEngineRest.py ; This file is part of Twister.
 
-# Copyright (C) 2012 , Luxoft
+# version: 2.001
+
+# Copyright (C) 2012-2013 , Luxoft
 
 # Authors:
+#    Adrian Toader <adtoader@luxoft.com>
 #    Andrei Costachi <acostachi@luxoft.com>
 #    Andrei Toma <atoma@luxoft.com>
 #    Cristi Constantin <crconstantin@luxoft.com>
@@ -33,6 +36,7 @@ import glob
 import json
 import time
 import platform
+
 import cherrypy
 import mako
 from mako.template import Template
@@ -50,7 +54,9 @@ from common.tsclogging import *
 if mako.__version__ < '0.7':
     logWarning('Warning! Mako-template version is old: `{0}`! Some pages might crash!\n'.format(mako.__version__))
 
+
 # # # # #
+
 
 def calcMemory():
     import subprocess
@@ -86,6 +92,12 @@ def prepareLog(log_file, pos=0):
     log = f.read().rstrip()
     f.close() ; del f
 
+    max_len = 100000
+    if len(log) > max_len:
+        log = '[... log size exceded ...]   ' + log[-max_len:]
+
+    log = log.replace('<', '&lt;').replace('\n', '<br>\n').replace(' ', '&nbsp;')
+
     body = '''
     <style>
     .nfo {color:gray; text-shadow: 1px 1px 1px #aaa}
@@ -95,7 +107,7 @@ def prepareLog(log_file, pos=0):
     .crit {color:red; text-shadow: 1px 1px 1px #aaa}
     </style>
     '''
-    body += log.replace('\n', '<br>\n').replace(' ', '&nbsp;')
+    body += log
     del log
     body = body.replace(';INFO&',   ';<b class="nfo">INFO</b>&')
     body = body.replace(';DEBUG&',  ';<b class="dbg">DEBUG</b>&')
@@ -107,20 +119,26 @@ def prepareLog(log_file, pos=0):
     body = body.replace(';warning:',  ';<b class="warn">warning</b>:')
     return body
 
-def dirList(path, newdict):
+def dirList(tests_path, path, newdict):
+    """
+    Create recursive list of folders and files from Tests path.
+    """
+    len_path = len(tests_path) + 1
     if os.path.isdir(path):
-        dlist = []
-        flist = []
+        dlist = [] # Folders list
+        flist = [] # Files list
         for fname in sorted(os.listdir(path), key=str.lower):
-            nd = {'data': fname, 'children': []}
+            short_path = (path + os.sep + fname)[len_path:]
+            nd = {'data': short_path, 'children': []}
             if os.path.isdir(path + os.sep + fname):
+                nd['attr'] = {'rel': 'folder'}
                 dlist.append(nd)
             else:
                 flist.append(nd)
+        # Folders first, files after
         newdict['children'] = dlist + flist
     for nitem in newdict['children']:
-        newpath = path + os.sep + nitem['data']
-        dirList(newpath, nitem)
+        dirList(tests_path, tests_path + os.sep + nitem['data'], nitem)
 
 
 # # # # #
@@ -157,7 +175,6 @@ class CentralEngineRest:
         machine = platform.uname()[1]
         system  = ' '.join(platform.linux_distribution())
         users   = sorted([u.split('/')[2] for u in glob.glob('/home/*/twister')])
-        # os.path.expanduser("~user")
 
         output = Template(filename=TWISTER_PATH + '/server/centralengine/template_main.htm')
         return output.render(ip_port=ip_port, machine=machine, system=system, users=users)
@@ -170,13 +187,9 @@ class CentralEngineRest:
 
         host = cherrypy.request.headers['Host']
         reversed = dict((v,k) for k,v in execStatus.iteritems())
-        status = reversed[self.project.getUserInfo(user, 'status')]
-        master_config = self.project.getUserInfo(user, 'config_path')
-        proj_config = self.project.getUserInfo(user, 'tests_path')
-        logs_path = self.project.getUserInfo(user, 'logs_path')
-        db_config = self.project.getUserInfo(user, 'db_config')
-        eml_config = self.project.getUserInfo(user, 'eml_config')
-        try: eps_file = self.project.parsers[user].project_globals['EpsFile']
+        int_status = self.project.getUserInfo(user, 'status') or STATUS_INVALID
+        status = reversed[int_status]
+        try: eps_file = self.project.parsers[user].project_globals['EpNames']
         except: eps_file = ''
 
         eps = self.project.getUserInfo(user, 'eps')
@@ -184,8 +197,7 @@ class CentralEngineRest:
         logs = self.project.getUserInfo(user, 'log_types')
 
         output = Template(filename=TWISTER_PATH + '/server/centralengine/template_user.htm')
-        return output.render(host=host, user=user, status=status, master_config=master_config, proj_config=proj_config,
-               exec_status=reversed, logs_path=logs_path, db_config=db_config, eml_config=eml_config,
+        return output.render(host=host, user=user, status=status, exec_status=reversed,
                eps_file=eps_file, eps=eps, ep_statuses=ep_statuses, logs=logs)
 
 # # #
@@ -204,7 +216,7 @@ class CentralEngineRest:
 
 
     @cherrypy.expose
-    def json_all(self):
+    def json_get_project(self):
         if self.user_agent() == 'x':
             return 0
 
@@ -212,7 +224,32 @@ class CentralEngineRest:
         cherrypy.response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
         cherrypy.response.headers['Pragma']  = 'no-cache'
         cherrypy.response.headers['Expires'] = 0
-        return open(TWISTER_PATH + '/common/project_users.json', 'r').read()
+        return open(TWISTER_PATH + '/config/project_users.json', 'r').read()
+
+
+    @cherrypy.expose
+    def json_save_project(self, user, epname):
+        if self.user_agent() == 'x':
+            return 0
+
+        cl = cherrypy.request.headers['Content-Length']
+        raw_data = cherrypy.request.body.read(int(cl))
+        json_data = json.loads(raw_data)
+        del cl, raw_data
+
+        # Delete all suites from root xml
+        self.project.delSettingsKey(user, 'project', '/Root/TestSuite', -1)
+        changes = 'Reset project file.\n'
+
+        for suite_data in json_data:
+            self.project.setPersistentSuite(user, suite_data['data'], {'ep': decode(epname)})
+            changes += 'Created suite: {0}.\n'.format(suite_data['data'])
+            for file_data in suite_data.get('children', []):
+                changes += 'Created file: {0}.\n'.format(file_data['data'])
+                self.project.setPersistentFile(user, suite_data['data'], file_data['data'], {})
+
+        changes += '>.<\n'
+        logDebug(changes)
 
 
     @cherrypy.expose
@@ -230,28 +267,34 @@ class CentralEngineRest:
         epinfo = self.project.getEpInfo(user, epname)
 
         for suite in epinfo['suites']:
+            dsuite = epinfo['suites'][suite]
             sdata = {
-                'data': epinfo['suites'][suite]['name'],
-                'attr': {'id': suite, 'rel': 'suite'},
+                'data': dsuite['name'],
+                'metadata': suite,
+                'attr': dict({'id': suite, 'rel': 'suite'}, **dsuite),
                 'children': [],
             }
+            del sdata['attr']['files']
             if epinfo['suites'][suite]['files']:
-                sdata['children'] = [epinfo['suites'][suite]['files'][k]['file'] for k in epinfo['suites'][suite]['files'].keys()]
+                sdata['children'] = [
+                    {'data': v['file'], 'attr': dict({'id': k}, **v)}
+                    for k, v in epinfo['suites'][suite]['files'].iteritems()]
             data.append(sdata)
 
-        return json.dumps(data)
+        return json.dumps(data, indent=2)
 
 
     @cherrypy.expose
-    def json_folders(self):
+    def json_folders(self, user):
         if self.user_agent() == 'x':
             return 0
 
-        newdict = {'data':'root','children':[]}
-        dirpath = '/home/cro/twister'
-        dirList(dirpath, newdict)
+        paths = {'data':'Tests Path', 'attr': {'rel': 'folder'}, 'children':[]}
+        dirpath = self.project.getUserInfo(user, 'tests_path')
+        dirList(dirpath, dirpath, paths)
 
-        return json.dumps(newdict)
+        cherrypy.response.headers['Content-Type']  = 'application/json; charset=utf-8'
+        return json.dumps([paths], indent=2)
 
 
     @cherrypy.expose

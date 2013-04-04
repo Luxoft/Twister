@@ -1,7 +1,8 @@
 /*
 File: DBConfig.java ; This file is part of Twister.
+Version: 2.001
 
-Copyright (C) 2012 , Luxoft
+Copyright (C) 2012-2013 , Luxoft
 
 Authors: Andrei Costachi <acostachi@luxoft.com>
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -48,6 +49,9 @@ import javax.xml.transform.Transformer;
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.dom.DOMSource;
 import javax.swing.JOptionPane;
+import com.twister.CustomDialog;
+import java.io.BufferedWriter;
+import java.io.FileWriter;
 
 public class DBConfig extends JPanel{
     Document doc=null;
@@ -64,7 +68,7 @@ public class DBConfig extends JPanel{
         file.setBounds(15,10,50,20);
         add(file);
         final JTextField tfile = new JTextField();
-        tfile.setBounds(80,10,170,25);
+        tfile.setBounds(100,10,170,25);
         add(tfile);
         JButton browse = new JButton("Browse");
         browse.addActionListener(new ActionListener(){
@@ -77,18 +81,22 @@ public class DBConfig extends JPanel{
                     File f = chooser.getSelectedFile();
                     try{tfile.setText(f.getCanonicalPath());}
                     catch(Exception e){e.printStackTrace();}}}});
-        browse.setBounds(255,13,90,20);
+        browse.setBounds(275,13,90,20);
         add(browse);
         JButton upload = new JButton("Upload");
-        upload.setBounds(355,13,90,20);
+        upload.setBounds(375,13,90,20);
         upload.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 boolean saved = true;
                 try{File f = new File(tfile.getText());
-                    Repository.c.cd(Repository.REMOTEDATABASECONFIGPATH);
+                    
+//                     Repository.c.cd(Repository.REMOTEDATABASECONFIGPATH);
                     FileInputStream stream = new FileInputStream(f);
-                    Repository.c.put(stream,f.getName());
-                    stream.close();
+//                     Repository.c.put(stream,f.getName());
+//                     stream.close();
+                    
+                    Repository.uploadRemoteFile(Repository.REMOTEDATABASECONFIGPATH, stream, f.getName());
+                    
                     Files.copy(f.toPath(), new File(Repository.getConfigDirectory()+
                     Repository.getBar()+f.getName()).toPath(), REPLACE_EXISTING);
                     Repository.resetDBConf(f.getName(),false);}
@@ -105,32 +113,32 @@ public class DBConfig extends JPanel{
                                             "File could not uploaded");}}});
         add(upload);
         JLabel database = new JLabel("Database: ");
-        database.setBounds(15,55,70,20);
+        database.setBounds(15,55,90,20);
         add(database);
         tdatabase = new JTextField();
-        tdatabase.setBounds(80,55,170,25);
+        tdatabase.setBounds(100,55,170,25);
         add(tdatabase);
         JLabel server = new JLabel("Server: ");
-        server.setBounds(15,80,50,20);
+        server.setBounds(15,80,90,20);
         add(server);
         tserver = new JTextField();
-        tserver.setBounds(80,80,170,25);
+        tserver.setBounds(100,80,170,25);
         add(tserver);
         JLabel user = new JLabel("User: ");
         user.setBounds(15,105,50,20);
         add(user);
         tuser = new JTextField();
-        tuser.setBounds(80,105,170,25);
+        tuser.setBounds(100,105,170,25);
         add(tuser);
         JLabel password = new JLabel("Password: ");
-        password.setBounds(15,130,70,20);
+        password.setBounds(15,130,90,20);
         add(password);
         tpassword = new JPasswordField();
-        tpassword.setBounds(80,130,170,25);
+        tpassword.setBounds(100,130,170,25);
         add(tpassword);
         refresh();
         JButton save = new JButton("Save");
-        save.setBounds(180,155,70,20);
+        save.setBounds(200,155,70,20);
         save.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 if(doc!=null){
@@ -179,13 +187,21 @@ public class DBConfig extends JPanel{
                             transformer.setOutputProperty(OutputKeys.INDENT, "yes");
                             transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "4");                        
                             transformer.transform(source, result);  
-                            try{Repository.c.cd(Repository.REMOTEDATABASECONFIGPATH);}
-                            catch(Exception e){
-                                System.out.println("could not get "+Repository.REMOTEDATABASECONFIGPATH);
-                                e.printStackTrace();}
+                            
+                            
+//                             try{Repository.c.cd(Repository.REMOTEDATABASECONFIGPATH);}
+//                             catch(Exception e){
+//                                 System.out.println("could not get "+Repository.REMOTEDATABASECONFIGPATH);
+//                                 e.printStackTrace();}
                             FileInputStream input = new FileInputStream(theone);
-                            Repository.c.put(input, theone.getName());
-                            input.close();}
+//                             Repository.c.put(input, theone.getName());
+//                             input.close();
+                            
+                            
+                            Repository.uploadRemoteFile(Repository.REMOTEDATABASECONFIGPATH, input, theone.getName());
+                        
+                        
+                        }
                         catch(Exception e){
                             saved = false;
                             e.printStackTrace();
@@ -208,27 +224,46 @@ public class DBConfig extends JPanel{
     
     public void refresh(){
         try{
-            InputStream in = null;
-            try{Repository.c.cd(Repository.REMOTEDATABASECONFIGPATH);
-                in = Repository.c.get(Repository.REMOTEDATABASECONFIGFILE);}
-            catch(Exception e){e.printStackTrace();
-                System.out.println("Could not get: "+Repository.REMOTEDATABASECONFIGFILE);}
-            byte [] data = new byte[100];
-            ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-            int nRead;
+            
+            tserver.setText("");
+            tdatabase.setText("");
+            tpassword.setText("");
+            tuser.setText("");
+            
+            
+            
+//             InputStream in = null;
+//             try{Repository.c.cd(Repository.REMOTEDATABASECONFIGPATH);
+//                 in = Repository.c.get(Repository.REMOTEDATABASECONFIGFILE);}
+//             catch(Exception e){e.printStackTrace();
+//                 System.out.println("Could not get: "+Repository.REMOTEDATABASECONFIGFILE);}
+//             byte [] data = new byte[100];
+//             ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+//             int nRead;
+//             theone = new File(Repository.temp+Repository.getBar()+"Twister"+Repository.
+//                             getBar()+"config"+Repository.getBar()+
+//                             new File(Repository.REMOTEDATABASECONFIGFILE).getName());
+//             try{while ((nRead = in.read(data, 0, data.length)) != -1){buffer.write(data, 0, nRead);}
+//                 buffer.flush();
+//                 FileOutputStream out = new FileOutputStream(theone);
+//                 buffer.writeTo(out);
+//                 out.close();
+//                 buffer.close();
+//                 in.close();}
+//             catch(Exception e){e.printStackTrace();
+//                 //CustomDialog.showInfo(JOptionPane.INFORMATION_MESSAGE, null, "info", e.getMessage());
+//                 System.out.println("Could not write "+Repository.REMOTEDATABASECONFIGFILE+" on local hdd");}
+                
+                
             theone = new File(Repository.temp+Repository.getBar()+"Twister"+Repository.
                             getBar()+"config"+Repository.getBar()+
                             new File(Repository.REMOTEDATABASECONFIGFILE).getName());
-            try{while ((nRead = in.read(data, 0, data.length)) != -1){buffer.write(data, 0, nRead);}
-                buffer.flush();
-                FileOutputStream out = new FileOutputStream(theone);
-                buffer.writeTo(out);
-                out.close();
-                buffer.close();
-                in.close();}
-            catch(Exception e){e.printStackTrace();
-                CustomDialog.showInfo(JOptionPane.INFORMATION_MESSAGE, null, "info", e.getMessage());
-                System.out.println("Could not write "+Repository.REMOTEDATABASECONFIGFILE+" on local hdd");}
+            String content = Repository.getRemoteFileContent(Repository.REMOTEDATABASECONFIGPATH+Repository.REMOTEDATABASECONFIGFILE);
+            BufferedWriter writer = new BufferedWriter(new FileWriter(theone));
+            writer.write(content);
+            writer.close();
+            
+                
             try{DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
                 DocumentBuilder db = dbf.newDocumentBuilder();                                        
                 doc = db.parse(theone);

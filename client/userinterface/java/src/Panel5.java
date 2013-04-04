@@ -1,7 +1,8 @@
 /*
 File: Panel5.java ; This file is part of Twister.
+Version: 2.001
 
-Copyright (C) 2012 , Luxoft
+Copyright (C) 2012-2013 , Luxoft
 
 Authors: Andrei Costachi <acostachi@luxoft.com>
 Licensed under the Apache License, Version 2.0 (the "License");

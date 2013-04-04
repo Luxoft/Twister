@@ -1,7 +1,8 @@
 /*
 File: Editors.java ; This file is part of Twister.
+Version: 2.001
 
-Copyright (C) 2012 , Luxoft
+Copyright (C) 2012-2013 , Luxoft
 
 Authors: Andrei Costachi <acostachi@luxoft.com>
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -45,22 +46,17 @@ import javax.swing.JPanel;
 import java.awt.Dimension;
 import javax.swing.JOptionPane;
 import java.awt.Point;
+import com.twister.CustomDialog;
 
 /*
  * Editors window 
  */
 public class Editors extends JFrame {
     private JComboBox editorscombo;
-    private JButton remove;
-    private JButton add;
-    private JButton browse;
+    private JButton remove,add,browse,close;
     private JCheckBox defaultcheck;
-    private JLabel jLabel1;
-    private JLabel jLabel2;
-    private JLabel jLabel3;
-    private JLabel jLabel4;
-    private JTextField tcommand;
-    private JTextField tname;
+    private JLabel jLabel1,jLabel2,jLabel3,jLabel4;
+    private JTextField tname,tcommand;
 
     public Editors(Point p) {
         initComponents(p);}        
@@ -79,6 +75,7 @@ public class Editors extends JFrame {
         tcommand = new JTextField();
         remove = new JButton();
         add = new JButton();
+        close = new JButton("Close");
         jLabel4 = new JLabel();
         defaultcheck = new JCheckBox();
         browse = new JButton();
@@ -90,6 +87,12 @@ public class Editors extends JFrame {
             remove.setEnabled(false);
             tcommand.setEnabled(false);
             browse.setEnabled(false);}
+            
+        close.addActionListener(new ActionListener(){
+            public void actionPerformed(ActionEvent ev){
+                dispose();
+            }
+        });
         
         add.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
@@ -203,8 +206,10 @@ public class Editors extends JFrame {
                         .addComponent(add)
                         .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
                         .addComponent(remove)
+                        .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(close)
                         .addGap(10, 10, 10)))));
-        layout.linkSize(SwingConstants.HORIZONTAL, new Component[] {remove, add});
+        layout.linkSize(SwingConstants.HORIZONTAL, new Component[] {remove, add, close});
         layout.setVerticalGroup(
             layout.createParallelGroup(GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
@@ -229,7 +234,8 @@ public class Editors extends JFrame {
                 .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
                 .addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
                     .addComponent(add)
-                    .addComponent(remove))
+                    .addComponent(remove)
+                    .addComponent(close))
                 .addContainerGap(GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)));
         pack();}
     

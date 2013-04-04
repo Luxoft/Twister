@@ -1,7 +1,8 @@
 /*
 File: Panel2.java ; This file is part of Twister.
+Version: 2.001
 
-Copyright (C) 2012 , Luxoft
+Copyright (C) 2012-2013 , Luxoft
 
 Authors: Andrei Costachi <acostachi@luxoft.com>
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -60,6 +61,7 @@ import java.io.File;
 import jxl.Workbook;
 import jxl.CellView;
 import javax.swing.SwingUtilities;
+import com.twister.CustomDialog;
 
 public class Panel2 extends JPanel{
     private static final long serialVersionUID = 1L;
@@ -79,14 +81,9 @@ public class Panel2 extends JPanel{
         Repository.intro.setStatus("Started Monitoring interface initialization");
         Repository.intro.addPercent(0.035);
         Repository.intro.repaint();
-        sc = new ScrollGraficTest(0, 0,applet);
+        init(applet);
         tabbed = new JTabbedPane();
-        //splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,sc.pane,tabbed);
-        //Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
-        //splitPane.setBounds(10,45,(int)screenSize.getWidth()-80,600);
-        //splitPane.setDividerLocation(0.5);
         setLayout(null);
-        //add(splitPane);
         play = new JButton("Run",new ImageIcon(Repository.getPlayIcon()));
         play.setEnabled(false);
         play.setBounds(80,20,105,25);
@@ -110,21 +107,16 @@ public class Panel2 extends JPanel{
                     while(Repository.run){ 
                         askCE(play);}}}.start();}
         catch(Exception e){e.printStackTrace();}
-//         new Thread(){
-//             public void run(){
-//                 while(sc.g.getGraphics() == null){
-//                     try{Thread.sleep(50);}
-//                     catch(Exception e){System.out.println("Thread interrupted at getting Graphics");}}
-//                 File xml = new File(Repository.getTestXMLDirectory());
-// //                 System.out.println("xml:"+Repository.getTestXMLDirectory());
-//                 if(xml.length()>0)new XMLReader(xml).parseXML(sc.g.getGraphics(), true);
-//                 else{
-//                     try{System.out.println(xml.getCanonicalPath()+" has no content");}
-//                     catch(Exception e){e.printStackTrace();}}
-//                 updateTabs();}}.start();
         Repository.intro.setStatus("Finished Monitoring interface initialization");
         Repository.intro.addPercent(0.035);
-        Repository.intro.repaint();}
+        Repository.intro.repaint();
+    }
+    
+    //methods used to refresh
+    //the panel
+    public void init(boolean applet){
+        sc = new ScrollGraficTest(0, 0,applet);
+    }
         
     /*
      * get status from ce
@@ -132,7 +124,6 @@ public class Panel2 extends JPanel{
      */
     private void askCE(JButton play){
         try{String result;
-//             while(Repository.run){
             Thread.sleep(1000);
             result = Repository.getRPCClient().execute("getExecStatusAll",new Object[]{Repository.getUser()})+" ";
             String startedtime = "   Started : "+result.split(";")[1];
@@ -152,6 +143,12 @@ public class Panel2 extends JPanel{
             }
             else if(result.equals("stopped")){
                 if(first){
+                    while(!Repository.initialized){
+                        try{Thread.sleep(1000);}
+                        catch(Exception ex){
+                            ex.printStackTrace();
+                        }
+                    }
                     Repository.openProjectFile();
 //                     Repository.window.mainpanel.askForFile();
                     first = false;
@@ -208,7 +205,14 @@ public class Panel2 extends JPanel{
 //                     }
             }
         catch(Exception e){
+            //e.printStackTrace();
             if(first){
+                while(!Repository.initialized){
+                    try{Thread.sleep(1000);}
+                    catch(Exception ex){
+                        ex.printStackTrace();
+                    }
+                }
                 Repository.openProjectFile();
 //                 Repository.window.mainpanel.askForFile();
                 first = false;
@@ -270,7 +274,7 @@ public class Panel2 extends JPanel{
         try{String status="";
             if(play.getText().equals("Run")){
                 for(int i=0;i<Repository.getTestSuiteNr();i++){clearProp(Repository.getTestSuita(i));}
-                Repository.window.mainpanel.p2.sc.g.repaint();    
+                Repository.window.mainpanel.getP2().sc.g.repaint();    
                 status = (String)Repository.getRPCClient().execute("setExecStatusAll",
                                                                     new Object[]{Repository.getUser(),2});
                 Repository.getRPCClient().execute("setStartedBy",
@@ -391,7 +395,8 @@ public class Panel2 extends JPanel{
                     if(Repository.getLogs().get(i).equals(""))continue;
                     Log log = new Log(500,0,Repository.getLogs().get(i));
                     logs.add(log);
-                    tabbed.addTab(Repository.getLogs().get(i),log.container);}}
+                    tabbed.addTab(Repository.getLogs().get(i),log.container);
+                }}
             catch(Exception e){e.printStackTrace();}}});
         TabsReorder.enableReordering(tabbed);} 
 
@@ -403,7 +408,7 @@ public class Panel2 extends JPanel{
         updateSummary(statuses);
         for(int i=0;i<Repository.getTestSuiteNr();i++){
             index = manageSubchildren(Repository.getTestSuita(i),statuses,index);}
-            Repository.window.mainpanel.p2.sc.g.repaint();}
+            Repository.window.mainpanel.getP2().sc.g.repaint();}
             
     public void updateSummary(String [] stats){
         int [] val = new int[10];

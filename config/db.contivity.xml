@@ -1,10 +1,10 @@
 <?xml version="1.0"?>
 <root>
 <db_config>
-	<server>tsc-server</server>
+	<server>localhost</server>
 	<database>contivity</database>
-	<user>tsc</user>
-	<password>tsc</password>
+	<user>user</user>
+	<password>password</password>
 </db_config>
 
 <twister_user_defined>
@@ -50,7 +50,7 @@
 		SQLTotal="SELECT Build, COUNT(status) AS 'Pass Rate (%)' FROM gg_regression WHERE Build LIKE '@Release@%'                   GROUP BY Build"
 		/>
 
-	<redirect ID="goto Yahoo" Path="http://ro.yahoo.com" />
+	<redirect ID="goto PhpMyAdmin" Path="http://localhost/phpmyadmin/" />
 	<redirect ID="goto Google" Path="http://www.google.ro" />
 </reports_section>
 </twister_user_defined>

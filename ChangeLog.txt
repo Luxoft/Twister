@@ -1,3 +1,23 @@
+04th April 2013 changes:
+- GUI changes to associate a suite to a test bed; the test bed is defined in GUI Configuration section
+  and it is associated with one or more EP's
+- minor fixes to GUI
+- implemented Jira plugin to integrate Twister with Jira bug tracking
+- implemented plugin for Twister scheduler; multiple users can schedule their execution suites
+- implemented a mechanism for traffic capture; a GUI plugin is available to display the captured packets
+- Jenkins plugin developed to integrate Twister with Jenkins CI
+- updated GUI for a better support of test beds
+- API to access defined test bed parameters
+- updated GUI to define global parameters
+- API to access defined global parameters
+- mechanism to allow multithreaded execution of a procedure inside test cases
+- enhanced telnet library
+- implemented a panic detection mechanism
+- added section to control Twister services; the user can customize what services to start for test cases execution
+- mechanism to allow test cases to share global objects; a test case can create an object as global ( e.g. a connection session ) and the following test cases have access to this object for usage
+- bug fixes
+- added binaries directory to store the compiled applet and the available plugins
+
 6th December 2012 changes:
 
 - updated the unit testing interface to be more user friendly and to offer more information
@@ -7,6 +27,7 @@
 - implemented a mechanism to save the CLI log per test case into the mysql database. This is very
   usefull in finding the possible issues when a test case fails.
 - minor updates
+
 
 15th October 2012 changes:
 

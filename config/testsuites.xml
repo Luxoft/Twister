@@ -6,7 +6,7 @@
     <ScriptPost></ScriptPost>
     <TestSuite>
         <tsName>S1</tsName>
-        <EpId>EP-1001;EP-1002</EpId>
+        <EpId>EP-1001</EpId>
         <libraries></libraries>
         <UserDefined>
             <propName>release_id</propName>
@@ -48,7 +48,7 @@
                 </Property>
             </TestCase>
             <TestCase>
-                <tcName>~/twister/demo/testsuite-python/test001.py</tcName>
+                <tcName>~/twister/demo/testsuite-python/test_py_printnlogs.py</tcName>
                 <Title/>
                 <Summary/>
                 <Priority>Medium</Priority>
@@ -78,7 +78,7 @@
                 </Property>
             </TestCase>
             <TestCase>
-                <tcName>~/twister/demo/testsuite-python/test002.py</tcName>
+                <tcName>~/twister/demo/testsuite-python/test_py_threads.py</tcName>
                 <Title/>
                 <Summary/>
                 <Priority>Medium</Priority>
@@ -89,7 +89,7 @@
                 </Property>
             </TestCase>
             <TestCase>
-                <tcName>~/twister/demo/testsuite-python/test004.py</tcName>
+                <tcName>~/twister/demo/testsuite-python/test_pexpect_ftp.py</tcName>
                 <Title/>
                 <Summary/>
                 <Priority>Medium</Priority>
@@ -115,7 +115,7 @@
                 </Property>
             </TestCase>
             <TestCase>
-                <tcName>~/twister/demo/testsuite-python/test006.py</tcName>
+                <tcName>~/twister/demo/testsuite-python/test_py_globals1.py</tcName>
                 <Title/>
                 <Summary/>
                 <Priority>Medium</Priority>
@@ -129,7 +129,7 @@
     </TestSuite>
     <TestSuite>
         <tsName>S2</tsName>
-        <EpId>EP-1002;EP-1003</EpId>
+        <EpId>EP-1002</EpId>
         <UserDefined>
             <propName>release_id</propName>
             <propValue>2</propValue>
@@ -162,7 +162,7 @@
             </Property>
         </TestCase>
         <TestCase>
-            <tcName>~/twister/demo/testsuite-python/test002.py</tcName>
+            <tcName>~/twister/demo/testsuite-python/test_py_threads.py</tcName>
             <Title/>
             <Summary/>
             <Priority>Medium</Priority>
