@@ -49,7 +49,7 @@ class Plugin(BasePlugin):
 
     def __init__(self, user, data):
         if not data:
-            return None
+            return False
 
         BasePlugin.__init__(self, user, data)
 
