@@ -25,13 +25,13 @@ def test():
 	print 'begin test'
 	print '||||||||||||||||||||||||||||||||||||||||||||||'
 	print 'open_connection'
-	tm.open_connection('test', conn['host'], , conn['port'], conn['user'], conn['passwd'],
+	tm.open_connection('test', conn['host'], conn['port'], conn['user'], conn['passwd'],
 							conn['loging_prompt'], conn['passwd_prompt'])
-	tm.open_connection('test1', conn['host'], , conn['port'], conn['user'], conn['passwd'],
+	tm.open_connection('test1', conn['host'], conn['port'], conn['user'], conn['passwd'],
 							conn['loging_prompt'], conn['passwd_prompt'])
-	tm.open_connection('test2', conn['host'], , conn['port'], conn['user'], conn['passwd'],
+	tm.open_connection('test2', conn['host'], conn['port'], conn['user'], conn['passwd'],
 							conn['loging_prompt'], conn['passwd_prompt'])
-	tm.open_connection('test3', conn['host'], , conn['port'], conn['user'], conn['passwd'],
+	tm.open_connection('test3', conn['host'], conn['port'], conn['user'], conn['passwd'],
 							conn['loging_prompt'], conn['passwd_prompt'])
 
 	print '||||||||||||||||||||||||||||||||||||||||||||||'

@@ -238,7 +238,7 @@ class TCRunPython:
         to_execute = r"""
 import os, sys
 sys.argv = %s
-""" % str(["file.py"] + params)
+""" % str([globs['filename']] + params)
 
         fname = os.path.split(globs['filename'])[1]
         fpath = '{}/.twister_cache/{}/{}'.format(TWISTER_PATH, self.epname, fname)

@@ -135,6 +135,7 @@ def saveLibraries(proxy, libs_list=''):
 
     for lib_file in zip_libs:
         lib_data = proxy.downloadLibrary(lib_file)
+        time.sleep(0.1) # Must take it slow
         if not lib_data:
             print('ZIP library `{0}` does not exist!'.format(lib_file))
             continue
@@ -151,6 +152,7 @@ def saveLibraries(proxy, libs_list=''):
 
     for lib_file in all_libs:
         lib_data = proxy.downloadLibrary(lib_file)
+        time.sleep(0.1) # Must take it slow
         if not lib_data:
             print('Library `{0}` does not exist!'.format(lib_file))
             continue
