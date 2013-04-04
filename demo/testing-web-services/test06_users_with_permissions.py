@@ -1,5 +1,7 @@
 
 # <title> Test 06 - create users with permissions </title>
+
+# version: 2.001
 # <description> Testing the SOAP server: create many complex data structures and submit them to the server (users with permissions) </description>
 
 def func():

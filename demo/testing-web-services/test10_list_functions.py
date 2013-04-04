@@ -1,5 +1,7 @@
 
 # <title> Test 10 - list all exposed functions </title>
+
+# version: 2.001
 # <description> Testing the XML-RPC server: listing all available functions </description>
 
 import time

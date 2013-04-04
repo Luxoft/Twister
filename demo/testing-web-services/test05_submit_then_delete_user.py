@@ -1,5 +1,7 @@
 
 # <title> Test 05 - submit and delete user </title>
+
+# version: 2.001
 # <description> Testing the SOAP server: submit a complex data structure (user) on the server, then delete it  </description>
 
 def func():

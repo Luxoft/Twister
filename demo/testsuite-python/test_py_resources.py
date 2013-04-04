@@ -1,4 +1,6 @@
 
+# version: 2.001
+
 from ce_libs import getResource, setResource, deleteResource, getResourceStatus
 from ce_libs import allocResource, reserveResource, freeResource
 

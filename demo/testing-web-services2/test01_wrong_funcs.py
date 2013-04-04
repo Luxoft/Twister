@@ -1,5 +1,7 @@
 
 # <title> Test 01 </title>
+
+# version: 2.001
 # <description> Calling inexistent functions. All exceptions must be caught. </description>
 
 import time

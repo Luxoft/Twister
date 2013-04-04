@@ -1,5 +1,6 @@
 
 #
+# version: 2.001
 # <title>test 01</title>
 # <description>This suite checks a lot of things.
 # It checks if the EPs are running the tests successfully and it calls all CE functions, to ensure they work as expected.

@@ -2,6 +2,7 @@
 #
 # -*- coding: utf-8 -*-
 #
+# version: 2.001
 #
 # File: PacketsTwistPlugin.py ; This file is part of Twister.
 #
@@ -49,7 +50,7 @@ class Plugin(BasePlugin):
 
     def __init__(self, user, data):
         if not data:
-            return None
+            return False
 
         BasePlugin.__init__(self, user, data)
 

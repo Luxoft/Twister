@@ -1,5 +1,7 @@
 
 import xmlrpclib
+
+# version: 2.001
 from jenkinsapi import api
 
 jenkins = api.Jenkins('http://localhost:8080')

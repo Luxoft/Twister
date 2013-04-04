@@ -1,5 +1,7 @@
 
 # <title> Test 03 - a function with an error </title>
+
+# version: 2.001
 # <description> Testing a function with an error, on the SOAP server </description>
 
 def func():

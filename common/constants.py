@@ -1,6 +1,8 @@
 
 # Central Engine and Execution Process statuses:
 
+# version: 2.001
+
 STATUS_STOP    = 0 # Suicide; the test suite is immediately killed
 STATUS_PAUSED  = 1 # After the current test is finished, the suite is frozen
 STATUS_RUNNING = 2 # The suite is running

@@ -1,4 +1,6 @@
 
+# version: 2.001
+
 import time
 import telnetlib
 

@@ -1,4 +1,6 @@
 
+# version: 2.001
+
 import os
 import pexpect
 from BasePlugin import BasePlugin

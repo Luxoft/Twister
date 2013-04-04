@@ -1,5 +1,7 @@
 
 # <title> Test 05 </title>
+
+# version: 2.001
 # <description> Testing service GetDomainNames with wrong parameters. All exceptions must be caught, the test must pass. </description>
 
 import time
