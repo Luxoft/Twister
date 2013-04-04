@@ -1,5 +1,6 @@
 
 #
+# version: 2.001
 # <title>test 02</title>
 # <description>Testing the logs.</description>
 #
@@ -20,14 +21,14 @@ def test(PROXY, USER):
         return 'Fail'
     print 'Reset log:',  r
 
-    r = PROXY.resetLogs(USER)
+    r = True #PROXY.resetLogs(USER)
     if not r:
         print('Failure! Cannot reset logs!')
         return 'Fail'
     print 'Reset logs:', r
 
-    print 'Logs path:', PROXY.getLogsPath(USER)
-    print 'Log types:', PROXY.getLogTypes(USER)
+    print 'Logs path:', PROXY.getUserInfo(USER, 'logs_path')
+    print 'Log types:', PROXY.getUserInfo(USER, 'logs_types')
     time.sleep(0.5)
     print
 
@@ -50,7 +51,8 @@ def test(PROXY, USER):
     print
 
     for epname in PROXY.listEPs(USER).split(','):
-        r = PROXY.logLIVE(USER, epname, binascii.b2a_base64('Some log live message for `%s`...' % epname))
+        try: r = PROXY.logLIVE(USER, epname, binascii.b2a_base64('Some log live message for `%s`...' % epname))
+        except: r = False
         if not r:
             print('Failure! Cannot use log Live!')
             return 'Fail'

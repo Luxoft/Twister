@@ -1,7 +1,8 @@
 /*
 File: applet.java ; This file is part of Twister.
+Version: 2.001
 
-Copyright (C) 2012 , Luxoft
+Copyright (C) 2012-2013 , Luxoft
 
 Authors: Andrei Costachi <acostachi@luxoft.com>
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -38,6 +39,7 @@ import javax.swing.UIManager;
 import javax.swing.SwingUtilities;
 import java.net.URLClassLoader;
 import com.twister.MySecurityManager;
+import java.net.URL;
 
 public class applet extends Applet{ 
     private static final long serialVersionUID = 1L;
@@ -100,7 +102,13 @@ public class applet extends Applet{
          * host - server address
          * this - as container
          */
-        Repository.initialize(true, getCodeBase().getHost(),applet.this);}
+        Repository.initialize(true, getCodeBase().getHost(),applet.this);
+        try{
+            getAppletContext().showDocument(new URL("javascript:resize()"));
+        } catch (Exception e) {
+            System.err.println("Failed to call JavaScript function appletLoaded()");
+        }    
+    }
         
         
     /*
@@ -133,7 +141,7 @@ public class applet extends Applet{
         Repository.window.mainpanel.setSize(width-28,height-40);
         Repository.window.mainpanel.p4.getScroll().setSize(width-310,height-150);
         Repository.window.mainpanel.p4.getMain().setSize(width-300,height-130);
-        Repository.window.mainpanel.p4.getDut().setPreferredSize(
+        Repository.window.mainpanel.p4.getTB().setPreferredSize(
             new Dimension(width-300,height-150));
         Repository.window.appletpanel.setSize(width-20,height-20);        
         Repository.window.mainpanel.p4.getPlugins().setPreferredSize(

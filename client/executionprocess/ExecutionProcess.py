@@ -1,10 +1,13 @@
 #!/usr/bin/env python
 
+# version: 2.001
+
 # File: ExecutionProcess.py ; This file is part of Twister.
 
-# Copyright (C) 2012 , Luxoft
+# Copyright (C) 2012-2013 , Luxoft
 
 # Authors:
+#    Adrian Toader <adtoader@luxoft.com>
 #    Andrei Costachi <acostachi@luxoft.com>
 #    Andrei Toma <atoma@luxoft.com>
 #    Cristian Constantin <crconstantin@luxoft.com>
@@ -30,10 +33,6 @@ When it receives START from CE, it will start the Runner that will execute all t
   send all Runner logs to CE and after the execution, it will wait for another START to repeat the cycle.
 EP is basically a simple service, designed to start and stop the Runner.
 All the hard work is made by the Runner.
-
-EP can also start "offline" (without a connection to CE). This mode is used for debug,
-but it requires that EP was already started "online" once before, because it needs the libraries.
-Alternatively, the required libraries can be manually copied in "src/.twister_cache/ce_libs".
 '''
 
 import os
@@ -82,6 +81,33 @@ def saveConfig():
 
 #
 
+def packetsTwistStatus(ce):
+    """
+    Check Packets Twist plugin status.
+    """
+
+    if not 'SNIFF' in ce.listPlugins(userName):
+        return
+
+    global sniffer
+
+    pipe = subprocess.Popen('ps ax | grep start_packets_twist.py',
+                                    shell=True, stdout=subprocess.PIPE).stdout
+    lines = pipe.read().splitlines()
+    if len(lines) > 2: return
+
+    if not sniffer:
+        args = {'command': 'echo'}
+        result = ce.runPlugin(userName, 'SNIFF', args)
+
+        if result == 'running':
+            scriptPath =  os.path.join(TWISTER_PATH, 'bin/start_packets_twist.py')
+            command = ['sudo', 'python', scriptPath, '-u', userName]
+            sniffer = subprocess.Popen(command, shell=False)
+            print 'Packets Twist started'
+
+#
+
 class threadCheckStatus(threading.Thread):
     '''
     Threaded class for checking CE Status.
@@ -122,6 +148,7 @@ class threadCheckStatus(threading.Thread):
             epStatus = newEpStatus
 
             saveConfig() # Save configuration EVERY cycle
+            packetsTwistStatus(self.proxy) # Check Packets Twist EVERY cycle
 
             # Save EP info like OS, IP, user id, user group, EVERY 10 cycles
             if not self.cycle:
@@ -206,6 +233,7 @@ if __name__=='__main__':
     filelist = ''
     programExit = False
     OFFLINE = False
+    sniffer = None
 
     try: os.mkdir(TWISTER_PATH + '/.twister_cache/')
     except: pass

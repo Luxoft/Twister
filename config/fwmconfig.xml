@@ -1,18 +1,18 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!--
- Master config file for Twister.
---><Root>
+Master config file for Twister.
+-->
+<Root>
     <FileType>config</FileType>
     <CentralEnginePort>8000</CentralEnginePort>
-    <ResourceAllocatorPort>8001</ResourceAllocatorPort>
     <HttpServerPort>8080</HttpServerPort>
     <TestCaseSourcePath>$HOME/twister/demo</TestCaseSourcePath>
-    <MasterXMLTestSuite>$HOME/twister/config/testsuites.xml</MasterXMLTestSuite>
     <UsersPath>$HOME/twister/config/users</UsersPath>
+    <GlobalParams>$HOME/twister/config/globals.xml</GlobalParams>
     <DbConfigFile>$HOME/twister/config/db.xml</DbConfigFile>
-    <EPIdsFile>$HOME/twister/config/epname.txt</EPIdsFile>
-    <HardwareConfig>$HOME/twister/config/hwconfig.xml</HardwareConfig>
+    <EpNames>$HOME/twister/config/epname.ini</EpNames>
     <EmailConfigFile>$HOME/twister/config/email.xml</EmailConfigFile>
+    <GlobalParams>>$HOME/twister/config/globalparams.xml</GlobalParams>
     <LogsPath>$HOME/twister/logs</LogsPath>
     <LogFiles>
         <logRunning>log_running.log</logRunning>

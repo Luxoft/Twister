@@ -1,7 +1,8 @@
 /*
 File: Window.java ; This file is part of Twister.
+Version: 2.001
 
-Copyright (C) 2012 , Luxoft
+Copyright (C) 2012-2013 , Luxoft
 
 Authors: Andrei Costachi <acostachi@luxoft.com>
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -36,6 +37,7 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Toolkit;
 import javax.swing.JLabel;
+import com.twister.CustomDialog;
 
 /*
  * main window displayed if twister is running local
@@ -91,9 +93,10 @@ public class Window extends JFrame{
             addWindowListener(new WindowAdapter(){
                 public void windowClosing(WindowEvent e){
                     Repository.saveMainLayout();
-                    Repository.uploadPluginsFile();
+//                     Repository.uploadPluginsFile();
+                    mainpanel.p4.getPlugins().uploadPluginsFile();
                     int r = (Integer)CustomDialog.showDialog(
-                                new JLabel("Save your Suite XML before exiting ?"),
+                                new JLabel("Save your Project XML before exiting ?"),
                                 JOptionPane.QUESTION_MESSAGE, 
                                 JOptionPane.OK_CANCEL_OPTION, mainpanel, "Save", null);
                     if(r == JOptionPane.OK_OPTION){mainpanel.saveUserXML();}
@@ -114,7 +117,7 @@ public class Window extends JFrame{
                         mainpanel.setSize(getWidth()-28,getHeight()-50);
                         mainpanel.p4.getScroll().setSize(getWidth()-310,getHeight()-150);
                         mainpanel.p4.getMain().setSize(getWidth()-300,getHeight()-130);
-                        mainpanel.p4.getDut().setPreferredSize(
+                        mainpanel.p4.getTB().setPreferredSize(
                                     new Dimension(getWidth()-300,getHeight()-150));
                         mainpanel.p4.getPlugins().setPreferredSize(
                                     new Dimension(getWidth()-300,getHeight()-150));
@@ -127,7 +130,8 @@ public class Window extends JFrame{
         Repository.intro.setStatus("Starting applet");
         Repository.intro.addPercent(1);
         Repository.intro.repaint();
-        Repository.intro.dispose();}
+        Repository.intro.dispose();
+    }
     
     /*
      * static method used to dele a directory 

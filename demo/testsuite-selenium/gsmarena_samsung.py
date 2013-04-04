@@ -1,4 +1,6 @@
 from selenium import selenium
+
+# version: 2.001
 import unittest, time, re
 
 class gsmarena_samsung(unittest.TestCase):

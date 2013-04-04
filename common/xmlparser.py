@@ -1,9 +1,12 @@
 
 # File: xmlparser.py ; This file is part of Twister.
 
-# Copyright (C) 2012 , Luxoft
+# version: 2.001
+
+# Copyright (C) 2012-2013 , Luxoft
 
 # Authors:
+#    Adrian Toader <adtoader@luxoft.com>
 #    Andrei Costachi <acostachi@luxoft.com>
 #    Andrei Toma <atoma@luxoft.com>
 #    Cristi Constantin <crconstantin@luxoft.com>
@@ -35,10 +38,30 @@ if not TWISTER_PATH:
 sys.path.append(TWISTER_PATH)
 
 from lxml import etree
+from ConfigParser import SafeConfigParser
 from plugins import BasePlugin
 
-__all__ = ['TSCParser', 'DBParser', 'PluginParser']
+from common.tsclogging import *
+from common.constants import FWMCONFIG_TAGS, PROJECTCONFIG_TAGS
+from common.constants import SUITES_TAGS, TESTS_TAGS
 
+__all__ = ['TSCParser', 'DBParser', 'PluginParser', 'userHome']
+
+#
+
+def userHome(user):
+    """
+    Find the home folder for the given user, using /etc/passwd file.\n
+    This function is run from a ROOT user.
+    """
+    user = str(user)
+    lines = open('/etc/passwd').readlines()
+    user_line = [line for line in lines if line.startswith(user + ':')]
+    if not user_line: return '/home/' + user
+    user_line = user_line[0].split(':')
+    return user_line[-2]
+
+#
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # TSC
@@ -57,7 +80,7 @@ class TSCParser:
     - Test files for specific EP
     """
 
-    def __init__(self, base_config='', files_config=''):
+    def __init__(self, user, base_config='', files_config=''):
 
         if os.path.isfile(base_config):
             base_config = open(base_config).read()
@@ -71,6 +94,9 @@ class TSCParser:
             self.xmlDict = etree.fromstring(base_config)
         except:
             raise Exception('Parser ERROR: Cannot access XML config data!')
+
+        self.user = user
+        self.user_home = userHome(user)
 
         self.configTS = None
         self.configHash = None
@@ -142,64 +168,37 @@ class TSCParser:
             return False
 
         # Reset globals
-        self.project_globals = OrderedDict([
-            ('EpsFile', ''),
-            ('DbConfig', ''),
-            ('EmailConfig', ''),
-            ('LogsPath', ''),
-            ('ExitOnTestFail', False),
-            ('DbAutoSave', False),
-            ('TestcaseDelay', 0),
-            ('ScriptPre', ''),
-            ('ScriptPost', ''),
-            ('Libraries', ''),
-        ])
+        self.project_globals = OrderedDict()
 
-        # From FWM Config
-        if self.xmlDict.xpath('EPIdsFile/text()'):
-            path = self.xmlDict.xpath('EPIdsFile')[0].text
-            if path.startswith('~'):
-                path = os.getenv('HOME') + path[1:]
-            self.project_globals['EpsFile'] = path
+        # Parse all known FWMCONFIG tags
+        for tag_dict in FWMCONFIG_TAGS:
+            # Create default entry
+            self.project_globals[tag_dict['name']] = tag_dict['default']
+            # Update value from XML
+            if self.xmlDict.xpath(tag_dict['tag'] + '/text()'):
+                path = self.xmlDict.xpath(tag_dict['tag'])[0].text
+                if path[0] == '~':
+                    path = self.user_home + path[1:]
+                self.project_globals[tag_dict['name']] = path
 
-        if self.xmlDict.xpath('DbConfigFile/text()'):
-            path = self.xmlDict.xpath('DbConfigFile')[0].text
-            if path.startswith('~'):
-                path = os.getenv('HOME') + path[1:]
-            self.project_globals['DbConfig'] = path
-
-        if self.xmlDict.xpath('EmailConfigFile/text()'):
-            path = self.xmlDict.xpath('EmailConfigFile')[0].text
-            if path.startswith('~'):
-                path = os.getenv('HOME') + path[1:]
-            self.project_globals['EmailConfig'] = path
-
-        if self.xmlDict.xpath('LogsPath/text()'):
-            path = self.xmlDict.xpath('LogsPath')[0].text
-            if path.startswith('~'):
-                path = os.getenv('HOME') + path[1:]
-            self.project_globals['LogsPath'] = path
-
-        # From Project Config
-        if self.configTS.xpath('stoponfail/text()'):
-            if self.configTS.xpath('stoponfail/text()')[0].lower() == 'true':
-                self.project_globals['ExitOnTestFail'] = True
-
-        if self.configTS.xpath('dbautosave/text()'):
-            if self.configTS.xpath('dbautosave/text()')[0].lower() == 'true':
-                self.project_globals['DbAutoSave'] = True
-
-        if self.configTS.xpath('tcdelay/text()'):
-            self.project_globals['TestcaseDelay'] = self.configTS.xpath('round(tcdelay)')
-
-        if self.configTS.xpath('ScriptPre/text()'):
-            self.project_globals['ScriptPre'] = self.configTS.xpath('ScriptPre')[0].text
-
-        if self.configTS.xpath('ScriptPost/text()'):
-            self.project_globals['ScriptPost'] = self.configTS.xpath('ScriptPost')[0].text
-
-        if self.configTS.xpath('libraries/text()'):
-            self.project_globals['Libraries'] = self.configTS.xpath('libraries')[0].text
+        # Parse all known PROJECT tags
+        for tag_dict in PROJECTCONFIG_TAGS:
+            # Create default entry
+            self.project_globals[tag_dict['name']] = tag_dict['default']
+            # Update value from XML
+            if self.configTS.xpath(tag_dict['tag'] + '/text()'):
+                # If the variable should be a Boolean
+                if tag_dict.get('type') == 'bool':
+                    if self.configTS.xpath(tag_dict['tag'] + '/text()')[0].lower() == 'true':
+                        value = True
+                    else:
+                        value = False
+                # If the variable should be a Number
+                elif tag_dict.get('type') == 'number':
+                    value = self.configTS.xpath('round({})'.format(tag_dict['tag']))
+                else:
+                    value = self.configTS.xpath(tag_dict['tag'])[0].text
+                self.project_globals[tag_dict['name']] = value
 
         return True
 
@@ -208,22 +207,26 @@ class TSCParser:
         """
         Returns a list with all available EP names.
         """
-        eps_file = self.project_globals['EpsFile']
+        # Reading the path to Ep Names file, from master config
+        eps_file = self.project_globals['EpNames']
 
         if not eps_file:
-            print('Parser: EP Names file is not defined! Please check framework config XML file!')
+            logError('Parser: EP Names file is not defined! Please check framework config XML file!')
             return None
         if not os.path.isfile(eps_file):
-            print('Parser: EP Names file `%s` does not exist! Please check framework config XML file!' % eps_file)
+            logError('Parser: EP Names file `{0}` does not exist! Please check framework config XML file!'.format(eps_file))
             return None
 
         # Reset EP list
         self.epnames = []
 
-        for line in open(eps_file).readlines():
-            line = line.strip()
-            if not line: continue
-            self.epnames.append(line)
+        cfg = SafeConfigParser()
+        cfg.read(eps_file)
+
+        for epname in cfg.sections():
+            epname = epname.strip()
+            self.epnames.append(epname)
+
         return self.epnames
 
 
@@ -240,13 +243,15 @@ class TSCParser:
             activeEPs.append( str(epname) )
 
         activeEPs = (';'.join(activeEPs)).split(';')
-        activeEPs = sorted(list(set(activeEPs)))
+        activeEPs = list(set(activeEPs))
+        activeEPs = [ep.strip() for ep in activeEPs if ep.strip()]
         return activeEPs
 
+# # #
 
     def listSettings(self, xmlFile, xFilter=''):
         """
-        High level functions.
+        High level function for listing all settings from a Twister XML config file.
         """
         if not os.path.isfile(xmlFile):
             print('Parse settings error! File path `{0}` does not exist!'.format(xmlFile))
@@ -260,7 +265,7 @@ class TSCParser:
 
     def getSettingsValue(self, xmlFile, key):
         """
-        High level functions.
+        High level function for getting a value from a Twister XML config file.
         """
         if not os.path.isfile(xmlFile):
             print('Parse settings error! File path `{0}` does not exist!'.format(xmlFile))
@@ -280,7 +285,7 @@ class TSCParser:
 
     def setSettingsValue(self, xmlFile, key, value):
         """
-        High level functions.
+        High level function for setting a value in a Twister XML config file.
         """
         if not os.path.isfile(xmlFile):
             print('Parse settings error! File path `{0}` does not exist!'.format(xmlFile))
@@ -295,13 +300,187 @@ class TSCParser:
             value = str(value)
 
         xmlSoup = etree.parse(xmlFile)
-        if xmlSoup.xpath(key):
-            xmlSoup.xpath(key)[0].text = value
-            xmlSoup.write(xmlFile)
+        xml_key = xmlSoup.xpath(key)
+
+        # If the key is found, update it
+        if xml_key:
+            xml_key[0].text = value
+            xmlSoup.write(xmlFile, pretty_print=True)
             return True
         else:
             return False
 
+
+    def delSettingsKey(self, xmlFile, key, index=0):
+        """
+        High level function for deleting a value from a Twister XML config file.
+        If the `index` is specified and the `key` returns more values, only the
+        index-th value is deleted; unless the `index` is -1, in this case, all
+        values are deleted.
+        """
+        if not os.path.isfile(xmlFile):
+            print('Parse settings error! File path `{0}` does not exist!'.format(xmlFile))
+            return False
+        # The key must be string
+        if not (isinstance(key, str) or isinstance(key, unicode)):
+            return False
+        # The index must be integer
+        if not isinstance(index, int):
+            return False
+        # The key must not be Null
+        if not key:
+            return False
+        else:
+            key = str(key)
+
+        xmlSoup = etree.parse(xmlFile)
+        xml_key = xmlSoup.xpath(key)
+
+        if not xml_key:
+            return False
+
+        # For index -1, delete all matches
+        if index == -1:
+            for xml_v in xml_key:
+                xml_parent = xml_v.getparent()
+                xml_parent.remove(xml_v)
+        else:
+            # Use the index-th occurence, or, if the index is wrong, exit
+            try: xml_key = xml_key[index]
+            except: return False
+
+            xml_parent = xml_key.getparent()
+            xml_parent.remove(xml_key)
+
+        xmlSoup.write(xmlFile, pretty_print=True)
+        return True
+
+
+    def setPersistentSuite(self, xmlFile, suite, info={}, order=-1):
+        """
+        This function writes in TestSuites.XML file.
+        """
+        if not os.path.isfile(xmlFile):
+            print('Parse settings error! File path `{0}` does not exist!'.format(xmlFile))
+            return False
+        if not suite:
+            return False
+        else:
+            suite = str(suite)
+        try: order = int(order)
+        except: return False
+
+        # Root element from Project XML
+        xmlSoup = etree.parse(xmlFile)
+        xml_root = xmlSoup.getroot()
+        suites_index = [xml_root.index(s) for s in xml_root.xpath('/Root/TestSuite')]
+
+        if order == 0:
+            # Add before the first suite
+            insert_pos = 2
+        elif abs(order) > len(suites_index):
+            # If the negative pos is bigger than the index, add before the first suite
+            insert_pos = 2
+        elif order > len(suites_index):
+            # Add after the last suite
+            if not suites_index: insert_pos = 2
+            else: insert_pos = suites_index[-1] + 1
+        else:
+            # If another position, add there
+            if order > 0: order -= 1
+            if not suites_index: insert_pos = 2
+            else: insert_pos = suites_index[order] + 1
+
+        # Suite XML object
+        suite_xml = etree.Element('TestSuite')
+        suite_xml.text = '\n' ; suite_xml.tail = '\n\n'
+        tsName = etree.SubElement(suite_xml, 'tsName')
+        tsName.text = suite ; tsName.tail = '\n'
+        epName = etree.SubElement(suite_xml, 'EpId')
+        epName.text = info.get('ep', ' ')
+        epName.tail = '\n'
+        try: del info['ep']
+        except: pass
+
+        for k, v in info.iteritems():
+            tag = etree.SubElement(suite_xml, 'UserDefined')
+            tag.text = '\n' ; tag.tail = '\n'
+            prop = etree.SubElement(tag, 'propName')
+            prop.text = str(k) ; prop.tail = '\n'
+            val  = etree.SubElement(tag, 'propValue')
+            val.text = str(v) ; val.tail = '\n'
+
+        # Insert the new suite and save
+        xml_root.insert(insert_pos, suite_xml)
+        xmlSoup.write(xmlFile, pretty_print=True)
+        return True
+
+
+    def setPersistentFile(self, xmlFile, suite, fname, info={}, order=-1):
+        """
+        This function writes in TestSuites.XML file.
+        """
+        if not os.path.isfile(xmlFile):
+            print('Parse settings error! File path `{0}` does not exist!'.format(xmlFile))
+            return False
+        if not suite:
+            return False
+        else:
+            suite = str(suite)
+        if not fname:
+            return False
+        else:
+            fname = str(fname)
+        try: order = int(order)
+        except: return False
+
+        # Root element from Project XML
+        xmlSoup = etree.parse(xmlFile)
+        xml_root = xmlSoup.getroot()
+
+        suite_xml = xml_root.xpath('/Root/TestSuite[tsName="{0}"]'.format(suite))
+        if not suite_xml: return False
+        else: suite_xml = suite_xml[0]
+
+        files_index = [ suite_xml.index(s) for s in \
+            suite_xml.xpath('/Root/TestSuite[tsName="{0}"]/TestCase'.format(suite)) ]
+
+        if order == 0:
+            # Add before the first file
+            insert_pos = 2
+        elif abs(order) > len(files_index):
+            # If the negative pos is bigger than the index, add before the first file
+            insert_pos = 2
+        elif order > len(files_index):
+            # Add after the last file
+            if not files_index: insert_pos = 2
+            else: insert_pos = files_index[-1] + 1
+        else:
+            # If another position, add there
+            if order > 0: order -= 1
+            if not files_index: insert_pos = 2
+            else: insert_pos = files_index[order] + 1
+
+        # File XML object
+        file_xml = etree.Element('TestCase')
+        file_xml.text = '\n' ; file_xml.tail = '\n'
+        tcName = etree.SubElement(file_xml, 'tcName')
+        tcName.text = fname ; tcName.tail = '\n'
+
+        for k, v in info.iteritems():
+            tag = etree.SubElement(file_xml, 'Property')
+            tag.text = '\n' ; tag.tail = '\n'
+            prop = etree.SubElement(tag, 'propName')
+            prop.text = str(k) ; prop.tail = '\n'
+            val  = etree.SubElement(tag, 'propValue')
+            val.text = str(v) ; val.tail = '\n'
+
+        # Insert the new file and save
+        suite_xml.insert(insert_pos, file_xml)
+        xmlSoup.write(xmlFile, pretty_print=True)
+        return True
+
+# # #
 
     def _fixLogType(self, logType):
         """
@@ -335,10 +514,10 @@ class TSCParser:
         logs_path = self.project_globals['LogsPath']
 
         if not logs_path:
-            print('Parser: Logs path is not defiled! Please check framework config XML file!')
+            logError('Parser: Logs path is not defined! Please check framework config XML file!')
             return {}
         if not os.path.isdir(logs_path):
-            print('Parser: Invalid logs path `{0}`!'.format(logs_path))
+            logError('Parser: Invalid logs path `{0}`!'.format(logs_path))
             return ''
 
         logType = self._fixLogType(logType)
@@ -358,10 +537,10 @@ class TSCParser:
         eml_file = self.project_globals['EmailConfig']
 
         if not eml_file:
-            print('Parser: E-mail Config file is not defiled! Please check framework config XML file!')
+            logError('Parser: E-mail Config file is not defined! Please check framework config XML file!')
             return {}
         if not os.path.isfile(eml_file):
-            print('Parser: E-mail Config file `%s` does not exist! Please check framework config XML file!' % eml_file)
+            logError('Parser: E-mail Config file `%s` does not exist! Please check framework config XML file!' % eml_file)
             return {}
 
         econfig = etree.parse(eml_file)
@@ -396,19 +575,58 @@ class TSCParser:
         return res
 
 
-    def getSuiteInfo(self, epname, suite_soup):
+    def getAllSuitesInfo(self):
+        """
+        Returns a list with data for all suites from current project.
+        Each suite contains the file list, with all file data.
+        """
+        if self.configTS is None:
+            logError('Get Suites: Cannot parse Test Suite XML! Exiting!')
+            return {}
+
+        # The suites must be in order
+        res = OrderedDict()
+        suites = []
+
+        for suite in self.configTS.xpath('//TestSuite'):
+            # If the suite doesn't have EP, skip
+            if not suite.xpath('EpId/text()'):
+                continue
+            suites.append(suite)
+
+        for suite in suites:
+            suite_str = str(self.suite_no)
+            # Create suite ID automatically
+            res[suite_str] = self.getSuiteInfo(suite)
+            # Add the suite ID for all files in the suite
+            for file_id in res[suite_str]['files']:
+                res[suite_str]['files'][file_id]['suite'] = suite_str
+            self.suite_no += 1
+
+        return res
+
+
+    def getSuiteInfo(self, suite_soup):
         """
         Returns a dict with information about 1 Suite from Test-Suites XML.
         The "suite" must be a XML Soup class.
         """
+        # A suite can be a part of only 1 EP !
+        res = OrderedDict()
 
-        res = OrderedDict([ ['name', suite_soup.xpath('tsName/text()')[0]] ])
-        res['ep'] = epname
-        res['libraries'] = ''
+        # The first parameter is the EP name
+        res['ep'] = suite_soup.xpath('EpId')[0].text
 
-        if suite_soup.xpath('libraries/text()'):
-            res['libraries'] = suite_soup.xpath('libraries')[0].text
+        # Parse all known Suites Tags
+        for tag_dict in SUITES_TAGS:
+            # Create default entry
+            res[tag_dict['name']] = tag_dict['default']
+            # Update value from XML
+            if suite_soup.xpath(tag_dict['tag'] + '/text()'):
+                value = suite_soup.xpath(tag_dict['tag'])[0].text
+                res[tag_dict['name']] = value
 
+        # Add property/ value tags
         prop_keys = suite_soup.xpath('UserDefined/propName')
         prop_vals = suite_soup.xpath('UserDefined/propValue')
 
@@ -424,43 +642,23 @@ class TSCParser:
         return res
 
 
-    def getAllSuitesInfo(self, epname):
-        """
-        Returns a list with data for all suites of one EP.
-        Also returns the file list, with all file data.
-        """
-        if self.configTS is None:
-            print('Parser: Cannot parse Test Suite XML! Exiting!')
-            return {}
-
-        if epname not in self.epnames:
-            print('Parser: Station `%s` is not in the list of defined EPs: `%s`!' %
-                (str(epname), str(self.epnames)) )
-            return {}
-
-        res = OrderedDict()
-
-        for suite in [s for s in self.configTS.xpath('//TestSuite') if epname in s.xpath('EpId/text()')[0].split(';')]:
-            suite_str = str(self.suite_no)
-            res[suite_str] = self.getSuiteInfo(epname, suite)
-            # Add the suite ID for all files in the suite
-            for file_id in res[suite_str]['files']:
-                res[suite_str]['files'][file_id]['suite'] = suite_str
-            self.suite_no += 1
-
-        return res
-
-
     def getFileInfo(self, file_soup):
         """
         Returns a dict with information about 1 File from Test-Suites XML.
         The "file" must be a XML class.
         """
-        res = OrderedDict()
-        res['file']  = file_soup.xpath('tcName')[0].text
-        res['suite'] = None
-        res['dependancy'] = file_soup.xpath('tcName')[0].text if file_soup.xpath('tcName/text()') else ''
+        res = OrderedDict([ ('suite', None) ])
 
+        # Parse all known File Tags
+        for tag_dict in TESTS_TAGS:
+            # Create default entry
+            res[tag_dict['name']] = tag_dict['default']
+            # Update value from XML
+            if file_soup.xpath(tag_dict['tag'] + '/text()'):
+                value = file_soup.xpath(tag_dict['tag'])[0].text
+                res[tag_dict['name']] = value
+
+        # Add property/ value tags
         prop_keys = file_soup.xpath('Property/propName')
         prop_vals = file_soup.xpath('Property/propValue')
         params = ''
@@ -485,17 +683,44 @@ class TSCParser:
         Returns a list with ALL files defined for current suite, in order.
         """
         if self.configTS is None:
-            print('Parser: Fatal error! Cannot parse Test Suite XML!')
+            logError('Get Tests: Fatal error! Cannot parse Test Suite XML!')
             return []
 
         files = self.configTS.xpath('//tcName')
 
         if not files:
-            print('Parser: Current suite has no files!')
+            logError('Get Tests: Current suite has no files!')
 
         ids = range(1000, 1000 + len(files))
 
         return [str(i) for i in ids]
+
+
+    def getGlobalParams(self):
+        """
+        Returns a dictionary containing All global parameters,
+        that will be available for all tests.
+        """
+        globs_file = self.project_globals['GlobalParams']
+
+        if not globs_file:
+            logError('Get Globals: Globals Config file is not defined! Please check framework config XML file!')
+            return {}
+        if not os.path.isfile(globs_file):
+            logError('Get Globals: Globals Config file `%s` does not exist! Please check framework config XML file!' % globs_file)
+            return {}
+
+        params_xml = etree.parse(globs_file)
+
+        def recursive(xml, gparams):
+            for folder in xml.xpath('folder'):
+                tmp = {gparam.find('name').text: gparam.find('value').text for gparam in folder.xpath('param')}
+                tmp.update( recursive(folder, tmp) )
+                gparams[folder.find('fname').text] = tmp
+            return gparams
+
+        gparams = recursive(params_xml, {})
+        return gparams
 
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -673,17 +898,22 @@ class DBParser():
 
 class PluginParser:
     """
-    Requirements: BeautifulSoup.
+    Requirements: LXML.
     This parser will read Plugins.xml.
     """
 
     def __init__(self, user):
 
-        if not os.path.exists('/home/%s/twister' % user):
-            raise Exception('PluginParser ERROR: Cannot find Twister for user `%s` !' % user)
-        config_data = '/home/%s/twister/config/plugins.xml' % user
+        user_home = userHome(user)
+
+        if not os.path.exists('{0}/twister'.format(user_home)):
+            raise Exception('PluginParser ERROR: Cannot find Twister for user `{0}`, '\
+                'in path `{1}/twister`!'.format(user, user_home))
+
+        config_data = '{0}/twister/config/plugins.xml'.format(user_home)
         if not os.path.exists(config_data):
-            raise Exception('PluginParser ERROR: Cannot find Plugins for user `%s` !' % user)
+            raise Exception('PluginParser ERROR: Cannot find Plugins for user `{0}`, '\
+                'in path `{1}/twister/config`!'.format(user, user_home))
 
         self.config_data = config_data
         self.configHash = None
@@ -699,18 +929,17 @@ class PluginParser:
 
         if self.configHash != newConfigHash:
             self.configHash = newConfigHash
-            #print('PluginParser: Plugin XML file changed, rebuilding internal structure...\n')
 
             try:
                 self.xmlDict = etree.fromstring(config_data)
             except:
-                print('PluginParser ERROR: Cannot access XML config data!')
+                logError('PluginParser ERROR: Cannot access plugins XML data!')
                 return False
 
             for plugin in self.xmlDict.xpath('Plugin'):
 
                 if (not plugin.xpath('name/text()')) or (not plugin.xpath('pyfile')) or (not plugin.xpath('jarfile')):
-                    print('PluginParser ERROR: Invalid plugin: `%s`!' % str(plugin))
+                    logError('PluginParser ERROR: Invalid plugin: `%s`!' % str(plugin))
                     continue
                 name = plugin.xpath('name')[0].text
 
@@ -744,15 +973,15 @@ class PluginParser:
                 mm = reload(mm)
                 plug = mm.Plugin
             except Exception, e:
-                print 'ERROR in module `{0}`! Exception: {1}!'.format(mod, e)
+                logError('PluginParser ERROR: Unhandled exception in plugin file `{0}`! Exception: {1}!'.format(mod, e))
                 continue
 
             if not plug:
-                print('Plugin `%s` must not be Null!' % plug)
+                logError('PluginParser ERROR: Plugin `%s` cannot be Null!' % plug)
                 continue
             # Check plugin parent. Must be Base Plugin.
             if not issubclass(plug, Base):
-                print('Plugin `%s` must be inherited from Base Plugin!' % plug)
+                logError('PluginParser ERROR: Plugin `%s` must be inherited from Base Plugin!' % plug)
                 continue
 
             # Append plugin classes to plugins list

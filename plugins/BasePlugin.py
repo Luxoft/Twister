@@ -1,6 +1,8 @@
 
 # File: BasePlugin.py ; This file is part of Twister.
 
+# version: 2.001
+
 # Copyright (C) 2012 , Luxoft
 
 # Authors:
@@ -66,6 +68,13 @@ class BasePlugin(object):
         every time it Stops the execution of all EPs.
         On Stop, you can implement actions like:
         sending a report, or saving some results to database.
+        """
+        pass
+
+
+    def onLog(self, epname, log_string):
+        """
+        This function is called every time the EP sends a CLI log.
         """
         pass
 

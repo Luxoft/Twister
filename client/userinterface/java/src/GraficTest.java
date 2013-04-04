@@ -1,7 +1,8 @@
 /*
 File: GraficTest.java ; This file is part of Twister.
+Version: 2.001
 
-Copyright (C) 2012 , Luxoft
+Copyright (C) 2012-2013 , Luxoft
 
 Authors: Andrei Costachi <acostachi@luxoft.com>
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -44,6 +45,7 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JTextField;
 import javax.swing.JOptionPane;
+import com.twister.CustomDialog;
 
 public class GraficTest extends JPanel{
     private static final long serialVersionUID = 1L;
@@ -133,9 +135,9 @@ public class GraficTest extends JPanel{
                 Item parent = Repository.window.mainpanel.p1.sc.g.getParent(item,true);
                 String[] eps = parent.getEpId();
                 ArrayList<Log> logs = new ArrayList<Log>();
-                for(Log l:Repository.window.mainpanel.p2.logs){
+                for(Log l:Repository.window.mainpanel.getP2().logs){
                     for(String s:eps){
-                        if((s+"_"+Repository.getLogs().get(4)).equals(l.log)){
+                        if((s.split(" : ")[0]+"_"+Repository.getLogs().get(4)).equals(l.log)){
                             logs.add(l);
                         }
                     }                    
@@ -182,7 +184,6 @@ public class GraficTest extends JPanel{
                             for(int i=0;i<temp1.length;i++)temp11.add(new Integer(temp1[i]));
                             Item parent = getItem(temp11);
                             for(int i=second[second.length-1];i<first[first.length-1]+1;i++){
-                                //parent.getSubItem(i).select(true);
                                 ArrayList<Integer> temporary = new ArrayList<Integer>();
                                 for(int m=0;m<parent.getSubItem(i).getPos().size();m++){
                                     temporary.add(new Integer(parent.getSubItem(i).getPos().get(m).intValue()));}
@@ -433,11 +434,11 @@ public class GraficTest extends JPanel{
             int index = selected2.get(0);
             selected2.remove(0);
             for(int i=index;i<Repository.getTestSuiteNr();i++){   
-                Repository.window.mainpanel.p2.sc.g.iterateThrough(Repository.getTestSuita(i),selected2);
+                Repository.window.mainpanel.getP2().sc.g.iterateThrough(Repository.getTestSuita(i),selected2);
                 selected2 = null;}}
         else if(selected2.size()==1){
             for(int i=selected2.get(0);i<Repository.getTestSuiteNr();i++){
-                Repository.window.mainpanel.p2.sc.g.iterateThrough(Repository.getTestSuita(i),null);}}
+                Repository.window.mainpanel.getP2().sc.g.iterateThrough(Repository.getTestSuita(i),null);}}
         y=10;
         foundfirstitem=false;
         updateScroll();}
@@ -520,16 +521,16 @@ public class GraficTest extends JPanel{
         if(y1>getHeight()){
             setPreferredSize(new Dimension(maxWidth+120,y1+10));
 //             setPreferredSize(new Dimension(425,y1+10));
-            Repository.window.mainpanel.p2.sc.revalidate();}
+            Repository.window.mainpanel.getP2().sc.revalidate();}
         if(getHeight()>595){
             if(y1<getHeight()-10){
 //                 setPreferredSize(new Dimension(425,y1+10));
                 setPreferredSize(new Dimension(maxWidth+120,y1+10));
-                Repository.window.mainpanel.p2.sc.revalidate();}
+                Repository.window.mainpanel.getP2().sc.revalidate();}
             if(y1<595){
 //                 setPreferredSize(new Dimension(445,595));
                 setPreferredSize(new Dimension(maxWidth+120,595));
-                Repository.window.mainpanel.p2.sc.revalidate();}}}
+                Repository.window.mainpanel.getP2().sc.revalidate();}}}
           
                 
     /*

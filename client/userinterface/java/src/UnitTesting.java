@@ -1,7 +1,8 @@
 /*
 File: UnitTesting.java ; This file is part of Twister.
+Version: 2.001
 
-Copyright (C) 2012 , Luxoft
+Copyright (C) 2012-2013 , Luxoft
 
 Authors: Andrei Costachi <acostachi@luxoft.com>
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -60,6 +61,7 @@ import javax.swing.JScrollPane;
 import javax.swing.text.DefaultCaret;
 import java.awt.Color;
 import java.awt.Font;
+import com.twister.CustomDialog;
 
 public class UnitTesting extends JFrame {
     private JButton run;
@@ -106,11 +108,14 @@ public class UnitTesting extends JFrame {
                 go = false;
                 Repository.saveUTLayout(getSize(),getLocation(),jPanel1.getDividerLocation());
                 if(todelete!=null){
-                    try{Repository.c.rm(todelete);}
-                    catch(Exception ex){
-                        System.out.println("Could not delete:"+todelete+" temp file created on server");
-                        ex.printStackTrace();
-                    }
+                    
+//                     try{Repository.c.rm(todelete);}
+//                     catch(Exception ex){
+//                         System.out.println("Could not delete:"+todelete+" temp file created on server");
+//                         ex.printStackTrace();
+//                     }
+                    
+                    Repository.removeRemoteFile(todelete);
                 }
             }
         });
@@ -179,27 +184,57 @@ public class UnitTesting extends JFrame {
         
         String line = null;                             
         InputStream in = null;
-        try{String dir = Repository.getRemoteEpIdDir();
-            String [] path = dir.split("/");
-            StringBuffer result = new StringBuffer();
-            if (path.length > 0) {
-                for (int i=0; i<path.length-1; i++){
-                    result.append(path[i]);
-                    result.append("/");}}
-            Repository.c.cd(result.toString());
-            in = Repository.c.get(path[path.length-1]);}
-        catch(Exception e){e.printStackTrace();};
-        InputStreamReader inputStreamReader = new InputStreamReader(in);
-        BufferedReader bufferedReader = new BufferedReader(inputStreamReader);  
-        StringBuffer b=new StringBuffer("");
-        try{while ((line=bufferedReader.readLine())!= null){b.append(line+";");}
-            bufferedReader.close();
-            inputStreamReader.close();
-            in.close();}
-        catch(Exception e){e.printStackTrace();}        
-        String  [] vecresult = b.toString().split(";");
+        
+        
+//         try{String dir = Repository.getRemoteEpIdDir();
+//             String [] path = dir.split("/");
+//             StringBuffer result = new StringBuffer();
+//             if (path.length > 0) {
+//                 for (int i=0; i<path.length-1; i++){
+//                     result.append(path[i]);
+//                     result.append("/");
+//                 }
+//             }
+//             Repository.c.cd(result.toString());
+//             in = Repository.c.get(path[path.length-1]);}
+//         catch(Exception e){e.printStackTrace();};
+//         InputStreamReader inputStreamReader = new InputStreamReader(in);
+//         BufferedReader bufferedReader = new BufferedReader(inputStreamReader);  
+//         StringBuffer b=new StringBuffer("");
+//         try{while ((line=bufferedReader.readLine())!= null){b.append(line+";");}
+//             bufferedReader.close();
+//             inputStreamReader.close();
+//             in.close();}
+//         catch(Exception e){e.printStackTrace();}        
+//         String  [] vecresult = b.toString().split(";");
+        
+        
+//         String dir = Repository.getRemoteEpIdDir();
+//         String [] path = dir.split("/");
+//         StringBuffer result = new StringBuffer();
+//         if (path.length > 0) {
+//             for (int i=0; i<path.length-1; i++){
+//                 result.append(path[i]);
+//                 result.append("/");
+//             }
+//         }
+//         String  [] vecresult = Repository.getRemoteFileContent(result.toString()+path[path.length-1]).split("\n");
+        
+        
+
+        StringBuilder b = new StringBuilder();
+        for(String s:Repository.getRemoteFileContent(Repository.REMOTEEPIDDIR).split("\n")){
+            if(s.indexOf("[")!=-1){
+                b.append(s.substring(s.indexOf("[")+1, s.indexOf("]"))+";");
+            }
+        }
+        String [] vecresult = b.toString().split(";");
+
+
+        
+        
         eplist.setListData(vecresult);
-         tdesc.setEditable(false);
+        tdesc.setEditable(false);
         jScrollPane2.setViewportView(tdesc);
         jScrollPane1.setViewportView(eplist);
         GroupLayout layout = new GroupLayout(mainpanel);
@@ -298,7 +333,7 @@ public class UnitTesting extends JFrame {
         menu.add(filemenu);
         setJMenuBar(menu);
         File file2 = ExplorerPanel.copyFileLocaly(remotefile, localfile);
-        bufferedReader = null;
+        BufferedReader bufferedReader = null;
         try {
             bufferedReader = new BufferedReader(new FileReader(file2));
         } catch (Exception e) {

@@ -1,9 +1,12 @@
 
 # File: CentralEngineClasses.py ; This file is part of Twister.
 
-# Copyright (C) 2012 , Luxoft
+# version: 2.001
+
+# Copyright (C) 2012-2013 , Luxoft
 
 # Authors:
+#    Adrian Toader <adtoader@luxoft.com>
 #    Andrei Costachi <acostachi@luxoft.com>
 #    Andrei Toma <atoma@luxoft.com>
 #    Cristi Constantin <crconstantin@luxoft.com>
@@ -21,7 +24,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-'''
+"""
 Central Engine Class
 ********************
 
@@ -29,7 +32,7 @@ All functions from Central Engine are EXPOSED and can be accesed via XML-RPC.\n
 The Central Engine and each EP have a status that can be: start/ stop/ paused.\n
 Each test file has a status that can be: pending, working, pass, fail, skip, etc.\n
 All the statuses are defined in "constants.py".\n
-'''
+"""
 
 import os
 import sys
@@ -55,15 +58,16 @@ if not TWISTER_PATH:
     exit(1)
 sys.path.append(TWISTER_PATH)
 
-
 from cherrypy import _cptools
 
 from CentralEngineOthers import Project
+from ServiceManager    import ServiceManager
 from CentralEngineRest import CentralEngineRest
+from ResourceAllocator import ResourceAllocator
 
-from common.constants import *
+from common.constants  import *
 from common.tsclogging import *
-from common.xmlparser import *
+from common.xmlparser  import *
 
 #
 
@@ -74,9 +78,9 @@ from common.xmlparser import *
 
 class CentralEngine(_cptools.XMLRPCController):
 
-    '''
+    """
     *This class is the core of all operations.*
-    '''
+    """
 
     def __init__(self):
 
@@ -84,7 +88,10 @@ class CentralEngine(_cptools.XMLRPCController):
         logDebug('CE: Starting Central Engine...') ; ti = time.clock()
         self.project = Project()
         logDebug('CE: Initialization took %.4f seconds.' % (time.clock()-ti))
+
+        self.manager = ServiceManager()
         self.rest = CentralEngineRest(self, self.project)
+        self.ra = ResourceAllocator()
 
 
 # --------------------------------------------------------------------------------------------------
@@ -94,10 +101,11 @@ class CentralEngine(_cptools.XMLRPCController):
 
     @cherrypy.expose
     def echo(self, msg):
-        '''
+        """
         Simple echo function, for testing connection.
-        '''
-        logInfo(':: %s' % str(msg))
+        """
+        if msg != 'ping':
+            logInfo(':: %s' % str(msg))
         return 'CE reply: ' + msg
 
 
@@ -110,20 +118,20 @@ class CentralEngine(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
-    def getLogTypes(self, user):
-        '''
-        Returns a list with all types of logs defined in Master config.
-        All logs will be exposed to the testing environment.
-        '''
-        return self.project.getUserInfo(user, 'log_types')
+    def serviceManagerCommand(self, command, name='', *args, **kwargs):
+        """
+        Send commands to Service Manager.\n
+        Valid commands are: list, start, stop, status, get config, save config, get log.
+        """
+        return self.manager.sendCommand(command, name, args, kwargs)
 
 
     @cherrypy.expose
     def runDBSelect(self, user, field_id):
-        '''
+        """
         Selects from database.
         This function is called from the Java GUI.
-        '''
+        """
         dbparser = DBParser( self.project.getUserInfo(user, 'db_config') )
         query = dbparser.getQuery(field_id)
         db_config = dbparser.db_config
@@ -150,22 +158,22 @@ class CentralEngine(_cptools.XMLRPCController):
 
     @cherrypy.expose
     def runUserScript(self, script_path):
-        '''
+        """
         Executes a script.
         Returns a string containing the text printed by the script.\n
         This function is called from the Java GUI.
-        '''
+        """
         return self.project.execScript(script_path)
 
 
     @cherrypy.expose
     def sendMail(self, user):
-        '''
+        """
         Send e-mail after the suites are run.\n
         Server must be in the form `adress:port`.\n
         Username and password are used for authentication.\n
         This function is called every time the Central Engine stops.
-        '''
+        """
 
         try:
             ret = self.project.sendMail(user)
@@ -177,11 +185,11 @@ class CentralEngine(_cptools.XMLRPCController):
 
     @cherrypy.expose
     def commitToDatabase(self, user):
-        '''
+        """
         For each EP, for each Suite and each File, the results of the tests are saved to database,
         exactly as the user defined them in Database.XML.\n
         This function is called from the Java GUI, or from an EP.
-        '''
+        """
 
         logDebug('CE: Preparing to save into database...')
         time.sleep(3)
@@ -200,26 +208,34 @@ class CentralEngine(_cptools.XMLRPCController):
 
     @cherrypy.expose
     def listSettings(self, user, config='', x_filter=''):
-        '''
+        """
         List all available settings, for 1 config of a user.
-        '''
+        """
         return self.project.listSettings(user, config, x_filter)
 
 
     @cherrypy.expose
     def getSettingsValue(self, user, config, key):
-        '''
+        """
         Fetch a value from 1 config of a user.
-        '''
+        """
         return self.project.getSettingsValue(user, config, key)
 
 
     @cherrypy.expose
     def setSettingsValue(self, user, config, key, value):
-        '''
+        """
         Set a value for a key in the config of a user.
-        '''
+        """
         return self.project.setSettingsValue(user, config, key, value)
+
+
+    @cherrypy.expose
+    def delSettingsKey(self, user, config, key, index=0):
+        """
+        Del a key from the config of a user.
+        """
+        return self.project.delSettingsKey(user, config, key, index)
 
 
 # --------------------------------------------------------------------------------------------------
@@ -229,10 +245,10 @@ class CentralEngine(_cptools.XMLRPCController):
 
     @cherrypy.expose
     def getUserVariable(self, user, variable):
-        '''
+        """
         Function called from the Execution Process,
         to get information that is available only here, or are hard to get.
-        '''
+        """
 
         data = self.project.getUserInfo(user, variable)
         if data is None: data = False
@@ -241,31 +257,31 @@ class CentralEngine(_cptools.XMLRPCController):
 
     @cherrypy.expose
     def searchEP(self, user, epname):
-        '''
+        """
         Search one EP and return True or False.
-        '''
+        """
         epDict = self.project.getUserInfo(user, 'eps')
         return epname in epDict
 
 
     @cherrypy.expose
     def listEPs(self, user):
-        '''
+        """
         Returns all EPs for current user.
-        '''
+        """
         epList = self.project.getUserInfo(user, 'eps').keys()
         return ','.join(epList)
 
 
     @cherrypy.expose
     def getEpVariable(self, user, epname, variable):
-        '''
+        """
         This function is called from the Execution Process,
         to get information that is available only here, or are hard to get:
 
         - what the user selected in the Java GUI (release, build, comments, etc)
         - the name of the suite, the test files, etc.
-        '''
+        """
 
         data = self.project.getEpInfo(user, epname)
         return data.get(variable, False)
@@ -273,21 +289,21 @@ class CentralEngine(_cptools.XMLRPCController):
 
     @cherrypy.expose
     def setEpVariable(self, user, epname, variable, value):
-        '''
+        """
         This function is called from the Execution Process,
         to inject values inside the EP classes.\n
         The values can saved in the Database, when commiting.\n
         Eg: the OS, the IP, or other information can be added this way.
-        '''
+        """
 
         return self.project.setEpInfo(user, epname, variable, value)
 
 
     @cherrypy.expose
     def listSuites(self, user, epname):
-        '''
+        """
         Returns all Suites for one EP from current user.
-        '''
+        """
         if not self.searchEP(user, epname):
             logError('CE ERROR! EP `%s` is not in the list of defined EPs: `%s`!' %\
                      (str(epname), self.listEPs(user)) )
@@ -299,10 +315,10 @@ class CentralEngine(_cptools.XMLRPCController):
 
     @cherrypy.expose
     def getSuiteVariable(self, user, epname, suite, variable):
-        '''
+        """
         Function called from the Execution Process,
         to get information that is available only here, or are hard to get.
-        '''
+        """
 
         data = self.project.getSuiteInfo(user, epname, suite)
         return data.get(variable, False)
@@ -310,9 +326,9 @@ class CentralEngine(_cptools.XMLRPCController):
 
     @cherrypy.expose
     def getFileVariable(self, user, file_id, variable):
-        '''
+        """
         Get information about a test file: dependencies, runnable, status, etc.
-        '''
+        """
 
         data = self.project.getFileInfo(user, file_id)
         return data.get(variable, False)
@@ -320,24 +336,88 @@ class CentralEngine(_cptools.XMLRPCController):
 
     @cherrypy.expose
     def setFileVariable(self, user, epname, suite, filename, variable, value):
-        '''
+        """
         Set extra information for a Filename, like Crash detected, OS, IP.\n
-        Can be called from the Runner.
-        '''
+        Can be called from the Runner.\n
+        This change only happens in the memory structure and it is reset every time
+        Central Engine is start. If you need to make a persistent change, use setPersistentFile.
+        """
 
         return self.project.setFileInfo(user, epname, suite, filename, variable, value)
 
 
     @cherrypy.expose
     def setStartedBy(self, user, name):
-        '''
+        """
         Remember the user that started the Central Engine.\n
         Called from the Java GUI.
-        '''
+        """
 
         logDebug('CE: Started by user name `%s`.'  % str(name))
         self.project.setUserInfo(user, 'started_by', str(name))
         return 1
+
+
+    @cherrypy.expose
+    def getGlobalVariable(self, user, var_path):
+        """
+        Sending a global variable, using a path.
+        """
+        return self.project.getGlobalVariable(user, var_path)
+
+
+    @cherrypy.expose
+    def setGlobalVariable(self, user, var_path, value):
+        """
+        Set a global variable path, for a user.\n
+        The change is not persistent.
+        """
+        return self.project.setGlobalVariable(user, var_path, value)
+
+
+# --------------------------------------------------------------------------------------------------
+#           C R E A T E   S U I T E S
+# --------------------------------------------------------------------------------------------------
+
+
+    @cherrypy.expose
+    def setPersistentSuite(self, user, suite, info={}, order=-1):
+        """
+        Create a new suite, using the INFO, at the position specified.\n
+        This function writes in TestSuites.XML file.\n
+        The changes will be available at the next START.
+        """
+        return self.project.setPersistentSuite(user, suite, info, order)
+
+
+    @cherrypy.expose
+    def delPersistentSuite(self, user, suite):
+        """
+        Delete an XML suite, using a name ; if there are more suites with the same name,
+        only the first one is deleted.\n
+        This function writes in TestSuites.XML file.
+        """
+        return self.project.delPersistentSuite(user, suite)
+
+
+    @cherrypy.expose
+    def setPersistentFile(self, user, suite, fname, info={}, order=-1):
+        """
+        Create a new file in a suite, using the INFO, at the position specified.\n
+        This function writes in TestSuites.XML file.\n
+        The changes will be available at the next START.
+        """
+        return self.project.setPersistentFile(user, suite, fname, info, order)
+
+
+    @cherrypy.expose
+    def delPersistentFile(self, user, suite, fname):
+        """
+        Delete an XML file from a suite, using a name ; if there are more files
+        with the same name, only the first one is deleted.\n
+        This function writes in TestSuites.XML file.
+        """
+        return self.project.delPersistentFile(user, suite, fname)
 
 
 # --------------------------------------------------------------------------------------------------
@@ -347,10 +427,10 @@ class CentralEngine(_cptools.XMLRPCController):
 
     @cherrypy.expose
     def getExecStatus(self, user, epname):
-        '''
+        """
         Return execution status for one EP. (stopped, paused, running, invalid)\n
         Called from the EP.
-        '''
+        """
         if not self.searchEP(user, epname):
             logError('CE ERROR! EP `%s` is not in the list of defined EPs: `%s`!' %
                      (str(epname), self.listEPs(user)) )
@@ -367,10 +447,10 @@ class CentralEngine(_cptools.XMLRPCController):
 
     @cherrypy.expose
     def getExecStatusAll(self, user):
-        '''
+        """
         Return execution status for all EPs. (stopped, paused, running, invalid)\n
         Called from the Java GUI.
-        '''
+        """
         # If this is a temporary run, return the statuses of the backup user!
         if cherrypy.request.headers['User-Agent'].startswith('Apache XML RPC') and (user+'_old') in self.project.users:
             user += '_old'
@@ -400,11 +480,11 @@ class CentralEngine(_cptools.XMLRPCController):
 
     @cherrypy.expose
     def setExecStatus(self, user, epname, new_status, msg=''):
-        '''
+        """
         Set execution status for one EP. (0, 1, 2, or 3)\n
         Returns a string (stopped, paused, running).\n
         Called from the EP.
-        '''
+        """
         if not self.searchEP(user, epname):
             logError('CE ERROR! EP `%s` is not in the list of defined EPs: `%s`!' %
                 (str(epname), self.listEPs(user)) )
@@ -468,12 +548,12 @@ class CentralEngine(_cptools.XMLRPCController):
 
     @cherrypy.expose
     def setExecStatusAll(self, user, new_status, msg=''):
-        '''
+        """
         Set execution status for all EPs. (0, 1, 2, or 3).\n
         Returns a string (stopped, paused, running).\n
         The `message` parameter can explain why the status has changed.\n
         Both CE and EP have a status.
-        '''
+        """
         if new_status not in execStatus.values():
             logError("CE ERROR! Status value `%s` is not in the list of defined statuses: `%s`!" % \
                 (str(new_status), str(execStatus.values())) )
@@ -600,11 +680,11 @@ class CentralEngine(_cptools.XMLRPCController):
 
     @cherrypy.expose
     def getFileStatusAll(self, user, epname=None, suite=None):
-        '''
+        """
         Returns a list with all statuses, for all files, in order.\n
         The status of one file can be obtained with get File Variable.\n
         Called from the Java GUI.
-        '''
+        """
         if epname and not self.searchEP(user, epname):
             logError('CE ERROR! EP `%s` is not in the list of defined EPs: `%s`!' % \
                 (str(epname), self.listEPs(user)) )
@@ -621,10 +701,10 @@ class CentralEngine(_cptools.XMLRPCController):
 
     @cherrypy.expose
     def setFileStatus(self, user, epname, file_id, new_status=10, time_elapsed=0.0):
-        '''
+        """
         Set status for one file and write in log summary.\n
         Called from the Runner.
-        '''
+        """
         if not self.searchEP(user, epname):
             logError('CE ERROR! EP `%s` is not in the list of defined EPs: `%s`!' % \
                 (str(epname), self.listEPs(user)) )
@@ -679,10 +759,10 @@ class CentralEngine(_cptools.XMLRPCController):
 
     @cherrypy.expose
     def setFileStatusAll(self, user, epname, new_status):
-        '''
+        """
         Reset file status for all files of one EP.\n
         Called from the Runner.
-        '''
+        """
         return self.project.setFileStatusAll(user, epname, new_status)
 
 
@@ -697,6 +777,14 @@ class CentralEngine(_cptools.XMLRPCController):
         All the data
         """
 
+        # The pointer to the plugin = User name and Plugin name
+        key = user +' '+ plugin
+
+        if key in self.project.plugins:
+            plugin = self.project.plugins.get(key)
+            return plugin
+
+        # If the plugin is not initialised
         parser = PluginParser(user)
         pdict = parser.getPlugins().get(plugin)
         if not pdict:
@@ -707,20 +795,23 @@ class CentralEngine(_cptools.XMLRPCController):
         data = dict(self.project.getUserInfo(user))
         data.update(pdict)
         data.update(extra_data)
+        data['ce'] = self
         del data['eps']
         del data['status']
         del data['plugin']
 
         plugin = pdict['plugin'](user, data)
+        self.project.plugins[key] = plugin
         return plugin
 
 
     @cherrypy.expose
     def listPlugins(self, user):
 
-        p = PluginParser(user)
-        logDebug(p.getPlugins())
-        return True
+        parser = PluginParser(user)
+        pluginsList = parser.getPlugins()
+
+        return pluginsList.keys()
 
 
     @cherrypy.expose
@@ -741,26 +832,31 @@ class CentralEngine(_cptools.XMLRPCController):
         else:
             return 'CE ERROR: Invalid type of argument for plugin `%s` : %s !' % (plugin, type(args))
 
-        logDebug('Running plugin:: {0} ; {1} ; {2}'.format(user, plugin, args))
+        plugin_p = self._buildPlugin(user, plugin)
 
-        plugin = self._buildPlugin(user, plugin)
+        if not plugin_p:
+            msg = 'CE ERROR: Plugin `{0}` does not exist for user `{1}`!'.format(plugin, user)
+            logError(msg)
+            return msg
+        # else:
+        #    logDebug('Running plugin:: `{0}` ; user `{1}` ; {2}'.format(plugin, user, args))
 
         try:
-            return plugin.run(args)
+            return plugin_p.run(args)
         except Exception, e:
-            logError('CE ERROR: Plugin `%s`, ran with arguments `%s` and returned EXCEPTION: `%s`!' %
-                     (plugin, args, e))
+            logError('CE ERROR: Plugin `{0}`, ran with arguments `{1}` and returned EXCEPTION: `{2}`!'\
+                     .format(plugin, args, e))
             return 'Error on running plugin %s - Exception: `%s`!' % (plugin, str(e))
 
 
     @cherrypy.expose
     def runTemporary(self, user, files_xml):
-        '''
+        """
         This function allows the Central Engine to run a temporary Test-Suite XML file
         that contains any valid combination of suites and files.
         The temporary run does not affect the normal suites and files.
         The results are Not saved to database and No report is sent on e-mail.
-        '''
+        """
 
         # Cannot run temporary more than once
         if user + '_old' in self.project.users:
@@ -801,11 +897,11 @@ class CentralEngine(_cptools.XMLRPCController):
 
     @cherrypy.expose
     def getLibrariesList(self, user=''):
-        '''
+        """
         Returns the list of exposed libraries, from CE libraries folder.\n
         This list will be used to syncronize the libs on all EP computers.\n
         Called from the Runner.
-        '''
+        """
         global TWISTER_PATH
         libs_path = (TWISTER_PATH + '/lib/').replace('//', '/')
         libs = []
@@ -830,14 +926,14 @@ class CentralEngine(_cptools.XMLRPCController):
 
     @cherrypy.expose
     def downloadLibrary(self, name):
-        '''
+        """
         Sends required library to EP, to be syncronized.\n
         Called from the Runner.
-        '''
+        """
         global TWISTER_PATH
         name = (TWISTER_PATH + '/lib/' + name).replace('//', '/')
         if not os.path.exists(name):
-            logError('CE ERROR! Library `{0}` does not exist!'.format(name))
+            logError('ERROR! Library `{0}` does not exist!'.format(name))
             return False
 
         # Python and Zip files
@@ -862,10 +958,10 @@ class CentralEngine(_cptools.XMLRPCController):
 
     @cherrypy.expose
     def getEpFiles(self, user, epname):
-        '''
+        """
         Returns all files that must be run on one EP.\n
         Called from the Runner.
-        '''
+        """
         if not self.searchEP(user, epname):
             logError('CE ERROR! EP `%s` is not in the list of defined EPs: `%s`!' %\
                      (str(epname), self.listEPs(user)) )
@@ -878,10 +974,10 @@ class CentralEngine(_cptools.XMLRPCController):
 
     @cherrypy.expose
     def getSuiteFiles(self, user, epname, suite):
-        '''
+        """
         Returns all files that must be run on one Suite.\n
         Called from the Runner.
-        '''
+        """
         if not self.searchEP(user, epname):
             logError('CE ERROR! EP `%s` is not in the list of defined EPs: `%s`!' %\
                      (str(epname), self.listEPs(user)) )
@@ -894,10 +990,10 @@ class CentralEngine(_cptools.XMLRPCController):
 
     @cherrypy.expose
     def getTestFile(self, user, epname, file_id):
-        '''
+        """
         Sends requested file to TC, to be executed.\n
         Called from the Runner.
-        '''
+        """
         if not self.searchEP(user, epname):
             logError('CE ERROR! EP `%s` is not in the list of defined EPs: `%s`!' %\
                      (str(epname), self.listEPs(user)) )
@@ -909,13 +1005,18 @@ class CentralEngine(_cptools.XMLRPCController):
         data = self.project.getFileInfo(user, file_id)
         filename = data.get('file', 'invalid file!')
         runnable = data.get('Runnable', 'not set')
+        tests_path = self.project.getUserInfo(user, 'tests_path')
 
         if runnable=='true' or runnable=='not set':
+            # Should use USER path ?
             if filename.startswith('~'):
-                filename = os.getenv('HOME') + filename[1:]
+                filename = userHome(user) + filename[1:]
             if not os.path.isfile(filename):
-                logError('CE ERROR! TestCase file: `%s` does not exist!' % filename)
-                return ''
+                if not os.path.isfile(tests_path + os.sep + filename):
+                    logError('CE ERROR! TestCase file: `%s` does not exist!' % filename)
+                    return ''
+                else:
+                    filename = tests_path + os.sep + filename
 
             logDebug('CE: Station {0} requested file `{1}`'.format(epname, filename))
 
@@ -928,27 +1029,29 @@ class CentralEngine(_cptools.XMLRPCController):
 
     @cherrypy.expose
     def getTestDescription(self, fname):
-        '''
+        """
         Returns the title and the description of a test file.\n
         Called from the Java GUI.
-        '''
+        """
         title = ''
         descr = ''
+        a = 0
+        b = 0
 
-        for line in open(fname,'r'):
-            s = line.strip()
-            if '<title>' in line and '</title>' in line:
-                a = s.find('<title>') + len('<title>')
-                b = s.find('</title>')
-                title = s[a:b]
-                if title: continue
-            if '<description>' in line and '</description>' in line:
-                a = s.find('<description>') + len('<description>')
-                b = s.find('</description>')
-                descr = s[a:b]
-                if descr: continue
+        try:
+            text = open(fname,'rb').read()
+        except:
+            return '-'+title+'-;--'+descr
 
-            if title and descr: break
+        if '<title>' in text and '</title>' in text:
+            a = text.find('<title>') + len('<title>')
+            b = text.find('</title>')
+            title = text[a:b]
+
+        if '<description>' in text and '</description>' in text:
+            a = text.find('<description>') + len('<description>')
+            b = text.find('</description>')
+            descr = text[a:b]
 
         return '-'+title+'-;--'+descr
 
@@ -960,11 +1063,11 @@ class CentralEngine(_cptools.XMLRPCController):
 
     @cherrypy.expose
     def getLogFile(self, user, read, fstart, filename):
-        '''
+        """
         Called in the Java GUI to show the logs.
-        '''
+        """
         if fstart is None:
-            return '*ERROR for {0}!* Parameter FEND is NULL!'.format(user)
+            return '*ERROR for {0}!* Parameter FSTART is NULL!'.format(user)
         if not filename:
             return '*ERROR for {0}!* Parameter FILENAME is NULL!'.format(user)
 
@@ -972,18 +1075,18 @@ class CentralEngine(_cptools.XMLRPCController):
 
         if not fpath or not os.path.exists(fpath):
             return '*ERROR for {0}!* Logs path `{1}` is invalid! Using master config `{2}` and suites config `{3}`.'\
-                .format(user, fpath, self.project.getUserInfo(user, 'config_path'), self.project.getUserInfo(user, 'tests_path'))
+                .format(user, fpath, self.project.getUserInfo(user, 'config_path'), self.project.getUserInfo(user, 'project_path'))
 
         filename = fpath + os.sep + filename
 
         if not os.path.exists(filename):
             return '*ERROR for {0}!* File `{1}` does not exist! Using master config `{2}` and suites config `{3}`'.\
-                format(user, filename, self.project.getUserInfo(user, 'config_path'), self.project.getUserInfo(user, 'tests_path'))
+                format(user, filename, self.project.getUserInfo(user, 'config_path'), self.project.getUserInfo(user, 'project_path'))
 
         if not read or read=='0':
             return os.path.getsize(filename)
 
-        fstart = int(fstart)
+        fstart = long(fstart)
         f = open(filename)
         f.seek(fstart)
         data = f.read()
@@ -994,9 +1097,9 @@ class CentralEngine(_cptools.XMLRPCController):
 
     @cherrypy.expose
     def logMessage(self, user, logType, logMessage):
-        '''
+        """
         This function is exposed in all tests, all logs are centralized.
-        '''
+        """
         logType = str(logType)
         logTypes = self.project.getUserInfo(user, 'log_types')
 
@@ -1028,10 +1131,10 @@ class CentralEngine(_cptools.XMLRPCController):
 
     @cherrypy.expose
     def logLIVE(self, user, epname, logMessage):
-        '''
+        """
         Writes CLI messages in a big log, so all output can be checked LIVE.\n
         Called from the EP.
-        '''
+        """
         logFolder = self.project.getUserInfo(user, 'logs_path')
 
         if not logFolder:
@@ -1052,18 +1155,34 @@ class CentralEngine(_cptools.XMLRPCController):
             logError("CE ERROR! Log file `%s` cannot be written!" % logPath)
             return False
 
-        f.write(binascii.a2b_base64(logMessage))
+        log_string = binascii.a2b_base64(logMessage)
+
+        # Execute "onLog" for all plugins
+        parser = PluginParser(user)
+        plugins = parser.getPlugins()
+        for pname in plugins:
+            plugin = self._buildPlugin(user, pname, {'log_type': 'cli'})
+            try:
+                plugin.onLog(epname, log_string)
+            except Exception, e:
+                logWarning('Error on running plugin `%s onStop` - Exception: `%s`!' % (pname, str(e)))
+        del parser, plugins
+
+        f.write(log_string)
         f.close()
+
+        # Calling Panic Detect
+        #self.panicDetectLogParse(user, epname, log_string)
         return True
 
 
     @cherrypy.expose
     def resetLogs(self, user):
-        '''
+        """
         All logs defined in master config are erased.
         Log CLI is *magic*, there are more logs, one for each EP.\n
         Called from the Java GUI.
-        '''
+        """
         logsPath = self.project.getUserInfo(user, 'logs_path')
         logTypes = self.project.getUserInfo(user, 'log_types')
         vError = False
@@ -1103,10 +1222,10 @@ class CentralEngine(_cptools.XMLRPCController):
 
     @cherrypy.expose
     def resetLog(self, user, logName):
-        '''
+        """
         Resets one log.\n
         Called from the Java GUI.
-        '''
+        """
         logPath = self.project.getUserInfo(user, 'logs_path') + os.sep + logName
 
         if not os.path.exists(logPath):
@@ -1120,5 +1239,66 @@ class CentralEngine(_cptools.XMLRPCController):
         except:
             logError("CE ERROR! Log file `%s` cannot be reset!" % logPath)
             return False
+
+
+    def panicDetectLogParse(self, user, epname, log_string):
+        """
+        Panic Detect parse log mechanism.
+        """
+        status = False
+
+        if not self.project.panicDetectRegularExpressions.has_key(user):
+            return status
+
+        # verify if for current suite Panic Detect is enabled
+        suiteID = self.getEpVariable(user, epname, 'curent_suite')
+        enabled = self.getSuiteVariable(user, epname, suiteID, 'pd')
+        if enabled.lower() == 'false':
+            status = True
+
+            return status
+
+        for key, value in self.project.panicDetectRegularExpressions[user].iteritems():
+            try:
+                if re.search(value['expresion'], log_string) is not None:
+                    if value['enabled']:
+                        # stop ep action
+                        self.setExecStatus(self.user, epname,
+                            'STATUS_STOP', msg='panic detected; status chaged')
+                        status = True
+            except Exception, e:
+                logError(e)
+
+        return status
+
+
+    @cherrypy.expose
+    def panicDetectConfig(self, user, command, data=None):
+        """
+        Configure Panic Detect.
+        """
+        # If argument is a string
+        if type(data) == type(str()):
+            try:
+                _data = urlparse.parse_qs(data)
+                if _data:
+                    data = {k: v[0] if isinstance(v, list) else v for k,v in _data.iteritems()}
+            except:
+                msg = 'CE ERROR: PD cannot parse data: {d}!'.format(d=data)
+                logError(msg)
+                return msg
+
+        if data:
+            args = {
+                'command': command,
+                'data': data,
+            }
+        else:
+            args = {
+                'command': command,
+            }
+
+        return self.project.panicDetectConfig(user, args)
+
 
 # Eof()

@@ -1,9 +1,12 @@
 
 # File: CentralEngineOthers.py ; This file is part of Twister.
 
-# Copyright (C) 2012 , Luxoft
+# version: 2.001
+
+# Copyright (C) 2012-2013 , Luxoft
 
 # Authors:
+#    Adrian Toader <adtoader@luxoft.com>
 #    Andrei Costachi <acostachi@luxoft.com>
 #    Andrei Toma <atoma@luxoft.com>
 #    Cristi Constantin <crconstantin@luxoft.com>
@@ -106,12 +109,24 @@ class Project:
 
         self.users = {}
         self.parsers = {}
+        self.plugins = {}
         self.test_ids = {}
 
         self.usr_lock = thread.allocate_lock()  # User change lock
         self.int_lock = thread.allocate_lock()  # Internal use lock
+        self.glb_lock = thread.allocate_lock()  # Global variables lock
         self.eml_lock = thread.allocate_lock()  # E-mail lock
         self.db_lock  = thread.allocate_lock()  # Database lock
+
+        # Panic Detect, load config for current user
+        self.panicDetectConfigPath = TWISTER_PATH + '/config/PanicDetectData.json'
+        if not os.path.exists(self.panicDetectConfigPath):
+            config = open(self.panicDetectConfigPath, 'wb')
+            config.write('{}')
+            config.close()
+        config = open(self.panicDetectConfigPath, 'rb')
+        self.panicDetectRegularExpressions = json.load(config)
+        config.close()
 
 
     def createUser(self, user, base_config='', files_config=''):
@@ -128,26 +143,29 @@ class Project:
         and ( base_config[0] == '<' and base_config[-1] == '>' ):
             config_data, base_config = base_config, ''
 
+        user_home = userHome(user)
+
         # If it's a valid path
         if base_config and not os.path.exists(base_config):
-            logError('Project ERROR: Config path `%s` does not exist !' % base_config)
+            logCritical('Project ERROR: Config path `%s` does not exist !' % base_config)
             return False
-        elif not os.path.exists('/home/%s/twister' % user):
-            logError('Project ERROR: Cannot find Twister for user `%s` !' % user)
+        elif not os.path.exists( '{0}/twister'.format(user_home) ):
+            logCritical('Project ERROR: Cannot find Twister for user `{0}`, '\
+                'in path `{1}/twister`!'.format(user, user_home))
             return False
         else:
-            base_config = '/home/%s/twister/config/fwmconfig.xml' % user
+            base_config = '{0}/twister/config/fwmconfig.xml'.format(user_home)
 
         if not files_config:
-            files_config = '/home/%s/twister/config/testsuites.xml' % user
+            files_config = '{0}/twister/config/testsuites.xml'.format(user_home)
 
         # User data + User parser
         # Parsers contain the list of all EPs and the list of all Project Globals
         self.users[user] = {'status': STATUS_STOP, 'eps': OrderedDict()}
         if config_data:
-            self.parsers[user] = TSCParser(config_data, files_config)
+            self.parsers[user] = TSCParser(user, config_data, files_config)
         else:
-            self.parsers[user] = TSCParser(base_config, files_config)
+            self.parsers[user] = TSCParser(user, base_config, files_config)
 
         # List with all EPs for this User
         epList = self.parsers[user].epnames
@@ -155,10 +173,19 @@ class Project:
             logCritical('Project ERROR: Cannot load the list of EPs for user `%s` !' % user)
             return False
 
-        # Calculate the Suites for each EP and the Files for each Suite
+        # Generate the list of EPs in order
         for epname in epList:
-            self.users[user]['eps'][epname] = {}
-            self.users[user]['eps'][epname]['suites'] = self.parsers[user].getAllSuitesInfo(epname)
+            self.users[user]['eps'][epname] = OrderedDict()
+            self.users[user]['eps'][epname]['suites'] = {}
+
+        # Information about ALL project suites
+        suitesInfo = self.parsers[user].getAllSuitesInfo()
+
+        for s_id, suite in suitesInfo.items():
+            epname = suite['ep']
+            if epname not in self.users[user]['eps']:
+                continue
+            self.users[user]['eps'][epname]['suites'][s_id] = suite
 
         # Ordered list of file IDs, used for Get Status ALL
         self.test_ids[user] = self.parsers[user].getAllTestFiles()
@@ -168,14 +195,19 @@ class Project:
 
         # Add framework config info to default user
         self.users[user]['config_path'] = base_config
-        self.users[user]['tests_path'] = files_config
+        self.users[user]['project_path'] = files_config
+        self.users[user]['tests_path'] = project_globals['TestsPath']
         self.users[user]['logs_path'] = project_globals['LogsPath']
         self.users[user]['log_types'] = {}
 
 
-        # Add path to DB and E-mail XML
+        # Global params for user
+        self.users[user]['global_params'] = self.parsers[user].getGlobalParams()
+
+        # Add path to DB, E-mail XML, Globals
         self.users[user]['db_config']  = project_globals['DbConfig']
         self.users[user]['eml_config'] = project_globals['EmailConfig']
+        self.users[user]['glob_params'] = project_globals['GlobalParams']
 
         # Add the `exit on test Fail` value
         self.users[user]['exit_on_test_fail'] = project_globals['ExitOnTestFail']
@@ -201,6 +233,103 @@ class Project:
         self._dump()
         logDebug('Project: Created user `%s` ...' % user)
 
+        return True
+
+
+    def reset(self, user, base_config='', files_config=''):
+        """
+        Reset user parser, all EPs to STOP, all files to PENDING.
+        """
+        if not user or user not in self.users:
+            logError('Project ERROR: Invalid user `{0}` !'.format(user))
+            return False
+
+        if base_config and not os.path.isfile(base_config):
+            logError('Project ERROR: Config path `%s` does not exist! Using default config!' % base_config)
+            base_config = False
+
+        r = self.changeUser(user)
+        if not r: return False
+
+        ti = time.clock()
+
+        # User config XML files
+        if not base_config:
+            base_config = self.users[user]['config_path']
+        if not files_config:
+            files_config = self.users[user]['project_path']
+
+        logDebug('Project: RESET configuration for user `{0}`, using config files `{1}` and `{2}`.'.format(
+            user, base_config, files_config))
+        self.parsers[user] = TSCParser(user, base_config, files_config)
+
+        # List with all EPs for this User
+        epList = self.parsers[user].epnames
+        if not epList:
+            logCritical('Project ERROR: Cannot load the list of EPs for user `%s` !' % user)
+            return False
+
+        # Generate the list of EPs in order
+        for epname in epList:
+            # All EPs must have status STOP
+            self.users[user]['eps'][epname] = OrderedDict()
+            self.users[user]['eps'][epname]['status'] = STATUS_STOP
+            self.users[user]['eps'][epname]['suites'] = {}
+
+        # Information about ALL project suites
+        suitesInfo = self.parsers[user].getAllSuitesInfo()
+
+        for s_id, suite in suitesInfo.items():
+            epname = suite['ep']
+            if epname not in self.users[user]['eps']:
+                continue
+            self.users[user]['eps'][epname]['suites'][s_id] = suite
+
+        # Ordered list of file IDs, used for Get Status ALL
+        self.test_ids[user] = self.parsers[user].getAllTestFiles()
+
+        # Get project global variables from XML
+        project_globals = self.parsers[user].project_globals
+
+        # Add framework config info to default user
+        self.users[user]['config_path'] = base_config
+        self.users[user]['project_path'] = files_config
+        self.users[user]['tests_path'] = project_globals['TestsPath']
+        self.users[user]['logs_path'] = project_globals['LogsPath']
+        self.users[user]['log_types'] = {}
+
+
+        # Global params for user
+        self.users[user]['global_params'] = self.parsers[user].getGlobalParams()
+
+        # Add path to DB, E-mail XML, Globals
+        self.users[user]['db_config']  = project_globals['DbConfig']
+        self.users[user]['eml_config'] = project_globals['EmailConfig']
+        self.users[user]['glob_params'] = project_globals['GlobalParams']
+
+        # Add the `exit on test Fail` value
+        self.users[user]['exit_on_test_fail'] = project_globals['ExitOnTestFail']
+
+        # Add the `Pre and Post` project Scripts
+        self.users[user]['script_pre']  = project_globals['ScriptPre']
+        self.users[user]['script_post'] = project_globals['ScriptPost']
+
+        # Add the `Database Autosave` value
+        self.users[user]['db_auto_save'] = project_globals['DbAutoSave']
+
+        # Add the 'Libraries'
+        self.users[user]['libraries'] = project_globals['Libraries']
+
+        # Add the `Testcase Delay` value
+        self.users[user]['tc_delay'] = project_globals['TestcaseDelay']
+        del project_globals
+
+        for logType in self.parsers[user].getLogTypes():
+            self.users[user]['log_types'][logType] = self.parsers[user].getLogFileForType(logType)
+
+        # Save everything.
+        self._dump()
+        logDebug('Project: RESET operation took %.4f seconds.' % (time.clock()-ti))
         return True
 
 
@@ -258,80 +387,6 @@ class Project:
         return True
 
 
-    def reset(self, user, base_config='', files_config=''):
-        """
-        Reset user parser, all EPs to STOP, all files to PENDING.
-        """
-        if not user or user not in self.users:
-            logError('Project ERROR: Invalid user `{0}` !'.format(user))
-            return False
-
-        if base_config and not os.path.isfile(base_config):
-            logError('Project ERROR: Config path `%s` does not exist! Using default config!' % base_config)
-            base_config = False
-
-        r = self.changeUser(user)
-        if not r: return False
-
-        ti = time.clock()
-
-        # User config XML files
-        if not base_config:
-            base_config = self.users[user]['config_path']
-        if not files_config:
-            files_config = self.users[user]['tests_path']
-
-        logDebug('Project: RESET configuration for user `{0}`, using config files `{1}` and `{2}`.'.format(
-            user, base_config, files_config))
-        self.parsers[user] = TSCParser(base_config, files_config)
-
-        # Calculate the Suites for each EP and the Files for each Suite
-        for epname in self.users[user]['eps']:
-            # All EPs must have status STOP
-            self.users[user]['eps'][epname]['status'] = STATUS_STOP
-            self.users[user]['eps'][epname] = {}
-            self.users[user]['eps'][epname]['suites'] = self.parsers[user].getAllSuitesInfo(epname)
-
-        # Ordered list of file IDs, used for Get Status ALL
-        self.test_ids[user] = self.parsers[user].getAllTestFiles()
-
-        # Get project global variables from XML
-        project_globals = self.parsers[user].project_globals
-
-        # Add framework config info to default user
-        self.users[user]['config_path'] = base_config
-        self.users[user]['tests_path'] = files_config
-        self.users[user]['logs_path'] = project_globals['LogsPath']
-        self.users[user]['log_types'] = {}
-
-        # Add path to DB and E-mail XML
-        self.users[user]['db_config']  = project_globals['DbConfig']
-        self.users[user]['eml_config'] = project_globals['EmailConfig']
-
-        # Add the `exit on test Fail` value
-        self.users[user]['exit_on_test_fail'] = project_globals['ExitOnTestFail']
-
-        # Add the `Pre and Post` project Scripts
-        self.users[user]['script_pre']  = project_globals['ScriptPre']
-        self.users[user]['script_post'] = project_globals['ScriptPost']
-
-        # Add the `Database Autosave` value
-        self.users[user]['db_auto_save'] = project_globals['DbAutoSave']
-
-        # Add the 'Libraries'
-        self.users[user]['libraries'] = project_globals['Libraries']
-
-        # Add the `Testcase Delay` value
-        self.users[user]['tc_delay'] = project_globals['TestcaseDelay']
-        del project_globals
-
-        for logType in self.parsers[user].getLogTypes():
-            self.users[user]['log_types'][logType] = self.parsers[user].getLogFileForType(logType)
-
-        logDebug('Project: RESET operation took %.4f seconds.' % (time.clock()-ti))
-        return True
-
-
     def _dump(self):
         """
         Internal function. Save all data structure on HDD.\n
@@ -339,7 +394,7 @@ class Project:
         """
         with self.int_lock:
 
-            with open(TWISTER_PATH + '/common/project_users.json', 'w') as f:
+            with open(TWISTER_PATH + '/config/project_users.json', 'w') as f:
                 try: json.dump(self.users, f, indent=4)
                 except: pass
 
@@ -357,13 +412,16 @@ class Project:
             return self.users[user]['config_path']
 
         elif config in ['project', 'testsuites']:
-            return self.users[user]['tests_path']
+            return self.users[user]['project_path']
 
         elif config in ['db', 'database']:
             return self.users[user]['db_config']
 
         elif config in ['email', 'e-mail']:
             return self.users[user]['eml_config']
+
+        elif config in ['glob', 'globals']:
+            return self.users[user]['glob_params']
 
         else:
             # Unchanged config
@@ -397,7 +455,19 @@ class Project:
         r = self.changeUser(user)
         if not r: return False
         cfg_path = self._getConfigPath(user, config)
+        logDebug('Updating XML config `{0}`, `{1}` = `{2}`...'.format(config, key, value))
         return self.parsers[user].setSettingsValue(cfg_path, key, value)
+
+
+    def delSettingsKey(self, user, config, key, index=0):
+        """
+        Del a key from the config of a user.
+        """
+        r = self.changeUser(user)
+        if not r: return False
+        cfg_path = self._getConfigPath(user, config)
+        logDebug('Deleting XML config `{0}`, key `{1}`, index `{2}`...'.format(config, key, index))
+        return self.parsers[user].delSettingsKey(cfg_path, key, index)
 
 
 # # #
@@ -599,11 +669,12 @@ class Project:
                     for file_id in eps[epname]['suites'][suite_id]['files']:
                         s = eps[epname]['suites'][suite_id]['files'][file_id].get('status', -1)
                         statuses[file_id] = str(s)
+        # Default case, no EP and no Suite
         else:
             for epname in eps:
                 for suite_id in eps[epname]['suites']:
-                    for file_id in eps[epname]['suites'][suite_id]['files']:
-                        s = eps[epname]['suites'][suite_id]['files'][file_id].get('status', -1)
+                    for file_id, file_dict in eps[epname]['suites'][suite_id]['files'].items():
+                        s = file_dict.get('status', -1)
                         statuses[file_id] = str(s)
 
         for tcid in self.test_ids[user]:
@@ -630,6 +701,129 @@ class Project:
 
         self._dump()
         return True
+
+
+# # #
+
+
+    def _findGlobalVariable(self, user, node_path):
+        """
+        Helper function.
+        """
+        var_pointer = self.users[user]['global_params']
+
+        for node in node_path:
+            if node in var_pointer:
+                var_pointer = var_pointer[node]
+            else:
+                # Invalid variable path
+                return False
+
+        return var_pointer
+
+
+    def getGlobalVariable(self, user, variable):
+        """
+        Sending a global variable, using a path.
+        """
+        r = self.changeUser(user)
+        if not r: return False
+
+        try: node_path = [v for v in variable.split('/') if v]
+        except:
+            logError('Global Variable: Invalid variable type `{0}`, for user `{1}`!'.format(variable, user))
+            return False
+
+        var_pointer = self._findGlobalVariable(user, node_path)
+
+        if not var_pointer:
+            logError('Global Variable: Invalid variable path `{0}`, for user `{1}`!'.format(node_path, user))
+            return False
+
+        return var_pointer
+
+
+    def setGlobalVariable(self, user, variable, value):
+        """
+        Set a global variable path, for a user.\n
+        The change is not persistent.
+        """
+        r = self.changeUser(user)
+        if not r: return False
+
+        try: node_path = [v for v in variable.split('/') if v]
+        except:
+            logError('Global Variable: Invalid variable type `{0}`, for user `{1}`!'.format(variable, user))
+            return False
+
+        if (not value) or (not str(value)):
+            logError('Global Variable: Invalid value `{0}`, for global variable `{1}` from user `{2}`!'\
+                ''.format(value, variable, user))
+            return False
+
+        # If the path is in ROOT, it's a root variable
+        if len(node_path) == 1:
+            with self.glb_lock:
+                self.users[user]['global_params'][node_path[0]] = value
+            return True
+
+        # If the path is more complex, the pointer here will go to the parent
+        var_pointer = self._findGlobalVariable(user, node_path[:-1])
+
+        if not var_pointer:
+            logError('Global Variable: Invalid variable path `{0}`, for user `{1}`!'.format(node_path, user))
+            return False
+
+        with self.glb_lock:
+            var_pointer[node_path[-1]] = value
+        return True
+
+
+# # #
+
+
+    def setPersistentSuite(self, user, suite, info={}, order=-1):
+        """
+        This function writes in TestSuites.XML file.
+        """
+        r = self.changeUser(user)
+        if not r: return False
+        cfg_path = self._getConfigPath(user, 'project')
+        logDebug('Create Suite: Will create suite `{0}` for user `{1}` project.'.format(suite, user))
+        return self.parsers[user].setPersistentSuite(cfg_path, suite, info, order)
+
+
+    def delPersistentSuite(self, user, suite):
+        """
+        This function writes in TestSuites.XML file.
+        """
+        r = self.changeUser(user)
+        if not r: return False
+        xpath_suite = '/Root/TestSuite[tsName="{0}"]'.format(suite)
+        logDebug('Del Suite: Will remove suite `{0}` from user `{1}` project.'.format(suite, user))
+        return self.delSettingsKey(user, 'project', xpath_suite)
+
+
+    def setPersistentFile(self, user, suite, fname, info={}, order=-1):
+        """
+        This function writes in TestSuites.XML file.
+        """
+        r = self.changeUser(user)
+        if not r: return False
+        cfg_path = self._getConfigPath(user, 'project')
+        logDebug('Create File: Will create file `{0} - {1}` for user `{2}` project.'.format(suite, fname, user))
+        return self.parsers[user].setPersistentFile(cfg_path, suite, fname, info, order)
+
+
+    def delPersistentFile(self, user, suite, fname):
+        """
+        This function writes in TestSuites.XML file.
+        """
+        r = self.changeUser(user)
+        if not r: return False
+        xpath_file = '/Root/TestSuite[tsName="{0}"]/TestCase[tcName="{1}"]'.format(suite, fname)
+        logDebug('Del File: Will remove file `{0} - {1}` from user `{2}` project.'.format(suite, fname, user))
+        return self.delSettingsKey(user, 'project', xpath_file)
 
 
 # # #
@@ -669,7 +863,7 @@ class Project:
         logDebug('CE: Executing script `%s`...' % script_path)
 
         try:
-            txt = subprocess.check_output([script_path])
+            txt = subprocess.check_output(script_path, shell=True)
             return txt.strip()
         except Exception, e:
             logError('Exec script `%s`: Exception - %s' % (script_path, str(e)) )
@@ -948,11 +1142,12 @@ class Project:
                         for query in queries:
 
                             # All variables of type `UserScript` must be replaced with the script result
-                            try: vars_to_replace = re.findall('(\$.+?)[,\'"\s]', query)
+                            try: vars_to_replace = re.findall('(\$.+?)[,\.\'"\s]', query)
                             except: vars_to_replace = []
 
                             for field in vars_to_replace:
                                 field = field[1:]
+
                                 # If the field is not `UserScript`, ignore it
                                 if field not in scripts:
                                     continue
@@ -998,7 +1193,7 @@ class Project:
                                 return False
 
                             # :: For DEBUG ::
-                            #open(TWISTER_PATH + '/common/Query.debug', 'a').write('File Query:: `{0}` ::\n{1}\n\n\n'.format(subst_data['file'], query))
+                            #open(TWISTER_PATH + '/config/Query.debug', 'a').write('File Query:: `{0}` ::\n{1}\n\n\n'.format(subst_data['file'], query))
 
                             # Execute MySQL Query!
                             try:
@@ -1016,6 +1211,152 @@ class Project:
             #
 
             return True
+
+
+    def panicDetectConfig(self, user, args):
+        """ Panic Detect mechanism
+        valid commands: list, add, update, remove regular expression;
+
+        list command: args = {'command': 'list'}
+        add command: args = {'command': 'add', 'data': {'expression': 'reg_exp_string'}}
+        update command: args = {'command': 'update', 'data': {'id': 'reg_exp_id',
+                                    expression': 'reg_exp_modified_string'}}
+        remove command:  args = {'command': 'remove', 'data': 'reg_exp_id'}
+        """
+
+        panicDetectCommands = {
+            'simple': [
+                'list',
+            ],
+            'argumented': [
+                'add', 'update', 'remove',
+            ]
+        }
+
+        # response structure
+        response = {
+            'status': {
+                'success': True,
+                'message': 'None', # error message
+            },
+            'type': 'reply', # reply type
+            'data': 'None', # response data
+        }
+
+        if (not args.has_key('command') or args['command'] not
+            in panicDetectCommands['argumented'] + panicDetectCommands['simple']):
+            response['type'] = 'error reply'
+
+            response['status']['success'] = False
+            response['status']['message'] = 'unknown command'
+
+        elif (args['command'] in panicDetectCommands['argumented']
+                and not args.has_key('data')):
+            response['type'] = 'error reply'
+
+            response['status']['success'] = False
+            response['status']['message'] = 'no command data specified'
+
+
+        # list_regular_expresions
+        elif args['command'] == 'list':
+            response['type'] = 'list_regular_expressions reply'
+
+            #response['data'] = json.dumps(self.panicDetectRegularExpressions)
+            response = json.dumps(self.panicDetectRegularExpressions)
+
+
+        # add_regular_expression
+        elif args['command'] == 'add':
+            response['type'] = 'add_regular_expression reply'
+
+            try:
+                _args = args['data']
+                regExpData = {}
+
+                regExpData.update([('expression', _args['expression']), ])
+
+                if regExpData.has_key('enabled'):
+                    regExpData.update([('enabled', _args['enabled']), ])
+                else:
+                    regExpData.update([('enabled', False), ])
+
+                regExpID = str(time.time()).replace('.', '|')
+
+                if not self.panicDetectRegularExpressions.has_key(user):
+                    self.panicDetectRegularExpressions.update([(user, {}), ])
+
+                self.panicDetectRegularExpressions[user].update(
+                                                    [(regExpID, regExpData), ])
+
+                with self.int_lock:
+                    config = open(self.panicDetectConfigPath, 'wb')
+                    json.dump(self.panicDetectRegularExpressions, config)
+                    config.close()
+
+                #response['data'] = regExpID
+                response = regExpID
+                logDebug('Panic Detect: added regular expression for user: {u}'.format(u=user))
+            except Exception, e:
+                #response['status']['success'] = False
+                #response['status']['message'] = '{er}'.format(er=e)
+                response = 'error: {er}'.format(er=e)
+
+
+        # update_regular_expression
+        elif args['command'] == 'update':
+            response['type'] = 'update_regular_expression reply'
+
+            try:
+                _args = args['data']
+                regExpID = _args.pop('id')
+                regExpData = self.panicDetectRegularExpressions[user].pop(regExpID)
+
+                regExpData.update([('expression', _args['expression']), ])
+
+                if _args.has_key('enabled'):
+                    regExpData.update([('enabled', _args['enabled']), ])
+                else:
+                    regExpData.update([('enabled', regExpData['enabled']), ])
+
+                self.panicDetectRegularExpressions[user].update(
+                                                    [(regExpID, regExpData), ])
+                with self.int_lock:
+                    config = open(self.panicDetectConfigPath, 'wb')
+                    json.dump(self.panicDetectRegularExpressions, config)
+                    config.close()
+
+                #response['data'] = regExpID
+                response = True
+                logDebug('Panic Detect: updated regular expression for user: {u}'.format(u=user))
+            except Exception, e:
+                #response['status']['success'] = False
+                #response['status']['message'] = '{er}'.format(er=e)
+                response = 'error: {er}'.format(er=e)
+
+        # remove_regular_expression
+        elif args['command'] == 'remove':
+            response['type'] = 'remove_regular_expression reply'
+
+            try:
+                regExpID = args['data']
+                regExpData = self.panicDetectRegularExpressions[user].pop(regExpID)
+                del(regExpData)
+
+                with self.int_lock:
+                    config = open(self.panicDetectConfigPath, 'wb')
+                    json.dump(self.panicDetectRegularExpressions, config)
+                    config.close()
+
+                #response['data'] = regExpID
+                response = True
+                logDebug('Panic Detect: removed regular expresion for user: {u}'.format(u=user))
+            except Exception, e:
+                #response['status']['success'] = False
+                #response['status']['message'] = '{er}'.format(er=e)
+                response = 'error: {er}'.format(er=e)
+
+        return response
 
 # # #
 

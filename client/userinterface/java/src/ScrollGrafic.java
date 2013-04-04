@@ -1,7 +1,8 @@
 /*
 File: ScrollGrafic.java ; This file is part of Twister.
+Version: 2.001
 
-Copyright (C) 2012 , Luxoft
+Copyright (C) 2012-2013 , Luxoft
 
 Authors: Andrei Costachi <acostachi@luxoft.com>
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -34,9 +35,8 @@ public class ScrollGrafic extends JPanel{
         Repository.intro.repaint();
         g = new Grafic(tdtl,user);
         pane = new JScrollPane(g);
-        pane.setMinimumSize(new Dimension(100,350));
+        pane.setMinimumSize(new Dimension(100,100));
         pane.setMaximumSize(new Dimension(1000,1000));
-        pane.setPreferredSize(new Dimension(450,500));
         pane.getVerticalScrollBar().setUnitIncrement(16);
         add(pane);
         Repository.intro.setStatus("Finished Users Graphics initialization");

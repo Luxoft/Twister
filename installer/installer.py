@@ -1,10 +1,13 @@
 #!/usr/bin/python
 
+# version: 2.001
+
 # File: installer.py ; This file is part of Twister.
 
-# Copyright (C) 2012 , Luxoft
+# Copyright (C) 2012-2013 , Luxoft
 
 # Authors:
+#    Adrian Toader <adtoader@luxoft.com>
 #    Andrei Costachi <acostachi@luxoft.com>
 #    Andrei Toma <atoma@luxoft.com>
 #    Cristi Constantin <crconstantin@luxoft.com>
@@ -54,7 +57,10 @@ PYTHON_EXE = sys.executable
 
 # The proxy is used only if you need a proxy to connect to internet,
 # And `setuptools` is not installed, or some dependencies are missing
-HTTP_PROXY = 'http://UserName:PassWord@http-proxy:3128'
+if os.getenv('HTTP_PROXY'):
+    HTTP_PROXY = os.getenv('HTTP_PROXY')
+else:
+    HTTP_PROXY = 'http://UserName:PassWord@http-proxy:3128'
 
 __dir__ = os.path.split(__file__)[0]
 if __dir__: os.chdir(__dir__)
@@ -121,6 +127,23 @@ if TO_INSTALL == 'server':
         INSTALL_PATH = '/opt/twister/'
     del selected
 
+    if os.path.exists(INSTALL_PATH):
+        print('\nWARNING! Another version of Twister is installed at `%s`!' % INSTALL_PATH)
+        print('If you continue, all files from that folder will be PERMANENTLY DELETED!!')
+        print('If you created custom libs (in lib/ folder) and plugins (in plugin/ folder),')
+        print('you should make a back-up, then restart the installer.')
+        selected = raw_input('Are you sure you want to continue? (yes/no): ')
+
+        if selected.strip().lower() not in ['y', 'yes']:
+            print('\nPlease backup your data, then restart the installer.')
+            print('Exiting.\n')
+            exit(0)
+
+    # Backup CONFIG folder for server
+    if os.path.exists(INSTALL_PATH + 'config'):
+        print('\nBack-up `config` folder (from `{0}` to `{1}`)...'.format(INSTALL_PATH+'config', os.getcwd()))
+        shutil.move(INSTALL_PATH + 'config', os.getcwd())
+
     # Deleting previous versions of Twister
     try:
         dir_util.remove_tree(INSTALL_PATH)
@@ -142,17 +165,16 @@ else:
 
     if os.path.exists(INSTALL_PATH):
         print('WARNING! Another version of Twister is installed at `%s`!' % INSTALL_PATH)
-        print('If you continue, all files from that folder will be DELETED,')
+        print('If you continue, all files from that folder will be PERMANENTLY DELETED,')
         print('Only the `config` folder will be saved!')
         selected = raw_input('Are you sure you want to continue? (yes/no): ')
 
         if selected.strip().lower() in ['y', 'yes']:
 
+            # Backup CONFIG folder for client
             if os.path.exists(INSTALL_PATH + 'config'):
                 print('\nBack-up `config` folder (from `{0}` to `{1}`)...'.format(INSTALL_PATH+'config', os.getcwd()))
                 shutil.move(INSTALL_PATH + 'config', os.getcwd())
-                print('Back-up `config_ep` file (from `{0}` to `{1}`)...'.format(INSTALL_PATH+'bin/config_ep.json', os.getcwd()))
-                shutil.move(INSTALL_PATH + 'bin/config_ep.json', os.getcwd())
 
             # Deleting previous versions of Twister
             try: dir_util.remove_tree(INSTALL_PATH)
@@ -161,7 +183,7 @@ else:
             except: print('Error! Cannot create Twister dir `{0}` !'.format(INSTALL_PATH))
 
         else:
-            print('\nPlease backup all your data, then restart the installer.')
+            print('\nPlease backup your data, then restart the installer.')
             print('Exiting.\n')
             exit(0)
 
@@ -200,14 +222,15 @@ if TO_INSTALL == 'server':
     # Files to move in Server folder
     to_copy = [
         'bin/start_ce',
-        'bin/start_ra',
         'bin/start_httpserver',
         'doc/',
         'server/',
         'common/',
         'lib/',
-        'trd_party/',
+        'config/resources.json',
+        'config/services.ini',
         'plugins/',
+        'services/',
     ]
 
 elif TO_INSTALL == 'client':
@@ -219,7 +242,6 @@ elif TO_INSTALL == 'client':
     # Files to move in Client folder
     to_copy = [
         'bin/start_ep.py',
-        'bin/config_ep.json',
         'doc/',
         'demo/',
         'config/',
@@ -261,6 +283,15 @@ if TO_INSTALL == 'server':
     except:
         INTERNET = False
         print('Cannot connect! Check the internet connection, or the Proxy settings!\n')
+
+
+    if not INTERNET:
+        selected = raw_input('Internet connection NOT available. The required packages will not be installed.\n'
+            'Are you sure you want to continue? (yes/no): ')
+        if selected.strip().lower() not in ['y', 'yes']:
+            print('\nExiting.\n')
+            exit(0)
+
 
     # --------------------------------------------------------------------------------------------------
     # Starting the install process
@@ -328,7 +359,7 @@ if TO_INSTALL == 'server':
                 elif platform.dist()[0] == 'fedora':
                     tcr_proc = subprocess.Popen(['yum', '-y', 'install', 'python-mysql'], cwd=pkg_path)
                 else:
-                    tcr_proc = subprocess.Popen(['apt-get', 'install', 'python-mysqldb', '--yes'], cwd=pkg_path)
+                    tcr_proc = subprocess.Popen(['apt-get', 'install', 'python-mysqldb', '-y', '--force-yes'], cwd=pkg_path)
 
                 try: tcr_proc.wait()
                 except: print('Error while installing `MySQL-python`!')
@@ -336,7 +367,7 @@ if TO_INSTALL == 'server':
             elif lib_name == 'LXML-Python':
                 print('\n~~~ Installing `%s` from System repositories ~~~\n' % lib_name)
 
-                tcr_proc = subprocess.Popen(['apt-get', 'install', 'python-lxml', '--yes'], cwd=pkg_path)
+                tcr_proc = subprocess.Popen(['apt-get', 'install', 'python-lxml', '-y', '--force-yes'], cwd=pkg_path)
 
                 try: tcr_proc.wait()
                 except: print('Error while installing `Python LXML`!')
@@ -431,8 +462,6 @@ if os.path.exists(cwd_path + 'config'):
     print('\nMoving `config` folder back (from `{0}` to `{1}`)...'.format(cwd_path+'config', INSTALL_PATH+'config'))
     dir_util.copy_tree(cwd_path + 'config', INSTALL_PATH+'config')
     dir_util.remove_tree(cwd_path + 'config')
-    print('Moving `config_ep` file back (from `{0}` to `{1}`)...'.format(os.getcwd()+'/config_ep.json', INSTALL_PATH+'bin/config_ep.json'))
-    shutil.move(os.getcwd() + '/config_ep.json', INSTALL_PATH + 'bin/config_ep.json')
 
 #
 
@@ -447,7 +476,7 @@ if TO_INSTALL == 'client':
 tcr_proc = subprocess.Popen(['chmod', '775', INSTALL_PATH, '-R'],)
 tcr_proc.wait()
 
-for ext in ['txt', 'xml', 'py', 'tcl', 'plx', 'json', 'htm', 'js', 'css']:
+for ext in ['txt', 'xml', 'py', 'tcl', 'plx', 'json', 'ini', 'htm', 'js', 'css']:
     os.system('find %s -name "*.%s" -exec chmod 664 {} \;' % (INSTALL_PATH, ext))
 
 os.system('find %s -name "start_ep.py" -exec chmod +x {} \;' % INSTALL_PATH)
@@ -458,7 +487,7 @@ for fname in glob.glob(INSTALL_PATH + 'bin/*'):
     if os.path.splitext(fname)[1]: continue
 
     lines = open(fname).readlines()
-    lines.insert(4, ('export TWISTER_PATH=%s\n\n' % INSTALL_PATH))
+    lines.insert(4, ('export TWISTER_PATH=%s\n\n' % INSTALL_PATH.rstrip('/')))
     open(fname, 'w').write(''.join(lines))
 
 # Fix FWM Config XML

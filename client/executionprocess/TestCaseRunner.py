@@ -1,12 +1,15 @@
 
 # File: TestCaseRunner.py ; This file is part of Twister.
 
-# Copyright (C) 2012 , Luxoft
+# version: 2.001
+
+# Copyright (C) 2012-2013 , Luxoft
 
 # Authors:
+#    Adrian Toader <adtoader@luxoft.com>
 #    Andrei Costachi <acostachi@luxoft.com>
 #    Andrei Toma <atoma@luxoft.com>
-#    Cristian Constantin <crconstantin@luxoft.com>
+#    Cristi Constantin <crconstantin@luxoft.com>
 #    Daniel Cioata <dcioata@luxoft.com>
 
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,7 +26,7 @@
 
 '''
 Test Case Runner has the following roles:
- - Connects to CE to receive the files that must be executed on this station.
+ - Connects to CE to receive the libs and files that must be executed on this station.
  - Takes the statuses from last run to see if the last run was killed by timeout,
     and if it was, it must skip the files that were already executed.
  - It reads the START/ STOP/ PAUSE/ RESUME status and if it's PAUSE, it waits for RESUME.
@@ -34,7 +37,8 @@ Test Case Runner has the following roles:
     and will be restarted by EP. If the execution is successful, it sends the status and the time to CE.
  - The files that must be executed can be in many formats, ex: Python, Perl, TCL, the Runner detects
     them by extension.
-This script should NOT be run manually.
+
+This script should NOT be run manually!
 '''
 
 import os
@@ -43,6 +47,7 @@ import shutil
 import time
 import csv
 import pickle
+import marshal
 import xmlrpclib
 import tarfile
 import traceback
@@ -77,7 +82,7 @@ def loadConfig():
         f.close() ; del f
         return CONFIG
     except:
-        print('TC error: cannot read config file `%s`! Exiting!' % cache_file)
+        print('TC error: cannot read config file `%s`! Exiting!' % EP_CACHE)
         exit(1)
 
 #
@@ -131,26 +136,38 @@ def saveLibraries(proxy, libs_list=''):
         __init.write('\nall += ["%s"]\n\n' % ('", "'.join([os.path.splitext(lib)[0] for lib in all_libs])))
 
     for lib_file in zip_libs:
+        lib_data = proxy.downloadLibrary(lib_file)
+        time.sleep(0.1) # Must take it slow
+        if not lib_data:
+            print('ZIP library `{0}` does not exist!'.format(lib_file))
+            continue
+
+        print('Downloading Zip library `{0}` ...'.format(lib_file))
+
         # Write ZIP imports.
         __init.write('\nsys.path.append(os.path.split(__file__)[0] + "/%s")\n\n' % lib_file)
         lib_pth = libs_path + os.sep + lib_file
 
-        print('Downloading Zip library `{0}` ...'.format(lib_pth))
         f = open(lib_pth, 'wb')
-        lib_data = proxy.downloadLibrary(lib_file)
         f.write(lib_data.data)
         f.close() ; del f
 
     for lib_file in all_libs:
+        lib_data = proxy.downloadLibrary(lib_file)
+        time.sleep(0.1) # Must take it slow
+        if not lib_data:
+            print('Library `{0}` does not exist!'.format(lib_file))
+            continue
+
+        print('Downloading library `{0}` ...'.format(lib_file))
+
         ext = os.path.splitext(lib_file)
         # Write normal imports.
         __init.write('import %s\n' % ext[0])
         __init.write('from %s import *\n\n' % ext[0])
         lib_pth = libs_path + os.sep + lib_file
 
-        print('Downloading library `{0}` ...'.format(lib_pth))
         f = open(lib_pth, 'wb')
-        lib_data = proxy.downloadLibrary(lib_file)
         f.write(lib_data.data)
         f.close() ; del f
 
@@ -186,116 +203,62 @@ def Suicide(sig=None, msg=None, file_id=None, status_f=None, timer_f=None):
 #
 
 def proxySetTestStatus(file_id, status, time_t):
-    #
+    """
+    Shortcut function for setting Test status.
+    """
     global proxy, userName, globEpName
-    if proxy is not None:
-        proxy.setFileStatus(userName, globEpName, file_id, status, time_t)
-    else:
-        print('Offline mode: file_id `{0}`, status [ {1} ], time [ {2} ]'.format(file_id, status, time_t))
-    #
+    proxy.setFileStatus(userName, globEpName, file_id, status, time_t)
+
+
+def logMsg(logType, logMessage):
+    """
+    Shortcut function for sending a message in a log to Central Engine.
+    """
+    global proxy, userName
+    proxy.logMessage(userName, logType, logMessage)
+
+
+def getGlobal(var):
+    """
+    Function to get variables saved from Test files.
+    """
+    global proxy, userName, global_vars
+    if var in global_vars:
+        return global_vars[var]
+    # Else...
+    return proxy.getGlobalVariable(userName, var)
+
+
+def setGlobal(var, value):
+    """
+    Function to keep variables sent from Test files.
+    """
+    global proxy, userName, global_vars
+    try:
+        marshal.dumps(value)
+        return proxy.setGlobalVariable(userName, var, value)
+    except:
+        global_vars[var] = value
+        return True
 
 #
 
-def runOffline(filelist):
-    '''
-    This function is used to run the tests files WITHOUT connecting to CE.
-    '''
-    #
-    tc_tcl = None; tc_perl = None; tc_python = None
-    class fnamex: pass # Dummy class
-    files = []
+def py_exec(code_string):
+    """
+    Exposed Python function and class instances for TCL.
+    """
+    global global_vars
 
-    for fname in csv.reader(open(filelist, 'rb')):
-        if not fname: continue
-        if not os.path.isfile(fname[0]):
-            print('EP error: Test file `{0}` doesn\'t exist and won\'t be executed!'.format(fname[0]))
-            continue
-        else:
-            files.append(fname[0])
+    if not isinstance(code_string, str):
+        print('py_exec: Error, the code must be a string `{}`!'.format(code_string))
+        return False
 
-    print('\n===== ===== ===== ===== =====')
-    print('TC OFFLINE: Starting test suite...')
-    print('===== ===== ===== ===== =====\n')
+    try: ret = eval(code_string, global_vars, global_vars)
+    except Exception, e:
+        print('py_exec: Error execution code `{}`! Exception `{}`!'.format(code_string, e))
+        ret = False
 
-    for file_name in files:
-
-        # Timer for current cycle, must be after checking CE/ EP Status
-        timer_i = time.time()
-        # Reset result
-        result = None
-
-        file_ext = os.path.splitext(file_name)[1].lower()
-
-        # If file type is TCL
-        if file_ext in ['.tcl']:
-            if not tc_tcl:
-                tc_tcl = TCRunTcl()
-            current_runner = tc_tcl
-
-        # If file type is PERL
-        elif file_ext in ['.plx']:
-            if not tc_perl:
-                tc_perl = TCRunPerl()
-            current_runner = tc_perl
-
-        # If file type is PYTHON
-        elif file_ext in ['.py', '.pyc', '.pyo']:
-            if not tc_python:
-                tc_python = TCRunPython()
-            current_runner = tc_python
-
-        # Unknown file type
-        else:
-            print('TC warning: File `{0}` is an unknown type of file and will be ignored!'.format(file_name))
-            continue
-
-        str_to_execute = fnamex()
-        str_to_execute.data = open(file_name, 'r').read()
-
-        # --------------------------------------------------
-        # RUN CURRENT TEST!
-        try:
-            result = current_runner._eval(str_to_execute)
-            print('\n>>> File `%s` returned `%s`. <<<\n' % (file_name, result))
-
-        except Exception, e:
-            print('TC error: Error executing file `%s`!' % file_name)
-            print('Exception: `%s` !\n' % e)
-            continue
-
-        # END OF TESTS!
-        timer_f = time.time() - timer_i
-        # --------------------------------------------------
-
-        if result==STATUS_PASS or result in ['pass', 'PASS']:
-            proxySetTestStatus(file_name, STATUS_PASS, timer_f) # File status PASS
-        elif result==STATUS_SKIPPED or result in ['skip', 'skipped', 'SKIP', 'SKIPPED']:
-            proxySetTestStatus(file_name, STATUS_SKIPPED, timer_f) # File status SKIPPED
-        elif result==STATUS_ABORTED or result in ['abort', 'aborted', 'ABORT', 'ABORTED']:
-            proxySetTestStatus(file_name, STATUS_ABORTED, timer_f) # File status ABORTED
-        elif result==STATUS_NOT_EXEC or result in ['not-exec', 'not exec', 'NOT-EXEC', 'NOT EXEC']:
-            proxySetTestStatus(file_name, STATUS_NOT_EXEC, timer_f) # File status NOT_EXEC
-        elif result==STATUS_TIMEOUT or result in ['timeout', 'TIMEOUT']:
-            proxySetTestStatus(file_name, STATUS_TIMEOUT, timer_f) # File status TIMEOUT
-        elif result==STATUS_INVALID or result in ['invalid', 'INVALID']:
-            proxySetTestStatus(file_name, STATUS_INVALID, timer_f) # File status INVALID
-        else:
-            proxySetTestStatus(file_name, STATUS_FAIL, timer_f) # File status FAIL
-
-        sys.stdout.flush() # Just in case
-
-        # --------------------------------------------------
-        del timer_i, timer_f
-        del current_runner
-        # --------------------------------------------------
-
-    print('\n===== ===== ===== =====')
-    print('TC OFFLINE: All tests done!')
-    print('===== ===== ===== =====\n')
-
-    # If success, manually clean pointers
-    del tc_tcl, tc_perl, tc_python
-    #
+    return ret
 
 #
 
@@ -316,19 +279,8 @@ if __name__=='__main__':
         globEpName = globEpName[0]
         print('TC debug: TestCaseRunner started with  User: {0} ;  EP: {1}.'.format(userName, globEpName))
 
-    # Inject library path for the current EP
-    TestCaseRunnerClasses.TWISTER_LIBS_PATH = TWISTER_PATH + '/.twister_cache/' + globEpName
-
-    if globEpName == 'OFFLINE':
-        filelist = sys.argv[2:3]
-        if not filelist:
-            print('TC error: Must start the Runner with 2 parameters, EpName and Filelist! Exiting!')
-            exit(1)
-        if not os.path.exists(filelist[0]):
-            print('TC error: File list file `{0}` does not exist! Exiting!')
-            exit(1)
-        runOffline(filelist[0])
-        exit(0) # Exit code 0 ??
+    # Inject libraries path for the current EP
+    sys.path.append(TWISTER_PATH + '/.twister_cache/' + globEpName)
 
     CONFIG = loadConfig()
 
@@ -337,6 +289,9 @@ if __name__=='__main__':
     tSuites = None
     suite_number = 0
     abort_suite = False
+
+    # For storing temporary variables
+    global_vars = {}
 
     CE_Path = CONFIG['PROXY']
 
@@ -354,9 +309,13 @@ if __name__=='__main__':
         print('TC debug: Cannot connect to CE path `{0}`! Exiting!'.format(CONFIG['PROXY']))
         exit(1)
 
-    # If not offline, save all libraries from CE
-    if globEpName != 'OFFLINE':
-        saveLibraries(proxy)
+    # Save all libraries from CE
+    saveLibraries(proxy)
+
+    try: import ce_libs
+    except:
+        print('TC error: TestCaseRunner cannot import the shared libraries!')
+        exit(1)
 
     # Get the `exit on test Fail` value
     exit_on_test_fail = proxy.getUserVariable(userName, 'exit_on_test_fail')
@@ -390,6 +349,8 @@ if __name__=='__main__':
         tStats = proxy.getFileStatusAll(userName, globEpName, suite_id).split(',')
         # File list for current Suite
         tList = proxy.getSuiteFiles(userName, globEpName, suite_id)
+        # Set suite = current suite
+        proxy.setEpVariable(userName, globEpName, 'current_suite', suite_id)
 
         if not tList:
             print('TC warning: Nothing to do in suite `%s`!\n' % suite_str)
@@ -411,6 +372,9 @@ if __name__=='__main__':
         else:
             # print('TC debug: Stats from last run : {0}'.format(tStats))
             pass
+
+        # The Test Bed name
+        tbname = proxy.getSuiteVariable(userName, globEpName, suite_id, 'tb')
 
         # Get list of libraries for current suite
         libList = proxy.getSuiteVariable(userName, globEpName, suite_id, 'libraries')
@@ -466,6 +430,9 @@ if __name__=='__main__':
             if '7' in tStats and iIndex != 0 and iIndex <= Rindex(tStats, '7'):
                 print('TC debug: Skipping file {0}: `{1}` with status {2}, aborted because of timeout!\n'.format(
                     iIndex, filename, status))
+                if iIndex == 0 and prerequisite:
+                    abort_suite = True
+                    print('TC error: Prerequisite file for suite `%s` returned FAIL! All suite will be ABORTED!' % suite_name)
                 print('<<< END filename: `%s:%s` >>>\n' % (file_id, filename))
                 continue
 
@@ -516,12 +483,16 @@ if __name__=='__main__':
             # If CE sent False, it means the file is empty, does not exist, or it's not runnable.
             if str_to_execute == '':
                 print('TC debug: File path `{0}` does not exist!\n'.format(filename))
+                if iIndex == 0 and prerequisite:
+                    abort_suite = True
+                    print('TC error: Prerequisite file for suite `%s` returned FAIL! All suite will be ABORTED!' % suite_name)
                 proxySetTestStatus(file_id, STATUS_SKIPPED, 0.0) # Status SKIPPED
                 print('<<< END filename: `%s:%s` >>>\n' % (file_id, filename))
                 continue
 
             elif not str_to_execute:
                 print('TC debug: File `{0}` will be skipped.\n'.format(filename))
+                # Skipped prerequisite are ok.
                 proxySetTestStatus(file_id, STATUS_SKIPPED, 0.0) # Status SKIPPED
                 print('<<< END filename: `%s:%s` >>>\n' % (file_id, filename))
                 continue
@@ -556,6 +527,9 @@ if __name__=='__main__':
             # Unknown file type
             else:
                 print('TC warning: Extension type `%s` is unknown and will be ignored!' % file_ext)
+                if iIndex == 0 and prerequisite:
+                    abort_suite = True
+                    print('TC error: Prerequisite file for suite `%s` returned FAIL! All suite will be ABORTED!' % suite_name)
                 proxySetTestStatus(file_id, STATUS_NOT_EXEC, 0.0) # Status NOT_EXEC
                 print('<<< END filename: `%s:%s` >>>\n' % (file_id, filename))
                 continue
@@ -574,7 +548,9 @@ if __name__=='__main__':
             # --------------------------------------------------
             # RUN CURRENT TEST!
             try:
-                result = current_runner._eval(str_to_execute, globals(), args)
+                globs = globals()
+                globs['tbname'] = tbname
+                result = current_runner._eval(str_to_execute, globs, args)
                 result = str(result).upper()
                 print('\n>>> File `%s` returned `%s`. <<<\n' % (filename, result))
 
@@ -586,9 +562,11 @@ if __name__=='__main__':
 
                 proxy.echo('TC error: Error executing file `%s`!' % filename)
 
-                proxySetTestStatus(file_id, STATUS_FAIL, 0.0)
+                proxySetTestStatus(file_id, STATUS_FAIL, (time.time() - timer_i))
                 # When crash detected = True
                 proxy.setFileVariable(userName, globEpName, suite_id, file_id, 'twister_tc_crash_detected', 1)
+                print('<<< END filename: `%s:%s` >>>\n' % (file_id, filename))
+                continue
 
             # END OF TEST!
             timer_f = time.time() - timer_i
@@ -647,5 +625,3 @@ if __name__=='__main__':
     del tc_tcl, tc_perl, tc_python
 
 #
-
-

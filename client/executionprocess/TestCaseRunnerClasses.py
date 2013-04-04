@@ -1,12 +1,15 @@
 
 # File: TestCaseRunnerClasses.py ; This file is part of Twister.
 
-# Copyright (C) 2012 , Luxoft
+# version: 2.001
+
+# Copyright (C) 2012-2013 , Luxoft
 
 # Authors:
+#    Adrian Toader <adtoader@luxoft.com>
 #    Andrei Costachi <acostachi@luxoft.com>
 #    Andrei Toma <atoma@luxoft.com>
-#    Cristian Constantin <crconstantin@luxoft.com>
+#    Cristi Constantin <crconstantin@luxoft.com>
 #    Daniel Cioata <dcioata@luxoft.com>
 
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -22,7 +25,7 @@
 # limitations under the License.
 
 '''
-REQUIRED Python 2.7
+REQUIRED Python 2.7.
 This file contains classes that will run TCL/ Python/ Perl test cases.
 This script CANNOT run separately, it must be called from TestCaseRunner.
 '''
@@ -30,8 +33,9 @@ This script CANNOT run separately, it must be called from TestCaseRunner.
 import os
 import sys
 import time
-import subprocess
+import glob
 
+import subprocess # For running Perl
 from collections import OrderedDict # For dumping TCL
 
 TWISTER_PATH = os.getenv('TWISTER_PATH')
@@ -44,10 +48,6 @@ if not TWISTER_PATH:
 class TCRunTcl:
 
     def __init__(self):
-
-        global TWISTER_PATH
-        if not TWISTER_LIBS_PATH in sys.path:
-            sys.path.append(TWISTER_LIBS_PATH) # Injected EP name
 
         try:
             import Tkinter
@@ -74,23 +74,24 @@ class TCRunTcl:
         self.all_procs = 0
         self.all_procs_values = 0
 
+        self.tcl = Tkinter.Tcl()
+
         import ce_libs
 
-        dir(ce_libs) # Update ?
+        # Find all functions from CE Libs
+        to_inject = [ f for f in dir(ce_libs) if callable(getattr(ce_libs, f)) ]
 
-        self.tcl = Tkinter.Tcl()
-        # Expose all known function, in TCL
-        self.tcl.createcommand('logMessage',          ce_libs.logMsg)
-        self.tcl.createcommand('setProperty',         ce_libs.setProperty)
-        self.tcl.createcommand('getProperty',         ce_libs.getProperty)
-        self.tcl.createcommand('delResource',         ce_libs.delResource)
-        self.tcl.createcommand('createEmptyResource', ce_libs.createEmptyResource)
+        # Expose all known function in TCL
+        for f in to_inject:
+            # print('DEBUG: Exposing Python command `{}` into TCL...'.format(f))
+            self.tcl.createcommand( f, getattr(ce_libs, f) )
 
         if os.path.exists(os.getcwd()+'/__recomposed.tcl'):
             # Restore all variables and functions
             self.tcl.evalfile(os.getcwd()+'/__recomposed.tcl')
 
-        self.tcl.eval('package require Expect')
+        # self.tcl.eval('package require Tcl')
+        # self.tcl.eval('package require Expect')
 
     def __del__(self):
         #
@@ -106,12 +107,25 @@ class TCRunTcl:
         After executing a TCL statement, the last value will be used
         as return value.
         '''
-        #
+        # Inject variables
+        self.tcl.setvar('SUITE_ID',   globs['suite_id'])
+        self.tcl.setvar('SUITE_NAME', globs['suite_name'])
+        self.tcl.setvar('FILE_ID',    globs['file_id'])
+        self.tcl.setvar('FILE_NAME',  globs['filename'])
+        self.tcl.setvar('USER',       globs['userName'])
+        self.tcl.setvar('EP',         globs['globEpName'])
+        self.tcl.setvar('currentTB',  globs['tbname'])
+
+        # Inject common functions
+        self.tcl.createcommand('logMessage', globs['logMsg'])
+        self.tcl.createcommand('getGlobal',  globs['getGlobal'])
+        self.tcl.createcommand('setGlobal',  globs['setGlobal'])
+        self.tcl.createcommand('py_exec',    globs['py_exec'])
+
         to_execute = str_to_execute.data
-        #
         to_execute = '\nset argc %i\n' % len(params) + to_execute
         to_execute = 'set argv {%s}\n' % str(params)[1:-1] + to_execute
-        #
+
         _RESULT = self.tcl.eval(to_execute)
         return _RESULT
         #
@@ -200,8 +214,7 @@ class TCRunPython:
         '''
         #
         global TWISTER_PATH
-        if not TWISTER_LIBS_PATH in sys.path:
-            sys.path.append(TWISTER_LIBS_PATH) # Injected EP name
+        self.epname = globs['globEpName']
 
         # Start injecting inside tests
         globs_copy = {}
@@ -209,36 +222,49 @@ class TCRunPython:
         globs_copy['sys']  = sys
         globs_copy['time'] = time
 
+        globs_copy['TWISTER_ENV'] = True
         globs_copy['SUITE_ID']   = globs['suite_id']
         globs_copy['SUITE_NAME'] = globs['suite_name']
         globs_copy['FILE_ID']    = globs['file_id']
         globs_copy['FILE_NAME']  = globs['filename']
         globs_copy['USER']       = globs['userName']
-        globs_copy['EP']         = globs['globEpName']
+        globs_copy['EP']         = self.epname
         globs_copy['PROXY']      = globs['proxy']
+        globs_copy['currentTB']  = globs['tbname']
 
-        globEpName = globs_copy['EP']
-        to_execute = str_to_execute.data
-        to_execute = '\nimport os, sys\nsys.argv = %s\n' % str(["file.py"] + params) + to_execute
-        to_execute = '\nsys.path.append(os.getenv("TWISTER_PATH") + "/.twister_cache/")\n' + to_execute
+        # Functions
+        globs_copy['logMsg']     = globs['logMsg']
+        globs_copy['getGlobal']  = globs['getGlobal']
+        globs_copy['setGlobal']  = globs['setGlobal']
 
-        # *.pyc or *.pyo files
-        if to_execute[:4] == '\x03\xf3\r\n':
-            fname = '/__to_execute.pyc'
-        else:
-            fname = '/__to_execute.py'
+        to_execute = r"""
+import os, sys
+sys.argv = %s
+""" % str([globs['filename']] + params)
 
-        fname = TWISTER_PATH + '/.twister_cache/' + globEpName + fname
-        f = open(fname, 'wb')
+        fname = os.path.split(globs['filename'])[1]
+        fpath = '{}/.twister_cache/{}/{}'.format(TWISTER_PATH, self.epname, fname)
+        f = open(fpath, 'wb')
         f.write(to_execute)
+        f.write(str_to_execute.data)
         f.close() ; del f
 
-        execfile(fname, globs_copy)
-        try: os.remove(fname)
-        except: pass
+        execfile(fpath, globs_copy)
 
         # The _RESULT must be injected from within the python script
         return globs_copy.get('_RESULT')
+        #
+
+
+    def __del__(self):
+        #
+        # On exit delete all Python files
+        global TWISTER_PATH
+        fnames = '{0}/.twister_cache/{1}/*.py*'.format(TWISTER_PATH, self.epname)
+        for fpath in glob.glob(fnames):
+            # print 'Cleanup Python file:', fpath
+            try: os.remove(fname)
+            except: pass
         #
 
 #
@@ -249,9 +275,6 @@ class TCRunPerl:
         '''
         Perl test runner.
         '''
-        #
-        if not TWISTER_LIBS_PATH in sys.path:
-            sys.path.append(TWISTER_LIBS_PATH) # Injected EP name
         #
         _RESULT = None
         to_execute = str_to_execute.data
