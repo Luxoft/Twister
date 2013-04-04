@@ -1,5 +1,7 @@
 
 # <title> Test 06 </title>
+
+# version: 2.001
 # <description> Create domains and test function DomainNamesChangedNotification. This test must pass. </description>
 
 import time

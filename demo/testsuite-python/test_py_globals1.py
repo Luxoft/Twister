@@ -1,4 +1,6 @@
 
+# version: 2.001
+
 import os
 from random import randint
 from binascii import hexlify

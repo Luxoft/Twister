@@ -1,4 +1,6 @@
 
+# version: 2.001
+
 """
 <title>Testing Globals</title>
 <description>This test is setting some complex global variables, that will be used in the next tests.

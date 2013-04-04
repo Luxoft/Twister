@@ -1,5 +1,7 @@
 
 # <title> Test 12 - diff function </title>
+
+# version: 2.001
 # <description> Testing the XML-RPC server: running diff function 3 times </description>
 
 import time

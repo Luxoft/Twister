@@ -1,5 +1,7 @@
 #!/usr/bin/python
 
+# version: 2.001
+
 # This file will start ALL Execution Processes that are enabled,
 # from file `twister/config/epname.ini`.
 # This should run as ROOT, to be able to start the packets sniffer.

@@ -1,5 +1,7 @@
 
 # <title> Test 02 - factorial </title>
+
+# version: 2.001
 # <description> Testing the SOAP server: running Factorial function 3 times, the last time with wrong parameters </description>
 
 import time

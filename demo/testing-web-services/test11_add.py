@@ -1,5 +1,7 @@
 
 # <title> Test 11 - add function </title>
+
+# version: 2.001
 # <description> Testing the XML-RPC server: running add function 3 times </description>
 
 import time

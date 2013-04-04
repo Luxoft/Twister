@@ -1,5 +1,7 @@
 
 # <title> Test 07 </title>
+
+# version: 2.001
 # <description> Create delete actions and test DomainNamesChangedNotification function. This test must pass. </description>
 
 import time

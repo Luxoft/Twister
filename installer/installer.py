@@ -1,5 +1,7 @@
 #!/usr/bin/python
 
+# version: 2.001
+
 # File: installer.py ; This file is part of Twister.
 
 # Copyright (C) 2012-2013 , Luxoft

@@ -2,6 +2,7 @@
 #
 # -*- coding: utf-8 -*-
 #
+# version: 2.001
 #
 # File: PacketsTwistPlugin.py ; This file is part of Twister.
 #

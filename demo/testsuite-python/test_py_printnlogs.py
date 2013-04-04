@@ -1,5 +1,6 @@
 
 #
+# version: 2.001
 # <title>test print and logs</title>
 # <description>This test doesn't do anything spectacular, prints and sends some logs.</description>
 #

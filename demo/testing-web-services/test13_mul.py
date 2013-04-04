@@ -1,5 +1,7 @@
 
 # <title> Test 13 - multiplication function </title>
+
+# version: 2.001
 # <description> Testing the XML-RPC server: running multiplication function 3 times </description>
 
 import time

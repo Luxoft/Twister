@@ -1,4 +1,6 @@
 
+# version: 2.001
+
 """
 <title>Testing Globals</title>
 <description>This test is getting some complex functions and classes.</description>

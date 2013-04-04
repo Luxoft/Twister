@@ -1,5 +1,7 @@
 
 # <title> Test 08 </title>
+
+# version: 2.001
 # <description> Negative testing DomainNamesChangedNotification. All exceptions must be caught, the test must pass. </description>
 
 import time

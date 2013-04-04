@@ -1,4 +1,6 @@
 
+# version: 2.001
+
 import os
 import subprocess
 from BasePlugin import BasePlugin
