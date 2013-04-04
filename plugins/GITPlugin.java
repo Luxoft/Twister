@@ -1,5 +1,6 @@
 /*
 File: GITPlugin.java ; This file is part of Twister.
+Version: 2.001
 
 Copyright (C) 2012 , Luxoft
 
