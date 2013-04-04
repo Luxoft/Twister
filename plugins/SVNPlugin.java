@@ -1,8 +1,7 @@
 /*
 File: SVNPlugin.java ; This file is part of Twister.
-Version: 2.001
 
-Copyright (C) 2012-2013 , Luxoft
+Copyright (C) 2012 , Luxoft
 
 Authors: Andrei Costachi <acostachi@luxoft.com>
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -51,14 +50,11 @@ import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.Session;
 import com.jcraft.jsch.SftpException;
 import com.twister.Item;
+import com.twister.MySftpBrowser;
 import com.twister.plugin.baseplugin.BasePlugin;
 import com.twister.plugin.twisterinterface.TwisterPluginInterface;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.TreeSelectionModel;
-
-import net.sf.vfsjfilechooser.VFSJFileChooser;
-import net.sf.vfsjfilechooser.VFSJFileChooser.RETURN_TYPE;
-import net.sf.vfsjfilechooser.utils.VFSUtils;
 
 import org.apache.xmlrpc.client.XmlRpcClient;
 import org.apache.xmlrpc.client.XmlRpcClientConfigImpl;
@@ -71,8 +67,6 @@ import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
-
-import org.apache.commons.vfs.FileObject;
 
 public class SVNPlugin extends BasePlugin implements TwisterPluginInterface {
 	private static final long serialVersionUID = 1L;
@@ -87,7 +81,6 @@ public class SVNPlugin extends BasePlugin implements TwisterPluginInterface {
 	private JButton browse;
 	private XmlRpcClient client;
 	private ChannelSftp c;
-	private VFSJFileChooser filechooser;
 	private Node npassword,nserver,nsnapshot,ndefaultOp,nusername;
 	
 
@@ -95,7 +88,7 @@ public class SVNPlugin extends BasePlugin implements TwisterPluginInterface {
 	public void init(ArrayList<Item> suite, ArrayList<Item> suitetest,
 			final Hashtable<String, String> variables,final Document pluginsConfig) {
 		super.init(suite, suitetest, variables,pluginsConfig);
-		System.out.println("Initializing "+getName()+" ...");
+		System.out.println("Initializing plugin: "+getName()+" ...");
 		initializeSFTP();
 		initializeRPC();
 		p = new JPanel();
@@ -346,46 +339,76 @@ public class SVNPlugin extends BasePlugin implements TwisterPluginInterface {
                         "for RPC client initialization");}
 	}
 	
-	public void initalizeChooser(){
-		filechooser = new VFSJFileChooser("sftp://"+variables.get("user")+":"+
-                variables.get("password")+"@"+variables.get("host")+
-                "/home/"+variables.get("user")+"/twister/config/");        
-		filechooser.setFileHidingEnabled(true);
-		filechooser.setMultiSelectionEnabled(false);
-		filechooser.setFileSelectionMode(VFSJFileChooser.SELECTION_MODE.FILES_AND_DIRECTORIES);
-	}
-	
+	/*
+	 * opens a remote browser for user
+	 * to choose remote folder for snapshot
+	 */
 	public void selectSnapshot(){
-        try{if(filechooser==null)initalizeChooser();
-        	RETURN_TYPE answer = filechooser.showOpenDialog(SVNPlugin.this);
-            if (answer == RETURN_TYPE.APPROVE){
-                FileObject aFileObject = filechooser.getSelectedFile();
-                
-                String safeName = VFSUtils.getFriendlyName(aFileObject.toString());
-                safeName = safeName.substring(safeName.indexOf(variables.get("host"))+
-                		variables.get("host").length());
-                String [] check = safeName.split("/");
-                if(check[check.length-1].equals(check[check.length-2])){
-                    StringBuffer buffer = new StringBuffer();
-                    for(int i=0;i<check.length-1;i++){
-                        buffer.append(check[i]+"/");}
-                    safeName = buffer.toString();}
-                tsnapshot.setText(safeName);
-                nsnapshot.setNodeValue(tsnapshot.getText());  
-                uploadPluginsFile();
-                JFrame progress = new JFrame();
-				progress.setAlwaysOnTop(true);
-				progress.setLocation(400,600);
-				progress.setUndecorated(true);
-				JProgressBar bar = new JProgressBar();
-				bar.setIndeterminate(true);
-				progress.add(bar);
-				progress.pack();
-                refreshTree(safeName,progress);}
-            }
-         catch(Exception e){
-             filechooser=null;
-             e.printStackTrace();}
+		try{
+        	final String initial = tsnapshot.getText();
+        	final MySftpBrowser browser = new MySftpBrowser(variables.get("host"), variables.get("user"), variables.get("password"), tsnapshot, p);
+        	//final MySftpBrowser browser = new MySftpBrowser(c, tsnapshot, p);
+        	new Thread(){
+        		public void run(){
+        			while(browser.isVisible()){
+                		try {
+							Thread.sleep(100);
+						} catch (InterruptedException e) {
+							e.printStackTrace();
+						}
+                	}
+        			if (!initial.equals(tsnapshot.getText())){        				
+        				nsnapshot.setNodeValue(tsnapshot.getText());  
+                        uploadPluginsFile();
+                        JFrame progress = new JFrame();
+        				progress.setAlwaysOnTop(true);
+        				progress.setLocation(400,600);
+        				progress.setUndecorated(true);
+        				JProgressBar bar = new JProgressBar();
+        				bar.setIndeterminate(true);
+        				progress.add(bar);
+        				progress.pack();
+                        refreshTree(tsnapshot.getText(),progress);}
+        		}
+        	}.start();
+        }
+        catch(Exception e){
+            e.printStackTrace();}
+		
+		
+		
+		
+		
+		
+//        try{if(filechooser==null)initalizeChooser();
+//        	RETURN_TYPE answer = filechooser.showOpenDialog(SVNPlugin.this);
+//            if (answer == RETURN_TYPE.APPROVE){
+//                FileObject aFileObject = filechooser.getSelectedFile();
+//                
+//                String safeName = VFSUtils.getFriendlyName(aFileObject.toString());
+//                safeName = safeName.substring(safeName.indexOf(variables.get("host"))+
+//                		variables.get("host").length());
+//                String [] check = safeName.split("/");
+//                if(check[check.length-1].equals(check[check.length-2])){
+//                    StringBuffer buffer = new StringBuffer();
+//                    for(int i=0;i<check.length-1;i++){
+//                        buffer.append(check[i]+"/");}
+//                    safeName = buffer.toString();}
+//                tsnapshot.setText(safeName);
+//                nsnapshot.setNodeValue(tsnapshot.getText());  
+//                uploadPluginsFile();
+//                JFrame progress = new JFrame();
+//				progress.setAlwaysOnTop(true);
+//				progress.setLocation(400,600);
+//				progress.setUndecorated(true);
+//				JProgressBar bar = new JProgressBar();
+//				bar.setIndeterminate(true);
+//				progress.add(bar);
+//				progress.pack();
+//                refreshTree(safeName,progress);}
+//            }
+//         catch(Exception e){
+//             e.printStackTrace();}
 	}
 	
 	/*
