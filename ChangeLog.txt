@@ -3,9 +3,7 @@
   and it is associated with one or more EP's
 - minor fixes to GUI
 - implemented Jira plugin to integrate Twister with Jira bug tracking
-- save CLI logs per test case
 - implemented plugin for Twister scheduler; multiple users can schedule their execution suites
-- improvement to handle libraries; the user can select what libraries to be used by an EP; by default available libraries are sent to EP
 - implemented a mechanism for traffic capture; a GUI plugin is available to display the captured packets
 - Jenkins plugin developed to integrate Twister with Jenkins CI
 - updated GUI for a better support of test beds
@@ -20,7 +18,15 @@
 - bug fixes
 - added binaries directory to store the compiled applet and the available plugins
 
+6th December 2012 changes:
 
+- updated the unit testing interface to be more user friendly and to offer more information
+- implemented a mechanism so the user can specify what are the libraries ( modules ) that has to
+  be imported by every suite. There is no point to send all the libraries ( modules ) to every 
+  suite, since it might not need the library ( module )
+- implemented a mechanism to save the CLI log per test case into the mysql database. This is very
+  usefull in finding the possible issues when a test case fails.
+- minor updates
 
 
 15th October 2012 changes:
