@@ -484,7 +484,7 @@ public class PacketsTwistPlugin extends BasePlugin implements
 				}
 				System.out.println("Filter:" + sb.toString());
 				search2.setText(sb.toString());
-			} catch (XmlRpcException e) {
+			} catch (Exception e) {
 				e.printStackTrace();
 			}
 			panel1.add(search2);
