@@ -1,8 +1,7 @@
 """
-<title>SetNewMPLSttl</title>
+<title>SetNewTTLipv6</title>
 <description>
-    Set ttl of MPLS tag to packet
-    
+    Set decrement TTL to ipv6 packet
 </description>
 """
 
@@ -15,12 +14,12 @@ try:
 except:
     raise
 
-class SetNewMPLSttl(SimpleDataPlane):
+class SetDecTTLipv6(SimpleDataPlane):
     """
-    Set new ttl to mpls packet	
+    Decrement TTL to ipv6 packet
     """
     def runTest(self):
-        self.logger.info("Running SetNewMPLSttl test")
+        self.logger.info("Running SetDecTTLipv6 test")
         of_ports = self.port_map.keys()
         of_ports.sort()
         self.assertTrue(len(of_ports) > 0, "Not enough ports for test")
@@ -32,22 +31,25 @@ class SetNewMPLSttl(SimpleDataPlane):
 
         ingress_port = of_ports[0]
         egress_port = of_ports[1]
-
-        pkt = testutils.simple_tcp_packet(mpls_tags=[{'label': 50, 'ttl': 64}])
-        portmatch = match.in_port(ingress_port)
-        srcmatch = match.eth_src(parse.parse_mac("00:06:07:08:09:0a"))
-        dstmatch = match.eth_dst(parse.parse_mac("00:01:02:03:04:05"))
+	pkt = testutils.simple_ipv6_packet(dl_dst='00:01:02:03:04:05',ip_src='fe80::2420:52ff:fe8f:5189',ip_dst='fe80::2420:52ff:fe8f:5190')
+        port = match.in_port(ingress_port)
+        eth_type = match.eth_type(IPV6_ETHERTYPE)
+        eth_dst = match.eth_dst(parse.parse_mac("00:01:02:03:04:05"))
+        ipv6_src = match.ipv6_src(ipaddr.IPv6Address('fe80::2420:52ff:fe8f:5189'))
+        ipv6_dst = match.ipv6_dst(ipaddr.IPv6Address('fe80::2420:52ff:fe8f:5190'))
+	self.logger.info("Generate and send flow_mod with dec_ttl action, initial packet have ttl 64")
         request = message.flow_mod()
-        request.match_fields.tlvs.append(portmatch)
-        request.match_fields.tlvs.append(srcmatch)
-        request.match_fields.tlvs.append(dstmatch)
-        request.buffer_id = 0xffffffff
+        request.match_fields.tlvs.append(port)
+        request.match_fields.tlvs.append(eth_type)
+        request.match_fields.tlvs.append(eth_dst)
+        request.match_fields.tlvs.append(ipv6_src)
+        request.match_fields.tlvs.append(ipv6_dst)
+       	request.buffer_id = 0xffffffff
         request.priority = 1
         inst = instruction.instruction_apply_actions()
-        vid_act = action.action_set_mpls_ttl()
-        vid_act.mpls_ttl = 1
-        inst.actions.add(vid_act)        
-	act_out = action.action_output()
+        vid_act = action.action_dec_nw_ttl()
+        inst.actions.add(vid_act)
+        act_out = action.action_output()
         act_out.port = egress_port
         inst.actions.add(act_out)
         request.instructions.add(inst)
@@ -57,11 +59,10 @@ class SetNewMPLSttl(SimpleDataPlane):
         rv = self.controller.message_send(request)
         self.assertTrue(rv != -1, "Error installing flow mod")
         self.dataplane.send(ingress_port, str(pkt))
-
         (rcv_port, rcv_pkt, _) = self.dataplane.poll(port_number=egress_port, timeout=1)
         p = scapy.all.Ether(str(rcv_pkt))
-        self.assertTrue(p.ttl == 1, "Incoming packet do not have ttl 1")
-
-    
-tc = SetNewMPLSttl()
+	self.logger.info("Verify incoming packet have hop_count set to 63")
+	self.assertEqual(p.hlim, 63, "Incoming packet do not have hlim 63")
+ 
+tc = SetDecTTLipv6()
 _RESULT = tc.run()

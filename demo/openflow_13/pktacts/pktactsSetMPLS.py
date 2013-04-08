@@ -1,8 +1,7 @@
 """
-<title>SetNewMPLSttl</title>
+<title>SetMPLS</title>
 <description>
-    Set ttl of MPLS tag to packet
-    
+    Set MPLS to tcp packet
 </description>
 """
 
@@ -15,12 +14,12 @@ try:
 except:
     raise
 
-class SetNewMPLSttl(SimpleDataPlane):
+class SetMPLS(SimpleDataPlane):
     """
-    Set new ttl to mpls packet	
+    Set VID to tcp packet
     """
     def runTest(self):
-        self.logger.info("Running SetNewMPLSttl test")
+        self.logger.info("Running SetMPLS test")
         of_ports = self.port_map.keys()
         of_ports.sort()
         self.assertTrue(len(of_ports) > 0, "Not enough ports for test")
@@ -32,11 +31,12 @@ class SetNewMPLSttl(SimpleDataPlane):
 
         ingress_port = of_ports[0]
         egress_port = of_ports[1]
-
-        pkt = testutils.simple_tcp_packet(mpls_tags=[{'label': 50, 'ttl': 64}])
-        portmatch = match.in_port(ingress_port)
+	self.logger.info("Generate and send a packet with label 50")
+        pkt = testutils.simple_tcp_packet(mpls_tags=[{'label': 50, 'ttl': 64}])	
+	portmatch = match.in_port(ingress_port)
         srcmatch = match.eth_src(parse.parse_mac("00:06:07:08:09:0a"))
         dstmatch = match.eth_dst(parse.parse_mac("00:01:02:03:04:05"))
+	self.logger.info("Generate and send flow_mod with action Set MPLS label to 40")
         request = message.flow_mod()
         request.match_fields.tlvs.append(portmatch)
         request.match_fields.tlvs.append(srcmatch)
@@ -44,24 +44,25 @@ class SetNewMPLSttl(SimpleDataPlane):
         request.buffer_id = 0xffffffff
         request.priority = 1
         inst = instruction.instruction_apply_actions()
-        vid_act = action.action_set_mpls_ttl()
-        vid_act.mpls_ttl = 1
-        inst.actions.add(vid_act)        
-	act_out = action.action_output()
+        vid_act = action.action_set_field()
+        field_2b_set = match.mpls_label(40)
+        vid_act.field = field_2b_set
+        inst.actions.add(vid_act)
+       	act_out = action.action_output()
         act_out.port = egress_port
         inst.actions.add(act_out)
         request.instructions.add(inst)
+        self.logger.info("Inserting flow ")
         logMsg('logDebug',"Request send to switch:")
         logMsg('logDebug',request.show())
-        self.logger.info("Inserting flow ")
         rv = self.controller.message_send(request)
         self.assertTrue(rv != -1, "Error installing flow mod")
         self.dataplane.send(ingress_port, str(pkt))
-
         (rcv_port, rcv_pkt, _) = self.dataplane.poll(port_number=egress_port, timeout=1)
         p = scapy.all.Ether(str(rcv_pkt))
-        self.assertTrue(p.ttl == 1, "Incoming packet do not have ttl 1")
+	self.logger.info("Verify incoming packet have mpls label 40")
+        self.assertEqual(p.label, 40, "Packet mpls label is not 40")
 
     
-tc = SetNewMPLSttl()
+tc = SetMPLS()
 _RESULT = tc.run()

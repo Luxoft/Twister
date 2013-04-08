@@ -37,7 +37,7 @@ class SetNewTTLipv6(SimpleDataPlane):
         eth_dst = match.eth_dst(parse.parse_mac("00:01:02:03:04:05"))
         ipv6_src = match.ipv6_src(ipaddr.IPv6Address('fe80::2420:52ff:fe8f:5189'))
         ipv6_dst = match.ipv6_dst(ipaddr.IPv6Address('fe80::2420:52ff:fe8f:5190'))
-	self.logger.info("Generate and send flow_mod with dec_ttl action")
+	self.logger.info("Generate and send flow_mod with set_ttl action to ttl 1")
         request = message.flow_mod()
         request.match_fields.tlvs.append(port)
         request.match_fields.tlvs.append(eth_type)
