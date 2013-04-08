@@ -113,7 +113,9 @@ public class JenkinsPlugin extends BasePlugin implements TwisterPluginInterface 
         bscript.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent arg0) {
-				MySftpBrowser browser = new MySftpBrowser(c, tscript, p);
+				//Repository.host,Repository.user,Repository.password,textfield,c
+				MySftpBrowser browser = new MySftpBrowser(variables.get("host"), variables.get("user"), variables.get("password"), tscript, p);
+				//MySftpBrowser browser = new MySftpBrowser(c, tscript, p);
 			}
 		});
         
@@ -149,7 +151,8 @@ public class JenkinsPlugin extends BasePlugin implements TwisterPluginInterface 
         bproject.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent arg0) {
-				MySftpBrowser browser = new MySftpBrowser(c, tproject, p);
+				MySftpBrowser browser = new MySftpBrowser(variables.get("host"), variables.get("user"), variables.get("password"), tproject, p);
+				//MySftpBrowser browser = new MySftpBrowser(c, tproject, p);
 			}
 		});
         p.add(panel);

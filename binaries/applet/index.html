@@ -10,6 +10,9 @@
 var resize = function(){
 	var width = $(window).width();
 	var height = $(window).height();
+	if ($.browser.msie){
+		width*=1.2;
+		height*=1.2;}
 	$("#myApplet")[0].setSize(width,height);
 	$("#myApplet").css("width", $(window).width()-20);
 	$("#myApplet").css("height",$(window).height()-30);}
