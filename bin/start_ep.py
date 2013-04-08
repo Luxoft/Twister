@@ -41,7 +41,14 @@ os.chdir(os.getenv('TWISTER_PATH') + '/bin')
 cfg = SafeConfigParser()
 cfg.read(os.getenv('TWISTER_PATH') + '/config/epname.ini')
 eps = cfg.sections()
+eps.pop(eps.index('SNIFF'))
 print('Found `{}` EPs: `{}`.\n'.format(len(eps), ', '.join(eps)))
+
+#
+
+snifferEth = None
+if cfg.get('SNIFF', 'ENABLED') == '1':
+    snifferEth = cfg.get('SNIFF', 'ETH_INTERFACE')
 
 #
 
@@ -74,12 +81,13 @@ for val in eps:
         del proxy
 
         str_exec = 'nohup python -u {twister_path}/client/executionprocess/ExecutionProcess.py '\
-            '{user} {ep} "{ip}:{port}" > "{twister_path}/.twister_cache/{ep}_LIVE.log" &'.format(
+            '{user} {ep} "{ip}:{port}" {sniff} > "{twister_path}/.twister_cache/{ep}_LIVE.log" &'.format(
             twister_path = os.getenv('TWISTER_PATH'),
             user = user_name,
             ep = val,
             ip = ce_ip,
             port = ce_port,
+            sniffer=snifferEth,
         )
 
         print 'Will execute:', str_exec

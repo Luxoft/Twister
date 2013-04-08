@@ -45,7 +45,7 @@ class PacketsTwist(Automaton):
     """
 
     def parse_args(self, user, epConfig, OFPort=None, _uid=None, **kargs):
-        Automaton.parse_args(self, **kargs)
+        Automaton.parse_args(self)
         self.PAUSED = False
         self.OFPort = (OFPort, 6633)[OFPort is None]
 

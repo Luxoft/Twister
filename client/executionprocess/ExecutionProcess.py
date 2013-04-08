@@ -102,7 +102,7 @@ def packetsTwistStatus(ce):
 
         if result == 'running':
             scriptPath =  os.path.join(TWISTER_PATH, 'bin/start_packets_twist.py')
-            command = ['sudo', 'python', scriptPath, '-u', userName]
+            command = ['sudo', 'python', scriptPath, '-u', userName, '-i', sniffer]
             sniffer = subprocess.Popen(command, shell=False)
             print 'Packets Twist started'
 
@@ -238,11 +238,9 @@ if __name__=='__main__':
     try: os.mkdir(TWISTER_PATH + '/.twister_cache/')
     except: pass
 
-    if len(sys.argv) != 4:
-        print('EP error: must supply 3 parameters!')
-        print('usage:  python ExecutionProcess.py User_Name Ep_Name Host:Port')
-        print('OR,')
-        print('usage:  python ExecutionProcess.py User_Name OFFLINE File_List_Path')
+    if len(sys.argv) != 5:
+        print('EP error: must supply 4 parameters!')
+        print('usage:  python ExecutionProcess.py User_Name Ep_Name Host:Port Sniff')
         exit(1)
     else:
         userName = sys.argv[1]
@@ -258,6 +256,7 @@ if __name__=='__main__':
         else:
             host = sys.argv[3]
             print('User: {0} ;  EP: {1} ;  host: {2}'.format(userName, globEpName, host))
+        sniffer = (sys.argv[4], None)[sys.argv[4]=='None']
 
     # Offline mode...
     if OFFLINE:
