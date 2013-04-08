@@ -882,10 +882,10 @@ class CentralEngine(_cptools.XMLRPCController):
         i = 0
         while self.project.getUserInfo(user, 'status') == STATUS_RUNNING:
             i += 1
-            if i == 10:
-                logInfo('Temporary user `{0}` is still running ...'.format(user))
+            if i == 12:
+                logInfo('Temporary user `{}` is still running on EP list `{}`...'.format(user, active_eps))
                 i = 0
-            time.sleep(2)
+            time.sleep(1)
 
         # Delete temporary user
         self.project.deleteUser(user)
