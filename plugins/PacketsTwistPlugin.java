@@ -18,6 +18,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
  */
 
+import java.awt.Color;
 import java.awt.Component;
 import java.awt.Cursor;
 import java.awt.Dimension;
@@ -141,7 +142,12 @@ public class PacketsTwistPlugin extends BasePlugin implements
 		p = new JPanel();
 		initializeSFTP();
 		initializeRPC();
-		createXMLStructure();
+		try{
+			createXMLStructure();
+		} catch (Exception e){
+			System.out.println("Could not create plugin configuration from plugins XML");
+			e.printStackTrace();
+		}
 		initializeMainPanel();
 		try {
 			length = Integer.parseInt(getPropValue("historyLength")
@@ -161,7 +167,7 @@ public class PacketsTwistPlugin extends BasePlugin implements
 				// sniff.setIcon(button3);
 				bstart.setText("Stop");
 			}
-		} catch (XmlRpcException e1) {
+		} catch (Exception e1) {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
 		}
@@ -194,9 +200,9 @@ public class PacketsTwistPlugin extends BasePlugin implements
 			JPanel panel1 = new JPanel();
 			panel1.setLayout(null);
 
-			panel1.setMaximumSize(new Dimension(1000, 750));
-			panel1.setMinimumSize(new Dimension(1000, 750));
-			panel1.setPreferredSize(new Dimension(1000, 750));
+			panel1.setMaximumSize(new Dimension(1150, 750));
+			panel1.setMinimumSize(new Dimension(1150, 750));
+			panel1.setPreferredSize(new Dimension(1150, 750));
 
 			InputStream in = getClass().getResourceAsStream("Sniff0.png");
 			Image im = ImageIO.read(in);
@@ -223,7 +229,7 @@ public class PacketsTwistPlugin extends BasePlugin implements
 			// reset.setBounds(543, 610, 120, 120);
 			// panel1.add(reset);
 
-			breset.setBounds(543, 610, 120, 30);
+			breset.setBounds(623, 610, 120, 30);
 			panel1.add(breset);
 			breset.addActionListener(new ActionListener() {
 
@@ -266,7 +272,7 @@ public class PacketsTwistPlugin extends BasePlugin implements
 			// });
 
 			bstart = new JButton("Start");
-			bstart.setBounds(373, 610, 120, 30);
+			bstart.setBounds(453, 610, 120, 30);
 			panel1.add(bstart);
 			bstart.addActionListener(new ActionListener() {
 
@@ -392,7 +398,7 @@ public class PacketsTwistPlugin extends BasePlugin implements
 
 			JScrollPane pane = new JScrollPane(jTable1);
 			pane.setBorder(BorderFactory.createBevelBorder(BevelBorder.LOWERED));
-			pane.setBounds(50, 45, 937, 300);
+			pane.setBounds(50, 45, 1100, 300);
 
 			jTable1.setModel(new DefaultTableModel(new Object[][] {},
 					new String[] { "Protocol", "SRC IP", "SRC Mac", "SRC Port",
@@ -415,15 +421,22 @@ public class PacketsTwistPlugin extends BasePlugin implements
 			content = new JTextArea();
 			content.setEditable(false);
 			JScrollPane sc = new JScrollPane(content);
-			sc.setBounds(50, 350, 937, 250);
+			sc.setBounds(50, 350, 1100, 250);
 			panel1.add(sc);
 
+			JPanel top = new JPanel();
+			top.setBounds(50,0,1100,40);
+			panel1.add(top);
+			
 			JLabel filter = new JLabel("Filter:");
-			filter.setBounds(50, 10, 40, 25);
-
-			panel1.add(filter);
+			//filter.setBounds(50, 10, 40, 25);
+			
+			panel1.add(top);
+			//panel1.add(filter);
+			top.add(filter);
 			final JTextField search = new JTextField();
-			search.setBounds(85, 10, 150, 25);
+			search.setMinimumSize(new Dimension(130,20));
+			search.setPreferredSize(new Dimension(130,20));
 			search.addKeyListener(new KeyAdapter() {
 				public void keyReleased(KeyEvent ev) {
 					if (ev.getKeyCode() == KeyEvent.VK_ENTER) {
@@ -431,14 +444,18 @@ public class PacketsTwistPlugin extends BasePlugin implements
 					}
 				}
 			});
-			panel1.add(search);
+			//panel1.add(search);
+			top.add(search);
 
-			filter = new JLabel("Filter:");
-			filter.setBounds(240, 10, 40, 25);
+			filter = new JLabel("Start opt.:");
+			//filter.setBounds(240, 10, 40, 25);
 
-			panel1.add(filter);
+			//panel1.add(filter);
+			top.add(filter);
 			final JTextField search2 = new JTextField();
-			search2.setBounds(275, 10, 150, 25);
+			//search2.setBounds(275, 10, 150, 25);
+			search2.setMinimumSize(new Dimension(130,20));
+			search2.setPreferredSize(new Dimension(130,20));
 			search2.addKeyListener(new KeyAdapter() {
 				public void keyReleased(KeyEvent ev) {
 					if (ev.getKeyCode() == KeyEvent.VK_ENTER) {
@@ -487,7 +504,8 @@ public class PacketsTwistPlugin extends BasePlugin implements
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
-			panel1.add(search2);
+			//panel1.add(search2);
+			top.add(search2);
 
 			pro = new JCheckBox("Protocol");
 			pro.setSelected(true);
@@ -504,8 +522,9 @@ public class PacketsTwistPlugin extends BasePlugin implements
 					}
 				}
 			});
-			pro.setBounds(425, 10, 75, 25);
-			panel1.add(pro);
+			//pro.setBounds(425, 10, 75, 25);
+			//panel1.add(pro);
+			top.add(pro);
 			srcip = new JCheckBox("SRC IP");
 			srcip.setSelected(true);
 			srcip.addActionListener(new ActionListener() {
@@ -527,8 +546,9 @@ public class PacketsTwistPlugin extends BasePlugin implements
 					}
 				}
 			});
-			srcip.setBounds(500, 10, 65, 25);
-			panel1.add(srcip);
+			//srcip.setBounds(500, 10, 65, 25);
+			//panel1.add(srcip);
+			top.add(srcip);
 			srcmac = new JCheckBox("SRC Mac");
 			srcmac.setSelected(true);
 			srcmac.addActionListener(new ActionListener() {
@@ -552,8 +572,9 @@ public class PacketsTwistPlugin extends BasePlugin implements
 					}
 				}
 			});
-			srcmac.setBounds(565, 10, 80, 25);
-			panel1.add(srcmac);
+			//srcmac.setBounds(565, 10, 80, 25);
+			//panel1.add(srcmac);
+			top.add(srcmac);
 			srcport = new JCheckBox("SRC Port");
 			srcport.setSelected(true);
 			srcport.addActionListener(new ActionListener() {
@@ -585,8 +606,9 @@ public class PacketsTwistPlugin extends BasePlugin implements
 					}
 				}
 			});
-			srcport.setBounds(645, 10, 80, 25);
-			panel1.add(srcport);
+			//srcport.setBounds(645, 10, 80, 25);
+			//panel1.add(srcport);
+			top.add(srcport);
 			dstip = new JCheckBox("DST IP");
 			dstip.setSelected(true);
 			dstip.addActionListener(new ActionListener() {
@@ -612,8 +634,9 @@ public class PacketsTwistPlugin extends BasePlugin implements
 					}
 				}
 			});
-			dstip.setBounds(725, 10, 65, 25);
-			panel1.add(dstip);
+			//dstip.setBounds(725, 10, 65, 25);
+			//panel1.add(dstip);
+			top.add(dstip);
 			dstmac = new JCheckBox("DST Mac");
 			dstmac.setSelected(true);
 			dstmac.addActionListener(new ActionListener() {
@@ -633,8 +656,9 @@ public class PacketsTwistPlugin extends BasePlugin implements
 					}
 				}
 			});
-			dstmac.setBounds(790, 10, 75, 25);
-			panel1.add(dstmac);
+			//dstmac.setBounds(790, 10, 75, 25);
+			//panel1.add(dstmac);
+			top.add(dstmac);
 			dstport = new JCheckBox("DST Port");
 			dstport.setSelected(true);
 			dstport.addActionListener(new ActionListener() {
@@ -649,8 +673,9 @@ public class PacketsTwistPlugin extends BasePlugin implements
 					}
 				}
 			});
-			dstport.setBounds(865, 10, 80, 25);
-			panel1.add(dstport);
+			//dstport.setBounds(865, 10, 80, 25);
+			//panel1.add(dstport);
+			top.add(dstport);
 			// JButton load = new JButton(open);
 			// load.addActionListener(new ActionListener() {
 			// @Override
@@ -661,14 +686,16 @@ public class PacketsTwistPlugin extends BasePlugin implements
 			// load.setBounds(830,5,35,35);
 			// panel1.add(load);
 			JButton bsave = new JButton(save);
+			bsave.setPreferredSize(new Dimension(35,35));
 			bsave.addActionListener(new ActionListener() {
 				@Override
 				public void actionPerformed(ActionEvent arg0) {
 					saveFile();
 				}
 			});
-			bsave.setBounds(950, 5, 35, 35);
-			panel1.add(bsave);
+			//bsave.setBounds(950, 5, 35, 35);
+			//panel1.add(bsave);
+			top.add(bsave);
 			p.add(panel1);
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -963,8 +990,16 @@ public class PacketsTwistPlugin extends BasePlugin implements
 			client.setConfig(configuration);
 			System.out.println("Client initialized: " + client);
 		} catch (Exception e) {
-			System.out.println("Could not conect to " + variables.get("host")
-					+ " :88/");
+			if(variables!=null && 
+			   variables.get("host")!=null &&
+			   variables.get("centralengineport")!=null){
+				System.out.println("Could not conect to " + variables.get("host")
+						+ variables.get("centralengineport"));
+			} else {
+				System.out.println("Could not connect and initialize RPC connection to server."+
+								   "Configuration variables might not be properly set.");
+			}
+			
 		}
 	}
 
