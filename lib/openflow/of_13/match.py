@@ -760,7 +760,7 @@ class mpls_bos(oxm_tlv):
 
     """
     def __init__(self, value, hasmask = False):
-        oxm_tlv.__init__(self, OFPXMT_OFB_MPLS_BOS, hasmask, 1, value)
+        oxm_tlv.__init__(self, OFPXMT_OFP_MPLS_BOS, hasmask, 1, value)
     def show(self, prefix=''):
         outstr = prefix + "mpls_bos\n"
         outstr += oxm_tlv.show(self, prefix)

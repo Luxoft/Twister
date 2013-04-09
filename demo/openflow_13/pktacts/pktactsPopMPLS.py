@@ -1,7 +1,7 @@
 """
 <title>PushNewMPLS</title>
 <description>
-    Set MPLS tag to packet
+    Pop MPLS tag to packet
     
 </description>
 """
@@ -15,9 +15,9 @@ try:
 except:
     raise
 
-class PushNewMPLS(SimpleDataPlane):
+class PopMPLS(SimpleDataPlane):
     """
-    Set MPLS tag to packet
+    Pop MPLS tag to packet
     """
     def runTest(self):
         self.logger.info("Running PushNewMPLS test")
@@ -33,7 +33,7 @@ class PushNewMPLS(SimpleDataPlane):
         ingress_port = of_ports[0]
         egress_port = of_ports[1]
 
-        pkt = testutils.simple_tcp_packet()
+        pkt = testutils.simple_tcp_packet(mpls_tags=[{'label': 50, 'ttl': 64}])
         portmatch = match.in_port(ingress_port)
         srcmatch = match.eth_src(parse.parse_mac("00:06:07:08:09:0a"))
         dstmatch = match.eth_dst(parse.parse_mac("00:01:02:03:04:05"))
@@ -44,13 +44,8 @@ class PushNewMPLS(SimpleDataPlane):
         request.buffer_id = 0xffffffff
         request.priority = 1
         inst = instruction.instruction_apply_actions()
-        vid_act = action.action_push_mpls()
-        vid_act.ethertype = 0x8847
-        vid_set = action.action_set_field()
-        field_2b_set = match.mpls_label(24)
-        vid_set.field = field_2b_set
+        vid_act = action.action_pop_mpls()
         inst.actions.add(vid_act)
-        inst.actions.add(vid_set)
         act_out = action.action_output()
         act_out.port = egress_port
         inst.actions.add(act_out)
@@ -64,8 +59,9 @@ class PushNewMPLS(SimpleDataPlane):
 
         (rcv_port, rcv_pkt, _) = self.dataplane.poll(port_number=egress_port, timeout=1)
         p = scapy.all.Ether(str(rcv_pkt))
-        self.assertEqual(str(p.label), "24", "MPLS set do not match")
+	#TODO: a better verification of the incoming packet !!!
+        self.assertTrue(str(pkt) != str(p), "Incoming packet is the same as sended packet")
 
     
-tc = PushNewMPLS()
+tc = PopMPLS()
 _RESULT = tc.run()
