@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# version: 2.001
+# version: 2.002
 
 # This file will start ALL Execution Processes that are enabled,
 # from file `twister/config/epname.ini`.
@@ -87,7 +87,7 @@ for val in eps:
             ep = val,
             ip = ce_ip,
             port = ce_port,
-            sniff=snifferEth,
+            sniff = snifferEth,
         )
 
         print 'Will execute:', str_exec
