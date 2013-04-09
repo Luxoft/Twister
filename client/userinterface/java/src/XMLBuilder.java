@@ -112,10 +112,7 @@ public class XMLBuilder{
         em2 = document.createElement("tcdelay");
         em2.appendChild(document.createTextNode(delay));
         root.appendChild(em2);
-        
-        int nrsuite = suite.size();  
-        
-        
+        int nrsuite = suite.size();
         if(skip && nrsuite>0){
              ArrayList <Item> temporary = new <Item> ArrayList();
              String [] EPS;;
@@ -153,8 +150,6 @@ public class XMLBuilder{
              suite = temporary;
              nrsuite = suite.size();
         }
-
-
         for(int i=0;i<nrsuite;i++){
             int nrtc = suite.get(i).getSubItemsNr();
             boolean go = false;
@@ -163,10 +158,9 @@ public class XMLBuilder{
                     if(getRunning(suite.get(i))){
                         go=true;
                         break;}}}
-            if(!go&&skip)continue;
+            if(!go&&skip&&!temp)continue;
             Element rootElement = document.createElement("TestSuite");
             root.appendChild(rootElement);
-            
             
             if(suite.get(i).getLibs()!=null&&suite.get(i).getLibs().length>0){
                 em2 = document.createElement("libraries");
@@ -219,14 +213,15 @@ public class XMLBuilder{
                     EP = document.createElement("TbName");
                     EP.appendChild(document.createTextNode(suite.get(i).getEpId()[1]));
                     rootElement.appendChild(EP);
-                } 
+                }
                 else {
-                    Element EP = document.createElement("TbName");
+                    
                     StringBuilder b = new StringBuilder();
                     for(String s:suite.get(i).getEpId()){
                         b.append(s+";");
                     }
                     b.deleteCharAt(b.length()-1);
+                    Element EP = document.createElement("TbName");
                     EP.appendChild(document.createTextNode(b.toString()));
                     rootElement.appendChild(EP);
                 }
@@ -273,7 +268,9 @@ public class XMLBuilder{
                 rootElement.appendChild(userdef);}
             for(int j=0;j<nrtc;j++){
                 addSubElement(rootElement,suite.get(i).getSubItem(j),skip,temp);            
-            }}}
+            }
+        }
+    }
             
             
 //     public void createTempXML(){//skip verifica daca e user xml sau xml final
@@ -480,7 +477,7 @@ public class XMLBuilder{
                     if(getRunning(item.getSubItem(j))){
                         go=true;
                         break;}}}
-            if(!go&&skip)return;
+            if(!go&&skip&&!temp)return;
             Element rootElement2 = document.createElement("TestSuite");
             rootelement.appendChild(rootElement2);
             Element em2 = document.createElement("tsName");
@@ -570,7 +567,9 @@ public class XMLBuilder{
                 //end solution for CE
             }
             for(int i=0;i<item.getSubItemsNr();i++){
-                addSubElement(rootElement2,item.getSubItem(i),skip,temp);}}}
+                addSubElement(rootElement2,item.getSubItem(i),skip,temp);
+                
+            }}}
                     
     public void printXML(){        
         StreamResult result =  new StreamResult(System.out);

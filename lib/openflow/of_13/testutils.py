@@ -609,6 +609,21 @@ def simple_icmp_packet(dl_dst='00:01:02:03:04:05',
 
     return pkt
 
+def simple_sctp_packet(dl_dst='00:01:02:03:04:05',
+                       dl_src='00:06:07:08:09:0a',
+                       ip_src='192.168.0.1',
+                       ip_dst='192.168.0.2',
+                       ip_tos=0,
+                       ip_ttl=64,
+                       payload_len=0):
+    
+    pkt = Ether(dst=dl_dst, src=dl_src)
+    pkt = pkt / SCTP(sport=1234, dport=4321)
+
+    pkt = pkt / ("D" * payload_len)
+
+    return pkt
+
 def simple_ipv6_packet(pktlen=100, 
                       dl_dst='00:01:02:03:04:05',
                       dl_src='00:06:07:08:09:0a',
