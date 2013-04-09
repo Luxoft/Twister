@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# version: 2.001
+# version: 2.002
 
 # This file will start Packets Twists
 
@@ -12,8 +12,7 @@ from os.path import split
 from json import load
 from optparse import OptionParser
 
-
-
+#
 
 if getuid() != 0:
     print('To run Packets Twist, must be ROOT! Exiting!\n')
@@ -51,6 +50,7 @@ def __main__():
         print('TWISTER_PATH environment variable is not set! exiting!')
 
         exit(1)
+
     path.append(options.twister_path)
 
     from common.configobj import ConfigObj
@@ -72,6 +72,5 @@ def __main__():
     return
 
 # # # #
-
 
 __main__()

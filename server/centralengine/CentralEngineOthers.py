@@ -1,7 +1,7 @@
 
 # File: CentralEngineOthers.py ; This file is part of Twister.
 
-# version: 2.001
+# version: 2.002
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -841,11 +841,21 @@ class Project:
         except:
             return False
 
-        try:
-            os.chown(path, uid, gid)
-        except:
-            logWarning('ERROR on set file owner! Cannot chown `{0}:{1}`!'.format(uid, gid))
-            return False
+        if os.path.isdir(path):
+            try:
+                proc = subprocess.Popen(['chown', str(uid)+':'+str(gid), path, '-R'],)
+                proc.wait()
+            except:
+                logWarning('ERROR on set owner on folder! Cannot chown `{}:{}` on `{} -R`!'.format(uid, gid, path))
+                return False
+
+        else:
+            try:
+                os.chown(path, uid, gid)
+            except:
+                logWarning('ERROR on set owner on file! Cannot chown `{}:{}` on `{}`!'.format(uid, gid, path))
+                return False
+
         return True
 
 

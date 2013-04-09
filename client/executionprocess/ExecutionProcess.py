@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# version: 2.001
+# version: 2.002
 
 # File: ExecutionProcess.py ; This file is part of Twister.
 
@@ -85,7 +85,6 @@ def packetsTwistStatus(ce):
     """
     Check Packets Twist plugin status.
     """
-
     if not 'SNIFF' in ce.listPlugins(userName):
         return
 
@@ -109,7 +108,7 @@ def packetsTwistStatus(ce):
                 subprocess.Popen(command, shell=False)
             elif not snifferMessage:
                 snifferMessage = True
-                print 'sniffer not starting because ep is not running as root !'
+                print 'Sniffer not starting because the EP is not running as ROOT !'
 
 #
 
