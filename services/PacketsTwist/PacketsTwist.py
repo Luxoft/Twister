@@ -79,6 +79,21 @@ class PacketsTwist(Automaton):
         self.reinitMaxRetries = 4
 
     def master_filter(self, packet):
+        self.ce_status_update()
+
+        try:
+            for ce in self.ceObjects:
+                args = {
+                    'command': 'None',
+                    'data': str(self.uid)
+                }
+                args['command'] = 'echo'
+                pluginData = ce.proxy.runPlugin(self.username, 'SNIFF', args)
+
+                self.filters = pluginData['data']['filters']
+        except Exception, e:
+            print 'PT debug: [master filter] {err}'.format(err=e)
+
         # default filter: exclude CE traffic
         packetHead = self.packet_parse(packet)
         if ((packetHead['source']['ip'], packetHead['source']['port'])
@@ -148,7 +163,7 @@ class PacketsTwist(Automaton):
                 source['ip'] = 'None'
                 destination['ip'] = 'None'
 
-                print 'PT debug: packet head exception (ip): {ex}'.format(ex=e)
+                #print 'PT debug: packet head exception (ip): {ex}'.format(ex=e)
 
             try:
                 source['port'] = packet.payload.payload.fields['sport']
@@ -157,12 +172,12 @@ class PacketsTwist(Automaton):
                 source['port'] = 'None'
                 destination['port'] = 'None'
 
-                print 'PT debug: packet head exception (port): {ex}'.format(ex=e)
+                #print 'PT debug: packet head exception (port): {ex}'.format(ex=e)
         except Exception, e:
             source['mac'] = 'None'
             destination['mac'] = 'None'
 
-            print 'PT debug: packet head exception (mac): {ex}'.format(ex=e)
+            #print 'PT debug: packet head exception (mac): {ex}'.format(ex=e)
 
         data = {
             'protocol': packet.payload.payload.name,
