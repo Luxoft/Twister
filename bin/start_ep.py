@@ -87,7 +87,7 @@ for val in eps:
             ep = val,
             ip = ce_ip,
             port = ce_port,
-            sniffer=snifferEth,
+            sniff=snifferEth,
         )
 
         print 'Will execute:', str_exec

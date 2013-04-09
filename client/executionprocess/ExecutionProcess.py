@@ -90,21 +90,26 @@ def packetsTwistStatus(ce):
         return
 
     global sniffer
+    global snifferMessage
 
     pipe = subprocess.Popen('ps ax | grep start_packets_twist.py',
                                     shell=True, stdout=subprocess.PIPE).stdout
     lines = pipe.read().splitlines()
     if len(lines) > 2: return
 
-    if not sniffer:
+    if sniffer:
         args = {'command': 'echo'}
         result = ce.runPlugin(userName, 'SNIFF', args)
 
         if result == 'running':
-            scriptPath =  os.path.join(TWISTER_PATH, 'bin/start_packets_twist.py')
-            command = ['sudo', 'python', scriptPath, '-u', userName, '-i', sniffer]
-            sniffer = subprocess.Popen(command, shell=False)
-            print 'Packets Twist started'
+            if os.getuid() == 0:
+                scriptPath =  os.path.join(TWISTER_PATH, 'bin/start_packets_twist.py')
+                command = ['sudo', 'python', scriptPath, '-u', userName,
+                            '-i', str(sniffer), '-t', TWISTER_PATH]
+                subprocess.Popen(command, shell=False)
+            elif not snifferMessage:
+                snifferMessage = True
+                print 'sniffer not starting because ep is not running as root !'
 
 #
 
@@ -234,6 +239,7 @@ if __name__=='__main__':
     programExit = False
     OFFLINE = False
     sniffer = None
+    snifferMessage = False
 
     try: os.mkdir(TWISTER_PATH + '/.twister_cache/')
     except: pass

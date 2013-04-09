@@ -6,24 +6,11 @@
 
 
 from sys import path
-from os import getenv
-
-TWISTER_PATH = getenv('TWISTER_PATH')
-if not TWISTER_PATH:
-    print('TWISTER_PATH environment variable is not set! Exiting!')
-    exit(1)
-path.append(TWISTER_PATH)
-
-
-from os import getuid, chdir, getenv, environ
+from os import getuid, chdir
 from os.path import split
 
 from json import load
 from optparse import OptionParser
-
-from common.configobj import ConfigObj
-
-from services.PacketsTwist.PacketsTwist import PacketsTwist
 
 
 
@@ -51,6 +38,8 @@ def __main__():
                         help='OpenFlow port: 6633 (default).')
     parser.add_option('-u', '--user', action='store', default=None,
                         help='user: None (default).')
+    parser.add_option('-t', '--twister_path', action='store', default=None,
+                        help='TWISTER_PATH: None (default).')
     (options, args) = parser.parse_args()
 
     if not options.user:
@@ -58,12 +47,18 @@ def __main__():
 
         exit(1)
 
-    environ['TWISTER_PATH'] = getenv('HOME') + '/twister'
+    if not options.twister_path:
+        print('TWISTER_PATH environment variable is not set! exiting!')
 
+        exit(1)
+    path.append(options.twister_path)
 
+    from common.configobj import ConfigObj
+
+    from services.PacketsTwist.PacketsTwist import PacketsTwist
 
     # load execution process configuration
-    epConfig = ConfigObj(getenv('TWISTER_PATH') + '/config/epname.ini')
+    epConfig = ConfigObj(options.twister_path + '/config/epname.ini')
     epConfig.pop('SNIFF')
     epConfig = list(epConfig.itervalues())
 
@@ -71,6 +66,8 @@ def __main__():
     pt = PacketsTwist(options.user, epConfig, options.of_port, filters={'-i': options.eth_interface})
 
     pt.run()
+
+    print 'Packets Twist started'
 
     return
 

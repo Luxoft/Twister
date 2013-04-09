@@ -256,6 +256,7 @@ elif TO_INSTALL == 'client':
         'config/',
         'client/',
         'services/PacketsTwist/',
+        'services/__init__.py',
         'common/__init__.py',
         'common/constants.py',
         'common/configobj.py',
