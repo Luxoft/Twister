@@ -226,17 +226,19 @@ public class GraficTest extends JPanel{
                                                             JOptionPane.OK_CANCEL_OPTION, 
                                                             GraficTest.this, "", "Number of times:");
         final int times;
-        try{times= Integer.parseInt(userrespons);}//exit if respons is not integer
+        try{times = Integer.parseInt(userrespons);}//exit if respons is not integer
         catch(Exception e){
             return;
         }
         ArrayList<Item> items = cloneItems();//clone all testcases
         ArrayList<Item> fordelete = new ArrayList<Item>();//array to hold the ones to delete
-        for(Item item:items){                 
+        
+        for(Item item:items){
             if(!item.isSelected()&&
             !hasSubItemSelected(item)
             &&!isParentSelected(items, item)){
-                fordelete.add(item);}
+                fordelete.add(item);
+            }
             else{
                 for(Item child:item.getSubItems()){
                     removeSelected(items,fordelete,item,child);
@@ -258,21 +260,34 @@ public class GraficTest extends JPanel{
                 items.remove(fordelete.get(i));
             }
         }
-        ArrayList<Item>last = new ArrayList<Item>();//array to store items repeatley
+        for(Item it:items){//separate TB from ep 
+            it.setEpId(new String[]{it.getEpId()[0].split(" : ")[1]});
+        }
+        ArrayList<Item>last = new ArrayList<Item>();//array to store items repeatedly
         for(int i=0;i<times;i++){                   //the number of times the user specified
             for(Item it:items){
                 last.add(it);
             }
         }
-        if(writeXML(last)){
+        if(!writeXML(last)){
+            CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, 
+                                  GraficTest.this, "Failed", 
+                                  "File could not be saved");
 //             CustomDialog.showInfo(JOptionPane.INFORMATION_MESSAGE, 
 //                                   GraficTest.this, "Succes", 
 //                                   "File succesfuly saved");
         }
-        else {
-            CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, 
-                                  GraficTest.this, "Failed", 
-                                  "File could not be saved");
+//         else {
+//             CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, 
+//                                   GraficTest.this, "Failed", 
+//                                   "File could not be saved");
+//         }
+    }
+    
+    public void printName(Item item){
+        System.out.println(item.getName());
+        for(Item i:item.getSubItems()){
+            printName(i);
         }
     }
     
@@ -282,7 +297,7 @@ public class GraficTest extends JPanel{
      */
     public boolean writeXML(ArrayList<Item>last){
         try{XMLBuilder xml = new XMLBuilder(last);
-            xml.createXML(false,false,true,
+            xml.createXML(true,false,true,
                           Repository.window.mainpanel.p1.suitaDetails.getPreScript(),
                           Repository.window.mainpanel.p1.suitaDetails.getPostScript(),
                           Repository.window.mainpanel.p1.suitaDetails.saveDB(),
@@ -555,9 +570,15 @@ public class GraficTest extends JPanel{
             
     public void handlePaintItem(Item item, Graphics g){
         drawItem(item,g);
-        int subitemnr = item.getSubItemsNr();
-        if(subitemnr>0&&item.getSubItem(0).isVisible()){
-            for(int i=0;i<subitemnr;i++){handlePaintItem(item.getSubItem(i),g);}}}
+//         if(item.getType()==1){
+//             handlePaintItem(item.getSubItem(0),g);}
+//         else 
+        if(item.getSubItemsNr()>0&&item.getSubItem(0).isVisible()){
+            for(int i=0;i<item.getSubItemsNr();i++){
+                if(!item.getSubItem(i).isVisible())continue;
+                handlePaintItem(item.getSubItem(i),g);}
+        }
+    }
              
             
     /*
@@ -611,6 +632,7 @@ public class GraficTest extends JPanel{
         else{
 //             g.drawImage(Repository.getPropertyIcon(),(int)item.getRectangle().getX()+2,(int)item.getRectangle().getY()+1,null);
 //             g.drawString(item.getName()+" : "+item.getValue(),(int)item.getRectangle().getX()+25,(int)item.getRectangle().getY()+15);
+//             System.out.println(item.getName()+" : "+item.getValue()+" "+maxWidth+2+" "+(int)item.getRectangle().getY()+1);
             g.drawImage(Repository.getPropertyIcon(),maxWidth+2,(int)item.getRectangle().getY()+1,null);
             g.drawString(item.getName()+" : "+item.getValue(),maxWidth+25,(int)item.getRectangle().getY()+15);
         }
