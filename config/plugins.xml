@@ -43,6 +43,21 @@
 	</Plugin>
 
 	<Plugin>
+		<name>SNIFF</name>
+		<jarfile>PacketsTwistPlugin.jar</jarfile>
+		<pyfile>PacketsTwistPlugin.py</pyfile>
+		<status>enabled</status>
+		<property>
+			<propname>historyLength</propname>
+			<propvalue>4000</propvalue>
+		</property>
+		<property>
+			<propname>packetsBuffer</propname>
+			<propvalue>400</propvalue>
+		</property>
+	</Plugin>
+
+	<Plugin>
 		<name>Jenkins</name>
 		<jarfile>JenkinsPlugin.jar</jarfile>
 		<pyfile>JenkinsPlugin.py</pyfile>

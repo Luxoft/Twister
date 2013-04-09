@@ -45,7 +45,7 @@ class PacketsTwist(Automaton):
     """
 
     def parse_args(self, user, epConfig, OFPort=None, _uid=None, **kargs):
-        Automaton.parse_args(self, **kargs)
+        Automaton.parse_args(self)
         self.PAUSED = False
         self.OFPort = (OFPort, 6633)[OFPort is None]
 
@@ -79,15 +79,30 @@ class PacketsTwist(Automaton):
         self.reinitMaxRetries = 4
 
     def master_filter(self, packet):
+        self.ce_status_update()
+
+        try:
+            for ce in self.ceObjects:
+                args = {
+                    'command': 'None',
+                    'data': str(self.uid)
+                }
+                args['command'] = 'echo'
+                pluginData = ce.proxy.runPlugin(self.username, 'SNIFF', args)
+
+                self.filters = pluginData['data']['filters']
+        except Exception, e:
+            print 'PT debug: [master filter] {err}'.format(err=e)
+
         # default filter: exclude CE traffic
-        packetHead = self.packet_head(packet)
-        if ((packet_head['source']['ip'], packet_head['source']['port'])
+        packetHead = self.packet_parse(packet)
+        if ((packetHead['source']['ip'], packetHead['source']['port'])
                                                             in self.ceTraffic or
-            (packet_head['destination']['ip'], packet_head['destination']['port'])
+            (packetHead['destination']['ip'], packetHead['destination']['port'])
                                                             in self.ceTraffic):
             return False
 
-        if not self.filter: return True
+        if not self.filters: return True
 
         filterStatus = True
         if self.filters.has_key('-i'):
@@ -134,7 +149,7 @@ class PacketsTwist(Automaton):
         return filterStatus
 
 
-    def packet_parse(packet):
+    def packet_parse(self, packet):
         source = {}
         destination = {}
         try:
@@ -148,7 +163,7 @@ class PacketsTwist(Automaton):
                 source['ip'] = 'None'
                 destination['ip'] = 'None'
 
-                print 'PT debug: packet head exception (ip): {ex}'.format(ex=e)
+                #print 'PT debug: packet head exception (ip): {ex}'.format(ex=e)
 
             try:
                 source['port'] = packet.payload.payload.fields['sport']
@@ -157,12 +172,12 @@ class PacketsTwist(Automaton):
                 source['port'] = 'None'
                 destination['port'] = 'None'
 
-                print 'PT debug: packet head exception (port): {ex}'.format(ex=e)
+                #print 'PT debug: packet head exception (port): {ex}'.format(ex=e)
         except Exception, e:
             source['mac'] = 'None'
             destination['mac'] = 'None'
 
-            print 'PT debug: packet head exception (mac): {ex}'.format(ex=e)
+            #print 'PT debug: packet head exception (mac): {ex}'.format(ex=e)
 
         data = {
             'protocol': packet.payload.payload.name,
@@ -302,7 +317,7 @@ class PacketsTwist(Automaton):
                 'hostname': self.userhost,
                 'username': self.username,
             },
-            'packet_head': self.packet_head(packet),
+            'packet_head': self.packet_parse(packet),
             'packet': str(packet),
         }
         data['packet_head'].update([('id', str(time())), ])

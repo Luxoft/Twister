@@ -1,7 +1,7 @@
 
 # File: CentralEngineClasses.py ; This file is part of Twister.
 
-# version: 2.001
+# version: 2.002
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -881,11 +881,11 @@ class CentralEngine(_cptools.XMLRPCController):
 
         i = 0
         while self.project.getUserInfo(user, 'status') == STATUS_RUNNING:
+            if not i:
+                logWarning('Temporary user `{}` is running on EP list `{}`...'.format(user, active_eps))
             i += 1
-            if i == 10:
-                logInfo('Temporary user `{0}` is still running ...'.format(user))
-                i = 0
-            time.sleep(2)
+            if i == 12: i = 0
+            time.sleep(1)
 
         # Delete temporary user
         self.project.deleteUser(user)
@@ -1187,6 +1187,9 @@ class CentralEngine(_cptools.XMLRPCController):
         logTypes = self.project.getUserInfo(user, 'log_types')
         vError = False
         logDebug('Cleaning {0} log files...'.format(len(logTypes)))
+
+        twister_cache = '/'.join(logsPath.rstrip('/').split('/')[:-1]) + '/.twister_cache'
+        self.project.setFileOwner(user, twister_cache)
 
         for log in glob.glob(logsPath + os.sep + '*.log'):
             try: os.remove(log)
