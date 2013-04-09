@@ -81,11 +81,6 @@ public class XMLReader{
                 else{
                     theone = new Item(fstNm.item(0).getNodeValue(),2,
                                         -1,10, width+50,25,indexes);}
-                                        
-                  
-                    
-                                        
-                                        
                 if(test){
                     String []text={""};
                     try{                          
@@ -101,7 +96,6 @@ public class XMLReader{
                         text[0] += fstNm.item(0).getNodeValue();
                     } catch(Exception e){ e.printStackTrace();}
                     theone.setEpId(text);
-                    
                 } else{
                     try{                         
                         fstNmElmntLst = ((Element)node).getElementsByTagName("EpId");
@@ -120,10 +114,7 @@ public class XMLReader{
                     theone.setEpId(fstNm.item(0).getNodeValue().split(";"));
                     
                     
-                }
-                                        
-                                        
-                                        
+                }                 
                 
 //                                         
 //                                         
@@ -147,6 +138,7 @@ public class XMLReader{
             }
             else{
                 secNmElmntLst = ((Element)node).getElementsByTagName("tcName");
+                if(secNmElmntLst.getLength()==0)return;
                 secNmElmnt = (Element)secNmElmntLst.item(0);
                 secNm = secNmElmnt.getChildNodes();
                 FontMetrics metrics = g.getFontMetrics(new Font("TimesRoman", 0, 13));
@@ -168,7 +160,8 @@ public class XMLReader{
                     metrics = g.getFontMetrics(new Font("TimesRoman", 0, 11));
                     width = metrics.stringWidth(name+":  "+value) + 8;
                     Item property = new Item(name,0,-1,-1,width+20,20,indexpos3);
-                    property.setSubItemVisible(false);
+                    //property.setSubItemVisible(false);
+                    property.setSubItemVisible(true);
                     property.setValue(value);
                     theone.addSubItem(property);}
                 else{
@@ -183,7 +176,7 @@ public class XMLReader{
                     property.setValue(value);
                     theone.addSubItem(property);}
                 k=2;}
-            if(!(test&&theone.getType()==1)){//if it is test the props should not be read further
+//            if(!(test&&theone.getType()==1)){//if it is test the props should not be read further
                 int subchildren = node.getChildNodes().getLength();
                 int index=0;
                 for(;k<subchildren-1;k++){
@@ -191,7 +184,8 @@ public class XMLReader{
                     temp.add(new Integer(index));
                     k++;
                     manageSubChilderen(theone,node.getChildNodes().item(k),temp,g,test);
-                    index++;}}
+                    index++;}
+//                 }
             item.addSubItem(theone);}
         else{
             trdNmElmntLst = ((Element)node).getElementsByTagName("propName");
