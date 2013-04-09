@@ -184,6 +184,24 @@ class action_push_mpls(ofp_action_push):
         outstr += ofp_action_push.show(self, prefix)
         return outstr
 
+class action_push_pbb(ofp_action_push):
+    """
+    Wrapper class for push_mpls action object
+
+    Data members inherited from ofp_action_push:
+    @arg type
+    @arg len
+    @arg ethertype
+
+    """
+    def __init__(self):
+        ofp_action_push.__init__(self)
+        self.type = OFPAT_PUSH_PBB
+        self.len = self.__len__()
+    def show(self, prefix=''):
+        outstr = prefix + "action_push_pbb\n"
+        outstr += ofp_action_push.show(self, prefix)
+        return outstr
 
 class action_copy_ttl_out(ofp_action_header):
     """
@@ -293,6 +311,23 @@ class action_pop_vlan(ofp_action_header):
         outstr += ofp_action_header.show(self, prefix)
         return outstr
 
+class action_pop_pbb(ofp_action_header):
+    """
+    Wrapper class for pop_vlan action object
+
+    Data members inherited from ofp_action_header:
+    @arg type
+    @arg len
+
+    """
+    def __init__(self):
+        ofp_action_header.__init__(self)
+        self.type = OFPAT_POP_PBB
+        self.len = self.__len__()
+    def show(self, prefix=''):
+        outstr = prefix + "action_pop_pbb\n"
+        outstr += ofp_action_header.show(self, prefix)
+        return outstr
 
 class action_dec_nw_ttl(ofp_action_header):
     """
@@ -348,5 +383,7 @@ action_class_list = (
     action_set_field,
     action_set_mpls_ttl,
     action_set_nw_ttl,
+    action_push_pbb,
+    action_pop_pbb,
     action_set_queue)
 
