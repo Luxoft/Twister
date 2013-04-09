@@ -1,7 +1,7 @@
 
 # File: xmlparser.py ; This file is part of Twister.
 
-# version: 2.001
+# version: 2.002
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -225,6 +225,7 @@ class TSCParser:
 
         for epname in cfg.sections():
             epname = epname.strip()
+            if epname == 'SNIFF': continue
             self.epnames.append(epname)
 
         return self.epnames

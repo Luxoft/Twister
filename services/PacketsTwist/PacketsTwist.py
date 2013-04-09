@@ -45,7 +45,7 @@ class PacketsTwist(Automaton):
     """
 
     def parse_args(self, user, epConfig, OFPort=None, _uid=None, **kargs):
-        Automaton.parse_args(self, **kargs)
+        Automaton.parse_args(self)
         self.PAUSED = False
         self.OFPort = (OFPort, 6633)[OFPort is None]
 
@@ -80,14 +80,14 @@ class PacketsTwist(Automaton):
 
     def master_filter(self, packet):
         # default filter: exclude CE traffic
-        packetHead = self.packet_head(packet)
-        if ((packet_head['source']['ip'], packet_head['source']['port'])
+        packetHead = self.packet_parse(packet)
+        if ((packetHead['source']['ip'], packetHead['source']['port'])
                                                             in self.ceTraffic or
-            (packet_head['destination']['ip'], packet_head['destination']['port'])
+            (packetHead['destination']['ip'], packetHead['destination']['port'])
                                                             in self.ceTraffic):
             return False
 
-        if not self.filter: return True
+        if not self.filters: return True
 
         filterStatus = True
         if self.filters.has_key('-i'):
@@ -134,7 +134,7 @@ class PacketsTwist(Automaton):
         return filterStatus
 
 
-    def packet_parse(packet):
+    def packet_parse(self, packet):
         source = {}
         destination = {}
         try:
@@ -302,7 +302,7 @@ class PacketsTwist(Automaton):
                 'hostname': self.userhost,
                 'username': self.username,
             },
-            'packet_head': self.packet_head(packet),
+            'packet_head': self.packet_parse(packet),
             'packet': str(packet),
         }
         data['packet_head'].update([('id', str(time())), ])

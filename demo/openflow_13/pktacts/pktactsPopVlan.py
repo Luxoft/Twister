@@ -1,8 +1,7 @@
 """
-<title>PushNewMPLS</title>
+<title>PopVlan</title>
 <description>
-    Set MPLS tag to packet
-    
+    Pop VID to tcp packet
 </description>
 """
 
@@ -15,12 +14,12 @@ try:
 except:
     raise
 
-class PushNewMPLS(SimpleDataPlane):
+class PopVlan(SimpleDataPlane):
     """
-    Set MPLS tag to packet
+    Pop VID to tcp packet
     """
     def runTest(self):
-        self.logger.info("Running PushNewMPLS test")
+        self.logger.info("Running PopVlan test")
         of_ports = self.port_map.keys()
         of_ports.sort()
         self.assertTrue(len(of_ports) > 0, "Not enough ports for test")
@@ -32,11 +31,12 @@ class PushNewMPLS(SimpleDataPlane):
 
         ingress_port = of_ports[0]
         egress_port = of_ports[1]
-
-        pkt = testutils.simple_tcp_packet()
-        portmatch = match.in_port(ingress_port)
+	self.logger.info("Generate and send a packet with VID 50")
+        pkt=testutils.simple_tcp_packet(vlan_tags=[{'vid': 50,'cfi': 0,'cfi': 0}])
+	portmatch = match.in_port(ingress_port)
         srcmatch = match.eth_src(parse.parse_mac("00:06:07:08:09:0a"))
         dstmatch = match.eth_dst(parse.parse_mac("00:01:02:03:04:05"))
+	self.logger.info("Generate and send flow_mod with action Pop VLAN")
         request = message.flow_mod()
         request.match_fields.tlvs.append(portmatch)
         request.match_fields.tlvs.append(srcmatch)
@@ -44,28 +44,23 @@ class PushNewMPLS(SimpleDataPlane):
         request.buffer_id = 0xffffffff
         request.priority = 1
         inst = instruction.instruction_apply_actions()
-        vid_act = action.action_push_mpls()
-        vid_act.ethertype = 0x8847
-        vid_set = action.action_set_field()
-        field_2b_set = match.mpls_label(24)
-        vid_set.field = field_2b_set
+        vid_act = action.action_pop_vlan()
         inst.actions.add(vid_act)
-        inst.actions.add(vid_set)
         act_out = action.action_output()
         act_out.port = egress_port
         inst.actions.add(act_out)
         request.instructions.add(inst)
+        self.logger.info("Inserting flow ")
         logMsg('logDebug',"Request send to switch:")
         logMsg('logDebug',request.show())
-        self.logger.info("Inserting flow ")
         rv = self.controller.message_send(request)
         self.assertTrue(rv != -1, "Error installing flow mod")
         self.dataplane.send(ingress_port, str(pkt))
-
         (rcv_port, rcv_pkt, _) = self.dataplane.poll(port_number=egress_port, timeout=1)
         p = scapy.all.Ether(str(rcv_pkt))
-        self.assertEqual(str(p.label), "24", "MPLS set do not match")
+	self.logger.info("Verify incoming packet do not have 0x8100 header")
+        self.assertEqual(p.type, 0x800, "Packet type is not 0x800")
 
     
-tc = PushNewMPLS()
+tc = PopVlan()
 _RESULT = tc.run()

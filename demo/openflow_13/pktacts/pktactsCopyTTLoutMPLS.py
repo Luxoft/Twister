@@ -1,7 +1,7 @@
 """
-<title>PushNewMPLS</title>
+<title>CopyTTLoutIPmpls</title>
 <description>
-    Set MPLS tag to packet
+    CopyTTLoutIPmpls to packet
     
 </description>
 """
@@ -15,12 +15,12 @@ try:
 except:
     raise
 
-class PushNewMPLS(SimpleDataPlane):
+class CopyTTLoutIPmpls(SimpleDataPlane):
     """
-    Set MPLS tag to packet
+    CopyTTLoutIPmpls to packet
     """
     def runTest(self):
-        self.logger.info("Running PushNewMPLS test")
+        self.logger.info("Running CopyTTLoutIPmpls test")
         of_ports = self.port_map.keys()
         of_ports.sort()
         self.assertTrue(len(of_ports) > 0, "Not enough ports for test")
@@ -32,8 +32,8 @@ class PushNewMPLS(SimpleDataPlane):
 
         ingress_port = of_ports[0]
         egress_port = of_ports[1]
-
-        pkt = testutils.simple_tcp_packet()
+	self.logger.info("Generate flowmod with action copy tll out")
+        pkt = testutils.simple_tcp_packet(mpls_tags=[{'label': 50, 'ttl': 32}])
         portmatch = match.in_port(ingress_port)
         srcmatch = match.eth_src(parse.parse_mac("00:06:07:08:09:0a"))
         dstmatch = match.eth_dst(parse.parse_mac("00:01:02:03:04:05"))
@@ -44,13 +44,8 @@ class PushNewMPLS(SimpleDataPlane):
         request.buffer_id = 0xffffffff
         request.priority = 1
         inst = instruction.instruction_apply_actions()
-        vid_act = action.action_push_mpls()
-        vid_act.ethertype = 0x8847
-        vid_set = action.action_set_field()
-        field_2b_set = match.mpls_label(24)
-        vid_set.field = field_2b_set
+        vid_act = action.action_copy_ttl_out()
         inst.actions.add(vid_act)
-        inst.actions.add(vid_set)
         act_out = action.action_output()
         act_out.port = egress_port
         inst.actions.add(act_out)
@@ -64,8 +59,9 @@ class PushNewMPLS(SimpleDataPlane):
 
         (rcv_port, rcv_pkt, _) = self.dataplane.poll(port_number=egress_port, timeout=1)
         p = scapy.all.Ether(str(rcv_pkt))
-        self.assertEqual(str(p.label), "24", "MPLS set do not match")
+	#TODO: a better verification of the incoming packet !!!
+        self.assertTrue(p.ttl == 64, "Incoming packet should have mpls ttl 64")
 
     
-tc = PushNewMPLS()
+tc = CopyTTLoutIPmpls()
 _RESULT = tc.run()

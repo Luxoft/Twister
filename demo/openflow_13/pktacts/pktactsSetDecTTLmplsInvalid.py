@@ -1,7 +1,7 @@
 """
-<title>PushNewMPLS</title>
+<title>DecNewMPLSttlInvalid</title>
 <description>
-    Set MPLS tag to packet
+    Decrement ttl of MPLS tag to packet
     
 </description>
 """
@@ -15,12 +15,12 @@ try:
 except:
     raise
 
-class PushNewMPLS(SimpleDataPlane):
+class DecNewMPLSttlInvalid(SimpleDataPlane):
     """
-    Set MPLS tag to packet
+    Decrement new ttl to mpls packet	
     """
     def runTest(self):
-        self.logger.info("Running PushNewMPLS test")
+        self.logger.info("Running DecNewMPLSttlInvalid test")
         of_ports = self.port_map.keys()
         of_ports.sort()
         self.assertTrue(len(of_ports) > 0, "Not enough ports for test")
@@ -32,8 +32,8 @@ class PushNewMPLS(SimpleDataPlane):
 
         ingress_port = of_ports[0]
         egress_port = of_ports[1]
-
-        pkt = testutils.simple_tcp_packet()
+	self.logger.info("Insert flow_mod with action decrement MPLS ttl to -1, switch must drop")
+        pkt = testutils.simple_tcp_packet(mpls_tags=[{'label': 50, 'ttl': 0}])
         portmatch = match.in_port(ingress_port)
         srcmatch = match.eth_src(parse.parse_mac("00:06:07:08:09:0a"))
         dstmatch = match.eth_dst(parse.parse_mac("00:01:02:03:04:05"))
@@ -44,14 +44,9 @@ class PushNewMPLS(SimpleDataPlane):
         request.buffer_id = 0xffffffff
         request.priority = 1
         inst = instruction.instruction_apply_actions()
-        vid_act = action.action_push_mpls()
-        vid_act.ethertype = 0x8847
-        vid_set = action.action_set_field()
-        field_2b_set = match.mpls_label(24)
-        vid_set.field = field_2b_set
-        inst.actions.add(vid_act)
-        inst.actions.add(vid_set)
-        act_out = action.action_output()
+        vid_act = action.action_dec_mpls_ttl()
+        inst.actions.add(vid_act)        
+	act_out = action.action_output()
         act_out.port = egress_port
         inst.actions.add(act_out)
         request.instructions.add(inst)
@@ -61,11 +56,10 @@ class PushNewMPLS(SimpleDataPlane):
         rv = self.controller.message_send(request)
         self.assertTrue(rv != -1, "Error installing flow mod")
         self.dataplane.send(ingress_port, str(pkt))
-
+	self.logger.info("Waiting for packet, switch must drop since it have ttl -1")
         (rcv_port, rcv_pkt, _) = self.dataplane.poll(port_number=egress_port, timeout=1)
-        p = scapy.all.Ether(str(rcv_pkt))
-        self.assertEqual(str(p.label), "24", "MPLS set do not match")
+        self.assertTrue(rcv_pkt == None, "Packet recevied, switch must drop it since should have ttl -1")
 
     
-tc = PushNewMPLS()
+tc = DecNewMPLSttlInvalid()
 _RESULT = tc.run()
