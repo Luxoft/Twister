@@ -611,7 +611,7 @@ public class Plugins extends JPanel{
                         tests,
                         Repository.getVariables(),
                         Repository.getPluginsConfig());
-                    main.addTab(plugin.getName(), plugin.getContent());
+                    main.addTab(plugin.getName(), new JScrollPane(plugin.getContent()));
                     main.revalidate();
                     main.repaint();
                 }
