@@ -4,7 +4,7 @@
 #
 # -*- coding: utf-8 -*-
 #
-# File: PacketsTwist.py ; This file is part of Twister.
+# File: PacketSniffer.py ; This file is part of Twister.
 #
 # Copyright (C) 2012 , Luxoft
 #
@@ -34,14 +34,14 @@ from uuid import uuid4
 from time import sleep, time
 from scapy.all import Automaton, ATMT, TCP, bind_layers, conf, NoPayload
 
-from PacketsTwistClasses import OpenFlow, CentralEngineObject
+from PacketSnifferClasses import OpenFlow, CentralEngineObject
 
 
 
 
-class PacketsTwist(Automaton):
+class PacketSniffer(Automaton):
     """
-    Packets Twist Scapy Automaton
+    Packet Sniffer Scapy Automaton
     """
 
     def parse_args(self, user, epConfig, OFPort=None, _uid=None, **kargs):
@@ -88,7 +88,8 @@ class PacketsTwist(Automaton):
                     'data': str(self.uid)
                 }
                 args['command'] = 'echo'
-                pluginData = ce.proxy.runPlugin(self.username, 'SNIFF', args)
+                pluginData = ce.proxy.runPlugin(self.username,
+                                                'PacketSnifferPlugin', args)
 
                 self.filters = pluginData['data']['filters']
         except Exception, e:
@@ -246,7 +247,8 @@ class PacketsTwist(Automaton):
                 # create user if ep is not running
                 ce.proxy.getExecStatusAll(self.username)
 
-                pluginData = ce.proxy.runPlugin(self.username, 'SNIFF', args)
+                pluginData = ce.proxy.runPlugin(self.username,
+                                                'PacketSnifferPlugin', args)
                 if pluginData['status']['success']:
                     print 'registered to central engine %s..' % ce.proxy
                 else:
@@ -272,14 +274,15 @@ class PacketsTwist(Automaton):
                     'data': str(self.uid)
                 }
                 args['command'] = 'echo'
-                pluginData = ce.proxy.runPlugin(self.username, 'SNIFF', args)
+                pluginData = ce.proxy.runPlugin(self.username,
+                                                    'PacketSnifferPlugin', args)
 
                 ce.pluginStatus = pluginData['state']
                 self.filters = pluginData['data']['filters']
 
                 if ce.pluginStatus == 'restart':
                     args['command'] = 'restarted'
-                    ce.proxy.runPlugin(self.username, 'SNIFF', args)
+                    ce.proxy.runPlugin(self.username, 'PacketSnifferPlugin', args)
 
                     print 'PT debug: sniffer restart ..\n'
 
@@ -328,8 +331,8 @@ class PacketsTwist(Automaton):
         # push packet to central engines
         try:
             for ce in self.ceObjects:
-                ce.proxy.runPlugin(self.username,
-                                    'SNIFF', {'command': 'pushpkt', 'data': data})
+                ce.proxy.runPlugin(self.username, 'PacketSnifferPlugin',
+                                        {'command': 'pushpkt', 'data': data})
         except Exception, e:
             print 'PT debug: [RECEIVING] {err}'.format(err=e)
 

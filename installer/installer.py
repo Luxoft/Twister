@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# version: 2.002
+# version: 2.003
 
 # File: installer.py ; This file is part of Twister.
 
@@ -54,20 +54,21 @@ if os.getuid() != 0:
     print('\nTwister installer must run wish SUDO! Exiting!\n')
     exit(1)
 
-TO_INSTALL = ''
+# The proxy is used ONLY if you need a proxy to connect to internet,
+# And `setuptools` is not installed, or some dependencies are missing
+# HTTP_PROXY = 'http://UserName:PassWord@http-proxy:3128'
+HTTP_PROXY = ''
+
+#
+
+__dir__ = os.path.split(__file__)[0]
+if __dir__: os.chdir(__dir__)
 
 # Python executable. Alternatively, it can be "python2.7".
 PYTHON_EXE = sys.executable
 
-# The proxy is used only if you need a proxy to connect to internet,
-# And `setuptools` is not installed, or some dependencies are missing
-if os.getenv('HTTP_PROXY'):
-    HTTP_PROXY = os.getenv('HTTP_PROXY')
-else:
-    HTTP_PROXY = 'http://UserName:PassWord@http-proxy:3128'
-
-__dir__ = os.path.split(__file__)[0]
-if __dir__: os.chdir(__dir__)
+# Install option.
+TO_INSTALL = ''
 
 # --------------------------------------------------------------------------------------------------
 # Install  Server  or  Client ?
@@ -250,12 +251,12 @@ elif TO_INSTALL == 'client':
     # Files to move in Client folder
     to_copy = [
         'bin/start_ep.py',
-        'bin/start_packets_twist.py',
+        'bin/start_packet_sniffer.py',
         'doc/',
         'demo/',
         'config/',
         'client/',
-        'services/PacketsTwist/',
+        'services/PacketSniffer/',
         'services/__init__.py',
         'common/__init__.py',
         'common/constants.py',
@@ -516,7 +517,7 @@ for ext in ['txt', 'xml', 'py', 'tcl', 'plx', 'json', 'ini', 'htm', 'js', 'css']
 # Make executables
 if TO_INSTALL == 'client':
     os.system('find %s -name "start_ep.py" -exec chmod +x {} \;' % INSTALL_PATH)
-    os.system('find %s -name "start_packets_twist.py" -exec chmod +x {} \;' % INSTALL_PATH)
+    os.system('find %s -name "start_packet_sniffer.py" -exec chmod +x {} \;' % INSTALL_PATH)
 
 # Add twister path export
 for fname in glob.glob(INSTALL_PATH + 'bin/*'):
