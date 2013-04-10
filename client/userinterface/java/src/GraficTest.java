@@ -570,9 +570,6 @@ public class GraficTest extends JPanel{
             
     public void handlePaintItem(Item item, Graphics g){
         drawItem(item,g);
-//         if(item.getType()==1){
-//             handlePaintItem(item.getSubItem(0),g);}
-//         else 
         if(item.getSubItemsNr()>0&&item.getSubItem(0).isVisible()){
             for(int i=0;i<item.getSubItemsNr();i++){
                 if(!item.getSubItem(i).isVisible())continue;
