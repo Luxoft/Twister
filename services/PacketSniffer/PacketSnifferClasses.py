@@ -3,7 +3,7 @@
 #
 # -*- coding: utf-8 -*-
 #
-# File: PacketsTwistClasses.py ; This file is part of Twister.
+# File: PacketSnifferClasses.py ; This file is part of Twister.
 #
 # Copyright (C) 2012 , Luxoft
 #
@@ -468,7 +468,7 @@ class OpenFlow(Packet):
 
 class CentralEngineObject:
     """
-    Packets Twist Central Engine Objects
+    Packet Sniffer Central Engine Objects
     """
 
     def __init__(self, proxy):

@@ -4,7 +4,7 @@
 #
 # -*- coding: utf-8 -*-
 #
-# File: PacketsTwist.py ; This file is part of Twister.
+# File: PacketSniffer.py ; This file is part of Twister.
 #
 # Copyright (C) 2012 , Luxoft
 #
@@ -34,14 +34,14 @@ from uuid import uuid4
 from time import sleep, time
 from scapy.all import Automaton, ATMT, TCP, bind_layers, conf, NoPayload
 
-from PacketsTwistClasses import OpenFlow, CentralEngineObject
+from PacketSnifferlasses import OpenFlow, CentralEngineObject
 
 
 
 
-class PacketsTwist(Automaton):
+class PacketSniffer(Automaton):
     """
-    Packets Twist Scapy Automaton
+    Packet Sniffer Scapy Automaton
     """
 
     def parse_args(self, user, epConfig, OFPort=None, _uid=None, **kargs):

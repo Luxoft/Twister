@@ -2,7 +2,7 @@
 
 # version: 2.002
 
-# This file will start Packets Twists
+# This file will start Packet Sniffer
 
 
 from sys import path
@@ -15,7 +15,7 @@ from optparse import OptionParser
 #
 
 if getuid() != 0:
-    print('To run Packets Twist, must be ROOT! Exiting!\n')
+    print('To run Packet Sniffer, must be ROOT! Exiting!\n')
     exit(1)
 
 
@@ -55,7 +55,7 @@ def __main__():
 
     from common.configobj import ConfigObj
 
-    from services.PacketsTwist.PacketsTwist import PacketsTwist
+    from services.PacketSniffer.PacketSniffer import PacketSniffer
 
     # load execution process configuration
     epConfig = ConfigObj(options.twister_path + '/config/epname.ini')
@@ -63,11 +63,11 @@ def __main__():
     epConfig = list(epConfig.itervalues())
 
     # initiate and start sniffer
-    pt = PacketsTwist(options.user, epConfig, options.of_port, filters={'-i': options.eth_interface})
+    pt = PacketSniffer(options.user, epConfig, options.of_port, filters={'-i': options.eth_interface})
 
     pt.run()
 
-    print 'Packets Twist started'
+    print 'Packet Sniffer started'
 
     return
 

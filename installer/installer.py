@@ -250,12 +250,12 @@ elif TO_INSTALL == 'client':
     # Files to move in Client folder
     to_copy = [
         'bin/start_ep.py',
-        'bin/start_packets_twist.py',
+        'bin/start_packet_sniffer.py',
         'doc/',
         'demo/',
         'config/',
         'client/',
-        'services/PacketsTwist/',
+        'services/PacketSniffer/',
         'services/__init__.py',
         'common/__init__.py',
         'common/constants.py',
@@ -516,7 +516,7 @@ for ext in ['txt', 'xml', 'py', 'tcl', 'plx', 'json', 'ini', 'htm', 'js', 'css']
 # Make executables
 if TO_INSTALL == 'client':
     os.system('find %s -name "start_ep.py" -exec chmod +x {} \;' % INSTALL_PATH)
-    os.system('find %s -name "start_packets_twist.py" -exec chmod +x {} \;' % INSTALL_PATH)
+    os.system('find %s -name "start_packet_sniffer.py" -exec chmod +x {} \;' % INSTALL_PATH)
 
 # Add twister path export
 for fname in glob.glob(INSTALL_PATH + 'bin/*'):

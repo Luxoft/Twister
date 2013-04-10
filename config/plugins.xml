@@ -44,8 +44,8 @@
 
 	<Plugin>
 		<name>SNIFF</name>
-		<jarfile>PacketsTwistPlugin.jar</jarfile>
-		<pyfile>PacketsTwistPlugin.py</pyfile>
+		<jarfile>PacketSnifferlugin.jar</jarfile>
+		<pyfile>PacketSnifferlugin.py</pyfile>
 		<status>enabled</status>
 		<property>
 			<propname>historyLength</propname>
