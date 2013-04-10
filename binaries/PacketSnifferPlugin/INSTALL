@@ -1,0 +1,43 @@
+
+--------------------------------------------
+|||| Packet Sniffer PLugin Installation ||||
+--------------------------------------------
+
+
+Default:
+ - twister server side path: /opt/twister
+ - twister client side path: /home/user/twister
+
+
+	---- SERVER side ----
+
+1. sudo cp /path/to/PacketSnifferPlugin/PacketSnifferPlugin/* /opt/twister/plugins
+
+2. vim /path/to/twister/config/plugins.xml
+
+!!!! This plugin name must be 'SNIFF' in order to be recognized !!!!
+
+append config:
+
+<Plugin>
+	<name>SNIFF</name>
+	<jarfile>PacketSnifferPlugin.jar</jarfile>
+	<pyfile>PacketSnifferPlugin.py</pyfile>
+	<status>enabled</status>
+	<property>
+		<propname>historyLength</propname>
+		<propvalue>4000</propvalue>
+	</property>
+	<property>
+		<propname>packetsBuffer</propname>
+		<propvalue>400</propvalue>
+	</property>
+</Plugin>
+
+
+	---- CLIENT side ----
+
+1. cp -R /path/to/PacketSnifferPlugin/PacketSniffer /path/to/twister/services
+
+2. cp /path/to/PacketSnifferPlugin/start_packet_sniffer.py /path/to/twister/bin
+
