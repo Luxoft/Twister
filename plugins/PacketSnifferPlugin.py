@@ -337,7 +337,7 @@ class Plugin(BasePlugin):
 #### plugins.xml config ####
 
 <Plugin>
-    <name>SNIFF</name>
+    <name>PacketSnifferPlugin</name>
     <jarfile>PacketSnifferPlugin.jar</jarfile>
     <pyfile>PacketSnifferPlugin.py</pyfile>
     <status>enabled</status>

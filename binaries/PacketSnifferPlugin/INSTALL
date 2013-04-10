@@ -1,7 +1,7 @@
 
--------------------------------------------
-|||| Packets Twist PLugin Installation ||||
--------------------------------------------
+--------------------------------------------
+|||| Packet Sniffer PLugin Installation ||||
+--------------------------------------------
 
 
 Default:
@@ -11,7 +11,7 @@ Default:
 
 	---- SERVER side ----
 
-1. sudo cp /path/to/PacketsTwistPlugin/PacketSniffer/* /opt/twister/plugins
+1. sudo cp /path/to/PacketSnifferPlugin/PacketSnifferPlugin/* /opt/twister/plugins
 
 2. vim /path/to/twister/config/plugins.xml
 
@@ -21,8 +21,8 @@ append config:
 
 <Plugin>
 	<name>SNIFF</name>
-	<jarfile>PacketsTwistPlugin.jar</jarfile>
-	<pyfile>PacketsTwistPlugin.py</pyfile>
+	<jarfile>PacketSnifferPlugin.jar</jarfile>
+	<pyfile>PacketSnifferPlugin.py</pyfile>
 	<status>enabled</status>
 	<property>
 		<propname>historyLength</propname>
@@ -37,7 +37,7 @@ append config:
 
 	---- CLIENT side ----
 
-1. cp -R /path/to/PacketsTwistPlugin/PacketsTwist /path/to/twister/services
+1. cp -R /path/to/PacketSnifferPlugin/PacketSniffer /path/to/twister/services
 
-2. cp /path/to/PacketsTwistPlugin/start_packets_twist.py /path/to/twister/bin
+2. cp /path/to/PacketSnifferPlugin/start_packet_sniffer.py /path/to/twister/bin
 

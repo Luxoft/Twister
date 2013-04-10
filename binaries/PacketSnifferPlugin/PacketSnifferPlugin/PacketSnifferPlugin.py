@@ -1,11 +1,10 @@
 #!/usr/bin/env python
-
-# version: 2.001
 #
 # -*- coding: utf-8 -*-
 #
+# version: 2.001
 #
-# File: PacketsTwistPlugin.py ; This file is part of Twister.
+# File: PacketSnifferPlugin.py ; This file is part of Twister.
 #
 # Copyright (C) 2012 , Luxoft
 #
@@ -46,10 +45,13 @@ from BasePlugin import BasePlugin
 
 class Plugin(BasePlugin):
     """
-    Packets Twist plugin.
+    Packet Sniffer plugin.
     """
 
     def __init__(self, user, data):
+        if not data:
+            return False
+
         BasePlugin.__init__(self, user, data)
 
         # history list length, packets buffer size, query buffer size
@@ -75,11 +77,11 @@ class Plugin(BasePlugin):
                 'restart', 'reset',
                 'savepcap',
                 'getfilters',
+                'setfilters',
             ],
             'argumented': [
                 'query', 'querypkt', 'pushpkt',
                 'registersniff', 'restarted',
-                'setfilters',
             ]
         }
 
@@ -143,10 +145,13 @@ class Plugin(BasePlugin):
             response['type'] = 'setfilters reply'
 
             try:
-                data = args['data'].split()
-                data = {data[i]: data[i+1] for i in range(0, len(data)-1, 2)}
+                if args.has_key('data'):
+                    data = args['data'].split()
+                    data = {data[i]: data[i+1] for i in range(0, len(data)-1, 2)}
 
-                self.filters = dict((k,v) for k,v in data.iteritems() if v is not None)
+                    self.filters = dict((k,str(v)) for k,v in data.iteritems() if v is not None)
+                else:
+                    self.filters = {}
 
                 self.packets = []
                 response['data'] = {'index': 0}
@@ -332,9 +337,9 @@ class Plugin(BasePlugin):
 #### plugins.xml config ####
 
 <Plugin>
-    <name>SNIFF</name>
-    <jarfile>PacketsTwistPlugin.jar</jarfile>
-    <pyfile>PacketsTwistPlugin.py</pyfile>
+    <name>PacketSnifferPlugin</name>
+    <jarfile>PacketSnifferPlugin.jar</jarfile>
+    <pyfile>PacketSnifferPlugin.py</pyfile>
     <status>enabled</status>
     <property>
         <propname>historyLength</propname>
