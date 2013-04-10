@@ -4,7 +4,7 @@
 #
 # version: 2.001
 #
-# File: PacketsTwistPlugin.py ; This file is part of Twister.
+# File: PacketSnifferPlugin.py ; This file is part of Twister.
 #
 # Copyright (C) 2012 , Luxoft
 #
@@ -45,7 +45,7 @@ from BasePlugin import BasePlugin
 
 class Plugin(BasePlugin):
     """
-    Packets Twist plugin.
+    Packet Sniffer plugin.
     """
 
     def __init__(self, user, data):
@@ -337,9 +337,9 @@ class Plugin(BasePlugin):
 #### plugins.xml config ####
 
 <Plugin>
-    <name>SNIFF</name>
-    <jarfile>PacketsTwistPlugin.jar</jarfile>
-    <pyfile>PacketsTwistPlugin.py</pyfile>
+    <name>PacketSnifferPlugin</name>
+    <jarfile>PacketSnifferPlugin.jar</jarfile>
+    <pyfile>PacketSnifferPlugin.py</pyfile>
     <status>enabled</status>
     <property>
         <propname>historyLength</propname>

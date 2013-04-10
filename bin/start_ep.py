@@ -4,7 +4,7 @@
 
 # This file will start ALL Execution Processes that are enabled,
 # from file `twister/config/epname.ini`.
-# This should run as ROOT, to be able to start the packets sniffer.
+# This should run as ROOT, to be able to start the packet sniffer.
 
 import os, sys
 import xmlrpclib
@@ -25,7 +25,7 @@ except:
     print('Cannot guess user name for this Execution Process! Exiting!')
     exit(1)
 
-pipe = subprocess.Popen('ps ax | grep start_packets_twist.py', shell=True, stdout=subprocess.PIPE)
+pipe = subprocess.Popen('ps ax | grep start_packet_sniffer.py', shell=True, stdout=subprocess.PIPE)
 for line in pipe.stdout.read().splitlines():
     try:
         kill(int(line.split()[0]), 9)
@@ -41,14 +41,14 @@ os.chdir(os.getenv('TWISTER_PATH') + '/bin')
 cfg = SafeConfigParser()
 cfg.read(os.getenv('TWISTER_PATH') + '/config/epname.ini')
 eps = cfg.sections()
-eps.pop(eps.index('SNIFF'))
+eps.pop(eps.index('PACKETSNIFFERPLUGIN'))
 print('Found `{}` EPs: `{}`.\n'.format(len(eps), ', '.join(eps)))
 
 #
 
 snifferEth = None
-if cfg.get('SNIFF', 'ENABLED') == '1':
-    snifferEth = cfg.get('SNIFF', 'ETH_INTERFACE')
+if cfg.get('PACKETSNIFFERPLUGIN', 'ENABLED') == '1':
+    snifferEth = cfg.get('PACKETSNIFFERPLUGIN', 'ETH_INTERFACE')
 
 #
 
