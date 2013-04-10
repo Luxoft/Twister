@@ -1,5 +1,5 @@
 /*
-File: PacketsTwistPlugin.java ; This file is part of Twister.
+File: PacketSnifferPlugin.java ; This file is part of Twister.
 Version: 2.001
 
 Copyright (C) 2012-2013 , Luxoft
