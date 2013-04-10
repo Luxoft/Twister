@@ -713,8 +713,7 @@ public class Panel1 extends JPanel{
                 if(sc.g.printXML(user, false,false,
                                  suitaDetails.stopOnFail(),
                                  suitaDetails.saveDB(),
-                                 suitaDetails.getDelay()
-                                 )){}
+                                 suitaDetails.getDelay())){}
                 else CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, 
                                             Repository.window, "Warning", 
                                             "Warning, temp file not saved");                    

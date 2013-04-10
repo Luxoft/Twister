@@ -10,9 +10,6 @@
 var resize = function(){
 	var width = $(window).width();
 	var height = $(window).height();
-	if ($.browser.msie){
-		width*=1.2;
-		height*=1.2;}
 	$("#myApplet")[0].setSize(width,height);
 	$("#myApplet").css("width", $(window).width()-20);
 	$("#myApplet").css("height",$(window).height()-30);}
@@ -34,6 +31,7 @@ jcalendar-1.4.jar,
 Twister.jar,
 applet.jar"
 alt="Your browser understands the &lt;APPLET&gt; tag but isn't running the applet, for some reason.">
+<PARAM name="separate_jvm" value="true">
 	Your browser is ignoring the &lt;APPLET&gt; tag!
 </applet>
 </body>

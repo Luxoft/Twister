@@ -1,20 +1,18 @@
 #!/usr/bin/env python
 
-# version: 2.001
+# version: 2.002
 
 # This file will start Packets Twists
 
 
-from os import getuid, chdir, getenv, environ
+from sys import path
+from os import getuid, chdir
 from os.path import split
 
 from json import load
 from optparse import OptionParser
 
-from PacketsTwist import PacketsTwist
-
-
-
+#
 
 if getuid() != 0:
     print('To run Packets Twist, must be ROOT! Exiting!\n')
@@ -33,10 +31,14 @@ def __main__():
     parser = OptionParser(usage=usage, version=version)
 
     # script options
+    parser.add_option('-i', '--eth_interface', action='store', default='eth0',
+                        help='Ethernet interface: eth0 (default).')
     parser.add_option('-o', '--of_port', action='store', default=6633,
                         help='OpenFlow port: 6633 (default).')
     parser.add_option('-u', '--user', action='store', default=None,
                         help='user: None (default).')
+    parser.add_option('-t', '--twister_path', action='store', default=None,
+                        help='TWISTER_PATH: None (default).')
     (options, args) = parser.parse_args()
 
     if not options.user:
@@ -44,19 +46,31 @@ def __main__():
 
         exit(1)
 
-    environ['TWISTER_PATH'] = getenv('HOME') + '/twister'
+    if not options.twister_path:
+        print('TWISTER_PATH environment variable is not set! exiting!')
+
+        exit(1)
+
+    path.append(options.twister_path)
+
+    from common.configobj import ConfigObj
+
+    from services.PacketsTwist.PacketsTwist import PacketsTwist
 
     # load execution process configuration
-    epConfig = load(open(getenv('TWISTER_PATH') + '/bin/config_ep.json'))
+    epConfig = ConfigObj(options.twister_path + '/config/epname.ini')
+    epConfig.pop('SNIFF')
+    epConfig = list(epConfig.itervalues())
 
     # initiate and start sniffer
-    pt = PacketsTwist(options.user, epConfig, options.of_port)
+    pt = PacketsTwist(options.user, epConfig, options.of_port, filters={'-i': options.eth_interface})
 
     pt.run()
+
+    print 'Packets Twist started'
 
     return
 
 # # # #
-
 
 __main__()

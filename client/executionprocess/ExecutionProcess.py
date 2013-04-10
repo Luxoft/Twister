@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# version: 2.001
+# version: 2.002
 
 # File: ExecutionProcess.py ; This file is part of Twister.
 
@@ -85,26 +85,30 @@ def packetsTwistStatus(ce):
     """
     Check Packets Twist plugin status.
     """
-
     if not 'SNIFF' in ce.listPlugins(userName):
         return
 
     global sniffer
+    global snifferMessage
 
     pipe = subprocess.Popen('ps ax | grep start_packets_twist.py',
                                     shell=True, stdout=subprocess.PIPE).stdout
     lines = pipe.read().splitlines()
     if len(lines) > 2: return
 
-    if not sniffer:
+    if sniffer:
         args = {'command': 'echo'}
         result = ce.runPlugin(userName, 'SNIFF', args)
 
         if result == 'running':
-            scriptPath =  os.path.join(TWISTER_PATH, 'bin/start_packets_twist.py')
-            command = ['sudo', 'python', scriptPath, '-u', userName]
-            sniffer = subprocess.Popen(command, shell=False)
-            print 'Packets Twist started'
+            if os.getuid() == 0:
+                scriptPath =  os.path.join(TWISTER_PATH, 'bin/start_packets_twist.py')
+                command = ['sudo', 'python', scriptPath, '-u', userName,
+                            '-i', str(sniffer), '-t', TWISTER_PATH]
+                subprocess.Popen(command, shell=False)
+            elif not snifferMessage:
+                snifferMessage = True
+                print 'Sniffer not starting because the EP is not running as ROOT !'
 
 #
 
@@ -234,15 +238,14 @@ if __name__=='__main__':
     programExit = False
     OFFLINE = False
     sniffer = None
+    snifferMessage = False
 
     try: os.mkdir(TWISTER_PATH + '/.twister_cache/')
     except: pass
 
-    if len(sys.argv) != 4:
-        print('EP error: must supply 3 parameters!')
-        print('usage:  python ExecutionProcess.py User_Name Ep_Name Host:Port')
-        print('OR,')
-        print('usage:  python ExecutionProcess.py User_Name OFFLINE File_List_Path')
+    if len(sys.argv) != 5:
+        print('EP error: must supply 4 parameters!')
+        print('usage:  python ExecutionProcess.py User_Name Ep_Name Host:Port Sniff')
         exit(1)
     else:
         userName = sys.argv[1]
@@ -258,6 +261,7 @@ if __name__=='__main__':
         else:
             host = sys.argv[3]
             print('User: {0} ;  EP: {1} ;  host: {2}'.format(userName, globEpName, host))
+        sniffer = (sys.argv[4], None)[sys.argv[4]=='None']
 
     # Offline mode...
     if OFFLINE:
