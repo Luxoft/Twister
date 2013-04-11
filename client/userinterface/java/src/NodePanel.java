@@ -413,9 +413,13 @@ public class NodePanel extends JPanel{
     public void populateEPs(){
         try{
             StringBuilder b = new StringBuilder();
+            String st;
             for(String s:Repository.getRemoteFileContent(Repository.REMOTEEPIDDIR).split("\n")){
                 if(s.indexOf("[")!=-1){
-                    b.append(s.substring(s.indexOf("[")+1, s.indexOf("]"))+";");
+                    st = s.substring(s.indexOf("[")+1, s.indexOf("]"));
+                    if(st.toUpperCase().indexOf("plugin")==-1){
+                        b.append(s.substring(s.indexOf("[")+1, s.indexOf("]"))+";");
+                    }
                 }
             }
             String [] vecresult = b.toString().split(";");
