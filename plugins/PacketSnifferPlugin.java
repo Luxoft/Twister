@@ -949,7 +949,7 @@ public class PacketSnifferPlugin extends BasePlugin implements
 					jobject = el.getAsJsonObject();
 					source = jobject.get("protocol");
 					protocol = source.toString();
-					//protocol = protocol.substring(1, protocol.length() - 1);
+					protocol = protocol.substring(1, protocol.length() - 1);
 					source = jobject.get("id");
 					id = source.toString();
 					//id = id.substring(1, id.length() - 1);
