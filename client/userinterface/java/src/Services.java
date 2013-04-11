@@ -177,8 +177,12 @@ public class Services extends JPanel{
                                                                         new Object[]{"status",name}).toString();
                                 if(result.equals("-1")){
                                     status.setText("running");
+                                    start.setEnabled(false);
+                                    stop.setEnabled(true);                                    
                                 } else {
                                     status.setText("stopped");
+                                    start.setEnabled(true);
+                                    stop.setEnabled(false);
                                 }
                             }
                             Thread.sleep(1000);}

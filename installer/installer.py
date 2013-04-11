@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# version: 2.003
+# version: 2.004
 
 # File: installer.py ; This file is part of Twister.
 
@@ -73,6 +73,14 @@ TO_INSTALL = ''
 # --------------------------------------------------------------------------------------------------
 # Install  Server  or  Client ?
 # --------------------------------------------------------------------------------------------------
+
+def userHome(user):
+    user = str(user)
+    lines = open('/etc/passwd').readlines()
+    user_line = [line for line in lines if line.startswith(user + ':')]
+    if not user_line: return '/home/' + user
+    user_line = user_line[0].split(':')
+    return user_line[-2]
 
 # If installer was run with parameter "--server"
 if sys.argv[1:2] == ['--server']:
@@ -170,7 +178,7 @@ if TO_INSTALL == 'server':
 else:
 
     # Twister client path
-    INSTALL_PATH = os.getenv('HOME') + os.sep + 'twister/'
+    INSTALL_PATH = userHome(user_name) + os.sep + 'twister/'
 
     if os.path.exists(INSTALL_PATH):
         print('WARNING! Another version of Twister is installed at `%s`!' % INSTALL_PATH)
@@ -531,7 +539,7 @@ for fname in glob.glob(INSTALL_PATH + 'bin/*'):
 # Fix FWM Config XML
 if TO_INSTALL == 'client':
     fwm = Template( open(INSTALL_PATH + 'config/fwmconfig.xml', 'r').read() )
-    open(INSTALL_PATH + 'config/fwmconfig.xml', 'w').write( fwm.substitute(HOME=os.getenv('HOME').rstrip('/')) )
+    open(INSTALL_PATH + 'config/fwmconfig.xml', 'w').write( fwm.substitute(HOME=userHome(user_name)) )
     del fwm
 
 #

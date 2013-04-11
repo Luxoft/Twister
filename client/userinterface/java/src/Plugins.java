@@ -361,8 +361,16 @@ public class Plugins extends JPanel{
             MainPanel main = Repository.window.mainpanel;
             TwisterPluginInterface plugin = ((TwisterPluginInterface)plugins.get(filename));
             if(plugin!=null&&plugin.getContent()!=null){
-                try{main.remove(((TwisterPluginInterface)plugins.
-                        get(filename)).getContent());
+                try{                    
+                    Component comp;
+                    for(int i=0;i<main.getTabCount();i++){
+                        if(main.getComponentAt(i)==null)continue;
+                        try{comp = ((JScrollPane)(main.getComponentAt(i))).getViewport().getView();
+                            if(comp == plugin.getContent()){
+                                main.removeTabAt(i);
+                            }
+                        } catch(Exception e){}
+                    }                    
                 }
                 catch(Exception e){
                     System.out.println("There was a problem in removing "+
@@ -619,7 +627,24 @@ public class Plugins extends JPanel{
         }
         else{
             if(plugin.getContent()!=null){
-                main.remove(plugin.getContent());
+                try{Component comp;
+                    for(int i=0;i<main.getTabCount();i++){
+                        if(main.getComponentAt(i)==null)continue;
+                        try{comp = ((JScrollPane)(main.getComponentAt(i))).getViewport().getView();
+                            if(comp == plugin.getContent()){
+                                main.removeTabAt(i);
+                            }
+                        } catch(Exception e){}
+                    }
+                }
+                catch(Exception e){
+                    System.out.println("There was a problem in removing "+
+                        "the plugin with filename: "+plugin.getName());
+                    e.printStackTrace();
+                }
+                
+                
+                //main.remove(plugin.getContent());
                 plugin.terminate();
                 main.revalidate();
                 main.repaint();}
