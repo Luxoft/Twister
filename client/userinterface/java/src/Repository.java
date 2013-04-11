@@ -536,7 +536,6 @@ public class Repository{
                         password1.getPassword());
                     user = user1.getText();
                     password = new String(password1.getPassword());
-                    
                     JSch jsch = new JSch();
                     Session session = jsch.getSession(user, host, 22);
                     session.setPassword(password);
