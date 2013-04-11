@@ -81,28 +81,28 @@ def saveConfig():
 
 #
 
-def packetsTwistStatus(ce):
+def packetSnifferStatus(ce):
     """
-    Check Packets Twist plugin status.
+    Check Packet Sniffer plugin status.
     """
-    if not 'SNIFF' in ce.listPlugins(userName):
+    if not 'PacketSnifferPlugin' in ce.listPlugins(userName):
         return
 
     global sniffer
     global snifferMessage
 
-    pipe = subprocess.Popen('ps ax | grep start_packets_twist.py',
+    pipe = subprocess.Popen('ps ax | grep start_packet_sniffer.py',
                                     shell=True, stdout=subprocess.PIPE).stdout
     lines = pipe.read().splitlines()
     if len(lines) > 2: return
 
     if sniffer:
         args = {'command': 'echo'}
-        result = ce.runPlugin(userName, 'SNIFF', args)
+        result = ce.runPlugin(userName, 'PacketSnifferPlugin', args)
 
         if result == 'running':
             if os.getuid() == 0:
-                scriptPath =  os.path.join(TWISTER_PATH, 'bin/start_packets_twist.py')
+                scriptPath =  os.path.join(TWISTER_PATH, 'bin/start_packet_sniffer.py')
                 command = ['sudo', 'python', scriptPath, '-u', userName,
                             '-i', str(sniffer), '-t', TWISTER_PATH]
                 subprocess.Popen(command, shell=False)
@@ -152,7 +152,7 @@ class threadCheckStatus(threading.Thread):
             epStatus = newEpStatus
 
             saveConfig() # Save configuration EVERY cycle
-            packetsTwistStatus(self.proxy) # Check Packets Twist EVERY cycle
+            packetSnifferStatus(self.proxy) # Check Packet Sniffer EVERY cycle
 
             # Save EP info like OS, IP, user id, user group, EVERY 10 cycles
             if not self.cycle:
