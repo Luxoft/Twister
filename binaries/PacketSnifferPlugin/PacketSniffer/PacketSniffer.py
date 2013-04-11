@@ -133,11 +133,11 @@ class PacketSniffer(Automaton):
 
         if self.filters.has_key('-port_src'):
             filterStatus = (self.filters['-port_src'] ==
-                                            packetHead['source']['port'])
+                                            str(packetHead['source']['port']))
 
         if self.filters.has_key('-port_dst'):
             filterStatus = (self.filters['-port_dst'] ==
-                                            packetHead['destination']['port'])
+                                            str(packetHead['destination']['port']))
 
         if self.filters.has_key('-ip_src'):
             filterStatus = (self.filters['-ip_src'] ==

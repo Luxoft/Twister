@@ -40,8 +40,8 @@ os.chdir(os.getenv('TWISTER_PATH') + '/bin')
 
 cfg = SafeConfigParser()
 cfg.read(os.getenv('TWISTER_PATH') + '/config/epname.ini')
-eps = cfg.sections()
-eps.pop(eps.index('PACKETSNIFFERPLUGIN'))
+# All sections that have an option CE_IP, are EP names
+eps = [e for e in cfg.sections() if cfg.has_option(e, 'CE_IP')]
 print('Found `{}` EPs: `{}`.\n'.format(len(eps), ', '.join(eps)))
 
 #
