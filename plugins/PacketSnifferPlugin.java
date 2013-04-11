@@ -89,7 +89,7 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
-public class PacketsTwistPlugin extends BasePlugin implements
+public class PacketSnifferPlugin extends BasePlugin implements
 		TwisterPluginInterface {
 	private static final long serialVersionUID = 1L;
 	private JPanel p;
@@ -113,7 +113,7 @@ public class PacketsTwistPlugin extends BasePlugin implements
 			configuration.setServerURL(new URL("http://11.126.32.9:8000/"));
 			XmlRpcClient client = new XmlRpcClient();
 			client.setConfig(configuration);
-			final PacketsTwistPlugin sch = new PacketsTwistPlugin();
+			final PacketSnifferPlugin sch = new PacketSnifferPlugin();
 			sch.setRPC(client);
 			sch.init(null, null, null, null);
 			JFrame f = new JFrame();
@@ -200,9 +200,10 @@ public class PacketsTwistPlugin extends BasePlugin implements
 			JPanel panel1 = new JPanel();
 			panel1.setLayout(null);
 
-			panel1.setMaximumSize(new Dimension(1150, 750));
-			panel1.setMinimumSize(new Dimension(1150, 750));
-			panel1.setPreferredSize(new Dimension(1150, 750));
+			panel1.setMaximumSize(new Dimension(1150, 650));
+			panel1.setMinimumSize(new Dimension(1150, 650));
+			panel1.setPreferredSize(new Dimension(1150, 650));
+			panel1.setSize(new Dimension(1150, 650));
 
 			InputStream in = getClass().getResourceAsStream("Sniff0.png");
 			Image im = ImageIO.read(in);
@@ -398,7 +399,7 @@ public class PacketsTwistPlugin extends BasePlugin implements
 
 			JScrollPane pane = new JScrollPane(jTable1);
 			pane.setBorder(BorderFactory.createBevelBorder(BevelBorder.LOWERED));
-			pane.setBounds(50, 45, 1100, 300);
+			pane.setBounds(25, 45, 1100, 300);
 
 			jTable1.setModel(new DefaultTableModel(new Object[][] {},
 					new String[] { "Protocol", "SRC IP", "SRC Mac", "SRC Port",
@@ -421,11 +422,11 @@ public class PacketsTwistPlugin extends BasePlugin implements
 			content = new JTextArea();
 			content.setEditable(false);
 			JScrollPane sc = new JScrollPane(content);
-			sc.setBounds(50, 350, 1100, 250);
+			sc.setBounds(25, 350, 1100, 250);
 			panel1.add(sc);
 
 			JPanel top = new JPanel();
-			top.setBounds(50,0,1100,40);
+			top.setBounds(25,0,1100,40);
 			panel1.add(top);
 			
 			JLabel filter = new JLabel("Filter:");
@@ -696,7 +697,7 @@ public class PacketsTwistPlugin extends BasePlugin implements
 			//bsave.setBounds(950, 5, 35, 35);
 			//panel1.add(bsave);
 			top.add(bsave);
-			p.add(panel1);
+			p.add(new JScrollPane(panel1));
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -776,7 +777,7 @@ public class PacketsTwistPlugin extends BasePlugin implements
 
 	@Override
 	public String getFileName() {
-		String filename = "PacketsTwistPlugin.jar";
+		String filename = "PacketSnifferPlugin.jar";
 		return filename;
 	}
 
@@ -807,7 +808,7 @@ public class PacketsTwistPlugin extends BasePlugin implements
 
 	@Override
 	public String getName() {
-		String name = "SNIFF";
+		String name = "PacketSnifferPlugin";
 		return name;
 	}
 
@@ -928,9 +929,8 @@ public class PacketsTwistPlugin extends BasePlugin implements
 					// System.out.println("mac:"+source.toString());
 					source = jobject.get("port");
 					sport = source.toString();
-					sport = sport.substring(1, sport.length() - 1);
+					//sport = sport.substring(1, sport.length() - 1);
 					// System.out.println("port:"+source.toString());
-
 					jobject = el.getAsJsonObject();
 					source = jobject.get("destination");
 					jobject = source.getAsJsonObject();
@@ -944,16 +944,15 @@ public class PacketsTwistPlugin extends BasePlugin implements
 					// System.out.println("mac:"+source.toString());
 					source = jobject.get("port");
 					dport = source.toString();
-					dport = dport.substring(1, dport.length() - 1);
+					//dport = dport.substring(1, dport.length() - 1);
 					// System.out.println("port:"+source.toString());
-
 					jobject = el.getAsJsonObject();
 					source = jobject.get("protocol");
 					protocol = source.toString();
 					protocol = protocol.substring(1, protocol.length() - 1);
 					source = jobject.get("id");
 					id = source.toString();
-					id = id.substring(1, id.length() - 1);
+					//id = id.substring(1, id.length() - 1);
 					// System.out.println("protocol:"+source.toString());
 					model.addRow(new Object[] { protocol, sip, smac, sport,
 							dip, dmac, dport, id });

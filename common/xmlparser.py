@@ -222,8 +222,10 @@ class TSCParser:
 
         cfg = SafeConfigParser()
         cfg.read(eps_file)
+        # All sections that have an option CE_IP, are EP names
+        eps = [e for e in cfg.sections() if cfg.has_option(e, 'CE_IP')]
 
-        for epname in cfg.sections():
+        for epname in eps:
             epname = epname.strip()
             if epname == 'SNIFF': continue
             self.epnames.append(epname)
