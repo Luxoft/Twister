@@ -946,7 +946,8 @@ class CentralEngine(_cptools.XMLRPCController):
         else:
             logDebug('CE: Requested library folder: `{0}`.'.format(name))
             split_name = os.path.split(name)
-            tgz = split_name[1] + '.tgz'
+            rnd = binascii.hexlify(os.urandom(5))
+            tgz = split_name[1] + '_' + rnd + '.tgz
             os.chdir(split_name[0])
             with tarfile.open(tgz, 'w:gz') as binary:
                 binary.add(name=split_name[1], recursive=True)
