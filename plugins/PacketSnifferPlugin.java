@@ -619,7 +619,7 @@ public class PacketSnifferPlugin extends BasePlugin implements
 					new Object[] {
 							variables.get("user"),
 							getName(),
-							"command=setfilters&data="})
+							"command=setfilters&data="+text})
 					.toString();
 			System.out.println(resp);
 			((DefaultTableModel) jTable1.getModel())
