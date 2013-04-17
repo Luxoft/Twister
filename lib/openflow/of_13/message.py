@@ -1789,7 +1789,6 @@ class hello(object):
 
         """
         return not self.__eq__(other)
-    
 
 class meter_mod(ofp_meter_mod):
     """
