@@ -179,6 +179,10 @@ class Test1(TwisterTest):
         self.assertTrue(True)
         self.assertFalse(False)
         self.assertTrue(0)
+<<<<<<< HEAD
+=======
+        return True
+>>>>>>> c614184c4e8161503dc571fb27269be79febec93
 
     def test2(self):
         # Testing some feature...
@@ -186,6 +190,10 @@ class Test1(TwisterTest):
         self.assertEqual('a', 'a')
         self.assertNotEqual('a', 'b')
         self.assertEqual('a', 'b')
+<<<<<<< HEAD
+=======
+        return True
+>>>>>>> c614184c4e8161503dc571fb27269be79febec93
 
     def test3(self):
         # Testing some feature...
@@ -193,6 +201,7 @@ class Test1(TwisterTest):
         self.assertIn('x', ['x','y','z'])
         self.assertNotIn('a', ['x','y','z'])
         self.assertIn('x', ['y','z'])
+<<<<<<< HEAD
 
     def test4(self):
         # Testing some feature...
@@ -203,6 +212,25 @@ class Test1(TwisterTest):
         self.assertIs(a, b)
         self.assertIsNot(a, c)
         self.assertIsNot(a, b)
+
+    def test5(self):
+        # Testing some feature...
+        print 'Testing crash...'
+        print self.xyz
+=======
+        # Don't return anything, this means FAIL
+>>>>>>> c614184c4e8161503dc571fb27269be79febec93
+
+    def test4(self):
+        # Testing some feature...
+        print 'Testing assertIs...'
+        a = 1
+        b = a
+        c = 2
+        self.assertIs(a, b)
+        self.assertIsNot(a, c)
+        self.assertIsNot(a, b)
+        return True
 
     def test5(self):
         # Testing some feature...
