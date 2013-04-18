@@ -112,6 +112,7 @@ msg_type_to_class_map = {
     ofp.OFPT_QUEUE_GET_CONFIG_REQUEST   : message.queue_get_config_request,
     ofp.OFPT_QUEUE_GET_CONFIG_REPLY     : message.queue_get_config_reply,
     ofp.OFPT_ROLE_REPLY                 : message.role_reply,
+    ofp.OFPT_GET_ASYNC_REPLY		: message.get_async_reply,
 }
 
 def _of_message_to_object(binary_string):
