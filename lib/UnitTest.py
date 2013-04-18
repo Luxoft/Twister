@@ -1,7 +1,7 @@
 
 # File: UnitTest.py ; This file is part of Twister.
 
-# version: 2.001
+# version: 2.002
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -26,8 +26,19 @@
 
 '''
 This module contains Setup, Teardown controls and Step.
+All functions that begin with "test" will be executed automatically,
+in alphabetic order.
 Twister Test implements the same methods as Python Unit Test.
 '''
+
+#
+
+def safe_repr(obj, short=False):
+    try:
+        result = repr(obj)
+    except Exception:
+        result = object.__repr__(obj)
+    return result
 
 #
 
@@ -40,7 +51,7 @@ class TwisterTest:
 
 
     def __find_tests(self):
-        tests = [x for x in dir(self) if x.startswith(self.test_identifier) and x != 'test_identifier']
+        tests = [x for x in sorted(dir(self)) if x.startswith(self.test_identifier) and x != 'test_identifier']
         return tests
 
     def __str__(self):
@@ -60,6 +71,55 @@ class TwisterTest:
         pass
 
 
+    def assertTrue(self, expr, msg=None):
+        """Check that the expression is true."""
+        if not expr:
+            msg = msg or '{} is not true'.format(safe_repr(expr))
+            raise AssertionError(msg)
+
+    def assertFalse(self, expr, msg=None):
+        """Check that the expression is false."""
+        if expr:
+            msg = msg or '{} is not false'.format(safe_repr(expr))
+            raise AssertionError(msg)
+
+    def assertEqual(self, first, second, msg=None):
+        """Fail if the two objects are unequal as determined by the '==' operator."""
+        if not first == second:
+            msg = msg or '{} != {}'.format(safe_repr(first), safe_repr(second))
+            raise AssertionError(msg)
+
+    def assertNotEqual(self, first, second, msg=None):
+        """Fail if the two objects are equal as determined by the '==' operator."""
+        if not first != second:
+            msg = msg or '{} == {}'.format(safe_repr(first), safe_repr(second))
+            raise AssertionError(msg)
+
+    def assertIn(self, member, container, msg=None):
+        """Just like self.assertTrue(a in b), but with a nicer default message."""
+        if member not in container:
+            msg = msg or '{} not found in {}'.format(safe_repr(member), safe_repr(container))
+            raise AssertionError(msg)
+
+    def assertNotIn(self, member, container, msg=None):
+        """Just like self.assertTrue(a not in b), but with a nicer default message."""
+        if member in container:
+            msg = msg or '{} unexpectedly found in {}'.format(safe_repr(member), safe_repr(container))
+            raise AssertionError(msg)
+
+    def assertIs(self, expr1, expr2, msg=None):
+        """Just like self.assertTrue(a is b), but with a nicer default message."""
+        if expr1 is not expr2:
+            msg = msg or '{} is not {}'.format(safe_repr(expr1), safe_repr(expr2))
+            raise AssertionError(msg)
+
+    def assertIsNot(self, expr1, expr2, msg=None):
+        """Just like self.assertTrue(a is not b), but with a nicer default message."""
+        if expr1 is expr2:
+            msg = msg or 'unexpectedly identical: {}'.format(safe_repr(expr1))
+            raise AssertionError(msg)
+
+
     def run(self):
         try:
             self.setUp()
@@ -67,17 +127,19 @@ class TwisterTest:
             print('SetUp function crashed with exception: `{}`.'.format(e))
             return -1
 
-        vals = []
+        failed = False
         tests = self.__find_tests()
 
         for test in tests:
             func = getattr(self, test)
             try:
-                v = func()
+                func()
+            except AssertionError, e:
+                print('Test `{}` assertion error: `{}`.'.format(test, e))
+                failed = True
             except Exception, e:
-                print('Test name `{}` crashed with exception: `{}`.'.format(test, e))
-                v = -1
-            vals.append(v)
+                print('Test `{}` crashed with exception: `{}`.'.format(test, e))
+                failed = True
 
         try:
             self.tearDown()
@@ -85,11 +147,7 @@ class TwisterTest:
             print('TearDown function crashed with exception: `{}`.'.format(e))
             return -1
 
-        # If FALSE is not in the list of results from all the tests,
-        # It means that the UnitTest has passed !
-        result = False not in [bool(x) for x in vals]
-
-        if result:
+        if not failed:
             return 'PASS'
         else:
             return 'FAIL'
@@ -117,18 +175,43 @@ class Test1(TwisterTest):
 
     def test1(self):
         # Testing some feature...
-        print 'Testing feature 1...'
+        print 'Testing assertTrue...'
+        self.assertTrue(True)
+        self.assertFalse(False)
+        self.assertTrue(0)
         return True
 
     def test2(self):
         # Testing some feature...
-        print 'Testing feature 2...'
+        print 'Testing assertEqual...'
+        self.assertEqual('a', 'a')
+        self.assertNotEqual('a', 'b')
+        self.assertEqual('a', 'b')
         return True
 
     def test3(self):
         # Testing some feature...
-        print 'Testing feature 3...'
+        print 'Testing assertIn...'
+        self.assertIn('x', ['x','y','z'])
+        self.assertNotIn('a', ['x','y','z'])
+        self.assertIn('x', ['y','z'])
         # Don't return anything, this means FAIL
+
+    def test4(self):
+        # Testing some feature...
+        print 'Testing assertIs...'
+        a = 1
+        b = a
+        c = 2
+        self.assertIs(a, b)
+        self.assertIsNot(a, c)
+        self.assertIsNot(a, b)
+        return True
+
+    def test5(self):
+        # Testing some feature...
+        print 'Testing crash...'
+        print self.xyz
 
 t1 = Test1()
 print t1, '\n'
