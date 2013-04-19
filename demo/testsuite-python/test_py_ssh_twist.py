@@ -1,7 +1,7 @@
 
 # version: 2.001
 
-from ce_libs import TelnetManager
+from TscSsh import SshManager
 
 #
 # <title>Testing Twister Telnet library</title>
@@ -10,93 +10,83 @@ from ce_libs import TelnetManager
 
 def test():
 	'''
-	Testing Twister Telnet library.
+	Testing Twister Ssh library.
 	'''
 
 	conn = {
 		'host': 'host',
-		'port': 23,
-		'user': 'user',
+		'port': 22,
+		'user': 'username',
 		'passwd': 'password',
-		'loging_prompt': 'login:',
-		'passwd_prompt': 'Password',
 	}
 
-	tm = TelnetManager()
+	sm = SshManager()
 
 	print 'begin test'
 	print '||||||||||||||||||||||||||||||||||||||||||||||'
 	print 'open_connection'
-	tm.open_connection('test', conn['host'], conn['port'], conn['user'], conn['passwd'],
-							conn['loging_prompt'], conn['passwd_prompt'])
-	tm.open_connection('test1', conn['host'], conn['port'], conn['user'], conn['passwd'],
-							conn['loging_prompt'], conn['passwd_prompt'])
-	tm.open_connection('test2', conn['host'], conn['port'], conn['user'], conn['passwd'],
-							conn['loging_prompt'], conn['passwd_prompt'])
-	tm.open_connection('test3', conn['host'], conn['port'], conn['user'], conn['passwd'],
-							conn['loging_prompt'], conn['passwd_prompt'])
+	sm.open_connection('test', conn['host'], conn['user'],
+						conn['passwd'], conn['port'])
+	sm.open_connection('test1', conn['host'], conn['user'],
+						conn['passwd'], conn['port'])
+	sm.open_connection('test2', conn['host'], conn['user'],
+						conn['passwd'], conn['port'])
+	sm.open_connection('test3', conn['host'], conn['user'],
+						conn['passwd'], conn['port'])
 
 	print '||||||||||||||||||||||||||||||||||||||||||||||'
 	print 'list_connections'
-	print tm.list_connections()
+	print sm.list_connections()
 
 	print '||||||||||||||||||||||||||||||||||||||||||||||'
 	print 'get_connection'
-	print tm.get_connection()
+	print sm.get_connection()
 
 	print '||||||||||||||||||||||||||||||||||||||||||||||'
 	print 'set_active_connection'
-	print tm.set_active_connection('test')
+	print sm.set_active_connection('test')
 
 	print '||||||||||||||||||||||||||||||||||||||||||||||'
 	print 'get_connection'
-	print tm.get_connection()
+	print sm.get_connection()
 
 	print '||||||||||||||||||||||||||||||||||||||||||||||'
 	print 'set_timeout'
-	print tm.set_timeout(4)
-
-	print '||||||||||||||||||||||||||||||||||||||||||||||'
-	print 'set_newline'
-	print tm.set_newline('\r\n')
+	print sm.set_timeout(4)
 
 	print '||||||||||||||||||||||||||||||||||||||||||||||'
 	print 'write'
-	print tm.write('ls')
+	print sm.write('ls')
 
 	print '||||||||||||||||||||||||||||||||||||||||||||||'
 	print 'read'
-	print tm.read()
-
-	print '||||||||||||||||||||||||||||||||||||||||||||||'
-	print 'read_until'
-	print tm.read_until('test')
+	print sm.read()
 
 	print '||||||||||||||||||||||||||||||||||||||||||||||'
 	print 'close_connection default'
-	print tm.close_connection()
+	print sm.close_connection()
 
 	print '||||||||||||||||||||||||||||||||||||||||||||||'
 	print 'list_connections'
-	print tm.list_connections()
+	print sm.list_connections()
 
 	print '||||||||||||||||||||||||||||||||||||||||||||||'
 	print 'close_connection'
-	print tm.close_connection('test3')
+	print sm.close_connection('test3')
 
 	print '||||||||||||||||||||||||||||||||||||||||||||||'
 	print 'list_connections'
-	print tm.list_connections()
+	print sm.list_connections()
 
 	print '||||||||||||||||||||||||||||||||||||||||||||||'
 	print 'close_all_connections'
-	print tm.close_all_connections()
+	print sm.close_all_connections()
 
 	print '||||||||||||||||||||||||||||||||||||||||||||||'
 	print 'list_connections'
-	print tm.list_connections()
+	print sm.list_connections()
 
-	logMsg('Twister Telnet test done.')
+	logMsg('Twister Ssh test done.')
 	# This return is used by the framework!
 	return "PASS"
 
