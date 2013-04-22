@@ -147,10 +147,12 @@ public class Panel4 extends JPanel{
      */
     public void setDatabase(){
         main.removeAll();
-        main.setLayout(null);
-        scroll = new JScrollPane(dbconfig);
-        scroll.setBounds(5,15,main.getWidth()-10,main.getHeight()-20);
-        main.add(scroll);
+        //main.setLayout(null);
+        main.setLayout(new BorderLayout());
+        //scroll = new JScrollPane(dbconfig);
+        //scroll.setBounds(5,15,main.getWidth()-10,main.getHeight()-20);
+        //main.add(scroll);
+        main.add(dbconfig.databaseinterface,BorderLayout.CENTER);
         main.repaint();
         main.revalidate();}
     

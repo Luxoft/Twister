@@ -58,18 +58,32 @@ public class DBConfig extends JPanel{
     File theone;
     JTextField tdatabase,tserver,tuser;
     JPasswordField tpassword;
+    DatabaseInterface databaseinterface;
 
     public DBConfig(){
-        setLayout(null);
-        setPreferredSize(new Dimension(450,480));
+        
+        //setLayout(null);
+        
+        //setPreferredSize(new Dimension(1000,1000));
+        
+        databaseinterface = new DatabaseInterface();
+        add(databaseinterface);
+        
         setBorder(BorderFactory.createBevelBorder(BevelBorder.LOWERED));
         setBackground(Color.WHITE);
         JLabel file = new JLabel("File: ");
         file.setBounds(15,10,50,20);
-        add(file);
+        
+        //add(file);
+        
+        
         final JTextField tfile = new JTextField();
         tfile.setBounds(100,10,170,25);
-        add(tfile);
+        
+        
+// //         add(tfile);
+        
+        
         JButton browse = new JButton("Browse");
         browse.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
@@ -82,19 +96,18 @@ public class DBConfig extends JPanel{
                     try{tfile.setText(f.getCanonicalPath());}
                     catch(Exception e){e.printStackTrace();}}}});
         browse.setBounds(275,13,90,20);
-        add(browse);
+        
+        
+//         add(browse);
+        
+        
         JButton upload = new JButton("Upload");
         upload.setBounds(375,13,90,20);
         upload.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 boolean saved = true;
                 try{File f = new File(tfile.getText());
-                    
-//                     Repository.c.cd(Repository.REMOTEDATABASECONFIGPATH);
                     FileInputStream stream = new FileInputStream(f);
-//                     Repository.c.put(stream,f.getName());
-//                     stream.close();
-                    
                     Repository.uploadRemoteFile(Repository.REMOTEDATABASECONFIGPATH, stream, f.getName());
                     
                     Files.copy(f.toPath(), new File(Repository.getConfigDirectory()+
@@ -111,31 +124,52 @@ public class DBConfig extends JPanel{
                     CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, 
                                             DBConfig.this, "Warning", 
                                             "File could not uploaded");}}});
-        add(upload);
+        
+//         add(upload);
+        
+        
         JLabel database = new JLabel("Database: ");
         database.setBounds(15,55,90,20);
-        add(database);
+        
+        
+//         add(database);
+        
         tdatabase = new JTextField();
         tdatabase.setBounds(100,55,170,25);
-        add(tdatabase);
+        
+//         add(tdatabase);
+        
         JLabel server = new JLabel("Server: ");
         server.setBounds(15,80,90,20);
-        add(server);
+        
+//         add(server);
+        
         tserver = new JTextField();
         tserver.setBounds(100,80,170,25);
-        add(tserver);
+        
+//         add(tserver);
+        
         JLabel user = new JLabel("User: ");
         user.setBounds(15,105,50,20);
-        add(user);
+        
+//         add(user);
+        
+        
         tuser = new JTextField();
         tuser.setBounds(100,105,170,25);
-        add(tuser);
+        
+//         add(tuser);
+        
         JLabel password = new JLabel("Password: ");
         password.setBounds(15,130,90,20);
-        add(password);
+        
+//         add(password);
+        
         tpassword = new JPasswordField();
         tpassword.setBounds(100,130,170,25);
-        add(tpassword);
+        
+//         add(tpassword);
+        
         refresh();
         JButton save = new JButton("Save");
         save.setBounds(200,155,70,20);
@@ -186,18 +220,8 @@ public class DBConfig extends JPanel{
                             transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
                             transformer.setOutputProperty(OutputKeys.INDENT, "yes");
                             transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "4");                        
-                            transformer.transform(source, result);  
-                            
-                            
-//                             try{Repository.c.cd(Repository.REMOTEDATABASECONFIGPATH);}
-//                             catch(Exception e){
-//                                 System.out.println("could not get "+Repository.REMOTEDATABASECONFIGPATH);
-//                                 e.printStackTrace();}
+                            transformer.transform(source, result);
                             FileInputStream input = new FileInputStream(theone);
-//                             Repository.c.put(input, theone.getName());
-//                             input.close();
-                            
-                            
                             Repository.uploadRemoteFile(Repository.REMOTEDATABASECONFIGPATH, input, theone.getName());
                         
                         
@@ -220,41 +244,16 @@ public class DBConfig extends JPanel{
                         CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, 
                                                 DBConfig.this, "Warning", 
                                                 "File could not be saved ");}}}});
-        add(save);}
+//           add(save);
     
+    }
+        
     public void refresh(){
         try{
-            
             tserver.setText("");
             tdatabase.setText("");
             tpassword.setText("");
             tuser.setText("");
-            
-            
-            
-//             InputStream in = null;
-//             try{Repository.c.cd(Repository.REMOTEDATABASECONFIGPATH);
-//                 in = Repository.c.get(Repository.REMOTEDATABASECONFIGFILE);}
-//             catch(Exception e){e.printStackTrace();
-//                 System.out.println("Could not get: "+Repository.REMOTEDATABASECONFIGFILE);}
-//             byte [] data = new byte[100];
-//             ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-//             int nRead;
-//             theone = new File(Repository.temp+Repository.getBar()+"Twister"+Repository.
-//                             getBar()+"config"+Repository.getBar()+
-//                             new File(Repository.REMOTEDATABASECONFIGFILE).getName());
-//             try{while ((nRead = in.read(data, 0, data.length)) != -1){buffer.write(data, 0, nRead);}
-//                 buffer.flush();
-//                 FileOutputStream out = new FileOutputStream(theone);
-//                 buffer.writeTo(out);
-//                 out.close();
-//                 buffer.close();
-//                 in.close();}
-//             catch(Exception e){e.printStackTrace();
-//                 //CustomDialog.showInfo(JOptionPane.INFORMATION_MESSAGE, null, "info", e.getMessage());
-//                 System.out.println("Could not write "+Repository.REMOTEDATABASECONFIGFILE+" on local hdd");}
-                
-                
             theone = new File(Repository.temp+Repository.getBar()+"Twister"+Repository.
                             getBar()+"config"+Repository.getBar()+
                             new File(Repository.REMOTEDATABASECONFIGFILE).getName());
@@ -262,8 +261,6 @@ public class DBConfig extends JPanel{
             BufferedWriter writer = new BufferedWriter(new FileWriter(theone));
             writer.write(content);
             writer.close();
-            
-                
             try{DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
                 DocumentBuilder db = dbf.newDocumentBuilder();                                        
                 doc = db.parse(theone);
@@ -278,10 +275,10 @@ public class DBConfig extends JPanel{
                 nodeLst = doc.getElementsByTagName("user");
                 tuser.setText(nodeLst.item(0).getChildNodes().item(0).getNodeValue());}
             catch(Exception e){
-                CustomDialog.showInfo(JOptionPane.INFORMATION_MESSAGE, null, "info", e.getMessage());
                 System.out.println(Repository.temp+Repository.getBar()+
                 "Twister"+Repository.getBar()+"Config"+Repository.getBar()+new File(Repository.
-                REMOTEDATABASECONFIGFILE).getName()+" is corrupted or incomplete");}}
+                REMOTEDATABASECONFIGFILE).getName()+" is corrupted or incomplete");
+                e.printStackTrace();}}
         catch(Exception e){
             CustomDialog.showInfo(JOptionPane.INFORMATION_MESSAGE, null, "info", e.getMessage());
             e.printStackTrace();

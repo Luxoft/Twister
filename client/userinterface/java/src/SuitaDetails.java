@@ -221,7 +221,6 @@ public class SuitaDetails extends JPanel {
                 Container c;
                 if(Repository.container!=null)c = Repository.container.getParent();
                 else c = Repository.window;
-                //new MySftpBrowser(Repository.c,tprescript,c);
                 new MySftpBrowser(Repository.host,Repository.user,Repository.password,tprescript,c);
             }
         });
@@ -231,7 +230,6 @@ public class SuitaDetails extends JPanel {
                 Container c;
                 if(Repository.container!=null)c = Repository.container.getParent();
                 else c = Repository.window;
-                //new MySftpBrowser(Repository.c,tpostscript,c);
                 new MySftpBrowser(Repository.host,Repository.user,Repository.password,tpostscript,c);
             }
         });

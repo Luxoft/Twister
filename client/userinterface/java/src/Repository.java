@@ -694,21 +694,24 @@ public class Repository{
         try{DocumentBuilder db = dbf.newDocumentBuilder();
             Document doc = db.parse(dbConf);
             doc.getDocumentElement().normalize();                
-            NodeList nodeLst = doc.getElementsByTagName("table_structure");      
-            for(int i=0;i<nodeLst.getLength();i++){
-                Element tablee = (Element)nodeLst.item(i);
-                NodeList fields = tablee.getElementsByTagName("field");
-                DefaultMutableTreeNode table = new DefaultMutableTreeNode(tablee.getAttribute("name"));
-                for(int j=0;j<fields.getLength();j++){
-                    Element fielde = (Element)fields.item(j);   
-                    DefaultMutableTreeNode field = new DefaultMutableTreeNode(fielde.getAttribute("Field"));
-                    table.add(field);}
-                root.add(table);}
-            nodeLst = doc.getElementsByTagName("twister_user_defined");
+//             NodeList nodeLst = doc.getElementsByTagName("table_structure");      
+//             for(int i=0;i<nodeLst.getLength();i++){
+//                 Element tablee = (Element)nodeLst.item(i);
+//                 NodeList fields = tablee.getElementsByTagName("field");
+//                 DefaultMutableTreeNode table = new DefaultMutableTreeNode(tablee.getAttribute("name"));
+//                 for(int j=0;j<fields.getLength();j++){
+//                     Element fielde = (Element)fields.item(j);   
+//                     DefaultMutableTreeNode field = new DefaultMutableTreeNode(fielde.getAttribute("Field"));
+//                     table.add(field);}
+//                 root.add(table);}
+//             NodeList nodeLst = doc.getElementsByTagName("twister_user_defined");
+//             Element tablee = (Element)nodeLst.item(0);
+//             NodeList fields = tablee.getElementsByTagName("field_section");
+//             tablee = (Element)fields.item(0);
+//             fields = tablee.getElementsByTagName("field");
+            NodeList nodeLst = doc.getElementsByTagName("insert_section");
             Element tablee = (Element)nodeLst.item(0);
-            NodeList fields = tablee.getElementsByTagName("field_section");
-            tablee = (Element)fields.item(0);
-            fields = tablee.getElementsByTagName("field");
+            NodeList fields = tablee.getElementsByTagName("field");
             for(int i=0;i<fields.getLength();i++){                
                 tablee = (Element)fields.item(i);
                 if(tablee.getAttribute("GUIDefined").equals("true")){

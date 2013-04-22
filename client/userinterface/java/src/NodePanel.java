@@ -129,10 +129,6 @@ public class NodePanel extends JPanel{
         JScrollPane jScrollPane2 = new JScrollPane();
         JScrollPane epscroll = new JScrollPane(tep);
         proppanel = new JPanel();
-//         JLabel jLabel1 = new javax.swing.JLabel();
-//         JTextField jTextField1 = new javax.swing.JTextField();
-//         JLabel jLabel2 = new javax.swing.JLabel();
-//         JTextField jTextField2 = new javax.swing.JTextField();
 
         add = new JButton("Add");
         add.setEnabled(false);
