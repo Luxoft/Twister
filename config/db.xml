@@ -7,12 +7,8 @@
 	<password>password</password>
 </db_config>
 
-<twister_user_defined>
-<field_section>
-	<field ID="Run_Number"  FieldName="" FromTable="" SQLQuery="" Label="Run Number:" Type="UserText" GUIDefined="true" Mandatory="true" />
-</field_section>
-
 <insert_section>
+	<field ID="Run_Number"  FieldName="" FromTable="" SQLQuery="" Label="Run Number:" Type="UserText" GUIDefined="true" Mandatory="true" />
 	<sql_statement>INSERT INTO results ( run_nr, workstation, suite, test_name, datetime_started, datetime_finished, status )
 		VALUES ($Run_Number, '$twister_ep_name', '$twister_suite_name', '$twister_tc_name',
 		'$twister_tc_date_started','$twister_tc_date_finished','$twister_tc_status')</sql_statement>
@@ -45,5 +41,4 @@
 	<redirect ID="goto PhpMyAdmin" Path="http://localhost/phpmyadmin/" />
 	<redirect ID="goto Google" Path="http://www.google.ro" />
 </reports_section>
-</twister_user_defined>
 </root>

@@ -37,6 +37,7 @@ FWMCONFIG_TAGS = (
 	{'name':'EpNames',		'tag':'EpNames',			'default':''},
 	{'name':'TestsPath',	'tag':'TestCaseSourcePath',	'default':''},
 	{'name':'LogsPath',		'tag':'LogsPath',			'default':''},
+	{'name':'LibsPath',		'tag':'LibsPath',			'default':''},
 	{'name':'DbConfig',		'tag':'DbConfigFile',		'default':''},
 	{'name':'EmailConfig',	'tag':'EmailConfigFile',	'default':''},
 	{'name':'GlobalParams',	'tag':'GlobalParams',		'default':''},

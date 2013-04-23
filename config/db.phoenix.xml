@@ -7,15 +7,11 @@
 	<password>password</password>
 </db_config>
 
-<twister_user_defined>
-<field_section>
+<insert_section>
 	<field ID="conf_id" Type="UserSelect" SQLQuery="select DISTINCT id,file from conf_file ORDER BY id"
 		Label="Config id (int):"  GUIDefined="true" Mandatory="true" />
 	<field ID="ipo_id"  Type="UserSelect" SQLQuery="select id, CONCAT(ip, ' v',CAST(build_ver AS CHAR)) AS 'IPO' from ipo ORDER BY id"
 		Label="IPO id (int):"     GUIDefined="true" Mandatory="true" />
-</field_section>
-
-<insert_section>
 	<sql_statement></sql_statement>
 </insert_section>
 
@@ -75,5 +71,4 @@
 	<redirect ID="goto PhpMyAdmin" Path="http://localhost/phpmyadmin/" />
 
 </reports_section>
-</twister_user_defined>
 </root>

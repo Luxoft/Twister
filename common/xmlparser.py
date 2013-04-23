@@ -782,12 +782,12 @@ class DBParser():
         Used by Central Engine.
         Returns a dictionary with field ID : DB select.
         """
-        if not self.xmlDict.xpath('twister_user_defined/field_section/field'):
+        if not self.xmlDict.xpath('insert_section/field'):
             print('DBParser: There are no fields in the field_section, in DB config!')
             return {}
 
-        ids = self.xmlDict.xpath('twister_user_defined/field_section/field[@Type="DbSelect"]/@ID')
-        sqls = self.xmlDict.xpath('twister_user_defined/field_section/field[@Type="DbSelect"]/@SQLQuery')
+        ids = self.xmlDict.xpath('insert_section/field[@Type="DbSelect"]/@ID')
+        sqls = self.xmlDict.xpath('insert_section/field[@Type="DbSelect"]/@SQLQuery')
 
         return dict(zip( [str(x) for x in ids], [str(x) for x in sqls] ))
 
@@ -797,18 +797,18 @@ class DBParser():
         Used by Central Engine.
         Returns a list with field IDs.
         """
-        if not self.xmlDict.xpath('twister_user_defined/field_section/field'):
+        if not self.xmlDict.xpath('insert_section/field'):
             print('DBParser: There are no fields in the field_section, in DB config!')
             return {}
 
-        scripts = self.xmlDict.xpath('twister_user_defined/field_section/field[@Type="UserScript"]/@ID')
+        scripts = self.xmlDict.xpath('insert_section/field[@Type="UserScript"]/@ID')
 
         return [str(x) for x in scripts]
 
 
     def getQuery(self, field_id):
         """ Used by Central Engine. """
-        res =  self.xmlDict.xpath('twister_user_defined/field_section/field[@ID="%s"]' % field_id)
+        res =  self.xmlDict.xpath('insert_section/field[@ID="%s"]' % field_id)
         if not res:
             print('DBParser: Cannot find field ID `%s`!' % field_id)
             return False
@@ -819,7 +819,7 @@ class DBParser():
 
     def getQueries(self):
         """ Used by Central Engine. """
-        return [q.text for q in self.xmlDict.xpath('twister_user_defined/insert_section/sql_statement')]
+        return [q.text for q in self.xmlDict.xpath('insert_section/sql_statement')]
 
 # --------------------------------------------------------------------------------------------------
 #           USED BY WEB SERVER - REPORTS
@@ -829,7 +829,7 @@ class DBParser():
         """ Used by HTTP Server. """
         self.updateConfig()
 
-        fields = self.xmlDict.xpath('twister_user_defined/reports_section/field')
+        fields = self.xmlDict.xpath('reports_section/field')
 
         if not fields:
             print('DBParser: Cannot load the reports fields section!')
@@ -852,7 +852,7 @@ class DBParser():
         """ Used by HTTP Server. """
         self.updateConfig()
 
-        reports = self.xmlDict.xpath('twister_user_defined/reports_section/report')
+        reports = self.xmlDict.xpath('reports_section/report')
 
         if not reports:
             print('DBParser: Cannot load the database reports section!')
@@ -877,7 +877,7 @@ class DBParser():
         """ Used by HTTP Server. """
         self.updateConfig()
 
-        redirects = self.xmlDict.xpath('twister_user_defined/reports_section/redirect')
+        redirects = self.xmlDict.xpath('reports_section/redirect')
 
         if not redirects:
             print('DBParser: Cannot load the database redirects section!')
