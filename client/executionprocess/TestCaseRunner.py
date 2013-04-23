@@ -1,7 +1,7 @@
 
 # File: TestCaseRunner.py ; This file is part of Twister.
 
-# version: 2.001
+# version: 2.002
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -137,7 +137,7 @@ def saveLibraries(proxy, libs_list=''):
 
     for lib_file in zip_libs:
         lib_data = proxy.downloadLibrary(lib_file)
-        time.sleep(0.1) # Must take it slow
+        time.sleep(0.5) # Must take it slow
         if not lib_data:
             print('ZIP library `{0}` does not exist!'.format(lib_file))
             continue
@@ -313,8 +313,11 @@ if __name__=='__main__':
     saveLibraries(proxy)
 
     try: import ce_libs
-    except:
-        print('TC error: TestCaseRunner cannot import the shared libraries!')
+    except ImportError:
+        print('TC ImportError: TestCaseRunner cannot import the shared libraries!')
+        exit(1)
+    except Exception, e:
+        print('TC LibrariesError: TestCaseRunner cannot import the shared libraries, exception `{}`!'.format(e))
         exit(1)
 
     # Get the `exit on test Fail` value

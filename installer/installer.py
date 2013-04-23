@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# version: 2.004
+# version: 2.005
 
 # File: installer.py ; This file is part of Twister.
 
@@ -252,9 +252,9 @@ if TO_INSTALL == 'server':
 
 elif TO_INSTALL == 'client':
     # The client doesn't have important dependencies
-    dependencies = ['Scapy-real', 'pExpect']
-    library_names = ['scapy', 'pexpect']
-    library_versions = ['2.1', '2.2']
+    dependencies = ['Scapy-real', 'Paramiko' 'pExpect']
+    library_names = ['scapy', 'paramiko', 'pexpect']
+    library_versions = ['2.1', '1.0', '2.2']
 
     # Files to move in Client folder
     to_copy = [
