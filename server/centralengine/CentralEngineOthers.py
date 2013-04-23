@@ -198,6 +198,7 @@ class Project:
         self.users[user]['project_path'] = files_config
         self.users[user]['tests_path'] = project_globals['TestsPath']
         self.users[user]['logs_path'] = project_globals['LogsPath']
+        self.users[user]['libs_path'] = project_globals['LibsPath']
         self.users[user]['log_types'] = {}
 
 
@@ -296,6 +297,7 @@ class Project:
         self.users[user]['project_path'] = files_config
         self.users[user]['tests_path'] = project_globals['TestsPath']
         self.users[user]['logs_path'] = project_globals['LogsPath']
+        self.users[user]['libs_path'] = project_globals['LibsPath']
         self.users[user]['log_types'] = {}
 
 

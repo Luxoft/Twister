@@ -136,7 +136,7 @@ def saveLibraries(proxy, libs_list=''):
         __init.write('\nall += ["%s"]\n\n' % ('", "'.join([os.path.splitext(lib)[0] for lib in all_libs])))
 
     for lib_file in zip_libs:
-        lib_data = proxy.downloadLibrary(lib_file)
+        lib_data = proxy.downloadLibrary(userName, lib_file)
         time.sleep(0.5) # Must take it slow
         if not lib_data:
             print('ZIP library `{0}` does not exist!'.format(lib_file))
@@ -153,7 +153,7 @@ def saveLibraries(proxy, libs_list=''):
         f.close() ; del f
 
     for lib_file in all_libs:
-        lib_data = proxy.downloadLibrary(lib_file)
+        lib_data = proxy.downloadLibrary(userName, lib_file)
         time.sleep(0.1) # Must take it slow
         if not lib_data:
             print('Library `{0}` does not exist!'.format(lib_file))
