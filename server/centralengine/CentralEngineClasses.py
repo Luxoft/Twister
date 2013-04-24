@@ -1,7 +1,7 @@
 
 # File: CentralEngineClasses.py ; This file is part of Twister.
 
-# version: 2.002
+# version: 2.003
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -241,6 +241,17 @@ class CentralEngine(_cptools.XMLRPCController):
 # --------------------------------------------------------------------------------------------------
 #           E P   A N D   F I L E   V A R I A B L E S
 # --------------------------------------------------------------------------------------------------
+
+
+    @cherrypy.expose
+    def listUsers(self, active=False):
+        """
+        Function called from the CLI,
+        to list the users that are using Twister.
+        """
+
+        data = self.project.listUsers(active)
+        return data
 
 
     @cherrypy.expose
@@ -905,6 +916,7 @@ class CentralEngine(_cptools.XMLRPCController):
         global TWISTER_PATH
         libs_path = (TWISTER_PATH + '/lib/').replace('//', '/')
         user_path = (self.project.getUserInfo(user, 'libs_path') + os.sep) or ''
+        if user_path == '/': user_path = ''
 
         glob_libs = []
         user_libs = []
@@ -924,7 +936,7 @@ class CentralEngine(_cptools.XMLRPCController):
                     os.path.splitext(d)[1] in ['.py', '.zip']) or \
                     os.path.isdir(libs_path + d) ]
 
-            if os.path.isdir(user_path):
+            if user_path and os.path.isdir(user_path):
                 user_libs = [d for d in os.listdir(user_path) if \
                         ( os.path.isfile(user_path + d) and \
                         '__init__.py' not in d and \
@@ -965,7 +977,8 @@ class CentralEngine(_cptools.XMLRPCController):
         else:
             logDebug('CE: Requested library folder: `{0}`.'.format(name))
             split_name = os.path.split(final_path)
-            tgz = split_name[1] + '.tgz'
+            rnd = binascii.hexlify(os.urandom(5))
+            tgz = split_name[1] + '_' + rnd + '.tgz'
             os.chdir(split_name[0])
             with tarfile.open(tgz, 'w:gz') as binary:
                 binary.add(name=split_name[1], recursive=True)

@@ -1,7 +1,7 @@
 
 # File: TestCaseRunner.py ; This file is part of Twister.
 
-# version: 2.002
+# version: 2.003
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -137,7 +137,7 @@ def saveLibraries(proxy, libs_list=''):
 
     for lib_file in zip_libs:
         lib_data = proxy.downloadLibrary(userName, lib_file)
-        time.sleep(0.5) # Must take it slow
+        time.sleep(0.2) # Must take it slow
         if not lib_data:
             print('ZIP library `{0}` does not exist!'.format(lib_file))
             continue
@@ -154,7 +154,7 @@ def saveLibraries(proxy, libs_list=''):
 
     for lib_file in all_libs:
         lib_data = proxy.downloadLibrary(userName, lib_file)
-        time.sleep(0.1) # Must take it slow
+        time.sleep(0.2) # Must take it slow
         if not lib_data:
             print('Library `{0}` does not exist!'.format(lib_file))
             continue
@@ -176,6 +176,10 @@ def saveLibraries(proxy, libs_list=''):
             # Rename the TGZ
             tgz = lib_pth + '.tgz'
             os.rename(lib_pth, tgz)
+            # Need to wait more on slow machines
+            for i in range(20):
+                try: tarfile.open(tgz, 'r:gz')
+                except: time.sleep(0.2)
             with tarfile.open(tgz, 'r:gz') as binary:
                 os.chdir(libs_path)
                 binary.extractall()

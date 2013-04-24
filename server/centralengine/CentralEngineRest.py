@@ -1,7 +1,7 @@
 
 # File: CentralEngineRest.py ; This file is part of Twister.
 
-# version: 2.001
+# version: 2.002
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -56,7 +56,6 @@ if mako.__version__ < '0.7':
 
 
 # # # # #
-
 
 def calcMemory():
     import subprocess
@@ -174,7 +173,7 @@ class CentralEngineRest:
         ip_port = cherrypy.request.headers['Host']
         machine = platform.uname()[1]
         system  = ' '.join(platform.linux_distribution())
-        users   = sorted([u.split('/')[2] for u in glob.glob('/home/*/twister')])
+        users   = self.project.listUsers()
 
         output = Template(filename=TWISTER_PATH + '/server/centralengine/template_main.htm')
         return output.render(ip_port=ip_port, machine=machine, system=system, users=users)
