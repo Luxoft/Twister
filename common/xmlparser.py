@@ -1,7 +1,7 @@
 
 # File: xmlparser.py ; This file is part of Twister.
 
-# version: 2.003
+# version: 2.004
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -963,9 +963,10 @@ class PluginParser:
                 res = dict(zip([k.text for k in prop_keys], [v.text for v in prop_vals])) # Pack Key + Value
 
                 self.p_config[name] = res
-                self.p_config[name]['jarfile'] = plugin.xpath('jarfile')[0].text
-                self.p_config[name]['pyfile']  = plugin.xpath('pyfile')[0].text
-                self.p_config[name]['status']  = plugin.xpath('status')[0].text
+
+                self.p_config[name]['jarfile'] = plugin.xpath('jarfile')[0].text.strip() if plugin.xpath('jarfile/text()') else ''
+                self.p_config[name]['pyfile']  = plugin.xpath('pyfile')[0].text.strip()  if plugin.xpath('pyfile/text()') else ''
+                self.p_config[name]['status']  = plugin.xpath('status')[0].text.strip()  if plugin.xpath('status/text()') else ''
 
 
     def getPlugins(self):
@@ -980,6 +981,7 @@ class PluginParser:
         for module in py_modules:
             name = module.split('::')[0]
             mod  = module.split('::')[1]
+            if not mod: continue
             plug = None
             try:
                 # Import the plugin module
