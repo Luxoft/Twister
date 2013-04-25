@@ -250,7 +250,6 @@ class ParseData():
 
     def __init__(self, sniffer=None):
         self.sniffer = sniffer
-        print dir(self.sniffer)
         self.packet = None
         self.packetHead = None
 
