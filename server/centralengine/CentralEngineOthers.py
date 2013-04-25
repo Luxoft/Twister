@@ -1,7 +1,7 @@
 
 # File: CentralEngineOthers.py ; This file is part of Twister.
 
-# version: 2.003
+# version: 2.004
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -198,6 +198,7 @@ class Project:
         self.users[user]['project_path'] = files_config
         self.users[user]['tests_path'] = project_globals['TestsPath']
         self.users[user]['logs_path'] = project_globals['LogsPath']
+        self.users[user]['libs_path'] = project_globals['LibsPath']
         self.users[user]['log_types'] = {}
 
 
@@ -296,6 +297,7 @@ class Project:
         self.users[user]['project_path'] = files_config
         self.users[user]['tests_path'] = project_globals['TestsPath']
         self.users[user]['logs_path'] = project_globals['LogsPath']
+        self.users[user]['libs_path'] = project_globals['LibsPath']
         self.users[user]['log_types'] = {}
 
 
@@ -385,6 +387,17 @@ class Project:
                 if not r: return False
 
         return True
+
+
+    def listUsers(self, active=False):
+        """
+        All users that have Twister installer.\n
+        If `active` is True, list only the users that are registered to Central Engine.
+        """
+        users = checkUsers()
+        if active:
+            users = [u for u in users if u in self.users]
+        return sorted(users)
 
 
     def _dump(self):
@@ -1147,6 +1160,9 @@ class Project:
                         # Pre-Suite or Post-Suite files will not be saved to database
                         if subst_data.get('Pre-Suite') or subst_data.get('Post-Suite'):
                             continue
+
+                        # :: For DEBUG ::
+                        #open(TWISTER_PATH + '/config/Query.debug', 'a').write('File Data:: `{0}` ::\n\n'.format(subst_data))
 
                         # For every insert SQL statement, build correct data...
                         for query in queries:

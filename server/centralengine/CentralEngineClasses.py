@@ -1,7 +1,7 @@
 
 # File: CentralEngineClasses.py ; This file is part of Twister.
 
-# version: 2.002
+# version: 2.003
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -241,6 +241,17 @@ class CentralEngine(_cptools.XMLRPCController):
 # --------------------------------------------------------------------------------------------------
 #           E P   A N D   F I L E   V A R I A B L E S
 # --------------------------------------------------------------------------------------------------
+
+
+    @cherrypy.expose
+    def listUsers(self, active=False):
+        """
+        Function called from the CLI,
+        to list the users that are using Twister.
+        """
+
+        data = self.project.listUsers(active)
+        return data
 
 
     @cherrypy.expose
@@ -904,49 +915,70 @@ class CentralEngine(_cptools.XMLRPCController):
         """
         global TWISTER_PATH
         libs_path = (TWISTER_PATH + '/lib/').replace('//', '/')
-        libs = []
+        user_path = (self.project.getUserInfo(user, 'libs_path') + os.sep) or ''
+        if user_path == '/': user_path = ''
+
+        glob_libs = []
+        user_libs = []
 
         # All libraries for user
         if user:
             # If `libraries` is empty, will default to ALL libraries
             tmp_libs = self.project.getUserInfo(user, 'libraries') or ''
-            libs = [x.strip() for x in tmp_libs.split(';')] if tmp_libs else []
+            glob_libs = [x.strip() for x in tmp_libs.split(';')] if tmp_libs else []
             del tmp_libs
 
         # All Python source files from Libraries folder AND all library folders
-        if not libs:
-            libs = [d for d in os.listdir(libs_path) if \
+        if not glob_libs:
+            glob_libs = [d for d in os.listdir(libs_path) if \
                     ( os.path.isfile(libs_path + d) and \
                     '__init__.py' not in d and \
                     os.path.splitext(d)[1] in ['.py', '.zip']) or \
                     os.path.isdir(libs_path + d) ]
 
-        return sorted(libs)
+            if user_path and os.path.isdir(user_path):
+                user_libs = [d for d in os.listdir(user_path) if \
+                        ( os.path.isfile(user_path + d) and \
+                        '__init__.py' not in d and \
+                        os.path.splitext(d)[1] in ['.py', '.zip']) or \
+                        os.path.isdir(user_path + d) ]
+
+        return sorted( list(set(glob_libs + user_libs)) )
 
 
     @cherrypy.expose
-    def downloadLibrary(self, name):
+    def downloadLibrary(self, user, name):
         """
         Sends required library to EP, to be syncronized.\n
+        The library can be global for all users, or per user.\n
         Called from the Runner.
         """
         global TWISTER_PATH
-        name = (TWISTER_PATH + '/lib/' + name).replace('//', '/')
-        if not os.path.exists(name):
+        lib_path = (TWISTER_PATH + '/lib/' + name).replace('//', '/')
+        user_lib = self.project.getUserInfo(user, 'libs_path') + os.sep + name
+
+        # If the requested library is in the second path (user path)
+        if os.path.exists(user_lib):
+            final_path = user_lib
+        # If the requested library is in the main path (global path)
+        elif os.path.exists(lib_path):
+            final_path = lib_path
+        else:
             logError('ERROR! Library `{0}` does not exist!'.format(name))
             return False
 
         # Python and Zip files
-        if os.path.isfile(name):
+        if os.path.isfile(final_path):
             logDebug('CE: Requested library file: `{0}`.'.format(name))
-            with open(name, 'rb') as binary:
+            with open(final_path, 'rb') as binary:
                 return xmlrpclib.Binary(binary.read())
 
         # Library folders must be compressed
         else:
             logDebug('CE: Requested library folder: `{0}`.'.format(name))
-            split_name = os.path.split(name)
-            tgz = split_name[1] + '.tgz'
+            split_name = os.path.split(final_path)
+            rnd = binascii.hexlify(os.urandom(5))
+            tgz = split_name[1] + '_' + rnd + '.tgz'
             os.chdir(split_name[0])
             with tarfile.open(tgz, 'w:gz') as binary:
                 binary.add(name=split_name[1], recursive=True)

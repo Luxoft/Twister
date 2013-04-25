@@ -1,7 +1,9 @@
 
-# Central Engine and Execution Process statuses:
+# version: 2.002
 
-# version: 2.001
+# Major list of constants.
+
+# Central Engine and Execution Process statuses:
 
 STATUS_STOP    = 0 # Suicide; the test suite is immediately killed
 STATUS_PAUSED  = 1 # After the current test is finished, the suite is frozen
