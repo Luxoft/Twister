@@ -36,7 +36,7 @@ from copy import deepcopy
 from time import time
 
 from json import dumps
-from scapy.all import Ether, Packet, NoPayload, wrpcap
+from scapy.all import wrpcap
 
 from BasePlugin import BasePlugin
 
@@ -213,7 +213,6 @@ class Plugin(BasePlugin):
                 try:
                     packetIndex = int(args['data'])
                     packet = deepcopy(self.packets[packetIndex])
-                    packet['packet'] = self.packet_to_dict(packet['packet'])
                 except Exception, e:
                     packetIndex = None
                     packet = None
@@ -224,7 +223,6 @@ class Plugin(BasePlugin):
                         if _packet['packet_head']['id'] == packetID:
                             packetIndex = self.packets.index(_packet)
                             packet = deepcopy(_packet)
-                            packet['packet'] = self.packet_to_dict(packet['packet'])
 
 
                 if packetIndex is not None:
@@ -272,7 +270,6 @@ class Plugin(BasePlugin):
 
             try:
                 packet = literal_eval(a2b_base64(args['data']))
-                packet['packet'] = Ether(packet['packet'])
                 self.packets.append(packet)
             except Exception, e:
                 response['status']['success'] = False
@@ -304,30 +301,6 @@ class Plugin(BasePlugin):
             response['status']['message'] = 'except'
 
         return response
-
-    def packet_to_dict(self, packet):
-        """ Recursive function to parse packet and return dict """
-
-        if isinstance(packet, Packet):
-            _packet = packet.fields
-            if not isinstance(packet.payload, NoPayload):
-                _packet['payload'] = packet.payload
-
-            return {packet.name: self.packet_to_dict(_packet)}
-
-        elif isinstance(packet, dict):
-            for k,v in packet.iteritems():
-                packet[k] = self.packet_to_dict(v)
-
-            return packet
-
-        elif isinstance(packet, list):
-            for v in packet:
-                packet[packet.index(v)] = self.packet_to_dict(v)
-
-        else:
-
-            return packet
 
 
 
