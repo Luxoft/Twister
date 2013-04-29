@@ -423,7 +423,6 @@ public class PacketSnifferPlugin extends BasePlugin implements
 			top.add(search2);
 			JButton apply2 = new JButton("Apply");
 			apply2.addActionListener(new ActionListener() {
-				
 				@Override
 				public void actionPerformed(ActionEvent arg0) {
 					setRemoteFilter(search2.getText());
@@ -432,11 +431,11 @@ public class PacketSnifferPlugin extends BasePlugin implements
 			top.add(apply2);
 			JButton clear2 = new JButton("Clear");
 			clear2.addActionListener(new ActionListener() {
-				
 				@Override
 				public void actionPerformed(ActionEvent arg0) {
 					search2.setText("");
-					setRemoteFilter(search2.getText());
+					setRemoteFilter("");
+					
 				}
 			});
 			top.add(clear2);
@@ -614,13 +613,14 @@ public class PacketSnifferPlugin extends BasePlugin implements
 	
 	private void setRemoteFilter(String text){
 		try {
+			String s = "command=setfilters&data="+text;
 			String resp = client.execute(
 					"runPlugin",
 					new Object[] {
 							variables.get("user"),
-							getName(),
-							"command=setfilters&data="+text})
+							getName(),s})
 					.toString();
+			System.out.println("Filter set: "+s);
 			System.out.println(resp);
 			((DefaultTableModel) jTable1.getModel())
 					.setNumRows(0);
