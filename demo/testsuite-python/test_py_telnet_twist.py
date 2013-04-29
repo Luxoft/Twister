@@ -14,7 +14,7 @@ def test():
 	'''
 
 	conn = {
-		'host': '11.126.32.16',
+		'host': 'host',
 		'port': 23,
 		'user': 'user',
 		'passwd': 'password',

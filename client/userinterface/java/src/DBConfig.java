@@ -278,10 +278,10 @@ public class DBConfig extends JPanel{
                 nodeLst = doc.getElementsByTagName("user");
                 tuser.setText(nodeLst.item(0).getChildNodes().item(0).getNodeValue());}
             catch(Exception e){
-                CustomDialog.showInfo(JOptionPane.INFORMATION_MESSAGE, null, "info", e.getMessage());
                 System.out.println(Repository.temp+Repository.getBar()+
                 "Twister"+Repository.getBar()+"Config"+Repository.getBar()+new File(Repository.
-                REMOTEDATABASECONFIGFILE).getName()+" is corrupted or incomplete");}}
+                REMOTEDATABASECONFIGFILE).getName()+" is corrupted or incomplete");
+                e.printStackTrace();}}
         catch(Exception e){
             CustomDialog.showInfo(JOptionPane.INFORMATION_MESSAGE, null, "info", e.getMessage());
             e.printStackTrace();

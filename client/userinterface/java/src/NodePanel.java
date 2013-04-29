@@ -129,10 +129,6 @@ public class NodePanel extends JPanel{
         JScrollPane jScrollPane2 = new JScrollPane();
         JScrollPane epscroll = new JScrollPane(tep);
         proppanel = new JPanel();
-//         JLabel jLabel1 = new javax.swing.JLabel();
-//         JTextField jTextField1 = new javax.swing.JTextField();
-//         JLabel jLabel2 = new javax.swing.JLabel();
-//         JTextField jTextField2 = new javax.swing.JTextField();
 
         add = new JButton("Add");
         add.setEnabled(false);
@@ -330,7 +326,7 @@ public class NodePanel extends JPanel{
                                 String resp = client.execute("renameResource", new Object[]{parent.getID()+":"+jTextField1.getOldValue(),
                                                                             jTextField1.getText()}).toString();
                                 if(resp.equals("true")){
-                                    jTextField1.setOldValue(jTextField1.getText());
+		                            parent.addProperty(jTextField1.getText(), parent.getProperties().remove(jTextField1.getOldValue()).toString());                                    jTextField1.setOldValue(jTextField1.getText());
                                 } else {
                                     jTextField1.setText(jTextField1.getOldValue());
                                 }
@@ -417,7 +413,7 @@ public class NodePanel extends JPanel{
             for(String s:Repository.getRemoteFileContent(Repository.REMOTEEPIDDIR).split("\n")){
                 if(s.indexOf("[")!=-1){
                     st = s.substring(s.indexOf("[")+1, s.indexOf("]"));
-                    if(st.toUpperCase().indexOf("plugin")==-1){
+                    if(st.toUpperCase().indexOf("PLUGIN")==-1){
                         b.append(s.substring(s.indexOf("[")+1, s.indexOf("]"))+";");
                     }
                 }
