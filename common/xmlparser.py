@@ -968,6 +968,7 @@ class PluginParser:
         for module in py_modules:
             name = module.split('::')[0]
             mod  = module.split('::')[1]
+			if not mod: continue
             plug = None
             try:
                 # Import the plugin module
