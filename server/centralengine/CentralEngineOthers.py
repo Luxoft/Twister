@@ -1,7 +1,7 @@
 
 # File: CentralEngineOthers.py ; This file is part of Twister.
 
-# version: 2.002
+# version: 2.003
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -176,7 +176,7 @@ class Project:
         # Generate the list of EPs in order
         for epname in epList:
             self.users[user]['eps'][epname] = OrderedDict()
-            self.users[user]['eps'][epname]['suites'] = {}
+            self.users[user]['eps'][epname]['suites'] = OrderedDict()
 
         # Information about ALL project suites
         suitesInfo = self.parsers[user].getAllSuitesInfo()
@@ -274,7 +274,7 @@ class Project:
             # All EPs must have status STOP
             self.users[user]['eps'][epname] = OrderedDict()
             self.users[user]['eps'][epname]['status'] = STATUS_STOP
-            self.users[user]['eps'][epname]['suites'] = {}
+            self.users[user]['eps'][epname]['suites'] = OrderedDict()
 
         # Information about ALL project suites
         suitesInfo = self.parsers[user].getAllSuitesInfo()

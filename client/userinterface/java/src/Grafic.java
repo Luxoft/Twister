@@ -81,7 +81,7 @@ import java.util.Iterator;
 public class Grafic extends JPanel{
     private static final long serialVersionUID = 1L;
     private ArrayList <Integer> selected;
-    private ArrayList <int []> selectedcollection = new ArrayList<int []>();
+    public ArrayList <int []> selectedcollection = new ArrayList<int []>();
     private byte keypress;
     private JPopupMenu p = new JPopupMenu();
     private boolean foundfirstitem;

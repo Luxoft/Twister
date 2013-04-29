@@ -185,6 +185,7 @@ public class ConfigFiles extends JPanel{
         paths.add(p8);
         
         JButton save = new JButton("Save");
+		save.setToolTipText("Save and automatically load config");
         save.setBounds(490,20,70,20);
         save.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){

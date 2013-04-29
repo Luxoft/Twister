@@ -158,17 +158,13 @@ public class PacketSnifferPlugin extends BasePlugin implements
 		try {
 			String status = client.execute("runPlugin",
 					new Object[] { variables.get("user"), getName(),
-							// String status = client.execute("runPlugin", new
-							// Object[] {"tscguest", getName(),
 							"command=echo" }).toString();
 			System.out.println("status: " + status);
 			if (status.equals("running")) {
 				start = 1;
-				// sniff.setIcon(button3);
 				bstart.setText("Stop");
 			}
 		} catch (Exception e1) {
-			// TODO Auto-generated catch block
 			e1.printStackTrace();
 		}
 		go = true;
@@ -200,10 +196,9 @@ public class PacketSnifferPlugin extends BasePlugin implements
 			JPanel panel1 = new JPanel();
 			panel1.setLayout(null);
 
-			panel1.setMaximumSize(new Dimension(1150, 650));
-			panel1.setMinimumSize(new Dimension(1150, 650));
-			panel1.setPreferredSize(new Dimension(1150, 650));
-			panel1.setSize(new Dimension(1150, 650));
+			panel1.setMaximumSize(new Dimension(1150, 700));
+			panel1.setMinimumSize(new Dimension(1150, 700));
+			panel1.setPreferredSize(new Dimension(1150, 700));
 
 			InputStream in = getClass().getResourceAsStream("Sniff0.png");
 			Image im = ImageIO.read(in);
@@ -217,20 +212,14 @@ public class PacketSnifferPlugin extends BasePlugin implements
 			in = getClass().getResourceAsStream("Stop0.png");
 			im = ImageIO.read(in);
 			button3 = new ImageIcon(im);
-			// in = getClass().getResourceAsStream("Reset0.png");
-			// im = ImageIO.read(in);
-			// final ImageIcon button4 = new ImageIcon(im);
 			in = getClass().getResourceAsStream("Reset1.png");
 			im = ImageIO.read(in);
 			final ImageIcon button5 = new ImageIcon(im);
 			in = getClass().getResourceAsStream("Save.png");
 			im = ImageIO.read(in);
 			ImageIcon save = new ImageIcon(im);
-			// reset = new JLabel(button4);
-			// reset.setBounds(543, 610, 120, 120);
-			// panel1.add(reset);
 
-			breset.setBounds(623, 610, 120, 30);
+			breset.setBounds(515, 635, 120, 30);
 			panel1.add(breset);
 			breset.addActionListener(new ActionListener() {
 
@@ -250,30 +239,8 @@ public class PacketSnifferPlugin extends BasePlugin implements
 				}
 			});
 
-			// reset.addMouseListener(new MouseAdapter() {
-			// public void mouseEntered(MouseEvent ev) {
-			// reset.setCursor(Cursor
-			// .getPredefinedCursor(Cursor.HAND_CURSOR));
-			// }
-			// public void mousePressed(MouseEvent ev) {
-			// reset.setIcon(button5);
-			// }
-			// public void mouseReleased(MouseEvent ev) {
-			// reset.setIcon(button4);
-			// try{String resp = client.execute("runPlugin", new Object[] {
-			// variables.get("user"), getName(),
-			// "command=reset"}).toString();
-			// ((DefaultTableModel)jTable1.getModel()).setNumRows(0);
-			// index = "0";
-			// System.out.println("resp: "+resp);
-			// } catch(Exception e){
-			// e.printStackTrace();
-			// }
-			// }
-			// });
-
 			bstart = new JButton("Start");
-			bstart.setBounds(453, 610, 120, 30);
+			bstart.setBounds(385, 635, 120, 30);
 			panel1.add(bstart);
 			bstart.addActionListener(new ActionListener() {
 
@@ -287,9 +254,6 @@ public class PacketSnifferPlugin extends BasePlugin implements
 									"runPlugin",
 									new Object[] { variables.get("user"),
 											getName(),
-											// String resp =
-											// client.execute("runPlugin", new
-											// Object[] { "tscguest", getName(),
 											"command=pause" }).toString();
 							System.out.println("resp: " + resp);
 						} catch (Exception ex) {
@@ -312,54 +276,10 @@ public class PacketSnifferPlugin extends BasePlugin implements
 				}
 			});
 
-			// sniff = new JLabel(button0);
-			// sniff.setBounds(373, 610, 120, 120);
-			// panel1.add(sniff);
-			// sniff.addMouseListener(new MouseAdapter() {
-			// public void mouseEntered(MouseEvent ev) {
-			// sniff.setCursor(Cursor
-			// .getPredefinedCursor(Cursor.HAND_CURSOR));
-			// }
-			// public void mousePressed(MouseEvent ev) {
-			// if(start==0){
-			// sniff.setIcon(button1);
-			// } else {
-			// sniff.setIcon(button2);
-			// }
-			// }
-			// public void mouseReleased(MouseEvent ev) {
-			// if(start==1){
-			// sniff.setIcon(button0);
-			// start=0;
-			// try{
-			// String resp = client.execute("runPlugin", new Object[] {
-			// variables.get("user"), getName(),
-			// //String resp = client.execute("runPlugin", new Object[] {
-			// "tscguest", getName(),
-			// "command=pause"}).toString();
-			// System.out.println("resp: "+resp);
-			// } catch(Exception e){
-			// e.printStackTrace();
-			// }
-			// } else {
-			// sniff.setIcon(button3);
-			// start=1;
-			// try{
-			// String resp = client.execute("runPlugin", new Object[] {
-			// variables.get("user"), getName(),
-			// "command=resume"}).toString();
-			// System.out.println("resp: "+resp);
-			// } catch(Exception e){
-			// e.printStackTrace();
-			// }
-			// }
-			// }
-			// });
-
 			jTable1 = new JTable();
 			jTable1.getTableHeader().setReorderingAllowed(false);
 			jTable1.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-			jTable1.getSelectionModel().addListSelectionListener(
+			jTable1.getSelectionModel().addListSelectionListener(					
 					new ListSelectionListener() {
 						@Override
 						public void valueChanged(ListSelectionEvent arg0) {
@@ -399,7 +319,7 @@ public class PacketSnifferPlugin extends BasePlugin implements
 
 			JScrollPane pane = new JScrollPane(jTable1);
 			pane.setBorder(BorderFactory.createBevelBorder(BevelBorder.LOWERED));
-			pane.setBounds(25, 45, 1100, 300);
+			pane.setBounds(25, 70, 1100, 300);
 
 			jTable1.setModel(new DefaultTableModel(new Object[][] {},
 					new String[] { "Protocol", "SRC IP", "SRC Mac", "SRC Port",
@@ -422,18 +342,19 @@ public class PacketSnifferPlugin extends BasePlugin implements
 			content = new JTextArea();
 			content.setEditable(false);
 			JScrollPane sc = new JScrollPane(content);
-			sc.setBounds(25, 350, 1100, 250);
+			sc.setBounds(25, 380, 1100, 250);
 			panel1.add(sc);
 
 			JPanel top = new JPanel();
-			top.setBounds(25,0,1100,40);
+			top.setBounds(25,0,1100,35);
 			panel1.add(top);
 			
-			JLabel filter = new JLabel("Filter:");
-			//filter.setBounds(50, 10, 40, 25);
+			JPanel top2 = new JPanel();
+			top2.setBounds(25,35,1100,30);
+			panel1.add(top2);
 			
+			JLabel filter = new JLabel("View Filter:");
 			panel1.add(top);
-			//panel1.add(filter);
 			top.add(filter);
 			final JTextField search = new JTextField();
 			search.setMinimumSize(new Dimension(130,20));
@@ -445,46 +366,40 @@ public class PacketSnifferPlugin extends BasePlugin implements
 					}
 				}
 			});
-			//panel1.add(search);
 			top.add(search);
+			JButton apply = new JButton("Apply");
+			apply.addActionListener(new ActionListener() {
+				
+				@Override
+				public void actionPerformed(ActionEvent arg0) {
+					filter(search.getText());
+				}
+			});
+			top.add(apply);
+			JButton clear = new JButton("Clear");
+			clear.addActionListener(new ActionListener() {
+				
+				@Override
+				public void actionPerformed(ActionEvent arg0) {
+					search.setText("");
+					filter("");
+				}
+			});
+			top.add(clear);
 
-			filter = new JLabel("Start opt.:");
-			//filter.setBounds(240, 10, 40, 25);
-
-			//panel1.add(filter);
+			filter = new JLabel("Start Options:");
 			top.add(filter);
 			final JTextField search2 = new JTextField();
-			//search2.setBounds(275, 10, 150, 25);
 			search2.setMinimumSize(new Dimension(130,20));
 			search2.setPreferredSize(new Dimension(130,20));
 			search2.addKeyListener(new KeyAdapter() {
 				public void keyReleased(KeyEvent ev) {
 					if (ev.getKeyCode() == KeyEvent.VK_ENTER) {
-						try {
-							// String resp = client.execute("runPlugin", new
-							// Object[] { "tscguest", getName(),
-							String resp = client.execute(
-									"runPlugin",
-									new Object[] {
-											variables.get("user"),
-											getName(),
-											"command=setfilters&data="
-													+ search2.getText() })
-									.toString();
-							System.out.println(resp);
-							((DefaultTableModel) jTable1.getModel())
-									.setNumRows(0);
-							index = "0";
-						} catch (Exception e) {
-							e.printStackTrace();
-						}
+						setRemoteFilter(search2.getText());
 					}
 				}
 			});
 			try {
-				// HashMap<String, String> filters = (HashMap<String,
-				// String>)client.execute("runPlugin", new Object[] {"tscguest",
-				// getName(),
 				HashMap<String, String> filters = (HashMap<String, String>) client
 						.execute("runPlugin",
 								new Object[] { variables.get("user"),
@@ -505,8 +420,26 @@ public class PacketSnifferPlugin extends BasePlugin implements
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
-			//panel1.add(search2);
 			top.add(search2);
+			JButton apply2 = new JButton("Apply");
+			apply2.addActionListener(new ActionListener() {
+				
+				@Override
+				public void actionPerformed(ActionEvent arg0) {
+					setRemoteFilter(search2.getText());
+				}
+			});
+			top.add(apply2);
+			JButton clear2 = new JButton("Clear");
+			clear2.addActionListener(new ActionListener() {
+				
+				@Override
+				public void actionPerformed(ActionEvent arg0) {
+					search2.setText("");
+					setRemoteFilter(search2.getText());
+				}
+			});
+			top.add(clear2);
 
 			pro = new JCheckBox("Protocol");
 			pro.setSelected(true);
@@ -523,9 +456,7 @@ public class PacketSnifferPlugin extends BasePlugin implements
 					}
 				}
 			});
-			//pro.setBounds(425, 10, 75, 25);
-			//panel1.add(pro);
-			top.add(pro);
+			top2.add(pro);
 			srcip = new JCheckBox("SRC IP");
 			srcip.setSelected(true);
 			srcip.addActionListener(new ActionListener() {
@@ -547,9 +478,7 @@ public class PacketSnifferPlugin extends BasePlugin implements
 					}
 				}
 			});
-			//srcip.setBounds(500, 10, 65, 25);
-			//panel1.add(srcip);
-			top.add(srcip);
+			top2.add(srcip);
 			srcmac = new JCheckBox("SRC Mac");
 			srcmac.setSelected(true);
 			srcmac.addActionListener(new ActionListener() {
@@ -573,9 +502,7 @@ public class PacketSnifferPlugin extends BasePlugin implements
 					}
 				}
 			});
-			//srcmac.setBounds(565, 10, 80, 25);
-			//panel1.add(srcmac);
-			top.add(srcmac);
+			top2.add(srcmac);
 			srcport = new JCheckBox("SRC Port");
 			srcport.setSelected(true);
 			srcport.addActionListener(new ActionListener() {
@@ -607,9 +534,7 @@ public class PacketSnifferPlugin extends BasePlugin implements
 					}
 				}
 			});
-			//srcport.setBounds(645, 10, 80, 25);
-			//panel1.add(srcport);
-			top.add(srcport);
+			top2.add(srcport);
 			dstip = new JCheckBox("DST IP");
 			dstip.setSelected(true);
 			dstip.addActionListener(new ActionListener() {
@@ -635,9 +560,7 @@ public class PacketSnifferPlugin extends BasePlugin implements
 					}
 				}
 			});
-			//dstip.setBounds(725, 10, 65, 25);
-			//panel1.add(dstip);
-			top.add(dstip);
+			top2.add(dstip);
 			dstmac = new JCheckBox("DST Mac");
 			dstmac.setSelected(true);
 			dstmac.addActionListener(new ActionListener() {
@@ -657,9 +580,7 @@ public class PacketSnifferPlugin extends BasePlugin implements
 					}
 				}
 			});
-			//dstmac.setBounds(790, 10, 75, 25);
-			//panel1.add(dstmac);
-			top.add(dstmac);
+			top2.add(dstmac);
 			dstport = new JCheckBox("DST Port");
 			dstport.setSelected(true);
 			dstport.addActionListener(new ActionListener() {
@@ -674,31 +595,37 @@ public class PacketSnifferPlugin extends BasePlugin implements
 					}
 				}
 			});
-			//dstport.setBounds(865, 10, 80, 25);
-			//panel1.add(dstport);
-			top.add(dstport);
-			// JButton load = new JButton(open);
-			// load.addActionListener(new ActionListener() {
-			// @Override
-			// public void actionPerformed(ActionEvent arg0) {
-			// loadFile();
-			// }
-			// });
-			// load.setBounds(830,5,35,35);
-			// panel1.add(load);
+			top2.add(dstport);
 			JButton bsave = new JButton(save);
-			bsave.setPreferredSize(new Dimension(35,35));
+			bsave.setToolTipText("Save as libpcap");
 			bsave.addActionListener(new ActionListener() {
 				@Override
 				public void actionPerformed(ActionEvent arg0) {
 					saveFile();
 				}
 			});
-			//bsave.setBounds(950, 5, 35, 35);
-			//panel1.add(bsave);
-			top.add(bsave);
+			bsave.setBounds(645, 635, 120, 30);
+			panel1.add(bsave);
 			p.add(new JScrollPane(panel1));
 		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	private void setRemoteFilter(String text){
+		try {
+			String resp = client.execute(
+					"runPlugin",
+					new Object[] {
+							variables.get("user"),
+							getName(),
+							"command=setfilters&data="+text})
+					.toString();
+			System.out.println(resp);
+			((DefaultTableModel) jTable1.getModel())
+					.setNumRows(0);
+			index = "0";
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 	}
@@ -952,7 +879,7 @@ public class PacketSnifferPlugin extends BasePlugin implements
 					protocol = protocol.substring(1, protocol.length() - 1);
 					source = jobject.get("id");
 					id = source.toString();
-					//id = id.substring(1, id.length() - 1);
+					id = id.substring(1, id.length() - 1);
 					// System.out.println("protocol:"+source.toString());
 					model.addRow(new Object[] { protocol, sip, smac, sport,
 							dip, dmac, dport, id });

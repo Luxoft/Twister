@@ -348,7 +348,7 @@ public class Repository{
             transformer.transform(source, result);
             FileInputStream in = new FileInputStream(file);
             
-            Repository.uploadRemoteFile(Repository.USERHOME+"/twister/config/",in,file.getName());
+            uploadRemoteFile(Repository.USERHOME+"/twister/config/",in,file.getName());
             
 //             c.cd(Repository.USERHOME+"/twister/config/");
 //             System.out.println("Saving to: "+Repository.USERHOME+"/twister/config/");
@@ -1038,8 +1038,10 @@ public class Repository{
      */
     public static String getTagContent(Document doc, String tag){
         NodeList nodeLst = doc.getElementsByTagName(tag);
-        if(nodeLst.getLength()==0)
+        if(nodeLst.getLength()==0){
             System.out.println("tag "+tag+" not found in "+doc.getDocumentURI());
+            return "";
+        }
         Node fstNode = nodeLst.item(0);
         Element fstElmnt = (Element)fstNode;
         NodeList fstNm = fstElmnt.getChildNodes();
@@ -1608,6 +1610,8 @@ public class Repository{
             CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,Repository.window,
                                         "Warning", "Could not upload :"+filename);
             e.printStackTrace();
+            try{input.close();}
+            catch(Exception ex){ex.printStackTrace();}
             sftpoccupied = false;
             return false;
         }
@@ -1794,13 +1798,12 @@ public class Repository{
                                             append(Repository.getBar()).append(user).toString()));}
                 catch(Exception e){
                     e.printStackTrace();
-                }         
-                                    }
-                                    if(Repository.getSuiteNr() > 0){
-            Repository.window.mainpanel.p1.sc.g.updateLocations(Repository.getSuita(0));}
-        Repository.window.mainpanel.p1.sc.g.repaint();
-                                    
-                                    }
+            }}
+            if(Repository.getSuiteNr() > 0){
+                Repository.window.mainpanel.p1.sc.g.updateLocations(Repository.getSuita(0));}
+                Repository.window.mainpanel.p1.sc.g.repaint();
+            }
+            Repository.window.mainpanel.p1.sc.g.selectedcollection.clear();
         
         
         
