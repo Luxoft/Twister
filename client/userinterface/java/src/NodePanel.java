@@ -326,7 +326,9 @@ public class NodePanel extends JPanel{
                                 String resp = client.execute("renameResource", new Object[]{parent.getID()+":"+jTextField1.getOldValue(),
                                                                             jTextField1.getText()}).toString();
                                 if(resp.equals("true")){
+                                    parent.addProperty(jTextField1.getText(), parent.getProperties().remove(jTextField1.getOldValue()).toString());
                                     jTextField1.setOldValue(jTextField1.getText());
+                                    
                                 } else {
                                     jTextField1.setText(jTextField1.getOldValue());
                                 }
@@ -413,27 +415,12 @@ public class NodePanel extends JPanel{
             for(String s:Repository.getRemoteFileContent(Repository.REMOTEEPIDDIR).split("\n")){
                 if(s.indexOf("[")!=-1){
                     st = s.substring(s.indexOf("[")+1, s.indexOf("]"));
-                    if(st.toUpperCase().indexOf("plugin")==-1){
+                    if(st.toUpperCase().indexOf("PLUGIN")==-1){
                         b.append(s.substring(s.indexOf("[")+1, s.indexOf("]"))+";");
                     }
                 }
             }
             String [] vecresult = b.toString().split(";");
-//             String line = null;
-//             InputStream in = Repository.c.get(Repository.REMOTEEPIDDIR);
-//             InputStreamReader inputStreamReader = new InputStreamReader(in);
-//             BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
-//             StringBuilder b=new StringBuilder();
-//             while ((line=bufferedReader.readLine())!= null){
-//                 if(line.indexOf("[")!=-1){
-//                     b.append(line.substring(line.indexOf("[")+1, line.indexOf("]"))+";");
-//                 }
-//             }
-//             bufferedReader.close();
-//             inputStreamReader.close();
-//             in.close();
-//             String result = b.toString();
-//             String [] vecresult = result.split(";");
             for(ListSelectionListener l:tep.getListSelectionListeners()){
                 tep.removeListSelectionListener(l);
             }

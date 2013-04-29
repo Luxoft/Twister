@@ -249,8 +249,8 @@ public class Panel4 extends JPanel{
     public Services getServices(){
         return services;}
         
-    public DBConfig getDBConfig(){
-        return dbconfig;}
+    public DatabaseInterface getDBConfig(){
+        return dbconfig.databaseinterface;}
         
     public ConfigFiles getConfig(){
         return config;}

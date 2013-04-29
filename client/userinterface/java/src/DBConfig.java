@@ -248,7 +248,7 @@ public class DBConfig extends JPanel{
     
     }
         
-    public void refresh(){
+    private void refresh(){
         try{
             tserver.setText("");
             tdatabase.setText("");

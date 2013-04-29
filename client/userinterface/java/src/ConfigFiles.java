@@ -82,7 +82,7 @@ public class ConfigFiles extends JPanel{
                               tlog,trunning,//tname,//thardwareconfig,
                               tdebug,tsummary,tinfo,tcli,tdbfile,
                               temailfile,tceport,
-                              //traPort,
+                              libpath,
                               thttpPort,
                               tglobalsfile;
     JPanel paths;
@@ -173,7 +173,23 @@ public class ConfigFiles extends JPanel{
 //         tname = new JTextField();
 //         addPanel("File name","File name to store this configuration",
 //                     tname,"",808,true,actionlistener);
-                    
+                 
+//         JPanel p9 = new JPanel();
+//         p9.setBackground(Color.WHITE);
+//         TitledBorder border8 = BorderFactory.createTitledBorder("Library path");
+//         border8.setTitleFont(new Font("Arial",Font.PLAIN,14));
+//         border8.setBorder(BorderFactory.createLineBorder(new Color(150,150,150), 1));
+//         p9.setBorder(border8);
+//         p9.setLayout(null);    
+//         p9.setBounds(80,808,800,50);
+//         paths.add(p9);
+        
+        
+        libpath = new JTextField();
+        addPanel("Library path",
+                "Secondary user library path",libpath,
+                Repository.REMOTELIBRARY,808,true,null);
+   
         JPanel p8 = new JPanel();
         p8.setBackground(Color.WHITE);
         TitledBorder border8 = BorderFactory.createTitledBorder("File");
@@ -181,10 +197,11 @@ public class ConfigFiles extends JPanel{
         border8.setBorder(BorderFactory.createLineBorder(new Color(150,150,150), 1));
         p8.setBorder(border8);
         p8.setLayout(null);    
-        p8.setBounds(80,808,800,50);
+        p8.setBounds(80,875,800,50);
         paths.add(p8);
         
         JButton save = new JButton("Save");
+        save.setToolTipText("Save and automatically load config");
         save.setBounds(490,20,70,20);
         save.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
@@ -202,7 +219,6 @@ public class ConfigFiles extends JPanel{
                                              "File Name", "Please enter file name");
                 if(!filename.equals("NULL")){
                     saveXML(false,filename);
-                    
                 }
             }});
         p8.add(saveas);
@@ -354,6 +370,7 @@ public class ConfigFiles extends JPanel{
                         Repository.populatePluginsVariables();
                         tdbfile.setText(Repository.REMOTEDATABASECONFIGFILE);
                         ttcpath.setText(Repository.TESTSUITEPATH);
+                        libpath.setText(Repository.REMOTELIBRARY);
                         tMasterXML.setText(Repository.XMLREMOTEDIR);
                         tUsers.setText(Repository.REMOTEUSERSDIRECTORY);
                         tepid.setText(Repository.REMOTEEPIDDIR);
@@ -488,8 +505,8 @@ public class ConfigFiles extends JPanel{
             catch(Exception e){addTag("HttpServerPort","",root,blank,document);}
             try{addTag("TestCaseSourcePath",ttcpath.getText(),root,blank,document);}
             catch(Exception e){addTag("TestCaseSourcePath","",root,blank,document);}
-//             try{addTag("MasterXMLTestSuite",tMasterXML.getText(),root,blank,document);}
-//             catch(Exception e){addTag("MasterXMLTestSuite","",root,blank,document);}
+            try{addTag("LibPath",libpath.getText(),root,blank,document);}
+            catch(Exception e){addTag("LibPath","",root,blank,document);}
             try{addTag("UsersPath",tUsers.getText(),root,blank,document);}
             catch(Exception e){addTag("UsersPath","",root,blank,document);}
             try{addTag("LogsPath",tlog.getText(),root,blank,document);}

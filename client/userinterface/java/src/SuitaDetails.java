@@ -67,6 +67,8 @@ import java.util.Set;
 import javax.swing.GroupLayout;
 import javax.swing.SwingConstants;
 import javax.swing.Box;
+import javax.swing.event.DocumentListener;
+import javax.swing.event.DocumentEvent;
 
 public class SuitaDetails extends JPanel {
     private JPanel defsContainer,global, suiteoptions, tcoptions, summary;
@@ -1271,16 +1273,28 @@ class DefPanel extends JPanel{
                                         addGap(0, 20, Short.MAX_VALUE));
         add(filedsGap);        
         userDefinition = new JTextField();
+        userDefinition.getDocument().addDocumentListener(new DocumentListener() {
+            public void changedUpdate(DocumentEvent e) {
+                setParentField(userDefinition.getText(),false);
+            }
+            public void removeUpdate(DocumentEvent e) {
+                setParentField(userDefinition.getText(),false);
+            }
+            public void insertUpdate(DocumentEvent e) {
+                setParentField(userDefinition.getText(),false);
+            }
+        });
+
         userDefinition.setText("");
         userDefinition.setMaximumSize(new Dimension(300, 100));
         userDefinition.setMinimumSize(new Dimension(50, 20));
         userDefinition.setPreferredSize(new Dimension(100, 20));
         add(userDefinition);
-        userDefinition.addKeyListener(new KeyAdapter(){
-            public void keyReleased(KeyEvent ev){
-                if(parent!=null){
-                    System.out.println(parent.getName()+" "+userDefinition.getText());
-                    setParentField(userDefinition.getText(),false);}}});
+//         userDefinition.addKeyListener(new KeyAdapter(){
+//             public void keyReleased(KeyEvent ev){
+//                 if(parent!=null){
+//                     System.out.println(parent.getName()+" "+userDefinition.getText());
+//                     setParentField(userDefinition.getText(),false);}}});
         filedsGap = new JPanel();
         filedsGap.setBackground(new Color(255, 255, 255));
         filedsGap.setMaximumSize(new Dimension(20, 20));
@@ -1319,12 +1333,12 @@ class DefPanel extends JPanel{
                     Container c;
                     if(Repository.container!=null)c = Repository.container.getParent();
                     else c = Repository.window;
-                    //new MySftpBrowser(Repository.c,userDefinition,c);
                     new MySftpBrowser(Repository.host,Repository.user,Repository.password,userDefinition,c);
-                    if(parent!=null){
-                        setParentField(userDefinition.getText(),false);}
-                    }
-                });
+//                     if(parent!=null){
+//                         setParentField(userDefinition.getText(),false);
+//                     }
+                        
+                    }});
             filedsGap = new JPanel();
             filedsGap.setBackground(new Color(255, 255, 255));
             filedsGap.setMaximumSize(new Dimension(10, 10));
@@ -1380,6 +1394,7 @@ class DefPanel extends JPanel{
             component.setEnabled(enabled);}
     
     public void setParentField(String def,boolean updateField){
+        System.out.println(parent.getName()+" "+userDefinition.getText());
         if(updateField)userDefinition.setText(def);
         parent.setUserDef(index,id,def);}
         

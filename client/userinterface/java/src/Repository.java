@@ -118,6 +118,7 @@ public class Repository{
                          XMLDIRECTORY,  
                          TESTSUITEPATH,
                          LOGSPATH ,XMLREMOTEDIR,REMOTEPLUGINSDIR,
+                         REMOTELIBRARY,
                          REMOTEUSERSDIRECTORY, REMOTEEPIDDIR, //REMOTEHARDWARECONFIGDIRECTORY,
                          PLUGINSLOCALGENERALCONF, GLOBALSREMOTEFILE;
     public static Image passicon,testbedicon,porticon,suitaicon, tcicon, propicon,
@@ -321,6 +322,7 @@ public class Repository{
         variables.put("masterxmlremotedir",XMLREMOTEDIR);
         variables.put("remoteepdir",REMOTEEPIDDIR);
         variables.put("remoteusersdir",REMOTEUSERSDIRECTORY);
+        variables.put("remotelibrary",REMOTELIBRARY);
         variables.put("pluginslocalgeneralconf",PLUGINSLOCALGENERALCONF);
         variables.put("remotegeneralpluginsdir",REMOTEPLUGINSDIR);
         variables.put("globalremotefile",GLOBALSREMOTEFILE);
@@ -348,7 +350,7 @@ public class Repository{
             transformer.transform(source, result);
             FileInputStream in = new FileInputStream(file);
             
-            Repository.uploadRemoteFile(Repository.USERHOME+"/twister/config/",in,file.getName());
+            uploadRemoteFile(Repository.USERHOME+"/twister/config/",in,file.getName());
             
 //             c.cd(Repository.USERHOME+"/twister/config/");
 //             System.out.println("Saving to: "+Repository.USERHOME+"/twister/config/");
@@ -891,7 +893,7 @@ public class Repository{
 //                 getTagContent(doc,"MasterXMLTestSuite");
                 XMLDIRECTORY = Repository.temp+bar+"Twister"+bar+"XML"+
                                         bar+XMLREMOTEDIR.split("/")[XMLREMOTEDIR.split("/").length-1];
-                //REMOTEEPIDDIR = getTagContent(doc,"EPIdsFile");
+                REMOTELIBRARY = getTagContent(doc,"LibPath");
                 REMOTEEPIDDIR = getTagContent(doc,"EpNames");
                 REMOTEDATABASECONFIGFILE = getTagContent(doc,"DbConfigFile");
                 String [] path = REMOTEDATABASECONFIGFILE.split("/");
@@ -1041,8 +1043,10 @@ public class Repository{
      */
     public static String getTagContent(Document doc, String tag){
         NodeList nodeLst = doc.getElementsByTagName(tag);
-        if(nodeLst.getLength()==0)
+        if(nodeLst.getLength()==0){
             System.out.println("tag "+tag+" not found in "+doc.getDocumentURI());
+            return "";
+        }
         Node fstNode = nodeLst.item(0);
         Element fstElmnt = (Element)fstNode;
         NodeList fstNm = fstElmnt.getChildNodes();
@@ -1611,6 +1615,8 @@ public class Repository{
             CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,Repository.window,
                                         "Warning", "Could not upload :"+filename);
             e.printStackTrace();
+            try{input.close();}
+            catch(Exception ex){ex.printStackTrace();}
             sftpoccupied = false;
             return false;
         }
@@ -1797,13 +1803,12 @@ public class Repository{
                                             append(Repository.getBar()).append(user).toString()));}
                 catch(Exception e){
                     e.printStackTrace();
-                }         
-                                    }
-                                    if(Repository.getSuiteNr() > 0){
-            Repository.window.mainpanel.p1.sc.g.updateLocations(Repository.getSuita(0));}
-        Repository.window.mainpanel.p1.sc.g.repaint();
-                                    
-                                    }
+            }}
+            if(Repository.getSuiteNr() > 0){
+                Repository.window.mainpanel.p1.sc.g.updateLocations(Repository.getSuita(0));}
+                Repository.window.mainpanel.p1.sc.g.repaint();
+            }
+            Repository.window.mainpanel.p1.sc.g.selectedcollection.clear();
         
         
         
