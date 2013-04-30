@@ -1137,6 +1137,7 @@ class Project:
                         # Insert/ fix DB variables
                         subst_data['twister_ce_os'] = system
                         subst_data['twister_ep_name'] = epname
+                        subst_data['twister_tb_name'] = self.users[user]['eps'][epname]['suites'][suite_id]['tb']
                         subst_data['twister_suite_name'] = self.users[user]['eps'][epname]['suites'][suite_id]['name']
                         subst_data['twister_tc_full_path'] = self.users[user]['eps'][epname]['suites'][suite_id]['files'][file_id]['file']
                         subst_data['twister_tc_name'] = os.path.split(subst_data['twister_tc_full_path'])[1]
@@ -1153,6 +1154,27 @@ class Project:
                             subst_data['twister_tc_log'] = subst_data['twister_tc_log'].replace('</div', '&lt;/div')
                         except:
                             subst_data['twister_tc_log'] = '*no log*'
+
+                        try: del subst_data['ep']
+                        except: pass
+                        try: del subst_data['tb']
+                        except: pass
+                        try: del subst_data['pd']
+                        except: pass
+                        try: del subst_data['suite']
+                        except: pass
+                        try: del subst_data['name']
+                        except: pass
+                        try: del subst_data['libraries']
+                        except: pass
+                        try: del subst_data['dependancy']
+                        except: pass
+                        try: del subst_data['file']
+                        except: pass
+                        try: del subst_data['file_id']
+                        except: pass
+                        try: del subst_data['status']
+                        except: pass
 
                         # Prerequisite files will not be saved to database
                         if subst_data.get('Prerequisite'):
