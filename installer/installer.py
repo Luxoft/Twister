@@ -132,6 +132,7 @@ if TO_INSTALL == 'client':
 if TO_INSTALL == 'server':
 
     print('Please type where you wish to install the servers.')
+    print('Don\'t forget to add `twister` at the end of the path!')
     print('Leave EMPTY to install in default path `/opt/twister`:')
     selected = raw_input('Path : ')
     selected = selected.rstrip('/')
