@@ -1,7 +1,7 @@
 
 # File: ResourceAllocator.py ; This file is part of Twister.
 
-# version: 2.001
+# version: 2.002
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -182,6 +182,10 @@ class ResourceAllocator(_cptools.XMLRPCController):
         self._load(v=False)
         # If no resources...
         if not self.resources['children']:
+            # Return default structure for root
+            if query == '/':
+                return {'path': '', 'meta': {}, 'id': '1', 'children': []}
+
             msg = 'Get Resource: There are no resources defined !'
             logError(msg)
             return '*ERROR* ' + msg
