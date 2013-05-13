@@ -439,6 +439,8 @@ class ParseData():
             return packet
 
     def send(self):
+        packet_str = str(self.packet)
+        packet = self.packet_to_dict(self.packet)
         data = {
             'sniffer': {
                 'ip': self.sniffer.userip,
@@ -446,7 +448,8 @@ class ParseData():
                 'username': self.sniffer.username,
             },
             'packet_head': self.packetHead,
-            'packet': self.packet_to_dict(self.packet),
+            'packet': packet,
+            'packet_str': packet_str,
         }
         data['packet_head'].update([('id', str(time())), ])
         data = b2a_base64(str(data))
