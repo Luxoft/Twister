@@ -33,7 +33,7 @@ from xmlrpclib import ServerProxy
 from uuid import uuid4
 from time import sleep, time
 from thread import start_new_thread, allocate_lock
-from scapy.all import Automaton, ATMT, TCP, bind_layers, conf, NoPayload
+from scapy.all import Automaton, ATMT, TCP, bind_layers, conf, Packet, NoPayload
 
 from PacketSnifferClasses import OpenFlow, CentralEngineObject
 
@@ -250,7 +250,6 @@ class ParseData():
 
     def __init__(self, sniffer=None):
         self.sniffer = sniffer
-        print dir(self.sniffer)
         self.packet = None
         self.packetHead = None
 
@@ -415,7 +414,33 @@ class ParseData():
 
         return data
 
+    def packet_to_dict(self, packet):
+        """ Recursive function to parse packet and return dict """
+
+        if isinstance(packet, Packet):
+            _packet = packet.fields
+            if not isinstance(packet.payload, NoPayload):
+                _packet['payload'] = packet.payload
+
+            return {packet.name: self.packet_to_dict(_packet)}
+
+        elif isinstance(packet, dict):
+            for k,v in packet.iteritems():
+                packet[k] = self.packet_to_dict(v)
+
+            return packet
+
+        elif isinstance(packet, list):
+            for v in packet:
+                packet[packet.index(v)] = self.packet_to_dict(v)
+
+        else:
+
+            return packet
+
     def send(self):
+        packet_str = str(self.packet)
+        packet = self.packet_to_dict(self.packet)
         data = {
             'sniffer': {
                 'ip': self.sniffer.userip,
@@ -423,7 +448,8 @@ class ParseData():
                 'username': self.sniffer.username,
             },
             'packet_head': self.packetHead,
-            'packet': str(self.packet),
+            'packet': packet,
+            'packet_str': packet_str,
         }
         data['packet_head'].update([('id', str(time())), ])
         data = b2a_base64(str(data))
@@ -431,7 +457,16 @@ class ParseData():
         # push packet to central engines
         try:
             for ce in self.sniffer.ceObjects:
-                ce.proxy.runPlugin(self.sniffer.username, 'PacketSnifferPlugin',
+                response = ce.proxy.runPlugin(self.sniffer.username,
+                                        'PacketSnifferPlugin',
                                         {'command': 'pushpkt', 'data': data})
+                if not response['status']['success']:
+                    self.ce_status_update()
+
+                    response = ce.proxy.runPlugin(self.sniffer.username,
+                                        'PacketSnifferPlugin',
+                                        {'command': 'pushpkt', 'data': data})
+                    if not response['status']['success']:
+                        print 'PT debug: [SENDING] response: {r}'.format(r=response)
         except Exception, e:
             print 'PT debug: [RECEIVING] {err}'.format(err=e)
