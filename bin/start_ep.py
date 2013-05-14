@@ -1,10 +1,10 @@
 #!/usr/bin/python
 
-# version: 2.002
+# version: 2.003
 
 # This file will start ALL Execution Processes that are enabled,
-# from file `twister/config/epname.ini`.
-# This should run as ROOT, to be able to start the packet sniffer.
+# from file `twister/config/epname.ini` !
+# To be able to start the packet sniffer, this must run as ROOT.
 
 import os, sys
 import xmlrpclib
@@ -33,8 +33,16 @@ for line in pipe.stdout.read().splitlines():
         pass
 del pipe
 
+def userHome(user):
+    user = str(user)
+    lines = open('/etc/passwd').readlines()
+    user_line = [line for line in lines if line.startswith(user + ':')]
+    if not user_line: return '/home/' + user
+    user_line = user_line[0].split(':')
+    return user_line[-2].rstrip('/')
+
 # Twister path environment
-os.environ['TWISTER_PATH'] = os.getenv('HOME') + '/twister'
+os.environ['TWISTER_PATH'] = userHome(user_name) + '/twister'
 
 os.chdir(os.getenv('TWISTER_PATH') + '/bin')
 
@@ -80,8 +88,9 @@ for val in eps:
 
         del proxy
 
-        str_exec = 'nohup python -u {twister_path}/client/executionprocess/ExecutionProcess.py '\
+        str_exec = 'nohup {python} -u {twister_path}/client/executionprocess/ExecutionProcess.py '\
             '{user} {ep} "{ip}:{port}" {sniff} > "{twister_path}/.twister_cache/{ep}_LIVE.log" &'.format(
+            python = sys.executable,
             twister_path = os.getenv('TWISTER_PATH'),
             user = user_name,
             ep = val,

@@ -118,6 +118,8 @@ def saveLibraries(proxy, libs_list=''):
         __init = open(libs_path + os.sep + '__init__.py', 'w')
         __init.write('\nimport os, sys\n')
         __init.write('\nPROXY = "%s"\n' % CE_Path)
+        __init.write('USER = "%s"\n' % userName)
+        __init.write('EP = "%s"\n' % globEpName)
     # If not Reseting, just append
     else:
         __init = open(libs_path + os.sep + '__init__.py', 'a')
@@ -163,8 +165,10 @@ def saveLibraries(proxy, libs_list=''):
 
         ext = os.path.splitext(lib_file)
         # Write normal imports.
-        __init.write('import %s\n' % ext[0])
-        __init.write('from %s import *\n\n' % ext[0])
+        __init.write('try:\n')
+        __init.write('\timport %s\n' % ext[0])
+        __init.write('\tfrom %s import *\n' % ext[0])
+        __init.write('except Exception, e:\n\tprint("Cannot import library `{}`! Exception `%s`!" % e)\n\n'.format(ext[0]))
         lib_pth = libs_path + os.sep + lib_file
 
         f = open(lib_pth, 'wb')
@@ -212,6 +216,33 @@ def proxySetTestStatus(file_id, status, time_t):
     """
     global proxy, userName, globEpName
     proxy.setFileStatus(userName, globEpName, file_id, status, time_t)
+
+
+def nextFile(iIndex):
+    global proxy, userName, globEpName, tStats, tList, suite_id
+
+    # Check again - file stats for current Suite
+    tStats = proxy.getFileStatusAll(userName, globEpName, suite_id).split(',')
+    # Check again - file list for current Suite
+    tListN = proxy.getSuiteFiles(userName, globEpName, suite_id)
+
+    if tList != tListN:
+        print('The length of the suite has changed during runtime!\nOld suite: `{}`'\
+              ', new suite: `{}`!\n'.format(tList, tListN))
+        tList = tListN
+
+    if len(tStats) != len(tList):
+        print('TC critical: The len of statuses is different from the len of files! Exiting!')
+        print('Stats: {0} ; Files: {1}\n'.format(tStats, tList))
+        exit(1)
+
+    # Increment and run the next file
+    iIndex += 1
+    # The last file in the suite
+    if iIndex >= len(tList):
+        return False
+
+    return iIndex
 
 
 def logMsg(logType, logMessage):
@@ -292,7 +323,11 @@ if __name__=='__main__':
     proxy = None
     tSuites = None
     suite_number = 0
-    abort_suite = False
+    abort_suite  = False
+
+    suite_id = False
+    tStats = False
+    tList  = False
 
     # For storing temporary variables
     global_vars = {}
@@ -351,34 +386,18 @@ if __name__=='__main__':
         print('  Starting suite `%s`' % suite_str)
         print('===== ===== ===== ===== =====\n')
 
-
-        # File stats for current Suite
-        tStats = proxy.getFileStatusAll(userName, globEpName, suite_id).split(',')
-        # File list for current Suite
-        tList = proxy.getSuiteFiles(userName, globEpName, suite_id)
         # Set suite = current suite
         proxy.setEpVariable(userName, globEpName, 'current_suite', suite_id)
+
+        # Default - file stats for current Suite
+        tStats = proxy.getFileStatusAll(userName, globEpName, suite_id).split(',')
+        # Default - file list for current Suite
+        tList  = proxy.getSuiteFiles(userName, globEpName, suite_id)
 
         if not tList:
             print('TC warning: Nothing to do in suite `%s`!\n' % suite_str)
             suite_number += 1
             continue
-
-        # If last file from last run is with TIMEOUT, fix file status and exit Suite
-        if tStats[-1] == str(STATUS_TIMEOUT):
-            print('TC debug: Dry run after timeout...')
-            proxySetTestStatus(tList[-1], STATUS_INVALID, 0.0) # File status INVALID
-            suite_number += 1
-            continue
-
-        if len(tStats) != len(tList):
-            print('TC error: The len of statuses is different from the len of files! Abort suite!')
-            print('Stats: {0} ; Files: {1}\n'.format(tStats, tList))
-            suite_number += 1
-            continue
-        else:
-            # print('TC debug: Stats from last run : {0}'.format(tStats))
-            pass
 
         # The Test Bed name
         tbname = proxy.getSuiteVariable(userName, globEpName, suite_id, 'tb')
@@ -391,13 +410,15 @@ if __name__=='__main__':
 
 
         # Cycle for Files
+        iIndex = 0
 
-        for iIndex in range(len(tList)):
+        while 1:
 
+            # File ID
             file_id = tList[iIndex]
+            # File status
             status = tStats[iIndex]
-
-            # The name of the file
+            # The name of the file, based on the ID
             filename = proxy.getFileVariable(userName, file_id, 'file')
             # Is this file Prerequisite?
             prerequisite = proxy.getFileVariable(userName, file_id, 'Prerequisite')
@@ -414,8 +435,8 @@ if __name__=='__main__':
             else:
                 args = []
 
-            print('<<< START filename: `%s:%s` >>>\n\nDebug: dependancy = `%s`, prereq = `%s`, optional = `%s` ...\n' %
-                  (file_id, filename, dependancy, prerequisite, optional_test))
+            # print('<<< START filename: `%s:%s` >>>\n\nDebug: dependancy = `%s`, prereq = `%s`, optional = `%s` ...\n' %
+            #      (file_id, filename, dependancy, prerequisite, optional_test))
 
             # Reset abort suite variable for every first file in the suite
             if iIndex == 0:
@@ -423,25 +444,27 @@ if __name__=='__main__':
 
             # If this suite is aborted because of the prerequisite file, send status ABORT
             if abort_suite:
-                print('TC debug: Abort file `{0}` because of prerequisite file!\n'.format(filename))
+                print('TC info: Abort file `{0}` because of prerequisite file!\n'.format(filename))
                 proxySetTestStatus(file_id, STATUS_ABORTED, 0.0) # File status ABORTED
                 print('<<< END filename: `%s:%s` >>>\n' % (file_id, filename))
+                iIndex = nextFile(iIndex)
+                if not iIndex: break
                 continue
 
             # Reset the TIMEOUT status for the next execution!
             if status == '7':
                 proxySetTestStatus(file_id, STATUS_INVALID, 0.0) # Status INVALID
 
-            # If there was a TIMEOUT last time, must continue with the next file after timeout
-            # First file in the suite is always executed
-            if '7' in tStats and iIndex != 0 and iIndex <= Rindex(tStats, '7'):
-                print('TC debug: Skipping file {0}: `{1}` with status {2}, aborted because of timeout!\n'.format(
-                    iIndex, filename, status))
-                if iIndex == 0 and prerequisite:
-                    abort_suite = True
-                    print('TC error: Prerequisite file for suite `%s` returned FAIL! All suite will be ABORTED!' % suite_name)
-                print('<<< END filename: `%s:%s` >>>\n' % (file_id, filename))
-                continue
+            # # If there was a TIMEOUT last time, must continue with the next file after timeout
+            # # First file in the suite is always executed
+            # if '7' in tStats and iIndex != 0 and iIndex <= Rindex(tStats, '7'):
+            #     print('TC info: Skipping file {0}: `{1}` with status {2}, aborted because of timeout!\n'.format(
+            #         iIndex, filename, status))
+            #     if iIndex == 0 and prerequisite:
+            #         abort_suite = True
+            #         print('TC error: Prerequisite file for suite `%s` returned FAIL! All suite will be ABORTED!' % suite_name)
+            #     print('<<< END filename: `%s:%s` >>>\n' % (file_id, filename))
+            #     continue
 
             # Reload config file written by EP
             CONFIG = loadConfig()
@@ -489,19 +512,23 @@ if __name__=='__main__':
             str_to_execute = proxy.getTestFile(userName, globEpName, file_id)
             # If CE sent False, it means the file is empty, does not exist, or it's not runnable.
             if str_to_execute == '':
-                print('TC debug: File path `{0}` does not exist!\n'.format(filename))
+                print('TC error: File path `{0}` does not exist!\n'.format(filename))
                 if iIndex == 0 and prerequisite:
                     abort_suite = True
                     print('TC error: Prerequisite file for suite `%s` returned FAIL! All suite will be ABORTED!' % suite_name)
                 proxySetTestStatus(file_id, STATUS_SKIPPED, 0.0) # Status SKIPPED
                 print('<<< END filename: `%s:%s` >>>\n' % (file_id, filename))
+                iIndex = nextFile(iIndex)
+                if not iIndex: break
                 continue
 
             elif not str_to_execute:
-                print('TC debug: File `{0}` will be skipped.\n'.format(filename))
+                print('TC info: File `{0}` will be skipped.\n'.format(filename))
                 # Skipped prerequisite are ok.
                 proxySetTestStatus(file_id, STATUS_SKIPPED, 0.0) # Status SKIPPED
                 print('<<< END filename: `%s:%s` >>>\n' % (file_id, filename))
+                iIndex = nextFile(iIndex)
+                if not iIndex: break
                 continue
 
             file_ext = os.path.splitext(filename)[1].lower()
@@ -539,6 +566,8 @@ if __name__=='__main__':
                     print('TC error: Prerequisite file for suite `%s` returned FAIL! All suite will be ABORTED!' % suite_name)
                 proxySetTestStatus(file_id, STATUS_NOT_EXEC, 0.0) # Status NOT_EXEC
                 print('<<< END filename: `%s:%s` >>>\n' % (file_id, filename))
+                iIndex = nextFile(iIndex)
+                if not iIndex: break
                 continue
 
             # If there is a delay between tests, wait here
@@ -573,6 +602,8 @@ if __name__=='__main__':
                 # When crash detected = True
                 proxy.setFileVariable(userName, globEpName, suite_id, file_id, 'twister_tc_crash_detected', 1)
                 print('<<< END filename: `%s:%s` >>>\n' % (file_id, filename))
+                iIndex = nextFile(iIndex)
+                if not iIndex: break
                 continue
 
             # END OF TEST!
@@ -619,6 +650,11 @@ if __name__=='__main__':
             del timer_i, timer_f
             del current_runner
             # --------------------------------------------------
+
+            # Jump to next file, if it's the last file, break
+            iIndex = nextFile(iIndex)
+            if not iIndex: break
+
 
         suite_number += 1 # Next suite...
 

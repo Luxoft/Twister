@@ -1,7 +1,7 @@
 
 # File: CentralEngineOthers.py ; This file is part of Twister.
 
-# version: 2.004
+# version: 2.005
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -187,7 +187,7 @@ class Project:
                 continue
             self.users[user]['eps'][epname]['suites'][s_id] = suite
 
-        # Ordered list of file IDs, used for Get Status ALL
+        # Ordered list of file IDs (as string), used for Get Status ALL
         self.test_ids[user] = self.parsers[user].getAllTestFiles()
 
         # Get project global variables from XML
@@ -286,7 +286,7 @@ class Project:
                 continue
             self.users[user]['eps'][epname]['suites'][s_id] = suite
 
-        # Ordered list of file IDs, used for Get Status ALL
+        # Ordered list of file IDs (as string), used for Get Status ALL
         self.test_ids[user] = self.parsers[user].getAllTestFiles()
 
         # Get project global variables from XML
@@ -839,6 +839,57 @@ class Project:
         return self.delSettingsKey(user, 'project', xpath_file)
 
 
+    def queueFile(self, user, suite, fname):
+        """
+        ...
+        """
+        r = self.changeUser(user)
+        if not r: return False
+
+        # Try create a new file id
+        try:
+            file_id = str( int(max(self.test_ids[user])) + 1 )
+        except:
+            logError('Cannot queue file `{}`, because of internal error !'.format(fname))
+            return False
+
+        eps = self.users[user]['eps']
+        suite_id = False
+
+        # Try to find the suite name
+        for epname in eps:
+            for s_id in eps[epname]['suites']:
+                if eps[epname]['suites'][s_id]['name'] == suite:
+                    suite_id = s_id
+                    break
+            if suite_id:
+                break
+
+        if not suite_id:
+            logError('Cannot queue file `{}`, because suite `{}` doesn\'t exist !'.format(fname, suite))
+            return False
+
+        # This operation must be atomic !
+        with self.usr_lock:
+
+            # Add file in the ordered list of file IDs, used for Get Status ALL
+            self.test_ids[user].append(file_id)
+
+            finfo = OrderedDict()
+            finfo['suite'] = suite_id
+            finfo['file']  = fname
+            finfo['dependancy'] = " "
+            finfo['Runnable']   = "true"
+
+            # Add file for the user, in a specific suite
+            eps[epname]['suites'][suite_id]['files'][file_id] = finfo
+
+            # Add the file in suites.xml
+            # self.setPersistentFile(self, user, suite, fname)
+
+        return True
+
+
 # # #
 
 
@@ -1137,6 +1188,7 @@ class Project:
                         # Insert/ fix DB variables
                         subst_data['twister_ce_os'] = system
                         subst_data['twister_ep_name'] = epname
+                        subst_data['twister_tb_name'] = self.users[user]['eps'][epname]['suites'][suite_id]['tb']
                         subst_data['twister_suite_name'] = self.users[user]['eps'][epname]['suites'][suite_id]['name']
                         subst_data['twister_tc_full_path'] = self.users[user]['eps'][epname]['suites'][suite_id]['files'][file_id]['file']
                         subst_data['twister_tc_name'] = os.path.split(subst_data['twister_tc_full_path'])[1]
@@ -1153,6 +1205,25 @@ class Project:
                             subst_data['twister_tc_log'] = subst_data['twister_tc_log'].replace('</div', '&lt;/div')
                         except:
                             subst_data['twister_tc_log'] = '*no log*'
+
+                        try: del subst_data['ep']
+                        except: pass
+                        try: del subst_data['tb']
+                        except: pass
+                        try: del subst_data['pd']
+                        except: pass
+                        try: del subst_data['suite']
+                        except: pass
+                        try: del subst_data['name']
+                        except: pass
+                        try: del subst_data['libraries']
+                        except: pass
+                        try: del subst_data['dependancy']
+                        except: pass
+                        try: del subst_data['file_id']
+                        except: pass
+                        try: del subst_data['status']
+                        except: pass
 
                         # Prerequisite files will not be saved to database
                         if subst_data.get('Prerequisite'):
