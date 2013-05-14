@@ -80,7 +80,7 @@ def userHome(user):
     user_line = [line for line in lines if line.startswith(user + ':')]
     if not user_line: return '/home/' + user
     user_line = user_line[0].split(':')
-    return user_line[-2]
+    return user_line[-2].rstrip('/')
 
 # If installer was run with parameter "--server"
 if sys.argv[1:2] == ['--server']:
@@ -391,22 +391,31 @@ for i in range(len(dependencies)):
             print('\n~~~ Installing `%s` from System repositories ~~~\n' % lib_name)
 
             if platform.dist()[0] == 'SuSE':
-                tcr_proc = subprocess.Popen(['zypper', 'install', '-yl', 'python-mysql'], cwd=pkg_path)
-            elif platform.dist()[0] == 'fedora':
-                tcr_proc = subprocess.Popen(['yum', '-y', 'install', 'python-mysql'], cwd=pkg_path)
+                tcr_proc = subprocess.Popen(['zypper', 'install', '-yl', 'mysql-devel'], cwd=pkg_path)
+            elif platform.dist()[0] in ['fedora', 'centos']:
+                tcr_proc = subprocess.Popen(['yum', '-y', 'install', 'mysql-devel'], cwd=pkg_path)
             else:
-                tcr_proc = subprocess.Popen(['apt-get', 'install', 'python-mysqldb', '-y', '--force-yes'], cwd=pkg_path)
+                tcr_proc = subprocess.Popen(['apt-get', 'install', 'python-dev', 'libmysqlclient-dev', '-y', '--force-yes'], cwd=pkg_path)
 
             try: tcr_proc.wait()
             except: print('Error while installing `MySQL-python`!')
 
+            tcr_proc = subprocess.Popen(['easy_install', 'MySQL-python'], cwd=pkg_path)
+            tcr_proc.wait()
+
         elif lib_name == 'LXML-Python':
             print('\n~~~ Installing `%s` from System repositories ~~~\n' % lib_name)
 
-            tcr_proc = subprocess.Popen(['apt-get', 'install', 'python-lxml', '-y', '--force-yes'], cwd=pkg_path)
+            if platform.dist()[0] in ['fedora', 'centos']:
+                tcr_proc = subprocess.Popen(['yum', '-y', 'install', 'libxslt-devel', 'libxml2-devel'], cwd=pkg_path)
+            else:
+                tcr_proc = subprocess.Popen(['apt-get', 'install', 'python-dev', 'libxslt-devel', 'libxml2-devel', '-y', '--force-yes'], cwd=pkg_path)
 
             try: tcr_proc.wait()
             except: print('Error while installing `Python LXML`!')
+
+            tcr_proc = subprocess.Popen(['easy_install', 'lxml'], cwd=pkg_path)
+            tcr_proc.wait()
 
         # All other packages are installed with easy_install
         else:
