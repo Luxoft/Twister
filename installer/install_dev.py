@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# version: 2.001
+# version: 2.002
 
 # File: install_dev.py ; This file is part of Twister.
 
@@ -209,6 +209,7 @@ if TO_INSTALL == 'server':
 
     # Files to move in Server folder
     to_link = [
+        'bin/cli.py',
         'bin/start_ce',
         'bin/start_httpserver',
         'doc/',
@@ -234,6 +235,7 @@ elif TO_INSTALL == 'client':
 
     # Files to move in Client folder
     to_link = [
+        'bin/cli.py',
         'bin/start_ep.py',
         'bin/start_packet_sniffer.py',
         'doc/',

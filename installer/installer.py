@@ -239,6 +239,7 @@ if TO_INSTALL == 'server':
 
     # Files to move in Server folder
     to_copy = [
+        'bin/cli.py',
         'bin/start_ce',
         'bin/start_httpserver',
         'doc/',
@@ -259,6 +260,7 @@ elif TO_INSTALL == 'client':
 
     # Files to move in Client folder
     to_copy = [
+        'bin/cli.py',
         'bin/start_ep.py',
         'bin/start_packet_sniffer.py',
         'doc/',
