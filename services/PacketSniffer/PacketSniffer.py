@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# version: 2.001
+# version: 2.002
 #
 # -*- coding: utf-8 -*-
 #
