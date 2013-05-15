@@ -38,6 +38,8 @@ import java.util.Iterator;
 import java.util.Map;
 import javax.swing.JOptionPane;
 import com.twister.CustomDialog;
+import java.awt.event.FocusAdapter;
+import java.awt.event.FocusEvent;
 
 public class PanicDetect extends JPanel{
     private JButton add;
@@ -154,6 +156,9 @@ public class PanicDetect extends JPanel{
             });
             enabled.addActionListener(new ActionListener(){
                 public void actionPerformed(ActionEvent ev){
+                    if(regex.getText().equals("")){
+                        enabled.setSelected(!enabled.isSelected());
+                    }
                     regexModified();
                 }
             });
@@ -162,13 +167,36 @@ public class PanicDetect extends JPanel{
                     regexModified();
                 }
             });
+            regex.addFocusListener(new FocusAdapter(){
+                public void focusLost(FocusEvent ev){
+                    if(regex.getText().equals("")){
+                        CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,PanicDetect.this,
+                                                      "Warning", "Regex must not be empty");
+                        try{
+                            String result = Repository.getRPCClient().execute("panicDetectConfig",
+                                                                      new Object[]{Repository.getUser(),
+                                                                                   "list"}).toString();
+                            JsonElement jelement = new JsonParser().parse(result);
+                            JsonObject main = jelement.getAsJsonObject();
+                            JsonObject reg = main.getAsJsonObject(Repository.getUser());
+                            result = ((JsonObject)reg.get(id)).get("expression").toString();
+                            result = result.substring(1, result.length()-1);
+                            regex.setText(result);
+                        } catch(Exception e){e.printStackTrace();}
+                        regex.requestFocusInWindow();
+                        regex.requestFocus();
+                        return;
+                    }
+                }
+            });
         }
         
         public void regexModified(){
             try{
+                if(regex.getText().equals(""))return;
                 String com = "expression="+regex.getText()+
-                               "&enabled="+enabled.isSelected()+
-                               "&id="+id;
+                             "&enabled="+enabled.isSelected()+
+                             "&id="+id;
                                
                 String result = Repository.getRPCClient().execute("panicDetectConfig",
                                                                     new Object[]{Repository.getUser(),
@@ -180,6 +208,7 @@ public class PanicDetect extends JPanel{
         
         public void removeRegex(){
             try{
+                if(regex.getText().equals(""))return;
                 String result = Repository.getRPCClient().execute("panicDetectConfig",
                                                                    new Object[]{Repository.getUser(),
                                                                    "remove",id}).toString();

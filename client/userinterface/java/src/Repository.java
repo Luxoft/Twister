@@ -251,7 +251,7 @@ public class Repository{
                 CONFIGDIRECTORY = Repository.temp+bar+"Twister"+bar+"config";
                 File pluginsdirectory = new File(twisterhome.getCanonicalPath()+
                                                  bar+"Plugins");
-                REMOTEPLUGINSDIR = "/opt/twister/plugins";
+//                 REMOTEPLUGINSDIR = "/opt/twister/plugins";
                 if(pluginsdirectory.exists()){
                     PLUGINSDIRECTORY = twisterhome.getCanonicalPath()+bar+"Plugins";
                     System.out.println(twisterhome.getCanonicalPath()+bar+
@@ -273,6 +273,8 @@ public class Repository{
                                        " plugins configuration");}
                                        
                 initializeRPC();
+                REMOTEPLUGINSDIR = client.execute("getTwisterPath", new Object[]{}).toString()+"/plugins";
+                System.out.println("Remote Twister plugins instalation path: "+REMOTEPLUGINSDIR);
                 intro.setStatus("Finished parsing the config");
                 intro.addPercent(0.035);
                 intro.repaint();
@@ -280,6 +282,11 @@ public class Repository{
                 Plugins.deletePlugins();
                 
                 parseDBConfig(Repository.REMOTEDATABASECONFIGFILE,true);
+                if(!isCE()){
+                    CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,Repository.window,
+                                        "Warning", "CE is not running, please start CE in "+
+                                                    "order for Twister Framework to run properly");
+                }
                 window = new Window(applet,container);
                 parseEmailConfig(Repository.REMOTEEMAILCONFIGFILE,true);
                 populatePluginsVariables();
@@ -299,6 +306,17 @@ public class Repository{
         initialized  = true;
     }
     
+    //test if CE is running
+    public static boolean isCE(){
+        try{client.execute("echo", new Object[]{"test if CE is running"});
+            return true;
+        } catch(Exception e){
+            return false;
+        }
+    }
+    
+    //populate the Hshtable transfered to plugins
+    //with apropriate variables
     public static void populatePluginsVariables(){
         variables.put("host",host);
         variables.put("user",user);
@@ -349,39 +367,13 @@ public class Repository{
             Result result = new StreamResult(file);
             transformer.transform(source, result);
             FileInputStream in = new FileInputStream(file);
-            
             uploadRemoteFile(Repository.USERHOME+"/twister/config/",in,file.getName());
-            
-//             c.cd(Repository.USERHOME+"/twister/config/");
-//             System.out.println("Saving to: "+Repository.USERHOME+"/twister/config/");
-//             FileInputStream in = new FileInputStream(file);
-//             c.put(in, file.getName());
-//             in.close();
-        
-        
         }
         catch(Exception e){
             System.out.println("There was a problem in generating Plugins general config");
             e.printStackTrace();
         }
     }
-      
-    /*
-     * method to load plugininterfaces
-     * to be available on initializing Plugins
-     */
-//     public static void loadPluginsInterfaces(){
-//         Plugins.deletePlugins();
-//         Plugins.copyPlugin("Twister.jar");
-//         Plugins.copyPlugin("xmlrpc-client-3.1.3.jar");
-//         Plugins.copyPlugin("xmlrpc-common-3.1.3.jar");
-//         Plugins.copyPlugin("jsch-0.1.44.jar");
-//         Plugins.copyPlugin("commons-vfs-1.0.jar");
-//         Plugins.copyPlugin("VFSJFileChooser-0.0.3.jar");
-//         Plugins.copyPlugin("commons-logging-1.1.1.jar");
-//         Plugins.copyPlugin("ws-commons-util-1.0.2.jar");
-//         PluginsLoader.setClassPath();
-//     }
         
     /*
      * load resources needed for framework

@@ -355,9 +355,13 @@ public class XMLReader{
                     fstNmElmnt = (Element)fstNmElmntLst.item(0);
                     fstNm = fstNmElmnt.getChildNodes();
                 } catch(Exception e){
-                    fstNmElmntLst = fstElmnt.getElementsByTagName("TbName");
-                    fstNmElmnt = (Element)fstNmElmntLst.item(0);
-                    fstNm = fstNmElmnt.getChildNodes();
+                    try{fstNmElmntLst = fstElmnt.getElementsByTagName("TbName");
+                        fstNmElmnt = (Element)fstNmElmntLst.item(0);
+                        fstNm = fstNmElmnt.getChildNodes();
+                    } catch (Exception ex){
+                        System.out.println("There is an element that has no EpId or TbName!!!");
+                        e.printStackTrace();
+                    }
                 }
                 
     //             suitatemp.setEpId(fstNm.item(0).getNodeValue());

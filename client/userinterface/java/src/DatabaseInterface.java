@@ -57,6 +57,7 @@ import javax.xml.transform.dom.DOMSource;
 import javax.swing.JOptionPane;
 import com.twister.CustomDialog;
 import java.io.FileInputStream;
+import javax.swing.JFrame;
 import javax.swing.JTabbedPane;
 
 public class DatabaseInterface extends JPanel {
@@ -179,8 +180,6 @@ public class DatabaseInterface extends JPanel {
                         System.out.println("password section is wrong configured in database file");
                     }
                     
-                    
-                    
                 } else {
                     System.out.println("db_config section is wrong configured in database file");
                 }
@@ -202,16 +201,22 @@ public class DatabaseInterface extends JPanel {
                                 fpan = new FieldPanel(mainfieldpanel);
                                 mainfieldpanel.add(fpan);
                                 props = n.getAttributes();
-                                try{fpan.tid.setText(props.getNamedItem("ID").getNodeValue());}
-                                catch(Exception e){}
-                                try{fpan.tfieldname.setText(props.getNamedItem("FieldName").getNodeValue());}
-                                catch(Exception e){}
-                                try{fpan.tfromtable.setText(props.getNamedItem("FromTable").getNodeValue());}
-                                catch(Exception e){}
-                                try{fpan.tlabel.setText(props.getNamedItem("Label").getNodeValue());}
-                                catch(Exception e){}
-                                try{fpan.tquery.setText(props.getNamedItem("SQLQuery").getNodeValue());}
-                                catch(Exception e){}
+                                
+                                setField(fpan.tid,props,"ID");
+//                                 try{fpan.tid.setText(props.getNamedItem("ID").getNodeValue());}
+//                                 catch(Exception e){}
+                                setField(fpan.tfieldname,props,"FieldName");
+//                                 try{fpan.tfieldname.setText(props.getNamedItem("FieldName").getNodeValue());}
+//                                 catch(Exception e){}
+                                setField(fpan.tfromtable,props,"FromTable");
+//                                 try{fpan.tfromtable.setText(props.getNamedItem("FromTable").getNodeValue());}
+//                                 catch(Exception e){}
+                                setField(fpan.tlabel,props,"Label");
+//                                 try{fpan.tlabel.setText(props.getNamedItem("Label").getNodeValue());}
+//                                 catch(Exception e){}
+                                setField(fpan.tquery,props,"SQLQuery");
+//                                 try{fpan.tquery.setText(props.getNamedItem("SQLQuery").getNodeValue());}
+//                                 catch(Exception e){}
                                 try{fpan.mandatory.setSelected(Boolean.parseBoolean(props.getNamedItem("Mandatory").getNodeValue()));}
                                 catch(Exception e){}
                                 try{fpan.guidef.setSelected(Boolean.parseBoolean(props.getNamedItem("GUIDefined").getNodeValue()));}
@@ -261,8 +266,7 @@ public class DatabaseInterface extends JPanel {
                     
                 } else {
                     System.out.println("insert_section section is wrong configured in database file");
-                }                
-                
+                }
                 
                 nodeLst = ((Element)doc.getFirstChild()).getElementsByTagName("reports_section");
                 if(nodeLst!=null&&nodeLst.getLength()==1){
@@ -280,12 +284,15 @@ public class DatabaseInterface extends JPanel {
                                 mainreportspanel.add(ipan);
                                 props = n.getAttributes();
                                 
-                                try{ipan.tid3.setText(props.getNamedItem("ID").getNodeValue());}
-                                catch(Exception e){}
-                                try{ipan.tlabel1.setText(props.getNamedItem("Label").getNodeValue());}
-                                catch(Exception e){}
-                                try{ipan.tquery1.setText(props.getNamedItem("SQLQuery").getNodeValue());}
-                                catch(Exception e){}
+                                setField(ipan.tid3,props,"ID");
+//                                 try{ipan.tid3.setText(props.getNamedItem("ID").getNodeValue());}
+//                                 catch(Exception e){}
+                                setField(ipan.tlabel1,props,"Label");
+//                                 try{ipan.tlabel1.setText(props.getNamedItem("Label").getNodeValue());}
+//                                 catch(Exception e){}
+                                setField(ipan.tquery1,props,"SQLQuery");
+//                                 try{ipan.tquery1.setText(props.getNamedItem("SQLQuery").getNodeValue());}
+//                                 catch(Exception e){}
                                 
                                 try{String type = props.getNamedItem("Type").getNodeValue();
                                     for(int j=0;j<ipan.fctype5.getItemCount();j++){
@@ -322,13 +329,15 @@ public class DatabaseInterface extends JPanel {
                                 mainreportspanel.add(ipan);
                                 props = n.getAttributes();
                                 
-                                
-                                try{ipan.tid4.setText(props.getNamedItem("ID").getNodeValue());}
-                                catch(Exception e){}
-                                try{ipan.tquery4.setText(props.getNamedItem("SQLTotal").getNodeValue());}
-                                catch(Exception e){}
-                                try{ipan.tquery3.setText(props.getNamedItem("SQLQuery").getNodeValue());}
-                                catch(Exception e){}
+                                setField(ipan.tid4,props,"ID");
+//                                 try{ipan.tid4.setText(props.getNamedItem("ID").getNodeValue());}
+//                                 catch(Exception e){}
+                                setField(ipan.tquery4,props,"SQLTotal");
+//                                 try{ipan.tquery4.setText(props.getNamedItem("SQLTotal").getNodeValue());}
+//                                 catch(Exception e){}
+                                setField(ipan.tquery3,props,"SQLQuery");
+//                                 try{ipan.tquery3.setText(props.getNamedItem("SQLQuery").getNodeValue());}
+//                                 catch(Exception e){}
                                 
                                 try{String type = props.getNamedItem("Type").getNodeValue();
                                     for(int j=0;j<ipan.fctype3.getItemCount();j++){
@@ -339,7 +348,6 @@ public class DatabaseInterface extends JPanel {
                                         }
                                     }
                                 } catch(Exception e){e.printStackTrace();}
-                                
                             }
                             mainreportspanel.add(reposrtsaddpanel);
                             if(Repository.window!=null){
@@ -366,11 +374,12 @@ public class DatabaseInterface extends JPanel {
                                 mainreportspanel.add(ipan);
                                 props = n.getAttributes();
                                 
-                                
-                                try{ipan.tquery5.setText(props.getNamedItem("ID").getNodeValue());}
-                                catch(Exception e){}
-                                try{ipan.tquery6.setText(props.getNamedItem("Path").getNodeValue());}
-                                catch(Exception e){}
+                                setField(ipan.tquery5,props,"ID");
+//                                 try{ipan.tquery5.setText(props.getNamedItem("ID").getNodeValue());}
+//                                 catch(Exception e){}
+                                setField(ipan.tquery6,props,"Path");
+//                                 try{ipan.tquery6.setText(props.getNamedItem("Path").getNodeValue());}
+//                                 catch(Exception e){}
                             }
                             mainreportspanel.add(reposrtsaddpanel);
                             if(Repository.window!=null){
@@ -400,6 +409,13 @@ public class DatabaseInterface extends JPanel {
             Repository.window.mainpanel.p4.repaint();
         }
         
+    }
+    
+    //convenient method to set a field with given
+    //NamedNodeMap prop
+    private void setField(JTextField field, NamedNodeMap props, String prop){
+        try{field.setText(props.getNamedItem(prop).getNodeValue());}
+        catch(Exception e){}
     }
     
     //database gui section initialization
@@ -442,7 +458,6 @@ public class DatabaseInterface extends JPanel {
         setLayout(new BorderLayout());
         database = new JPanel();
         maindatabasepanel = new JPanel();
-        //database.setBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(Color.BLACK), "Database"));
         maindatabasepanel.setBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(Color.BLACK), "Database"));
         database.setLayout(new BorderLayout());        
         
@@ -451,9 +466,6 @@ public class DatabaseInterface extends JPanel {
         initDatabasePanel();
         jScrollPane0 = new JScrollPane();
         jScrollPane0.setViewportView(maindatabasepanel);
-        //database.add(jScrollPane0, BorderLayout.CENTER);  
-        //database.add(maindatabasepanel, BorderLayout.CENTER);
-        //add(database,BorderLayout.NORTH);
         add(maindatabasepanel,BorderLayout.NORTH);
         field = new JPanel();
         jScrollPane1 = new JScrollPane();
@@ -472,7 +484,6 @@ public class DatabaseInterface extends JPanel {
         stype = new JLabel();
         sctype = new JComboBox();
         radd = new JButton();
-        //setLayout(new BoxLayout(this, BoxLayout.PAGE_AXIS));
         field.setBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(new Color(0, 0, 0)), "Field Section"));
         field.setLayout(new BorderLayout());
         mainfieldpanel.setLayout(new BoxLayout(mainfieldpanel, BoxLayout.PAGE_AXIS));
@@ -495,7 +506,6 @@ public class DatabaseInterface extends JPanel {
         mainfieldpanel.add(fieldaddpanel);
         jScrollPane1.setViewportView(mainfieldpanel);
         field.add(jScrollPane1, BorderLayout.CENTER);
-        //add(field);
         sql.setBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(new Color(0, 0, 0)), "Insert Section"));
         sql.setLayout(new BorderLayout());
         maininsertpanel.setLayout(new BoxLayout(maininsertpanel, BoxLayout.PAGE_AXIS));
@@ -518,7 +528,6 @@ public class DatabaseInterface extends JPanel {
         maininsertpanel.add(insertaddpanel);
         jScrollPane2.setViewportView(maininsertpanel);
         sql.add(jScrollPane2, BorderLayout.CENTER);
-        //add(sql);
         reposrts.setBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(new Color(0, 0, 0)), "Reports Section"));
         reposrts.setLayout(new BorderLayout());
         mainreportspanel.setLayout(new BoxLayout(mainreportspanel, BoxLayout.PAGE_AXIS));
@@ -556,8 +565,6 @@ public class DatabaseInterface extends JPanel {
         mainreportspanel.add(reposrtsaddpanel);
         jScrollPane3.setViewportView(mainreportspanel);
         reposrts.add(jScrollPane3, BorderLayout.CENTER);
-        //add(reposrts);
-        
         
         JTabbedPane tab = new JTabbedPane();
         tab.add("Field Section", field);
@@ -579,8 +586,7 @@ public class DatabaseInterface extends JPanel {
     
     //generate db file
     private void generateFile(){
-        try{
-            DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
+        try{DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
             DocumentBuilder documentBuilder = documentBuilderFactory.newDocumentBuilder();
             Document document = documentBuilder.newDocument();
             TransformerFactory transformerFactory = TransformerFactory.newInstance();
@@ -608,8 +614,6 @@ public class DatabaseInterface extends JPanel {
             em = document.createElement("insert_section");
             root.appendChild(em);
             
-            
-            
             for(Component c:mainfieldpanel.getComponents()){
                 if(c.getClass()==FieldPanel.class){
                     subem = document.createElement("field");
@@ -624,7 +628,6 @@ public class DatabaseInterface extends JPanel {
                     em.appendChild(subem);
                 }
             }
-            
             
             for(Component c:maininsertpanel.getComponents()){
                 if(c.getClass()==InsertPanel.class){
@@ -669,8 +672,8 @@ public class DatabaseInterface extends JPanel {
                                    "File succesfully generated");
         } catch (Exception e){
             CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,Repository.window,
-                                   "Warning",
-                                   "WARNING! There was an error in generating the db file, please check log");
+                                  "Warning",
+                                  "WARNING! There was an error in generating the db file, please check log");
             e.printStackTrace();
         }
     }
@@ -755,41 +758,11 @@ class FieldPanel extends JPanel{
     }
 }
 
-class InsertPanel extends JPanel{
-    JTextField tsqlstatement;
-    
-    public InsertPanel(final JPanel parent){
-        JLabel id2 = new JLabel();
-        tsqlstatement = new JTextField();        
-        setBorder(BorderFactory.createEmptyBorder(2, 2, 2, 2));
-        setMaximumSize(new Dimension(2000, 25));
-        setLayout(new BoxLayout(this, BoxLayout.LINE_AXIS));
-        id2.setText("SQL Statement:");
-        id2.setBorder(BorderFactory.createEmptyBorder(0, 10, 0, 2));
-        add(id2);
-        tsqlstatement.setMinimumSize(new Dimension(50, 20));
-        add(tsqlstatement);        
-        JButton jButton3 = new JButton();
-        jButton3.setText("Remove");
-        jButton3.addActionListener(new ActionListener(){
-            public void actionPerformed(ActionEvent ev){
-                parent.remove(InsertPanel.this);
-                if(Repository.window!=null){
-                    Repository.window.mainpanel.p4.revalidate();
-                    Repository.window.mainpanel.p4.repaint();  
-                }
-            }
-        });
-        add(jButton3);
-    }
-}
-
 class ReportFieldPanel extends JPanel{
     JComboBox fctype5;
     JTextField tid3;
     JTextField tlabel1;
     JTextField tquery1;
-    
     
     public ReportFieldPanel(final JPanel parent){        
         JLabel id4 = new JLabel();
