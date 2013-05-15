@@ -139,8 +139,7 @@ public class Plugins extends JPanel{
             transformer.setOutputProperty(OutputKeys.INDENT, "yes");
             transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "4");
             transformer.transform(source, result);
-            System.out.println("Saving "+file.getName()+" to: "+Repository.USERHOME+"/twister/config/");            
-            //System.out.println(Repository.USERHOME+"/twister/config/");
+            System.out.println("Saving "+file.getName()+" to: "+Repository.USERHOME+"/twister/config/");
             FileInputStream in = new FileInputStream(file);
             ch.cd(Repository.USERHOME+"/twister/config/");
             ch.put(in, file.getName());
@@ -401,8 +400,9 @@ public class Plugins extends JPanel{
                 plugin = (TwisterPluginInterface)plugins.get(name);
                 description = plugin.getDescription();
                 addPlugin(name,description,plugin);}
-            plugintable.revalidate();
-            plugintable.repaint();}
+                plugintable.revalidate();
+                plugintable.repaint();
+        }
         else{
             if(copyPlugin(filename)){
                 addremove.setText("Remove");
@@ -566,8 +566,23 @@ public class Plugins extends JPanel{
                     TwisterPluginInterface plugin = (TwisterPluginInterface)plugins.
                                                     get(pluginname);
                     MainPanel main = Repository.window.mainpanel;
-                    if(main.getComponentZOrder(plugin.getContent())==-1){
-                        check.doClick();}
+                    
+                    Component comp;
+                    boolean found = false;
+                    for(int i=0;i<main.getTabCount();i++){
+                        if(main.getComponentAt(i)==null)continue;
+                        try{comp = ((JScrollPane)(main.getComponentAt(i))).getViewport().getView();
+                            if(comp == plugin.getContent()){
+                                found = true;
+                                break;
+                            }
+                        } catch(Exception e){}
+                    }
+                    if(!found){check.doClick();
+                        
+//                     if(main.getComponentZOrder(plugin.getContent())==-1){
+//                         check.doClick();
+                    }
                     else check.setSelected(true);}
             }.start();
         }

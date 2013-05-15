@@ -84,6 +84,7 @@ public class TB extends JPanel{
         buttonPanel.add(remove);
         remove.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
+                if(optpan.tname.getText().equals(""))return;
                 removeComp();
             }
         });
@@ -181,6 +182,7 @@ public class TB extends JPanel{
     }   
     
     public void removeComp(){
+        
         TreePath tp = tree.getSelectionPath();
         DefaultMutableTreeNode treenode = (DefaultMutableTreeNode)tp.getLastPathComponent();
         Node node = (Node)treenode.getUserObject();
@@ -296,6 +298,8 @@ public class TB extends JPanel{
                     Node newnode = new Node(null,parent.getPath().getPath()+"/"+resp,resp,parent,null);
                     resp = client.execute("setResource", new Object[]{resp,parent.getID(),null}).toString();
                     if(resp.indexOf("ERROR")==-1){
+                        parent.addChild(resp,newnode);
+                        
                         newnode.setID(resp);
                         DefaultMutableTreeNode treechild = new DefaultMutableTreeNode(newnode);
                         ((DefaultTreeModel)tree.getModel()).insertNodeInto(treechild, treenode,treenode.getChildCount());
@@ -321,7 +325,7 @@ public class TB extends JPanel{
     /*
      * remove node
      */
-    public void removeNode(Node node,DefaultMutableTreeNode treenode){
+    public boolean removeNode(Node node,DefaultMutableTreeNode treenode){
         try{String s = client.execute("deleteResource", new Object[]{node.getID()}).toString();
             if(s.equals("true")){
                 Node parent = node.getParent();
@@ -330,9 +334,16 @@ public class TB extends JPanel{
                 }
                 ((DefaultTreeModel)tree.getModel()).removeNodeFromParent(treenode);
                 optpan.setParent(null,null);
+                remove.setEnabled(false);
+                add.setText("Add TB");
+                return true;
             }
+            return false;
         }
-        catch(Exception e){e.printStackTrace();}
+        catch(Exception e){
+            e.printStackTrace();
+            return false;
+        }
     }
     
     /*
@@ -403,6 +414,9 @@ public class TB extends JPanel{
             }
             return node;
         }catch(Exception e){
+            System.out.println("requested id: "+id);
+            try{System.out.println("server respons: "+client.execute("getResource", new Object[]{id}));}
+            catch(Exception ex){ex.printStackTrace();}
             e.printStackTrace();
             return null;
         }
