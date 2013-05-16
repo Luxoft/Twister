@@ -261,8 +261,8 @@ sys.argv = %s
         # On exit delete all Python files
         global TWISTER_PATH
         fnames = '{0}/.twister_cache/{1}/*.py*'.format(TWISTER_PATH, self.epname)
-        for fpath in glob.glob(fnames):
-            # print 'Cleanup Python file:', fpath
+        for fname in glob.glob(fnames):
+            # print 'Cleanup Python file:', fname
             try: os.remove(fname)
             except: pass
         #
