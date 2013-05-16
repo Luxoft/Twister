@@ -1306,7 +1306,7 @@ class Project:
 
                 #response['data'] = regExpID
                 response = regExpID
-                logDebug('Panic Detect: added regular expression for user: {u}'.format(u=user))
+                logDebug('Panic Detect: added regular expression `{e}` for user: {u}.'.format(u=user, e=regExpID))
             except Exception, e:
                 #response['status']['success'] = False
                 #response['status']['message'] = '{er}'.format(er=e)
@@ -1338,7 +1338,7 @@ class Project:
 
                 #response['data'] = regExpID
                 response = True
-                logDebug('Panic Detect: updated regular expression for user: {u}'.format(u=user))
+                logDebug('Panic Detect: updated regular expression `{e}` for user: {u}.'.format(u=user, e=regExpID))
             except Exception, e:
                 #response['status']['success'] = False
                 #response['status']['message'] = '{er}'.format(er=e)
@@ -1360,7 +1360,7 @@ class Project:
 
                 #response['data'] = regExpID
                 response = True
-                logDebug('Panic Detect: removed regular expresion for user: {u}'.format(u=user))
+                logDebug('Panic Detect: removed regular expresion `{e}` for user: {u}.'.format(u=user, e=regExpID))
             except Exception, e:
                 #response['status']['success'] = False
                 #response['status']['message'] = '{er}'.format(er=e)
