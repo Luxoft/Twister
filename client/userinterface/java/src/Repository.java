@@ -272,8 +272,7 @@ public class Repository{
                                        " plugins configuration");}
                                        
                 initializeRPC();
-                REMOTEPLUGINSDIR = client.execute("getTwisterPath", new Object[]{}).toString()+"/plugins";
-                System.out.println("Remote Twister plugins instalation path: "+REMOTEPLUGINSDIR);
+                
                 intro.setStatus("Finished parsing the config");
                 intro.addPercent(0.035);
                 intro.repaint();
@@ -285,6 +284,11 @@ public class Repository{
                     CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,Repository.window,
                                         "Warning", "CE is not running, please start CE in "+
                                                     "order for Twister Framework to run properly");
+                }
+                try{REMOTEPLUGINSDIR = client.execute("getTwisterPath", new Object[]{}).toString()+"/plugins";
+                    System.out.println("Remote Twister plugins instalation path: "+REMOTEPLUGINSDIR);
+                } catch(Exception e){
+                    System.out.println("Remote Twister plugins instalation path could not be set");
                 }
                 window = new Window(applet,container);
                 parseEmailConfig(Repository.REMOTEEMAILCONFIGFILE,true);
