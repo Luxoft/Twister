@@ -48,10 +48,13 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Enumeration;
+import java.awt.event.FocusAdapter;
+import java.awt.event.FocusEvent;
 
 public class NodePanel extends JPanel{
     private Node parent;
-    private JTextField tname,tid,tpath;
+    public JTextField tname;
+    private JTextField tid,tpath;
     private JButton add;
     private DefaultMutableTreeNode treenode;
     private JTree tree;
@@ -216,9 +219,22 @@ public class NodePanel extends JPanel{
                 .addContainerGap())
         );
         
+        tname.addFocusListener(new FocusAdapter(){
+            public void focusLost(FocusEvent ev){
+                if(tname.getText().equals("")&&parent!=null){
+                    CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,NodePanel.this,
+                                                  "Warning", "Name must not be empty");
+                    tname.setText(parent.getName());
+                    tname.requestFocusInWindow();
+                    tname.requestFocus();
+                }
+            }
+        });
+        
         tname.addKeyListener(new KeyAdapter(){
             public void keyReleased(KeyEvent ev){
                 try{
+                    if(tname.getText().equals(""))return;
                     if(parent.getName().equals(tname.getText()))return;
                     if(!checkExistingName(parent, tname.getText())){
                         String query = client.execute("renameResource", new Object[]{parent.getID(),
@@ -311,22 +327,32 @@ public class NodePanel extends JPanel{
                 final MyTextField jTextField1 = new MyTextField(keys[i].toString());
                 JLabel jLabel2 = new JLabel("Value:");
                 final JTextField jTextField2 = new JTextField();
-                
-    
                 proppanel.add(jLabel1);
                 jLabel1.setBounds(5, i*30+5, 210, 14);
                 proppanel.add(jTextField1);
                 jTextField1.setBounds(50, i*30+5, 95, 20);
-                
+                jTextField1.addFocusListener(new FocusAdapter(){
+                    public void focusLost(FocusEvent ev){
+                        if(jTextField1.getText().equals("")){
+                            CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,NodePanel.this,
+                                                          "Warning", "Name must not be empty");
+                            jTextField1.setText(jTextField1.getOldValue());
+                            jTextField1.requestFocusInWindow();
+                            jTextField1.requestFocus();
+                        }
+                    }
+                });
                 jTextField1.addKeyListener(new KeyAdapter(){
                     public void keyReleased(KeyEvent ev){
                         try{
+                            if(jTextField1.getText().equals("")) return;
                             if(jTextField1.getText().equals(jTextField1.getOldValue())) return;
                             if(parent.getPropery(jTextField1.getText())==null){
                                 String resp = client.execute("renameResource", new Object[]{parent.getID()+":"+jTextField1.getOldValue(),
-                                                                            jTextField1.getText()}).toString();
+                                                                                            jTextField1.getText()}).toString();
                                 if(resp.equals("true")){
-		                            parent.addProperty(jTextField1.getText(), parent.getProperties().remove(jTextField1.getOldValue()).toString());                                    jTextField1.setOldValue(jTextField1.getText());
+                                    parent.addProperty(jTextField1.getText(), parent.getProperties().remove(jTextField1.getOldValue()).toString());
+                                    jTextField1.setOldValue(jTextField1.getText());
                                 } else {
                                     jTextField1.setText(jTextField1.getOldValue());
                                 }
@@ -347,11 +373,14 @@ public class NodePanel extends JPanel{
                     public void keyReleased(KeyEvent ev){
                         String key = jTextField1.getText();
                         String value = jTextField2.getText();
-                        parent.addProperty(key,value);
                         String path = parent.getParent().getID();
                         String name = parent.getName();
                         String query = "{'"+key+"':'"+value+"'}";
-                        try{String resp = client.execute("setResource", new Object[]{name,path,query}).toString();}
+                        try{String resp = client.execute("setResource", new Object[]{name,path,query}).toString();
+                            if(resp.equals("true")){
+                                parent.addProperty(key,value);
+                            }
+                        }
                         catch(Exception e){e.printStackTrace();}
                     }
                 });
@@ -361,8 +390,9 @@ public class NodePanel extends JPanel{
                 remove.addActionListener(new ActionListener(){
                     public void actionPerformed(ActionEvent ev){
                         try{
+                            if(jTextField1.getText().equals(""))return;
                             String s = client.execute("deleteResource", new Object[]{parent.getID()+":"+
-                                                      jTextField1.getText()}).toString();
+                                                                    jTextField1.getText()}).toString();
                             if(s.equals("true")){
                                 parent.getProperties().remove(jTextField1.getText());
                                 updateProperties();

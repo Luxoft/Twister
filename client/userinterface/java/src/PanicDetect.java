@@ -38,6 +38,10 @@ import java.util.Iterator;
 import java.util.Map;
 import javax.swing.JOptionPane;
 import com.twister.CustomDialog;
+import java.awt.event.FocusAdapter;
+import java.awt.event.FocusEvent;
+import javax.swing.event.DocumentListener;
+import javax.swing.event.DocumentEvent;
 
 public class PanicDetect extends JPanel{
     private JButton add;
@@ -76,10 +80,8 @@ public class PanicDetect extends JPanel{
                 String id = n.getKey();
                 JsonElement content = n.getValue();
                 JsonObject ob = content.getAsJsonObject();
-                String exp = ob.get("expression").toString();
-                exp = exp.substring(1, exp.length()-1);
-                String en = ob.get("enabled").toString();
-                en = en.substring(1, en.length()-1);
+                String exp = ob.get("expression").getAsString();
+                String en = ob.get("enabled").getAsString();
                 MyPanel panel =new MyPanel(exp, Boolean.parseBoolean(en),id);
                 addPanel(panel);
             }
@@ -92,11 +94,11 @@ public class PanicDetect extends JPanel{
         try{
             String result = Repository.getRPCClient().execute("panicDetectConfig",
                                                               new Object[]{Repository.getUser(),
-                                                                           "add","expression=''&enabled=false"}).toString();
+                                                                           "add","expression=new_regex&enabled=false"}).toString();
             if(result.indexOf("error")==-1){
-                MyPanel p = new MyPanel();
-                p.setId(result);
+                MyPanel p = new MyPanel("new_regex",false,result);
                 addPanel(p);    
+                p.highlight();
             } else {
                 CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,
                                       this,
@@ -157,19 +159,39 @@ public class PanicDetect extends JPanel{
                     regexModified();
                 }
             });
-            regex.addKeyListener(new KeyAdapter(){
-                public void keyReleased(KeyEvent ev){
+            //send to CE modifications when focus is lost
+            regex.addFocusListener(new FocusAdapter(){
+                public void focusLost(FocusEvent ev){
+                    if(regex.getText().equals("")){
+                        try{
+                            String result = Repository.getRPCClient().execute("panicDetectConfig",
+                                                                      new Object[]{Repository.getUser(),
+                                                                                   "list"}).toString();
+                            JsonElement jelement = new JsonParser().parse(result);
+                            JsonObject main = jelement.getAsJsonObject();
+                            JsonObject reg = main.getAsJsonObject(Repository.getUser());
+                            result = (((JsonObject)reg.get(id)).get("expression")).getAsString();
+                            regex.setText(result);
+                        } catch(Exception e){e.printStackTrace();}
+                    }
                     regexModified();
                 }
             });
         }
         
+        //method to select all text, used after
+        //new regex is added
+        public void highlight(){
+            regex.requestFocus();
+            regex.requestFocusInWindow();
+            regex.selectAll();
+        }
+        
         public void regexModified(){
             try{
                 String com = "expression="+regex.getText()+
-                               "&enabled="+enabled.isSelected()+
-                               "&id="+id;
-                               
+                             "&enabled="+enabled.isSelected()+
+                             "&id="+id;
                 String result = Repository.getRPCClient().execute("panicDetectConfig",
                                                                     new Object[]{Repository.getUser(),
                                                                            "update",com}).toString();

@@ -1,6 +1,5 @@
 /*
 File: GITPlugin.java ; This file is part of Twister.
-Version: 2.001
 
 Copyright (C) 2012 , Luxoft
 
@@ -23,8 +22,12 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -266,12 +269,6 @@ public class GITPlugin extends BasePlugin implements TwisterPluginInterface {
 	}
 
 	@Override
-	public String getDescription() {
-		String description = "GITPlugin";
-		return description;
-	}
-
-	@Override
 	public String getFileName() {
 		String filename = "GITPlugin.jar";
 		return filename;
@@ -357,7 +354,10 @@ public class GITPlugin extends BasePlugin implements TwisterPluginInterface {
 	public void selectSnapshot(){
         try{
         	final String initial = tsnapshot.getText();
-        	final MySftpBrowser browser = new MySftpBrowser(variables.get("host"), variables.get("user"), variables.get("password"), tsnapshot, p);
+        	final MySftpBrowser browser = new MySftpBrowser(variables.get("host"),
+        													variables.get("user"), 
+        													variables.get("password"), 
+        													tsnapshot, p);
         	//final MySftpBrowser browser = new MySftpBrowser(c, tsnapshot, p);
         	new Thread(){
         		public void run(){

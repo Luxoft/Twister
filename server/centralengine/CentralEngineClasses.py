@@ -530,7 +530,9 @@ class CentralEngine(_cptools.XMLRPCController):
 
                     # Execute "Post Script"
                     script_post = self.project.getUserInfo(user, 'script_post')
-                    if script_post: self.project.execScript(script_post)
+                    if script_post:
+                        result = self.project.execScript(script_post)
+                        logDebug('Post Script executed!\n"{}"\n'.format(result))
 
                     # Execute "onStop" for all plugins!
                     parser = PluginParser(user)
@@ -623,7 +625,9 @@ class CentralEngine(_cptools.XMLRPCController):
 
             # Execute "Pre Script"
             script_pre = self.project.getUserInfo(user, 'script_pre')
-            if script_pre: self.project.execScript(script_pre)
+            if script_pre:
+                result = self.project.execScript(script_pre)
+                if result: logDebug('Pre Script executed! {}'.format(result))
 
             # Execute "onStart" for all plugins!
             parser = PluginParser(user)
@@ -641,7 +645,9 @@ class CentralEngine(_cptools.XMLRPCController):
 
             # Execute "Post Script"
             script_post = self.project.getUserInfo(user, 'script_post')
-            if script_post: self.project.execScript(script_post)
+            if script_post:
+                result = self.project.execScript(script_post)
+                logDebug('Post Script executed!\n"{}"\n'.format(result))
 
             # Execute "onStop" for all plugins... ?
             parser = PluginParser(user)
