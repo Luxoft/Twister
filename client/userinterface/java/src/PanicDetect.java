@@ -81,10 +81,7 @@ public class PanicDetect extends JPanel{
                 JsonElement content = n.getValue();
                 JsonObject ob = content.getAsJsonObject();
                 String exp = ob.get("expression").getAsString();
-//                 exp = exp.substring(1, exp.length()-1);
-//                 if(exp.equals(""))exp="new_regex";
                 String en = ob.get("enabled").getAsString();
-//                 en = en.substring(1, en.length()-1);
                 MyPanel panel =new MyPanel(exp, Boolean.parseBoolean(en),id);
                 addPanel(panel);
             }
@@ -144,17 +141,6 @@ public class PanicDetect extends JPanel{
             regexl.setBounds(10,5,60,25);
             add(regexl);
             regex = new JTextField();
-//             regex.getDocument().addDocumentListener(new DocumentListener() {
-//                 public void changedUpdate(DocumentEvent e) {
-//                     documentChanged();
-//                 }
-//                 public void removeUpdate(DocumentEvent e) {
-//                     documentChanged();
-//                 }
-//                 public void insertUpdate(DocumentEvent e) {
-//                     documentChanged();
-//                 }
-//             });
             enabled = new JCheckBox("Enabled");
             remove = new JButton("Remove");
             regex.setBounds(75, 5, 200, 25);
@@ -170,24 +156,13 @@ public class PanicDetect extends JPanel{
             });
             enabled.addActionListener(new ActionListener(){
                 public void actionPerformed(ActionEvent ev){
-//                     if(regex.getText().equals("")){
-//                         enabled.setSelected(!enabled.isSelected());
-//                     }
                     regexModified();
                 }
             });
-//             regex.addKeyListener(new KeyAdapter(){
-//                 public void keyReleased(KeyEvent ev){
-//                     regexModified();
-//                 }
-//             });
+            //send to CE modifications when focus is lost
             regex.addFocusListener(new FocusAdapter(){
                 public void focusLost(FocusEvent ev){
                     if(regex.getText().equals("")){
-//                         CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,PanicDetect.this,
-//                                                       "Warning", "Regex must not be empty");         
-//                         regex.requestFocusInWindow();
-//                         regex.requestFocus();
                         try{
                             String result = Repository.getRPCClient().execute("panicDetectConfig",
                                                                       new Object[]{Repository.getUser(),
@@ -196,44 +171,21 @@ public class PanicDetect extends JPanel{
                             JsonObject main = jelement.getAsJsonObject();
                             JsonObject reg = main.getAsJsonObject(Repository.getUser());
                             result = (((JsonObject)reg.get(id)).get("expression")).getAsString();
-//                             result = result.substring(1, result.length()-1);
                             regex.setText(result);
                         } catch(Exception e){e.printStackTrace();}
                     }
                     regexModified();
                 }
             });
-            
-//             regex.setSelectionStart(0);
-//             regex.setSelectionEnd(regex.getText().length());
         }
         
+        //method to select all text, used after
+        //new regex is added
         public void highlight(){
             regex.requestFocus();
             regex.requestFocusInWindow();
             regex.selectAll();
         }
-        
-//         public void documentChanged(){
-//             if(regex.getText().equals("")){
-//                 CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,PanicDetect.this,
-//                                               "Warning", "Regex must not be empty");         
-//                 regex.requestFocusInWindow();
-//                 regex.requestFocus();
-//                 try{
-//                     String result = Repository.getRPCClient().execute("panicDetectConfig",
-//                                                               new Object[]{Repository.getUser(),
-//                                                                            "list"}).toString();
-//                     JsonElement jelement = new JsonParser().parse(result);
-//                     JsonObject main = jelement.getAsJsonObject();
-//                     JsonObject reg = main.getAsJsonObject(Repository.getUser());
-//                     result = ((JsonObject)reg.get(id)).get("expression").toString();
-//                     result = result.substring(1, result.length()-1);
-//                     if(result.equals("''"))return;
-//                     regex.setText(result);
-//                 } catch(Exception e){e.printStackTrace();}
-//             }
-//         }
         
         public void regexModified(){
             try{
@@ -249,22 +201,7 @@ public class PanicDetect extends JPanel{
         }
         
         public void removeRegex(){
-            try{ 
-//                 try{
-//                     String result = Repository.getRPCClient().execute("panicDetectConfig",
-//                                                               new Object[]{Repository.getUser(),
-//                                                                            "list"}).toString();
-//                     JsonElement jelement = new JsonParser().parse(result);
-//                     JsonObject main = jelement.getAsJsonObject();
-//                     JsonObject reg = main.getAsJsonObject(Repository.getUser());
-//                     result = ((JsonObject)reg.get(id)).get("expression").toString();
-//                     result = result.substring(1, result.length()-1);
-//                     if(result.equals("''")){
-//                         
-//                     }
-//                 } catch(Exception e){e.printStackTrace();}
-                
-//                 if(regex.getText().equals(""))return;
+            try{
                 String result = Repository.getRPCClient().execute("panicDetectConfig",
                                                                    new Object[]{Repository.getUser(),
                                                                    "remove",id}).toString();
