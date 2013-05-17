@@ -288,7 +288,8 @@ public class Repository{
                 try{REMOTEPLUGINSDIR = client.execute("getTwisterPath", new Object[]{}).toString()+"/plugins";
                     System.out.println("Remote Twister plugins instalation path: "+REMOTEPLUGINSDIR);
                 } catch(Exception e){
-                    System.out.println("Remote Twister plugins instalation path could not be set");
+                    REMOTEPLUGINSDIR = "/opt/twister/plugins";
+                    System.out.println("Remote Twister plugins instalation path: "+REMOTEPLUGINSDIR);
                 }
                 window = new Window(applet,container);
                 parseEmailConfig(Repository.REMOTEEMAILCONFIGFILE,true);
