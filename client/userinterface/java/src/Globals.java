@@ -292,7 +292,25 @@ public class Globals {
         String resp = CustomDialog.showInputDialog(JOptionPane.PLAIN_MESSAGE,
                                                     JOptionPane.OK_CANCEL_OPTION, 
                                                     panel, "Name", "Config name: ");
-        if(resp!=null&&!resp.equals("")){
+        if(resp!=null){
+            if(resp.equals("")){
+                CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,main,
+                                                  "Warning", "Name must not be null");
+                return;
+            }
+            for(int i=0;i<root.getChildCount();i++){
+                
+                Object node = ((DefaultMutableTreeNode)root.getChildAt(i)).getUserObject();
+                
+                if(node.getClass() == MyFolder.class){
+                    if(((MyFolder)node).toString().equals(resp)){
+                        CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,main,
+                                                  "Warning", "Name already exists");
+                        return;
+                    }
+                }
+            }
+            
             try{
                 Element rootElement = doc.createElement("folder");
                 doc.getFirstChild().appendChild(rootElement);
@@ -374,14 +392,35 @@ public class Globals {
                 
             }
         });
-        name.setText(node.getName().getNodeValue());
+        try{name.setText(node.getName().getNodeValue());}
+        catch(Exception e){}
         JTextField value = new JTextField();
-        value.setText(node.getValue().getNodeValue());
+        try{value.setText(node.getValue().getNodeValue());}
+        catch(Exception e){}
         JPanel p = getPropPanel(name,value);
         int r = (Integer)CustomDialog.showDialog(p,JOptionPane.PLAIN_MESSAGE, 
                                                 JOptionPane.OK_CANCEL_OPTION, 
                                                 panel, "Property: value",null);
-        if(r == JOptionPane.OK_OPTION&&(!(name.getText()+value.getText()).equals(""))){
+        if(r == JOptionPane.OK_OPTION){
+            if(name.getText().equals("")){
+                CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,main,
+                                                  "Warning", "Name must not be null");
+                return;
+            }
+            
+            //check if name already exists
+            for(int i=0;i<treenode.getParent().getChildCount();i++){
+                Object ob = ((DefaultMutableTreeNode)treenode.getParent().getChildAt(i)).getUserObject();
+                if(ob.getClass() == MyParam.class && ob!=node){
+                    if(((MyParam)ob).getName().getNodeValue().equals(name.getText())){
+                        CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,main,
+                                                  "Warning", "Name already exists");
+                        return;
+                    }
+                }
+            }
+            
+            
             node.getName().setNodeValue(name.getText());
             node.getValue().setNodeValue(value.getText());
             ((DefaultTreeModel)tree.getModel()).nodeChanged(treenode);
@@ -474,7 +513,27 @@ public class Globals {
         int r = (Integer)CustomDialog.showDialog(p,JOptionPane.PLAIN_MESSAGE, 
                                                 JOptionPane.OK_CANCEL_OPTION, 
                                                 panel, "Config name",null);
-        if(r == JOptionPane.OK_OPTION&&(!name.getText().equals(""))){
+        if(r == JOptionPane.OK_OPTION){
+            if(name.getText().equals("")){
+                CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,main,
+                                                  "Warning", "Name must not be null");
+                return;
+            }
+            
+            //check if name already exists
+            for(int i=0;i<treenode.getParent().getChildCount();i++){
+                Object node = ((DefaultMutableTreeNode)treenode.getParent().getChildAt(i)).getUserObject();
+                if(node.getClass() == MyFolder.class && node!=parent){
+                    if(((MyFolder)node).toString().equals(name.getText())){
+                        CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,main,
+                                                  "Warning", "Name already exists");
+                        return;
+                    }
+                }
+            }
+            
+            
+            
             parent.getNode().setNodeValue(name.getText());
             ((DefaultTreeModel)tree.getModel()).nodeChanged(treenode);
             writeXML();
@@ -513,8 +572,25 @@ public class Globals {
         int r = (Integer)CustomDialog.showDialog(p,JOptionPane.PLAIN_MESSAGE, 
                                                 JOptionPane.OK_CANCEL_OPTION, 
                                                 panel, "Property: value",null);
-        if(r == JOptionPane.OK_OPTION&&(!(name.getText()+value.getText()).equals(""))){
-            
+        if(r == JOptionPane.OK_OPTION ){
+            if(name.getText().equals("")){
+                CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,main,
+                                                  "Warning", "Name must not be null");
+                return;
+            }
+            for(int i=0;i<treenode.getChildCount();i++){
+                
+                Object node = ((DefaultMutableTreeNode)treenode.getChildAt(i)).getUserObject();
+                
+                if(node.getClass() == MyParam.class){
+                    if(((MyParam)node).getName().getNodeValue().equals(name.getText())){
+                        CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,main,
+                                                  "Warning", "Name already exists");
+                        return;
+                    }
+                }
+                
+            }
             MyParam param = new MyParam();
             
             Element rootElement = doc.createElement("param");
@@ -559,7 +635,27 @@ public class Globals {
         String resp = CustomDialog.showInputDialog(JOptionPane.PLAIN_MESSAGE,
                                                     JOptionPane.OK_CANCEL_OPTION, 
                                                     panel, "Name", "Config name: ");
-        if(resp!=null&&!resp.equals("")){
+        //check if name already exists
+        if(resp!=null){
+            if(resp.equals("")){
+                CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,main,
+                                                  "Warning", "Name must not be null");
+                return;
+            }
+            for(int i=0;i<treenode.getChildCount();i++){
+                
+                Object node = ((DefaultMutableTreeNode)treenode.getChildAt(i)).getUserObject();
+                
+                if(node.getClass() == MyFolder.class){
+                    if(((MyFolder)node).toString().equals(resp)){
+                        CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,main,
+                                                  "Warning", "Name already exists");
+                        return;
+                    }
+                }
+                
+            }
+            
             Element rootElement = doc.createElement("folder");
             parent.getNode().getParentNode().getParentNode().appendChild(rootElement);
             Element fname = doc.createElement("fname");
@@ -640,7 +736,13 @@ public class Globals {
                 n = ((Element)nodes.item(i)).getElementsByTagName("name").item(0);
                 param.setName(n.getFirstChild());
                 n = ((Element)nodes.item(i)).getElementsByTagName("value").item(0);
-                param.setValue(n.getFirstChild());
+                if(n.getChildNodes().getLength()==0){
+                    Node tn = doc.createTextNode("test");
+                    ((Element)nodes.item(i)).getElementsByTagName("value").item(0).appendChild(tn);
+                    param.setValue(tn);
+                } else {
+                    param.setValue(n.getFirstChild());
+                }
                 temp.add(new DefaultMutableTreeNode(param,true));
             }
             expr1 = xpath.compile("folder");
