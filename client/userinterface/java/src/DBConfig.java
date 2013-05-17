@@ -1,6 +1,6 @@
 /*
 File: DBConfig.java ; This file is part of Twister.
-Version: 2.001
+Version: 2.002
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -105,7 +105,7 @@ public class DBConfig extends JPanel{
                     e.printStackTrace();}
                 if(saved){
                     CustomDialog.showInfo(JOptionPane.INFORMATION_MESSAGE, 
-                                            DBConfig.this, "Successfull", 
+                                            DBConfig.this, "Successful", 
                                             "File successfully uploaded");}
                 else{
                     CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, 
@@ -214,7 +214,7 @@ public class DBConfig extends JPanel{
                         e.printStackTrace();}
                     if(saved){
                         CustomDialog.showInfo(JOptionPane.INFORMATION_MESSAGE, 
-                                                DBConfig.this, "Successfull", 
+                                                DBConfig.this, "Successful", 
                                                 "File successfully saved");}
                     else{
                         CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, 

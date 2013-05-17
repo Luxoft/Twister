@@ -1,6 +1,6 @@
 /*
 File: ExplorerPanel.java ; This file is part of Twister.
-Version: 2.001
+Version: 2.002
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -750,6 +750,7 @@ public class ExplorerPanel extends JPanel {
                 }
                 try{
                     current = c.pwd();
+                    
                     c.cd(vector1.get(i).getFilename());
                     c.cd(current);
                     folders.add(vector1.get(i).getFilename());
