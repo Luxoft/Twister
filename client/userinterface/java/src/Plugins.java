@@ -1,6 +1,6 @@
 /*
 File: Plugins.java ; This file is part of Twister.
-Version: 2.001
+Version: 2.002
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -139,8 +139,7 @@ public class Plugins extends JPanel{
             transformer.setOutputProperty(OutputKeys.INDENT, "yes");
             transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "4");
             transformer.transform(source, result);
-            System.out.println("Saving "+file.getName()+" to: "+Repository.USERHOME+"/twister/config/");            
-            //System.out.println(Repository.USERHOME+"/twister/config/");
+            System.out.println("Saving "+file.getName()+" to: "+Repository.USERHOME+"/twister/config/");
             FileInputStream in = new FileInputStream(file);
             ch.cd(Repository.USERHOME+"/twister/config/");
             ch.put(in, file.getName());
@@ -230,7 +229,7 @@ public class Plugins extends JPanel{
         while(iterator.hasNext()){
             name = iterator.next().toString();
             TwisterPluginInterface plugin = (TwisterPluginInterface)plugins.get(name);
-            description = plugin.getDescription();
+            description = plugin.getDescription(Repository.PLUGINSDIRECTORY);
             addPlugin(name,description,plugin);}
         JLabel remotedescription = new JLabel("Remote plugins found on server");
         GridBagConstraints gridBagConstraints = new GridBagConstraints();
@@ -399,10 +398,11 @@ public class Plugins extends JPanel{
             while(iterator.hasNext()){
                 name = iterator.next().toString();
                 plugin = (TwisterPluginInterface)plugins.get(name);
-                description = plugin.getDescription();
+                description = plugin.getDescription(Repository.PLUGINSDIRECTORY);
                 addPlugin(name,description,plugin);}
-            plugintable.revalidate();
-            plugintable.repaint();}
+                plugintable.revalidate();
+                plugintable.repaint();
+        }
         else{
             if(copyPlugin(filename)){
                 addremove.setText("Remove");
@@ -427,7 +427,7 @@ public class Plugins extends JPanel{
                 while(iterator.hasNext()){
                     name = iterator.next().toString();
                     TwisterPluginInterface plugin = (TwisterPluginInterface)plugins.get(name);
-                    description = plugin.getDescription();
+                    description = plugin.getDescription(Repository.PLUGINSDIRECTORY);
                     addPlugin(name,description,plugin);
                 }   
             }   
@@ -566,8 +566,23 @@ public class Plugins extends JPanel{
                     TwisterPluginInterface plugin = (TwisterPluginInterface)plugins.
                                                     get(pluginname);
                     MainPanel main = Repository.window.mainpanel;
-                    if(main.getComponentZOrder(plugin.getContent())==-1){
-                        check.doClick();}
+                    
+                    Component comp;
+                    boolean found = false;
+                    for(int i=0;i<main.getTabCount();i++){
+                        if(main.getComponentAt(i)==null)continue;
+                        try{comp = ((JScrollPane)(main.getComponentAt(i))).getViewport().getView();
+                            if(comp == plugin.getContent()){
+                                found = true;
+                                break;
+                            }
+                        } catch(Exception e){}
+                    }
+                    if(!found){check.doClick();
+                        
+//                     if(main.getComponentZOrder(plugin.getContent())==-1){
+//                         check.doClick();
+                    }
                     else check.setSelected(true);}
             }.start();
         }
@@ -674,7 +689,9 @@ public class Plugins extends JPanel{
             size = plugins.size();            
             for(int i=0;i<size;i++){
                 plugin = plugins.get(i).getAsString();
-                if(!availableplugin.getName().equals("Twister.jar") &&
+//                 if(!availableplugin.getName().equals("Twister.jar") &&
+//                     availableplugin.getName().equals(plugin)){
+                if( availableplugin.getName().equals(plugin.substring(0,plugin.indexOf("."))+"_description.txt")||
                     availableplugin.getName().equals(plugin)){
                     found = true;
                     break;
@@ -717,7 +734,9 @@ public class Plugins extends JPanel{
         catch(Exception e){
             System.out.println("Could not get :"+Repository.REMOTEPLUGINSDIR+" as remote plugins dir");
             return false;}
-        try{System.out.print("Getting "+filename+" ....");
+        try{
+            //get jar file
+            System.out.print("Getting "+filename+" ....");
             in = ch.get(filename);    
             file = new File(Repository.PLUGINSDIRECTORY+Repository.getBar()+filename);
             OutputStream out=new FileOutputStream(file);
@@ -728,10 +747,25 @@ public class Plugins extends JPanel{
             out.close();
             in.close();
             System.out.println("successfull");
+            
+            //get plugin description file
+            try{
+                filename = filename.substring(0, filename.indexOf("."))+"_description.txt";
+                System.out.print("Getting "+filename+" ....");
+                in = ch.get(filename);    
+                file = new File(Repository.PLUGINSDIRECTORY+Repository.getBar()+filename);
+                out=new FileOutputStream(file);
+                while((len=in.read(buf))>0)
+                out.write(buf,0,len);
+                out.close();
+                in.close();
+                System.out.println("successfull");
+            } catch(Exception e){e.printStackTrace();}    
+            
             return true;}
         catch(Exception e){
             e.printStackTrace();
-            System.out.println("Error in copying plugin" +filename+ " localy");
+            System.out.println("Error in copying plugin file " +filename+ " localy");
             return false;}}
                 
     public void enablePlugin(boolean value, String filename){

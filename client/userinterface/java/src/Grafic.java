@@ -164,7 +164,7 @@ public class Grafic extends JPanel{
                             Repository.window.mainpanel.p1.suitaDetails.getDefsNr()+" fields");}
                     try{for(int i=0;i<userDefNr;i++){
                         Repository.window.mainpanel.p1.suitaDetails.
-                            getDefPanel(i).setDescription(next.getUserDef(i)[1]);}}
+                            getDefPanel(i).setDescription(next.getUserDef(i)[1],true);}}
                     catch(Exception e){e.printStackTrace();}}
                 else{
                     Repository.window.mainpanel.p1.suitaDetails.setGlobalDetails();
@@ -208,7 +208,7 @@ public class Grafic extends JPanel{
                         Repository.window.mainpanel.p1.suitaDetails.getDefsNr()+" fields");}
                     try{for(int i=0;i<userDefNr;i++){
                             Repository.window.mainpanel.p1.suitaDetails.getDefPanel(i).
-                                setDescription(next.getUserDef(i)[1]);}}
+                                setDescription(next.getUserDef(i)[1],true);}}
                     catch(Exception e){e.printStackTrace();}}
                 else{
                     Repository.window.mainpanel.p1.suitaDetails.setGlobalDetails();
@@ -1023,7 +1023,7 @@ public class Grafic extends JPanel{
                                 for(int i=0;i<Repository.window.mainpanel.p1.suitaDetails.getDefsNr();i++){
                                     if(temp.getUserDefNr()==i)break;
                                     Repository.window.mainpanel.p1.suitaDetails.getDefPanel(i).
-                                                        setDescription(temp.getUserDef(i)[1]);}}
+                                                        setDescription(temp.getUserDef(i)[1],true);}}
                             catch(Exception e){e.printStackTrace();}   
                         }
                         Repository.window.mainpanel.p1.suitaDetails.setSuiteDetails(root);
@@ -1174,7 +1174,7 @@ public class Grafic extends JPanel{
                                 for(int i=0;i<Repository.window.mainpanel.p1.suitaDetails.getDefsNr();i++){
                                     if(temp.getUserDefNr()==i)break;
                                     Repository.window.mainpanel.p1.suitaDetails.getDefPanel(i).
-                                                        setDescription(temp.getUserDef(i)[1]);}}
+                                                        setDescription(temp.getUserDef(i)[1],true);}}
                             catch(Exception e){e.printStackTrace();}
                         }
                         Repository.window.mainpanel.p1.suitaDetails.setSuiteDetails(root);
@@ -1203,7 +1203,7 @@ public class Grafic extends JPanel{
                                     for(int i=0;i<Repository.window.mainpanel.p1.suitaDetails.getDefsNr();i++){
                                         if(temp.getUserDefNr()==i)break;
                                         Repository.window.mainpanel.p1.suitaDetails.getDefPanel(i).
-                                                            setDescription(temp.getUserDef(i)[1]);}}
+                                                            setDescription(temp.getUserDef(i)[1],true);}}
                                 catch(Exception e){e.printStackTrace();}}
                             Repository.window.mainpanel.p1.suitaDetails.setSuiteDetails(root);                            
                             suitaPopUp(ev,getItem(selected,false));
@@ -2465,6 +2465,7 @@ public class Grafic extends JPanel{
                 public void windowLostFocus(WindowEvent ev){
                     toFront();}
                     public void windowGainedFocus(WindowEvent ev){}});
+            System.out.println("Called");
             setAlwaysOnTop(true);
             setLayout(null);
             setResizable(false);
@@ -2508,6 +2509,10 @@ public class Grafic extends JPanel{
 
             StringBuilder b = new StringBuilder();
             Node parentnode = Repository.window.mainpanel.p4.getTB().getParentNode();
+            try{parentnode.getChildren();}
+            catch(Exception e){
+                e.printStackTrace();
+                System.out.println("There are no Test Beds present, please check Test Beds section");}
             HashMap children =  parentnode.getChildren();
             if(children!=null&&children.size()!=0){
                 Set keys = children.keySet();

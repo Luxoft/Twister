@@ -1,6 +1,6 @@
 /*
 File: Emails.java ; This file is part of Twister.
-Version: 2.001
+Version: 2.002
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -238,7 +238,7 @@ public class Emails extends JPanel{
                 catch(Exception e){
                     e.printStackTrace();
                     saved = false;}
-                if(saved)CustomDialog.showInfo(JOptionPane.INFORMATION_MESSAGE, Emails.this, "Successfull", "File successfully saved");
+                if(saved)CustomDialog.showInfo(JOptionPane.INFORMATION_MESSAGE, Emails.this, "Successful", "File successfully saved");
                 else CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, Emails.this, "Warning", "File could not be saved");}});
         add(save);}
     

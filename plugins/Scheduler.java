@@ -33,10 +33,12 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -668,7 +670,7 @@ public class Scheduler extends BasePlugin implements TwisterPluginInterface {
 	}
 	
 	/*
-	 * displays a list of peroject files
+	 * displays a list of project files
 	 * and inserts the name of the selected one
 	 * into the field
 	 */
@@ -735,14 +737,6 @@ public class Scheduler extends BasePlugin implements TwisterPluginInterface {
 	@Override
 	public Component getContent() {
 		return p;
-	}
-
-	@Override
-	public String getDescription() {
-		String description = "Scheduler is a Twister plugin that allows starting the"+
-							 " Central Engine automatically, either one time,"+
-							 " daily, or weekly.";
-		return description;
 	}
 
 	@Override

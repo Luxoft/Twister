@@ -533,8 +533,7 @@ public class SuitaDetails extends JPanel {
         l9.setBounds(10,155,70,25);
         summary.add(l9);
         stats[8] = new JLabel();
-        stats[8].setBounds(118,155,100,25);
-//         
+        stats[8].setBounds(118,155,100,25);    
         JLabel l10 = new JLabel("Waiting:");
         l10.setBounds(10,175,60,25);
         summary.add(l10);
@@ -557,131 +556,6 @@ public class SuitaDetails extends JPanel {
         optional.setBackground(Color.WHITE);
         prerequisites = new JCheckBox("pre-requisites");
         prerequisites.setBackground(Color.WHITE);
-        
-        
-        //JPanel prop =new JPanel();
-        
-        
-        
-        
-        
-        
-//         prop.setBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(new Color(153, 153, 153)),
-//                                                         "Properties", TitledBorder.DEFAULT_JUSTIFICATION,
-//                                                         TitledBorder.DEFAULT_POSITION, null, new Color(0, 0, 0)));
-        //prop.setBackground(Color.WHITE);
-//         JPanel jPanel1 = new JPanel();
-//         JScrollPane jScrollPane1 = new JScrollPane(jPanel1);
-//         jPanel1.setBackground(Color.WHITE);
-//         jScrollPane1.setBackground(Color.WHITE);
-//         jScrollPane1.setBorder(null);
-//         jPanel1.setLayout(new BoxLayout(jPanel1, BoxLayout.Y_AXIS));
-//         
-//         JLabel jLabel1 = new JLabel(" Name: ");
-//         JTextField jTextField1 = new JTextField();
-//         JLabel jLabel2 = new JLabel(" Value: ");
-//         JTextField jTextField2 = new JTextField();
-//         JButton jButton1 = new JButton("Remove");
-//         
-//         JPanel proppanel = new JPanel();
-//         proppanel.setMaximumSize(new java.awt.Dimension(32767, 25));
-//         proppanel.setMinimumSize(new java.awt.Dimension(0, 25));
-//         proppanel.setPreferredSize(new java.awt.Dimension(50, 25));
-//         proppanel.setBackground(Color.WHITE);
-//         proppanel.setLayout(new BoxLayout(proppanel, BoxLayout.LINE_AXIS));
-//         proppanel.add(jLabel1);
-//         proppanel.add(jTextField1);
-//         proppanel.add(jLabel2);
-//         proppanel.add(jTextField2);
-//         proppanel.add(Box.createRigidArea(new Dimension(5, 0)));
-//         proppanel.add(jButton1);
-//         proppanel.add(Box.createRigidArea(new Dimension(5, 0)));
-//         jPanel1.add(proppanel);
-        
-        
-        
-//         GroupLayout proppanelLayout = new GroupLayout(proppanel);
-//         proppanel.setLayout(proppanelLayout);
-//         proppanelLayout.setHorizontalGroup(
-//             proppanelLayout.createParallelGroup(GroupLayout.Alignment.LEADING)
-//             .addGroup(proppanelLayout.createSequentialGroup()
-//                 .addComponent(jLabel1)
-//                 .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
-//                 .addComponent(jTextField1, GroupLayout.DEFAULT_SIZE, 108, Short.MAX_VALUE)
-//                 .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
-//                 .addComponent(jLabel2)
-//                 .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
-//                 .addComponent(jTextField2, GroupLayout.DEFAULT_SIZE, 107, Short.MAX_VALUE)
-//                 .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
-//                 .addComponent(jButton1, GroupLayout.PREFERRED_SIZE, 71, GroupLayout.PREFERRED_SIZE))
-//         );
-//         proppanelLayout.setVerticalGroup(
-//             proppanelLayout.createParallelGroup(GroupLayout.Alignment.LEADING)
-//             .addGroup(proppanelLayout.createSequentialGroup()
-//                 .addGroup(proppanelLayout.createParallelGroup(GroupLayout.Alignment.BASELINE)
-//                     .addComponent(jLabel1)
-//                     .addComponent(jTextField1, GroupLayout.PREFERRED_SIZE, 
-//                                                GroupLayout.DEFAULT_SIZE,
-//                                                GroupLayout.PREFERRED_SIZE)
-//                     .addComponent(jLabel2)
-//                     .addComponent(jTextField2, GroupLayout.PREFERRED_SIZE, 
-//                                                GroupLayout.DEFAULT_SIZE,
-//                                                GroupLayout.PREFERRED_SIZE)
-//                     .addComponent(jButton1))
-//                 .addContainerGap(2, Short.MAX_VALUE))
-//         );
-
-
-        
-        
-        
-                
-//         GroupLayout propLayout = new GroupLayout(prop);
-//         prop.setLayout(propLayout);
-//         propLayout.setHorizontalGroup(
-//             propLayout.createParallelGroup(GroupLayout.Alignment.LEADING)
-//             .addComponent(jScrollPane1)
-//         );
-//         propLayout.setVerticalGroup(
-//             propLayout.createParallelGroup(GroupLayout.Alignment.LEADING)
-//             .addComponent(jScrollPane1)
-//         );
-        
-        
-        
-        
-        
-//         GroupLayout parampanelLayout = new GroupLayout(parampanel);
-//         parampanel.setLayout(parampanelLayout);
-//         parampanelLayout.setHorizontalGroup(
-//             parampanelLayout.createParallelGroup(GroupLayout.Alignment.LEADING)
-//             .addGroup(parampanelLayout.createSequentialGroup()
-//                 .addComponent(jLabel18)
-//                 .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
-//                 .addComponent(jTextField18, GroupLayout.DEFAULT_SIZE, 237, Short.MAX_VALUE)
-//                 .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
-//                 .addComponent(jButton10, GroupLayout.PREFERRED_SIZE, 71, GroupLayout.PREFERRED_SIZE)
-//                 .addGap(3, 3, 3))
-//         );
-//         parampanelLayout.setVerticalGroup(
-//             parampanelLayout.createParallelGroup(GroupLayout.Alignment.LEADING)
-//             .addGroup(parampanelLayout.createSequentialGroup()
-//                 .addGroup(parampanelLayout.createParallelGroup(GroupLayout.Alignment.BASELINE)
-//                     .addComponent(jLabel18)
-//                     .addComponent(jTextField18, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-//                     .addComponent(jButton10))
-//                 .addContainerGap(2, Short.MAX_VALUE))
-//         );
-
-
-        
-        
-        
-
-        //jPanel2.add(parampanel);
-        
-        
-        
         prop = new PropPanel();
         param = new ParamPanel();
         
@@ -692,30 +566,13 @@ public class SuitaDetails extends JPanel {
         layout.setHorizontalGroup(
             layout.createParallelGroup(GroupLayout.Alignment.LEADING)
             .addGroup(
-//             layout.createSequentialGroup()
-//                 .addContainerGap()
-//                 .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
-//                     .addGroup(layout.createSequentialGroup()
-//                         .addComponent(runnable)
-//                         .addGap(18, 18, 18)
-//                         .addComponent(optional)
-//                         .addGap(18, 18, 18)
-//                         .addComponent(prerequisites))
-//                     .addGroup(layout.createSequentialGroup()
-//                         .addComponent(tcname)
-//                         .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
-//                         .addComponent(ttcname, GroupLayout.PREFERRED_SIZE, 275, GroupLayout.PREFERRED_SIZE)))
-//                 .addContainerGap(127, Short.MAX_VALUE))
-
                 layout.createParallelGroup(GroupLayout.Alignment.LEADING)
                     .addGroup(layout.createSequentialGroup()
                         .addContainerGap()
                         .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
                             .addGroup(layout.createSequentialGroup()
-                                //.addComponent(prop, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                                 .addComponent(prop, 0, 0, Short.MAX_VALUE)
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                //.addComponent(param, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
                                 .addComponent(param, 0, 0, Short.MAX_VALUE))
                             .addGroup(layout.createSequentialGroup()
                                 .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
@@ -731,23 +588,9 @@ public class SuitaDetails extends JPanel {
                                         .addComponent(ttcname, GroupLayout.PREFERRED_SIZE, 116, GroupLayout.PREFERRED_SIZE)))
                                 .addGap(0, 0, Short.MAX_VALUE)))
                         .addContainerGap()))
-                
                 );
                 
         layout.setVerticalGroup(
-//             layout.createParallelGroup(GroupLayout.Alignment.LEADING)
-//             .addGroup(layout.createSequentialGroup()
-//                 .addContainerGap()
-//                 .addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
-//                     .addComponent(tcname)
-//                     .addComponent(ttcname, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
-//                 .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
-//                 .addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
-//                     .addComponent(runnable)
-//                     .addComponent(optional)
-//                     .addComponent(prerequisites))
-//                 .addContainerGap(GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                
                 layout.createParallelGroup(GroupLayout.Alignment.LEADING)
                     .addGroup(GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
                         .addContainerGap()
@@ -761,8 +604,6 @@ public class SuitaDetails extends JPanel {
                             .addComponent(prerequisites))
                         .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
                         .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
-//                             .addComponent(prop, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-//                             .addComponent(param, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
                             .addComponent(prop, 0,0, Short.MAX_VALUE)
                             .addComponent(param, 0,0, Short.MAX_VALUE))
                         .addContainerGap())
@@ -778,7 +619,7 @@ public class SuitaDetails extends JPanel {
            
     public void clearDefs(){
         for(int i=0;i<definitions.size();i++){
-            definitions.get(i).setDescription("");}}
+            definitions.get(i).setDescription("",true);}}
             
     public void setParent(Item parent){ 
         if(this.parent==parent)return;
@@ -1225,7 +1066,6 @@ class PropPanel extends JPanel{
             add(jTextField2);
             add(Box.createRigidArea(new Dimension(5, 0)));
             add(jButton1);
-            //add(Box.createRigidArea(new Dimension(5, 0)));
         }
     }
     
@@ -1241,6 +1081,7 @@ class DefPanel extends JPanel{
     private DefPanel reference;
     private String id;
     private String descriptions;
+    private DocumentListener doclistener;
     
     public DefPanel(String descriptions,String button,String id, 
                     int width,final int index, SuitaDetails container){
@@ -1275,7 +1116,7 @@ class DefPanel extends JPanel{
                                         addGap(0, 20, Short.MAX_VALUE));
         add(filedsGap);        
         userDefinition = new JTextField();
-        userDefinition.getDocument().addDocumentListener(new DocumentListener() {
+        doclistener = new DocumentListener() {
             public void changedUpdate(DocumentEvent e) {
                 setParentField(userDefinition.getText(),false);
             }
@@ -1285,7 +1126,8 @@ class DefPanel extends JPanel{
             public void insertUpdate(DocumentEvent e) {
                 setParentField(userDefinition.getText(),false);
             }
-        });
+        };
+        userDefinition.getDocument().addDocumentListener(doclistener);
         userDefinition.setText("");
         userDefinition.setMaximumSize(new Dimension(300, 100));
         userDefinition.setMinimumSize(new Dimension(50, 20));
@@ -1331,10 +1173,6 @@ class DefPanel extends JPanel{
                     else c = Repository.window;
                     //new MySftpBrowser(Repository.c,userDefinition,c);
                     new MySftpBrowser(Repository.host,Repository.user,Repository.password,userDefinition,c);
-//                     if(parent!=null){
-//                         setParentField(userDefinition.getText(),false);
-//                     }
-                        
                     }});
             filedsGap = new JPanel();
             filedsGap.setBackground(new Color(255, 255, 255));
@@ -1391,6 +1229,12 @@ class DefPanel extends JPanel{
             component.setEnabled(enabled);}
     
     public void setParentField(String def,boolean updateField){
+        for (StackTraceElement ste : Thread.currentThread().getStackTrace()) {
+            System.out.println(ste);
+        }
+
+
+        System.out.println(parent.getName()+" "+userDefinition.getText());
         if(updateField)userDefinition.setText(def);
         parent.setUserDef(index,id,def);}
         
@@ -1408,5 +1252,12 @@ class DefPanel extends JPanel{
     public String getDescription(){
         return descriptions;}
     
-    public void setDescription(String desc){
-        userDefinition.setText(desc);}}   
+    public void setDescription(String desc, boolean removelistener){
+        if(removelistener){
+            userDefinition.getDocument().removeDocumentListener(doclistener);
+        }
+        userDefinition.setText(desc);
+        if(removelistener){
+            userDefinition.getDocument().addDocumentListener(doclistener);
+        }
+    }}   

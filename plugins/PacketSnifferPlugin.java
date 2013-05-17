@@ -29,11 +29,13 @@ import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.URL;
 import java.util.ArrayList;
@@ -423,7 +425,6 @@ public class PacketSnifferPlugin extends BasePlugin implements
 			top.add(search2);
 			JButton apply2 = new JButton("Apply");
 			apply2.addActionListener(new ActionListener() {
-				
 				@Override
 				public void actionPerformed(ActionEvent arg0) {
 					setRemoteFilter(search2.getText());
@@ -432,11 +433,11 @@ public class PacketSnifferPlugin extends BasePlugin implements
 			top.add(apply2);
 			JButton clear2 = new JButton("Clear");
 			clear2.addActionListener(new ActionListener() {
-				
 				@Override
 				public void actionPerformed(ActionEvent arg0) {
 					search2.setText("");
-					setRemoteFilter(search2.getText());
+					setRemoteFilter("");
+					
 				}
 			});
 			top.add(clear2);
@@ -614,13 +615,14 @@ public class PacketSnifferPlugin extends BasePlugin implements
 	
 	private void setRemoteFilter(String text){
 		try {
+			String s = "command=setfilters&data="+text;
 			String resp = client.execute(
 					"runPlugin",
 					new Object[] {
 							variables.get("user"),
-							getName(),
-							"command=setfilters&data="+text})
+							getName(),s})
 					.toString();
+			System.out.println("Filter set: "+s);
 			System.out.println(resp);
 			((DefaultTableModel) jTable1.getModel())
 					.setNumRows(0);
@@ -656,6 +658,7 @@ public class PacketSnifferPlugin extends BasePlugin implements
 						"runPlugin",
 						new Object[] { variables.get("user"), getName(),
 								"command=savepcap" }).toString();
+				System.out.println("Remote pcap file: "+location);
 				InputStream in = c.get(location);
 				OutputStream out = new FileOutputStream(
 						new File(file + ".pcap"));
@@ -691,15 +694,6 @@ public class PacketSnifferPlugin extends BasePlugin implements
 	@Override
 	public Component getContent() {
 		return p;
-	}
-
-	@Override
-	public String getDescription() {
-		String description = "Packets Twist (SNIFF) is a Twister plugin that captures "+
-							 "network packets and list them to users, allowing them to "+
-							 "filter the packets as they are captured or after capture."+
-							 " All in all this plugin has a functionality similar to Wireshark.";
-		return description;
 	}
 
 	@Override

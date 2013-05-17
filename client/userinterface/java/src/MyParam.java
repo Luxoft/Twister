@@ -38,6 +38,12 @@ class MyParam{
     }
     
     public String toString(){
-        return name.getNodeValue()+" : "+value.getNodeValue();
+        String n = "";
+        String v = "";
+        try{n = name.getNodeValue();
+        } catch(Exception e){}
+        try{v = value.getNodeValue();
+        } catch(Exception e){}
+        return n+" : "+v;
     }
 }
