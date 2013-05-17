@@ -359,7 +359,7 @@ public class Panel1 extends JPanel{
                              Repository.window.mainpanel.p1.suitaDetails.saveDB(),
                              Repository.window.mainpanel.p1.suitaDetails.getDelay()))
                     CustomDialog.showInfo(JOptionPane.PLAIN_MESSAGE, 
-                                            Repository.window, "Succes",
+                                            Repository.window, "Success",
                                             "File successfully saved");
                 else CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, 
                                             Repository.window, "Warning", 
@@ -377,7 +377,7 @@ public class Panel1 extends JPanel{
                              Repository.window.mainpanel.p1.suitaDetails.getDelay()
                              ))
                 CustomDialog.showInfo(JOptionPane.PLAIN_MESSAGE, 
-                                        Repository.window, "Succes",
+                                        Repository.window, "Success",
                                         "File successfully saved");
             else CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, 
                                         Repository.window, "Warning", 
