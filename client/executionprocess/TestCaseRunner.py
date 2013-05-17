@@ -180,10 +180,10 @@ def saveLibraries(proxy, libs_list=''):
             # Rename the TGZ
             tgz = lib_pth + '.tgz'
             os.rename(lib_pth, tgz)
-            # Need to wait more on slow machines
+			# Need to wait more on slow machines
             for i in range(20):
                 try: tarfile.open(tgz, 'r:gz')
-                except: time.sleep(0.2)
+                except: time.sleep(0.5)
             with tarfile.open(tgz, 'r:gz') as binary:
                 os.chdir(libs_path)
                 binary.extractall()

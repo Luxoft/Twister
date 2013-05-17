@@ -1,6 +1,6 @@
 /*
 File: ExplorerPanel.java ; This file is part of Twister.
-Version: 2.001
+Version: 2.002
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -150,7 +150,8 @@ public class ExplorerPanel extends JPanel {
             Repository.intro.setStatus("Started retrieving tc directories");
             Repository.intro.addPercent(0.035);
             Repository.intro.repaint();
-            getList(root, connection);
+//             getList(root, connection);
+            getList(root, connection,Repository.getTestSuitePath());
             Repository.intro.setStatus("Finished retrieving tc directories");
             Repository.intro.addPercent(0.035);
             Repository.intro.repaint();
@@ -700,7 +701,8 @@ public class ExplorerPanel extends JPanel {
             System.out.println("getTestSuitePath: "+Repository.getTestSuitePath());
             connection.cd(Repository.getTestSuitePath());
             //Repository.c.cd(Repository.USERHOME+"/twister/config/");
-            getList(root, connection);
+            getList(root, connection, Repository.getTestSuitePath());
+//             getList(root, connection);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -728,9 +730,11 @@ public class ExplorerPanel extends JPanel {
     /*
      * construct the list for folders representation in jtree
      */
-    public void getList(DefaultMutableTreeNode node, ChannelSftp c) {
+    public void getList(DefaultMutableTreeNode node, ChannelSftp c, String curentdir) {
+//     public void getList(DefaultMutableTreeNode node, ChannelSftp c) {
         try {
-            DefaultMutableTreeNode child = new DefaultMutableTreeNode(c.pwd());
+            DefaultMutableTreeNode child = new DefaultMutableTreeNode(curentdir);
+//             DefaultMutableTreeNode child = new DefaultMutableTreeNode(c.pwd());
             Vector<LsEntry> vector1 = c.ls(".");
             Vector<String> vector = new Vector<String>();
             Vector<String> folders = new Vector<String>();
@@ -741,11 +745,12 @@ public class ExplorerPanel extends JPanel {
             }
             String current;
             for (int i = 0; i < lssize; i++) {
-                if (vector1.get(i).getFilename().split("\\.").length == 0) {
+                if (vector1.get(i).getFilename().split("\\.").length == 0){
                     continue;
                 }
-                try {
+                try{
                     current = c.pwd();
+                    
                     c.cd(vector1.get(i).getFilename());
                     c.cd(current);
                     folders.add(vector1.get(i).getFilename());
@@ -770,7 +775,8 @@ public class ExplorerPanel extends JPanel {
                 try {
                     current = c.pwd();
                     c.cd(vector.get(i));
-                    getList(child, c);
+//                     getList(child, c);
+                    getList(child, c,curentdir+"/"+vector.get(i));
                     c.cd(current);
                 } catch (SftpException e) {
                     if (e.id == 4) {
