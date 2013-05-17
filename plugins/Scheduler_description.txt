@@ -1,0 +1,3 @@
+Scheduler is a Twister plugin that allows starting 
+the Central Engine automatically, either one time, 
+daily, or weekly.
