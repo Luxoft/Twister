@@ -5,6 +5,7 @@
 - fixed issue about test execution order incorrect if test suite contains a mix of test cases and test suites
 - fixed issue about editing regular expression in Configuration->PanicDetection
 - updated user guide
+- added an easy mechanism to update the description for plugins using a text file
 
 
 29th April 2013 changes:
