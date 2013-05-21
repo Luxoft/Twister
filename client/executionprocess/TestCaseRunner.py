@@ -577,6 +577,7 @@ if __name__=='__main__':
 
             # Start counting time
             timer_i = time.time()
+            start_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(timer_i))
             result = None
 
             proxySetTestStatus(file_id, STATUS_WORKING, 0.0) # Status WORKING
@@ -608,6 +609,8 @@ if __name__=='__main__':
 
             # END OF TEST!
             timer_f = time.time() - timer_i
+            end_time = time.strftime("%Y-%m-%d %H:%M:%S")
+            print ('Test statistics: start time {} --- end time {} --- {:0.2f} s\n'.format(start_time, end_time, timer_f))
             # --------------------------------------------------
 
             if result==STATUS_PASS or result == 'PASS':
