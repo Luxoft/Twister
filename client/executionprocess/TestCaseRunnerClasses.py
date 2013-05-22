@@ -38,6 +38,10 @@ import glob
 import subprocess # For running Perl
 from collections import OrderedDict # For dumping TCL
 
+from ConfigParser import SafeConfigParser
+
+from shutil import copyfile
+
 TWISTER_PATH = os.getenv('TWISTER_PATH')
 if not TWISTER_PATH:
     print('TWISTER_PATH environment variable is not set! Exiting!')
@@ -295,3 +299,93 @@ class TCRunPerl:
         #
 
 #
+
+class TCRunJava:
+    """ Java Runner """
+
+    def _eval(self, str_to_execute, globs={}, params=[]):
+        """ Java test runner """
+
+        global TWISTER_PATH
+        self.epname = globs['globEpName']
+
+        _RESULT = None
+
+        returnCode = {
+            0: 'PASS',
+            1: 'FAIL',
+            2: 'ERROR'
+        }
+
+        # init
+        runnerConfigParser = SafeConfigParser()
+
+        try:
+            runnerConfigParser.read(os.path.join(TWISTER_PATH, 'config/runner.ini'))
+
+            javaCompilerPath = runnerConfigParser.get('javarunner', 'JAVAC_PATH')
+            junitClassPath = runnerConfigParser.get('javarunner', 'JUNIT_PATH')
+            jythonClassPath = runnerConfigParser.get('javarunner', 'JYTHON_PATH')
+
+            copyfile(os.path.join(TWISTER_PATH, 'common/jython/jythonExternalVariableClass.jpy'),
+                '{0}/.twister_cache/{1}/ce_libs/jythonExternalVariableClass.py'.format(
+                                                                TWISTER_PATH, self.epname))
+            copyfile(os.path.join(TWISTER_PATH, 'common/jython/tscJython.jar'),
+                '{0}/.twister_cache/{1}/ce_libs/tscJython.jar'.format(TWISTER_PATH, self.epname))
+            tscJythonPath = '{0}/.twister_cache/{1}/ce_libs/tscJython.jar'.format(
+                                                                    TWISTER_PATH, self.epname)
+        except Exception, e:
+            print 'error: java compiler path / junit path not found'
+            print 'error: {er}'.format(er=e)
+
+            return _RESULT
+
+        # create test
+        fileName = os.path.split(globs['filename'])[1]
+        filesPath = '{}/.twister_cache/{}'.format(TWISTER_PATH, self.epname)
+        filePath = os.path.join(filesPath, fileName)
+
+        with open(filePath, 'wb+') as f:
+            f.write(str_to_execute.data)
+
+
+        # compile java test
+        #command = [javaCompilerPath, '-classpath', junitClassPath, testFile]
+        javacProcess = subprocess.Popen('{jc} -classpath "{cl0}:{cl1}:{cl2}" {fl}'.format(
+                        jc=javaCompilerPath, cl0=junitClassPath, cl1=tscJythonPath,
+                        cl2=jythonClassPath, fl=filePath), shell=True)
+
+
+        # run test
+        compiledFilePath = os.path.join(filesPath,
+                            '{fn}.class'.format(fn=os.path.splitext(fileName)[0]))
+        jythonRunner = os.path.join(TWISTER_PATH, 'common/jython/jythonRunner.jpy')
+        #command = [jythonRunner, '--testFilePath', testFile]
+        jythonProcess = subprocess.Popen('sudo jython {jp} --classFilePath {cf} '\
+            '--testFilePath {fl}'.format(jp=jythonRunner,
+            cf=junitClassPath, fl=compiledFilePath), shell=True)
+        jythonProcess.wait()
+        if not jythonProcess.returncode in returnCode:
+            print 'unknown return code'
+
+            return _RESULT
+
+        _RESULT = returnCode[jythonProcess.returncode]
+
+        # The _RESULT must be injected from within the jython script
+        return _RESULT
+
+
+    def __del__(self):
+        """ cleanup """
+
+        global TWISTER_PATH
+
+        # On exit delete all Java files
+        fileNames = '{0}/.twister_cache/{1}/*.java*'.format(TWISTER_PATH, self.epname)
+        for filePath in glob.glob(fileNames):
+            # print 'Cleanup Java file: filePath
+            try:
+                os.remove(filePath)
+            except:
+                pass

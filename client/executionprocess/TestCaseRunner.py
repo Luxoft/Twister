@@ -319,7 +319,7 @@ if __name__=='__main__':
 
     CONFIG = loadConfig()
 
-    tc_tcl = None; tc_perl = None; tc_python = None
+    tc_tcl = None; tc_perl = None; tc_python = None; tc_java = None
     proxy = None
     tSuites = None
     suite_number = 0
@@ -557,6 +557,12 @@ if __name__=='__main__':
                 if not tc_python:
                     tc_python = TCRunPython()
                 current_runner = tc_python
+
+            # If file type is PYTHON
+            elif file_ext in ['.java']:
+                if not tc_java:
+                    tc_java = TCRunJava()
+                current_runner = tc_java
 
             # Unknown file type
             else:
