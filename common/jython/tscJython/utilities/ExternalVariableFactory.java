@@ -37,8 +37,6 @@ package tscJython.utilities;
 
 import tscJython.interfaces.ExternalVariableType;
 import org.python.core.PyObject;
-import org.python.core.PyString;
-import org.python.core.PyInteger;
 import org.python.util.PythonInterpreter;
 
 public class ExternalVariableFactory {

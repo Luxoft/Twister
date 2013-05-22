@@ -25,10 +25,21 @@ public class SimpleTestExternalVariableGet extends TestCase {
         ExternalVariableFactory externalVariableFactory = new ExternalVariableFactory();
         ExternalVariableType externalVariable = externalVariableFactory.create();
 
-        String variableName = "testvar";
-        PyObject response = externalVariable.getVariable(variableName);
-        System.out.println("external variable get response: " + variableName + " = " + response);
-    }
+        PyObject testVarInteger = externalVariable.getVariable("testVarInteger");
+        testVarInteger = (PyObject)testVarInteger.__tojava__(PyObject.class);
+        System.out.println("external variable testVarInteger get response: " + testVarInteger);
 
+        PyObject testVarList = externalVariable.getVariable("testVarList");
+        testVarList = (PyObject)testVarList.__tojava__(PyObject.class);
+        System.out.println("external variable testVarList get response: " + testVarList);
+
+        PyObject testVarHashMap = externalVariable.getVariable("testVarHashMap");
+        testVarHashMap = (PyObject)testVarHashMap.__tojava__(PyObject.class);
+        System.out.println("external variable testVarList get response: " + testVarHashMap);
+
+        PyObject testVarSet = externalVariable.getVariable("testVarSet");
+        testVarSet = (PyObject)testVarSet.__tojava__(PyObject.class);
+        System.out.println("external variable testVarList get response: " + testVarSet);
+    }
 }
 

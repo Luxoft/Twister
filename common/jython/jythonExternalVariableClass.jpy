@@ -68,6 +68,11 @@ class ExternalVariable(ExternalVariableType):
         """  """
 
         try:
+            if str(value.__class__) == "<type 'array.array'>":
+                value = list(value)
+            if str(value.__class__) == "<type 'java.util.HashMap'>":
+                value = dict(value)
+
             marshalDumps(value)
 
             return self.CE.setGlobalVariable(self.user, name, value)

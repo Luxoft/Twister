@@ -44,7 +44,7 @@ import org.python.core.PyObject;
 public interface ExternalVariableType {
 
     public void logMessage(String message);
-    public boolean setVariable(String name, int value);
+    public boolean setVariable(String name, PyObject value);
     public PyObject getVariable(String name);
 
 }
