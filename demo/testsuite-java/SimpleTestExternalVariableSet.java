@@ -12,8 +12,6 @@ import tscJython.interfaces.ExternalVariableType;
 import org.python.core.Py;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
 
 
 
@@ -43,12 +41,6 @@ public class SimpleTestExternalVariableSet extends TestCase {
         testVarHashMap.put("key", 42);
         response = externalVariable.setVariable("testVarHashMap", Py.java2py(testVarHashMap));
         System.out.println("external variable set testVarHashMap response: " + response);
-
-        Set testVarSet = new TreeSet();
-        testVarSet.add("test");
-        testVarSet.add("22");
-        response = externalVariable.setVariable("testVarSet", Py.java2py(testVarSet));
-        System.out.println("external variable set testVarSet response: " + response);
     }
 }
 
