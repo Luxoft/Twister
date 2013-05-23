@@ -59,13 +59,13 @@ class ExternalVariable(ExternalVariableType):
 
 
     def logMessage(self, messageType, message):
-        """  """
+        """ log message """
 
         self.CE.logMessage(self.user, messageType, message)
 
 
     def setVariable(self, name, value):
-        """  """
+        """ set external variable """
 
         try:
             if str(value.__class__) == "<type 'array.array'>":
@@ -84,7 +84,7 @@ class ExternalVariable(ExternalVariableType):
 
 
     def getVariable(self, name):
-        """  """
+        """ get external variable """
 
         return self.CE.getGlobalVariable(self.user, name)
 

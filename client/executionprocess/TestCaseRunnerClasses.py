@@ -335,7 +335,7 @@ class TCRunJava:
             tscJythonPath = '{0}/.twister_cache/{1}/ce_libs/tscJython.jar'.format(
                                                                     TWISTER_PATH, self.epname)
         except Exception, e:
-            print 'error: java compiler path / junit path not found'
+            print 'error: compiler path not found'
             print 'error: {er}'.format(er=e)
 
             return _RESULT
