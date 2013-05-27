@@ -174,7 +174,7 @@ class CentralEngineRest:
         ip_port = cherrypy.request.headers['Host']
         machine = platform.uname()[1]
         system  = ' '.join(platform.linux_distribution())
-        users   = sorted([u.split('/')[2] for u in glob.glob('/home/*/twister')])
+        users   = self.project.listUsers()
 
         output = Template(filename=TWISTER_PATH + '/server/centralengine/template_main.htm')
         return output.render(ip_port=ip_port, machine=machine, system=system, users=users)
@@ -263,23 +263,29 @@ class CentralEngineRest:
         cherrypy.response.headers['Pragma']  = 'no-cache'
         cherrypy.response.headers['Expires'] = 0
 
-        data = []
-        epinfo = self.project.getEpInfo(user, epname)
+        SuitesManager = self.project.getEpInfo(user, epname).get('suites', False)
 
-        for suite in epinfo['suites']:
-            dsuite = epinfo['suites'][suite]
-            sdata = {
-                'data': dsuite['name'],
-                'metadata': suite,
-                'attr': dict({'id': suite, 'rel': 'suite'}, **dsuite),
-                'children': [],
+        data = []
+        default_suite = {
+            'data': '',
+            'metadata': '',
+            'children': [],
             }
-            del sdata['attr']['files']
-            if epinfo['suites'][suite]['files']:
-                sdata['children'] = [
-                    {'data': v['file'], 'attr': dict({'id': k}, **v)}
-                    for k, v in epinfo['suites'][suite]['files'].iteritems()]
-            data.append(sdata)
+
+        for suite_id in SuitesManager.getSuites():
+            node = SuitesManager.findId(suite_id)
+
+            current_suite = dict(default_suite)
+            current_suite['data'] = node['name']
+            current_suite['metadata'] = suite_id
+            current_suite['attr'] = dict({'id': suite_id, 'rel': 'suite'}, **node)
+            del current_suite['attr']['children']
+            current_suite['children'] = [
+                {'data': v['file'], 'attr': dict({'id': k}, **v)}
+                for k, v in node['children'].iteritems()
+                if v['type'] == 'file'
+                ]
+            data.append(current_suite)
 
         return json.dumps(data, indent=2)
 
