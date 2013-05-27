@@ -1,7 +1,7 @@
 
 # File: CentralEngineClasses.py ; This file is part of Twister.
 
-# version: 2.003
+# version: 2.004
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -39,6 +39,7 @@ import sys
 import re
 import glob
 import time
+import pickle
 import datetime
 import binascii
 import tarfile
@@ -294,7 +295,7 @@ class CentralEngine(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
-    def getEpVariable(self, user, epname, variable):
+    def getEpVariable(self, user, epname, variable, compress=False):
         """
         This function is called from the Execution Process,
         to get information that is available only here, or are hard to get:
@@ -303,8 +304,11 @@ class CentralEngine(_cptools.XMLRPCController):
         - the name of the suite, the test files, etc.
         """
 
-        data = self.project.getEpInfo(user, epname)
-        return data.get(variable, False)
+        data = self.project.getEpInfo(user, epname).get(variable, False)
+        if compress:
+            return pickle.dumps(data)
+        else:
+            return data
 
 
     @cherrypy.expose
@@ -341,21 +345,23 @@ class CentralEngine(_cptools.XMLRPCController):
         """
 
         data = self.project.getSuiteInfo(user, epname, suite)
+        if not data: return False
         return data.get(variable, False)
 
 
     @cherrypy.expose
-    def getFileVariable(self, user, file_id, variable):
+    def getFileVariable(self, user, epname, file_id, variable):
         """
         Get information about a test file: dependencies, runnable, status, etc.
         """
 
-        data = self.project.getFileInfo(user, file_id)
+        data = self.project.getFileInfo(user, epname, file_id)
+        if not data: return False
         return data.get(variable, False)
 
 
     @cherrypy.expose
-    def setFileVariable(self, user, epname, suite, filename, variable, value):
+    def setFileVariable(self, user, epname, filename, variable, value):
         """
         Set extra information for a Filename, like Crash detected, OS, IP.\n
         Can be called from the Runner.\n
@@ -363,7 +369,7 @@ class CentralEngine(_cptools.XMLRPCController):
         Central Engine is start. If you need to make a persistent change, use setPersistentFile.
         """
 
-        return self.project.setFileInfo(user, epname, suite, filename, variable, value)
+        return self.project.setFileInfo(user, epname, filename, variable, value)
 
 
     @cherrypy.expose
@@ -413,9 +419,9 @@ class CentralEngine(_cptools.XMLRPCController):
     @cherrypy.expose
     def setPersistentSuite(self, user, suite, info={}, order=-1):
         """
-        Create a new suite at the position specified and append the INFO.\n
+        Create a new suite, using the INFO, at the position specified.\n
         This function writes in TestSuites.XML file.\n
-        The changes will be available at the next START, or the next RESET.
+        The changes will be available at the next START.
         """
         return self.project.setPersistentSuite(user, suite, info, order)
 
@@ -425,8 +431,7 @@ class CentralEngine(_cptools.XMLRPCController):
         """
         Delete an XML suite, using a name ; if there are more suites with the same name,
         only the first one is deleted.\n
-        This function writes in TestSuites.XML file.\n
-        The changes will be available at the next START, or the next RESET.
+        This function writes in TestSuites.XML file.
         """
         return self.project.delPersistentSuite(user, suite)
 
@@ -434,9 +439,9 @@ class CentralEngine(_cptools.XMLRPCController):
     @cherrypy.expose
     def setPersistentFile(self, user, suite, fname, info={}, order=-1):
         """
-        Create a new file in a suite at the position specified and append the INFO.\n
+        Create a new file in a suite, using the INFO, at the position specified.\n
         This function writes in TestSuites.XML file.\n
-        The changes will be available at the next START, or the next RESET.
+        The changes will be available at the next START.
         """
         return self.project.setPersistentFile(user, suite, fname, info, order)
 
@@ -446,8 +451,7 @@ class CentralEngine(_cptools.XMLRPCController):
         """
         Delete an XML file from a suite, using a name ; if there are more files
         with the same name, only the first one is deleted.\n
-        This function writes in TestSuites.XML file.\n
-        The changes will be available at the next START, or the next RESET.
+        This function writes in TestSuites.XML file.
         """
         return self.project.delPersistentFile(user, suite, fname)
 
@@ -752,12 +756,12 @@ class CentralEngine(_cptools.XMLRPCController):
                 (str(new_status), str(testStatus.values())) )
             return False
 
-        data = self.project.getFileInfo(user, file_id)
+        data = self.project.getFileInfo(user, epname, file_id)
         filename = os.path.split(data['file'])[1]
         suite = data['suite']
 
         # Sets file status
-        self.project.setFileInfo(user, epname, suite, file_id, 'status', new_status)
+        self.project.setFileInfo(user, epname, file_id, 'status', new_status)
         reversed = dict((v,k) for k,v in testStatus.iteritems())
         status_str = reversed[new_status]
 
@@ -772,15 +776,15 @@ class CentralEngine(_cptools.XMLRPCController):
             # Inject information into File Classes
             now = datetime.datetime.today()
 
-            self.project.setFileInfo(user, epname, suite, file_id, 'twister_tc_status',
+            self.project.setFileInfo(user, epname, file_id, 'twister_tc_status',
                 status_str.replace('*', ''))
-            self.project.setFileInfo(user, epname, suite, file_id, 'twister_tc_crash_detected',
+            self.project.setFileInfo(user, epname, file_id, 'twister_tc_crash_detected',
                 data.get('twister_tc_crash_detected', 0))
-            self.project.setFileInfo(user, epname, suite, file_id, 'twister_tc_time_elapsed',
+            self.project.setFileInfo(user, epname, file_id, 'twister_tc_time_elapsed',
                 int(time_elapsed))
-            self.project.setFileInfo(user, epname, suite, file_id, 'twister_tc_date_started',
+            self.project.setFileInfo(user, epname, file_id, 'twister_tc_date_started',
                 (now - datetime.timedelta(seconds=time_elapsed)).isoformat())
-            self.project.setFileInfo(user, epname, suite, file_id, 'twister_tc_date_finished',
+            self.project.setFileInfo(user, epname, file_id, 'twister_tc_date_finished',
                 (now.isoformat()))
             suite_name = self.project.getSuiteInfo(user, epname, suite).get('name')
 
@@ -1064,7 +1068,7 @@ class CentralEngine(_cptools.XMLRPCController):
             logError('CE ERROR! `%s` requested file list, but the EP is closed! Exiting!' % epname)
             return False
 
-        data = self.project.getFileInfo(user, file_id)
+        data = self.project.getFileInfo(user, epname, file_id)
         filename = data.get('file', 'invalid file!')
         runnable = data.get('Runnable', 'not set')
         tests_path = self.project.getUserInfo(user, 'tests_path')

@@ -1,7 +1,7 @@
 
 # File: CentralEngineOthers.py ; This file is part of Twister.
 
-# version: 2.005
+# version: 2.006
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -71,6 +71,7 @@ import time
 import json
 import thread
 import subprocess
+import socket
 import platform
 import smtplib
 import MySQLdb
@@ -91,6 +92,7 @@ sys.path.append(TWISTER_PATH)
 from common.constants import *
 from common.tsclogging import *
 from common.xmlparser import *
+from common.suitesmanager import *
 
 
 class Project:
@@ -111,6 +113,7 @@ class Project:
         self.parsers = {}
         self.plugins = {}
         self.test_ids = {}
+        self.suite_ids = {}
 
         self.usr_lock = thread.allocate_lock()  # User change lock
         self.int_lock = thread.allocate_lock()  # Internal use lock
@@ -127,6 +130,76 @@ class Project:
         config = open(self.panicDetectConfigPath, 'rb')
         self.panicDetectRegularExpressions = json.load(config)
         config.close()
+
+
+    def _common_user_reset(self, user, base_config, files_config):
+
+        # List with all EPs for this User
+        epList = self.parsers[user].epnames
+        if not epList:
+            logCritical('Project ERROR: Cannot load the list of EPs for user `%s` !' % user)
+            return False
+
+        # Generate the list of EPs in order
+        for epname in epList:
+            self.users[user]['eps'][epname] = OrderedDict()
+            self.users[user]['eps'][epname]['status'] = STATUS_STOP
+            # Each EP has a SuitesManager, helper class for managing file and suite nodes!
+            self.users[user]['eps'][epname]['suites'] = SuitesManager()
+
+        # Information about ALL project suites
+        # Some master-suites might have sub-suites, but all sub-suites must run on the same EP
+        suitesInfo = self.parsers[user].getAllSuitesInfo()
+
+        # Allocate each master-suite for one EP
+        for s_id, suite in suitesInfo.items():
+            epname = suite['ep']
+            if epname not in self.users[user]['eps']:
+                continue
+            self.users[user]['eps'][epname]['suites'][s_id] = suite
+
+        # Ordered list of file IDs, used for Get Status ALL
+        self.test_ids[user] = suitesInfo.getFiles()
+        # Ordered list with all suite IDs, for all EPs
+        self.suite_ids[user] = suitesInfo.getSuites()
+
+        # Get project global variables from XML
+        project_globals = self.parsers[user].project_globals
+
+        # Add framework config info to default user
+        self.users[user]['config_path'] = base_config
+        self.users[user]['project_path'] = files_config
+        self.users[user]['tests_path'] = project_globals['TestsPath']
+        self.users[user]['logs_path'] = project_globals['LogsPath']
+        self.users[user]['log_types'] = {}
+
+        # Add path to DB, E-mail XML, Globals
+        self.users[user]['db_config']  = project_globals['DbConfig']
+        self.users[user]['eml_config'] = project_globals['EmailConfig']
+        self.users[user]['glob_params'] = project_globals['GlobalParams']
+
+        # Add the `exit on test Fail` value
+        self.users[user]['exit_on_test_fail'] = project_globals['ExitOnTestFail']
+
+        # Add the `Pre and Post` project Scripts
+        self.users[user]['script_pre'] =  project_globals['ScriptPre']
+        self.users[user]['script_post'] = project_globals['ScriptPost']
+
+        # Add the `Database Autosave` value
+        self.users[user]['db_auto_save'] = project_globals['DbAutoSave']
+
+        # Add the 'Libraries'
+        self.users[user]['libraries'] = project_globals['Libraries']
+
+        # Add the `Testcase Delay` value
+        self.users[user]['tc_delay'] = project_globals['TestcaseDelay']
+        del project_globals
+
+        # Global params for user
+        self.users[user]['global_params'] = self.parsers[user].getGlobalParams()
+
+        for logType in self.parsers[user].getLogTypes():
+            self.users[user]['log_types'][logType] = self.parsers[user].getLogFileForType(logType)
 
 
     def createUser(self, user, base_config='', files_config=''):
@@ -161,74 +234,16 @@ class Project:
 
         # User data + User parser
         # Parsers contain the list of all EPs and the list of all Project Globals
-        self.users[user] = {'status': STATUS_STOP, 'eps': OrderedDict()}
+        self.users[user] = OrderedDict()
+        self.users[user]['status'] = STATUS_STOP
+        self.users[user]['eps'] = OrderedDict()
+
         if config_data:
             self.parsers[user] = TSCParser(user, config_data, files_config)
         else:
             self.parsers[user] = TSCParser(user, base_config, files_config)
 
-        # List with all EPs for this User
-        epList = self.parsers[user].epnames
-        if not epList:
-            logCritical('Project ERROR: Cannot load the list of EPs for user `%s` !' % user)
-            return False
-
-        # Generate the list of EPs in order
-        for epname in epList:
-            self.users[user]['eps'][epname] = OrderedDict()
-            self.users[user]['eps'][epname]['suites'] = OrderedDict()
-
-        # Information about ALL project suites
-        suitesInfo = self.parsers[user].getAllSuitesInfo()
-
-        for s_id, suite in suitesInfo.items():
-            epname = suite['ep']
-            if epname not in self.users[user]['eps']:
-                continue
-            self.users[user]['eps'][epname]['suites'][s_id] = suite
-
-        # Ordered list of file IDs (as string), used for Get Status ALL
-        self.test_ids[user] = self.parsers[user].getAllTestFiles()
-
-        # Get project global variables from XML
-        project_globals = self.parsers[user].project_globals
-
-        # Add framework config info to default user
-        self.users[user]['config_path'] = base_config
-        self.users[user]['project_path'] = files_config
-        self.users[user]['tests_path'] = project_globals['TestsPath']
-        self.users[user]['logs_path'] = project_globals['LogsPath']
-        self.users[user]['libs_path'] = project_globals['LibsPath']
-        self.users[user]['log_types'] = {}
-
-
-        # Global params for user
-        self.users[user]['global_params'] = self.parsers[user].getGlobalParams()
-
-        # Add path to DB, E-mail XML, Globals
-        self.users[user]['db_config']  = project_globals['DbConfig']
-        self.users[user]['eml_config'] = project_globals['EmailConfig']
-        self.users[user]['glob_params'] = project_globals['GlobalParams']
-
-        # Add the `exit on test Fail` value
-        self.users[user]['exit_on_test_fail'] = project_globals['ExitOnTestFail']
-
-        # Add the `Pre and Post` project Scripts
-        self.users[user]['script_pre'] =  project_globals['ScriptPre']
-        self.users[user]['script_post'] = project_globals['ScriptPost']
-
-        # Add the `Database Autosave` value
-        self.users[user]['db_auto_save'] = project_globals['DbAutoSave']
-
-        # Add the 'Libraries'
-        self.users[user]['libraries'] = project_globals['Libraries']
-
-        # Add the `Testcase Delay` value
-        self.users[user]['tc_delay'] = project_globals['TestcaseDelay']
-        del project_globals
-
-        for logType in self.parsers[user].getLogTypes():
-            self.users[user]['log_types'][logType] = self.parsers[user].getLogFileForType(logType)
+        self._common_user_reset(user, base_config, files_config)
 
         # Save everything.
         self._dump()
@@ -264,70 +279,7 @@ class Project:
             user, base_config, files_config))
         self.parsers[user] = TSCParser(user, base_config, files_config)
 
-        # List with all EPs for this User
-        epList = self.parsers[user].epnames
-        if not epList:
-            logCritical('Project ERROR: Cannot load the list of EPs for user `%s` !' % user)
-            return False
-
-        # Generate the list of EPs in order
-        for epname in epList:
-            # All EPs must have status STOP
-            self.users[user]['eps'][epname] = OrderedDict()
-            self.users[user]['eps'][epname]['status'] = STATUS_STOP
-            self.users[user]['eps'][epname]['suites'] = OrderedDict()
-
-        # Information about ALL project suites
-        suitesInfo = self.parsers[user].getAllSuitesInfo()
-
-        for s_id, suite in suitesInfo.items():
-            epname = suite['ep']
-            if epname not in self.users[user]['eps']:
-                continue
-            self.users[user]['eps'][epname]['suites'][s_id] = suite
-
-        # Ordered list of file IDs (as string), used for Get Status ALL
-        self.test_ids[user] = self.parsers[user].getAllTestFiles()
-
-        # Get project global variables from XML
-        project_globals = self.parsers[user].project_globals
-
-        # Add framework config info to default user
-        self.users[user]['config_path'] = base_config
-        self.users[user]['project_path'] = files_config
-        self.users[user]['tests_path'] = project_globals['TestsPath']
-        self.users[user]['logs_path'] = project_globals['LogsPath']
-        self.users[user]['libs_path'] = project_globals['LibsPath']
-        self.users[user]['log_types'] = {}
-
-
-        # Global params for user
-        self.users[user]['global_params'] = self.parsers[user].getGlobalParams()
-
-        # Add path to DB, E-mail XML, Globals
-        self.users[user]['db_config']  = project_globals['DbConfig']
-        self.users[user]['eml_config'] = project_globals['EmailConfig']
-        self.users[user]['glob_params'] = project_globals['GlobalParams']
-
-        # Add the `exit on test Fail` value
-        self.users[user]['exit_on_test_fail'] = project_globals['ExitOnTestFail']
-
-        # Add the `Pre and Post` project Scripts
-        self.users[user]['script_pre']  = project_globals['ScriptPre']
-        self.users[user]['script_post'] = project_globals['ScriptPost']
-
-        # Add the `Database Autosave` value
-        self.users[user]['db_auto_save'] = project_globals['DbAutoSave']
-
-        # Add the 'Libraries'
-        self.users[user]['libraries'] = project_globals['Libraries']
-
-        # Add the `Testcase Delay` value
-        self.users[user]['tc_delay'] = project_globals['TestcaseDelay']
-        del project_globals
-
-        for logType in self.parsers[user].getLogTypes():
-            self.users[user]['log_types'][logType] = self.parsers[user].getLogFileForType(logType)
+        self._common_user_reset(user, base_config, files_config)
 
         # Save everything.
         self._dump()
@@ -532,16 +484,13 @@ class Project:
 
     def getEpFiles(self, user, epname):
         """
-        Return a list with all files associated with one EP.
+        Return a list with all file IDs associated with one EP.
+        The files are found recursive.
         """
         r = self.changeUser(user)
         if not r: return []
-        files = []
 
-        for suite_id in self.users[user]['eps'][epname]['suites']:
-            for fname in self.users[user]['eps'][epname]['suites'][suite_id]['files']:
-                files.append(fname)
-
+        files = self.users[user]['eps'][epname]['suites'].getFiles()
         return files
 
 
@@ -566,7 +515,8 @@ class Project:
 
     def getSuiteInfo(self, user, epname, suite_id):
         """
-        Retrieve all info available, about one EP.
+        Retrieve all info available, about one suite.
+        The files are NOT recursive.
         """
         r = self.changeUser(user)
         if not r: return {}
@@ -575,22 +525,27 @@ class Project:
         if epname not in eps:
             logDebug('Project: Invalid EP name `%s` !' % epname)
             return False
-        if suite_id not in eps[epname]['suites']:
-            logDebug('Project: Invalid Suite name `%s` !' % suite_id)
+        if suite_id not in eps[epname]['suites'].getSuites():
+            logDebug( eps[epname]['suites'].getSuites() )
+            logDebug('Project: Invalid Suite ID `%s` !' % suite_id)
             return False
 
-        return eps[epname]['suites'].get(suite_id, {})
+        suite_node = eps[epname]['suites'].findId(suite_id)
+        if not suite_node:
+            logDebug('Project: Invalid Suite node `%s` !' % suite_id)
+            return False
+        return suite_node
 
 
     def getSuiteFiles(self, user, epname, suite_id):
         """
-        Return a list with all files associated with one Suite.
+        Return a list with all file IDs associated with one Suite.
         """
         r = self.changeUser(user)
         if not r: return []
         eps = self.users[user]['eps']
 
-        return eps[epname]['suites'][suite_id]['files'].keys()
+        return eps[epname]['suites'].getFiles(suite_id)
 
 
     def setSuiteInfo(self, user, epname, suite_id, key, value):
@@ -604,19 +559,23 @@ class Project:
         if epname not in eps:
             logDebug('Project: Invalid EP name `%s` !' % epname)
             return False
-        if suite_id not in eps[epname]['suites']:
-            logDebug('Project: Invalid Suite name `%s` !' % suite_id)
+        if suite_id not in eps[epname]['suites'].getSuites():
+            logDebug('Project: Invalid Suite ID `%s` !' % suite_id)
             return False
-        if not key or key == 'files':
+        if not key or key == 'children':
             logDebug('Project: Invalid Key `%s` !' % str(key))
             return False
 
-        eps[epname]['suites'][suite_id][key] = value
+        suite_node = eps[epname]['suites'].findId(suite_id)
+        if not suite_node:
+            logDebug('Project: Invalid Suite node `%s` !' % suite_id)
+            return False
+        suite_node[key] = value
         self._dump()
         return True
 
 
-    def getFileInfo(self, user, file_id):
+    def getFileInfo(self, user, epname, file_id):
         """
         Retrieve all info available, about one Test File.\n
         The file ID must be unique!
@@ -625,16 +584,18 @@ class Project:
         if not r: return {}
         eps = self.users[user]['eps']
 
-        for epname in eps:
-            for suite_id in eps[epname]['suites']:
-                for fname in eps[epname]['suites'][suite_id]['files']:
-                    if fname == file_id:
-                        return eps[epname]['suites'][suite_id]['files'][fname]
+        if file_id not in eps[epname]['suites'].getFiles():
+            logDebug('Project: Invalid File ID `%s` !' % file_id)
+            return False
 
-        return {}
+        file_node = eps[epname]['suites'].findId(file_id)
+        if not file_node:
+            logDebug('Project: Invalid File node `%s` !' % file_id)
+            return False
+        return file_node
 
 
-    def setFileInfo(self, user, epname, suite_id, file_id, key, value):
+    def setFileInfo(self, user, epname, file_id, key, value):
         """
         Create or overwrite a variable with a value, for one Test File.
         """
@@ -642,17 +603,18 @@ class Project:
         if not r: return False
         eps = self.users[user]['eps']
 
-        if epname not in eps:
-            logDebug('Project: Invalid EP name `%s` !' % epname)
+        if file_id not in eps[epname]['suites'].getFiles():
+            logDebug('Project: Invalid File ID `%s` !' % file_id)
             return False
-        if suite_id not in eps[epname]['suites']:
-            logDebug('Project: Invalid Suite name `%s` !' % suite_id)
-            return False
-        if file_id not in eps[epname]['suites'][suite_id]['files']:
-            logDebug('Project: Invalid File id `%s` !' % file_id)
+        if not key:
+            logDebug('Project: Invalid Key `%s` !' % str(key))
             return False
 
-        eps[epname]['suites'][suite_id]['files'][file_id][key] = value
+        file_node = eps[epname]['suites'].findId(file_id)
+        if not file_node:
+            logDebug('Project: Invalid File node `%s` !' % file_id)
+            return False
+        file_node[key] = value
         self._dump()
         return True
 
@@ -660,6 +622,7 @@ class Project:
     def getFileStatusAll(self, user, epname=None, suite_id=None):
         """
         Return the status of all files, in order.
+        This can be filtered for an EP and a Suite.
         """
         r = self.changeUser(user)
         if not r: return []
@@ -674,21 +637,19 @@ class Project:
 
         if epname:
             if suite_id:
-                for file_id in eps[epname]['suites'][suite_id]['files']:
-                    s = eps[epname]['suites'][suite_id]['files'][file_id].get('status', -1)
-                    statuses[file_id] = str(s)
+                files = eps[epname]['suites'].getFiles(suite_id)
             else:
-                for suite_id in eps[epname]['suites']:
-                    for file_id in eps[epname]['suites'][suite_id]['files']:
-                        s = eps[epname]['suites'][suite_id]['files'][file_id].get('status', -1)
-                        statuses[file_id] = str(s)
+                files = eps[epname]['suites'].getFiles()
+            for file_id in files:
+                s = self.getFileInfo(user, epname, file_id).get('status', -1)
+                statuses[file_id] = str(s)
         # Default case, no EP and no Suite
         else:
             for epname in eps:
-                for suite_id in eps[epname]['suites']:
-                    for file_id, file_dict in eps[epname]['suites'][suite_id]['files'].items():
-                        s = file_dict.get('status', -1)
-                        statuses[file_id] = str(s)
+                files = eps[epname]['suites'].getFiles()
+                for file_id in files:
+                    s = self.getFileInfo(user, epname, file_id).get('status', -1)
+                    statuses[file_id] = str(s)
 
         for tcid in self.test_ids[user]:
             if tcid in statuses:
@@ -708,11 +669,11 @@ class Project:
         for epcycle in eps:
             if epname and epcycle != epname:
                 continue
-            for suite_id in eps[epcycle]['suites']:
-                for fname in eps[epcycle]['suites'][suite_id]['files']:
-                    eps[epcycle]['suites'][suite_id]['files'][fname]['status'] = new_status
+            files = eps[epcycle]['suites'].getFiles()
+            for file_id in files:
+                # This uses dump, after set file info
+                self.setFileInfo(user, epcycle, file_id, 'status', new_status)
 
-        self._dump()
         return True
 
 
@@ -979,9 +940,8 @@ class Project:
             # Information that will be mapped into subject or message of the e-mail
             map_info = {'date': time.strftime("%Y-%m-%d %H:%M")}
 
-            for ep in self.users[user]['eps']:
-                # All info about 1 EP
-                ep_data = self.users[user]['eps'][ep]
+            # Get all useful information, available for each EP
+            for ep, ep_data in self.users[user]['eps'].iteritems():
 
                 for k in ep_data:
                     if k in ['suites', 'status', 'last_seen_alive']: continue
@@ -994,12 +954,13 @@ class Project:
                     else:
                         map_info[k] = str(ep_data[k])
 
-                for suite_id in ep_data['suites']:
+                # Get all useful information for each Suite
+                for suite_id in ep_data['suites'].getSuites():
                     # All info about 1 Suite
-                    suite_data = ep_data['suites'][suite_id]
+                    suite_data = ep_data['suites'].findId(suite_id)
 
                     for k in suite_data:
-                        if k in ['ep', 'files']: continue
+                        if k in ['ep', 'children']: continue
                         if suite_data[k] == '': continue
                         # If the information is already in the mapping info
                         if k in map_info:
@@ -1172,134 +1133,124 @@ class Project:
             conn.autocommit = False
             conn.begin()
 
-            for epname in self.users[user]['eps']:
+            for epname, ep_info in self.users[user]['eps'].iteritems():
+                SuitesManager = ep_info['suites']
 
-                for suite_id in self.users[user]['eps'][epname]['suites']:
-                    for file_id in self.users[user]['eps'][epname]['suites'][suite_id]['files']:
+                for file_id in SuitesManager.getFiles():
 
-                        # Substitute data
-                        subst_data = {'file_id': file_id}
-                        subst_data.update( self.users[user]['eps'][epname] )
-                        del subst_data['suites']
-                        subst_data.update( self.users[user]['eps'][epname]['suites'][suite_id] )
-                        del subst_data['files']
-                        subst_data.update( self.users[user]['eps'][epname]['suites'][suite_id]['files'][file_id] )
+                    # Substitute data
+                    subst_data = {'file_id': file_id}
 
-                        # Insert/ fix DB variables
-                        subst_data['twister_ce_os'] = system
-                        subst_data['twister_ep_name'] = epname
-                        subst_data['twister_tb_name'] = self.users[user]['eps'][epname]['suites'][suite_id]['tb']
-                        subst_data['twister_suite_name'] = self.users[user]['eps'][epname]['suites'][suite_id]['name']
-                        subst_data['twister_tc_full_path'] = self.users[user]['eps'][epname]['suites'][suite_id]['files'][file_id]['file']
-                        subst_data['twister_tc_name'] = os.path.split(subst_data['twister_tc_full_path'])[1]
-                        subst_data['twister_tc_title'] = ''
-                        subst_data['twister_tc_description'] = ''
+                    # Add EP info
+                    subst_data.update(ep_info)
+                    del subst_data['suites']
 
-                        # Escape all unicodes variables before sql statements
-                        subst_data = {k: conn.escape_string(v) if isinstance(v, unicode) else v for k,v in subst_data.iteritems()}
+                    # Add Suite info
+                    file_info = SuitesManager.findId(file_id)
+                    suite_id = file_info['suite']
+                    suite_info = SuitesManager.findId(suite_id)
+                    subst_data.update(suite_info)
+                    del subst_data['children']
 
+                    # Add file info
+                    subst_data.update(file_info)
+
+                    # Insert/ fix DB variables
+                    subst_data['twister_rf_fname'] = '{}/config/resources.json'.format(TWISTER_PATH)
+                    subst_data['twister_pf_fname'] = '{}/config/project_users.json'.format(TWISTER_PATH)
+                    subst_data['twister_ce_os'] = system
+                    subst_data['twister_ce_hostname'] = socket.gethostname()
+                    subst_data['twister_ce_python_revision'] = '.'.join([str(v) for v in sys.version_info])
+                    subst_data['twister_ep_name'] = epname
+                    subst_data['twister_suite_name'] = suite_info['name']
+                    subst_data['twister_tc_full_path'] = file_info['file']
+                    subst_data['twister_tc_name'] = os.path.split(subst_data['twister_tc_full_path'])[1]
+                    subst_data['twister_tc_title'] = ''
+                    subst_data['twister_tc_description'] = ''
+
+                    # Escape all unicodes variables before SQL Statements!
+                    subst_data = {k: conn.escape_string(v) if isinstance(v, unicode) else v for k,v in subst_data.iteritems()}
+
+                    try:
+                        subst_data['twister_tc_log'] = self.findLog(user, epname, file_id, subst_data['twister_tc_full_path'])
+                        subst_data['twister_tc_log'] = conn.escape_string( subst_data['twister_tc_log'].replace('\n', '<br>\n') )
+                        subst_data['twister_tc_log'] = subst_data['twister_tc_log'].replace('<div', '&lt;div')
+                        subst_data['twister_tc_log'] = subst_data['twister_tc_log'].replace('</div', '&lt;/div')
+                    except:
+                        subst_data['twister_tc_log'] = '*no log*'
+
+                    # Prerequisite files will not be saved to database
+                    if subst_data.get('Prerequisite'):
+                        continue
+                    # Pre-Suite or Post-Suite files will not be saved to database
+                    if subst_data.get('Pre-Suite') or subst_data.get('Post-Suite'):
+                        continue
+
+                    # For every insert SQL statement, build correct data...
+                    for query in queries:
+
+                        # All variables of type `UserScript` must be replaced with the script result
+                        try: vars_to_replace = re.findall('(\$.+?)[,\.\'"\s]', query)
+                        except: vars_to_replace = []
+
+                        for field in vars_to_replace:
+                            field = field[1:]
+
+                            # If the field is not `UserScript`, ignore it
+                            if field not in scripts:
+                                continue
+
+                            # Get Script Path, or null string
+                            u_script = subst_data.get(field, '')
+
+                            # Execute script and use result
+                            r = self.execScript(u_script)
+                            if r: subst_data[field] = r
+                            else: subst_data[field] = ''
+
+                        # All variables of type `DbSelect` must be replaced with the SQL result
+                        try: vars_to_replace = re.findall('(@.+?@)', query)
+                        except: vars_to_replace = []
+
+                        for field in vars_to_replace:
+                            # Delete the @ character
+                            u_query = fields.get(field.replace('@', ''))
+
+                            if not u_query:
+                                logError('File: `{0}`, cannot build query! Field `{1}` is not defined in the fields section!'\
+                                    ''.format(subst_data['file'], field))
+                                conn.rollback()
+                                return False
+
+                            # Execute User Query
+                            curs.execute(u_query)
+                            q_value = curs.fetchone()[0]
+                            # Replace @variables@ with real Database values
+                            query = query.replace(field, str(q_value))
+
+                        # String Template
+                        tmpl = Template(query)
+
+                        # Build complete query
                         try:
-                            subst_data['twister_tc_log'] = self.findLog(user, epname, file_id, subst_data['twister_tc_full_path'])
-                            subst_data['twister_tc_log'] = conn.escape_string( subst_data['twister_tc_log'].replace('\n', '<br>\n') )
-                            subst_data['twister_tc_log'] = subst_data['twister_tc_log'].replace('<div', '&lt;div')
-                            subst_data['twister_tc_log'] = subst_data['twister_tc_log'].replace('</div', '&lt;/div')
-                        except:
-                            subst_data['twister_tc_log'] = '*no log*'
-
-                        try: del subst_data['ep']
-                        except: pass
-                        try: del subst_data['tb']
-                        except: pass
-                        try: del subst_data['pd']
-                        except: pass
-                        try: del subst_data['suite']
-                        except: pass
-                        try: del subst_data['name']
-                        except: pass
-                        try: del subst_data['libraries']
-                        except: pass
-                        try: del subst_data['dependancy']
-                        except: pass
-                        try: del subst_data['file_id']
-                        except: pass
-                        try: del subst_data['status']
-                        except: pass
-
-                        # Prerequisite files will not be saved to database
-                        if subst_data.get('Prerequisite'):
-                            continue
-                        # Pre-Suite or Post-Suite files will not be saved to database
-                        if subst_data.get('Pre-Suite') or subst_data.get('Post-Suite'):
-                            continue
+                            query = tmpl.substitute(subst_data)
+                        except Exception, e:
+                            logError('User `{0}`, file `{1}`: Cannot build query! Error on `{2}`!'\
+                                ''.format(user, subst_data['file'], str(e)))
+                            conn.rollback()
+                            return False
 
                         # :: For DEBUG ::
-                        #open(TWISTER_PATH + '/config/Query.debug', 'a').write('File Data:: `{0}` ::\n\n'.format(subst_data))
+                        #open(TWISTER_PATH + '/config/Query.debug', 'a').write('File Query:: `{0}` ::\n{1}\n\n\n'.format(subst_data['file'], query))
 
-                        # For every insert SQL statement, build correct data...
-                        for query in queries:
-
-                            # All variables of type `UserScript` must be replaced with the script result
-                            try: vars_to_replace = re.findall('(\$.+?)[,\.\'"\s]', query)
-                            except: vars_to_replace = []
-
-                            for field in vars_to_replace:
-                                field = field[1:]
-
-                                # If the field is not `UserScript`, ignore it
-                                if field not in scripts:
-                                    continue
-
-                                # Get Script Path, or null string
-                                u_script = subst_data.get(field, '')
-
-                                # Execute script and use result
-                                r = self.execScript(u_script)
-                                if r: subst_data[field] = r
-                                else: subst_data[field] = ''
-
-                            # All variables of type `DbSelect` must be replaced with the SQL result
-                            try: vars_to_replace = re.findall('(@.+?@)', query)
-                            except: vars_to_replace = []
-
-                            for field in vars_to_replace:
-                                # Delete the @ character
-                                u_query = fields.get(field.replace('@', ''))
-
-                                if not u_query:
-                                    logError('File: `{0}`, cannot build query! Field `{1}` is not defined in the fields section!'\
-                                        ''.format(subst_data['file'], field))
-                                    conn.rollback()
-                                    return False
-
-                                # Execute User Query
-                                curs.execute(u_query)
-                                q_value = curs.fetchone()[0]
-                                # Replace @variables@ with real Database values
-                                query = query.replace(field, str(q_value))
-
-                            # String Template
-                            tmpl = Template(query)
-
-                            # Build complete query
-                            try:
-                                query = tmpl.substitute(subst_data)
-                            except Exception, e:
-                                logError('User `{0}`, file `{1}`: Cannot build query! Error on `{2}`!'\
-                                    ''.format(user, subst_data['file'], str(e)))
-                                conn.rollback()
-                                return False
-
-                            # :: For DEBUG ::
-                            #open(TWISTER_PATH + '/config/Query.debug', 'a').write('File Query:: `{0}` ::\n{1}\n\n\n'.format(subst_data['file'], query))
-
-                            # Execute MySQL Query!
-                            try:
-                                curs.execute(query)
-                            except MySQLdb.Error, e:
-                                logError('Error in query ``{0}``'.format(query))
-                                logError('MySQL Error %d: %s!' % (e.args[0], e.args[1]))
-                                conn.rollback()
-                                return False
+                        # Execute MySQL Query!
+                        try:
+                            curs.execute(query)
+                        except MySQLdb.Error, e:
+                            logError('Error in query ``{0}``'.format(query))
+                            logError('MySQL Error %d: %s!' % (e.args[0], e.args[1]))
+                            conn.rollback()
+                            return False
 
             #
             conn.commit()

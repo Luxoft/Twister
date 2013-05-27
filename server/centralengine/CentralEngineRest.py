@@ -1,7 +1,7 @@
 
 # File: CentralEngineRest.py ; This file is part of Twister.
 
-# version: 2.002
+# version: 2.003
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -56,6 +56,7 @@ if mako.__version__ < '0.7':
 
 
 # # # # #
+
 
 def calcMemory():
     import subprocess
@@ -262,23 +263,29 @@ class CentralEngineRest:
         cherrypy.response.headers['Pragma']  = 'no-cache'
         cherrypy.response.headers['Expires'] = 0
 
-        data = []
-        epinfo = self.project.getEpInfo(user, epname)
+        SuitesManager = self.project.getEpInfo(user, epname).get('suites', False)
 
-        for suite in epinfo['suites']:
-            dsuite = epinfo['suites'][suite]
-            sdata = {
-                'data': dsuite['name'],
-                'metadata': suite,
-                'attr': dict({'id': suite, 'rel': 'suite'}, **dsuite),
-                'children': [],
+        data = []
+        default_suite = {
+            'data': '',
+            'metadata': '',
+            'children': [],
             }
-            del sdata['attr']['files']
-            if epinfo['suites'][suite]['files']:
-                sdata['children'] = [
-                    {'data': v['file'], 'attr': dict({'id': k}, **v)}
-                    for k, v in epinfo['suites'][suite]['files'].iteritems()]
-            data.append(sdata)
+
+        for suite_id in SuitesManager.getSuites():
+            node = SuitesManager.findId(suite_id)
+
+            current_suite = dict(default_suite)
+            current_suite['data'] = node['name']
+            current_suite['metadata'] = suite_id
+            current_suite['attr'] = dict({'id': suite_id, 'rel': 'suite'}, **node)
+            del current_suite['attr']['children']
+            current_suite['children'] = [
+                {'data': v['file'], 'attr': dict({'id': k}, **v)}
+                for k, v in node['children'].iteritems()
+                if v['type'] == 'file'
+                ]
+            data.append(current_suite)
 
         return json.dumps(data, indent=2)
 
