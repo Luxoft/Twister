@@ -507,6 +507,12 @@ class TwisterRunner:
                     self.runners['python'] = TCRunPython()
                 current_runner = self.runners['python']
 
+            # If file type is JAVA
+            elif file_ext in ['.java']:
+                if not self.runners['java']:
+                    self.runners['java'] = TCRunJava()
+                current_runner = self.runners['java']
+
             # Unknown file type
             else:
                 print('TC warning: Extension type `{}` is unknown and will be ignored!'.format(file_ext))

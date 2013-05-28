@@ -1,7 +1,7 @@
 
 # File: CentralEngineClasses.py ; This file is part of Twister.
 
-# version: 2.004
+# version: 2.005
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -560,15 +560,20 @@ class CentralEngine(_cptools.XMLRPCController):
                     # On Central Engine stop, send e-mail
                     self.sendMail(user)
 
-                    # On Central Engine stop, save to database
-                    db_auto_save = self.project.getUserInfo(user, 'db_auto_save')
-                    if db_auto_save: self.commitToDatabase(user)
-
                     # Execute "Post Script"
                     script_post = self.project.getUserInfo(user, 'script_post')
+                    script_mandatory = self.project.getUserInfo(user, 'script_mandatory')
+                    save_to_db = True
                     if script_post:
                         result = self.project.execScript(script_post)
-                        logDebug('Post Script executed!\n"{}"\n'.format(result))
+                        if result: logDebug('Post Script executed!\n"{}"\n'.format(result))
+                        elif script_mandatory:
+                            logError('CE: Post Script failed and script is mandatory! Will not save the results into database!')
+                            save_to_db = False
+
+                    # On Central Engine stop, save to database
+                    db_auto_save = self.project.getUserInfo(user, 'db_auto_save')
+                    if db_auto_save and save_to_db: self.commitToDatabase(user)
 
                     # Execute "onStop" for all plugins!
                     parser = PluginParser(user)
@@ -597,6 +602,8 @@ class CentralEngine(_cptools.XMLRPCController):
                 (str(new_status), str(execStatus.values())) )
             return False
 
+        reversed = dict((v,k) for k,v in execStatus.iteritems())
+
         # If this is a Temporary user
         if cherrypy.request.headers['User-Agent'].startswith('Apache XML RPC') and (user+'_old') in self.project.users:
             if msg.lower() != 'kill' and new_status != STATUS_STOP:
@@ -610,7 +617,6 @@ class CentralEngine(_cptools.XMLRPCController):
                 for epname in active_eps:
                     self.project.setEpInfo(user, epname, 'status', STATUS_STOP)
 
-                reversed = dict((v,k) for k,v in execStatus.iteritems())
                 if msg:
                     logDebug("CE: Status chang for TEMP `%s %s` -> %s. Message: `%s`.\n" % (user, active_eps, reversed[STATUS_STOP], str(msg)))
                 else:
@@ -661,9 +667,13 @@ class CentralEngine(_cptools.XMLRPCController):
 
             # Execute "Pre Script"
             script_pre = self.project.getUserInfo(user, 'script_pre')
+            script_mandatory = self.project.getUserInfo(user, 'script_mandatory')
             if script_pre:
                 result = self.project.execScript(script_pre)
                 if result: logDebug('Pre Script executed! {}'.format(result))
+                elif script_mandatory:
+                    logError('CE: Pre Script failed and script is mandatory! The project failed!')
+                    return reversed[STATUS_STOP]
 
             # Execute "onStart" for all plugins!
             parser = PluginParser(user)
@@ -681,9 +691,12 @@ class CentralEngine(_cptools.XMLRPCController):
 
             # Execute "Post Script"
             script_post = self.project.getUserInfo(user, 'script_post')
+            script_mandatory = self.project.getUserInfo(user, 'script_mandatory')
             if script_post:
                 result = self.project.execScript(script_post)
-                logDebug('Post Script executed!\n"{}"\n'.format(result))
+                if result: logDebug('Post Script executed!\n"{}"\n'.format(result))
+                elif script_mandatory:
+                    logError('CE: Post Script failed!')
 
             # Execute "onStop" for all plugins... ?
             parser = PluginParser(user)

@@ -1,7 +1,7 @@
 
 # File: CentralEngineOthers.py ; This file is part of Twister.
 
-# version: 2.006
+# version: 2.007
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -179,11 +179,12 @@ class Project:
         self.users[user]['glob_params'] = project_globals['GlobalParams']
 
         # Add the `exit on test Fail` value
-        self.users[user]['exit_on_test_fail'] = project_globals['ExitOnTestFail']
+        self.users[user]['exit_on_test_fail'] = project_globals['StopOnFail']
 
         # Add the `Pre and Post` project Scripts
-        self.users[user]['script_pre'] =  project_globals['ScriptPre']
-        self.users[user]['script_post'] = project_globals['ScriptPost']
+        self.users[user]['script_pre'] =    project_globals['ScriptPre']
+        self.users[user]['script_post'] =   project_globals['ScriptPost']
+        self.users[user]['script_mandatory'] = project_globals['ScriptMandatory']
 
         # Add the `Database Autosave` value
         self.users[user]['db_auto_save'] = project_globals['DbAutoSave']

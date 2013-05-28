@@ -1,5 +1,5 @@
 
-# version: 2.002
+# version: 2.003
 
 # Major list of constants.
 
@@ -48,12 +48,13 @@ FWMCONFIG_TAGS = (
 # Project Config XML Tags :
 
 PROJECTCONFIG_TAGS = (
-	{'name':'ExitOnTestFail', 'tag':'stoponfail',		'default':False, 'type':'bool'},
+	{'name':'StopOnFail',	'tag':'stoponfail',			'default':False, 'type':'bool'},
 	{'name':'DbAutoSave',	'tag':'dbautosave',			'default':False, 'type':'bool'},
 	{'name':'TestcaseDelay', 'tag':'tcdelay',			'default':0, 'type':'number'},
 	{'name':'Libraries',	'tag':'libraries',			'default':''},
 	{'name':'ScriptPre',	'tag':'ScriptPre',			'default':''},
 	{'name':'ScriptPost',	'tag':'ScriptPost',			'default':''},
+	{'name':'ScriptMandatory',	'tag':'PrePostMandatory',	'default':False, 'type':'bool'},
 )
 
 # Suites Tags, from Project Config XML :
