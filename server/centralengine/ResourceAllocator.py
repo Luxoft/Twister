@@ -231,7 +231,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
         result = dict(result)
 
         if not meta:
-            result['children'] = sorted([result['children'][node]['id'] for node in result.get('children') or []])
+            result['children'] = sorted([result['children'][node]['id'] for node in result.get('children') or []], key=lambda node: node.lower())
             result['path'] = '/'.join(result.get('path', ''))
             return result
         else:

@@ -988,8 +988,12 @@ class CentralEngine(_cptools.XMLRPCController):
         Called from the Runner.
         """
         global TWISTER_PATH
+
         lib_path = (TWISTER_PATH + '/lib/' + name).replace('//', '/')
-        user_lib = self.project.getUserInfo(user, 'libs_path') + os.sep + name
+        if self.project.getUserInfo(user, 'libs_path'):
+            user_lib = self.project.getUserInfo(user, 'libs_path') + os.sep + name
+        else:
+            user_lib = ''
 
         # If the requested library is in the second path (user path)
         if os.path.exists(user_lib):
@@ -998,18 +1002,18 @@ class CentralEngine(_cptools.XMLRPCController):
         elif os.path.exists(lib_path):
             final_path = lib_path
         else:
-            logError('ERROR! Library `{0}` does not exist!'.format(name))
+            logError('ERROR! Library `{}` does not exist!'.format(name))
             return False
 
         # Python and Zip files
         if os.path.isfile(final_path):
-            logDebug('CE: Requested library file: `{0}`.'.format(name))
+            logDebug('CE: Requested library file: `{}`.'.format(name))
             with open(final_path, 'rb') as binary:
                 return xmlrpclib.Binary(binary.read())
 
         # Library folders must be compressed
         else:
-            logDebug('CE: Requested library folder: `{0}`.'.format(name))
+            logDebug('CE: Requested library folder: `{}`.'.format(name))
             split_name = os.path.split(final_path)
             rnd = binascii.hexlify(os.urandom(5))
             tgz = split_name[1] + '_' + rnd + '.tgz'

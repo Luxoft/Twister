@@ -157,7 +157,7 @@ class TwisterRunner:
         reset_libs = False
 
         if not libs_list:
-            libs_list = self.proxy.getLibrariesList(userName)
+            libs_list = self.proxy.getLibrariesList(self.userName)
             reset_libs = True
         else:
             libs_list = [lib.strip() for lib in libs_list.split(';')]
@@ -177,6 +177,9 @@ class TwisterRunner:
             __init = open(libs_path + os.sep + '__init__.py', 'w')
             __init.write('\nimport os, sys\n')
             __init.write('\nPROXY = "{}"\n'.format(self.CONFIG['PROXY']))
+            __init.write('USER = "{}"\n'.format(self.userName))
+            __init.write('EP = "{}"\n'.format(self.epName))
+
         # If not Reseting, just append
         else:
             __init = open(libs_path + os.sep + '__init__.py', 'a')
@@ -195,7 +198,7 @@ class TwisterRunner:
             __init.write('\nall += ["%s"]\n\n' % ('", "'.join([os.path.splitext(lib)[0] for lib in all_libs])))
 
         for lib_file in zip_libs:
-            lib_data = self.proxy.downloadLibrary(lib_file)
+            lib_data = self.proxy.downloadLibrary(self.userName, lib_file)
             time.sleep(0.1) # Must take it slow
             if not lib_data:
                 print('ZIP library `{0}` does not exist!'.format(lib_file))
@@ -212,7 +215,7 @@ class TwisterRunner:
             f.close() ; del f
 
         for lib_file in all_libs:
-            lib_data = self.proxy.downloadLibrary(lib_file)
+            lib_data = self.proxy.downloadLibrary(self.userName, lib_file)
             time.sleep(0.1) # Must take it slow
             if not lib_data:
                 print('Library `{0}` does not exist!'.format(lib_file))
@@ -222,8 +225,10 @@ class TwisterRunner:
 
             ext = os.path.splitext(lib_file)
             # Write normal imports.
-            __init.write('import %s\n' % ext[0])
-            __init.write('from %s import *\n\n' % ext[0])
+            __init.write('try:\n')
+            __init.write('\timport %s\n' % ext[0])
+            __init.write('\tfrom %s import *\n' % ext[0])
+            __init.write('except Exception, e:\n\tprint("Cannot import library `{}`! Exception `%s`!" % e)\n\n'.format(ext[0]))
             lib_pth = libs_path + os.sep + lib_file
 
             f = open(lib_pth, 'wb')
