@@ -276,8 +276,8 @@ class Project:
         if not files_config:
             files_config = self.users[user]['project_path']
 
-        logDebug('Project: RESET configuration for user `{0}`, using config files `{1}` and `{2}`.'.format(
-            user, base_config, files_config))
+        logDebug('Project: RESET configuration for user `{}`, using config files `{}` and `{}`.'
+            ''.format(user, base_config, files_config))
         self.parsers[user] = TSCParser(user, base_config, files_config)
 
         self._common_user_reset(user, base_config, files_config)
@@ -297,13 +297,15 @@ class Project:
             self.users[new_name] = self.users[name]
             self.parsers[new_name] = self.parsers[name]
             self.test_ids[new_name] = self.test_ids[name]
+            self.suite_ids[new_name] = self.suite_ids[name]
 
             del self.users[name]
             del self.parsers[name]
             del self.test_ids[name]
+            del self.suite_ids[name]
 
         self._dump()
-        logDebug('Project: Renamed user `{0}` to `{1}`...'.format(name, new_name))
+        logDebug('Project: Renamed user `{}` to `{}`...'.format(name, new_name))
 
         return True
 
@@ -317,9 +319,10 @@ class Project:
             del self.users[user]
             del self.parsers[user]
             del self.test_ids[user]
+            del self.suite_ids[user]
 
         self._dump()
-        logDebug('Project: Deleted user `%s` ...' % user)
+        logDebug('Project: Deleted user `{}` ...'.format(user))
 
         return True
 
