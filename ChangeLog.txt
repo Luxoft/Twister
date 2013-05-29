@@ -1,6 +1,3 @@
-
-
-
 17th May 2013 changes:
 
 - fixed issue in Configuration->TestBeds about editing property names/deleting the property
