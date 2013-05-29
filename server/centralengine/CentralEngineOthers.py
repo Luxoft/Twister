@@ -341,6 +341,17 @@ class Project:
         return True
 
 
+    def listUsers(self, active=False):
+        """
+        All users that have Twister installer.\n
+        If `active` is True, list only the users that are registered to Central Engine.
+        """
+        users = checkUsers()
+        if active:
+            users = [u for u in users if u in self.users]
+        return sorted(users)
+
+
     def _dump(self):
         """
         Internal function. Save all data structure on HDD.\n

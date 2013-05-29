@@ -46,7 +46,7 @@ from common.suitesmanager import *
 from common.constants import FWMCONFIG_TAGS, PROJECTCONFIG_TAGS
 from common.constants import SUITES_TAGS, TESTS_TAGS
 
-__all__ = ['TSCParser', 'DBParser', 'PluginParser', 'userHome']
+__all__ = ['TSCParser', 'DBParser', 'PluginParser', 'userHome', 'checkUsers']
 
 #
 
@@ -62,6 +62,19 @@ def userHome(user):
     user_line = user_line[0].split(':')
     return user_line[-2]
 
+def checkUsers():
+    """
+    Check all users from etc/passwd, that have Twister in their home folder.
+    """
+    lines = open('/etc/passwd').readlines()
+    users = []
+    for line in lines:
+        path = line.split(':')[5]
+        if os.path.isdir(path + os.sep + 'twister'):
+            users.append(line.split(':')[0])
+    return users
+
+#
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # TSC
