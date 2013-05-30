@@ -1,3 +1,19 @@
+
+
+17th May 2013 changes:
+
+- fixed issue in Configuration->TestBeds about editing property names/deleting the property
+  of a component under TestBed
+- fixed issue about test execution order incorrect if test suite contains a mix of test cases and test suites
+- fixed issue about editing regular expression in Configuration->PanicDetection
+- updated user guide
+- added an easy mechanism to update the description for plugins using a text file
+
+
+29th April 2013 changes:
+- bug fixes for GUI
+- bug fixes for Sniffer plugin
+
 04th April 2013 changes:
 - GUI changes to associate a suite to a test bed; the test bed is defined in GUI Configuration section
   and it is associated with one or more EP's

@@ -39,6 +39,7 @@ import sys
 import re
 import glob
 import time
+import pickle
 import datetime
 import binascii
 import tarfile
@@ -107,6 +108,15 @@ class CentralEngine(_cptools.XMLRPCController):
         if msg != 'ping':
             logInfo(':: %s' % str(msg))
         return 'CE reply: ' + msg
+
+
+    @cherrypy.expose
+    def getTwisterPath(self):
+        '''
+        Returns the Twister Path.
+        '''
+        global TWISTER_PATH
+        return TWISTER_PATH
 
 
     @cherrypy.expose
@@ -244,6 +254,17 @@ class CentralEngine(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
+    def listUsers(self, active=False):
+        """
+        Function called from the CLI,
+        to list the users that are using Twister.
+        """
+
+        data = self.project.listUsers(active)
+        return data
+
+
+    @cherrypy.expose
     def getUserVariable(self, user, variable):
         """
         Function called from the Execution Process,
@@ -274,7 +295,7 @@ class CentralEngine(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
-    def getEpVariable(self, user, epname, variable):
+    def getEpVariable(self, user, epname, variable, compress=False):
         """
         This function is called from the Execution Process,
         to get information that is available only here, or are hard to get:
@@ -283,8 +304,11 @@ class CentralEngine(_cptools.XMLRPCController):
         - the name of the suite, the test files, etc.
         """
 
-        data = self.project.getEpInfo(user, epname)
-        return data.get(variable, False)
+        data = self.project.getEpInfo(user, epname).get(variable, False)
+        if compress:
+            return pickle.dumps(data)
+        else:
+            return data
 
 
     @cherrypy.expose
@@ -321,21 +345,23 @@ class CentralEngine(_cptools.XMLRPCController):
         """
 
         data = self.project.getSuiteInfo(user, epname, suite)
+        if not data: return False
         return data.get(variable, False)
 
 
     @cherrypy.expose
-    def getFileVariable(self, user, file_id, variable):
+    def getFileVariable(self, user, epname, file_id, variable):
         """
         Get information about a test file: dependencies, runnable, status, etc.
         """
 
-        data = self.project.getFileInfo(user, file_id)
+        data = self.project.getFileInfo(user, epname, file_id)
+        if not data: return False
         return data.get(variable, False)
 
 
     @cherrypy.expose
-    def setFileVariable(self, user, epname, suite, filename, variable, value):
+    def setFileVariable(self, user, epname, filename, variable, value):
         """
         Set extra information for a Filename, like Crash detected, OS, IP.\n
         Can be called from the Runner.\n
@@ -343,7 +369,7 @@ class CentralEngine(_cptools.XMLRPCController):
         Central Engine is start. If you need to make a persistent change, use setPersistentFile.
         """
 
-        return self.project.setFileInfo(user, epname, suite, filename, variable, value)
+        return self.project.setFileInfo(user, epname, filename, variable, value)
 
 
     @cherrypy.expose
@@ -720,12 +746,12 @@ class CentralEngine(_cptools.XMLRPCController):
                 (str(new_status), str(testStatus.values())) )
             return False
 
-        data = self.project.getFileInfo(user, file_id)
+        data = self.project.getFileInfo(user, epname, file_id)
         filename = os.path.split(data['file'])[1]
         suite = data['suite']
 
         # Sets file status
-        self.project.setFileInfo(user, epname, suite, file_id, 'status', new_status)
+        self.project.setFileInfo(user, epname, file_id, 'status', new_status)
         reversed = dict((v,k) for k,v in testStatus.iteritems())
         status_str = reversed[new_status]
 
@@ -740,15 +766,15 @@ class CentralEngine(_cptools.XMLRPCController):
             # Inject information into File Classes
             now = datetime.datetime.today()
 
-            self.project.setFileInfo(user, epname, suite, file_id, 'twister_tc_status',
+            self.project.setFileInfo(user, epname, file_id, 'twister_tc_status',
                 status_str.replace('*', ''))
-            self.project.setFileInfo(user, epname, suite, file_id, 'twister_tc_crash_detected',
+            self.project.setFileInfo(user, epname, file_id, 'twister_tc_crash_detected',
                 data.get('twister_tc_crash_detected', 0))
-            self.project.setFileInfo(user, epname, suite, file_id, 'twister_tc_time_elapsed',
+            self.project.setFileInfo(user, epname, file_id, 'twister_tc_time_elapsed',
                 int(time_elapsed))
-            self.project.setFileInfo(user, epname, suite, file_id, 'twister_tc_date_started',
+            self.project.setFileInfo(user, epname, file_id, 'twister_tc_date_started',
                 (now - datetime.timedelta(seconds=time_elapsed)).isoformat())
-            self.project.setFileInfo(user, epname, suite, file_id, 'twister_tc_date_finished',
+            self.project.setFileInfo(user, epname, file_id, 'twister_tc_date_finished',
                 (now.isoformat()))
             suite_name = self.project.getSuiteInfo(user, epname, suite).get('name')
 
@@ -1009,7 +1035,7 @@ class CentralEngine(_cptools.XMLRPCController):
             logError('CE ERROR! `%s` requested file list, but the EP is closed! Exiting!' % epname)
             return False
 
-        data = self.project.getFileInfo(user, file_id)
+        data = self.project.getFileInfo(user, epname, file_id)
         filename = data.get('file', 'invalid file!')
         runnable = data.get('Runnable', 'not set')
         tests_path = self.project.getUserInfo(user, 'tests_path')

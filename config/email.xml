@@ -1,10 +1,10 @@
 <Root>
     <Enabled>false</Enabled>
-    <SMTPPath>smtp.itcnetworks:25</SMTPPath>
-    <SMTPUser>CrConstantin</SMTPUser>
+    <SMTPPath>foo.com:25</SMTPPath>
+    <SMTPUser>foo1</SMTPUser>
     <SMTPPwd>XXX</SMTPPwd>
-    <From>CrConstantin@luxoft.com</From>
-    <To>CrConstantin@luxoft.com, Atoma@luxoft.com</To>
+    <From>foo1@foo.com</From>
+    <To>foo2@foo.com, foo3@foo.com</To>
     <Subject>Report for [$date]</Subject>
     <Message></Message>
 </Root>

@@ -1,9 +1,28 @@
 #!/usr/bin/env python
 
-# version: 2.002
+# version: 2.003
 
 # This file will start Packet Sniffer
-
+# File: start_packet_sniffer.py ; This file is part of Twister.
+#
+# Copyright (C) 2012-2013 , Luxoft
+#
+# Authors:
+#    Adrian Toader <adtoader@luxoft.com>
+#
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at:
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
 
 from sys import path
 from os import getuid, chdir
@@ -63,7 +82,7 @@ def __main__():
     epConfig = list(epConfig.itervalues())
 
     # initiate and start sniffer
-    pt = PacketSniffer(options.user, epConfig, options.of_port, filters={'-i': options.eth_interface})
+    pt = PacketSniffer(options.user, epConfig, options.of_port, iface=options.eth_interface)
 
     pt.run()
 

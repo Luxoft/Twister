@@ -42,10 +42,11 @@ from ConfigParser import SafeConfigParser
 from plugins import BasePlugin
 
 from common.tsclogging import *
+from common.suitesmanager import *
 from common.constants import FWMCONFIG_TAGS, PROJECTCONFIG_TAGS
 from common.constants import SUITES_TAGS, TESTS_TAGS
 
-__all__ = ['TSCParser', 'DBParser', 'PluginParser', 'userHome']
+__all__ = ['TSCParser', 'DBParser', 'PluginParser', 'userHome', 'checkUsers']
 
 #
 
@@ -60,6 +61,18 @@ def userHome(user):
     if not user_line: return '/home/' + user
     user_line = user_line[0].split(':')
     return user_line[-2]
+
+def checkUsers():
+    """
+    Check all users from etc/passwd, that have Twister in their home folder.
+    """
+    lines = open('/etc/passwd').readlines()
+    users = []
+    for line in lines:
+        path = line.split(':')[5]
+        if os.path.isdir(path + os.sep + 'twister'):
+            users.append(line.split(':')[0])
+    return users
 
 #
 
@@ -227,7 +240,6 @@ class TSCParser:
 
         for epname in eps:
             epname = epname.strip()
-            if epname == 'SNIFF': continue
             self.epnames.append(epname)
 
         return self.epnames
@@ -235,7 +247,7 @@ class TSCParser:
 
     def getActiveEps(self):
         """
-        Returns a list with all active EPs from Test-Suites XML.
+        Returns a list with all EPs that appear in Test-Suites XML.
         """
         if self.configTS is None:
             print('Parser: Cannot get active EPs, because Test-Suites XML is invalid!')
@@ -577,36 +589,40 @@ class TSCParser:
             res['Message'] = econfig.xpath('Message')[0].text
         return res
 
+# # #
+
+    def _suites_info(self, xml_object, children):
+        """
+        Create recursive list of folders and files from Tests path.
+        """
+        if not xml_object:
+            return {}
+
+        # For each testsuite from current xml object
+        for obj_xpath in xml_object.xpath('TestSuite | TestCase'):
+            # If XML object is suite
+            if obj_xpath.tag == 'TestSuite':
+                d = self.getSuiteInfo(obj_xpath)
+                # Save the suite ID in XML, to be used by the files
+                idTag = etree.SubElement(obj_xpath, 'id')
+                idTag.text = d['id']
+                d['children'] = self._suites_info(obj_xpath, OrderedDict())
+            # If XML object is file, it has not children
+            else:
+                d = self.getFileInfo(obj_xpath)
+
+            oid = d['id']
+            del  d['id'] # Delete the ID tag
+            children[oid] = d
+
+        return children
+
 
     def getAllSuitesInfo(self):
         """
-        Returns a list with data for all suites from current project.
-        Each suite contains the file list, with all file data.
+        Shortcut function.
         """
-        if self.configTS is None:
-            logError('Get Suites: Cannot parse Test Suite XML! Exiting!')
-            return {}
-
-        # The suites must be in order
-        res = OrderedDict()
-        suites = []
-
-        for suite in self.configTS.xpath('//TestSuite'):
-            # If the suite doesn't have EP, skip
-            if not suite.xpath('EpId/text()'):
-                continue
-            suites.append(suite)
-
-        for suite in suites:
-            suite_str = str(self.suite_no)
-            # Create suite ID automatically
-            res[suite_str] = self.getSuiteInfo(suite)
-            # Add the suite ID for all files in the suite
-            for file_id in res[suite_str]['files']:
-                res[suite_str]['files'][file_id]['suite'] = suite_str
-            self.suite_no += 1
-
-        return res
+        return self._suites_info(self.configTS, SuitesManager())
 
 
     def getSuiteInfo(self, suite_soup):
@@ -616,6 +632,9 @@ class TSCParser:
         """
         # A suite can be a part of only 1 EP !
         res = OrderedDict()
+        res['type'] = 'suite'
+        self.suite_no += 1
+        res['id'] = str(self.suite_no)
 
         # The first parameter is the EP name
         res['ep'] = suite_soup.xpath('EpId')[0].text
@@ -627,21 +646,14 @@ class TSCParser:
             # Update value from XML
             if suite_soup.xpath(tag_dict['tag'] + '/text()'):
                 value = suite_soup.xpath(tag_dict['tag'])[0].text
+                if not value.strip():
+                    continue
                 res[tag_dict['name']] = value
 
         # Add property/ value tags
         prop_keys = suite_soup.xpath('UserDefined/propName')
         prop_vals = suite_soup.xpath('UserDefined/propValue')
-
         res.update( dict(zip( [k.text for k in prop_keys], [v.text for v in prop_vals] )) ) # Pack Key + Value
-
-        res['files'] = OrderedDict()
-
-        for file_soup in suite_soup.xpath('TestCase'):
-            file_data = self.getFileInfo(file_soup)
-            res['files'][str(self.file_no)] = file_data
-            self.file_no += 1
-
         return res
 
 
@@ -650,7 +662,13 @@ class TSCParser:
         Returns a dict with information about 1 File from Test-Suites XML.
         The "file" must be a XML class.
         """
-        res = OrderedDict([ ('suite', None) ])
+        res = OrderedDict()
+        res['type'] = 'file'
+        self.file_no += 1
+        res['id'] = str(self.file_no)
+
+        # The first parameter is the Suite name
+        res['suite'] = file_soup.getparent().xpath('id')[0].text
 
         # Parse all known File Tags
         for tag_dict in TESTS_TAGS:
@@ -659,6 +677,8 @@ class TSCParser:
             # Update value from XML
             if file_soup.xpath(tag_dict['tag'] + '/text()'):
                 value = file_soup.xpath(tag_dict['tag'])[0].text
+                if not value.strip():
+                    continue
                 res[tag_dict['name']] = value
 
         # Add property/ value tags
@@ -675,28 +695,9 @@ class TSCParser:
             if p_key == 'param':
                 params += p_val + ','
                 p_val = params
-
             res[p_key] = p_val
 
         return res
-
-
-    def getAllTestFiles(self):
-        """
-        Returns a list with ALL files defined for current suite, in order.
-        """
-        if self.configTS is None:
-            logError('Get Tests: Fatal error! Cannot parse Test Suite XML!')
-            return []
-
-        files = self.configTS.xpath('//tcName')
-
-        if not files:
-            logError('Get Tests: Current suite has no files!')
-
-        ids = range(1000, 1000 + len(files))
-
-        return [str(i) for i in ids]
 
 
     def getGlobalParams(self):
