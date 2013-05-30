@@ -1,6 +1,6 @@
 /*
 File: Globals.java ; This file is part of Twister.
-Version: 2.001
+Version: 2.002
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -72,11 +72,29 @@ import javax.swing.event.AncestorListener;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import javax.swing.GroupLayout;
+import javax.swing.LayoutStyle;
+import java.awt.Color;
+import javax.swing.JTextArea;
+import java.awt.Dimension;
+import javax.swing.BorderFactory;
+import java.awt.event.KeyListener;
+import javax.swing.JComboBox;
+import java.awt.event.ItemListener;
+import java.awt.event.ItemEvent;
+import javax.swing.JFormattedTextField;
+import javax.swing.text.MaskFormatter;
+import javax.swing.text.DefaultFormatterFactory;
+import javax.swing.text.PlainDocument;
+import javax.swing.text.AttributeSet;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.PlainDocument;
+import java.awt.event.FocusAdapter;
+import java.awt.event.FocusEvent;
 
 public class Globals {
     private ChannelSftp ch ;
     public JScrollPane panel;
-    public JPanel main;
+    public JPanel main, pdesc;
     private JTree tree;
     private XPath xpath;
     private Document doc;
@@ -84,6 +102,8 @@ public class Globals {
     private File globalsfile;
     private boolean finished = true;
     private JButton addconf,addparam,remove;
+    private JLabel cname;
+    private JTextArea tdescription;
     
     public Globals(){
         initSftp();
@@ -111,6 +131,56 @@ public class Globals {
         } catch(Exception e){
             e.printStackTrace();
         }
+    }
+    
+    private void initParamDesc(){
+        
+        pdesc = new JPanel();
+        pdesc.setBorder(BorderFactory.createLineBorder(Color.gray));
+        
+        JLabel description;
+        JScrollPane jScrollPane1;
+        
+
+        cname = new javax.swing.JLabel("Name: ");
+        description = new javax.swing.JLabel("Description:");
+        jScrollPane1 = new javax.swing.JScrollPane();
+        //jScrollPane1.setBorder(null);
+        tdescription = new javax.swing.JTextArea(50,50);
+        tdescription.setWrapStyleWord(true);
+        tdescription.setLineWrap(true);
+        //tdescription.setBorder(null);
+        tdescription.setBorder(BorderFactory.createLineBorder(new Color(200,200,200)));
+        //tdescription.setBackground(main.getBackground());
+        //tdescription.setEditable(false);
+        //jScrollPane1.setViewportView(tdescription);
+
+        javax.swing.GroupLayout layout = new javax.swing.GroupLayout(pdesc);
+        pdesc.setLayout(layout);
+        layout.setHorizontalGroup(
+            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(layout.createSequentialGroup()
+                .addContainerGap()
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(tdescription, javax.swing.GroupLayout.DEFAULT_SIZE, 200, 300)
+                    .addGroup(layout.createSequentialGroup()
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addComponent(cname)
+                            .addComponent(description))
+                        .addGap(0, 0, Short.MAX_VALUE)))
+                .addContainerGap())
+        );
+        layout.setVerticalGroup(
+            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(layout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(cname)
+                .addGap(18, 18, 18)
+                .addComponent(description)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(tdescription, javax.swing.GroupLayout.DEFAULT_SIZE, 150, 200)
+                .addContainerGap())
+        );
     }
 
     public void init(){
@@ -143,16 +213,22 @@ public class Globals {
                 addParam();
             }
         });
-        
+
         remove.setBounds(280,5,100,20);
         remove.setEnabled(false);
         buttonPanel.add(remove);
         remove.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
-                deleteMultiple();
+                if(acceptRemove())deleteMultiple();
             }
         });
         
+        initParamDesc();
+        
+        main.setLayout(new BorderLayout());
+        main.add(panel,BorderLayout.CENTER);
+        main.add(buttonPanel,BorderLayout.SOUTH);
+        main.add(pdesc,BorderLayout.EAST);
         GroupLayout buttonPanelLayout = new GroupLayout(buttonPanel);
         buttonPanel.setLayout(buttonPanelLayout);
         buttonPanelLayout.setHorizontalGroup(
@@ -163,30 +239,15 @@ public class Globals {
             buttonPanelLayout.createParallelGroup(GroupLayout.Alignment.LEADING)
             .addGap(0, 50, Short.MAX_VALUE)
         );
-
-        GroupLayout layout = new GroupLayout(main);
-        main.setLayout(layout);
-        layout.setHorizontalGroup(
-            layout.createParallelGroup(GroupLayout.Alignment.LEADING)
-            .addComponent(panel, GroupLayout.DEFAULT_SIZE, 394, Short.MAX_VALUE)
-            .addComponent(buttonPanel, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-        );
-        layout.setVerticalGroup(
-            layout.createParallelGroup(GroupLayout.Alignment.LEADING)
-            .addGroup(layout.createSequentialGroup()
-                .addComponent(panel, GroupLayout.DEFAULT_SIZE, 235, Short.MAX_VALUE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(buttonPanel, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
-        );
         
         tree.addKeyListener(new KeyAdapter(){
             public void keyReleased(KeyEvent ev){
                 if(ev.getKeyCode()==KeyEvent.VK_DELETE){
-                    deleteMultiple();
+                    if(acceptRemove())deleteMultiple();
                 }
             }
         });
-        
+
         tree.addMouseListener(new MouseAdapter(){
             public void mouseReleased(MouseEvent ev){
                 TreePath tp = tree.getPathForLocation(ev.getX(), ev.getY());
@@ -200,6 +261,7 @@ public class Globals {
                             addconf.setEnabled(true);
                             addparam.setEnabled(true);
                             remove.setEnabled(true);
+                            setDescription(folder.toString(), folder.getDesc());
                         }else if(((DefaultMutableTreeNode)tp.getLastPathComponent()).getUserObject() instanceof MyParam){
                             DefaultMutableTreeNode treenode = (DefaultMutableTreeNode)tp.getLastPathComponent();
                             MyParam param = (MyParam)treenode.getUserObject();
@@ -207,6 +269,7 @@ public class Globals {
                             remove.setEnabled(true);
                             addconf.setEnabled(false);
                             addparam.setEnabled(false);
+                            setDescription(param.getName().getNodeValue(),param.getDesc());
                         }
                     } else if(ev.getButton() == MouseEvent.BUTTON1){
                         if(tree.getSelectionPaths().length==1){
@@ -214,30 +277,60 @@ public class Globals {
                             if(((DefaultMutableTreeNode)tp.getLastPathComponent()).getUserObject() instanceof MyFolder){
                                 remove.setEnabled(true);
                                 addconf.setEnabled(true);
-                            addparam.setEnabled(true);
+                                addparam.setEnabled(true);
+                                MyFolder folder = (MyFolder)((DefaultMutableTreeNode)tp.getLastPathComponent()).getUserObject();
+                                setDescription(folder.toString(), folder.getDesc());
                             }else if(((DefaultMutableTreeNode)tp.getLastPathComponent()).getUserObject() instanceof MyParam){
                                 remove.setEnabled(true);
                                 addconf.setEnabled(false);
                                 addparam.setEnabled(false);
+                                MyParam param = (MyParam)((DefaultMutableTreeNode)tp.getLastPathComponent()).getUserObject();
+                                setDescription(param.getName().getNodeValue(),param.getDesc());
                             }
                         } else {
+                            setDescription("",null);
                             remove.setEnabled(true);
                             addconf.setEnabled(false);
                             addparam.setEnabled(false);
                         }
                     }
                 } else {
+                    setDescription("",null);
                     tree.setSelectionPath(null);
                     remove.setEnabled(false);
                     addconf.setEnabled(true);
                     addparam.setEnabled(false);
                     if(ev.getButton() == MouseEvent.BUTTON3){
                         showNewFolderPopUp(ev);
-                    } 
+                    }
                 }
             }
         }
         );
+    }
+    
+    public void setDescription(String name,final Node desc){
+        try{cname.setText("Name: "+name);}
+        catch(Exception e){cname.setText("Name:");}
+        try{tdescription.setText(desc.getNodeValue());}
+        catch(Exception e){tdescription.setText("");}
+        for(KeyListener listener:tdescription.getKeyListeners()){
+            tdescription.removeKeyListener(listener);
+        }
+        if(desc!=null){
+            tdescription.addKeyListener(new KeyAdapter(){
+                public void keyReleased(KeyEvent ev){
+                    String dsc = tdescription.getText();
+                    if(dsc.length()>60){
+                        dsc = dsc.substring(0,60);
+                        tdescription.setText(dsc);
+                    }
+                    desc.setNodeValue(dsc);
+                    writeXML();
+                    uploadFile();
+                }
+            });
+        }
     }
     
     public void addParam(){
@@ -277,7 +370,7 @@ public class Globals {
         writeXML();
         uploadFile();
     }
-    
+
     public void showNewFolderPopUp(MouseEvent ev){
         JPopupMenu p = new JPopupMenu();
         JMenuItem item = new JMenuItem("Add Config");
@@ -319,6 +412,13 @@ public class Globals {
                 Node node = doc.createTextNode(resp);
                 fname.appendChild(node);
                 MyFolder folder = new MyFolder(node);
+                
+                fname = doc.createElement("fdesc");
+                rootElement.appendChild(fname);  
+                node = doc.createTextNode("");
+                fname.appendChild(node);
+                folder.setDesc(node);
+                
                 DefaultMutableTreeNode temp = new DefaultMutableTreeNode(folder,true);
                 ((DefaultTreeModel)tree.getModel()).insertNodeInto(temp, root,root.getChildCount());
                 if(root.getChildCount()==1){
@@ -347,9 +447,20 @@ public class Globals {
         item = new JMenuItem("Remove Parameter");
         item.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
-                removeParam(node,treenode,true);}});
+                if(acceptRemove())removeParam(node,treenode,true);}});
         p.add(item);
         p.show(this.tree,ev.getX(),ev.getY());
+    }
+    
+    private boolean acceptRemove(){
+        
+        int r = (Integer)CustomDialog.showDialog(new JLabel("Remove element ?"),
+                                JOptionPane.QUESTION_MESSAGE, 
+                                JOptionPane.OK_CANCEL_OPTION, main, "Remove", null);
+        if(r == JOptionPane.OK_OPTION){
+            return true;
+        }
+        return false;
     }
     
     /*
@@ -376,28 +487,76 @@ public class Globals {
         name.addAncestorListener(new AncestorListener() {
             
             @Override
-            public void ancestorRemoved(AncestorEvent arg0) {
-                // TODO Auto-generated method stub
-            }
+            public void ancestorRemoved(AncestorEvent arg0) {}
             
             @Override
-            public void ancestorMoved(AncestorEvent arg0) {
-                // TODO Auto-generated method stub
-                
-            }
+            public void ancestorMoved(AncestorEvent arg0) {}
             
             @Override
             public void ancestorAdded(AncestorEvent arg0) {
                 name.requestFocusInWindow();
-                
             }
         });
         try{name.setText(node.getName().getNodeValue());}
         catch(Exception e){}
-        JTextField value = new JTextField();
+        final JTextField value = new JTextField();
+//         value.setFocusLostBehavior(JFormattedTextField.PERSIST);  
+//         value.addFocusListener(new FocusAdapter(){  
+//             public void focusGained(FocusEvent e){
+//                 value.setText(value.getText().trim());  
+//             }});
+//         try{MaskFormatter formatter = new MaskFormatter("#");
+//             formatter.setValidCharacters("123456789");
+//             DefaultFormatterFactory factory = new DefaultFormatterFactory(formatter);
+//             value.setFormatterFactory(factory);
+//         } catch (Exception e){e.printStackTrace();}
+        final JComboBox combo = new JComboBox(new String[]{"decimal","hex","octet","string"});
+        final IntegerRangeDocument docum = new IntegerRangeDocument(0,255,'d');
+        try{String type = node.getType().getNodeValue();
+            if(type.equals("decimal")){
+                combo.setSelectedIndex(0);
+            } else if(type.equals("hex")){
+                combo.setSelectedIndex(1);
+                docum.setType('h');
+            } else if(type.equals("octet")){
+                combo.setSelectedIndex(2);
+                docum.setType('b');
+            } else {
+                combo.setSelectedIndex(3);
+                docum.setType('a');
+            }
+        } catch(Exception e){}
+        value.setDocument(docum);
+        combo.addItemListener(new ItemListener(){
+            public void itemStateChanged(ItemEvent ev){
+                if(ev.getStateChange()==ItemEvent.SELECTED){
+                    String selected = combo.getSelectedItem().toString();
+                    docum.setType('a');
+                    value.setText("");
+                    if(selected.equals("decimal")){
+                        try{docum.setType('d');
+                        } catch (Exception e){e.printStackTrace();}
+                    } else if (selected.equals("hex")){
+                        try{docum.setType('a');
+                            value.setText("0x");
+                            docum.setType('h');
+                        } catch (Exception e){e.printStackTrace();}
+                    } else if (selected.equals("octet")){
+                        try{
+                            docum.setType('b');
+                        } catch (Exception e){e.printStackTrace();}
+                    } else {
+                        try{
+                            docum.setType('a');
+                        } catch (Exception e){e.printStackTrace();}
+                    }
+                    value.setText("");
+                }
+            }
+        });
         try{value.setText(node.getValue().getNodeValue());}
         catch(Exception e){}
-        JPanel p = getPropPanel(name,value);
+        JPanel p = getPropPanel(name,value,combo);
         int r = (Integer)CustomDialog.showDialog(p,JOptionPane.PLAIN_MESSAGE, 
                                                 JOptionPane.OK_CANCEL_OPTION, 
                                                 panel, "Property: value",null);
@@ -419,41 +578,44 @@ public class Globals {
                     }
                 }
             }
-            
-            
             node.getName().setNodeValue(name.getText());
             node.getValue().setNodeValue(value.getText());
+            node.getType().setNodeValue(combo.getSelectedItem().toString());
             ((DefaultTreeModel)tree.getModel()).nodeChanged(treenode);
             writeXML();
             uploadFile();
         }
     }
-    
-    
+
+
     /*
      * name value panel created
      * for adding props
      */        
-    public JPanel getPropPanel(JTextField name, JTextField value){
+    public JPanel getPropPanel(JTextField name, JTextField value, JComboBox combo){
         JPanel p = new JPanel();
         p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
-        
-        JLabel jLabel3 = new JLabel();
+        JLabel jLabel3 = new JLabel("Name: ");
         JPanel jPanel1 = new JPanel();
         jPanel1.setLayout(new java.awt.BorderLayout());
-        jLabel3.setText("Name: ");
         jPanel1.add(jLabel3, BorderLayout.CENTER);
         p.add(jPanel1);
         p.add(name);
-        
         if(value!=null){
             JPanel jPanel2 = new JPanel();
-            JLabel jLabel4 = new JLabel();
+            JLabel jLabel4 = new JLabel("Value: ");
             jPanel2.setLayout(new BorderLayout());
-            jLabel4.setText("Value: ");
             jPanel2.add(jLabel4, BorderLayout.CENTER);
             p.add(jPanel2);
             p.add(value);
+        }
+        if(combo!=null){
+             JLabel jLabel5 = new JLabel("Type: ");
+            JPanel jPanel3 = new JPanel();
+            jPanel3.setLayout(new java.awt.BorderLayout());
+            jPanel3.add(jLabel5, BorderLayout.CENTER);
+            p.add(jPanel3);
+            p.add(combo);
         }
         return p;}
     
@@ -481,7 +643,7 @@ public class Globals {
         item = new JMenuItem("Remove Config");
         item.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
-                removeFolder(node,treenode,true);}});
+                if(acceptRemove())removeFolder(node,treenode,true);}});
         p.add(item);
         p.show(this.tree,ev.getX(),ev.getY());
     }
@@ -491,25 +653,18 @@ public class Globals {
         name.addAncestorListener(new AncestorListener() {
             
             @Override
-            public void ancestorRemoved(AncestorEvent arg0) {
-                // TODO Auto-generated method stub
-            }
+            public void ancestorRemoved(AncestorEvent arg0) {}
             
             @Override
-            public void ancestorMoved(AncestorEvent arg0) {
-                // TODO Auto-generated method stub
-                
-            }
+            public void ancestorMoved(AncestorEvent arg0) {}
             
             @Override
             public void ancestorAdded(AncestorEvent arg0) {
                 name.requestFocusInWindow();
-                
             }
         });
         name.setText(parent.toString());
-        
-        JPanel p = getPropPanel(name,null);
+        JPanel p = getPropPanel(name,null,null);
         int r = (Integer)CustomDialog.showDialog(p,JOptionPane.PLAIN_MESSAGE, 
                                                 JOptionPane.OK_CANCEL_OPTION, 
                                                 panel, "Config name",null);
@@ -531,9 +686,6 @@ public class Globals {
                     }
                 }
             }
-            
-            
-            
             parent.getNode().setNodeValue(name.getText());
             ((DefaultTreeModel)tree.getModel()).nodeChanged(treenode);
             writeXML();
@@ -551,24 +703,60 @@ public class Globals {
         name.addAncestorListener(new AncestorListener() {
             
             @Override
-            public void ancestorRemoved(AncestorEvent arg0) {
-                // TODO Auto-generated method stub
-            }
+            public void ancestorRemoved(AncestorEvent arg0) {}
             
             @Override
-            public void ancestorMoved(AncestorEvent arg0) {
-                // TODO Auto-generated method stub
-                
-            }
+            public void ancestorMoved(AncestorEvent arg0) {}
             
             @Override
             public void ancestorAdded(AncestorEvent arg0) {
                 name.requestFocusInWindow();
-                
             }
         });
-        JTextField value = new JTextField();
-        JPanel p = getPropPanel(name,value);
+        
+        final JTextField value = new JTextField();
+        //JComboBox combo = new JComboBox(new String[]{"decimal","hex","octet","string"});
+        
+        
+        
+        
+        //final IntegerRangeDocument doc = new IntegerRangeDocument(0,255,'d');
+        final JComboBox combo = new JComboBox(new String[]{"decimal","hex","octet","string"});
+        final IntegerRangeDocument docum = new IntegerRangeDocument(0,255,'d');
+        value.setDocument(docum);
+        combo.addItemListener(new ItemListener(){
+            public void itemStateChanged(ItemEvent ev){
+                if(ev.getStateChange()==ItemEvent.SELECTED){
+                    String selected = combo.getSelectedItem().toString();
+                    docum.setType('a');
+                    value.setText("");
+                    if(selected.equals("decimal")){
+                        try{
+                            docum.setType('d');
+                        } catch (Exception e){e.printStackTrace();}
+                    } else if (selected.equals("hex")){
+                        try{docum.setType('a');
+                            value.setText("0x");
+                            docum.setType('h');
+                        } catch (Exception e){e.printStackTrace();}
+                    } else if (selected.equals("octet")){
+                        try{
+                            docum.setType('b');
+                        } catch (Exception e){e.printStackTrace();}
+                    } else {
+                        try{
+                            docum.setType('a');
+                        } catch (Exception e){e.printStackTrace();}
+                    }
+                    value.setText("");
+                }
+            }
+        });
+        
+        
+        
+        
+        JPanel p = getPropPanel(name,value,combo);
         int r = (Integer)CustomDialog.showDialog(p,JOptionPane.PLAIN_MESSAGE, 
                                                 JOptionPane.OK_CANCEL_OPTION, 
                                                 panel, "Property: value",null);
@@ -589,7 +777,6 @@ public class Globals {
                         return;
                     }
                 }
-                
             }
             MyParam param = new MyParam();
             
@@ -597,7 +784,8 @@ public class Globals {
             parent.getNode().getParentNode().getParentNode().appendChild(rootElement);
             
             Node refs = null;
-            try{refs = parent.getNode().getParentNode().getParentNode().getFirstChild().getNextSibling().getNextSibling().getNextSibling();}
+            try{refs = parent.getNode().getParentNode().getParentNode().
+                       getFirstChild().getNextSibling().getNextSibling().getNextSibling();}
             catch(Exception e){refs=null;}
             if(refs==null){
                 parent.getNode().getParentNode().getParentNode().appendChild(rootElement);
@@ -617,6 +805,18 @@ public class Globals {
             param.setValue(node);
             tvalue.appendChild(node);
             
+            Element tdesc = doc.createElement("desc");
+            rootElement.appendChild(tdesc);  
+            node = doc.createTextNode("");
+            param.setDesc(node);
+            tdesc.appendChild(node);
+            
+            Element ttype = doc.createElement("type");
+            rootElement.appendChild(ttype);  
+            node = doc.createTextNode(combo.getSelectedItem().toString());
+            param.setType(node);
+            ttype.appendChild(node);
+            
             DefaultMutableTreeNode temp = new DefaultMutableTreeNode(param,true);
             ((DefaultTreeModel)tree.getModel()).insertNodeInto(temp, treenode,0);
             
@@ -624,8 +824,6 @@ public class Globals {
             uploadFile();
         }
     }
-    
-    
     
     /*
      * create and append new node 
@@ -653,16 +851,22 @@ public class Globals {
                         return;
                     }
                 }
-                
             }
-            
             Element rootElement = doc.createElement("folder");
             parent.getNode().getParentNode().getParentNode().appendChild(rootElement);
+            
             Element fname = doc.createElement("fname");
             rootElement.appendChild(fname);  
             Node node = doc.createTextNode(resp);
             fname.appendChild(node);
+            
             MyFolder folder = new MyFolder(node);
+            
+            Element fdesc = doc.createElement("fdesc");
+            rootElement.appendChild(fdesc);
+            node = doc.createTextNode("");
+            fdesc.appendChild(node);
+            folder.setDesc(node);
             
             DefaultMutableTreeNode temp = new DefaultMutableTreeNode(folder,true);
             ((DefaultTreeModel)tree.getModel()).insertNodeInto(temp, treenode,treenode.getChildCount());
@@ -689,10 +893,10 @@ public class Globals {
     }
     
     public File getGlobalsFile(){
-        File file = new File(Repository.temp+Repository.getBar()+"Twister"+Repository.getBar()+"config"+Repository.getBar()+"globals.xml");
-        try{
-            
-            String content = Repository.getRemoteFileContent(Repository.GLOBALSREMOTEFILE);
+        File file = new File(Repository.temp+Repository.getBar()+
+                             "Twister"+Repository.getBar()+"config"+
+                             Repository.getBar()+"globals.xml");
+        try{String content = Repository.getRemoteFileContent(Repository.GLOBALSREMOTEFILE);
             try{BufferedWriter writer = new BufferedWriter(new FileWriter(file));
                 writer.write(content);
                 writer.close();
@@ -727,6 +931,14 @@ public class Globals {
         try{
             Node n = ((Element)node).getElementsByTagName("fname").item(0);
             MyFolder fname = new MyFolder(n.getFirstChild());
+            n = ((Element)node).getElementsByTagName("fdesc").item(0);
+            if(n.getFirstChild()!=null){
+                fname.setDesc(n.getFirstChild()); 
+            } else {
+                Node tn = doc.createTextNode("");
+                n.appendChild(tn);
+                fname.setDesc(tn);
+            }
             DefaultMutableTreeNode temp = new DefaultMutableTreeNode(fname,true);
             parent.add(temp);
             XPathExpression expr1 = xpath.compile("param");
@@ -737,13 +949,31 @@ public class Globals {
                 param.setName(n.getFirstChild());
                 n = ((Element)nodes.item(i)).getElementsByTagName("value").item(0);
                 if(n.getChildNodes().getLength()==0){
-                    Node tn = doc.createTextNode("test");
+                    Node tn = doc.createTextNode("");
                     ((Element)nodes.item(i)).getElementsByTagName("value").item(0).appendChild(tn);
                     param.setValue(tn);
                 } else {
                     param.setValue(n.getFirstChild());
                 }
                 temp.add(new DefaultMutableTreeNode(param,true));
+                
+                n = ((Element)nodes.item(i)).getElementsByTagName("desc").item(0);
+                if(n.getFirstChild()!=null){
+                    param.setDesc(n.getFirstChild());
+                } else {
+                    Node tn = doc.createTextNode("");
+                    n.appendChild(tn);
+                    param.setDesc(tn);
+                }
+                
+                n = ((Element)nodes.item(i)).getElementsByTagName("type").item(0);
+                if(n.getFirstChild()!=null){
+                    param.setType(n.getFirstChild());
+                } else {
+                    Node tn = doc.createTextNode("");
+                    n.appendChild(tn);
+                    param.setType(tn);
+                }
             }
             expr1 = xpath.compile("folder");
             nodes = (NodeList)expr1.evaluate(node, XPathConstants.NODESET);
@@ -756,8 +986,7 @@ public class Globals {
     }
     
     public void writeXML(){
-        try{
-            DOMSource source = new DOMSource(doc);                    
+        try{DOMSource source = new DOMSource(doc);                    
             Result result = new StreamResult(globalsfile);
             TransformerFactory transformerFactory = TransformerFactory.newInstance();
             Transformer transformer = transformerFactory.newTransformer();
@@ -819,6 +1048,107 @@ public class Globals {
         } catch (Exception e){
             System.out.println("ERROR: Could not initialize SFTP for plugins");
             e.printStackTrace();
+        }
+    }
+    
+    class IntegerRangeDocument extends PlainDocument {
+        private int minimum, maximum;
+        private int currentValue = 0;
+        private char type;//b-byte, a-any, h-hex, d-decimal
+      
+    
+        public IntegerRangeDocument(int minimum, int maximum, char type) {
+            this.type = type;
+            this.minimum = minimum;
+            this.maximum = maximum;
+        }
+      
+        public void setType(char type){
+            this.type = type;
+        }
+    
+        public int getValue() {
+            return currentValue;
+        }
+    
+        public void insertString(int offset, String string, AttributeSet attributes)
+        throws BadLocationException {
+            if (string == null) {
+                return;
+            } else {
+                String newValue;
+                int length = getLength();
+                if (length == 0) {
+                    newValue = string;
+                } else {
+                    String currentContent = getText(0, length);
+                    StringBuffer currentBuffer = new StringBuffer(currentContent);
+                    currentBuffer.insert(offset, string);
+                    newValue = currentBuffer.toString();
+                }
+                if(type=='a'){
+                    super.insertString(offset, string, attributes);
+                } else if(type=='b'){
+                    try {
+                        currentValue = checkInput(newValue);
+                        super.insertString(offset, string, attributes);
+                    } catch (Exception exception) {}
+                } else if(type=='h'){
+                    try {
+                        if (newValue.matches("(0x){0,1}[0-9a-fA-F]{0,8}")) {
+                            super.insertString(offset, string, attributes);
+                        }
+                    } catch (Exception exception) {exception.printStackTrace();}
+                } else if(type=='d'){
+                try {
+                    if (newValue.matches("\\d*\\.?\\d*")) {
+                        super.insertString(offset, string, attributes);
+                    }
+                } catch (Exception exception) {exception.printStackTrace();}
+            }
+                
+            }
+        }
+    
+        public void remove(int offset, int length) throws BadLocationException {
+            int currentLength = getLength();
+            String currentContent = getText(0, currentLength);
+            String before = currentContent.substring(0, offset);
+            String after = currentContent.substring(length + offset, currentLength);
+            String newValue = before + after;
+            if(type=='a'){
+                super.remove(offset, length);
+            }
+            else if(type=='b'){
+                try {
+                    currentValue = checkInput(newValue);
+                    super.remove(offset, length);
+                } catch (Exception exception) {}
+            } else if(type=='h'){
+                try {
+                    if (newValue.matches("(0x){0,1}[0-9a-fA-F]{0,8}")) {
+                        super.remove(offset, length);
+                    }
+                } catch (Exception exception) {exception.printStackTrace();}
+            } else if(type=='d'){
+                try {
+                    if (newValue.matches("\\d*\\.?\\d*")) {
+                        super.remove(offset, length);
+                    }
+                } catch (Exception exception) {exception.printStackTrace();}
+            }
+        }
+    
+        public int checkInput(String proposedValue) throws NumberFormatException {
+            int newValue = 0;
+            if (proposedValue.length() > 0) {
+                newValue = Integer.parseInt(proposedValue);
+            }
+            if ((minimum <= newValue) && (newValue <= maximum)) {
+                return newValue;
+            } else {
+                throw new NumberFormatException();
+            }
         }
     }
 }

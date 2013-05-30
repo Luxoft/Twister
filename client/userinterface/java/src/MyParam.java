@@ -19,14 +19,30 @@ limitations under the License.
 */
 import org.w3c.dom.Node;
 class MyParam{
-    private Node name,value;
+    private Node name,value,description,type;
     
     public void setValue(Node value){
         this.value=value;
     }
     
+    public void setDesc(Node description){
+        this.description=description;
+    }
+    
     public void setName(Node name){
         this.name=name;
+    }
+    
+    public void setType(Node type){
+        this.type=type;
+    }
+    
+    public Node getType(){
+        return type;
+    }
+    
+    public Node getDesc(){
+        return description;
     }
     
     public Node getValue(){

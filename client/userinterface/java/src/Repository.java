@@ -1,6 +1,6 @@
 /*
 File: Repository.java ; This file is part of Twister.
-Version: 2.001
+Version: 2.002
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -142,7 +142,7 @@ public class Repository{
     private static String[] lookAndFeels;
     public static Applet container;
     private static Document pluginsconfig;
-    private static String version = "2.001";
+    private static String version = "2.003";
     
     /*
      * repository initialization method
@@ -161,11 +161,11 @@ public class Repository{
             temp = System.getProperty("user.home")+bar+".twister" ;
             File g1 = new File(temp);
             if(g1.mkdir()){
-                System.out.println(temp+" succesfuly created");}
+                System.out.println(temp+" successfully created");}
             else System.out.println(temp+" could not be created ");
             g1 = new File(temp+bar+host);
             if(g1.mkdir()){
-                System.out.println(temp+bar+host+" succesfuly created");}
+                System.out.println(temp+bar+host+" successfully created");}
             else System.out.println(temp+bar+host+" could not be created ");
             temp = g1.getCanonicalPath();}
         catch(Exception e){
@@ -180,11 +180,11 @@ public class Repository{
          */
         if(file.exists()){
             if(Window.deleteTemp(file))
-                System.out.println(Repository.temp+bar+"Twister deleted successfull");
+                System.out.println(Repository.temp+bar+"Twister deleted successful");
             else System.out.println("Could not delete: "+Repository.temp+bar+"Twister");}
         if(!twisterhome.exists()){
             try{if(twisterhome.mkdir())
-                    System.out.println(twisterhome.getCanonicalPath()+" succesfuly created");
+                    System.out.println(twisterhome.getCanonicalPath()+" successfully created");
                 else System.out.println("Could not create "+twisterhome.getCanonicalPath());}
             catch(Exception e){
                 System.out.println("Could not create "+
@@ -255,11 +255,11 @@ public class Repository{
                 if(pluginsdirectory.exists()){
                     PLUGINSDIRECTORY = twisterhome.getCanonicalPath()+bar+"Plugins";
                     System.out.println(twisterhome.getCanonicalPath()+bar+
-                                        "Plugins folder found");}
+                                        " Plugins folder found");}
                 else if(pluginsdirectory.mkdir()){
                     PLUGINSDIRECTORY = twisterhome.getCanonicalPath()+bar+"Plugins";
                     System.out.println(twisterhome.getCanonicalPath()+
-                            bar+"Plugins folder successfully created");}
+                            bar+" Plugins folder successfully created");}
                 else System.out.println("Could not create "+twisterhome.getCanonicalPath()+
                                         bar+"Plugins folder");
                 PLUGINSLOCALGENERALCONF = temp+bar+"Twister"+bar+"config"+bar+"plugins.xml";
@@ -273,8 +273,7 @@ public class Repository{
                                        " plugins configuration");}
                                        
                 initializeRPC();
-                REMOTEPLUGINSDIR = client.execute("getTwisterPath", new Object[]{}).toString()+"/plugins";
-                System.out.println("Remote Twister plugins instalation path: "+REMOTEPLUGINSDIR);
+                
                 intro.setStatus("Finished parsing the config");
                 intro.addPercent(0.035);
                 intro.repaint();
@@ -287,6 +286,12 @@ public class Repository{
                                         "Warning", "CE is not running, please start CE in "+
                                                     "order for Twister Framework to run properly");
                 }
+                try{REMOTEPLUGINSDIR = client.execute("getTwisterPath", new Object[]{}).toString()+"/plugins";
+                    System.out.println("Remote Twister plugins instalation path: "+REMOTEPLUGINSDIR);
+                } catch(Exception e){
+                    REMOTEPLUGINSDIR = "/opt/twister/plugins";
+                    System.out.println("Remote Twister plugins instalation path: "+REMOTEPLUGINSDIR);
+                }
                 window = new Window(applet,container);
                 parseEmailConfig(Repository.REMOTEEMAILCONFIGFILE,true);
                 populatePluginsVariables();
@@ -297,7 +302,7 @@ public class Repository{
                  * and exit application
                  */
                 if(Window.deleteTemp(file))
-                    System.out.println(Repository.temp+bar+"Twister deleted successfull");
+                    System.out.println(Repository.temp+bar+"Twister deleted successful");
                 else System.out.println("Could not delete: "+temp+bar+"Twister");
                 intro.dispose();
                 run = false;
@@ -484,7 +489,7 @@ public class Repository{
         catch(Exception e){
             System.out.println("Could not write default JSon to twister.conf");
             e.printStackTrace();}
-        System.out.println("twister.conf succesfuly created");}
+        System.out.println("twister.conf successfully created");}
     
     /*
      * set UI Look based on
@@ -796,7 +801,7 @@ public class Repository{
                                         "Warning", "Could not get :"+USERHOME+
                                         "/twister/config/");
                 if(Window.deleteTemp(new File(Repository.temp+bar+"Twister")))
-                    System.out.println(Repository.temp+bar+"Twister deleted successfull");
+                    System.out.println(Repository.temp+bar+"Twister deleted successful");
                 else System.out.println("Could not delete: "+Repository.temp+bar+"Twister");
                 run = false;
                 if(!applet)System.exit(0);

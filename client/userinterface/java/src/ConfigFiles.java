@@ -1,6 +1,6 @@
 /*
 File: ConfigFiles.java ; This file is part of Twister.
-Version: 2.001
+Version: 2.002
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -568,7 +568,7 @@ public class ConfigFiles extends JPanel{
         if(saved){
             CustomDialog.showInfo(JOptionPane.INFORMATION_MESSAGE,
                                   Repository.window,
-                                  "Successfull", "File successfully saved");}
+                                  "Successful", "File successfully saved");}
         else{
             CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,
                                   Repository.window.mainpanel.p4.getConfig(),

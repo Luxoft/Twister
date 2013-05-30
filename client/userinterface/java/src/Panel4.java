@@ -217,8 +217,8 @@ public class Panel4 extends JPanel{
     public void setGlobals(){
         main.removeAll();
         main.setLayout(new BorderLayout());
-        plugins.setPreferredSize(new Dimension(main.getWidth()-5,
-                                               main.getHeight()-5));
+//         plugins.setPreferredSize(new Dimension(main.getWidth()-5,
+//                                                main.getHeight()-5));
         main.add(glob.main,BorderLayout.CENTER);
         main.repaint();
         main.revalidate();}
