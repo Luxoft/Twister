@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 
-# version: 2.002
+# version: 2.003
 #
 # -*- coding: utf-8 -*-
 #
 # File: PacketSniffer.py ; This file is part of Twister.
 #
-# Copyright (C) 2012 , Luxoft
+# Copyright (C) 2012-2013 , Luxoft
 #
 # Authors:
 #    Adrian Toader <adtoader@luxoft.com>
@@ -25,7 +25,6 @@
 # limitations under the License.
 #
 
-
 from binascii import b2a_base64
 
 from socket import gethostname, gethostbyname
@@ -33,18 +32,14 @@ from xmlrpclib import ServerProxy
 from uuid import uuid4
 from time import sleep, time
 from thread import start_new_thread, allocate_lock
-from scapy.all import Automaton, ATMT, TCP, bind_layers, conf, Packet, NoPayload
+from scapy.all import Automaton, ATMT, TCP, bind_layers, conf, Packet, NoPayload, Raw
 
 from PacketSnifferClasses import OpenFlow, CentralEngineObject
-
-
-
 
 packetsLock = allocate_lock()
 
 sniffedPackets = []
 endAll = False
-
 
 class PacketSniffer():
     def __init__(self, user, epConfig, OFPort=None, _uid=None, **kargs):
@@ -56,8 +51,7 @@ class PacketSniffer():
         self.sniffer.runbg()
 
         while not endAll:
-            continue
-
+            sleep(1)
 
 class Sniffer(Automaton):
     """
@@ -66,6 +60,7 @@ class Sniffer(Automaton):
 
     def parse_args(self, user, epConfig, OFPort=None, _uid=None, **kargs):
         Automaton.parse_args(self)
+        self.socket_kargs = kargs 
         self.PAUSED = False
         self.RESTART = False
         self.OFPort = (OFPort, 6633)[OFPort is None]
@@ -76,7 +71,7 @@ class Sniffer(Automaton):
 
         # packet filters
         self.filters = kargs.pop('filters', None)
-
+	
         # user
         self.username = user
         self.userip = gethostbyname(gethostname())
@@ -126,9 +121,6 @@ class Sniffer(Automaton):
     # BEGIN
     @ATMT.state(initial=1)
     def BEGIN(self):
-        print '|||| state: BEGIN ||||'
-        print 'started sniff ..'
-
         # Try to ping status from CE!
         for ce in self.ceObjects:
             try:
@@ -154,7 +146,6 @@ class Sniffer(Automaton):
                             )
                             for ep in _epConfig
                         ]
-
                         sleep(2)
 
                         raise self.BEGIN()
@@ -189,6 +180,7 @@ class Sniffer(Automaton):
     def WAITING(self):
         if self.RESTART:
             raise self.restart()
+        pass
 
 
     # RECEIVING
@@ -202,7 +194,8 @@ class Sniffer(Automaton):
     def RECEIVING(self, packet):
         try:
             with packetsLock:
-                sniffedPackets.append(packet)
+                if packet not in sniffedPackets:
+                    sniffedPackets.append(packet)
         except Exception, e:
             print 'PT debug: [RECEIVING] {err}'.format(err=e)
 
@@ -242,9 +235,6 @@ class Sniffer(Automaton):
 
         print '|||| state: END ||||'
 
-
-
-
 class ParseData():
     """ Parse Data from / to CE """
 
@@ -258,25 +248,23 @@ class ParseData():
             return
 
         print 'PT debug: data parser ready ..'
-        sleep(2)
 
         global endAll
         while not endAll:
             self.ce_status_update()
+            while len(sniffedPackets) and not endAll:
+                try:
+                    with packetsLock:
+                        self.packet = sniffedPackets.pop(0)
+                    self.packetHead = self.packet_parse()
 
-            try:
-                with packetsLock:
-                    self.packet = sniffedPackets.pop(0)
-
-                self.packetHead = self.packet_parse()
-
-                if self.filter():
-                    self.send()
-            except Exception, e:
-                #print 'no packets in list'
-                self.packet = None
-                self.packetHead = None
-
+                    if self.filter():
+                        self.send()
+                except Exception, e:
+                    #print 'no packets in list'
+                    self.packet = None
+                    self.packetHead = None
+            sleep(0.5)
         print 'PT debug: data parser thread ended ..'
 
     def ce_status_update(self):

@@ -189,7 +189,7 @@ $(document).ready(function() {
 					for (var i=0 ; i<aData.length ; i++) {
 
 						// If text is larger than X characters, transform it into "Click for details"
-						if ( aData[i].length > 50 ) $('td:eq('+i+')', nRow).html(
+						if ( aData && aData[i].length > 50 ) $('td:eq('+i+')', nRow).html(
 							'<a href="#" onClick="moreDetails(this)" role="button"><i>Click for details</i></a>' +
 							'<div style="display:none">' + aData[i] + '</div>'
 							);

@@ -38,10 +38,6 @@ import glob
 import subprocess # For running Perl
 from collections import OrderedDict # For dumping TCL
 
-from ConfigParser import SafeConfigParser
-
-from shutil import copyfile
-
 TWISTER_PATH = os.getenv('TWISTER_PATH')
 if not TWISTER_PATH:
     print('TWISTER_PATH environment variable is not set! Exiting!')
@@ -117,8 +113,8 @@ class TCRunTcl:
         self.tcl.setvar('FILE_ID',    globs['file_id'])
         self.tcl.setvar('FILE_NAME',  globs['filename'])
         self.tcl.setvar('USER',       globs['userName'])
-        self.tcl.setvar('EP',         globs['globEpName'])
-        self.tcl.setvar('currentTB',  globs['tbname'])
+        self.tcl.setvar('EP',         globs['epName'])
+        self.tcl.setvar('currentTB',  globs['tbName'])
 
         # Inject common functions
         self.tcl.createcommand('logMessage', globs['logMsg'])
@@ -218,7 +214,7 @@ class TCRunPython:
         '''
         #
         global TWISTER_PATH
-        self.epname = globs['globEpName']
+        self.epname = globs['epName']
 
         # Start injecting inside tests
         globs_copy = {}
@@ -233,8 +229,8 @@ class TCRunPython:
         globs_copy['FILE_NAME']  = globs['filename']
         globs_copy['USER']       = globs['userName']
         globs_copy['EP']         = self.epname
+        globs_copy['currentTB']  = globs['tbName']
         globs_copy['PROXY']      = globs['proxy']
-        globs_copy['currentTB']  = globs['tbname']
 
         # Functions
         globs_copy['logMsg']     = globs['logMsg']
@@ -264,7 +260,7 @@ sys.argv = %s
         #
         # On exit delete all Python files
         global TWISTER_PATH
-        fnames = '{0}/.twister_cache/{1}/*.py*'.format(TWISTER_PATH, self.epname)
+        fnames = '{}/.twister_cache/{}/*.py*'.format(TWISTER_PATH, self.epname)
         for fname in glob.glob(fnames):
             # print 'Cleanup Python file:', fname
             try: os.remove(fname)
@@ -307,7 +303,7 @@ class TCRunJava:
         """ Java test runner """
 
         global TWISTER_PATH
-        self.epname = globs['globEpName']
+        self.epname = globs['epName']
 
         _RESULT = None
 
@@ -335,8 +331,8 @@ class TCRunJava:
             tscJythonPath = '{0}/.twister_cache/{1}/ce_libs/tscJython.jar'.format(
                                                                     TWISTER_PATH, self.epname)
         except Exception, e:
-            print 'error: compiler path not found'
-            print 'error: {er}'.format(er=e)
+            print 'Error: Compiler path not found'
+            print 'Error: {er}'.format(er=e)
 
             return _RESULT
 
@@ -382,10 +378,12 @@ class TCRunJava:
         global TWISTER_PATH
 
         # On exit delete all Java files
-        fileNames = '{0}/.twister_cache/{1}/*.java*'.format(TWISTER_PATH, self.epname)
+        fileNames = '{}/.twister_cache/{}/*.java*'.format(TWISTER_PATH, self.epname)
         for filePath in glob.glob(fileNames):
             # print 'Cleanup Java file: filePath
             try:
                 os.remove(filePath)
             except:
                 pass
+
+# Eof()

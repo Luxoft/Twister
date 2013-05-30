@@ -61,7 +61,7 @@ def saveConfig():
     Saves EpName, RPC Server IP/ Port and current EpName status in a file.
     This file will be read by the Runner.
     '''
-    global globEpName, CE_Path, epStatus, TWISTER_PATH
+    global userName, globEpName, CE_Path, epStatus, TWISTER_PATH
 
     EP_CACHE = TWISTER_PATH + '/.twister_cache/' + globEpName
     cache_file = EP_CACHE + '/data.pkl'
@@ -73,7 +73,8 @@ def saveConfig():
     CONFIG['ID'] = globEpName
     CONFIG['PROXY'] = CE_Path
     CONFIG['STATUS'] = epStatus
-    CONFIG['USER'] = userName
+    CONFIG['USER']   = userName
+    CONFIG['EP'] = globEpName
 
     f = open(cache_file, 'wb')
     data = pickle.dumps(CONFIG)
@@ -162,7 +163,8 @@ class threadCheckStatus(threading.Thread):
                         proxy.setEpVariable(userName, globEpName, 'twister_ep_os',
                             (platform.machine() +' '+ platform.system() +', '+ ' '.join(platform.linux_distribution())))
                         proxy.setEpVariable(userName, globEpName, 'twister_ep_hostname', socket.gethostname())
-                        proxy.setEpVariable(userName, globEpName, 'twister_ep_ip', socket.gethostbyname( socket.gethostname() ))
+                        proxy.setEpVariable(userName, globEpName, 'twister_ep_ip', socket.gethostbyname(socket.gethostname()) )
+                        proxy.setEpVariable(userName, globEpName, 'twister_ep_python_revision', '.'.join([str(v) for v in sys.version_info]) )
                 except:
                     pass
             self.cycle += 1
