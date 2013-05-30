@@ -73,6 +73,7 @@ def saveConfig():
     CONFIG['ID'] = globEpName
     CONFIG['PROXY'] = CE_Path
     CONFIG['STATUS'] = epStatus
+    CONFIG['USER'] = userName
 
     f = open(cache_file, 'wb')
     data = pickle.dumps(CONFIG)

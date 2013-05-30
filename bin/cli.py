@@ -27,13 +27,12 @@
 '''
 Commands :
 - Start, stop, pause the execution.
+- (users) All users that are running tests.
 - (eps) Display what EPs are enabled for your user.
-- (active-eps) What EPs are started for the user.
 - (stats) What is the start time for this run, suites list and tests list.
-- (show-status) Execution summary status: how many test cases are planned for execution,
+- (status) Execution summary status: how many test cases are planned for execution,
   how many were executed, how may passed, how many failed.
-- (show-status-details) Execution details status: the same, plus status per test case.
-- All users that are running tests.
+- (status-details) Execution details status: the same, plus status per test case.
 - Queue tests during run time.
 '''
 
@@ -217,20 +216,17 @@ if __name__ == '__main__':
 
 	parser.add_option('-u', "--users", action="store_true", help="Show active and inactive users.")
 
-	parser.add_option("--eps",         action="store_true", help="Show active Eps.")
-	parser.add_option("--active-eps",  action="store_true", help="Show active Eps.")
+	parser.add_option("--eps",         action="store_true", help="Show active and inactive Eps.")
 
 	parser.add_option("--stats",       action="store_true", help="Show stats.")
 	parser.add_option("--status",      action="store_true", help="Show stats.")
-	parser.add_option("--show-status", action="store_true", help="Show stats.")
 
-	parser.add_option("--details",            action="store_true", help="Show detailed status.")
-	parser.add_option("--status-details",     action="store", help="Show detailed status.")
-	parser.add_option("--show-status-detail", action="store", help="Show detailed status.")
+	parser.add_option("--details",            action="store_true", help="Show detailed status for All files.")
+	parser.add_option("--status-details",     action="store", help="Show detailed status for running, finished, pending, or all files.")
 
-	parser.add_option("-q", "--queue",   action="store", help="Queue a file at the end of a suite.")
+	parser.add_option("-q", "--queue",   action="store", help="Queue a file at the end of a suite. Specify queue like `suite:file`.")
 
-	parser.add_option("-s", "--set",     action="store", help="Set status: start/ stop/ pause.")
+	parser.add_option("-s", "--set",     action="store", help="Set status: start/ stop/ pause. (Must also specify a config and a project)")
 	parser.add_option("-c", "--config",  action="store", help="Path to FWMCONFIG.XML file.")
 	parser.add_option("-p", "--project", action="store", help="Path to PROJECT.XML file.")
 
@@ -267,20 +263,20 @@ if __name__ == '__main__':
 
 
 	# Check active and inactive EPs
-	if options.eps or options.active_eps:
+	if options.eps:
 		checkEps(proxy, user)
 		exit()
 
 
 	# Check status
-	if options.stats or options.status or options.show_status:
+	if options.stats or options.status:
 		checkStatus(proxy, user)
 		exit()
 
 
 	# Check status details
-	if options.details or options.status_details or options.show_status_detail:
-		opt = options.details or options.status_details or options.show_status_detail
+	if options.details or options.status_details:
+		opt = options.details or options.status_details
 		checkDetails(proxy, user, opt)
 		exit()
 
@@ -302,27 +298,34 @@ if __name__ == '__main__':
 		print('Must specify a valid status (stop/ start/ pause) ! Exiting !')
 		exit(1)
 
-	if not options.config:
-		print('Must specify a config path ! Exiting !')
+	if not options.config: options.config = ''
+	if not options.project: options.project = ''
+
+	if (not options.config) and options.set == 'start':
+		print('Must specify a config path ! Exiting !\n')
 		exit(1)
-	if not os.path.isfile(options.config):
-		print('Must specify a valid config path ! Exiting !')
+	if options.config and ( not os.path.isfile(options.config) ):
+		print('Must specify a valid config path, that path does not exist ! Exiting !\n')
+		exit(1)
+	if (not options.project) and options.set == 'start':
+		print('Must specify a project path ! Exiting !\n')
+		exit(1)
+	if options.project and ( not os.path.isfile(options.project) ):
+		print('Must specify a valid project path, that path does not exist ! Exiting !\n')
 		exit(1)
 
-	if not options.project:
-		print('Must specify a project path ! Exiting !')
-		exit(1)
-	if not os.path.isfile(options.project):
-		print('Must specify a valid project path ! Exiting !')
-		exit(1)
-
-	if options.status == 'start':
+	if options.set == 'start':
+		print 'Starting...'
 		print proxy.setExecStatusAll(user, 2, options.config + ',' + options.project)
 
-	elif options.status == 'stop':
+	elif options.set == 'stop':
+		print 'Stopping...'
 		print proxy.setExecStatusAll(user, 0, options.config + ',' + options.project)
 
-	elif options.status == 'pause':
+	elif options.set == 'pause':
+		print 'Paused...'
 		print proxy.setExecStatusAll(user, 1, options.config + ',' + options.project)
+
+	print
 
 # Eof()

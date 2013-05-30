@@ -180,10 +180,10 @@ def saveLibraries(proxy, libs_list=''):
             # Rename the TGZ
             tgz = lib_pth + '.tgz'
             os.rename(lib_pth, tgz)
-            # Need to wait more on slow machines
+			# Need to wait more on slow machines
             for i in range(20):
                 try: tarfile.open(tgz, 'r:gz')
-                except: time.sleep(0.2)
+                except: time.sleep(0.5)
             with tarfile.open(tgz, 'r:gz') as binary:
                 os.chdir(libs_path)
                 binary.extractall()
@@ -319,7 +319,7 @@ if __name__=='__main__':
 
     CONFIG = loadConfig()
 
-    tc_tcl = None; tc_perl = None; tc_python = None
+    tc_tcl = None; tc_perl = None; tc_python = None; tc_java = None
     proxy = None
     tSuites = None
     suite_number = 0
@@ -558,6 +558,12 @@ if __name__=='__main__':
                     tc_python = TCRunPython()
                 current_runner = tc_python
 
+            # If file type is PYTHON
+            elif file_ext in ['.java']:
+                if not tc_java:
+                    tc_java = TCRunJava()
+                current_runner = tc_java
+
             # Unknown file type
             else:
                 print('TC warning: Extension type `%s` is unknown and will be ignored!' % file_ext)
@@ -577,6 +583,7 @@ if __name__=='__main__':
 
             # Start counting time
             timer_i = time.time()
+            start_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(timer_i))
             result = None
 
             proxySetTestStatus(file_id, STATUS_WORKING, 0.0) # Status WORKING
@@ -608,6 +615,8 @@ if __name__=='__main__':
 
             # END OF TEST!
             timer_f = time.time() - timer_i
+            end_time = time.strftime("%Y-%m-%d %H:%M:%S")
+            print ('Test statistics: start time {} --- end time {} --- {:0.2f} s\n'.format(start_time, end_time, timer_f))
             # --------------------------------------------------
 
             if result==STATUS_PASS or result == 'PASS':
