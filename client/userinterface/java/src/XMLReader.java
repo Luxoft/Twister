@@ -1,6 +1,6 @@
 /*
 File: XMLReader.java ; This file is part of Twister.
-Version: 2.001
+Version: 2.002
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -74,6 +74,7 @@ public class XMLReader{
                 fstNmElmnt = (Element)fstNmElmntLst.item(0);
                 fstNm = fstNmElmnt.getChildNodes();
                 FontMetrics metrics = g.getFontMetrics(new Font("TimesRoman", 1, 13));
+                System.out.println(fstNm.item(0).getNodeValue().toString());
                 int width = metrics.stringWidth(fstNm.item(0).getNodeValue().toString());
                 if(test){
                     theone = new Item(fstNm.item(0).getNodeValue(),2,
@@ -114,18 +115,18 @@ public class XMLReader{
                     theone.setEpId(fstNm.item(0).getNodeValue().split(";"));
                     
                     
-                }                 
-                
-//                                         
-//                                         
-//                 
-                
+                }       
                 
                 //temporary solution for CE
                 if(test){
-                   try{fstNmElmntLst = ((Element)node).getElementsByTagName("UserDefined");
-                        int userdefinitions = fstNmElmntLst.getLength();
-                        k=6+(userdefinitions*2);
+                   try{
+                       k=6;
+                       for(int i=0;i<((Element)node).getChildNodes().getLength();i++){
+                           Node n = ((Element)node).getChildNodes().item(i);
+                           if(n.getNodeName().equals("UserDefined")){
+                               k+=2;
+                            }
+                        }
                     } catch(Exception e){
                         e.printStackTrace();
                         k=6;
@@ -134,7 +135,6 @@ public class XMLReader{
                     k=4;    
                 }
                 //temporary solution for CE
-                
             }
             else{
                 secNmElmntLst = ((Element)node).getElementsByTagName("tcName");
@@ -142,6 +142,7 @@ public class XMLReader{
                 secNmElmnt = (Element)secNmElmntLst.item(0);
                 secNm = secNmElmnt.getChildNodes();
                 FontMetrics metrics = g.getFontMetrics(new Font("TimesRoman", 0, 13));
+                System.out.println(secNm.item(0).getNodeValue().toString());
                 String f = secNm.item(0).getNodeValue().toString().
                             split(Repository.getTestSuitePath())[1];
                 int width = metrics.stringWidth(f) + 8;
@@ -178,6 +179,7 @@ public class XMLReader{
                 k=2;}
 //            if(!(test&&theone.getType()==1)){//if it is test the props should not be read further
                 int subchildren = node.getChildNodes().getLength();
+                //System.out.println("subchildren: "+subchildren+" k:"+k);
                 int index=0;
                 for(;k<subchildren-1;k++){
                     ArrayList <Integer> temp = (ArrayList <Integer>)indexes.clone();
