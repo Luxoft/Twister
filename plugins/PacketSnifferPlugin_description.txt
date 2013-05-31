@@ -1,0 +1,4 @@
+Packets Twist (SNIFF) is a Twister plugin that captures 
+network packets and list them to users, allowing them to 
+filter the packets as they are captured or after capture.
+All in all this plugin has a functionality similar to Wireshark.
