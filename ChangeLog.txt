@@ -1,4 +1,20 @@
+31st May 2013
 
+- bug fix for the order of test cases when test suites contain a mix of test cases and suites
+- removed luxoft.com from the default email configuration
+- enhance to provide timestamp for start and end of test file in EP_CLI log
+- enhance to provide file attributes when browsing; provide sorting mechanism
+- the logs for pre and post execution scripts can be CE log accesible using CE rest API
+- added more internal variables available for saving into database:
+	- $twister_ce_hostname
+	- $twister_ep_hostname
+	- $twister_ce_python_revision
+	- $twister_ep_python_revision
+	- $twister_rf_fname - resource file name
+	- $twister_pf_fname - project file name
+- added STEP mechanism for debugging
+- updated documentation
+- changed window for global params definition and description
 
 17th May 2013 changes:
 
