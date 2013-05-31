@@ -1,7 +1,7 @@
 
 # File: CentralEngineRest.py ; This file is part of Twister.
 
-# version: 2.003
+# version: 2.004
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -171,13 +171,15 @@ class CentralEngineRest:
         if self.user_agent() == 'x':
             return 0
 
+        try: srv_ver = open(TWISTER_PATH + '/server/centralengine/version.txt').read().strip()
+        except: srv_ver = '-'
         ip_port = cherrypy.request.headers['Host']
         machine = platform.uname()[1]
         system  = ' '.join(platform.linux_distribution())
         users   = self.project.listUsers()
 
         output = Template(filename=TWISTER_PATH + '/server/centralengine/template_main.htm')
-        return output.render(ip_port=ip_port, machine=machine, system=system, users=users)
+        return output.render(srv_ver=srv_ver, ip_port=ip_port, machine=machine, system=system, users=users)
 
 
     @cherrypy.expose
