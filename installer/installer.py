@@ -268,6 +268,7 @@ elif TO_INSTALL == 'client':
         'services/__init__.py',
         'common/__init__.py',
         'common/constants.py',
+        'common/suitesmanager.py',
         'common/configobj.py',
     ]
 

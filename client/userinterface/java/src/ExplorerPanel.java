@@ -748,20 +748,26 @@ public class ExplorerPanel extends JPanel {
                 if (vector1.get(i).getFilename().split("\\.").length == 0){
                     continue;
                 }
-                try{
-                    current = c.pwd();
-                    
-                    c.cd(vector1.get(i).getFilename());
-                    c.cd(current);
+                
+                if(vector1.get(i).getAttrs().isDir()){
                     folders.add(vector1.get(i).getFilename());
-                } catch (SftpException e) {
-                    if (e.id == 4) {
-                        files.add(vector1.get(i).getFilename());
-                    }
-                    else{
-                           e.printStackTrace();
-                       }
+                } else {
+                    files.add(vector1.get(i).getFilename());
                 }
+                
+//                 try{
+//                     current = c.pwd();
+//                     c.cd(vector1.get(i).getFilename());
+//                     c.cd(current);
+//                     folders.add(vector1.get(i).getFilename());
+//                 } catch (SftpException e) {
+//                     if (e.id == 4) {
+//                         files.add(vector1.get(i).getFilename());
+//                     }
+//                     else{
+//                            e.printStackTrace();
+//                        }
+//                 }
             }
             Collections.sort(folders);
             Collections.sort(files);
@@ -775,7 +781,6 @@ public class ExplorerPanel extends JPanel {
                 try {
                     current = c.pwd();
                     c.cd(vector.get(i));
-//                     getList(child, c);
                     getList(child, c,curentdir+"/"+vector.get(i));
                     c.cd(current);
                 } catch (SftpException e) {
@@ -786,6 +791,7 @@ public class ExplorerPanel extends JPanel {
                         e.printStackTrace();
                     }
                 }
+                
             }
         } catch (Exception e) {
             e.printStackTrace();
