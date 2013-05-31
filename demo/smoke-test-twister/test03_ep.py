@@ -1,6 +1,6 @@
 
 #
-# version: 2.001
+# version: 2.002
 # <title>test 03</title>
 # <description>Testing the EP.</description>
 #
@@ -33,7 +33,7 @@ def test(PROXY, USER, EP):
     print
 
     print 'Status All ?', PROXY.getExecStatusAll(USER)
-    print 'Status All:', PROXY.setExecStatusAll(USER, 8)
+    print 'Status All:', PROXY.setExecStatusAll(USER, 8) # STATUS INVALID
     print 'Status All ?', PROXY.getExecStatusAll(USER)
     time.sleep(0.5)
     print
@@ -43,7 +43,7 @@ def test(PROXY, USER, EP):
         if epname == EP: continue
         #
         print ':::', USER, '-', epname, ':::'
-        suites = PROXY.listSuites(USER, epname).split(',') or None
+        suites = PROXY.listSuites(USER, epname).split(',') or []
         print 'Suites:', suites
         #
         print 'EP files:', PROXY.getEpFiles(USER, epname)
@@ -76,8 +76,8 @@ def test(PROXY, USER, EP):
 
     return 'Pass'
 
-#
-
+# Must have one of the statuses:
+# 'pass', 'fail', 'skipped', 'aborted', 'not executed', 'timeout', 'invalid'
 _RESULT = test(PROXY, USER, EP)
 
 # Eof()

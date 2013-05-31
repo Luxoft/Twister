@@ -1,6 +1,6 @@
 
 #
-# version: 2.001
+# version: 2.002
 # <title>test 04</title>
 # <description>Testing the Suites.</description>
 #
@@ -21,15 +21,14 @@ def test(PROXY, USER):
 
         for file_id in PROXY.getEpFiles(USER, epname):
 
-            suite = PROXY.getFileVariable(USER, file_id, 'suite')
-            print 'File variable ?', PROXY.getFileVariable(USER, file_id, 'xyz')
-            r = PROXY.setFileVariable(USER, epname, suite, file_id, 'xyz', random.randrange(1, 100))
+            print 'File variable ?', PROXY.getFileVariable(USER, epname, file_id, 'xyz')
+            r = PROXY.setFileVariable(USER, epname, file_id, 'xyz', random.randrange(1, 100))
             if not r:
                 print('Failure! Cannot set file variable for `%s`!' % file_id)
                 return 'Fail'
 
             print 'Set variable for `%s`:' % file_id, r
-            print 'File variable ?', PROXY.getFileVariable(USER, file_id, 'xyz')
+            print 'File variable ?', PROXY.getFileVariable(USER, epname, file_id, 'xyz')
 
         r = PROXY.setFileStatusAll(USER, epname, 4)
         if not r:
@@ -43,8 +42,8 @@ def test(PROXY, USER):
 
     return 'Pass'
 
-#
-
+# Must have one of the statuses:
+# 'pass', 'fail', 'skipped', 'aborted', 'not executed', 'timeout', 'invalid'
 _RESULT = test(PROXY, USER)
 
 # Eof()

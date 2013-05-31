@@ -1,6 +1,6 @@
 
 #
-# version: 2.001
+# version: 2.002
 # <title>test 02</title>
 # <description>Testing the logs.</description>
 #
@@ -19,7 +19,7 @@ def test(PROXY, USER):
     if not r:
         print('Failure! Cannot reset log_debug!')
         return 'Fail'
-    print 'Reset log:',  r
+    print 'Reset log_debug:',  r
 
     r = True #PROXY.resetLogs(USER)
     if not r:
@@ -27,8 +27,8 @@ def test(PROXY, USER):
         return 'Fail'
     print 'Reset logs:', r
 
-    print 'Logs path:', PROXY.getUserInfo(USER, 'logs_path')
-    print 'Log types:', PROXY.getUserInfo(USER, 'logs_types')
+    print 'Logs path:', PROXY.getUserVariable(USER, 'logs_path')
+    print 'Log types:', PROXY.getUserVariable(USER, 'logs_types')
     time.sleep(0.5)
     print
 
@@ -59,8 +59,8 @@ def test(PROXY, USER):
 
     return 'Pass'
 
-#
-
+# Must have one of the statuses:
+# 'pass', 'fail', 'skipped', 'aborted', 'not executed', 'timeout', 'invalid'
 _RESULT = test(PROXY, USER)
 
 # Eof()

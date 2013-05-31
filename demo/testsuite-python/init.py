@@ -5,6 +5,9 @@
 # <description>...</description>
 #
 
+# `USER`, `EP`, `SUITE_NAME` and `FILE_NAME` are magic variables,
+# injected inside all Twister tests.
+
 import os
 import sys
 import time
