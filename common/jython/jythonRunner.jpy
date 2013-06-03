@@ -1,0 +1,140 @@
+#!/usr/bin/env jython
+
+# version: 1.000
+#
+# -*- coding: utf-8 -*-
+#
+# File: jythonRunner.jpy ; This file is part of Twister.
+#
+# Copyright (C) 2012 , Luxoft
+#
+# Authors:
+#    Adrian Toader <adtoader@luxoft.com>
+#
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at:
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+
+from optparse import OptionParser
+
+from os.path import basename, splitext, dirname
+
+from os import getenv, remove
+
+
+
+
+usage = 'Usage: %prog --classFilePath <path> --testFilePath <path>'
+version = '%prog v1.0'
+parser = OptionParser(usage=usage, version=version)
+
+# script options
+parser.add_option('-c', '--classFilePath', action='store', default=None,
+                    help='junit class path: None (default).')
+parser.add_option('-p', '--testFilePath', action='store', default=None,
+                    help='test file path: None (default).')
+(options, args) = parser.parse_args()
+
+
+try:
+    from sys.path import append as sysPathAppend
+    sysPathAppend(options.classFilePath)
+
+    from junit.framework import TestSuite, TestResult
+
+except Exception, e:
+    print 'error: junit path not found  :: %s' % (e)
+
+    exit(1)
+
+
+filePath = options.testFilePath
+fileName = basename(filePath)
+
+
+result = {
+    'pass': [],
+    'fail': [],
+    'error': []
+}
+
+# after compiling test, we can import it as a module
+# by just removing the .class portion of it's filename.
+try:
+    sysPathAppend(dirname(filePath))
+    importedTest = __import__(splitext(fileName)[0])
+except Exception, e:
+    print 'could not import %s :: %s' % (fileName, e)
+    result['error'].append(filePath)
+
+    exit(2)
+
+
+# hold the result
+testResults = TestResult()
+
+
+# test suite
+testSuite = TestSuite(importedTest)
+
+
+# run the tests
+if testSuite.countTestCases() > 0:
+    testSuite.run(testResults)
+
+
+# enum -> list
+all_tests = []
+_all_tests = testSuite.tests()
+while _all_tests.hasMoreElements():
+    all_tests.append(_all_tests.nextElement())
+
+failures = []
+_failures = testResults.failures()
+while _failures.hasMoreElements():
+    failures.append(_failures.nextElement())
+
+errors = []
+_errors = testResults.errors()
+while _errors.hasMoreElements():
+    errors.append(_errors.nextElement())
+
+
+# results
+if (testSuite.countTestCases() - testResults.failureCount() - testResults.errorCount() > 0):
+    for test in all_tests:
+        if test not in failures or test not in errors:
+            result['pass'].append(test)
+
+    if testResults.failureCount() > 0:
+        for fail in failures:
+            x = fail.failedTest().toString()
+            result['fail'].append('%s:%s' % (filePath, x[:x.find('(')]))
+
+    if testResults.errorCount() > 0:
+        for error in errors:
+            x = error.failedTest().toString()
+            result['error'].append('%s:%s' % (filePath, x[:x.find('(')]))
+
+
+# clean
+remove(filePath.replace('.java', '.class'))
+
+
+# return result
+if result['fail']:
+    exit(1)
+elif result['error']:
+    exit(2)
+exit(0)

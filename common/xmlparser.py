@@ -221,7 +221,7 @@ class TSCParser:
         Returns a list with all available EP names.
         """
         # Reading the path to Ep Names file, from master config
-        eps_file = self.project_globals['EpNames']
+        eps_file = self.project_globals['ep_names']
 
         if not eps_file:
             logError('Parser: EP Names file is not defined! Please check framework config XML file!')
@@ -526,7 +526,7 @@ class TSCParser:
         Returns the path for one type of log.
         CE will use this path to write the log received from EP.
         """
-        logs_path = self.project_globals['LogsPath']
+        logs_path = self.project_globals['logs_path']
 
         if not logs_path:
             logError('Parser: Logs path is not defined! Please check framework config XML file!')
@@ -549,7 +549,7 @@ class TSCParser:
         Returns the e-mail configuration.
         After Central Engine stops, an e-mail must be sent to the people interested.
         """
-        eml_file = self.project_globals['EmailConfig']
+        eml_file = self.project_globals['eml_config']
 
         if not eml_file:
             logError('Parser: E-mail Config file is not defined! Please check framework config XML file!')
@@ -705,7 +705,7 @@ class TSCParser:
         Returns a dictionary containing All global parameters,
         that will be available for all tests.
         """
-        globs_file = self.project_globals['GlobalParams']
+        globs_file = self.project_globals['glob_params']
 
         if not globs_file:
             logError('Get Globals: Globals Config file is not defined! Please check framework config XML file!')

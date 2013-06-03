@@ -86,7 +86,11 @@ class CentralEngine(_cptools.XMLRPCController):
     def __init__(self):
 
         # Build all Parsers + EP + Files structure
-        logDebug('CE: Starting Central Engine...') ; ti = time.clock()
+        try:
+            srv_ver = open(TWISTER_PATH + '/server/centralengine/version.txt').read().strip()
+            srv_ver = 'version `{}`'.format(srv_ver)
+        except: srv_ver = ''
+        logDebug('CE: Starting Central Engine {}...'.format(srv_ver)) ; ti = time.clock()
         self.project = Project()
         logDebug('CE: Initialization took %.4f seconds.' % (time.clock()-ti))
 

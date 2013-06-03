@@ -38,6 +38,11 @@ import glob
 import subprocess # For running Perl
 from collections import OrderedDict # For dumping TCL
 
+from ConfigParser import SafeConfigParser
+
+from shutil import copyfile
+
+
 TWISTER_PATH = os.getenv('TWISTER_PATH')
 if not TWISTER_PATH:
     print('TWISTER_PATH environment variable is not set! Exiting!')
