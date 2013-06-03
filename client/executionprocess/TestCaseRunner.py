@@ -92,7 +92,7 @@ class TwisterRunner:
 
         self.userName = userName
         self.epName   = epName
-        self.tbName   = None
+
         # Central Engine XML-RPC connection
         self.proxy    = None
         # For storing temporary variables
@@ -117,7 +117,14 @@ class TwisterRunner:
             print('TC error: Cannot connect to CE path `{}`! Exiting!'.format(self.CONFIG['PROXY']))
             exit(1)
 
-        # Save all libraries from CE
+        # The Test-Bed name. Common for all files in this EP.
+        self.tbName = self.proxy.getEpVariable(self.userName, self.epName, 'test_bed')
+        # Get the `exit on test Fail` value
+        self.exit_on_test_fail = self.proxy.getUserVariable(self.userName, 'exit_on_test_fail')
+        # Get tests delay
+        self.tc_delay = self.proxy.getUserVariable(self.userName, 'tc_delay')
+
+        # After getting Test-Bed name, save all libraries from CE
         self.saveLibraries()
         # After download, inject libraries path for the current EP
         sys.path.append(self.EP_CACHE)
@@ -179,6 +186,7 @@ class TwisterRunner:
             __init.write('\nPROXY = "{}"\n'.format(self.CONFIG['PROXY']))
             __init.write('USER = "{}"\n'.format(self.userName))
             __init.write('EP = "{}"\n'.format(self.epName))
+            __init.write('TB = "{}"\n'.format(self.tbName))
 
         # If not Reseting, just append
         else:
@@ -329,12 +337,6 @@ class TwisterRunner:
         SuitesManager = pickle.loads(suites_pickle)
         del suites_pickle
 
-
-        # Get the `exit on test Fail` value
-        exit_on_test_fail = self.proxy.getUserVariable(self.userName, 'exit_on_test_fail')
-        # Get tests delay
-        tc_delay = self.proxy.getUserVariable(self.userName, 'tc_delay')
-
         # Used by all files
         suite_id    = None
         suite_name  = None # Suite name string. This varies for each file.
@@ -356,9 +358,6 @@ class TwisterRunner:
                 suite_id   = id
                 suite_name = node['name']
                 suite_str  = suite_id +' - '+ suite_name
-
-                # The Test Bed name. Common for all files in this EP.
-                self.tbName = node['tb']
 
                 print('\n===== ===== ===== ===== =====')
                 print(' Starting suite `{}`'.format(suite_str))
@@ -525,9 +524,9 @@ class TwisterRunner:
 
 
             # If there is a delay between tests, wait here
-            if tc_delay:
-                print('TC debug: Waiting {} seconds before starting the test...\n'.format(tc_delay))
-                time.sleep(tc_delay)
+            if self.tc_delay:
+                print('TC debug: Waiting {} seconds before starting the test...\n'.format(self.tc_delay))
+                time.sleep(self.tc_delay)
 
 
             self.proxySetTestStatus(file_id, STATUS_WORKING, 0.0) # Status WORKING
@@ -569,7 +568,7 @@ class TwisterRunner:
                 self.proxySetTestStatus(file_id, STATUS_FAIL, (time.time() - timer_i))
 
                 # If status is FAIL and the file is not Optional and Exit on test fail is ON, CLOSE the runner
-                if not optional_test and exit_on_test_fail:
+                if not optional_test and self.exit_on_test_fail:
                     print('TC error: Mandatory file `{}` returned FAIL! Closing the runner!\n\n'.format(filename))
                     self.proxy.echo('TC error: Mandatory file `{}::{}::{}` returned FAIL! Closing the runner!'\
                         ''.format(self.epName, suite_name, filename))
@@ -612,7 +611,7 @@ class TwisterRunner:
                 self.proxySetTestStatus(file_id, STATUS_FAIL, timer_f) # File status FAIL
 
                 # If status is FAIL and the file is not Optional and Exit on test fail is ON, CLOSE the runner
-                if not optional_test and exit_on_test_fail:
+                if not optional_test and self.exit_on_test_fail:
                     print('TC error: Mandatory file `{}` returned FAIL! Closing the runner!\n\n'.format(filename))
                     self.proxy.echo('TC error: Mandatory file `{}::{}::{}` returned FAIL! Closing the runner!'\
                         ''.format(self.epName, suite_name, filename))

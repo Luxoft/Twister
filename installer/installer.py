@@ -254,7 +254,7 @@ if TO_INSTALL == 'server':
 
 elif TO_INSTALL == 'client':
     # The client doesn't have important dependencies
-    dependencies = ['Scapy-real', 'Paramiko' 'pExpect']
+    dependencies = ['Scapy-real', 'Paramiko', 'pExpect']
     library_names = ['scapy', 'paramiko', 'pexpect']
     library_versions = ['2.1', '1.0', '2.2']
 

@@ -1,7 +1,7 @@
 
 # File: CentralEngineOthers.py ; This file is part of Twister.
 
-# version: 2.007
+# version: 2.008
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -143,7 +143,8 @@ class Project:
         # Generate the list of EPs in order
         for epname in epList:
             self.users[user]['eps'][epname] = OrderedDict()
-            self.users[user]['eps'][epname]['status'] = STATUS_STOP
+            self.users[user]['eps'][epname]['status']   = STATUS_STOP
+            self.users[user]['eps'][epname]['test_bed'] = ''
             # Each EP has a SuitesManager, helper class for managing file and suite nodes!
             self.users[user]['eps'][epname]['suites'] = SuitesManager()
 
@@ -156,6 +157,7 @@ class Project:
             epname = suite['ep']
             if epname not in self.users[user]['eps']:
                 continue
+            self.users[user]['eps'][epname]['test_bed'] = suite['tb']
             self.users[user]['eps'][epname]['suites'][s_id] = suite
 
         # Ordered list of file IDs, used for Get Status ALL
@@ -163,44 +165,24 @@ class Project:
         # Ordered list with all suite IDs, for all EPs
         self.suite_ids[user] = suitesInfo.getSuites()
 
-        # Get project global variables from XML
-        project_globals = self.parsers[user].project_globals
-
         # Add framework config info to default user
-        self.users[user]['config_path'] = base_config
+        self.users[user]['config_path']  = base_config
         self.users[user]['project_path'] = files_config
-        self.users[user]['tests_path'] = project_globals['TestsPath']
-        self.users[user]['logs_path'] = project_globals['LogsPath']
+
+        # Get project global variables from XML:
+        # Path to DB, E-mail XML, Globals, `Testcase Delay` value,
+        # `Exit on test Fail` value, 'Libraries', `Database Autosave` value,
+        # `Pre and Post` project Scripts, `Scripts mandatory` value
+        for k, v in self.parsers[user].project_globals.iteritems():
+            self.users[user][k] = v
+
         self.users[user]['log_types'] = {}
-
-        # Add path to DB, E-mail XML, Globals
-        self.users[user]['db_config']  = project_globals['DbConfig']
-        self.users[user]['eml_config'] = project_globals['EmailConfig']
-        self.users[user]['glob_params'] = project_globals['GlobalParams']
-
-        # Add the `exit on test Fail` value
-        self.users[user]['exit_on_test_fail'] = project_globals['StopOnFail']
-
-        # Add the `Pre and Post` project Scripts
-        self.users[user]['script_pre'] =    project_globals['ScriptPre']
-        self.users[user]['script_post'] =   project_globals['ScriptPost']
-        self.users[user]['script_mandatory'] = project_globals['ScriptMandatory']
-
-        # Add the `Database Autosave` value
-        self.users[user]['db_auto_save'] = project_globals['DbAutoSave']
-
-        # Add the 'Libraries'
-        self.users[user]['libraries'] = project_globals['Libraries']
-
-        # Add the `Testcase Delay` value
-        self.users[user]['tc_delay'] = project_globals['TestcaseDelay']
-        del project_globals
-
-        # Global params for user
-        self.users[user]['global_params'] = self.parsers[user].getGlobalParams()
 
         for logType in self.parsers[user].getLogTypes():
             self.users[user]['log_types'][logType] = self.parsers[user].getLogFileForType(logType)
+
+        # Global params for user
+        self.users[user]['global_params'] = self.parsers[user].getGlobalParams()
 
 
     def createUser(self, user, base_config='', files_config=''):
