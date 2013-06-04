@@ -1,6 +1,6 @@
 
 #
-# version: 2.001
+# version: 2.002
 # <title>init file</title>
 # <description>...</description>
 #
@@ -19,7 +19,8 @@ print 'Hello, user', USER, '!'
 print 'Test Bed:', currentTB
 print 'Exec process:', EP
 print 'Suite:', SUITE_NAME
-print 'File:', FILE_NAME
+print 'Remote file:', FILE_NAME
+print 'Local file:', __file__
 
 _RESULT = 'PASS'
 
