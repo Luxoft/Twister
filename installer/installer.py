@@ -273,6 +273,7 @@ elif TO_INSTALL == 'client':
         'common/constants.py',
         'common/suitesmanager.py',
         'common/configobj.py',
+        'common/jython/',
     ]
 
 else:

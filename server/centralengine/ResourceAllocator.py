@@ -32,6 +32,7 @@ All functions are exposed and can be accessed using the browser.
 """
 
 import os, sys
+import ast
 import json
 import thread
 import cherrypy
@@ -256,11 +257,11 @@ class ResourceAllocator(_cptools.XMLRPCController):
         if isinstance(props, dict):
             pass
         elif (isinstance(props, str) or isinstance(props, unicode)):
-            props = props.replace("'", '"')
+            props = props.strip()
             try:
-                props = json.loads(props)
-            except:
-                msg = 'Set Resource: Cannot parse properties: `{0}` !'.format(props)
+                props = ast.literal_eval(props)
+            except Exception, e:
+                msg = 'Set Resource: Cannot parse properties: `{}`, `{}` !'.format(props, e)
                 logError(msg)
                 return '*ERROR* ' + msg
         else:
