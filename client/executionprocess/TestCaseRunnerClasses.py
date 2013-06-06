@@ -1,7 +1,7 @@
 
 # File: TestCaseRunnerClasses.py ; This file is part of Twister.
 
-# version: 2.001
+# version: 2.002
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -113,19 +113,28 @@ class TCRunTcl:
         as return value.
         '''
         # Inject variables
-        self.tcl.setvar('SUITE_ID',   globs['suite_id'])
-        self.tcl.setvar('SUITE_NAME', globs['suite_name'])
-        self.tcl.setvar('FILE_ID',    globs['file_id'])
-        self.tcl.setvar('FILE_NAME',  globs['filename'])
-        self.tcl.setvar('USER',       globs['userName'])
-        self.tcl.setvar('EP',         globs['epName'])
-        self.tcl.setvar('currentTB',  globs['tbName'])
+        self.tcl.setvar('SUITE_ID',   globs['SUITE_ID'])
+        self.tcl.setvar('SUITE_NAME', globs['SUITE_NAME'])
+        self.tcl.setvar('FILE_ID',    globs['FILE_ID'])
+        self.tcl.setvar('FILE_NAME',  globs['FILE_NAME'])
+        self.tcl.setvar('USER',       globs['USER'])
+        self.tcl.setvar('EP',         globs['EP'])
+        self.tcl.setvar('currentTB',  globs['currentTB'])
 
         # Inject common functions
-        self.tcl.createcommand('logMessage', globs['logMsg'])
-        self.tcl.createcommand('getGlobal',  globs['getGlobal'])
-        self.tcl.createcommand('setGlobal',  globs['setGlobal'])
-        self.tcl.createcommand('py_exec',    globs['py_exec'])
+        self.tcl.createcommand('logMessage',  globs['logMsg'])
+        self.tcl.createcommand('getGlobal',   globs['getGlobal'])
+        self.tcl.createcommand('setGlobal',   globs['setGlobal'])
+        self.tcl.createcommand('py_exec',     globs['py_exec'])
+
+        self.tcl.createcommand('getResource',    globs['getResource'])
+        self.tcl.createcommand('setResource',    globs['setResource'])
+        self.tcl.createcommand('renameResource', globs['renameResource'])
+        self.tcl.createcommand('deleteResource', globs['deleteResource'])
+        self.tcl.createcommand('getResourceStatus', globs['getResourceStatus'])
+        self.tcl.createcommand('allocResource',     globs['allocResource'])
+        self.tcl.createcommand('reserveResource',   globs['reserveResource'])
+        self.tcl.createcommand('freeResource',      globs['freeResource'])
 
         to_execute = str_to_execute.data
         to_execute = '\nset argc %i\n' % len(params) + to_execute
@@ -219,36 +228,22 @@ class TCRunPython:
         '''
         #
         global TWISTER_PATH
-        self.epname = globs['epName']
+        self.epname = globs['EP']
+        self.filename = os.path.split(globs['FILE_NAME'])[1]
+        fpath = '{}/.twister_cache/{}/{}'.format(TWISTER_PATH, self.epname, self.filename)
 
         # Start injecting inside tests
-        globs_copy = {}
+        globs_copy = dict(globs)
         globs_copy['os']   = os
         globs_copy['sys']  = sys
         globs_copy['time'] = time
 
-        globs_copy['TWISTER_ENV'] = True
-        globs_copy['SUITE_ID']   = globs['suite_id']
-        globs_copy['SUITE_NAME'] = globs['suite_name']
-        globs_copy['FILE_ID']    = globs['file_id']
-        globs_copy['FILE_NAME']  = globs['filename']
-        globs_copy['USER']       = globs['userName']
-        globs_copy['EP']         = self.epname
-        globs_copy['currentTB']  = globs['tbName']
-        globs_copy['PROXY']      = globs['proxy']
-
-        # Functions
-        globs_copy['logMsg']     = globs['logMsg']
-        globs_copy['getGlobal']  = globs['getGlobal']
-        globs_copy['setGlobal']  = globs['setGlobal']
-
         to_execute = r"""
 import os, sys
+__file__ = '%s'
 sys.argv = %s
-""" % str([globs['filename']] + params)
+""" % (fpath, str([self.filename] + params))
 
-        fname = os.path.split(globs['filename'])[1]
-        fpath = '{}/.twister_cache/{}/{}'.format(TWISTER_PATH, self.epname, fname)
         f = open(fpath, 'wb')
         f.write(to_execute)
         f.write(str_to_execute.data)
@@ -308,7 +303,7 @@ class TCRunJava:
         """ Java test runner """
 
         global TWISTER_PATH
-        self.epname = globs['epName']
+        self.epname = globs['EP']
 
         _RESULT = None
 
@@ -342,7 +337,7 @@ class TCRunJava:
             return _RESULT
 
         # create test
-        fileName = os.path.split(globs['filename'])[1]
+        fileName = os.path.split(globs['FILE_NAME'])[1]
         filesPath = '{}/.twister_cache/{}'.format(TWISTER_PATH, self.epname)
         filePath = os.path.join(filesPath, fileName)
 

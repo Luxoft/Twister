@@ -1082,36 +1082,30 @@ class CentralEngine(_cptools.XMLRPCController):
         Called from the Runner.
         """
         if not self.searchEP(user, epname):
-            logError('CE ERROR! EP `%s` is not in the list of defined EPs: `%s`!' %\
-                     (str(epname), self.listEPs(user)) )
+            logError('CE ERROR! EP `{}` is not in the list of defined EPs: `{}`!'.format(epname, self.listEPs(user)))
             return False
         if not self.project.getEpInfo(user, epname).get('status'):
-            logError('CE ERROR! `%s` requested file list, but the EP is closed! Exiting!' % epname)
+            logError('CE ERROR! `{}` requested file list, but the EP is closed! Exiting!'.format(epname))
             return False
 
         data = self.project.getFileInfo(user, epname, file_id)
         filename = data.get('file', 'invalid file!')
-        runnable = data.get('Runnable', 'not set')
         tests_path = self.project.getUserInfo(user, 'tests_path')
 
-        if runnable=='true' or runnable=='not set':
-            # Should use USER path ?
-            if filename.startswith('~'):
-                filename = userHome(user) + filename[1:]
-            if not os.path.isfile(filename):
-                if not os.path.isfile(tests_path + os.sep + filename):
-                    logError('CE ERROR! TestCase file: `%s` does not exist!' % filename)
-                    return ''
-                else:
-                    filename = tests_path + os.sep + filename
+        # Ignore Runnable completely !
+        if filename.startswith('~'):
+            filename = userHome(user) + filename[1:]
+        if not os.path.isfile(filename):
+            if not os.path.isfile(tests_path + os.sep + filename):
+                logError('CE ERROR! TestCase file: `{}` does not exist!'.format(filename))
+                return ''
+            else:
+                filename = tests_path + os.sep + filename
 
-            logDebug('CE: Station {0} requested file `{1}`'.format(epname, filename))
+        logDebug('CE: Station {} requested file `{}`'.format(epname, filename))
 
-            with open(filename, 'rb') as handle:
-                return xmlrpclib.Binary(handle.read())
-        else:
-            logDebug('CE: Skipped file `{0}`'.format(filename))
-            return False
+        with open(filename, 'rb') as handle:
+            return xmlrpclib.Binary(handle.read())
 
 
     @cherrypy.expose

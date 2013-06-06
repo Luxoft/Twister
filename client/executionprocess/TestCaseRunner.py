@@ -1,7 +1,7 @@
 
 # File: TestCaseRunner.py ; This file is part of Twister.
 
-# version: 2.004
+# version: 2.005
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -49,6 +49,7 @@ import pickle
 import marshal
 import xmlrpclib
 import tarfile
+import subprocess
 import traceback
 
 from collections import OrderedDict
@@ -131,6 +132,8 @@ class TwisterRunner:
 
         try:
             import ce_libs
+            from ce_libs import CommonLib
+            self.commonLib = CommonLib()
         except:
             print('TC error: Cannot import the shared libraries!')
             exit(1)
@@ -176,7 +179,7 @@ class TwisterRunner:
             try: os.makedirs(libs_path)
             except: pass
 
-        all_libs = [] # Normal python files or folders
+        all_libs = ['CommonLib.py'] # Normal python files or folders
         zip_libs = [] # Zip libraries
 
         # If Reseting libs, open and destroy
@@ -195,6 +198,8 @@ class TwisterRunner:
         for lib in libs_list:
             if not lib:
                 continue
+            if lib in zip_libs or lib in all_libs:
+                continue
             if lib.endswith('.zip'):
                 zip_libs.append(lib)
             else:
@@ -209,10 +214,10 @@ class TwisterRunner:
             lib_data = self.proxy.downloadLibrary(self.userName, lib_file)
             time.sleep(0.1) # Must take it slow
             if not lib_data:
-                print('ZIP library `{0}` does not exist!'.format(lib_file))
+                print('ZIP library `{}` does not exist!'.format(lib_file))
                 continue
 
-            print('Downloading Zip library `{0}` ...'.format(lib_file))
+            print('Downloading Zip library `{}` ...'.format(lib_file))
 
             # Write ZIP imports.
             __init.write('\nsys.path.append(os.path.split(__file__)[0] + "/{}")\n\n'.format(lib_file))
@@ -226,10 +231,10 @@ class TwisterRunner:
             lib_data = self.proxy.downloadLibrary(self.userName, lib_file)
             time.sleep(0.1) # Must take it slow
             if not lib_data:
-                print('Library `{0}` does not exist!'.format(lib_file))
+                print('Library `{}` does not exist!'.format(lib_file))
                 continue
 
-            print('Downloading library `{0}` ...'.format(lib_file))
+            print('Downloading library `{}` ...'.format(lib_file))
 
             ext = os.path.splitext(lib_file)
             # Write normal imports.
@@ -256,60 +261,18 @@ class TwisterRunner:
                     os.chdir(libs_path)
                     binary.extractall()
 
+        tcr_proc = subprocess.Popen(['chown', self.userName+':'+self.userName, libs_path, '-R'],)
+        tcr_proc.wait()
+        del tcr_proc
+
         __init.close()
 
-# # #
 
     def proxySetTestStatus(self, file_id, status, time_t):
         """
         Shortcut function for setting Test status.
         """
         self.proxy.setFileStatus(self.userName, self.epName, file_id, status, time_t)
-
-
-    def logMsg(self, logType, logMessage):
-        """
-        Shortcut function for sending a message in a log to Central Engine.
-        """
-        self.proxy.logMessage(self.userName, logType, logMessage)
-
-
-    def getGlobal(self, var):
-        """
-        Function to get variables saved from Test files.
-        """
-        if var in self.global_vars:
-            return self.global_vars[var]
-        # Else...
-        return self.proxy.getGlobalVariable(self.userName, var)
-
-
-    def setGlobal(self, var, value):
-        """
-        Function to keep variables sent from Test files.
-        """
-        try:
-            marshal.dumps(value)
-            return self.proxy.setGlobalVariable(self.userName, var, value)
-        except:
-            self.global_vars[var] = value
-            return True
-
-
-    def py_exec(self, code_string):
-        """
-        Exposed Python function and class instances for TCL.
-        """
-        if not isinstance(code_string, str):
-            print('py_exec: Error, the code must be a string `{}`!'.format(code_string))
-            return False
-
-        try: ret = eval(code_string, self.global_vars, self.global_vars)
-        except Exception, e:
-            print('py_exec: Error execution code `{}`! Exception `{}`!'.format(code_string, e))
-            ret = False
-
-        return ret
 
 # # #
 
@@ -388,6 +351,8 @@ class TwisterRunner:
 
             # The name of the file
             filename = node['file']
+            # If the file is NOT runnable, download it, but don't execute!
+            runnable = node.get('Runnable', 'true')
             # Is this file Prerequisite?
             prerequisite = node.get('Prerequisite')
             # Test-case dependency, if any
@@ -485,6 +450,13 @@ class TwisterRunner:
                 print('<<< END filename: `{}:{}` >>>\n'.format(file_id, filename))
                 continue
 
+            # Ignore NON-runnable files
+            if runnable.lower() != 'true':
+                print('File `{}` is not runnable, so it will not execute.\n'.format(filename))
+                self.proxySetTestStatus(file_id, STATUS_SKIPPED, 0.0) # Status SKIPPED
+                print('<<< END filename: `{}:{}` >>>\n'.format(file_id, filename))
+                continue
+
 
             file_ext = os.path.splitext(filename)[1].lower()
 
@@ -541,18 +513,26 @@ class TwisterRunner:
             # RUN CURRENT TEST!
             try:
                 globs = {
-                    'userName': self.userName,
-                    'epName':   self.epName,
-                    'tbName':   self.tbName,
-                    'suite_id'  : suite_id,
-                    'suite_name': suite_name,
-                    'file_id'   : file_id,
-                    'filename'  : filename,
-                    'proxy'     : self.proxy,
-                    'logMsg'    : self.logMsg,
-                    'getGlobal' : self.getGlobal,
-                    'setGlobal' : self.setGlobal,
-                    'py_exec'   : self.py_exec
+                    'USER'      : self.userName,
+                    'EP'        : self.epName,
+                    'currentTB' : self.tbName,
+                    'SUITE_ID'  : suite_id,
+                    'SUITE_NAME': suite_name,
+                    'FILE_ID'   : file_id,
+                    'FILE_NAME' : filename,
+                    'PROXY'     : self.proxy,
+                    'logMsg'    : self.commonLib.logMsg,
+                    'getGlobal' : self.commonLib.getGlobal,
+                    'setGlobal' : self.commonLib.setGlobal,
+                    'py_exec'   : self.commonLib.py_exec,
+                    'getResource'       : self.commonLib.getResource,
+                    'setResource'       : self.commonLib.setResource,
+                    'renameResource'    : self.commonLib.renameResource,
+                    'deleteResource'    : self.commonLib.deleteResource,
+                    'getResourceStatus' : self.commonLib.getResourceStatus,
+                    'allocResource'     : self.commonLib.allocResource,
+                    'reserveResource'   : self.commonLib.reserveResource,
+                    'freeResource'      : self.commonLib.freeResource,
                 }
                 result = current_runner._eval(str_to_execute, globs, args)
                 result = str(result).upper()

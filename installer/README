@@ -2,27 +2,23 @@
 
 ~~~ ~~~ Running the installer ~~~ ~~~
 
-The installer must run as ROOT, with Python 2.7.
+Requires Python 2.7 and a Linux machine. The installer doesn't run on Windows!
+When installing the server, must run as ROOT! When installing the client, ROOT is optional.
 
-If you are installing the Twister Server, you should be connected to internet,
-or ELSE, before running the installer, you must manually install :
- - Python-DEV and
- - python-mysql.
+When installing Twister for the first time, it is STRONGLY RECOMMENDED to have an internet connection
+and run as ROOT, to allow the setup of all the dependencies.
 
-The Twister Client doesn't have any required dependencies; pExpect is optional.
+Any dependencies that are old, or missing, will be downloaded and installed.
+If all the requirements are met, the client or server files are copied, but nothing is installed.
 
 The installer will guide you through all the steps, in order.
 
 These are the steps :
-1 - Select what you wish to install (client, server, or both)
+1 - Select what you wish to install (client, or server)
 2 - Select the user you want to install for (if there's only 1 user, this step is skipped)
 
-Twister will be installed in the home of the selected user, in the folder `twister`.
-If the folder is already present, you are asked to backup your data in order to continue,
-because everything is DELETED, excepting the `config` folder.
-
-Any dependencies that are old, or missing, will be downloaded and installed.
-If all the requirements are met, the client or server files are copied, but nothing is installed.
+Twister Client will be installed in the home of your user, in the folder `twister`.
+The server will be installed by default in `/opt/twister`.
 
 
 ~~~ Twister Framework dependencies ~~~
@@ -52,6 +48,6 @@ If all the requirements are met, the client or server files are copied, but noth
     - Library for caching and sessions, in web applications and stand-alone Python scripts;
     - Beaker is optional; it is used by Mako, to cache the pages for better performance;
 
-- pExpect : (sourceforge.net/projects/pexpect/)
-    - Spawn child applications, control them, respond to expected patterns in their output;
-    - pExpect is optional; it is used by the Python test cases to connect to FTP/ Telnet;
+- Scapy: (pypi.python.org/pypi/scapy-real/)
+    - Interactive packet manipulation tool;
+    - Scapy, is used by the Execution Process to capture packets and send them to the applet;
