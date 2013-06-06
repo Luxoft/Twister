@@ -1,6 +1,6 @@
 /*
 File: MyParam.java ; This file is part of Twister.
-Version: 2.001
+Version: 2.002
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -56,10 +56,13 @@ class MyParam{
     public String toString(){
         String n = "";
         String v = "";
+        String t = "";
         try{n = name.getNodeValue();
+        } catch(Exception e){}
+        try{t = type.getNodeValue();
         } catch(Exception e){}
         try{v = value.getNodeValue();
         } catch(Exception e){}
-        return n+" : "+v;
+        return n+" : "+v+" : "+t;
     }
 }

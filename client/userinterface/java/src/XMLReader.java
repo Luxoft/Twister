@@ -1,6 +1,6 @@
 /*
 File: XMLReader.java ; This file is part of Twister.
-Version: 2.001
+Version: 2.002
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -123,9 +123,14 @@ public class XMLReader{
                 
                 //temporary solution for CE
                 if(test){
-                   try{fstNmElmntLst = ((Element)node).getElementsByTagName("UserDefined");
-                        int userdefinitions = fstNmElmntLst.getLength();
-                        k=6+(userdefinitions*2);
+                   try{
+                       k=6;
+                       NodeList list = ((Element)node).getChildNodes();
+                       for(int i=0;i<list.getLength();i++){
+                           if(list.item(i).getNodeName().equals("UserDefined")){
+                               k+=2;
+                            }
+                        }
                     } catch(Exception e){
                         e.printStackTrace();
                         k=6;

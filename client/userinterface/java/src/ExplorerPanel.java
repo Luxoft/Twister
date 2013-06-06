@@ -1,6 +1,6 @@
 /*
 File: ExplorerPanel.java ; This file is part of Twister.
-Version: 2.002
+Version: 2.003
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -391,8 +391,7 @@ public class ExplorerPanel extends JPanel {
                     File file2 = copyFileLocaly(remotefilename, localfilename);
                     String execute = Repository.getEditors().get(ID)
                             .getAsString();
-                    System.out.println("Running: " + execute);
-                    executeCommand(execute + " " + localfilename);
+                    executeCommand(execute,localfilename);
                     sendFileToServer(file2, remotefilename);
                     file2.delete();
                 }
@@ -497,8 +496,8 @@ public class ExplorerPanel extends JPanel {
             openEmbeddedEditor(editable, remotefilename, localfilename);
         } else {
             File file2 = copyFileLocaly(remotefilename, localfilename);
-            executeCommand(Repository.getEditors().get(defaulteditor) + " "
-                    + localfilename);
+            executeCommand(Repository.getEditors().get(defaulteditor).toString(),
+                           localfilename);
             sendFileToServer(file2, remotefilename);
             file2.delete();
         }
@@ -531,11 +530,13 @@ public class ExplorerPanel extends JPanel {
     /*
      * executes the command for opening an editor
      */
-    public void executeCommand(String command) {
+    public void executeCommand(String command, String arg) {
         try {
             String line;
+            command = command.replace("\\", "\\\\");
+            arg = arg.replace("\\", "\\\\");
             System.out.println("Executing " + command + " command");
-            Process p = Runtime.getRuntime().exec(command);
+            Process p = Runtime.getRuntime().exec(new String[]{command,arg});
             p.waitFor();
             System.out.println(p.exitValue());
         } catch (Exception err) {
