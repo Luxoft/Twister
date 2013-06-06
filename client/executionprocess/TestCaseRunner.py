@@ -49,6 +49,7 @@ import pickle
 import marshal
 import xmlrpclib
 import tarfile
+import subprocess
 import traceback
 
 from collections import OrderedDict
@@ -213,10 +214,10 @@ class TwisterRunner:
             lib_data = self.proxy.downloadLibrary(self.userName, lib_file)
             time.sleep(0.1) # Must take it slow
             if not lib_data:
-                print('ZIP library `{0}` does not exist!'.format(lib_file))
+                print('ZIP library `{}` does not exist!'.format(lib_file))
                 continue
 
-            print('Downloading Zip library `{0}` ...'.format(lib_file))
+            print('Downloading Zip library `{}` ...'.format(lib_file))
 
             # Write ZIP imports.
             __init.write('\nsys.path.append(os.path.split(__file__)[0] + "/{}")\n\n'.format(lib_file))
@@ -230,10 +231,10 @@ class TwisterRunner:
             lib_data = self.proxy.downloadLibrary(self.userName, lib_file)
             time.sleep(0.1) # Must take it slow
             if not lib_data:
-                print('Library `{0}` does not exist!'.format(lib_file))
+                print('Library `{}` does not exist!'.format(lib_file))
                 continue
 
-            print('Downloading library `{0}` ...'.format(lib_file))
+            print('Downloading library `{}` ...'.format(lib_file))
 
             ext = os.path.splitext(lib_file)
             # Write normal imports.
@@ -259,6 +260,10 @@ class TwisterRunner:
                 with tarfile.open(tgz, 'r:gz') as binary:
                     os.chdir(libs_path)
                     binary.extractall()
+
+        tcr_proc = subprocess.Popen(['chown', self.userName+':'+self.userName, libs_path, '-R'],)
+        tcr_proc.wait()
+        del tcr_proc
 
         __init.close()
 

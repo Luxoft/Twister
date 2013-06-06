@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# version: 2.005
+# version: 2.006
 
 # File: installer.py ; This file is part of Twister.
 
@@ -29,9 +29,14 @@
 Twister Installer
 =================
 
-Requires Python 2.7 and must run as ROOT.
-If you are installing the Twister Server, it is strongly recommended
-to have an internet connection, to allow the installer to setup all the dependencies.
+Requires Python 2.7 and a Linux machine. The installer doesn't run on Windows!
+When installing the server, must run as ROOT! When installing the client, ROOT is optional.
+
+When installing Twister for the first time, it is STRONGLY RECOMMENDED to have an internet connection
+and run as ROOT, to allow the setup of all the dependencies.
+
+Twister Client will be installed in the home of your user, in the folder `twister`.
+The server will be installed by default in `/opt/twister`.
 '''
 
 import os, sys
@@ -50,16 +55,11 @@ if sys.version_info[0] != 2 and sys.version_info[1] != 7:
     print('\nPython version must be 2.7! Exiting!\n')
     exit(1)
 
-if os.getuid() != 0:
-    print('\nTwister installer must run wish SUDO! Exiting!\n')
-    exit(1)
 
 # The proxy is used ONLY if you need a proxy to connect to internet,
 # And `setuptools` is not installed, or some dependencies are missing
 # HTTP_PROXY = 'http://UserName:PassWord@http-proxy:3128'
 HTTP_PROXY = ''
-
-#
 
 __dir__ = os.path.split(__file__)[0]
 if __dir__: os.chdir(__dir__)
@@ -113,16 +113,22 @@ else:
             print('`%s` is not a valid choice! try again!' % selected)
         del selected
 
-if TO_INSTALL == 'client':
+
+if TO_INSTALL == 'server':
+    if os.getuid() != 0:
+        print('\nIn order to install the server, Twister installer must run with SUDO! Exiting!\n')
+        exit(1)
+
+else:
     try:
         user_name = os.getenv('USER')
         if user_name=='root':
             user_name = os.getenv('SUDO_USER')
-        if (not user_name):
-            print('Cannot guess the User Name! Please start this process using SUDO! Exiting!\n')
+        if not user_name:
+            print('Cannot guess the Username! Exiting!\n')
             exit(1)
     except:
-        print('Cannot guess the User Name! Please start this process using SUDO! Exiting!\n')
+        print('Cannot guess the Username! Exiting!\n')
         exit(1)
 
 # --------------------------------------------------------------------------------------------------
@@ -180,6 +186,8 @@ else:
 
     # Twister client path
     INSTALL_PATH = userHome(user_name) + os.sep + 'twister/'
+
+    print('Your Username is `{}`.\n'.format(user_name))
 
     if os.path.exists(INSTALL_PATH):
         print('WARNING! Another version of Twister is installed at `%s`!' % INSTALL_PATH)
@@ -355,8 +363,11 @@ for i in range(len(dependencies)):
     import_name = library_names[i]
 
     try:
+        # Scapy is really special ... the package name is Scapy-real
+        if import_name == 'scapy': import_name = 'scapy-real'
         # The version is ok (try 1) ?
         ver1 = pkg_resources.get_distribution(import_name).version
+        if import_name == 'scapy-real': import_name = 'scapy'
     except:
         ver1 = None
 
@@ -466,7 +477,7 @@ for i in range(len(dependencies)):
             print('\n~~~ Successfully installed `%s` ~~~\n' % lib_name)
 
 if library_err:
-    print('The following libraries could not be installed: `%s`.\n'
+    print('\nThe following libraries could not be installed: `%s`.\n'
           'Twister Framework will not run without them!' % ', '.join(library_err))
 
 
@@ -526,9 +537,11 @@ if TO_INSTALL == 'client':
     except: pass
     try: os.remove(INSTALL_PATH +os.sep+ 'config/services.ini')
     except: pass
+
     # Change owner for install folder...
-    tcr_proc = subprocess.Popen(['chown', user_name+':'+user_name, INSTALL_PATH, '-R'],)
-    tcr_proc.wait()
+    if os.getuid() == 0:
+        tcr_proc = subprocess.Popen(['chown', user_name+':'+user_name, INSTALL_PATH, '-R'],)
+        tcr_proc.wait()
 
 tcr_proc = subprocess.Popen(['chmod', '775', INSTALL_PATH, '-R'],)
 tcr_proc.wait()
