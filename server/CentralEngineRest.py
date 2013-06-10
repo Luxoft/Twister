@@ -1,7 +1,7 @@
 
 # File: CentralEngineRest.py ; This file is part of Twister.
 
-# version: 2.004
+# version: 2.005
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -52,7 +52,7 @@ from common.constants import *
 from common.tsclogging import *
 
 if mako.__version__ < '0.7':
-    logWarning('Warning! Mako-template version is old: `{0}`! Some pages might crash!\n'.format(mako.__version__))
+    logWarning('Warning! Mako-template version is old: `{}`! Some pages might crash!\n'.format(mako.__version__))
 
 
 # # # # #
@@ -86,7 +86,7 @@ def calcCpu():
 
 def prepareLog(log_file, pos=0):
     if not os.path.isfile(log_file):
-        return 'File `{0}` does not exist!'.format(log_file)
+        return 'File `{}` does not exist!'.format(log_file)
     f = open(log_file, 'rb')
     f.seek(pos)
     log = f.read().rstrip()
@@ -171,14 +171,14 @@ class CentralEngineRest:
         if self.user_agent() == 'x':
             return 0
 
-        try: srv_ver = open(TWISTER_PATH + '/server/centralengine/version.txt').read().strip()
+        try: srv_ver = open(TWISTER_PATH + '/server/version.txt').read().strip()
         except: srv_ver = '-'
         ip_port = cherrypy.request.headers['Host']
         machine = platform.uname()[1]
         system  = ' '.join(platform.linux_distribution())
         users   = self.project.listUsers()
 
-        output = Template(filename=TWISTER_PATH + '/server/centralengine/template_main.htm')
+        output = Template(filename=TWISTER_PATH + '/server/template/rest_main.htm')
         return output.render(srv_ver=srv_ver, ip_port=ip_port, machine=machine, system=system, users=users)
 
 
@@ -198,7 +198,7 @@ class CentralEngineRest:
         ep_statuses = [ reversed[eps[ep].get('status', STATUS_INVALID)] for ep in eps ]
         logs = self.project.getUserInfo(user, 'log_types')
 
-        output = Template(filename=TWISTER_PATH + '/server/centralengine/template_user.htm')
+        output = Template(filename=TWISTER_PATH + '/server/template/rest_user.htm')
         return output.render(host=host, user=user, status=status, exec_status=reversed,
                eps_file=eps_file, eps=eps, ep_statuses=ep_statuses, logs=logs)
 
@@ -339,7 +339,7 @@ class CentralEngineRest:
 
     @cherrypy.expose
     def setUserStatus(self, user, status):
-        output = Template(filename=TWISTER_PATH + '/server/centralengine/template_error.htm')
+        output = Template(filename=TWISTER_PATH + '/server/template/rest_error.htm')
         try: status = int(status)
         except: return output.render(title='Error!', body='<b>Status value `{0}` is invalid!</b>'.format(status))
         if status not in execStatus.values():
@@ -353,7 +353,7 @@ class CentralEngineRest:
 
     @cherrypy.expose
     def setEpStatus(self, user, epname, status):
-        output = Template(filename=TWISTER_PATH + '/server/centralengine/template_error.htm')
+        output = Template(filename=TWISTER_PATH + '/server/template/rest_error.htm')
         try: status = int(status)
         except: return output.render(title='Error!', body='<b>Status value `{0}` is invalid!</b>'.format(status))
         if status not in execStatus.values():

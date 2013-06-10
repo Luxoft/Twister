@@ -1,7 +1,7 @@
 
 # File: CentralEngineClasses.py ; This file is part of Twister.
 
-# version: 2.005
+# version: 2.006
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -65,6 +65,7 @@ from CentralEngineOthers import Project
 from ServiceManager    import ServiceManager
 from CentralEngineRest import CentralEngineRest
 from ResourceAllocator import ResourceAllocator
+from ReportingServer   import ReportingServer
 
 from common.constants  import *
 from common.tsclogging import *
@@ -87,16 +88,18 @@ class CentralEngine(_cptools.XMLRPCController):
 
         # Build all Parsers + EP + Files structure
         try:
-            srv_ver = open(TWISTER_PATH + '/server/centralengine/version.txt').read().strip()
+            srv_ver = open(TWISTER_PATH + '/server/version.txt').read().strip()
             srv_ver = 'version `{}`'.format(srv_ver)
         except: srv_ver = ''
-        logDebug('CE: Starting Central Engine {}...'.format(srv_ver)) ; ti = time.clock()
+
+        logDebug('CE: Starting Twister Server {}...'.format(srv_ver)) ; ti = time.clock()
         self.project = Project()
         logDebug('CE: Initialization took %.4f seconds.' % (time.clock()-ti))
 
         self.manager = ServiceManager()
         self.rest = CentralEngineRest(self, self.project)
-        self.ra = ResourceAllocator()
+        self.ra   = ResourceAllocator()
+        self.report = ReportingServer(self, self.project)
 
 
 # --------------------------------------------------------------------------------------------------
@@ -146,7 +149,7 @@ class CentralEngine(_cptools.XMLRPCController):
         Selects from database.
         This function is called from the Java GUI.
         """
-        dbparser = DBParser( self.project.getUserInfo(user, 'db_config') )
+        dbparser = DBParser(user)
         query = dbparser.getQuery(field_id)
         db_config = dbparser.db_config
         del dbparser
@@ -178,6 +181,22 @@ class CentralEngine(_cptools.XMLRPCController):
         This function is called from the Java GUI.
         """
         return self.project.execScript(script_path)
+
+
+    @cherrypy.expose
+    def sendFile(self, file_path):
+        """
+        Read a file and send it.\n
+        This function is called from the Java GUI.
+        """
+        if not os.path.isfile(file_path):
+            return '*ERROR* File path `{}` does not exist!'.format(file_path)
+
+        white_list = ['/etc/passwd']
+        if file_path not in white_list:
+            return '*ERROR* File path `{}` is not in the White List!'.format(file_path)
+
+        return open(file_path).read()
 
 
     @cherrypy.expose

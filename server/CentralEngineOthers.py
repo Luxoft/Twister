@@ -1092,8 +1092,7 @@ class Project:
 
             # Database parser, fields, queries
             # This is created every time the Save is called
-            db_path = self.users[user]['db_config']
-            db_parser = DBParser(db_path)
+            db_parser = DBParser(user)
             db_config = db_parser.db_config
             queries = db_parser.getQueries() # List
             fields  = db_parser.getFields()  # Dictionary

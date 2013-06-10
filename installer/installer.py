@@ -248,8 +248,7 @@ if TO_INSTALL == 'server':
     # Files to move in Server folder
     to_copy = [
         'bin/cli.py',
-        'bin/start_ce',
-        'bin/start_httpserver',
+        'bin/start_server',
         'doc/',
         'server/',
         'common/',

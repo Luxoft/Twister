@@ -1,0 +1,21 @@
+#!/bin/bash
+
+PYTHON=/usr/bin/python
+
+pid=$(ps ax | grep python | grep CentralEngine.py | awk '{print $1}')
+
+if [ -n "$TWISTER_PATH" ]
+then
+    if [ -z "$pid" ]
+    then
+        echo Twister Server is not running.
+    else
+        echo Killing Twister Server, PID $pid ...
+        kill -9 $pid
+    fi
+    echo TWISTER_PATH is set to: "$TWISTER_PATH".
+    nohup $PYTHON -u $TWISTER_PATH/server/CentralEngine.py 8000 > $TWISTER_PATH/ce_log.log &
+    echo "Twister Server is now running in background."
+else
+    echo TWISTER_PATH variable enviroment is not defined! Exiting!
+fi

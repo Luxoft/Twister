@@ -1,7 +1,7 @@
 
 # File: TestCaseRunner.py ; This file is part of Twister.
 
-# version: 2.005
+# version: 2.007
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -444,15 +444,19 @@ class TwisterRunner:
                 continue
 
             elif not str_to_execute:
-                print('TC debug: File `{0}` will be skipped.\n'.format(filename))
+                print('TC debug: File `{}` will be skipped.\n'.format(filename))
                 # Skipped prerequisite are ok, no need to abort.
                 self.proxySetTestStatus(file_id, STATUS_SKIPPED, 0.0) # Status SKIPPED
                 print('<<< END filename: `{}:{}` >>>\n'.format(file_id, filename))
                 continue
 
-            # Ignore NON-runnable files
+            # Don' Run NON-runnable files, but Download them!
             if runnable.lower() != 'true':
-                print('File `{}` is not runnable, so it will not execute.\n'.format(filename))
+                print('File `{}` is not runnable, it will be downloaded, but not executed.\n'.format(filename))
+                fpath = self.EP_CACHE +os.sep+ os.path.split(filename)[1]
+                f = open(fpath, 'wb')
+                f.write(str_to_execute.data)
+                f.close() ; del f
                 self.proxySetTestStatus(file_id, STATUS_SKIPPED, 0.0) # Status SKIPPED
                 print('<<< END filename: `{}:{}` >>>\n'.format(file_id, filename))
                 continue
