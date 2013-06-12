@@ -40,6 +40,7 @@ Test Case Runner has the following roles:
 
 This script should NOT be run manually!
 """
+from __future__ import with_statement
 
 import os
 import sys

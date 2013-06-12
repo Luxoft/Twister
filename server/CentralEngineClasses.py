@@ -33,6 +33,7 @@ The Central Engine and each EP have a status that can be: start/ stop/ paused.\n
 Each test file has a status that can be: pending, working, pass, fail, skip, etc.\n
 All the statuses are defined in "constants.py".\n
 """
+from __future__ import with_statement
 
 import os
 import sys

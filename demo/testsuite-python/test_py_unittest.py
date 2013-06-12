@@ -1,10 +1,22 @@
 
+# version: 2.001
+
 from ce_libs import TwisterTest
 
-
-# How to define a test:
+#
+# <title>Unit Test Library</title>
+# <description>This test is checking the Unit Test.</description>
+#
 
 class Test1(TwisterTest):
+
+    def setUpClass(self):
+        # connect to switch...
+        print 'Preparing general setup...'
+
+    def tearDownClass(self):
+        # connect to switch...
+        print 'Running general teardown...'
 
     def setUp(self):
         # connect to switch...
@@ -13,6 +25,7 @@ class Test1(TwisterTest):
     def tearDown(self):
         # connect to switch...
         print 'Running teardown...'
+
 
     def test1(self):
         # Testing some feature...

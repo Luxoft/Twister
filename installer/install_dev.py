@@ -210,8 +210,7 @@ if TO_INSTALL == 'server':
     # Files to move in Server folder
     to_link = [
         'bin/cli.py',
-        'bin/start_ce',
-        'bin/start_httpserver',
+        'bin/start_server',
         'doc/',
         'server/',
         'common/',
@@ -223,8 +222,7 @@ if TO_INSTALL == 'server':
     ]
 
     to_copy = [
-        'bin/start_ce',
-        'bin/start_httpserver',
+        'bin/start_server',
         'config/resources.json',
         'config/services.ini',
         'config/',
