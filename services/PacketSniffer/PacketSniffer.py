@@ -35,6 +35,7 @@ from thread import start_new_thread, allocate_lock
 from scapy.all import Automaton, ATMT, TCP, bind_layers, Packet, NoPayload, Raw
 
 from PacketSnifferClasses import OpenFlow, CentralEngineObject
+from openflow.of_13.parse import of_message_parse, _of_message_to_object
 
 from sys import maxsize
 from socket import gethostname, gethostbyname, socket, AF_INET, SOCK_DGRAM, inet_ntoa
@@ -150,12 +151,12 @@ class Sniffer(Automaton):
 
 				print 'PT debug: set iface error: no such device'
 
-		self.PAUSED = False
+		self.PAUSED = True
 		self.OFPort = (OFPort, 6633)[OFPort is None]
 
 		# openflow packet model connect
-		bind_layers(TCP, OpenFlow, sport=self.OFPort)
-		bind_layers(TCP, OpenFlow, dport=self.OFPort)
+		#bind_layers(TCP, OpenFlow, sport=self.OFPort)
+		#bind_layers(TCP, OpenFlow, dport=self.OFPort)
 
 		# packet filters
 		self.filters = None
@@ -337,7 +338,6 @@ class ParseData():
 		while not endAll:
 			if self.sniffer:
 				self.ce_status_update()
-
 				try:
 					with packetsLock:
 						self.packet = sniffedPackets.pop(0)
@@ -350,7 +350,7 @@ class ParseData():
 					self.packet = None
 					self.packetHead = None
 
-			sleep(0.4)
+			sleep(0.8)
 		print 'PT debug: data parser thread ended ..'
 
 	def ce_status_update(self):
@@ -515,7 +515,20 @@ class ParseData():
 
 	def send(self):
 		packet_str = str(self.packet)
-		packet = self.packet_to_dict(self.packet)
+
+		try:
+			sourcePort = self.packet.payload.payload.fields['sport']
+			destinationPort = self.packet.payload.payload.fields['dport']
+		except Exception, e:
+			sourcePort = None
+			destinationPort = None
+
+		if self.sniffer.OFPort in [sourcePort, destinationPort]:
+			_packet = _of_message_to_object(str(self.packet.load))
+			packet = {'pkt': _packet.show()}
+		else:
+			packet = self.packet_to_dict(self.packet)
+
 		data = {
 			'sniffer': {
 				'ip': self.sniffer.userip,
