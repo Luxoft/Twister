@@ -32,6 +32,8 @@ All functions from Central Engine are EXPOSED and can be accesed via XML-RPC.\n
 The Central Engine and each EP have a status that can be: start/ stop/ paused.\n
 Each test file has a status that can be: pending, working, pass, fail, skip, etc.\n
 All the statuses are defined in "constants.py".\n
+Central Engine role is to send files and libraries to User EPs, collect statistics and logs from
+each file executed, send e-mail and save to database after each Project execution, run plug-ins.
 """
 from __future__ import with_statement
 

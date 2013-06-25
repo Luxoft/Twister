@@ -133,8 +133,17 @@
 	<div class="hero-unit">
 		<h2>Twister reporting</h2><br><br>
 		<div class="alert alert-info">
+			% if usr[0] != '#':
 			<h3 class="alert-heading">Welcome <i>${usr}</i> !</h3><br>
-			Please choose a report from the left.
+			<p><i class="icon-arrow-left" style="margin-top:3px"></i> Please choose a report from the left.</p>
+			% else:
+			<h4>Please select a user:</h4><br>
+			<p>
+				% for user in [x for x in usr.split('#') if x]:
+				<a href="/report/index/${user}"><i class="icon-user" style="margin-top:4px"></i> ${user}</a><br>
+				% endfor
+			</p>
+			% endif
 		</div>
 	</div>
 

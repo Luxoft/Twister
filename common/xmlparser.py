@@ -77,20 +77,19 @@ def checkUsers():
 #
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# # # TSC
+# # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 
 class TSCParser:
     """
     Requirements: LXML.
-    This parser is specific for TSC project.
-    It returns information like:
-    - Test Suite (Test Plan) Config File
+    This parser reads all client configuration files and returns information like:
+    - Test Suite config File
     - Logs Path
     - Reports Path
     - EPs list, active EPs
-    - Test files for specific EP
+    - E-mail and Globals config
     """
 
     def __init__(self, user, base_config='', files_config=''):

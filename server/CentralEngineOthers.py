@@ -35,6 +35,10 @@ Information about *users*:
 
 - user name
 - user status (start, stop, pause)
+- paths to logs and config files
+- paths to script pre and script post
+- parameters for this project like: libraries, tc delay, DB AutoSave
+- global params for current user
 
 Information about *EPs*:
 
@@ -47,6 +51,8 @@ Information about *Suites*:
 
 - suite name
 - other info from Test-Suites.XML (eg: release, or build)
+- test bed name
+- panic detect
 
 Information about *Test Files*:
 
