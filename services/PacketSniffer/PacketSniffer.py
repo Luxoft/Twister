@@ -48,7 +48,7 @@ from array import array
 
 packetsLock = allocate_lock()
 
-sniffedPackets = []
+sniffedPackets = list()
 endAll = False
 RESTART = False
 IFACE = None
@@ -275,6 +275,7 @@ class Sniffer(Automaton):
 	# RECEIVED
 	@ATMT.state()
 	def RECEIVING(self, packet):
+		global sniffedPackets
 		try:
 			with packetsLock:
 				if packet not in sniffedPackets:
@@ -327,6 +328,8 @@ class ParseData():
 		self.sniffer = sniffer
 		self.packet = None
 		self.packetHead = None
+		self.packetsToParse = list()
+		self.packetsToSend = list()
 
 	def run(self):
 		if not self.sniffer:
@@ -335,15 +338,25 @@ class ParseData():
 		print 'PT debug: data parser ready ..'
 
 		global endAll
+		global sniffedPackets
 		while not endAll:
 			if self.sniffer:
 				self.ce_status_update()
 				try:
 					with packetsLock:
-						self.packet = sniffedPackets.pop(0)
-					self.packetHead = self.packet_parse()
+						self.packetsToParse = list(sniffedPackets)
+						del sniffedPackets[:]
 
-					if self.filter():
+					for packet in self.packetsToParse:
+						self.packet = packet
+						self.packetHead = self.packet_parse()
+
+						if self.filter():
+							self.packetsToSend.append({'packetHead': self.packetHead,
+														'packet': self.packet})
+					del self.packetsToParse[:]
+
+					if self.packetsToSend:
 						self.send()
 				except Exception, e:
 					#print 'no packets in list'
@@ -514,46 +527,54 @@ class ParseData():
 			return packet
 
 	def send(self):
-		packet_str = str(self.packet)
+		packetListToSend = list()
+		for _pkt in self.packetsToSend:
+			self.packet = _pkt['packet']
+			self.packetHead = _pkt['packetHead']
 
-		try:
-			sourcePort = self.packet.payload.payload.fields['sport']
-			destinationPort = self.packet.payload.payload.fields['dport']
-		except Exception, e:
-			sourcePort = None
-			destinationPort = None
+			packet_str = str(self.packet)
 
-		if self.sniffer.OFPort in [sourcePort, destinationPort]:
-			_packet = _of_message_to_object(str(self.packet.load))
-			packet = {'pkt': _packet.show()}
-		else:
-			packet = self.packet_to_dict(self.packet)
+			try:
+				sourcePort = self.packet.payload.payload.fields['sport']
+				destinationPort = self.packet.payload.payload.fields['dport']
+			except Exception, e:
+				sourcePort = None
+				destinationPort = None
 
-		data = {
-			'sniffer': {
-				'ip': self.sniffer.userip,
-				'hostname': self.sniffer.userhost,
-				'username': self.sniffer.username,
-			},
-			'packet_head': self.packetHead,
-			'packet': packet,
-			'packet_str': packet_str,
-		}
-		data['packet_head'].update([('id', str(time())), ])
-		data = b2a_base64(str(data))
+			if self.sniffer.OFPort in [sourcePort, destinationPort]:
+				_packet = _of_message_to_object(str(self.packet.load))
+				packet = {'pkt': _packet.show()}
+			else:
+				packet = self.packet_to_dict(self.packet)
+
+			data = {
+				'sniffer': {
+					'ip': self.sniffer.userip,
+					'hostname': self.sniffer.userhost,
+					'username': self.sniffer.username,
+				},
+				'packet_head': self.packetHead,
+				'packet': packet,
+				'packet_str': packet_str,
+			}
+			data['packet_head'].update([('id', str(time())), ])
+			data = b2a_base64(str(data))
+			packetListToSend.append(data)
+		del self.packetsToSend[:]
+		packetListToSend = b2a_base64(str(packetListToSend))
 
 		# push packet to central engines
 		try:
 			for ce in self.sniffer.ceObjects:
 				response = ce.proxy.runPlugin(self.sniffer.username,
 										'PacketSnifferPlugin',
-										{'command': 'pushpkt', 'data': data})
+										{'command': 'pushpkt', 'data': packetListToSend})
 				if not response['status']['success']:
 					self.ce_status_update()
 
 					response = ce.proxy.runPlugin(self.sniffer.username,
 										'PacketSnifferPlugin',
-										{'command': 'pushpkt', 'data': data})
+										{'command': 'pushpkt', 'data': packetListToSend})
 					if not response['status']['success']:
 						print 'PT debug: [SENDING] response: {r}'.format(r=response)
 		except Exception, e:
