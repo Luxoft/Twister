@@ -26,17 +26,15 @@
 
 """
 Test Case Runner has the following roles:
- - Connects to CE to receive the libs and files that must be executed on this station.
- - Takes the statuses from last run to see if the last run was killed by timeout,
-    and if it was, it must skip the files that were already executed.
- - It reads the START/ STOP/ PAUSE/ RESUME status and if it's PAUSE, it waits for RESUME.
- - It checks for current file dependencies, if there are any, it waits for the dependency to be executed.
- - It skips the files that have status SKIP.
- - It downloads the files that must be executed, directly from CE.
- - It executes test files, counting the execution time. If the file takes too long, the Runner exits
-    and will be restarted by EP. If the execution is successful, it sends the status and the time to CE.
- - The files that must be executed can be in many formats, ex: Python, Perl, TCL, the Runner detects
-    them by extension.
+ - connects to CE to receive the libs and files that must be executed on this station.
+ - reads the START/ STOP/ PAUSE/ RESUME status and if it's PAUSE, it waits for RESUME.
+ - checks for current file dependencies, if there are any, it waits for the dependency to be executed.
+ - skips the files that have status SKIP;
+ - downloads the files that are not Runnable, without executing them;
+ - downloads and executes the files that must be executed;
+ - executes test files, counting the execution time and sends the status and time to CE;
+ - the files that must be executed can be in many formats, ex: Python, Perl, TCL and Java;
+   the Runner detects them by extension.
 
 This script should NOT be run manually!
 """
@@ -277,13 +275,6 @@ class TwisterRunner:
 
 # # #
 
-    def Rindex(self, l, val):
-        """ Find element in list from the end """
-        for i, j in enumerate(reversed(l)):
-            if j == val: return len(l) - i - 1
-        return -1
-
-
     def run(self):
         """
         Cycle in all files, run each file, in order.
@@ -330,7 +321,7 @@ class TwisterRunner:
                 # Get list of libraries for current suite
                 libList = node['libraries']
                 if libList:
-                    saveLibraries(libList)
+                    self.saveLibraries(libList)
                     print('')
 
                 # The end of the suite
@@ -569,6 +560,10 @@ class TwisterRunner:
 
                 # Send crash detected = True
                 self.proxy.setFileVariable(self.userName, self.epName, file_id, 'twister_tc_crash_detected', 1)
+                # Stop counting time. END OF TEST!
+                timer_f = time.time() - timer_i
+                end_time = time.strftime('%Y-%m-%d %H:%M:%S')
+                print('Test statistics: Start time {} -- End time {} -- {:0.2f} sec.\n'.format(start_time, end_time, timer_f))
                 print('<<< END filename: `{}:{}` >>>\n'.format(file_id, filename))
                 continue
 

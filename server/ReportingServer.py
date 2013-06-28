@@ -1,7 +1,7 @@
 
 # File: ReportingServer.py ; This file is part of Twister.
 
-# version: 2.002
+# version: 2.003
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -25,6 +25,8 @@
 
 """
 This file contains the Reporting Server.
+It is used to view the results of the test executions.
+The reports can be fully customized, by editing the DB.xml file.
 """
 
 import os
@@ -99,9 +101,13 @@ class ReportingServer:
     # Report link 1
     @cherrypy.expose
     def index(self, usr=''):
-        if not usr: return '<br><b>Error! This link should be accessed by passing a username, eg: /index/some_user<b/>'
 
         users = self.project.listUsers()
+
+        if not usr:
+            output = Template(filename=TWISTER_PATH + '/server/template/rep_base.htm')
+            return output.render(title='Users', usr='#' + '#'.join(users), links=[])
+
         if usr not in users: return '<br><b>Error! Username `%s` doesn\'t have a Twister config folder!</b>' % usr
 
         self.load_config(usr) # Re-load all Database XML

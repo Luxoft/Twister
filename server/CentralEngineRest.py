@@ -25,10 +25,12 @@
 # limitations under the License.
 
 """
-Central Engine REST functions
-*****************************
+Central Engine REST
+*******************
 
-All functions are exposed and can be accessed using the browser.
+All functions are exposed and can be accessed using the browser.\n
+It is used mostly for debugging. Its role is to view statistics,
+logs and the connected users. A user can also start and stop the EPs.
 """
 
 import os, sys

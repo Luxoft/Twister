@@ -25,7 +25,7 @@
 # limitations under the License.
 
 '''
-This module contains Setup, Teardown controls and Step.
+This module contains Setup, Teardown controls.
 All functions that begin with "test" will be executed automatically,
 in alphabetic order.
 Twister Test implements the same methods as Python Unit Test.
