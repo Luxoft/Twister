@@ -35,7 +35,11 @@ from thread import start_new_thread, allocate_lock
 from scapy.all import Automaton, ATMT, TCP, bind_layers, Packet, NoPayload, Raw
 
 from PacketSnifferClasses import OpenFlow, CentralEngineObject
-from openflow.of_13.parse import of_message_parse, _of_message_to_object
+try:
+	from openflow.of_13.parse import of_message_parse
+except Exception as e:
+	of_message_parse = None
+	print('WARNING: openflow lib not found')
 
 from sys import maxsize
 from socket import gethostname, gethostbyname, socket, AF_INET, SOCK_DGRAM, inet_ntoa
@@ -541,8 +545,8 @@ class ParseData():
 				sourcePort = None
 				destinationPort = None
 
-			if self.sniffer.OFPort in [sourcePort, destinationPort]:
-				_packet = _of_message_to_object(str(self.packet.load))
+			if self.sniffer.OFPort in [sourcePort, destinationPort] and of_message_parse:
+				_packet = of_message_parse(str(self.packet.load))
 				packet = {'pkt': _packet.show()}
 			else:
 				packet = self.packet_to_dict(self.packet)

@@ -45,6 +45,7 @@ import socket
 import threading
 import subprocess
 import platform
+import tarfile
 
 TWISTER_PATH = os.getenv('TWISTER_PATH')
 if not TWISTER_PATH:
@@ -104,6 +105,25 @@ def packetSnifferStatus(ce):
 
         if result == 'running':
             if os.getuid() == 0:
+                # download openflow library
+                openflowLib = ce.downloadLibrary(userName, 'openflow')
+                time.sleep(0.2)
+                if not openflowLib:
+                    print('ZIP library openflow does not exist!')
+                else:
+                    print('Downloading Zip library openflow ...')
+
+                    openflowPath = os.path.join(TWISTER_PATH, 'services/PacketSniffer/')
+                    with open(os.path.join(openflowPath, 'openflow.tar.gz'), 'wb') as f:
+                        f.write(openflowLib.data)
+
+                    with tarfile.open(os.path.join(openflowPath, 'openflow.tar.gz'), 'r:gz') as binary:
+                        os.chdir(openflowPath)
+                        binary.extractall()
+
+                    os.remove(os.path.join(openflowPath, 'openflow.tar.gz'))
+
+                # start sniffer
                 scriptPath =  os.path.join(TWISTER_PATH, 'bin/start_packet_sniffer.py')
                 command = ['sudo', 'python', scriptPath, '-u', userName,
                             '-i', str(sniffer), '-t', TWISTER_PATH]
