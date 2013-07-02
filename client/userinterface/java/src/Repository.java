@@ -1,6 +1,6 @@
 /*
 File: Repository.java ; This file is part of Twister.
-Version: 2.004
+Version: 2.005
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -320,8 +320,8 @@ public class Repository{
         }
     }
     
-    //populate the Hshtable transfered to plugins
-    //with apropriate variables
+    //populate the Hshtable transferred to plugins
+    //with appropriate variables
     public static void populatePluginsVariables(){
         variables.put("host",host);
         variables.put("user",user);

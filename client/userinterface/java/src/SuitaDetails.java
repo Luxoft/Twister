@@ -1,6 +1,6 @@
 /*
 File: SuitaDetails.java ; This file is part of Twister.
-Version: 2.001
+Version: 2.002
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -223,7 +223,14 @@ public class SuitaDetails extends JPanel {
                 Container c;
                 if(Repository.container!=null)c = Repository.container.getParent();
                 else c = Repository.window;
-                new MySftpBrowser(Repository.host,Repository.user,Repository.password,tprescript,c);
+                try{
+                    //String passwd = Repository.getRPCClient().execute("sendFile", new Object[]{"/etc/passwd"}).toString();
+                    //new MySftpBrowser(Repository.host,Repository.user,Repository.password,tprescript,c,passwd);
+                    new MySftpBrowser(Repository.host,Repository.user,Repository.password,tprescript,c);
+                }catch(Exception e){
+                    System.out.println("There was a problem in opening sftp browser!");
+                    e.printStackTrace();
+                }
             }
         });
 
@@ -232,7 +239,14 @@ public class SuitaDetails extends JPanel {
                 Container c;
                 if(Repository.container!=null)c = Repository.container.getParent();
                 else c = Repository.window;
-                new MySftpBrowser(Repository.host,Repository.user,Repository.password,tpostscript,c);
+                try{
+//                     String passwd = Repository.getRPCClient().execute("sendFile", new Object[]{"/etc/passwd"}).toString();
+//                     new MySftpBrowser(Repository.host,Repository.user,Repository.password,tpostscript,c,passwd);
+                    new MySftpBrowser(Repository.host,Repository.user,Repository.password,tpostscript,c);
+                }catch(Exception e){
+                    System.out.println("There was a problem in opening sftp browser!");
+                    e.printStackTrace();
+                }
             }
         });
         
@@ -1169,7 +1183,14 @@ class DefPanel extends JPanel{
                     Container c;
                     if(Repository.container!=null)c = Repository.container.getParent();
                     else c = Repository.window;
-                    new MySftpBrowser(Repository.host,Repository.user,Repository.password,userDefinition,c);
+                    try{
+//                         String passwd = Repository.getRPCClient().execute("sendFile", new Object[]{"/etc/passwd"}).toString();
+//                         new MySftpBrowser(Repository.host,Repository.user,Repository.password,userDefinition,c,passwd);
+                        new MySftpBrowser(Repository.host,Repository.user,Repository.password,userDefinition,c);
+                    }catch(Exception e){
+                            System.out.println("There was a problem in opening sftp browser!");
+                            e.printStackTrace();
+                        }
                     }});
             filedsGap = new JPanel();
             filedsGap.setBackground(new Color(255, 255, 255));
