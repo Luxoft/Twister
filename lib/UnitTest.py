@@ -1,7 +1,7 @@
 
 # File: UnitTest.py ; This file is part of Twister.
 
-# version: 2.002
+# version: 2.003
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -25,7 +25,7 @@
 # limitations under the License.
 
 '''
-This module contains Setup, Teardown controls and Step.
+This module contains Setup, Teardown controls.
 All functions that begin with "test" will be executed automatically,
 in alphabetic order.
 Twister Test implements the same methods as Python Unit Test.
@@ -63,6 +63,12 @@ class TwisterTest:
         for t in tests:
             yield t
 
+
+    def setUpClass(self):
+        pass
+
+    def tearDownClass(self):
+        pass
 
     def setUp(self):
         pass
@@ -119,18 +125,27 @@ class TwisterTest:
             msg = msg or 'unexpectedly identical: {}'.format(safe_repr(expr1))
             raise AssertionError(msg)
 
+    def fail(self, msg=None):
+        """Fail immediately, with the given message."""
+        raise AssertionError(msg)
+
 
     def run(self):
         try:
-            self.setUp()
+            self.setUpClass()
         except Exception, e:
-            print('SetUp function crashed with exception: `{}`.'.format(e))
+            print('SetUpClass function crashed with exception: `{}` !'.format(e))
             return -1
 
         failed = False
         tests = self.__find_tests()
 
         for test in tests:
+            try:
+                self.setUp()
+            except Exception, e:
+                print('SetUp function crashed with exception: `{}` !'.format(e))
+
             func = getattr(self, test)
             try:
                 func()
@@ -141,10 +156,15 @@ class TwisterTest:
                 print('Test `{}` crashed with exception: `{}`.'.format(test, e))
                 failed = True
 
+            try:
+                self.tearDown()
+            except Exception, e:
+                print('TearDown function crashed with exception: `{}` !'.format(e))
+
         try:
-            self.tearDown()
+            self.tearDownClass()
         except Exception, e:
-            print('TearDown function crashed with exception: `{}`.'.format(e))
+            print('TearDownClass function crashed with exception: `{}` !'.format(e))
             return -1
 
         if not failed:

@@ -1,7 +1,7 @@
 
 # File: xmlparser.py ; This file is part of Twister.
 
-# version: 2.005
+# version: 2.006
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -28,6 +28,7 @@ import os
 import sys
 import time
 import hashlib
+import subprocess
 
 from collections import OrderedDict
 
@@ -52,15 +53,9 @@ __all__ = ['TSCParser', 'DBParser', 'PluginParser', 'userHome', 'checkUsers']
 
 def userHome(user):
     """
-    Find the home folder for the given user, using /etc/passwd file.\n
-    This function is run from a ROOT user.
+    Find the home folder for the given user.
     """
-    user = str(user)
-    lines = open('/etc/passwd').readlines()
-    user_line = [line for line in lines if line.startswith(user + ':')]
-    if not user_line: return '/home/' + user
-    user_line = user_line[0].split(':')
-    return user_line[-2]
+    return subprocess.check_output('echo ~' + user, shell=True).strip()
 
 def checkUsers():
     """
@@ -77,20 +72,19 @@ def checkUsers():
 #
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# # # TSC
+# # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 
 class TSCParser:
     """
     Requirements: LXML.
-    This parser is specific for TSC project.
-    It returns information like:
-    - Test Suite (Test Plan) Config File
+    This parser reads all client configuration files and returns information like:
+    - Test Suite config File
     - Logs Path
     - Reports Path
     - EPs list, active EPs
-    - Test files for specific EP
+    - E-mail and Globals config
     """
 
     def __init__(self, user, base_config='', files_config=''):
@@ -738,9 +732,20 @@ class DBParser():
     This parser will read DB.xml.
     """
 
-    def __init__(self, config_data):
+    def __init__(self, user):
 
-        self.config_data = config_data
+        user_home = userHome(user)
+
+        if not os.path.exists('{}/twister'.format(user_home)):
+            raise Exception('Db Parser ERROR: Cannot find Twister for user `{}`, '\
+                             'in path `{}/twister`!'.format(user, user_home))
+
+        fmw_path = '{}/twister/config/fwmconfig.xml'.format(user_home)
+        s = open(fmw_path).read()
+        a = s.find('<DbConfigFile>') + len('<DbConfigFile>')
+        b = s.find('</DbConfigFile>')
+
+        self.config_data = s[a:b]
         self.configHash = None
         self.db_config = {}
         self.updateConfig()
@@ -754,16 +759,16 @@ class DBParser():
 
         if self.configHash != newConfigHash:
             self.configHash = newConfigHash
-            # print('DBParser: Database XML file changed, rebuilding internal structure...\n')
+            # print('Db Parser: Database XML file changed, rebuilding internal structure...\n')
 
             if os.path.isfile(config_data):
                 try: self.xmlDict = etree.fromstring(open(config_data).read())
-                except: raise Exception('DBParser: Cannot parse DB config file!')
+                except: raise Exception('Db Parser: Cannot parse DB config file!')
             elif config_data and type(config_data)==type('') or type(config_data)==type(u''):
                 try: self.xmlDict = etree.fromstring(config_data)
-                except: raise Exception('DBParser: Cannot parse DB config file!')
+                except: raise Exception('Db Parser: Cannot parse DB config file!')
             else:
-                raise Exception('DBParser: Invalid config data type: `%s`!' % type(config_data))
+                raise Exception('Db Parser: Invalid config data type: `%s`!' % type(config_data))
 
             if self.xmlDict.xpath('db_config/server/text()'):
                 self.db_config['server']    = self.xmlDict.xpath('db_config/server')[0].text
@@ -784,7 +789,7 @@ class DBParser():
         Returns a dictionary with field ID : DB select.
         """
         if not self.xmlDict.xpath('insert_section/field'):
-            print('DBParser: There are no fields in the field_section, in DB config!')
+            print('Db Parser: There are no fields in the field_section, in DB config!')
             return {}
 
         ids = self.xmlDict.xpath('insert_section/field[@Type="DbSelect"]/@ID')
@@ -799,7 +804,7 @@ class DBParser():
         Returns a list with field IDs.
         """
         if not self.xmlDict.xpath('insert_section/field'):
-            print('DBParser: There are no fields in the field_section, in DB config!')
+            print('Db Parser: There are no fields in the field_section, in DB config!')
             return {}
 
         scripts = self.xmlDict.xpath('insert_section/field[@Type="UserScript"]/@ID')
@@ -811,7 +816,7 @@ class DBParser():
         """ Used by Central Engine. """
         res =  self.xmlDict.xpath('insert_section/field[@ID="%s"]' % field_id)
         if not res:
-            print('DBParser: Cannot find field ID `%s`!' % field_id)
+            print('Db Parser: Cannot find field ID `%s`!' % field_id)
             return False
 
         query = res[0].get('SQLQuery')
@@ -833,7 +838,7 @@ class DBParser():
         fields = self.xmlDict.xpath('reports_section/field')
 
         if not fields:
-            print('DBParser: Cannot load the reports fields section!')
+            print('Db Parser: Cannot load the reports fields section!')
             return {}
 
         res = OrderedDict()
@@ -856,7 +861,7 @@ class DBParser():
         reports = self.xmlDict.xpath('reports_section/report')
 
         if not reports:
-            print('DBParser: Cannot load the database reports section!')
+            print('Db Parser: Cannot load the database reports section!')
             return {}
 
         res = OrderedDict()
@@ -881,7 +886,7 @@ class DBParser():
         redirects = self.xmlDict.xpath('reports_section/redirect')
 
         if not redirects:
-            print('DBParser: Cannot load the database redirects section!')
+            print('Db Parser: Cannot load the database redirects section!')
             return {}
 
         res = OrderedDict()
@@ -910,14 +915,14 @@ class PluginParser:
 
         user_home = userHome(user)
 
-        if not os.path.exists('{0}/twister'.format(user_home)):
-            raise Exception('PluginParser ERROR: Cannot find Twister for user `{0}`, '\
-                'in path `{1}/twister`!'.format(user, user_home))
+        if not os.path.exists('{}/twister'.format(user_home)):
+            raise Exception('PluginParser ERROR: Cannot find Twister for user `{}`, '\
+                'in path `{}/twister`!'.format(user, user_home))
 
-        config_data = '{0}/twister/config/plugins.xml'.format(user_home)
+        config_data = '{}/twister/config/plugins.xml'.format(user_home)
         if not os.path.exists(config_data):
-            raise Exception('PluginParser ERROR: Cannot find Plugins for user `{0}`, '\
-                'in path `{1}/twister/config`!'.format(user, user_home))
+            raise Exception('PluginParser ERROR: Cannot find Plugins for user `{}`, '\
+                'in path `{}/twister/config`!'.format(user, user_home))
 
         self.config_data = config_data
         self.configHash = None

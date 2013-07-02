@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 
-# version: 2.001
+# version: 2.002
 
 # File: CentralEngine.py ; This file is part of Twister.
 
-# Copyright (C) 2012 , Luxoft
+# Copyright (C) 2012-2013 , Luxoft
 
 # Authors:
 #    Andrei Costachi <acostachi@luxoft.com>
@@ -25,10 +25,7 @@
 # limitations under the License.
 
 """
-This file contains configurations for Central Engine:
-  - Base path
-  - Config path
-If the file is executed with Python, it will start the Engine.
+This file starts the Twister Server.
 """
 
 import os
@@ -42,42 +39,51 @@ if not TWISTER_PATH:
 sys.path.append(TWISTER_PATH)
 
 from common.tsclogging import *
-from server.centralengine.CentralEngineClasses import CentralEngine
+from server.CentralEngineClasses import CentralEngine
 
 #
 
 if __name__ == "__main__":
 
     if os.getuid() != 0:
-        logWarning('Central Engine should run as ROOT! If it doesn\'t, '
+        logWarning('Twister Server should run as ROOT! If it doesn\'t, '
                    'it won\'t be able to read config files and write logs for all users!')
 
     serverPort = sys.argv[1:2]
 
     if not serverPort:
-        logCritical('CE: Must start with parameter PORT number!')
+        logCritical('Twister Server: Must start with parameter PORT number!')
         exit(1)
     else:
         try:
             serverPort = int(serverPort[0])
         except:
-            logCritical('CE: Must start with parameter PORT number!')
+            logCritical('Twister Server: Must start with parameter PORT number!')
             exit(1)
 
     # Root path
     root = CentralEngine()
 
+    # Users
+    # users = {'user': 'password'}
+    # checkpassword = cherrypy.lib.auth_basic.checkpassword_dict(users)
+
     # Config
     conf = {'global': {
             'server.socket_host': '0.0.0.0',
             'server.socket_port': serverPort,
-            'server.thread_pool': 30,
+            'server.thread_pool': 90,
             'engine.autoreload.on': False,
+            # 'tools.sessions.on': True,
+            # 'tools.sessions.timeout': 60,
+            # 'tools.auth_basic.on': True,
+            # 'tools.auth_basic.realm': 'Twister Server',
+            # 'tools.auth_basic.checkpassword': checkpassword,
             'log.screen': False,
             },
             '/static': {
             'tools.staticdir.on': True,
-            'tools.staticdir.dir': TWISTER_PATH + '/server/httpserver/static',
+            'tools.staticdir.dir': TWISTER_PATH + '/server/static',
             },
         }
 

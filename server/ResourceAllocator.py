@@ -25,10 +25,11 @@
 # limitations under the License.
 
 """
-Resource Allocator functions
-****************************
+Resource Allocator
+******************
 
-All functions are exposed and can be accessed using the browser.
+All functions are exposed and can be accessed using XML-RPC, or the browser.\n
+Its role is to manage nodes that represent test-beds and real devices.
 """
 
 import os, sys

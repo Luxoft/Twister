@@ -48,6 +48,10 @@ The server will be installed by default in `/opt/twister`.
     - Library for caching and sessions, in web applications and stand-alone Python scripts;
     - Beaker is optional; it is used by Mako, to cache the pages for better performance;
 
-- Scapy: (pypi.python.org/pypi/scapy-real/)
+- Scapy : (pypi.python.org/pypi/scapy-real/)
     - Interactive packet manipulation tool;
     - Scapy, is used by the Execution Process to capture packets and send them to the applet;
+
+- Paramiko : (github.com/paramiko/paramiko/)
+    - Native Python SSHv2 protocol library;
+    - Paramiko is optional; it is used by the Twister SSH Lib to connect to remote machines;

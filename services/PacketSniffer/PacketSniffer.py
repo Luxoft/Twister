@@ -35,6 +35,11 @@ from thread import start_new_thread, allocate_lock
 from scapy.all import Automaton, ATMT, TCP, bind_layers, Packet, NoPayload, Raw
 
 from PacketSnifferClasses import OpenFlow, CentralEngineObject
+try:
+	from openflow.of_13.parse import of_message_parse
+except Exception as e:
+	of_message_parse = None
+	print('WARNING: openflow lib not found')
 
 from sys import maxsize
 from socket import gethostname, gethostbyname, socket, AF_INET, SOCK_DGRAM, inet_ntoa
@@ -47,7 +52,7 @@ from array import array
 
 packetsLock = allocate_lock()
 
-sniffedPackets = []
+sniffedPackets = list()
 endAll = False
 RESTART = False
 IFACE = None
@@ -150,12 +155,12 @@ class Sniffer(Automaton):
 
 				print 'PT debug: set iface error: no such device'
 
-		self.PAUSED = False
+		self.PAUSED = True
 		self.OFPort = (OFPort, 6633)[OFPort is None]
 
 		# openflow packet model connect
-		bind_layers(TCP, OpenFlow, sport=self.OFPort)
-		bind_layers(TCP, OpenFlow, dport=self.OFPort)
+		#bind_layers(TCP, OpenFlow, sport=self.OFPort)
+		#bind_layers(TCP, OpenFlow, dport=self.OFPort)
 
 		# packet filters
 		self.filters = None
@@ -274,6 +279,7 @@ class Sniffer(Automaton):
 	# RECEIVED
 	@ATMT.state()
 	def RECEIVING(self, packet):
+		global sniffedPackets
 		try:
 			with packetsLock:
 				if packet not in sniffedPackets:
@@ -326,6 +332,8 @@ class ParseData():
 		self.sniffer = sniffer
 		self.packet = None
 		self.packetHead = None
+		self.packetsToParse = list()
+		self.packetsToSend = list()
 
 	def run(self):
 		if not self.sniffer:
@@ -334,23 +342,32 @@ class ParseData():
 		print 'PT debug: data parser ready ..'
 
 		global endAll
+		global sniffedPackets
 		while not endAll:
 			if self.sniffer:
 				self.ce_status_update()
-
 				try:
 					with packetsLock:
-						self.packet = sniffedPackets.pop(0)
-					self.packetHead = self.packet_parse()
+						self.packetsToParse = list(sniffedPackets)
+						del sniffedPackets[:]
 
-					if self.filter():
+					for packet in self.packetsToParse:
+						self.packet = packet
+						self.packetHead = self.packet_parse()
+
+						if self.filter():
+							self.packetsToSend.append({'packetHead': self.packetHead,
+														'packet': self.packet})
+					del self.packetsToParse[:]
+
+					if self.packetsToSend:
 						self.send()
 				except Exception, e:
 					#print 'no packets in list'
 					self.packet = None
 					self.packetHead = None
 
-			sleep(0.4)
+			sleep(0.8)
 		print 'PT debug: data parser thread ended ..'
 
 	def ce_status_update(self):
@@ -514,33 +531,54 @@ class ParseData():
 			return packet
 
 	def send(self):
-		packet_str = str(self.packet)
-		packet = self.packet_to_dict(self.packet)
-		data = {
-			'sniffer': {
-				'ip': self.sniffer.userip,
-				'hostname': self.sniffer.userhost,
-				'username': self.sniffer.username,
-			},
-			'packet_head': self.packetHead,
-			'packet': packet,
-			'packet_str': packet_str,
-		}
-		data['packet_head'].update([('id', str(time())), ])
-		data = b2a_base64(str(data))
+		packetListToSend = list()
+		for _pkt in self.packetsToSend:
+			self.packet = _pkt['packet']
+			self.packetHead = _pkt['packetHead']
+
+			packet_str = str(self.packet)
+
+			try:
+				sourcePort = self.packet.payload.payload.fields['sport']
+				destinationPort = self.packet.payload.payload.fields['dport']
+			except Exception, e:
+				sourcePort = None
+				destinationPort = None
+
+			if self.sniffer.OFPort in [sourcePort, destinationPort] and of_message_parse:
+				_packet = of_message_parse(str(self.packet.load))
+				packet = {'pkt': _packet.show()}
+			else:
+				packet = self.packet_to_dict(self.packet)
+
+			data = {
+				'sniffer': {
+					'ip': self.sniffer.userip,
+					'hostname': self.sniffer.userhost,
+					'username': self.sniffer.username,
+				},
+				'packet_head': self.packetHead,
+				'packet': packet,
+				'packet_str': packet_str,
+			}
+			data['packet_head'].update([('id', str(time())), ])
+			data = b2a_base64(str(data))
+			packetListToSend.append(data)
+		del self.packetsToSend[:]
+		packetListToSend = b2a_base64(str(packetListToSend))
 
 		# push packet to central engines
 		try:
 			for ce in self.sniffer.ceObjects:
 				response = ce.proxy.runPlugin(self.sniffer.username,
 										'PacketSnifferPlugin',
-										{'command': 'pushpkt', 'data': data})
+										{'command': 'pushpkt', 'data': packetListToSend})
 				if not response['status']['success']:
 					self.ce_status_update()
 
 					response = ce.proxy.runPlugin(self.sniffer.username,
 										'PacketSnifferPlugin',
-										{'command': 'pushpkt', 'data': data})
+										{'command': 'pushpkt', 'data': packetListToSend})
 					if not response['status']['success']:
 						print 'PT debug: [SENDING] response: {r}'.format(r=response)
 		except Exception, e:

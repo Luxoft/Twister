@@ -1,7 +1,7 @@
 
 # File: TestCaseRunnerClasses.py ; This file is part of Twister.
 
-# version: 2.002
+# version: 2.003
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -74,6 +74,7 @@ class TCRunTcl:
         DEFAULT_INFO_PROCS = ['auto_execok', 'auto_import', 'auto_load', 'auto_load_index', 'auto_qualify',
             'clock', 'history', 'tclLog', 'unknown', 'pkg_mkIndex']
 
+        self.epname = ''
         self.all_vars = 0
         self.all_vars_values = 0
         self.all_procs = 0
@@ -100,11 +101,17 @@ class TCRunTcl:
 
     def __del__(self):
         #
-        # On clean exit, reset _recomposed file
+        # On exit delete all recomposed and Tcl files
         del self.tcl
         open(os.getcwd()+'/__recomposed.tcl', 'w').close()
         try: os.remove('__recomposed.tcl')
         except: pass
+        global TWISTER_PATH
+        fnames = '{}/.twister_cache/{}/*.tcl'.format(TWISTER_PATH, self.epname)
+        for fname in glob.glob(fnames):
+            # print 'Cleanup TCL file:', fname
+            try: os.remove(fname)
+            except: pass
         #
 
     def _eval(self, str_to_execute, globs={}, params=[]):
@@ -112,6 +119,8 @@ class TCRunTcl:
         After executing a TCL statement, the last value will be used
         as return value.
         '''
+        self.epname = globs['EP']
+
         # Inject variables
         self.tcl.setvar('SUITE_ID',   globs['SUITE_ID'])
         self.tcl.setvar('SUITE_NAME', globs['SUITE_NAME'])

@@ -1,7 +1,7 @@
 
 # File: TestCaseRunner.py ; This file is part of Twister.
 
-# version: 2.005
+# version: 2.007
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -26,20 +26,19 @@
 
 """
 Test Case Runner has the following roles:
- - Connects to CE to receive the libs and files that must be executed on this station.
- - Takes the statuses from last run to see if the last run was killed by timeout,
-    and if it was, it must skip the files that were already executed.
- - It reads the START/ STOP/ PAUSE/ RESUME status and if it's PAUSE, it waits for RESUME.
- - It checks for current file dependencies, if there are any, it waits for the dependency to be executed.
- - It skips the files that have status SKIP.
- - It downloads the files that must be executed, directly from CE.
- - It executes test files, counting the execution time. If the file takes too long, the Runner exits
-    and will be restarted by EP. If the execution is successful, it sends the status and the time to CE.
- - The files that must be executed can be in many formats, ex: Python, Perl, TCL, the Runner detects
-    them by extension.
+ - connects to CE to receive the libs and files that must be executed on this station.
+ - reads the START/ STOP/ PAUSE/ RESUME status and if it's PAUSE, it waits for RESUME.
+ - checks for current file dependencies, if there are any, it waits for the dependency to be executed.
+ - skips the files that have status SKIP;
+ - downloads the files that are not Runnable, without executing them;
+ - downloads and executes the files that must be executed;
+ - executes test files, counting the execution time and sends the status and time to CE;
+ - the files that must be executed can be in many formats, ex: Python, Perl, TCL and Java;
+   the Runner detects them by extension.
 
 This script should NOT be run manually!
 """
+from __future__ import with_statement
 
 import os
 import sys
@@ -276,13 +275,6 @@ class TwisterRunner:
 
 # # #
 
-    def Rindex(self, l, val):
-        """ Find element in list from the end """
-        for i, j in enumerate(reversed(l)):
-            if j == val: return len(l) - i - 1
-        return -1
-
-
     def run(self):
         """
         Cycle in all files, run each file, in order.
@@ -329,7 +321,7 @@ class TwisterRunner:
                 # Get list of libraries for current suite
                 libList = node['libraries']
                 if libList:
-                    saveLibraries(libList)
+                    self.saveLibraries(libList)
                     print('')
 
                 # The end of the suite
@@ -444,15 +436,19 @@ class TwisterRunner:
                 continue
 
             elif not str_to_execute:
-                print('TC debug: File `{0}` will be skipped.\n'.format(filename))
+                print('TC debug: File `{}` will be skipped.\n'.format(filename))
                 # Skipped prerequisite are ok, no need to abort.
                 self.proxySetTestStatus(file_id, STATUS_SKIPPED, 0.0) # Status SKIPPED
                 print('<<< END filename: `{}:{}` >>>\n'.format(file_id, filename))
                 continue
 
-            # Ignore NON-runnable files
+            # Don' Run NON-runnable files, but Download them!
             if runnable.lower() != 'true':
-                print('File `{}` is not runnable, so it will not execute.\n'.format(filename))
+                print('File `{}` is not runnable, it will be downloaded, but not executed.\n'.format(filename))
+                fpath = self.EP_CACHE +os.sep+ os.path.split(filename)[1]
+                f = open(fpath, 'wb')
+                f.write(str_to_execute.data)
+                f.close() ; del f
                 self.proxySetTestStatus(file_id, STATUS_SKIPPED, 0.0) # Status SKIPPED
                 print('<<< END filename: `{}:{}` >>>\n'.format(file_id, filename))
                 continue
@@ -564,6 +560,10 @@ class TwisterRunner:
 
                 # Send crash detected = True
                 self.proxy.setFileVariable(self.userName, self.epName, file_id, 'twister_tc_crash_detected', 1)
+                # Stop counting time. END OF TEST!
+                timer_f = time.time() - timer_i
+                end_time = time.strftime('%Y-%m-%d %H:%M:%S')
+                print('Test statistics: Start time {} -- End time {} -- {:0.2f} sec.\n'.format(start_time, end_time, timer_f))
                 print('<<< END filename: `{}:{}` >>>\n'.format(file_id, filename))
                 continue
 

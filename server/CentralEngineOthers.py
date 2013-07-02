@@ -35,6 +35,10 @@ Information about *users*:
 
 - user name
 - user status (start, stop, pause)
+- paths to logs and config files
+- paths to script pre and script post
+- parameters for this project like: libraries, tc delay, DB AutoSave
+- global params for current user
 
 Information about *EPs*:
 
@@ -47,6 +51,8 @@ Information about *Suites*:
 
 - suite name
 - other info from Test-Suites.XML (eg: release, or build)
+- test bed name
+- panic detect
 
 Information about *Test Files*:
 
@@ -63,6 +69,7 @@ Information about *Test Files*:
 - test log
 
 """
+from __future__ import with_statement
 
 import os
 import sys
@@ -857,14 +864,14 @@ class Project:
                 proc = subprocess.Popen(['chown', str(uid)+':'+str(gid), path, '-R'],)
                 proc.wait()
             except:
-                logWarning('ERROR on set owner on folder! Cannot chown `{}:{}` on `{} -R`!'.format(uid, gid, path))
+                logWarning('Cannot set owner on folder! Cannot chown `{}:{}` on `{} -R`!'.format(uid, gid, path))
                 return False
 
         else:
             try:
                 os.chown(path, uid, gid)
             except:
-                logWarning('ERROR on set owner on file! Cannot chown `{}:{}` on `{}`!'.format(uid, gid, path))
+                logWarning('Cannot set owner on file! Cannot chown `{}:{}` on `{}`!'.format(uid, gid, path))
                 return False
 
         return True
@@ -1092,8 +1099,7 @@ class Project:
 
             # Database parser, fields, queries
             # This is created every time the Save is called
-            db_path = self.users[user]['db_config']
-            db_parser = DBParser(db_path)
+            db_parser = DBParser(user)
             db_config = db_parser.db_config
             queries = db_parser.getQueries() # List
             fields  = db_parser.getFields()  # Dictionary

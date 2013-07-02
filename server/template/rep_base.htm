@@ -26,19 +26,19 @@
 	<ul class="nav nav-pills nav-stacked">
 	% for link in links:
 		% if link == 'Home' and link == title:
-		<li class="active"><a href="/home/${usr}"><i class="icon-home"></i> ${link}</a></li>
+		<li class="active"><a href="/report/home/${usr}"><i class="icon-home"></i> ${link}</a></li>
 		% elif link == 'Help' and link == title:
-		<li class="active"><a href="/help/${usr}"><i class="icon-flag"></i> ${link}</a></li>
+		<li class="active"><a href="/report/help/${usr}"><i class="icon-flag"></i> ${link}</a></li>
 		% elif link == 'Home':
-		<li><a href="/home/${usr}"><i class="icon-home"></i> ${link}</a></li>
+		<li><a href="/report/home/${usr}"><i class="icon-home"></i> ${link}</a></li>
 		% elif link == 'Help':
-		<li><a href="/help/${usr}"><i class="icon-flag"></i> ${link}</a></li>
+		<li><a href="/report/help/${usr}"><i class="icon-flag"></i> ${link}</a></li>
 		% elif link.startswith('goto'):
-		<li><a href="/rep/${link}/${usr}"><i class="icon-share-alt"></i> ${link}</a></li>
+		<li><a href="/report/rep/${link}/${usr}"><i class="icon-share-alt"></i> ${link}</a></li>
 		% elif link == title:
-		<li class="active"><a href="/rep/${link}/${usr}"><i class="icon-asterisk"></i> ${link}</a></li>
+		<li class="active"><a href="/report/rep/${link}/${usr}"><i class="icon-asterisk"></i> ${link}</a></li>
 		% else:
-		<li><a href="/rep/${link}/${usr}"><i class="icon-arrow-right"></i> ${link}</a></li>
+		<li><a href="/report/rep/${link}/${usr}"><i class="icon-arrow-right"></i> ${link}</a></li>
 		% endif
 	% endfor
 	</ul>
@@ -101,7 +101,7 @@
 % elif options is not UNDEFINED:
 
 	<div class="hero-unit">
-	<form class="form-horizontal" action="/rep/${title}/${usr}" method="GET">
+	<form class="form-horizontal" action="/report/rep/${title}/${usr}" method="GET">
 		<fieldset>
 			<legend>Required fields</legend>
 			% for opt in options:
@@ -133,8 +133,17 @@
 	<div class="hero-unit">
 		<h2>Twister reporting</h2><br><br>
 		<div class="alert alert-info">
+			% if usr[0] != '#':
 			<h3 class="alert-heading">Welcome <i>${usr}</i> !</h3><br>
-			Please choose a report from the left.
+			<p><i class="icon-arrow-left" style="margin-top:3px"></i> Please choose a report from the left.</p>
+			% else:
+			<h4>Please select a user:</h4><br>
+			<p>
+				% for user in [x for x in usr.split('#') if x]:
+				<a href="/report/index/${user}"><i class="icon-user" style="margin-top:4px"></i> ${user}</a><br>
+				% endfor
+			</p>
+			% endif
 		</div>
 	</div>
 
@@ -189,7 +198,7 @@ $(document).ready(function() {
 					for (var i=0 ; i<aData.length ; i++) {
 
 						// If text is larger than X characters, transform it into "Click for details"
-						if ( aData && aData[i].length > 50 ) $('td:eq('+i+')', nRow).html(
+						if ( aData && aData[i] && aData[i].length > 50 ) $('td:eq('+i+')', nRow).html(
 							'<a href="#" onClick="moreDetails(this)" role="button"><i>Click for details</i></a>' +
 							'<div style="display:none">' + aData[i] + '</div>'
 							);
