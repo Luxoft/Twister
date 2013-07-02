@@ -75,12 +75,7 @@ TO_INSTALL = ''
 # --------------------------------------------------------------------------------------------------
 
 def userHome(user):
-    user = str(user)
-    lines = open('/etc/passwd').readlines()
-    user_line = [line for line in lines if line.startswith(user + ':')]
-    if not user_line: return '/home/' + user
-    user_line = user_line[0].split(':')
-    return user_line[-2].rstrip('/')
+    return subprocess.check_output('echo ~' + user, shell=True).strip()
 
 # If installer was run with parameter "--server"
 if sys.argv[1:2] == ['--server']:
@@ -543,6 +538,9 @@ if TO_INSTALL == 'client':
         tcr_proc.wait()
 
 tcr_proc = subprocess.Popen(['chmod', '775', INSTALL_PATH, '-R'],)
+tcr_proc.wait()
+
+tcr_proc = subprocess.Popen(['chmod', '777', INSTALL_PATH +os.sep+ 'logs', '-R'],)
 tcr_proc.wait()
 
 for ext in ['txt', 'xml', 'py', 'tcl', 'plx', 'json', 'ini', 'htm', 'js', 'css']:

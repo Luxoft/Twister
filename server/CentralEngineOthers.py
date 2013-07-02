@@ -864,14 +864,14 @@ class Project:
                 proc = subprocess.Popen(['chown', str(uid)+':'+str(gid), path, '-R'],)
                 proc.wait()
             except:
-                logWarning('ERROR on set owner on folder! Cannot chown `{}:{}` on `{} -R`!'.format(uid, gid, path))
+                logWarning('Cannot set owner on folder! Cannot chown `{}:{}` on `{} -R`!'.format(uid, gid, path))
                 return False
 
         else:
             try:
                 os.chown(path, uid, gid)
             except:
-                logWarning('ERROR on set owner on file! Cannot chown `{}:{}` on `{}`!'.format(uid, gid, path))
+                logWarning('Cannot set owner on file! Cannot chown `{}:{}` on `{}`!'.format(uid, gid, path))
                 return False
 
         return True

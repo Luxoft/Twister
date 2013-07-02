@@ -34,12 +34,7 @@ for line in pipe.stdout.read().splitlines():
 del pipe
 
 def userHome(user):
-    user = str(user)
-    lines = open('/etc/passwd').readlines()
-    user_line = [line for line in lines if line.startswith(user + ':')]
-    if not user_line: return '/home/' + user
-    user_line = user_line[0].split(':')
-    return user_line[-2].rstrip('/')
+    return subprocess.check_output('echo ~' + user, shell=True).strip()
 
 # Twister path environment
 os.environ['TWISTER_PATH'] = userHome(user_name) + '/twister'
