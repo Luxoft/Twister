@@ -35,7 +35,7 @@ f.close()
 
 z = zipfile.ZipFile('bug_report.zip', 'w')
 z.write('bug_report.txt', 'bug_report.txt')
-z.write(SERVER_PATH + '/ce_log.log', 'ce_log.log')
+z.write(SERVER_PATH + '/server_log.log', 'server_log.log')
 
 logs_path = os.path.expanduser(CLIENT_PATH) + '/.twister_cache'
 for log in glob.glob(logs_path + '/*_LIVE.log'):
