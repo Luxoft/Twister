@@ -59,7 +59,6 @@ public class TB extends JPanel{
     public TB(){
         initializeRPC();
         initPanel();
-        //parent = new Node("1","/","parent",null,null);
         parent = getTB("/",null);
         buildTree(parent,root);
         ((DefaultTreeModel)tree.getModel()).reload();
@@ -225,7 +224,6 @@ public class TB extends JPanel{
             }
             if(goon){
                 try{
-                    //String id, String path, String name
                     Node newnode = new Node(null,resp,resp,parent,null);
                     resp = client.execute("setResource", new Object[]{resp,"/",null}).toString();
                     if(resp.indexOf("ERROR")==-1){
@@ -247,7 +245,6 @@ public class TB extends JPanel{
                     } else {
                         CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,Repository.window,"Warning", resp);
                     }
-                    //((DefaultTreeModel)tree.getModel()).reload();
                 } catch (Exception e){
                     e.printStackTrace();
                 }

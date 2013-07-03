@@ -271,13 +271,15 @@ class Plugin(BasePlugin):
         elif args['command'] == 'pushpkt':
             response['type'] = 'pushpkt reply'
 
-            try:
-                packet = literal_eval(a2b_base64(args['data']))
-                self.packets.append(packet)
-            except Exception, e:
-                response['status']['success'] = False
-                response['status']['message'] = 'command data not valid: \
-                                                    {err}'.format(err=e)
+            args['data'] = literal_eval(a2b_base64(args['data']))
+            for packet in args['data']:
+                try:
+                    _packet = literal_eval(a2b_base64(packet))
+                    self.packets.append(_packet)
+                except Exception, e:
+                    response['status']['success'] = False
+                    response['status']['message'] = 'command data not valid: \
+                                                        {err}'.format(err=e)
 
             if len(self.packets) >= self.packetsIndexLimit:
                 del self.packets[:self.data['packetsBuffer']]

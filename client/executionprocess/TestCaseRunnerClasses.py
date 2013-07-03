@@ -1,7 +1,7 @@
 
 # File: TestCaseRunnerClasses.py ; This file is part of Twister.
 
-# version: 2.002
+# version: 2.003
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -38,6 +38,11 @@ import glob
 import subprocess # For running Perl
 from collections import OrderedDict # For dumping TCL
 
+from ConfigParser import SafeConfigParser
+
+from shutil import copyfile
+
+
 TWISTER_PATH = os.getenv('TWISTER_PATH')
 if not TWISTER_PATH:
     print('TWISTER_PATH environment variable is not set! Exiting!')
@@ -69,6 +74,7 @@ class TCRunTcl:
         DEFAULT_INFO_PROCS = ['auto_execok', 'auto_import', 'auto_load', 'auto_load_index', 'auto_qualify',
             'clock', 'history', 'tclLog', 'unknown', 'pkg_mkIndex']
 
+        self.epname = ''
         self.all_vars = 0
         self.all_vars_values = 0
         self.all_procs = 0
@@ -95,11 +101,17 @@ class TCRunTcl:
 
     def __del__(self):
         #
-        # On clean exit, reset _recomposed file
+        # On exit delete all recomposed and Tcl files
         del self.tcl
         open(os.getcwd()+'/__recomposed.tcl', 'w').close()
         try: os.remove('__recomposed.tcl')
         except: pass
+        global TWISTER_PATH
+        fnames = '{}/.twister_cache/{}/*.tcl'.format(TWISTER_PATH, self.epname)
+        for fname in glob.glob(fnames):
+            # print 'Cleanup TCL file:', fname
+            try: os.remove(fname)
+            except: pass
         #
 
     def _eval(self, str_to_execute, globs={}, params=[]):
@@ -107,20 +119,31 @@ class TCRunTcl:
         After executing a TCL statement, the last value will be used
         as return value.
         '''
+        self.epname = globs['EP']
+
         # Inject variables
-        self.tcl.setvar('SUITE_ID',   globs['suite_id'])
-        self.tcl.setvar('SUITE_NAME', globs['suite_name'])
-        self.tcl.setvar('FILE_ID',    globs['file_id'])
-        self.tcl.setvar('FILE_NAME',  globs['filename'])
-        self.tcl.setvar('USER',       globs['userName'])
-        self.tcl.setvar('EP',         globs['epName'])
-        self.tcl.setvar('currentTB',  globs['tbName'])
+        self.tcl.setvar('SUITE_ID',   globs['SUITE_ID'])
+        self.tcl.setvar('SUITE_NAME', globs['SUITE_NAME'])
+        self.tcl.setvar('FILE_ID',    globs['FILE_ID'])
+        self.tcl.setvar('FILE_NAME',  globs['FILE_NAME'])
+        self.tcl.setvar('USER',       globs['USER'])
+        self.tcl.setvar('EP',         globs['EP'])
+        self.tcl.setvar('currentTB',  globs['currentTB'])
 
         # Inject common functions
-        self.tcl.createcommand('logMessage', globs['logMsg'])
-        self.tcl.createcommand('getGlobal',  globs['getGlobal'])
-        self.tcl.createcommand('setGlobal',  globs['setGlobal'])
-        self.tcl.createcommand('py_exec',    globs['py_exec'])
+        self.tcl.createcommand('logMessage',  globs['logMsg'])
+        self.tcl.createcommand('getGlobal',   globs['getGlobal'])
+        self.tcl.createcommand('setGlobal',   globs['setGlobal'])
+        self.tcl.createcommand('py_exec',     globs['py_exec'])
+
+        self.tcl.createcommand('getResource',    globs['getResource'])
+        self.tcl.createcommand('setResource',    globs['setResource'])
+        self.tcl.createcommand('renameResource', globs['renameResource'])
+        self.tcl.createcommand('deleteResource', globs['deleteResource'])
+        self.tcl.createcommand('getResourceStatus', globs['getResourceStatus'])
+        self.tcl.createcommand('allocResource',     globs['allocResource'])
+        self.tcl.createcommand('reserveResource',   globs['reserveResource'])
+        self.tcl.createcommand('freeResource',      globs['freeResource'])
 
         to_execute = str_to_execute.data
         to_execute = '\nset argc %i\n' % len(params) + to_execute
@@ -214,36 +237,22 @@ class TCRunPython:
         '''
         #
         global TWISTER_PATH
-        self.epname = globs['epName']
+        self.epname = globs['EP']
+        self.filename = os.path.split(globs['FILE_NAME'])[1]
+        fpath = '{}/.twister_cache/{}/{}'.format(TWISTER_PATH, self.epname, self.filename)
 
         # Start injecting inside tests
-        globs_copy = {}
+        globs_copy = dict(globs)
         globs_copy['os']   = os
         globs_copy['sys']  = sys
         globs_copy['time'] = time
 
-        globs_copy['TWISTER_ENV'] = True
-        globs_copy['SUITE_ID']   = globs['suite_id']
-        globs_copy['SUITE_NAME'] = globs['suite_name']
-        globs_copy['FILE_ID']    = globs['file_id']
-        globs_copy['FILE_NAME']  = globs['filename']
-        globs_copy['USER']       = globs['userName']
-        globs_copy['EP']         = self.epname
-        globs_copy['currentTB']  = globs['tbName']
-        globs_copy['PROXY']      = globs['proxy']
-
-        # Functions
-        globs_copy['logMsg']     = globs['logMsg']
-        globs_copy['getGlobal']  = globs['getGlobal']
-        globs_copy['setGlobal']  = globs['setGlobal']
-
         to_execute = r"""
 import os, sys
+__file__ = '%s'
 sys.argv = %s
-""" % str([globs['filename']] + params)
+""" % (fpath, str([self.filename] + params))
 
-        fname = os.path.split(globs['filename'])[1]
-        fpath = '{}/.twister_cache/{}/{}'.format(TWISTER_PATH, self.epname, fname)
         f = open(fpath, 'wb')
         f.write(to_execute)
         f.write(str_to_execute.data)
@@ -295,3 +304,95 @@ class TCRunPerl:
         #
 
 #
+
+class TCRunJava:
+    """ Java Runner """
+
+    def _eval(self, str_to_execute, globs={}, params=[]):
+        """ Java test runner """
+
+        global TWISTER_PATH
+        self.epname = globs['EP']
+
+        _RESULT = None
+
+        returnCode = {
+            0: 'PASS',
+            1: 'FAIL',
+            2: 'ERROR'
+        }
+
+        # init
+        runnerConfigParser = SafeConfigParser()
+
+        try:
+            runnerConfigParser.read(os.path.join(TWISTER_PATH, 'config/runner.ini'))
+
+            javaCompilerPath = runnerConfigParser.get('javarunner', 'JAVAC_PATH')
+            junitClassPath = runnerConfigParser.get('javarunner', 'JUNIT_PATH')
+            jythonClassPath = runnerConfigParser.get('javarunner', 'JYTHON_PATH')
+
+            copyfile(os.path.join(TWISTER_PATH, 'common/jython/jythonExternalVariableClass.jpy'),
+                '{0}/.twister_cache/{1}/ce_libs/jythonExternalVariableClass.py'.format(
+                                                                TWISTER_PATH, self.epname))
+            copyfile(os.path.join(TWISTER_PATH, 'common/jython/tscJython.jar'),
+                '{0}/.twister_cache/{1}/ce_libs/tscJython.jar'.format(TWISTER_PATH, self.epname))
+            tscJythonPath = '{0}/.twister_cache/{1}/ce_libs/tscJython.jar'.format(
+                                                                    TWISTER_PATH, self.epname)
+        except Exception, e:
+            print 'Error: Compiler path not found'
+            print 'Error: {er}'.format(er=e)
+
+            return _RESULT
+
+        # create test
+        fileName = os.path.split(globs['FILE_NAME'])[1]
+        filesPath = '{}/.twister_cache/{}'.format(TWISTER_PATH, self.epname)
+        filePath = os.path.join(filesPath, fileName)
+
+        with open(filePath, 'wb+') as f:
+            f.write(str_to_execute.data)
+
+
+        # compile java test
+        #command = [javaCompilerPath, '-classpath', junitClassPath, testFile]
+        javacProcess = subprocess.Popen('{jc} -classpath "{cl0}:{cl1}:{cl2}" {fl}'.format(
+                        jc=javaCompilerPath, cl0=junitClassPath, cl1=tscJythonPath,
+                        cl2=jythonClassPath, fl=filePath), shell=True)
+
+
+        # run test
+        compiledFilePath = os.path.join(filesPath,
+                            '{fn}.class'.format(fn=os.path.splitext(fileName)[0]))
+        jythonRunner = os.path.join(TWISTER_PATH, 'common/jython/jythonRunner.jpy')
+        #command = [jythonRunner, '--testFilePath', testFile]
+        jythonProcess = subprocess.Popen('sudo jython {jp} --classFilePath {cf} '\
+            '--testFilePath {fl}'.format(jp=jythonRunner,
+            cf=junitClassPath, fl=compiledFilePath), shell=True)
+        jythonProcess.wait()
+        if not jythonProcess.returncode in returnCode:
+            print 'unknown return code'
+
+            return _RESULT
+
+        _RESULT = returnCode[jythonProcess.returncode]
+
+        # The _RESULT must be injected from within the jython script
+        return _RESULT
+
+
+    def __del__(self):
+        """ cleanup """
+
+        global TWISTER_PATH
+
+        # On exit delete all Java files
+        fileNames = '{}/.twister_cache/{}/*.java*'.format(TWISTER_PATH, self.epname)
+        for filePath in glob.glob(fileNames):
+            # print 'Cleanup Java file: filePath
+            try:
+                os.remove(filePath)
+            except:
+                pass
+
+# Eof()

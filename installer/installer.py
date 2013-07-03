@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# version: 2.004
+# version: 2.006
 
 # File: installer.py ; This file is part of Twister.
 
@@ -29,9 +29,14 @@
 Twister Installer
 =================
 
-Requires Python 2.7 and must run as ROOT.
-If you are installing the Twister Server, it is strongly recommended
-to have an internet connection, to allow the installer to setup all the dependencies.
+Requires Python 2.7 and a Linux machine. The installer doesn't run on Windows!
+When installing the server, must run as ROOT! When installing the client, ROOT is optional.
+
+When installing Twister for the first time, it is STRONGLY RECOMMENDED to have an internet connection
+and run as ROOT, to allow the setup of all the dependencies.
+
+Twister Client will be installed in the home of your user, in the folder `twister`.
+The server will be installed by default in `/opt/twister`.
 '''
 
 import os, sys
@@ -50,16 +55,11 @@ if sys.version_info[0] != 2 and sys.version_info[1] != 7:
     print('\nPython version must be 2.7! Exiting!\n')
     exit(1)
 
-if os.getuid() != 0:
-    print('\nTwister installer must run wish SUDO! Exiting!\n')
-    exit(1)
 
 # The proxy is used ONLY if you need a proxy to connect to internet,
 # And `setuptools` is not installed, or some dependencies are missing
 # HTTP_PROXY = 'http://UserName:PassWord@http-proxy:3128'
 HTTP_PROXY = ''
-
-#
 
 __dir__ = os.path.split(__file__)[0]
 if __dir__: os.chdir(__dir__)
@@ -75,12 +75,7 @@ TO_INSTALL = ''
 # --------------------------------------------------------------------------------------------------
 
 def userHome(user):
-    user = str(user)
-    lines = open('/etc/passwd').readlines()
-    user_line = [line for line in lines if line.startswith(user + ':')]
-    if not user_line: return '/home/' + user
-    user_line = user_line[0].split(':')
-    return user_line[-2]
+    return subprocess.check_output('echo ~' + user, shell=True).strip()
 
 # If installer was run with parameter "--server"
 if sys.argv[1:2] == ['--server']:
@@ -113,16 +108,22 @@ else:
             print('`%s` is not a valid choice! try again!' % selected)
         del selected
 
-if TO_INSTALL == 'client':
+
+if TO_INSTALL == 'server':
+    if os.getuid() != 0:
+        print('\nIn order to install the server, Twister installer must run with SUDO! Exiting!\n')
+        exit(1)
+
+else:
     try:
         user_name = os.getenv('USER')
         if user_name=='root':
             user_name = os.getenv('SUDO_USER')
-        if (not user_name):
-            print('Cannot guess the User Name! Please start this process using SUDO! Exiting!\n')
+        if not user_name:
+            print('Cannot guess the Username! Exiting!\n')
             exit(1)
     except:
-        print('Cannot guess the User Name! Please start this process using SUDO! Exiting!\n')
+        print('Cannot guess the Username! Exiting!\n')
         exit(1)
 
 # --------------------------------------------------------------------------------------------------
@@ -132,6 +133,7 @@ if TO_INSTALL == 'client':
 if TO_INSTALL == 'server':
 
     print('Please type where you wish to install the servers.')
+    print('Don\'t forget to add `twister` at the end of the path!')
     print('Leave EMPTY to install in default path `/opt/twister`:')
     selected = raw_input('Path : ')
     selected = selected.rstrip('/')
@@ -179,6 +181,8 @@ else:
 
     # Twister client path
     INSTALL_PATH = userHome(user_name) + os.sep + 'twister/'
+
+    print('Your Username is `{}`.\n'.format(user_name))
 
     if os.path.exists(INSTALL_PATH):
         print('WARNING! Another version of Twister is installed at `%s`!' % INSTALL_PATH)
@@ -238,8 +242,8 @@ if TO_INSTALL == 'server':
 
     # Files to move in Server folder
     to_copy = [
-        'bin/start_ce',
-        'bin/start_httpserver',
+        'bin/cli.py',
+        'bin/start_server',
         'doc/',
         'server/',
         'common/',
@@ -252,12 +256,13 @@ if TO_INSTALL == 'server':
 
 elif TO_INSTALL == 'client':
     # The client doesn't have important dependencies
-    dependencies = ['Scapy-real', 'pExpect']
-    library_names = ['scapy', 'pexpect']
-    library_versions = ['2.1', '2.2']
+    dependencies = ['Scapy-real', 'Paramiko', 'pExpect']
+    library_names = ['scapy', 'paramiko', 'pexpect']
+    library_versions = ['2.1', '1.0', '2.2']
 
     # Files to move in Client folder
     to_copy = [
+        'bin/cli.py',
         'bin/start_ep.py',
         'bin/start_packet_sniffer.py',
         'doc/',
@@ -270,6 +275,7 @@ elif TO_INSTALL == 'client':
         'common/constants.py',
         'common/suitesmanager.py',
         'common/configobj.py',
+        'common/jython/',
     ]
 
 else:
@@ -351,8 +357,11 @@ for i in range(len(dependencies)):
     import_name = library_names[i]
 
     try:
+        # Scapy is really special ... the package name is Scapy-real
+        if import_name == 'scapy': import_name = 'scapy-real'
         # The version is ok (try 1) ?
         ver1 = pkg_resources.get_distribution(import_name).version
+        if import_name == 'scapy-real': import_name = 'scapy'
     except:
         ver1 = None
 
@@ -391,22 +400,31 @@ for i in range(len(dependencies)):
             print('\n~~~ Installing `%s` from System repositories ~~~\n' % lib_name)
 
             if platform.dist()[0] == 'SuSE':
-                tcr_proc = subprocess.Popen(['zypper', 'install', '-yl', 'python-mysql'], cwd=pkg_path)
-            elif platform.dist()[0] == 'fedora':
-                tcr_proc = subprocess.Popen(['yum', '-y', 'install', 'python-mysql'], cwd=pkg_path)
+                tcr_proc = subprocess.Popen(['zypper', 'install', '-yl', 'mysql-devel'], cwd=pkg_path)
+            elif platform.dist()[0] in ['fedora', 'centos']:
+                tcr_proc = subprocess.Popen(['yum', '-y', 'install', 'mysql-devel'], cwd=pkg_path)
             else:
-                tcr_proc = subprocess.Popen(['apt-get', 'install', 'python-mysqldb', '-y', '--force-yes'], cwd=pkg_path)
+                tcr_proc = subprocess.Popen(['apt-get', 'install', 'python-dev', 'libmysqlclient-dev', '-y', '--force-yes'], cwd=pkg_path)
 
             try: tcr_proc.wait()
             except: print('Error while installing `MySQL-python`!')
 
+            tcr_proc = subprocess.Popen(['easy_install', 'MySQL-python'], cwd=pkg_path)
+            tcr_proc.wait()
+
         elif lib_name == 'LXML-Python':
             print('\n~~~ Installing `%s` from System repositories ~~~\n' % lib_name)
 
-            tcr_proc = subprocess.Popen(['apt-get', 'install', 'python-lxml', '-y', '--force-yes'], cwd=pkg_path)
+            if platform.dist()[0] in ['fedora', 'centos']:
+                tcr_proc = subprocess.Popen(['yum', '-y', 'install', 'libxslt-devel', 'libxml2-devel'], cwd=pkg_path)
+            else:
+                tcr_proc = subprocess.Popen(['apt-get', 'install', 'python-dev', 'libxslt-devel', 'libxml2-devel', '-y', '--force-yes'], cwd=pkg_path)
 
             try: tcr_proc.wait()
             except: print('Error while installing `Python LXML`!')
+
+            tcr_proc = subprocess.Popen(['easy_install', 'lxml'], cwd=pkg_path)
+            tcr_proc.wait()
 
         # All other packages are installed with easy_install
         else:
@@ -453,7 +471,7 @@ for i in range(len(dependencies)):
             print('\n~~~ Successfully installed `%s` ~~~\n' % lib_name)
 
 if library_err:
-    print('The following libraries could not be installed: `%s`.\n'
+    print('\nThe following libraries could not be installed: `%s`.\n'
           'Twister Framework will not run without them!' % ', '.join(library_err))
 
 
@@ -513,11 +531,16 @@ if TO_INSTALL == 'client':
     except: pass
     try: os.remove(INSTALL_PATH +os.sep+ 'config/services.ini')
     except: pass
+
     # Change owner for install folder...
-    tcr_proc = subprocess.Popen(['chown', user_name+':'+user_name, INSTALL_PATH, '-R'],)
-    tcr_proc.wait()
+    if os.getuid() == 0:
+        tcr_proc = subprocess.Popen(['chown', user_name+':'+user_name, INSTALL_PATH, '-R'],)
+        tcr_proc.wait()
 
 tcr_proc = subprocess.Popen(['chmod', '775', INSTALL_PATH, '-R'],)
+tcr_proc.wait()
+
+tcr_proc = subprocess.Popen(['chmod', '777', INSTALL_PATH +os.sep+ 'logs', '-R'],)
 tcr_proc.wait()
 
 for ext in ['txt', 'xml', 'py', 'tcl', 'plx', 'json', 'ini', 'htm', 'js', 'css']:

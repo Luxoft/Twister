@@ -1,7 +1,7 @@
 
 # File: TestCaseRunner.py ; This file is part of Twister.
 
-# version: 2.002
+# version: 2.007
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -26,20 +26,19 @@
 
 """
 Test Case Runner has the following roles:
- - Connects to CE to receive the libs and files that must be executed on this station.
- - Takes the statuses from last run to see if the last run was killed by timeout,
-    and if it was, it must skip the files that were already executed.
- - It reads the START/ STOP/ PAUSE/ RESUME status and if it's PAUSE, it waits for RESUME.
- - It checks for current file dependencies, if there are any, it waits for the dependency to be executed.
- - It skips the files that have status SKIP.
- - It downloads the files that must be executed, directly from CE.
- - It executes test files, counting the execution time. If the file takes too long, the Runner exits
-    and will be restarted by EP. If the execution is successful, it sends the status and the time to CE.
- - The files that must be executed can be in many formats, ex: Python, Perl, TCL, the Runner detects
-    them by extension.
+ - connects to CE to receive the libs and files that must be executed on this station.
+ - reads the START/ STOP/ PAUSE/ RESUME status and if it's PAUSE, it waits for RESUME.
+ - checks for current file dependencies, if there are any, it waits for the dependency to be executed.
+ - skips the files that have status SKIP;
+ - downloads the files that are not Runnable, without executing them;
+ - downloads and executes the files that must be executed;
+ - executes test files, counting the execution time and sends the status and time to CE;
+ - the files that must be executed can be in many formats, ex: Python, Perl, TCL and Java;
+   the Runner detects them by extension.
 
 This script should NOT be run manually!
 """
+from __future__ import with_statement
 
 import os
 import sys
@@ -49,6 +48,7 @@ import pickle
 import marshal
 import xmlrpclib
 import tarfile
+import subprocess
 import traceback
 
 from collections import OrderedDict
@@ -92,7 +92,7 @@ class TwisterRunner:
 
         self.userName = userName
         self.epName   = epName
-        self.tbName   = None
+
         # Central Engine XML-RPC connection
         self.proxy    = None
         # For storing temporary variables
@@ -117,13 +117,22 @@ class TwisterRunner:
             print('TC error: Cannot connect to CE path `{}`! Exiting!'.format(self.CONFIG['PROXY']))
             exit(1)
 
-        # Save all libraries from CE
+        # The Test-Bed name. Common for all files in this EP.
+        self.tbName = self.proxy.getEpVariable(self.userName, self.epName, 'test_bed')
+        # Get the `exit on test Fail` value
+        self.exit_on_test_fail = self.proxy.getUserVariable(self.userName, 'exit_on_test_fail')
+        # Get tests delay
+        self.tc_delay = self.proxy.getUserVariable(self.userName, 'tc_delay')
+
+        # After getting Test-Bed name, save all libraries from CE
         self.saveLibraries()
         # After download, inject libraries path for the current EP
         sys.path.append(self.EP_CACHE)
 
         try:
             import ce_libs
+            from ce_libs import CommonLib
+            self.commonLib = CommonLib()
         except:
             print('TC error: Cannot import the shared libraries!')
             exit(1)
@@ -157,7 +166,7 @@ class TwisterRunner:
         reset_libs = False
 
         if not libs_list:
-            libs_list = self.proxy.getLibrariesList(userName)
+            libs_list = self.proxy.getLibrariesList(self.userName)
             reset_libs = True
         else:
             libs_list = [lib.strip() for lib in libs_list.split(';')]
@@ -169,7 +178,7 @@ class TwisterRunner:
             try: os.makedirs(libs_path)
             except: pass
 
-        all_libs = [] # Normal python files or folders
+        all_libs = ['CommonLib.py'] # Normal python files or folders
         zip_libs = [] # Zip libraries
 
         # If Reseting libs, open and destroy
@@ -177,12 +186,18 @@ class TwisterRunner:
             __init = open(libs_path + os.sep + '__init__.py', 'w')
             __init.write('\nimport os, sys\n')
             __init.write('\nPROXY = "{}"\n'.format(self.CONFIG['PROXY']))
+            __init.write('USER = "{}"\n'.format(self.userName))
+            __init.write('EP = "{}"\n'.format(self.epName))
+            __init.write('TB = "{}"\n'.format(self.tbName))
+
         # If not Reseting, just append
         else:
             __init = open(libs_path + os.sep + '__init__.py', 'a')
 
         for lib in libs_list:
             if not lib:
+                continue
+            if lib in zip_libs or lib in all_libs:
                 continue
             if lib.endswith('.zip'):
                 zip_libs.append(lib)
@@ -195,13 +210,13 @@ class TwisterRunner:
             __init.write('\nall += ["%s"]\n\n' % ('", "'.join([os.path.splitext(lib)[0] for lib in all_libs])))
 
         for lib_file in zip_libs:
-            lib_data = self.proxy.downloadLibrary(lib_file)
+            lib_data = self.proxy.downloadLibrary(self.userName, lib_file)
             time.sleep(0.1) # Must take it slow
             if not lib_data:
-                print('ZIP library `{0}` does not exist!'.format(lib_file))
+                print('ZIP library `{}` does not exist!'.format(lib_file))
                 continue
 
-            print('Downloading Zip library `{0}` ...'.format(lib_file))
+            print('Downloading Zip library `{}` ...'.format(lib_file))
 
             # Write ZIP imports.
             __init.write('\nsys.path.append(os.path.split(__file__)[0] + "/{}")\n\n'.format(lib_file))
@@ -212,18 +227,20 @@ class TwisterRunner:
             f.close() ; del f
 
         for lib_file in all_libs:
-            lib_data = self.proxy.downloadLibrary(lib_file)
+            lib_data = self.proxy.downloadLibrary(self.userName, lib_file)
             time.sleep(0.1) # Must take it slow
             if not lib_data:
-                print('Library `{0}` does not exist!'.format(lib_file))
+                print('Library `{}` does not exist!'.format(lib_file))
                 continue
 
-            print('Downloading library `{0}` ...'.format(lib_file))
+            print('Downloading library `{}` ...'.format(lib_file))
 
             ext = os.path.splitext(lib_file)
             # Write normal imports.
-            __init.write('import %s\n' % ext[0])
-            __init.write('from %s import *\n\n' % ext[0])
+            __init.write('try:\n')
+            __init.write('\timport %s\n' % ext[0])
+            __init.write('\tfrom %s import *\n' % ext[0])
+            __init.write('except Exception, e:\n\tprint("Cannot import library `{}`! Exception `%s`!" % e)\n\n'.format(ext[0]))
             lib_pth = libs_path + os.sep + lib_file
 
             f = open(lib_pth, 'wb')
@@ -243,9 +260,12 @@ class TwisterRunner:
                     os.chdir(libs_path)
                     binary.extractall()
 
+        tcr_proc = subprocess.Popen(['chown', self.userName+':'+self.userName, libs_path, '-R'],)
+        tcr_proc.wait()
+        del tcr_proc
+
         __init.close()
 
-# # #
 
     def proxySetTestStatus(self, file_id, status, time_t):
         """
@@ -253,59 +273,7 @@ class TwisterRunner:
         """
         self.proxy.setFileStatus(self.userName, self.epName, file_id, status, time_t)
 
-
-    def logMsg(self, logType, logMessage):
-        """
-        Shortcut function for sending a message in a log to Central Engine.
-        """
-        self.proxy.logMessage(self.userName, logType, logMessage)
-
-
-    def getGlobal(self, var):
-        """
-        Function to get variables saved from Test files.
-        """
-        if var in self.global_vars:
-            return self.global_vars[var]
-        # Else...
-        return self.proxy.getGlobalVariable(self.userName, var)
-
-
-    def setGlobal(self, var, value):
-        """
-        Function to keep variables sent from Test files.
-        """
-        try:
-            marshal.dumps(value)
-            return self.proxy.setGlobalVariable(self.userName, var, value)
-        except:
-            self.global_vars[var] = value
-            return True
-
-
-    def py_exec(self, code_string):
-        """
-        Exposed Python function and class instances for TCL.
-        """
-        if not isinstance(code_string, str):
-            print('py_exec: Error, the code must be a string `{}`!'.format(code_string))
-            return False
-
-        try: ret = eval(code_string, self.global_vars, self.global_vars)
-        except Exception, e:
-            print('py_exec: Error execution code `{}`! Exception `{}`!'.format(code_string, e))
-            ret = False
-
-        return ret
-
 # # #
-
-    def Rindex(self, l, val):
-        """ Find element in list from the end """
-        for i, j in enumerate(reversed(l)):
-            if j == val: return len(l) - i - 1
-        return -1
-
 
     def run(self):
         """
@@ -323,12 +291,6 @@ class TwisterRunner:
         suites_pickle = self.proxy.getEpVariable(self.userName, self.epName, 'suites', True)
         SuitesManager = pickle.loads(suites_pickle)
         del suites_pickle
-
-
-        # Get the `exit on test Fail` value
-        exit_on_test_fail = self.proxy.getUserVariable(self.userName, 'exit_on_test_fail')
-        # Get tests delay
-        tc_delay = self.proxy.getUserVariable(self.userName, 'tc_delay')
 
         # Used by all files
         suite_id    = None
@@ -352,9 +314,6 @@ class TwisterRunner:
                 suite_name = node['name']
                 suite_str  = suite_id +' - '+ suite_name
 
-                # The Test Bed name. Common for all files in this EP.
-                self.tbName = node['tb']
-
                 print('\n===== ===== ===== ===== =====')
                 print(' Starting suite `{}`'.format(suite_str))
                 print('===== ===== ===== ===== =====\n')
@@ -362,7 +321,7 @@ class TwisterRunner:
                 # Get list of libraries for current suite
                 libList = node['libraries']
                 if libList:
-                    saveLibraries(libList)
+                    self.saveLibraries(libList)
                     print('')
 
                 # The end of the suite
@@ -384,6 +343,8 @@ class TwisterRunner:
 
             # The name of the file
             filename = node['file']
+            # If the file is NOT runnable, download it, but don't execute!
+            runnable = node.get('Runnable', 'true')
             # Is this file Prerequisite?
             prerequisite = node.get('Prerequisite')
             # Test-case dependency, if any
@@ -475,8 +436,19 @@ class TwisterRunner:
                 continue
 
             elif not str_to_execute:
-                print('TC debug: File `{0}` will be skipped.\n'.format(filename))
+                print('TC debug: File `{}` will be skipped.\n'.format(filename))
                 # Skipped prerequisite are ok, no need to abort.
+                self.proxySetTestStatus(file_id, STATUS_SKIPPED, 0.0) # Status SKIPPED
+                print('<<< END filename: `{}:{}` >>>\n'.format(file_id, filename))
+                continue
+
+            # Don' Run NON-runnable files, but Download them!
+            if runnable.lower() != 'true':
+                print('File `{}` is not runnable, it will be downloaded, but not executed.\n'.format(filename))
+                fpath = self.EP_CACHE +os.sep+ os.path.split(filename)[1]
+                f = open(fpath, 'wb')
+                f.write(str_to_execute.data)
+                f.close() ; del f
                 self.proxySetTestStatus(file_id, STATUS_SKIPPED, 0.0) # Status SKIPPED
                 print('<<< END filename: `{}:{}` >>>\n'.format(file_id, filename))
                 continue
@@ -502,6 +474,12 @@ class TwisterRunner:
                     self.runners['python'] = TCRunPython()
                 current_runner = self.runners['python']
 
+            # If file type is JAVA
+            elif file_ext in ['.java']:
+                if not self.runners['java']:
+                    self.runners['java'] = TCRunJava()
+                current_runner = self.runners['java']
+
             # Unknown file type
             else:
                 print('TC warning: Extension type `{}` is unknown and will be ignored!'.format(file_ext))
@@ -514,9 +492,9 @@ class TwisterRunner:
 
 
             # If there is a delay between tests, wait here
-            if tc_delay:
-                print('TC debug: Waiting {} seconds before starting the test...\n'.format(tc_delay))
-                time.sleep(tc_delay)
+            if self.tc_delay:
+                print('TC debug: Waiting {} seconds before starting the test...\n'.format(self.tc_delay))
+                time.sleep(self.tc_delay)
 
 
             self.proxySetTestStatus(file_id, STATUS_WORKING, 0.0) # Status WORKING
@@ -531,18 +509,26 @@ class TwisterRunner:
             # RUN CURRENT TEST!
             try:
                 globs = {
-                    'userName': self.userName,
-                    'epName':   self.epName,
-                    'tbName':   self.tbName,
-                    'suite_id'  : suite_id,
-                    'suite_name': suite_name,
-                    'file_id'   : file_id,
-                    'filename'  : filename,
-                    'proxy'     : self.proxy,
-                    'logMsg'    : self.logMsg,
-                    'getGlobal' : self.getGlobal,
-                    'setGlobal' : self.setGlobal,
-                    'py_exec'   : self.py_exec
+                    'USER'      : self.userName,
+                    'EP'        : self.epName,
+                    'currentTB' : self.tbName,
+                    'SUITE_ID'  : suite_id,
+                    'SUITE_NAME': suite_name,
+                    'FILE_ID'   : file_id,
+                    'FILE_NAME' : filename,
+                    'PROXY'     : self.proxy,
+                    'logMsg'    : self.commonLib.logMsg,
+                    'getGlobal' : self.commonLib.getGlobal,
+                    'setGlobal' : self.commonLib.setGlobal,
+                    'py_exec'   : self.commonLib.py_exec,
+                    'getResource'       : self.commonLib.getResource,
+                    'setResource'       : self.commonLib.setResource,
+                    'renameResource'    : self.commonLib.renameResource,
+                    'deleteResource'    : self.commonLib.deleteResource,
+                    'getResourceStatus' : self.commonLib.getResourceStatus,
+                    'allocResource'     : self.commonLib.allocResource,
+                    'reserveResource'   : self.commonLib.reserveResource,
+                    'freeResource'      : self.commonLib.freeResource,
                 }
                 result = current_runner._eval(str_to_execute, globs, args)
                 result = str(result).upper()
@@ -558,7 +544,7 @@ class TwisterRunner:
                 self.proxySetTestStatus(file_id, STATUS_FAIL, (time.time() - timer_i))
 
                 # If status is FAIL and the file is not Optional and Exit on test fail is ON, CLOSE the runner
-                if not optional_test and exit_on_test_fail:
+                if not optional_test and self.exit_on_test_fail:
                     print('TC error: Mandatory file `{}` returned FAIL! Closing the runner!\n\n'.format(filename))
                     self.proxy.echo('TC error: Mandatory file `{}::{}::{}` returned FAIL! Closing the runner!'\
                         ''.format(self.epName, suite_name, filename))
@@ -574,6 +560,10 @@ class TwisterRunner:
 
                 # Send crash detected = True
                 self.proxy.setFileVariable(self.userName, self.epName, file_id, 'twister_tc_crash_detected', 1)
+                # Stop counting time. END OF TEST!
+                timer_f = time.time() - timer_i
+                end_time = time.strftime('%Y-%m-%d %H:%M:%S')
+                print('Test statistics: Start time {} -- End time {} -- {:0.2f} sec.\n'.format(start_time, end_time, timer_f))
                 print('<<< END filename: `{}:{}` >>>\n'.format(file_id, filename))
                 continue
 
@@ -601,7 +591,7 @@ class TwisterRunner:
                 self.proxySetTestStatus(file_id, STATUS_FAIL, timer_f) # File status FAIL
 
                 # If status is FAIL and the file is not Optional and Exit on test fail is ON, CLOSE the runner
-                if not optional_test and exit_on_test_fail:
+                if not optional_test and self.exit_on_test_fail:
                     print('TC error: Mandatory file `{}` returned FAIL! Closing the runner!\n\n'.format(filename))
                     self.proxy.echo('TC error: Mandatory file `{}::{}::{}` returned FAIL! Closing the runner!'\
                         ''.format(self.epName, suite_name, filename))

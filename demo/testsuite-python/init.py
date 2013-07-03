@@ -1,9 +1,12 @@
 
 #
-# version: 2.001
+# version: 2.002
 # <title>init file</title>
 # <description>...</description>
 #
+
+# `USER`, `EP`, `SUITE_NAME` and `FILE_NAME` are magic variables,
+# injected inside all Twister tests.
 
 import os
 import sys
@@ -16,7 +19,8 @@ print 'Hello, user', USER, '!'
 print 'Test Bed:', currentTB
 print 'Exec process:', EP
 print 'Suite:', SUITE_NAME
-print 'File:', FILE_NAME
+print 'Remote file:', FILE_NAME
+print 'Local file:', __file__
 
 _RESULT = 'PASS'
 

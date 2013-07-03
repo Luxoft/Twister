@@ -1,6 +1,6 @@
 /*
 File: Repository.java ; This file is part of Twister.
-Version: 2.003
+Version: 2.005
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -118,6 +118,7 @@ public class Repository{
                          XMLDIRECTORY,  
                          TESTSUITEPATH,
                          LOGSPATH ,XMLREMOTEDIR,REMOTEPLUGINSDIR,
+                         REMOTELIBRARY,
                          REMOTEUSERSDIRECTORY, REMOTEEPIDDIR, //REMOTEHARDWARECONFIGDIRECTORY,
                          PLUGINSLOCALGENERALCONF, GLOBALSREMOTEFILE;
     public static Image passicon,testbedicon,porticon,suitaicon, tcicon, propicon,
@@ -141,7 +142,7 @@ public class Repository{
     private static String[] lookAndFeels;
     public static Applet container;
     private static Document pluginsconfig;
-    private static String version = "2.003";
+    private static String version = "2.007";
     
     /*
      * repository initialization method
@@ -319,8 +320,8 @@ public class Repository{
         }
     }
     
-    //populate the Hshtable transfered to plugins
-    //with apropriate variables
+    //populate the Hshtable transferred to plugins
+    //with appropriate variables
     public static void populatePluginsVariables(){
         variables.put("host",host);
         variables.put("user",user);
@@ -344,6 +345,7 @@ public class Repository{
         variables.put("masterxmlremotedir",XMLREMOTEDIR);
         variables.put("remoteepdir",REMOTEEPIDDIR);
         variables.put("remoteusersdir",REMOTEUSERSDIRECTORY);
+        variables.put("remotelibrary",REMOTELIBRARY);
         variables.put("pluginslocalgeneralconf",PLUGINSLOCALGENERALCONF);
         variables.put("remotegeneralpluginsdir",REMOTEPLUGINSDIR);
         variables.put("globalremotefile",GLOBALSREMOTEFILE);
@@ -691,21 +693,24 @@ public class Repository{
         try{DocumentBuilder db = dbf.newDocumentBuilder();
             Document doc = db.parse(dbConf);
             doc.getDocumentElement().normalize();                
-            NodeList nodeLst = doc.getElementsByTagName("table_structure");      
-            for(int i=0;i<nodeLst.getLength();i++){
-                Element tablee = (Element)nodeLst.item(i);
-                NodeList fields = tablee.getElementsByTagName("field");
-                DefaultMutableTreeNode table = new DefaultMutableTreeNode(tablee.getAttribute("name"));
-                for(int j=0;j<fields.getLength();j++){
-                    Element fielde = (Element)fields.item(j);   
-                    DefaultMutableTreeNode field = new DefaultMutableTreeNode(fielde.getAttribute("Field"));
-                    table.add(field);}
-                root.add(table);}
-            nodeLst = doc.getElementsByTagName("twister_user_defined");
+//             NodeList nodeLst = doc.getElementsByTagName("table_structure");      
+//             for(int i=0;i<nodeLst.getLength();i++){
+//                 Element tablee = (Element)nodeLst.item(i);
+//                 NodeList fields = tablee.getElementsByTagName("field");
+//                 DefaultMutableTreeNode table = new DefaultMutableTreeNode(tablee.getAttribute("name"));
+//                 for(int j=0;j<fields.getLength();j++){
+//                     Element fielde = (Element)fields.item(j);   
+//                     DefaultMutableTreeNode field = new DefaultMutableTreeNode(fielde.getAttribute("Field"));
+//                     table.add(field);}
+//                 root.add(table);}
+//             NodeList nodeLst = doc.getElementsByTagName("twister_user_defined");
+//             Element tablee = (Element)nodeLst.item(0);
+//             NodeList fields = tablee.getElementsByTagName("field_section");
+//             tablee = (Element)fields.item(0);
+//             fields = tablee.getElementsByTagName("field");
+            NodeList nodeLst = doc.getElementsByTagName("insert_section");
             Element tablee = (Element)nodeLst.item(0);
-            NodeList fields = tablee.getElementsByTagName("field_section");
-            tablee = (Element)fields.item(0);
-            fields = tablee.getElementsByTagName("field");
+            NodeList fields = tablee.getElementsByTagName("field");
             for(int i=0;i<fields.getLength();i++){                
                 tablee = (Element)fields.item(i);
                 if(tablee.getAttribute("GUIDefined").equals("true")){
@@ -885,7 +890,7 @@ public class Repository{
 //                 getTagContent(doc,"MasterXMLTestSuite");
                 XMLDIRECTORY = Repository.temp+bar+"Twister"+bar+"XML"+
                                         bar+XMLREMOTEDIR.split("/")[XMLREMOTEDIR.split("/").length-1];
-                //REMOTEEPIDDIR = getTagContent(doc,"EPIdsFile");
+                REMOTELIBRARY = getTagContent(doc,"LibPath");
                 REMOTEEPIDDIR = getTagContent(doc,"EpNames");
                 REMOTEDATABASECONFIGFILE = getTagContent(doc,"DbConfigFile");
                 String [] path = REMOTEDATABASECONFIGFILE.split("/");

@@ -1,6 +1,6 @@
 /*
 File: Grafic.java ; This file is part of Twister.
-Version: 2.001
+Version: 2.002
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -1514,51 +1514,7 @@ public class Grafic extends JPanel{
         item.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 new AddSuiteFrame(Grafic.this, suita,0);}});
-        p.add(item);        
-//         if(suita.getPos().size()==1){
-//             item = new JMenuItem("Set Ep");
-//             p.add(item);
-//             item.addActionListener(new ActionListener(){
-//                 public void actionPerformed(ActionEvent ev){
-//                     try{File f = new File(Repository.temp+System.getProperty("file.separator")+
-//                                           "Twister"+System.getProperty("file.separator")+"Epname.txt");
-//                         String line = null;  
-//                         InputStream in = Repository.c.get(Repository.REMOTEEPIDDIR);
-//                         InputStreamReader inputStreamReader = new InputStreamReader(in);
-//                         BufferedReader bufferedReader = new BufferedReader(inputStreamReader);  
-//                         StringBuffer b=new StringBuffer("");
-//                         while ((line=bufferedReader.readLine())!= null){b.append(line+";");}                        
-//                         bufferedReader.close();
-//                         inputStreamReader.close();
-//                         in.close();
-//                         String result = b.toString();
-//                         String  [] vecresult = result.split(";");
-//                         try{JComboBox combo = new JComboBox(vecresult);
-//                             int resp = (Integer)CustomDialog.showDialog(combo,JOptionPane.INFORMATION_MESSAGE,
-//                                                                         JOptionPane.OK_CANCEL_OPTION,Grafic.this,
-//                                                                         "Epname",null);
-//                             if(resp==JOptionPane.OK_OPTION){
-//                                 String ID = combo.getSelectedItem().toString();
-//                                 suita.setEpId(ID);
-//                                 for(int i=0;i<suita.getSubItemsNr();i++){
-//                                     assignEpID(suita.getSubItem(i),ID);}
-//                                 repaint();}}
-//                         catch(Exception e){e.printStackTrace();}}
-//                     catch(Exception e){e.printStackTrace();}}});}
-//         item = new JMenuItem("Rename");
-//         p.add(item);
-//         item.addActionListener(new ActionListener(){
-//             public void actionPerformed(ActionEvent ev){   
-//             String name = CustomDialog.showInputDialog(JOptionPane.QUESTION_MESSAGE, 
-//                                                        JOptionPane.OK_CANCEL_OPTION, 
-//                                                        Grafic.this, "Suite Name", 
-//                                                        "Please enter suite name").toUpperCase();
-//             FontMetrics metrics = getGraphics().getFontMetrics(new Font("TimesRoman", Font.BOLD, 14));
-//             int width = metrics.stringWidth(name)+140;
-//             suita.setName(name);
-//             suita.getRectangle().setSize(width,(int)suita.getRectangle().getHeight());
-//             if(suita.isVisible())updateLocations(suita);
-//             repaint();}});
+        p.add(item);
         item = new JMenuItem("Expand");
         p.add(item);
         item.addActionListener(new ActionListener(){
@@ -1628,9 +1584,7 @@ public class Grafic extends JPanel{
             selectItem(theone2.getPos());
             Repository.window.mainpanel.p1.suitaDetails.setParent(theone2);
             Repository.window.mainpanel.p1.suitaDetails.setTCDetails();
-            repaint();
-            
-        }}
+            repaint();}}
             
     public void setOptional(Item tc){
         if(tc.isOptional()){
@@ -1985,88 +1939,6 @@ public class Grafic extends JPanel{
             for(int i=0;i<subitemnr;i++){
                 if(!item.getSubItem(i).isVisible())continue;
                 handlePaintItem(item.getSubItem(i),g);}}}
-     
-//     /*
-//      * handles drawing item based 
-//      * on item type
-//      */
-//     public void drawItem(Item item,Graphics g){
-//         g.setFont(new Font("TimesRoman", Font.PLAIN, 12));
-//         g.setColor(Color.BLACK);
-//         if(item.isSelected()){
-//             g.setColor(new Color(220,220,220));
-//             g.fillRect((int)item.getRectangle().getX(),(int)item.getRectangle().getY(),
-//                         (int)item.getRectangle().getWidth(),(int)item.getRectangle().getHeight());
-//             g.setColor(Color.BLACK);
-//             g.drawRect((int)item.getRectangle().getX(),(int)item.getRectangle().getY(),
-//                         (int)item.getRectangle().getWidth(),(int)item.getRectangle().getHeight());}
-//         if(item.getType()==2){
-//             g.drawString(item.getName(),(int)item.getRectangle().getX()+45,
-//                         (int)item.getRectangle().getY()+18);
-//             g.drawImage(Repository.getSuitaIcon(),(int)item.getRectangle().getX()+25,
-//                         (int)item.getRectangle().getY()+1,null);}
-//         else if(item.getType()==1){
-//             if(item.isPrerequisite())g.setColor(Color.RED);
-//             else if(!item.isRunnable())g.setColor(Color.GRAY);
-//             g.drawString(item.getName(),(int)item.getRectangle().getX()+50,
-//                         (int)item.getRectangle().getY()+15);
-//             g.setColor(Color.BLACK);
-//             g.drawImage(Repository.getTCIcon(),(int)item.getRectangle().getX()+25,
-//                         (int)item.getRectangle().getY()+1,null);
-//             if(item.isOptional()){
-//                 g.drawImage(Repository.optional,(int)item.getRectangle().getX()+43,
-//                         (int)item.getRectangle().getY()+1,null);
-//             }
-//                     }
-//         else{if(item.getPos().get(item.getPos().size()-1).intValue()==0){
-//             g.drawImage(Repository.getPropertyIcon(),
-//                         (int)item.getRectangle().getX()+2,
-//                         (int)item.getRectangle().getY()+1,null);}
-//             g.drawString(item.getName()+" : "+item.getValue(),
-//                         (int)item.getRectangle().getX()+25,
-//                         (int)item.getRectangle().getY()+15);}
-//         if((item.getPos().size()!=1)){
-//             if(item.getType()==0 &&
-//             item.getPos().get(item.getPos().size()-1).intValue()!=0){}
-//             else{g.setColor(new Color(180,180,180));
-//                 g.drawLine((int)item.getRectangle().getX()-25,
-//                             (int)(item.getRectangle().getY()+item.getRectangle().getHeight()/2),
-//                             (int)item.getRectangle().getX(),
-//                             (int)(item.getRectangle().getY()+item.getRectangle().getHeight()/2));
-//                 ArrayList<Integer> temp = (ArrayList<Integer>)item.getPos().clone();
-//                 if(temp.get(temp.size()-1)==0){
-//                     g.drawLine((int)item.getRectangle().getX()-25,
-//                                 (int)(item.getRectangle().getY()+item.getRectangle().getHeight()/2),
-//                                 (int)item.getRectangle().getX()-25,(int)(item.getRectangle().getY())-5);}
-//                 else{temp.set(temp.size()-1,new Integer(temp.get(temp.size()-1).intValue()-1));
-//                     Item theone = getItem(temp,false);
-//                     g.drawLine((int)item.getRectangle().getX()-25,
-//                                 (int)(item.getRectangle().getY()+item.getRectangle().getHeight()/2),
-//                                 (int)item.getRectangle().getX()-25,
-//                                 (int)(theone.getRectangle().getY()+theone.getRectangle().getHeight()/2));}
-//                 g.setColor(Color.BLACK);}}
-//         if(item.getType()!=0){
-//             g.drawRect((int)item.getCheckRectangle().getX(),
-//                         (int)item.getCheckRectangle().getY(),
-//                         (int)item.getCheckRectangle().getWidth(),
-//                         (int)item.getCheckRectangle().getHeight());
-//             if(item.getCheck()){
-//                 Rectangle r = item.getCheckRectangle();
-//                 int x2[] = {(int)r.getX(),(int)r.getX()+(int)r.getWidth()/2,
-//                             (int)r.getX()+(int)r.getWidth(),
-//                             (int)r.getX()+(int)r.getWidth()/2};
-//                 int y2[] = {(int)r.getY()+(int)r.getHeight()/2,
-//                             (int)r.getY()+(int)r.getHeight(),
-//                             (int)r.getY(),(int)r.getY()+(int)r.getHeight()-5};
-//                 g.fillPolygon(x2,y2,4);}}
-//         if(item.getEpId()!=null){
-//             g.setFont(new Font("TimesRoman", Font.PLAIN, 11));
-//             g.drawString(" - "+item.getEpId(),(int)(item.getRectangle().getX()+item.getRectangle().getWidth()-100),
-//                         (int)(item.getRectangle().getY()+18));}}
-
-
-
-
 
     /*
      * handles drawing item based 

@@ -147,10 +147,12 @@ public class Panel4 extends JPanel{
      */
     public void setDatabase(){
         main.removeAll();
-        main.setLayout(null);
-        scroll = new JScrollPane(dbconfig);
-        scroll.setBounds(5,15,main.getWidth()-10,main.getHeight()-20);
-        main.add(scroll);
+        //main.setLayout(null);
+        main.setLayout(new BorderLayout());
+        //scroll = new JScrollPane(dbconfig);
+        //scroll.setBounds(5,15,main.getWidth()-10,main.getHeight()-20);
+        //main.add(scroll);
+        main.add(dbconfig.databaseinterface,BorderLayout.CENTER);
         main.repaint();
         main.revalidate();}
     
@@ -215,8 +217,8 @@ public class Panel4 extends JPanel{
     public void setGlobals(){
         main.removeAll();
         main.setLayout(new BorderLayout());
-        plugins.setPreferredSize(new Dimension(main.getWidth()-5,
-                                               main.getHeight()-5));
+//         plugins.setPreferredSize(new Dimension(main.getWidth()-5,
+//                                                main.getHeight()-5));
         main.add(glob.main,BorderLayout.CENTER);
         main.repaint();
         main.revalidate();}
@@ -247,8 +249,8 @@ public class Panel4 extends JPanel{
     public Services getServices(){
         return services;}
         
-    public DBConfig getDBConfig(){
-        return dbconfig;}
+    public DatabaseInterface getDBConfig(){
+        return dbconfig.databaseinterface;}
         
     public ConfigFiles getConfig(){
         return config;}

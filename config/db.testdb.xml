@@ -7,8 +7,7 @@
 	<password>password</password>
 </db_config>
 
-<twister_user_defined>
-<field_section>
+<insert_section>
 	<field ID="res_id" Type="DbSelect" FieldName="id" FromTable="results" SQLQuery="select MAX(id)+1 from repo_test_view" Label="" GUIDefined="false" Mandatory="true" />
 	<field ID="log_id" Type="DbSelect" FieldName="id" FromTable="logs"    SQLQuery="select MAX(id)+1 from logs" Label="" GUIDefined="false" Mandatory="true" />
 
@@ -18,9 +17,7 @@
 	<field ID="station_id"   FieldName="id" FromTable="suts" SQLQuery="select DISTINCT id from repo_station" Label="Station: (int)" Type="UserSelect" GUIDefined="true" Mandatory="true" />
 
 	<field ID="comments"  FieldName="" FromTable="" Label="Set comments:" Type="UserText" GUIDefined="true" Mandatory="false" />
-</field_section>
 
-<insert_section>
 	<sql_statement>INSERT INTO repo_test_view VALUES( @res_id@, $release_id, $build_id, $suite_id, $station_id,
 		'$twister_tc_date_finished', '$twister_tc_status', '$comments' )</sql_statement>
 </insert_section>
@@ -57,5 +54,4 @@
 	<redirect ID="goto PhpMyAdmin" Path="http://localhost/phpmyadmin/" />
 	<redirect ID="goto Google" Path="http://www.google.ro" />
 </reports_section>
-</twister_user_defined>
 </root>
