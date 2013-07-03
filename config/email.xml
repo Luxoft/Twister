@@ -1,10 +1,10 @@
 <Root>
     <Enabled>false</Enabled>
-    <SMTPPath>foo.com:25</SMTPPath>
-    <SMTPUser>foo1</SMTPUser>
-    <SMTPPwd>XXX</SMTPPwd>
-    <From>foo1@foo.com</From>
-    <To>foo2@foo.com, foo3@foo.com</To>
+    <SMTPPath></SMTPPath>
+    <SMTPUser></SMTPUser>
+    <SMTPPwd></SMTPPwd>
+    <From></From>
+    <To></To>
     <Subject>Report for [$date]</Subject>
     <Message></Message>
 </Root>

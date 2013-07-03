@@ -15,6 +15,7 @@
 - fixed issue #9
 - updated user guide
 - reworked the code for central engine
+- removed default email addresses from email.xml file
 
 WARNING: Installing this version might imply reconfiguring the framework; the older configuration files are not 100% compatible
          with this version of framework
