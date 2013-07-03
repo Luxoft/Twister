@@ -621,23 +621,12 @@ public class XMLBuilder{
                         for (int i=0; i<path.length-1; i++){
                             result2.append(path[i]);
                             result2.append("/");}}
-                            
-//                     Repository.c.cd(result2.toString());
                     FileInputStream in = new FileInputStream(file);
-//                     Repository.c.put(in, file.getName());
-//                     in.close();
-                    
                     Repository.uploadRemoteFile(result2.toString(), in, file.getName());
-                
                 }
                 else{
-//                     Repository.c.cd(Repository.getRemoteUsersDirectory());
                     FileInputStream in = new FileInputStream(file);
-//                     Repository.c.put(in, file.getName());
-//                     in.close();
-                    
                     Repository.uploadRemoteFile(Repository.getRemoteUsersDirectory(), in, file.getName());
-                
                 }}
             catch(Exception e){e.printStackTrace();
                 System.out.println("Could not get XML file to upload on sever");

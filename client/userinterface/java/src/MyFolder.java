@@ -20,7 +20,7 @@ limitations under the License.
 import org.w3c.dom.Node;
 
 class MyFolder{
-    private Node node;
+    private Node node,desc;
     
     public MyFolder(Node node){
         this.node = node;
@@ -28,6 +28,14 @@ class MyFolder{
     
     public Node getNode(){
         return node;
+    }
+    
+    public void setDesc(Node desc){
+        this.desc = desc;
+    }
+    
+    public Node getDesc(){
+        return desc;
     }
     
     public String toString(){

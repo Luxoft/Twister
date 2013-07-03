@@ -1,8 +1,10 @@
 
-# version: 2.001
+# version: 2.002
 
-from ce_libs import getResource, setResource, deleteResource, getResourceStatus
-from ce_libs import allocResource, reserveResource, freeResource
+# getResource, setResource and * are now included in the interpreter !!
+# No need to import anything anymore !
+# from ce_libs import getResource, setResource, deleteResource, getResourceStatus
+# from ce_libs import allocResource, reserveResource, freeResource
 
 #
 # <title>Test Resource Allocator</title>

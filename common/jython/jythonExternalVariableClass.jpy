@@ -1,0 +1,90 @@
+#!/usr/bin/env jython
+
+# version: 1.000
+#
+# -*- coding: utf-8 -*-
+#
+# File: jythonExternalVariablesClass.jpy ; This file is part of Twister.
+#
+# Copyright (C) 2012 , Luxoft
+#
+# Authors:
+#    Adrian Toader <adtoader@luxoft.com>
+#
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at:
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+
+# Python module that implements a Java interface to
+
+
+from tscJython.interfaces import ExternalVariableType
+
+import pickle
+
+from xmlrpclib import ServerProxy
+
+from marshal import dumps as marshalDumps
+
+from os import getcwd
+from os.path import abspath, dirname, join
+
+
+
+
+class ExternalVariable(ExternalVariableType):
+    """ External Variable class """
+
+    def __init__(self):
+        """ initialize class """
+
+        dataFile = open(join(dirname(abspath(getcwd())), 'data.pkl'), 'rb')
+        data = pickle.load(dataFile)
+        dataFile.close()
+        del dataFile
+
+        self.CE = ServerProxy(data['PROXY'])
+        self.user = data['USER']
+
+
+    def logMessage(self, messageType, message):
+        """ log message """
+
+        self.CE.logMessage(self.user, messageType, message)
+
+
+    def setVariable(self, name, value):
+        """ set external variable """
+
+        try:
+            if str(value.__class__) == "<type 'array.array'>":
+                value = list(value)
+            if str(value.__class__) == "<type 'java.util.HashMap'>":
+                value = dict(value)
+
+            marshalDumps(value)
+
+            return self.CE.setGlobalVariable(self.user, name, value)
+
+        except Exception, e:
+            print 'error: %s' % (e)
+
+            return False
+
+
+    def getVariable(self, name):
+        """ get external variable """
+
+        return self.CE.getGlobalVariable(self.user, name)
+

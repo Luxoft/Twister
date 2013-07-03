@@ -1,6 +1,6 @@
 
 #
-# version: 2.001
+# version: 2.002
 # <title>test 04</title>
 # <description>Testing the Suites.</description>
 #
@@ -48,8 +48,8 @@ def test(PROXY, USER):
 
     return 'Pass'
 
-#
-
+# Must have one of the statuses:
+# 'pass', 'fail', 'skipped', 'aborted', 'not executed', 'timeout', 'invalid'
 _RESULT = test(PROXY, USER)
 
 # Eof()

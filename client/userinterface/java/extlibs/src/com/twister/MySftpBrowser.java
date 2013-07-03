@@ -1,6 +1,7 @@
+package com.twister;
 /*
 File: MySftpBrowser.java ; This file is part of Twister.
-Version: 2.002
+Version: 2.003
 Copyright (C) 2012 , Luxoft
 
 Authors: Andrei Costachi <acostachi@luxoft.com>
@@ -17,7 +18,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
  */
 
-package com.twister;
+
 
 import javax.swing.GroupLayout.Alignment;
 import javax.swing.JCheckBox;
@@ -36,12 +37,10 @@ import java.awt.Component;
 import javax.swing.DefaultListCellRenderer;
 import javax.swing.ImageIcon;
 import java.awt.Image;
-import java.io.BufferedReader;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 
 import com.jcraft.jsch.Channel;
 
@@ -52,7 +51,6 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableColumn;
-import javax.swing.table.TableModel;
 
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -65,14 +63,11 @@ import javax.swing.LayoutStyle.ComponentPlacement;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.Properties;
-import java.util.TimeZone;
 import java.util.Vector;
 import com.jcraft.jsch.ChannelSftp.LsEntry;
 import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.Session;
-import com.jcraft.jsch.SftpException;
 import java.util.Collections;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
@@ -97,13 +92,15 @@ public class MySftpBrowser extends JFrame {
 	private Image suitaicon, tcicon, upicon;
 	private boolean visible;
 	private Session session;
-	private HashMap<Integer, String> gid = new HashMap<Integer, String>();
-	private HashMap<Integer, String> uid = new HashMap<Integer, String>();
 	private JCheckBox author = new JCheckBox("author");
 	private JCheckBox group = new JCheckBox("group");
 	private JCheckBox date = new JCheckBox("date");
 	private JCheckBox size = new JCheckBox("size");
 	private JTable table;
+//	private DataOutputStream dataOut;
+//	private DataInputStream dataIn;
+//	private Channel ssh;
+	
 
 	/*
 	 * c - SFTP connection initialized in repository text - the jtextfield that
@@ -167,6 +164,13 @@ public class MySftpBrowser extends JFrame {
 				c.disconnect();
 				session.disconnect();
 				dispose();
+//				try {
+//					dataIn.close();
+//					dataOut.close();
+//				} catch (IOException e1) {
+//					e1.printStackTrace();
+//				}
+//		        ssh.disconnect();  
 			}
 		});
 		setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
@@ -209,26 +213,6 @@ public class MySftpBrowser extends JFrame {
 	}
 
 	/*
-	 * read ssh stream
-	 */
-	private void readSSH(BufferedReader in, Channel channel) {
-		try {
-			String line = in.readLine();
-			String[] comp;
-			while (!line.endsWith("$ ")) {
-				line = in.readLine();
-				comp = line.split(":");
-				if (comp.length == 7) {
-					uid.put(new Integer(comp[2]), comp[0]);
-					gid.put(new Integer(comp[3]), comp[0]);
-				}
-			}
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-	}
-
-	/*
 	 * method to initialize sftp connection used to browse server
 	 */
 	private void initializeSftp(String user, String host, String passwd) {
@@ -243,20 +227,6 @@ public class MySftpBrowser extends JFrame {
 			Channel channel = session.openChannel("sftp");
 			channel.connect();
 			c = (ChannelSftp) channel;
-			channel = session.openChannel("shell");
-			channel.connect();
-			DataInputStream dataIn = new DataInputStream(
-					channel.getInputStream());
-			BufferedReader reader = new BufferedReader(new InputStreamReader(
-					dataIn));
-			DataOutputStream dataOut = new DataOutputStream(
-					channel.getOutputStream());
-			dataOut.writeBytes("cat /etc/passwd \r\n");
-			dataOut.flush();
-			readSSH(reader, channel);
-			dataIn.close();
-			dataOut.close();
-			channel.disconnect();
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -314,22 +284,15 @@ public class MySftpBrowser extends JFrame {
 			Vector<LsEntry> folders = new Vector<LsEntry>();
 			Vector<LsEntry> files = new Vector<LsEntry>();
 			int lssize = vector1.size();
-			String current;
+			if(lssize==2)return;
 			for (int i = 0; i < lssize; i++) {
 				if (vector1.get(i).getFilename().split("\\.").length == 0) {
 					continue;
 				}
-				try {
-					current = c.pwd();
-					c.cd(vector1.get(i).getFilename());
-					c.cd(current);
+				if(vector1.get(i).getAttrs().isDir()){
 					folders.add(vector1.get(i));
-				} catch (SftpException e) {
-					if (e.id == 4) {
-						files.add(vector1.get(i));
-					} else {
-						e.printStackTrace();
-					}
+				} else {
+					files.add(vector1.get(i));
 				}
 			}
 			Collections.sort(folders);
@@ -337,19 +300,25 @@ public class MySftpBrowser extends JFrame {
 			long d;
 			DateFormat format = new SimpleDateFormat("yyyy.MM.dd HH:mm:ss");
 			Date date;
+			String data [], user, group;
 			for (LsEntry s : folders) {
 				d= s.getAttrs().getMTime();
 				d*=1000;
 				date = new Date(d);
+				data = s.getLongname().split("\\s+");
+				user = data[2];
+				group = data [3];
 				model.addRow(new Object[] {
 						new MyLabel(s.getFilename(), null,
 								SwingConstants.LEFT, 0),
-						new MyLabel(uid.get(new Integer(s.getAttrs().getUId())), null,
+						new MyLabel(user, null,
 								SwingConstants.LEFT, 2),
-						new MyLabel(gid.get(new Integer(s.getAttrs().getGId())), null,
+						new MyLabel(group, null,
 								SwingConstants.LEFT, 2),
-						new MyLabel("", null,
-								SwingConstants.LEFT, 2),
+//						new MyLabel("", null,
+//								SwingConstants.LEFT, 2)
+								0l
+						,
 						new MyLabel(format.format(date), null,
 								SwingConstants.LEFT, 2), });
 			}
@@ -357,15 +326,21 @@ public class MySftpBrowser extends JFrame {
 				d= s.getAttrs().getMTime();
 				d*=1000;
 				date = new Date(d);
+				
+				data = s.getLongname().split("\\s+");
+				user = data[2];
+				group = data [3];
+				
 				model.addRow(new Object[] {
 						new MyLabel(s.getFilename(), null,
 								SwingConstants.LEFT, 1),
-						new MyLabel(uid.get(new Integer(s.getAttrs().getUId())), null,
+						new MyLabel(user, null,
 								SwingConstants.LEFT, 2),
-						new MyLabel(gid.get(new Integer(s.getAttrs().getGId())), null,
+						new MyLabel(group, null,
 								SwingConstants.LEFT, 2),
-						new MyLabel(s.getAttrs().getSize() + "", null,
-								SwingConstants.LEFT, 2),
+//						new MyLabel(s.getAttrs().getSize() + "", null,
+//								SwingConstants.LEFT, 2)
+								s.getAttrs().getSize(),
 						new MyLabel(format.format(date), null,
 								SwingConstants.LEFT, 2), });
 			}
@@ -490,7 +465,27 @@ public class MySftpBrowser extends JFrame {
 		String[] columnnames = new String[] { "Name", "Author", "Group",
 				"Size", "Date" };
 		Object[][] data = new Object[][] {};
-		DefaultTableModel model = new DefaultTableModel(data, columnnames);
+		DefaultTableModel model = new DefaultTableModel(data, columnnames)
+		{
+			public Class getColumnClass(int columnIndex) {
+//				switch(columnIndex){
+//					case 3:
+//						System.out.println("3");
+//						return MyLabel.class;
+//					default: 
+//						System.out.println("else");
+//						return Long.class;
+//						
+//				}
+				if(columnIndex==3)return Long.class;
+				return MyLabel.class;
+		        //try{return getValueAt(0, columnIndex).getClass();}
+		        //catch(Exception e){
+		        //	e.printStackTrace();
+		        //	return String.class;
+		        //}
+		    }
+		};
 		table = new JTable(model) {
 			private static final long serialVersionUID = 1L;
 			public boolean isCellEditable(int row, int column) {
@@ -509,9 +504,9 @@ public class MySftpBrowser extends JFrame {
 			@Override
 			public void mouseClicked(MouseEvent ev) {
 
-				MyLabel selected = (MyLabel) table.getModel().getValueAt(
+				MyLabel selected = (MyLabel) table.getValueAt(
 						table.rowAtPoint(ev.getPoint()),
-						table.columnAtPoint(ev.getPoint()));
+						0);
 				if (ev.getClickCount() == 2) {
 					if (selected.getType() == 0) {
 						try {
@@ -663,24 +658,6 @@ public class MySftpBrowser extends JFrame {
 	}
 
 	/*
-	 * my implementation of a DefaultListCellRenderer to represent folders and
-	 * files in main browser
-	 */
-	class IconListRenderer extends DefaultListCellRenderer {
-		private static final long serialVersionUID = 1L;
-		EmptyBorder border = new EmptyBorder(2, 3, 2, 3);
-
-		public Component getListCellRendererComponent(JList list, Object value,
-				int index, boolean isSelected, boolean cellHasFocus) {
-			JLabel label = (JLabel) super.getListCellRendererComponent(list,
-					value, index, isSelected, cellHasFocus);
-			label.setIcon(((JLabel) value).getIcon());
-			label.setBorder(border);
-			return label;
-		}
-	}
-
-	/*
 	 * my implementation of jlabel to hold the type of jlabel(folder or file)
 	 * and icon
 	 */
@@ -704,7 +681,7 @@ public class MySftpBrowser extends JFrame {
 	}
 
 	/*
-	 * my implementation of TableCellRenderer to render icons accordingly
+	 * my implementation of TableCellRenderer to render icons according
 	 * to item type
 	 */
 	class MyTableCellRender extends DefaultTableCellRenderer {
@@ -713,22 +690,43 @@ public class MySftpBrowser extends JFrame {
 		@Override
 		public Component getTableCellRendererComponent(JTable arg0,
 				Object arg1, boolean arg2, boolean arg3, int arg4, int arg5) {
-			JLabel label;
+			
+			JLabel label = (JLabel) super.getTableCellRendererComponent(arg0,
+					arg1, arg2, arg3, arg4, arg5);
+			
+//			System.out.println(arg1.getClass()+" - "+Long.class+" - "+arg1.getClass().equals(Long.class));
+			
+//			if(arg1.getClass().equals(Long.class)){
+//				
+//				if((Long)arg1 == 0 ){
+//					label = (JLabel) super.getTableCellRendererComponent(arg0,
+//							arg1, arg2, arg3, arg4, arg5);
+//					label.setText("");
+//					return label;
+//				} else {
+//					return super.getTableCellRendererComponent(arg0,
+//							arg1, arg2, arg3, arg4, arg5);
+//				}
+//			}
+//			
+//			
+//			
+//			if(label.getText().equals("0"))label.setText("");
 			if (((MyLabel) arg1).getType() == 0) {
-				label = (JLabel) super.getTableCellRendererComponent(arg0,
-						arg1, arg2, arg3, arg4, arg5);
+//				label = (JLabel) super.getTableCellRendererComponent(arg0,
+//						arg1, arg2, arg3, arg4, arg5);
 				label.setIcon(new ImageIcon(suitaicon));
 				if(!arg2)label.setBackground(arg0.getParent().getBackground());
 				return label;
 			} else if (((MyLabel) arg1).getType() == 1)	{
-				label = (JLabel) super.getTableCellRendererComponent(arg0,
-						arg1, arg2, arg3, arg4, arg5);
+//				label = (JLabel) super.getTableCellRendererComponent(arg0,
+//						arg1, arg2, arg3, arg4, arg5);
 				label.setIcon(new ImageIcon(tcicon));
 				if(!arg2)label.setBackground(arg0.getParent().getBackground());
 				return label;
 			} else{
-				label = (JLabel)super.getTableCellRendererComponent(arg0,
-						arg1, arg2, arg3, arg4, arg5);
+//				label = (JLabel)super.getTableCellRendererComponent(arg0,
+//						arg1, arg2, arg3, arg4, arg5);
 				label.setIcon(null);
 				if(!arg2)label.setBackground(arg0.getParent().getBackground());
 				return label;

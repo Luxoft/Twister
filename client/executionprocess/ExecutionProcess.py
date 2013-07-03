@@ -25,15 +25,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-'''
+"""
 Execution Process (EP) should be started as a service, on system startup.
-Each EP (machine) has a unique name, called Ep Name.
-EP gets his status from CE every second. The status can be changed using the Java interface.
+Each EP has a unique name for its user, called Ep Name.
+EP gets his status from CE every few seconds. The status can be changed using the Java interface.
 When it receives START from CE, it will start the Runner that will execute all test files from suite,
   send all Runner logs to CE and after the execution, it will wait for another START to repeat the cycle.
 EP is basically a simple service, designed to start and stop the Runner.
 All the hard work is made by the Runner.
-'''
+"""
 
 import os
 import sys
@@ -45,6 +45,7 @@ import socket
 import threading
 import subprocess
 import platform
+import tarfile
 
 TWISTER_PATH = os.getenv('TWISTER_PATH')
 if not TWISTER_PATH:
@@ -104,6 +105,25 @@ def packetSnifferStatus(ce):
 
         if result == 'running':
             if os.getuid() == 0:
+                # download openflow library
+                openflowLib = ce.downloadLibrary(userName, 'openflow')
+                time.sleep(0.2)
+                if not openflowLib:
+                    print('ZIP library openflow does not exist!')
+                else:
+                    print('Downloading Zip library openflow ...')
+
+                    openflowPath = os.path.join(TWISTER_PATH, 'services/PacketSniffer/')
+                    with open(os.path.join(openflowPath, 'openflow.tar.gz'), 'wb') as f:
+                        f.write(openflowLib.data)
+
+                    with tarfile.open(os.path.join(openflowPath, 'openflow.tar.gz'), 'r:gz') as binary:
+                        os.chdir(openflowPath)
+                        binary.extractall()
+
+                    os.remove(os.path.join(openflowPath, 'openflow.tar.gz'))
+
+                # start sniffer
                 scriptPath =  os.path.join(TWISTER_PATH, 'bin/start_packet_sniffer.py')
                 command = ['sudo', 'python', scriptPath, '-u', userName,
                             '-i', str(sniffer), '-t', TWISTER_PATH]
@@ -239,7 +259,6 @@ if __name__=='__main__':
     proxy = ''
     filelist = ''
     programExit = False
-    OFFLINE = False
     sniffer = None
     snifferMessage = False
 
@@ -253,31 +272,17 @@ if __name__=='__main__':
     else:
         userName = sys.argv[1]
         globEpName = sys.argv[2]
-        # If EP is started in OFFLINE mode
-        if globEpName.upper() == 'OFFLINE':
-            OFFLINE = True
-            globEpName = 'OFFLINE'
-            filelist = sys.argv[3]
-            if not os.path.isfile(filelist):
-                print('EP error: Invalid file list! File `{0}` does not exits!'.format(filelist))
-                exit(1)
-        else:
-            host = sys.argv[3]
-            print('User: {0} ;  EP: {1} ;  host: {2}'.format(userName, globEpName, host))
+        host = sys.argv[3]
         sniffer = (sys.argv[4], None)[sys.argv[4]=='None']
+        print('User: {0} ;  EP: {1} ;  host: {2}'.format(userName, globEpName, host))
 
-    # Offline mode...
-    if OFFLINE:
-        epStatus = 'running'
-    # Connected to CE...
-    else:
-        CE_Path = 'http://' + host + '/'
-        tcr_pid = None # PID of TC Runner
+    CE_Path = 'http://' + host + '/'
+    tcr_pid = None # PID of TC Runner
 
-        proxy = xmlrpclib.ServerProxy(CE_Path)
+    proxy = xmlrpclib.ServerProxy(CE_Path)
 
-        threadCheckStatus().start() # Start checking CE status and sending Logs
-        threadCheckLog().start() # Start checking CE status and sending Logs
+    threadCheckStatus().start() # Start checking CE status and sending Logs
+    threadCheckLog().start() # Start checking CE status and sending Logs
 
     print('EP debug: Setup done, waiting for START signal.')
 
@@ -291,6 +296,7 @@ if __name__=='__main__':
             # The same Python interpreter that started EP, will be used to start the Runner
             tcr_fname = TWISTER_PATH + '/client/executionprocess/TestCaseRunner.py'
             tcr_proc = subprocess.Popen([sys.executable, '-u', tcr_fname, userName, globEpName, filelist], shell=False)
+            # The PID is used in the status thread
             tcr_pid = tcr_proc.pid
 
             # TestCaseRunner should suicide if timer expired
@@ -307,15 +313,10 @@ if __name__=='__main__':
             # Return code != 0
             elif ret:
                 print('EP debug: TC Runner exit with error code `{0}`!\n'.format(ret))
-                if not OFFLINE:
-                    # Set EP status STOPPED
-                    proxy.setExecStatus(userName, globEpName, STATUS_STOP, 'TC Runner exit with error code `{0}`!'.format(ret))
+                # Set EP status STOPPED
+                proxy.setExecStatus(userName, globEpName, STATUS_STOP, 'TC Runner exit with error code `{0}`!'.format(ret))
 
-        # For offline, only 1 cycle is executed
-        if OFFLINE:
-            break
-        else:
-            time.sleep(2)
+        time.sleep(2)
 
     # If the cicle is broken, try to kill the threads...!
     programExit = True

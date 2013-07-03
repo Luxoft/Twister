@@ -1,3 +1,24 @@
+03rd July 2013
+
+- replaced start_ce and start_httpserver scripts with start_server
+- added a mechanism to control execution of the test cases through CLI; the GUI is not mandatory anymore
+- added library for ssh; file is lib/TscSsh.py
+- added support for JUnit test cases; 
+- added a mechanism for automatic setup and teardown for every test case; file is lib/UnitTest.py
+- added support for NIS users
+- added wrapper for Ixia TCL library; the Ixia methods can be called in python using this wrapper. The libray file
+  with the wrappers can be found in lib/Ixia/IxPython.py
+- fixed issue #20
+- fixed issue #17
+- fixed issue #13
+- fixed issue #12
+- fixed issue #9
+- updated user guide
+- reworked the code for central engine
+
+WARNING: Installing this version might imply reconfiguring the framework; the older configuration files are not 100% compatible
+         with this version of framework
+
 31st May 2013
 
 - bug fix for the order of test cases when test suites contain a mix of test cases and suites

@@ -13,6 +13,7 @@ Master config file for Twister.
     <EpNames>$HOME/twister/config/epname.ini</EpNames>
     <EmailConfigFile>$HOME/twister/config/email.xml</EmailConfigFile>
     <GlobalParams>>$HOME/twister/config/globalparams.xml</GlobalParams>
+    <LibsPath>$HOME/twister/libs</LibsPath>
     <LogsPath>$HOME/twister/logs</LogsPath>
     <LogFiles>
         <logRunning>log_running.log</logRunning>

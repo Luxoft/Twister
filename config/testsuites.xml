@@ -39,7 +39,7 @@
                 <Priority>Medium</Priority>
                 <Dependancy> </Dependancy>
                 <Property>
-                    <propName>Prerequisite</propName>
+                    <propName>setup_file</propName>
                     <propValue>true</propValue>
                 </Property>
                 <Property>
@@ -69,7 +69,7 @@
                 <Priority>Medium</Priority>
                 <Dependancy> </Dependancy>
                 <Property>
-                    <propName>Prerequisite</propName>
+                    <propName>setup_file</propName>
                     <propValue>true</propValue>
                 </Property>
                 <Property>

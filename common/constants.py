@@ -1,7 +1,9 @@
 
-# Central Engine and Execution Process statuses:
+# version: 2.003
 
-# version: 2.001
+# Major list of constants.
+
+# Central Engine and Execution Process statuses:
 
 STATUS_STOP    = 0 # Suicide; the test suite is immediately killed
 STATUS_PAUSED  = 1 # After the current test is finished, the suite is frozen
@@ -34,30 +36,32 @@ testStatus = {'pending':STATUS_PENDING, 'working':STATUS_WORKING, 'pass':STATUS_
 # FWM-Config XML Tags :
 
 FWMCONFIG_TAGS = (
-	{'name':'EpNames',		'tag':'EpNames',			'default':''},
-	{'name':'TestsPath',	'tag':'TestCaseSourcePath',	'default':''},
-	{'name':'LogsPath',		'tag':'LogsPath',			'default':''},
-	{'name':'DbConfig',		'tag':'DbConfigFile',		'default':''},
-	{'name':'EmailConfig',	'tag':'EmailConfigFile',	'default':''},
-	{'name':'GlobalParams',	'tag':'GlobalParams',		'default':''},
+	{'name':'ep_names',		'tag':'EpNames',			'default':''},
+	{'name':'tests_path',	'tag':'TestCaseSourcePath',	'default':''},
+	{'name':'logs_path',	'tag':'LogsPath',			'default':''},
+	{'name':'libs_path',	'tag':'LibsPath',			'default':''},
+	{'name':'db_config',	'tag':'DbConfigFile',		'default':''},
+	{'name':'eml_config',	'tag':'EmailConfigFile',	'default':''},
+	{'name':'glob_params',	'tag':'GlobalParams',		'default':''},
 )
 
 # Project Config XML Tags :
 
 PROJECTCONFIG_TAGS = (
-	{'name':'ExitOnTestFail', 'tag':'stoponfail',		'default':False, 'type':'bool'},
-	{'name':'DbAutoSave',	'tag':'dbautosave',			'default':False, 'type':'bool'},
-	{'name':'TestcaseDelay', 'tag':'tcdelay',			'default':0, 'type':'number'},
-	{'name':'Libraries',	'tag':'libraries',			'default':''},
-	{'name':'ScriptPre',	'tag':'ScriptPre',			'default':''},
-	{'name':'ScriptPost',	'tag':'ScriptPost',			'default':''},
+	{'name':'exit_on_test_fail','tag':'stoponfail',			'default':False, 'type':'bool'},
+	{'name':'db_auto_save',		'tag':'dbautosave',			'default':False, 'type':'bool'},
+	{'name':'tc_delay',			'tag':'tcdelay',			'default':0, 'type':'number'},
+	{'name':'libraries',		'tag':'libraries',			'default':''},
+	{'name':'script_pre',		'tag':'ScriptPre',			'default':''},
+	{'name':'script_post',		'tag':'ScriptPost',			'default':''},
+	{'name':'script_mandatory',	'tag':'PrePostMandatory',	'default':False, 'type':'bool'},
 )
 
 # Suites Tags, from Project Config XML :
 
 SUITES_TAGS = (
-	{'name':'name',			'tag':'tsName',				'default':''},
 	{'name':'tb',			'tag':'TbName',				'default':''},
+	{'name':'name',			'tag':'tsName',				'default':''},
 	{'name':'pd',			'tag':'PanicDetect',		'default':''},
 	{'name':'libraries',	'tag':'libraries',			'default':''},
 )

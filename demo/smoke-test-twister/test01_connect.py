@@ -1,6 +1,6 @@
 
 #
-# version: 2.001
+# version: 2.002
 # <title>test 01</title>
 # <description>This suite checks a lot of things.
 # It checks if the EPs are running the tests successfully and it calls all CE functions, to ensure they work as expected.
@@ -9,6 +9,8 @@
 
 # `PROXY`, `USER`, `SUITE_NAME` and `FILE_NAME` are magic variables, from the Runner.
 
+# Must have one of the statuses:
+# 'pass', 'fail', 'skipped', 'aborted', 'not executed', 'timeout', 'invalid'
 _RESULT = 'Pass'
 
 try:

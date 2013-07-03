@@ -449,21 +449,6 @@ public class NodePanel extends JPanel{
                 }
             }
             String [] vecresult = b.toString().split(";");
-//             String line = null;
-//             InputStream in = Repository.c.get(Repository.REMOTEEPIDDIR);
-//             InputStreamReader inputStreamReader = new InputStreamReader(in);
-//             BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
-//             StringBuilder b=new StringBuilder();
-//             while ((line=bufferedReader.readLine())!= null){
-//                 if(line.indexOf("[")!=-1){
-//                     b.append(line.substring(line.indexOf("[")+1, line.indexOf("]"))+";");
-//                 }
-//             }
-//             bufferedReader.close();
-//             inputStreamReader.close();
-//             in.close();
-//             String result = b.toString();
-//             String [] vecresult = result.split(";");
             for(ListSelectionListener l:tep.getListSelectionListeners()){
                 tep.removeListSelectionListener(l);
             }

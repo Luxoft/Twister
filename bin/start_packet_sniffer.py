@@ -31,7 +31,8 @@ from os.path import split
 from json import load
 from optparse import OptionParser
 
-#
+
+
 
 if getuid() != 0:
     print('To run Packet Sniffer, must be ROOT! Exiting!\n')
@@ -42,7 +43,7 @@ __dir__ = split(__file__)[0]
 if __dir__: chdir(__dir__)
 
 
-# # # #
+
 
 def __main__():
     usage = 'Usage: %prog --of_port <port>'
@@ -50,7 +51,7 @@ def __main__():
     parser = OptionParser(usage=usage, version=version)
 
     # script options
-    parser.add_option('-i', '--eth_interface', action='store', default='eth0',
+    parser.add_option('-i', '--eth_interface', action='store', default=None,
                         help='Ethernet interface: eth0 (default).')
     parser.add_option('-o', '--of_port', action='store', default=6633,
                         help='OpenFlow port: 6633 (default).')
@@ -82,14 +83,16 @@ def __main__():
     epConfig = list(epConfig.itervalues())
 
     # initiate and start sniffer
-    pt = PacketSniffer(options.user, epConfig, options.of_port, iface=options.eth_interface)
+    sniffer = PacketSniffer(options.user, epConfig,
+                        options.of_port, _iface=options.eth_interface)
 
-    pt.run()
+    print 'Packet Sniffer start..'
 
-    print 'Packet Sniffer started'
+    sniffer.run()
 
     return
 
-# # # #
+
+
 
 __main__()
