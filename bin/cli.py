@@ -207,7 +207,7 @@ if __name__ == '__main__':
 
 	# The most important option is the server. By default, it's localhost:8000.
 	parser.add_option("--server",      action="store", default="http://127.0.0.1:8000/",
-		help="Central engine server IP and Port.")
+		help="Central engine server IP and Port (default: http://127.0.0.1:8000/).")
 
 	parser.add_option('-u', "--users", action="store_true", help="Show active and inactive users.")
 
