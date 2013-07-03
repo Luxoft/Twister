@@ -1,5 +1,6 @@
 03rd July 2013
 
+- replaced start_ce and start_httpserver scripts with start_server
 - added a mechanism to control execution of the test cases through CLI; the GUI is not mandatory anymore
 - added library for ssh; file is lib/TscSsh.py
 - added support for JUnit test cases; 
