@@ -452,13 +452,14 @@ public class ConfigFiles extends JPanel{
         textfield.setText(fieldtext);
         JButton b = null;
         if(withbutton){
-            b = new JButton("...");  
+            b = new JButton("...");
             b.setMaximumSize(new Dimension(50,20));
             b.setPreferredSize(new Dimension(50,20));
             if(actionlistener==null){
                 b.addActionListener(new AbstractAction(){
                     public void actionPerformed(ActionEvent ev){ 
                         Container c;
+                        
                         if(Repository.container!=null)c = Repository.container.getParent();
                         else c = Repository.window;
                         try{

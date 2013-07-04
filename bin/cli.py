@@ -39,6 +39,7 @@ Commands :
 import os
 import datetime
 import xmlrpclib
+import subprocess
 from optparse import OptionParser
 
 # --------------------------------------------------------------------------------------------------
@@ -62,15 +63,9 @@ STATUS_INVALID:'null', STATUS_WAITING:'waiting'}
 
 def userHome(user):
 	"""
-	Find the home folder for the given user, using /etc/passwd file.\n
-	This function is run from a ROOT user.
+	Find the home folder for the given user.
 	"""
-	user = str(user)
-	lines = open('/etc/passwd').readlines()
-	user_line = [line for line in lines if line.startswith(user + ':')]
-	if not user_line: return '/home/' + user
-	user_line = user_line[0].split(':')
-	return user_line[-2]
+	return subprocess.check_output('echo ~' + user, shell=True).strip()
 
 
 def checkUsers(proxy):
@@ -212,7 +207,7 @@ if __name__ == '__main__':
 
 	# The most important option is the server. By default, it's localhost:8000.
 	parser.add_option("--server",      action="store", default="http://127.0.0.1:8000/",
-		help="Central engine server IP and Port.")
+		help="Central engine server IP and Port (default: http://127.0.0.1:8000/).")
 
 	parser.add_option('-u', "--users", action="store_true", help="Show active and inactive users.")
 

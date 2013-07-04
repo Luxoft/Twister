@@ -144,7 +144,7 @@ class Project:
         # List with all EPs for this User
         epList = self.parsers[user].epnames
         if not epList:
-            logCritical('Project ERROR: Cannot load the list of EPs for user `%s` !' % user)
+            logCritical('Project ERROR: Cannot load the list of EPs for user `{}` !'.format(user))
             return False
 
         # Generate the list of EPs in order
@@ -210,17 +210,17 @@ class Project:
 
         # If it's a valid path
         if base_config and not os.path.exists(base_config):
-            logCritical('Project ERROR: Config path `%s` does not exist !' % base_config)
+            logCritical('Project ERROR: Config path {}` does not exist !'.format(base_config))
             return False
-        elif not os.path.exists( '{0}/twister'.format(user_home) ):
-            logCritical('Project ERROR: Cannot find Twister for user `{0}`, '\
-                'in path `{1}/twister`!'.format(user, user_home))
+        elif not os.path.exists( '{}/twister'.format(user_home) ):
+            logCritical('Project ERROR: Cannot find Twister for user `{}`, '\
+                'in path `{}/twister`!'.format(user, user_home))
             return False
         else:
-            base_config = '{0}/twister/config/fwmconfig.xml'.format(user_home)
+            base_config = '{}/twister/config/fwmconfig.xml'.format(user_home)
 
         if not files_config:
-            files_config = '{0}/twister/config/testsuites.xml'.format(user_home)
+            files_config = '{}/twister/config/testsuites.xml'.format(user_home)
 
         # User data + User parser
         # Parsers contain the list of all EPs and the list of all Project Globals
@@ -237,7 +237,7 @@ class Project:
 
         # Save everything.
         self._dump()
-        logDebug('Project: Created user `%s` ...' % user)
+        logDebug('Project: Created user `{}` ...'.format(user))
 
         return True
 
@@ -247,11 +247,11 @@ class Project:
         Reset user parser, all EPs to STOP, all files to PENDING.
         """
         if not user or user not in self.users:
-            logError('Project ERROR: Invalid user `{0}` !'.format(user))
+            logError('Project ERROR: Invalid user `{}` !'.format(user))
             return False
 
         if base_config and not os.path.isfile(base_config):
-            logError('Project ERROR: Config path `%s` does not exist! Using default config!' % base_config)
+            logError('Project ERROR: Config path `{}` does not exist! Using default config!'.format(base_config))
             base_config = False
 
         r = self.changeUser(user)
@@ -1171,8 +1171,8 @@ class Project:
                     except:
                         subst_data['twister_tc_log'] = '*no log*'
 
-                    # Prerequisite files will not be saved to database
-                    if subst_data.get('Prerequisite'):
+                    # Setup and Teardown files will not be saved to database!
+                    if subst_data.get('setup_file') or subst_data.get('teardown_file'):
                         continue
                     # Pre-Suite or Post-Suite files will not be saved to database
                     if subst_data.get('Pre-Suite') or subst_data.get('Post-Suite'):
