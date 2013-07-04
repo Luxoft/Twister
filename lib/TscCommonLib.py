@@ -1,7 +1,7 @@
 
-# File: CommonLib.py ; This file is part of Twister.
+# File: TscCommonLib.py ; This file is part of Twister.
 
-# version: 2.001
+# version: 2.002
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -37,11 +37,11 @@ import xmlrpclib
 # This will work, because TWISTER_PATH is appended to sys.path.
 from __init__ import PROXY, USER, EP, TB
 
-all = ['CommonLib']
+all = ['TscCommonLib']
 
 #
 
-class CommonLib:
+class TscCommonLib:
 
     platform_sys = platform.system().lower()
     proxy_path = PROXY

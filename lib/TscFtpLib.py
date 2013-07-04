@@ -1,9 +1,9 @@
 
-# File: TscFtp.py ; This file is part of Twister.
+# File: TscFtpLib.py ; This file is part of Twister.
 
-# version: 2.001
+# version: 2.002
 
-# Copyright (C) 2012 , Luxoft
+# Copyright (C) 2012-2013 , Luxoft
 
 # Authors:
 #    Andrei Costachi <acostachi@luxoft.com>

@@ -1,7 +1,7 @@
 
 # File: TestCaseRunner.py ; This file is part of Twister.
 
-# version: 2.008
+# version: 2.009
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -131,8 +131,8 @@ class TwisterRunner:
 
         try:
             import ce_libs
-            from ce_libs import CommonLib
-            self.commonLib = CommonLib()
+            from ce_libs import TscCommonLib
+            self.commonLib = TscCommonLib()
         except:
             print('TC error: Cannot import the shared libraries!')
             exit(1)
@@ -178,7 +178,7 @@ class TwisterRunner:
             try: os.makedirs(libs_path)
             except: pass
 
-        all_libs = ['CommonLib.py'] # Normal python files or folders
+        all_libs = ['TscCommonLib.py'] # Normal python files or folders
         zip_libs = [] # Zip libraries
 
         # If Reseting libs, open and destroy

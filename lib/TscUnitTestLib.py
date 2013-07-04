@@ -1,7 +1,7 @@
 
-# File: UnitTest.py ; This file is part of Twister.
+# File: TscUnitTestLib.py ; This file is part of Twister.
 
-# version: 2.003
+# version: 2.004
 
 # Copyright (C) 2012-2013 , Luxoft
 
