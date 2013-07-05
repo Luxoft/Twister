@@ -1,6 +1,6 @@
 /*
 File: XMLBuilder.java ; This file is part of Twister.
-Version: 2.001
+Version: 2.002
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -350,7 +350,7 @@ public class XMLBuilder{
 //                 Element prop  = document.createElement("Property");
 //                 tc.appendChild(prop);
 //                 Element em4 = document.createElement("propName");
-//                 em4.appendChild(document.createTextNode("Prerequisite"));
+//                 em4.appendChild(document.createTextNode("setup_file"));
 //                 prop.appendChild(em4);
 //                 Element em5 = document.createElement("propValue");
 //                 em5.appendChild(document.createTextNode("true"));
@@ -444,7 +444,16 @@ public class XMLBuilder{
                 Element prop  = document.createElement("Property");
                 tc.appendChild(prop);
                 Element em4 = document.createElement("propName");
-                em4.appendChild(document.createTextNode("Prerequisite"));
+                em4.appendChild(document.createTextNode("setup_file"));
+                prop.appendChild(em4);
+                Element em5 = document.createElement("propValue");
+                em5.appendChild(document.createTextNode("true"));
+                prop.appendChild(em5);}
+            if(item.isTeardown()){
+                Element prop  = document.createElement("Property");
+                tc.appendChild(prop);
+                Element em4 = document.createElement("propName");
+                em4.appendChild(document.createTextNode("teardown_file"));
                 prop.appendChild(em4);
                 Element em5 = document.createElement("propValue");
                 em5.appendChild(document.createTextNode("true"));
