@@ -1,6 +1,6 @@
 /*
 File: XMLReader.java ; This file is part of Twister.
-Version: 2.002
+Version: 2.003
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -204,7 +204,10 @@ public class XMLReader{
                 value = (trdNm2.item(0).getNodeValue().toString());
                 item.setRunnable(Boolean.parseBoolean(value));
                 return;}
-            else if(name.equals("Prerequisite")){
+            else if(name.equals("teardown_file")){
+                item.setTeardown(true);
+                return;}
+            else if(name.equals("setup_file")){
                 item.setPrerequisite(true);
                 return;}
             else if(name.equals("Optional")){

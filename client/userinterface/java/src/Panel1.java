@@ -1,6 +1,6 @@
 /*
 File: Panel1.java ; This file is part of Twister.
-Version: 2.002
+Version: 2.003
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -797,6 +797,7 @@ public class Panel1 extends JPanel{
                                                         Panel1.this, "File Name", "Please enter file name").toUpperCase();
                     if(!user.equals("NULL")){
                         Repository.emptySuites();
+                        sc.g.getSelectedCollection().clear();
                         (new XMLBuilder(Repository.getSuite())).writeXMLFile((new StringBuilder()).
                                                                append(Repository.getUsersDirectory()).
                                                                append(System.getProperty("file.separator"))
@@ -899,12 +900,13 @@ public class Panel1 extends JPanel{
             sc.g.printXML(sc.g.getUser(),false,false,false,false,"");
             sc.g.updateScroll();
             sc.g.repaint();
-            Repository.window.mainpanel.p1.suitaDetails.setPreScript("");
-            Repository.window.mainpanel.p1.suitaDetails.setPostScript("");
-            Repository.window.mainpanel.p1.suitaDetails.setGlobalLibs(null);
-            Repository.window.mainpanel.p1.suitaDetails.setDelay("");
-            Repository.window.mainpanel.p1.suitaDetails.setStopOnFail(false);
-            Repository.window.mainpanel.p1.suitaDetails.setSaveDB(false);
+            suitaDetails.setPreScript("");
+            suitaDetails.setPostScript("");
+            suitaDetails.setGlobalLibs(null);
+            suitaDetails.setDelay("");
+            suitaDetails.setStopOnFail(false);
+            suitaDetails.setSaveDB(false);
+            sc.g.getSelectedCollection().clear();
             Repository.emptySuites();
         
         

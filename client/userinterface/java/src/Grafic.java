@@ -1,6 +1,6 @@
 /*
 File: Grafic.java ; This file is part of Twister.
-Version: 2.002
+Version: 2.003
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -258,9 +258,12 @@ public class Grafic extends JPanel{
                 else{dragammount=0;
                     getClickedItem(xStart,yStart);
                     if(selected.size()>0){
-                        if(!(selectedcollection.size()<2&&
-                        getItem(selected,false).isPrerequisite())){//must not be prerequisite
-                            handleDraggedItems();}}}}}}
+//                         if(!(selectedcollection.size()<2
+//                         &&
+//                         getItem(selected,false).isPrerequisite()
+//                         )){//must not be prerequisite
+                            handleDraggedItems();}}}}}
+//                         }
                             
     /*
      * Dragged items method
@@ -281,7 +284,9 @@ public class Grafic extends JPanel{
                 for(int j=0;j<selectedcollection.get(i).length;j++){
                     temp.add(new Integer(selectedcollection.get(i)[j]));}
                 Item theone2 = getItem(temp,false).clone();  
-                if(theone2.getType()==0||theone2.isPrerequisite()){
+                if(theone2.getType()==0
+//                 ||theone2.isPrerequisite()
+                ){
                     getItem(temp,false).select(false);
                     selectedcollection.remove(i);
                     temp.clear();
@@ -334,7 +339,104 @@ public class Grafic extends JPanel{
         line[2] = line[0];
         line[3] = line[0];
         line[4] = line[0];}
-            
+        
+    /*
+     * arrange all items according to
+     * tear/setup property
+     */
+    public void sortTearSetup(Item i){
+        int size = i.getSubItemsNr();
+        ArrayList<Item> pretemp = new ArrayList();
+        ArrayList<Item> teartemp = new ArrayList();
+        Item subitem;
+        
+        for(int j=0;j<size;j++){
+            subitem = i.getSubItem(j);
+            if(subitem.isPrerequisite()&&j!=0&&!i.getSubItem(j-1).isPrerequisite()){
+                for(int k=j;k<size;k++){
+                    if(i.getSubItem(k).isPrerequisite())pretemp.add(i.getSubItem(k));
+                }
+                break;
+            }
+        }
+        
+        for(int j=size-1;j>-1;j--){
+            subitem = i.getSubItem(j);
+            if(subitem.isTeardown()&&j!=size-1&&!i.getSubItem(j+1).isTeardown()){
+                for(int k = j;k>-1;k--){
+                    if(i.getSubItem(k).isTeardown())teartemp.add(i.getSubItem(k));
+                }
+                break;
+            }
+        }
+        
+        
+        for(Item subitm:pretemp){
+            i.getSubItems().remove(subitm);
+        }
+        for(Item subitm:teartemp){
+            i.getSubItems().remove(subitm);
+        }
+        
+        
+        int arraysize = pretemp.size();
+        size = i.getSubItemsNr();
+        
+        for(int j=0;j<size;j++){
+            if(!i.getSubItem(j).isPrerequisite()){
+                for(int k=arraysize-1;k>-1;k--){
+                    i.insertSubItem(pretemp.get(k),j);
+                }
+                break;
+            }
+            if(j==(size-1)){
+                for(int k=arraysize-1;k>-1;k--){
+                    i.insertSubItem(pretemp.get(k),j);
+                }
+            }
+        }
+        if(size==0){
+            for(int k=arraysize-1;k>-1;k--){
+                i.insertSubItem(pretemp.get(k),0);
+            }
+        }
+        
+        arraysize = teartemp.size();
+        size = i.getSubItemsNr();
+        for(int j=size-1;j>-1;j--){
+            if(!i.getSubItem(j).isTeardown()){
+                for(int k=arraysize-1;k>-1;k--){
+                    i.insertSubItem(teartemp.get(k),j+1);
+                }
+                break;
+            }
+            if(j==0){
+                for(int k=arraysize-1;k>-1;k--){
+                    i.insertSubItem(teartemp.get(k),j+1);
+                }
+            }
+        }
+        if(size==0){
+            for(int k=arraysize-1;k>-1;k--){
+                i.insertSubItem(teartemp.get(k),0);
+            }
+        }
+        
+//         ArrayList <Integer> pos = i.getPos();
+//         ArrayList <Integer> temp;
+        size = i.getSubItemsNr();
+        for(int j=0;j<size;j++){
+//             temp = (ArrayList)pos.clone();
+//             temp.add(new Integer(j));
+//             i.getSubItem(j).setPos(temp);
+            subitem = i.getSubItem(j);
+            subitem.updatePos(subitem.getPos().size()-1, new Integer(j));
+        }
+        for(Item itm:i.getSubItems()){
+            if(i.getType()==2)sortTearSetup(itm);
+        }
+    }
+        
     public void handleMouseDroped(int mouseY){
         Collections.sort(clone, new CompareItems());
         dragging=false;
@@ -344,7 +446,7 @@ public class Grafic extends JPanel{
             getClickedItem(Xpos,mouseY);
             Xpos+=5;
             if(selected.size()!=0)break;}
-        if(selected.size()==0){
+        if(selected.size()==0){//not inserted in element @@@@@@@@@@@ 
             int y1 = mouseY;
             Item upper=null;
             while(y1>0){
@@ -369,7 +471,6 @@ public class Grafic extends JPanel{
                                 !upper.getSubItem(0).isVisible()){//if tc is last in suite                                    
                             int Y = mouseY;
                             if(Y<upper.getRectangle().y+upper.getRectangle().getHeight()+5){//Should be inserted in upper parent/next in line
-                                
                                 dropNextInLine(upper,parent,index,position);}
                             else{//Should be inserted after upper parent; exit one level
                                 upper = parent;
@@ -381,10 +482,10 @@ public class Grafic extends JPanel{
                 else if(upper.getType()==2){//inserted under suite
                     int Y = mouseY;
                     if((upper.getSubItemsNr()>0&&upper.getSubItem(0).isVisible())){//suite is expander||has no children,must insert into it
-                        if(upper.getSubItem(0).isPrerequisite()){//first element is prerequisiste, must insert after him
-                            int index = upper.getSubItem(0).getPos().get(upper.getPos().size()-1).intValue();
-                            int position = upper.getSubItem(0).getPos().size()-1;
-                            dropNextInLine(upper.getSubItem(0), upper, index, position);}
+//                         if(upper.getSubItem(0).isPrerequisite()){//first element is prerequisiste, must insert after him
+//                             int index = upper.getSubItem(0).getPos().get(upper.getPos().size()-1).intValue();
+//                             int position = upper.getSubItem(0).getPos().size()-1;
+//                             dropNextInLine(upper.getSubItem(0), upper, index, position);}
                         dropFirstInSuita(upper);}//Should be inserted in suita
                     else if(Y<upper.getRectangle().y+upper.getRectangle().getHeight()+5||//closer to upper half 
                     (Y>upper.getRectangle().y+upper.getRectangle().getHeight()+5&&upper.getPos().size()>1 //farther from 5px half but suite is not last in parent
@@ -432,19 +533,21 @@ public class Grafic extends JPanel{
                                 else{dropOnUpperLevel(upper);}}}//Suita with parent suita
                         else{dropNextInLine(upper, parent, index, position);}}}}//tc is not last in suite
             else{dropFirstElement();}}//upper is null
-        else{
+        else{//inserted in element
             if(getItem(selected,false).getType()==2){//inserted in suita
-                if(getItem(selected,false).getSubItemsNr()>0&&
-                    getItem(selected,false).getSubItem(0).isPrerequisite()){//first element is prerequisite should insert after
-                    int index = getItem(selected,false).getSubItem(0).getPos().
-                                    get(getItem(selected,false).getPos().size()-1).intValue();
-                    int position = getItem(selected,false).getSubItem(0).getPos().size()-1;
-                    dropNextInLine(getItem(selected,false).getSubItem(0), getItem(selected,false), index, position);}
+//                 if(getItem(selected,false).getSubItemsNr()>0&&
+//                     getItem(selected,false).getSubItem(0).isPrerequisite()){//first element is prerequisite should insert after
+//                     int index = getItem(selected,false).getSubItem(0).getPos().
+//                                     get(getItem(selected,false).getPos().size()-1).intValue();
+//                     int position = getItem(selected,false).getSubItem(0).getPos().size()-1;
+//                     dropNextInLine(getItem(selected,false).getSubItem(0), getItem(selected,false), index, position);}
                 dropFirstInSuita(getItem(selected,false));}//first element is not prerequisite, can insert on first level
             else if(getItem(selected,false).getType()==1){//inserted in tc
                 Item item = getItem(selected,false);
                 boolean up = isUpperHalf(item, mouseY);
-                if(up&&!item.isPrerequisite()){//in upper half of tc, tc is not prerequisite
+                if(up
+//                 &&!item.isPrerequisite()
+                ){//in upper half of tc, tc is not prerequisite
                     Item upper = item; //tc the element in witch is made drop
                     int index = upper.getPos().get(upper.getPos().size()-1).intValue(); //last position value of tc
                     int position = upper.getPos().size()-1; //what nr is the element is the one from witch made drop
@@ -477,7 +580,17 @@ public class Grafic extends JPanel{
                 if(temp.size()>1)temp.remove(temp.size()-1);
                 Item parent = getItem(temp,false);
                 if(parent.getType()==1)dropOnFirstLevel(upper);//parent is tc=>on level 0
-                else dropNextInLine(upper, parent, index, position);}}}
+                else dropNextInLine(upper, parent, index, position);}}
+            
+        for(Item item:Repository.getSuite()){
+            if(item.getType()==2){
+                sortTearSetup(item);
+            }
+        }
+        updateLocations(Repository.getSuita(0));
+        repaint();
+    
+    }
        
     /*
      * checks if y is in the upper half
@@ -596,6 +709,31 @@ public class Grafic extends JPanel{
             temp1++;
             if(clone.get(i).getType()==2)clone.get(i).setEpId(ep);
             insertNewTC(clone.get(i).getName(),selected2,parent,clone.get(i));}    
+        deselectAll();
+        clone.clear();}
+        
+        
+    /*
+     * drops elements from clone 
+     * last in suite upper
+     */
+    public void dropLastInSuita(Item upper){
+        int position = upper.getPos().size();
+        Item parent = upper;
+//         int temp1 = 0;
+        String [] ep = upper.getEpId();
+        
+        for(int i=0;i<clone.size();i++){
+            ArrayList<Integer> selected2 = (ArrayList<Integer>)upper.getPos().clone();
+            selected2.add(new Integer(upper.getSubItemsNr()+i));
+            clone.get(i).setPos(selected2);
+//             for(int j = temp1;j<parent.getSubItemsNr();j++){
+//                 parent.getSubItem(j).updatePos(position,new Integer(parent.getSubItem(j).
+//                                                     getPos().get(position).intValue()+1));}
+//             temp1++;
+            insertNewTC(clone.get(i).getName(),selected2,parent,clone.get(i));
+            if(clone.get(i).getType()==2)clone.get(i).setEpId(ep);}
+            
         deselectAll();
         clone.clear();}
         
@@ -740,14 +878,18 @@ public class Grafic extends JPanel{
             if(item.getType()==2){//it is suite
                 if(item.getRectangle().intersects(new Rectangle(0,Y-1,getWidth(),2))){//touches suite
                     if(item.getSubItemsNr()>0&&itemIsExpanded(item)){//it is expanded
-                        if(item.getSubItem(0).isPrerequisite()){//first element is prerequisite, must insert after
-                            lineUnderItem(item.getSubItem(0), X);}
-                        else{lineInsideSuita(item,X);}}
+//                         if(item.getSubItem(0).isPrerequisite()){//first element is prerequisite, must insert after
+//                             lineUnderItem(item.getSubItem(0), X);}
+//                         else{
+                            lineInsideSuita(item,X);
+//                         }
+                    }
                     else{lineOnSuita(item,X);}}//it is not expanded
                 else if (item.getSubItemsNr()>0&&itemIsExpanded(item)){//not touching suite but suite is expanded
-                    if(item.getSubItem(0).isPrerequisite()){//first element is prerequisite, must insert after
-                            lineUnderItem(item.getSubItem(0), X);}
-                    else lineInsideSuita(item,X);}
+//                     if(item.getSubItem(0).isPrerequisite()){//first element is prerequisite, must insert after
+//                             lineUnderItem(item.getSubItem(0), X);}
+//                     else 
+                    lineInsideSuita(item,X);}
                 else if(item.getRectangle().y+item.getRectangle().getHeight()+5<=Y){//upper half, on level before suite 
                     if(item.getPos().size()==1||
                         getFirstSuitaParent(item,false).getSubItemsNr()-1>
@@ -757,12 +899,14 @@ public class Grafic extends JPanel{
                 else{lineUnderSuita(item,X);}}//lower half insert after suite
             else if(item.getType()==1){//it is tc
                 if(item.getRectangle().intersects(new Rectangle(0,Y-1,getWidth(),2))){//touches tc
-                    if(item.isPrerequisite()){//tc is prerequisite, must insert after
-                        lineUnderItem(item, X);}
-                    else{//tc is not prerequisite, must interpret pos
+//                     if(item.isPrerequisite()){//tc is prerequisite, must insert after
+//                         lineUnderItem(item, X);}
+//                     else{//tc is not prerequisite, must interpret pos
                         boolean up = isUpperHalf(item,Y);
                         if(up){lineAboveTc(item,X);}//touches and in upper half
-                        else{lineUnderItem(item,X);}}}//touches and in lower half
+                        else{lineUnderItem(item,X);}
+//                     }
+                }//touches and in lower half
                 else{//didn't touch tc
                     if(getFirstSuitaParent(item,false)!=null&&
                     getFirstSuitaParent(item,false).getSubItemsNr()-1==item.getPos().get(item.getPos().size()-1)){//tc is last and has parent
@@ -1386,7 +1530,7 @@ public class Grafic extends JPanel{
             int [] indices = selectedcollection.get(i);
             for(int j=0;j<indices.length;j++)temp.add(new Integer(indices[j]));
             item = getItem(temp,false);
-            if(!item.isPrerequisite())item.setOptional(!item.isOptional());}
+            if(!item.isPrerequisite()&&!item.isTeardown())item.setOptional(!item.isOptional());}
         repaint();}
         
     /*
@@ -1566,25 +1710,36 @@ public class Grafic extends JPanel{
      * set tc prerequisite
      */
     public void setPreRequisites(Item tc){
-        boolean goon = true;
-        Item firsttc = getFirstSuitaParent(tc,false).getSubItem(0);
-        if(firsttc.isPrerequisite()){
-            String message = "Suite already contains pre-requisite, overwrite?";
-            int r = (Integer)CustomDialog.showDialog(message, JOptionPane.QUESTION_MESSAGE,
-                                                    JOptionPane.OK_CANCEL_OPTION, Grafic.this,
-                                                    "Warning", null);
-            if(r != JOptionPane.OK_OPTION)goon = false;}
-        if(goon){
-            firsttc.setPrerequisite(false);
-            tc.setPrerequisite(true);
-            Item theone2 = tc.clone();       
-            clone.add(theone2);
-            removeSelected();
-            dropFirstInSuita(getFirstSuitaParent(theone2,false));
-            selectItem(theone2.getPos());
-            Repository.window.mainpanel.p1.suitaDetails.setParent(theone2);
-            Repository.window.mainpanel.p1.suitaDetails.setTCDetails();
-            repaint();}}
+        tc.setPrerequisite(true);
+        tc.setTeardown(false);
+        Item theone2 = tc.clone(); 
+//         theone2.setPrerequisite(true);
+//         theone2.setTeardown(false);
+        clone.add(theone2);
+        removeSelected();
+        dropFirstInSuita(getFirstSuitaParent(theone2,false));
+        selectItem(theone2.getPos());
+        Repository.window.mainpanel.p1.suitaDetails.setParent(theone2);
+        Repository.window.mainpanel.p1.suitaDetails.setTCDetails();
+        repaint();}
+            
+            
+    /*
+     * set tc teardown
+     */
+    public void setTeardown(Item tc){
+        tc.setTeardown(true);
+        tc.setPrerequisite(false);
+        Item theone2 = tc.clone();       
+//         theone2.setTeardown(true);
+//         theone2.setPrerequisite(false);
+        clone.add(theone2);
+        removeSelected();
+        dropLastInSuita(getFirstSuitaParent(theone2,false));
+        selectItem(theone2.getPos());
+        Repository.window.mainpanel.p1.suitaDetails.setParent(theone2);
+        Repository.window.mainpanel.p1.suitaDetails.setTCDetails();
+        repaint();}
             
     public void setOptional(Item tc){
         if(tc.isOptional()){
@@ -1960,7 +2115,7 @@ public class Grafic extends JPanel{
             g.drawImage(Repository.getSuitaIcon(),(int)item.getRectangle().getX()+25,
                         (int)item.getRectangle().getY()+1,null);}
         else if(item.getType()==1){
-            if(item.isPrerequisite())g.setColor(Color.RED);
+            if(item.isPrerequisite()||item.isTeardown())g.setColor(Color.RED);
             else if(!item.isRunnable())g.setColor(Color.GRAY);
             g.drawString(item.getName(),(int)item.getRectangle().getX()+50,
                         (int)item.getRectangle().getY()+15);

@@ -1,3 +1,10 @@
+05th July 2013
+
+- added a mechanism to define setup/teardown script(s) per suite
+- renamed the library files ( /lib directory )
+- fixed a Java build issue
+- fixed an issue in create_bug_report script
+
 03rd July 2013
 
 - replaced start_ce and start_httpserver scripts with start_server

@@ -1,6 +1,6 @@
 /*
 File: SuitaDetails.java ; This file is part of Twister.
-Version: 2.002
+Version: 2.003
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -76,7 +76,7 @@ public class SuitaDetails extends JPanel {
     private ArrayList <DefPanel> definitions = new ArrayList <DefPanel>();
     private TitledBorder border;    
     private JCheckBox stoponfail, runnable, optional, prerequisites,
-                      savedb, panicdetect;
+                      savedb, panicdetect,teardown;
     private JTextField tprescript, tpostscript;
     private JButton browse1,browse2,suitelib;
     private Item parent;
@@ -566,8 +566,10 @@ public class SuitaDetails extends JPanel {
         runnable.setBackground(Color.WHITE);
         optional = new JCheckBox("Optional");
         optional.setBackground(Color.WHITE);
-        prerequisites = new JCheckBox("pre-requisites");
+        prerequisites = new JCheckBox("setup file");
+        teardown = new JCheckBox("teardown file");
         prerequisites.setBackground(Color.WHITE);
+        teardown.setBackground(Color.WHITE);
         prop = new PropPanel();
         param = new ParamPanel();
         
@@ -593,7 +595,9 @@ public class SuitaDetails extends JPanel {
                                         .addGap(18, 18, 18)
                                         .addComponent(optional)
                                         .addGap(18, 18, 18)
-                                        .addComponent(prerequisites))
+                                        .addComponent(prerequisites)
+                                        .addGap(18, 18, 18)
+                                        .addComponent(teardown))
                                     .addGroup(layout.createSequentialGroup()
                                         .addComponent(tcname)
                                         .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
@@ -613,7 +617,8 @@ public class SuitaDetails extends JPanel {
                         .addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
                             .addComponent(runnable)
                             .addComponent(optional)
-                            .addComponent(prerequisites))
+                            .addComponent(prerequisites)
+                            .addComponent(teardown))
                         .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
                         .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
                             .addComponent(prop, 0,0, Short.MAX_VALUE)
@@ -632,7 +637,10 @@ public class SuitaDetails extends JPanel {
     public void clearDefs(){
         for(int i=0;i<definitions.size();i++){
             definitions.get(i).setDescription("",true);}}
-            
+       
+    /*
+     * set options according to new selected item
+     */
     public void setParent(Item parent){ 
         if(this.parent==parent)return;
         this.parent = parent;
@@ -671,6 +679,8 @@ public class SuitaDetails extends JPanel {
             else optional.setSelected(false);
             if(parent.isPrerequisite())prerequisites.setSelected(true);
             else prerequisites.setSelected(false);
+            if(parent.isTeardown())teardown.setSelected(true);
+            else teardown.setSelected(false);
             ttcname.setText(getItemParent().getName());
             KeyListener k [] = ttcname.getKeyListeners();
             for(KeyListener t : k){
@@ -716,10 +726,28 @@ public class SuitaDetails extends JPanel {
             prerequisites.addActionListener(new ActionListener(){
                 public void actionPerformed(ActionEvent ev){
                     if(prerequisites.isSelected()){
+                        //getItemParent().setTeardown(false);
                         Repository.window.mainpanel.p1.sc.g.setPreRequisites(getItemParent());
                     }
                     else{
                         getItemParent().setPrerequisite(false);
+                        Repository.window.mainpanel.p1.sc.g.repaint();
+                    }
+                }
+            });
+            
+            s = teardown.getActionListeners();
+            for(ActionListener a:s){
+                teardown.removeActionListener(a);
+            }
+            teardown.addActionListener(new ActionListener(){
+                public void actionPerformed(ActionEvent ev){
+                    if(teardown.isSelected()){
+                        //getItemParent().setPrerequisite(false);
+                        Repository.window.mainpanel.p1.sc.g.setTeardown(getItemParent());
+                    }
+                    else{
+                        getItemParent().setTeardown(false);
                         Repository.window.mainpanel.p1.sc.g.repaint();
                     }
                 }
