@@ -1,6 +1,7 @@
 05th July 2013
 
-- added a mechanism to define setup/teardown script(s) per suite
+- added a mechanism to define setup/teardown script(s) per suite; the setup and teardown scripts are not included in reports 
+  ( not saved into database )
 - renamed the library files ( /lib directory )
 - fixed a Java build issue
 - fixed an issue in create_bug_report script
