@@ -166,8 +166,8 @@ def checkDetails(proxy, user, option=None):
 					print('      - empty')
 				else:
 					for f_id in files:
-						fname = proxy.getFileVariable(user, f_id, 'file')
-						fstat = proxy.getFileVariable(user, f_id, 'status') or STATUS_PENDING
+						fname = proxy.getFileVariable(user, ep, f_id, 'file')
+						fstat = proxy.getFileVariable(user, ep, f_id, 'status') or STATUS_PENDING
 						if option == 'running' and fstat != STATUS_WORKING:
 							continue
 						elif (option=='done' or option=='finished') and \
