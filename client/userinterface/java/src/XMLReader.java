@@ -1,6 +1,6 @@
 /*
 File: XMLReader.java ; This file is part of Twister.
-Version: 2.003
+Version: 2.005
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -97,11 +97,11 @@ public class XMLReader{
                     } catch(Exception e){ e.printStackTrace();}
                     theone.setEpId(text);
                 } else{
-                    try{                         
-                        fstNmElmntLst = ((Element)node).getElementsByTagName("EpId");
-                        fstNmElmnt = (Element)fstNmElmntLst.item(0);
-                        fstNm = fstNmElmnt.getChildNodes();
-                    } catch(Exception e){
+//                     try{                         
+//                         fstNmElmntLst = ((Element)node).getElementsByTagName("EpId");
+//                         fstNmElmnt = (Element)fstNmElmntLst.item(0);
+//                         fstNm = fstNmElmnt.getChildNodes();
+//                     } catch(Exception e){
                         try{
                             fstNmElmntLst = ((Element)node).getElementsByTagName("TbName");
                             fstNmElmnt = (Element)fstNmElmntLst.item(0);
@@ -110,7 +110,7 @@ public class XMLReader{
                             System.out.println("Could not find EpId/TbName tag");
                             ex.printStackTrace();
                         }
-                    }
+//                     }
                     theone.setEpId(fstNm.item(0).getNodeValue().split(";"));
                     
                     
@@ -136,7 +136,7 @@ public class XMLReader{
                         k=6;
                     } 
                 } else {
-                    k=4;    
+                    k=6;    
                 }
                 //temporary solution for CE
                 
@@ -321,7 +321,7 @@ public class XMLReader{
                                          2,-1,10, width+50,25,indexpos);
             else suitatemp=  new Item(fstNm.item(0).getNodeValue(),
                                       2,-1,10, width+120,25,indexpos);
-            int k=4;
+            int k=6;
                                       
             fstNmElmntLst = fstElmnt.getElementsByTagName("libraries");
             if(fstNmElmntLst.getLength()>0){
@@ -358,19 +358,19 @@ public class XMLReader{
                 suitatemp.setEpId(text);
                 
             } else{
-                try{                          
-                    fstNmElmntLst = fstElmnt.getElementsByTagName("EpId");
-                    fstNmElmnt = (Element)fstNmElmntLst.item(0);
-                    fstNm = fstNmElmnt.getChildNodes();
-                } catch(Exception e){
+//                 try{                          
+//                     fstNmElmntLst = fstElmnt.getElementsByTagName("EpId");
+//                     fstNmElmnt = (Element)fstNmElmntLst.item(0);
+//                     fstNm = fstNmElmnt.getChildNodes();
+//                 } catch(Exception e){
                     try{fstNmElmntLst = fstElmnt.getElementsByTagName("TbName");
                         fstNmElmnt = (Element)fstNmElmntLst.item(0);
                         fstNm = fstNmElmnt.getChildNodes();
                     } catch (Exception ex){
                         System.out.println("There is an element that has no EpId or TbName!!!");
-                        e.printStackTrace();
+                        ex.printStackTrace();
                     }
-                }
+//                 }
                 
     //             suitatemp.setEpId(fstNm.item(0).getNodeValue());
                 try{suitatemp.setEpId(fstNm.item(0).getNodeValue().split(";"));}

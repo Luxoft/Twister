@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# version: 2.002
+# version: 2.003
 
 # File: cli.py ; This file is part of Twister.
 
@@ -104,6 +104,8 @@ def checkEps(proxy, user):
 
 def checkStatus(proxy, user, extra=True):
 	stats = proxy.getFileStatusAll(user).split(',')
+        if stats == ['']:
+            return False
 	all_stat = proxy.getExecStatusAll(user).split('; ')
 	stats = [int(i) for i in stats]
 
@@ -149,7 +151,9 @@ def checkDetails(proxy, user, option=None):
 		option = 'all'
 
 	# Data started and Time elapsed
-	checkStatus(proxy, user, False)
+        if checkStatus(proxy, user, False) == False:
+                print "No statistics available"
+                return
 
 	print('Your Suites are:')
 
@@ -166,8 +170,8 @@ def checkDetails(proxy, user, option=None):
 					print('      - empty')
 				else:
 					for f_id in files:
-						fname = proxy.getFileVariable(user, f_id, 'file')
-						fstat = proxy.getFileVariable(user, f_id, 'status') or STATUS_PENDING
+						fname = proxy.getFileVariable(user, ep, f_id, 'file')
+						fstat = proxy.getFileVariable(user, ep, f_id, 'status') or STATUS_PENDING
 						if option == 'running' and fstat != STATUS_WORKING:
 							continue
 						elif (option=='done' or option=='finished') and \
@@ -265,7 +269,8 @@ if __name__ == '__main__':
 
 	# Check status
 	if options.stats or options.status:
-		checkStatus(proxy, user)
+                if checkStatus(proxy, user) == False:
+                        print "Status not available"
 		exit()
 
 

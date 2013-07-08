@@ -1,6 +1,6 @@
 /*
 File: XMLBuilder.java ; This file is part of Twister.
-Version: 2.002
+Version: 2.004
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -224,6 +224,41 @@ public class XMLBuilder{
                     Element EP = document.createElement("TbName");
                     EP.appendChild(document.createTextNode(b.toString()));
                     rootElement.appendChild(EP);
+                    
+                    
+                    
+                    EP = document.createElement("EpId");
+                    Node parent = Repository.window.mainpanel.p4.getTB().getParentNode();
+                    b.setLength(0);
+                    for(String s:suite.get(i).getEpId()){
+                        Iterator iter = parent.getChildren().keySet().iterator();
+                        while(iter.hasNext()){
+                            Node child = parent.getChild(iter.next().toString());
+                            if(child!=null&&child.getName().equals(s)){
+                                for(String ep:child.getEPs().split(";")){
+                                    b.append(ep);
+                                    b.append(";");
+//                                     Item item = current.clone();
+//                                     String []str = {ep,child.getName()};
+//                                     item.setEpId(str);
+//                                     temporary.add(item);
+                                    
+                        //                                 sb.append(ep);
+                        //                                 sb.append(";"); 
+                                }
+                                b.deleteCharAt(b.length()-1);
+                            }
+                        }
+                    }
+                    EP.appendChild(document.createTextNode(b.toString()));
+                    rootElement.appendChild(EP);
+                    
+                    
+                    
+                    
+                    
+                    
+                    
                 }
                 
 //                 if(skip){
@@ -493,46 +528,11 @@ public class XMLBuilder{
             em2.appendChild(document.createTextNode(item.getName()));
             rootElement2.appendChild(em2);
             if(item.getEpId()!=null&&!item.getEpId().equals("")){
+                
                 if(skip){
                     
                     
-//                     Node parent = Repository.window.mainpanel.p4.getTB().getParentNode();
-//                     for(String s:suite.get(i).getEpId()){
-//                         Iterator iter = parent.getChildren().keySet().iterator();
-//                         while(iter.hasNext()){
-//                             Node child = parent.getChild(iter.next().toString());
-//                             if(child!=null&&child.getName().equals(s)){
-//                                 b.append(child.getEPs());
-//                                 b.append(";");   
-//                             }
-//                         }
-//                     }
-//                     b.deleteCharAt(b.length()-1);                   
-//                     EP.appendChild(document.createTextNode(b.toString()));
-//                     rootElement.appendChild(EP);
-                    
-                    
-                    
-//                     Node parent = Repository.window.mainpanel.p4.getTB().getParentNode();
                     Element EP = document.createElement("EpId");
-//                     StringBuilder b = new StringBuilder();
-//                     for(String s:item.getEpId()){
-//                         Iterator iter = parent.getChildren().keySet().iterator();
-//                         while(iter.hasNext()){
-//                             Node child = parent.getChild(iter.next().toString());
-//                             if(child!=null&&child.getName().equals(s)){
-//                                 b.append(child.getEPs());
-//                                 b.append(";");
-//                             }
-//                         }
-//                     }
-//                     
-//                     
-//                     
-//                     
-//                     if(b.length()>0)b.deleteCharAt(b.length()-1);  
-//                     EP.appendChild(document.createTextNode(b.toString()));
-//                     rootElement2.appendChild(EP);
                     
                     EP.appendChild(document.createTextNode(item.getEpId()[0]));
                     rootElement2.appendChild(EP);
@@ -545,6 +545,7 @@ public class XMLBuilder{
                     
                     
                 } else {
+
                     Element EP = document.createElement("TbName");
                     StringBuilder b = new StringBuilder();
                     for(String s:item.getEpId()){
@@ -553,6 +554,34 @@ public class XMLBuilder{
                     b.deleteCharAt(b.length()-1);                   
                     EP.appendChild(document.createTextNode(b.toString()));
                     rootElement2.appendChild(EP);
+                    
+                    EP = document.createElement("EpId");
+                    Node parent = Repository.window.mainpanel.p4.getTB().getParentNode();
+                    b.setLength(0);
+                    for(String s:item.getEpId()){
+                        Iterator iter = parent.getChildren().keySet().iterator();
+                        while(iter.hasNext()){
+                            Node child = parent.getChild(iter.next().toString());
+                            if(child!=null&&child.getName().equals(s)){
+                                for(String ep:child.getEPs().split(";")){
+                                    b.append(ep);
+                                    b.append(";");
+//                                     Item item = current.clone();
+//                                     String []str = {ep,child.getName()};
+//                                     item.setEpId(str);
+//                                     temporary.add(item);
+                                    
+                        //                                 sb.append(ep);
+                        //                                 sb.append(";"); 
+                                }
+                                b.deleteCharAt(b.length()-1);
+                            }
+                        }
+                    }
+                    EP.appendChild(document.createTextNode(b.toString()));
+                    rootElement2.appendChild(EP);
+                    
+                    
                 }
                 
                 
