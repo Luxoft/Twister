@@ -104,6 +104,8 @@ def checkEps(proxy, user):
 
 def checkStatus(proxy, user, extra=True):
 	stats = proxy.getFileStatusAll(user).split(',')
+        if stats == ['']:
+            return False
 	all_stat = proxy.getExecStatusAll(user).split('; ')
 	stats = [int(i) for i in stats]
 
@@ -149,7 +151,9 @@ def checkDetails(proxy, user, option=None):
 		option = 'all'
 
 	# Data started and Time elapsed
-	checkStatus(proxy, user, False)
+        if checkStatus(proxy, user, False) == False:
+                print "No statistics available"
+                return
 
 	print('Your Suites are:')
 
@@ -265,7 +269,8 @@ if __name__ == '__main__':
 
 	# Check status
 	if options.stats or options.status:
-		checkStatus(proxy, user)
+                if checkStatus(proxy, user) == False:
+                        print "Status not available"
 		exit()
 
 
