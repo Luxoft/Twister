@@ -1,3 +1,8 @@
+08th July 2013
+
+- fixed a cli issue
+- updated Java applet
+
 05th July 2013
 
 - added a mechanism to define setup/teardown script(s) per suite; the setup and teardown scripts are not included in reports 
