@@ -1,6 +1,6 @@
 /*
 File: XMLReader.java ; This file is part of Twister.
-Version: 2.004
+Version: 2.005
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -136,7 +136,7 @@ public class XMLReader{
                         k=6;
                     } 
                 } else {
-                    k=4;    
+                    k=6;    
                 }
                 //temporary solution for CE
                 
@@ -321,7 +321,7 @@ public class XMLReader{
                                          2,-1,10, width+50,25,indexpos);
             else suitatemp=  new Item(fstNm.item(0).getNodeValue(),
                                       2,-1,10, width+120,25,indexpos);
-            int k=4;
+            int k=6;
                                       
             fstNmElmntLst = fstElmnt.getElementsByTagName("libraries");
             if(fstNmElmntLst.getLength()>0){

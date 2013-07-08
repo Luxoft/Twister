@@ -1,6 +1,6 @@
 /*
 File: XMLBuilder.java ; This file is part of Twister.
-Version: 2.003
+Version: 2.004
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -246,6 +246,7 @@ public class XMLBuilder{
                         //                                 sb.append(ep);
                         //                                 sb.append(";"); 
                                 }
+                                b.deleteCharAt(b.length()-1);
                             }
                         }
                     }
@@ -573,6 +574,7 @@ public class XMLBuilder{
                         //                                 sb.append(ep);
                         //                                 sb.append(";"); 
                                 }
+                                b.deleteCharAt(b.length()-1);
                             }
                         }
                     }
