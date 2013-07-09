@@ -1,6 +1,11 @@
+09th July 2013
+
+- fixed a cli issue for queue test cases
+- fixed an applet issue; the first test case is not displayed while test are executed; the results are scrambled
+
 08th July 2013
 
-- fixed a cli issue
+- fixed a cli issue for start/stop/details/stats
 - updated Java applet
 
 05th July 2013

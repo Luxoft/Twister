@@ -1,7 +1,7 @@
 
 # File: CentralEngineClasses.py ; This file is part of Twister.
 
-# version: 2.006
+# version: 2.007
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -103,6 +103,15 @@ class CentralEngine(_cptools.XMLRPCController):
         self.rest = CentralEngineRest(self, self.project)
         self.ra   = ResourceAllocator()
         self.report = ReportingServer(self, self.project)
+
+
+    @cherrypy.expose
+    def default(self, *vpath, **params):
+        user_agent = cherrypy.request.headers['User-Agent'].lower()
+        if 'xmlrpc' in user_agent or 'xml rpc' in user_agent:
+            return super(CentralEngine, self).default(*vpath, **params)
+        # If the connection is not XML-RPC, redirect to REST
+        raise cherrypy.HTTPRedirect('/rest/' + '/'.join(vpath))
 
 
 # --------------------------------------------------------------------------------------------------
@@ -514,7 +523,8 @@ class CentralEngine(_cptools.XMLRPCController):
         Called from the Java GUI.
         """
         # If this is a temporary run, return the statuses of the backup user!
-        if cherrypy.request.headers['User-Agent'].startswith('Apache XML RPC') and (user+'_old') in self.project.users:
+        user_agent = cherrypy.request.headers['User-Agent'].lower()
+        if 'xml rpc' in user_agent and (user+'_old') in self.project.users:
             user += '_old'
 
         data = self.project.getUserInfo(user)
@@ -631,7 +641,8 @@ class CentralEngine(_cptools.XMLRPCController):
         reversed = dict((v,k) for k,v in execStatus.iteritems())
 
         # If this is a Temporary user
-        if cherrypy.request.headers['User-Agent'].startswith('Apache XML RPC') and (user+'_old') in self.project.users:
+        user_agent = cherrypy.request.headers['User-Agent'].lower()
+        if 'xml rpc' in user_agent and (user+'_old') in self.project.users:
             if msg.lower() != 'kill' and new_status != STATUS_STOP:
                 return '*ERROR*! Cannot change status while running temporary!'
             else:
@@ -746,7 +757,7 @@ class CentralEngine(_cptools.XMLRPCController):
 
         reversed = dict((v,k) for k,v in execStatus.iteritems())
 
-        if msg:
+        if msg and msg != ',':
             logDebug("CE: Status changed for `%s %s` -> %s. Message: `%s`.\n" % (user, active_eps, reversed[new_status], str(msg)))
         else:
             logDebug("CE: Status changed for `%s %s` -> %s.\n" % (user, active_eps, reversed[new_status]))
@@ -772,7 +783,8 @@ class CentralEngine(_cptools.XMLRPCController):
             return ''
 
         # If this is a temporary run, return the statuses of the backup user!
-        if cherrypy.request.headers['User-Agent'].startswith('Apache XML RPC') and (user+'_old') in self.project.users:
+        user_agent = cherrypy.request.headers['User-Agent'].lower()
+        if 'xml rpc' in user_agent and (user+'_old') in self.project.users:
             statuses = self.project.getFileStatusAll(user + '_old', epname, suite)
             return ','.join(statuses)
 

@@ -1,7 +1,8 @@
 
-# version: 2.001
+# version: 2.002
 
 import os
+from pprint import pformat
 from random import randint
 from binascii import hexlify
 
@@ -15,8 +16,8 @@ The global variable `global1` will be updated several times to see if it's worki
 print 'Root level params:', getGlobal('/').keys()
 
 # Print some parameters
-print 'All params for Level_1:', getGlobal('Level_1')
-print 'All params for Level_1/Level_2:', getGlobal('Level_1/Level_2'), '\n'
+print 'All params for Level_1:\n', pformat(getGlobal('Level_1'), indent=4, width=100), '\n'
+print 'All params for Level_1/Level_2:\n', pformat(getGlobal('Level_1/Level_2'), indent=4, width=100), '\n'
 
 # Print Level-1 / global1 param
 global1 = getGlobal('Level_1/global1')

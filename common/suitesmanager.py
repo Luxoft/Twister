@@ -1,7 +1,7 @@
 
 # File: suitesmanager.py ; This file is part of Twister.
 
-# version: 2.001
+# version: 2.002
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -46,7 +46,7 @@ class SuitesManager(OrderedDict):
     def _recursive_find_suites(self, nodes, result=[]):
         # Nodes are Ordered Dicts
         for id, node in nodes.iteritems():
-            if node['type'] != 'suite':
+            if node.get('type', 'file') != 'suite':
                 continue
             result.append(id)
             ids = self._recursive_find_suites(node['children'], [])
@@ -67,7 +67,7 @@ class SuitesManager(OrderedDict):
         # Nodes are Ordered Dicts
         for id, node in nodes.iteritems():
             # This is a file
-            if node['type'] == 'file':
+            if node.get('type', 'file') == 'file':
                 result.append(id)
             # This is a suite
             else:
@@ -99,7 +99,7 @@ class SuitesManager(OrderedDict):
             nodes = self
         for id, node in nodes.iteritems():
             result.append([id, node])
-            if node['type'] == 'suite':
+            if node.get('type', 'file') == 'suite':
                 self.iterNodes(node['children'], result)
         return result
 
@@ -116,7 +116,7 @@ class SuitesManager(OrderedDict):
             # The ID is found!
             if id == node_id:
                 return node
-            if node['type'] == 'suite':
+            if node.get('type', 'file') == 'suite':
                 _found = self.findId(node_id, node['children'], _found)
         return _found
 

@@ -1,7 +1,7 @@
 
 # File: xmlparser.py ; This file is part of Twister.
 
-# version: 2.006
+# version: 2.007
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -77,7 +77,7 @@ def checkUsers():
     users = []
     for line in lines:
         path = line.split(':')[5]
-        if os.path.isdir(path + os.sep + 'twister'):
+        if os.path.isdir(path + '/twister/config'):
             users.append(line.split(':')[0])
     return users
 
@@ -357,7 +357,7 @@ class TSCParser:
         xmlSoup = etree.parse(xmlFile)
         xml_key = xmlSoup.xpath(key)
 
-        if not xml_key:
+        if not len(xml_key):
             return False
 
         # For index -1, delete all matches
@@ -601,7 +601,7 @@ class TSCParser:
         """
         Create recursive list of folders and files from Tests path.
         """
-        if not xml_object:
+        if not len(xml_object):
             return {}
 
         # For each testsuite from current xml object
