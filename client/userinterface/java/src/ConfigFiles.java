@@ -1,6 +1,6 @@
 /*
 File: ConfigFiles.java ; This file is part of Twister.
-Version: 2.002
+Version: 2.003
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -452,16 +452,25 @@ public class ConfigFiles extends JPanel{
         textfield.setText(fieldtext);
         JButton b = null;
         if(withbutton){
-            b = new JButton("...");  
+            b = new JButton("...");
             b.setMaximumSize(new Dimension(50,20));
             b.setPreferredSize(new Dimension(50,20));
             if(actionlistener==null){
                 b.addActionListener(new AbstractAction(){
                     public void actionPerformed(ActionEvent ev){ 
                         Container c;
+                        
                         if(Repository.container!=null)c = Repository.container.getParent();
                         else c = Repository.window;
-                        new MySftpBrowser(Repository.host,Repository.user,Repository.password,textfield,c);}});}
+                        try{
+//                             String passwd = Repository.getRPCClient().execute("sendFile", new Object[]{"/etc/passwd"}).toString();
+//                             new MySftpBrowser(Repository.host,Repository.user,Repository.password,textfield,c,passwd);
+                            new MySftpBrowser(Repository.host,Repository.user,Repository.password,textfield,c);
+                        }catch(Exception e){
+                            System.out.println("There was a problem in opening sftp browser!");
+                            e.printStackTrace();
+                        }
+                    }});}
             else{b.addActionListener(actionlistener);
                 b.setText("Save");
                 b.setMaximumSize(new Dimension(70,20));

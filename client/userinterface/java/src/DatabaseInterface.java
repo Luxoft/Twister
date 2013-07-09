@@ -1,6 +1,6 @@
 /*
 File: DatabaseInterface.java ; This file is part of Twister.
-Version: 2.001
+Version: 2.002
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -570,7 +570,7 @@ public class DatabaseInterface extends JPanel {
         tab.add("Field Section", field);
         tab.add("Insert Section", sql);
         tab.add("Reports Section", reposrts);
-        add(tab,BorderLayout.CENTER);
+        //add(tab,BorderLayout.CENTER);
         
         JPanel savepanel = new JPanel();
         savepanel.setLayout(new FlowLayout(FlowLayout.CENTER, 4, 2));

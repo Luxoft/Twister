@@ -1,7 +1,7 @@
 
-# File: TestBed.py ; This file is part of Twister.
+# File: TscTestBedLib.py ; This file is part of Twister.
 
-# version: 2.001
+# version: 2.002
 
 # Copyright (C) 2012-2013 , Luxoft
 

@@ -1,7 +1,7 @@
 
 # File: TestCaseRunner.py ; This file is part of Twister.
 
-# version: 2.007
+# version: 2.009
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -131,8 +131,8 @@ class TwisterRunner:
 
         try:
             import ce_libs
-            from ce_libs import CommonLib
-            self.commonLib = CommonLib()
+            from ce_libs import TscCommonLib
+            self.commonLib = TscCommonLib()
         except:
             print('TC error: Cannot import the shared libraries!')
             exit(1)
@@ -178,7 +178,7 @@ class TwisterRunner:
             try: os.makedirs(libs_path)
             except: pass
 
-        all_libs = ['CommonLib.py'] # Normal python files or folders
+        all_libs = ['TscCommonLib.py'] # Normal python files or folders
         zip_libs = [] # Zip libraries
 
         # If Reseting libs, open and destroy
@@ -296,7 +296,7 @@ class TwisterRunner:
         suite_id    = None
         suite_name  = None # Suite name string. This varies for each file.
         suite_files = None # All files from current suite.
-        abort_suite = False # Abort suite X, when prerequisite file fails.
+        abort_suite = False # Abort suite X, when setup file fails.
 
 
         for id, node in SuitesManager.iterNodes():
@@ -345,8 +345,10 @@ class TwisterRunner:
             filename = node['file']
             # If the file is NOT runnable, download it, but don't execute!
             runnable = node.get('Runnable', 'true')
-            # Is this file Prerequisite?
-            prerequisite = node.get('Prerequisite')
+            # Is this file a setup file?
+            setup_file = node.get('setup_file')
+            # Is this file a teardown file?
+            teardown_file = node.get('teardown_file')
             # Test-case dependency, if any
             dependancy = node.get('dependancy')
             # Is this test file optional?
@@ -361,17 +363,22 @@ class TwisterRunner:
             print('<<< START filename: `{}:{}` >>>\n'.format(file_id, filename))
 
 
-            # If the prerequisite file failed, abort the current suite and all sub-suites!
+            # If a setup file failed, abort the current suite and all sub-suites,
+            # unless it's another setup, or teardown file!
             # Strategy: list all children from the aborted suite. If the current file is a child
             # of the aborted suite, this file must be aborted too!
-            # Abort_suite flag is set by the first prerequisite file from a suite.
+            # Abort_suite flag is set by the setup files from the beggining of a suite.
             if abort_suite:
                 aborted_ids = SuitesManager.getFiles(abort_suite)
-                if aborted_ids and file_id in aborted_ids:
-                    print('TC debug: Abort file `{}` because of prerequisite file!\n\n'.format(filename))
+                if aborted_ids and (file_id in aborted_ids) and (not setup_file) and (not teardown_file):
+                    print('TC debug: Abort file `{}` because of failed setup file!\n\n'.format(filename))
                     self.proxySetTestStatus(file_id, STATUS_ABORTED, 0.0) # File status ABORTED
                     print('<<< END filename: `{}:{}` >>>\n'.format(file_id, filename))
                     continue
+                if setup_file:
+                    print('Running a setup file...\n')
+                if teardown_file:
+                    print('Running a tear-down file...\n')
 
 
             # Reload the config file written by EP
@@ -428,16 +435,16 @@ class TwisterRunner:
             # If CE sent False, it means the file is empty, does not exist, or it's not runnable.
             if str_to_execute == '':
                 print('TC debug: File path `{}` does not exist!\n'.format(filename))
-                if file_index == 0 and prerequisite:
+                if setup_file:
                     abort_suite = suite_id
-                    print('TC error: Prerequisite file for suite `{}` cannot run! No such file! All suite will be ABORTED!\n\n'.format(suite_name))
+                    print('TC error: Setup file for suite `{}` cannot run! No such file! All suite will be ABORTED!\n\n'.format(suite_name))
                 self.proxySetTestStatus(file_id, STATUS_SKIPPED, 0.0) # Status SKIPPED
                 print('<<< END filename: `{}:{}` >>>\n'.format(file_id, filename))
                 continue
 
             elif not str_to_execute:
                 print('TC debug: File `{}` will be skipped.\n'.format(filename))
-                # Skipped prerequisite are ok, no need to abort.
+                # Skipped setup files are ok, no need to abort.
                 self.proxySetTestStatus(file_id, STATUS_SKIPPED, 0.0) # Status SKIPPED
                 print('<<< END filename: `{}:{}` >>>\n'.format(file_id, filename))
                 continue
@@ -483,9 +490,9 @@ class TwisterRunner:
             # Unknown file type
             else:
                 print('TC warning: Extension type `{}` is unknown and will be ignored!'.format(file_ext))
-                if file_index == 0 and prerequisite:
+                if setup_file:
                     abort_suite = suite_id
-                    print('TC error: Prerequisite file for suite `{}` cannot run! Unknown extension file! All suite will be ABORTED!\n\n'.format(suite_name))
+                    print('TC error: Setup file for suite `{}` cannot run! Unknown extension file! All suite will be ABORTED!\n\n'.format(suite_name))
                 self.proxySetTestStatus(file_id, STATUS_NOT_EXEC, 0.0) # Status NOT_EXEC
                 print('<<< END filename: `{}:{}` >>>\n'.format(file_id, filename))
                 continue
@@ -551,11 +558,11 @@ class TwisterRunner:
                     print('<<< END filename: `{}:{}` >>>\n'.format(file_id, filename))
                     exit(1)
 
-                # If status is FAIL, and the file is prerequisite, CANCEL all suite
-                if file_index == 0 and prerequisite:
+                # If status is FAIL, and the file is a setup file, CANCEL all suite
+                if setup_file:
                     abort_suite = suite_id
-                    print('TC error: Prerequisite file for suite `{}` returned FAIL! All suite will be ABORTED!\n\n'.format(suite_name))
-                    self.proxy.echo('TC error: Prerequisite file for `{}::{}` returned FAIL! All suite will be ABORTED!'\
+                    print('TC error: Setup file for suite `{}` returned FAIL! All suite will be ABORTED!\n\n'.format(suite_name))
+                    self.proxy.echo('TC error: Setup file for `{}::{}` returned FAIL! All suite will be ABORTED!'\
                         ''.format(self.epName, suite_name))
 
                 # Send crash detected = True
@@ -598,11 +605,11 @@ class TwisterRunner:
                     print('<<< END filename: `{}:{}` >>>\n'.format(file_id, filename))
                     exit(1)
 
-                # If status is FAIL, and the file is prerequisite, CANCEL all suite
-                if file_index == 0 and prerequisite:
+                # If status is FAIL, and the file is a setup file, CANCEL all suite
+                if setup_file:
                     abort_suite = suite_id
-                    print('TC error: Prerequisite file for suite `{}` returned FAIL! All suite will be ABORTED!\n\n'.format(suite_name))
-                    self.proxy.echo('TC error: Prerequisite file for `{}::{}` returned FAIL! All suite will be ABORTED!'\
+                    print('TC error: Setup file for suite `{}` returned FAIL! All suite will be ABORTED!\n\n'.format(suite_name))
+                    self.proxy.echo('TC error: Setup file for `{}::{}` returned FAIL! All suite will be ABORTED!'\
                         ''.format(self.epName, suite_name))
 
 

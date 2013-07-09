@@ -1,8 +1,8 @@
-# File: TscSsh.py ; This file is part of Twister.
+# File: TscSshLib.py ; This file is part of Twister.
 
-# version: 1.0
+# version: 2.001
 #
-# Copyright (C) 2012 , Luxoft
+# Copyright (C) 2012-2013 , Luxoft
 #
 # Authors:
 #    Adrian Toader <adtoader@luxoft.com>

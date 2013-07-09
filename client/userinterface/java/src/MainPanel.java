@@ -1,6 +1,6 @@
 /*
 File: MainPanel.java ; This file is part of Twister.
-Version: 2.001
+Version: 2.002
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -97,8 +97,8 @@ public class MainPanel extends JTabbedPane{
                     if(getSelectedIndex()==1){
                         try{Repository.window.container.getAppletContext().showDocument(
                                                     new URL("http://"+Repository.host+":"+
-                                                    Repository.getHTTPServerPort()+
-                                                    "/report/"+Repository.getUser()), "_blank");}
+                                                    Repository.getCentralEnginePort()+
+                                                    "/report/index/"+Repository.getUser()), "_blank");}
                         catch(Exception ex){ex.printStackTrace();}
                         setSelectedIndex(0);}}});}
         Repository.intro.setStatus("Finished Main initialization");

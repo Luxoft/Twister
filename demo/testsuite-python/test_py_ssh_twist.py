@@ -1,11 +1,11 @@
 
-# version: 2.001
+# version: 2.002
 
-from TscSsh import SshManager
+from TscSshLib import SshManager
 
 #
-# <title>Testing Twister Telnet library</title>
-# <description>This test is connecting to a TELNET host.</description>
+# <title>Testing Twister Ssh library</title>
+# <description>This test is connecting to a Ssh host.</description>
 #
 
 def test():

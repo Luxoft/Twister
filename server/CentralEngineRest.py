@@ -1,7 +1,7 @@
 
 # File: CentralEngineRest.py ; This file is part of Twister.
 
-# version: 2.005
+# version: 2.006
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -159,8 +159,8 @@ class CentralEngineRest:
         User agent returns Browser or XML RPC client.
         This function is not exposed.
         """
-        if  cherrypy.request.headers['User-Agent'].startswith('xmlrpclib.py') or\
-            cherrypy.request.headers['User-Agent'].startswith('Apache XML RPC'):
+        user_agent = cherrypy.request.headers['User-Agent'].lower()
+        if 'xmlrpc' in user_agent or 'xml rpc' in user_agent:
             # XML RPC client
             return 'x'
         else:
@@ -185,9 +185,11 @@ class CentralEngineRest:
 
 
     @cherrypy.expose
-    def users(self, user):
+    def users(self, user=''):
         if self.user_agent() == 'x':
             return 0
+        if not user:
+            raise cherrypy.HTTPRedirect('/rest/#tab_users')
 
         host = cherrypy.request.headers['Host']
         reversed = dict((v,k) for k,v in execStatus.iteritems())
@@ -287,7 +289,7 @@ class CentralEngineRest:
             current_suite['children'] = [
                 {'data': v['file'], 'attr': dict({'id': k}, **v)}
                 for k, v in node['children'].iteritems()
-                if v['type'] == 'file'
+                if v.get('type', 'file') == 'file'
                 ]
             data.append(current_suite)
 

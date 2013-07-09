@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# version: 2.002
+# version: 2.005
 
 # File: cli.py ; This file is part of Twister.
 
@@ -39,6 +39,7 @@ Commands :
 import os
 import datetime
 import xmlrpclib
+import subprocess
 from optparse import OptionParser
 
 # --------------------------------------------------------------------------------------------------
@@ -62,15 +63,9 @@ STATUS_INVALID:'null', STATUS_WAITING:'waiting'}
 
 def userHome(user):
 	"""
-	Find the home folder for the given user, using /etc/passwd file.\n
-	This function is run from a ROOT user.
+	Find the home folder for the given user.
 	"""
-	user = str(user)
-	lines = open('/etc/passwd').readlines()
-	user_line = [line for line in lines if line.startswith(user + ':')]
-	if not user_line: return '/home/' + user
-	user_line = user_line[0].split(':')
-	return user_line[-2]
+	return subprocess.check_output('echo ~' + user, shell=True).strip()
 
 
 def checkUsers(proxy):
@@ -109,6 +104,9 @@ def checkEps(proxy, user):
 
 def checkStatus(proxy, user, extra=True):
 	stats = proxy.getFileStatusAll(user).split(',')
+	if stats == ['']:
+		return False
+
 	all_stat = proxy.getExecStatusAll(user).split('; ')
 	stats = [int(i) for i in stats]
 
@@ -144,6 +142,8 @@ Other   : {tother}
 Pass rate: {rate}%
 """.format(**s_dict)
 
+	return True
+
 
 def checkDetails(proxy, user, option=None):
 	eps = proxy.listEPs(user).split(',')
@@ -154,7 +154,9 @@ def checkDetails(proxy, user, option=None):
 		option = 'all'
 
 	# Data started and Time elapsed
-	checkStatus(proxy, user, False)
+	if not checkStatus(proxy, user, False):
+		print 'No statistics available.\n'
+		return False
 
 	print('Your Suites are:')
 
@@ -171,8 +173,8 @@ def checkDetails(proxy, user, option=None):
 					print('      - empty')
 				else:
 					for f_id in files:
-						fname = proxy.getFileVariable(user, f_id, 'file')
-						fstat = proxy.getFileVariable(user, f_id, 'status') or STATUS_PENDING
+						fname = proxy.getFileVariable(user, ep, f_id, 'file')
+						fstat = proxy.getFileVariable(user, ep, f_id, 'status') or STATUS_PENDING
 						if option == 'running' and fstat != STATUS_WORKING:
 							continue
 						elif (option=='done' or option=='finished') and \
@@ -184,6 +186,8 @@ def checkDetails(proxy, user, option=None):
 			else:
 				print('    - nothing here')
 		print
+
+	return True
 
 
 def queueTest(proxy, user, suite, fname):
@@ -208,11 +212,10 @@ if __name__ == '__main__':
 	usage = "Usage: %prog --server <ip:port> --command [...parameters]"
 	version = "%prog v2.0"
 	parser = OptionParser(usage=usage, version=version)
-	user = os.getenv('USER')
 
 	# The most important option is the server. By default, it's localhost:8000.
 	parser.add_option("--server",      action="store", default="http://127.0.0.1:8000/",
-		help="Central engine server IP and Port.")
+		help="Central engine server IP and Port (default: http://127.0.0.1:8000/).")
 
 	parser.add_option('-u', "--users", action="store_true", help="Show active and inactive users.")
 
@@ -233,11 +236,20 @@ if __name__ == '__main__':
 	(options, args) = parser.parse_args()
 
 
+	try:
+		user = os.getenv('USER')
+		if user=='root': user=os.getenv('SUDO_USER')
+	except:
+		print('Cannot guess the user name! Exiting!\n')
+		exit(1)
+
+
 	# Test if user did install Twister
 	if os.path.isdir(userHome(user) + os.sep + 'twister'):
 		print('\nHello, user `{}`.\n'.format(user))
 	else:
 		print('Username `{}` must install Twister before using this script !\n'.format(user))
+		exit(1)
 
 	# Test Central Engine valid IP + PORT
 	try:
@@ -270,7 +282,8 @@ if __name__ == '__main__':
 
 	# Check status
 	if options.stats or options.status:
-		checkStatus(proxy, user)
+		if not checkStatus(proxy, user):
+			print 'Status not available.\n'
 		exit()
 
 
@@ -292,10 +305,10 @@ if __name__ == '__main__':
 
 	# If all the other options are not available, it means the command must be a status change.
 	if not options.set:
-		print('Must specify a status ! Exiting !')
+		print('You didn\'t specify a command ! Exiting !\n')
 		exit(1)
 	if options.set.lower() not in ['stop', 'start', 'pause']:
-		print('Must specify a valid status (stop/ start/ pause) ! Exiting !')
+		print('Must specify a valid status (stop/ start/ pause) ! Exiting !\n')
 		exit(1)
 
 	if not options.config: options.config = ''
@@ -319,11 +332,11 @@ if __name__ == '__main__':
 		print proxy.setExecStatusAll(user, 2, options.config + ',' + options.project)
 
 	elif options.set == 'stop':
-		print 'Stopping...'
+		print 'Stopping...',
 		print proxy.setExecStatusAll(user, 0, options.config + ',' + options.project)
 
 	elif options.set == 'pause':
-		print 'Paused...'
+		print 'Sending pause...',
 		print proxy.setExecStatusAll(user, 1, options.config + ',' + options.project)
 
 	print

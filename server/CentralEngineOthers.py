@@ -1,7 +1,7 @@
 
 # File: CentralEngineOthers.py ; This file is part of Twister.
 
-# version: 2.008
+# version: 2.009
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -144,7 +144,7 @@ class Project:
         # List with all EPs for this User
         epList = self.parsers[user].epnames
         if not epList:
-            logCritical('Project ERROR: Cannot load the list of EPs for user `%s` !' % user)
+            logCritical('Project ERROR: Cannot load the list of EPs for user `{}` !'.format(user))
             return False
 
         # Generate the list of EPs in order
@@ -191,6 +191,8 @@ class Project:
         # Global params for user
         self.users[user]['global_params'] = self.parsers[user].getGlobalParams()
 
+        return True
+
 
     def createUser(self, user, base_config='', files_config=''):
         """
@@ -210,17 +212,17 @@ class Project:
 
         # If it's a valid path
         if base_config and not os.path.exists(base_config):
-            logCritical('Project ERROR: Config path `%s` does not exist !' % base_config)
+            logCritical('Project ERROR: Config path {}` does not exist !'.format(base_config))
             return False
-        elif not os.path.exists( '{0}/twister'.format(user_home) ):
-            logCritical('Project ERROR: Cannot find Twister for user `{0}`, '\
-                'in path `{1}/twister`!'.format(user, user_home))
+        elif not os.path.exists( '{}/twister'.format(user_home) ):
+            logCritical('Project ERROR: Cannot find Twister for user `{}`, '\
+                'in path `{}/twister`!'.format(user, user_home))
             return False
         else:
-            base_config = '{0}/twister/config/fwmconfig.xml'.format(user_home)
+            base_config = '{}/twister/config/fwmconfig.xml'.format(user_home)
 
         if not files_config:
-            files_config = '{0}/twister/config/testsuites.xml'.format(user_home)
+            files_config = '{}/twister/config/testsuites.xml'.format(user_home)
 
         # User data + User parser
         # Parsers contain the list of all EPs and the list of all Project Globals
@@ -233,11 +235,12 @@ class Project:
         else:
             self.parsers[user] = TSCParser(user, base_config, files_config)
 
-        self._common_user_reset(user, base_config, files_config)
+        resp = self._common_user_reset(user, base_config, files_config)
+        if not resp: return False
 
         # Save everything.
         self._dump()
-        logDebug('Project: Created user `%s` ...' % user)
+        logDebug('Project: Created user `{}` ...'.format(user))
 
         return True
 
@@ -247,11 +250,11 @@ class Project:
         Reset user parser, all EPs to STOP, all files to PENDING.
         """
         if not user or user not in self.users:
-            logError('Project ERROR: Invalid user `{0}` !'.format(user))
+            logError('Project ERROR: Invalid user `{}` !'.format(user))
             return False
 
         if base_config and not os.path.isfile(base_config):
-            logError('Project ERROR: Config path `%s` does not exist! Using default config!' % base_config)
+            logError('Project ERROR: Config path `{}` does not exist! Using default config!'.format(base_config))
             base_config = False
 
         r = self.changeUser(user)
@@ -269,7 +272,8 @@ class Project:
             ''.format(user, base_config, files_config))
         self.parsers[user] = TSCParser(user, base_config, files_config)
 
-        self._common_user_reset(user, base_config, files_config)
+        resp = self._common_user_reset(user, base_config, files_config)
+        if not resp: return False
 
         # Save everything.
         self._dump()
@@ -795,7 +799,7 @@ class Project:
 
     def queueFile(self, user, suite, fname):
         """
-        ...
+        This function temporary adds a file at the end of the given suite, during runtime.
         """
         r = self.changeUser(user)
         if not r: return False
@@ -809,12 +813,16 @@ class Project:
 
         eps = self.users[user]['eps']
         suite_id = False
+        SuitesManager = False
 
         # Try to find the suite name
         for epname in eps:
-            for s_id in eps[epname]['suites']:
-                if eps[epname]['suites'][s_id]['name'] == suite:
+            manager = eps[epname]['suites']
+            suites = manager.getSuites()
+            for s_id in suites:
+                if manager.findId(s_id)['name'] == suite:
                     suite_id = s_id
+                    SuitesManager = manager
                     break
             if suite_id:
                 break
@@ -830,13 +838,14 @@ class Project:
             self.test_ids[user].append(file_id)
 
             finfo = OrderedDict()
+            finfo['type']  = 'file'
             finfo['suite'] = suite_id
             finfo['file']  = fname
-            finfo['dependancy'] = " "
             finfo['Runnable']   = "true"
 
             # Add file for the user, in a specific suite
-            eps[epname]['suites'][suite_id]['files'][file_id] = finfo
+            suite = SuitesManager.findId(suite_id)
+            suite['children'][file_id] = finfo
 
             # Add the file in suites.xml
             # self.setPersistentFile(self, user, suite, fname)
@@ -1171,8 +1180,8 @@ class Project:
                     except:
                         subst_data['twister_tc_log'] = '*no log*'
 
-                    # Prerequisite files will not be saved to database
-                    if subst_data.get('Prerequisite'):
+                    # Setup and Teardown files will not be saved to database!
+                    if subst_data.get('setup_file') or subst_data.get('teardown_file'):
                         continue
                     # Pre-Suite or Post-Suite files will not be saved to database
                     if subst_data.get('Pre-Suite') or subst_data.get('Post-Suite'):

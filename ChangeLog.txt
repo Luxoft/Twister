@@ -1,3 +1,61 @@
+09th July 2013
+
+- fixed a cli issue for queue test cases
+- fixed an applet issue; the first test case is not displayed while test are executed; the results are scrambled
+
+08th July 2013
+
+- fixed a cli issue for start/stop/details/stats
+- updated Java applet
+
+05th July 2013
+
+- added a mechanism to define setup/teardown script(s) per suite; the setup and teardown scripts are not included in reports 
+  ( not saved into database )
+- renamed the library files ( /lib directory )
+- fixed a Java build issue
+- fixed an issue in create_bug_report script
+
+03rd July 2013
+
+- replaced start_ce and start_httpserver scripts with start_server
+- added a mechanism to control execution of the test cases through CLI; the GUI is not mandatory anymore
+- added library for ssh; file is lib/TscSsh.py
+- added support for JUnit test cases; 
+- added a mechanism for automatic setup and teardown for every test case; file is lib/UnitTest.py
+- added support for NIS users
+- added wrapper for Ixia TCL library; the Ixia methods can be called in python using this wrapper. The libray file
+  with the wrappers can be found in lib/Ixia/IxPython.py
+- fixed issue #20
+- fixed issue #17
+- fixed issue #13
+- fixed issue #12
+- fixed issue #9
+- updated user guide
+- reworked the code for central engine
+- removed default email addresses from email.xml file
+
+WARNING: Installing this version might imply reconfiguring the framework; the older configuration files are not 100% compatible
+         with this version of framework
+
+31st May 2013
+
+- bug fix for the order of test cases when test suites contain a mix of test cases and suites
+- removed luxoft.com from the default email configuration
+- enhance to provide timestamp for start and end of test file in EP_CLI log
+- enhance to provide file attributes when browsing; provide sorting mechanism
+- the logs for pre and post execution scripts can be CE log accesible using CE rest API
+- added more internal variables available for saving into database:
+	- $twister_ce_hostname
+	- $twister_ep_hostname
+	- $twister_ce_python_revision
+	- $twister_ep_python_revision
+	- $twister_rf_fname - resource file name
+	- $twister_pf_fname - project file name
+- added STEP mechanism for debugging
+- updated documentation
+- changed window for global params definition and description
+
 17th May 2013 changes:
 
 - fixed issue in Configuration->TestBeds about editing property names/deleting the property
