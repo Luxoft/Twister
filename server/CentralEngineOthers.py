@@ -1,7 +1,7 @@
 
 # File: CentralEngineOthers.py ; This file is part of Twister.
 
-# version: 2.008
+# version: 2.009
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -795,7 +795,7 @@ class Project:
 
     def queueFile(self, user, suite, fname):
         """
-        ...
+        This function temporary adds a file at the end of the given suite, during runtime.
         """
         r = self.changeUser(user)
         if not r: return False
@@ -809,12 +809,16 @@ class Project:
 
         eps = self.users[user]['eps']
         suite_id = False
+        SuitesManager = False
 
         # Try to find the suite name
         for epname in eps:
-            for s_id in eps[epname]['suites']:
-                if eps[epname]['suites'][s_id]['name'] == suite:
+            manager = eps[epname]['suites']
+            suites = manager.getSuites()
+            for s_id in suites:
+                if manager.findId(s_id)['name'] == suite:
                     suite_id = s_id
+                    SuitesManager = manager
                     break
             if suite_id:
                 break
@@ -830,13 +834,14 @@ class Project:
             self.test_ids[user].append(file_id)
 
             finfo = OrderedDict()
+            finfo['type']  = 'file'
             finfo['suite'] = suite_id
             finfo['file']  = fname
-            finfo['dependancy'] = " "
             finfo['Runnable']   = "true"
 
             # Add file for the user, in a specific suite
-            eps[epname]['suites'][suite_id]['files'][file_id] = finfo
+            suite = SuitesManager.findId(suite_id)
+            suite['children'][file_id] = finfo
 
             # Add the file in suites.xml
             # self.setPersistentFile(self, user, suite, fname)
