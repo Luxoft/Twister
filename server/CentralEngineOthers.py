@@ -191,6 +191,8 @@ class Project:
         # Global params for user
         self.users[user]['global_params'] = self.parsers[user].getGlobalParams()
 
+        return True
+
 
     def createUser(self, user, base_config='', files_config=''):
         """
@@ -233,7 +235,8 @@ class Project:
         else:
             self.parsers[user] = TSCParser(user, base_config, files_config)
 
-        self._common_user_reset(user, base_config, files_config)
+        resp = self._common_user_reset(user, base_config, files_config)
+        if not resp: return False
 
         # Save everything.
         self._dump()
@@ -269,7 +272,8 @@ class Project:
             ''.format(user, base_config, files_config))
         self.parsers[user] = TSCParser(user, base_config, files_config)
 
-        self._common_user_reset(user, base_config, files_config)
+        resp = self._common_user_reset(user, base_config, files_config)
+        if not resp: return False
 
         # Save everything.
         self._dump()

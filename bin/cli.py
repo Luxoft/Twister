@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# version: 2.004
+# version: 2.005
 
 # File: cli.py ; This file is part of Twister.
 
@@ -106,6 +106,7 @@ def checkStatus(proxy, user, extra=True):
 	stats = proxy.getFileStatusAll(user).split(',')
 	if stats == ['']:
 		return False
+
 	all_stat = proxy.getExecStatusAll(user).split('; ')
 	stats = [int(i) for i in stats]
 
@@ -140,6 +141,8 @@ Other   : {tother}
 > Total : {texec}
 Pass rate: {rate}%
 """.format(**s_dict)
+
+	return True
 
 
 def checkDetails(proxy, user, option=None):
@@ -183,6 +186,8 @@ def checkDetails(proxy, user, option=None):
 			else:
 				print('    - nothing here')
 		print
+
+	return True
 
 
 def queueTest(proxy, user, suite, fname):

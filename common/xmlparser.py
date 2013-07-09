@@ -107,7 +107,7 @@ class TSCParser:
                 and ( base_config[0] == '<' and base_config[-1] == '>' ):
             pass
         else:
-            raise Exception('Parser ERROR: Invalid config data type: `%s`!' % type(config_data))
+            raise Exception('Parser ERROR: Invalid config data : `{}`!'.format(base_config))
 
         try:
             self.xmlDict = etree.fromstring(base_config)
