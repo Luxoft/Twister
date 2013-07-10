@@ -1,7 +1,7 @@
 
 # File: suitesmanager.py ; This file is part of Twister.
 
-# version: 2.002
+# version: 2.003
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -75,19 +75,34 @@ class SuitesManager(OrderedDict):
         return result
 
 
-    def getFiles(self, suite_id=None):
+    def getFiles(self, suite_id=None, recursive=True):
         """
         Returns a list of file IDs. Can filter for one suite.
         """
         if suite_id:
             suite = self.findId(suite_id, self)
             if not suite: return []
-            # Must pass a null result as default parameter!
-            ids = self._recursive_find_files(suite['children'], [])
-            return ids
+            if recursive:
+                # Must pass a null result as default parameter!
+                return self._recursive_find_files(suite['children'], [])
+            else:
+                result = []
+                for id, node in suite['children'].iteritems():
+                    # This is a file
+                    if node.get('type', 'file') == 'file':
+                        result.append(id)
+                return result
         else:
-            # Must pass a null result as default parameter!
-            return self._recursive_find_files(self, [])
+            if recursive:
+                # Must pass a null result as default parameter!
+                return self._recursive_find_files(self, [])
+            else:
+                result = []
+                for id, node in self.iteritems():
+                    # This is a file
+                    if node.get('type', 'file') == 'file':
+                        result.append(id)
+                return result
 
 
     def iterNodes(self, nodes=None, result=[]):

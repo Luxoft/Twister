@@ -366,7 +366,7 @@ class TCRunJava:
                             '{fn}.class'.format(fn=os.path.splitext(fileName)[0]))
         jythonRunner = os.path.join(TWISTER_PATH, 'common/jython/jythonRunner.jpy')
         #command = [jythonRunner, '--testFilePath', testFile]
-        jythonProcess = subprocess.Popen('sudo jython {jp} --classFilePath {cf} '\
+        jythonProcess = subprocess.Popen('jython {jp} --classFilePath {cf} '\
             '--testFilePath {fl}'.format(jp=jythonRunner,
             cf=junitClassPath, fl=compiledFilePath), shell=True)
         jythonProcess.wait()

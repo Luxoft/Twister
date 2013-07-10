@@ -62,7 +62,10 @@ if not TWISTER_PATH:
     exit(1)
 sys.path.append(TWISTER_PATH)
 
+
 from cherrypy import _cptools
+
+from json import loads as jsonLoads, dumps as jsonDumps
 
 from CentralEngineOthers import Project
 from ServiceManager    import ServiceManager
@@ -312,6 +315,16 @@ class CentralEngine(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
+    def setUserVariable(self, user, key, variable):
+        """
+        Function called from the Execution Process,
+        to set information that is available only here, or are hard to get.
+        """
+
+        return self.project.setUserInfo(user, key, variable)
+
+
+    @cherrypy.expose
     def searchEP(self, user, epname):
         """
         Search one EP and return True or False.
@@ -444,6 +457,102 @@ class CentralEngine(_cptools.XMLRPCController):
         This function writes in TestSuites.XML file, so the change is persistent.
         """
         return self.project.queueFile(user, suite, fname)
+
+
+    def getClientEpProxy(self, user, epname):
+        """  """
+
+        # check if epname is known and registered
+        userClientsInfo = self.project.getUserInfo(user, 'clients')
+        if not userClientsInfo:
+            return None
+        else:
+            userClientsInfo = jsonLoads(userClientsInfo)
+
+        userClientsInfoEPs = list()
+        for cl in userClientsInfo:
+            userClientsInfoEPs += userClientsInfo[cl]
+        if not self.searchEP(user, epname) or not epname in userClientsInfoEPs:
+            logError('Error: unknown epname: {ep}'.format(ep=epname))
+            return None
+
+        # get proxy address
+        for cl in userClientsInfo:
+            if epname in userClientsInfo[cl]:
+                return cl
+
+        logError('Error: unknown proxy for epname: {ep}'.format(ep=epname))
+        return None
+
+
+    @cherrypy.expose
+    def registerClient(self, user, clients):
+        """ register client """
+
+        clients = jsonLoads(clients)
+        _clients = dict()
+        for client in clients:
+            _clients.update([('{addr}:{cl}'.format(addr=cherrypy.request.headers['Remote-Addr'],
+                                    cl=client.split(':')[1]), clients[client]), ])
+        clients = jsonDumps(_clients)
+
+        self.setUserVariable(user, 'clients', clients)
+        logDebug('Client register `{}` -> {}.'.format(user, clients))
+        return True
+
+
+    @cherrypy.expose
+    def startEP(self, user, epname):
+        """ start ep for client """
+
+        _proxy = self.getClientEpProxy(user, epname)
+        if not _proxy:
+            return False
+
+        proxy = xmlrpclib.ServerProxy('http://{pr}/twisterclient/'.format(pr=_proxy))
+
+        try:
+            logDebug('Trying to start `{} {}`.'.format(user, epname))
+            return proxy.startEP(epname)
+        except Exception as e:
+            logError('Error: start ep error: {er}'.format(er=e))
+            return False
+
+
+    @cherrypy.expose
+    def stopEP(self, user, epname):
+        """ stop ep for client """
+
+        _proxy = self.getClientEpProxy(user, epname)
+        if not _proxy:
+            return False
+
+        proxy = xmlrpclib.ServerProxy('http://{pr}/twisterclient/'.format(pr=_proxy))
+
+        try:
+            logDebug('Trying to stop `{} {}`.'.format(user, epname))
+            return proxy.stopEP(epname)
+        except Exception as e:
+            logError('Error: stop ep error: {er}'.format(er=e))
+            return False
+
+
+    @cherrypy.expose
+    def restartEP(self, user, epname):
+        """ restart ep for client """
+
+        _proxy = self.getClientEpProxy(user, epname)
+        if not _proxy:
+            return False
+
+        proxy = xmlrpclib.ServerProxy('http://{pr}/twisterclient/'.format(pr=_proxy))
+
+        try:
+            logDebug('Trying to restart `{} {}`.'.format(user, epname))
+            return proxy.restartEP(epname)
+        except Exception as e:
+            logError('Error: restart ep error: {er}'.format(er=e))
+            return False
 
 
 # --------------------------------------------------------------------------------------------------
@@ -580,6 +689,9 @@ class CentralEngine(_cptools.XMLRPCController):
                 logDebug('CE: Status changed for `%s %s` - %s.' % (user, epname, reversed[new_status]))
         else:
             logError('CE ERROR! Cannot change status for `%s %s` !' % (user, epname))
+
+        # Send stop EP !
+        self.stopEP(user, epname)
 
         # If all Stations are stopped, the Central Engine must also stop!
         # This is important, so that in the Java GUI, the buttons will change to [Play | Stop]
@@ -723,6 +835,11 @@ class CentralEngine(_cptools.XMLRPCController):
                     logWarning('Error on running plugin `%s onStop` - Exception: `%s`!' % (pname, str(e)))
             del parser, plugins
 
+            # Start all active EPs !
+            active_eps = self.project.parsers[user].getActiveEps()
+            for epname in active_eps:
+                self.startEP(user, epname)
+
         # If the engine is running, or paused and it received STOP from the user...
         elif (executionStatus == STATUS_RUNNING or executionStatus == STATUS_PAUSED) and new_status == STATUS_STOP:
 
@@ -745,6 +862,11 @@ class CentralEngine(_cptools.XMLRPCController):
                 except Exception, e:
                     logWarning('Error on running plugin `%s onStop` - Exception: `%s`!' % (pname, str(e)))
             del parser, plugins
+
+            # Stop all active EPs !
+            active_eps = self.project.parsers[user].getActiveEps()
+            for epname in active_eps:
+                self.stopEP(user, epname)
 
 
         # Update status for User

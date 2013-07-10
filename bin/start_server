@@ -13,6 +13,7 @@ then
     else
         echo Killing Twister Server, PID $pid ...
         kill -9 $pid
+        sleep 2
     fi
     echo TWISTER_PATH is set to: "$TWISTER_PATH".
     nohup $PYTHON -u $TWISTER_PATH/server/CentralEngine.py $SERVER_PORT > $TWISTER_PATH/server_log.log &

@@ -227,7 +227,8 @@ elif TO_INSTALL == 'client':
     # Files to move in Client folder
     to_link = [
         'bin/cli.py',
-        'bin/start_ep.py',
+        'bin/start_client',
+        'bin/start_client.py',
         'bin/start_packet_sniffer.py',
         'doc/',
         'demo/',
