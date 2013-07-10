@@ -9,9 +9,10 @@ LOG_PATH=`echo ~/twister/twisterclient.log`
 
 NAME=twisterclient
 DESC="twister client"
+USER=`whoami`
 
-STATUS=$(ps ax | grep python | grep start_client.py)
-EPSTATUS=$(ps ax | grep python | grep ExecutionProcess.py)
+STATUS=$(ps -fu $USER | grep python | grep start_client.py)
+EPSTATUS=$(ps -fu $USER | grep python | grep ExecutionProcess.py)
 
 
 
@@ -26,7 +27,7 @@ case "$1" in
         if [ -n "$STATUS" ]
         then
             echo already running..
-            ps ax | grep python | grep start_client.py
+            ps -fu $USER | grep python | grep start_client.py
         else
             nohup $PYTHON_PATH -u $DAEMON > $LOG_PATH &
         fi
@@ -39,12 +40,12 @@ case "$1" in
 
         if [ -n "$EPSTATUS" ]
         then
-            kill -9 `ps ax | grep python | grep ExecutionProcess.py | awk '{print $1}'`
+            kill -9 `ps -fu $USER | grep python | grep ExecutionProcess.py | awk '{print $2}'`
         fi
 
         if [ -n "$STATUS" ]
         then
-            kill -9 `ps ax | grep python | grep start_client.py | awk '{print $1}'`
+            kill -9 `ps -fu $USER | grep python | grep start_client.py | awk '{print $2}'`
         fi
 
         echo "$NAME.  ||||<<<<"
@@ -55,12 +56,12 @@ case "$1" in
 
         if [ -n "$EPSTATUS" ]
         then
-            kill -9 `ps ax | grep python | grep ExecutionProcess.py | awk '{print $1}'`
+            kill -9 `ps -fu $USER | grep python | grep ExecutionProcess.py | awk '{print $2}'`
         fi
 
         if [ -n "$STATUS" ]
         then
-            kill -9 `ps ax | grep python | grep start_client.py | awk '{print $1}'`
+            kill -9 `ps -fu $USER | grep python | grep start_client.py | awk '{print $2}'`
         fi
 
         nohup $PYTHON_PATH -u $DAEMON > $LOG_PATH &
@@ -74,9 +75,9 @@ case "$1" in
 
         if [ -n "$STATUS" ]
         then
-            ps ax | grep python | grep start_client.py
+            ps -fu $USER | grep python | grep start_client.py
             echo -e "\n"
-            ps ax | grep python | grep ExecutionProcess.py
+            ps -fu $USER | grep python | grep ExecutionProcess.py
         else
             echo not running..
         fi
