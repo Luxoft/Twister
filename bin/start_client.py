@@ -45,8 +45,7 @@ def userHome(user):
 # Twister path environment
 os.environ['TWISTER_PATH'] = userHome(username) + '/twister'
 
-
-
+#
 
 def keepalive(service):
 	"""  """
@@ -209,7 +208,7 @@ class TwisterClientService():
 
 		if last_seen_alive:
 			diff = now_dtime - datetime.strptime(last_seen_alive, '%Y-%m-%d %H:%M:%S')
-			if diff.seconds < 8:
+			if diff.seconds < 2.5:
 				print('Error: Process {0} is already started for user {1}! (ping={2} sec)\n'\
 						.format(epname, username, diff.seconds))
 				return False
@@ -241,6 +240,7 @@ class TwisterClientService():
 		os.killpg(self.eps[epname]['pid'].pid, 9)
 		self.eps[epname]['pid'] = None
 
+		print('Received STOP EP {} !'.format(epname))
 		return True
 
 
@@ -254,6 +254,7 @@ class TwisterClientService():
 		if self.eps[epname]['pid']:
 			os.killpg(self.eps[epname]['pid'].pid, 9)
 			self.eps[epname]['pid'] = None
+			print('Killing EP {} !'.format(epname))
 
 		print('Will execute:', self.eps[epname]['exec_str'])
 		self.eps[epname]['pid'] = subprocess.Popen(self.eps[epname]['exec_str'],

@@ -497,7 +497,7 @@ class CentralEngine(_cptools.XMLRPCController):
         clients = jsonDumps(_clients)
 
         self.setUserVariable(user, 'clients', clients)
-
+        logDebug('Client register `{}` -> {}.'.format(user, clients))
         return True
 
 
@@ -512,6 +512,7 @@ class CentralEngine(_cptools.XMLRPCController):
         proxy = xmlrpclib.ServerProxy('http://{pr}/twisterclient/'.format(pr=_proxy))
 
         try:
+            logDebug('Trying to start `{} {}`.'.format(user, epname))
             return proxy.startEP(epname)
         except Exception as e:
             logError('Error: start ep error: {er}'.format(er=e))
@@ -529,6 +530,7 @@ class CentralEngine(_cptools.XMLRPCController):
         proxy = xmlrpclib.ServerProxy('http://{pr}/twisterclient/'.format(pr=_proxy))
 
         try:
+            logDebug('Trying to stop `{} {}`.'.format(user, epname))
             return proxy.stopEP(epname)
         except Exception as e:
             logError('Error: stop ep error: {er}'.format(er=e))
@@ -546,6 +548,7 @@ class CentralEngine(_cptools.XMLRPCController):
         proxy = xmlrpclib.ServerProxy('http://{pr}/twisterclient/'.format(pr=_proxy))
 
         try:
+            logDebug('Trying to restart `{} {}`.'.format(user, epname))
             return proxy.restartEP(epname)
         except Exception as e:
             logError('Error: restart ep error: {er}'.format(er=e))
@@ -687,6 +690,9 @@ class CentralEngine(_cptools.XMLRPCController):
         else:
             logError('CE ERROR! Cannot change status for `%s %s` !' % (user, epname))
 
+        # Send stop EP !
+        self.stopEP(user, epname)
+
         # If all Stations are stopped, the Central Engine must also stop!
         # This is important, so that in the Java GUI, the buttons will change to [Play | Stop]
         if not sum([self.project.getEpInfo(user, ep).get('status', 8) for ep in self.project.parsers[user].getActiveEps()]):
@@ -727,9 +733,6 @@ class CentralEngine(_cptools.XMLRPCController):
                         except Exception, e:
                             logWarning('Error on running plugin `%s onStop` - Exception: `%s`!' % (pname, str(e)))
                     del parser, plugins
-
-                # stop ep
-                self.stopEP(user, epname)
 
         return reversed[new_status]
 
@@ -779,11 +782,6 @@ class CentralEngine(_cptools.XMLRPCController):
         # Re-initialize the Master XML and Reset all logs on fresh start!
         # This will always happen when the START button is pressed, if CE is stopped
         if (executionStatus == STATUS_STOP or executionStatus == STATUS_INVALID) and new_status == STATUS_RUNNING:
-
-            #start eps
-            active_eps = self.project.parsers[user].getActiveEps()
-            for epname in active_eps:
-                self.startEP(user, epname)
 
             # If the Msg contains 2 paths, separated by comma
             if msg and len(msg.split(',')) == 2:
@@ -837,6 +835,11 @@ class CentralEngine(_cptools.XMLRPCController):
                     logWarning('Error on running plugin `%s onStop` - Exception: `%s`!' % (pname, str(e)))
             del parser, plugins
 
+            # Start all active EPs !
+            active_eps = self.project.parsers[user].getActiveEps()
+            for epname in active_eps:
+                self.startEP(user, epname)
+
         # If the engine is running, or paused and it received STOP from the user...
         elif (executionStatus == STATUS_RUNNING or executionStatus == STATUS_PAUSED) and new_status == STATUS_STOP:
 
@@ -860,7 +863,7 @@ class CentralEngine(_cptools.XMLRPCController):
                     logWarning('Error on running plugin `%s onStop` - Exception: `%s`!' % (pname, str(e)))
             del parser, plugins
 
-            # stop eps
+            # Stop all active EPs !
             active_eps = self.project.parsers[user].getActiveEps()
             for epname in active_eps:
                 self.stopEP(user, epname)
@@ -873,12 +876,6 @@ class CentralEngine(_cptools.XMLRPCController):
         active_eps = self.project.parsers[user].getActiveEps()
         for epname in active_eps:
             self.project.setEpInfo(user, epname, 'status', new_status)
-
-            # stop eps
-            if new_status == STATUS_STOP:
-                active_eps = self.project.parsers[user].getActiveEps()
-                for epname in active_eps:
-                    self.stopEP(user, epname)
 
         reversed = dict((v,k) for k,v in execStatus.iteritems())
 
