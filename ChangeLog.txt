@@ -1,3 +1,10 @@
+10th July 2013
+
+- fixed a backend code issue for teardown files in sub-suites
+- added mechanism for automatic start of execution engines ( EPs ); the user can specify in GUI the EPs associated with a test 
+  bed and they are started automatically on client side even if they are enabled or not in eoname.ini
+- renamed start_ep to start_client on client side ( $HOME/twister/bin directory )
+
 09th July 2013
 
 - fixed a cli issue for queue test cases
