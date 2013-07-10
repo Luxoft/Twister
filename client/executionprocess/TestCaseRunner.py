@@ -1,7 +1,7 @@
 
 # File: TestCaseRunner.py ; This file is part of Twister.
 
-# version: 2.009
+# version: 2.010
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -301,7 +301,7 @@ class TwisterRunner:
 
         for id, node in SuitesManager.iterNodes():
 
-            # Starting a new suite or sub-suite ...
+            # When starting a new suite or sub-suite ...
             # Some files don't belong to this suite, they might belong to the parent of this suite,
             # so each file must update the suite ID!
             if node['type'] == 'suite':
@@ -324,31 +324,23 @@ class TwisterRunner:
                     self.saveLibraries(libList)
                     print('')
 
-                # The end of the suite
+                # The suite does not execute, so this is the end
                 continue
 
 
             # Files section
             file_id  = id
             suite_id = node['suite']
-
-            # All files from current suite, recursive, unlimited depth
-            suite_files = SuitesManager.getFiles(suite_id)
-            try:
-                file_index  = suite_files.index(file_id)
-            except:
-                print('Invalid file list for suite `{}`! This is a serious error!'.format(suite_id))
-                file_index = -1
-            status  = node.get('status', STATUS_INVALID)
+            status   = node.get('status', STATUS_INVALID)
 
             # The name of the file
             filename = node['file']
             # If the file is NOT runnable, download it, but don't execute!
             runnable = node.get('Runnable', 'true')
             # Is this file a setup file?
-            setup_file = node.get('setup_file')
+            setup_file = node.get('setup_file', False)
             # Is this file a teardown file?
-            teardown_file = node.get('teardown_file')
+            teardown_file = node.get('teardown_file', False)
             # Test-case dependency, if any
             dependancy = node.get('dependancy')
             # Is this test file optional?
@@ -364,21 +356,24 @@ class TwisterRunner:
 
 
             # If a setup file failed, abort the current suite and all sub-suites,
-            # unless it's another setup, or teardown file!
-            # Strategy: list all children from the aborted suite. If the current file is a child
-            # of the aborted suite, this file must be aborted too!
+            # unless it's another setup, or teardown file from the current suite!
             # Abort_suite flag is set by the setup files from the beggining of a suite.
             if abort_suite:
-                aborted_ids = SuitesManager.getFiles(abort_suite)
-                if aborted_ids and (file_id in aborted_ids) and (not setup_file) and (not teardown_file):
-                    print('TC debug: Abort file `{}` because of failed setup file!\n\n'.format(filename))
-                    self.proxySetTestStatus(file_id, STATUS_ABORTED, 0.0) # File status ABORTED
-                    print('<<< END filename: `{}:{}` >>>\n'.format(file_id, filename))
-                    continue
-                if setup_file:
-                    print('Running a setup file...\n')
-                if teardown_file:
-                    print('Running a tear-down file...\n')
+                aborted_ids = SuitesManager.getFiles(suite_id=abort_suite, recursive=True)
+                current_ids = SuitesManager.getFiles(suite_id=abort_suite, recursive=False)
+                if aborted_ids and (file_id in aborted_ids):
+                    # If it's a setup file from current level suite, run it
+                    if setup_file and (file_id in current_ids):
+                        print('Running a setup file...\n')
+                    # If it's a teardown file from current level suite, run it
+                    elif teardown_file and (file_id in current_ids):
+                        print('Running a tear-down file...\n')
+                    else:
+                        print('TC debug: Abort file `{}` because of failed setup file!\n\n'.format(filename))
+                        self.proxySetTestStatus(file_id, STATUS_ABORTED, 0.0) # File status ABORTED
+                        print('<<< END filename: `{}:{}` >>>\n'.format(file_id, filename))
+                        continue
+                del aborted_ids, current_ids
 
 
             # Reload the config file written by EP
