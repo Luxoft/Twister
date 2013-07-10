@@ -2,20 +2,16 @@
 
 
 
-
 PYTHON_PATH=/usr/bin/python
 
 DAEMON=`echo ~/twister/bin/start_client.py`
-
 LOG_PATH=`echo ~/twister/twisterclient.log`
 
 NAME=twisterclient
 DESC="twister client"
 
-
 STATUS=$(ps ax | grep python | grep start_client.py)
 EPSTATUS=$(ps ax | grep python | grep ExecutionProcess.py)
-
 
 
 
@@ -96,4 +92,3 @@ case "$1" in
 esac
 
 exit 0
-
