@@ -270,6 +270,8 @@ class Project:
 
         logDebug('Project: RESET configuration for user `{}`, using config files `{}` and `{}`.'
             ''.format(user, base_config, files_config))
+
+        del self.parsers[user]
         self.parsers[user] = TSCParser(user, base_config, files_config)
 
         resp = self._common_user_reset(user, base_config, files_config)
