@@ -1,6 +1,6 @@
 /*
 File: Grafic.java ; This file is part of Twister.
-Version: 2.003
+Version: 2.004
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -77,6 +77,8 @@ import com.twister.CustomDialog;
 import java.util.HashMap;
 import java.util.Set;
 import java.util.Iterator;
+import java.io.BufferedWriter;
+import java.io.FileWriter;
 
 public class Grafic extends JPanel{
     private static final long serialVersionUID = 1L;
@@ -1147,7 +1149,6 @@ public class Grafic extends JPanel{
                 getClickedItem(ev.getX(),ev.getY());
                 if(selected.size()>0){
                     selectItem(selected);
-                    
                     if(getItem(selected,false).getType()==2){
                         Item temp = getItem(selected,false);
                         int userDefNr = temp.getUserDefNr();
@@ -1177,29 +1178,6 @@ public class Grafic extends JPanel{
                         Repository.window.mainpanel.p1.suitaDetails.setParent(temp);
                         Repository.window.mainpanel.p1.suitaDetails.setTCDetails();
                     }
-                    
-                    
-//                     if(getItem(selected,false).getType()==2
-//                     &&getItem(selected,false).getPos().size()==1){
-//                         Item temp = getItem(selected,false);
-//                         int userDefNr = temp.getUserDefNr();
-//                         Repository.window.mainpanel.p1.suitaDetails.setSuiteDetails();
-//                         Repository.window.mainpanel.p1.suitaDetails.setParent(temp);
-//                         if(userDefNr!=Repository.window.mainpanel.p1.suitaDetails.getDefsNr()){
-//                             System.out.println("Warning, suite "+
-//                                 temp.getName()+" has "+userDefNr+" fields while in bd.xml are defined "+
-//                                 Repository.window.mainpanel.p1.suitaDetails.getDefsNr()+" fields");
-//                             if(Repository.window.mainpanel.p1.suitaDetails.getDefsNr()<userDefNr){
-//                                 temp.getUserDefs().subList(Repository.window.mainpanel.p1.suitaDetails.
-//                                 getDefsNr(),userDefNr).clear();}}
-//                         try{
-//                             for(int i=0;i<Repository.window.mainpanel.p1.suitaDetails.getDefsNr();i++){
-//                                 if(temp.getUserDefNr()==i)break;
-//                                 Repository.window.mainpanel.p1.suitaDetails.getDefPanel(i).
-//                                                     setDescription(temp.getUserDef(i)[1]);}}
-//                         catch(Exception e){e.printStackTrace();}}
-                        
-                        
                     if(getItem(selected,false).getCheckRectangle().intersects(
                                   new Rectangle(ev.getX()-1,ev.getY()-1,2,2))){
                         getItem(selected,false).setCheck(!getItem(selected,false).getCheck());}
@@ -1221,8 +1199,8 @@ public class Grafic extends JPanel{
                         }
                         else getItem(selected,false).setVisible(
                             !itemIsExpanded(getItem(selected,false)));
-                        }
-                    updateLocations(getItem(selected,false));}
+                    }
+                updateLocations(getItem(selected,false));}
                 else{
                     Repository.window.mainpanel.p1.suitaDetails.setGlobalDetails();}
                 repaint();}
@@ -2199,7 +2177,9 @@ public class Grafic extends JPanel{
      * parses xml and represents in grafic
      */    
     public void parseXML(File file){
-        new XMLReader(file).parseXML(getGraphics(),false);}
+//         new XMLReader(file).parseXML(getGraphics(),false);
+        new XMLReader(file).parseXML(getGraphics(),false,Repository.getSuite(),true);
+    }
         
     /*
      * writes xml on file
@@ -2207,14 +2187,14 @@ public class Grafic extends JPanel{
      */
     public boolean printXML(String user, boolean skip,
                             boolean local, boolean stoponfail,
-                            boolean savedb, String delay){
+                            boolean savedb, String delay,boolean lib){
         //skip = true
         try{XMLBuilder xml = new XMLBuilder(Repository.getSuite());
             xml.createXML(skip,stoponfail,false,
                           Repository.window.mainpanel.p1.suitaDetails.getPreScript(),
                           Repository.window.mainpanel.p1.suitaDetails.getPostScript(),
                           savedb,delay,Repository.window.mainpanel.p1.suitaDetails.getGlobalLibs());
-            xml.writeXMLFile(user,local,false);
+            xml.writeXMLFile(user,local,false,lib);
             return true;}
         catch(Exception e){
             e.printStackTrace();
@@ -2237,42 +2217,139 @@ public class Grafic extends JPanel{
                                     getModel().getChild((TreeNode)((TreePath)child).getLastPathComponent(),j));}
         return nr;}}
         
-    public void drop(int x, int y){
-        deselectAll();
-        requestFocus();
-        int max = Repository.window.mainpanel.p1.ep.getSelected().length;
-        if(max>0){
-            for(int i=0;i<max;i++){
-                boolean cond = Repository.window.mainpanel.p1.ep.tree.getModel().
-                                    isLeaf((TreeNode)Repository.window.mainpanel.p1.
-                                    ep.getSelected()[i].getLastPathComponent());//has no children                
-                if(cond){
-                    String name = Repository.window.mainpanel.p1.ep.
-                                    getSelected()[i].getPath()[Repository.window.mainpanel.p1.ep.getSelected()[i].
-                                                                getPathCount()-2]+"/"+Repository.window.mainpanel.p1.
-                                                                ep.getSelected()[i].getPath()[Repository.window.
-                                                                mainpanel.p1.ep.getSelected()[i].getPathCount()-1];
-                    
-                    try{name = name.split(Repository.getTestSuitePath())[1];}
-                    catch(Exception e){
-                        System.out.println("Could not find projects path:"+Repository.getTestSuitePath()+" in filename:"+name);
-                        e.printStackTrace();}
-                    FontMetrics metrics = getGraphics().getFontMetrics(new Font("TimesRoman", Font.PLAIN, 13));
-                    Item newItem = new Item(name,1, -1, -1, metrics.stringWidth(name)+48, 20, null);
-                    ArrayList<Integer> pos = new ArrayList <Integer>();
-                    pos.add(new Integer(0));
-                    ArrayList<Integer> pos2 = (ArrayList <Integer>)pos.clone();
-                    pos2.add(new Integer(0));
-                    Item property = new Item("Running",0,-1,-1,(metrics.stringWidth("Running:  true"))+28,20,pos2);
-                    property.setValue("true");
-                    property.setSubItemVisible(false);
-                    newItem.addSubItem(property);
-                    newItem.setVisible(false);
-                    clone.add(newItem);}
-                else{
-                    subtreeTC((TreeNode)Repository.window.mainpanel.p1.ep.getSelected()[i].getLastPathComponent(),null,0);}}
-            handleMouseDroped(y);
-            clone.clear();}}
+    public void drop(int x, int y,boolean tc){
+        if(tc){
+            deselectAll();
+            requestFocus();
+            int max = Repository.window.mainpanel.p1.ep.getSelected().length;
+            if(max>0){
+                for(int i=0;i<max;i++){
+                    boolean cond = Repository.window.mainpanel.p1.ep.tree.getModel().
+                                        isLeaf((TreeNode)Repository.window.mainpanel.p1.
+                                        ep.getSelected()[i].getLastPathComponent());//has no children                
+                    if(cond){
+                        String name = Repository.window.mainpanel.p1.ep.
+                                        getSelected()[i].getPath()[Repository.window.mainpanel.p1.ep.getSelected()[i].
+                                                                    getPathCount()-2]+"/"+Repository.window.mainpanel.p1.
+                                                                    ep.getSelected()[i].getPath()[Repository.window.
+                                                                    mainpanel.p1.ep.getSelected()[i].getPathCount()-1];
+                        
+                        try{name = name.split(Repository.getTestSuitePath())[1];}
+                        catch(Exception e){
+                            System.out.println("Could not find projects path:"+Repository.getTestSuitePath()+" in filename:"+name);
+                            e.printStackTrace();}
+                        FontMetrics metrics = getGraphics().getFontMetrics(new Font("TimesRoman", Font.PLAIN, 13));
+                        Item newItem = new Item(name,1, -1, -1, metrics.stringWidth(name)+48, 20, null);
+                        ArrayList<Integer> pos = new ArrayList <Integer>();
+                        pos.add(new Integer(0));
+                        ArrayList<Integer> pos2 = (ArrayList <Integer>)pos.clone();
+                        pos2.add(new Integer(0));
+                        Item property = new Item("Running",0,-1,-1,(metrics.stringWidth("Running:  true"))+28,20,pos2);
+                        property.setValue("true");
+                        property.setSubItemVisible(false);
+                        newItem.addSubItem(property);
+                        newItem.setVisible(false);
+                        clone.add(newItem);}
+                    else{
+                        subtreeTC((TreeNode)Repository.window.mainpanel.p1.ep.getSelected()[i].getLastPathComponent(),null,0);}}
+                handleMouseDroped(y);
+            }
+        } else {
+            deselectAll();
+            requestFocus();
+            int max = Repository.window.mainpanel.p1.lp.getSelected().length;
+            if(max>0){
+                ArrayList<Item>list = new ArrayList();
+                for(int i=0;i<max;i++){
+                    boolean cond = Repository.window.mainpanel.p1.lp.tree.getModel().
+                                        isLeaf((TreeNode)Repository.window.mainpanel.p1.
+                                        lp.getSelected()[i].getLastPathComponent());//has no children                
+                    if(cond){
+                        String name = Repository.window.mainpanel.p1.lp.
+                                        getSelected()[i].getPath()[Repository.window.mainpanel.p1.lp.getSelected()[i].
+                                                                    getPathCount()-2]+"/"+Repository.window.mainpanel.p1.
+                                                                    lp.getSelected()[i].getPath()[Repository.window.
+                                                                    mainpanel.p1.lp.getSelected()[i].getPathCount()-1];
+                        
+                        try{name = name.split(Repository.getPredefinedSuitesPath())[1];}
+                        catch(Exception e){
+                            System.out.println("Could not find projects path:"+Repository.getTestSuitePath()+" in filename:"+name);
+                            e.printStackTrace();}
+                            
+                            try{String content = Repository.getRemoteFileContent(Repository.getPredefinedSuitesPath()+name);             
+                                String [] filename = name.split("/");
+                                File file = new File(Repository.temp+Repository.getBar()+"Twister"+
+                                                     Repository.getBar()+"Users"+Repository.getBar()+   
+                                                     filename[filename.length-1]);
+                                BufferedWriter writer = new BufferedWriter(new FileWriter(file));
+                                writer.write(content);
+                                writer.close();
+                                new XMLReader(file).parseXML(getGraphics(), false, list, false);
+                                for(Item itm :list){
+                                    clone.add(itm);
+                                }
+                            } catch (Exception e){
+                                e.printStackTrace();
+                            }
+                            
+                            
+                            
+//                         FontMetrics metrics = getGraphics().getFontMetrics(new Font("TimesRoman", Font.PLAIN, 13));
+//                         Item newItem = new Item(name,1, -1, -1, metrics.stringWidth(name)+48, 20, null);
+//                         ArrayList<Integer> pos = new ArrayList <Integer>();
+//                         pos.add(new Integer(0));
+//                         ArrayList<Integer> pos2 = (ArrayList <Integer>)pos.clone();
+//                         pos2.add(new Integer(0));
+//                         Item property = new Item("Running",0,-1,-1,(metrics.stringWidth("Running:  true"))+28,20,pos2);
+//                         property.setValue("true");
+//                         property.setSubItemVisible(false);
+//                         newItem.addSubItem(property);
+//                         newItem.setVisible(false);
+//                         clone.add(newItem);
+                    }
+                    else{
+                        subtreeTC((TreeNode)Repository.window.mainpanel.p1.lp.getSelected()[i].getLastPathComponent(),null,0);}}
+                handleMouseDroped(y);
+                Item parent = getFirstSuitaParent(list.get(0), false);
+                if(parent!=null)checkSameName(parent);
+            }
+        }
+    }
+    
+    /*
+     * check if this item has children 
+     * with same name and prompt to rename
+     */
+    private void checkSameName(Item item){
+        for(Item i:item.getSubItems()){
+            for(Item j:item.getSubItems()){
+                if(j.getType()!=2)continue;
+                if(i.getName().equals(j.getName())&&i!=j){
+                    if(i.getType()!=2)continue;
+                    deselectAll();
+                    selectItem(j.getPos());
+                    Repository.window.mainpanel.p1.remove.setEnabled(true);
+                    Repository.window.mainpanel.p1.sc.pane.getVerticalScrollBar().setValue((int)j.getCheckRectangle().getCenterY());
+                    String name = "";
+                    while(name==null||name.equals("")||name.equals(j.getName())){
+                        name = CustomDialog.showInputDialog(JOptionPane.WARNING_MESSAGE,
+                                                            JOptionPane.OK_CANCEL_OPTION, 
+                                                            Grafic.this, "Warning", 
+                                                            "There is a suite with the same name, please rename.");
+                        for(Item k:item.getSubItems()){
+                            if(name.equals(k.getName())){
+                                name = "";
+                            }
+                        }
+                    }
+                    j.setName(name);
+                    Repository.window.mainpanel.p1.suitaDetails.setParent(j);
+                    Repository.window.mainpanel.p1.suitaDetails.setSuiteDetails(false);
+                    repaint();
+                }
+            }
+        }
+    }
             
     public ArrayList<int []> getSelectedCollection(){
         return selectedcollection;}

@@ -1,6 +1,6 @@
 /*
 File: UnitTesting.java ; This file is part of Twister.
-Version: 2.001
+Version: 2.002
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -412,7 +412,7 @@ public class UnitTesting extends JFrame {
                     result2.append(path[i]);
                     result2.append("/");}}
             final String filelocation = result2.toString()+"testsuites_temp.xml";
-            if(!xml.writeXMLFile("testsuites_temp.xml", false,true)){
+            if(!xml.writeXMLFile("testsuites_temp.xml", false,true,false)){
                 System.out.println("Could not write testsuites_temp.xml");
                 return;
             }

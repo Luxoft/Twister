@@ -1,6 +1,6 @@
 /*
 File: ConfigFiles.java ; This file is part of Twister.
-Version: 2.003
+Version: 2.004
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -79,6 +79,7 @@ import java.io.FileWriter;
 
 public class ConfigFiles extends JPanel{
     private static JTextField ttcpath,tMasterXML,tUsers,tepid,
+                              tSuites,
                               tlog,trunning,//tname,//thardwareconfig,
                               tdebug,tsummary,tinfo,tcli,tdbfile,
                               temailfile,tceport,
@@ -92,7 +93,7 @@ public class ConfigFiles extends JPanel{
         paths = new JPanel();
         paths.setBackground(Color.WHITE);
         paths.setLayout(null);
-        paths.setPreferredSize(new Dimension(930,930));
+        paths.setPreferredSize(new Dimension(930,1050));
         paths.setBorder(BorderFactory.createBevelBorder(BevelBorder.LOWERED));
         setLayout(null);
         ttcpath = new JTextField();
@@ -106,9 +107,16 @@ public class ConfigFiles extends JPanel{
 //                 " interface to run on Central Engine",
 //                 tMasterXML,Repository.XMLREMOTEDIR,73,true,null);
         tUsers = new JTextField();
+        
         addPanel("Projects Path",
                 "Location of projects XML files",tUsers,
                 Repository.REMOTEUSERSDIRECTORY,73,true,null);
+                
+        tSuites = new JTextField();
+        addPanel("Predefined Suites Path",
+                "Location of predefined suites",tSuites,
+                Repository.PREDEFINEDSUITES,876,true,null);
+                
         tepid = new JTextField();
         addPanel("EP name File","Location of the file that contains"+
         " the Ep name list",
@@ -197,7 +205,7 @@ public class ConfigFiles extends JPanel{
         border8.setBorder(BorderFactory.createLineBorder(new Color(150,150,150), 1));
         p8.setBorder(border8);
         p8.setLayout(null);    
-        p8.setBounds(80,875,800,50);
+        p8.setBounds(80,944,800,50);
         paths.add(p8);
         
         JButton save = new JButton("Save");
@@ -362,6 +370,7 @@ public class ConfigFiles extends JPanel{
                         Repository.window.mainpanel.getP2().init(Repository.applet);
 //                         Repository.window.mainpanel.setComponentAt(1, Repository.window.mainpanel.getP2());
                         Repository.window.mainpanel.p1.ep.refreshStructure();
+                        Repository.window.mainpanel.p1.lp.refreshStructure();
                         Repository.window.mainpanel.p4.getDBConfig().refresh();
                         Repository.window.mainpanel.p4.getGlobals().refresh();
                         Repository.resetDBConf(Repository.REMOTEDATABASECONFIGFILE,true);
@@ -518,6 +527,8 @@ public class ConfigFiles extends JPanel{
             catch(Exception e){addTag("LibPath","",root,blank,document);}
             try{addTag("UsersPath",tUsers.getText(),root,blank,document);}
             catch(Exception e){addTag("UsersPath","",root,blank,document);}
+            try{addTag("PredefinedSuitesPath",tSuites.getText(),root,blank,document);}
+            catch(Exception e){addTag("PredefinedSuitesPath","",root,blank,document);}
             try{addTag("LogsPath",tlog.getText(),root,blank,document);}
             catch(Exception e){addTag("LogsPath","",root,blank,document);}
             rootElement = document.createElement("LogFiles");

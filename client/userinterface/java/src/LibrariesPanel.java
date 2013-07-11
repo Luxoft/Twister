@@ -1,6 +1,6 @@
 /*
-File: ExplorerPanel.java ; This file is part of Twister.
-Version: 2.004
+File: LibrariesPanel.java ; This file is part of Twister.
+Version: 2.002
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -17,7 +17,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-import java.awt.datatransfer.StringSelection;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 import javax.swing.JMenuItem;
@@ -40,6 +39,7 @@ import java.awt.dnd.DropTarget;
 import java.awt.dnd.DnDConstants;
 import java.awt.dnd.DragGestureListener;
 import java.awt.dnd.DragGestureEvent;
+import java.awt.dnd.DragSourceListener;
 import javax.swing.tree.TreePath;
 import java.awt.dnd.DragSourceDropEvent;
 import java.awt.dnd.DragSourceDragEvent;
@@ -124,19 +124,8 @@ import java.util.Properties;
 import java.awt.datatransfer.Transferable;
 import java.awt.datatransfer.StringSelection;
 import java.awt.dnd.DragSourceListener;
-import javax.swing.tree.TreeSelectionModel;
 
-
-import java.awt.datatransfer.Transferable;
-import java.awt.datatransfer.UnsupportedFlavorException;
-import java.io.IOException;
-import java.util.ArrayList;
- 
-import javax.swing.*;
-import javax.swing.tree.DefaultTreeModel;
-import javax.swing.tree.TreePath;
-
-public class ExplorerPanel {
+public class LibrariesPanel{
 
     private static final long serialVersionUID = 1L;
     public JTree tree;
@@ -146,10 +135,9 @@ public class ExplorerPanel {
     private DefaultMutableTreeNode child2;
     private JEditTextArea textarea;
     public static ChannelSftp connection;
-    public DragSource ds;
-    
-    public ExplorerPanel(boolean applet) {
-        Repository.intro.setStatus("Started Explorer interface initialization");
+
+    public LibrariesPanel(boolean applet) {
+        Repository.intro.setStatus("Started Libraries interface initialization");
         Repository.intro.addPercent(0.035);
         Repository.intro.repaint();
         initializeSftp();
@@ -157,11 +145,13 @@ public class ExplorerPanel {
         root = new DefaultMutableTreeNode("root", true);
         DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
         try {
-            connection.cd(Repository.getTestSuitePath());
+            //Repository.c.cd(Repository.USERHOME+"/twister/config/");
+            connection.cd(Repository.getPredefinedSuitesPath());
             Repository.intro.setStatus("Started retrieving tc directories");
             Repository.intro.addPercent(0.035);
             Repository.intro.repaint();
-            getList(root, connection,Repository.getTestSuitePath());
+//             getList(root, connection);
+            getList(root, connection,Repository.getPredefinedSuitesPath());
             Repository.intro.setStatus("Finished retrieving tc directories");
             Repository.intro.addPercent(0.035);
             Repository.intro.repaint();
@@ -170,7 +160,7 @@ public class ExplorerPanel {
         }
         
         tree = new JTree(root);
-        tree.setDragEnabled(true);
+        tree.expandRow(1);
         tree.setTransferHandler(new TransferHandler(){
             
 //             public boolean canImport(TransferSupport supp)
@@ -180,7 +170,7 @@ public class ExplorerPanel {
         	
         	protected Transferable createTransferable(JComponent c)
         	{
-        		return new StringSelection("tc");
+        		return new StringSelection("lib");
         	}
         	
 //         	protected void exportDone(JComponent c, Transferable t, int action)
@@ -198,7 +188,7 @@ public class ExplorerPanel {
 //         	}
         	
         });
-        tree.expandRow(1);
+        
         tree.addMouseListener(new MouseAdapter() {
             public void mousePressed(MouseEvent ev) {
                 treeClick(ev);
@@ -207,28 +197,14 @@ public class ExplorerPanel {
                 treeClickReleased(ev);
             }
         });
-        
-        
-        
-        
-//         ds = new DragSource();
-//         ds.getDefaultDragSource().
+//         DragSource ds = new DragSource();
 //         ds.getDefaultDragSource();
 //         ds.createDefaultDragGestureRecognizer(tree,
 //                 DnDConstants.ACTION_COPY_OR_MOVE, new TreeDragGestureListener());
-//         tree.setDragEnabled(true);
-        
-//         TransferHandler t = new TransferHandler(){
-//             public Transferable createTransferable(JComponent c){
-//                 return new StringSelection("ExplorerPanel");
-//             }
-//         };
-//         tree.setTransferHandler(t);
-        
+         tree.setDragEnabled(true);
         tree.setRootVisible(false);
         Repository.intro
                 .setStatus("Finished Explorer interface initialization");
-                
         Repository.intro.addPercent(0.035);
         Repository.intro.repaint();
     }
@@ -318,7 +294,7 @@ public class ExplorerPanel {
         p.add(item);
         item.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent evnt) {
-                refreshTree(ev);
+                refreshTree(ev.getX(),ev.getY());
             }   
         });
         final String editable;
@@ -558,14 +534,13 @@ public class ExplorerPanel {
     /*
      * refresh tree structure
      */
-    public void refreshTree(final MouseEvent ev) {
+    public void refreshTree(final int X, final int Y) {
         new Thread() {
             public void run() {
                 setEnabledTabs(false);
                 JFrame progress = new JFrame();
                 progress.setAlwaysOnTop(true);
-                progress.setLocation((int) ev.getLocationOnScreen().getX(),
-                        (int) ev.getLocationOnScreen().getY());
+                progress.setLocation(X,Y);
                 progress.setUndecorated(true);
                 JProgressBar bar = new JProgressBar();
                 bar.setIndeterminate(true);
@@ -752,10 +727,10 @@ public class ExplorerPanel {
         try{root.remove(0);}
         catch(Exception e){e.printStackTrace();}
         try {
-            System.out.println("getTestSuitePath: "+Repository.getTestSuitePath());
-            connection.cd(Repository.getTestSuitePath());
+            System.out.println("getRemoteUsersDirectory: "+Repository.getPredefinedSuitesPath());
+            connection.cd(Repository.getPredefinedSuitesPath());
             //Repository.c.cd(Repository.USERHOME+"/twister/config/");
-            getList(root, connection, Repository.getTestSuitePath());
+            getList(root, connection, Repository.getPredefinedSuitesPath());
 //             getList(root, connection);
         } catch (Exception e) {
             e.printStackTrace();
@@ -868,54 +843,21 @@ public class ExplorerPanel {
             e.printStackTrace();
         }
     }
-    
-    class Compare implements Comparator {
-
-    public int compare(Object emp1, Object emp2) {
-        return ((TreePath) emp1)
-                .getLastPathComponent()
-                .toString()
-                .compareToIgnoreCase(
-                        ((TreePath) emp2).getLastPathComponent().toString());
-        }
-    }
-    
-//     class TreeDragGestureListener implements DragGestureListener {
-//         public void dragGestureRecognized(DragGestureEvent dragGestureEvent) {
-//             StringSelection str = new StringSelection("str");
-//             dragGestureEvent.startDrag(DragSource.DefaultCopyNoDrop, str);
-//             System.out.println("Gesture recognized");
-//         }
-//     }
-    
 //     class MyTree extends JTree implements DragGestureListener, DragSourceListener{
 //         private DragSource dragSource;
 //         
 //         public MyTree(DefaultMutableTreeNode node){
 //             super(node);
-//             //setDragEnabled(true);
 //             dragSource = new DragSource();
 //             dragSource.createDefaultDragGestureRecognizer(this, DnDConstants.ACTION_COPY_OR_MOVE, this);
-//             getSelectionModel().setSelectionMode(TreeSelectionModel.CONTIGUOUS_TREE_SELECTION);
-//             
 //         }
 //         
 //         public void dragGestureRecognized(DragGestureEvent evt) {
-//             if (evt.getDragAction()==DnDConstants.ACTION_MOVE){
-//                 Transferable transferable = new StringSelection("tc");
-//                 try{      
-//                     evt.startDrag(DragSource.DefaultCopyDrop, transferable);
-// //                     dragSource.startDrag(evt, DragSource.DefaultCopyDrop, transferable, this);
-//                 } catch(Exception e){
-//                     e.printStackTrace();
-//                 }
-//             }
-//             
-//             
-//             
-//         }
-//         
-//         public void dragEnter(DragSourceDragEvent evt) {
+//             Transferable transferable = new StringSelection("lib");            
+//             dragSource.startDrag(evt, DragSource.DefaultCopyDrop, transferable, this);
+// 	    }
+// 	    
+// 	    public void dragEnter(DragSourceDragEvent evt) {
 //         }
 //         
 //         public void dragOver(DragSourceDragEvent evt) {
@@ -929,10 +871,41 @@ public class ExplorerPanel {
 //         
 //         public void dragDropEnd(DragSourceDropEvent evt) {
 //         }
-//         
+// 	    
 //     }
-    
-    
+}
+// 
+class Compare implements Comparator {
+
+    public int compare(Object emp1, Object emp2) {
+        return ((TreePath) emp1)
+                .getLastPathComponent()
+                .toString()
+                .compareToIgnoreCase(
+                        ((TreePath) emp2).getLastPathComponent().toString());
+    }
 }
 
+// class TreeDragGestureListener implements DragGestureListener {
+// 
+//     public void dragGestureRecognized(DragGestureEvent dragGestureEvent) {
+//     }
+// }
 
+// class MyDragSourceListener implements DragSourceListener {
+// 
+//     public void dragDropEnd(DragSourceDropEvent dragSourceDropEvent) {
+//     }
+// 
+//     public void dragEnter(DragSourceDragEvent dragSourceDragEvent) {
+//     }
+// 
+//     public void dragExit(DragSourceEvent dragSourceEvent) {
+//     }
+// 
+//     public void dragOver(DragSourceDragEvent dragSourceDragEvent) {
+//     }
+// 
+//     public void dropActionChanged(DragSourceDragEvent dragSourceDragEvent) {
+//     }
+// }
