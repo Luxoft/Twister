@@ -208,6 +208,7 @@ class TwisterClientService():
 			print('Error: unknown ep name')
 			return False
 
+		sleep(2.4)
 		try:
 			last_seen_alive = self.eps[epname]['proxy'].getEpVariable(self.username,
 															epname, 'last_seen_alive')
@@ -248,6 +249,7 @@ class TwisterClientService():
 			print('Error: ep is not running')
 			return False
 
+		sleep(2.4)
 		os.killpg(self.eps[epname]['pid'].pid, 9)
 		self.eps[epname]['pid'] = None
 
