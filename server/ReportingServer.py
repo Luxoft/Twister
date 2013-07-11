@@ -1,7 +1,7 @@
 
 # File: ReportingServer.py ; This file is part of Twister.
 
-# version: 2.003
+# version: 2.004
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -71,9 +71,7 @@ class ReportingServer:
         '''
         Read DB Config File for 1 user.
         '''
-        users = self.project.listUsers()
-
-        if usr not in users:
+        if not os.path.isdir(userHome(usr) + '/twister/config'):
             logDebug('Reporting Server: Cannot find Twister for user `{}` !'.format(usr))
             return False
 
@@ -89,6 +87,9 @@ class ReportingServer:
 
 
     def connect_db(self, usr):
+        '''
+        Reconnect to the database.
+        '''
         if usr not in self.conn:
             logDebug('Reporting Server: Connecting to the Database for the first time...')
 
@@ -108,7 +109,8 @@ class ReportingServer:
             output = Template(filename=TWISTER_PATH + '/server/template/rep_base.htm')
             return output.render(title='Users', usr='#' + '#'.join(users), links=[])
 
-        if usr not in users: return '<br><b>Error! Username `%s` doesn\'t have a Twister config folder!</b>' % usr
+        if not os.path.isdir(userHome(usr) + '/twister/config'):
+            return '<br><b>Error! Username `{}` doesn\'t have a Twister config folder!</b>'.format(usr)
 
         self.load_config(usr) # Re-load all Database XML
         output = Template(filename=TWISTER_PATH + '/server/template/rep_base.htm')
@@ -135,8 +137,8 @@ class ReportingServer:
     def help(self, usr=''):
         if not usr: return '<br><b>Error! This link should be accessed by passing a username, eg: /help/some_user<b/>'
 
-        users = self.project.listUsers()
-        if usr not in users: return '<br><b>Error! Username `%s` doesn\'t have a Twister config folder!</b>' % usr
+        if not os.path.isdir(userHome(usr) + '/twister/config'):
+            return '<br><b>Error! Username `{}` doesn\'t have a Twister config folder!</b>'.format(usr)
 
         self.load_config(usr) # Re-load all Database XML
         output = Template(filename=TWISTER_PATH + '/server/template/rep_help.htm')
@@ -149,8 +151,8 @@ class ReportingServer:
 
         if not usr: return '<br><b>Error! This link should be accessed by passing a username, eg: /rep/some_user<b/>'
 
-        users = self.project.listUsers()
-        if usr not in users: return '<br><b>Error! Username `%s` doesn\'t have a Twister config folder!</b>' % usr
+        if not os.path.isdir(userHome(usr) + '/twister/config'):
+            return '<br><b>Error! Username `{}` doesn\'t have a Twister config folder!</b>'.format(usr)
 
         self.load_config(usr) # Re-load all Database XML
         if usr not in self.conn: self.connect_db(usr)
@@ -340,9 +342,8 @@ class ReportingServer:
             output = {'aaData':[], 'error':'Error! This link should be accessed by passing a username, eg: /json/some_report/some_user'}
             return json.dumps(output, indent=2)
 
-        users = self.project.listUsers()
-        if usr not in users:
-            output = {'aaData':[], 'error':'Error! Username `%s` doesn\'t have a Twister config folder!' % usr}
+        if not os.path.isdir(userHome(usr) + '/twister/config'):
+            output = {'aaData':[], 'error':'Error! Username `{}` doesn\'t have a Twister config folder!'.format(usr)}
             return json.dumps(output, indent=2)
 
         self.load_config(usr) # Re-load all Database XML

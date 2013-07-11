@@ -65,18 +65,6 @@ def checkUsers():
     users = []
     for line in lines:
         path = line.split(':')[5]
-        if os.path.isdir(path + os.sep + 'twister'):
-            users.append(line.split(':')[0])
-    return users
-
-def checkUsers():
-    """
-    Check all users from etc/passwd, that have Twister in their home folder.
-    """
-    lines = open('/etc/passwd').readlines()
-    users = []
-    for line in lines:
-        path = line.split(':')[5]
         if os.path.isdir(path + '/twister/config'):
             users.append(line.split(':')[0])
     return users
