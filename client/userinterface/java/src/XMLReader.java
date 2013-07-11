@@ -1,6 +1,6 @@
 /*
 File: XMLReader.java ; This file is part of Twister.
-Version: 2.006
+Version: 2.007
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -11,7 +11,8 @@ You may obtain a copy of the License at
 
 http://www.apache.org/licenses/LICENSE-2.0
 
-Unless required by applicable law or agreed to in writing, softwaredistributed under the License is distributed on an "AS IS" BASIS,
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
@@ -96,11 +97,6 @@ public class XMLReader{
                     } catch(Exception e){ e.printStackTrace();}
                     theone.setEpId(text);
                 } else{
-//                     try{                         
-//                         fstNmElmntLst = ((Element)node).getElementsByTagName("EpId");
-//                         fstNmElmnt = (Element)fstNmElmntLst.item(0);
-//                         fstNm = fstNmElmnt.getChildNodes();
-//                     } catch(Exception e){
                         try{
                             fstNmElmntLst = ((Element)node).getElementsByTagName("TbName");
                             fstNmElmnt = (Element)fstNmElmntLst.item(0);
@@ -109,16 +105,10 @@ public class XMLReader{
                             System.out.println("Could not find EpId/TbName tag");
                             ex.printStackTrace();
                         }
-//                     }
                     theone.setEpId(fstNm.item(0).getNodeValue().split(";"));
                     
                     
-                }                 
-                
-//                                         
-//                                         
-//                 
-                
+                }
                 
                 //temporary solution for CE
                 if(test){
@@ -149,11 +139,6 @@ public class XMLReader{
                 String f = secNm.item(0).getNodeValue().toString().
                             split(Repository.getTestSuitePath())[1];
                 int width = metrics.stringWidth(f) + 8;
-//                 String f ;
-//                 if(!test){
-//                     f = secNm.item(0).getNodeValue().toString().
-//                             split(Repository.getTestSuitePath())[1];}
-//                 else f = secNm.item(0).getNodeValue().toString();  
                 if(test){f = secNm.item(0).getNodeValue().toString();}   
                 theone = new Item(f,1,-1,-1,width+40,20,indexes);
                 if(test){
@@ -164,7 +149,6 @@ public class XMLReader{
                     metrics = g.getFontMetrics(new Font("TimesRoman", 0, 11));
                     width = metrics.stringWidth(name+":  "+value) + 8;
                     Item property = new Item(name,0,-1,-1,width+20,20,indexpos3);
-                    //property.setSubItemVisible(false);
                     property.setSubItemVisible(true);
                     property.setValue(value);
                     theone.addSubItem(property);}
@@ -233,9 +217,13 @@ public class XMLReader{
             item.setVisible(false);
         }
     }
-            
-    public void parseXML(Graphics g,boolean test){
-        if(!test){
+    
+    /*
+     * clear - if the parser populates a custom array it should be false
+     * clear is true when opening a new file in Repositor array
+     */    
+    public void parseXML(Graphics g,boolean test,ArrayList <Item> suite, boolean clear){
+        if(!test&&clear){
             Repository.window.mainpanel.p1.suitaDetails.setGlobalLibs(null);
             Repository.window.mainpanel.p1.suitaDetails.setSaveDB(false);
             Repository.window.mainpanel.p1.suitaDetails.setDelay("");
@@ -251,7 +239,7 @@ public class XMLReader{
         int indexsuita = 0;
         for(int m=0;m<childsnr;m++){
             Node fstNode = nodeLst.item(m);
-            if(!test){
+            if(!test&&clear){
                 if(fstNode.getNodeName().equals("stoponfail")){
                     if(fstNode.getChildNodes().item(0).getNodeValue().toString().equals("true")){                    
                         Repository.window.mainpanel.p1.suitaDetails.setStopOnFail(true);
@@ -433,7 +421,7 @@ public class XMLReader{
             int subchildren = fstElmnt.getChildNodes().getLength();
             int index=0;
             indexsuita++;
-//            if(test)k+=2;
+            //if(test)k+=2;
             for( k+=(userdefinitions*2);k<subchildren-1;k++){
                 k++;
                 ArrayList <Integer> temp =(ArrayList <Integer>)indexpos.clone();
@@ -441,9 +429,13 @@ public class XMLReader{
                 manageSubChilderen(suitatemp,fstElmnt.getChildNodes().item(k),
                                     temp,g,test);
                 index++;}
-            if(!test)Repository.addSuita(suitatemp);
+//             if(!test)Repository.addSuita(suitatemp);
+            if(!test)suite.add(suitatemp);
+            
             else{
-                Repository.addTestSuita(suitatemp);
+//                 Repository.addTestSuita(suitatemp);
+                suite.add(suitatemp);
+                
                 String currents = suitatemp.getEpId()[0].split(" : ")[0];
 //                 for(String currents:suiteeps){
                     boolean found = false;
