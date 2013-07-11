@@ -1,6 +1,6 @@
 /*
 File: TCDetails.java ; This file is part of Twister.
-Version: 2.001
+Version: 2.002
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -107,7 +107,8 @@ public class TCDetails extends JPanel{
                     }
                         
                 }
-                new XMLReader(xml).parseXML(g, true);
+//                 new XMLReader(xml).parseXML(g, true);
+                new XMLReader(xml).parseXML(g, true,Repository.getTestSuite(),false);
                 Repository.window.mainpanel.getP2().updateTabs();
             }
             catch(Exception e){

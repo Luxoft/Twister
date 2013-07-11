@@ -1,6 +1,6 @@
 /*
 File: Repository.java ; This file is part of Twister.
-Version: 2.009
+Version: 2.0010
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -118,7 +118,7 @@ public class Repository{
                          XMLDIRECTORY,  
                          TESTSUITEPATH,
                          LOGSPATH ,XMLREMOTEDIR,REMOTEPLUGINSDIR,
-                         REMOTELIBRARY,
+                         REMOTELIBRARY,PREDEFINEDSUITES,
                          REMOTEUSERSDIRECTORY, REMOTEEPIDDIR, //REMOTEHARDWARECONFIGDIRECTORY,
                          PLUGINSLOCALGENERALCONF, GLOBALSREMOTEFILE;
     public static Image passicon,testbedicon,porticon,suitaicon, tcicon, propicon,
@@ -142,7 +142,7 @@ public class Repository{
     private static String[] lookAndFeels;
     public static Applet container;
     private static Document pluginsconfig;
-    private static String version = "2.011";
+    private static String version = "2.012";
     
     /*
      * repository initialization method
@@ -341,6 +341,7 @@ public class Repository{
         variables.put("usersdir",USERSDIRECTORY);
         variables.put("masterxmldir",XMLDIRECTORY);
         variables.put("testsuitepath",TESTSUITEPATH);
+        variables.put("predefinedsuites",PREDEFINEDSUITES);
         variables.put("logspath",LOGSPATH);
         variables.put("masterxmlremotedir",XMLREMOTEDIR);
         variables.put("remoteepdir",REMOTEEPIDDIR);
@@ -911,6 +912,7 @@ public class Repository{
                 REMOTEEMAILCONFIGPATH = result.toString();
                 REMOTEEMAILCONFIGFILE = path[path.length-1];
                 TESTSUITEPATH = getTagContent(doc,"TestCaseSourcePath");
+                PREDEFINEDSUITES = getTagContent(doc,"PredefinedSuitesPath");
                 //REMOTEHARDWARECONFIGDIRECTORY = getTagContent(doc,"HardwareConfig");
                 GLOBALSREMOTEFILE = getTagContent(doc,"GlobalParams");
             }
@@ -1215,6 +1217,12 @@ public class Repository{
      */
     public static String getTestSuitePath(){
         return TESTSUITEPATH;}
+        
+    /*
+     * test suite path on server
+     */
+    public static String getPredefinedSuitesPath(){
+        return PREDEFINEDSUITES;}
 
     /*
      * empty suites list in Repository
@@ -1759,11 +1767,11 @@ public class Repository{
                     Repository.window.mainpanel.p1.sc.g.getSelectedCollection().clear();
                     (new XMLBuilder(Repository.getSuite())).writeXMLFile((new StringBuilder()).
                                         append(Repository.getUsersDirectory()).append(Repository.
-                                        getBar()).append(user).append(".XML").toString(),false,false);
+                                        getBar()).append(user).append(".XML").toString(),false,false,false);
                     window.mainpanel.p1.sc.g.setUser((new StringBuilder()).append(Repository.getUsersDirectory()).
                                         append(Repository.getBar()).append(user).append(".XML").
                                         toString());
-                    window.mainpanel.p1.sc.g.printXML( window.mainpanel.p1.sc.g.getUser(),false,false,false,false,"");
+                    window.mainpanel.p1.sc.g.printXML( window.mainpanel.p1.sc.g.getUser(),false,false,false,false,"",false);
                     Repository.window.mainpanel.p1.suitaDetails.setPreScript("");
                     Repository.window.mainpanel.p1.suitaDetails.setPostScript("");
                     Repository.window.mainpanel.p1.suitaDetails.setGlobalLibs(null);

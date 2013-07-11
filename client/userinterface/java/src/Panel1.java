@@ -1,6 +1,6 @@
 /*
 File: Panel1.java ; This file is part of Twister.
-Version: 2.003
+Version: 2.004
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -17,6 +17,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+import java.awt.datatransfer.StringSelection;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import javax.swing.event.MenuListener;
@@ -70,6 +71,10 @@ import com.twister.CustomDialog;
 import java.util.HashMap;
 import java.util.Set;
 import java.util.Iterator;
+import javax.swing.JTabbedPane;
+import java.awt.datatransfer.DataFlavor;
+import java.awt.datatransfer.Transferable;
+import java.awt.dnd.DnDConstants;
 
 /*
  * Suites generation panel
@@ -85,6 +90,7 @@ public class Panel1 extends JPanel{
     private JLabel openedfile;
     public JButton remove,generate,showoptionals,addsuite,edit;
     private TCDetails tcdetails = new TCDetails();
+    public LibrariesPanel lp;
     
     public Panel1(String user, final boolean applet, int width){
         Repository.intro.setStatus("Started Suites interface initialization");
@@ -222,53 +228,70 @@ public class Panel1 extends JPanel{
                 enableTCMenu(tcmenu);}});
         JMenu filemenu = new JMenu("File");
         filemenu.setBounds(10,0,40,20);
-        JMenuItem newuser = new JMenuItem("New project file");
-        newuser.addActionListener(new ActionListener(){
+        item = new JMenuItem("New project file");
+//         JMenuItem newuser = new JMenuItem("New project file");
+        item.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 addSuiteFile();}});
-        filemenu.add(newuser);
-        JMenuItem changeuser = new JMenuItem("Open project file");
-        changeuser.addActionListener(new ActionListener(){
+        filemenu.add(item);
+//         JMenuItem changeuser = new JMenuItem("Open project file");
+        item = new JMenuItem("Open project file");
+        item.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 Repository.openProjectFile();
             }});
-        filemenu.add(changeuser);
-        JMenuItem saveuser = new JMenuItem("Save project file");
-        saveuser.addActionListener(new ActionListener() {
+        filemenu.add(item);
+//         JMenuItem saveuser = new JMenuItem("Save project file");
+        item = new JMenuItem("Save project file");
+        item.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent ev){
                 saveSuiteFile();}});
-        filemenu.add(saveuser);
+        filemenu.add(item);
         
-        JMenuItem saveuseras = new JMenuItem("Save project as");
-        saveuseras.addActionListener(new ActionListener() {
+//         JMenuItem saveuseras = new JMenuItem("Save project as");
+        item = new JMenuItem("Save project as");
+        item.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent ev){
                 saveSuiteAs();}});
-        filemenu.add(saveuseras);
+        filemenu.add(item);
+        item = new JMenuItem("Export as suite");
+        item.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent ev){
+                exportAsSuite();}});
+        filemenu.add(item);
         
-        JMenuItem deleteuser = new JMenuItem("Delete project file");
-        deleteuser.addActionListener(new ActionListener() {
+//         JMenuItem deleteuser = new JMenuItem("Delete project file");
+        item = new JMenuItem("Delete project file");
+        item.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent ev){
                 deleteSuiteFile();}});
-        filemenu.add(deleteuser);
-        JMenuItem openlocalXML = new JMenuItem("Open from local");
-        openlocalXML.addActionListener(new ActionListener() {
+        filemenu.add(item);
+//         JMenuItem openlocalXML = new JMenuItem("Open from local");
+        item = new JMenuItem("Open from local");
+        item.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent ev){
                 openLocalFile();}});
-        filemenu.add(openlocalXML);
-        JMenuItem savelocalXML = new JMenuItem("Save to local");
-        savelocalXML.addActionListener(new ActionListener() {
+        filemenu.add(item);
+//         JMenuItem savelocalXML = new JMenuItem("Save to local");
+        item = new JMenuItem("Save to local");
+        item.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent ev){
                 saveLocalXML();}});
-        filemenu.add(savelocalXML);
+        filemenu.add(item);
         menu.add(filemenu);
         add(menu);
-        tdtl = new TreeDropTargetListener(applet);        
+        tdtl = new TreeDropTargetListener();        
         sc = new ScrollGrafic(10, 32, tdtl, user, applet);
-        ep = new ExplorerPanel(470, 32, tdtl, applet);
+        ep = new ExplorerPanel(applet);
+        lp = new LibrariesPanel(applet);
         //ep = new ExplorerPanel(470, 32, tdtl, applet, Repository.c);
-        setLayout(null);    
+        setLayout(null); 
+        JTabbedPane tabs = new JTabbedPane();
+        tabs.add("Test Case", new JScrollPane(ep.tree));
+        tabs.add("Predefined Suites", new JScrollPane(lp.tree));
         splitPane2 = new JSplitPane(JSplitPane.VERTICAL_SPLIT,
-                                                new JScrollPane(ep.tree),
+//                                                 new JScrollPane(ep.tree),
+                                                tabs,
                                                 tcdetails);
         try{
             SwingUtilities.invokeLater(new Runnable() {
@@ -343,7 +366,37 @@ public class Panel1 extends JPanel{
     
     
     /*
-     * save opened suite file
+     * save opened project file
+     * on server with name provided by user
+     * as suite file
+     */
+    private void exportAsSuite(){
+        if(!sc.g.getUser().equals("")){
+            String user = CustomDialog.showInputDialog(JOptionPane.QUESTION_MESSAGE,
+                                                    JOptionPane.OK_CANCEL_OPTION, Repository.window,
+                                                    "File Name", "Please enter suite file name").
+                                                    toUpperCase();
+            
+            if(user!=null&&!user.equals("")){
+                if(sc.g.printXML(user+".xml", false,false,
+                             Repository.window.mainpanel.p1.suitaDetails.stopOnFail(),
+                             Repository.window.mainpanel.p1.suitaDetails.saveDB(),
+                             Repository.window.mainpanel.p1.suitaDetails.getDelay(),true)){
+                    CustomDialog.showInfo(JOptionPane.PLAIN_MESSAGE, 
+                                            Repository.window, "Success",
+                                            "File successfully saved");
+                    lp.refreshTree(100,100);
+                }
+                    
+                else CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, 
+                                            Repository.window, "Warning", 
+                                            "Warning, file not saved");}}
+        
+    }
+    
+    
+    /*
+     * save opened project file
      * on server with name provided by user
      */
     private void saveSuiteAs(){
@@ -357,7 +410,7 @@ public class Panel1 extends JPanel{
                 if(sc.g.printXML(user+".xml", false,false,
                              Repository.window.mainpanel.p1.suitaDetails.stopOnFail(),
                              Repository.window.mainpanel.p1.suitaDetails.saveDB(),
-                             Repository.window.mainpanel.p1.suitaDetails.getDelay()))
+                             Repository.window.mainpanel.p1.suitaDetails.getDelay(),false))
                     CustomDialog.showInfo(JOptionPane.PLAIN_MESSAGE, 
                                             Repository.window, "Success",
                                             "File successfully saved");
@@ -374,8 +427,8 @@ public class Panel1 extends JPanel{
             if(sc.g.printXML(sc.g.getUser(), false,false,
                              Repository.window.mainpanel.p1.suitaDetails.stopOnFail(),
                              Repository.window.mainpanel.p1.suitaDetails.saveDB(),
-                             Repository.window.mainpanel.p1.suitaDetails.getDelay()
-                             ))
+                             Repository.window.mainpanel.p1.suitaDetails.getDelay(),
+                             false))
                 CustomDialog.showInfo(JOptionPane.PLAIN_MESSAGE, 
                                         Repository.window, "Success",
                                         "File successfully saved");
@@ -713,19 +766,20 @@ public class Panel1 extends JPanel{
                 if(sc.g.printXML(user, false,false,
                                  suitaDetails.stopOnFail(),
                                  suitaDetails.saveDB(),
-                                 suitaDetails.getDelay())){}
+                                 suitaDetails.getDelay(),false)){}
                 else CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, 
                                             Repository.window, "Warning", 
                                             "Warning, temp file not saved");                    
             }
             sc.g.printXML(Repository.getTestXMLDirectory(),true,false,
                           suitaDetails.stopOnFail(),suitaDetails.saveDB(),
-                          suitaDetails.getDelay());
+                          suitaDetails.getDelay(),false);
             Repository.emptyTestRepository();
             File xml = new File(Repository.getTestXMLDirectory());
             int size = Repository.getLogs().size();
             for(int i=5;i<size;i++){Repository.getLogs().remove(5);}
-            new XMLReader(xml).parseXML(sc.g.getGraphics(), true);
+//             new XMLReader(xml).parseXML(sc.g.getGraphics(), true);
+            new XMLReader(xml).parseXML(sc.g.getGraphics(), true,Repository.getTestSuite(),false);
             setRunning();
         }
     }
@@ -801,11 +855,11 @@ public class Panel1 extends JPanel{
                         (new XMLBuilder(Repository.getSuite())).writeXMLFile((new StringBuilder()).
                                                                append(Repository.getUsersDirectory()).
                                                                append(System.getProperty("file.separator"))
-                                                               .append(user).append(".xml").toString(),false,false);
+                                                               .append(user).append(".xml").toString(),false,false,false);
                         sc.g.setUser((new StringBuilder()).append(Repository.getUsersDirectory()).
                                                                     append(System.getProperty("file.separator")).
                                                                     append(user).append(".xml").toString());
-                        sc.g.printXML(sc.g.getUser(),false,false,false,false,"");}}
+                        sc.g.printXML(sc.g.getUser(),false,false,false,false,"",false);}}
                 else if(user != null){
                     sc.g.setUser((new StringBuilder()).append(Repository.getUsersDirectory()).
                                                                 append(System.getProperty("file.separator")).
@@ -846,7 +900,7 @@ public class Panel1 extends JPanel{
                 chooser.setDialogTitle("Choose Location");         
                 chooser.setAcceptAllFileFilterUsed(false);    
                 if (chooser.showOpenDialog(Panel1.this) == JFileChooser.APPROVE_OPTION) {
-                    if(sc.g.printXML(chooser.getSelectedFile()+".xml", false,true,false,false,"")){
+                    if(sc.g.printXML(chooser.getSelectedFile()+".xml", false,true,false,false,"",false)){
                         CustomDialog.showInfo(JOptionPane.PLAIN_MESSAGE, Panel1.this,
                                                 "Success","File successfully saved ");}
                     else{
@@ -893,11 +947,11 @@ public class Panel1 extends JPanel{
         if(user!=null){
             (new XMLBuilder(Repository.getSuite())).writeXMLFile(Repository.getUsersDirectory()+
                                                                 System.getProperty("file.separator")+
-                                                                user+".xml",false,false);
+                                                                user+".xml",false,false,false);
             Repository.window.mainpanel.p1.sc.g.setUser(Repository.getUsersDirectory()+
                                                                 System.getProperty("file.separator")+
                                                                 user+".xml");
-            sc.g.printXML(sc.g.getUser(),false,false,false,false,"");
+            sc.g.printXML(sc.g.getUser(),false,false,false,false,"",false);
             sc.g.updateScroll();
             sc.g.repaint();
             suitaDetails.setPreScript("");
@@ -1024,8 +1078,6 @@ public class Panel1 extends JPanel{
         openedfile.setText("Project file: "+filename);}}
         
 class TreeDropTargetListener implements DropTargetListener {
-    private boolean applet;
-    public TreeDropTargetListener(boolean applet){this.applet = applet;}
     public void dragEnter(DropTargetDragEvent dropTargetDragEvent){}
     public void dragExit(DropTargetEvent dropTargetEvent){}
     public void dragOver(DropTargetDragEvent dropTargetDragEvent) {
@@ -1037,14 +1089,38 @@ class TreeDropTargetListener implements DropTargetListener {
     }
     public void dropActionChanged(DropTargetDragEvent dropTargetDragEvent){}
     public synchronized void drop(DropTargetDropEvent dropTargetDropEvent){
-        Grafic g = Repository.window.mainpanel.p1.sc.g;
-        try{g.setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
-            if(!g.getOnlyOptionals()){
-                g.clearDraggingLine();
-                g.drop((int)dropTargetDropEvent.getLocation().getX(),
-                       (int)dropTargetDropEvent.getLocation().getY());
+        
+        try{dropTargetDropEvent.acceptDrop(DnDConstants.ACTION_COPY_OR_MOVE);
+            String str = (String) dropTargetDropEvent.getTransferable().getTransferData(DataFlavor.stringFlavor);
+            Grafic g = Repository.window.mainpanel.p1.sc.g;
+            if(str.equals("lib")){//drop called from libs
+                try{g.setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
+                    if(!g.getOnlyOptionals()){
+                        g.clearDraggingLine();
+                        g.drop((int)dropTargetDropEvent.getLocation().getX(),
+                               (int)dropTargetDropEvent.getLocation().getY(),false);
+                    }
+                }
+                catch(Exception e){
+                    e.printStackTrace();
+                    System.out.println("Could not get folder location");
+                }
+            } else {//drop called from tc
+                try{g.setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
+                    if(!g.getOnlyOptionals()){
+                        g.clearDraggingLine();
+                        g.drop((int)dropTargetDropEvent.getLocation().getX(),
+                               (int)dropTargetDropEvent.getLocation().getY(),true);
+                    }
+                }
+                catch(Exception e){
+                    e.printStackTrace();
+                    System.out.println("Could not get folder location");}
             }
-        }
-        catch(Exception e){
+            
+            
+        } catch (Exception e){
             e.printStackTrace();
-            System.out.println("Could not get folder location");}}}
+        }
+        
+        }}
