@@ -1,3 +1,19 @@
+12th July 2013
+
+- added fix for issue #26 ( server must be restarted to reflect the changes on epname.ini ).
+  With this fix, the newly added EP is get immediately available for cli usage. The GUI has to
+  be refreshed to get the new EP. No need to restart the server.
+- code rework for installer to install separately the dependencies. Now, there are 3 options for installer.
+  Install dependencies ( requires root access ), install server, install client. Issue #12 is covered
+  with this fix.
+- added a GUI fix to allow export/import of a solely suite
+- fix for issue #23 ( Save button is shown instead of Open button in pre/post execution open file dialog )
+- fix for issue #29 ( Clear log button should reconfirm from the user whether the logs should be erased ).
+  A confirmation window is presented.
+- added Build Date filed for applet in About window.  
+- updated the user guide document
+- INFO: the applet, server and clients were updated, so all of them have to be re-installad
+
 11th July 2013
 
 - added support to load/save suites from/in suite vault; a directory can contain predefined suite files that

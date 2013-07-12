@@ -141,6 +141,11 @@ class Project:
 
     def _common_user_reset(self, user, base_config, files_config):
 
+        try:
+            self.users[user]['eps'] = OrderedDict()
+        except:
+            pass
+
         # List with all EPs for this User
         epList = self.parsers[user].epnames
         if not epList:
