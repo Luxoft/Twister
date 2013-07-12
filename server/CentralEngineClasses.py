@@ -555,8 +555,8 @@ class CentralEngine(_cptools.XMLRPCController):
             return False
 
     @cherrypy.expose
-    def resetEPs(self, user):
-        """ reset ep list for user """
+    def resetProject(self, user):
+        """ reset project for user """
 
         return self.project.reset(user)
 
