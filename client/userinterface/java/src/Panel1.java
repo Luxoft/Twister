@@ -1,6 +1,6 @@
 /*
 File: Panel1.java ; This file is part of Twister.
-Version: 2.004
+Version: 2.005
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -254,7 +254,7 @@ public class Panel1 extends JPanel{
             public void actionPerformed(ActionEvent ev){
                 saveSuiteAs();}});
         filemenu.add(item);
-        item = new JMenuItem("Export as suite");
+        item = new JMenuItem("Export project");
         item.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent ev){
                 exportAsSuite();}});
@@ -374,14 +374,13 @@ public class Panel1 extends JPanel{
         if(!sc.g.getUser().equals("")){
             String user = CustomDialog.showInputDialog(JOptionPane.QUESTION_MESSAGE,
                                                     JOptionPane.OK_CANCEL_OPTION, Repository.window,
-                                                    "File Name", "Please enter suite file name").
-                                                    toUpperCase();
+                                                    "File Name", "Please enter suite file name");
             
             if(user!=null&&!user.equals("")){
                 if(sc.g.printXML(user+".xml", false,false,
                              Repository.window.mainpanel.p1.suitaDetails.stopOnFail(),
                              Repository.window.mainpanel.p1.suitaDetails.saveDB(),
-                             Repository.window.mainpanel.p1.suitaDetails.getDelay(),true)){
+                             Repository.window.mainpanel.p1.suitaDetails.getDelay(),true,null)){
                     CustomDialog.showInfo(JOptionPane.PLAIN_MESSAGE, 
                                             Repository.window, "Success",
                                             "File successfully saved");
@@ -410,7 +409,7 @@ public class Panel1 extends JPanel{
                 if(sc.g.printXML(user+".xml", false,false,
                              Repository.window.mainpanel.p1.suitaDetails.stopOnFail(),
                              Repository.window.mainpanel.p1.suitaDetails.saveDB(),
-                             Repository.window.mainpanel.p1.suitaDetails.getDelay(),false))
+                             Repository.window.mainpanel.p1.suitaDetails.getDelay(),false,null))
                     CustomDialog.showInfo(JOptionPane.PLAIN_MESSAGE, 
                                             Repository.window, "Success",
                                             "File successfully saved");
@@ -428,7 +427,7 @@ public class Panel1 extends JPanel{
                              Repository.window.mainpanel.p1.suitaDetails.stopOnFail(),
                              Repository.window.mainpanel.p1.suitaDetails.saveDB(),
                              Repository.window.mainpanel.p1.suitaDetails.getDelay(),
-                             false))
+                             false,null))
                 CustomDialog.showInfo(JOptionPane.PLAIN_MESSAGE, 
                                         Repository.window, "Success",
                                         "File successfully saved");
@@ -766,14 +765,14 @@ public class Panel1 extends JPanel{
                 if(sc.g.printXML(user, false,false,
                                  suitaDetails.stopOnFail(),
                                  suitaDetails.saveDB(),
-                                 suitaDetails.getDelay(),false)){}
+                                 suitaDetails.getDelay(),false,null)){}
                 else CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, 
                                             Repository.window, "Warning", 
                                             "Warning, temp file not saved");                    
             }
             sc.g.printXML(Repository.getTestXMLDirectory(),true,false,
                           suitaDetails.stopOnFail(),suitaDetails.saveDB(),
-                          suitaDetails.getDelay(),false);
+                          suitaDetails.getDelay(),false,null);
             Repository.emptyTestRepository();
             File xml = new File(Repository.getTestXMLDirectory());
             int size = Repository.getLogs().size();
@@ -859,7 +858,7 @@ public class Panel1 extends JPanel{
                         sc.g.setUser((new StringBuilder()).append(Repository.getUsersDirectory()).
                                                                     append(System.getProperty("file.separator")).
                                                                     append(user).append(".xml").toString());
-                        sc.g.printXML(sc.g.getUser(),false,false,false,false,"",false);}}
+                        sc.g.printXML(sc.g.getUser(),false,false,false,false,"",false,null);}}
                 else if(user != null){
                     sc.g.setUser((new StringBuilder()).append(Repository.getUsersDirectory()).
                                                                 append(System.getProperty("file.separator")).
@@ -900,7 +899,7 @@ public class Panel1 extends JPanel{
                 chooser.setDialogTitle("Choose Location");         
                 chooser.setAcceptAllFileFilterUsed(false);    
                 if (chooser.showOpenDialog(Panel1.this) == JFileChooser.APPROVE_OPTION) {
-                    if(sc.g.printXML(chooser.getSelectedFile()+".xml", false,true,false,false,"",false)){
+                    if(sc.g.printXML(chooser.getSelectedFile()+".xml", false,true,false,false,"",false,null)){
                         CustomDialog.showInfo(JOptionPane.PLAIN_MESSAGE, Panel1.this,
                                                 "Success","File successfully saved ");}
                     else{
@@ -951,7 +950,7 @@ public class Panel1 extends JPanel{
             Repository.window.mainpanel.p1.sc.g.setUser(Repository.getUsersDirectory()+
                                                                 System.getProperty("file.separator")+
                                                                 user+".xml");
-            sc.g.printXML(sc.g.getUser(),false,false,false,false,"",false);
+            sc.g.printXML(sc.g.getUser(),false,false,false,false,"",false,null);
             sc.g.updateScroll();
             sc.g.repaint();
             suitaDetails.setPreScript("");

@@ -1,6 +1,6 @@
 /*
 File: Grafic.java ; This file is part of Twister.
-Version: 2.004
+Version: 2.005
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -1653,6 +1653,12 @@ public class Grafic extends JPanel{
                     suita.getSubItem(i).setVisible(false);}
                 updateLocations(suita);
                 repaint();}});
+        item = new JMenuItem("Export");
+        p.add(item);
+        item.addActionListener(new ActionListener(){
+            public void actionPerformed(ActionEvent ev){
+                exportSuiteToPredefined(suita);
+            }});
         item = new JMenuItem("Remove");
         p.add(item);
         item.addActionListener(new ActionListener(){
@@ -1683,6 +1689,31 @@ public class Grafic extends JPanel{
                     repaint();
                     selectedcollection.clear();}}});     
         p.show(this,ev.getX(),ev.getY());}
+        
+    /*
+     * export this suite in predefined suites
+     */
+    public void exportSuiteToPredefined(Item suite){
+        String user = CustomDialog.showInputDialog(JOptionPane.QUESTION_MESSAGE,
+                                                JOptionPane.OK_CANCEL_OPTION, Repository.window,
+                                                "File Name", "Please enter suite file name");
+        if(user!=null&&!user.equals("")){
+            ArrayList<Item>array = new ArrayList<Item>();
+            array.add(suite);
+            if(printXML(user+".xml", false,false,
+                         Repository.window.mainpanel.p1.suitaDetails.stopOnFail(),
+                         Repository.window.mainpanel.p1.suitaDetails.saveDB(),
+                         Repository.window.mainpanel.p1.suitaDetails.getDelay(),true,array)){
+                CustomDialog.showInfo(JOptionPane.PLAIN_MESSAGE, 
+                                        Repository.window, "Success",
+                                        "File successfully saved");
+                Repository.window.mainpanel.p1.lp.refreshTree(100,100);
+            }
+                
+            else CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, 
+                                        Repository.window, "Warning", 
+                                        "Warning, file not saved");}
+    }
     
     /*
      * set tc prerequisite
@@ -2187,15 +2218,16 @@ public class Grafic extends JPanel{
      */
     public boolean printXML(String user, boolean skip,
                             boolean local, boolean stoponfail,
-                            boolean savedb, String delay,boolean lib){
+                            boolean savedb, String delay,boolean lib, ArrayList<Item> array){
         //skip = true
-        try{XMLBuilder xml = new XMLBuilder(Repository.getSuite());
+        try{if(array==null)array = Repository.getSuite();
+            XMLBuilder xml = new XMLBuilder(array);
+            
             xml.createXML(skip,stoponfail,false,
                           Repository.window.mainpanel.p1.suitaDetails.getPreScript(),
                           Repository.window.mainpanel.p1.suitaDetails.getPostScript(),
                           savedb,delay,Repository.window.mainpanel.p1.suitaDetails.getGlobalLibs());
-            xml.writeXMLFile(user,local,false,lib);
-            return true;}
+            return xml.writeXMLFile(user,local,false,lib);}
         catch(Exception e){
             e.printStackTrace();
             return false;}}
@@ -2569,7 +2601,6 @@ public class Grafic extends JPanel{
                 public void windowLostFocus(WindowEvent ev){
                     toFront();}
                     public void windowGainedFocus(WindowEvent ev){}});
-            System.out.println("Called");
             setAlwaysOnTop(true);
             setLayout(null);
             setResizable(false);
