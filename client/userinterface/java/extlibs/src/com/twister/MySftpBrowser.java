@@ -1,7 +1,7 @@
 package com.twister;
 /*
 File: MySftpBrowser.java ; This file is part of Twister.
-Version: 2.003
+Version: 2.004
 Copyright (C) 2012 , Luxoft
 
 Authors: Andrei Costachi <acostachi@luxoft.com>
@@ -382,7 +382,7 @@ public class MySftpBrowser extends JFrame {
 		filename = new JLabel();
 		tfilename = new JTextField();
 		cancel = new JButton("Cancel");
-		open = new JButton("Save");
+		open = new JButton("Open");
 		jScrollPane2 = new JScrollPane();
 		jScrollPane2.setAlignmentX(LEFT_ALIGNMENT);
 

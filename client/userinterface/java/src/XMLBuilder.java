@@ -1,6 +1,6 @@
 /*
 File: XMLBuilder.java ; This file is part of Twister.
-Version: 2.005
+Version: 2.006
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -660,17 +660,16 @@ public class XMLBuilder{
                             result2.append(path[i]);
                             result2.append("/");}}
                     FileInputStream in = new FileInputStream(file);
-                    Repository.uploadRemoteFile(result2.toString(), in, file.getName());
+                    return Repository.uploadRemoteFile(result2.toString(), in, file.getName());
                 }
                 else{
                     if(lib){
                         FileInputStream in = new FileInputStream(file);
-                        Repository.uploadRemoteFile(Repository.getPredefinedSuitesPath(), in, file.getName());
+                        return Repository.uploadRemoteFile(Repository.getPredefinedSuitesPath(), in, file.getName());
                     } else {
                         FileInputStream in = new FileInputStream(file);
-                        Repository.uploadRemoteFile(Repository.getRemoteUsersDirectory(), in, file.getName());
+                        return Repository.uploadRemoteFile(Repository.getRemoteUsersDirectory(), in, file.getName());
                     }
-                    
                 }}
             catch(Exception e){e.printStackTrace();
                 System.out.println("Could not get XML file to upload on sever");
