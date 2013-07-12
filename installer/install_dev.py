@@ -51,10 +51,8 @@ if sys.version_info[0] != 2 and sys.version_info[1] != 7:
     exit(1)
 
 if os.getuid() != 0:
-    print('\nTwister installer must run wish SUDO! Exiting!\n')
+    print('\nTwister installer must run with ROOT! Exiting!\n')
     exit(1)
-
-#
 
 __dir__ = os.path.split(__file__)[0]
 if __dir__: os.chdir(__dir__)

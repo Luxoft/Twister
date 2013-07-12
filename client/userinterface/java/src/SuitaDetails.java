@@ -1,6 +1,6 @@
 /*
 File: SuitaDetails.java ; This file is part of Twister.
-Version: 2.003
+Version: 2.004
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -714,7 +714,11 @@ public class SuitaDetails extends JPanel {
             }
             optional.addActionListener(new ActionListener(){
                 public void actionPerformed(ActionEvent ev){
-                    if(optional.isSelected())getItemParent().setOptional(true);
+                    if(optional.isSelected()){
+                        getItemParent().setOptional(true);
+                        Repository.window.mainpanel.p1.sc.g.unsetPrerequisite(getItemParent());
+                        prerequisites.setSelected(false);
+                    }
                     else getItemParent().setOptional(false);
                     Repository.window.mainpanel.p1.sc.g.repaint();
                 }
@@ -726,12 +730,10 @@ public class SuitaDetails extends JPanel {
             prerequisites.addActionListener(new ActionListener(){
                 public void actionPerformed(ActionEvent ev){
                     if(prerequisites.isSelected()){
-                        //getItemParent().setTeardown(false);
                         Repository.window.mainpanel.p1.sc.g.setPreRequisites(getItemParent());
                     }
                     else{
-                        getItemParent().setPrerequisite(false);
-                        Repository.window.mainpanel.p1.sc.g.repaint();
+                        Repository.window.mainpanel.p1.sc.g.unsetPrerequisite(getItemParent());
                     }
                 }
             });
@@ -747,8 +749,7 @@ public class SuitaDetails extends JPanel {
                         Repository.window.mainpanel.p1.sc.g.setTeardown(getItemParent());
                     }
                     else{
-                        getItemParent().setTeardown(false);
-                        Repository.window.mainpanel.p1.sc.g.repaint();
+                        Repository.window.mainpanel.p1.sc.g.unsetTeardown(getItemParent());
                     }
                 }
             });

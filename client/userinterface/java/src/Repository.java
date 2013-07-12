@@ -1,6 +1,6 @@
 /*
 File: Repository.java ; This file is part of Twister.
-Version: 2.0010
+Version: 2.0012
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -142,7 +142,8 @@ public class Repository{
     private static String[] lookAndFeels;
     public static Applet container;
     private static Document pluginsconfig;
-    private static String version = "2.012";
+    private static String version = "2.014";
+    private static String builddate = "12.07.2013";
     
     /*
      * repository initialization method
@@ -1599,6 +1600,11 @@ public class Repository{
     }
     
     public static boolean uploadRemoteFile(String location,FileInputStream input,String filename){
+        if(location==null || location.equals("")){
+            CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,Repository.window,
+                                    "Warning", "No location provided to upload the file");
+            return false;
+        }
         while(sftpoccupied){
             try{Thread.sleep(100);}
             catch(Exception e){e.printStackTrace();}
@@ -1607,7 +1613,7 @@ public class Repository{
         try{Repository.connection.cd(location);}
         catch(Exception e){
             CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,Repository.window,
-                                        "Warning", "Could not get to :"+location);
+                                        "Warning", "Could not upload remote to :"+location+" location");
             e.printStackTrace();
             sftpoccupied = false;
             return false;
@@ -1618,7 +1624,7 @@ public class Repository{
             return true;
         } catch (Exception e){
             CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,Repository.window,
-                                        "Warning", "Could not upload :"+filename);
+                                        "Warning", "Could not upload :"+filename+" file");
             e.printStackTrace();
             try{input.close();}
             catch(Exception ex){ex.printStackTrace();}
@@ -1771,7 +1777,7 @@ public class Repository{
                     window.mainpanel.p1.sc.g.setUser((new StringBuilder()).append(Repository.getUsersDirectory()).
                                         append(Repository.getBar()).append(user).append(".XML").
                                         toString());
-                    window.mainpanel.p1.sc.g.printXML( window.mainpanel.p1.sc.g.getUser(),false,false,false,false,"",false);
+                    window.mainpanel.p1.sc.g.printXML( window.mainpanel.p1.sc.g.getUser(),false,false,false,false,"",false,null);
                     Repository.window.mainpanel.p1.suitaDetails.setPreScript("");
                     Repository.window.mainpanel.p1.suitaDetails.setPostScript("");
                     Repository.window.mainpanel.p1.suitaDetails.setGlobalLibs(null);
@@ -1840,6 +1846,10 @@ public class Repository{
     
     public static String getVersion(){
         return version;
+    }
+    
+    public static String getBuildDate(){
+        return builddate;
     }
     
     /*

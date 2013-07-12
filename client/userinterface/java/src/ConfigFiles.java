@@ -1,6 +1,6 @@
 /*
 File: ConfigFiles.java ; This file is part of Twister.
-Version: 2.004
+Version: 2.005
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -84,7 +84,7 @@ public class ConfigFiles extends JPanel{
                               tdebug,tsummary,tinfo,tcli,tdbfile,
                               temailfile,tceport,
                               libpath,
-                              thttpPort,
+//                               thttpPort,
                               tglobalsfile;
     JPanel paths;
     
@@ -93,7 +93,7 @@ public class ConfigFiles extends JPanel{
         paths = new JPanel();
         paths.setBackground(Color.WHITE);
         paths.setLayout(null);
-        paths.setPreferredSize(new Dimension(930,1050));
+        paths.setPreferredSize(new Dimension(930,1000));
         paths.setBorder(BorderFactory.createBevelBorder(BevelBorder.LOWERED));
         setLayout(null);
         ttcpath = new JTextField();
@@ -115,7 +115,7 @@ public class ConfigFiles extends JPanel{
         tSuites = new JTextField();
         addPanel("Predefined Suites Path",
                 "Location of predefined suites",tSuites,
-                Repository.PREDEFINEDSUITES,876,true,null);
+                Repository.PREDEFINEDSUITES,808,true,null);
                 
         tepid = new JTextField();
         addPanel("EP name File","Location of the file that contains"+
@@ -196,7 +196,7 @@ public class ConfigFiles extends JPanel{
         libpath = new JTextField();
         addPanel("Library path",
                 "Secondary user library path",libpath,
-                Repository.REMOTELIBRARY,808,true,null);
+                Repository.REMOTELIBRARY,740,true,null);
    
         JPanel p8 = new JPanel();
         p8.setBackground(Color.WHITE);
@@ -205,7 +205,7 @@ public class ConfigFiles extends JPanel{
         border8.setBorder(BorderFactory.createLineBorder(new Color(150,150,150), 1));
         p8.setBorder(border8);
         p8.setLayout(null);    
-        p8.setBounds(80,944,800,50);
+        p8.setBounds(80,876,800,50);
         paths.add(p8);
         
         JButton save = new JButton("Save");
@@ -287,9 +287,9 @@ public class ConfigFiles extends JPanel{
 //         traPort = new JTextField();
 //         addPanel("Resource Allocator Port","Resource Allocator Port",
 //                 traPort,Repository.getResourceAllocatorPort(),808,false,null);                
-        thttpPort = new JTextField();
-        addPanel("HTTP Server Port","HTTP Server Port",thttpPort,
-                Repository.getHTTPServerPort(),740,false,null);
+//         thttpPort = new JTextField();
+//         addPanel("HTTP Server Port","HTTP Server Port",thttpPort,
+//                 Repository.getHTTPServerPort(),740,false,null);
         
         //paths.add(loadXML);
     }
@@ -395,7 +395,7 @@ public class ConfigFiles extends JPanel{
                         temailfile.setText(Repository.REMOTEEMAILCONFIGPATH+
                                             Repository.REMOTEEMAILCONFIGFILE);
                         tglobalsfile.setText(Repository.GLOBALSREMOTEFILE);
-                        thttpPort.setText(Repository.getHTTPServerPort());
+//                         thttpPort.setText(Repository.getHTTPServerPort());
                         tceport.setText(Repository.getCentralEnginePort());
                         Repository.emptySuites();
                         Repository.openProjectFile();
@@ -519,8 +519,8 @@ public class ConfigFiles extends JPanel{
             catch(Exception e){addTag("CentralEnginePort","",root,blank,document);}
 //             try{addTag("ResourceAllocatorPort",traPort.getText(),root,blank,document);}
 //             catch(Exception e){addTag("ResourceAllocatorPort","",root,blank,document);}
-            try{addTag("HttpServerPort",thttpPort.getText(),root,blank,document);}
-            catch(Exception e){addTag("HttpServerPort","",root,blank,document);}
+//             try{addTag("HttpServerPort",thttpPort.getText(),root,blank,document);}
+//             catch(Exception e){addTag("HttpServerPort","",root,blank,document);}
             try{addTag("TestCaseSourcePath",ttcpath.getText(),root,blank,document);}
             catch(Exception e){addTag("TestCaseSourcePath","",root,blank,document);}
             try{addTag("LibPath",libpath.getText(),root,blank,document);}

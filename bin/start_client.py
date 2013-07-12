@@ -175,7 +175,6 @@ class TwisterClientService():
 			for currentCE in proxyEpsList:
 				proxy = self.eps[proxyEpsList[currentCE][0]]['proxy']
 
-				#clientKey = '{ip}:{port}'.format(ip=gethostname(), port=self.clientPort)
 				clientKey = ':{port}'.format(port=self.clientPort)
 				try:
 					userCeClientInfo = proxy.getUserVariable(self.username, 'clients')
@@ -185,10 +184,23 @@ class TwisterClientService():
 					else:
 						userCeClientInfo = jsonLoads(userCeClientInfo)
 
+
+					ceStatus = str()
+					while not ceStatus.startswith('stopped'):
+						ceStatus = proxy.getExecStatusAll(self.username)
+
+						if ceStatus.startswith('stopped'):
+							# reset user project
+							proxy.resetProject(self.username)
+							print('User project reset.')
+						else:
+							print('CE running: {}'.format(ceStatus))
+							print('Waiting to stop..')
+						sleep(2)
+
 					userCeClientInfo.update([(clientKey, proxyEpsList[currentCE]), ])
 					userCeClientInfo = jsonDumps(userCeClientInfo)
 
-					#proxy.setUserVariable(self.username, 'clients', userCeClientInfo)
 					proxy.registerClient(self.username, userCeClientInfo)
 
 					unregistered = False
