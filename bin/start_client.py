@@ -11,7 +11,6 @@ import os, sys
 import xmlrpclib
 import subprocess
 
-#from socket import gethostname
 from time import sleep
 from datetime import datetime
 from ConfigParser import SafeConfigParser
@@ -141,9 +140,21 @@ class TwisterClientService():
 
 		# create server
 		self.clientPort = 4444
-		self.server = SimpleXMLRPCServer(("localhost", self.clientPort),
-							requestHandler=ServiceHandler)#, allow_none=True)
-		self.server.register_introspection_functions()
+		maximumServersNumber = 44
+		serverEstablished = False
+		while not serverEstablished or not self.clientPort > 4488:
+			try:
+				self.server = SimpleXMLRPCServer(("localhost", self.clientPort),
+													requestHandler=ServiceHandler)
+				self.server.register_introspection_functions()
+
+				serverEstablished = True
+				break
+			except Exception as e:
+				print('Twister Client Service Error: '\
+						'could not bind {p} :: {er}'.format(er=e, p=self.clientPort))
+				self.server = None
+				self.clientPort += 1
 
 
 	def registerEPs(self):
@@ -197,6 +208,7 @@ class TwisterClientService():
 			print('Error: unknown ep name')
 			return False
 
+		sleep(2.4)
 		try:
 			last_seen_alive = self.eps[epname]['proxy'].getEpVariable(self.username,
 															epname, 'last_seen_alive')
@@ -237,6 +249,7 @@ class TwisterClientService():
 			print('Error: ep is not running')
 			return False
 
+		sleep(2.4)
 		os.killpg(self.eps[epname]['pid'].pid, 9)
 		self.eps[epname]['pid'] = None
 
@@ -281,10 +294,14 @@ class TwisterClientService():
 
 
 
+if __name__ == "__main__":
+	# run client service
+	service = TwisterClientService(username)
+	if not service.server:
+		print('Could not establish server on any port! Exiting!')
+		exit(1)
 
-# run client service
-service = TwisterClientService(username)
-service.registerEPs()
-start_new_thread(keepalive, (service, ))
-service.run()
+	service.registerEPs()
+	start_new_thread(keepalive, (service, ))
+	service.run()
 

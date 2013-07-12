@@ -1,3 +1,13 @@
+11th July 2013
+
+- added support to load/save suites from/in suite vault; a directory can contain predefined suite files that
+  can be loaded into a project file in GUI; the user has to define a path to the suites vault in
+  Configuration->Paths->"Predefined Suites Path"; that is the place where the predefined suites are search;
+  the user can exports a project file into the vault suites directory by doing project->File->"Export As Suite"
+- removed the deprecated file start_ep.py and updated installer
+- fixed an issue for Reporting page if the user is a NIS user
+- removed ENABLED flag from epname.ini file because is DEPRECATED
+
 10th July 2013
 
 - fixed a backend code issue for teardown files in sub-suites
