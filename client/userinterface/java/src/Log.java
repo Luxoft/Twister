@@ -1,6 +1,6 @@
 /*
 File: Log.java ; This file is part of Twister.
-Version: 2.001
+Version: 2.002
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -49,6 +49,8 @@ import java.io.FileWriter;
 import javax.swing.JFileChooser;
 import javax.xml.bind.DatatypeConverter;
 import javax.swing.text.DefaultCaret;
+import javax.swing.JOptionPane;
+import com.twister.CustomDialog;
 
 public class Log extends JPanel{
     private static final long serialVersionUID = 1L;
@@ -244,11 +246,17 @@ public class Log extends JPanel{
      * clear log localy and on server
      */
     public void clearLog(){
-        clearScreen();
-        try{String result = Repository.getRPCClient().execute("resetLog",
-                                                                new Object[]{Repository.getUser(),
-                                                                             log})+"";}
-        catch(Exception e){e.printStackTrace();}}
+        int resp = (Integer)CustomDialog.showDialog(new JLabel("Clear log?"),JOptionPane.QUESTION_MESSAGE,
+                                                    JOptionPane.OK_CANCEL_OPTION,this
+                                                    , "Clear Log!",null);
+        if(resp == JOptionPane.OK_OPTION){
+            clearScreen();
+            try{String result = Repository.getRPCClient().execute("resetLog",
+                                                                    new Object[]{Repository.getUser(),
+                                                                                 log})+"";}
+            catch(Exception e){e.printStackTrace();}
+        }
+    }
         
     /*
      * decode string and append to Log screen

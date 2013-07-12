@@ -1,6 +1,6 @@
 /*
 File: Repository.java ; This file is part of Twister.
-Version: 2.0011
+Version: 2.0012
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -142,7 +142,8 @@ public class Repository{
     private static String[] lookAndFeels;
     public static Applet container;
     private static Document pluginsconfig;
-    private static String version = "2.013";
+    private static String version = "2.014";
+    private static String builddate = "12.07.2013";
     
     /*
      * repository initialization method
@@ -1845,6 +1846,10 @@ public class Repository{
     
     public static String getVersion(){
         return version;
+    }
+    
+    public static String getBuildDate(){
+        return builddate;
     }
     
     /*

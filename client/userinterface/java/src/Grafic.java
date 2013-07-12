@@ -1,6 +1,6 @@
 /*
 File: Grafic.java ; This file is part of Twister.
-Version: 2.005
+Version: 2.006
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -424,13 +424,8 @@ public class Grafic extends JPanel{
             }
         }
         
-//         ArrayList <Integer> pos = i.getPos();
-//         ArrayList <Integer> temp;
         size = i.getSubItemsNr();
         for(int j=0;j<size;j++){
-//             temp = (ArrayList)pos.clone();
-//             temp.add(new Integer(j));
-//             i.getSubItem(j).setPos(temp);
             subitem = i.getSubItem(j);
             subitem.updatePos(subitem.getPos().size()-1, new Integer(j));
         }
@@ -1721,9 +1716,10 @@ public class Grafic extends JPanel{
     public void setPreRequisites(Item tc){
         tc.setPrerequisite(true);
         tc.setTeardown(false);
+        tc.setOptional(false);
         Item theone2 = tc.clone(); 
-//         theone2.setPrerequisite(true);
-//         theone2.setTeardown(false);
+        theone2.setPrerequisite(true);
+        theone2.setTeardown(false);
         clone.add(theone2);
         removeSelected();
         dropFirstInSuita(getFirstSuitaParent(theone2,false));
@@ -1731,6 +1727,16 @@ public class Grafic extends JPanel{
         Repository.window.mainpanel.p1.suitaDetails.setParent(theone2);
         Repository.window.mainpanel.p1.suitaDetails.setTCDetails();
         repaint();}
+        
+    public void unsetPrerequisite(Item tc){
+        Item i = getFirstSuitaParent(tc, false);
+        tc.setPrerequisite(false);
+        sortTearSetup(i);
+        updateLocations(i);
+        deselectAll();
+        selectItem(tc.getPos());
+        repaint();
+    }
             
             
     /*
@@ -1749,6 +1755,16 @@ public class Grafic extends JPanel{
         Repository.window.mainpanel.p1.suitaDetails.setParent(theone2);
         Repository.window.mainpanel.p1.suitaDetails.setTCDetails();
         repaint();}
+        
+    public void unsetTeardown(Item tc){
+        Item i = getFirstSuitaParent(tc, false);
+        tc.setTeardown(false);
+        sortTearSetup(i);
+        updateLocations(i);
+        deselectAll();
+        selectItem(tc.getPos());
+        repaint();
+    }
             
     public void setOptional(Item tc){
         if(tc.isOptional()){
