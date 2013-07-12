@@ -554,6 +554,12 @@ class CentralEngine(_cptools.XMLRPCController):
             logError('Error: restart ep error: {er}'.format(er=e))
             return False
 
+    @cherrypy.expose
+    def resetEPs(self, user):
+        """ reset ep list for user """
+
+        return self.project.reset(user)
+
 
 # --------------------------------------------------------------------------------------------------
 #           C R E A T E   S U I T E S
