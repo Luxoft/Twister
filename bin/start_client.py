@@ -144,7 +144,7 @@ class TwisterClientService():
 		serverEstablished = False
 		while not serverEstablished or not self.clientPort > 4488:
 			try:
-				self.server = SimpleXMLRPCServer(("localhost", self.clientPort),
+				self.server = SimpleXMLRPCServer(("0.0.0.0", self.clientPort),
 													requestHandler=ServiceHandler)
 				self.server.register_introspection_functions()
 
