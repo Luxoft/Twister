@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 
-# version: 2.005
+# version: 2.006
 
 # File: cli.py ; This file is part of Twister.
 
-# Copyright (C) 2012 , Luxoft
+# Copyright (C) 2012-2013 , Luxoft
 
 # Authors:
 #  Andrei Costachi <acostachi@luxoft.com>
@@ -29,9 +29,8 @@ Commands :
 - Start, stop, pause the execution.
 - (users) All users that are running tests.
 - (eps) Display what EPs are enabled for your user.
-- (stats) What is the start time for this run, suites list and tests list.
-- (status) Execution summary status: how many test cases are planned for execution,
-  how many were executed, how may passed, how many failed.
+- (status) Execution summary status: What is the start time for this run, suites list and tests list,
+  how many test cases are planned for execution, how many were executed, how may passed, how many failed.
 - (status-details) Execution details status: the same, plus status per test case.
 - Queue tests during run time.
 '''
@@ -222,7 +221,6 @@ if __name__ == '__main__':
 	parser.add_option("--eps",         action="store_true", help="Show active and inactive Eps.")
 
 	parser.add_option("--stats",       action="store_true", help="Show stats.")
-	parser.add_option("--status",      action="store_true", help="Show stats.")
 
 	parser.add_option("--details",            action="store_true", help="Show detailed status for All files.")
 	parser.add_option("--status-details",     action="store", help="Show detailed status for running, finished, pending, or all files.")
@@ -280,10 +278,10 @@ if __name__ == '__main__':
 		exit()
 
 
-	# Check status
-	if options.stats or options.status:
+	# Check stats
+	if options.stats:
 		if not checkStatus(proxy, user):
-			print 'Status not available.\n'
+			print 'Stats not available.\n'
 		exit()
 
 
