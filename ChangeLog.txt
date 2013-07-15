@@ -1,3 +1,8 @@
+15th July 2013
+
+- fix for start_client to avoind binding to localhost ( it will reject connections
+  from remote hosts )
+
 12th July 2013
 
 - added fix for issue #26 ( server must be restarted to reflect the changes on epname.ini ).
