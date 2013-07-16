@@ -1,6 +1,6 @@
 /*
 File: DBConfig.java ; This file is part of Twister.
-Version: 2.002
+Version: 2.003
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -280,6 +280,6 @@ public class DBConfig extends JPanel{
                 REMOTEDATABASECONFIGFILE).getName()+" is corrupted or incomplete");
                 e.printStackTrace();}}
         catch(Exception e){
-            CustomDialog.showInfo(JOptionPane.INFORMATION_MESSAGE, null, "info", e.getMessage());
+            //CustomDialog.showInfo(JOptionPane.INFORMATION_MESSAGE, DBConfig.this, "info", e.getMessage());
             e.printStackTrace();
             System.out.println("Could not refresh dbconfig structure");}}}
