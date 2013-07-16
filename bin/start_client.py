@@ -143,6 +143,8 @@ class TwisterClientService():
 						eps.append(ep)
 				except Exception as e:
 					pass
+			elif cfg.has_option(ep, 'CE_IP') and not cfg.has_option(ep, 'EP_HOST'):
+				eps.append(ep)
 		print('Found `{}` EPs: `{}`.\n'.format(len(eps), ', '.join(eps)))
 
 		if not eps:
