@@ -33,6 +33,7 @@ import os, sys
 import xmlrpclib
 import subprocess
 
+from socket import gethostname, gethostbyaddr
 from time import sleep
 from datetime import datetime
 from ConfigParser import SafeConfigParser
@@ -98,6 +99,15 @@ class TwisterClientService():
 
 		print('Twister Client Service init..')
 		self.username = username
+		self.hostname = gethostname().lower()
+
+		self.snifferEth = None
+
+		self.eps = dict()
+		self.proxyList = dict()
+
+		self.clientPort = 4444
+		self.server = None
 
 		# close sniffer and ep instaces and parse eps
 		pipe = subprocess.Popen('ps ax | grep start_packet_sniffer.py', shell=True, stdout=subprocess.PIPE)
@@ -121,18 +131,24 @@ class TwisterClientService():
 		cfg.read(os.getenv('TWISTER_PATH') + '/config/epname.ini')
 
 		# sniffer config
-		self.snifferEth = None
 		if cfg.get('PACKETSNIFFERPLUGIN', 'ENABLED') == '1':
 			self.snifferEth = cfg.get('PACKETSNIFFERPLUGIN', 'ETH_INTERFACE')
 
-
 		# All sections that have an option CE_IP, are EP names
-		eps = [e for e in cfg.sections() if cfg.has_option(e, 'CE_IP')]
+		eps = list()
+		for ep in cfg.sections():
+			if cfg.has_option(ep, 'CE_IP') and cfg.has_option(ep, 'EP_HOST'):
+				try:
+					if self.hostname in gethostbyaddr(cfg.get(ep, 'EP_HOST'))[0].lower():
+						eps.append(ep)
+				except Exception as e:
+					pass
 		print('Found `{}` EPs: `{}`.\n'.format(len(eps), ', '.join(eps)))
 
+		if not eps:
+			return
+
 		# eps
-		self.eps = dict()
-		self.proxyList = dict()
 		for currentEP in eps:
 			newEP = dict()
 			newEP['ce_ip'] = cfg.get(currentEP, 'CE_IP')
@@ -161,12 +177,11 @@ class TwisterClientService():
 
 
 		# create server
-		self.clientPort = 4444
 		maximumServersNumber = 44
 		serverEstablished = False
 		while not serverEstablished or not self.clientPort > 4488:
 			try:
-				self.server = SimpleXMLRPCServer(("0.0.0.0", self.clientPort),
+				self.server = SimpleXMLRPCServer(('0.0.0.0', self.clientPort),
 													requestHandler=ServiceHandler)
 				self.server.register_introspection_functions()
 
