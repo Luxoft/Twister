@@ -1,3 +1,20 @@
+16th July 2013
+
+- updated start_client and epname.ini to introduce a new tag EP_HOST to allow
+  the user the specify on what machine is allowed to start an EP. The user
+  can specify hostname or IP address. If this tag is not set, the EP is allowed
+  to be started by edfault
+- added option to start the client in "silent" mode; no messages are printed
+- updated GUI for some minor fixes:
+             - labels resize
+             - reconfigured warnings
+             - changed uppercase project name
+             - http server port removed
+             - tc name field resized
+- updated User Guide
+
+INFO: the applet and client side were updated; so they have to be reinstalled			 
+
 15th July 2013
 
 - fix for start_client to avoind binding to localhost ( it will reject connections

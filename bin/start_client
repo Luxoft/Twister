@@ -2,7 +2,7 @@
 
 # File: start_client ; This file is part of Twister.
 
-# version: 2.001
+# version: 2.002
 
 # Copyright (C) 2013 , Luxoft
 
@@ -45,17 +45,26 @@ set -e
 
 case "$1" in
   start)
-        echo -n ">>>>||||  Starting $DESC: "
+        if [ "$2" != "silent" ]
+        then
+            echo -n ">>>>||||  Starting $DESC: "
+        fi
 
         if [ -n "$STATUS" ]
         then
-            echo already running..
-            ps -fu $USER | grep python | grep start_client.py
+            if [ "$2" != "silent" ]
+            then
+                echo already running..
+                ps -fu $USER | grep python | grep start_client.py
+            fi
         else
             nohup $PYTHON_PATH -u $DAEMON > $LOG_PATH &
         fi
 
-        echo "$NAME.  ||||<<<<<"
+        if [ "$2" != "silent" ]
+        then
+            echo "$NAME.  ||||<<<<<"
+        fi
         ;;
 
   stop)

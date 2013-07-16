@@ -1,6 +1,6 @@
 /*
 File: Repository.java ; This file is part of Twister.
-Version: 2.0012
+Version: 2.0013
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -17,6 +17,8 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+import java.io.DataOutputStream;
+import java.io.DataInputStream;
 import java.applet.Applet;
 import java.util.ArrayList;
 import com.jcraft.jsch.JSch;
@@ -110,7 +112,8 @@ public class Repository{
     public static ChannelSftp connection;//main sftp connection used by Twister
     public static Hashtable variables = new Hashtable(5,0.5f);
     public static String user,host,password,temp,TWISTERINI, USERHOME, REMOTECONFIGDIRECTORY,
-                         PLUGINSDIRECTORY,HTTPSERVERPORT, CENTRALENGINEPORT,
+                         PLUGINSDIRECTORY,CENTRALENGINEPORT,
+//                          HTTPSERVERPORT, 
                          //RESOURCEALLOCATORPORT,
                          REMOTEDATABASECONFIGPATH,
                          REMOTEDATABASECONFIGFILE, REMOTEEMAILCONFIGPATH,
@@ -142,8 +145,8 @@ public class Repository{
     private static String[] lookAndFeels;
     public static Applet container;
     private static Document pluginsconfig;
-    private static String version = "2.014";
-    private static String builddate = "12.07.2013";
+    private static String version = "2.015";
+    private static String builddate = "16.07.2013";
     
     /*
      * repository initialization method
@@ -219,7 +222,9 @@ public class Repository{
                  * the resources must be loaded from local pc 
                  */
                 loadResourcesFromLocal();}
+            
             if(userpassword()){
+                ssh(user,password,host);
                 /*
                  * create directory structure
                  * for twister resources localy
@@ -332,7 +337,7 @@ public class Repository{
         variables.put("remoteuserhome",USERHOME);  
         variables.put("remotconfigdir",REMOTECONFIGDIRECTORY);  
         variables.put("localplugindir",PLUGINSDIRECTORY);  
-        variables.put("httpserverport",HTTPSERVERPORT);  
+//         variables.put("httpserverport",HTTPSERVERPORT);  
         variables.put("centralengineport",CENTRALENGINEPORT); 
         variables.put("remotedatabaseparth",REMOTEDATABASECONFIGPATH);
         variables.put("remotedatabasefile",REMOTEDATABASECONFIGFILE);
@@ -505,6 +510,36 @@ public class Repository{
                     if(applet){SwingUtilities.updateComponentTreeUI(container);}
                     else if(window!=null){SwingUtilities.updateComponentTreeUI(window);}}
                 catch(Exception e){e.printStackTrace();}}});}
+                
+    private static void ssh(String user, String passwd, String host){
+        try{JSch jsch = new JSch();
+    		Session session = jsch.getSession(user, host, 22);
+    		session.setPassword(passwd);
+    		session.setConfig("StrictHostKeyChecking", "no");
+    		session.connect();
+    		Channel channel = session.openChannel("shell");
+    		channel.connect();
+            Thread.sleep(1000);
+    		channel.disconnect();
+    		session.disconnect();
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+    }
+    
+//     private static void readSSH(BufferedReader in, Channel channel) {
+// 		try {
+// 			String line = in.readLine();
+// 			System.out.println(line);
+// 			while (line.indexOf("GUI_connected")==-1) {
+// // 			while (true) {
+// 				line = in.readLine();
+// 				System.out.println(line);
+// 			}
+// 		} catch (Exception e) {
+// 			e.printStackTrace();
+// 		}
+// 	}
         
     /*
      * attempt to connect with sftp to server
@@ -798,9 +833,9 @@ public class Repository{
             
 //             try{
             if(Repository.getRemoteFolderContent(USERHOME+"/twister/config/").length==0){
-                System.out.println("Could not get :"+USERHOME+"/twister/config/");
+                System.out.println("Could not get config folder from:"+USERHOME+"/twister/config/");
                 CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,Repository.window,
-                                        "Warning", "Could not get :"+USERHOME+
+                                        "Warning", "Could not get config folder from:"+USERHOME+
                                         "/twister/config/");
                 if(Window.deleteTemp(new File(Repository.temp+bar+"Twister")))
                     System.out.println(Repository.temp+bar+"Twister deleted successful");
@@ -883,7 +918,7 @@ public class Repository{
                     logs.add(getTagContent(doc,"logSummary"));
                     logs.add(getTagContent(doc,"logTest"));
                     logs.add(getTagContent(doc,"logCli"));}
-                HTTPSERVERPORT = getTagContent(doc,"HttpServerPort");
+//                 HTTPSERVERPORT = getTagContent(doc,"HttpServerPort");
                 CENTRALENGINEPORT = getTagContent(doc,"CentralEnginePort");
                 //RESOURCEALLOCATORPORT = getTagContent(doc,"ResourceAllocatorPort");
                 usersdir = getTagContent(doc,"UsersPath");
@@ -892,7 +927,7 @@ public class Repository{
 //                 getTagContent(doc,"MasterXMLTestSuite");
                 XMLDIRECTORY = Repository.temp+bar+"Twister"+bar+"XML"+
                                         bar+XMLREMOTEDIR.split("/")[XMLREMOTEDIR.split("/").length-1];
-                REMOTELIBRARY = getTagContent(doc,"LibPath");
+                REMOTELIBRARY = getTagContent(doc,"LibsPath");
                 REMOTEEPIDDIR = getTagContent(doc,"EpNames");
                 REMOTEDATABASECONFIGFILE = getTagContent(doc,"DbConfigFile");
                 String [] path = REMOTEDATABASECONFIGFILE.split("/");
@@ -1045,6 +1080,8 @@ public class Repository{
         NodeList nodeLst = doc.getElementsByTagName(tag);
         if(nodeLst.getLength()==0){
             System.out.println("tag "+tag+" not found in "+doc.getDocumentURI());
+            CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,Repository.window,
+                                        "Warning", tag+" tag not found in framework config");
             return "";
         }
         Node fstNode = nodeLst.item(0);
@@ -1054,6 +1091,8 @@ public class Repository{
         try{temp = fstNm.item(0).getNodeValue().toString();}
         catch(Exception e){
             System.out.println(tag+" empty");
+            CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,Repository.window,
+                                        "Warning", tag+" tag si empty in framework config");
             temp = "";}
         return temp;}
         
@@ -1203,8 +1242,8 @@ public class Repository{
     /*
      * HTTPServerPort set by fwmconfig file
      */
-    public static String getHTTPServerPort(){
-        return HTTPSERVERPORT;}
+//     public static String getHTTPServerPort(){
+//         return HTTPSERVERPORT;}
         
     /*
      * method to get suite from test suite list 
@@ -1591,8 +1630,8 @@ public class Repository{
             sftpoccupied = false;
             return b.toString();
         } catch (Exception e){
-            CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,Repository.window,
-                                        "Warning", "Could not get :"+file);
+//             CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,Repository.window,
+//                                         "Warning", "Could not get remote file content from:"+file);
             e.printStackTrace();
             sftpoccupied = false;
             return null;
@@ -1888,7 +1927,7 @@ public class Repository{
             if(Repository.getRemoteFolderContent(USERHOME+"/twister/config/").length==0){
                 System.out.println("Could not get :"+USERHOME+"/twister/config/");
                 CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,Repository.window,
-                                        "Warning", "Could not get :"+USERHOME+
+                                        "Warning", "Could not get config folder from: "+USERHOME+
                                         "/twister/config/");
                 return false;
             }

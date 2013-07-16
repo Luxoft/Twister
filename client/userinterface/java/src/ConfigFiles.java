@@ -1,6 +1,6 @@
 /*
 File: ConfigFiles.java ; This file is part of Twister.
-Version: 2.005
+Version: 2.006
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -110,21 +110,21 @@ public class ConfigFiles extends JPanel{
         
         addPanel("Projects Path",
                 "Location of projects XML files",tUsers,
-                Repository.REMOTEUSERSDIRECTORY,73,true,null);
+                Repository.REMOTEUSERSDIRECTORY,78,true,null);
                 
         tSuites = new JTextField();
         addPanel("Predefined Suites Path",
                 "Location of predefined suites",tSuites,
-                Repository.PREDEFINEDSUITES,808,true,null);
+                Repository.PREDEFINEDSUITES,858,true,null);
                 
         tepid = new JTextField();
         addPanel("EP name File","Location of the file that contains"+
         " the Ep name list",
-                tepid,Repository.REMOTEEPIDDIR,141,true,null);
+                tepid,Repository.REMOTEEPIDDIR,151,true,null);
         tlog = new JTextField();
         addPanel("Logs Path","Location of the directory that stores the"+
         " logs that will be monitored",
-                tlog,Repository.LOGSPATH,209,true,null);
+                tlog,Repository.LOGSPATH,224,true,null);
         JPanel p7 = new JPanel();
         p7.setBackground(Color.WHITE);
         TitledBorder border7 = BorderFactory.createTitledBorder("Log Files");
@@ -132,7 +132,7 @@ public class ConfigFiles extends JPanel{
         border7.setBorder(BorderFactory.createLineBorder(new Color(150,150,150), 1));
         p7.setBorder(border7);
         p7.setLayout(new BoxLayout(p7, BoxLayout.Y_AXIS));    
-        p7.setBounds(80,277,800,190);
+        p7.setBounds(80,302,800,190);
         paths.add(p7);
         JTextArea log2 = new JTextArea("All the log files that will be monitored");
         log2.setWrapStyleWord(true);
@@ -196,7 +196,7 @@ public class ConfigFiles extends JPanel{
         libpath = new JTextField();
         addPanel("Library path",
                 "Secondary user library path",libpath,
-                Repository.REMOTELIBRARY,740,true,null);
+                Repository.REMOTELIBRARY,785,true,null);
    
         JPanel p8 = new JPanel();
         p8.setBackground(Color.WHITE);
@@ -205,7 +205,7 @@ public class ConfigFiles extends JPanel{
         border8.setBorder(BorderFactory.createLineBorder(new Color(150,150,150), 1));
         p8.setBorder(border8);
         p8.setLayout(null);    
-        p8.setBounds(80,876,800,50);
+        p8.setBounds(80,931,800,50);
         paths.add(p8);
         
         JButton save = new JButton("Save");
@@ -271,19 +271,19 @@ public class ConfigFiles extends JPanel{
         tdbfile = new JTextField();
         addPanel("Database XML path","File location for database configuration",    
                 tdbfile,Repository.REMOTEDATABASECONFIGPATH+Repository.REMOTEDATABASECONFIGFILE,
-                467,true,null);
+                492,true,null);
         temailfile = new JTextField();
         addPanel("Email XML path","File location for email configuration",temailfile,
-                Repository.REMOTEEMAILCONFIGPATH+Repository.REMOTEEMAILCONFIGFILE,604,true,null);                
+                Repository.REMOTEEMAILCONFIGPATH+Repository.REMOTEEMAILCONFIGFILE,639,true,null);                
         
                
         tglobalsfile = new JTextField();
         addPanel("Globals XML file","File location for globals parameters",tglobalsfile,
-                Repository.GLOBALSREMOTEFILE,535,true,null);         
+                Repository.GLOBALSREMOTEFILE,565,true,null);         
                 
         tceport = new JTextField();
         addPanel("Central Engine Port","Central Engine port",
-                tceport,Repository.getCentralEnginePort(),672,false,null);                
+                tceport,Repository.getCentralEnginePort(),712,false,null);                
 //         traPort = new JTextField();
 //         addPanel("Resource Allocator Port","Resource Allocator Port",
 //                 traPort,Repository.getResourceAllocatorPort(),808,false,null);                
@@ -396,6 +396,7 @@ public class ConfigFiles extends JPanel{
                                             Repository.REMOTEEMAILCONFIGFILE);
                         tglobalsfile.setText(Repository.GLOBALSREMOTEFILE);
 //                         thttpPort.setText(Repository.getHTTPServerPort());
+                        tSuites.setText(Repository.PREDEFINEDSUITES);
                         tceport.setText(Repository.getCentralEnginePort());
                         Repository.emptySuites();
                         Repository.openProjectFile();
@@ -436,7 +437,7 @@ public class ConfigFiles extends JPanel{
         border.setBorder(BorderFactory.createLineBorder(new Color(150,150,150), 1));
         p1.setBorder(border);         
         p1.setLayout(new BoxLayout(p1, BoxLayout.Y_AXIS));    
-        p1.setBounds(80,Y,800,70);
+        p1.setBounds(80,Y,800,75);
         paths.add(p1);
         JTextArea tcpath = new JTextArea(description);
         tcpath.setWrapStyleWord(true);
@@ -447,15 +448,15 @@ public class ConfigFiles extends JPanel{
         tcpath.setFocusable(false);         
         tcpath.setFont(new Font("Arial",Font.PLAIN,12));
         tcpath.setBackground(getBackground());
-        tcpath.setMaximumSize(new Dimension(170,18));        
-        tcpath.setPreferredSize(new Dimension(170,18));
+        tcpath.setMaximumSize(new Dimension(170,22));        
+        tcpath.setPreferredSize(new Dimension(170,22));
         tcpath.setBorder(null);
         JPanel p11 = new JPanel();
         p11.setBackground(Color.WHITE);
         p11.setLayout(new GridLayout());
         p11.add(tcpath);
-        p11.setMaximumSize(new Dimension(700,13));
-        p11.setPreferredSize(new Dimension(700,13));
+        p11.setMaximumSize(new Dimension(700,18));
+        p11.setPreferredSize(new Dimension(700,18));
         textfield.setMaximumSize(new Dimension(340,27));
         textfield.setPreferredSize(new Dimension(340,27));
         textfield.setText(fieldtext);
@@ -523,8 +524,8 @@ public class ConfigFiles extends JPanel{
 //             catch(Exception e){addTag("HttpServerPort","",root,blank,document);}
             try{addTag("TestCaseSourcePath",ttcpath.getText(),root,blank,document);}
             catch(Exception e){addTag("TestCaseSourcePath","",root,blank,document);}
-            try{addTag("LibPath",libpath.getText(),root,blank,document);}
-            catch(Exception e){addTag("LibPath","",root,blank,document);}
+            try{addTag("LibsPath",libpath.getText(),root,blank,document);}
+            catch(Exception e){addTag("LibsPath","",root,blank,document);}
             try{addTag("UsersPath",tUsers.getText(),root,blank,document);}
             catch(Exception e){addTag("UsersPath","",root,blank,document);}
             try{addTag("PredefinedSuitesPath",tSuites.getText(),root,blank,document);}

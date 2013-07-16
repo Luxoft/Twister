@@ -1,6 +1,6 @@
 /*
 File: applet.java ; This file is part of Twister.
-Version: 2.001
+Version: 2.002
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -52,11 +52,10 @@ public class applet extends Applet{
         /*
          * load all icons from jar into Repository
          */
-        try{System.out.println("Current version: ");
+        try{
             System.out.println("OS current temporary directory is : "+
                                 System.getProperty("java.io.tmpdir"));
             System.setSecurityManager(new MySecurityManager());
-            System.out.println("Testing Testing Testing");
             Repository.tcicon = loadIcon("tc.png");
             Repository.background = loadIcon("background.png");
             Repository.pendingicon = loadIcon("pending.png");

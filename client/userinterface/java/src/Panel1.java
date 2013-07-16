@@ -1,6 +1,6 @@
 /*
 File: Panel1.java ; This file is part of Twister.
-Version: 2.005
+Version: 2.006
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -402,8 +402,7 @@ public class Panel1 extends JPanel{
         if(!sc.g.getUser().equals("")){
             String user = CustomDialog.showInputDialog(JOptionPane.QUESTION_MESSAGE,
                                                     JOptionPane.OK_CANCEL_OPTION, Repository.window,
-                                                    "File Name", "Please enter project file name").
-                                                    toUpperCase();
+                                                    "File Name", "Please enter project file name");
             
             if(user!=null&&!user.equals("")){
                 if(sc.g.printXML(user+".xml", false,false,
@@ -535,7 +534,7 @@ public class Panel1 extends JPanel{
     private void renameTC(){
         final Item theone = getItem();
         String name = CustomDialog.showInputDialog(JOptionPane.PLAIN_MESSAGE, JOptionPane.OK_CANCEL_OPTION,
-                                                    sc.g, "TC Name", "Please enter the TC name").toUpperCase();
+                                                    sc.g, "TC Name", "Please enter the TC name");
         if(!name.equals("NULL")){
             FontMetrics metrics = sc.g.getGraphics().getFontMetrics(new Font("TimesRoman", Font.BOLD, 13));
             int width = metrics.stringWidth(name);
@@ -560,7 +559,7 @@ public class Panel1 extends JPanel{
     private void renameSuite(){
         final Item theone = getItem();
         String name = CustomDialog.showInputDialog(JOptionPane.PLAIN_MESSAGE, JOptionPane.OK_CANCEL_OPTION, sc.g,
-                                                    "Suite Name", "Please enter the suite name").toUpperCase();
+                                                    "Suite Name", "Please enter the suite name");
         if(!name.equals("NULL")){
             FontMetrics metrics = sc.g.getGraphics().getFontMetrics(new Font("TimesRoman", Font.BOLD, 14));
             int width = metrics.stringWidth(name)+140;
@@ -823,7 +822,7 @@ public class Panel1 extends JPanel{
         if(r == JOptionPane.OK_OPTION){
             Repository.emptySuites();
             try{new File(sc.g.getUser()).delete();
-                if(!Repository.removeRemoteFile(Repository.getRemoteUsersDirectory()+(new File(sc.g.getUser()).getName()))){
+                if(!Repository.removeRemoteFile(Repository.getRemoteUsersDirectory()+"/"+(new File(sc.g.getUser()).getName()))){
                     System.out.println("Could not delete "+new File(sc.g.getUser()).getName()+
                                         " from "+Repository.getRemoteUsersDirectory());
                 }
@@ -835,41 +834,46 @@ public class Panel1 extends JPanel{
 //                     e.printStackTrace();}
             }
             catch(Exception e){e.printStackTrace();}
-            File usersdirectory = new File(Repository.getUsersDirectory());
-            String users[] = new String[usersdirectory.list().length + 1];
-            System.arraycopy(usersdirectory.list(), 0, users, 0, usersdirectory.list().length);
-            users[users.length - 1] = "New File";
-            JComboBox combo = new JComboBox(users);
-            int resp = (Integer)CustomDialog.showDialog(combo,JOptionPane.INFORMATION_MESSAGE,
-                                                        JOptionPane.OK_CANCEL_OPTION,Panel1.this,
-                                                        "File Name",null);
-            if(resp==JOptionPane.OK_OPTION){
-                String user = combo.getSelectedItem().toString();
-                if(user.equals("New File")){
-                    user = CustomDialog.showInputDialog(JOptionPane.QUESTION_MESSAGE, JOptionPane.OK_CANCEL_OPTION,
-                                                        Panel1.this, "File Name", "Please enter file name").toUpperCase();
-                    if(!user.equals("NULL")){
-                        Repository.emptySuites();
-                        sc.g.getSelectedCollection().clear();
-                        (new XMLBuilder(Repository.getSuite())).writeXMLFile((new StringBuilder()).
-                                                               append(Repository.getUsersDirectory()).
-                                                               append(System.getProperty("file.separator"))
-                                                               .append(user).append(".xml").toString(),false,false,false);
-                        sc.g.setUser((new StringBuilder()).append(Repository.getUsersDirectory()).
-                                                                    append(System.getProperty("file.separator")).
-                                                                    append(user).append(".xml").toString());
-                        sc.g.printXML(sc.g.getUser(),false,false,false,false,"",false,null);}}
-                else if(user != null){
-                    sc.g.setUser((new StringBuilder()).append(Repository.getUsersDirectory()).
-                                                                append(System.getProperty("file.separator")).
-                                                                append(user).toString());
-                    sc.g.parseXML(new File((new StringBuilder()).append(Repository.getUsersDirectory()).
-                                                                append(System.getProperty("file.separator")).
-                                                                append(user).toString()));}}
-            else Repository.window.mainpanel.p1.sc.g.setUser("");
-            if(Repository.getSuiteNr() > 0)Repository.window.mainpanel.p1.sc.g.updateLocations(Repository.getSuita(0));
-            Repository.window.mainpanel.p1.sc.g.repaint();
-            Repository.window.mainpanel.p1.sc.g.repaint();}}
+//             File usersdirectory = new File(Repository.getUsersDirectory());
+//             String users[] = new String[usersdirectory.list().length + 1];
+//             System.arraycopy(usersdirectory.list(), 0, users, 0, usersdirectory.list().length);
+//             users[users.length - 1] = "New File";
+//             JComboBox combo = new JComboBox(users);
+//             int resp = (Integer)CustomDialog.showDialog(combo,JOptionPane.INFORMATION_MESSAGE,
+//                                                         JOptionPane.OK_CANCEL_OPTION,Panel1.this,
+//                                                         "File Name",null);
+//             if(resp==JOptionPane.OK_OPTION){
+//                 String user = combo.getSelectedItem().toString();
+//                 if(user.equals("New File")){
+//                     user = CustomDialog.showInputDialog(JOptionPane.QUESTION_MESSAGE, JOptionPane.OK_CANCEL_OPTION,
+//                                                         Panel1.this, "File Name", "Please enter file name");
+//                     if(!user.equals("NULL")){
+//                         Repository.emptySuites();
+//                         sc.g.getSelectedCollection().clear();
+//                         (new XMLBuilder(Repository.getSuite())).writeXMLFile((new StringBuilder()).
+//                                                                append(Repository.getUsersDirectory()).
+//                                                                append(System.getProperty("file.separator"))
+//                                                                .append(user).append(".xml").toString(),false,false,false);
+//                         sc.g.setUser((new StringBuilder()).append(Repository.getUsersDirectory()).
+//                                                                     append(System.getProperty("file.separator")).
+//                                                                     append(user).append(".xml").toString());
+//                         sc.g.printXML(sc.g.getUser(),false,false,false,false,"",false,null);}}
+//                 else if(user != null){
+//                     sc.g.setUser((new StringBuilder()).append(Repository.getUsersDirectory()).
+//                                                                 append(System.getProperty("file.separator")).
+//                                                                 append(user).toString());
+//                     sc.g.parseXML(new File((new StringBuilder()).append(Repository.getUsersDirectory()).
+//                                                                 append(System.getProperty("file.separator")).
+//                                                                 append(user).toString()));}}
+//             else Repository.window.mainpanel.p1.sc.g.setUser("");
+//             if(Repository.getSuiteNr() > 0)Repository.window.mainpanel.p1.sc.g.updateLocations(Repository.getSuita(0));
+//             Repository.window.mainpanel.p1.sc.g.repaint();
+//             Repository.window.mainpanel.p1.sc.g.repaint();
+        }
+            Repository.openProjectFile();
+        
+        
+    }
         
     /*
      * open XML file from
@@ -942,7 +946,7 @@ public class Panel1 extends JPanel{
      */        
     private void addSuiteFile(){
         String user = CustomDialog.showInputDialog(JOptionPane.PLAIN_MESSAGE, JOptionPane.OK_CANCEL_OPTION,
-                                                    sc.g, "File Name", "Please enter file name").toUpperCase();
+                                                    sc.g, "File Name", "Please enter file name");
         if(user!=null){
             (new XMLBuilder(Repository.getSuite())).writeXMLFile(Repository.getUsersDirectory()+
                                                                 System.getProperty("file.separator")+
