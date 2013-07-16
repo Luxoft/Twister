@@ -1,3 +1,12 @@
+15th July 2013
+
+- fix for start_client to avoind binding to localhost ( it will reject connections
+  from remote hosts )
+- fix for cli.py --users to discover the NIS users that have the Twister client
+   installed
+- removed the option "status" for cli.py
+- updated user guide document.
+
 12th July 2013
 
 - added fix for issue #26 ( server must be restarted to reflect the changes on epname.ini ).

@@ -1,7 +1,7 @@
 
 # File: xmlparser.py ; This file is part of Twister.
 
-# version: 2.007
+# version: 2.008
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -67,7 +67,17 @@ def checkUsers():
         path = line.split(':')[5]
         if os.path.isdir(path + '/twister/config'):
             users.append(line.split(':')[0])
-    return users
+    # Check if the machine has NIS users
+    try:
+        subprocess.check_output('nisdomainname')
+        u = subprocess.check_output("ypcat passwd | awk -F : '{print $1}'", shell=True)
+        for user in u.split():
+            home = userHome(user)
+            if os.path.isdir(home + '/twister/config'):
+                users.append(user)
+    except:
+        pass
+    return sorted( set(users) )
 
 #
 

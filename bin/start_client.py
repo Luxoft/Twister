@@ -1,7 +1,29 @@
 #!/usr/bin/python
 
-# version: 1.000
+# File: start_client.py ; This file is part of Twister.
 
+# version: 2.001
+
+# Copyright (C) 2012-2013 , Luxoft
+
+# Authors:
+#    Adrian Toader <adtoader@luxoft.com>
+#    Andrei Costachi <acostachi@luxoft.com>
+#    Andrei Toma <atoma@luxoft.com>
+#    Cristi Constantin <crconstantin@luxoft.com>
+#    Daniel Cioata <dcioata@luxoft.com>
+
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at:
+
+# http://www.apache.org/licenses/LICENSE-2.0
+
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 # This file will register ALL Execution Processes that are enabled,
 # from file `twister/config/epname.ini` !
 # To be able to start the packet sniffer, this must run as ROOT.
@@ -11,6 +33,7 @@ import os, sys
 import xmlrpclib
 import subprocess
 
+from socket import gethostname, gethostbyaddr
 from time import sleep
 from datetime import datetime
 from ConfigParser import SafeConfigParser
@@ -76,6 +99,15 @@ class TwisterClientService():
 
 		print('Twister Client Service init..')
 		self.username = username
+		self.hostname = gethostname().lower()
+
+		self.snifferEth = None
+
+		self.eps = dict()
+		self.proxyList = dict()
+
+		self.clientPort = 4444
+		self.server = None
 
 		# close sniffer and ep instaces and parse eps
 		pipe = subprocess.Popen('ps ax | grep start_packet_sniffer.py', shell=True, stdout=subprocess.PIPE)
@@ -99,18 +131,26 @@ class TwisterClientService():
 		cfg.read(os.getenv('TWISTER_PATH') + '/config/epname.ini')
 
 		# sniffer config
-		self.snifferEth = None
 		if cfg.get('PACKETSNIFFERPLUGIN', 'ENABLED') == '1':
 			self.snifferEth = cfg.get('PACKETSNIFFERPLUGIN', 'ETH_INTERFACE')
 
-
 		# All sections that have an option CE_IP, are EP names
-		eps = [e for e in cfg.sections() if cfg.has_option(e, 'CE_IP')]
+		eps = list()
+		for ep in cfg.sections():
+			if cfg.has_option(ep, 'CE_IP') and cfg.has_option(ep, 'EP_HOST'):
+				try:
+					if self.hostname in gethostbyaddr(cfg.get(ep, 'EP_HOST'))[0].lower():
+						eps.append(ep)
+				except Exception as e:
+					pass
+			elif cfg.has_option(ep, 'CE_IP') and not cfg.has_option(ep, 'EP_HOST'):
+				eps.append(ep)
 		print('Found `{}` EPs: `{}`.\n'.format(len(eps), ', '.join(eps)))
 
+		if not eps:
+			return
+
 		# eps
-		self.eps = dict()
-		self.proxyList = dict()
 		for currentEP in eps:
 			newEP = dict()
 			newEP['ce_ip'] = cfg.get(currentEP, 'CE_IP')
@@ -139,12 +179,11 @@ class TwisterClientService():
 
 
 		# create server
-		self.clientPort = 4444
 		maximumServersNumber = 44
 		serverEstablished = False
 		while not serverEstablished or not self.clientPort > 4488:
 			try:
-				self.server = SimpleXMLRPCServer(("localhost", self.clientPort),
+				self.server = SimpleXMLRPCServer(('0.0.0.0', self.clientPort),
 													requestHandler=ServiceHandler)
 				self.server.register_introspection_functions()
 
