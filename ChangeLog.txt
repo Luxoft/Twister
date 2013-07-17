@@ -1,3 +1,9 @@
+17th July 2013
+
+- code changes to fix issues #45 and #46; new behaviour is: when a setup file fails, all setup files and normal
+  files that follow in that suite are SKIPPED. Only the teardown files are run. Also, when a setup file does
+  not pass, the suite is aborted. All statuses except PASS, in a setup file now are considered to fail.
+
 16th July 2013
 
 - updated start_client and epname.ini to introduce a new tag EP_HOST to allow
