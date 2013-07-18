@@ -1,6 +1,6 @@
 /*
 File: SuitaDetails.java ; This file is part of Twister.
-Version: 2.005
+Version: 2.006
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -642,7 +642,7 @@ public class SuitaDetails extends JPanel {
      * set options according to new selected item
      */
     public void setParent(Item parent){ 
-        if(this.parent==parent)return;
+        //if(this.parent==parent)return;
         this.parent = parent;
         if(parent!=null&&parent.getType()==2){
             try{
