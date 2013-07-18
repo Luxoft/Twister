@@ -82,6 +82,7 @@ import socket
 import platform
 import smtplib
 import MySQLdb
+import binascii
 
 
 from string import Template
@@ -1062,6 +1063,11 @@ class Project:
                 server.ehlo()
                 server.starttls()
                 server.ehlo()
+
+                # decode password
+                #SMTPPwd = binascii.a2b_base64(eMailConfig['SMTPPwd'])
+
+                #server.login(eMailConfig['SMTPUser'], SMTPPwd)
                 server.login(eMailConfig['SMTPUser'], eMailConfig['SMTPPwd'])
                 logDebug('SMTP: Connect success!')
             except:

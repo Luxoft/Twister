@@ -65,7 +65,7 @@ def userHome(user):
 
 
 # Twister path environment
-os.environ['TWISTER_PATH'] = userHome(username) + '/twister'
+os.environ['TWISTER_PATH'] = os.path.join(userHome(username), 'twister/')
 
 #
 
@@ -132,8 +132,11 @@ class TwisterClientService():
 		cfg.read(os.getenv('TWISTER_PATH') + '/config/epname.ini')
 
 		# sniffer config
-		if cfg.get('PACKETSNIFFERPLUGIN', 'ENABLED') == '1':
+		if (cfg.has_option('PACKETSNIFFERPLUGIN', 'EP_HOST') and
+			cfg.get('PACKETSNIFFERPLUGIN', 'ENABLED') == '1'):
 			self.snifferEth = cfg.get('PACKETSNIFFERPLUGIN', 'ETH_INTERFACE')
+		else:
+			self.snifferEth = 'eth0'
 
 		# All sections that have an option CE_IP, are EP names
 		eps = list()
