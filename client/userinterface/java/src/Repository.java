@@ -1,6 +1,6 @@
 /*
 File: Repository.java ; This file is part of Twister.
-Version: 2.0013
+Version: 2.0014
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -145,8 +145,8 @@ public class Repository{
     private static String[] lookAndFeels;
     public static Applet container;
     private static Document pluginsconfig;
-    private static String version = "2.015";
-    private static String builddate = "16.07.2013";
+    private static String version = "2.016";
+    private static String builddate = "18.07.2013";
     
     /*
      * repository initialization method
@@ -1092,7 +1092,7 @@ public class Repository{
         catch(Exception e){
             System.out.println(tag+" empty");
             CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,Repository.window,
-                                        "Warning", tag+" tag si empty in framework config");
+                                        "Warning", tag+" tag is empty in framework config");
             temp = "";}
         return temp;}
         
