@@ -2,7 +2,7 @@
 
 # File: start_client.py ; This file is part of Twister.
 
-# version: 2.002
+# version: 2.003
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -106,6 +106,7 @@ class TwisterClientService():
 		self.eps = dict()
 		self.proxyList = dict()
 
+		self.clientHost = '0.0.0.0'
 		self.clientPort = 4444
 		self.server = None
 
@@ -183,7 +184,7 @@ class TwisterClientService():
 		serverEstablished = False
 		while not serverEstablished or not self.clientPort > 4488:
 			try:
-				self.server = SimpleXMLRPCServer(('0.0.0.0', self.clientPort),
+				self.server = SimpleXMLRPCServer((self.clientHost, self.clientPort),
 													requestHandler=ServiceHandler)
 				self.server.register_introspection_functions()
 
@@ -194,6 +195,7 @@ class TwisterClientService():
 						'could not bind {p} :: {er}'.format(er=e, p=self.clientPort))
 				self.server = None
 				self.clientPort += 1
+		print('Client started: {0}:{1}'.format(self.clientHost, self.clientPort))
 
 
 	def registerEPs(self):
