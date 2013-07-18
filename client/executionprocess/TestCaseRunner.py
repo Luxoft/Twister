@@ -1,7 +1,7 @@
 
 # File: TestCaseRunner.py ; This file is part of Twister.
 
-# version: 2.010
+# version: 2.011
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -362,11 +362,8 @@ class TwisterRunner:
                 aborted_ids = SuitesManager.getFiles(suite_id=abort_suite, recursive=True)
                 current_ids = SuitesManager.getFiles(suite_id=abort_suite, recursive=False)
                 if aborted_ids and (file_id in aborted_ids):
-                    # If it's a setup file from current level suite, run it
-                    if setup_file and (file_id in current_ids):
-                        print('Running a setup file...\n')
                     # If it's a teardown file from current level suite, run it
-                    elif teardown_file and (file_id in current_ids):
+                    if teardown_file and (file_id in current_ids):
                         print('Running a tear-down file...\n')
                     else:
                         print('TC debug: Abort file `{}` because of failed setup file!\n\n'.format(filename))
@@ -600,12 +597,12 @@ class TwisterRunner:
                     print('<<< END filename: `{}:{}` >>>\n'.format(file_id, filename))
                     exit(1)
 
-                # If status is FAIL, and the file is a setup file, CANCEL all suite
-                if setup_file:
-                    abort_suite = suite_id
-                    print('TC error: Setup file for suite `{}` returned FAIL! All suite will be ABORTED!\n\n'.format(suite_name))
-                    self.proxy.echo('TC error: Setup file for `{}::{}` returned FAIL! All suite will be ABORTED!'\
-                        ''.format(self.epName, suite_name))
+            # If status is not PASS, and the file is a setup file, CANCEL all suite
+            if setup_file and not (result==STATUS_PASS or result == 'PASS'):
+                abort_suite = suite_id
+                print('TC error: Setup file for suite `{}` did not PASS! All suite will be ABORTED!\n\n'.format(suite_name))
+                self.proxy.echo('TC error: Setup file for `{}::{}` returned FAIL! All suite will be ABORTED!'\
+                    ''.format(self.epName, suite_name))
 
 
             print('<<< END filename: `{}:{}` >>>\n'.format(file_id, filename))

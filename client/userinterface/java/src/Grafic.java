@@ -1,6 +1,6 @@
 /*
 File: Grafic.java ; This file is part of Twister.
-Version: 2.006
+Version: 2.007
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -717,20 +717,13 @@ public class Grafic extends JPanel{
     public void dropLastInSuita(Item upper){
         int position = upper.getPos().size();
         Item parent = upper;
-//         int temp1 = 0;
         String [] ep = upper.getEpId();
-        
         for(int i=0;i<clone.size();i++){
             ArrayList<Integer> selected2 = (ArrayList<Integer>)upper.getPos().clone();
             selected2.add(new Integer(upper.getSubItemsNr()+i));
             clone.get(i).setPos(selected2);
-//             for(int j = temp1;j<parent.getSubItemsNr();j++){
-//                 parent.getSubItem(j).updatePos(position,new Integer(parent.getSubItem(j).
-//                                                     getPos().get(position).intValue()+1));}
-//             temp1++;
             insertNewTC(clone.get(i).getName(),selected2,parent,clone.get(i));
             if(clone.get(i).getType()==2)clone.get(i).setEpId(ep);}
-            
         deselectAll();
         clone.clear();}
         
@@ -1714,18 +1707,26 @@ public class Grafic extends JPanel{
      * set tc prerequisite
      */
     public void setPreRequisites(Item tc){
+        Item i = getFirstSuitaParent(tc, false);
         tc.setPrerequisite(true);
         tc.setTeardown(false);
         tc.setOptional(false);
-        Item theone2 = tc.clone(); 
-        theone2.setPrerequisite(true);
-        theone2.setTeardown(false);
-        clone.add(theone2);
-        removeSelected();
-        dropFirstInSuita(getFirstSuitaParent(theone2,false));
-        selectItem(theone2.getPos());
-        Repository.window.mainpanel.p1.suitaDetails.setParent(theone2);
+        sortTearSetup(i);
+        updateLocations(i);
+        deselectAll();
+        selectItem(tc.getPos());
+        Repository.window.mainpanel.p1.suitaDetails.setParent(tc);
         Repository.window.mainpanel.p1.suitaDetails.setTCDetails();
+//         Item theone2 = tc.clone(); 
+//         theone2.setPrerequisite(true);
+//         theone2.setTeardown(false);
+//         clone.add(theone2);
+//         removeSelected();
+//         dropFirstInSuita(getFirstSuitaParent(theone2,false));
+//         selectItem(theone2.getPos());
+//         Repository.window.mainpanel.p1.suitaDetails.setParent(theone2);
+//         Repository.window.mainpanel.p1.suitaDetails.setTCDetails();
+//         updateLocations(Repository.getSuita(0));
         repaint();}
         
     public void unsetPrerequisite(Item tc){
@@ -1743,16 +1744,22 @@ public class Grafic extends JPanel{
      * set tc teardown
      */
     public void setTeardown(Item tc){
+        Item i = getFirstSuitaParent(tc, false);
         tc.setTeardown(true);
         tc.setPrerequisite(false);
-        Item theone2 = tc.clone();       
-//         theone2.setTeardown(true);
-//         theone2.setPrerequisite(false);
-        clone.add(theone2);
-        removeSelected();
-        dropLastInSuita(getFirstSuitaParent(theone2,false));
-        selectItem(theone2.getPos());
-        Repository.window.mainpanel.p1.suitaDetails.setParent(theone2);
+//         Item theone2 = tc.clone();       
+//         clone.add(theone2);
+//         removeSelected();
+//         dropLastInSuita(getFirstSuitaParent(theone2,false));
+//         selectItem(theone2.getPos());
+//         Repository.window.mainpanel.p1.suitaDetails.setParent(theone2);
+//         Repository.window.mainpanel.p1.suitaDetails.setTCDetails();
+//         updateLocations(Repository.getSuita(0));
+        sortTearSetup(i);
+        updateLocations(i);
+        deselectAll();
+        selectItem(tc.getPos());
+        Repository.window.mainpanel.p1.suitaDetails.setParent(tc);
         Repository.window.mainpanel.p1.suitaDetails.setTCDetails();
         repaint();}
         

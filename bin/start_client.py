@@ -2,7 +2,7 @@
 
 # File: start_client.py ; This file is part of Twister.
 
-# version: 2.002
+# version: 2.004
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -141,13 +141,21 @@ class TwisterClientService():
 		# All sections that have an option CE_IP, are EP names
 		eps = list()
 		for ep in cfg.sections():
-			if cfg.has_option(ep, 'CE_IP') and cfg.has_option(ep, 'EP_HOST'):
+                        # check if the config has option EP_HOST and is
+                        # not commented out and it coantains an IP address
+                        allow_any_host = True
+                        if cfg.has_option(ep, 'EP_HOST'):
+                                host_value = (cfg.get(ep, 'EP_HOST'))
+                                if host_value:
+                                        allow_any_host = False
+
+			if cfg.has_option(ep, 'CE_IP') and not allow_any_host:
 				try:
 					if self.hostname in gethostbyaddr(cfg.get(ep, 'EP_HOST'))[0].lower():
 						eps.append(ep)
 				except Exception as e:
 					pass
-			elif cfg.has_option(ep, 'CE_IP') and not cfg.has_option(ep, 'EP_HOST'):
+			elif cfg.has_option(ep, 'CE_IP') and allow_any_host:
 				eps.append(ep)
 		print('Found `{}` EPs: `{}`.\n'.format(len(eps), ', '.join(eps)))
 
