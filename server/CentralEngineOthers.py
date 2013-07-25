@@ -1,7 +1,7 @@
 
 # File: CentralEngineOthers.py ; This file is part of Twister.
 
-# version: 2.010
+# version: 2.011
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -75,15 +75,17 @@ import os
 import sys
 import re
 import time
-import json
 import thread
 import subprocess
 import socket
 import platform
 import smtplib
-import MySQLdb
 import binascii
+import cherrypy
+import MySQLdb
 
+try: import simplejson as json
+except: import json
 
 from string import Template
 from collections import OrderedDict
@@ -101,6 +103,12 @@ from common.constants import *
 from common.tsclogging import *
 from common.xmlparser import *
 from common.suitesmanager import *
+from common import iniparser
+
+
+# --------------------------------------------------------------------------------------------------
+# # # #    C L A S S    P r o j e c t    # # #
+# --------------------------------------------------------------------------------------------------
 
 
 class Project:
@@ -142,16 +150,14 @@ class Project:
 
     def _common_user_reset(self, user, base_config, files_config):
 
-        try:
-            self.users[user]['eps'] = OrderedDict()
-        except:
-            pass
-
         # List with all EPs for this User
         epList = self.parsers[user].epnames
         if not epList:
             logCritical('Project ERROR: Cannot load the list of EPs for user `{}` !'.format(user))
             return False
+
+        # Create EP list
+        self.users[user]['eps'] = OrderedDict()
 
         # Generate the list of EPs in order
         for epname in epList:
@@ -197,6 +203,29 @@ class Project:
         # Global params for user
         self.users[user]['global_params'] = self.parsers[user].getGlobalParams()
 
+
+        # Groups and roles for current user
+        self.roles = self._parseUsersAndGroups()
+        if not self.roles: return False
+
+        # The username from CherryPy connection
+        cherry_usr = cherrypy.session.get('username')
+
+        # List of roles for current CherryPy user
+        cherry_roles = self.roles['users'].get(cherry_usr)
+
+        # This user doesn't exist in users and groups
+        if not cherry_roles:
+            logWarning('CherryPy user `{}` cannot be found in users and roles!'.format(cherry_usr))
+            return False
+        # This user doesn't have any roles in users and groups
+        if not cherry_roles['roles']:
+            logWarning('CherryPy user `{}` doesn\'t have any roles!'.format(cherry_usr))
+            return False
+
+        self.users[user]['user_groups'] = ', '.join(cherry_roles['groups'])
+        self.users[user]['user_roles']  = ', '.join(cherry_roles['roles'])
+
         return True
 
 
@@ -234,7 +263,6 @@ class Project:
         # Parsers contain the list of all EPs and the list of all Project Globals
         self.users[user] = OrderedDict()
         self.users[user]['status'] = STATUS_STOP
-        self.users[user]['eps'] = OrderedDict()
 
         if config_data:
             self.parsers[user] = TSCParser(user, config_data, files_config)
@@ -330,12 +358,32 @@ class Project:
 
     def changeUser(self, user):
         """
-        Switch user.\n
+        Switch user hook. This function is used EVERYWHERE.\n
         This uses a lock, in order to create the user structure only once.
         If the lock is not present, on CE startup, all running EPs from one user will rush
         to create the memory structure.
         """
+
+        # The username from CherryPy connection
+        cherry_usr = cherrypy.session.get('username')
+
+        # Reload users and groups
         with self.usr_lock:
+
+            self.roles = self._parseUsersAndGroups()
+            if not self.roles: return False
+
+            # List of roles for current CherryPy user
+            cherry_roles = self.roles['users'].get(cherry_usr)
+
+            # This user doesn't exist in users and groups
+            if not cherry_roles:
+                logWarning('CherryPy user `{}` cannot be found in users and roles!'.format(cherry_usr))
+                return False
+            # This user doesn't have any roles in users and groups
+            if not cherry_roles['roles']:
+                logWarning('CherryPy user `{}` doesn\'t have any roles!'.format(cherry_usr))
+                return False
 
             if not user:
                 return False
@@ -343,18 +391,245 @@ class Project:
                 r = self.createUser(user)
                 if not r: return False
 
+            self.users[user]['user_groups'] = ', '.join(cherry_roles['groups'])
+            self.users[user]['user_roles']  = ', '.join(cherry_roles['roles'])
+
         return True
 
 
     def listUsers(self, active=False):
         """
-        All users that have Twister installer.\n
-        If `active` is True, list only the users that are registered to Central Engine.
+        Find all system users that have Twister installer.\n
+        If `active` is True, list only the users that are registered in Central Engine.
         """
-        users = checkUsers()
+        lines = open('/etc/passwd').readlines()
+        users = []
+        for line in lines:
+            path = line.split(':')[5]
+            if os.path.isdir(path + '/twister/config'):
+                users.append(line.split(':')[0])
+        # Check if the machine has NIS users
+        try:
+            subprocess.check_output('nisdomainname')
+            u = subprocess.check_output("ypcat passwd | awk -F : '{print $1}'", shell=True)
+            for user in u.split():
+                home = userHome(user)
+                if os.path.isdir(home + '/twister/config'):
+                    users.append(user)
+        except:
+            pass
+
+        users = sorted( set(users) )
+        # Filter active users ?
         if active:
             users = [u for u in users if u in self.users]
-        return sorted(users)
+        return users
+
+
+    def _parseUsersAndGroups(self):
+        """
+        Parse users and groups and return the values.
+        """
+
+        cfg_path = '{}/config/users_and_groups.ini'.format(TWISTER_PATH)
+
+        if not os.path.isfile(cfg_path):
+            logError('Users and Groups ERROR: Cannot find roles file in path `{}`!'.format(cfg_path))
+            return False
+
+        cfg = iniparser.ConfigObj(cfg_path, create_empty=True, write_empty_values=True)
+
+        # Cycle all users
+        for usr, usr_data in cfg['users'].iteritems():
+            # Invalid user ?
+            if 'groups' not in usr_data:
+                continue
+
+            usr_data['roles'] = []
+
+            if isinstance(usr_data['groups'], str):
+                grps = [g.strip() for g in usr_data['groups'].split(',') if g]
+            else:
+                # It's a list
+                grps = usr_data['groups']
+
+            # Start adding and fixing roles
+            for grp in grps:
+                # Invalid group ?
+                if grp not in cfg['groups']:
+                    continue
+
+                roles = cfg['groups'][grp]['roles']
+
+                if roles == '0':
+                    continue
+                elif roles == '*':
+                    # All roles
+                    usr_data['roles'] += cfg['roles'].keys()
+                else:
+                    if isinstance(roles, str):
+                        usr_data['roles'] += [r.strip() for r in roles.split(',') if r]
+                    else:
+                        # It's a list
+                        usr_data['roles'] += roles
+
+            # Fix groups. Must be a list.
+            usr_data['groups'] = grps
+            # Fix roles. Must be a list.
+            usr_data['roles'] = sorted( set(usr_data['roles']) )
+
+        return cfg.dict()
+
+
+    def usersAndGroupsManager(self, cmd, name='', *args, **kwargs):
+        """
+        Manage users, groups and permissions.\n
+        Commands:
+        - list params, update param.
+        - list users, list groups, list roles.
+        - set user, delete user.
+        - set group, delete group.
+        """
+
+        cfg_path = '{}/config/users_and_groups.ini'.format(TWISTER_PATH)
+        def create_cfg():
+            return iniparser.ConfigObj(cfg_path, indent_type='\t',
+                create_empty=True, write_empty_values=True)
+
+        # Reload users and groups
+        with self.usr_lock:
+            self.roles = self._parseUsersAndGroups()
+            if not self.roles: return '*ERROR* : Invalid users and groups file!'
+
+        # The username from CherryPy connection
+        cherry_usr = cherrypy.session.get('username')
+        # List of roles for current CherryPy user
+        cherry_roles = self.roles['users'][cherry_usr]['roles']
+
+        if cmd not in ['list params', 'list users', 'list groups', 'list roles'] and \
+            'CHANGE_USERS' not in cherry_roles:
+            return '*ERROR* : Insufficient privileges to execute command `{}` !'.format(cmd)
+
+        if cmd == 'list params':
+            tmp_roles = dict(self.roles)
+            del tmp_roles['users']
+            del tmp_roles['groups']
+            del tmp_roles['roles']
+            return tmp_roles
+
+        elif cmd == 'update param':
+            cfg = create_cfg()
+            if not name:
+                return '*ERROR* : The param name cannot be empty!'
+            if name in ['users', 'groups', 'roles']:
+                return '*ERROR* : `users, groups and roles` are reserved names and cannot be changed!'
+            try:
+                cfg[name] = args[0][0]
+                self.roles[name] = args[0][0]
+                with self.usr_lock: cfg.write()
+            except Exception, e:
+                return '*ERROR* : Exception : `{}` !'.format(e)
+            del cfg
+            return True
+
+
+        elif cmd == 'list users':
+            # List all known users from users and groups config
+            return self.roles['users']
+
+        elif cmd == 'list groups':
+            # List all known groups from users and groups config
+            return self.roles['groups']
+
+        elif cmd == 'list roles':
+            # List all known roles
+            return self.roles['roles'].keys()
+
+
+        elif cmd == 'set user':
+            # Parameters: user name and list of groups.
+            cfg = create_cfg()
+            if not name:
+                return '*ERROR* : The user name cannot be empty!'
+            try:
+                usr_group = args[0][0]
+            except Exception, e:
+                return '*ERROR* : Exception : `{}` !'.format(e)
+            if usr_group not in self.roles['groups']:
+                return '*ERROR* : Invalid group name `{}` !'.format(usr_group)
+
+            # Create new section in Users
+            cfg['users'][name] = {}
+            cfg['users'][name]['groups'] = usr_group
+            with self.usr_lock: cfg.write()
+            logDebug('Added user `{}` in group `{}`, in Users and Groups.'.format(name, usr_group))
+            del cfg
+            # Reload users configuration
+            with self.usr_lock:
+                self.roles = self._parseUsersAndGroups()
+            return True
+
+        elif cmd == 'delete user':
+            cfg = create_cfg()
+            if not name:
+                return '*ERROR* : The user name cannot be empty!'
+            if name not in self.roles['users']:
+                return '*ERROR* : Invalid user name `{}` !'.format(name)
+            try:
+                del cfg['users'][name]
+                with self.usr_lock: cfg.write()
+            except Exception, e:
+                return '*ERROR* : Exception : `{}` !'.format(e)
+            logDebug('Permanently removed user `{}` from Users and Groups.'.format(name))
+            del cfg
+            # Reload users configuration
+            with self.usr_lock:
+                self.roles = self._parseUsersAndGroups()
+            return True
+
+
+        elif cmd == 'set group':
+            cfg = create_cfg()
+            if not name:
+                return '*ERROR* : The group name cannot be empty!'
+            try:
+                grp_roles = args[0][0]
+            except Exception, e:
+                return '*ERROR* : Exception : `{}` !'.format(e)
+
+            # Fix permissions
+            roles = [g.strip() for g in grp_roles.split(',') if g and g in cfg['roles']]
+            # Create new section in groups
+            cfg['groups'][name] = {}
+            cfg['groups'][name]['roles'] = ', '.join(roles)
+            with self.usr_lock: cfg.write()
+            logDebug('Added group `{}` with roles `{}`, in Users and Groups.'.format(name, roles))
+            del cfg
+            # Reload users configuration
+            with self.usr_lock:
+                self.roles = self._parseUsersAndGroups()
+            return True
+
+        elif cmd == 'delete group':
+            cfg = create_cfg()
+            if not name:
+                return '*ERROR* : The group name cannot be empty!'
+            if name not in self.roles['groups']:
+                return '*ERROR* : Invalid group name `{}` !'.format(name)
+            try:
+                del cfg['groups'][name]
+                with self.usr_lock: cfg.write()
+            except Exception, e:
+                return '*ERROR* : Exception : `{}` !'.format(e)
+            logDebug('Permanently removed group `{}` from Users and Groups.'.format(name))
+            del cfg
+            # Reload users configuration
+            with self.usr_lock:
+                self.roles = self._parseUsersAndGroups()
+            return True
+
+        else:
+            return '*ERROR* : Unknown command `{}` !'.format(cmd)
 
 
     def _dump(self):
@@ -469,7 +744,7 @@ class Project:
         if not r: return False
 
         if not key or key == 'eps':
-            logDebug('Project: Invalid Key `%s` !' % str(key))
+            logDebug('Project: Invalid Key `{}` !'.format(key))
             return False
 
         self.users[user][key] = value
@@ -507,10 +782,10 @@ class Project:
         if not r: return False
 
         if epname not in self.users[user]['eps']:
-            logDebug('Project: Invalid EP name `%s` !' % epname)
+            logDebug('Project: Invalid EP name `{}` !'.format(epname)
             return False
         if not key or key == 'suites':
-            logDebug('Project: Invalid Key `%s` !' % str(key))
+            logDebug('Project: Invalid Key `{}` !'.format(key))
             return False
 
         self.users[user]['eps'][epname][key] = value
@@ -861,6 +1136,11 @@ class Project:
         return True
 
 
+    def deQueueFile(self, user):
+
+        return False
+
+
 # # #
 
 
@@ -959,8 +1239,7 @@ class Project:
                     # If the information is already in the mapping info
                     if k in map_info:
                         map_info[k] += ', ' + str(ep_data[k])
-                        map_info[k] = ', '.join( list(set( map_info[k].split(', ') )) )
-                        #map_info[k] = ', '.join(sorted( list(set(map_info[k].split(', '))) )) # Sorted ?
+                        map_info[k] = ', '.join( sorted(set( map_info[k].split(', ') )) )
                     else:
                         map_info[k] = str(ep_data[k])
 
@@ -975,8 +1254,7 @@ class Project:
                         # If the information is already in the mapping info
                         if k in map_info:
                             map_info[k] += ', ' + str(suite_data[k])
-                            map_info[k] = ', '.join( list(set( map_info[k].split(', ') )) )
-                            #map_info[k] = ', '.join(sorted( list(set(map_info[k].split(', '))) )) # Sorted ?
+                            map_info[k] = ', '.join( sorted(set( map_info[k].split(', ') )) )
                         else:
                             map_info[k] = str(suite_data[k])
 
@@ -1064,10 +1342,9 @@ class Project:
                 server.starttls()
                 server.ehlo()
 
-                # decode password
-                #SMTPPwd = binascii.a2b_base64(eMailConfig['SMTPPwd'])
-
-                #server.login(eMailConfig['SMTPUser'], SMTPPwd)
+                # Decode e-mail password
+                # SMTPPwd = binascii.a2b_base64(eMailConfig['SMTPPwd'])
+                # server.login(eMailConfig['SMTPUser'], SMTPPwd)
                 server.login(eMailConfig['SMTPUser'], eMailConfig['SMTPPwd'])
                 logDebug('SMTP: Connect success!')
             except:
@@ -1420,6 +1697,5 @@ class Project:
 
         return response
 
-# # #
 
 # Eof()

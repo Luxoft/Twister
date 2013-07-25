@@ -1,7 +1,7 @@
 
 # File: CentralEngineClasses.py ; This file is part of Twister.
 
-# version: 2.007
+# version: 2.008
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -43,6 +43,7 @@ import re
 import glob
 import time
 import pickle
+import socket
 import datetime
 import binascii
 import tarfile
@@ -77,10 +78,9 @@ from common.constants  import *
 from common.tsclogging import *
 from common.xmlparser  import *
 
-#
 
 # --------------------------------------------------------------------------------------------------
-# # # #    C L A S S    C e n t r a l-E n g i n e    # # #
+# # # #    C L A S S    C e n t r a l - E n g i n e    # # #
 # --------------------------------------------------------------------------------------------------
 
 
@@ -159,6 +159,14 @@ class CentralEngine(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
+    def usersAndGroupsManager(self, cmd, name='', *args, **kwargs):
+        """
+        Manage users, groups and permissions.
+        """
+        return self.project.usersAndGroupsManager(cmd, name, args, kwargs)
+
+
+    @cherrypy.expose
     def runDBSelect(self, user, field_id):
         """
         Selects from database.
@@ -196,22 +204,6 @@ class CentralEngine(_cptools.XMLRPCController):
         This function is called from the Java GUI.
         """
         return self.project.execScript(script_path)
-
-
-    @cherrypy.expose
-    def sendFile(self, file_path):
-        """
-        Read a file and send it.\n
-        This function is called from the Java GUI.
-        """
-        if not os.path.isfile(file_path):
-            return '*ERROR* File path `{}` does not exist!'.format(file_path)
-
-        white_list = ['/etc/passwd']
-        if file_path not in white_list:
-            return '*ERROR* File path `{}` is not in the White List!'.format(file_path)
-
-        return open(file_path).read()
 
 
     @cherrypy.expose
@@ -287,7 +279,7 @@ class CentralEngine(_cptools.XMLRPCController):
 
 
 # --------------------------------------------------------------------------------------------------
-#           E P   A N D   F I L E   V A R I A B L E S
+#           E P ,   S U I T E   AND   F I L E   V A R I A B L E S
 # --------------------------------------------------------------------------------------------------
 
 
@@ -449,6 +441,116 @@ class CentralEngine(_cptools.XMLRPCController):
         return self.project.setGlobalVariable(user, var_path, value)
 
 
+# --------------------------------------------------------------------------------------------------
+#           C L I E N T   C O N T R O L
+# --------------------------------------------------------------------------------------------------
+
+
+    def _getClientEpProxy(self, user, epname):
+        """ Helper function. """
+
+        # Check if epname is known and registered
+        userClientsInfo = self.project.getUserInfo(user, 'clients')
+        if not userClientsInfo:
+            return False
+        else:
+            userClientsInfo = jsonLoads(userClientsInfo)
+
+        userClientsInfoEPs = list()
+        for cl in userClientsInfo:
+            userClientsInfoEPs += userClientsInfo[cl]
+        if not self.searchEP(user, epname) or not epname in userClientsInfoEPs:
+            logError('Error: Unknown EP : `{}`.'.format(epname))
+            return False
+
+        # Get proxy address
+        for cl in userClientsInfo:
+            if epname in userClientsInfo[cl]:
+                return cl
+
+        logError('Error: Unknown proxy for EP : `{}`.'.format(epname))
+        return False
+
+
+    @cherrypy.expose
+    def registerClient(self, user, clients):
+        """ Register client. """
+
+        clients = jsonLoads(clients)
+        _clients = {}
+
+        for client in clients:
+            _clients.update([('{}:{}'.format(cherrypy.request.headers['Remote-Addr'],
+                                      client.split(':')[1]), clients[client]), ])
+        clients = jsonDumps(_clients)
+
+        self.setUserVariable(user, 'clients', clients)
+        logDebug('Registered client manager for user\n\t`{}` -> {}.'.format(user, clients))
+        return True
+
+
+    @cherrypy.expose
+    def startEP(self, user, epname):
+        """ Start EP for client. """
+
+        _proxy = self._getClientEpProxy(user, epname)
+        if not _proxy:
+            logDebug('Cannot start `{}` for user `{}` ! Invalid proxy `{}` !'.format(epname, user, _proxy))
+            return False
+
+        proxy = xmlrpclib.ServerProxy('http://{pr}/twisterclient/'.format(pr=_proxy))
+        ip, port = _proxy.split(':')
+
+        try:
+            socket.create_connection((ip, int(port)), 2)
+            logDebug('Trying to start `{} {}`.'.format(user, epname))
+            return proxy.startEP(epname)
+        except Exception as e:
+            logError('Error: Start EP error: {er}'.format(er=e))
+            return False
+
+
+    @cherrypy.expose
+    def stopEP(self, user, epname):
+        """ Stop EP for client. """
+
+        _proxy = self._getClientEpProxy(user, epname)
+        if not _proxy:
+            logDebug('Cannot stop `{}` for user `{}` ! Invalid proxy `{}` !'.format(epname, user, _proxy))
+            return False
+
+        proxy = xmlrpclib.ServerProxy('http://{pr}/twisterclient/'.format(pr=_proxy))
+        ip, port = _proxy.split(':')
+
+        try:
+            socket.create_connection((ip, int(port)), 2)
+            logDebug('Trying to stop `{} {}`.'.format(user, epname))
+            return proxy.stopEP(epname)
+        except Exception as e:
+            logError('Error: Stop EP error: {er}'.format(er=e))
+            return False
+
+
+    @cherrypy.expose
+    def restartEP(self, user, epname):
+        """ Restart EP for client. """
+
+        _proxy = self._getClientEpProxy(user, epname)
+        if not _proxy:
+            return False
+
+        proxy = xmlrpclib.ServerProxy('http://{pr}/twisterclient/'.format(pr=_proxy))
+        ip, port = _proxy.split(':')
+
+        try:
+            socket.create_connection((ip, int(port)), 2)
+            logDebug('Trying to restart `{} {}`.'.format(user, epname))
+            return proxy.restartEP(epname)
+        except Exception as e:
+            logError('Error: Restart EP error: {er}'.format(er=e))
+            return False
+
+
     @cherrypy.expose
     def queueFile(self, user, suite, fname):
         """
@@ -459,110 +561,16 @@ class CentralEngine(_cptools.XMLRPCController):
         return self.project.queueFile(user, suite, fname)
 
 
-    def getClientEpProxy(self, user, epname):
-        """  """
-
-        # check if epname is known and registered
-        userClientsInfo = self.project.getUserInfo(user, 'clients')
-        if not userClientsInfo:
-            return None
-        else:
-            userClientsInfo = jsonLoads(userClientsInfo)
-
-        userClientsInfoEPs = list()
-        for cl in userClientsInfo:
-            userClientsInfoEPs += userClientsInfo[cl]
-        if not self.searchEP(user, epname) or not epname in userClientsInfoEPs:
-            logError('Error: unknown epname: {ep}'.format(ep=epname))
-            return None
-
-        # get proxy address
-        for cl in userClientsInfo:
-            if epname in userClientsInfo[cl]:
-                return cl
-
-        logError('Error: unknown proxy for epname: {ep}'.format(ep=epname))
-        return None
-
-
     @cherrypy.expose
-    def registerClient(self, user, clients):
-        """ register client """
-
-        clients = jsonLoads(clients)
-        _clients = dict()
-        for client in clients:
-            _clients.update([('{addr}:{cl}'.format(addr=cherrypy.request.headers['Remote-Addr'],
-                                    cl=client.split(':')[1]), clients[client]), ])
-        clients = jsonDumps(_clients)
-
-        self.setUserVariable(user, 'clients', clients)
-        logDebug('Client register `{}` -> {}.'.format(user, clients))
-        return True
-
-
-    @cherrypy.expose
-    def startEP(self, user, epname):
-        """ start ep for client """
-
-        _proxy = self.getClientEpProxy(user, epname)
-        if not _proxy:
-            return False
-
-        proxy = xmlrpclib.ServerProxy('http://{pr}/twisterclient/'.format(pr=_proxy))
-
-        try:
-            logDebug('Trying to start `{} {}`.'.format(user, epname))
-            return proxy.startEP(epname)
-        except Exception as e:
-            logError('Error: start ep error: {er}'.format(er=e))
-            return False
-
-
-    @cherrypy.expose
-    def stopEP(self, user, epname):
-        """ stop ep for client """
-
-        _proxy = self.getClientEpProxy(user, epname)
-        if not _proxy:
-            return False
-
-        proxy = xmlrpclib.ServerProxy('http://{pr}/twisterclient/'.format(pr=_proxy))
-
-        try:
-            logDebug('Trying to stop `{} {}`.'.format(user, epname))
-            return proxy.stopEP(epname)
-        except Exception as e:
-            logError('Error: stop ep error: {er}'.format(er=e))
-            return False
-
-
-    @cherrypy.expose
-    def restartEP(self, user, epname):
-        """ restart ep for client """
-
-        _proxy = self.getClientEpProxy(user, epname)
-        if not _proxy:
-            return False
-
-        proxy = xmlrpclib.ServerProxy('http://{pr}/twisterclient/'.format(pr=_proxy))
-
-        try:
-            logDebug('Trying to restart `{} {}`.'.format(user, epname))
-            return proxy.restartEP(epname)
-        except Exception as e:
-            logError('Error: restart ep error: {er}'.format(er=e))
-            return False
-
-    @cherrypy.expose
-    def resetProject(self, user):
-        """ reset project for user """
-
-        return self.project.reset(user)
+    def deQueueFile(self, user):
+        """
+        Remove a file from the files queue.
+        """
+        return self.project.deQueueFile(user)
 
 
 # --------------------------------------------------------------------------------------------------
-#           C R E A T E   S U I T E S
+#           C R E A T E   P E R S I S T E N T   S U I T E S
 # --------------------------------------------------------------------------------------------------
 
 
@@ -609,6 +617,14 @@ class CentralEngine(_cptools.XMLRPCController):
 # --------------------------------------------------------------------------------------------------
 #           E X E C U T I O N   S T A T U S
 # --------------------------------------------------------------------------------------------------
+
+
+    @cherrypy.expose
+    def resetProject(self, user):
+        """
+        Reset project for user.
+        """
+        return self.project.reset(user)
 
 
     @cherrypy.expose
@@ -690,11 +706,13 @@ class CentralEngine(_cptools.XMLRPCController):
 
         if ret:
             if msg:
-                logDebug('CE: Status changed for `%s %s` - %s. Message: `%s`.' % (user, epname, reversed[new_status], str(msg)))
+                logDebug('CE: Status changed for `{} {}` - {} (from `{}`).\n\tMessage: `{}`.'.format(
+                    user, epname, reversed[new_status], cherrypy.request.headers['Remote-Addr'], msg))
             else:
-                logDebug('CE: Status changed for `%s %s` - %s.' % (user, epname, reversed[new_status]))
+                logDebug('CE: Status changed for `{} {}` - {} (from `{}`).'.format(
+                    user, epname, reversed[new_status], cherrypy.request.headers['Remote-Addr']))
         else:
-            logError('CE ERROR! Cannot change status for `%s %s` !' % (user, epname))
+            logError('CE ERROR! Cannot change status for `{} {}` !'.format(user, epname))
 
         # Send stop EP !
         self.stopEP(user, epname)
@@ -737,7 +755,7 @@ class CentralEngine(_cptools.XMLRPCController):
                         try:
                             plugin.onStop()
                         except Exception, e:
-                            logWarning('Error on running plugin `%s onStop` - Exception: `%s`!' % (pname, str(e)))
+                            logWarning('Error on running plugin `{} onStop` - Exception: `{}`!'.format(pname, e))
                     del parser, plugins
 
         return reversed[new_status]
@@ -794,7 +812,7 @@ class CentralEngine(_cptools.XMLRPCController):
                 path1 = msg.split(',')[0]
                 path2 = msg.split(',')[1]
                 if os.path.isfile(path1) and os.path.isfile(path2):
-                    logDebug('CE: Using custom XML files: `{0}` and `{1}`.'.format(path1, path2))
+                    logDebug('CE: Using custom XML files: `{}` and `{}`.'.format(path1, path2))
                     self.project.reset(user, path1, path2)
                     msg = ''
 
@@ -803,11 +821,11 @@ class CentralEngine(_cptools.XMLRPCController):
                 data = open(msg).read().strip()
                 # If the file is XML, send it to project reset function
                 if data[0] == '<' and data [-1] == '>':
-                    logDebug('CE: Using custom XML file: `{0}`...'.format(msg))
+                    logDebug('CE: Using custom XML file: `{}`...'.format(msg))
                     self.project.reset(user, msg)
                     msg = ''
                 else:
-                    logDebug('CE: You are probably trying to use file `%s` as config file, but it\'s not a valid XML!' % msg)
+                    logDebug('CE: You are probably trying to use file `{}` as config file, but it\'s not a valid XML!'.format(msg))
                     self.project.reset(user)
                 del data
 
@@ -838,7 +856,7 @@ class CentralEngine(_cptools.XMLRPCController):
                 try:
                     plugin.onStart()
                 except Exception, e:
-                    logWarning('Error on running plugin `%s onStop` - Exception: `%s`!' % (pname, str(e)))
+                    logWarning('Error on running plugin `{} onStop` - Exception: `{}`!'.format(pname, e))
             del parser, plugins
 
             # Start all active EPs !
@@ -866,7 +884,7 @@ class CentralEngine(_cptools.XMLRPCController):
                 try:
                     plugin.onStop()
                 except Exception, e:
-                    logWarning('Error on running plugin `%s onStop` - Exception: `%s`!' % (pname, str(e)))
+                    logWarning('Error on running plugin `{} onStop` - Exception: `{}`!'.format(pname, e))
             del parser, plugins
 
             # Stop all active EPs !
@@ -885,10 +903,13 @@ class CentralEngine(_cptools.XMLRPCController):
 
         reversed = dict((v,k) for k,v in execStatus.iteritems())
 
+
         if msg and msg != ',':
-            logDebug("CE: Status changed for `%s %s` -> %s. Message: `%s`.\n" % (user, active_eps, reversed[new_status], str(msg)))
+            logDebug('CE: Status changed for `{} {}` - {} (from `{}`).\n\tMessage: `{}`.'.format(
+                user, active_eps, reversed[new_status], cherrypy.request.headers['Remote-Addr'], msg))
         else:
-            logDebug("CE: Status changed for `%s %s` -> %s.\n" % (user, active_eps, reversed[new_status]))
+            logDebug('CE: Status changed for `{} {}` - {} (from `{}`).'.format(
+                user, active_eps, reversed[new_status], cherrypy.request.headers['Remote-Addr']))
 
         return reversed[new_status]
 
@@ -1065,9 +1086,9 @@ class CentralEngine(_cptools.XMLRPCController):
         try:
             return plugin_p.run(args)
         except Exception, e:
-            logError('CE ERROR: Plugin `{0}`, ran with arguments `{1}` and returned EXCEPTION: `{2}`!'\
+            logError('CE ERROR: Plugin `{}`, ran with arguments `{}` and returned EXCEPTION: `{}`!'\
                      .format(plugin, args, e))
-            return 'Error on running plugin %s - Exception: `%s`!' % (plugin, str(e))
+            return 'Error on running plugin `{}` - Exception: `{}`!'.format(plugin, e)
 
 
     @cherrypy.expose
@@ -1254,7 +1275,6 @@ class CentralEngine(_cptools.XMLRPCController):
         filename = data.get('file', 'invalid file!')
         tests_path = self.project.getUserInfo(user, 'tests_path')
 
-        # Ignore Runnable completely !
         if filename.startswith('~'):
             filename = userHome(user) + filename[1:]
         if not os.path.isfile(filename):
@@ -1262,7 +1282,7 @@ class CentralEngine(_cptools.XMLRPCController):
                 logError('CE ERROR! TestCase file: `{}` does not exist!'.format(filename))
                 return ''
             else:
-                filename = tests_path + os.sep + filename
+                filename = tests_path + os.sep + filename.lstrip('/')
 
         logDebug('CE: Station {} requested file `{}`'.format(epname, filename))
 
@@ -1408,7 +1428,7 @@ class CentralEngine(_cptools.XMLRPCController):
             try:
                 plugin.onLog(epname, log_string)
             except Exception, e:
-                logWarning('Error on running plugin `%s onStop` - Exception: `%s`!' % (pname, str(e)))
+                logWarning('Error on running plugin `{} onStop` - Exception: `{}`!'.format(pname, e))
         del parser, plugins
 
         f.write(log_string)

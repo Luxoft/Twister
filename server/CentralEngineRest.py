@@ -25,8 +25,8 @@
 # limitations under the License.
 
 """
-Central Engine REST
-*******************
+Central Engine Management
+*************************
 
 All functions are exposed and can be accessed using the browser.\n
 It is used mostly for debugging. Its role is to view statistics,
@@ -143,7 +143,9 @@ def dirList(tests_path, path, newdict):
         dirList(tests_path, tests_path + os.sep + nitem['data'], nitem)
 
 
-# # # # #
+# --------------------------------------------------------------------------------------------------
+# # # #    C L A S S    R e s t    # # #
+# --------------------------------------------------------------------------------------------------
 
 
 class CentralEngineRest:
@@ -368,6 +370,5 @@ class CentralEngineRest:
             host = cherrypy.request.headers['Host'], user = user, epname = epname
         ))
 
-# # #
 
 # Eof()

@@ -71,11 +71,11 @@ def Suicide(proxy, sig=9, msg=None, file_id=None, status_f=None, timer_f=None):
     Function Suicide is used to kill current process.
     """
     if msg:
-        proxy.echo(':: {0} {1}...'.format(self.epName, msg.strip()))
+        proxy.echo(':: {} {}...'.format(self.epName, msg.strip()))
     if (file_id is not None) and (status_f is not None) and (timer_f is not None):
         self.proxySetTestStatus(file_id, status_f, timer_f)
     pid = os.getpid()
-    print('TC debug: Killing PID `{0}`.'.format(pid))
+    print('TC debug: Killing PID `{}`.'.format(pid))
     # Kill PID
     try: os.kill(pid, sig)
     except: os.kill(pid, 9)
