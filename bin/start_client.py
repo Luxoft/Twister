@@ -2,7 +2,7 @@
 
 # File: start_client.py ; This file is part of Twister.
 
-# version: 2.007
+# version: 2.008
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -242,6 +242,15 @@ class TwisterClientService(_cptools.XMLRPCController):
                                   proxy._ServerProxy__host.split('@')[1], ceStatus))
                             print('Waiting to stop ...')
                         sleep(2)
+
+                    # do not register ep if epname already registered
+                    registeredEps = list()
+                    for i in userCeClientInfo.values():
+                        registeredEps += i
+                    for ep in registeredEps:
+                        if ep in proxyEpsList[currentCE]:
+                            proxyEpsList[currentCE].pop(proxyEpsList[currentCE].index(ep))
+                            print('Warning: epname {} already registered. Will not register.'.format(ep))
 
                     userCeClientInfo.update([(clientKey, proxyEpsList[currentCE]), ])
                     userCeClientInfo = jsonDumps(userCeClientInfo)
