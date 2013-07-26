@@ -252,6 +252,9 @@ class TwisterClientService(_cptools.XMLRPCController):
                             proxyEpsList[currentCE].pop(proxyEpsList[currentCE].index(ep))
                             print('Warning: epname {} already registered. Will not register.'.format(ep))
 
+                    if not proxyEpsList[currentCE]:
+                        continue
+
                     userCeClientInfo.update([(clientKey, proxyEpsList[currentCE]), ])
                     userCeClientInfo = jsonDumps(userCeClientInfo)
 
