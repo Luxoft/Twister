@@ -1,7 +1,7 @@
 
 # File: CentralEngineOthers.py ; This file is part of Twister.
 
-# version: 2.011
+# version: 2.012
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -782,7 +782,7 @@ class Project:
         if not r: return False
 
         if epname not in self.users[user]['eps']:
-            logDebug('Project: Invalid EP name `{}` !'.format(epname)
+            logDebug('Project: Invalid EP name `{}` !'.format(epname))
             return False
         if not key or key == 'suites':
             logDebug('Project: Invalid Key `{}` !'.format(key))
@@ -803,7 +803,7 @@ class Project:
         eps = self.users[user]['eps']
 
         if epname not in eps:
-            logDebug('Project: Invalid EP name `%s` !' % epname)
+            logDebug('Project: Invalid EP name `{}` !'.format(epname))
             return False
         if suite_id not in eps[epname]['suites'].getSuites():
             logDebug( eps[epname]['suites'].getSuites() )
@@ -837,7 +837,7 @@ class Project:
         eps = self.users[user]['eps']
 
         if epname not in eps:
-            logDebug('Project: Invalid EP name `%s` !' % epname)
+            logDebug('Project: Invalid EP name `{}` !'.format(epname))
             return False
         if suite_id not in eps[epname]['suites'].getSuites():
             logDebug('Project: Invalid Suite ID `%s` !' % suite_id)
@@ -1198,9 +1198,10 @@ class Project:
 # # #
 
 
-    def sendMail(self, user):
+    def sendMail(self, user, force=False):
         """
-        Send e-mail function.
+        Send e-mail function.\n
+        Use the force to ignore the enabled/ disabled status.
         """
         with self.eml_lock:
 
@@ -1322,13 +1323,16 @@ class Project:
             msg.attach(MIMEText(eMailConfig['Message'], 'plain'))
             msg.attach(MIMEText(body_tmpl.substitute(body_dict), 'html'))
 
-            if (not eMailConfig['Enabled']) or (eMailConfig['Enabled'] in ['0', 'false']):
+            if (not force) and (not eMailConfig['Enabled']) or (eMailConfig['Enabled'] in ['0', 'false']):
                 e_mail_path = os.path.split(self.users[user]['config_path'])[0] +os.sep+ 'e-mail.htm'
                 open(e_mail_path, 'w').write(msg.as_string())
                 logDebug('E-mail.htm file written. The message will NOT be sent.')
                 # Update file ownership
                 self.setFileOwner(user, e_mail_path)
                 return True
+
+            if force:
+                logDebug('Preparing to send a test e-mail ...')
 
             try:
                 server = smtplib.SMTP(eMailConfig['SMTPPath'])
@@ -1346,7 +1350,6 @@ class Project:
                 # SMTPPwd = binascii.a2b_base64(eMailConfig['SMTPPwd'])
                 # server.login(eMailConfig['SMTPUser'], SMTPPwd)
                 server.login(eMailConfig['SMTPUser'], eMailConfig['SMTPPwd'])
-                logDebug('SMTP: Connect success!')
             except:
                 logError('SMTP: Cannot autentificate to SMTP server!')
                 return False
@@ -1411,15 +1414,17 @@ class Project:
 
             system = platform.machine() +' '+ platform.system() +', '+ ' '.join(platform.linux_distribution())
 
-            #
+            # Decode database password
+            db_password = db_config.get('password')
+            # db_password = binascii.a2b_base64( db_config.get('password') )
+
             try:
                 conn = MySQLdb.connect(host=db_config.get('server'), db=db_config.get('database'),
-                    user=db_config.get('user'), passwd=db_config.get('password'))
+                    user=db_config.get('user'), passwd=db_password)
                 curs = conn.cursor()
             except MySQLdb.Error, e:
                 logError('MySQL Error %d: %s!' % (e.args[0], e.args[1]))
                 return False
-            #
 
             conn.autocommit = False
             conn.begin()
