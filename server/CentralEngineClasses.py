@@ -1,7 +1,7 @@
 
 # File: CentralEngineClasses.py ; This file is part of Twister.
 
-# version: 2.008
+# version: 2.009
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -1448,6 +1448,11 @@ class CentralEngine(_cptools.XMLRPCController):
         """
         logsPath = self.project.getUserInfo(user, 'logs_path')
         logTypes = self.project.getUserInfo(user, 'log_types')
+
+        # archive logs
+        #archiveLogsPathActive = self.project.getUserInfo(user, 'archive_logs_path_active')
+        #archiveLogsPath = self.project.getUserInfo(user, 'archive_logs_path')
+
         vError = False
         logDebug('Cleaning {0} log files...'.format(len(logTypes)))
 
@@ -1455,8 +1460,13 @@ class CentralEngine(_cptools.XMLRPCController):
         self.project.setFileOwner(user, twister_cache)
 
         for log in glob.glob(logsPath + os.sep + '*.log'):
-            try: os.remove(log)
-            except: pass
+            try:
+                #if archiveLogsPathActive == 'true':
+                #    os.rename(log, os.path.join(archiveLogsPath,
+                #                '{0}.{1}'.format(os.path.basename(log), time.time())))
+                os.remove(log)
+            except Exception as e:
+                pass
 
         for logType in logTypes:
             # For CLI
