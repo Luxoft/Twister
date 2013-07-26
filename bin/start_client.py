@@ -207,11 +207,9 @@ class TwisterClientService(_cptools.XMLRPCController):
 
         # Try to register to Central Engine, forever
         while unregistered:
-
             for currentCE in proxyEpsList:
-                proxy = self.eps[proxyEpsList[currentCE][0]]['proxy']
-
                 try:
+                    proxy = self.eps[proxyEpsList[currentCE][0]]['proxy']
                     __proxy = proxy._ServerProxy__host.split('@')[1].split(':')
                     create_connection((__proxy[0], __proxy[1]), 2)
                 except Exception, e:
@@ -249,6 +247,7 @@ class TwisterClientService(_cptools.XMLRPCController):
                         registeredEps += i
                     for ep in registeredEps:
                         if ep in proxyEpsList[currentCE]:
+                            unregistered = False
                             proxyEpsList[currentCE].pop(proxyEpsList[currentCE].index(ep))
                             print('Warning: epname {} already registered. Will not register.'.format(ep))
 
