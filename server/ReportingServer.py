@@ -34,6 +34,7 @@ import sys
 import re
 import datetime
 import json
+import mako
 
 import MySQLdb
 import cherrypy
@@ -48,7 +49,13 @@ sys.path.append(TWISTER_PATH)
 from common.tsclogging import *
 from common.xmlparser import *
 
-#
+if mako.__version__ < '0.7':
+    logWarning('Warning! Mako-template version is old: `{}`! Some pages might crash!\n'.format(mako.__version__))
+
+# --------------------------------------------------------------------------------------------------
+# # # #    C L A S S    R e p o r t i n g    # # #
+# --------------------------------------------------------------------------------------------------
+
 
 class ReportingServer:
 
@@ -521,6 +528,5 @@ class ReportingServer:
         output = Template(filename=TWISTER_PATH + '/server/template/rep_error.htm')
         return output.render(title='Error 404', links=[], msg='Sorry, this page does not exist!')
 
-#
 
 # Eof()

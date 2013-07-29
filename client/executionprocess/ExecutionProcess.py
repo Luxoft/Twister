@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# version: 2.003
+# version: 2.004
 
 # File: ExecutionProcess.py ; This file is part of Twister.
 
@@ -95,7 +95,7 @@ def packetSnifferStatus(ce):
     global snifferMessage
 
     pipe = subprocess.Popen('ps ax | grep start_packet_sniffer.py',
-                                    shell=True, stdout=subprocess.PIPE).stdout
+           shell=True, stdout=subprocess.PIPE).stdout
     lines = pipe.read().splitlines()
     if len(lines) > 2: return
 
@@ -237,7 +237,7 @@ class threadCheckLog(threading.Thread):
 
         while not programExit:
             #
-            vString = self.tail('{0}/.twister_cache/{1}_LIVE.log'.format(TWISTER_PATH, globEpName))
+            vString = self.tail('{}/.twister_cache/{}_LIVE.log'.format(TWISTER_PATH, globEpName))
 
             try:
                 # Send log to CE server.
@@ -274,10 +274,16 @@ if __name__=='__main__':
         globEpName = sys.argv[2]
         host = sys.argv[3]
         sniffer = (sys.argv[4], None)[sys.argv[4]=='None']
-        print('User: {0} ;  EP: {1} ;  host: {2}'.format(userName, globEpName, host))
+        print('User: {} ;  EP: {} ;  host: {}'.format(userName, globEpName, host))
 
-    CE_Path = 'http://' + host + '/'
+    CE_Path = 'http://{}:EP@{}/'.format(userName, host)
     tcr_pid = None # PID of TC Runner
+
+    try:
+        socket.create_connection(host.split(':'), 2)
+    except:
+        print('EP Error: No Central Engine was found at `{}` !'.format(host))
+        exit(1)
 
     proxy = xmlrpclib.ServerProxy(CE_Path)
 
@@ -312,9 +318,9 @@ if __name__=='__main__':
                 proxy.setExecStatus(userName, globEpName, STATUS_STOP, 'TC Runner exit because of timeout!')
             # Return code != 0
             elif ret:
-                print('EP debug: TC Runner exit with error code `{0}`!\n'.format(ret))
+                print('EP debug: TC Runner exit with error code `{}`!\n'.format(ret))
                 # Set EP status STOPPED
-                proxy.setExecStatus(userName, globEpName, STATUS_STOP, 'TC Runner exit with error code `{0}`!'.format(ret))
+                proxy.setExecStatus(userName, globEpName, STATUS_STOP, 'TC Runner exit with error code `{}`!'.format(ret))
 
         time.sleep(2)
 

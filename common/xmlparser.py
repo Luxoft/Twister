@@ -1,7 +1,7 @@
 
 # File: xmlparser.py ; This file is part of Twister.
 
-# version: 2.008
+# version: 2.009
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -47,9 +47,8 @@ from common.suitesmanager import *
 from common.constants import FWMCONFIG_TAGS, PROJECTCONFIG_TAGS
 from common.constants import SUITES_TAGS, TESTS_TAGS
 
-__all__ = ['TSCParser', 'DBParser', 'PluginParser', 'userHome', 'checkUsers']
+__all__ = ['TSCParser', 'DBParser', 'PluginParser', 'userHome']
 
-#
 
 def userHome(user):
     """
@@ -57,29 +56,6 @@ def userHome(user):
     """
     return subprocess.check_output('echo ~' + user, shell=True).strip()
 
-def checkUsers():
-    """
-    Check all users from etc/passwd, that have Twister in their home folder.
-    """
-    lines = open('/etc/passwd').readlines()
-    users = []
-    for line in lines:
-        path = line.split(':')[5]
-        if os.path.isdir(path + '/twister/config'):
-            users.append(line.split(':')[0])
-    # Check if the machine has NIS users
-    try:
-        subprocess.check_output('nisdomainname')
-        u = subprocess.check_output("ypcat passwd | awk -F : '{print $1}'", shell=True)
-        for user in u.split():
-            home = userHome(user)
-            if os.path.isdir(home + '/twister/config'):
-                users.append(user)
-    except:
-        pass
-    return sorted( set(users) )
-
-#
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # #

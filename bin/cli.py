@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# version: 2.006
+# version: 2.007
 
 # File: cli.py ; This file is part of Twister.
 
@@ -212,9 +212,9 @@ if __name__ == '__main__':
 	version = "%prog v2.0"
 	parser = OptionParser(usage=usage, version=version)
 
-	# The most important option is the server. By default, it's localhost:8000.
-	parser.add_option("--server",      action="store", default="http://127.0.0.1:8000/",
-		help="Central engine server IP and Port (default: http://127.0.0.1:8000/).")
+	# The most important option is the server. By default, it's user:password@127.0.0.1:8000.
+	parser.add_option("--server",      action="store", default="http://user:password@127.0.0.1:8000/",
+		help="Your user and password @ central engine IP and port (default: http://user:password@127.0.0.1:8000/)")
 
 	parser.add_option('-u', "--users", action="store_true", help="Show active and inactive users.")
 
@@ -241,7 +241,6 @@ if __name__ == '__main__':
 		print('Cannot guess the user name! Exiting!\n')
 		exit(1)
 
-
 	# Test if user did install Twister
 	if os.path.isdir(userHome(user) + os.sep + 'twister'):
 		print('\nHello, user `{}`.\n'.format(user))
@@ -249,9 +248,11 @@ if __name__ == '__main__':
 		print('Username `{}` must install Twister before using this script !\n'.format(user))
 		exit(1)
 
+
 	# Test Central Engine valid IP + PORT
 	try:
 		proxy = xmlrpclib.ServerProxy(options.server)
+		proxy._ServerProxy__transport._extra_headers.append( ('username', user) )
 		# print('Connection to Central Engine at `{}` is ok.\n'.format(options.server))
 	except:
 		print('The server must be a valid IP and PORT combination ! Exiting !\n')
@@ -261,8 +262,8 @@ if __name__ == '__main__':
 	try:
 		proxy.echo('ping')
 		# print('Connection to Central Engine at `{}` is ok.\n'.format(options.server))
-	except:
-		print('The Central Engine server is down ! Exiting !\n')
+	except Exception, e:
+		print('Cannot connect to Central Engine server! Error `{}` ! Exiting!\n'.format(e))
 		exit(1)
 
 
