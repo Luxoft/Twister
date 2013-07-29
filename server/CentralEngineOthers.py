@@ -1,7 +1,7 @@
 
 # File: CentralEngineOthers.py ; This file is part of Twister.
 
-# version: 2.013
+# version: 2.014
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -1265,19 +1265,22 @@ class Project:
             # This is updated every time.
             eMailConfig = self.parsers[user].getEmailConfig()
             if not eMailConfig:
-                logWarning('E-mail: Nothing to do here.')
-                return False
+                log = 'E-mail configuration not found.'
+                logWarning(log)
+                return log
 
             try:
                 logPath = self.users[user]['log_types']['logSummary']
                 logSummary = open(logPath).read()
             except:
-                logError('E-mail: Cannot open Summary Log `{0}` for reading !'.format(logPath))
-                return False
+                log = 'E-mail: Cannot open Summary Log `{0}` for reading !'.format(logPath)
+                logError(log)
+                return log
 
             if not logSummary:
-                logDebug('E-mail: Nothing to send!')
-                return False
+                log = 'E-mail: Nothing to send!'
+                logDebug(log)
+                return log
 
             logDebug('E-mail: Preparing... Server `{SMTPPath}`, user `{SMTPUser}`, from `{From}`, to `{To}`...'\
                 ''.format(**eMailConfig))
@@ -1320,8 +1323,9 @@ class Project:
             try:
                 eMailConfig['Subject'] = tmpl.substitute(map_info)
             except Exception, e:
-                logError('E-mail ERROR! Cannot build e-mail subject! Error: {0}!'.format(e))
-                return False
+                log = 'E-mail ERROR! Cannot build e-mail subject! Error: {0}!'.format(e)
+                logError(log)
+                return log
             del tmpl
 
             # Message template string
@@ -1329,8 +1333,9 @@ class Project:
             try:
                 eMailConfig['Message'] = tmpl.substitute(map_info)
             except Exception, e:
-                logError('E-mail ERROR! Cannot build e-mail message! Error: {0}!'.format(e))
-                return False
+                log = 'E-mail ERROR! Cannot build e-mail message! Error: {0}!'.format(e)
+                logError(log)
+                return log
             del tmpl
 
             ROWS = []
@@ -1347,8 +1352,9 @@ class Project:
             # Body string
             body_path = os.path.split(self.users[user]['config_path'])[0] +os.sep+ 'e-mail-tmpl.htm'
             if not os.path.exists(body_path):
-                logError('CE ERROR! Cannot find e-mail template file `{0}`!'.format(body_path))
-                return False
+                log = 'CE ERROR! Cannot find e-mail template file `{0}`!'.format(body_path)
+                logError(log)
+                return log
 
             body_tmpl = Template(open(body_path).read())
             body_dict = {
@@ -1391,8 +1397,9 @@ class Project:
             try:
                 server = smtplib.SMTP(eMailConfig['SMTPPath'])
             except:
-                logError('SMTP: Cannot connect to SMTP server!')
-                return False
+                log = 'SMTP: Cannot connect to SMTP server!'
+                logError(log)
+                return log
 
             try:
                 logDebug('SMTP: Preparing to login...')
@@ -1405,8 +1412,9 @@ class Project:
                 # server.login(eMailConfig['SMTPUser'], SMTPPwd)
                 server.login(eMailConfig['SMTPUser'], eMailConfig['SMTPPwd'])
             except:
-                logError('SMTP: Cannot autentificate to SMTP server!')
-                return False
+                log = 'SMTP: Cannot autentificate to SMTP server!'
+                logError(log)
+                return log
 
             try:
                 server.sendmail(eMailConfig['From'], eMailConfig['To'], msg.as_string())
@@ -1414,8 +1422,9 @@ class Project:
                 server.quit()
                 return True
             except:
-                logError('SMTP: Cannot send e-mail!')
-                return False
+                log = 'SMTP: Cannot send e-mail!'
+                logError(log)
+                return log
 
 
 # # #
