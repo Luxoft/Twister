@@ -480,7 +480,11 @@ class CentralEngine(_cptools.XMLRPCController):
         _clients = {}
 
         for client in clients:
-            _clients.update([('{}:{}'.format(cherrypy.request.headers['Remote-Addr'],
+            if client.split(':')[0]:
+                addr = client.split(':')[0]
+            else:
+                addr = cherrypy.request.headers['Remote-Addr']
+            _clients.update([('{}:{}'.format(addr,
                                       client.split(':')[1]), clients[client]), ])
         clients = jsonDumps(_clients)
 

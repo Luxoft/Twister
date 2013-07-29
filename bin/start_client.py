@@ -2,7 +2,7 @@
 
 # File: start_client.py ; This file is part of Twister.
 
-# version: 2.008
+# version: 2.009
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -125,18 +125,19 @@ class TwisterClientService(_cptools.XMLRPCController):
             self.snifferEth = 'eth0'
 
 
-        # All sections that have an option CE_IP, are EP names
-        eps = []
-
+        allow_any_host = True
         for ep in cfg.sections():
             # check if the config has option EP_HOST and is
             # not commented out and it coantains an IP address
-            allow_any_host = True
             if cfg.has_option(ep, 'EP_HOST'):
                     host_value = (cfg.get(ep, 'EP_HOST'))
                     if host_value:
                             allow_any_host = False
 
+        # All sections that have an option CE_IP, are EP names
+        eps = []
+
+        for ep in cfg.sections():
             if cfg.has_option(ep, 'CE_IP') and not allow_any_host:
                 try:
                     if self.hostname in gethostbyaddr(cfg.get(ep, 'EP_HOST'))[0].lower():
@@ -163,7 +164,7 @@ class TwisterClientService(_cptools.XMLRPCController):
             else:
                 # Create a new Central Engine connection
                 newEP['proxy'] = \
-                    xmlrpclib.ServerProxy('http://{}:EP@{}:{}/'.format(username, newEP['ce_ip'], newEP['ce_port']))
+                    xmlrpclib.ServerProxy('http://{}:EP@{}:{}/'.format(self.username, newEP['ce_ip'], newEP['ce_port']))
                 self.proxyList.update([(_proxy, newEP['proxy']), ])
 
             newEP['exec_str'] = 'nohup {python} -u {twister_path}/client/executionprocess/ExecutionProcess.py '\
@@ -241,15 +242,34 @@ class TwisterClientService(_cptools.XMLRPCController):
                             print('Waiting to stop ...')
                         sleep(2)
 
-                    # do not register ep if epname already registered
-                    registeredEps = list()
-                    for i in userCeClientInfo.values():
-                        registeredEps += i
-                    for ep in registeredEps:
-                        if ep in proxyEpsList[currentCE]:
-                            unregistered = False
-                            proxyEpsList[currentCE].pop(proxyEpsList[currentCE].index(ep))
-                            print('Warning: epname {} already registered. Will not register.'.format(ep))
+                    for (prxy, eps) in userCeClientInfo.items():
+                        for ep in eps:
+                            if ep in proxyEpsList[currentCE]:
+                                print('Warning: epname {} already registered. Trying to stop..'.format(ep))
+                                try:
+                                    p = xmlrpclib.ServerProxy('http://{}:{}/twisterclient/'.format(
+                                                            prxy.split(':')[0], prxy.split(':')[1]))
+
+                                    try:
+                                        last_seen_alive = self.eps[ep]['proxy'].getEpVariable(
+                                                            self.username, ep, 'last_seen_alive')
+                                        now_dtime = datetime.today()
+                                        if last_seen_alive:
+                                            diff = now_dtime - datetime.strptime(last_seen_alive,
+                                                                            '%Y-%m-%d %H:%M:%S')
+                                            if diff.seconds <= 2.4:
+                                                proxyEpsList[currentCE].pop(proxyEpsList[currentCE].index(ep))
+                                                print('Warning: epname {} is running. Will not register.'.format(ep))
+                                        else:
+                                            p.stopEP(ep)
+                                            userCeClientInfo[prxy].pop(userCeClientInfo[prxy].index(ep))
+                                            if not userCeClientInfo[prxy]:
+                                                userCeClientInfo.pop(prxy)
+                                            print('Warning: epname {} stoped. Will register.'.format(ep))
+                                    except Exception as e:
+                                        pass
+                                except Exception as e:
+                                    pass
 
                     if not proxyEpsList[currentCE]:
                         continue
