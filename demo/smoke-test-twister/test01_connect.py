@@ -1,6 +1,6 @@
 
 #
-# version: 2.002
+# version: 2.003
 # <title>test 01</title>
 # <description>This suite checks a lot of things.
 # It checks if the EPs are running the tests successfully and it calls all CE functions, to ensure they work as expected.
@@ -11,17 +11,17 @@
 
 # Must have one of the statuses:
 # 'pass', 'fail', 'skipped', 'aborted', 'not executed', 'timeout', 'invalid'
-_RESULT = 'Pass'
+_RESULT = 'Invalid'
 
 try:
-    print('Central engine connection: %s', PROXY)
+    print('Central engine connection: {}'.format(PROXY))
 except:
     print('This test should run from Twister!\n')
-    _RESULT = 'Fail'
+    _RESULT = 'Pass'
 
 try:
-    print(PROXY.echo('Hello Central Engine! I am a user `%s`!\n' % USER))
-    print('This is suite `%s` and test `%s`.\n' % (SUITE_NAME, FILE_NAME))
+    print(PROXY.echo('Hello Central Engine! I am the user `{}`!\n'.format(USER))
+    print('This is suite `{}` and test `{}`.\n'.format(SUITE_NAME, FILE_NAME))
 except:
     print('This test should run from Twister!\n')
     _RESULT = 'Fail'

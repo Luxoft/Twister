@@ -1,7 +1,7 @@
 
 # File: CentralEngineClasses.py ; This file is part of Twister.
 
-# version: 2.009
+# version: 2.010
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -566,11 +566,11 @@ class CentralEngine(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
-    def deQueueFile(self, user):
+    def deQueueFile(self, user, epname, file_id):
         """
         Remove a file from the files queue.
         """
-        return self.project.deQueueFile(user)
+        return self.project.deQueueFile(user, epname, file_id)
 
 
 # --------------------------------------------------------------------------------------------------
@@ -718,10 +718,13 @@ class CentralEngine(_cptools.XMLRPCController):
         else:
             logError('CE ERROR! Cannot change status for `{} {}` !'.format(user, epname))
 
-        # Send stop EP !
-        self.stopEP(user, epname)
+        # Send start/ stop command to EP !
+        if new_status == STATUS_RUNNING:
+            self.startEP(user, epname)
+        elif new_status == STATUS_STOP:
+            self.stopEP(user, epname)
 
-        # If all Stations are stopped, the Central Engine must also stop!
+        # If all Stations are stopped, the status for current user is also stop!
         # This is important, so that in the Java GUI, the buttons will change to [Play | Stop]
         if not sum([self.project.getEpInfo(user, ep).get('status', 8) for ep in self.project.parsers[user].getActiveEps()]):
 
@@ -729,7 +732,7 @@ class CentralEngine(_cptools.XMLRPCController):
             if self.project.getUserInfo(user, 'status'):
 
                 self.project.setUserInfo(user, 'status', STATUS_STOP)
-                logDebug('CE: All stations stopped for user `%s`! Central engine will also STOP!\n' % user)
+                logDebug('CE: All processes stopped for user `{}`! General status changed to STOP.\n'.format(user))
 
                 # If this run is Not temporary
                 if not (user + '_old' in self.project.users):
@@ -961,6 +964,10 @@ class CentralEngine(_cptools.XMLRPCController):
             return False
 
         data = self.project.getFileInfo(user, epname, file_id)
+        if not data:
+            logDebug('CE ERROR! Invalid File ID `{}` !'.format(file_id))
+            return False
+
         filename = os.path.split(data['file'])[1]
         suite = data['suite']
 
@@ -1276,7 +1283,11 @@ class CentralEngine(_cptools.XMLRPCController):
             return False
 
         data = self.project.getFileInfo(user, epname, file_id)
-        filename = data.get('file', 'invalid file!')
+        if not data:
+            logError('CE ERROR! Invalid File ID `{}` !'.format(file_id))
+            return False
+
+        filename = data['file']
         tests_path = self.project.getUserInfo(user, 'tests_path')
 
         if filename.startswith('~'):

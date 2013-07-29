@@ -1,7 +1,7 @@
 
 # File: CentralEngineRest.py ; This file is part of Twister.
 
-# version: 2.006
+# version: 2.007
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -245,9 +245,9 @@ class CentralEngineRest:
         json_data = json.loads(raw_data)
         del cl, raw_data
 
-        # Delete all suites from root xml
-        self.project.delSettingsKey(user, 'project', '/Root/TestSuite', -1)
-        changes = 'Reset project file.\n'
+        # Delete everything from XML Root
+        self.project.delSettingsKey(user, 'project', '//TestSuite')
+        changes = 'Reset project file...\n'
 
         for suite_data in json_data:
             self.project.setPersistentSuite(user, suite_data['data'], {'ep': decode(epname)})
@@ -258,6 +258,7 @@ class CentralEngineRest:
 
         changes += '>.<\n'
         logDebug(changes)
+        return 'true'
 
 
     @cherrypy.expose

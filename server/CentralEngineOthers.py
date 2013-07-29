@@ -1,7 +1,7 @@
 
 # File: CentralEngineOthers.py ; This file is part of Twister.
 
-# version: 2.012
+# version: 2.013
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -700,8 +700,14 @@ class Project:
         r = self.changeUser(user)
         if not r: return False
         cfg_path = self._getConfigPath(user, config)
-        logDebug('Updating XML config `{0}`, `{1}` = `{2}`...'.format(config, key, value))
-        return self.parsers[user].setSettingsValue(cfg_path, key, value)
+        try:
+            ret = self.parsers[user].setSettingsValue(cfg_path, key, value)
+            if ret: logDebug('Updated XML config `{}`, `{}` = `{}`.'.format(config, key, value))
+            else: logDebug('Unable to update XML config `{}`, `{}` = `{}` !'.format(config, key, value))
+        except Exception, e:
+            ret = False
+            logDebug('Cannot update key `{}` from XML config `{}`! Exception `{}` !'.format(key, config, e))
+        return ret
 
 
     def delSettingsKey(self, user, config, key, index=0):
@@ -711,8 +717,14 @@ class Project:
         r = self.changeUser(user)
         if not r: return False
         cfg_path = self._getConfigPath(user, config)
-        logDebug('Deleting XML config `{0}`, key `{1}`, index `{2}`...'.format(config, key, index))
-        return self.parsers[user].delSettingsKey(cfg_path, key, index)
+        try:
+            ret = self.parsers[user].delSettingsKey(cfg_path, key, index)
+            if ret: logDebug('Deleted XML config `{}`, key `{}`, index `{}`.'.format(config, key, index))
+            else: logDebug('Unable to delete XML config `{}`, key `{}`, index `{}` !'.format(config, key, index))
+        except Exception, e:
+            ret = False
+            logDebug('Cannot delete key `{}` from XML config `{}`! Exception `{}` !'.format(key, config, e))
+        return ret
 
 
 # # #
@@ -807,12 +819,12 @@ class Project:
             return False
         if suite_id not in eps[epname]['suites'].getSuites():
             logDebug( eps[epname]['suites'].getSuites() )
-            logDebug('Project: Invalid Suite ID `%s` !' % suite_id)
+            logDebug('Project: Invalid Suite ID `{}` !'.format(suite_id))
             return False
 
         suite_node = eps[epname]['suites'].findId(suite_id)
         if not suite_node:
-            logDebug('Project: Invalid Suite node `%s` !' % suite_id)
+            logDebug('Project: Invalid Suite node `{}` !'.format(suite_id))
             return False
         return suite_node
 
@@ -840,15 +852,15 @@ class Project:
             logDebug('Project: Invalid EP name `{}` !'.format(epname))
             return False
         if suite_id not in eps[epname]['suites'].getSuites():
-            logDebug('Project: Invalid Suite ID `%s` !' % suite_id)
+            logDebug('Project: Invalid Suite ID `{}` !'.format(suite_id))
             return False
         if not key or key == 'children':
-            logDebug('Project: Invalid Key `%s` !' % str(key))
+            logDebug('Project: Invalid Key `{}` !'.format(key))
             return False
 
         suite_node = eps[epname]['suites'].findId(suite_id)
         if not suite_node:
-            logDebug('Project: Invalid Suite node `%s` !' % suite_id)
+            logDebug('Project: Invalid Suite node `{}` !'.format(suite_id))
             return False
         suite_node[key] = value
         self._dump()
@@ -865,12 +877,12 @@ class Project:
         eps = self.users[user]['eps']
 
         if file_id not in eps[epname]['suites'].getFiles():
-            logDebug('Project: Invalid File ID `%s` !' % file_id)
+            logDebug('Project: Invalid File ID `{}` !'.format(file_id))
             return False
 
         file_node = eps[epname]['suites'].findId(file_id)
         if not file_node:
-            logDebug('Project: Invalid File node `%s` !' % file_id)
+            logDebug('Project: Invalid File node `{}` !'.format(file_id))
             return False
         return file_node
 
@@ -884,15 +896,15 @@ class Project:
         eps = self.users[user]['eps']
 
         if file_id not in eps[epname]['suites'].getFiles():
-            logDebug('Project: Invalid File ID `%s` !' % file_id)
+            logDebug('Project: Invalid File ID `{}` !'.format(file_id))
             return False
         if not key:
-            logDebug('Project: Invalid Key `%s` !' % str(key))
+            logDebug('Project: Invalid Key `{}` !'.format(key))
             return False
 
         file_node = eps[epname]['suites'].findId(file_id)
         if not file_node:
-            logDebug('Project: Invalid File node `%s` !' % file_id)
+            logDebug('Project: Invalid File node `{}` !'.format(file_id))
             return False
         file_node[key] = value
         self._dump()
@@ -1130,15 +1142,57 @@ class Project:
             suite = SuitesManager.findId(suite_id)
             suite['children'][file_id] = finfo
 
-            # Add the file in suites.xml
+            # Add the file in suites.xml ?
             # self.setPersistentFile(self, user, suite, fname)
 
+        self._dump()
+        logDebug('File ID `{}` added at the end of suite `{}`.'.format(file_id, suite_id))
         return True
 
 
-    def deQueueFile(self, user):
+    def deQueueFile(self, user, epname, file_id):
+        """
+        This function temporary removes the file id from the project, during runtime.
+        If the file did already run, the function does nothing!
+        """
+        r = self.changeUser(user)
+        if not r: return False
 
-        return False
+        SuitesManager = self.users[user]['eps'][epname]['suites']
+
+        if file_id not in SuitesManager.getFiles():
+            logError('Project: Invalid File ID `{}` !'.format(file_id))
+            return False
+
+        file_node = SuitesManager.findId(file_id)
+        if not file_node:
+            logError('Project: Invalid File node `{}` !'.format(file_id))
+            return False
+
+        if file_node.get('status', STATUS_PENDING) != STATUS_PENDING:
+            logError('Project: File ID `{}` was already executed, cannot de-queue!'.format(file_id))
+            return False
+
+        suite_id = file_node['suite']
+        suite_node = SuitesManager.findId(suite_id)
+
+        if not suite_node:
+            logError('Project: Invalid Suite node `{}` !'.format(suite_id))
+            return False
+
+        # This operation must be atomic !
+        with self.usr_lock:
+
+            # Remove file from the ordered list of file IDs, used for Get Status ALL
+            file_index = self.test_ids[user].index(file_id)
+            self.test_ids[user].pop(file_index)
+
+            # Remove file from suites
+            del suite_node['children'][file_id]
+
+        self._dump()
+        logDebug('File ID `{}` removed from `{}`.'.format(file_id, epname))
+        return True
 
 
 # # #
