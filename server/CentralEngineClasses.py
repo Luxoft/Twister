@@ -207,7 +207,7 @@ class CentralEngine(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
-    def sendMail(self, user):
+    def sendMail(self, user, force=False):
         """
         Send e-mail after the suites are run.\n
         Server must be in the form `adress:port`.\n
@@ -216,10 +216,10 @@ class CentralEngine(_cptools.XMLRPCController):
         """
 
         try:
-            ret = self.project.sendMail(user)
+            ret = self.project.sendMail(user, force)
             return ret
         except Exception, e:
-            logError('E-mail: Sending e-mail exception `{0}` !'.format(e))
+            logError('E-mail: Sending e-mail exception `{}` !'.format(e))
             return False
 
 

@@ -20,7 +20,7 @@ except:
     _RESULT = 'Pass'
 
 try:
-    print(PROXY.echo('Hello Central Engine! I am the user `{}`!\n'.format(USER))
+    print(PROXY.echo('Hello Central Engine! I am the user `{}`!\n'.format(USER)))
     print('This is suite `{}` and test `{}`.\n'.format(SUITE_NAME, FILE_NAME))
 except:
     print('This test should run from Twister!\n')

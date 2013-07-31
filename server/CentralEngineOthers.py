@@ -1,7 +1,7 @@
 
 # File: CentralEngineOthers.py ; This file is part of Twister.
 
-# version: 2.014
+# version: 2.015
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -439,6 +439,24 @@ class Project:
 
         cfg = iniparser.ConfigObj(cfg_path, create_empty=True, write_empty_values=True)
 
+        # Cycle all groups
+        for grp, grp_data in cfg['groups'].iteritems():
+
+            roles = grp_data['roles']
+            grp_data['roles']    = []
+
+            if roles == '0':
+                grp_data['roles'] = []
+            elif roles == '*':
+                # All roles
+                grp_data['roles'] += cfg['roles'].keys()
+            else:
+                if isinstance(roles, str):
+                    grp_data['roles'] += [r.strip() for r in roles.split(',') if r]
+                else:
+                    # It's a list
+                    grp_data['roles'] += roles
+
         # Cycle all users
         for usr, usr_data in cfg['users'].iteritems():
             # Invalid user ?
@@ -462,7 +480,7 @@ class Project:
                 roles = cfg['groups'][grp]['roles']
 
                 if roles == '0':
-                    continue
+                    usr_data['roles'] = []
                 elif roles == '*':
                     # All roles
                     usr_data['roles'] += cfg['roles'].keys()
@@ -506,8 +524,8 @@ class Project:
         # List of roles for current CherryPy user
         cherry_roles = self.roles['users'][cherry_usr]['roles']
 
-        if cmd not in ['list params', 'list users', 'list groups', 'list roles'] and \
-            'CHANGE_USERS' not in cherry_roles:
+        if 'CHANGE_USERS' not in cherry_roles and cmd in \
+            ['update param', 'set user', 'delete user', 'set group', 'delete group']:
             return '*ERROR* : Insufficient privileges to execute command `{}` !'.format(cmd)
 
         if cmd == 'list params':
@@ -555,8 +573,11 @@ class Project:
                 usr_group = args[0][0]
             except Exception, e:
                 return '*ERROR* : Exception : `{}` !'.format(e)
-            if usr_group not in self.roles['groups']:
-                return '*ERROR* : Invalid group name `{}` !'.format(usr_group)
+
+            grps = [g.strip() for g in usr_group.split(',') if g in self.roles['groups']]
+            if not grps:
+                return '*ERROR* : Invalid groups `{}` !'.format(usr_group)
+            usr_group = ', '.join(grps)
 
             # Create new section in Users
             cfg['users'][name] = {}
@@ -857,6 +878,9 @@ class Project:
         if not key or key == 'children':
             logDebug('Project: Invalid Key `{}` !'.format(key))
             return False
+        if key == 'type':
+            logDebug('Project: Cannot change reserved Key `{}` !'.format(key))
+            return False
 
         suite_node = eps[epname]['suites'].findId(suite_id)
         if not suite_node:
@@ -900,6 +924,9 @@ class Project:
             return False
         if not key:
             logDebug('Project: Invalid Key `{}` !'.format(key))
+            return False
+        if key == 'type':
+            logDebug('Project: Cannot change reserved Key `{}` !'.format(key))
             return False
 
         file_node = eps[epname]['suites'].findId(file_id)
