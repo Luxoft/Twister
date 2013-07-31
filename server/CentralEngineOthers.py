@@ -1,7 +1,7 @@
 
 # File: CentralEngineOthers.py ; This file is part of Twister.
 
-# version: 2.015
+# version: 2.016
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -137,15 +137,15 @@ class Project:
         self.eml_lock = thread.allocate_lock()  # E-mail lock
         self.db_lock  = thread.allocate_lock()  # Database lock
 
-        # Panic Detect, load config for current user
-        self.panicDetectConfigPath = TWISTER_PATH + '/config/PanicDetectData.json'
-        if not os.path.exists(self.panicDetectConfigPath):
-            config = open(self.panicDetectConfigPath, 'wb')
-            config.write('{}')
-            config.close()
-        config = open(self.panicDetectConfigPath, 'rb')
-        self.panicDetectRegularExpressions = json.load(config)
-        config.close()
+        # Read the production/ development option.
+        cfg_path = '{}/config/server_init.ini'.format(TWISTER_PATH)
+        if not os.path.isfile(cfg_path):
+            logError('Production/ Development ERROR: Cannot find server_init in path `{}`! Will default to `no_type`.'.format(cfg_path))
+            self.server_init = {'ce_server_type': 'no_type'}
+        else:
+            cfg = iniparser.ConfigObj(cfg_path)
+            self.server_init = cfg.dict()
+        logDebug('Running server type `{ce_server_type}`.'.format(**self.server_init))
 
 
     def _common_user_reset(self, user, base_config, files_config):
@@ -356,6 +356,38 @@ class Project:
         return True
 
 
+    def _checkUser(self):
+        """
+        Check CherryPy user. Used to quick find the roles of the current CherryPy user.
+        """
+        # Reload users and groups
+        self.roles = self._parseUsersAndGroups()
+        if not self.roles: return False
+
+        # The username from CherryPy connection
+        cherry_usr = cherrypy.session.get('username')
+
+        # List of roles for current CherryPy user
+        cherry_roles = self.roles['users'].get(cherry_usr)
+
+        # If this is a production server, check users and groups
+        if self.server_init['ce_server_type'].lower() == 'production':
+            # This user doesn't exist in users and groups
+            if not cherry_roles:
+                logWarning('Production Server: Username `{}` cannot be found in users and roles!'.format(cherry_usr))
+                return False
+            # This user doesn't have any roles in users and groups
+            if not cherry_roles['roles']:
+                logWarning('Production Server: Username `{}` doesn\'t have any roles!'.format(cherry_usr))
+                return False
+        else:
+            # If the server is not PRODUCTION, the user has ALL ROLES!
+            cherry_roles['roles'] = self.roles['roles'].keys()
+
+        cherry_roles['user'] = cherry_usr
+        return cherry_roles
+
+
     def changeUser(self, user):
         """
         Switch user hook. This function is used EVERYWHERE.\n
@@ -364,25 +396,10 @@ class Project:
         to create the memory structure.
         """
 
-        # The username from CherryPy connection
-        cherry_usr = cherrypy.session.get('username')
-
-        # Reload users and groups
         with self.usr_lock:
 
-            self.roles = self._parseUsersAndGroups()
-            if not self.roles: return False
-
-            # List of roles for current CherryPy user
-            cherry_roles = self.roles['users'].get(cherry_usr)
-
-            # This user doesn't exist in users and groups
+            cherry_roles = self._checkUser()
             if not cherry_roles:
-                logWarning('CherryPy user `{}` cannot be found in users and roles!'.format(cherry_usr))
-                return False
-            # This user doesn't have any roles in users and groups
-            if not cherry_roles['roles']:
-                logWarning('CherryPy user `{}` doesn\'t have any roles!'.format(cherry_usr))
                 return False
 
             if not user:
@@ -426,11 +443,25 @@ class Project:
         return users
 
 
+    def _dump(self):
+        """
+        Internal function. Save all data structure on HDD.\n
+        This function must use a lock!
+        """
+        with self.int_lock:
+
+            with open(TWISTER_PATH + '/config/project_users.json', 'w') as f:
+                try: json.dump(self.users, f, indent=4)
+                except: pass
+
+
+# # #
+
+
     def _parseUsersAndGroups(self):
         """
         Parse users and groups and return the values.
         """
-
         cfg_path = '{}/config/users_and_groups.ini'.format(TWISTER_PATH)
 
         if not os.path.isfile(cfg_path):
@@ -508,7 +539,6 @@ class Project:
         - set user, delete user.
         - set group, delete group.
         """
-
         cfg_path = '{}/config/users_and_groups.ini'.format(TWISTER_PATH)
         def create_cfg():
             return iniparser.ConfigObj(cfg_path, indent_type='\t',
@@ -651,18 +681,6 @@ class Project:
 
         else:
             return '*ERROR* : Unknown command `{}` !'.format(cmd)
-
-
-    def _dump(self):
-        """
-        Internal function. Save all data structure on HDD.\n
-        This function must use a lock!
-        """
-        with self.int_lock:
-
-            with open(TWISTER_PATH + '/config/project_users.json', 'w') as f:
-                try: json.dump(self.users, f, indent=4)
-                except: pass
 
 
 # # #
@@ -1648,8 +1666,8 @@ class Project:
 
 
     def panicDetectConfig(self, user, args):
-        """ Panic Detect mechanism
-        valid commands: list, add, update, remove regular expression;
+        """ Panic Detect mechanism.
+        Valid commands: list, add, update, remove regular expression;
 
         list command: args = {'command': 'list'}
         add command: args = {'command': 'add', 'data': {'expression': 'reg_exp_string'}}
@@ -1657,6 +1675,16 @@ class Project:
                                     expression': 'reg_exp_modified_string'}}
         remove command:  args = {'command': 'remove', 'data': 'reg_exp_id'}
         """
+
+        # Panic Detect, load config for current user
+        self.panicDetectConfigPath = '{}/config/PanicDetectData.json'.format(TWISTER_PATH)
+
+        if not os.path.exists(self.panicDetectConfigPath):
+            with open(self.panicDetectConfigPath, 'wb') as config:
+                config.write('{}')
+
+        with open(self.panicDetectConfigPath, 'rb') as config:
+            self.panicDetectRegularExpressions = json.load(config)
 
         panicDetectCommands = {
             'simple': [

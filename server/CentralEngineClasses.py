@@ -1,7 +1,7 @@
 
 # File: CentralEngineClasses.py ; This file is part of Twister.
 
-# version: 2.010
+# version: 2.011
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -70,7 +70,7 @@ from json import loads as jsonLoads, dumps as jsonDumps
 
 from CentralEngineOthers import Project
 from ServiceManager    import ServiceManager
-from CentralEngineRest import CentralEngineRest
+from CentralEngineRest import WebInterface
 from ResourceAllocator import ResourceAllocator
 from ReportingServer   import ReportingServer
 
@@ -103,8 +103,8 @@ class CentralEngine(_cptools.XMLRPCController):
         logDebug('CE: Initialization took %.4f seconds.' % (time.clock()-ti))
 
         self.manager = ServiceManager()
-        self.rest = CentralEngineRest(self, self.project)
-        self.ra   = ResourceAllocator()
+        self.rest = WebInterface(self, self.project)
+        self.ra   = ResourceAllocator(self, self.project)
         self.report = ReportingServer(self, self.project)
 
 
@@ -155,6 +155,13 @@ class CentralEngine(_cptools.XMLRPCController):
         Send commands to Service Manager.\n
         Valid commands are: list, start, stop, status, get config, save config, get log.
         """
+        # Check the username from CherryPy connection
+        cherry_roles = self.project._checkUser()
+        if not cherry_roles:
+            return False
+        if 'CHANGE_SERVICES' not in cherry_roles['roles']:
+            logDebug('Privileges ERROR! Username `{user}` cannot use Service Manager!'.format(**cherry_roles))
+            return False
         return self.manager.sendCommand(command, name, args, kwargs)
 
 
@@ -692,6 +699,14 @@ class CentralEngine(_cptools.XMLRPCController):
         Returns a string (stopped, paused, running).\n
         Called from the EP.
         """
+        # Check the username from CherryPy connection
+        cherry_roles = self.project._checkUser()
+        if not cherry_roles:
+            return False
+        if not 'RUN_TESTS' in cherry_roles['roles']:
+            logDebug('Privileges ERROR! Username `{user}` cannot change EP status!'.format(**cherry_roles))
+            return False
+
         if not self.searchEP(user, epname):
             logError('CE ERROR! EP `%s` is not in the list of defined EPs: `%s`!' %
                 (str(epname), self.listEPs(user)) )
@@ -776,6 +791,14 @@ class CentralEngine(_cptools.XMLRPCController):
         The `message` parameter can explain why the status has changed.\n
         Both CE and EP have a status.
         """
+        # Check the username from CherryPy connection
+        cherry_roles = self.project._checkUser()
+        if not cherry_roles:
+            return False
+        if not 'RUN_TESTS' in cherry_roles['roles']:
+            logDebug('Privileges ERROR! Username `{user}` cannot change exec status!'.format(**cherry_roles))
+            return False
+
         if new_status not in execStatus.values():
             logError("CE ERROR! Status value `%s` is not in the list of defined statuses: `%s`!" % \
                 (str(new_status), str(execStatus.values())) )
@@ -1450,7 +1473,7 @@ class CentralEngine(_cptools.XMLRPCController):
         f.close()
 
         # Calling Panic Detect
-        #self.panicDetectLogParse(user, epname, log_string)
+        #self._panicDetectLogParse(user, epname, log_string)
         return True
 
 
@@ -1532,11 +1555,13 @@ class CentralEngine(_cptools.XMLRPCController):
             return False
 
 
-    def panicDetectLogParse(self, user, epname, log_string):
+    def _panicDetectLogParse(self, user, epname, log_string):
         """
         Panic Detect parse log mechanism.
         """
         status = False
+
+        self.project.panicDetectConfig(user, 'list')
 
         if not self.project.panicDetectRegularExpressions.has_key(user):
             return status
