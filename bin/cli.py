@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# version: 2.008
+# version: 2.010
 
 # File: cli.py ; This file is part of Twister.
 
@@ -222,7 +222,14 @@ def deQueueTest(proxy, user, epname, file_id):
 if __name__ == '__main__':
 
 	usage = "Usage: %prog --server <ip:port> --command [...parameters]"
-	version = "%prog v2.0"
+
+	version = ""
+	for line in open(__file__):
+		li=line.strip()
+		if li.startswith("# version:"):
+			version = "%prog " + line.split("version:")[1]
+		if version: break
+
 	parser = OptionParser(usage=usage, version=version)
 
 	# The most important option is the server. By default, it's user:password@127.0.0.1:8000.
