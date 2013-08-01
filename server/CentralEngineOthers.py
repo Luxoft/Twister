@@ -1,7 +1,7 @@
 
 # File: CentralEngineOthers.py ; This file is part of Twister.
 
-# version: 2.016
+# version: 2.017
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -145,7 +145,15 @@ class Project:
         else:
             cfg = iniparser.ConfigObj(cfg_path)
             self.server_init = cfg.dict()
-        logDebug('Running server type `{ce_server_type}`.'.format(**self.server_init))
+        logDebug('CE: Running server type `{ce_server_type}`.'.format(**self.server_init))
+
+        # Panic Detect, load config for current user
+        self.panicDetectConfigPath = '{}/config/PanicDetectData.json'.format(TWISTER_PATH)
+        if not os.path.exists(self.panicDetectConfigPath):
+            with open(self.panicDetectConfigPath, 'wb') as config:
+                config.write('{}')
+        with open(self.panicDetectConfigPath, 'rb') as config:
+            self.panicDetectRegularExpressions = json.load(config)
 
 
     def _common_user_reset(self, user, base_config, files_config):
@@ -370,18 +378,24 @@ class Project:
         # List of roles for current CherryPy user
         cherry_roles = self.roles['users'].get(cherry_usr)
 
-        # If this is a production server, check users and groups
-        if self.server_init['ce_server_type'].lower() == 'production':
-            # This user doesn't exist in users and groups
-            if not cherry_roles:
+        # This user doesn't exist in users and groups
+        if not cherry_roles:
+            if self.server_init['ce_server_type'].lower() == 'production':
                 logWarning('Production Server: Username `{}` cannot be found in users and roles!'.format(cherry_usr))
                 return False
-            # This user doesn't have any roles in users and groups
-            if not cherry_roles['roles']:
+            # The user doesn't exist ... creating a virtual user
+            cherry_roles = {'roles': [], 'groups': []}
+            # logDebug('Username `{}` cannot be found in users and roles!'.format(cherry_usr))
+
+        # This user doesn't have any roles in users and groups
+        if not cherry_roles['roles']:
+            if self.server_init['ce_server_type'].lower() == 'production':
                 logWarning('Production Server: Username `{}` doesn\'t have any roles!'.format(cherry_usr))
                 return False
-        else:
-            # If the server is not PRODUCTION, the user has ALL ROLES!
+            # logDebug('Username `{}` doesn\'t have any roles!'.format(cherry_usr))
+
+        # If the server is not PRODUCTION, the user has ALL ROLES!
+        if self.server_init['ce_server_type'].lower() != 'production':
             cherry_roles['roles'] = self.roles['roles'].keys()
 
         cherry_roles['user'] = cherry_usr
@@ -552,11 +566,21 @@ class Project:
         # The username from CherryPy connection
         cherry_usr = cherrypy.session.get('username')
         # List of roles for current CherryPy user
-        cherry_roles = self.roles['users'][cherry_usr]['roles']
+        cherry_all = self.roles['users'].get(cherry_usr)
+
+        # This user doesn't exist in users and groups
+        if not cherry_all:
+            # *ERROR* : Username is not defined in users & groups !
+            return {}
+
+        # List of roles for current CherryPy user
+        cherry_roles = cherry_all['roles']
 
         if 'CHANGE_USERS' not in cherry_roles and cmd in \
             ['update param', 'set user', 'delete user', 'set group', 'delete group']:
             return '*ERROR* : Insufficient privileges to execute command `{}` !'.format(cmd)
+
+        del cherry_all, cherry_roles
 
         if cmd == 'list params':
             tmp_roles = dict(self.roles)
@@ -1310,7 +1334,7 @@ class Project:
             # This is updated every time.
             eMailConfig = self.parsers[user].getEmailConfig()
             if not eMailConfig:
-                log = 'E-mail configuration not found.'
+                log = '*ERROR* E-mail configuration not found !'
                 logWarning(log)
                 return log
 
@@ -1318,12 +1342,12 @@ class Project:
                 logPath = self.users[user]['log_types']['logSummary']
                 logSummary = open(logPath).read()
             except:
-                log = 'E-mail: Cannot open Summary Log `{0}` for reading !'.format(logPath)
+                log = '*ERROR* Cannot open Summary Log `{}` for reading !'.format(logPath)
                 logError(log)
                 return log
 
             if not logSummary:
-                log = 'E-mail: Nothing to send!'
+                log = '*ERROR* Log Summary is empty! Nothing to send!'
                 logDebug(log)
                 return log
 
@@ -1368,7 +1392,7 @@ class Project:
             try:
                 eMailConfig['Subject'] = tmpl.substitute(map_info)
             except Exception, e:
-                log = 'E-mail ERROR! Cannot build e-mail subject! Error: {0}!'.format(e)
+                log = 'E-mail ERROR! Cannot build e-mail subject! Error: {}!'.format(e)
                 logError(log)
                 return log
             del tmpl
@@ -1378,7 +1402,7 @@ class Project:
             try:
                 eMailConfig['Message'] = tmpl.substitute(map_info)
             except Exception, e:
-                log = 'E-mail ERROR! Cannot build e-mail message! Error: {0}!'.format(e)
+                log = 'E-mail ERROR! Cannot build e-mail message! Error: {}!'.format(e)
                 logError(log)
                 return log
             del tmpl
@@ -1397,7 +1421,7 @@ class Project:
             # Body string
             body_path = os.path.split(self.users[user]['config_path'])[0] +os.sep+ 'e-mail-tmpl.htm'
             if not os.path.exists(body_path):
-                log = 'CE ERROR! Cannot find e-mail template file `{0}`!'.format(body_path)
+                log = 'E-mail ERROR! Cannot find e-mail template file `{}`!'.format(body_path)
                 logError(log)
                 return log
 
@@ -1442,7 +1466,7 @@ class Project:
             try:
                 server = smtplib.SMTP(eMailConfig['SMTPPath'])
             except:
-                log = 'SMTP: Cannot connect to SMTP server!'
+                log = 'SMTP: Cannot connect to SMTP server `{}`!'.format(eMailConfig['SMTPPath'])
                 logError(log)
                 return log
 
@@ -1453,11 +1477,17 @@ class Project:
                 server.ehlo()
 
                 # Decode e-mail password
-                # SMTPPwd = binascii.a2b_base64(eMailConfig['SMTPPwd'])
-                # server.login(eMailConfig['SMTPUser'], SMTPPwd)
+                try:
+                    SMTPPwd = binascii.a2b_base64(eMailConfig['SMTPPwd'])
+                except:
+                    log = 'Password: Invalid SMTP password! Please update your password and try again!'
+                    logError(log)
+                    return log
+
+                server.login(eMailConfig['SMTPUser'], SMTPPwd)
                 server.login(eMailConfig['SMTPUser'], eMailConfig['SMTPPwd'])
             except:
-                log = 'SMTP: Cannot autentificate to SMTP server!'
+                log = 'SMTP: Cannot autentificate to SMTP server! Invalid user or password!'
                 logError(log)
                 return log
 
@@ -1523,8 +1553,11 @@ class Project:
             system = platform.machine() +' '+ platform.system() +', '+ ' '.join(platform.linux_distribution())
 
             # Decode database password
-            db_password = db_config.get('password')
-            # db_password = binascii.a2b_base64( db_config.get('password') )
+            try:
+                db_password = binascii.a2b_base64( db_config.get('password') )
+            except:
+                logError('Database: Invalid database password! Please update your password and try again!')
+                return False
 
             try:
                 conn = MySQLdb.connect(host=db_config.get('server'), db=db_config.get('database'),
@@ -1675,16 +1708,6 @@ class Project:
                                     expression': 'reg_exp_modified_string'}}
         remove command:  args = {'command': 'remove', 'data': 'reg_exp_id'}
         """
-
-        # Panic Detect, load config for current user
-        self.panicDetectConfigPath = '{}/config/PanicDetectData.json'.format(TWISTER_PATH)
-
-        if not os.path.exists(self.panicDetectConfigPath):
-            with open(self.panicDetectConfigPath, 'wb') as config:
-                config.write('{}')
-
-        with open(self.panicDetectConfigPath, 'rb') as config:
-            self.panicDetectRegularExpressions = json.load(config)
 
         panicDetectCommands = {
             'simple': [

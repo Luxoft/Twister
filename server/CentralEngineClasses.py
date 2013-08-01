@@ -1,7 +1,7 @@
 
 # File: CentralEngineClasses.py ; This file is part of Twister.
 
-# version: 2.011
+# version: 2.012
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -1022,12 +1022,16 @@ class CentralEngine(_cptools.XMLRPCController):
                 (now.isoformat()))
             suite_name = self.project.getSuiteInfo(user, epname, suite).get('name')
 
-            with open(logPath, 'a') as status_file:
-                status_file.write(' {ep}::{suite}::{file} | {status} | {elapsed} | {date}\n'.format(
-                    ep = epname.center(9), suite = suite_name.center(9), file = filename.center(28),
-                    status = status_str.center(11),
-                    elapsed = ('%.2fs' % time_elapsed).center(10),
-                    date = now.strftime('%a %b %d, %H:%M:%S')))
+            try:
+                with open(logPath, 'a') as status_file:
+                    status_file.write(' {ep}::{suite}::{file} | {status} | {elapsed} | {date}\n'.format(
+                        ep = epname.center(9), suite = suite_name.center(9), file = filename.center(28),
+                        status = status_str.center(11),
+                        elapsed = ('%.2fs' % time_elapsed).center(10),
+                        date = now.strftime('%a %b %d, %H:%M:%S')))
+            except:
+                logError('Summary log file `{}` cannot be written! User `{}` won\'t see'\
+                         ' any statistics!'.format(logPath, user))
 
         # Return string
         return status_str
@@ -1439,7 +1443,7 @@ class CentralEngine(_cptools.XMLRPCController):
         logFolder = self.project.getUserInfo(user, 'logs_path')
 
         if not logFolder:
-            logError("CE ERROR! Logs folder is `%s`!" % logFolder)
+            logError("CE ERROR! Invalid logs folder `{}`!".format(logFolder))
             return False
 
         if not os.path.exists(logFolder):
@@ -1487,12 +1491,12 @@ class CentralEngine(_cptools.XMLRPCController):
         logsPath = self.project.getUserInfo(user, 'logs_path')
         logTypes = self.project.getUserInfo(user, 'log_types')
 
-        # archive logs
-        #archiveLogsPathActive = self.project.getUserInfo(user, 'archive_logs_path_active')
-        #archiveLogsPath = self.project.getUserInfo(user, 'archive_logs_path')
+        # Archive logs
+        # archiveLogsPathActive = self.project.getUserInfo(user, 'archive_logs_path_active')
+        # archiveLogsPath = self.project.getUserInfo(user, 'archive_logs_path')
 
         vError = False
-        logDebug('Cleaning {0} log files...'.format(len(logTypes)))
+        logDebug('Cleaning {} log files...'.format(len(logTypes)))
 
         twister_cache = '/'.join(logsPath.rstrip('/').split('/')[:-1]) + '/.twister_cache'
         self.project.setFileOwner(user, twister_cache)
@@ -1514,7 +1518,7 @@ class CentralEngine(_cptools.XMLRPCController):
                     try:
                         open(logPath, 'w').close()
                     except:
-                        logError('CE ERROR! Log file `{0}` cannot be reset!'.format(logPath))
+                        logError('Logs ERROR! Log file `{}` cannot be re-written!'.format(logPath))
                         vError = True
                     self.project.setFileOwner(user, logPath)
             # For normal logs
@@ -1523,7 +1527,7 @@ class CentralEngine(_cptools.XMLRPCController):
                 try:
                     open(logPath, 'w').close()
                 except:
-                    logError('CE ERROR! Log file `{0}` cannot be reset!'.format(logPath))
+                    logError('Logs ERROR! Log file `{}` cannot be re-written!'.format(logPath))
                     vError = True
                 self.project.setFileOwner(user, logPath)
 
