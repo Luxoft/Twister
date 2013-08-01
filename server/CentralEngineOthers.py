@@ -1593,15 +1593,16 @@ class Project:
                     subst_data.update(file_info)
 
                     # Insert/ fix DB variables
+                    subst_data['twister_user']     = user
                     subst_data['twister_rf_fname'] = '{}/config/resources.json'.format(TWISTER_PATH)
                     subst_data['twister_pf_fname'] = '{}/config/project_users.json'.format(TWISTER_PATH)
-                    subst_data['twister_ce_os'] = system
+                    subst_data['twister_ce_os']    = system
                     subst_data['twister_ce_hostname'] = socket.gethostname()
                     subst_data['twister_ce_python_revision'] = '.'.join([str(v) for v in sys.version_info])
-                    subst_data['twister_ep_name'] = epname
+                    subst_data['twister_ep_name']    = epname
                     subst_data['twister_suite_name'] = suite_info['name']
                     subst_data['twister_tc_full_path'] = file_info['file']
-                    subst_data['twister_tc_name'] = os.path.split(subst_data['twister_tc_full_path'])[1]
+                    subst_data['twister_tc_name']  = os.path.split(subst_data['twister_tc_full_path'])[1]
                     subst_data['twister_tc_title'] = ''
                     subst_data['twister_tc_description'] = ''
 
@@ -1684,8 +1685,8 @@ class Project:
                         try:
                             curs.execute(query)
                         except MySQLdb.Error, e:
-                            logError('Error in query ``{0}``'.format(query))
-                            logError('MySQL Error %d: %s!' % (e.args[0], e.args[1]))
+                            logError('Error in query ``{}``'.format(query))
+                            logError('MySQL Error {}: {}!'.format(e.args[0], e.args[1]))
                             conn.rollback()
                             return False
 
@@ -1818,6 +1819,7 @@ class Project:
                 #response['status']['success'] = False
                 #response['status']['message'] = '{er}'.format(er=e)
                 response = 'error: {er}'.format(er=e)
+
 
         # remove_regular_expression
         elif args['command'] == 'remove':

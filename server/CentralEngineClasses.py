@@ -1,7 +1,7 @@
 
 # File: CentralEngineClasses.py ; This file is part of Twister.
 
-# version: 2.012
+# version: 2.013
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -1007,19 +1007,17 @@ class CentralEngine(_cptools.XMLRPCController):
         else: status_str='*%s*' % status_str.upper()
 
         if new_status != STATUS_WORKING:
-            # Inject information into File Classes
+
+            # Inject information into Files. This will be used when saving into database.
             now = datetime.datetime.today()
 
-            self.project.setFileInfo(user, epname, file_id, 'twister_tc_status',
-                status_str.replace('*', ''))
+            self.project.setFileInfo(user, epname, file_id, 'twister_tc_status', status_str.replace('*', ''))
             self.project.setFileInfo(user, epname, file_id, 'twister_tc_crash_detected',
-                data.get('twister_tc_crash_detected', 0))
-            self.project.setFileInfo(user, epname, file_id, 'twister_tc_time_elapsed',
-                int(time_elapsed))
+                                    data.get('twister_tc_crash_detected', 0))
+            self.project.setFileInfo(user, epname, file_id, 'twister_tc_time_elapsed',   int(time_elapsed))
             self.project.setFileInfo(user, epname, file_id, 'twister_tc_date_started',
-                (now - datetime.timedelta(seconds=time_elapsed)).isoformat())
-            self.project.setFileInfo(user, epname, file_id, 'twister_tc_date_finished',
-                (now.isoformat()))
+                                    (now - datetime.timedelta(seconds=time_elapsed)).isoformat())
+            self.project.setFileInfo(user, epname, file_id, 'twister_tc_date_finished',  (now.isoformat()))
             suite_name = self.project.getSuiteInfo(user, epname, suite).get('name')
 
             try:
@@ -1030,8 +1028,8 @@ class CentralEngine(_cptools.XMLRPCController):
                         elapsed = ('%.2fs' % time_elapsed).center(10),
                         date = now.strftime('%a %b %d, %H:%M:%S')))
             except:
-                logError('Summary log file `{}` cannot be written! User `{}` won\'t see'\
-                         ' any statistics!'.format(logPath, user))
+                logError('Summary log file `{}` cannot be written! User `{}` won\'t see any '\
+                         'statistics!'.format(logPath, user))
 
         # Return string
         return status_str
@@ -1492,20 +1490,24 @@ class CentralEngine(_cptools.XMLRPCController):
         logTypes = self.project.getUserInfo(user, 'log_types')
 
         # Archive logs
-        # archiveLogsPathActive = self.project.getUserInfo(user, 'archive_logs_path_active')
-        # archiveLogsPath = self.project.getUserInfo(user, 'archive_logs_path')
-
-        vError = False
-        logDebug('Cleaning {} log files...'.format(len(logTypes)))
+        archiveLogsActive = self.project.getUserInfo(user, 'archive_logs_path_active')
+        archiveLogsPath   = self.project.getUserInfo(user, 'archive_logs_path')
 
         twister_cache = '/'.join(logsPath.rstrip('/').split('/')[:-1]) + '/.twister_cache'
         self.project.setFileOwner(user, twister_cache)
 
+        logDebug('Cleaning {} log files...'.format(len(logTypes)))
+        vError = False
+
         for log in glob.glob(logsPath + os.sep + '*.log'):
             try:
-                #if archiveLogsPathActive == 'true':
-                #    os.rename(log, os.path.join(archiveLogsPath,
-                #                '{0}.{1}'.format(os.path.basename(log), time.time())))
+                if archiveLogsActive == 'true':
+                    archPath = archiveLogsPath.rstrip('/') + '/{}.{}.{}'.format(user, os.path.basename(log), time.time())
+                    os.rename(log, archPath)
+                    logDebug('Log file `{}` archived in `{}`.'.format(log, archPath))
+            except Exception as e:
+                logError('Logs ERROR! Cannot archive log `{}` in `{}`! Exception `{}`!'.format(log, archiveLogsPath, e))
+            try:
                 os.remove(log)
             except Exception as e:
                 pass
