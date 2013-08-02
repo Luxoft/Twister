@@ -1,3 +1,10 @@
+02nd August 2013
+
+- fix for issue #37
+- fix for issue #42
+- fix for issue #56
+- fix for issue #35
+
 18th July 2013
 
 - issue #48 ; code changes to fix start_client for EP's where EP_HOST is commented out or there 
