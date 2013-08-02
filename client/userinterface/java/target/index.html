@@ -8,11 +8,13 @@
 <script type="text/javascript" src="jquery.min.js"></script>
 <script type="text/javascript">
 var resize = function(){
+	
 	var width = $(window).width();
 	var height = $(window).height();
 	$("#myApplet")[0].setSize(width,height);
 	$("#myApplet").css("width", $(window).width()-20);
-	$("#myApplet").css("height",$(window).height()-30);}
+	$("#myApplet").css("height",$(window).height()-30);
+}
 $(document).ready(function() {resize();});
 $(window).resize(function() {resize();});
 </script>
@@ -20,6 +22,9 @@ $(window).resize(function() {resize();});
 archive="
 xmlrpc-common-3.1.3.jar,
 gson-2.2.1.jar,
+runner.jar,
+UserManagement.jar,
+ControlPanel.jar,
 jgoodies-common-1.3.1.jar,
 jgoodies-looks-2.5.1.jar,
 xmlrpc-client-3.1.3.jar,

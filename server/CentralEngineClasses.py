@@ -1502,7 +1502,8 @@ class CentralEngine(_cptools.XMLRPCController):
         for log in glob.glob(logsPath + os.sep + '*.log'):
             try:
                 if archiveLogsActive == 'true':
-                    archPath = archiveLogsPath.rstrip('/') + '/{}.{}.{}'.format(user, os.path.basename(log), time.time())
+                    archPath = archiveLogsPath.rstrip('/') + '/{}.{}'.format(os.path.basename(log),
+                                                                    str(time.time()).split('.')[0])
                     os.rename(log, archPath)
                     logDebug('Log file `{}` archived in `{}`.'.format(log, archPath))
             except Exception as e:
