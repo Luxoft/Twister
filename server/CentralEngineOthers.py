@@ -1370,7 +1370,7 @@ class Project:
                     return log
 
                 try:
-                    server.sendmail(eMailConfig['From'], eMailConfig['To'], msg.as_string())
+                    server.sendmail(eMailConfig['From'], eMailConfig['To'], eMailConfig['Message'])
                     logDebug('SMTP: E-mail sent successfully!')
                     server.quit()
                     return True
