@@ -1,7 +1,7 @@
 
 # File: ResourceAllocator.py ; This file is part of Twister.
 
-# version: 2.002
+# version: 2.003
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -126,12 +126,15 @@ def _get_res_pointer(parent_node, query):
 
 class ResourceAllocator(_cptools.XMLRPCController):
 
-    def __init__(self):
+    def __init__(self, parent, project):
+
+        self.project = project
+        self.parent  = parent
 
         self.resources = {'name': '/', 'meta': {}, 'children': {}}
         self.acc_lock = thread.allocate_lock() # Task change lock
         self.ren_lock = thread.allocate_lock() # Rename lock
-        self.cfg_file = '{0}/config/resources.json'.format(TWISTER_PATH)
+        self.cfg_file = '{}/config/resources.json'.format(TWISTER_PATH)
         self._load(v=True)
 
 #
@@ -149,7 +152,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
                     logDebug('RA: Resources loaded successfully.')
             except:
                 if v:
-                    logDebug('RA: There are no resources to load! Invalid path `{0}`!'.format(self.cfg_file))
+                    logDebug('RA: There are no resources to load! Invalid path `{}`!'.format(self.cfg_file))
 
         return True
 
@@ -246,6 +249,14 @@ class ResourceAllocator(_cptools.XMLRPCController):
         '''
         Create or change a resource, using a name, a parent Path or ID and some properties.
         '''
+        # Check the username from CherryPy connection
+        cherry_roles = self.project._checkUser()
+        if not cherry_roles:
+            return False
+        if 'CHANGE_TESTBED' not in cherry_roles['roles']:
+            logDebug('Privileges ERROR! Username `{user}` cannot use Set Resource!'.format(**cherry_roles))
+            return False
+
         self._load(v=False)
 
         parent_p = _get_res_pointer(self.resources, parent)
@@ -307,6 +318,14 @@ class ResourceAllocator(_cptools.XMLRPCController):
         '''
         Rename a resource.
         '''
+        # Check the username from CherryPy connection
+        cherry_roles = self.project._checkUser()
+        if not cherry_roles:
+            return False
+        if 'CHANGE_TESTBED' not in cherry_roles['roles']:
+            logDebug('Privileges ERROR! Username `{user}` cannot use Rename Resource!'.format(**cherry_roles))
+            return False
+
         self._load(v=False)
 
         # If no resources...
@@ -387,6 +406,14 @@ class ResourceAllocator(_cptools.XMLRPCController):
         '''
         Permanently delete a resource.
         '''
+        # Check the username from CherryPy connection
+        cherry_roles = self.project._checkUser()
+        if not cherry_roles:
+            return False
+        if 'CHANGE_TESTBED' not in cherry_roles['roles']:
+            logDebug('Privileges ERROR! Username `{user}` cannot use Delete Resource!'.format(**cherry_roles))
+            return False
+
         self._load(v=False)
 
         # If no resources...

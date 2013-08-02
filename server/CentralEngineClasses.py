@@ -1,7 +1,7 @@
 
 # File: CentralEngineClasses.py ; This file is part of Twister.
 
-# version: 2.009
+# version: 2.013
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -70,7 +70,7 @@ from json import loads as jsonLoads, dumps as jsonDumps
 
 from CentralEngineOthers import Project
 from ServiceManager    import ServiceManager
-from CentralEngineRest import CentralEngineRest
+from CentralEngineRest import WebInterface
 from ResourceAllocator import ResourceAllocator
 from ReportingServer   import ReportingServer
 
@@ -103,8 +103,8 @@ class CentralEngine(_cptools.XMLRPCController):
         logDebug('CE: Initialization took %.4f seconds.' % (time.clock()-ti))
 
         self.manager = ServiceManager()
-        self.rest = CentralEngineRest(self, self.project)
-        self.ra   = ResourceAllocator()
+        self.rest = WebInterface(self, self.project)
+        self.ra   = ResourceAllocator(self, self.project)
         self.report = ReportingServer(self, self.project)
 
 
@@ -155,6 +155,13 @@ class CentralEngine(_cptools.XMLRPCController):
         Send commands to Service Manager.\n
         Valid commands are: list, start, stop, status, get config, save config, get log.
         """
+        # Check the username from CherryPy connection
+        cherry_roles = self.project._checkUser()
+        if not cherry_roles:
+            return False
+        if 'CHANGE_SERVICES' not in cherry_roles['roles']:
+            logDebug('Privileges ERROR! Username `{user}` cannot use Service Manager!'.format(**cherry_roles))
+            return False
         return self.manager.sendCommand(command, name, args, kwargs)
 
 
@@ -207,7 +214,7 @@ class CentralEngine(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
-    def sendMail(self, user):
+    def sendMail(self, user, force=False):
         """
         Send e-mail after the suites are run.\n
         Server must be in the form `adress:port`.\n
@@ -216,10 +223,10 @@ class CentralEngine(_cptools.XMLRPCController):
         """
 
         try:
-            ret = self.project.sendMail(user)
+            ret = self.project.sendMail(user, force)
             return ret
         except Exception, e:
-            logError('E-mail: Sending e-mail exception `{0}` !'.format(e))
+            logError('E-mail: Sending e-mail exception `{}` !'.format(e))
             return False
 
 
@@ -566,11 +573,11 @@ class CentralEngine(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
-    def deQueueFile(self, user):
+    def deQueueFile(self, user, epname, file_id):
         """
         Remove a file from the files queue.
         """
-        return self.project.deQueueFile(user)
+        return self.project.deQueueFile(user, epname, file_id)
 
 
 # --------------------------------------------------------------------------------------------------
@@ -692,6 +699,14 @@ class CentralEngine(_cptools.XMLRPCController):
         Returns a string (stopped, paused, running).\n
         Called from the EP.
         """
+        # Check the username from CherryPy connection
+        cherry_roles = self.project._checkUser()
+        if not cherry_roles:
+            return False
+        if not 'RUN_TESTS' in cherry_roles['roles']:
+            logDebug('Privileges ERROR! Username `{user}` cannot change EP status!'.format(**cherry_roles))
+            return False
+
         if not self.searchEP(user, epname):
             logError('CE ERROR! EP `%s` is not in the list of defined EPs: `%s`!' %
                 (str(epname), self.listEPs(user)) )
@@ -718,10 +733,13 @@ class CentralEngine(_cptools.XMLRPCController):
         else:
             logError('CE ERROR! Cannot change status for `{} {}` !'.format(user, epname))
 
-        # Send stop EP !
-        self.stopEP(user, epname)
+        # Send start/ stop command to EP !
+        if new_status == STATUS_RUNNING:
+            self.startEP(user, epname)
+        elif new_status == STATUS_STOP:
+            self.stopEP(user, epname)
 
-        # If all Stations are stopped, the Central Engine must also stop!
+        # If all Stations are stopped, the status for current user is also stop!
         # This is important, so that in the Java GUI, the buttons will change to [Play | Stop]
         if not sum([self.project.getEpInfo(user, ep).get('status', 8) for ep in self.project.parsers[user].getActiveEps()]):
 
@@ -729,7 +747,7 @@ class CentralEngine(_cptools.XMLRPCController):
             if self.project.getUserInfo(user, 'status'):
 
                 self.project.setUserInfo(user, 'status', STATUS_STOP)
-                logDebug('CE: All stations stopped for user `%s`! Central engine will also STOP!\n' % user)
+                logDebug('CE: All processes stopped for user `{}`! General status changed to STOP.\n'.format(user))
 
                 # If this run is Not temporary
                 if not (user + '_old' in self.project.users):
@@ -773,6 +791,14 @@ class CentralEngine(_cptools.XMLRPCController):
         The `message` parameter can explain why the status has changed.\n
         Both CE and EP have a status.
         """
+        # Check the username from CherryPy connection
+        cherry_roles = self.project._checkUser()
+        if not cherry_roles:
+            return False
+        if not 'RUN_TESTS' in cherry_roles['roles']:
+            logDebug('Privileges ERROR! Username `{user}` cannot change exec status!'.format(**cherry_roles))
+            return False
+
         if new_status not in execStatus.values():
             logError("CE ERROR! Status value `%s` is not in the list of defined statuses: `%s`!" % \
                 (str(new_status), str(execStatus.values())) )
@@ -961,6 +987,10 @@ class CentralEngine(_cptools.XMLRPCController):
             return False
 
         data = self.project.getFileInfo(user, epname, file_id)
+        if not data:
+            logDebug('CE ERROR! Invalid File ID `{}` !'.format(file_id))
+            return False
+
         filename = os.path.split(data['file'])[1]
         suite = data['suite']
 
@@ -977,27 +1007,29 @@ class CentralEngine(_cptools.XMLRPCController):
         else: status_str='*%s*' % status_str.upper()
 
         if new_status != STATUS_WORKING:
-            # Inject information into File Classes
+
+            # Inject information into Files. This will be used when saving into database.
             now = datetime.datetime.today()
 
-            self.project.setFileInfo(user, epname, file_id, 'twister_tc_status',
-                status_str.replace('*', ''))
+            self.project.setFileInfo(user, epname, file_id, 'twister_tc_status', status_str.replace('*', ''))
             self.project.setFileInfo(user, epname, file_id, 'twister_tc_crash_detected',
-                data.get('twister_tc_crash_detected', 0))
-            self.project.setFileInfo(user, epname, file_id, 'twister_tc_time_elapsed',
-                int(time_elapsed))
+                                    data.get('twister_tc_crash_detected', 0))
+            self.project.setFileInfo(user, epname, file_id, 'twister_tc_time_elapsed',   int(time_elapsed))
             self.project.setFileInfo(user, epname, file_id, 'twister_tc_date_started',
-                (now - datetime.timedelta(seconds=time_elapsed)).isoformat())
-            self.project.setFileInfo(user, epname, file_id, 'twister_tc_date_finished',
-                (now.isoformat()))
+                                    (now - datetime.timedelta(seconds=time_elapsed)).isoformat())
+            self.project.setFileInfo(user, epname, file_id, 'twister_tc_date_finished',  (now.isoformat()))
             suite_name = self.project.getSuiteInfo(user, epname, suite).get('name')
 
-            with open(logPath, 'a') as status_file:
-                status_file.write(' {ep}::{suite}::{file} | {status} | {elapsed} | {date}\n'.format(
-                    ep = epname.center(9), suite = suite_name.center(9), file = filename.center(28),
-                    status = status_str.center(11),
-                    elapsed = ('%.2fs' % time_elapsed).center(10),
-                    date = now.strftime('%a %b %d, %H:%M:%S')))
+            try:
+                with open(logPath, 'a') as status_file:
+                    status_file.write(' {ep}::{suite}::{file} | {status} | {elapsed} | {date}\n'.format(
+                        ep = epname.center(9), suite = suite_name.center(9), file = filename.center(28),
+                        status = status_str.center(11),
+                        elapsed = ('%.2fs' % time_elapsed).center(10),
+                        date = now.strftime('%a %b %d, %H:%M:%S')))
+            except:
+                logError('Summary log file `{}` cannot be written! User `{}` won\'t see any '\
+                         'statistics!'.format(logPath, user))
 
         # Return string
         return status_str
@@ -1276,7 +1308,11 @@ class CentralEngine(_cptools.XMLRPCController):
             return False
 
         data = self.project.getFileInfo(user, epname, file_id)
-        filename = data.get('file', 'invalid file!')
+        if not data:
+            logError('CE ERROR! Invalid File ID `{}` !'.format(file_id))
+            return False
+
+        filename = data['file']
         tests_path = self.project.getUserInfo(user, 'tests_path')
 
         if filename.startswith('~'):
@@ -1405,7 +1441,7 @@ class CentralEngine(_cptools.XMLRPCController):
         logFolder = self.project.getUserInfo(user, 'logs_path')
 
         if not logFolder:
-            logError("CE ERROR! Logs folder is `%s`!" % logFolder)
+            logError("CE ERROR! Invalid logs folder `{}`!".format(logFolder))
             return False
 
         if not os.path.exists(logFolder):
@@ -1439,7 +1475,7 @@ class CentralEngine(_cptools.XMLRPCController):
         f.close()
 
         # Calling Panic Detect
-        #self.panicDetectLogParse(user, epname, log_string)
+        #self._panicDetectLogParse(user, epname, log_string)
         return True
 
 
@@ -1453,21 +1489,25 @@ class CentralEngine(_cptools.XMLRPCController):
         logsPath = self.project.getUserInfo(user, 'logs_path')
         logTypes = self.project.getUserInfo(user, 'log_types')
 
-        # archive logs
-        #archiveLogsPathActive = self.project.getUserInfo(user, 'archive_logs_path_active')
-        #archiveLogsPath = self.project.getUserInfo(user, 'archive_logs_path')
-
-        vError = False
-        logDebug('Cleaning {0} log files...'.format(len(logTypes)))
+        # Archive logs
+        archiveLogsActive = self.project.getUserInfo(user, 'archive_logs_path_active')
+        archiveLogsPath   = self.project.getUserInfo(user, 'archive_logs_path')
 
         twister_cache = '/'.join(logsPath.rstrip('/').split('/')[:-1]) + '/.twister_cache'
         self.project.setFileOwner(user, twister_cache)
 
+        logDebug('Cleaning {} log files...'.format(len(logTypes)))
+        vError = False
+
         for log in glob.glob(logsPath + os.sep + '*.log'):
             try:
-                #if archiveLogsPathActive == 'true':
-                #    os.rename(log, os.path.join(archiveLogsPath,
-                #                '{0}.{1}'.format(os.path.basename(log), time.time())))
+                if archiveLogsActive == 'true':
+                    archPath = archiveLogsPath.rstrip('/') + '/{}.{}.{}'.format(user, os.path.basename(log), time.time())
+                    os.rename(log, archPath)
+                    logDebug('Log file `{}` archived in `{}`.'.format(log, archPath))
+            except Exception as e:
+                logError('Logs ERROR! Cannot archive log `{}` in `{}`! Exception `{}`!'.format(log, archiveLogsPath, e))
+            try:
                 os.remove(log)
             except Exception as e:
                 pass
@@ -1480,7 +1520,7 @@ class CentralEngine(_cptools.XMLRPCController):
                     try:
                         open(logPath, 'w').close()
                     except:
-                        logError('CE ERROR! Log file `{0}` cannot be reset!'.format(logPath))
+                        logError('Logs ERROR! Log file `{}` cannot be re-written!'.format(logPath))
                         vError = True
                     self.project.setFileOwner(user, logPath)
             # For normal logs
@@ -1489,7 +1529,7 @@ class CentralEngine(_cptools.XMLRPCController):
                 try:
                     open(logPath, 'w').close()
                 except:
-                    logError('CE ERROR! Log file `{0}` cannot be reset!'.format(logPath))
+                    logError('Logs ERROR! Log file `{}` cannot be re-written!'.format(logPath))
                     vError = True
                 self.project.setFileOwner(user, logPath)
 
@@ -1521,11 +1561,13 @@ class CentralEngine(_cptools.XMLRPCController):
             return False
 
 
-    def panicDetectLogParse(self, user, epname, log_string):
+    def _panicDetectLogParse(self, user, epname, log_string):
         """
         Panic Detect parse log mechanism.
         """
         status = False
+
+        self.project.panicDetectConfig(user, 'list')
 
         if not self.project.panicDetectRegularExpressions.has_key(user):
             return status

@@ -249,7 +249,7 @@ class TSCParser:
         High level function for listing all settings from a Twister XML config file.
         """
         if not os.path.isfile(xmlFile):
-            print('Parse settings error! File path `{0}` does not exist!'.format(xmlFile))
+            print('Parse settings error! File path `{}` does not exist!'.format(xmlFile))
             return False
         xmlSoup = etree.parse(xmlFile)
         if xFilter:
@@ -263,7 +263,7 @@ class TSCParser:
         High level function for getting a value from a Twister XML config file.
         """
         if not os.path.isfile(xmlFile):
-            print('Parse settings error! File path `{0}` does not exist!'.format(xmlFile))
+            print('Parse settings error! File path `{}` does not exist!'.format(xmlFile))
             return False
         if not key:
             return False
@@ -283,7 +283,7 @@ class TSCParser:
         High level function for setting a value in a Twister XML config file.
         """
         if not os.path.isfile(xmlFile):
-            print('Parse settings error! File path `{0}` does not exist!'.format(xmlFile))
+            print('Parse settings error! File path `{}` does not exist!'.format(xmlFile))
             return False
         if not key:
             return False
@@ -300,10 +300,27 @@ class TSCParser:
         # If the key is found, update it
         if xml_key:
             xml_key[0].text = value
-            xmlSoup.write(xmlFile, pretty_print=True)
-            return True
+
+        # Else, create it
         else:
-            return False
+            # Try and split the key into parent and node
+            if '/' in key:
+                parent_path, node_name = '/'.join(key.split('/')[:-1]), key.split('/')[-1]
+            else:
+                parent_path, node_name = '/', key
+            parent = xmlSoup.xpath(parent_path)
+            # Invalid parent path ?
+            if not parent:
+                return False
+
+            # Create the new node
+            node = etree.Element(node_name)
+            node.text = value
+            node.tail = '\n'
+            parent[0].insert(-1, node)
+
+        xmlSoup.write(xmlFile, pretty_print=True)
+        return True
 
 
     def delSettingsKey(self, xmlFile, key, index=0):
@@ -314,7 +331,7 @@ class TSCParser:
         values are deleted.
         """
         if not os.path.isfile(xmlFile):
-            print('Parse settings error! File path `{0}` does not exist!'.format(xmlFile))
+            print('Parse settings error! File path `{}` does not exist!'.format(xmlFile))
             return False
         # The key must be string
         if not (isinstance(key, str) or isinstance(key, unicode)):
@@ -356,7 +373,7 @@ class TSCParser:
         This function writes in TestSuites.XML file.
         """
         if not os.path.isfile(xmlFile):
-            print('Parse settings error! File path `{0}` does not exist!'.format(xmlFile))
+            print('Parse settings error! File path `{}` does not exist!'.format(xmlFile))
             return False
         if not suite:
             return False
@@ -416,7 +433,7 @@ class TSCParser:
         This function writes in TestSuites.XML file.
         """
         if not os.path.isfile(xmlFile):
-            print('Parse settings error! File path `{0}` does not exist!'.format(xmlFile))
+            print('Parse settings error! File path `{}` does not exist!'.format(xmlFile))
             return False
         if not suite:
             return False
