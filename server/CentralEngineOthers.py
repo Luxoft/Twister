@@ -1338,6 +1338,49 @@ class Project:
                 logWarning(log)
                 return log
 
+            if force:
+                logDebug('Preparing to send a test e-mail ...')
+
+                try:
+                    server = smtplib.SMTP(eMailConfig['SMTPPath'])
+                except:
+                    log = 'SMTP: Cannot connect to SMTP server `{}`!'.format(eMailConfig['SMTPPath'])
+                    logError(log)
+                    return log
+
+                try:
+                    logDebug('SMTP: Preparing to login...')
+                    server.ehlo()
+                    server.starttls()
+                    server.ehlo()
+
+                    # Decode e-mail password
+                    try:
+                        SMTPPwd = binascii.a2b_base64(eMailConfig['SMTPPwd'])
+                    except:
+                        log = 'Password: Invalid SMTP password! Please update your password and try again!'
+                        logError(log)
+                        return log
+
+                    server.login(eMailConfig['SMTPUser'], SMTPPwd)
+                    server.login(eMailConfig['SMTPUser'], eMailConfig['SMTPPwd'])
+                except:
+                    log = 'SMTP: Cannot autentificate to SMTP server! Invalid user or password!'
+                    logError(log)
+                    return log
+
+                try:
+                    server.sendmail(eMailConfig['From'], eMailConfig['To'], msg.as_string())
+                    logDebug('SMTP: E-mail sent successfully!')
+                    server.quit()
+                    return True
+                except:
+                    log = 'SMTP: Cannot send e-mail!'
+                    logError(log)
+                    return log
+
+                return True
+
             try:
                 logPath = self.users[user]['log_types']['logSummary']
                 logSummary = open(logPath).read()
