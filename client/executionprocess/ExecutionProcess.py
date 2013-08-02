@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# version: 2.004
+# version: 2.005
 
 # File: ExecutionProcess.py ; This file is part of Twister.
 
@@ -169,8 +169,7 @@ class threadCheckStatus(threading.Thread):
 
             # If status changed
             if newEpStatus != epStatus:
-                print('Py debug: For EP %s, CE Server returned a new status: %s.' %
-                    (globEpName.upper(), str(newEpStatus)))
+                print('Debug: CE returned status `{}` for `{}`.'.format(newEpStatus, globEpName.upper()))
             epStatus = newEpStatus
 
             saveConfig() # Save configuration EVERY cycle
@@ -178,12 +177,15 @@ class threadCheckStatus(threading.Thread):
 
             # Save EP info like OS, IP, user id, user group, EVERY 10 cycles
             if not self.cycle:
+                ep_host = socket.gethostname()
+                try: ep_ip = socket.gethostbyname(ep_host)
+                except: ep_ip = ''
+                system = platform.machine() +' '+ platform.system() +', '+ ' '.join(platform.linux_distribution())
                 try:
                     if not proxy.getEpVariable(userName, globEpName, 'twister_ep_hostname'):
-                        proxy.setEpVariable(userName, globEpName, 'twister_ep_os',
-                            (platform.machine() +' '+ platform.system() +', '+ ' '.join(platform.linux_distribution())))
-                        proxy.setEpVariable(userName, globEpName, 'twister_ep_hostname', socket.gethostname())
-                        proxy.setEpVariable(userName, globEpName, 'twister_ep_ip', socket.gethostbyname(socket.gethostname()) )
+                        proxy.setEpVariable(userName, globEpName, 'twister_ep_os', system)
+                        proxy.setEpVariable(userName, globEpName, 'twister_ep_hostname', ep_host)
+                        proxy.setEpVariable(userName, globEpName, 'twister_ep_ip', ep_ip)
                         proxy.setEpVariable(userName, globEpName, 'twister_ep_python_revision', '.'.join([str(v) for v in sys.version_info]) )
                 except:
                     pass
@@ -196,7 +198,7 @@ class threadCheckStatus(threading.Thread):
                 if tcr_pid:
                     try:
                         os.kill(tcr_pid, 9)
-                        print('EP warning: STOP from Central Engine! Killing Runner PID %s.' % str(tcr_pid))
+                        print('EP warning: STOP from Central Engine! Killing Runner PID `{}`.'.format(tcr_pid))
                         tcr_pid = None
                     except:
                         pass

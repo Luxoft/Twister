@@ -1,7 +1,7 @@
 
 # File: CentralEngineOthers.py ; This file is part of Twister.
 
-# version: 2.017
+# version: 2.018
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -1592,12 +1592,17 @@ class Project:
                     # Add file info
                     subst_data.update(file_info)
 
+                    ce_host = socket.gethostname()
+                    try: ce_ip = socket.gethostbyname(ce_host)
+                    except: ce_ip = ''
+
                     # Insert/ fix DB variables
                     subst_data['twister_user']     = user
                     subst_data['twister_rf_fname'] = '{}/config/resources.json'.format(TWISTER_PATH)
                     subst_data['twister_pf_fname'] = '{}/config/project_users.json'.format(TWISTER_PATH)
                     subst_data['twister_ce_os']    = system
-                    subst_data['twister_ce_hostname'] = socket.gethostname()
+                    subst_data['twister_ce_hostname'] = ce_host
+                    subst_data['twister_ce_ip']       = ce_ip
                     subst_data['twister_ce_python_revision'] = '.'.join([str(v) for v in sys.version_info])
                     subst_data['twister_ep_name']    = epname
                     subst_data['twister_suite_name'] = suite_info['name']
