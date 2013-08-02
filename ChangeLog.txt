@@ -1,9 +1,17 @@
 02nd August 2013
 
-- fix for issue #37
-- fix for issue #42
-- fix for issue #56
-- fix for issue #35
+- fix for issue #37 - de-queue test cases for cli.py
+- fix for issue #42 - Testcase Filename contains '//' in CLI log
+- fix for issue #56 - cli.py version number not correctly reported
+- fix for issue #35 - log slider panel updated to show full messages
+- added test button for email configuration
+- added mechanism to backup the client log files
+- added mechanism to stop execution of the test cases if the pre-execution
+  script fails
+- exported internal variables twister_user, twister_ce_ip and twister_ep_os
+  they can be saved into DB
+- updated UserGuide document
+- applet changes for User Management prototype
 
 18th July 2013
 
