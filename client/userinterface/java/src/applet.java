@@ -1,6 +1,6 @@
 /*
 File: applet.java ; This file is part of Twister.
-Version: 2.002
+Version: 2.001
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -18,98 +18,30 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 import java.applet.Applet; 
-import java.awt.Graphics; 
 import java.awt.Color;
-import java.awt.Dimension;
-import java.awt.Toolkit;
-import javax.swing.ImageIcon;
-import javax.swing.JOptionPane;
-import java.io.File;
-import javax.imageio.ImageIO;
-import java.io.InputStream;
-import java.io.BufferedReader;
-import java.io.StringWriter;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
-import java.io.ByteArrayOutputStream;
-import java.io.ByteArrayInputStream;
-import java.awt.image.BufferedImage;
-import java.awt.Image;
-import javax.swing.UIManager;
-import javax.swing.SwingUtilities;
-import java.net.URLClassLoader;
-import com.twister.MySecurityManager;
 import java.net.URL;
+import com.twister.MySecurityManager;
+import java.awt.Image;
+import java.io.InputStream;
+import javax.swing.ImageIcon;
+import javax.imageio.ImageIO;
 
 public class applet extends Applet{ 
     private static final long serialVersionUID = 1L;
     
     //applet initialization
     public void init(){
-//         try{UIManager.setLookAndFeel("javax.swing.plaf.nimbus.NimbusLookAndFeel");}
-//         catch(Exception e){e.printStackTrace();} 
-        
-        /*
-         * load all icons from jar into Repository
-         */
-        try{
-            System.out.println("OS current temporary directory is : "+
-                                System.getProperty("java.io.tmpdir"));
-            System.setSecurityManager(new MySecurityManager());
-            Repository.tcicon = loadIcon("tc.png");
-            Repository.background = loadIcon("background.png");
-            Repository.pendingicon = loadIcon("pending.png");
-            Repository.deviceicon = loadIcon("device.png");
-            Repository.upicon = loadIcon("up.png");
-            Repository.moduleicon = loadIcon("module.png");
-            Repository.notexecicon = loadIcon("notexec.png");
-            Repository.skipicon = loadIcon("skip.png");
-            Repository.stoppedicon = loadIcon("stopped.png");
-            Repository.timeouticon = loadIcon("timeout.png");
-            Repository.waiticon = loadIcon("waiting.png");
-            Repository.workingicon = loadIcon("working.png");
-            Repository.suitaicon = loadIcon("suita.png");
-            Repository.propicon = loadIcon("prop.png");
-            Repository.vlcclient = loadIcon("vlcclient.png");
-            Repository.failicon = loadIcon("fail.png");
-            Repository.passicon = loadIcon("pass.png");
-            Repository.stopicon = loadIcon("stop.png");
-            Repository.switche = loadIcon("switch.png");
-            Repository.switche2 = loadIcon("switch.jpg");
-            Repository.flootw = loadIcon("twisterfloodlight.png");
-            Repository.rack150 = loadIcon("150.png");
-            Repository.rack151 = loadIcon("151.png");
-            Repository.rack152 = loadIcon("152.png");
-            Repository.vlcserver = loadIcon("vlcserver.png");
-            Repository.playicon = loadIcon("play.png");
-            Repository.addsuitaicon = loadIcon("addsuita.png");
-            Repository.removeicon = loadIcon("deleteicon.png");
-            Repository.pauseicon = loadIcon("pause.png");
-            Repository.porticon = loadIcon("port.png");
-            Repository.testbedicon = loadIcon("testbed.png");
-            Repository.inicon = loadIcon("in.png");
-            Repository.outicon = loadIcon("out.png");
-            Repository.passwordicon = loadIcon("passwordicon.png");
-            Repository.baricon = loadIcon("bar.png");
-            //Repository.optional = loadIcon("optional.png");
-        }
-        catch(Exception e){e.printStackTrace();}
+        System.setSecurityManager(new MySecurityManager());
         setLayout(null);
-        /*
-         * start Repository initialization and passing to it
-         * true - because starts from applet
-         * host - server address
-         * this - as container
-         */
-        Repository.initialize(true, getCodeBase().getHost(),applet.this);
         try{
             getAppletContext().showDocument(new URL("javascript:resize()"));
         } catch (Exception e) {
             System.err.println("Failed to call JavaScript function appletLoaded()");
-        }    
+        }
+        MainRepository.background = loadIcon("background.png");
+        MainRepository.initialize(this,getCodeBase().getHost(),this);
     }
-        
-        
+    
     /*
      * the general method to load icons from jar
      */
@@ -127,30 +59,17 @@ public class applet extends Applet{
             e.printStackTrace();}
         return image;}
     
-        
     /*
      * set size method for applet
      * called by javascript when browser resizes
      */
     public void setSize(int width, int height){
         super.setSize(width,height);
-        Repository.window.mainpanel.setSize(width-20,height-20);
-        //Repository.window.mainpanel.p2.splitPane.setSize(width-52,height-120);
-        Repository.window.mainpanel.p1.splitPane.setSize(width-52,height-120);
-        Repository.window.mainpanel.setSize(width-28,height-40);
-        Repository.window.mainpanel.p4.getScroll().setSize(width-310,height-150);
-        Repository.window.mainpanel.p4.getMain().setSize(width-300,height-130);
-        Repository.window.mainpanel.p4.getTB().setPreferredSize(
-            new Dimension(width-300,height-150));
-        Repository.window.appletpanel.setSize(width-20,height-20);        
-        Repository.window.mainpanel.p4.getPlugins().setPreferredSize(
-            new Dimension(getWidth()-300,getHeight()-150));
-        Repository.window.mainpanel.p4.getPlugins().horizontalsplit.setPreferredSize(
-            new Dimension(getWidth()-305,getHeight()-155));
-        
-//         Repository.window.mainpanel.p5.setPreferredSize(new Dimension(getWidth()-50,672));
-        System.out.println("Resizing to: "+width+" - "+height);
-        validate();}
+        System.out.println("applet resizing to: "+width+" - "+height);
+        validate();
+        MainRepository.resize(width,height);
+    
+    }
     
     /*
      * applet stop method
@@ -164,13 +83,6 @@ public class applet extends Applet{
      * by twister on startup
      */
     public void destroy(){
-        System.out.println("applet destroying");
-        Repository.saveMainLayout();
-        File file = new File(Repository.temp);
-        if(file.exists()){
-            if(Window.deleteTemp(file))
-                System.out.println(Repository.temp+" deleted successfull");
-            else System.out.println("Could not delete: "+Repository.temp);}
         System.exit(0);}
         
     /*

@@ -1,6 +1,6 @@
 /*
-File: Repository.java ; This file is part of Twister.
-Version: 2.0014
+File: RunnerRepository.java ; This file is part of Twister.
+Version: 2.0015
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -153,8 +153,8 @@ public class RunnerRepository {
     private static String[] lookAndFeels;
     public static Container container;
     private static Document pluginsconfig;
-    private static String version = "2.016";
-    private static String builddate = "26.07.2013";
+    private static String version = "2.017";
+    private static String builddate = "02.08.2013";
     
     
 //     public void init(ArrayList<Item> suite, ArrayList<Item> suitetest,

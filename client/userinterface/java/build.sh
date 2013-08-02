@@ -10,6 +10,9 @@ extlibs/commons-vfs-1.0.jar:\
 extlibs/jgoodies-looks-2.5.1.jar:\
 extlibs/jgoodies-common-1.3.1.jar:\
 extlibs/jxl.jar:\
+extlibs/runner.jar:\
+extlibs/ControlPanel.jar:\
+extlibs/UserManagement.jar:\
 extlibs/ws-commons-util-1.0.2.jar:\
 extlibs/xmlrpc-client-3.1.3.jar:\
 extlibs/xmlrpc-common-3.1.3.jar
@@ -47,6 +50,13 @@ echo "Signing jar file jgoodies-common-1.3.1.jar"
 $JDK_PATH/jarsigner ../extlibs/jgoodies-common-1.3.1.jar Twister -storepass password
 echo "Signing jar file jcalendar-1.4.jar"
 $JDK_PATH/jarsigner ../extlibs/jcalendar-1.4.jar Twister -storepass password
+
+echo "Signing jar file UserManagement.jar"
+$JDK_PATH/jarsigner ../extlibs/UserManagement.jar Twister -storepass password
+echo "Signing jar file runner.jar"
+$JDK_PATH/jarsigner ../extlibs/runner.jar Twister -storepass password
+echo "Signing jar file ControlPanel.jar"
+$JDK_PATH/jarsigner ../extlibs/ControlPanel.jar Twister -storepass password
 
 echo "Signing jar file Twister.jar"
 $JDK_PATH/jarsigner ../extlibs/Twister.jar Twister -storepass password

@@ -1,5 +1,5 @@
 /*
-File: MyFolder.java ; This file is part of Twister.
+File: PluginManager.java ; This file is part of Twister.
 Version: 2.001
 
 Copyright (C) 2012-2013 , Luxoft
@@ -17,28 +17,23 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-import org.w3c.dom.Node;
+import com.twister.plugin.twisterinterface.CommonInterface;
+import java.io.File;
 
-class MyFolder{
-    private Node node,desc;
+public class PluginManager implements CommonInterface{
     
-    public MyFolder(Node node){
-        this.node = node;
+    public void loadComponent(String comp){
+        if(comp.equals("reports")){
+            MainRepository.loadReports();
+        } else if(comp.equals("login")){
+            MainRepository.applet.init();
+        } else {
+//             File f = MainRepository.getRemoteFile(comp+".jar");
+//             MainRepository.loadPlugin(f, comp);
+            MainRepository.loadPlugin(comp);
+        }
     }
     
-    public Node getNode(){
-        return node;
-    }
-    
-    public void setDesc(Node desc){
-        this.desc = desc;
-    }
-    
-    public Node getDesc(){
-        return desc;
-    }
-    
-    public String toString(){
-        return node.getNodeValue();
+    public void downloadJar(String comp){
     }
 }

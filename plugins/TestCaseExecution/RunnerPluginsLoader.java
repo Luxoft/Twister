@@ -1,5 +1,5 @@
 /*
-File: PluginsLoader.java ; This file is part of Twister.
+File: RunnerPluginsLoader.java ; This file is part of Twister.
 Version: 2.001
 
 Copyright (C) 2012-2013 , Luxoft

@@ -36,9 +36,9 @@ public class PluginsLoader {
     public static void setClassPath(){
         try{
             if(sysLoader==null){
-                sysLoader= new URLClassLoader(new URL[]{},Plugins.class.getClassLoader());
+                sysLoader= new URLClassLoader(new URL[]{},MainRepository.class.getClassLoader());
             }
-            addDirToClasspath(new File(Repository.PLUGINSDIRECTORY));
+            addDirToClasspath(new File(MainRepository.temp+MainRepository.bar+"components"));
         }
         catch(Exception e){e.printStackTrace();}}
     
@@ -46,13 +46,11 @@ public class PluginsLoader {
         return ServiceLoader.load(TwisterPluginInterface.class,sysLoader).iterator();}
     
     public static void addDirToClasspath(File directory) throws Exception{
-        if(directory.exists()){
-            File[]files = directory.listFiles();
-            for(int i=0;i<files.length;i++){
-                File file = files[i];
-                addURL(file.toURI().toURL());}}}
+        addURL(directory.toURI().toURL());
+    }
     
     public static void addURL(URL u) throws Exception{
+        System.out.println("URL: "+u.toString());
         URL urls[] = sysLoader.getURLs();
         for(int i=0;i<urls.length;i++){
             if(urls[i].toString().equalsIgnoreCase(u.toString())){
