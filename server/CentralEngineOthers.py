@@ -1342,7 +1342,7 @@ class Project:
                 logDebug('Preparing to send a test e-mail ...')
 
                 try:
-                    server = smtplib.SMTP(eMailConfig['SMTPPath'])
+                    server = smtplib.SMTP(eMailConfig['SMTPPath'], timeout=2)
                 except:
                     log = 'SMTP: Cannot connect to SMTP server `{}`!'.format(eMailConfig['SMTPPath'])
                     logError(log)
@@ -1507,7 +1507,7 @@ class Project:
                 logDebug('Preparing to send a test e-mail ...')
 
             try:
-                server = smtplib.SMTP(eMailConfig['SMTPPath'])
+                server = smtplib.SMTP(eMailConfig['SMTPPath'], timeout=2)
             except:
                 log = 'SMTP: Cannot connect to SMTP server `{}`!'.format(eMailConfig['SMTPPath'])
                 logError(log)
