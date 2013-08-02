@@ -1,7 +1,7 @@
 
-# version: 2.002
+# version: 2.003
 
-from TscSshLib import SshManager
+from ce_libs import SshManager
 
 #
 # <title>Testing Twister Ssh library</title>
@@ -86,7 +86,7 @@ def test():
 	print 'list_connections'
 	print sm.list_connections()
 
-	logMsg('Twister Ssh test done.')
+	logMsg('logRunning','Twister Ssh test done.')
 	# This return is used by the framework!
 	return "PASS"
 
