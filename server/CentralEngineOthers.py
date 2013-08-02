@@ -1,7 +1,7 @@
 
 # File: CentralEngineOthers.py ; This file is part of Twister.
 
-# version: 2.018
+# version: 2.019
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -1370,11 +1370,27 @@ class Project:
                     return log
 
                 try:
-                    server.sendmail(eMailConfig['From'], eMailConfig['To'], eMailConfig['Message'])
+                    eMailConfig['To'] = eMailConfig['To'].replace(';', ',')
+                    eMailConfig['To'] = eMailConfig['To'].split(',')
+
+                    msg = MIMEMultipart()
+                    msg['From'] = eMailConfig['From']
+                    msg['To'] = eMailConfig['To'][0]
+
+                    if len(eMailConfig['To']) > 1:
+                        # Carbon Copy recipients
+                        msg['CC'] = ','.join(eMailConfig['To'][1:])
+                    msg['Subject'] = eMailConfig['Subject']
+
+                    msg.attach(MIMEText(eMailConfig['Message'], 'plain'))
+
+                    server.sendmail(eMailConfig['From'], eMailConfig['To'], msg.as_string())
+
                     logDebug('SMTP: E-mail sent successfully!')
                     server.quit()
+
                     return True
-                except:
+                except Exception as e:
                     log = 'SMTP: Cannot send e-mail!'
                     logError(log)
                     return log
