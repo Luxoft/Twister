@@ -14,6 +14,8 @@ Master config file for Twister.
     <EmailConfigFile>$HOME/twister/config/email.xml</EmailConfigFile>
     <GlobalParams>>$HOME/twister/config/globalparams.xml</GlobalParams>
     <LibsPath>$HOME/twister/libs</LibsPath>
+    <ArchiveLogsPath>$HOME/twister/logs_archive</ArchiveLogsPath>
+    <ArchiveLogsPathActive>false</ArchiveLogsPathActive>
     <LogsPath>$HOME/twister/logs</LogsPath>
     <LogFiles>
         <logRunning>log_running.log</logRunning>

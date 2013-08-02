@@ -1,7 +1,7 @@
 
 # File: xmlparser.py ; This file is part of Twister.
 
-# version: 2.008
+# version: 2.009
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -47,9 +47,8 @@ from common.suitesmanager import *
 from common.constants import FWMCONFIG_TAGS, PROJECTCONFIG_TAGS
 from common.constants import SUITES_TAGS, TESTS_TAGS
 
-__all__ = ['TSCParser', 'DBParser', 'PluginParser', 'userHome', 'checkUsers']
+__all__ = ['TSCParser', 'DBParser', 'PluginParser', 'userHome']
 
-#
 
 def userHome(user):
     """
@@ -57,29 +56,6 @@ def userHome(user):
     """
     return subprocess.check_output('echo ~' + user, shell=True).strip()
 
-def checkUsers():
-    """
-    Check all users from etc/passwd, that have Twister in their home folder.
-    """
-    lines = open('/etc/passwd').readlines()
-    users = []
-    for line in lines:
-        path = line.split(':')[5]
-        if os.path.isdir(path + '/twister/config'):
-            users.append(line.split(':')[0])
-    # Check if the machine has NIS users
-    try:
-        subprocess.check_output('nisdomainname')
-        u = subprocess.check_output("ypcat passwd | awk -F : '{print $1}'", shell=True)
-        for user in u.split():
-            home = userHome(user)
-            if os.path.isdir(home + '/twister/config'):
-                users.append(user)
-    except:
-        pass
-    return sorted( set(users) )
-
-#
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # #
@@ -273,7 +249,7 @@ class TSCParser:
         High level function for listing all settings from a Twister XML config file.
         """
         if not os.path.isfile(xmlFile):
-            print('Parse settings error! File path `{0}` does not exist!'.format(xmlFile))
+            print('Parse settings error! File path `{}` does not exist!'.format(xmlFile))
             return False
         xmlSoup = etree.parse(xmlFile)
         if xFilter:
@@ -287,7 +263,7 @@ class TSCParser:
         High level function for getting a value from a Twister XML config file.
         """
         if not os.path.isfile(xmlFile):
-            print('Parse settings error! File path `{0}` does not exist!'.format(xmlFile))
+            print('Parse settings error! File path `{}` does not exist!'.format(xmlFile))
             return False
         if not key:
             return False
@@ -307,7 +283,7 @@ class TSCParser:
         High level function for setting a value in a Twister XML config file.
         """
         if not os.path.isfile(xmlFile):
-            print('Parse settings error! File path `{0}` does not exist!'.format(xmlFile))
+            print('Parse settings error! File path `{}` does not exist!'.format(xmlFile))
             return False
         if not key:
             return False
@@ -324,10 +300,27 @@ class TSCParser:
         # If the key is found, update it
         if xml_key:
             xml_key[0].text = value
-            xmlSoup.write(xmlFile, pretty_print=True)
-            return True
+
+        # Else, create it
         else:
-            return False
+            # Try and split the key into parent and node
+            if '/' in key:
+                parent_path, node_name = '/'.join(key.split('/')[:-1]), key.split('/')[-1]
+            else:
+                parent_path, node_name = '/', key
+            parent = xmlSoup.xpath(parent_path)
+            # Invalid parent path ?
+            if not parent:
+                return False
+
+            # Create the new node
+            node = etree.Element(node_name)
+            node.text = value
+            node.tail = '\n'
+            parent[0].insert(-1, node)
+
+        xmlSoup.write(xmlFile, pretty_print=True)
+        return True
 
 
     def delSettingsKey(self, xmlFile, key, index=0):
@@ -338,7 +331,7 @@ class TSCParser:
         values are deleted.
         """
         if not os.path.isfile(xmlFile):
-            print('Parse settings error! File path `{0}` does not exist!'.format(xmlFile))
+            print('Parse settings error! File path `{}` does not exist!'.format(xmlFile))
             return False
         # The key must be string
         if not (isinstance(key, str) or isinstance(key, unicode)):
@@ -380,7 +373,7 @@ class TSCParser:
         This function writes in TestSuites.XML file.
         """
         if not os.path.isfile(xmlFile):
-            print('Parse settings error! File path `{0}` does not exist!'.format(xmlFile))
+            print('Parse settings error! File path `{}` does not exist!'.format(xmlFile))
             return False
         if not suite:
             return False
@@ -440,7 +433,7 @@ class TSCParser:
         This function writes in TestSuites.XML file.
         """
         if not os.path.isfile(xmlFile):
-            print('Parse settings error! File path `{0}` does not exist!'.format(xmlFile))
+            print('Parse settings error! File path `{}` does not exist!'.format(xmlFile))
             return False
         if not suite:
             return False

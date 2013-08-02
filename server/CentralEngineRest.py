@@ -1,7 +1,7 @@
 
 # File: CentralEngineRest.py ; This file is part of Twister.
 
-# version: 2.006
+# version: 2.007
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -25,8 +25,8 @@
 # limitations under the License.
 
 """
-Central Engine REST
-*******************
+Central Engine Management
+*************************
 
 All functions are exposed and can be accessed using the browser.\n
 It is used mostly for debugging. Its role is to view statistics,
@@ -34,13 +34,12 @@ logs and the connected users. A user can also start and stop the EPs.
 """
 
 import os, sys
-import glob
 import json
 import time
 import platform
 
-import cherrypy
 import mako
+import cherrypy
 from mako.template import Template
 from binascii import unhexlify as decode
 
@@ -143,10 +142,12 @@ def dirList(tests_path, path, newdict):
         dirList(tests_path, tests_path + os.sep + nitem['data'], nitem)
 
 
-# # # # #
+# --------------------------------------------------------------------------------------------------
+# # # #    W e b   I n t e r f a c e    # # #
+# --------------------------------------------------------------------------------------------------
 
 
-class CentralEngineRest:
+class WebInterface:
 
     def __init__(self, parent, project):
 
@@ -175,13 +176,15 @@ class CentralEngineRest:
 
         try: srv_ver = open(TWISTER_PATH + '/server/version.txt').read().strip()
         except: srv_ver = '-'
+        srv_type = self.project.server_init['ce_server_type']
         ip_port = cherrypy.request.headers['Host']
         machine = platform.uname()[1]
         system  = ' '.join(platform.linux_distribution())
         users   = self.project.listUsers()
 
         output = Template(filename=TWISTER_PATH + '/server/template/rest_main.htm')
-        return output.render(srv_ver=srv_ver, ip_port=ip_port, machine=machine, system=system, users=users)
+        return output.render(srv_type=srv_type, srv_ver=srv_ver, ip_port=ip_port,
+               machine=machine, system=system, users=users)
 
 
     @cherrypy.expose
@@ -243,9 +246,9 @@ class CentralEngineRest:
         json_data = json.loads(raw_data)
         del cl, raw_data
 
-        # Delete all suites from root xml
-        self.project.delSettingsKey(user, 'project', '/Root/TestSuite', -1)
-        changes = 'Reset project file.\n'
+        # Delete everything from XML Root
+        self.project.delSettingsKey(user, 'project', '//TestSuite')
+        changes = 'Reset project file...\n'
 
         for suite_data in json_data:
             self.project.setPersistentSuite(user, suite_data['data'], {'ep': decode(epname)})
@@ -256,6 +259,7 @@ class CentralEngineRest:
 
         changes += '>.<\n'
         logDebug(changes)
+        return 'true'
 
 
     @cherrypy.expose
@@ -368,6 +372,5 @@ class CentralEngineRest:
             host = cherrypy.request.headers['Host'], user = user, epname = epname
         ))
 
-# # #
 
 # Eof()

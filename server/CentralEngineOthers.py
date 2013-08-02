@@ -1,7 +1,7 @@
 
 # File: CentralEngineOthers.py ; This file is part of Twister.
 
-# version: 2.009
+# version: 2.018
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -75,14 +75,17 @@ import os
 import sys
 import re
 import time
-import json
 import thread
 import subprocess
 import socket
 import platform
 import smtplib
+import binascii
+import cherrypy
 import MySQLdb
 
+try: import simplejson as json
+except: import json
 
 from string import Template
 from collections import OrderedDict
@@ -100,6 +103,12 @@ from common.constants import *
 from common.tsclogging import *
 from common.xmlparser import *
 from common.suitesmanager import *
+from common import iniparser
+
+
+# --------------------------------------------------------------------------------------------------
+# # # #    C L A S S    P r o j e c t    # # #
+# --------------------------------------------------------------------------------------------------
 
 
 class Project:
@@ -128,29 +137,35 @@ class Project:
         self.eml_lock = thread.allocate_lock()  # E-mail lock
         self.db_lock  = thread.allocate_lock()  # Database lock
 
+        # Read the production/ development option.
+        cfg_path = '{}/config/server_init.ini'.format(TWISTER_PATH)
+        if not os.path.isfile(cfg_path):
+            logError('Production/ Development ERROR: Cannot find server_init in path `{}`! Will default to `no_type`.'.format(cfg_path))
+            self.server_init = {'ce_server_type': 'no_type'}
+        else:
+            cfg = iniparser.ConfigObj(cfg_path)
+            self.server_init = cfg.dict()
+        logDebug('CE: Running server type `{ce_server_type}`.'.format(**self.server_init))
+
         # Panic Detect, load config for current user
-        self.panicDetectConfigPath = TWISTER_PATH + '/config/PanicDetectData.json'
+        self.panicDetectConfigPath = '{}/config/PanicDetectData.json'.format(TWISTER_PATH)
         if not os.path.exists(self.panicDetectConfigPath):
-            config = open(self.panicDetectConfigPath, 'wb')
-            config.write('{}')
-            config.close()
-        config = open(self.panicDetectConfigPath, 'rb')
-        self.panicDetectRegularExpressions = json.load(config)
-        config.close()
+            with open(self.panicDetectConfigPath, 'wb') as config:
+                config.write('{}')
+        with open(self.panicDetectConfigPath, 'rb') as config:
+            self.panicDetectRegularExpressions = json.load(config)
 
 
     def _common_user_reset(self, user, base_config, files_config):
-
-        try:
-            self.users[user]['eps'] = OrderedDict()
-        except:
-            pass
 
         # List with all EPs for this User
         epList = self.parsers[user].epnames
         if not epList:
             logCritical('Project ERROR: Cannot load the list of EPs for user `{}` !'.format(user))
             return False
+
+        # Create EP list
+        self.users[user]['eps'] = OrderedDict()
 
         # Generate the list of EPs in order
         for epname in epList:
@@ -196,6 +211,29 @@ class Project:
         # Global params for user
         self.users[user]['global_params'] = self.parsers[user].getGlobalParams()
 
+
+        # Groups and roles for current user
+        self.roles = self._parseUsersAndGroups()
+        if not self.roles: return False
+
+        # The username from CherryPy connection
+        cherry_usr = cherrypy.session.get('username')
+
+        # List of roles for current CherryPy user
+        cherry_roles = self.roles['users'].get(cherry_usr)
+
+        # This user doesn't exist in users and groups
+        if not cherry_roles:
+            logWarning('CherryPy user `{}` cannot be found in users and roles!'.format(cherry_usr))
+            return False
+        # This user doesn't have any roles in users and groups
+        if not cherry_roles['roles']:
+            logWarning('CherryPy user `{}` doesn\'t have any roles!'.format(cherry_usr))
+            return False
+
+        self.users[user]['user_groups'] = ', '.join(cherry_roles['groups'])
+        self.users[user]['user_roles']  = ', '.join(cherry_roles['roles'])
+
         return True
 
 
@@ -233,7 +271,6 @@ class Project:
         # Parsers contain the list of all EPs and the list of all Project Globals
         self.users[user] = OrderedDict()
         self.users[user]['status'] = STATUS_STOP
-        self.users[user]['eps'] = OrderedDict()
 
         if config_data:
             self.parsers[user] = TSCParser(user, config_data, files_config)
@@ -327,14 +364,57 @@ class Project:
         return True
 
 
+    def _checkUser(self):
+        """
+        Check CherryPy user. Used to quick find the roles of the current CherryPy user.
+        """
+        # Reload users and groups
+        self.roles = self._parseUsersAndGroups()
+        if not self.roles: return False
+
+        # The username from CherryPy connection
+        cherry_usr = cherrypy.session.get('username')
+
+        # List of roles for current CherryPy user
+        cherry_roles = self.roles['users'].get(cherry_usr)
+
+        # This user doesn't exist in users and groups
+        if not cherry_roles:
+            if self.server_init['ce_server_type'].lower() == 'production':
+                logWarning('Production Server: Username `{}` cannot be found in users and roles!'.format(cherry_usr))
+                return False
+            # The user doesn't exist ... creating a virtual user
+            cherry_roles = {'roles': [], 'groups': []}
+            # logDebug('Username `{}` cannot be found in users and roles!'.format(cherry_usr))
+
+        # This user doesn't have any roles in users and groups
+        if not cherry_roles['roles']:
+            if self.server_init['ce_server_type'].lower() == 'production':
+                logWarning('Production Server: Username `{}` doesn\'t have any roles!'.format(cherry_usr))
+                return False
+            # logDebug('Username `{}` doesn\'t have any roles!'.format(cherry_usr))
+
+        # If the server is not PRODUCTION, the user has ALL ROLES!
+        if self.server_init['ce_server_type'].lower() != 'production':
+            cherry_roles['roles'] = self.roles['roles'].keys()
+
+        cherry_roles['user'] = cherry_usr
+        return cherry_roles
+
+
     def changeUser(self, user):
         """
-        Switch user.\n
+        Switch user hook. This function is used EVERYWHERE.\n
         This uses a lock, in order to create the user structure only once.
         If the lock is not present, on CE startup, all running EPs from one user will rush
         to create the memory structure.
         """
+
         with self.usr_lock:
+
+            cherry_roles = self._checkUser()
+            if not cherry_roles:
+                return False
 
             if not user:
                 return False
@@ -342,18 +422,39 @@ class Project:
                 r = self.createUser(user)
                 if not r: return False
 
+            self.users[user]['user_groups'] = ', '.join(cherry_roles['groups'])
+            self.users[user]['user_roles']  = ', '.join(cherry_roles['roles'])
+
         return True
 
 
     def listUsers(self, active=False):
         """
-        All users that have Twister installer.\n
-        If `active` is True, list only the users that are registered to Central Engine.
+        Find all system users that have Twister installer.\n
+        If `active` is True, list only the users that are registered in Central Engine.
         """
-        users = checkUsers()
+        lines = open('/etc/passwd').readlines()
+        users = []
+        for line in lines:
+            path = line.split(':')[5]
+            if os.path.isdir(path + '/twister/config'):
+                users.append(line.split(':')[0])
+        # Check if the machine has NIS users
+        try:
+            subprocess.check_output('nisdomainname')
+            u = subprocess.check_output("ypcat passwd | awk -F : '{print $1}'", shell=True)
+            for user in u.split():
+                home = userHome(user)
+                if os.path.isdir(home + '/twister/config'):
+                    users.append(user)
+        except:
+            pass
+
+        users = sorted( set(users) )
+        # Filter active users ?
         if active:
             users = [u for u in users if u in self.users]
-        return sorted(users)
+        return users
 
 
     def _dump(self):
@@ -366,6 +467,244 @@ class Project:
             with open(TWISTER_PATH + '/config/project_users.json', 'w') as f:
                 try: json.dump(self.users, f, indent=4)
                 except: pass
+
+
+# # #
+
+
+    def _parseUsersAndGroups(self):
+        """
+        Parse users and groups and return the values.
+        """
+        cfg_path = '{}/config/users_and_groups.ini'.format(TWISTER_PATH)
+
+        if not os.path.isfile(cfg_path):
+            logError('Users and Groups ERROR: Cannot find roles file in path `{}`!'.format(cfg_path))
+            return False
+
+        cfg = iniparser.ConfigObj(cfg_path, create_empty=True, write_empty_values=True)
+
+        # Cycle all groups
+        for grp, grp_data in cfg['groups'].iteritems():
+
+            roles = grp_data['roles']
+            grp_data['roles']    = []
+
+            if roles == '0':
+                grp_data['roles'] = []
+            elif roles == '*':
+                # All roles
+                grp_data['roles'] += cfg['roles'].keys()
+            else:
+                if isinstance(roles, str):
+                    grp_data['roles'] += [r.strip() for r in roles.split(',') if r]
+                else:
+                    # It's a list
+                    grp_data['roles'] += roles
+
+        # Cycle all users
+        for usr, usr_data in cfg['users'].iteritems():
+            # Invalid user ?
+            if 'groups' not in usr_data:
+                continue
+
+            usr_data['roles'] = []
+
+            if isinstance(usr_data['groups'], str):
+                grps = [g.strip() for g in usr_data['groups'].split(',') if g]
+            else:
+                # It's a list
+                grps = usr_data['groups']
+
+            # Start adding and fixing roles
+            for grp in grps:
+                # Invalid group ?
+                if grp not in cfg['groups']:
+                    continue
+
+                roles = cfg['groups'][grp]['roles']
+
+                if roles == '0':
+                    usr_data['roles'] = []
+                elif roles == '*':
+                    # All roles
+                    usr_data['roles'] += cfg['roles'].keys()
+                else:
+                    if isinstance(roles, str):
+                        usr_data['roles'] += [r.strip() for r in roles.split(',') if r]
+                    else:
+                        # It's a list
+                        usr_data['roles'] += roles
+
+            # Fix groups. Must be a list.
+            usr_data['groups'] = grps
+            # Fix roles. Must be a list.
+            usr_data['roles'] = sorted( set(usr_data['roles']) )
+
+        return cfg.dict()
+
+
+    def usersAndGroupsManager(self, cmd, name='', *args, **kwargs):
+        """
+        Manage users, groups and permissions.\n
+        Commands:
+        - list params, update param.
+        - list users, list groups, list roles.
+        - set user, delete user.
+        - set group, delete group.
+        """
+        cfg_path = '{}/config/users_and_groups.ini'.format(TWISTER_PATH)
+        def create_cfg():
+            return iniparser.ConfigObj(cfg_path, indent_type='\t',
+                create_empty=True, write_empty_values=True)
+
+        # Reload users and groups
+        with self.usr_lock:
+            self.roles = self._parseUsersAndGroups()
+            if not self.roles: return '*ERROR* : Invalid users and groups file!'
+
+        # The username from CherryPy connection
+        cherry_usr = cherrypy.session.get('username')
+        # List of roles for current CherryPy user
+        cherry_all = self.roles['users'].get(cherry_usr)
+
+        # This user doesn't exist in users and groups
+        if not cherry_all:
+            # *ERROR* : Username is not defined in users & groups !
+            return {}
+
+        # List of roles for current CherryPy user
+        cherry_roles = cherry_all['roles']
+
+        if 'CHANGE_USERS' not in cherry_roles and cmd in \
+            ['update param', 'set user', 'delete user', 'set group', 'delete group']:
+            return '*ERROR* : Insufficient privileges to execute command `{}` !'.format(cmd)
+
+        del cherry_all, cherry_roles
+
+        if cmd == 'list params':
+            tmp_roles = dict(self.roles)
+            del tmp_roles['users']
+            del tmp_roles['groups']
+            del tmp_roles['roles']
+            return tmp_roles
+
+        elif cmd == 'update param':
+            cfg = create_cfg()
+            if not name:
+                return '*ERROR* : The param name cannot be empty!'
+            if name in ['users', 'groups', 'roles']:
+                return '*ERROR* : `users, groups and roles` are reserved names and cannot be changed!'
+            try:
+                cfg[name] = args[0][0]
+                self.roles[name] = args[0][0]
+                with self.usr_lock: cfg.write()
+            except Exception, e:
+                return '*ERROR* : Exception : `{}` !'.format(e)
+            del cfg
+            return True
+
+
+        elif cmd == 'list users':
+            # List all known users from users and groups config
+            return self.roles['users']
+
+        elif cmd == 'list groups':
+            # List all known groups from users and groups config
+            return self.roles['groups']
+
+        elif cmd == 'list roles':
+            # List all known roles
+            return self.roles['roles'].keys()
+
+
+        elif cmd == 'set user':
+            # Parameters: user name and list of groups.
+            cfg = create_cfg()
+            if not name:
+                return '*ERROR* : The user name cannot be empty!'
+            try:
+                usr_group = args[0][0]
+            except Exception, e:
+                return '*ERROR* : Exception : `{}` !'.format(e)
+
+            grps = [g.strip() for g in usr_group.split(',') if g in self.roles['groups']]
+            if not grps:
+                return '*ERROR* : Invalid groups `{}` !'.format(usr_group)
+            usr_group = ', '.join(grps)
+
+            # Create new section in Users
+            cfg['users'][name] = {}
+            cfg['users'][name]['groups'] = usr_group
+            with self.usr_lock: cfg.write()
+            logDebug('Added user `{}` in group `{}`, in Users and Groups.'.format(name, usr_group))
+            del cfg
+            # Reload users configuration
+            with self.usr_lock:
+                self.roles = self._parseUsersAndGroups()
+            return True
+
+        elif cmd == 'delete user':
+            cfg = create_cfg()
+            if not name:
+                return '*ERROR* : The user name cannot be empty!'
+            if name not in self.roles['users']:
+                return '*ERROR* : Invalid user name `{}` !'.format(name)
+            try:
+                del cfg['users'][name]
+                with self.usr_lock: cfg.write()
+            except Exception, e:
+                return '*ERROR* : Exception : `{}` !'.format(e)
+            logDebug('Permanently removed user `{}` from Users and Groups.'.format(name))
+            del cfg
+            # Reload users configuration
+            with self.usr_lock:
+                self.roles = self._parseUsersAndGroups()
+            return True
+
+
+        elif cmd == 'set group':
+            cfg = create_cfg()
+            if not name:
+                return '*ERROR* : The group name cannot be empty!'
+            try:
+                grp_roles = args[0][0]
+            except Exception, e:
+                return '*ERROR* : Exception : `{}` !'.format(e)
+
+            # Fix permissions
+            roles = [g.strip() for g in grp_roles.split(',') if g and g in cfg['roles']]
+            # Create new section in groups
+            cfg['groups'][name] = {}
+            cfg['groups'][name]['roles'] = ', '.join(roles)
+            with self.usr_lock: cfg.write()
+            logDebug('Added group `{}` with roles `{}`, in Users and Groups.'.format(name, roles))
+            del cfg
+            # Reload users configuration
+            with self.usr_lock:
+                self.roles = self._parseUsersAndGroups()
+            return True
+
+        elif cmd == 'delete group':
+            cfg = create_cfg()
+            if not name:
+                return '*ERROR* : The group name cannot be empty!'
+            if name not in self.roles['groups']:
+                return '*ERROR* : Invalid group name `{}` !'.format(name)
+            try:
+                del cfg['groups'][name]
+                with self.usr_lock: cfg.write()
+            except Exception, e:
+                return '*ERROR* : Exception : `{}` !'.format(e)
+            logDebug('Permanently removed group `{}` from Users and Groups.'.format(name))
+            del cfg
+            # Reload users configuration
+            with self.usr_lock:
+                self.roles = self._parseUsersAndGroups()
+            return True
+
+        else:
+            return '*ERROR* : Unknown command `{}` !'.format(cmd)
 
 
 # # #
@@ -424,8 +763,14 @@ class Project:
         r = self.changeUser(user)
         if not r: return False
         cfg_path = self._getConfigPath(user, config)
-        logDebug('Updating XML config `{0}`, `{1}` = `{2}`...'.format(config, key, value))
-        return self.parsers[user].setSettingsValue(cfg_path, key, value)
+        try:
+            ret = self.parsers[user].setSettingsValue(cfg_path, key, value)
+            if ret: logDebug('Updated XML config `{}`, `{}` = `{}`.'.format(config, key, value))
+            else: logDebug('Unable to update XML config `{}`, `{}` = `{}` !'.format(config, key, value))
+        except Exception, e:
+            ret = False
+            logDebug('Cannot update key `{}` from XML config `{}`! Exception `{}` !'.format(key, config, e))
+        return ret
 
 
     def delSettingsKey(self, user, config, key, index=0):
@@ -435,8 +780,14 @@ class Project:
         r = self.changeUser(user)
         if not r: return False
         cfg_path = self._getConfigPath(user, config)
-        logDebug('Deleting XML config `{0}`, key `{1}`, index `{2}`...'.format(config, key, index))
-        return self.parsers[user].delSettingsKey(cfg_path, key, index)
+        try:
+            ret = self.parsers[user].delSettingsKey(cfg_path, key, index)
+            if ret: logDebug('Deleted XML config `{}`, key `{}`, index `{}`.'.format(config, key, index))
+            else: logDebug('Unable to delete XML config `{}`, key `{}`, index `{}` !'.format(config, key, index))
+        except Exception, e:
+            ret = False
+            logDebug('Cannot delete key `{}` from XML config `{}`! Exception `{}` !'.format(key, config, e))
+        return ret
 
 
 # # #
@@ -468,7 +819,7 @@ class Project:
         if not r: return False
 
         if not key or key == 'eps':
-            logDebug('Project: Invalid Key `%s` !' % str(key))
+            logDebug('Project: Invalid Key `{}` !'.format(key))
             return False
 
         self.users[user][key] = value
@@ -506,10 +857,10 @@ class Project:
         if not r: return False
 
         if epname not in self.users[user]['eps']:
-            logDebug('Project: Invalid EP name `%s` !' % epname)
+            logDebug('Project: Invalid EP name `{}` !'.format(epname))
             return False
         if not key or key == 'suites':
-            logDebug('Project: Invalid Key `%s` !' % str(key))
+            logDebug('Project: Invalid Key `{}` !'.format(key))
             return False
 
         self.users[user]['eps'][epname][key] = value
@@ -527,16 +878,16 @@ class Project:
         eps = self.users[user]['eps']
 
         if epname not in eps:
-            logDebug('Project: Invalid EP name `%s` !' % epname)
+            logDebug('Project: Invalid EP name `{}` !'.format(epname))
             return False
         if suite_id not in eps[epname]['suites'].getSuites():
             logDebug( eps[epname]['suites'].getSuites() )
-            logDebug('Project: Invalid Suite ID `%s` !' % suite_id)
+            logDebug('Project: Invalid Suite ID `{}` !'.format(suite_id))
             return False
 
         suite_node = eps[epname]['suites'].findId(suite_id)
         if not suite_node:
-            logDebug('Project: Invalid Suite node `%s` !' % suite_id)
+            logDebug('Project: Invalid Suite node `{}` !'.format(suite_id))
             return False
         return suite_node
 
@@ -561,18 +912,21 @@ class Project:
         eps = self.users[user]['eps']
 
         if epname not in eps:
-            logDebug('Project: Invalid EP name `%s` !' % epname)
+            logDebug('Project: Invalid EP name `{}` !'.format(epname))
             return False
         if suite_id not in eps[epname]['suites'].getSuites():
-            logDebug('Project: Invalid Suite ID `%s` !' % suite_id)
+            logDebug('Project: Invalid Suite ID `{}` !'.format(suite_id))
             return False
         if not key or key == 'children':
-            logDebug('Project: Invalid Key `%s` !' % str(key))
+            logDebug('Project: Invalid Key `{}` !'.format(key))
+            return False
+        if key == 'type':
+            logDebug('Project: Cannot change reserved Key `{}` !'.format(key))
             return False
 
         suite_node = eps[epname]['suites'].findId(suite_id)
         if not suite_node:
-            logDebug('Project: Invalid Suite node `%s` !' % suite_id)
+            logDebug('Project: Invalid Suite node `{}` !'.format(suite_id))
             return False
         suite_node[key] = value
         self._dump()
@@ -589,12 +943,12 @@ class Project:
         eps = self.users[user]['eps']
 
         if file_id not in eps[epname]['suites'].getFiles():
-            logDebug('Project: Invalid File ID `%s` !' % file_id)
+            logDebug('Project: Invalid File ID `{}` !'.format(file_id))
             return False
 
         file_node = eps[epname]['suites'].findId(file_id)
         if not file_node:
-            logDebug('Project: Invalid File node `%s` !' % file_id)
+            logDebug('Project: Invalid File node `{}` !'.format(file_id))
             return False
         return file_node
 
@@ -608,15 +962,18 @@ class Project:
         eps = self.users[user]['eps']
 
         if file_id not in eps[epname]['suites'].getFiles():
-            logDebug('Project: Invalid File ID `%s` !' % file_id)
+            logDebug('Project: Invalid File ID `{}` !'.format(file_id))
             return False
         if not key:
-            logDebug('Project: Invalid Key `%s` !' % str(key))
+            logDebug('Project: Invalid Key `{}` !'.format(key))
+            return False
+        if key == 'type':
+            logDebug('Project: Cannot change reserved Key `{}` !'.format(key))
             return False
 
         file_node = eps[epname]['suites'].findId(file_id)
         if not file_node:
-            logDebug('Project: Invalid File node `%s` !' % file_id)
+            logDebug('Project: Invalid File node `{}` !'.format(file_id))
             return False
         file_node[key] = value
         self._dump()
@@ -854,9 +1211,56 @@ class Project:
             suite = SuitesManager.findId(suite_id)
             suite['children'][file_id] = finfo
 
-            # Add the file in suites.xml
+            # Add the file in suites.xml ?
             # self.setPersistentFile(self, user, suite, fname)
 
+        self._dump()
+        logDebug('File ID `{}` added at the end of suite `{}`.'.format(file_id, suite_id))
+        return True
+
+
+    def deQueueFile(self, user, epname, file_id):
+        """
+        This function temporary removes the file id from the project, during runtime.
+        If the file did already run, the function does nothing!
+        """
+        r = self.changeUser(user)
+        if not r: return False
+
+        SuitesManager = self.users[user]['eps'][epname]['suites']
+
+        if file_id not in SuitesManager.getFiles():
+            logError('Project: Invalid File ID `{}` !'.format(file_id))
+            return False
+
+        file_node = SuitesManager.findId(file_id)
+        if not file_node:
+            logError('Project: Invalid File node `{}` !'.format(file_id))
+            return False
+
+        if file_node.get('status', STATUS_PENDING) != STATUS_PENDING:
+            logError('Project: File ID `{}` was already executed, cannot de-queue!'.format(file_id))
+            return False
+
+        suite_id = file_node['suite']
+        suite_node = SuitesManager.findId(suite_id)
+
+        if not suite_node:
+            logError('Project: Invalid Suite node `{}` !'.format(suite_id))
+            return False
+
+        # This operation must be atomic !
+        with self.usr_lock:
+
+            # Remove file from the ordered list of file IDs, used for Get Status ALL
+            file_index = self.test_ids[user].index(file_id)
+            self.test_ids[user].pop(file_index)
+
+            # Remove file from suites
+            del suite_node['children'][file_id]
+
+        self._dump()
+        logDebug('File ID `{}` removed from `{}`.'.format(file_id, epname))
         return True
 
 
@@ -917,9 +1321,10 @@ class Project:
 # # #
 
 
-    def sendMail(self, user):
+    def sendMail(self, user, force=False):
         """
-        Send e-mail function.
+        Send e-mail function.\n
+        Use the force to ignore the enabled/ disabled status.
         """
         with self.eml_lock:
 
@@ -929,19 +1334,65 @@ class Project:
             # This is updated every time.
             eMailConfig = self.parsers[user].getEmailConfig()
             if not eMailConfig:
-                logWarning('E-mail: Nothing to do here.')
-                return False
+                log = '*ERROR* E-mail configuration not found !'
+                logWarning(log)
+                return log
+
+            if force:
+                logDebug('Preparing to send a test e-mail ...')
+
+                try:
+                    server = smtplib.SMTP(eMailConfig['SMTPPath'])
+                except:
+                    log = 'SMTP: Cannot connect to SMTP server `{}`!'.format(eMailConfig['SMTPPath'])
+                    logError(log)
+                    return log
+
+                try:
+                    logDebug('SMTP: Preparing to login...')
+                    server.ehlo()
+                    server.starttls()
+                    server.ehlo()
+
+                    # Decode e-mail password
+                    try:
+                        SMTPPwd = binascii.a2b_base64(eMailConfig['SMTPPwd'])
+                    except:
+                        log = 'Password: Invalid SMTP password! Please update your password and try again!'
+                        logError(log)
+                        return log
+
+                    server.login(eMailConfig['SMTPUser'], SMTPPwd)
+                    server.login(eMailConfig['SMTPUser'], eMailConfig['SMTPPwd'])
+                except:
+                    log = 'SMTP: Cannot autentificate to SMTP server! Invalid user or password!'
+                    logError(log)
+                    return log
+
+                try:
+                    server.sendmail(eMailConfig['From'], eMailConfig['To'], eMailConfig['Message'])
+                    logDebug('SMTP: E-mail sent successfully!')
+                    server.quit()
+                    return True
+                except:
+                    log = 'SMTP: Cannot send e-mail!'
+                    logError(log)
+                    return log
+
+                return True
 
             try:
                 logPath = self.users[user]['log_types']['logSummary']
                 logSummary = open(logPath).read()
             except:
-                logError('E-mail: Cannot open Summary Log `{0}` for reading !'.format(logPath))
-                return False
+                log = '*ERROR* Cannot open Summary Log `{}` for reading !'.format(logPath)
+                logError(log)
+                return log
 
             if not logSummary:
-                logDebug('E-mail: Nothing to send!')
-                return False
+                log = '*ERROR* Log Summary is empty! Nothing to send!'
+                logDebug(log)
+                return log
 
             logDebug('E-mail: Preparing... Server `{SMTPPath}`, user `{SMTPUser}`, from `{From}`, to `{To}`...'\
                 ''.format(**eMailConfig))
@@ -958,8 +1409,7 @@ class Project:
                     # If the information is already in the mapping info
                     if k in map_info:
                         map_info[k] += ', ' + str(ep_data[k])
-                        map_info[k] = ', '.join( list(set( map_info[k].split(', ') )) )
-                        #map_info[k] = ', '.join(sorted( list(set(map_info[k].split(', '))) )) # Sorted ?
+                        map_info[k] = ', '.join( sorted(set( map_info[k].split(', ') )) )
                     else:
                         map_info[k] = str(ep_data[k])
 
@@ -974,8 +1424,7 @@ class Project:
                         # If the information is already in the mapping info
                         if k in map_info:
                             map_info[k] += ', ' + str(suite_data[k])
-                            map_info[k] = ', '.join( list(set( map_info[k].split(', ') )) )
-                            #map_info[k] = ', '.join(sorted( list(set(map_info[k].split(', '))) )) # Sorted ?
+                            map_info[k] = ', '.join( sorted(set( map_info[k].split(', ') )) )
                         else:
                             map_info[k] = str(suite_data[k])
 
@@ -986,8 +1435,9 @@ class Project:
             try:
                 eMailConfig['Subject'] = tmpl.substitute(map_info)
             except Exception, e:
-                logError('E-mail ERROR! Cannot build e-mail subject! Error: {0}!'.format(e))
-                return False
+                log = 'E-mail ERROR! Cannot build e-mail subject! Error: {}!'.format(e)
+                logError(log)
+                return log
             del tmpl
 
             # Message template string
@@ -995,8 +1445,9 @@ class Project:
             try:
                 eMailConfig['Message'] = tmpl.substitute(map_info)
             except Exception, e:
-                logError('E-mail ERROR! Cannot build e-mail message! Error: {0}!'.format(e))
-                return False
+                log = 'E-mail ERROR! Cannot build e-mail message! Error: {}!'.format(e)
+                logError(log)
+                return log
             del tmpl
 
             ROWS = []
@@ -1013,8 +1464,9 @@ class Project:
             # Body string
             body_path = os.path.split(self.users[user]['config_path'])[0] +os.sep+ 'e-mail-tmpl.htm'
             if not os.path.exists(body_path):
-                logError('CE ERROR! Cannot find e-mail template file `{0}`!'.format(body_path))
-                return False
+                log = 'E-mail ERROR! Cannot find e-mail template file `{}`!'.format(body_path)
+                logError(log)
+                return log
 
             body_tmpl = Template(open(body_path).read())
             body_dict = {
@@ -1043,7 +1495,7 @@ class Project:
             msg.attach(MIMEText(eMailConfig['Message'], 'plain'))
             msg.attach(MIMEText(body_tmpl.substitute(body_dict), 'html'))
 
-            if (not eMailConfig['Enabled']) or (eMailConfig['Enabled'] in ['0', 'false']):
+            if (not force) and (not eMailConfig['Enabled']) or (eMailConfig['Enabled'] in ['0', 'false']):
                 e_mail_path = os.path.split(self.users[user]['config_path'])[0] +os.sep+ 'e-mail.htm'
                 open(e_mail_path, 'w').write(msg.as_string())
                 logDebug('E-mail.htm file written. The message will NOT be sent.')
@@ -1051,22 +1503,36 @@ class Project:
                 self.setFileOwner(user, e_mail_path)
                 return True
 
+            if force:
+                logDebug('Preparing to send a test e-mail ...')
+
             try:
                 server = smtplib.SMTP(eMailConfig['SMTPPath'])
             except:
-                logError('SMTP: Cannot connect to SMTP server!')
-                return False
+                log = 'SMTP: Cannot connect to SMTP server `{}`!'.format(eMailConfig['SMTPPath'])
+                logError(log)
+                return log
 
             try:
                 logDebug('SMTP: Preparing to login...')
                 server.ehlo()
                 server.starttls()
                 server.ehlo()
+
+                # Decode e-mail password
+                try:
+                    SMTPPwd = binascii.a2b_base64(eMailConfig['SMTPPwd'])
+                except:
+                    log = 'Password: Invalid SMTP password! Please update your password and try again!'
+                    logError(log)
+                    return log
+
+                server.login(eMailConfig['SMTPUser'], SMTPPwd)
                 server.login(eMailConfig['SMTPUser'], eMailConfig['SMTPPwd'])
-                logDebug('SMTP: Connect success!')
             except:
-                logError('SMTP: Cannot autentificate to SMTP server!')
-                return False
+                log = 'SMTP: Cannot autentificate to SMTP server! Invalid user or password!'
+                logError(log)
+                return log
 
             try:
                 server.sendmail(eMailConfig['From'], eMailConfig['To'], msg.as_string())
@@ -1074,8 +1540,9 @@ class Project:
                 server.quit()
                 return True
             except:
-                logError('SMTP: Cannot send e-mail!')
-                return False
+                log = 'SMTP: Cannot send e-mail!'
+                logError(log)
+                return log
 
 
 # # #
@@ -1128,15 +1595,20 @@ class Project:
 
             system = platform.machine() +' '+ platform.system() +', '+ ' '.join(platform.linux_distribution())
 
-            #
+            # Decode database password
+            try:
+                db_password = binascii.a2b_base64( db_config.get('password') )
+            except:
+                logError('Database: Invalid database password! Please update your password and try again!')
+                return False
+
             try:
                 conn = MySQLdb.connect(host=db_config.get('server'), db=db_config.get('database'),
-                    user=db_config.get('user'), passwd=db_config.get('password'))
+                    user=db_config.get('user'), passwd=db_password)
                 curs = conn.cursor()
             except MySQLdb.Error, e:
                 logError('MySQL Error %d: %s!' % (e.args[0], e.args[1]))
                 return False
-            #
 
             conn.autocommit = False
             conn.begin()
@@ -1163,16 +1635,22 @@ class Project:
                     # Add file info
                     subst_data.update(file_info)
 
+                    ce_host = socket.gethostname()
+                    try: ce_ip = socket.gethostbyname(ce_host)
+                    except: ce_ip = ''
+
                     # Insert/ fix DB variables
+                    subst_data['twister_user']     = user
                     subst_data['twister_rf_fname'] = '{}/config/resources.json'.format(TWISTER_PATH)
                     subst_data['twister_pf_fname'] = '{}/config/project_users.json'.format(TWISTER_PATH)
-                    subst_data['twister_ce_os'] = system
-                    subst_data['twister_ce_hostname'] = socket.gethostname()
+                    subst_data['twister_ce_os']    = system
+                    subst_data['twister_ce_hostname'] = ce_host
+                    subst_data['twister_ce_ip']       = ce_ip
                     subst_data['twister_ce_python_revision'] = '.'.join([str(v) for v in sys.version_info])
-                    subst_data['twister_ep_name'] = epname
+                    subst_data['twister_ep_name']    = epname
                     subst_data['twister_suite_name'] = suite_info['name']
                     subst_data['twister_tc_full_path'] = file_info['file']
-                    subst_data['twister_tc_name'] = os.path.split(subst_data['twister_tc_full_path'])[1]
+                    subst_data['twister_tc_name']  = os.path.split(subst_data['twister_tc_full_path'])[1]
                     subst_data['twister_tc_title'] = ''
                     subst_data['twister_tc_description'] = ''
 
@@ -1255,8 +1733,8 @@ class Project:
                         try:
                             curs.execute(query)
                         except MySQLdb.Error, e:
-                            logError('Error in query ``{0}``'.format(query))
-                            logError('MySQL Error %d: %s!' % (e.args[0], e.args[1]))
+                            logError('Error in query ``{}``'.format(query))
+                            logError('MySQL Error {}: {}!'.format(e.args[0], e.args[1]))
                             conn.rollback()
                             return False
 
@@ -1270,8 +1748,8 @@ class Project:
 
 
     def panicDetectConfig(self, user, args):
-        """ Panic Detect mechanism
-        valid commands: list, add, update, remove regular expression;
+        """ Panic Detect mechanism.
+        Valid commands: list, add, update, remove regular expression;
 
         list command: args = {'command': 'list'}
         add command: args = {'command': 'add', 'data': {'expression': 'reg_exp_string'}}
@@ -1390,6 +1868,7 @@ class Project:
                 #response['status']['message'] = '{er}'.format(er=e)
                 response = 'error: {er}'.format(er=e)
 
+
         # remove_regular_expression
         elif args['command'] == 'remove':
             response['type'] = 'remove_regular_expression reply'
@@ -1414,6 +1893,5 @@ class Project:
 
         return response
 
-# # #
 
 # Eof()

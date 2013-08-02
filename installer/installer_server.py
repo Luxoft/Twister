@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# version: 2.001
+# version: 2.002
 
 # File: installer.py ; This file is part of Twister.
 
@@ -127,6 +127,8 @@ to_copy = [
     'lib/',
     'config/resources.json',
     'config/services.ini',
+    'config/users_and_groups.ini',
+    'config/server_init.ini',
     'plugins/',
     'services/',
 ]
