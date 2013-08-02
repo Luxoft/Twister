@@ -28,7 +28,7 @@
 PYTHON_PATH=/usr/bin/python
 
 DAEMON=`echo ~/twister/bin/start_client.py`
-LOG_PATH=`echo ~/twister/twisterclient.log`
+LOG_PATH=`echo ~/twister/client_log.log`
 
 NAME=twisterclient
 DESC="twister client"

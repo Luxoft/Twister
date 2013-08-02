@@ -56,6 +56,8 @@
 			<tr><td><b>EPs file</b></td><td><span id="eps_file">${eps_file}</span></td></tr>
 			<tr><td><b>Logs path</b></td><td><span id="logs_path"></span></td></tr>
 			<tr><td><b>Tests path</b></td><td><span id="tests_path"></span></td></tr>
+			<tr><td><b>User groups</b></td><td><span id="usr_groups"></span></td></tr>
+			<tr><td><b>User roles</b></td><td><span id="usr_roles" style="color:gray"></span></td></tr>
 		</table>
 	</div>
 	</div> <!-- End of tab-1 -->
@@ -184,6 +186,8 @@ function updateUserStats() {
 				$("span#eml_config").text(jdata["${user}"]["eml_config"]);     // E-mail config
 				$("span#logs_path").text(jdata["${user}"]["logs_path"]);       // User logs
 				$("span#tests_path").text(jdata["${user}"]["tests_path"]);     // User logs
+				$("span#usr_groups").text(jdata["${user}"]["user_groups"]);    // Groups
+				$("span#usr_roles").text(jdata["${user}"]["user_roles"]);      // Roles
 			});
 		// setTimeout(updt_usr, refresh_int); // Thread
 	//}

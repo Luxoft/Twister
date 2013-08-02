@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# version: 2.002
+# version: 2.003
 
 # File: CentralEngine.py ; This file is part of Twister.
 
@@ -31,6 +31,7 @@ This file starts the Twister Server.
 import os
 import sys
 import cherrypy
+import paramiko
 
 TWISTER_PATH = os.getenv('TWISTER_PATH')
 if not TWISTER_PATH:
@@ -40,6 +41,36 @@ sys.path.append(TWISTER_PATH)
 
 from common.tsclogging import *
 from server.CentralEngineClasses import CentralEngine
+
+#
+
+def check_passwd(realm, user, passwd):
+    """
+    This function is called before ALL XML-RPC calls,
+    to check the username and password.
+    """
+    if cherrypy.session.get('user_passwd') == (user+':'+passwd):
+        return True
+    elif passwd == 'EP':
+        cherrypy.session['username'] = user
+        return True
+
+    t = paramiko.Transport(('localhost', 22))
+    t.logger.setLevel(40) # Less spam, please
+    t.start_client()
+
+    # This operation is really heavy!!!
+    try:
+        t.auth_password(user, passwd)
+        cherrypy.session['username'] = user
+        cherrypy.session['user_passwd'] = (user+':'+passwd)
+        t.stop_thread()
+        t.close()
+        return True
+    except:
+        t.stop_thread()
+        t.close()
+        return False
 
 #
 
@@ -64,22 +95,19 @@ if __name__ == "__main__":
     # Root path
     root = CentralEngine()
 
-    # Users
-    # users = {'user': 'password'}
-    # checkpassword = cherrypy.lib.auth_basic.checkpassword_dict(users)
-
     # Config
     conf = {'global': {
             'server.socket_host': '0.0.0.0',
             'server.socket_port': serverPort,
             'server.thread_pool': 90,
             'engine.autoreload.on': False,
-            # 'tools.sessions.on': True,
-            # 'tools.sessions.timeout': 60,
-            # 'tools.auth_basic.on': True,
-            # 'tools.auth_basic.realm': 'Twister Server',
-            # 'tools.auth_basic.checkpassword': checkpassword,
             'log.screen': False,
+
+            'tools.sessions.on': True,
+            'tools.sessions.timeout': 60,
+            'tools.auth_basic.on': True,
+            'tools.auth_basic.realm': 'Twister Server',
+            'tools.auth_basic.checkpassword': check_passwd,
             },
             '/static': {
             'tools.staticdir.on': True,

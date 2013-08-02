@@ -4,7 +4,7 @@
 	<meta charset="utf-8">
 	<title>Twister: Central Engine</title>
 	<meta name="author" content="Cristi Constantin">
-	<meta name="description" content="Central Engine management interface...">
+	<meta name="description" content="Central Engine interface...">
 	<!-- Le styles -->
 	<link href="/static/css/bootstrap.css" rel="stylesheet">
 	<style>
@@ -40,11 +40,12 @@
 
 	<div class="tab-pane active" id="tab_main">
 	<div class="hero-unit">
-		<h1>Central Engine management interface</h1><br>
+		<h1>Central Engine interface</h1><br>
 		<table class="table table-bordered">
 			<tr><td width="200">IP and Port</td><td><code>${ip_port}</code></td></tr>
 			<tr><td>Machine</td><td><code>${machine}</code></td></tr>
 			<tr><td>System</td><td><code>${system}</code></td></tr>
+			<tr><td>Server Type</td><td><code>${srv_type}</code></td></tr>
 			<tr><td>Server Version</td><td><code>${srv_ver}</code></td></tr>
 			<tr><td>Processor</td><td><span id="cpu_stat">Loading...</span></td></tr>
 			<tr><td>Memory</td><td><span id="mem_stat">Loading...</span></td></tr>

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# version: 2.006
+# version: 2.010
 
 # File: cli.py ; This file is part of Twister.
 
@@ -197,7 +197,20 @@ def queueTest(proxy, user, suite, fname):
 	if r:
 		print('Test `{}` was queued in suite `{}`.'.format(fname, suite))
 	else:
-		print('Failed to queue test `{}` was queued in suite `{}`!'.format(fname, suite))
+		print('Failed to queue test `{}` was queued in suite `{}`! Check Central Engine logs.'.format(fname, suite))
+
+	print
+
+
+def deQueueTest(proxy, user, epname, file_id):
+	"""
+	Un-Queue a file, from the current project.
+	"""
+	r = proxy.deQueueFile(user, epname, file_id)
+	if r:
+		print('Test `{}` was removed from the project.'.format(file_id))
+	else:
+		print('Failed to dequeue test `{}`! Check Central Engine logs.'.format(file_id))
 
 	print
 
@@ -209,12 +222,19 @@ def queueTest(proxy, user, suite, fname):
 if __name__ == '__main__':
 
 	usage = "Usage: %prog --server <ip:port> --command [...parameters]"
-	version = "%prog v2.0"
+
+	version = ""
+	for line in open(__file__):
+		li=line.strip()
+		if li.startswith("# version:"):
+			version = "%prog " + line.split("version:")[1]
+		if version: break
+
 	parser = OptionParser(usage=usage, version=version)
 
-	# The most important option is the server. By default, it's localhost:8000.
-	parser.add_option("--server",      action="store", default="http://127.0.0.1:8000/",
-		help="Central engine server IP and Port (default: http://127.0.0.1:8000/).")
+	# The most important option is the server. By default, it's user:password@127.0.0.1:8000.
+	parser.add_option("--server",      action="store", default="http://user:password@127.0.0.1:8000/",
+		help="Your user and password @ central engine IP and port (default: http://user:password@127.0.0.1:8000/)")
 
 	parser.add_option('-u', "--users", action="store_true", help="Show active and inactive users.")
 
@@ -226,6 +246,7 @@ if __name__ == '__main__':
 	parser.add_option("--status-details",     action="store", help="Show detailed status for running, finished, pending, or all files.")
 
 	parser.add_option("-q", "--queue",   action="store", help="Queue a file at the end of a suite. Specify queue like `suite:file`.")
+	parser.add_option("--dequeue",       action="store", help="Un-Queue a file, using the EP and File ID. Specify like `EP-name:file-ID`.")
 
 	parser.add_option("-s", "--set",     action="store", help="Set status: start/ stop/ pause. (Must also specify a config and a project)")
 	parser.add_option("-c", "--config",  action="store", help="Path to FWMCONFIG.XML file.")
@@ -241,7 +262,6 @@ if __name__ == '__main__':
 		print('Cannot guess the user name! Exiting!\n')
 		exit(1)
 
-
 	# Test if user did install Twister
 	if os.path.isdir(userHome(user) + os.sep + 'twister'):
 		print('\nHello, user `{}`.\n'.format(user))
@@ -249,9 +269,11 @@ if __name__ == '__main__':
 		print('Username `{}` must install Twister before using this script !\n'.format(user))
 		exit(1)
 
+
 	# Test Central Engine valid IP + PORT
 	try:
 		proxy = xmlrpclib.ServerProxy(options.server)
+		proxy._ServerProxy__transport._extra_headers.append( ('username', user) )
 		# print('Connection to Central Engine at `{}` is ok.\n'.format(options.server))
 	except:
 		print('The server must be a valid IP and PORT combination ! Exiting !\n')
@@ -261,8 +283,8 @@ if __name__ == '__main__':
 	try:
 		proxy.echo('ping')
 		# print('Connection to Central Engine at `{}` is ok.\n'.format(options.server))
-	except:
-		print('The Central Engine server is down ! Exiting !\n')
+	except Exception, e:
+		print('Cannot connect to Central Engine server! Error `{}` ! Exiting!\n'.format(e))
 		exit(1)
 
 
@@ -295,9 +317,20 @@ if __name__ == '__main__':
 	# Queue a file at the end of a suite
 	if options.queue:
 		if not ':' in options.queue:
-			print('Must queue `suite:file`, for example `Suite1:/home/user/some_file.py`.')
+			print('Must queue `suite:file`, for example `Suite1:/home/user/some_file.py` !\n')
+			exit(1)
 		suite, fname = options.queue.split(':')
 		queueTest(proxy, user, suite, fname)
+		exit()
+
+
+	# Un-Queue a file, using the File ID
+	if options.dequeue:
+		if not ':' in options.dequeue:
+			print('Must dequeue `epname:file_id`, for example `EP-1001:101` !\n')
+			exit(1)
+		epname, file_id = options.dequeue.split(':')
+		deQueueTest(proxy, user, epname, file_id)
 		exit()
 
 
