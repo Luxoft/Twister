@@ -1,7 +1,7 @@
 
 # File: CentralEngineOthers.py ; This file is part of Twister.
 
-# version: 2.019
+# version: 2.020
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -394,10 +394,6 @@ class Project:
                 return False
             # logDebug('Username `{}` doesn\'t have any roles!'.format(cherry_usr))
 
-        # If the server is not PRODUCTION, the user has ALL ROLES!
-        if self.server_init['ce_server_type'].lower() != 'production':
-            cherry_roles['roles'] = self.roles['roles'].keys()
-
         cherry_roles['user'] = cherry_usr
         return cherry_roles
 
@@ -536,10 +532,17 @@ class Project:
                         # It's a list
                         usr_data['roles'] += roles
 
+            # If the server is no_type or devel, the user has ALL ROLES except!
+            if self.server_init['ce_server_type'].lower() != 'production':
+                usr_data['roles'] = cfg['roles'].keys()
+                try: usr_data['roles'].pop( usr_data['roles'].index('CHANGE_USERS') )
+                except: pass
+            else:
+                # Fix roles. Must be a list.
+                usr_data['roles'] = sorted( set(usr_data['roles']) )
+
             # Fix groups. Must be a list.
             usr_data['groups'] = grps
-            # Fix roles. Must be a list.
-            usr_data['roles'] = sorted( set(usr_data['roles']) )
 
         return cfg.dict()
 

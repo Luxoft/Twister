@@ -1,7 +1,7 @@
 
 # File: LogServer.py ; This file is part of Twister.
 
-# version: 2.001
+# version: 2.002
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -72,7 +72,7 @@ def process_cmd(sock):
         resp = 'Ok!' # Default response
 
         # Message from client.
-        data = conn.recv(2048)
+        data = conn.recv((2**14))
         if data:
             log.debug('Message: `{}`.'.format(repr(data)))
 
