@@ -43,6 +43,7 @@ import re
 import glob
 import time
 import pickle
+import random
 import socket
 import datetime
 import binascii
@@ -51,6 +52,7 @@ import xmlrpclib
 import urlparse
 import MySQLdb
 import cherrypy
+import subprocess
 
 
 if not sys.version.startswith('2.7'):
@@ -101,6 +103,9 @@ class CentralEngine(_cptools.XMLRPCController):
         logDebug('CE: Starting Twister Server {}...'.format(srv_ver)) ; ti = time.clock()
         self.project = Project()
         logDebug('CE: Initialization took %.4f seconds.' % (time.clock()-ti))
+
+        # User loggers
+        self.loggers = {}
 
         self.manager = ServiceManager()
         self.rest = WebInterface(self, self.project)
@@ -635,6 +640,8 @@ class CentralEngine(_cptools.XMLRPCController):
         """
         Reset project for user.
         """
+        twister_cache = userHome(user) + '/twister/.twister_cache'
+        self.project.setFileOwner(user, twister_cache)
         return self.project.reset(user)
 
 
@@ -1398,38 +1405,109 @@ class CentralEngine(_cptools.XMLRPCController):
         return binascii.b2a_base64(data)
 
 
+    def _logServer(self, user):
+        """
+        Launch a log server.
+        """
+        # Searching for a free port in the safe range...
+        while 1:
+            free = False
+            port = random.randrange(60000, 62000)
+            try:
+                socket.create_connection((None, port), 1)
+            except:
+                free = True
+            if free: break
+
+        p_cmd = 'su {} -c "python {}/server/LogServer.py {}"'.format(user, TWISTER_PATH, port)
+        proc = subprocess.Popen(p_cmd, cwd='{}/twister'.format(userHome(user)), shell=True)
+        proc.poll()
+
+        time.sleep(0.3)
+        logDebug('Log Server for user `{}` launched on `127.0.0.1:{}`.'.format(user, port))
+
+        self.loggers[user] = {'proc': proc, 'port': port}
+
+
+    def _logConnect(self, user, port):
+        """
+        Create a log server connection.
+        """
+        for res in socket.getaddrinfo('127.0.0.1', port, socket.AF_UNSPEC, socket.SOCK_STREAM):
+            af, socktype, proto, canonname, sa = res
+            try:
+                sock = socket.socket(af, socktype, proto)
+            except socket.error as msg:
+                logWarning('Sock create exception: `{}`.'.format(msg))
+                sock = None
+                continue
+            try:
+                sock.connect(sa)
+            except socket.error as msg:
+                logWarning('Sock connect exception: `{}`.'.format(msg))
+                sock.close()
+                sock = None
+                continue
+            break
+        if sock is None:
+            logError('Internal Log Error! Could not connect to Log Server!')
+            return False
+        else:
+            return sock
+
+
+    def _logServerMsg(self, user, msg):
+        """
+        Helper function to access the Log Server.
+        """
+        if user not in self.loggers:
+            self._logServer(user)
+
+        sock = self._logConnect(user, self.loggers[user]['port'])
+
+        if not sock:
+            logError('Creating a new connection...')
+            self._logServer(user)
+            sock = self._logConnect(user, self.loggers[user]['port'])
+            if not sock:
+                return False
+
+        sock.sendall(msg)
+        resp = sock.recv(1024)
+
+        if resp == 'Ok!':
+            sock.close()
+            return True
+        else:
+            sock.close()
+            return False
+
+
     @cherrypy.expose
     def logMessage(self, user, logType, logMessage):
         """
-        This function is exposed in all tests, all logs are centralized.
+        This function is exposed in all tests, all logs are centralized in the HOME of the user.\n
+        In order for the user to be able to access the logs written by CE, which runs as ROOT,
+        CE will start a small process in the name of the user and the process will write the logs.
         """
+        if os.getuid():
+            logError('Log Error! Central Engine must run as ROOT in order to start the Log Server!')
+            return False
+
         logType = str(logType)
         logTypes = self.project.getUserInfo(user, 'log_types')
 
-        if logType == 'logcli' or logType == 'logsummary':
-            logError('CE Warning! logCLI and logSummary are reserved and cannot be written into!')
+        if logType == 'logsummary':
+            logWarning('Log Warning! logSummary is reserved and cannot be written into!')
             return False
 
-        if not logType in logTypes:
-            logError("CE ERROR! Log type `%s` is not in the list of defined types: `%s`!" % \
-                (logType, logTypes))
+        if logType not in logTypes:
+            logError('Log Error! Log type `{}` is not in the list of defined types: `{}`!'.format(logType, logTypes))
             return False
 
         logPath = self.project.getUserInfo(user, 'log_types')[logType]
 
-        try:
-            f = open(logPath, 'a')
-        except:
-            logFolder = os.path.split(logPath)[0]
-            try:
-                os.mkdir(logFolder)
-            except:
-                logError("CE ERROR! Log file `%s` cannot be written!" % logPath)
-            return False
-        f.write(logMessage)
-        f.close()
-
-        return True
+        return self._logServerMsg(user, logPath + ':' + logMessage)
 
 
     @cherrypy.expose
@@ -1438,27 +1516,21 @@ class CentralEngine(_cptools.XMLRPCController):
         Writes CLI messages in a big log, so all output can be checked LIVE.\n
         Called from the EP.
         """
+        if os.getuid():
+            logError('Log Error! Central Engine must run as ROOT in order to start the Log Server!')
+            return False
+
         logFolder = self.project.getUserInfo(user, 'logs_path')
 
         if not logFolder:
-            logError("CE ERROR! Invalid logs folder `{}`!".format(logFolder))
+            logError('Log Error! Invalid logs folder `{}`!'.format(logFolder))
             return False
-
-        if not os.path.exists(logFolder):
-            try: os.makedirs(logFolder)
-            except:
-                logError("CE ERROR! Log file `%s` cannot be created!" % logFolder)
-                return False
-
-        logPath = logFolder + os.sep + epname + '_CLI.log'
 
         try:
-            f = open(logPath, 'a')
+            log_string = binascii.a2b_base64(logMessage)
         except:
-            logError("CE ERROR! Log file `%s` cannot be written!" % logPath)
+            logError('Live Log Error: Invalid b64 log!')
             return False
-
-        log_string = binascii.a2b_base64(logMessage)
 
         # Execute "onLog" for all plugins
         parser = PluginParser(user)
@@ -1471,20 +1543,19 @@ class CentralEngine(_cptools.XMLRPCController):
                 logWarning('Error on running plugin `{} onStop` - Exception: `{}`!'.format(pname, e))
         del parser, plugins
 
-        f.write(log_string)
-        f.close()
-
         # Calling Panic Detect
-        #self._panicDetectLogParse(user, epname, log_string)
-        return True
+        # self._panicDetectLogParse(user, epname, log_string)
+
+        logPath = logFolder + os.sep + epname + '_CLI.log'
+
+        return self._logServerMsg(user, logPath + ':' + log_string)
 
 
     @cherrypy.expose
     def resetLogs(self, user):
         """
-        All logs defined in master config are erased.
-        Log CLI is *magic*, there are more logs, one for each EP.\n
-        Called from the Java GUI.
+        All logs defined in master config are erased.\n
+        Called from the Java GUI and every time the project is reset.
         """
         logsPath = self.project.getUserInfo(user, 'logs_path')
         logTypes = self.project.getUserInfo(user, 'log_types')
@@ -1493,52 +1564,19 @@ class CentralEngine(_cptools.XMLRPCController):
         archiveLogsActive = self.project.getUserInfo(user, 'archive_logs_path_active')
         archiveLogsPath   = self.project.getUserInfo(user, 'archive_logs_path')
 
-        twister_cache = '/'.join(logsPath.rstrip('/').split('/')[:-1]) + '/.twister_cache'
-        self.project.setFileOwner(user, twister_cache)
+        data = jsonDumps({
+            'cmd': 'reset',
+            'logsPath': logsPath,
+            'logTypes': logTypes,
+            'archiveLogsActive': archiveLogsActive,
+            'archiveLogsPath': archiveLogsPath,
+            'epnames': self.listEPs(user),
+            })
 
-        logDebug('Cleaning {} log files...'.format(len(logTypes)))
-        vError = False
-
-        for log in glob.glob(logsPath + os.sep + '*.log'):
-            try:
-                if archiveLogsActive == 'true':
-                    archPath = archiveLogsPath.rstrip('/') + '/{}.{}'.format(os.path.basename(log),
-                                                                    str(time.time()).split('.')[0])
-                    os.rename(log, archPath)
-                    logDebug('Log file `{}` archived in `{}`.'.format(log, archPath))
-            except Exception as e:
-                logError('Logs ERROR! Cannot archive log `{}` in `{}`! Exception `{}`!'.format(log, archiveLogsPath, e))
-            try:
-                os.remove(log)
-            except Exception as e:
-                pass
-
-        for logType in logTypes:
-            # For CLI
-            if logType.lower() == 'logcli':
-                for epname in self.listEPs(user).split(','):
-                    logPath = logsPath + os.sep + epname + '_CLI.log'
-                    try:
-                        open(logPath, 'w').close()
-                    except:
-                        logError('Logs ERROR! Log file `{}` cannot be re-written!'.format(logPath))
-                        vError = True
-                    self.project.setFileOwner(user, logPath)
-            # For normal logs
-            else:
-                logPath = logTypes[logType]
-                try:
-                    open(logPath, 'w').close()
-                except:
-                    logError('Logs ERROR! Log file `{}` cannot be re-written!'.format(logPath))
-                    vError = True
-                self.project.setFileOwner(user, logPath)
-
-        # On error, return IN-succes
-        if vError:
-            return False
-        else:
-            return True
+        ret = self._logServerMsg(user, data)
+        if ret:
+            logDebug('Logs reset.')
+        return ret
 
 
     @cherrypy.expose
@@ -1547,19 +1585,24 @@ class CentralEngine(_cptools.XMLRPCController):
         Resets one log.\n
         Called from the Java GUI.
         """
-        logPath = self.project.getUserInfo(user, 'logs_path') + os.sep + logName
+        logType = str(logName)
+        logTypes = self.project.getUserInfo(user, 'log_types')
 
-        if not os.path.exists(logPath):
-            logWarning('CE: The file does not exist! Nothing to reset!')
+        if logType not in logTypes:
+            logError('Log Error! Log type `{}` is not in the list of defined types: `{}`!'.format(logType, logTypes))
             return False
 
-        try:
-            open(logPath, 'w').close()
-            logDebug('Cleaned log `%s`.' % logPath)
-            return True
-        except:
-            logError("CE ERROR! Log file `%s` cannot be reset!" % logPath)
-            return False
+        logPath = self.project.getUserInfo(user, 'log_types')[logType]
+
+        data = jsonDumps({
+            'cmd': 'del',
+            'logPath': logPath,
+            })
+
+        ret = self._logServerMsg(user, data)
+        if ret:
+            logDebug('Cleaned log `{}`.'.format(logPath))
+        return ret
 
 
     def _panicDetectLogParse(self, user, epname, log_string):
