@@ -366,8 +366,8 @@ class TwisterRunner:
                     if teardown_file and (file_id in current_ids):
                         print('Running a tear-down file...\n')
                     else:
-                        print('TC debug: Abort file `{}` because of failed setup file!\n\n'.format(filename))
-                        self.proxySetTestStatus(file_id, STATUS_ABORTED, 0.0) # File status ABORTED
+                        print('TC debug: Not executed file `{}` because of failed setup file!\n\n'.format(filename))
+                        self.proxySetTestStatus(file_id, STATUS_NOT_EXEC, 0.0) # File status ABORTED
                         print('<<< END filename: `{}:{}` >>>\n'.format(file_id, filename))
                         continue
                 del aborted_ids, current_ids
