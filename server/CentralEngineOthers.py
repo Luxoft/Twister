@@ -1,7 +1,7 @@
 
 # File: CentralEngineOthers.py ; This file is part of Twister.
 
-# version: 2.021
+# version: 2.022
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -543,6 +543,10 @@ class Project:
                 # Fix roles. Must be a list.
                 usr_data['roles'] = sorted( set(usr_data['roles']) )
 
+            # Get old timeout value for user, OR create a new default value
+            if not usr_data.get('timeout'):
+                usr_data['timeout'] = '00:01:00'
+
             # Fix groups. Must be a list.
             usr_data['groups'] = grps
 
@@ -633,10 +637,10 @@ class Project:
             except Exception, e:
                 return '*ERROR* : Invalid group!'
             try:
-                usr_timeout = int( args[0][1] )
+                usr_timeout = args[0][1]
             except Exception, e:
                 # Get old timeout value for user, OR create a new default value
-                usr_timeout = cfg['users'].get(name, {}).get('timeout', 60)
+                usr_timeout = cfg['users'].get(name, {}).get('timeout', '00:01:00')
 
             grps = [g.strip() for g in usr_group.split(',') if g in self.roles['groups']]
             if not grps:
@@ -1626,8 +1630,7 @@ class Project:
             try:
                 db_password = binascii.a2b_base64( db_config.get('password') )
             except:
-                logError('Database: Invalid database password! Please update your password and try again!')
-                return False
+                db_password = db_config.get('password')
 
             try:
                 conn = MySQLdb.connect(host=db_config.get('server'), db=db_config.get('database'),

@@ -1,7 +1,7 @@
 
 # File: CentralEngineClasses.py ; This file is part of Twister.
 
-# version: 2.014
+# version: 2.015
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -42,17 +42,20 @@ import sys
 import re
 import glob
 import time
-import pickle
+import datetime
 import random
 import socket
-import datetime
 import binascii
 import tarfile
 import xmlrpclib
 import urlparse
-import MySQLdb
-import cherrypy
+import platform
 import subprocess
+import MySQLdb
+
+import pickle
+try: import simplejson as json
+except: import json
 
 
 if not sys.version.startswith('2.7'):
@@ -66,9 +69,8 @@ if not TWISTER_PATH:
 sys.path.append(TWISTER_PATH)
 
 
+import cherrypy
 from cherrypy import _cptools
-
-from json import loads as jsonLoads, dumps as jsonDumps
 
 from CentralEngineOthers import Project
 from ServiceManager    import ServiceManager
@@ -144,6 +146,16 @@ class CentralEngine(_cptools.XMLRPCController):
         '''
         global TWISTER_PATH
         return TWISTER_PATH
+
+
+    @cherrypy.expose
+    def getSysInfo(self):
+        '''
+        Returns some system information.
+        '''
+        system = platform.machine() +' '+ platform.system() +', '+ ' '.join(platform.linux_distribution())
+        python = '.'.join([str(v) for v in sys.version_info])
+        return '{}\nPython {}'.format(system.strip(), python)
 
 
     @cherrypy.expose
@@ -466,7 +478,7 @@ class CentralEngine(_cptools.XMLRPCController):
         if not userClientsInfo:
             return False
         else:
-            userClientsInfo = jsonLoads(userClientsInfo)
+            userClientsInfo = json.loads(userClientsInfo)
 
         userClientsInfoEPs = list()
         for cl in userClientsInfo:
@@ -488,7 +500,7 @@ class CentralEngine(_cptools.XMLRPCController):
     def registerClient(self, user, clients):
         """ Register client. """
 
-        clients = jsonLoads(clients)
+        clients = json.loads(clients)
         _clients = {}
 
         for client in clients:
@@ -498,7 +510,7 @@ class CentralEngine(_cptools.XMLRPCController):
                 addr = cherrypy.request.headers['Remote-Addr']
             _clients.update([('{}:{}'.format(addr,
                                       client.split(':')[1]), clients[client]), ])
-        clients = jsonDumps(_clients)
+        clients = json.dumps(_clients)
 
         self.setUserVariable(user, 'clients', clients)
         logDebug('Registered client manager for user\n\t`{}` -> {}.'.format(user, clients))
@@ -1564,7 +1576,7 @@ class CentralEngine(_cptools.XMLRPCController):
         archiveLogsActive = self.project.getUserInfo(user, 'archive_logs_path_active')
         archiveLogsPath   = self.project.getUserInfo(user, 'archive_logs_path')
 
-        data = jsonDumps({
+        data = json.dumps({
             'cmd': 'reset',
             'logsPath': logsPath,
             'logTypes': logTypes,
@@ -1594,7 +1606,7 @@ class CentralEngine(_cptools.XMLRPCController):
 
         logPath = self.project.getUserInfo(user, 'log_types')[logType]
 
-        data = jsonDumps({
+        data = json.dumps({
             'cmd': 'del',
             'logPath': logPath,
             })
