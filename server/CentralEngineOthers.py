@@ -1,7 +1,7 @@
 
 # File: CentralEngineOthers.py ; This file is part of Twister.
 
-# version: 2.019
+# version: 2.022
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -394,10 +394,6 @@ class Project:
                 return False
             # logDebug('Username `{}` doesn\'t have any roles!'.format(cherry_usr))
 
-        # If the server is not PRODUCTION, the user has ALL ROLES!
-        if self.server_init['ce_server_type'].lower() != 'production':
-            cherry_roles['roles'] = self.roles['roles'].keys()
-
         cherry_roles['user'] = cherry_usr
         return cherry_roles
 
@@ -536,10 +532,23 @@ class Project:
                         # It's a list
                         usr_data['roles'] += roles
 
+            # If the server is no_type or devel, the user has ALL ROLES except CHANGE_USERS!
+            if self.server_init['ce_server_type'].lower() != 'production':
+                has_change_users = 'CHANGE_USERS' in usr_data['roles']
+                usr_data['roles'] = cfg['roles'].keys()
+                if not has_change_users:
+                    try: usr_data['roles'].pop( usr_data['roles'].index('CHANGE_USERS') )
+                    except: pass
+            else:
+                # Fix roles. Must be a list.
+                usr_data['roles'] = sorted( set(usr_data['roles']) )
+
+            # Get old timeout value for user, OR create a new default value
+            if not usr_data.get('timeout'):
+                usr_data['timeout'] = '00:01:00'
+
             # Fix groups. Must be a list.
             usr_data['groups'] = grps
-            # Fix roles. Must be a list.
-            usr_data['roles'] = sorted( set(usr_data['roles']) )
 
         return cfg.dict()
 
@@ -626,7 +635,12 @@ class Project:
             try:
                 usr_group = args[0][0]
             except Exception, e:
-                return '*ERROR* : Exception : `{}` !'.format(e)
+                return '*ERROR* : Invalid group!'
+            try:
+                usr_timeout = args[0][1]
+            except Exception, e:
+                # Get old timeout value for user, OR create a new default value
+                usr_timeout = cfg['users'].get(name, {}).get('timeout', '00:01:00')
 
             grps = [g.strip() for g in usr_group.split(',') if g in self.roles['groups']]
             if not grps:
@@ -636,6 +650,7 @@ class Project:
             # Create new section in Users
             cfg['users'][name] = {}
             cfg['users'][name]['groups'] = usr_group
+            cfg['users'][name]['timeout'] = usr_timeout
             with self.usr_lock: cfg.write()
             logDebug('Added user `{}` in group `{}`, in Users and Groups.'.format(name, usr_group))
             del cfg
@@ -1615,8 +1630,7 @@ class Project:
             try:
                 db_password = binascii.a2b_base64( db_config.get('password') )
             except:
-                logError('Database: Invalid database password! Please update your password and try again!')
-                return False
+                db_password = db_config.get('password')
 
             try:
                 conn = MySQLdb.connect(host=db_config.get('server'), db=db_config.get('database'),

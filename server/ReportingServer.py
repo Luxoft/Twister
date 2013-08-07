@@ -1,7 +1,7 @@
 
 # File: ReportingServer.py ; This file is part of Twister.
 
-# version: 2.004
+# version: 2.005
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -35,6 +35,7 @@ import re
 import datetime
 import json
 import mako
+import binascii
 
 import MySQLdb
 import cherrypy
@@ -101,8 +102,15 @@ class ReportingServer:
             logDebug('Reporting Server: Connecting to the Database for the first time...')
 
         db_config = self.db_parser[usr].db_config
+
+        # Decode database password
+        try:
+            db_password = binascii.a2b_base64( db_config.get('password') )
+        except:
+            db_password = db_config.get('password')
+
         self.conn[usr] = MySQLdb.connect(host=db_config.get('server'), db=db_config.get('database'),
-                                         user=db_config.get('user'), passwd=db_config.get('password'))
+                                         user=db_config.get('user'), passwd=db_password)
         self.curs[usr] = self.conn[usr].cursor()
 
 
