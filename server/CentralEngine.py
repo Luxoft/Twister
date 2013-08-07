@@ -104,7 +104,6 @@ if __name__ == "__main__":
             'log.screen': False,
 
             'tools.sessions.on': True,
-            'tools.sessions.timeout': 60,
             'tools.auth_basic.on': True,
             'tools.auth_basic.realm': 'Twister Server',
             'tools.auth_basic.checkpassword': check_passwd,
