@@ -1,6 +1,6 @@
 /*
 File: DBConfig.java ; This file is part of Twister.
-Version: 2.003
+Version: 2.004
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -55,36 +55,21 @@ import java.io.FileWriter;
 import javax.xml.bind.DatatypeConverter;
 
 public class DBConfig extends JPanel{
-    Document doc=null;
+    Document doc;
     File theone;
-    JTextField tdatabase,tserver,tuser;
+    private JTextField tdatabase,tserver,tuser;
     JPasswordField tpassword;
     DatabaseInterface databaseinterface;
 
     public DBConfig(){
-        
-        //setLayout(null);
-        
-        //setPreferredSize(new Dimension(1000,1000));
-        
         databaseinterface = new DatabaseInterface();
         add(databaseinterface);
-        
         setBorder(BorderFactory.createBevelBorder(BevelBorder.LOWERED));
         setBackground(Color.WHITE);
         JLabel file = new JLabel("File: ");
         file.setBounds(15,10,50,20);
-        
-        //add(file);
-        
-        
         final JTextField tfile = new JTextField();
         tfile.setBounds(100,10,170,25);
-        
-        
-// //         add(tfile);
-        
-        
         JButton browse = new JButton("Browse");
         browse.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
@@ -97,11 +82,6 @@ public class DBConfig extends JPanel{
                     try{tfile.setText(f.getCanonicalPath());}
                     catch(Exception e){e.printStackTrace();}}}});
         browse.setBounds(275,13,90,20);
-        
-        
-//         add(browse);
-        
-        
         JButton upload = new JButton("Upload");
         upload.setBounds(375,13,90,20);
         upload.addActionListener(new ActionListener(){
@@ -125,52 +105,22 @@ public class DBConfig extends JPanel{
                     CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, 
                                             DBConfig.this, "Warning", 
                                             "File could not uploaded");}}});
-        
-//         add(upload);
-        
-        
         JLabel database = new JLabel("Database: ");
         database.setBounds(15,55,90,20);
-        
-        
-//         add(database);
-        
         tdatabase = new JTextField();
         tdatabase.setBounds(100,55,170,25);
-        
-//         add(tdatabase);
-        
         JLabel server = new JLabel("Server: ");
         server.setBounds(15,80,90,20);
-        
-//         add(server);
-        
         tserver = new JTextField();
         tserver.setBounds(100,80,170,25);
-        
-//         add(tserver);
-        
         JLabel user = new JLabel("User: ");
         user.setBounds(15,105,50,20);
-        
-//         add(user);
-        
-        
         tuser = new JTextField();
         tuser.setBounds(100,105,170,25);
-        
-//         add(tuser);
-        
         JLabel password = new JLabel("Password: ");
         password.setBounds(15,130,90,20);
-        
-//         add(password);
-        
         tpassword = new JPasswordField();
         tpassword.setBounds(100,130,170,25);
-        
-//         add(tpassword);
-        
         refresh();
         JButton save = new JButton("Save");
         save.setBounds(200,155,70,20);
@@ -228,8 +178,6 @@ public class DBConfig extends JPanel{
                             transformer.transform(source, result);
                             FileInputStream input = new FileInputStream(theone);
                             RunnerRepository.uploadRemoteFile(RunnerRepository.REMOTEDATABASECONFIGPATH, input, theone.getName());
-                        
-                        
                         }
                         catch(Exception e){
                             saved = false;
@@ -249,12 +197,11 @@ public class DBConfig extends JPanel{
                         CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, 
                                                 DBConfig.this, "Warning", 
                                                 "File could not be saved ");}}}});
-//           add(save);
-    
     }
         
     private void refresh(){
         try{
+            System.out.println("refreshing database");
             tserver.setText("");
             tdatabase.setText("");
             tpassword.setText("");

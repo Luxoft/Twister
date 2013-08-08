@@ -1,6 +1,6 @@
 /*
 File: DatabaseInterface.java ; This file is part of Twister.
-Version: 2.002
+Version: 2.003
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -59,6 +59,7 @@ import com.twister.CustomDialog;
 import java.io.FileInputStream;
 import javax.swing.JFrame;
 import javax.swing.JTabbedPane;
+import javax.xml.bind.DatatypeConverter;
 
 public class DatabaseInterface extends JPanel {
     
@@ -581,7 +582,7 @@ public class DatabaseInterface extends JPanel {
             }});
         savepanel.add(save);
         if(!PermissionValidtor.canEditDB()){
-            save.setEnabled(false);
+            //save.setEnabled(false);
         }
         add(savepanel,BorderLayout.SOUTH);
     }
@@ -611,7 +612,22 @@ public class DatabaseInterface extends JPanel {
             subem.appendChild(document.createTextNode(tuser.getText()));
             em.appendChild(subem);
             subem = document.createElement("password");
-            subem.appendChild(document.createTextNode(new String(tpassword.getPassword())));
+            
+//             String p = "";
+//             byte mydata[]=new String(tpassword.getPassword()).getBytes();
+//             try{p = DatatypeConverter.printBase64Binary(mydata);}
+//             catch(Exception e){e.printStackTrace();}
+            
+            String p = "";                            
+            try{p = RunnerRepository.getRPCClient().execute("encryptText", new Object[]{new String(tpassword.getPassword())}).toString();
+            } catch(Exception e){
+                e.printStackTrace();
+                System.out.println("Could not encrypt password");
+            }
+            
+            subem.appendChild(document.createTextNode(p));
+            
+            
             em.appendChild(subem);
             root.appendChild(em);
             em = document.createElement("insert_section");

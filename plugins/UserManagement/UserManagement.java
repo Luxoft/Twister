@@ -1,6 +1,6 @@
 /*
-File: UserManager.java ; This file is part of Twister.
-Version: 2.001
+File: UserManagement.java ; This file is part of Twister.
+Version: 2.002
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -29,11 +29,16 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
 import java.io.InputStream;
+import java.lang.reflect.Array;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Hashtable;
+import java.util.List;
 
 import javax.imageio.ImageIO;
 import javax.swing.AbstractListModel;
@@ -42,14 +47,22 @@ import javax.swing.GroupLayout;
 import javax.swing.Icon;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
+import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JList;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JSpinner;
+import javax.swing.JTextField;
 import javax.swing.ListSelectionModel;
+import javax.swing.SpinnerDateModel;
+import javax.swing.SpinnerModel;
+import javax.swing.SpinnerNumberModel;
 import javax.swing.event.AncestorEvent;
 import javax.swing.event.AncestorListener;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.table.DefaultTableModel;
@@ -70,8 +83,8 @@ public class UserManagement extends BasePlugin implements TwisterPluginInterface
 	private JPanel p;
 	private CommonInterface maincomp;
 	private Icon back;
-	private javax.swing.JButton editgroups;
-    private javax.swing.JPanel grouppanel;
+	private javax.swing.JButton editgroups,auser,ruser;
+    private javax.swing.JPanel grouppanel,jPanel1;
     private javax.swing.JLabel groupslabel;
     private javax.swing.JList groupslist;
     private javax.swing.JScrollPane groupslistscroll;
@@ -86,6 +99,8 @@ public class UserManagement extends BasePlugin implements TwisterPluginInterface
     private javax.swing.JTable usertable;
     private XmlRpcClient client;
     private JButton bckbtn;
+    private JLabel timeout;
+    private JSpinner timeoutt;
 
 	@Override
 	public void init(ArrayList<Item> suite, ArrayList<Item> suitetest,
@@ -94,6 +109,7 @@ public class UserManagement extends BasePlugin implements TwisterPluginInterface
 		super.init(suite, suitetest, variables, pluginsConfig,applet);
 		System.out.println("Initializing " + getName() + " ... ");	
 		p = new JPanel();
+		
 		try {
 			InputStream in = getClass().getResourceAsStream("back.png");
 			Image im = ImageIO.read(in);
@@ -158,7 +174,6 @@ public class UserManagement extends BasePlugin implements TwisterPluginInterface
 				username = usertable.getValueAt(row,0).toString();
 			}
 			
-			
 			HashMap<String,HashMap> hm = (HashMap<String,HashMap>)client.execute("usersAndGroupsManager", new Object[]{"list users"});
 			Object[]users = hm.keySet().toArray();
 			DefaultTableModel dtm = ((DefaultTableModel)usertable.getModel());
@@ -171,13 +186,16 @@ public class UserManagement extends BasePlugin implements TwisterPluginInterface
 					sb.append(o.toString()+",");
 				}
 				if(sb.length()>0)sb.setLength(sb.length()-1);
+				
 				ob2 = (Object[])hm.get(ob.toString()).get("roles");
 				StringBuilder sb2 = new StringBuilder();
 				for(Object o:ob2){
 					sb2.append(o.toString()+",");
 				}
 				if(sb2.length()>0)sb2.setLength(sb2.length()-1);
-				dtm.addRow(new String[]{ob.toString(),sb.toString(),sb2.toString()});
+				
+				String timeout = (String)hm.get(ob.toString()).get("timeout").toString();
+				dtm.addRow(new String[]{ob.toString(),timeout,sb.toString(),sb2.toString()});
 			}
 			if(username!=null){
 				int rows = usertable.getRowCount();
@@ -187,7 +205,6 @@ public class UserManagement extends BasePlugin implements TwisterPluginInterface
 						break;
 					}
 				}
-				
 			}
 		} catch (XmlRpcException e) {
 			e.printStackTrace();
@@ -197,7 +214,6 @@ public class UserManagement extends BasePlugin implements TwisterPluginInterface
 	public void populateGroupsList(){
 		try {
 			HashMap<String,HashMap> hm = (HashMap<String,HashMap>)client.execute("usersAndGroupsManager", new Object[]{"list groups"});
-			System.out.println("groups: "+hm);
 			Object [] groups = hm.keySet().toArray();
 			
 			DefaultListModel listModel = new DefaultListModel();
@@ -227,9 +243,52 @@ public class UserManagement extends BasePlugin implements TwisterPluginInterface
 	
 	
 	private void initComponents() {
+		timeout = new JLabel("Timeout:");
+		SpinnerModel model = new SpinnerDateModel();
+		timeoutt = new JSpinner(model);
+		timeoutt.setBorder(null);
+		JComponent editor = new JSpinner.DateEditor(timeoutt, "mm");
+		timeoutt.setEditor(editor);
+		((JSpinner.DefaultEditor) timeoutt.getEditor()).getTextField().setText("00:00:00");
+		
+		
+		((JSpinner.DefaultEditor) timeoutt.getEditor()).getTextField().addPropertyChangeListener("value",new PropertyChangeListener() {
+			
+			@Override
+			public void propertyChange(PropertyChangeEvent evt) {
+				
+				if(!usernamet.getText().equals("")){
+					
+					
+	                String [] selected = new String[groupslist.getSelectedValuesList().size()];
+	                for(int i=0;i<groupslist.getSelectedValuesList().size();i++){
+	                    selected[i] = groupslist.getSelectedValuesList().get(i).toString();
+	                }
+	                StringBuilder sb = new StringBuilder();
+	                for(String st:selected){
+	                	sb.append(st);
+	                	sb.append(",");
+	                }
+	                sb.setLength(sb.length()-1);
+	                try {
+						String st = client.execute("usersAndGroupsManager", new Object[]{"set user",usernamet.getText(),sb.toString(), ((JSpinner.DefaultEditor) timeoutt.getEditor()).getTextField().getText()}).toString();
+						System.out.println(st);
+						if(st.equals("true")){
+							populateUsersTable();
+						}
+	                } catch (XmlRpcException ex) {
+						ex.printStackTrace();
+					}
+				}
+			}
+		});
+		
+		jPanel1 = new javax.swing.JPanel();
+		jPanel1.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(153, 153, 153)));
         userspanel = new javax.swing.JPanel();
         userlabel = new javax.swing.JLabel();
         userscroll = new javax.swing.JScrollPane();
+        userscroll.setBorder(null);
         usertable = new javax.swing.JTable(){
 			private static final long serialVersionUID = 1L;
 			public boolean isCellEditable(int row, int column) {
@@ -247,6 +306,21 @@ public class UserManagement extends BasePlugin implements TwisterPluginInterface
         groupstablescroll = new javax.swing.JScrollPane();
         groupstable = new javax.swing.JTable();
         editgroups = new javax.swing.JButton();
+        auser = new javax.swing.JButton("Add User");
+        
+        auser.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				addUser();
+			}
+		});
+        ruser = new javax.swing.JButton("Remove User");
+        ruser.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				removeUser();
+			}
+		});
         bckbtn = new javax.swing.JButton("Control Panel",back);
         
         bckbtn.setMaximumSize(new java.awt.Dimension(135, 25));
@@ -259,6 +333,8 @@ public class UserManagement extends BasePlugin implements TwisterPluginInterface
 				maincomp.loadComponent("ControlPanel");
 			}
 		});
+        
+        p.setPreferredSize(new Dimension(1024,768));
 
         userspanel.setBackground(new java.awt.Color(220, 220, 220));
 
@@ -268,25 +344,48 @@ public class UserManagement extends BasePlugin implements TwisterPluginInterface
         usertable.setModel(new javax.swing.table.DefaultTableModel(
             new Object [][] {},
             new String [] {
-                "User Name", "User Groups", "User Roles"}
+                "User Name","Timeout", "User Groups", "User Roles"}
         ));
         userscroll.setViewportView(usertable);
 
+        javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
+        jPanel1.setLayout(jPanel1Layout);
+        jPanel1Layout.setHorizontalGroup(
+            jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel1Layout.createSequentialGroup()
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addComponent(auser)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(ruser)
+                .addContainerGap())
+            .addComponent(userscroll, javax.swing.GroupLayout.Alignment.TRAILING)
+        );
+        jPanel1Layout.setVerticalGroup(
+            jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel1Layout.createSequentialGroup()
+                .addComponent(userscroll, javax.swing.GroupLayout.DEFAULT_SIZE, 134, Short.MAX_VALUE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(auser)
+                    .addComponent(ruser))
+                .addContainerGap())
+        );
+        
         javax.swing.GroupLayout userspanelLayout = new javax.swing.GroupLayout(userspanel);
         userspanel.setLayout(userspanelLayout);
         userspanelLayout.setHorizontalGroup(
             userspanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(userscroll, javax.swing.GroupLayout.DEFAULT_SIZE, 922, Short.MAX_VALUE)
             .addGroup(userspanelLayout.createSequentialGroup()
                 .addComponent(userlabel)
                 .addGap(0, 0, Short.MAX_VALUE))
+            .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
         );
         userspanelLayout.setVerticalGroup(
             userspanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(userspanelLayout.createSequentialGroup()
                 .addComponent(userlabel)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(userscroll, javax.swing.GroupLayout.DEFAULT_SIZE, 206, Short.MAX_VALUE))
+                .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
 
         userproppanel.setBorder(javax.swing.BorderFactory.createTitledBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(51, 51, 51)), "User properties", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, null, new java.awt.Color(51, 51, 51)));
@@ -294,7 +393,7 @@ public class UserManagement extends BasePlugin implements TwisterPluginInterface
         usernamel.setText("User name:");
 
         usernamet.setEditable(false);
-
+        
         groupslabel.setText("Groups");
 
         groupslist.setModel(new javax.swing.AbstractListModel() {
@@ -303,7 +402,7 @@ public class UserManagement extends BasePlugin implements TwisterPluginInterface
             public Object getElementAt(int i) { return strings[i]; }
         });
         groupslistscroll.setViewportView(groupslist);
-
+        
         javax.swing.GroupLayout userproppanelLayout = new javax.swing.GroupLayout(userproppanel);
         userproppanel.setLayout(userproppanelLayout);
         userproppanelLayout.setHorizontalGroup(
@@ -313,11 +412,15 @@ public class UserManagement extends BasePlugin implements TwisterPluginInterface
                 .addGroup(userproppanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
                     .addComponent(groupslistscroll)
                     .addGroup(userproppanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addComponent(groupslabel)
                         .addGroup(userproppanelLayout.createSequentialGroup()
-                            .addComponent(usernamel)
+                            .addGroup(userproppanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                .addComponent(usernamel)
+                                .addComponent(timeout))
                             .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                            .addComponent(usernamet, javax.swing.GroupLayout.PREFERRED_SIZE, 163, javax.swing.GroupLayout.PREFERRED_SIZE))
-                        .addComponent(groupslabel)))
+                            .addGroup(userproppanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                                .addComponent(usernamet, javax.swing.GroupLayout.DEFAULT_SIZE, 163, Short.MAX_VALUE)
+                                .addComponent(timeoutt)))))
                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
         userproppanelLayout.setVerticalGroup(
@@ -328,6 +431,10 @@ public class UserManagement extends BasePlugin implements TwisterPluginInterface
                     .addComponent(usernamel)
                     .addComponent(usernamet, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(userproppanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(timeout)
+                    .addComponent(timeoutt, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addComponent(groupslabel)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(groupslistscroll)
@@ -376,7 +483,6 @@ public class UserManagement extends BasePlugin implements TwisterPluginInterface
         p.setLayout(layout);
         
         
-        
         layout.setHorizontalGroup(
                 layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                 .addGroup(layout.createSequentialGroup()
@@ -409,30 +515,6 @@ public class UserManagement extends BasePlugin implements TwisterPluginInterface
                     .addGap(7, 7, 7))
             );
         
-//        layout.setHorizontalGroup(
-//            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-//            .addGroup(layout.createSequentialGroup()
-//                .addContainerGap()
-//                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-//                    .addComponent(userspanel, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-//                    .addGroup(layout.createSequentialGroup()
-//                        .addComponent(userproppanel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-//                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-//                        .addComponent(grouppanel, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
-//                .addContainerGap())
-//        );
-//        layout.setVerticalGroup(
-//            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-//            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-//                .addContainerGap()
-//                .addComponent(userspanel, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-//                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-//                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-//                    .addComponent(grouppanel, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-//                    .addComponent(userproppanel, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-//                .addContainerGap())
-//        );
-        
         editgroups.addActionListener(new ActionListener() {
 			
 			@Override
@@ -447,6 +529,80 @@ public class UserManagement extends BasePlugin implements TwisterPluginInterface
         	}
 		});
     }
+	
+	private void addUser(){
+		try {
+
+			HashMap<String,HashMap> hm = (HashMap<String,HashMap>)client.execute("usersAndGroupsManager", new Object[]{"list groups"});
+			Object [] resp = hm.keySet().toArray();
+			String [] groups = new String[resp.length];
+			for(int i=0;i<resp.length;i++){
+				groups[i] = resp[i].toString();
+			}
+			
+			
+			resp = (Object[])client.execute("listUsers", new Object[]{});
+			ArrayList<String> al = new ArrayList<String>();
+			
+			int rows = usertable.getRowCount();
+			boolean found;
+			for(Object ob:resp){
+				found = false;
+				for(int j=0;j<rows;j++){
+					if(ob.toString().equals(usertable.getValueAt(j, 0).toString())){
+						found = true;
+						break;
+					}
+				}
+				if(!found){
+					al.add(ob.toString());
+				}
+			}
+			
+			
+			String [] users = new String[al.size()];
+			al.toArray(users);
+			new AddUser((int)auser.getLocationOnScreen().getX()-320,(int)auser.getLocationOnScreen().getY()-240,users,groups,this);
+		} catch (XmlRpcException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	public void addUser(String username, String groups){
+		try {
+			
+			
+			
+			
+			String st = client.execute("usersAndGroupsManager", new Object[]{"set user",username,groups,"00:01:00"}).toString();
+			if(st.equals("true")){
+				populateUsersTable();
+			}
+        } catch (XmlRpcException e) {
+			e.printStackTrace();
+		}
+		
+	}
+	
+	private void removeUser(){
+		int row = usertable.getSelectedRow();
+		if(row==-1){
+			CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,this,
+                    "Warning", "Please select a row from users table");
+			return;
+		}
+		String username = usertable.getValueAt(
+				row,0).toString();
+		try {
+			String resp = client.execute("usersAndGroupsManager", new Object[]{"delete user",username}).toString();
+			if(resp.equals("true")){
+				((DefaultTableModel)usertable.getModel()).removeRow(row);
+				usernamet.setText("");
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
 	
 	public void editGroup(){
 		int row = groupstable.getSelectedRow();
@@ -467,11 +623,21 @@ public class UserManagement extends BasePlugin implements TwisterPluginInterface
 				usertable.rowAtPoint(ev.getPoint()),
 				0).toString();
 		usernamet.setText(username);
+		String timeout = usertable.getValueAt(
+								usertable.rowAtPoint(ev.getPoint()),
+								1).toString();
+		
+		//PropertyChangeListener pcl = ((JSpinner.DefaultEditor) timeoutt.getEditor()).getTextField().getPropertyChangeListeners("MyPropListener")[0];
+		//((JSpinner.DefaultEditor) timeoutt.getEditor()).getTextField().removePropertyChangeListener(pcl);
+		
+		((JSpinner.DefaultEditor) timeoutt.getEditor()).getTextField().setText(timeout);
+		
+		//((JSpinner.DefaultEditor) timeoutt.getEditor()).getTextField().addPropertyChangeListener("MyPropListener", pcl);
 		
 		String groups[] = 
 				usertable.getValueAt(
         				usertable.rowAtPoint(ev.getPoint()),
-						1).toString().split(",");
+						2).toString().split(",");
 		
 		for(ListSelectionListener l:groupslist.getListSelectionListeners()){
 			groupslist.removeListSelectionListener(l);
@@ -499,7 +665,6 @@ public class UserManagement extends BasePlugin implements TwisterPluginInterface
 			DefaultTableModel dtm = ((DefaultTableModel)groupstable.getModel());
 			dtm.setRowCount(0);
 			
-			System.out.println(hm);
 			StringBuilder sb = new StringBuilder();
 			for(Object o:groups){
 				sb.setLength(0);
@@ -521,6 +686,7 @@ public class UserManagement extends BasePlugin implements TwisterPluginInterface
 	class MyListSelectionListener implements ListSelectionListener {
         public void valueChanged(ListSelectionEvent evt) {
             if (!evt.getValueIsAdjusting()) {
+            	if(usernamet.getText().equals(""))return;
                 JList list = (JList)evt.getSource();
                 String [] selected = new String[list.getSelectedValuesList().size()];
                 for(int i=0;i<list.getSelectedValuesList().size();i++){
@@ -539,7 +705,6 @@ public class UserManagement extends BasePlugin implements TwisterPluginInterface
                 }
                 try {
 					String st = client.execute("usersAndGroupsManager", new Object[]{"set user",usernamet.getText(),sb.toString()}).toString();
-					System.out.println(st);
 					if(st.equals("true")){
 						populateUsersTable();
 					}
@@ -559,7 +724,7 @@ public class UserManagement extends BasePlugin implements TwisterPluginInterface
 		fr.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		fr.setBounds(100,100,800,600);
 		UserManagement cp = new UserManagement();
-		Hashtable ht = new Hashtable<>();
+		Hashtable ht = new Hashtable();
 		ht.put("user", "tscguest");
 		ht.put("password", "tscguest");
 		ht.put("centralengineport", "8000");

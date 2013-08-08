@@ -1,6 +1,6 @@
 /*
 File: WelcomePanel.java ; This file is part of Twister.
-Version: 2.001
+Version: 2.002
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -32,16 +32,26 @@ import java.awt.GridBagConstraints;
 import java.awt.Color;
 import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyAdapter;
 
 
 public class WelcomePanel extends JPanel{
     private JPasswordField tf2;
     private JTextField tf1;
+    private JButton login;
     
     public WelcomePanel(){
         JPanel p = new JPanel();
         tf1 = new JTextField();
         tf2 = new JPasswordField();
+        tf2.addKeyListener(new KeyAdapter(){
+            public void keyReleased(KeyEvent ev){
+                if(ev.getKeyCode()==KeyEvent.VK_ENTER){
+                    login.doClick();
+                }
+            }
+        });
         p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
         JPanel jPanel1 = new JPanel();
         JLabel jLabel3 = new JLabel();
@@ -57,7 +67,7 @@ public class WelcomePanel extends JPanel{
         jPanel2.add(jLabel4, BorderLayout.CENTER);
         p.add(jPanel2);
         p.add(tf2);
-        JButton login = new JButton("Login");
+        login = new JButton("Login");
         login.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 MainRepository.login(tf1.getText(),new String(tf2.getPassword()));
