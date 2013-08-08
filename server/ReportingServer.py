@@ -1,7 +1,7 @@
 
 # File: ReportingServer.py ; This file is part of Twister.
 
-# version: 2.004
+# version: 2.006
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -35,6 +35,7 @@ import re
 import datetime
 import json
 import mako
+import binascii
 
 import MySQLdb
 import cherrypy
@@ -46,8 +47,9 @@ if not TWISTER_PATH:
     exit(1)
 sys.path.append(TWISTER_PATH)
 
+from common.helpers    import *
 from common.tsclogging import *
-from common.xmlparser import *
+from common.xmlparser  import *
 
 if mako.__version__ < '0.7':
     logWarning('Warning! Mako-template version is old: `{}`! Some pages might crash!\n'.format(mako.__version__))
@@ -79,13 +81,19 @@ class ReportingServer:
         Read DB Config File for 1 user.
         '''
         if not os.path.isdir(userHome(usr) + '/twister/config'):
-            logDebug('Reporting Server: Cannot find Twister for user `{}` !'.format(usr))
+            logError('Reporting Server: Cannot find Twister for user `{}` !'.format(usr))
+            return False
+
+        # Get the path to DB.XML
+        db_file = self.project.getUserInfo(usr, 'db_config')
+        if not db_file:
+            logError('Reporting Server: Null DB.XML file for user `{}`! Nothing to do!'.format(usr))
             return False
 
         # Create database parser...
         if usr not in self.db_parser:
             logDebug('Reporting Server: Parsing config for `{}` for the first time...'.format(usr))
-            self.db_parser[usr] = DBParser(usr)
+            self.db_parser[usr] = DBParser(db_file)
 
         self.glob_fields[usr]    = self.db_parser[usr].getReportFields()
         self.glob_reports[usr]   = self.db_parser[usr].getReports()
@@ -97,12 +105,16 @@ class ReportingServer:
         '''
         Reconnect to the database.
         '''
-        if usr not in self.conn:
-            logDebug('Reporting Server: Connecting to the Database for the first time...')
-
         db_config = self.db_parser[usr].db_config
+
+        # Decode database password
+        db_password = self.project.decryptText( db_config.get('password') )
+        if not db_password:
+            logError('Report Server: Cannot decrypt the database password for user `{}`!'.format(usr))
+            db_password = '0'
+
         self.conn[usr] = MySQLdb.connect(host=db_config.get('server'), db=db_config.get('database'),
-                                         user=db_config.get('user'), passwd=db_config.get('password'))
+                                         user=db_config.get('user'), passwd=db_password)
         self.curs[usr] = self.conn[usr].cursor()
 
 
