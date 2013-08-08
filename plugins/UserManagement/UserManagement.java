@@ -1,6 +1,6 @@
 /*
 File: UserManagement.java ; This file is part of Twister.
-Version: 2.002
+Version: 2.003
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -574,7 +574,7 @@ public class UserManagement extends BasePlugin implements TwisterPluginInterface
 			
 			
 			
-			String st = client.execute("usersAndGroupsManager", new Object[]{"set user",username,groups,"00:01:00"}).toString();
+			String st = client.execute("usersAndGroupsManager", new Object[]{"set user",username,groups,"01"}).toString();
 			if(st.equals("true")){
 				populateUsersTable();
 			}
