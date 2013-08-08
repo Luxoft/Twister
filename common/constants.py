@@ -1,5 +1,5 @@
 
-# version: 2.004
+# version: 2.005
 
 # Major list of constants.
 
@@ -23,6 +23,28 @@ STATUS_NOT_EXEC = 6  # Not executed, is sent from TC when tests are paused, and 
 STATUS_TIMEOUT  = 7  # When timer expired
 STATUS_INVALID  = 8  # When timer expired, the next run
 STATUS_WAITING  = 9  # Is waiting for another test
+
+# List with all available roles
+
+ROLES = [
+
+	'RUN_TESTS',		# Can run tests ? (server + applet)
+	'EDIT_TC',			# Can edit test files ? (applet)
+
+	'CREATE_PROJECT',	# Can create new projects ? (applet)
+	'CHANGE_PROJECT',	# Can change defined projects ? (applet)
+	'DELETE_PROJECT',	# Can delete projects ? (applet)
+
+	'CHANGE_FWM_CFG',	# Can change his main config ? (applet)
+	'CHANGE_GLOBALS',	# Can change global parameters ? (applet)
+	'CHANGE_DB_CFG',	# Can change database config ? (applet)
+	'CHANGE_EML_CFG',	# Can change e-mail config ? (applet)
+	'CHANGE_PLUGINS',	# Can load/ unload plugins ? (applet)
+
+	'CHANGE_TESTBED',	# Can change the global testbed ? (server + applet)
+	'CHANGE_SERVICES',	# Can start/ stop services ? (server + applet)
+	'CHANGE_USERS',		# Can create, change and delete users ? (server + applet)
+]
 
 # Status translations :
 

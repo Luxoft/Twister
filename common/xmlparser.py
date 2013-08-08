@@ -1,7 +1,7 @@
 
 # File: xmlparser.py ; This file is part of Twister.
 
-# version: 2.009
+# version: 2.010
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -28,7 +28,6 @@ import os
 import sys
 import time
 import hashlib
-import subprocess
 
 from collections import OrderedDict
 
@@ -42,19 +41,13 @@ from lxml import etree
 from ConfigParser import SafeConfigParser
 from plugins import BasePlugin
 
+from common.helpers import *
 from common.tsclogging import *
 from common.suitesmanager import *
 from common.constants import FWMCONFIG_TAGS, PROJECTCONFIG_TAGS
 from common.constants import SUITES_TAGS, TESTS_TAGS
 
-__all__ = ['TSCParser', 'DBParser', 'PluginParser', 'userHome']
-
-
-def userHome(user):
-    """
-    Find the home folder for the given user.
-    """
-    return subprocess.check_output('echo ~' + user, shell=True).strip()
+__all__ = ['TSCParser', 'DBParser', 'PluginParser']
 
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -541,21 +534,23 @@ class TSCParser:
             return ''
 
 
-    def getEmailConfig(self):
+    def getEmailConfig(self, eml_file=''):
         """
         Returns the e-mail configuration.
         After Central Engine stops, an e-mail must be sent to the people interested.
         """
-        eml_file = self.project_globals['eml_config']
-
         if not eml_file:
-            logError('Parser: E-mail Config file is not defined! Please check framework config XML file!')
-            return {}
+            eml_file = self.project_globals['eml_config']
+
         if not os.path.isfile(eml_file):
-            logError('Parser: E-mail Config file `%s` does not exist! Please check framework config XML file!' % eml_file)
+            logError('Parser: E-mail Config file `{}` does not exist!'.format(eml_file))
             return {}
 
-        econfig = etree.parse(eml_file)
+        try:
+            econfig = etree.parse(eml_file)
+        except:
+            logError('Parser: Cannot parse e-mail Config file `{}`!'.format(eml_file))
+            return {}
 
         res = {}
         res['Enabled'] = ''
@@ -735,52 +730,32 @@ class DBParser():
     This parser will read DB.xml.
     """
 
-    def __init__(self, user):
+    def __init__(self, config_data):
 
-        user_home = userHome(user)
-
-        if not os.path.exists('{}/twister'.format(user_home)):
-            raise Exception('Db Parser ERROR: Cannot find Twister for user `{}`, '\
-                             'in path `{}/twister`!'.format(user, user_home))
-
-        fmw_path = '{}/twister/config/fwmconfig.xml'.format(user_home)
-        s = open(fmw_path).read()
-        a = s.find('<DbConfigFile>') + len('<DbConfigFile>')
-        b = s.find('</DbConfigFile>')
-
-        self.config_data = s[a:b]
-        self.configHash = None
         self.db_config = {}
+
+        if os.path.isfile(config_data):
+            try: self.xmlDict = etree.fromstring(open(config_data).read())
+            except: raise Exception('Db Parser: Invalid DB config file `{}`!'.format(config_data))
+        elif config_data and type(config_data)==type('') or type(config_data)==type(u''):
+            try: self.xmlDict = etree.fromstring(config_data)
+            except: raise Exception('Db Parser: Cannot parse DB config file!')
+        else:
+            raise Exception('Db Parser: Invalid config data type: `{}`!'.format( type(config_data) ))
+
         self.updateConfig()
 
 
     def updateConfig(self):
-        """ Reload all Database Xml info """
 
-        config_data = self.config_data
-        newConfigHash = hashlib.md5(open(config_data).read()).hexdigest()
-
-        if self.configHash != newConfigHash:
-            self.configHash = newConfigHash
-            # print('Db Parser: Database XML file changed, rebuilding internal structure...\n')
-
-            if os.path.isfile(config_data):
-                try: self.xmlDict = etree.fromstring(open(config_data).read())
-                except: raise Exception('Db Parser: Cannot parse DB config file!')
-            elif config_data and type(config_data)==type('') or type(config_data)==type(u''):
-                try: self.xmlDict = etree.fromstring(config_data)
-                except: raise Exception('Db Parser: Cannot parse DB config file!')
-            else:
-                raise Exception('Db Parser: Invalid config data type: `%s`!' % type(config_data))
-
-            if self.xmlDict.xpath('db_config/server/text()'):
-                self.db_config['server']    = self.xmlDict.xpath('db_config/server')[0].text
-            if self.xmlDict.xpath('db_config/database/text()'):
-                self.db_config['database']  = self.xmlDict.xpath('db_config/database')[0].text
-            if self.xmlDict.xpath('db_config/user/text()'):
-                self.db_config['user']      = self.xmlDict.xpath('db_config/user')[0].text
-            if self.xmlDict.xpath('db_config/password/text()'):
-                self.db_config['password']  = self.xmlDict.xpath('db_config/password')[0].text
+        if self.xmlDict.xpath('db_config/server/text()'):
+            self.db_config['server']    = self.xmlDict.xpath('db_config/server')[0].text
+        if self.xmlDict.xpath('db_config/database/text()'):
+            self.db_config['database']  = self.xmlDict.xpath('db_config/database')[0].text
+        if self.xmlDict.xpath('db_config/user/text()'):
+            self.db_config['user']      = self.xmlDict.xpath('db_config/user')[0].text
+        if self.xmlDict.xpath('db_config/password/text()'):
+            self.db_config['password']  = self.xmlDict.xpath('db_config/password')[0].text
 
 # --------------------------------------------------------------------------------------------------
 #           USED BY CENTRAL ENGINE
