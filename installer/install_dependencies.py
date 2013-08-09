@@ -81,6 +81,7 @@ dependencies = [
     'MySQL-python',
     'Scapy-real',
     'Paramiko',
+    'PyCrypto',
     'pExpect'
 ]
 
@@ -92,6 +93,7 @@ library_names = [
     'MySQLdb',
     'scapy',
     'paramiko',
+    'Crypto',
     'pexpect'
 ]
 
@@ -102,7 +104,8 @@ library_versions = [
     '2.0',
     '1.2',
     '2.1',
-    '1.0',
+    '1.1',
+    '2.6',
     '2.2'
 ]
 
