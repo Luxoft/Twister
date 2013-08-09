@@ -1,6 +1,6 @@
 /*
 File: RolesManager.java ; This file is part of Twister.
-Version: 2.001
+Version: 2.002
 
 Copyright (C) 2012-2013 , Luxoft
 

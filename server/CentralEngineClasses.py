@@ -1,7 +1,7 @@
 
 # File: CentralEngineClasses.py ; This file is part of Twister.
 
-# version: 2.015
+# version: 2.016
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -79,6 +79,7 @@ from ResourceAllocator import ResourceAllocator
 from ReportingServer   import ReportingServer
 
 from common.constants  import *
+from common.helpers    import *
 from common.tsclogging import *
 from common.xmlparser  import *
 
@@ -167,6 +168,45 @@ class CentralEngine(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
+    def getLogsPath(self, user):
+        '''
+        Returns the path to Logs files.
+        '''
+        return self.project.getUserInfo(user, 'logs_path')
+
+
+    @cherrypy.expose
+    def encryptText(self, text):
+        """
+        Encrypt a piece of text, using AES.\n
+        This function is called from the Java GUI.
+        """
+        return self.project.encryptText(text)
+
+
+    @cherrypy.expose
+    def decryptText(self, text):
+        """
+        Decrypt a piece of text, using AES.\n
+        This function is called from the Java GUI.
+        """
+        return self.project.decryptText(text)
+
+
+    @cherrypy.expose
+    def runUserScript(self, script_path):
+        """
+        Executes a script.
+        Returns a string containing the text printed by the script.\n
+        This function is called from the Java GUI.
+        """
+        return execScript(script_path)
+
+
+#
+
+
+    @cherrypy.expose
     def serviceManagerCommand(self, command, name='', *args, **kwargs):
         """
         Send commands to Service Manager.\n
@@ -174,8 +214,7 @@ class CentralEngine(_cptools.XMLRPCController):
         """
         # Check the username from CherryPy connection
         cherry_roles = self.project._checkUser()
-        if not cherry_roles:
-            return False
+        if not cherry_roles: return False
         if 'CHANGE_SERVICES' not in cherry_roles['roles']:
             logDebug('Privileges ERROR! Username `{user}` cannot use Service Manager!'.format(**cherry_roles))
             return False
@@ -196,14 +235,29 @@ class CentralEngine(_cptools.XMLRPCController):
         Selects from database.
         This function is called from the Java GUI.
         """
-        dbparser = DBParser(user)
+        # Get the path to DB.XML
+        db_file = self.project.getUserInfo(user, 'db_config')
+        if not db_file:
+            errMessage = 'Null DB.XML file for user `{}`! Nothing to do!'.format(user)
+            logError(errMessage)
+            return errMessage
+
+        # Database parser, fields, queries
+        dbparser = DBParser(db_file)
         query = dbparser.getQuery(field_id)
         db_config = dbparser.db_config
         del dbparser
 
+        # Decode database password
+        db_password = self.project.decryptText( db_config.get('password') )
+        if not db_password:
+            errMessage = 'Cannot decrypt the database password!'
+            logError(errMessage)
+            return errMessage
+
         try:
             conn = MySQLdb.connect(host=db_config.get('server'), db=db_config.get('database'),
-                user=db_config.get('user'), passwd=db_config.get('password'))
+                user=db_config.get('user'), passwd=db_password)
             curs = conn.cursor()
             curs.execute(query)
         except MySQLdb.Error, e:
@@ -218,16 +272,6 @@ class CentralEngine(_cptools.XMLRPCController):
         conn.close()
 
         return msg_str
-
-
-    @cherrypy.expose
-    def runUserScript(self, script_path):
-        """
-        Executes a script.
-        Returns a string containing the text printed by the script.\n
-        This function is called from the Java GUI.
-        """
-        return self.project.execScript(script_path)
 
 
     @cherrypy.expose
@@ -313,7 +357,6 @@ class CentralEngine(_cptools.XMLRPCController):
         Function called from the CLI,
         to list the users that are using Twister.
         """
-
         data = self.project.listUsers(active)
         return data
 
@@ -653,7 +696,7 @@ class CentralEngine(_cptools.XMLRPCController):
         Reset project for user.
         """
         twister_cache = userHome(user) + '/twister/.twister_cache'
-        self.project.setFileOwner(user, twister_cache)
+        setFileOwner(user, twister_cache)
         return self.project.reset(user)
 
 
@@ -778,7 +821,7 @@ class CentralEngine(_cptools.XMLRPCController):
                     script_mandatory = self.project.getUserInfo(user, 'script_mandatory')
                     save_to_db = True
                     if script_post:
-                        result = self.project.execScript(script_post)
+                        result = execScript(script_post)
                         if result: logDebug('Post Script executed!\n"{}"\n'.format(result))
                         elif script_mandatory:
                             logError('CE: Post Script failed and script is mandatory! Will not save the results into database!')
@@ -891,7 +934,7 @@ class CentralEngine(_cptools.XMLRPCController):
             script_pre = self.project.getUserInfo(user, 'script_pre')
             script_mandatory = self.project.getUserInfo(user, 'script_mandatory')
             if script_pre:
-                result = self.project.execScript(script_pre)
+                result = execScript(script_pre)
                 if result: logDebug('Pre Script executed! {}'.format(result))
                 elif script_mandatory:
                     logError('CE: Pre Script failed and script is mandatory! The project failed!')
@@ -920,7 +963,7 @@ class CentralEngine(_cptools.XMLRPCController):
             script_post = self.project.getUserInfo(user, 'script_post')
             script_mandatory = self.project.getUserInfo(user, 'script_mandatory')
             if script_post:
-                result = self.project.execScript(script_post)
+                result = execScript(script_post)
                 if result: logDebug('Post Script executed!\n"{}"\n'.format(result))
                 elif script_mandatory:
                     logError('CE: Post Script failed!')

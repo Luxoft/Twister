@@ -1,6 +1,8 @@
 
 import constants
 
+try: import helpers
+except: pass
 try: import tsclogging
 except: pass
 try: import xmlparser

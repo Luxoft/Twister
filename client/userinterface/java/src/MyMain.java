@@ -1,6 +1,6 @@
 /*
 File: MyMain.java ; This file is part of Twister.
-Version: 2.001
+Version: 2.002
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -22,6 +22,10 @@ import java.io.InputStream;
 import javax.swing.ImageIcon;
 import javax.imageio.ImageIO;
 import java.awt.Graphics;
+import java.net.URL;
+import java.awt.Image;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 
 public class MyMain{
     private static String bar = System.getProperty("file.separator");//System specific file.separator
@@ -33,7 +37,33 @@ public class MyMain{
         frame.setVisible(true);
         frame.setLayout(null);
         loadResourcesFromLocal();
+        try {
+            URL url = new URL("http://tsc-server/twister_gui/logo.png");
+            MainRepository.logo = ImageIO.read(url).getScaledInstance(230, 100, Image.SCALE_FAST);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        readLogoTxt();
         MainRepository.initialize(null,"tsc-server",frame.getContentPane());
+    }
+    
+    public static void readLogoTxt(){
+        try{
+            URL logo = new URL("http://tsc-server/twister_gui/logo.txt");
+            BufferedReader in = new BufferedReader(
+            new InputStreamReader(logo.openStream()));
+            
+            StringBuilder sb = new StringBuilder();
+            String inputLine;
+            while ((inputLine = in.readLine()) != null){
+                sb.append(inputLine);
+                sb.append("\n");
+            }
+            in.close();
+            MainRepository.logotxt = sb.toString();
+        } catch(Exception e){
+            e.printStackTrace();
+        }
     }
     
     /*

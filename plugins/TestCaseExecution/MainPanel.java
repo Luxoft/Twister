@@ -1,6 +1,6 @@
 /*
 File: MainPanel.java ; This file is part of Twister.
-Version: 2.004
+Version: 2.005
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -48,7 +48,6 @@ public class MainPanel extends JTabbedPane{
     public Panel1 p1;//suites tab
     public Panel2 p2;//masterxml tab
     public Panel4 p4;//configure tab
-//     public Panel5 p5;
     private boolean applet;
     
     public Panel2 getP2(){

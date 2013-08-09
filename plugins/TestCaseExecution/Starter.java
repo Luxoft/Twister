@@ -1,6 +1,6 @@
 /*
 File: Starter.java ; This file is part of Twister.
-Version: 2.001
+Version: 2.002
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -27,6 +27,10 @@ import org.w3c.dom.Document;
 import java.applet.Applet;
 import java.awt.Component;
 import java.net.URL;
+import java.awt.Image;
+import javax.imageio.ImageIO;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 
 public class Starter implements TwisterPluginInterface{
     public CommonInterface maincomp;
@@ -35,6 +39,13 @@ public class Starter implements TwisterPluginInterface{
             final Hashtable<String, String> variables,
             final Document pluginsConfig,Applet container) {
                 RunnerRepository.starter = this;
+                try {
+                    URL url = new URL(container.getCodeBase()+"/logo.png");
+                    RunnerRepository.logo = ImageIO.read(url).getScaledInstance(230, 100, Image.SCALE_FAST);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                readLogoTxt(container);
                 PermissionValidtor.init(variables.get("permissions"));
                 RunnerRepository.user = variables.get("user");
                 RunnerRepository.password = variables.get("password");
@@ -48,6 +59,25 @@ public class Starter implements TwisterPluginInterface{
                 } catch (Exception e) {
                     System.err.println("Failed to call JavaScript function appletLoaded()");
                 }
+    }
+    
+    public void readLogoTxt(Applet container){
+        try{
+            URL logo = new URL(container.getCodeBase()+"/logo.txt");
+            BufferedReader in = new BufferedReader(
+            new InputStreamReader(logo.openStream()));
+            
+            StringBuilder sb = new StringBuilder();
+            String inputLine;
+            while ((inputLine = in.readLine()) != null){
+                sb.append(inputLine);
+                sb.append("\n");
+            }
+            in.close();
+            RunnerRepository.logotxt = sb.toString();
+        } catch(Exception e){
+            e.printStackTrace();
+        }
     }
     
     public String getFileName() {
