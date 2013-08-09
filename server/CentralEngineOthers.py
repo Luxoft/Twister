@@ -1,7 +1,7 @@
 
 # File: CentralEngineOthers.py ; This file is part of Twister.
 
-# version: 2.019
+# version: 2.023
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -99,9 +99,10 @@ if not TWISTER_PATH:
     exit(1)
 sys.path.append(TWISTER_PATH)
 
-from common.constants import *
+from common.constants  import *
+from common.helpers    import *
 from common.tsclogging import *
-from common.xmlparser import *
+from common.xmlparser  import *
 from common.suitesmanager import *
 from common import iniparser
 
@@ -394,10 +395,6 @@ class Project:
                 return False
             # logDebug('Username `{}` doesn\'t have any roles!'.format(cherry_usr))
 
-        # If the server is not PRODUCTION, the user has ALL ROLES!
-        if self.server_init['ce_server_type'].lower() != 'production':
-            cherry_roles['roles'] = self.roles['roles'].keys()
-
         cherry_roles['user'] = cherry_usr
         return cherry_roles
 
@@ -494,7 +491,7 @@ class Project:
                 grp_data['roles'] = []
             elif roles == '*':
                 # All roles
-                grp_data['roles'] += cfg['roles'].keys()
+                grp_data['roles'] = sorted(ROLES)
             else:
                 if isinstance(roles, str):
                     grp_data['roles'] += [r.strip() for r in roles.split(',') if r]
@@ -516,7 +513,7 @@ class Project:
                 # It's a list
                 grps = usr_data['groups']
 
-            # Start adding and fixing roles
+            # Start adding and fixing roles for current user
             for grp in grps:
                 # Invalid group ?
                 if grp not in cfg['groups']:
@@ -528,7 +525,7 @@ class Project:
                     usr_data['roles'] = []
                 elif roles == '*':
                     # All roles
-                    usr_data['roles'] += cfg['roles'].keys()
+                    usr_data['roles'] = sorted(ROLES)
                 else:
                     if isinstance(roles, str):
                         usr_data['roles'] += [r.strip() for r in roles.split(',') if r]
@@ -536,10 +533,23 @@ class Project:
                         # It's a list
                         usr_data['roles'] += roles
 
+            # If the server is no_type or devel, the user has ALL ROLES except for CHANGE_USERS!
+            if self.server_init['ce_server_type'].lower() != 'production':
+                _ROLES = sorted(ROLES)
+                # If the user didn't have the USERS role, delete it
+                if 'CHANGE_USERS' not in usr_data['roles']:
+                    _ROLES.pop(_ROLES.index('CHANGE_USERS'))
+                usr_data['roles'] = _ROLES
+            else:
+                # Fix roles. Must be a list.
+                usr_data['roles'] = sorted( set(usr_data['roles']) )
+
+            # Get old timeout value for user, OR create a new default value
+            if not usr_data.get('timeout'):
+                usr_data['timeout'] = '01'
+
             # Fix groups. Must be a list.
             usr_data['groups'] = grps
-            # Fix roles. Must be a list.
-            usr_data['roles'] = sorted( set(usr_data['roles']) )
 
         return cfg.dict()
 
@@ -586,7 +596,6 @@ class Project:
             tmp_roles = dict(self.roles)
             del tmp_roles['users']
             del tmp_roles['groups']
-            del tmp_roles['roles']
             return tmp_roles
 
         elif cmd == 'update param':
@@ -607,7 +616,11 @@ class Project:
 
         elif cmd == 'list users':
             # List all known users from users and groups config
-            return self.roles['users']
+            tmp_users = dict(self.roles['users'])
+            for usr in tmp_users:
+                # Delete the user key, before sending
+                del tmp_users[usr]['key']
+            return tmp_users
 
         elif cmd == 'list groups':
             # List all known groups from users and groups config
@@ -615,7 +628,7 @@ class Project:
 
         elif cmd == 'list roles':
             # List all known roles
-            return self.roles['roles'].keys()
+            return sorted(ROLES)
 
 
         elif cmd == 'set user':
@@ -626,7 +639,13 @@ class Project:
             try:
                 usr_group = args[0][0]
             except Exception, e:
-                return '*ERROR* : Exception : `{}` !'.format(e)
+                return '*ERROR* : Invalid group!'
+            user_before = cfg['users'].get(name, {})
+            try:
+                usr_timeout = args[0][1]
+            except Exception, e:
+                # Get old timeout value for user, OR create a new default value
+                usr_timeout = user_before.get('timeout', '01')
 
             grps = [g.strip() for g in usr_group.split(',') if g in self.roles['groups']]
             if not grps:
@@ -634,15 +653,19 @@ class Project:
             usr_group = ', '.join(grps)
 
             # Create new section in Users
-            cfg['users'][name] = {}
-            cfg['users'][name]['groups'] = usr_group
+            cfg['users'][name] = user_before
+            cfg['users'][name]['groups']  = usr_group
+            cfg['users'][name]['key']    = user_before.get('key', binascii.hexlify(os.urandom(16)))
+            cfg['users'][name]['timeout'] = usr_timeout
             with self.usr_lock: cfg.write()
-            logDebug('Added user `{}` in group `{}`, in Users and Groups.'.format(name, usr_group))
+            logDebug('Set user `{}` in group `{}`, with timeout `{}`, in Users and Groups.'.format(name, usr_group, usr_timeout))
             del cfg
+
             # Reload users configuration
             with self.usr_lock:
                 self.roles = self._parseUsersAndGroups()
             return True
+
 
         elif cmd == 'delete user':
             cfg = create_cfg()
@@ -673,12 +696,12 @@ class Project:
                 return '*ERROR* : Exception : `{}` !'.format(e)
 
             # Fix permissions
-            roles = [g.strip() for g in grp_roles.split(',') if g and g in cfg['roles']]
+            roles = [g.strip() for g in grp_roles.split(',') if g and g in ROLES]
             # Create new section in groups
             cfg['groups'][name] = {}
             cfg['groups'][name]['roles'] = ', '.join(roles)
             with self.usr_lock: cfg.write()
-            logDebug('Added group `{}` with roles `{}`, in Users and Groups.'.format(name, roles))
+            logDebug('Set group `{}` with roles `{}`, in Users and Groups.'.format(name, roles))
             del cfg
             # Reload users configuration
             with self.usr_lock:
@@ -705,6 +728,32 @@ class Project:
 
         else:
             return '*ERROR* : Unknown command `{}` !'.format(cmd)
+
+
+    def encryptText(self, text):
+        """
+        Encrypt a piece of text, using AES.\n
+        It can use the user key, or the shared key.
+        """
+        # Check the username from CherryPy connection
+        cherry_roles = self._checkUser()
+        if not cherry_roles: return False
+        key = cherry_roles.get('key')
+        if not key: return False
+        return encrypt(text, key)
+
+
+    def decryptText(self, text):
+        """
+        Decrypt a piece of text, using AES.\n
+        It can use the user key, or the shared key.
+        """
+        # Check the username from CherryPy connection
+        cherry_roles = self._checkUser()
+        if not cherry_roles: return False
+        key = cherry_roles.get('key')
+        if not key: return False
+        return decrypt(text, key)
 
 
 # # #
@@ -1267,60 +1316,6 @@ class Project:
 # # #
 
 
-    def setFileOwner(self, user, path):
-        """
-        Update file ownership for 1 file.\n
-        `Chown` function works ONLY in Linux.
-        """
-        try:
-            from pwd import getpwnam
-            uid = getpwnam(user)[2]
-            gid = getpwnam(user)[3]
-        except:
-            return False
-
-        if os.path.isdir(path):
-            try:
-                proc = subprocess.Popen(['chown', str(uid)+':'+str(gid), path, '-R'],)
-                proc.wait()
-            except:
-                logWarning('Cannot set owner on folder! Cannot chown `{}:{}` on `{} -R`!'.format(uid, gid, path))
-                return False
-
-        else:
-            try:
-                os.chown(path, uid, gid)
-            except:
-                logWarning('Cannot set owner on file! Cannot chown `{}:{}` on `{}`!'.format(uid, gid, path))
-                return False
-
-        return True
-
-
-    def execScript(self, script_path):
-        """
-        Execute a user script and return the text printed on the screen.
-        """
-        if not os.path.exists(script_path):
-            logError('Exec script: The path `{0}` does not exist!'.format(script_path))
-            return False
-
-        try: os.system('chmod +x {0}'.format(script_path))
-        except: pass
-
-        logDebug('CE: Executing script `%s`...' % script_path)
-
-        try:
-            txt = subprocess.check_output(script_path, shell=True)
-            return txt.strip()
-        except Exception, e:
-            logError('Exec script `%s`: Exception - %s' % (script_path, str(e)) )
-            return False
-
-
-# # #
-
-
     def sendMail(self, user, force=False):
         """
         Send e-mail function.\n
@@ -1338,6 +1333,14 @@ class Project:
                 logWarning(log)
                 return log
 
+            # Decode e-mail password
+            SMTPPwd = self.decryptText(eMailConfig['SMTPPwd'])
+            if not SMTPPwd:
+                log = 'SMTP: Invalid password! Please update your password and try again!'
+                logError(log)
+                return log
+            eMailConfig['SMTPPwd'] = SMTPPwd
+
             if force:
                 logDebug('Preparing to send a test e-mail ...')
 
@@ -1354,15 +1357,6 @@ class Project:
                     server.starttls()
                     server.ehlo()
 
-                    # Decode e-mail password
-                    try:
-                        SMTPPwd = binascii.a2b_base64(eMailConfig['SMTPPwd'])
-                    except:
-                        log = 'Password: Invalid SMTP password! Please update your password and try again!'
-                        logError(log)
-                        return log
-
-                    server.login(eMailConfig['SMTPUser'], SMTPPwd)
                     server.login(eMailConfig['SMTPUser'], eMailConfig['SMTPPwd'])
                 except:
                     log = 'SMTP: Cannot autentificate to SMTP server! Invalid user or password!'
@@ -1511,16 +1505,13 @@ class Project:
             msg.attach(MIMEText(eMailConfig['Message'], 'plain'))
             msg.attach(MIMEText(body_tmpl.substitute(body_dict), 'html'))
 
-            if (not force) and (not eMailConfig['Enabled']) or (eMailConfig['Enabled'] in ['0', 'false']):
+            if (not eMailConfig['Enabled']) or (eMailConfig['Enabled'] in ['0', 'false']):
                 e_mail_path = os.path.split(self.users[user]['config_path'])[0] +os.sep+ 'e-mail.htm'
                 open(e_mail_path, 'w').write(msg.as_string())
                 logDebug('E-mail.htm file written. The message will NOT be sent.')
                 # Update file ownership
-                self.setFileOwner(user, e_mail_path)
+                setFileOwner(user, e_mail_path)
                 return True
-
-            if force:
-                logDebug('Preparing to send a test e-mail ...')
 
             try:
                 server = smtplib.SMTP(eMailConfig['SMTPPath'], timeout=2)
@@ -1535,15 +1526,6 @@ class Project:
                 server.starttls()
                 server.ehlo()
 
-                # Decode e-mail password
-                try:
-                    SMTPPwd = binascii.a2b_base64(eMailConfig['SMTPPwd'])
-                except:
-                    log = 'Password: Invalid SMTP password! Please update your password and try again!'
-                    logError(log)
-                    return log
-
-                server.login(eMailConfig['SMTPUser'], SMTPPwd)
                 server.login(eMailConfig['SMTPUser'], eMailConfig['SMTPPwd'])
             except:
                 log = 'SMTP: Cannot autentificate to SMTP server! Invalid user or password!'
@@ -1596,9 +1578,15 @@ class Project:
             r = self.changeUser(user)
             if not r: return False
 
+            # Get the path to DB.XML
+            db_file = self.getUserInfo(user, 'db_config')
+            if not db_file:
+                logError('Database: Null DB.XML file for user `{}`! Nothing to do!'.format(user))
+                return False
+
             # Database parser, fields, queries
             # This is created every time the Save is called
-            db_parser = DBParser(user)
+            db_parser = DBParser(db_file)
             db_config = db_parser.db_config
             queries = db_parser.getQueries() # List
             fields  = db_parser.getFields()  # Dictionary
@@ -1606,24 +1594,23 @@ class Project:
             del db_parser
 
             if not queries:
-                logDebug('Database: There are no queries defined! Nothing to do!')
+                logDebug('Database: There are no queries defined for user `{}`! Nothing to do!'.format(user))
                 return False
 
             system = platform.machine() +' '+ platform.system() +', '+ ' '.join(platform.linux_distribution())
 
             # Decode database password
-            try:
-                db_password = binascii.a2b_base64( db_config.get('password') )
-            except:
-                logError('Database: Invalid database password! Please update your password and try again!')
+            db_password = self.decryptText( db_config.get('password') )
+            if not db_password:
+                logError('Database: Cannot decrypt the database password!')
                 return False
 
             try:
                 conn = MySQLdb.connect(host=db_config.get('server'), db=db_config.get('database'),
                     user=db_config.get('user'), passwd=db_password)
                 curs = conn.cursor()
-            except MySQLdb.Error, e:
-                logError('MySQL Error %d: %s!' % (e.args[0], e.args[1]))
+            except MySQLdb.Error as e:
+                logError('MySQL Error `{}`: `{}`!'.format(e.args[0], e.args[1]))
                 return False
 
             conn.autocommit = False
@@ -1706,7 +1693,7 @@ class Project:
                             u_script = subst_data.get(field, '')
 
                             # Execute script and use result
-                            r = self.execScript(u_script)
+                            r = execScript(u_script)
                             if r: subst_data[field] = r
                             else: subst_data[field] = ''
 

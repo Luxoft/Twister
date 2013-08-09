@@ -1,6 +1,6 @@
 /*
 File: About.java ; This file is part of Twister.
-Version: 2.002
+Version: 2.003
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -19,6 +19,7 @@ limitations under the License.
 */
 
 import javax.swing.JPanel;
+import javax.swing.JTextArea;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.Color;
@@ -26,22 +27,37 @@ import java.awt.Graphics;
 import java.awt.Font;
 
 public class About extends JPanel{
+    private JTextArea ta;
+    
     public About(){
         setLayout(new BorderLayout());
         JPanel p = new JPanel(){
-            public void paint(Graphics g){
-                g.drawImage(RunnerRepository.background, 0, 0, null);
+            public void paintComponent(Graphics g){
+                super.paintComponent(g);
+                g.drawImage(RunnerRepository.background, 260, 0, null);
+                g.drawImage(RunnerRepository.logo, 0, 0, null);
                 g.setFont(new Font("TimesRoman", Font.BOLD, 14));
-                g.drawString("Twister Framework", 225, 130);
-                g.drawString("V.: "+RunnerRepository.getVersion(), 265, 165);
-                g.drawString("Build date: "+RunnerRepository.getBuildDate(), 218, 180);
+                g.drawString("Twister Framework", 485, 130);
+                g.drawString("V.: "+RunnerRepository.getVersion(), 525, 165);
+                g.drawString("Build date: "+RunnerRepository.getBuildDate(), 478, 180);
+                g.drawString(RunnerRepository.os, 478, 195);
+                g.drawString(RunnerRepository.python, 478, 210);
             }
         };
-        p.setBackground(Color.RED);
-        p.setSize(new Dimension(400,300));
-        p.setPreferredSize(new Dimension(400,300));
-        p.setMinimumSize(new Dimension(400,300));
-        p.setMaximumSize(new Dimension(400,300));
+        p.setLayout(null);
+        
+        ta = new JTextArea();
+        ta.setBackground(p.getBackground());
+        ta.setFont(new Font("TimesRoman", Font.BOLD, 14));
+        ta.setBounds(0,120,230,120);
+        ta.setEditable(false);
+        ta.setBorder(null);
+        ta.setText(RunnerRepository.logotxt);
+        p.add(ta);
+        p.setSize(new Dimension(730,380));
+        p.setPreferredSize(new Dimension(730,380));
+        p.setMinimumSize(new Dimension(730,380));
+        p.setMaximumSize(new Dimension(730,380));
         add(p,BorderLayout.CENTER );
     }
 }

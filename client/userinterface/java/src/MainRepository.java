@@ -1,6 +1,6 @@
 /*
 File: MainRepository.java ; This file is part of Twister.
-Version: 2.001
+Version: 2.002
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -51,9 +51,17 @@ import com.twister.plugin.twisterinterface.TwisterPluginInterface;
 import java.applet.Applet;
 import java.util.Hashtable;
 import java.awt.Component;
+import java.awt.KeyboardFocusManager;
+import java.awt.KeyEventDispatcher;
+import java.awt.event.KeyEvent;
+import java.awt.AWTEvent;
+import java.awt.event.AWTEventListener;
+import java.awt.Toolkit;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
 
 public class MainRepository {
-    public static Image background;
+    public static Image background,logo;
     private static String host,user,password,ceport;
     public static Container container;
     public static String bar = System.getProperty("file.separator");//System specific file.separator
@@ -64,6 +72,12 @@ public class MainRepository {
     private static TwisterPluginInterface plugin;
     private static XmlRpcClient client;
     private static Hashtable<String,String> hash = new Hashtable<String,String>();
+    private static String version = "2.018";
+    private static String builddate = "08.08.2013";
+    public static int time = 10;//seconds
+    public static boolean countdown = false;
+    public static String logotxt;
+    private static LogOutThread lot = new LogOutThread(MainRepository.time);
     
     public static void initialize(Applet applet, String host,Container container){
         MainRepository.applet = applet;
@@ -71,21 +85,41 @@ public class MainRepository {
         MainRepository.container = container;
         createDirectories();
         MainRepository.container = container;
-        WelcomePanel wp = new WelcomePanel();
         container.removeAll();
+        try{container.revalidate();}
+        catch(Exception e){container.validate();}
+        container.repaint();
+        MainRepository.countdown = false;
+        container.addKeyListener(new KeyAdapter(){
+            public void keyReleased(KeyEvent ev){
+//                 MainRepository.continueLogin();
+                //WelcomeScreen.this.dispose();
+//                 MainRepository.countdown = true;
+                System.out.println("test");
+            }
+        });
+        WelcomeScreen ws = new WelcomeScreen();
+        container.add(ws);
+        container.revalidate();
+        container.repaint();
+        ws.requestFocus();
+    }
+    
+    public static void continueLogin(){
+        WelcomePanel wp = new WelcomePanel();
+        pluginmanager = new PluginManager();
+        //container.removeAll();
         container.setBackground(wp.getBackground());
         container.setLayout(new GridBagLayout());
         container.add(wp, new GridBagConstraints());
         container.revalidate();
         container.repaint();
-        PluginsLoader.setClassPath();
-        pluginmanager = new PluginManager();
     }
     
+    
+    
     public static void resize(int width,int height){
-        System.out.println("MainRepo resize");
         if(plugin!=null){
-            System.out.println("plugin name: "+plugin.getName());
             try{plugin.resizePlugin(width,height);}
             catch(Exception e){e.printStackTrace();}
         } else {
@@ -100,6 +134,14 @@ public class MainRepository {
             e.printStackTrace();
             return false;
         }
+    }
+    
+    public static void setTime(int time){
+        MainRepository.time = time;
+    }
+    
+    public static int getTime(){
+        return MainRepository.time;
     }
     
     private static void createDirectories(){
@@ -193,19 +235,27 @@ public class MainRepository {
         catch(Exception ex){ex.printStackTrace();}
     }
     
-    
-    
-    public static void getInterface(String panel){
-        if(panel.equals("controlpanel")){
-            try{
-//                 File file = getRemoteFile("ControlPanel.jar");
-//                 loadPlugin(file,"ControlPanel");
-                loadPlugin("ControlPanel");
-            } catch(Exception e){
-                e.printStackTrace();
-            }
-        }
+    public static String getVersion(){
+        return version;
     }
+    
+    public static String getBuildDate(){
+        return builddate;
+    }
+    
+    
+    
+//     public static void getInterface(String panel){
+//         if(panel.equals("controlpanel")){
+//             try{
+// //                 File file = getRemoteFile("ControlPanel.jar");
+// //                 loadPlugin(file,"ControlPanel");
+//                 loadPlugin("ControlPanel");
+//             } catch(Exception e){
+//                 e.printStackTrace();
+//             }
+//         }
+//     }
     
 //     public static void loadPlugin(File file, String pluginname){
     public static void loadPlugin(String pluginname){
@@ -238,6 +288,29 @@ public class MainRepository {
             if(pluginname.equals("ControlPanel")){
                 new Thread(){
                     public void run(){
+                        try{HashMap hm = (HashMap)client.execute("usersAndGroupsManager", new Object[]{"list users"});
+                            hm = (HashMap)hm.get(user);
+                            if(hm==null){
+                                CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,container,
+                                                        "Warning", "User: "+user+" is not present in users list, please add it to configuration file");
+                                return;        
+                            }
+                            String timeout   = hm.get("timeout").toString();
+                            int sec = Integer.parseInt(timeout)*60;
+                            MainRepository.time = sec;
+                            MainRepository.lot.setTime(sec);
+                            
+                            Object [] permissions = (Object [])hm.get("roles");
+                            StringBuilder sb = new StringBuilder();
+                            for(Object ob:permissions){
+                                sb.append(ob.toString());
+                                sb.append(",");
+                            }
+                            if(sb.length()>0)sb.setLength(sb.length()-1);
+                            hash.put("permissions", sb.toString());
+                        } catch(Exception e){
+                            e.printStackTrace();
+                        }
                         hash.put("user", user);
                         hash.put("password", password);
                         hash.put("host",host);
@@ -318,30 +391,84 @@ public class MainRepository {
                                                 "order for Twister Framework to run properly");
                 return;
             }
-            HashMap hm = (HashMap)client.execute("usersAndGroupsManager", new Object[]{"list users"});
-            hm = (HashMap)hm.get(user);
-            if(hm==null){
-                CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,container,
-                                        "Warning", "User: "+user+" is not present in users list, please add it to configuration file");
-                return;        
-            }
-            Object [] permissions = (Object [])hm.get("roles");
-            StringBuilder sb = new StringBuilder();
-            for(Object ob:permissions){
-                sb.append(ob.toString());
-                sb.append(",");
-            }
-            if(sb.length()>0)sb.setLength(sb.length()-1);
-            System.out.println("permissions:"+sb.toString());
-            hash.put("permissions", sb.toString());
+            
             loadPlugin("ControlPanel");
-//             getInterface("controlpanel");
         }
         catch(Exception e){
             e.printStackTrace();
             System.out.println("Could not conect to "+
                             MainRepository.host+" :"+port+
                             "for RPC client initialization");
+        }
+    }
+    
+//     public static void loadControlPanel(){
+//         try{HashMap hm = (HashMap)client.execute("usersAndGroupsManager", new Object[]{"list users"});
+//             hm = (HashMap)hm.get(user);
+//             if(hm==null){
+//                 CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,container,
+//                                         "Warning", "User: "+user+" is not present in users list, please add it to configuration file");
+//                 return;        
+//             }
+//             String timeout []  = hm.get("timeout").toString().split(":");
+//             int sec = Integer.parseInt(timeout[0])*3600+Integer.parseInt(timeout[1])*60+Integer.parseInt(timeout[2]);
+//             MainRepository.time = sec;
+//             
+//             Object [] permissions = (Object [])hm.get("roles");
+//             StringBuilder sb = new StringBuilder();
+//             for(Object ob:permissions){
+//                 sb.append(ob.toString());
+//                 sb.append(",");
+//             }
+//             if(sb.length()>0)sb.setLength(sb.length()-1);
+//             System.out.println("permissions:"+sb.toString());
+//             hash.put("permissions", sb.toString());
+//             loadPlugin("ControlPanel");
+//         } catch(Exception e){
+//             e.printStackTrace();
+//         }
+//     }
+}
+
+class LogOutThread extends Thread{
+    private int time;
+    
+    public LogOutThread(int time){
+        this.time = time;
+        KeyboardFocusManager.getCurrentKeyboardFocusManager()
+          .addKeyEventDispatcher(new KeyEventDispatcher() {
+              @Override
+              public boolean dispatchKeyEvent(KeyEvent e) {
+                LogOutThread.this.time = MainRepository.time;
+                return false;
+              }
+        });
+        Toolkit.getDefaultToolkit().addAWTEventListener( 
+            new AWTEventListener(){
+                public void eventDispatched(AWTEvent e){
+                    LogOutThread.this.time = MainRepository.time;
+                }
+            }, AWTEvent.MOUSE_EVENT_MASK);
+        this.start();
+    }
+    
+    public void setTime(int time){
+        this.time = time;
+    }
+    
+    public void run(){
+        while(true){
+            try{
+                Thread.sleep(1000);
+                if(MainRepository.time==0)continue;
+                time--;
+                if(time<=0){
+                    if(MainRepository.countdown)MainRepository.applet.init();
+                    time = MainRepository.time;
+                }
+            } catch (Exception e){
+                e.printStackTrace();
+            }
         }
     }
 }

@@ -1,6 +1,6 @@
 /*
 File: RunnerRepository.java ; This file is part of Twister.
-Version: 2.0015
+Version: 2.0016
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -108,20 +108,18 @@ import javax.swing.JFrame;
  * twister resources
  */
 public class RunnerRepository {
-    private static ArrayList <Item> suite = new ArrayList <Item> ();//suite list
-    private static ArrayList<Item> suitetest = new ArrayList<Item>();//test suite list generated
-    private static String bar = System.getProperty("file.separator");//System specific file.separator
-    private static ArrayList<String> logs = new ArrayList<String>();//logs tracked by twister framwork
+    private static ArrayList <Item> suite;//suite list
+    private static ArrayList<Item> suitetest ;//test suite list generated
+    private static String bar ;//System specific file.separator
+    private static ArrayList<String> logs;//logs tracked by twister framwork
     public static String[] columnNames;
     public static Window window;//main window displayed if twister is running local
     //public static ChannelSftp c;//main sftp connection used by Twister
     public static ChannelSftp connection;//main sftp connection used by Twister
-    public static Hashtable variables = new Hashtable(5,0.5f);
+    public static Hashtable variables ;
     public static Starter starter;
     public static String user,host,password,temp,TWISTERINI, USERHOME, REMOTECONFIGDIRECTORY,
                          PLUGINSDIRECTORY,CENTRALENGINEPORT,
-//                          HTTPSERVERPORT, 
-                         //RESOURCEALLOCATORPORT,
                          REMOTEDATABASECONFIGPATH,
                          REMOTEDATABASECONFIGFILE, REMOTEEMAILCONFIGPATH,
                          REMOTEEMAILCONFIGFILE,CONFIGDIRECTORY, USERSDIRECTORY,
@@ -133,7 +131,7 @@ public class RunnerRepository {
                          PLUGINSLOCALGENERALCONF, GLOBALSREMOTEFILE,
                          SECONDARYLOGSPATH,PATHENABLED;
     public static Image passicon,testbedicon,porticon,suitaicon, tcicon, propicon,
-                        failicon, passwordicon, playicon, stopicon, pauseicon,
+                        failicon, passwordicon, playicon, stopicon, pauseicon,logo,
                         background,notexecicon,pendingicon,skipicon,stoppedicon,
                         timeouticon,waiticon,workingicon,moduleicon,deviceicon,upicon,
                         addsuitaicon,removeicon,vlcclient,vlcserver,switche,optional,
@@ -141,7 +139,7 @@ public class RunnerRepository {
     public static boolean run = true;//signal that Twister is not closing
     public static boolean applet,initialized,sftpoccupied; //keeps track if twister is run from applet or localy;;stfpconnection flag
     public static IntroScreen introscreen;    
-    private static ArrayList <String []> databaseUserFields = new ArrayList<String[]>();
+    private static ArrayList <String []> databaseUserFields ;
     public static int LABEL = 0;    
     public static int ID = 1;
     public static int SELECTED = 2;
@@ -153,8 +151,9 @@ public class RunnerRepository {
     private static String[] lookAndFeels;
     public static Container container;
     private static Document pluginsconfig;
-    private static String version = "2.017";
-    private static String builddate = "02.08.2013";
+    private static String version = "2.018";
+    private static String builddate = "08.08.2013";
+    public static String logotxt,os,python;
     
     
 //     public void init(ArrayList<Item> suite, ArrayList<Item> suitetest,
@@ -166,10 +165,6 @@ public class RunnerRepository {
 //              container.repaint();
 //                 RunnerRepository.initialize(true,"tsc-server",container);
 //      }
-
-    public static void echo(){
-        System.out.println("this is an echo");
-    }
     
     public static void setStarter(Starter starter){
         RunnerRepository.starter = starter;
@@ -182,7 +177,14 @@ public class RunnerRepository {
      * container - applet or null
      */
     public static void initialize(String applet,String host,Applet container){
+        RunnerRepository.initialized = false;
         RunnerRepository.container = container;
+        suite = new ArrayList <Item> ();
+        suitetest = new ArrayList <Item> ();
+        logs = new ArrayList<String>();
+        variables = new Hashtable(5,0.5f);
+        bar = System.getProperty("file.separator");
+        databaseUserFields = new ArrayList<String[]>();
         
         /*
          * temp folder creation to hold
@@ -315,7 +317,7 @@ public class RunnerRepository {
                                        " plugins configuration");}
                                        
                 initializeRPC();
-                
+                setCEVeriosns();
                 introscreen.setStatus("Finished parsing the config");
                 introscreen.addPercent(0.035);
                 introscreen.repaint();
@@ -360,6 +362,17 @@ public class RunnerRepository {
         } catch(Exception e){
             e.printStackTrace();
             return false;
+        }
+    }
+    
+    public static void setCEVeriosns(){
+        try{String []info = client.execute("getSysInfo", new Object[]{}).toString().split("\n");
+            RunnerRepository.os = info[0];
+            RunnerRepository.python = info[1];
+        } catch(Exception e){
+            RunnerRepository.os = "";
+            RunnerRepository.python = "";
+            e.printStackTrace();
         }
     }
     
@@ -501,13 +514,17 @@ public class RunnerRepository {
         RunnerRepository.window.mainpanel.p4.getMain().setSize(width-300,height-130);
         RunnerRepository.window.mainpanel.p4.getTB().setPreferredSize(
             new Dimension(width-300,height-150));
-        RunnerRepository.window.appletpanel.setSize(width-20,height-20);        
+        try{RunnerRepository.window.appletpanel.setSize(width-20,height-20);}
+        catch(Exception e){}
         RunnerRepository.window.mainpanel.p4.getPlugins().setPreferredSize(
             new Dimension(width-300,height-150));
         RunnerRepository.window.mainpanel.p4.getPlugins().horizontalsplit.setPreferredSize(
             new Dimension(width-305,height-155));
-            container.validate();
-            container.repaint();
+        RunnerRepository.window.logout.setLocation(width-130, 3);
+        RunnerRepository.window.controlpanel.setLocation(width-285, 3);
+        container.validate();
+        container.repaint();
+        
     }
     
     /*

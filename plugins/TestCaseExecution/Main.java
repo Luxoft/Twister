@@ -1,6 +1,6 @@
 /*
 File: Main.java ; This file is part of Twister.
-Version: 2.001
+Version: 2.002
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -20,12 +20,16 @@ limitations under the License.
 import javax.swing.UIManager;
 import javax.swing.UIManager.LookAndFeelInfo;
 import javax.swing.SwingUtilities;
-
+import javax.imageio.ImageIO;
 import java.awt.BorderLayout;
 import java.awt.EventQueue;
 import java.awt.event.ActionEvent;
 import java.net.URLClassLoader;
 import java.rmi.RMISecurityManager;
+import java.net.URL;
+import java.awt.Image;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 
 
 /*
@@ -35,9 +39,36 @@ public class Main{
     
     public static void main(String args[]){
 //         RunnerRepository.initialize(false,"11.126.32.20",null);}
+        try {
+            URL url = new URL("http://tsc-server/twister_gui/logo.png");
+            RunnerRepository.logo = ImageIO.read(url).getScaledInstance(230, 100, Image.SCALE_FAST);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         RunnerRepository.user = "tscguest";
         RunnerRepository.password = "tscguest";
         RunnerRepository.host = "tsc-server";
+        readLogoTxt();
         RunnerRepository.initialize("false","tsc-server",null);}
 //             RunnerRepository.initialize(false,"11.126.32.15",null);}
+
+    public static void readLogoTxt(){
+        try{
+            URL logo = new URL("http://tsc-server/twister_gui/logo.txt");
+            BufferedReader in = new BufferedReader(
+            new InputStreamReader(logo.openStream()));
+            
+            StringBuilder sb = new StringBuilder();
+            String inputLine;
+            while ((inputLine = in.readLine()) != null){
+                sb.append(inputLine);
+                sb.append("\n");
+            }
+            in.close();
+            RunnerRepository.logotxt = sb.toString();
+        } catch(Exception e){
+            e.printStackTrace();
+        }
+    }
+
 }

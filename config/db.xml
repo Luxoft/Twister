@@ -2,43 +2,39 @@
 <root>
 <db_config>
 	<server>localhost</server>
-	<database>interop</database>
+	<database>twister_demo</database>
 	<user>user</user>
 	<password>password</password>
 </db_config>
 
 <insert_section>
 	<field ID="Run_Number"  FieldName="" FromTable="" SQLQuery="" Label="Run Number:" Type="UserText" GUIDefined="true" Mandatory="true" />
-	<sql_statement>INSERT INTO results ( run_nr, workstation, suite, test_name, datetime_started, datetime_finished, status )
-		VALUES ($Run_Number, '$twister_ep_name', '$twister_suite_name', '$twister_tc_name',
-		'$twister_tc_date_started','$twister_tc_date_finished','$twister_tc_status')</sql_statement>
+	<sql_statement>INSERT INTO results ( run_nb,username,ce_hostname,ce_ip,ep_ip,ep_hostname,ep_name,suite_name,tc_name,tc_path,tc_status,tc_time_elapsed,tc_date_started,tc_date_finished,tc_log )
+		VALUES ($Run_Number, '$twister_user', '$twister_ce_hostname', '$twister_ce_ip', '$twister_ep_ip',
+		'$twister_ep_hostname','$twister_ep_name','$twister_suite_name',
+                '$twister_tc_name','$twister_tc_full_path', '$twister_tc_status','$twister_tc_time_elapsed','$twister_tc_date_started','$twister_tc_date_finished','$twister_tc_log')</sql_statement>
 </insert_section>
 
 <reports_section>
-	<field ID="Other" Type="UserText" Label="Other filters" SQLQuery="" />
-	<field ID="Date" Type="UserSelect" Label="Select date"
-		SQLQuery="SELECT DISTINCT datetime_started FROM results ORDER BY datetime_started" />
-	<field ID="DateStart" Label="Select date Start" Type="UserSelect"
-		SQLQuery="SELECT DISTINCT datetime_started FROM results ORDER BY datetime_started" />
-	<field ID="zDateEnd" Label="Select date End" Type="UserSelect"
-		SQLQuery="SELECT DISTINCT datetime_started FROM results ORDER BY datetime_started" />
-	<field ID="TestStatus" Label="Select test status" Type="UserSelect" SQLQuery="SELECT DISTINCT status FROM results ORDER BY status" />
-	<field ID="Run_Number" Label="Select build" Type="UserSelect" SQLQuery="SELECT DISTINCT run_nr FROM `results` ORDER BY run_nr" />
+	<field ID="Run_Number" Label="Select build" Type="UserSelect" SQLQuery="SELECT DISTINCT run_nb FROM `results` ORDER BY run_nb" />
 
-	<report ID="Details" Type="Table"
-		SQLQuery="SELECT * FROM results ORDER BY id"
+        <report ID="Summary" Type="PieChart"
+                SQLQuery="SELECT tc_status AS 'Status',COUNT(tc_status) AS 'Count' FROM results  WHERE run_nb = '@Run_Number@' group by tc_status "
+                />
+
+        <report ID="Details" Type="Table"
+                SQLQuery="SELECT run_nb,ce_hostname,ep_ip,ep_hostname,ep_name,suite_name,tc_name,tc_path,tc_status,tc_time_elapsed,tc_date_started,tc_date_finished,tc_log FROM results ORDER BY id"
+                />
+
+        <report ID="History (Nb Tests)" Type="BarChart"
+                SQLQuery="SELECT CONCAT('Run ',CAST(run_nb AS CHAR))  AS Run_Number,COUNT(tc_status) AS 'Nr of tests' FROM results   GROUP BY run_nb "
+                />
+
+	<report ID="History (Pass Rate)" Type="LineChart"
+		SQLQuery="SELECT CONCAT('Run ',CAST(run_nb AS CHAR))  AS Run_Number,COUNT(tc_status) AS 'Success rate (%)' FROM results WHERE tc_status = 'PASS' GROUP BY run_nb"
+		SQLTotal="SELECT CONCAT('Run ',CAST(run_nb AS CHAR))  AS Run_Number,COUNT(tc_status) AS 'Success rate (%)' FROM results                       GROUP BY run_nb"
 		/>
 
-	<report ID="History" Type="LineChart"
-		SQLQuery="SELECT CONCAT('Run ',CAST(run_nr AS CHAR))  AS Run_Number,COUNT(status) AS 'Success rate (%)' FROM results WHERE status = 'PASS' GROUP BY run_nr"
-		SQLTotal="SELECT CONCAT('Run ',CAST(run_nr AS CHAR))  AS Run_Number,COUNT(status) AS 'Success rate (%)' FROM results                       GROUP BY run_nr"
-		/>
-
-	<report ID="Summary" Type="BarChart"
-		SQLQuery="SELECT CONCAT('Run ',CAST(run_nr AS CHAR))  AS Run_Number,COUNT(status) AS 'Nr of tests' FROM results   GROUP BY run_nr "
-		/>
-
-	<redirect ID="goto PhpMyAdmin" Path="http://localhost/phpmyadmin/" />
-	<redirect ID="goto Google" Path="http://www.google.ro" />
+	<redirect ID="goto Google" Path="http://www.google.com" />
 </reports_section>
 </root>

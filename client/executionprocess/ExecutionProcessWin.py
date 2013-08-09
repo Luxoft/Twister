@@ -1,7 +1,7 @@
 
 # File: ExecutionProcessWin.py ; This file is part of Twister.
 
-# version: 2.003
+# version: 2.004
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -50,10 +50,11 @@ from win32com.client import Dispatch
 
 # -------------------------------------------------------
 outDir = os.getcwd()
-userName   = 'user'
+userName   = 'tscguest'
 globEpName = 'EP-1002'
 # Central Engine IP and PORT ::
-ce_ip_port = '127.0.0.1:8000'
+ce_ip_port = '11.126.32.9:8000'
+SIKULI_PATH = 'C:/SikuliIDE'
 # -------------------------------------------------------
 
 try:
@@ -157,7 +158,7 @@ def RUN(tList):
         # ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
         #
         if file_ext == '.zip':
-            tcr_proc = Popen('"C:\Program Files\Sikuli X\Sikuli-ide.bat" -r "%s"' % toExecute, shell=True)
+            tcr_proc = Popen('"{}/sikuli-script.cmd" -r "{}"'.format(SIKULI_PATH, toExecute), shell=True)
             ret = tcr_proc.wait()
         #
         # ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- -----

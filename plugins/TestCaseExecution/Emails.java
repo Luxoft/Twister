@@ -1,6 +1,6 @@
 /*
 File: Emails.java ; This file is part of Twister.
-Version: 2.002
+Version: 2.003
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -200,10 +200,17 @@ public class Emails extends JPanel{
                             
                             
                             
-                            String p = "";
-                            byte mydata[]=new String(tpass.getPassword()).getBytes();
-                            try{p = DatatypeConverter.printBase64Binary(mydata);}
-                            catch(Exception e){e.printStackTrace();}
+                            String p = "";                            
+                            try{p = RunnerRepository.getRPCClient().execute("encryptText", new Object[]{new String(tpass.getPassword())}).toString();
+                            } catch(Exception e){
+                                e.printStackTrace();
+                                System.out.println("Could not encrypt password");
+                            }
+                            
+                            
+//                             byte mydata[]=new String(tpass.getPassword()).getBytes();
+//                             try{p = DatatypeConverter.printBase64Binary(mydata);}
+//                             catch(Exception e){e.printStackTrace();}
                             
                             
                             if(nodeLst.item(0).getChildNodes().getLength()>0)nodeLst.item(0).getChildNodes().item(0).setNodeValue(p);

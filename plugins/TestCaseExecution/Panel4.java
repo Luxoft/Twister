@@ -1,6 +1,6 @@
 /*
 File: Panel4.java ; This file is part of Twister.
-Version: 2.001
+Version: 2.002
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -36,7 +36,7 @@ public class Panel4 extends JPanel{
     private Emails emails;
     private JPanel main; 
     private Plugins plugins;
-    private JScrollPane scroll = new JScrollPane();
+    private JScrollPane scroll ;
     private TB tb = new TB();
     private Globals glob;
     private PanicDetect panic;
@@ -46,6 +46,7 @@ public class Panel4 extends JPanel{
 
     public Panel4(){
         setLayout(null);
+        scroll = new JScrollPane();
         Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
         config = new ConfigFiles(screenSize);
         dbconfig = new DBConfig();
@@ -109,14 +110,12 @@ public class Panel4 extends JPanel{
                 setPlugins();}});
         add(plugins);
         RoundButton ctrlpanel = new RoundButton("Control Panel");
-        ctrlpanel.setEnabled(false);
         ctrlpanel.setBounds(20,280,200,25);
         ctrlpanel.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){                
                 setCtrlPanel();}});
         add(ctrlpanel);
         RoundButton logout = new RoundButton("Logout");
-        logout.setEnabled(false);
         logout.setBounds(20,310,200,25);
         logout.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){                
@@ -131,11 +130,11 @@ public class Panel4 extends JPanel{
         setPaths();
     }
     
-    private void setCtrlPanel(){
+    public void setCtrlPanel(){
         RunnerRepository.starter.maincomp.loadComponent("ControlPanel");
     }
     
-    private void setLogout(){
+    public void setLogout(){
         RunnerRepository.starter.maincomp.loadComponent("login");
     }
     

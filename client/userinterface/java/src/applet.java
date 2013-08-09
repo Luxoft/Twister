@@ -1,6 +1,6 @@
 /*
 File: applet.java ; This file is part of Twister.
-Version: 2.001
+Version: 2.002
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -25,6 +25,8 @@ import java.awt.Image;
 import java.io.InputStream;
 import javax.swing.ImageIcon;
 import javax.imageio.ImageIO;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 
 public class applet extends Applet{ 
     private static final long serialVersionUID = 1L;
@@ -39,7 +41,34 @@ public class applet extends Applet{
             System.err.println("Failed to call JavaScript function appletLoaded()");
         }
         MainRepository.background = loadIcon("background.png");
+        try {
+            URL url = new URL(this.getCodeBase()+"/logo.png");
+            MainRepository.logo = ImageIO.read(url).getScaledInstance(230, 100, Image.SCALE_FAST);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        
+        readLogoTxt();
         MainRepository.initialize(this,getCodeBase().getHost(),this);
+    }
+    
+    public void readLogoTxt(){
+        try{
+            URL logo = new URL(this.getCodeBase()+"/logo.txt");
+            BufferedReader in = new BufferedReader(
+            new InputStreamReader(logo.openStream()));
+            
+            StringBuilder sb = new StringBuilder();
+            String inputLine;
+            while ((inputLine = in.readLine()) != null){
+                sb.append(inputLine);
+                sb.append("\n");
+            }
+            in.close();
+            MainRepository.logotxt = sb.toString();
+        } catch(Exception e){
+            e.printStackTrace();
+        }
     }
     
     /*
@@ -52,7 +81,8 @@ public class applet extends Applet{
             System.out.println("Saving "+icon+" in memory.....");
             image = new ImageIcon(ImageIO.read(in)).getImage();
             if(image !=null)System.out.println(icon+" succsesfully loaded.");
-            else System.out.println(icon+" not loaded.");}
+            else System.out.println(icon+" not loaded.");
+        }
         catch(Exception e){
             System.out.println("There was a problem in loading "+icon+
                 " on "+image.toString());

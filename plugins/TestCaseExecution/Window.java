@@ -1,6 +1,6 @@
 /*
 File: Window.java ; This file is part of Twister.
-Version: 2.001
+Version: 2.002
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -39,6 +39,9 @@ import java.awt.Toolkit;
 import javax.swing.JLabel;
 import com.twister.CustomDialog;
 import java.awt.Container;
+import javax.swing.JButton;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 
 /*
  * main window displayed if twister is running local
@@ -48,6 +51,7 @@ public class Window extends JFrame{
     private static final long serialVersionUID = 1L;
     Applet container;
     JPanel appletpanel;
+    public JButton logout, controlpanel;
     
     /*
      * applet - true if starts from applet, false otherwie
@@ -60,6 +64,23 @@ public class Window extends JFrame{
         RunnerRepository.introscreen.setStatus("Started Frame initialization");
         RunnerRepository.introscreen.addPercent(0.035);
         RunnerRepository.introscreen.repaint();
+        
+        logout = new JButton("Logout");
+        logout.setBounds(500,3,100,20);
+        logout.addActionListener(new ActionListener(){
+            public void actionPerformed(ActionEvent ev){
+                mainpanel.p4.setLogout();
+            }
+        });
+        controlpanel = new JButton("Control Panel");
+        controlpanel.setBounds(605,3,150,20);
+        controlpanel.addActionListener(new ActionListener(){
+            public void actionPerformed(ActionEvent ev){
+                mainpanel.p4.setCtrlPanel();
+            }
+        });
+        
+        
         mainpanel = new MainPanel(applet);
         if(container!=null){
             appletpanel = new JPanel();
@@ -67,11 +88,18 @@ public class Window extends JFrame{
             appletpanel.setBounds(5, 5, (int)screenSize.getWidth(), 672);
             appletpanel.setBackground(Color.WHITE);
             appletpanel.setLayout(null);
+            appletpanel.add(logout);
+            appletpanel.add(controlpanel);
             appletpanel.add(mainpanel);
+            
             container.setLayout(null);
-            container.add(appletpanel);}
+            container.add(appletpanel);
+        }
         else{
+            
             setLayout(null);
+            add(logout);
+            add(controlpanel);
             add(mainpanel);
             String l = null;
             String s = null;
@@ -113,17 +141,22 @@ public class Window extends JFrame{
             addComponentListener(new ComponentAdapter(){
                 public void componentResized(ComponentEvent e){
                     if(RunnerRepository.window!=null){
+                        RunnerRepository.setSize(getWidth(), getHeight());
+                        
                         //mainpanel.p2.splitPane.setSize(getWidth()-52,getHeight()-120);
-                        mainpanel.p1.splitPane.setSize(getWidth()-52,getHeight()-120);
-                        mainpanel.setSize(getWidth()-28,getHeight()-50);
-                        mainpanel.p4.getScroll().setSize(getWidth()-310,getHeight()-150);
-                        mainpanel.p4.getMain().setSize(getWidth()-300,getHeight()-130);
-                        mainpanel.p4.getTB().setPreferredSize(
-                                    new Dimension(getWidth()-300,getHeight()-150));
-                        mainpanel.p4.getPlugins().setPreferredSize(
-                                    new Dimension(getWidth()-300,getHeight()-150));
-                        mainpanel.p4.getPlugins().horizontalsplit.setPreferredSize(
-                                    new Dimension(getWidth()-305,getHeight()-155));
+                        
+//                         mainpanel.p1.splitPane.setSize(getWidth()-52,getHeight()-120);
+//                         mainpanel.setSize(getWidth()-28,getHeight()-50);
+//                         mainpanel.p4.getScroll().setSize(getWidth()-310,getHeight()-150);
+//                         mainpanel.p4.getMain().setSize(getWidth()-300,getHeight()-130);
+//                         mainpanel.p4.getTB().setPreferredSize(
+//                                     new Dimension(getWidth()-300,getHeight()-150));
+//                         mainpanel.p4.getPlugins().setPreferredSize(
+//                                     new Dimension(getWidth()-300,getHeight()-150));
+//                         mainpanel.p4.getPlugins().horizontalsplit.setPreferredSize(
+//                                     new Dimension(getWidth()-305,getHeight()-155));
+                                    
+                                    
                         //mainpanel.p4.getPlugins().setDimension(new Dimension(getWidth()-300,getHeight()-160));                        
                         //RunnerRepository.window.mainpanel.p5.nettop.setPreferredSize(new Dimension(getWidth()-50,672));
                     }}});
