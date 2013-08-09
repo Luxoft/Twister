@@ -168,14 +168,6 @@ class CentralEngine(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
-    def getLogsPath(self, user):
-        '''
-        Returns the path to Logs files.
-        '''
-        return self.project.getUserInfo(user, 'logs_path')
-
-
-    @cherrypy.expose
     def encryptText(self, text):
         """
         Encrypt a piece of text, using AES.\n

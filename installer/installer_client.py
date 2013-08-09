@@ -176,6 +176,10 @@ try: os.remove(INSTALL_PATH +os.sep+ 'config/resources.json')
 except: pass
 try: os.remove(INSTALL_PATH +os.sep+ 'config/services.ini')
 except: pass
+try: os.remove(INSTALL_PATH +os.sep+ 'config/server_init.ini')
+except: pass
+try: os.remove(INSTALL_PATH +os.sep+ 'config/users_and_groups.json')
+except: pass
 
 
 # Change owner for install folder...

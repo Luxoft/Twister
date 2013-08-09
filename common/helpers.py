@@ -34,9 +34,7 @@ import binascii
 import subprocess
 
 from Crypto.Cipher import AES
-from Crypto.Hash import MD4
 from Crypto.Protocol.KDF import PBKDF2
-from Crypto.Random import get_random_bytes
 
 from tsclogging import logDebug, logWarning
 
