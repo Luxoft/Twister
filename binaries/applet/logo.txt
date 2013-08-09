@@ -1,5 +1,0 @@
-Host: rtxsvt01, 168.127.132.68
-This is a DEVELOPMENT server
-Located in: Pearl River, NY
-Lab Location: NH-19
-Test Bogdan Popescu
