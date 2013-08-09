@@ -7,6 +7,7 @@
 - fix for issue #41 - status of testcase displayed as stopped in GUI and aborted in CLI
 - added a twister_demo.sql script in installer/packages; can be used to create a demo database;
   the associated db.xml is updated for this database
+- fixed issue #57 - updated test_py_ssh_twist.py
 
 06th August 2013
 
