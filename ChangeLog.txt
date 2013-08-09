@@ -9,6 +9,8 @@
   used to create a demo database;the associated db.xml is updated for this database
 - fixed issue #57 - updated test_py_ssh_twist.py
 
+IMPORTANT: reinstall all components ( GUI, server, client, dependencies ) !
+
 06th August 2013
 
 - put back the ExecutionProcessWin.py in client/executionprocess directory
