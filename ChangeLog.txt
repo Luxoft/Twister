@@ -2,7 +2,6 @@
 
 - the passwords are encrypted
 - completed the User Management feature
-- enhanced the cli de-queue - issue #37
 - changed the user logging mechanism to work for NIS users as well
 - fix for issue #41 - status of testcase displayed as stopped in GUI and aborted in CLI
 - issue #19 ; issue #16 ;added a twister_demo.sql script in installer/packages; can be
