@@ -76,7 +76,7 @@ class ReportingServer:
         self.parent  = parent
 
 
-    def load_config(self, usr):
+    def load_config(self, usr, force=False):
         '''
         Read DB Config File for 1 user.
         '''
@@ -90,15 +90,17 @@ class ReportingServer:
             logError('Reporting Server: Null DB.XML file for user `{}`! Nothing to do!'.format(usr))
             return False
 
-        # Create database parser...
-        if usr not in self.db_parser:
-            logDebug('Reporting Server: Parsing config for `{}` for the first time...'.format(usr))
-            self.db_parser[usr] = DBParser(db_file)
+        # Create database parser IF necessary, or FORCED...
+        if force or (usr not in self.db_parser):
+            # logDebug('Reporting Server: Parsing DB config `{}` for user `{}`.'.format(db_file, usr))
 
-        self.glob_fields[usr]    = self.db_parser[usr].getReportFields()
-        self.glob_reports[usr]   = self.db_parser[usr].getReports()
-        self.glob_redirects[usr] = self.db_parser[usr].getRedirects()
-        self.glob_links[usr]     = ['Home'] + self.glob_reports[usr].keys() + self.glob_redirects[usr].keys() + ['Help']
+            self.db_parser[usr]      = DBParser(db_file)
+            self.glob_fields[usr]    = self.db_parser[usr].getReportFields()
+            self.glob_reports[usr]   = self.db_parser[usr].getReports()
+            self.glob_redirects[usr] = self.db_parser[usr].getRedirects()
+            self.glob_links[usr]     = ['Home'] + self.glob_reports[usr].keys() + self.glob_redirects[usr].keys() + ['Help']
+
+            self.connect_db(usr)
 
 
     def connect_db(self, usr):
@@ -106,6 +108,8 @@ class ReportingServer:
         Reconnect to the database.
         '''
         db_config = self.db_parser[usr].db_config
+        # logDebug('Reporting Server: Connecting on DB from `{}:{}`...'\
+        #          ''.format(db_config.get('server'), db_config.get('database')))
 
         # Decode database password
         db_password = self.project.decryptText( db_config.get('password') )
@@ -131,7 +135,7 @@ class ReportingServer:
         if not os.path.isdir(userHome(usr) + '/twister/config'):
             return '<br><b>Error! Username `{}` doesn\'t have a Twister config folder!</b>'.format(usr)
 
-        self.load_config(usr) # Re-load all Database XML
+        self.load_config(usr, True) # FORCE re-load all Database XML
         output = Template(filename=TWISTER_PATH + '/server/template/rep_base.htm')
         return output.render(title='Home', usr=usr, links=self.glob_links[usr])
 

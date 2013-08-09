@@ -1,7 +1,7 @@
 
 # File: CentralEngineClasses.py ; This file is part of Twister.
 
-# version: 2.016
+# version: 2.017
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -157,14 +157,6 @@ class CentralEngine(_cptools.XMLRPCController):
         system = platform.machine() +' '+ platform.system() +', '+ ' '.join(platform.linux_distribution())
         python = '.'.join([str(v) for v in sys.version_info])
         return '{}\nPython {}'.format(system.strip(), python)
-
-
-    @cherrypy.expose
-    def getLogsPath(self, user):
-        '''
-        Returns the path to Logs files.
-        '''
-        return self.project.getUserInfo(user, 'logs_path')
 
 
     @cherrypy.expose
@@ -831,6 +823,23 @@ class CentralEngine(_cptools.XMLRPCController):
                     db_auto_save = self.project.getUserInfo(user, 'db_auto_save')
                     if db_auto_save and save_to_db: self.commitToDatabase(user)
 
+                    # Find the log process and kill it
+                    logProc = self.loggers[user].get('proc')
+                    logKilled = True
+                    if logProc:
+                        try:
+                            sub_pid = subprocess.check_output('pgrep -P %i' % logProc.pid, shell=True).strip()
+                            subprocess.call('kill %s' % sub_pid, shell=True)
+                            logProc.terminate()
+                            logProc.wait()
+                            logDebug('Killing Log Server PID `{}`.'.format(int(sub_pid)))
+                        except Exception as e:
+                            logKilled = False
+                            logWarning('Cannot stop Log Server PID `{}`, for user `{}`! Exception `{}`!'.format(logProc.pid, user, e))
+
+                        if logKilled:
+                            logDebug('Terminated log server `{}`, for user `{}`.'.format(logProc.pid, user))
+
                     # Execute "onStop" for all plugins!
                     parser = PluginParser(user)
                     plugins = parser.getPlugins()
@@ -848,7 +857,7 @@ class CentralEngine(_cptools.XMLRPCController):
     @cherrypy.expose
     def setExecStatusAll(self, user, new_status, msg=''):
         """
-        Set execution status for all EPs. (0, 1, 2, or 3).\n
+        Set execution status for all EPs. (STATUS_STOP, STATUS_PAUSED, STATUS_RUNNING).\n
         Returns a string (stopped, paused, running).\n
         The `message` parameter can explain why the status has changed.\n
         Both CE and EP have a status.
@@ -1474,12 +1483,12 @@ class CentralEngine(_cptools.XMLRPCController):
                 free = True
             if free: break
 
-        p_cmd = 'su {} -c "python {}/server/LogServer.py {}"'.format(user, TWISTER_PATH, port)
+        p_cmd = 'su {} -c "python -u {}/server/LogServer.py {}"'.format(user, TWISTER_PATH, port)
         proc = subprocess.Popen(p_cmd, cwd='{}/twister'.format(userHome(user)), shell=True)
         proc.poll()
 
         time.sleep(0.3)
-        logDebug('Log Server for user `{}` launched on `127.0.0.1:{}`.'.format(user, port))
+        logDebug('Log Server for user `{}` launched on `127.0.0.1:{}` - PID `{}`.'.format(user, port, proc.pid))
 
         self.loggers[user] = {'proc': proc, 'port': port}
 
