@@ -1,3 +1,11 @@
+09th August 2013
+
+- the passwords are encrypted
+- completed the User Management feature
+- enhanced the cli de-queue - issue #37
+- changed the user logging mechanism to work for NIS users as well
+- fix for issue #41 - status of testcase displayed as stopped in GUI and aborted in CLI
+
 06th August 2013
 
 - put back the ExecutionProcessWin.py in client/executionprocess directory
