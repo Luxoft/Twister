@@ -1,7 +1,7 @@
 
 # File: CentralEngineOthers.py ; This file is part of Twister.
 
-# version: 2.023
+# version: 2.024
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -75,7 +75,7 @@ import os
 import sys
 import re
 import time
-import thread
+import paramiko
 import subprocess
 import socket
 import platform
@@ -87,6 +87,7 @@ import MySQLdb
 try: import simplejson as json
 except: import json
 
+from thread import allocate_lock
 from string import Template
 from collections import OrderedDict
 from email.mime.text import MIMEText
@@ -105,6 +106,44 @@ from common.tsclogging import *
 from common.xmlparser  import *
 from common.suitesmanager import *
 from common import iniparser
+
+usrs_and_pwds = {}
+
+#
+
+def check_passwd(realm, user, passwd):
+    """
+    This function is called before ALL XML-RPC calls,
+    to check the username and password.
+    """
+    global usrs_and_pwds
+
+    if cherrypy.session.get('user_passwd') == binascii.hexlify(user+':'+passwd):
+        return True
+    elif user in usrs_and_pwds and usrs_and_pwds.get(user) == passwd:
+        cherrypy.session['username'] = user
+        return True
+    elif passwd == 'EP':
+        cherrypy.session['username'] = user
+        return True
+
+    t = paramiko.Transport(('localhost', 22))
+    t.logger.setLevel(40) # Less spam, please
+    t.start_client()
+
+    # This operation is really heavy!!!
+    try:
+        t.auth_password(user, passwd)
+        usrs_and_pwds[user] = passwd
+        cherrypy.session['username'] = user
+        cherrypy.session['user_passwd'] = binascii.hexlify(user+':'+passwd)
+        t.stop_thread()
+        t.close()
+        return True
+    except:
+        t.stop_thread()
+        t.close()
+        return False
 
 
 # --------------------------------------------------------------------------------------------------
@@ -132,11 +171,11 @@ class Project:
         self.test_ids = {}
         self.suite_ids = {}
 
-        self.usr_lock = thread.allocate_lock()  # User change lock
-        self.int_lock = thread.allocate_lock()  # Internal use lock
-        self.glb_lock = thread.allocate_lock()  # Global variables lock
-        self.eml_lock = thread.allocate_lock()  # E-mail lock
-        self.db_lock  = thread.allocate_lock()  # Database lock
+        self.usr_lock = allocate_lock()  # User change lock
+        self.int_lock = allocate_lock()  # Internal use lock
+        self.glb_lock = allocate_lock()  # Global variables lock
+        self.eml_lock = allocate_lock()  # E-mail lock
+        self.db_lock  = allocate_lock()  # Database lock
 
         # Read the production/ development option.
         cfg_path = '{}/config/server_init.ini'.format(TWISTER_PATH)
@@ -479,7 +518,11 @@ class Project:
             logError('Users and Groups ERROR: Cannot find roles file in path `{}`!'.format(cfg_path))
             return False
 
-        cfg = iniparser.ConfigObj(cfg_path, create_empty=True, write_empty_values=True)
+        try:
+            cfg = iniparser.ConfigObj(cfg_path, create_empty=True, write_empty_values=True)
+        except Exception as e:
+            logError('Users and Groups parsing error `{}`!'.format(e))
+            return {'users': {}, 'groups': {}}
 
         # Cycle all groups
         for grp, grp_data in cfg['groups'].iteritems():
@@ -618,7 +661,8 @@ class Project:
             tmp_users = dict(self.roles['users'])
             for usr in tmp_users:
                 # Delete the user key, before sending
-                del tmp_users[usr]['key']
+                try: del tmp_users[usr]['key']
+                except: pass
             return tmp_users
 
         elif cmd == 'list groups':
@@ -846,6 +890,8 @@ class Project:
         Returns data for the current user, including all EP info.
         If the key is not specified, it can be a huge dictionary.
         """
+        global usrs_and_pwds
+
         r = self.changeUser(user)
         if not r:
             if key:
@@ -853,7 +899,12 @@ class Project:
             else:
                 return {}
 
-        if key:
+        if key == 'user_passwd':
+            cherry_usr = cherrypy.session.get('username')
+            # Return the password only if the connected user is the user that asks the pwd
+            if user == cherry_usr:
+                return usrs_and_pwds.get(user, '')
+        elif key:
             return self.users[user].get(key)
         else:
             return self.users[user]

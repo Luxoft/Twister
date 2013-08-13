@@ -130,9 +130,9 @@ class TwisterClientService(_cptools.XMLRPCController):
             # check if the config has option EP_HOST and is
             # not commented out and it coantains an IP address
             if cfg.has_option(ep, 'EP_HOST'):
-                    host_value = (cfg.get(ep, 'EP_HOST'))
-                    if host_value:
-                            allow_any_host = False
+                host_value = (cfg.get(ep, 'EP_HOST'))
+                if host_value:
+                    allow_any_host = False
 
         # All sections that have an option CE_IP, are EP names
         eps = []

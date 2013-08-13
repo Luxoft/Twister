@@ -1,7 +1,7 @@
 
 # File: CentralEngineClasses.py ; This file is part of Twister.
 
-# version: 2.017
+# version: 2.018
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -823,22 +823,17 @@ class CentralEngine(_cptools.XMLRPCController):
                     db_auto_save = self.project.getUserInfo(user, 'db_auto_save')
                     if db_auto_save and save_to_db: self.commitToDatabase(user)
 
-                    # Find the log process and kill it
+                    # Find the log process for this User and kill it
                     logProc = self.loggers[user].get('proc')
-                    logKilled = True
+
                     if logProc:
                         try:
-                            sub_pid = subprocess.check_output('pgrep -P %i' % logProc.pid, shell=True).strip()
-                            subprocess.call('kill %s' % sub_pid, shell=True)
+                            subprocess.call('kill $(pgrep -P %i)' % logProc.pid, shell=True)
                             logProc.terminate()
                             logProc.wait()
-                            logDebug('Killing Log Server PID `{}`.'.format(int(sub_pid)))
-                        except Exception as e:
-                            logKilled = False
-                            logWarning('Cannot stop Log Server PID `{}`, for user `{}`! Exception `{}`!'.format(logProc.pid, user, e))
-
-                        if logKilled:
                             logDebug('Terminated log server `{}`, for user `{}`.'.format(logProc.pid, user))
+                        except Exception as e:
+                            logWarning('Cannot stop Log Server PID `{}`, for user `{}`! Exception `{}`!'.format(logProc.pid, user, e))
 
                     # Execute "onStop" for all plugins!
                     parser = PluginParser(user)
@@ -1404,30 +1399,20 @@ class CentralEngine(_cptools.XMLRPCController):
     @cherrypy.expose
     def getTestDescription(self, fname):
         """
-        Returns the title and the description of a test file.\n
+        Returns the title, description and all tags from a test file.\n
         Called from the Java GUI.
         """
-        title = ''
-        descr = ''
-        a = 0
-        b = 0
-
         try:
             text = open(fname,'rb').read()
         except:
-            return '-'+title+'-;--'+descr
+            return ''
 
-        if '<title>' in text and '</title>' in text:
-            a = text.find('<title>') + len('<title>')
-            b = text.find('</title>')
-            title = text[a:b]
+        # Find starting with #, optional space, followed by a <tag> ended with the same </tag>
+        # containing any character in range 0x20 to 0x7e (all numbers, letters and ASCII symbols)
+        # This returns 2 groups : the tag name and the text inside it
+        tags = re.findall('#[ ]+?<(?P<tag>\w+)>([ -~\n]+?)</(?P=tag)>', text)
 
-        if '<description>' in text and '</description>' in text:
-            a = text.find('<description>') + len('<description>')
-            b = text.find('</description>')
-            descr = text[a:b]
-
-        return '-'+title+'-;--'+descr
+        return '<br>\n'.join(['<b>' + title + '</b> : ' + descr for title, descr in tags])
 
 
 # --------------------------------------------------------------------------------------------------

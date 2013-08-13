@@ -1,7 +1,7 @@
 
 # File: TestCaseRunner.py ; This file is part of Twister.
 
-# version: 2.011
+# version: 2.012
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -123,6 +123,8 @@ class TwisterRunner:
         self.exit_on_test_fail = self.proxy.getUserVariable(self.userName, 'exit_on_test_fail')
         # Get tests delay
         self.tc_delay = self.proxy.getUserVariable(self.userName, 'tc_delay')
+        # Get the password for this user
+        self.user_passwd = self.proxy.getUserVariable(self.userName, 'user_passwd')
 
         # After getting Test-Bed name, save all libraries from CE
         self.saveLibraries()
@@ -506,29 +508,32 @@ class TwisterRunner:
 
             # --------------------------------------------------------------------------------------
             # RUN CURRENT TEST!
+
+            globs = {
+                'USER'      : self.userName,
+                'PASSWD'    : self.user_passwd,
+                'EP'        : self.epName,
+                'currentTB' : self.tbName,
+                'SUITE_ID'  : suite_id,
+                'SUITE_NAME': suite_name,
+                'FILE_ID'   : file_id,
+                'FILE_NAME' : filename,
+                'PROXY'     : self.proxy,
+                'logMsg'    : self.commonLib.logMsg,
+                'getGlobal' : self.commonLib.getGlobal,
+                'setGlobal' : self.commonLib.setGlobal,
+                'py_exec'   : self.commonLib.py_exec,
+                'getResource'       : self.commonLib.getResource,
+                'setResource'       : self.commonLib.setResource,
+                'renameResource'    : self.commonLib.renameResource,
+                'deleteResource'    : self.commonLib.deleteResource,
+                'getResourceStatus' : self.commonLib.getResourceStatus,
+                'allocResource'     : self.commonLib.allocResource,
+                'reserveResource'   : self.commonLib.reserveResource,
+                'freeResource'      : self.commonLib.freeResource,
+            }
+
             try:
-                globs = {
-                    'USER'      : self.userName,
-                    'EP'        : self.epName,
-                    'currentTB' : self.tbName,
-                    'SUITE_ID'  : suite_id,
-                    'SUITE_NAME': suite_name,
-                    'FILE_ID'   : file_id,
-                    'FILE_NAME' : filename,
-                    'PROXY'     : self.proxy,
-                    'logMsg'    : self.commonLib.logMsg,
-                    'getGlobal' : self.commonLib.getGlobal,
-                    'setGlobal' : self.commonLib.setGlobal,
-                    'py_exec'   : self.commonLib.py_exec,
-                    'getResource'       : self.commonLib.getResource,
-                    'setResource'       : self.commonLib.setResource,
-                    'renameResource'    : self.commonLib.renameResource,
-                    'deleteResource'    : self.commonLib.deleteResource,
-                    'getResourceStatus' : self.commonLib.getResourceStatus,
-                    'allocResource'     : self.commonLib.allocResource,
-                    'reserveResource'   : self.commonLib.reserveResource,
-                    'freeResource'      : self.commonLib.freeResource,
-                }
                 result = current_runner._eval(str_to_execute, globs, args)
                 result = str(result).upper()
                 print('\n>>> File `{}` returned `{}`. <<<\n'.format(filename, result))
