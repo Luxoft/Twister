@@ -1,12 +1,14 @@
 
 #
-# version: 2.001
-# <title>test 05</title>
+# version: 2.002
+# <title>Users and Groups</title>
 # <description>List users, groups, roles. To run this test, your user must be a twister ADMIN!</description>
 #
 
+import os
 import time
 import random
+import binascii
 from pprint import pprint
 
 #
@@ -71,6 +73,18 @@ def test(PROXY, USER):
     r = PROXY.usersAndGroupsManager('delete group', 'test2')
     if not r: return 'Fail'
     print('Deleted group `test2`.\n')
+
+    print('Testing Central Engine encrypt / decrypt...\n')
+    for i in range(10):
+        d = binascii.hexlify(os.urandom(4))
+        r1 = PROXY.encryptText(d)
+        print('Encrypt:\n{} -> {}'.format(d, r1))
+        r2 = PROXY.decryptText(r1)
+        if r2 != d:
+            print('Invalid decrypt!')
+            return 'Fail'
+        else:
+            print('Decrypt:\n{} -> {}\n'.format(r1, r2))
 
     return 'Pass'
 

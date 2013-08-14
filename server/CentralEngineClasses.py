@@ -625,11 +625,11 @@ class CentralEngine(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
-    def deQueueFile(self, user, epname, file_id):
+    def deQueueFiles(self, user, data):
         """
         Remove a file from the files queue.
         """
-        return self.project.deQueueFile(user, epname, file_id)
+        return self.project.deQueueFiles(user, data)
 
 
 # --------------------------------------------------------------------------------------------------
@@ -1468,7 +1468,7 @@ class CentralEngine(_cptools.XMLRPCController):
                 free = True
             if free: break
 
-        p_cmd = 'su {} -c "python -u {}/server/LogServer.py {}"'.format(user, TWISTER_PATH, port)
+        p_cmd = 'su {} -c "{} -u {}/server/LogServer.py {}"'.format(user, sys.executable, TWISTER_PATH, port)
         proc = subprocess.Popen(p_cmd, cwd='{}/twister'.format(userHome(user)), shell=True)
         proc.poll()
 
