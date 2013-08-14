@@ -580,8 +580,9 @@ class Project:
             # If the server is no_type or devel, the user has ALL ROLES except for CHANGE_USERS!
             if self.server_init['ce_server_type'].lower() != 'production':
                 _ROLES = sorted(ROLES)
-                # Delete Change Users role from all users!
-                _ROLES.pop(_ROLES.index('CHANGE_USERS'))
+                # If the user didn't have the USERS role, delete it
+                if 'CHANGE_USERS' not in usr_data['roles']:
+                    _ROLES.pop(_ROLES.index('CHANGE_USERS'))
                 usr_data['roles'] = _ROLES
             else:
                 # Fix roles. Must be a list.

@@ -354,6 +354,15 @@ class TwisterRunner:
             else:
                 args = []
 
+            # Extra properties, from the applet
+            props = dict(node)
+            for prop in ['type', 'status', 'file', 'suite', 'dependancy', 'Runnable',
+                         'setup_file', 'teardown_file', 'Optional', 'param']:
+                # Removing all known File properties
+                try: del props[prop]
+                except: pass
+
+
             print('<<< START filename: `{}:{}` >>>\n'.format(file_id, filename))
 
 
@@ -518,6 +527,7 @@ class TwisterRunner:
                 'SUITE_NAME': suite_name,
                 'FILE_ID'   : file_id,
                 'FILE_NAME' : filename,
+                'PROPERTIES': props,
                 'PROXY'     : self.proxy,
                 'logMsg'    : self.commonLib.logMsg,
                 'getGlobal' : self.commonLib.getGlobal,
