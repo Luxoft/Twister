@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# version: 2.010
+# version: 2.011
 
 # File: cli.py ; This file is part of Twister.
 
@@ -32,7 +32,7 @@ Commands :
 - (status) Execution summary status: What is the start time for this run, suites list and tests list,
   how many test cases are planned for execution, how many were executed, how may passed, how many failed.
 - (status-details) Execution details status: the same, plus status per test case.
-- Queue tests during run time.
+- Queue or Dequeue tests during run time.
 '''
 
 import os
@@ -194,23 +194,23 @@ def queueTest(proxy, user, suite, fname):
 	Queue a file, at the end of a suite.
 	"""
 	r = proxy.queueFile(user, suite, fname)
-	if r:
+	if r is True or 'ERROR' not in r:
 		print('Test `{}` was queued in suite `{}`.'.format(fname, suite))
 	else:
-		print('Failed to queue test `{}` was queued in suite `{}`! Check Central Engine logs.'.format(fname, suite))
+		print(r)
 
 	print
 
 
-def deQueueTest(proxy, user, epname, file_id):
+def deQueueTest(proxy, user, data):
 	"""
 	Un-Queue a file, from the current project.
 	"""
-	r = proxy.deQueueFile(user, epname, file_id)
-	if r:
-		print('Test `{}` was removed from the project.'.format(file_id))
+	r = proxy.deQueueFiles(user, data)
+	if r is True or 'ERROR' not in r:
+		print('Test `{}` was removed from the project.'.format(r))
 	else:
-		print('Failed to dequeue test `{}`! Check Central Engine logs.'.format(file_id))
+		print(r)
 
 	print
 
@@ -225,8 +225,7 @@ if __name__ == '__main__':
 
 	version = ""
 	for line in open(__file__):
-		li=line.strip()
-		if li.startswith("# version:"):
+		if line.strip().startswith("# version:"):
 			version = "%prog " + line.split("version:")[1]
 		if version: break
 
@@ -242,11 +241,11 @@ if __name__ == '__main__':
 
 	parser.add_option("--stats",       action="store_true", help="Show stats.")
 
-	parser.add_option("--details",            action="store_true", help="Show detailed status for All files.")
-	parser.add_option("--status-details",     action="store", help="Show detailed status for running, finished, pending, or all files.")
+	parser.add_option("--details",        action="store_true", help="Show detailed status for All files.")
+	parser.add_option("--status-details", action="store", help="Show detailed status for running, finished, pending, or all files.")
 
-	parser.add_option("-q", "--queue",   action="store", help="Queue a file at the end of a suite. Specify queue like `suite:file`.")
-	parser.add_option("--dequeue",       action="store", help="Un-Queue a file, using the EP and File ID. Specify like `EP-name:file-ID`.")
+	parser.add_option("-q", "--queue",   action="store", help="Queue a file at the end of a suite. Specify queue like `Suite:file_path`.")
+	parser.add_option("-d", "--dequeue", action="store", help="Un-Queue 1 or more files. Specify like `EP, EP:suite_id, EP:Suite, or EP:file_id`.")
 
 	parser.add_option("-s", "--set",     action="store", help="Set status: start/ stop/ pause. (Must also specify a config and a project)")
 	parser.add_option("-c", "--config",  action="store", help="Path to FWMCONFIG.XML file.")
@@ -326,11 +325,7 @@ if __name__ == '__main__':
 
 	# Un-Queue a file, using the File ID
 	if options.dequeue:
-		if not ':' in options.dequeue:
-			print('Must dequeue `epname:file_id`, for example `EP-1001:101` !\n')
-			exit(1)
-		epname, file_id = options.dequeue.split(':')
-		deQueueTest(proxy, user, epname, file_id)
+		deQueueTest(proxy, user, options.dequeue)
 		exit()
 
 

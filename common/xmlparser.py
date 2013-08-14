@@ -118,10 +118,10 @@ class TSCParser:
                 # Get path to Test-Suites XML from Master config
                 files_config = self.files_config
 
-            if files_config.startswith('~'):
-                files_config = os.getenv('HOME') + files_config[1:]
+            if files_config.startswith('~/'):
+                files_config = userHome(self.user) + files_config[1:]
             if not os.path.isfile(files_config):
-                print('Parser: Test-Suites XML file `%s` does not exist! Please check framework config XML file!' % files_config)
+                print('Parser: Test-Suites XML file `{}` does not exist! Please check framework config XML file!'.format(files_config))
                 self.configTS = None
                 return -1
             else:
@@ -733,6 +733,13 @@ class DBParser():
     def __init__(self, config_data):
 
         self.db_config = {}
+        self.config_data = config_data
+        self.updateConfig()
+
+
+    def updateConfig(self):
+
+        config_data = self.config_data
 
         if os.path.isfile(config_data):
             try: self.xmlDict = etree.fromstring(open(config_data).read())
@@ -742,11 +749,6 @@ class DBParser():
             except: raise Exception('Db Parser: Cannot parse DB config file!')
         else:
             raise Exception('Db Parser: Invalid config data type: `{}`!'.format( type(config_data) ))
-
-        self.updateConfig()
-
-
-    def updateConfig(self):
 
         if self.xmlDict.xpath('db_config/server/text()'):
             self.db_config['server']    = self.xmlDict.xpath('db_config/server')[0].text

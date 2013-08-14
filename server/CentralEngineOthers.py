@@ -1,7 +1,7 @@
 
 # File: CentralEngineOthers.py ; This file is part of Twister.
 
-# version: 2.023
+# version: 2.025
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -75,11 +75,12 @@ import os
 import sys
 import re
 import time
-import thread
+import paramiko
 import subprocess
 import socket
 import platform
 import smtplib
+import urlparse
 import binascii
 import cherrypy
 import MySQLdb
@@ -87,6 +88,7 @@ import MySQLdb
 try: import simplejson as json
 except: import json
 
+from thread import allocate_lock
 from string import Template
 from collections import OrderedDict
 from email.mime.text import MIMEText
@@ -105,6 +107,44 @@ from common.tsclogging import *
 from common.xmlparser  import *
 from common.suitesmanager import *
 from common import iniparser
+
+usrs_and_pwds = {}
+
+#
+
+def check_passwd(realm, user, passwd):
+    """
+    This function is called before ALL XML-RPC calls,
+    to check the username and password.
+    """
+    global usrs_and_pwds
+
+    if cherrypy.session.get('user_passwd') == binascii.hexlify(user+':'+passwd):
+        return True
+    elif user in usrs_and_pwds and usrs_and_pwds.get(user) == passwd:
+        cherrypy.session['username'] = user
+        return True
+    elif passwd == 'EP':
+        cherrypy.session['username'] = user
+        return True
+
+    t = paramiko.Transport(('localhost', 22))
+    t.logger.setLevel(40) # Less spam, please
+    t.start_client()
+
+    # This operation is really heavy!!!
+    try:
+        t.auth_password(user, passwd)
+        usrs_and_pwds[user] = passwd
+        cherrypy.session['username'] = user
+        cherrypy.session['user_passwd'] = binascii.hexlify(user+':'+passwd)
+        t.stop_thread()
+        t.close()
+        return True
+    except:
+        t.stop_thread()
+        t.close()
+        return False
 
 
 # --------------------------------------------------------------------------------------------------
@@ -132,11 +172,11 @@ class Project:
         self.test_ids = {}
         self.suite_ids = {}
 
-        self.usr_lock = thread.allocate_lock()  # User change lock
-        self.int_lock = thread.allocate_lock()  # Internal use lock
-        self.glb_lock = thread.allocate_lock()  # Global variables lock
-        self.eml_lock = thread.allocate_lock()  # E-mail lock
-        self.db_lock  = thread.allocate_lock()  # Database lock
+        self.usr_lock = allocate_lock()  # User change lock
+        self.int_lock = allocate_lock()  # Internal use lock
+        self.glb_lock = allocate_lock()  # Global variables lock
+        self.eml_lock = allocate_lock()  # E-mail lock
+        self.db_lock  = allocate_lock()  # Database lock
 
         # Read the production/ development option.
         cfg_path = '{}/config/server_init.ini'.format(TWISTER_PATH)
@@ -479,7 +519,11 @@ class Project:
             logError('Users and Groups ERROR: Cannot find roles file in path `{}`!'.format(cfg_path))
             return False
 
-        cfg = iniparser.ConfigObj(cfg_path, create_empty=True, write_empty_values=True)
+        try:
+            cfg = iniparser.ConfigObj(cfg_path, create_empty=True, write_empty_values=True)
+        except Exception as e:
+            logError('Users and Groups parsing error `{}`!'.format(e))
+            return {'users': {}, 'groups': {}}
 
         # Cycle all groups
         for grp, grp_data in cfg['groups'].iteritems():
@@ -619,7 +663,8 @@ class Project:
             tmp_users = dict(self.roles['users'])
             for usr in tmp_users:
                 # Delete the user key, before sending
-                del tmp_users[usr]['key']
+                try: del tmp_users[usr]['key']
+                except: pass
             return tmp_users
 
         elif cmd == 'list groups':
@@ -847,6 +892,8 @@ class Project:
         Returns data for the current user, including all EP info.
         If the key is not specified, it can be a huge dictionary.
         """
+        global usrs_and_pwds
+
         r = self.changeUser(user)
         if not r:
             if key:
@@ -854,7 +901,12 @@ class Project:
             else:
                 return {}
 
-        if key:
+        if key == 'user_passwd':
+            cherry_usr = cherrypy.session.get('username')
+            # Return the password only if the connected user is the user that asks the pwd
+            if user == cherry_usr:
+                return usrs_and_pwds.get(user, '')
+        elif key:
             return self.users[user].get(key)
         else:
             return self.users[user]
@@ -1217,12 +1269,15 @@ class Project:
         r = self.changeUser(user)
         if not r: return False
 
+        if fname.startswith('~/'):
+            fname = userHome(user) + fname[1:]
+        if not os.path.isfile(fname):
+            log = '*ERROR* No such file `{}`!'.format(fname)
+            logError(log)
+            return log
+
         # Try create a new file id
-        try:
-            file_id = str( int(max(self.test_ids[user])) + 1 )
-        except:
-            logError('Cannot queue file `{}`, because of internal error !'.format(fname))
-            return False
+        file_id = str( int(max(self.test_ids[user] or [1000])) + 1 )
 
         eps = self.users[user]['eps']
         suite_id = False
@@ -1241,8 +1296,9 @@ class Project:
                 break
 
         if not suite_id:
-            logError('Cannot queue file `{}`, because suite `{}` doesn\'t exist !'.format(fname, suite))
-            return False
+            log = '*ERROR* Cannot queue file `{}`, because suite `{}` doesn\'t exist !'.format(fname, suite)
+            logError(log)
+            return log
 
         # This operation must be atomic !
         with self.usr_lock:
@@ -1268,7 +1324,7 @@ class Project:
         return True
 
 
-    def deQueueFile(self, user, epname, file_id):
+    def deQueueFiles(self, user, data):
         """
         This function temporary removes the file id from the project, during runtime.
         If the file did already run, the function does nothing!
@@ -1276,41 +1332,125 @@ class Project:
         r = self.changeUser(user)
         if not r: return False
 
+        if not data:
+            log = '*ERROR* Null EP/ Suite/ File data `{}`!'.format(data)
+            logError(log)
+            return log
+
+        if ':' not in data:
+            epname = data
+            rest = ''
+        elif data.count(':') == 1:
+            epname, rest = data.split(':')
+        else:
+            log = '*ERROR* Invalid data `{}`! It must be EP, EP:suite_id, EP:Suite, or EP:file_id!'.format(data)
+            logError(log)
+            return log
+
+        if epname not in self.users[user]['eps']:
+            log = '*ERROR* Invalid EP name `{}` !'.format(epname)
+            logDebug(log)
+            return log
+
         SuitesManager = self.users[user]['eps'][epname]['suites']
 
-        if file_id not in SuitesManager.getFiles():
-            logError('Project: Invalid File ID `{}` !'.format(file_id))
-            return False
+        # There are 4 types of dequeue
+        if not rest:
+            # All files from EP
+            suite_id = None
+            files = SuitesManager.getFiles()
 
-        file_node = SuitesManager.findId(file_id)
-        if not file_node:
-            logError('Project: Invalid File node `{}` !'.format(file_id))
-            return False
+            if not files:
+                log = '*ERROR* No files left to unqueue!'
+                logError(log)
+                return log
 
-        if file_node.get('status', STATUS_PENDING) != STATUS_PENDING:
-            logError('Project: File ID `{}` was already executed, cannot de-queue!'.format(file_id))
-            return False
+            logDebug('Removing file IDs `{}` from `{}`...'.format(', '.join(files), epname))
 
-        suite_id = file_node['suite']
-        suite_node = SuitesManager.findId(suite_id)
+        elif len(rest) == 3:
+            # All files from Suite ID
+            suite_id = rest
 
-        if not suite_node:
-            logError('Project: Invalid Suite node `{}` !'.format(suite_id))
-            return False
+            if suite_id not in SuitesManager.getSuites():
+                log = '*ERROR* Invalid Suite ID `{}` !'.format(suite_id)
+                logError(log)
+                return log
 
-        # This operation must be atomic !
-        with self.usr_lock:
+            suite_node = SuitesManager.findId(suite_id)
+            files = SuitesManager.getFiles(suite_id)
+            logDebug('Removing file IDs `{}` from `{}:{}`...'.format(', '.join(files), epname, suite_id))
 
-            # Remove file from the ordered list of file IDs, used for Get Status ALL
-            file_index = self.test_ids[user].index(file_id)
-            self.test_ids[user].pop(file_index)
+        elif len(rest) == 4:
+            # A specific File ID
+            file_id = rest
+            suite_id = None
 
-            # Remove file from suites
-            del suite_node['children'][file_id]
+            if file_id not in SuitesManager.getFiles():
+                log = '*ERROR* Invalid File ID `{}` !'.format(file_id)
+                logError(log)
+                return log
+
+            files = [file_id]
+            logDebug('Removing file ID `{}` from `{}`...'.format(file_id, epname))
+
+        else:
+            suite_id = None
+            suite_node = None
+
+            if not SuitesManager.getFiles():
+                log = '*ERROR* No files left to unqueue!'
+                logError(log)
+                return log
+
+            for id, node in SuitesManager.iterNodes():
+                if node['type'] == 'suite' and node['name'] == rest:
+                    suite_id = id
+                    suite_node = node
+
+            if not suite_id:
+                log = '*ERROR* Invalid suite name `{}`!'.format(rest)
+                logError(log)
+                return log
+
+            files = SuitesManager.getFiles(suite_id)
+            logDebug('Removing file IDs `{}` from `{}:{}`...'.format(', '.join(files), epname, rest))
+
+
+        for file_id in files:
+            """
+            Find the file node and delete it.
+            """
+            file_node = SuitesManager.findId(file_id)
+
+            if not file_node:
+                log = '*ERROR* Invalid File node `{}` !'.format(file_id)
+                logError(log)
+                return log
+
+            if file_node.get('status', STATUS_PENDING) != STATUS_PENDING:
+                log = '*ERROR* File ID `{}` was already executed, cannot de-queue!'.format(file_id)
+                logError(log)
+                return log
+
+            if not suite_id:
+                suite_id = file_node['suite']
+                suite_node = SuitesManager.findId(suite_id)
+
+            if not suite_node:
+                log = '*ERROR* Invalid Suite node `{}` !'.format(suite_id)
+                logError(log)
+                return log
+
+            # This operation must be atomic !
+            with self.usr_lock:
+                # Remove file from the ordered list of file IDs, used for Get Status ALL
+                file_index = self.test_ids[user].index(file_id)
+                self.test_ids[user].pop(file_index)
+                # Remove file from suites
+                del suite_node['children'][file_id]
 
         self._dump()
-        logDebug('File ID `{}` removed from `{}`.'.format(file_id, epname))
-        return True
+        return ', '.join(files)
 
 
 # # #
