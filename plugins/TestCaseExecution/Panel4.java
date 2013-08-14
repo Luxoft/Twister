@@ -1,6 +1,6 @@
 /*
 File: Panel4.java ; This file is part of Twister.
-Version: 2.002
+Version: 2.003
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -31,7 +31,7 @@ import javax.swing.border.TitledBorder;
 import java.awt.BorderLayout;
 
 public class Panel4 extends JPanel{
-    private ConfigFiles config;
+    public ConfigFiles config;
     private DBConfig dbconfig;
     private Emails emails;
     private JPanel main; 

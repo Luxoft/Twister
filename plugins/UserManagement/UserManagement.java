@@ -627,12 +627,7 @@ public class UserManagement extends BasePlugin implements TwisterPluginInterface
 								usertable.rowAtPoint(ev.getPoint()),
 								1).toString();
 		
-		//PropertyChangeListener pcl = ((JSpinner.DefaultEditor) timeoutt.getEditor()).getTextField().getPropertyChangeListeners("MyPropListener")[0];
-		//((JSpinner.DefaultEditor) timeoutt.getEditor()).getTextField().removePropertyChangeListener(pcl);
-		
 		((JSpinner.DefaultEditor) timeoutt.getEditor()).getTextField().setText(timeout);
-		
-		//((JSpinner.DefaultEditor) timeoutt.getEditor()).getTextField().addPropertyChangeListener("MyPropListener", pcl);
 		
 		String groups[] = 
 				usertable.getValueAt(
@@ -664,7 +659,6 @@ public class UserManagement extends BasePlugin implements TwisterPluginInterface
 			Object [] groups = hm.keySet().toArray();
 			DefaultTableModel dtm = ((DefaultTableModel)groupstable.getModel());
 			dtm.setRowCount(0);
-			
 			StringBuilder sb = new StringBuilder();
 			for(Object o:groups){
 				sb.setLength(0);

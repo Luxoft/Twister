@@ -1,6 +1,6 @@
 /*
 File: ControlPanel.java ; This file is part of Twister.
-Version: 2.002
+Version: 2.003
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -410,6 +410,5 @@ public class ControlPanel extends BasePlugin implements TwisterPluginInterface {
 		cp.init(null, null, ht, null,null);
 		fr.add(cp.getContent());
 		fr.setVisible(true);
-	}
-	
+	}	
 }

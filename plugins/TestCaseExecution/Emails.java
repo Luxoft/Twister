@@ -1,6 +1,6 @@
 /*
 File: Emails.java ; This file is part of Twister.
-Version: 2.003
+Version: 2.004
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -63,7 +63,7 @@ public class Emails extends JPanel{
 
     public Emails(){
         setLayout(null);
-        setPreferredSize(new Dimension(450,480));
+        setPreferredSize(new Dimension(450,560));
         setBorder(BorderFactory.createBevelBorder(BevelBorder.LOWERED));
         setBackground(Color.WHITE);
         TitledBorder border = BorderFactory.createTitledBorder("SMTP server");
@@ -73,7 +73,7 @@ public class Emails extends JPanel{
         p1.setBackground(Color.WHITE);
         p1.setBorder(border);         
         p1.setLayout(null);    
-        p1.setBounds(80,5,350,68);
+        p1.setBounds(80,80,350,68);
         JLabel ipname = new JLabel("IP/Name: ");
         ipname.setBounds(40,18,80,20);
         p1.add(ipname);
@@ -94,7 +94,7 @@ public class Emails extends JPanel{
         p2.setBackground(Color.WHITE);
         p2.setBorder(border);         
         p2.setLayout(null);    
-        p2.setBounds(80,73,350,93);
+        p2.setBounds(80,153,350,93);
         JLabel user = new JLabel("User: ");
         user.setBounds(40,18,80,20);
         p2.add(user);
@@ -121,7 +121,7 @@ public class Emails extends JPanel{
         p3.setBackground(Color.WHITE);
         p3.setBorder(border);         
         p3.setLayout(null);    
-        p3.setBounds(80,170,350,68);
+        p3.setBounds(80,251,350,68);
         emails = new JTextArea();
         emails.setLineWrap(true);
         emails.setWrapStyleWord(true);
@@ -136,7 +136,7 @@ public class Emails extends JPanel{
         p5.setBackground(Color.WHITE);
         p5.setBorder(border);         
         p5.setLayout(null);    
-        p5.setBounds(80,240,350,58);
+        p5.setBounds(80,324,350,58);
         subject = new JTextArea();
         subject.setLineWrap(true);
         subject.setWrapStyleWord(true);
@@ -151,7 +151,7 @@ public class Emails extends JPanel{
         p4.setBackground(Color.WHITE);
         p4.setBorder(border);         
         p4.setLayout(null);    
-        p4.setBounds(80,300,350,108);
+        p4.setBounds(80,387,350,108);
         message = new JTextArea();
         message.setLineWrap(true);
         message.setWrapStyleWord(true);
@@ -160,26 +160,47 @@ public class Emails extends JPanel{
         p4.add(scroll2);        
         add(p4);
         enable = new JLabel("Disabled");
-        enable.setBounds(360,410,60,20);
+        enable.setBounds(360,500,60,20);
         add(enable);
+//         new Thread(){
+//             public void run(){
+//                 while(RunnerRepository.window==null){
+//                     try{Thread.sleep(100);}
+//                     catch(Exception e){e.printStackTrace();}
+//                 }
+// //                 System.out.println(RunnerRepository.window==null);
+// //                 System.out.println(RunnerRepository.window.mainpanel==null);
+// //                 System.out.println(RunnerRepository.window.mainpanel.p4==null);
+// //                 System.out.println(RunnerRepository.window.mainpanel.p4.config==null);
+// //                 System.out.println(RunnerRepository.window.mainpanel.p4.config.emailpanel==null);
+//                 JPanel pl = RunnerRepository.window.mainpanel.p4.config.emailpanel;
+//                 pl.setBounds(80,5,500,75);
+//                 add(pl);
+//             }
+//         }.start();
+        
+        
+        
         check = new JCheckBox();
-        check.setBounds(412,410,20,20);
+        check.setBounds(412,500,20,20);
         check.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 if(check.isSelected())enable.setText("Enabled");
                 else enable.setText("Disabled");}});
         add(check);
         JButton save = new JButton("Save");
-        if(!PermissionValidtor.canEditEmail()){
+        if(!PermissionValidator.canEditEmail()){
             save.setEnabled(false);
         }
-        save.setBounds(352,435,80,20);
+        save.setBounds(352,525,80,20);
         save.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 boolean saved = true;
                 if(tpass.getPassword().length == 0){
                     CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, Emails.this, "Warning", "Warning, password not set");}
-                try{File theone = new File(RunnerRepository.temp+RunnerRepository.getBar()+"Twister"+RunnerRepository.getBar()+"Config"+RunnerRepository.getBar()+new File(RunnerRepository.REMOTEEMAILCONFIGFILE).getName());
+                try{
+//                     saveEmailPath();
+                    File theone = new File(RunnerRepository.temp+RunnerRepository.getBar()+"Twister"+RunnerRepository.getBar()+"Config"+RunnerRepository.getBar()+new File(RunnerRepository.REMOTEEMAILCONFIGFILE).getName());
                     DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
                     DocumentBuilder db = dbf.newDocumentBuilder();                                        
                     Document doc = db.parse(theone);
@@ -196,23 +217,12 @@ public class Emails extends JPanel{
                         else nodeLst.item(0).appendChild(doc.createTextNode(tuser.getText()));
                         if(tpass.getPassword().length != 0 && !(new String(tpass.getPassword()).equals("****"))){
                             nodeLst = doc.getElementsByTagName("SMTPPwd");
-                            
-                            
-                            
-                            
                             String p = "";                            
                             try{p = RunnerRepository.getRPCClient().execute("encryptText", new Object[]{new String(tpass.getPassword())}).toString();
                             } catch(Exception e){
                                 e.printStackTrace();
                                 System.out.println("Could not encrypt password");
                             }
-                            
-                            
-//                             byte mydata[]=new String(tpass.getPassword()).getBytes();
-//                             try{p = DatatypeConverter.printBase64Binary(mydata);}
-//                             catch(Exception e){e.printStackTrace();}
-                            
-                            
                             if(nodeLst.item(0).getChildNodes().getLength()>0)nodeLst.item(0).getChildNodes().item(0).setNodeValue(p);
                             else nodeLst.item(0).appendChild(doc.createTextNode(p));}
                         nodeLst = doc.getElementsByTagName("From");
@@ -239,18 +249,7 @@ public class Emails extends JPanel{
                         transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "4");                        
                         transformer.transform(source, result);  
                         FileInputStream input = new FileInputStream(theone);
-                        
-                        
-//                         try{RunnerRepository.c.cd(RunnerRepository.REMOTEEMAILCONFIGPATH);}
-//                         catch(Exception e){
-//                             System.out.println("could not get "+RunnerRepository.REMOTEEMAILCONFIGPATH);
-//                             e.printStackTrace();
-//                             saved = false;}
-//                         FileInputStream input = new FileInputStream(theone);
-//                         RunnerRepository.c.put(input, theone.getName());
-//                         input.close();
                         RunnerRepository.uploadRemoteFile(RunnerRepository.REMOTEEMAILCONFIGPATH,input,theone.getName());
-                    
                     }
                     catch(Exception e){
                         e.printStackTrace();
@@ -263,7 +262,7 @@ public class Emails extends JPanel{
                 else CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, Emails.this, "Warning", "File could not be saved");}});
         add(save);
         JButton test = new JButton("Test");
-        if(!PermissionValidtor.canEditEmail()){
+        if(!PermissionValidator.canEditEmail()){
             test.setEnabled(false);
         }
         test.addActionListener(new ActionListener(){
@@ -271,9 +270,55 @@ public class Emails extends JPanel{
                 testEmail();
             }
         });
-        test.setBounds(260,435,80,20);
+        test.setBounds(260,525,80,20);
         add(test);
     }
+    
+//     private void saveEmailPath(){
+//         try{
+//             DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+//             try{DocumentBuilder db = dbf.newDocumentBuilder();
+//                 Document doc = db.parse(RunnerRepository.getFwmConfig());
+//                 doc.getDocumentElement().normalize();
+//                 
+//                 NodeList nodeLst = doc.getElementsByTagName("EmailConfigFile");
+//                 if(nodeLst.getLength()==0){
+//                     System.out.println("tag EmailConfigFile not found in "+doc.getDocumentURI());
+//                     CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,RunnerRepository.window,
+//                                                 "Warning", "EmailConfigFile tag not found in framework config");
+//                     return ;
+//                 }
+//                 Node fstNode = nodeLst.item(0);
+//                 Element fstElmnt = (Element)fstNode;
+//                 NodeList fstNm = fstElmnt.getChildNodes();
+//                 try{fstNm.item(0).setNodeValue(RunnerRepository.window.mainpanel.p4.config.temailfile.getText());
+//                     RunnerRepository.REMOTEEMAILCONFIGFILE = RunnerRepository.window.mainpanel.p4.config.temailfile.getText();
+//                     
+//                     TransformerFactory transformerFactory = TransformerFactory.newInstance();
+//                     Transformer transformer = transformerFactory.newTransformer();
+//                     transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+//                     transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "4");
+//                     DOMSource source = new DOMSource(doc);
+//                     Result result = new StreamResult(RunnerRepository.getFwmConfig());
+//                     transformer.transform(source, result);
+//                     FileInputStream in = new FileInputStream(RunnerRepository.getFwmConfig());
+//                     RunnerRepository.uploadRemoteFile(RunnerRepository.USERHOME+"/twister/config/", in, RunnerRepository.getFwmConfig().getName());
+//                     RunnerRepository.parseEmailConfig(RunnerRepository.REMOTEEMAILCONFIGFILE,true);
+//                 }
+//                 catch(Exception e){
+//                     e.printStackTrace();
+//                     CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,RunnerRepository.window,
+//                                                 "Warning", "Could not save EmailConfigFile tag in framework config");}
+//             } catch(Exception e){
+//                 e.printStackTrace();
+//             }
+//                 
+//                 
+//         
+//     }catch(Exception e){
+//         e.printStackTrace();
+//     }
+// }
     
     private void testEmail(){
         try{

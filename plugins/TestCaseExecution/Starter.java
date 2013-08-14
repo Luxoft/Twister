@@ -1,6 +1,6 @@
 /*
 File: Starter.java ; This file is part of Twister.
-Version: 2.002
+Version: 2.003
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -46,7 +46,7 @@ public class Starter implements TwisterPluginInterface{
                     e.printStackTrace();
                 }
                 readLogoTxt(container);
-                PermissionValidtor.init(variables.get("permissions"));
+                PermissionValidator.init(variables.get("permissions"));
                 RunnerRepository.user = variables.get("user");
                 RunnerRepository.password = variables.get("password");
                 RunnerRepository.host = variables.get("host");

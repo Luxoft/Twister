@@ -1,6 +1,6 @@
 /*
 File: Panel1.java ; This file is part of Twister.
-Version: 2.006
+Version: 2.007
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -118,7 +118,7 @@ public class Panel1 extends JPanel{
         generate = new JButton("Run",new ImageIcon(RunnerRepository.getPlayIcon()));
         generate.setBounds(94,20,105,25);
         generate.setToolTipText("Run suite");
-        if(!PermissionValidtor.canRunTests()){
+        if(!PermissionValidator.canRunTests()){
             JButton temp = new JButton("Run",new ImageIcon(RunnerRepository.getPlayIcon()));
             temp.setBounds(94,20,105,25);
             temp.setToolTipText("Run suite");
@@ -242,7 +242,7 @@ public class Panel1 extends JPanel{
             public void actionPerformed(ActionEvent ev){
                 addSuiteFile();}});
         filemenu.add(item);
-        if(!PermissionValidtor.canCreateProject()){
+        if(!PermissionValidator.canCreateProject()){
             item.setEnabled(false);
         }
 //         JMenuItem changeuser = new JMenuItem("Open project file");
@@ -258,7 +258,7 @@ public class Panel1 extends JPanel{
             public void actionPerformed(ActionEvent ev){
                 saveSuiteFile();}});
         filemenu.add(item);
-        if(!PermissionValidtor.canChangeProject()){
+        if(!PermissionValidator.canChangeProject()){
             item.setEnabled(false);
         }
         
@@ -268,7 +268,7 @@ public class Panel1 extends JPanel{
             public void actionPerformed(ActionEvent ev){
                 saveSuiteAs();}});
         filemenu.add(item);
-        if(!PermissionValidtor.canCreateProject()){
+        if(!PermissionValidator.canCreateProject()){
             item.setEnabled(false);
         }
         item = new JMenuItem("Export project");
@@ -276,7 +276,7 @@ public class Panel1 extends JPanel{
             public void actionPerformed(ActionEvent ev){
                 exportAsSuite();}});
         filemenu.add(item);
-        if(!PermissionValidtor.canCreateProject()){
+        if(!PermissionValidator.canCreateProject()){
             item.setEnabled(false);
         }
 //         JMenuItem deleteuser = new JMenuItem("Delete project file");
@@ -285,7 +285,7 @@ public class Panel1 extends JPanel{
             public void actionPerformed(ActionEvent ev){
                 deleteSuiteFile();}});
         filemenu.add(item);
-        if(!PermissionValidtor.canDeleteProject()){
+        if(!PermissionValidator.canDeleteProject()){
             item.setEnabled(false);
         }
 //         JMenuItem openlocalXML = new JMenuItem("Open from local");
@@ -300,7 +300,7 @@ public class Panel1 extends JPanel{
             public void actionPerformed(ActionEvent ev){
                 saveLocalXML();}});
         filemenu.add(item);
-        if(!PermissionValidtor.canCreateProject()){
+        if(!PermissionValidator.canCreateProject()){
             item.setEnabled(false);
         }
         menu.add(filemenu);
@@ -812,6 +812,7 @@ public class Panel1 extends JPanel{
     }
     
     public void setRunning(){
+        System.out.println("!!!!!!!!! Should be called!!!!!!!!!!!!");
         splitPane3.setLeftComponent(RunnerRepository.window.mainpanel.getP2().sc.pane);
         try{
             SwingUtilities.invokeLater(new Runnable(){

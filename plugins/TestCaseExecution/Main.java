@@ -1,6 +1,6 @@
 /*
 File: Main.java ; This file is part of Twister.
-Version: 2.002
+Version: 2.003
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -49,6 +49,7 @@ public class Main{
         RunnerRepository.password = "tscguest";
         RunnerRepository.host = "tsc-server";
         readLogoTxt();
+        PermissionValidator.init(null);
         RunnerRepository.initialize("false","tsc-server",null);}
 //             RunnerRepository.initialize(false,"11.126.32.15",null);}
 

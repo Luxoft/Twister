@@ -35,11 +35,11 @@ public class applet extends Applet{
     public void init(){
         System.setSecurityManager(new MySecurityManager());
         setLayout(null);
-        try{
-            getAppletContext().showDocument(new URL("javascript:resize()"));
-        } catch (Exception e) {
-            System.err.println("Failed to call JavaScript function appletLoaded()");
-        }
+//         try{
+//             getAppletContext().showDocument(new URL("javascript:resize()"));
+//         } catch (Exception e) {
+//             System.err.println("Failed to call JavaScript function appletLoaded()");
+//         }
         MainRepository.background = loadIcon("background.png");
         try {
             URL url = new URL(this.getCodeBase()+"/logo.png");
@@ -95,10 +95,15 @@ public class applet extends Applet{
      */
     public void setSize(int width, int height){
         super.setSize(width,height);
-        System.out.println("applet resizing to: "+width+" - "+height);
+//         System.out.println("applet resizing to: "+width+" - "+height);
+//         validate();
+//         MainRepository.resize(width,height);
+    }
+    
+    public void resize(int width, int height){
+        System.out.println("applet resizing : "+width+" - "+height);
         validate();
         MainRepository.resize(width,height);
-    
     }
     
     /*

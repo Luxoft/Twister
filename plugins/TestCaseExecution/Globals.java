@@ -1,6 +1,6 @@
 /*
 File: Globals.java ; This file is part of Twister.
-Version: 2.003
+Version: 2.004
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -167,7 +167,7 @@ public class Globals {
         ttype.setModel(new DefaultComboBoxModel(new String[] { "decimal", "hex", "octet", "string" }));
         ttype.setMinimumSize(new Dimension(6, 20));
         
-        if(!PermissionValidtor.canChangeGlobals()){
+        if(!PermissionValidator.canChangeGlobals()){
             tname.setEnabled(false);
             tdescription.setEnabled(false);
             tvalue.setEnabled(false);
@@ -234,7 +234,7 @@ public class Globals {
         addconf = new JButton("Add Config");
         addparam = new JButton("Add Parameter");
         remove = new JButton("Remove");
-        if(!PermissionValidtor.canChangeGlobals()){
+        if(!PermissionValidator.canChangeGlobals()){
             addconf.setEnabled(false);
             addparam.setEnabled(false);
             remove.setEnabled(false);
@@ -299,7 +299,7 @@ public class Globals {
                             DefaultMutableTreeNode treenode = (DefaultMutableTreeNode)tp.getLastPathComponent();
                             MyFolder folder = (MyFolder)treenode.getUserObject();
                             setDescription(folder.getNode(), folder.getDesc(),null,null,(DefaultMutableTreeNode)tp.getLastPathComponent());
-                            if(!PermissionValidtor.canChangeGlobals()){
+                            if(!PermissionValidator.canChangeGlobals()){
                                 return;
                             }
                             showFolderPopUp(treenode,ev,folder);
@@ -310,7 +310,7 @@ public class Globals {
                             DefaultMutableTreeNode treenode = (DefaultMutableTreeNode)tp.getLastPathComponent();
                             MyParam param = (MyParam)treenode.getUserObject();
                             setDescription(param.getName(),param.getDesc(),param.getType(),param.getValue(),(DefaultMutableTreeNode)tp.getLastPathComponent());
-                            if(!PermissionValidtor.canChangeGlobals()){
+                            if(!PermissionValidator.canChangeGlobals()){
                                 return;
                             }
                             showParamPopUp(treenode,ev,param);
@@ -324,7 +324,7 @@ public class Globals {
                             if(((DefaultMutableTreeNode)tp.getLastPathComponent()).getUserObject() instanceof MyFolder){
                                 MyFolder folder = (MyFolder)((DefaultMutableTreeNode)tp.getLastPathComponent()).getUserObject();
                                 setDescription(folder.getNode(), folder.getDesc(),null,null,(DefaultMutableTreeNode)tp.getLastPathComponent());
-                                if(!PermissionValidtor.canChangeGlobals()){
+                                if(!PermissionValidator.canChangeGlobals()){
                                     return;
                                 }
                                 remove.setEnabled(true);
@@ -333,7 +333,7 @@ public class Globals {
                             }else if(((DefaultMutableTreeNode)tp.getLastPathComponent()).getUserObject() instanceof MyParam){
                                 MyParam param = (MyParam)((DefaultMutableTreeNode)tp.getLastPathComponent()).getUserObject();
                                 setDescription(param.getName(),param.getDesc(),param.getType(),param.getValue(),(DefaultMutableTreeNode)tp.getLastPathComponent());
-                                if(!PermissionValidtor.canChangeGlobals()){
+                                if(!PermissionValidator.canChangeGlobals()){
                                     return;
                                 }
                                 remove.setEnabled(true);
@@ -341,7 +341,7 @@ public class Globals {
                                 addparam.setEnabled(false);
                             }
                         } else {
-                            if(!PermissionValidtor.canChangeGlobals()){
+                            if(!PermissionValidator.canChangeGlobals()){
                                 return;
                             }
                             setDescription(null,null,null,null,null);
@@ -351,7 +351,7 @@ public class Globals {
                         }
                     }
                 } else {
-                    if(!PermissionValidtor.canChangeGlobals()){
+                    if(!PermissionValidator.canChangeGlobals()){
                         return;
                     }
                     setDescription(null,null,null,null,null);
@@ -371,7 +371,7 @@ public class Globals {
 
     public void setDescription(final Node name, final Node desc, final Node type, final Node value,final DefaultMutableTreeNode treenode){
         
-        if(PermissionValidtor.canChangeGlobals()){
+        if(PermissionValidator.canChangeGlobals()){
             ttype.setEnabled(!(type==null));
             tvalue.setEnabled(!(value==null));
             tname.setEnabled(!(name==null));

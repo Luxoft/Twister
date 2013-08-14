@@ -1,6 +1,6 @@
 /*
 File: ConfigFiles.java ; This file is part of Twister.
-Version: 2.006
+Version: 2.007
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -79,7 +79,7 @@ import java.io.BufferedWriter;
 import java.io.FileWriter;
 
 public class ConfigFiles extends JPanel{
-    private static JTextField ttcpath,tMasterXML,tUsers,tepid,
+    public static JTextField ttcpath,tMasterXML,tUsers,tepid,
                               tSuites,
                               tlog,trunning,//tname,//thardwareconfig,
                               tdebug,tsummary,tinfo,tcli,tdbfile,
@@ -89,7 +89,7 @@ public class ConfigFiles extends JPanel{
                               tglobalsfile;
     JPanel paths;
     private static JCheckBox logsenabled  = new JCheckBox("Enabled");
-                             
+    //public JPanel emailpanel;                    
     
     public ConfigFiles(Dimension screensize){  
 //         initializeFileBrowser();
@@ -229,7 +229,7 @@ public class ConfigFiles extends JPanel{
                 loadConfig("fwmconfig.xml");
             }});
         p8.add(save);
-        if(!PermissionValidtor.canChangeFWM()){
+        if(!PermissionValidator.canChangeFWM()){
             save.setEnabled(false);
         }
         JButton saveas = new JButton("Save as");
@@ -278,7 +278,7 @@ public class ConfigFiles extends JPanel{
                 catch(Exception e){e.printStackTrace();}}});
         loadXML.setBounds(670,20,120,20);
         p8.add(loadXML);
-        if(!PermissionValidtor.canChangeFWM()){
+        if(!PermissionValidator.canChangeFWM()){
             loadXML.setEnabled(false);
         }
         
@@ -291,8 +291,13 @@ public class ConfigFiles extends JPanel{
                 tdbfile,RunnerRepository.REMOTEDATABASECONFIGPATH+RunnerRepository.REMOTEDATABASECONFIGFILE,
                 570,true,null);
         temailfile = new JTextField();
+//         emailpanel = (JPanel)
         addPanel("Email XML path","File location for email configuration",temailfile,
-                RunnerRepository.REMOTEEMAILCONFIGPATH+RunnerRepository.REMOTEEMAILCONFIGFILE,717,true,null);                
+                RunnerRepository.REMOTEEMAILCONFIGPATH+RunnerRepository.REMOTEEMAILCONFIGFILE,717,true,null).getParent();
+        //paths.remove(emailpanel);
+        
+//         emailpanel.setBounds(360,440,350,100);
+//         RunnerRepository.window.mainpanel.p4.getEmails().add(emailpanel);
         
                
         tglobalsfile = new JTextField();
