@@ -1,6 +1,6 @@
 /*
 File: PermissionValidator.java ; This file is part of Twister.
-Version: 2.002
+Version: 2.003
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -47,11 +47,9 @@ public class PermissionValidator{
     private static boolean getPermission(String permission){
         try{
             if(Arrays.binarySearch(permissions, permission)>-1)return true;
-//             return false;
-            return true;
+            return false;
         } catch (Exception e){
-//             return false;
-            return true;
+            return false;
         }
     }
     

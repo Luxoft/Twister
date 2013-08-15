@@ -1,6 +1,6 @@
 /*
 File: UserManagement.java ; This file is part of Twister.
-Version: 2.003
+Version: 2.004
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -693,7 +693,7 @@ public class UserManagement extends BasePlugin implements TwisterPluginInterface
                 }
                 sb.setLength(sb.length()-1);
                 int resp = (Integer)CustomDialog.showDialog(new JLabel("Set groups to: "+sb.toString()+"?"),JOptionPane.QUESTION_MESSAGE,
-                        									JOptionPane.OK_CANCEL_OPTION,UserManagement.this, "Set goups!",null);
+                        									JOptionPane.OK_CANCEL_OPTION,UserManagement.this, "Set groups!",null);
                 if(resp != JOptionPane.OK_OPTION){
                 	return;
                 }

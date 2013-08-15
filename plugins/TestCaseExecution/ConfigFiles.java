@@ -1,6 +1,6 @@
 /*
 File: ConfigFiles.java ; This file is part of Twister.
-Version: 2.007
+Version: 2.008
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -125,13 +125,13 @@ public class ConfigFiles extends JPanel{
         " the Ep name list",
                 tepid,RunnerRepository.REMOTEEPIDDIR,151,true,null);
         tlog = new JTextField();
-        addPanel("Logs Path","Location of the directory that stores the"+
-        " logs that will be monitored",
+        addPanel("Logs Path","Location of the directory that stores the most recent log files."+
+                             " The files are re-used each Run.",
                 tlog,RunnerRepository.LOGSPATH,224,true,null);
         tsecondarylog = new JTextField(); 
         
-        JPanel p = addPanel("Secondary Logs Path","Secondary location of the directory that stores the"+
-        " logs that will be monitored",
+        JPanel p = addPanel("Secondary Logs Path","Location of the directory that archives copies of the most recent log files, with"+
+                                                  " original file names appended with <.epoch time>",
                 tsecondarylog,RunnerRepository.SECONDARYLOGSPATH,302,true,null);
         logsenabled.setSelected(Boolean.parseBoolean(RunnerRepository.PATHENABLED));
         logsenabled.setBackground(Color.WHITE);

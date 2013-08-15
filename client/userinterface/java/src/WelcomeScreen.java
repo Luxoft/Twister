@@ -1,6 +1,6 @@
 /*
 File: WelcomeScreen.java ; This file is part of Twister.
-Version: 2.001
+Version: 2.002
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -36,20 +36,8 @@ public class WelcomeScreen extends JPanel{
     private JTextArea tf;
     
     public WelcomeScreen(){
-//         Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
-//         setBounds((int)(screenSize.getWidth()-700)/2,(int)(screenSize.getHeight()-380)/2,700,380);
         setPreferredSize(new Dimension(700,380));
-        //setAlwaysOnTop(true);
         setFocusable(true);
-//         ked = new KeyEventDispatcher() {
-//             @Override
-//             public boolean dispatchKeyEvent(KeyEvent e) {
-//                 MainRepository.continueLogin();
-//                 MainRepository.countdown = true;
-//                 KeyboardFocusManager.getCurrentKeyboardFocusManager().removeKeyEventDispatcher(ked);
-//                 return false;
-//             }
-//         };
 
         ked = new AWTEventListener(){
                 public void eventDispatched(AWTEvent e){
