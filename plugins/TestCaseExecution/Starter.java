@@ -1,6 +1,6 @@
 /*
 File: Starter.java ; This file is part of Twister.
-Version: 2.002
+Version: 2.004
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -46,7 +46,7 @@ public class Starter implements TwisterPluginInterface{
                     e.printStackTrace();
                 }
                 readLogoTxt(container);
-                PermissionValidtor.init(variables.get("permissions"));
+                PermissionValidator.init(variables.get("permissions"));
                 RunnerRepository.user = variables.get("user");
                 RunnerRepository.password = variables.get("password");
                 RunnerRepository.host = variables.get("host");
@@ -54,11 +54,7 @@ public class Starter implements TwisterPluginInterface{
                 container.revalidate();
                 container.repaint();
                 RunnerRepository.initialize("true",variables.get("host"),container);
-                try{
-                    container.getAppletContext().showDocument(new URL("javascript:resize()"));
-                } catch (Exception e) {
-                    System.err.println("Failed to call JavaScript function appletLoaded()");
-                }
+                resizePlugin((int)container.getSize().getWidth(),(int)container.getSize().getHeight());
     }
     
     public void readLogoTxt(Applet container){
@@ -105,7 +101,6 @@ public class Starter implements TwisterPluginInterface{
     }
     
     public void resizePlugin(int width, int height){
-        System.out.println("Starter resizing");
         RunnerRepository.setSize(width, height);
     }
 }

@@ -1,4 +1,23 @@
 /*
+File: ConfigEditor.java ; This file is part of Twister.
+Version: 2.001
+
+Copyright (C) 2012-2013 , Luxoft
+
+Authors: Andrei Costachi <acostachi@luxoft.com>
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+/*
 File: Globals.java ; This file is part of Twister.
 Version: 2.004
 
@@ -95,16 +114,20 @@ import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
 import java.awt.Color;
+import javax.swing.JMenuBar;
+import javax.swing.JMenu;
+import javax.swing.JMenuItem;
+import com.twister.MySftpBrowser;
+import javax.swing.AbstractAction;
 
-public class Globals {
+public class ConfigEditor extends JPanel{
     private ChannelSftp ch ;
     public JScrollPane panel;
-    public JPanel main, pdesc;
+    public JPanel pdesc;
     private JTree tree;
     private XPath xpath;
     private Document doc;
     private DefaultMutableTreeNode root;
-    private File globalsfile;
     private boolean finished = true;
     private JButton addconf,addparam,remove;
     private JLabel cname;
@@ -113,29 +136,27 @@ public class Globals {
     private JComboBox ttype;
     private IntegerRangeDocument docum;
     private MyFocusAdapter focusadapter;
+    private File currentfile;
+    private String remotelocation;
     
-    public Globals(){
+    public ConfigEditor(){
         initSftp();
-        parseDocument();
+        //parseDocument();
         init();
-        buildTree();
+        //buildTree();
     }
     
-    public void refresh(){
-        ((DefaultMutableTreeNode)tree.getModel().getRoot()).removeAllChildren();
-        parseDocument();
-        buildTree();
-    }
+//     public void refresh(){
+//         ((DefaultMutableTreeNode)tree.getModel().getRoot()).removeAllChildren();
+//         parseDocument();
+//         buildTree();
+//     }
     
-    public void parseDocument(){
-        try{DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+    public void parseDocument(File file){
+        try{this.currentfile = file;
+            DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
             DocumentBuilder db = dbf.newDocumentBuilder();
-            globalsfile = getGlobalsFile();
-            if(globalsfile==null || !globalsfile.exists()){
-                System.out.println(RunnerRepository.GLOBALSREMOTEFILE+" could not be opened localy");
-                return;
-            }
-            doc = db.parse(globalsfile);
+            doc = db.parse(file);
             doc.getDocumentElement().normalize();  
         } catch(Exception e){
             e.printStackTrace();
@@ -166,13 +187,6 @@ public class Globals {
 
         ttype.setModel(new DefaultComboBoxModel(new String[] { "decimal", "hex", "octet", "string" }));
         ttype.setMinimumSize(new Dimension(6, 20));
-        
-        if(!PermissionValidator.canChangeGlobals()){
-            tname.setEnabled(false);
-            tdescription.setEnabled(false);
-            tvalue.setEnabled(false);
-            ttype.setEnabled(false);
-        }
 
         GroupLayout layout = new GroupLayout(pdesc);
         pdesc.setLayout(layout);
@@ -222,23 +236,38 @@ public class Globals {
     }
 
     public void init(){
+        JMenuBar menubar = new JMenuBar();
+        JMenu menu = new JMenu("File");
+        menubar.add(menu);
+        JMenuItem item = new JMenuItem("New");
+        item.addActionListener(new ActionListener(){
+            public void actionPerformed(ActionEvent ev){
+                newConfigFile();
+            }});
+        menu.add(item);
+        item = new JMenuItem("Save");
+        item.addActionListener(new ActionListener(){
+            public void actionPerformed(ActionEvent ev){
+                save();
+            }});
+        menu.add(item);
+        item = new JMenuItem("Save As");
+        item.addActionListener(new ActionListener(){
+            public void actionPerformed(ActionEvent ev){
+                saveAs();
+            }});
+        menu.add(item);
         root = new DefaultMutableTreeNode("root", true);
         tree = new JTree(root);
         tree.setRootVisible(false);
         tree.setCellRenderer(new CustomIconRenderer());
         panel = new JScrollPane(tree);
-        main = new JPanel();
-        panel = new JScrollPane(tree);
         JPanel buttonPanel = new JPanel();
         
         addconf = new JButton("Add Config");
+        addconf.setEnabled(false);
         addparam = new JButton("Add Parameter");
         remove = new JButton("Remove");
-        if(!PermissionValidator.canChangeGlobals()){
-            addconf.setEnabled(false);
-            addparam.setEnabled(false);
-            remove.setEnabled(false);
-        }
         
         addconf.setBounds(0,5,120,20);
         buttonPanel.add(addconf);
@@ -267,10 +296,11 @@ public class Globals {
         });
         
         initParamDesc();
-        main.setLayout(new BorderLayout());
-        main.add(panel,BorderLayout.CENTER);
-        main.add(buttonPanel,BorderLayout.SOUTH);
-        main.add(pdesc,BorderLayout.EAST);
+        this.setLayout(new BorderLayout());
+        this.add(menubar,BorderLayout.NORTH);
+        this.add(panel,BorderLayout.CENTER);
+        this.add(buttonPanel,BorderLayout.SOUTH);
+        this.add(pdesc,BorderLayout.EAST);
         GroupLayout buttonPanelLayout = new GroupLayout(buttonPanel);
         buttonPanel.setLayout(buttonPanelLayout);
         buttonPanelLayout.setHorizontalGroup(
@@ -299,9 +329,6 @@ public class Globals {
                             DefaultMutableTreeNode treenode = (DefaultMutableTreeNode)tp.getLastPathComponent();
                             MyFolder folder = (MyFolder)treenode.getUserObject();
                             setDescription(folder.getNode(), folder.getDesc(),null,null,(DefaultMutableTreeNode)tp.getLastPathComponent());
-                            if(!PermissionValidator.canChangeGlobals()){
-                                return;
-                            }
                             showFolderPopUp(treenode,ev,folder);
                             addconf.setEnabled(true);
                             addparam.setEnabled(true);
@@ -310,9 +337,6 @@ public class Globals {
                             DefaultMutableTreeNode treenode = (DefaultMutableTreeNode)tp.getLastPathComponent();
                             MyParam param = (MyParam)treenode.getUserObject();
                             setDescription(param.getName(),param.getDesc(),param.getType(),param.getValue(),(DefaultMutableTreeNode)tp.getLastPathComponent());
-                            if(!PermissionValidator.canChangeGlobals()){
-                                return;
-                            }
                             showParamPopUp(treenode,ev,param);
                             remove.setEnabled(true);
                             addconf.setEnabled(false);
@@ -324,26 +348,17 @@ public class Globals {
                             if(((DefaultMutableTreeNode)tp.getLastPathComponent()).getUserObject() instanceof MyFolder){
                                 MyFolder folder = (MyFolder)((DefaultMutableTreeNode)tp.getLastPathComponent()).getUserObject();
                                 setDescription(folder.getNode(), folder.getDesc(),null,null,(DefaultMutableTreeNode)tp.getLastPathComponent());
-                                if(!PermissionValidator.canChangeGlobals()){
-                                    return;
-                                }
                                 remove.setEnabled(true);
                                 addconf.setEnabled(true);
                                 addparam.setEnabled(true);
                             }else if(((DefaultMutableTreeNode)tp.getLastPathComponent()).getUserObject() instanceof MyParam){
                                 MyParam param = (MyParam)((DefaultMutableTreeNode)tp.getLastPathComponent()).getUserObject();
                                 setDescription(param.getName(),param.getDesc(),param.getType(),param.getValue(),(DefaultMutableTreeNode)tp.getLastPathComponent());
-                                if(!PermissionValidator.canChangeGlobals()){
-                                    return;
-                                }
                                 remove.setEnabled(true);
                                 addconf.setEnabled(false);
                                 addparam.setEnabled(false);
                             }
                         } else {
-                            if(!PermissionValidator.canChangeGlobals()){
-                                return;
-                            }
                             setDescription(null,null,null,null,null);
                             remove.setEnabled(true);
                             addconf.setEnabled(false);
@@ -351,9 +366,6 @@ public class Globals {
                         }
                     }
                 } else {
-                    if(!PermissionValidator.canChangeGlobals()){
-                        return;
-                    }
                     setDescription(null,null,null,null,null);
                     tree.setSelectionPath(null);
                     remove.setEnabled(false);
@@ -368,16 +380,89 @@ public class Globals {
         );
     }
     
-
-    public void setDescription(final Node name, final Node desc, final Node type, final Node value,final DefaultMutableTreeNode treenode){
-        
-        if(PermissionValidator.canChangeGlobals()){
-            ttype.setEnabled(!(type==null));
-            tvalue.setEnabled(!(value==null));
-            tname.setEnabled(!(name==null));
-            tdescription.setEnabled(!(desc==null));
+    private void saveAs(){
+        final JTextField tf = new JTextField();
+        AbstractAction action = new AbstractAction(){
+            public void actionPerformed(ActionEvent ev){
+                String txt[]  = tf.getText().split("/");
+                StringBuilder location = new StringBuilder();
+                for(int i=0;i<txt.length-1;i++){
+                    location.append(txt[i]+"/");
+                }
+                String filename = txt[txt.length-1];
+                writeXML(currentfile);
+                try{RunnerRepository.uploadRemoteFile(location.toString(), new FileInputStream(currentfile), filename);}
+                catch(Exception e){
+                    e.printStackTrace();
+                    System.out.println("Could not upload file "+currentfile.getName()+" to "+location+" on server");
+                }
+            }
+        };
+        new MySftpBrowser(RunnerRepository.host,RunnerRepository.user,RunnerRepository.password,tf,this,true).setAction(action);
+    }
+    
+    private void save(){
+        if(remotelocation==null){
+            final JTextField tf = new JTextField();
+            AbstractAction action = new AbstractAction(){
+                public void actionPerformed(ActionEvent ev){
+                    remotelocation = tf.getText();
+                    if(!remotelocation.equals("")){
+                        save();
+                    } else {
+                        remotelocation = null;
+                    }
+                }
+            };
+            new MySftpBrowser(RunnerRepository.host,RunnerRepository.user,RunnerRepository.password,tf,this,true).setAction(action);
+            return;
         }
-        
+        writeXML(currentfile);
+        try{RunnerRepository.uploadRemoteFile(remotelocation, new FileInputStream(currentfile), currentfile.getName());}
+        catch(Exception e){
+            e.printStackTrace();
+            System.out.println("Could not upload file "+currentfile.getName()+" to "+remotelocation+" on server");
+        }
+
+    }
+    
+    public void setRemoteLocation(String remotelocation){
+        this.remotelocation = remotelocation;
+    }
+    
+    private void newConfigFile(){
+        this.remotelocation = null;
+        String user = CustomDialog.showInputDialog(JOptionPane.QUESTION_MESSAGE,
+                                                    JOptionPane.OK_CANCEL_OPTION, this,
+                                                    "File Name", "Please enter file name");
+        if(!user.equals("NULL")){
+            try{File file = new File(RunnerRepository.temp+RunnerRepository.getBar()+
+                                    "Twister"+RunnerRepository.getBar()+"XML"+
+                                    RunnerRepository.getBar()+user);
+                DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
+                DocumentBuilder documentBuilder = documentBuilderFactory.newDocumentBuilder();
+                Document document = documentBuilder.newDocument();
+                TransformerFactory transformerFactory = TransformerFactory.newInstance();
+                Transformer transformer = transformerFactory.newTransformer();
+                transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+                transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "4");
+                DOMSource source = new DOMSource(document);
+                Element root = document.createElement("root");
+                document.appendChild(root);   
+                Result result = new StreamResult(file);
+                transformer.transform(source, result);
+                parseDocument(file);
+            } catch(Exception e){
+                System.out.println("Could not create new file");
+                e.printStackTrace();
+            }
+        }
+    }
+    
+
+    public void setDescription(final Node name, final Node desc, 
+                               final Node type, final Node value,
+                               final DefaultMutableTreeNode treenode){
         for(KeyListener k:tvalue.getKeyListeners()){
             tvalue.removeKeyListener(k);
         }
@@ -430,8 +515,8 @@ public class Globals {
                     }
                     value.setNodeValue(tvalue.getText());
                     ((DefaultTreeModel)tree.getModel()).nodeChanged(treenode);
-                    writeXML();
-                    uploadFile();
+//                     writeXML();
+//                     uploadFile();
                 }
             }
         });
@@ -448,8 +533,8 @@ public class Globals {
                 public void keyReleased(KeyEvent ev){
                     value.setNodeValue(tvalue.getText());
                     ((DefaultTreeModel)tree.getModel()).nodeChanged(treenode);
-                    writeXML();
-                    uploadFile();
+//                     writeXML();
+//                     uploadFile();
                 }
             });
         }else{
@@ -464,8 +549,8 @@ public class Globals {
                         tdescription.setText(dsc);
                     }
                     desc.setNodeValue(dsc);
-                    writeXML();
-                    uploadFile();
+//                     writeXML();
+//                     uploadFile();
                 }
             });
         }
@@ -505,8 +590,8 @@ public class Globals {
         remove.setEnabled(false);
         addconf.setEnabled(true);
         addparam.setEnabled(false);
-        writeXML();
-        uploadFile();
+//         writeXML();
+//         uploadFile();
         setDescription(null, null, null, null, null);
     }
 
@@ -526,7 +611,7 @@ public class Globals {
                                                     panel, "Name", "Config name: ");
         if(resp!=null){
             if(resp.equals("")){
-                CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,main,
+                CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,this,
                                                   "Warning", "Name must not be null");
                 return;
             }
@@ -536,7 +621,7 @@ public class Globals {
                 
                 if(node.getClass() == MyFolder.class){
                     if(((MyFolder)node).toString().equals(resp)){
-                        CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,main,
+                        CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,this,
                                                   "Warning", "Name already exists");
                         return;
                     }
@@ -562,8 +647,8 @@ public class Globals {
                 if(root.getChildCount()==1){
                     ((DefaultTreeModel)tree.getModel()).reload();
                 }
-                writeXML();
-                uploadFile();
+//                 writeXML();
+//                 uploadFile();
                 
             } catch(Exception e){
                 e.printStackTrace();
@@ -593,7 +678,7 @@ public class Globals {
     private boolean acceptRemove(){
         int r = (Integer)CustomDialog.showDialog(new JLabel("Remove element ?"),
                                 JOptionPane.QUESTION_MESSAGE, 
-                                JOptionPane.OK_CANCEL_OPTION, main, "Remove", null);
+                                JOptionPane.OK_CANCEL_OPTION, this, "Remove", null);
         if(r == JOptionPane.OK_OPTION){
             return true;
         }
@@ -608,8 +693,8 @@ public class Globals {
         Node child = node.getValue().getParentNode().getParentNode();
         child.getParentNode().removeChild(child);
         if(refresh){
-            writeXML();
-            uploadFile();
+//             writeXML();
+//             uploadFile();
             remove.setEnabled(false);
             addconf.setEnabled(true);
             addparam.setEnabled(false);
@@ -690,7 +775,7 @@ public class Globals {
                                                 panel, "Property: value",null);
         if(r == JOptionPane.OK_OPTION){
             if(name.getText().equals("")){
-                CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,main,
+                CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,this,
                                                   "Warning", "Name must not be null");
                 return;
             }
@@ -699,7 +784,7 @@ public class Globals {
                 Object ob = ((DefaultMutableTreeNode)treenode.getParent().getChildAt(i)).getUserObject();
                 if(ob.getClass() == MyParam.class && ob!=node){
                     if(((MyParam)ob).getName().getNodeValue().equals(name.getText())){
-                        CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,main,
+                        CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,this,
                                                   "Warning", "Name already exists");
                         return;
                     }
@@ -709,8 +794,8 @@ public class Globals {
             node.getValue().setNodeValue(value.getText());
             node.getType().setNodeValue(combo.getSelectedItem().toString());
             ((DefaultTreeModel)tree.getModel()).nodeChanged(treenode);
-            writeXML();
-            uploadFile();
+//             writeXML();
+//             uploadFile();
             setDescription(node.getName(),node.getDesc(),node.getType(),node.getValue(),treenode);
         }
     }
@@ -797,7 +882,7 @@ public class Globals {
                                                 panel, "Config name",null);
         if(r == JOptionPane.OK_OPTION){
             if(name.getText().equals("")){
-                CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,main,
+                CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,this,
                                                   "Warning", "Name must not be null");
                 return;
             }
@@ -807,7 +892,7 @@ public class Globals {
                 Object node = ((DefaultMutableTreeNode)treenode.getParent().getChildAt(i)).getUserObject();
                 if(node.getClass() == MyFolder.class && node!=parent){
                     if(((MyFolder)node).toString().equals(name.getText())){
-                        CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,main,
+                        CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,this,
                                                   "Warning", "Name already exists");
                         return;
                     }
@@ -815,8 +900,8 @@ public class Globals {
             }
             parent.getNode().setNodeValue(name.getText());
             ((DefaultTreeModel)tree.getModel()).nodeChanged(treenode);
-            writeXML();
-            uploadFile();
+//             writeXML();
+//             uploadFile();
             setDescription(parent.getNode(),parent.getDesc(),null,null,treenode);
         }
     }
@@ -881,7 +966,7 @@ public class Globals {
                                                 panel, "Property: value",null);
         if(r == JOptionPane.OK_OPTION ){
             if(name.getText().equals("")){
-                CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,main,
+                CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,this,
                                                   "Warning", "Name must not be null");
                 return;
             }
@@ -891,7 +976,7 @@ public class Globals {
                 
                 if(node.getClass() == MyParam.class){
                     if(((MyParam)node).getName().getNodeValue().equals(name.getText())){
-                        CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,main,
+                        CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,this,
                                                   "Warning", "Name already exists");
                         return;
                     }
@@ -939,8 +1024,8 @@ public class Globals {
             DefaultMutableTreeNode temp = new DefaultMutableTreeNode(param,true);
             ((DefaultTreeModel)tree.getModel()).insertNodeInto(temp, treenode,0);
             
-            writeXML();
-            uploadFile();
+//             writeXML();
+//             uploadFile();
         }
     }
     
@@ -955,7 +1040,7 @@ public class Globals {
         //check if name already exists
         if(resp!=null){
             if(resp.equals("")){
-                CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,main,
+                CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,this,
                                                   "Warning", "Name must not be null");
                 return;
             }
@@ -965,7 +1050,7 @@ public class Globals {
                 
                 if(node.getClass() == MyFolder.class){
                     if(((MyFolder)node).toString().equals(resp)){
-                        CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,main,
+                        CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,this,
                                                   "Warning", "Name already exists");
                         return;
                     }
@@ -990,8 +1075,8 @@ public class Globals {
             DefaultMutableTreeNode temp = new DefaultMutableTreeNode(folder,true);
             ((DefaultTreeModel)tree.getModel()).insertNodeInto(temp, treenode,treenode.getChildCount());
             
-            writeXML();
-            uploadFile();
+//             writeXML();
+//             uploadFile();
         }
     }
     
@@ -1003,8 +1088,8 @@ public class Globals {
         Node child = node.getNode().getParentNode().getParentNode();
         child.getParentNode().removeChild(child);
         if(refresh){
-            writeXML();
-            uploadFile();
+//             writeXML();
+//             uploadFile();
         }
         remove.setEnabled(false);
         addconf.setEnabled(true);
@@ -1012,31 +1097,38 @@ public class Globals {
         setDescription(null, null, null, null, null);
     }
     
-    public File getGlobalsFile(){
-        File file = new File(RunnerRepository.temp+RunnerRepository.getBar()+
-                             "Twister"+RunnerRepository.getBar()+"config"+
-                             RunnerRepository.getBar()+"globals.xml");
-        try{String content = RunnerRepository.getRemoteFileContent(RunnerRepository.GLOBALSREMOTEFILE);
-            try{BufferedWriter writer = new BufferedWriter(new FileWriter(file));
-                writer.write(content);
-                writer.close();
-            } catch(Exception e){
-                e.printStackTrace();
-            }            
-        }
-        catch(Exception e){
-            e.printStackTrace();
-            System.out.println("Could not get :"+
-                                RunnerRepository.GLOBALSREMOTEFILE+" as globals parameter file");
-            return file;
-        }
-        return file;
-    }
+//     public File getGlobalsFile(){
+//         File file = new File(RunnerRepository.temp+RunnerRepository.getBar()+
+//                              "Twister"+RunnerRepository.getBar()+"config"+
+//                              RunnerRepository.getBar()+"globals.xml");
+//         try{String content = RunnerRepository.getRemoteFileContent(RunnerRepository.GLOBALSREMOTEFILE);
+//             try{BufferedWriter writer = new BufferedWriter(new FileWriter(file));
+//                 writer.write(content);
+//                 writer.close();
+//             } catch(Exception e){
+//                 e.printStackTrace();
+//             }            
+//         }
+//         catch(Exception e){
+//             e.printStackTrace();
+//             System.out.println("Could not get :"+
+//                                 RunnerRepository.GLOBALSREMOTEFILE+" as globals parameter file");
+//             return file;
+//         }
+//         return file;
+//     }
         
     public void buildTree(){     
-        try{xpath = XPathFactory.newInstance().newXPath();
+        try{
+            setDescription(null,null,null,null,null);
+            tree.setSelectionPath(null);
+            remove.setEnabled(false);
+            addconf.setEnabled(true);
+            addparam.setEnabled(false);
+            xpath = XPathFactory.newInstance().newXPath();
             XPathExpression expr1 = xpath.compile("//root/folder");
             NodeList nodes = (NodeList)expr1.evaluate(doc, XPathConstants.NODESET);
+            root.removeAllChildren();
             for(int i=0;i<nodes.getLength();i++){
                 parseFolder(nodes.item(i),root);
             }
@@ -1062,9 +1154,6 @@ public class Globals {
                 }
             } catch (Exception e){
                 e.printStackTrace();
-//                 Node tn = doc.createTextNode("");
-//                 n.appendChild(tn);
-//                 fname.setDesc(tn);
             }
             DefaultMutableTreeNode temp = new DefaultMutableTreeNode(fname,true);
             parent.add(temp);
@@ -1112,9 +1201,9 @@ public class Globals {
         }
     }
     
-    public void writeXML(){
+    public void writeXML(File file){
         try{DOMSource source = new DOMSource(doc);                    
-            Result result = new StreamResult(globalsfile);
+            Result result = new StreamResult(file);
             TransformerFactory transformerFactory = TransformerFactory.newInstance();
             Transformer transformer = transformerFactory.newTransformer();
             transformer.setOutputProperty(OutputKeys.INDENT, "yes");
@@ -1125,36 +1214,37 @@ public class Globals {
         }
     }
     
-    private void uploadFile(){
-        try{StringBuilder path = new StringBuilder();
-            String[] globalsremote = RunnerRepository.GLOBALSREMOTEFILE.split("/");
-            String filename = globalsremote[globalsremote.length-1];
-            globalsremote[globalsremote.length-1]="";
-            for(String s:globalsremote){
-                path.append("/");
-                path.append(s);
-            }
-            path.delete(0, 1);
-            String location = path.toString();
-            FileInputStream in = new FileInputStream(globalsfile);
-            try{
-                while(!finished){
-                    try{Thread.sleep(100);}
-                    catch(Exception e){e.printStackTrace();}
-                }
-                finished = false;
-                ch.cd(location);
-                ch.put(in, filename);
-                in.close();
-                finished = true;}
-            catch(Exception e){
-                e.printStackTrace();
-                finished = true;
-            }
-        } catch (Exception e){
-            e.printStackTrace();
-        }
-    }
+    
+//     private void uploadFile(){
+//         try{StringBuilder path = new StringBuilder();
+//             String[] globalsremote = RunnerRepository.GLOBALSREMOTEFILE.split("/");
+//             String filename = globalsremote[globalsremote.length-1];
+//             globalsremote[globalsremote.length-1]="";
+//             for(String s:globalsremote){
+//                 path.append("/");
+//                 path.append(s);
+//             }
+//             path.delete(0, 1);
+//             String location = path.toString();
+//             FileInputStream in = new FileInputStream(globalsfile);
+//             try{
+//                 while(!finished){
+//                     try{Thread.sleep(100);}
+//                     catch(Exception e){e.printStackTrace();}
+//                 }
+//                 finished = false;
+//                 ch.cd(location);
+//                 ch.put(in, filename);
+//                 in.close();
+//                 finished = true;}
+//             catch(Exception e){
+//                 e.printStackTrace();
+//                 finished = true;
+//             }
+//         } catch (Exception e){
+//             e.printStackTrace();
+//         }
+//     }
     
     /*
      * initialize SFTP connection used
@@ -1191,19 +1281,18 @@ public class Globals {
         
         public void focusLost(FocusEvent ev){
             if(tname.getText().equals("")){
-                CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,main,
+                CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,ConfigEditor.this,
                                               "Warning", "Name must not be empty");
                 
                 tree.setSelectionPath(new TreePath(treenode.getPath()));
-                //tree.setSelectionPath(treenode.getPath());
                 tname.setText(name.getNodeValue());
                 tname.requestFocusInWindow();
                 tname.requestFocus();
             } else {
                 name.setNodeValue(tname.getText());
                 ((DefaultTreeModel)tree.getModel()).nodeChanged(treenode);
-                writeXML();
-                uploadFile();
+//                 writeXML();
+//                 uploadFile();
             }
         }
     }

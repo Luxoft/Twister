@@ -1,6 +1,6 @@
 /*
 File: AddUser.java ; This file is part of Twister.
-Version: 2.001
+Version: 2.002
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -65,7 +65,6 @@ public class AddUser extends JFrame{
 				AddUser.this.dispose();
 			}
 		});
-
         
         add = new javax.swing.JButton();
         add.addActionListener(new ActionListener() {
@@ -169,17 +168,5 @@ public class AddUser extends JFrame{
                 .addContainerGap())
         );
 		add(p);
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
     }
-
 }

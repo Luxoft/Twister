@@ -1,6 +1,6 @@
 /*
 File: MainRepository.java ; This file is part of Twister.
-Version: 2.002
+Version: 2.005
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -72,8 +72,8 @@ public class MainRepository {
     private static TwisterPluginInterface plugin;
     private static XmlRpcClient client;
     private static Hashtable<String,String> hash = new Hashtable<String,String>();
-    private static String version = "2.018";
-    private static String builddate = "08.08.2013";
+    private static String version = "2.021";
+    private static String builddate = "16.08.2013";
     public static int time = 10;//seconds
     public static boolean countdown = false;
     public static String logotxt;
@@ -90,16 +90,9 @@ public class MainRepository {
         catch(Exception e){container.validate();}
         container.repaint();
         MainRepository.countdown = false;
-        container.addKeyListener(new KeyAdapter(){
-            public void keyReleased(KeyEvent ev){
-//                 MainRepository.continueLogin();
-                //WelcomeScreen.this.dispose();
-//                 MainRepository.countdown = true;
-                System.out.println("test");
-            }
-        });
         WelcomeScreen ws = new WelcomeScreen();
-        container.add(ws);
+        container.setLayout(new GridBagLayout());
+        container.add(ws, new GridBagConstraints());
         container.revalidate();
         container.repaint();
         ws.requestFocus();
@@ -108,7 +101,7 @@ public class MainRepository {
     public static void continueLogin(){
         WelcomePanel wp = new WelcomePanel();
         pluginmanager = new PluginManager();
-        //container.removeAll();
+        container.removeAll();
         container.setBackground(wp.getBackground());
         container.setLayout(new GridBagLayout());
         container.add(wp, new GridBagConstraints());
@@ -192,6 +185,7 @@ public class MainRepository {
             Properties config = new Properties();
             config.put("StrictHostKeyChecking", "no");
             session.setConfig(config);
+            session.setTimeout(10000);
             try{session.connect();}
             catch(Exception e){
                 e.printStackTrace();
@@ -380,8 +374,6 @@ public class MainRepository {
             configuration.setBasicUserName(user);
             configuration.setServerURL(new URL("http://"+user+":"+password+"@"+MainRepository.host+
                                         ":"+port+"/"));
-            System.out.println("http://"+user+":"+password+"@"+MainRepository.host+
-                                        ":"+port+"/");
             client = new XmlRpcClient();
             client.setConfig(configuration);
             System.out.println("Client initialized: "+client);
@@ -401,33 +393,6 @@ public class MainRepository {
                             "for RPC client initialization");
         }
     }
-    
-//     public static void loadControlPanel(){
-//         try{HashMap hm = (HashMap)client.execute("usersAndGroupsManager", new Object[]{"list users"});
-//             hm = (HashMap)hm.get(user);
-//             if(hm==null){
-//                 CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,container,
-//                                         "Warning", "User: "+user+" is not present in users list, please add it to configuration file");
-//                 return;        
-//             }
-//             String timeout []  = hm.get("timeout").toString().split(":");
-//             int sec = Integer.parseInt(timeout[0])*3600+Integer.parseInt(timeout[1])*60+Integer.parseInt(timeout[2]);
-//             MainRepository.time = sec;
-//             
-//             Object [] permissions = (Object [])hm.get("roles");
-//             StringBuilder sb = new StringBuilder();
-//             for(Object ob:permissions){
-//                 sb.append(ob.toString());
-//                 sb.append(",");
-//             }
-//             if(sb.length()>0)sb.setLength(sb.length()-1);
-//             System.out.println("permissions:"+sb.toString());
-//             hash.put("permissions", sb.toString());
-//             loadPlugin("ControlPanel");
-//         } catch(Exception e){
-//             e.printStackTrace();
-//         }
-//     }
 }
 
 class LogOutThread extends Thread{
@@ -443,7 +408,7 @@ class LogOutThread extends Thread{
                 return false;
               }
         });
-        Toolkit.getDefaultToolkit().addAWTEventListener( 
+        Toolkit.getDefaultToolkit().addAWTEventListener(
             new AWTEventListener(){
                 public void eventDispatched(AWTEvent e){
                     LogOutThread.this.time = MainRepository.time;

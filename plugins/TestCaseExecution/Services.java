@@ -1,6 +1,6 @@
 /*
 File: Services.java ; This file is part of Twister.
-Version: 2.001
+Version: 2.002
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -151,7 +151,7 @@ public class Services extends JPanel{
             });
             start.setBounds(425,25,80,20);
             add(start);
-            if(!PermissionValidtor.canEditServices()){
+            if(!PermissionValidator.canEditServices()){
                 start.setEnabled(false);
             }
             stop = new JButton("Stop");
@@ -162,7 +162,7 @@ public class Services extends JPanel{
             });
             stop.setBounds(515,25,80,20);
             add(stop);
-            if(!PermissionValidtor.canEditServices()){
+            if(!PermissionValidator.canEditServices()){
                 stop.setEnabled(false);
             }
             
@@ -174,7 +174,7 @@ public class Services extends JPanel{
             });
             config.setBounds(605,25,140,20);
             add(config);
-            if(!PermissionValidtor.canEditServices()){
+            if(!PermissionValidator.canEditServices()){
                 config.setEnabled(false);
             }
             new Thread(){
@@ -186,13 +186,13 @@ public class Services extends JPanel{
                                                                         new Object[]{"status",name}).toString();
                                 if(result.equals("-1")){
                                     status.setText("running");
-                                    if(PermissionValidtor.canEditServices()){
+                                    if(PermissionValidator.canEditServices()){
                                         start.setEnabled(false);
                                         stop.setEnabled(true);
                                     }                     
                                 } else {
                                     status.setText("stopped");
-                                    if(PermissionValidtor.canEditServices()){
+                                    if(PermissionValidator.canEditServices()){
                                         start.setEnabled(true);
                                         stop.setEnabled(false);
                                     }

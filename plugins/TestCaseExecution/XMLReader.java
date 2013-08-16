@@ -1,6 +1,6 @@
 /*
 File: XMLReader.java ; This file is part of Twister.
-Version: 2.007
+Version: 2.008
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -45,6 +45,7 @@ public class XMLReader{
                      trdNmElmntLst,trdNm,trdNmElmntLst2,trdNm2;
     private File f;
     private String name,value;
+    private int index = 1001;
     
     public XMLReader (File file){
         f = file;
@@ -141,6 +142,7 @@ public class XMLReader{
                 int width = metrics.stringWidth(f) + 8;
                 if(test){f = secNm.item(0).getNodeValue().toString();}   
                 theone = new Item(f,1,-1,-1,width+40,20,indexes);
+                theone.setCEindex(index++);
                 if(test){
                     ArrayList <Integer> indexpos3 = (ArrayList <Integer>)indexes.clone();
                     indexpos3.add(new Integer(0));

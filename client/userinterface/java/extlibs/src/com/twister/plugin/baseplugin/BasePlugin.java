@@ -18,11 +18,10 @@ limitations under the License.
  */
 package com.twister.plugin.baseplugin;
 
+import java.applet.Applet;
 import java.awt.Component;
 import java.io.BufferedReader;
 import java.io.FileReader;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Hashtable;
 import javax.swing.JPanel;
@@ -32,6 +31,7 @@ import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 import org.w3c.dom.Node;
 import com.twister.Item;
+import com.twister.plugin.twisterinterface.CommonInterface;
 import com.twister.plugin.twisterinterface.TwisterPluginInterface;
 
 public class BasePlugin extends JPanel implements TwisterPluginInterface {
@@ -44,7 +44,7 @@ public class BasePlugin extends JPanel implements TwisterPluginInterface {
 
 	@Override
 	public void init(ArrayList<Item> suite, ArrayList<Item> suitetest,
-			Hashtable<String, String> variables, Document pluginsConfig) {
+			Hashtable<String, String> variables, Document pluginsConfig,Applet container) {
 		this.suite = suite;
 		this.suitetest = suitetest;
 		this.variables = variables;
@@ -84,6 +84,7 @@ public class BasePlugin extends JPanel implements TwisterPluginInterface {
 			while ((line = br.readLine()) != null) {
 				sb.append(line);
 			}
+			br.close();
 			return sb.toString();
 		} catch (Exception e) {
 			System.out.println("Could not read description file from plugin ");
@@ -179,5 +180,14 @@ public class BasePlugin extends JPanel implements TwisterPluginInterface {
 		rootElement.appendChild(em2);
 
 		return em4.getChildNodes().item(0);
+	}
+
+	@Override
+	public void setInterface(CommonInterface commoninterface) {
+	}
+
+	@Override
+	public void resizePlugin(int width, int height) {
+		
 	}
 }
