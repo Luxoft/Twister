@@ -1,6 +1,6 @@
 /*
 File: Emails.java ; This file is part of Twister.
-Version: 2.004
+Version: 2.005
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -73,18 +73,18 @@ public class Emails extends JPanel{
         p1.setBackground(Color.WHITE);
         p1.setBorder(border);         
         p1.setLayout(null);    
-        p1.setBounds(80,80,350,68);
+        p1.setBounds(80,80,350,70);
         JLabel ipname = new JLabel("IP/Name: ");
-        ipname.setBounds(40,18,80,20);
+        ipname.setBounds(10,18,80,20);
         p1.add(ipname);
         tipname = new JTextField();
-        tipname.setBounds(125,17,150,25);
+        tipname.setBounds(80,17,250,25);
         p1.add(tipname);
         JLabel port = new JLabel("Port: ");
-        port.setBounds(40,40,80,20);
+        port.setBounds(10,40,80,20);
         p1.add(port);
         tport = new JTextField();
-        tport.setBounds(125,40,150,25);
+        tport.setBounds(80,40,250,25);
         p1.add(tport);
         add(p1);
         border = BorderFactory.createTitledBorder("Authentication");
@@ -94,24 +94,24 @@ public class Emails extends JPanel{
         p2.setBackground(Color.WHITE);
         p2.setBorder(border);         
         p2.setLayout(null);    
-        p2.setBounds(80,153,350,93);
+        p2.setBounds(80,153,350,95);
         JLabel user = new JLabel("User: ");
-        user.setBounds(40,18,80,20);
+        user.setBounds(10,18,80,20);
         p2.add(user);
         tuser = new JTextField();
-        tuser.setBounds(125,17,150,25);
+        tuser.setBounds(80,17,250,25);
         p2.add(tuser);
         JLabel pass = new JLabel("Password: ");
-        pass.setBounds(40,40,100,20);
+        pass.setBounds(10,40,100,20);
         p2.add(pass);
         tpass = new JPasswordField();
-        tpass.setBounds(125,40,150,25);
+        tpass.setBounds(80,40,250,25);
         p2.add(tpass);
         JLabel from = new JLabel("From: ");
-        from.setBounds(40,65,80,20);
+        from.setBounds(10,63,80,20);
         p2.add(from);
         tfrom = new JTextField();
-        tfrom.setBounds(125,65,150,25);
+        tfrom.setBounds(80,63,250,25);
         p2.add(tfrom);
         add(p2);
         border = BorderFactory.createTitledBorder("Email List");
@@ -274,59 +274,13 @@ public class Emails extends JPanel{
         add(test);
     }
     
-//     private void saveEmailPath(){
-//         try{
-//             DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-//             try{DocumentBuilder db = dbf.newDocumentBuilder();
-//                 Document doc = db.parse(RunnerRepository.getFwmConfig());
-//                 doc.getDocumentElement().normalize();
-//                 
-//                 NodeList nodeLst = doc.getElementsByTagName("EmailConfigFile");
-//                 if(nodeLst.getLength()==0){
-//                     System.out.println("tag EmailConfigFile not found in "+doc.getDocumentURI());
-//                     CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,RunnerRepository.window,
-//                                                 "Warning", "EmailConfigFile tag not found in framework config");
-//                     return ;
-//                 }
-//                 Node fstNode = nodeLst.item(0);
-//                 Element fstElmnt = (Element)fstNode;
-//                 NodeList fstNm = fstElmnt.getChildNodes();
-//                 try{fstNm.item(0).setNodeValue(RunnerRepository.window.mainpanel.p4.config.temailfile.getText());
-//                     RunnerRepository.REMOTEEMAILCONFIGFILE = RunnerRepository.window.mainpanel.p4.config.temailfile.getText();
-//                     
-//                     TransformerFactory transformerFactory = TransformerFactory.newInstance();
-//                     Transformer transformer = transformerFactory.newTransformer();
-//                     transformer.setOutputProperty(OutputKeys.INDENT, "yes");
-//                     transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "4");
-//                     DOMSource source = new DOMSource(doc);
-//                     Result result = new StreamResult(RunnerRepository.getFwmConfig());
-//                     transformer.transform(source, result);
-//                     FileInputStream in = new FileInputStream(RunnerRepository.getFwmConfig());
-//                     RunnerRepository.uploadRemoteFile(RunnerRepository.USERHOME+"/twister/config/", in, RunnerRepository.getFwmConfig().getName());
-//                     RunnerRepository.parseEmailConfig(RunnerRepository.REMOTEEMAILCONFIGFILE,true);
-//                 }
-//                 catch(Exception e){
-//                     e.printStackTrace();
-//                     CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,RunnerRepository.window,
-//                                                 "Warning", "Could not save EmailConfigFile tag in framework config");}
-//             } catch(Exception e){
-//                 e.printStackTrace();
-//             }
-//                 
-//                 
-//         
-//     }catch(Exception e){
-//         e.printStackTrace();
-//     }
-// }
-    
     private void testEmail(){
         try{
             String result = RunnerRepository.getRPCClient().execute("sendMail",
                             new Object[]{RunnerRepository.user,"true"}).toString();
             if(!result.equals("true")){
                 CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,Emails.this,
-                                        "Warning", result);
+                                        "Error", result);
             } else {
                 CustomDialog.showInfo(JOptionPane.PLAIN_MESSAGE,Emails.this,
                                         "Success", "Email sent");

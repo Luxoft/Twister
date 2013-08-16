@@ -1,6 +1,6 @@
 /*
 File: ExplorerPanel.java ; This file is part of Twister.
-Version: 2.005
+Version: 2.006
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -125,14 +125,10 @@ import java.awt.datatransfer.Transferable;
 import java.awt.datatransfer.StringSelection;
 import java.awt.dnd.DragSourceListener;
 import javax.swing.tree.TreeSelectionModel;
-
-
 import java.awt.datatransfer.Transferable;
 import java.awt.datatransfer.UnsupportedFlavorException;
 import java.io.IOException;
 import java.util.ArrayList;
- 
-import javax.swing.*;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreePath;
 
@@ -173,29 +169,13 @@ public class ExplorerPanel {
         tree.setDragEnabled(true);
         tree.setTransferHandler(new TransferHandler(){
             
-//             public boolean canImport(TransferSupport supp)
-//          {
-//              return true;
-//          }
-            
-            protected Transferable createTransferable(JComponent c)
-            {
+            protected Transferable createTransferable(JComponent c){
                 return new StringSelection("tc");
             }
-            
-//          protected void exportDone(JComponent c, Transferable t, int action)
-//          {
-//          }
 //          
-            public int getSourceActions(JComponent c)
-            {
+            public int getSourceActions(JComponent c){
                 return TransferHandler.COPY_OR_MOVE;
             }
-//          
-//          public boolean importData(TransferSupport supp)
-//          {
-//              return true;
-//          }
             
         });
         tree.expandRow(1);
@@ -251,21 +231,10 @@ public class ExplorerPanel {
                     String result = RunnerRepository.getRPCClient().execute(
                             "getTestDescription", new Object[] { thefile })
                             + "";
-//                     String[] cont = result.split("-;-");
                     Container pan1 = (Container) RunnerRepository.window.mainpanel.p1.splitPane
                             .getComponent(1);
                     TCDetails pan2 = (TCDetails) pan1.getComponents()[1];
                     pan2.text.setText(result);
-//                     if (cont[1].length() > 1) {
-//                         pan2.text.setText(cont[1].substring(1));
-//                     } else {
-//                         pan2.text.setText("Not Available");
-//                     }
-//                     if (cont[0].length() > 1) {
-//                         pan2.title.setText(cont[0].substring(1));
-//                     } else {
-//                         pan2.title.setText("Not Available");
-//                     }
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -760,11 +729,8 @@ public class ExplorerPanel {
         try{root.remove(0);}
         catch(Exception e){e.printStackTrace();}
         try {
-            System.out.println("getTestSuitePath: "+RunnerRepository.getTestSuitePath());
             connection.cd(RunnerRepository.getTestSuitePath());
-            //RunnerRepository.c.cd(RunnerRepository.USERHOME+"/twister/config/");
             getList(root, connection, RunnerRepository.getTestSuitePath());
-//             getList(root, connection);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -793,10 +759,8 @@ public class ExplorerPanel {
      * construct the list for folders representation in jtree
      */
     public void getList(DefaultMutableTreeNode node, ChannelSftp c, String curentdir) {
-//     public void getList(DefaultMutableTreeNode node, ChannelSftp c) {
         try {
             DefaultMutableTreeNode child = new DefaultMutableTreeNode(curentdir);
-//             DefaultMutableTreeNode child = new DefaultMutableTreeNode(c.pwd());
             Vector<LsEntry> vector1 = c.ls(".");
             Vector<String> vector = new Vector<String>();
             Vector<String> folders = new Vector<String>();
@@ -816,20 +780,6 @@ public class ExplorerPanel {
                 } else {
                     files.add(vector1.get(i).getFilename());
                 }
-                
-//                 try{
-//                     current = c.pwd();
-//                     c.cd(vector1.get(i).getFilename());
-//                     c.cd(current);
-//                     folders.add(vector1.get(i).getFilename());
-//                 } catch (SftpException e) {
-//                     if (e.id == 4) {
-//                         files.add(vector1.get(i).getFilename());
-//                     }
-//                     else{
-//                            e.printStackTrace();
-//                        }
-//                 }
             }
             Collections.sort(folders);
             Collections.sort(files);

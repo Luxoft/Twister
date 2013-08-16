@@ -1,6 +1,6 @@
 /*
 File: LibrariesPanel.java ; This file is part of Twister.
-Version: 2.002
+Version: 2.003
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -228,20 +228,10 @@ public class LibrariesPanel{
                     String result = RunnerRepository.getRPCClient().execute(
                             "getTestDescription", new Object[] { thefile })
                             + "";
-                    String[] cont = result.split("-;-");
                     Container pan1 = (Container) RunnerRepository.window.mainpanel.p1.splitPane
                             .getComponent(1);
                     TCDetails pan2 = (TCDetails) pan1.getComponents()[1];
-                    if (cont[1].length() > 1) {
-                        pan2.text.setText(cont[1].substring(1));
-                    } else {
-                        pan2.text.setText("Not Available");
-                    }
-                    if (cont[0].length() > 1) {
-                        pan2.title.setText(cont[0].substring(1));
-                    } else {
-                        pan2.title.setText("Not Available");
-                    }
+                    pan2.text.setText(result);
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -726,7 +716,6 @@ public class LibrariesPanel{
         try{root.remove(0);}
         catch(Exception e){e.printStackTrace();}
         try {
-            System.out.println("getRemoteUsersDirectory: "+RunnerRepository.getPredefinedSuitesPath());
             connection.cd(RunnerRepository.getPredefinedSuitesPath());
             //RunnerRepository.c.cd(RunnerRepository.USERHOME+"/twister/config/");
             getList(root, connection, RunnerRepository.getPredefinedSuitesPath());

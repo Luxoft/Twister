@@ -1,6 +1,6 @@
 /*
 File: RunnerRepository.java ; This file is part of Twister.
-Version: 2.0018
+Version: 2.0019
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -129,7 +129,7 @@ public class RunnerRepository {
                          REMOTELIBRARY,PREDEFINEDSUITES,
                          REMOTEUSERSDIRECTORY, REMOTEEPIDDIR, //REMOTEHARDWARECONFIGDIRECTORY,
                          PLUGINSLOCALGENERALCONF, GLOBALSREMOTEFILE,
-                         SECONDARYLOGSPATH,PATHENABLED;
+                         SECONDARYLOGSPATH,PATHENABLED,TESTCONFIGPATH;
     public static Image passicon,testbedicon,porticon,suitaicon, tcicon, propicon,
                         failicon, passwordicon, playicon, stopicon, pauseicon,logo,
                         background,notexecicon,pendingicon,skipicon,stoppedicon,
@@ -151,20 +151,9 @@ public class RunnerRepository {
     private static String[] lookAndFeels;
     public static Container container;
     private static Document pluginsconfig;
-    private static String version = "2.020";
-    private static String builddate = "15.08.2013";
+    private static String version = "2.021";
+    private static String builddate = "16.08.2013";
     public static String logotxt,os,python;
-    
-    
-//     public void init(ArrayList<Item> suite, ArrayList<Item> suitetest,
-//             final Hashtable<String, String> variables,
-//             final Document pluginsConfig,Applet container) {
-// //                 super.init(suite, suitetest, variables, pluginsConfig,container);
-//                 container.removeAll();
-//                 container.revalidate();
-//              container.repaint();
-//                 RunnerRepository.initialize(true,"tsc-server",container);
-//      }
     
     public static void setStarter(Starter starter){
         RunnerRepository.starter = starter;
@@ -247,20 +236,7 @@ public class RunnerRepository {
         else System.out.println("Twister running from Main");
         
         
-//         try{loadResourcesFromLocal();}
-//         catch (Exception e){e.printStackTrace();
-//             loadResourcesFromApplet();
-//         }
-        
-        
-        
         try{
-//             if(!RunnerRepository.applet){
-//                 /*
-//                  * if it did not start from applet
-//                  * the resources must be loaded from local pc 
-//                  */
-//                 loadResourcesFromLocal();}
             if(userpassword(user,password,host)){
                 ssh(user,password,host);
                 /*
@@ -271,11 +247,6 @@ public class RunnerRepository {
                 if(new File(temp+bar+"Twister").mkdir())
                     System.out.println(temp+bar+"Twister"+" folder successfully created");
                 else System.out.println("Could not create "+temp+bar+"Twister"+" folder");
-//                 if(new File(temp+bar+"Twister"+bar+"HardwareConfig").mkdir())
-//                     System.out.println(temp+bar+"Twister"+bar+
-//                         "HardwareConfig folder successfully created");
-//                 else System.out.println("Could not create "+temp+bar+"Twister"+bar+
-//                     "HardwareConfig folder");
                 if(new File(temp+bar+"Twister"+bar+"XML").mkdir())
                     System.out.println(temp+bar+"Twister"+bar+
                         "XML folder successfully created");
@@ -295,7 +266,6 @@ public class RunnerRepository {
                 CONFIGDIRECTORY = RunnerRepository.temp+bar+"Twister"+bar+"config";
                 File pluginsdirectory = new File(twisterhome.getCanonicalPath()+
                                                  bar+"Plugins");
-//                 REMOTEPLUGINSDIR = "/opt/twister/plugins";
                 if(pluginsdirectory.exists()){
                     PLUGINSDIRECTORY = twisterhome.getCanonicalPath()+bar+"Plugins";
                     System.out.println(twisterhome.getCanonicalPath()+bar+
@@ -376,29 +346,6 @@ public class RunnerRepository {
         }
     }
     
-//     public void terminate(){}
-//     
-//     public void setInterface(CommonInterface arg0) {
-//     }
-    
-//     public String getFileName() {
-//         String filename = "applet.jar";
-//         return filename;
-//     }
-//     
-//     public String getDescription(String desc){
-//         return "";
-//     }
-//     
-//     public String getName(){
-//         String name = "applet";
-//         return name;
-//     }
-    
-//     public Component getContent() {
-//         return window.mainpanel;
-//     }
-    
     //populate the Hshtable transferred to plugins
     //with appropriate variables
     public static void populatePluginsVariables(){
@@ -409,8 +356,7 @@ public class RunnerRepository {
         variables.put("inifile",TWISTERINI);
         variables.put("remoteuserhome",USERHOME);  
         variables.put("remotconfigdir",REMOTECONFIGDIRECTORY);  
-        variables.put("localplugindir",PLUGINSDIRECTORY);  
-//         variables.put("httpserverport",HTTPSERVERPORT);  
+        variables.put("localplugindir",PLUGINSDIRECTORY);
         variables.put("centralengineport",CENTRALENGINEPORT); 
         variables.put("remotedatabaseparth",REMOTEDATABASECONFIGPATH);
         variables.put("remotedatabasefile",REMOTEDATABASECONFIGFILE);
@@ -462,9 +408,6 @@ public class RunnerRepository {
     
     public static void loadResourcesFromApplet(){
         try{
-//             System.out.println("OS current temporary directory is : "+
-//                                 System.getProperty("java.io.tmpdir"));
-//             System.setSecurityManager(new MySecurityManager());
             RunnerRepository.tcicon = loadIcon("tc.png");
             RunnerRepository.background = loadIcon("background.png");
             RunnerRepository.pendingicon = loadIcon("pending.png");
@@ -500,7 +443,6 @@ public class RunnerRepository {
             RunnerRepository.outicon = loadIcon("out.png");
             RunnerRepository.passwordicon = loadIcon("passwordicon.png");
             RunnerRepository.baricon = loadIcon("bar.png");
-            //RunnerRepository.optional = loadIcon("optional.png");
         }
         catch(Exception e){e.printStackTrace();}
     }
@@ -683,71 +625,28 @@ public class RunnerRepository {
             e.printStackTrace();
         }
     }
-    
-//     private static void readSSH(BufferedReader in, Channel channel) {
-//      try {
-//          String line = in.readLine();
-//          System.out.println(line);
-//          while (line.indexOf("GUI_connected")==-1) {
-// //           while (true) {
-//              line = in.readLine();
-//              System.out.println(line);
-//          }
-//      } catch (Exception e) {
-//          e.printStackTrace();
-//      }
-//  }
         
     /*
      * attempt to connect with sftp to server
      */ 
     public static boolean userpassword(String user,String password, String host){
         boolean passed = false;
-//         while(!passed){
             try{
-//                 JTextField user1 = new JTextField();   
-//                 JPasswordField password1 = new JPasswordField();
-//                 if(!applet){
-//                     user1.setText("tscguest");
-//                     password1.setText("tscguest");
-//                 }
-//                 JComboBox combo = new JComboBox();
-//                 try{populateLookAndFeels();
-//                     if(lookAndFeels!=null){
-//                         int index = populateCombo(combo,lookAndFeels);
-//                         if(index>-1)combo.setSelectedIndex(index);}}
-//                 catch(Exception e){
-//                     System.out.println("Error in setting LookAndFeel");
-//                     e.printStackTrace();}
-//                 JPanel p = getPasswordPanel(user1,password1,combo);
-//                 int resp = (Integer)CustomDialog.showDialog(p,JOptionPane.QUESTION_MESSAGE,
-//                                                             JOptionPane.OK_CANCEL_OPTION, 
-//                                                             window, "User & Password",
-//                                                             new ImageIcon(RunnerRepository.getPasswordIcon()));
-//                 if(resp == JOptionPane.OK_OPTION){
-//                     System.out.println("Attempting to connect to: "+host+
-//                         " with user: "+user1.getText()+" and password: "+
-//                         password1.getPassword());
-//                     user = user1.getText();
-//                     password = new String(password1.getPassword());
-                    JSch jsch = new JSch();
-                    Session session = jsch.getSession(user, host, 22);
-                    session.setPassword(password);
-                    Properties config = new Properties();
-                    config.put("StrictHostKeyChecking", "no");
-                    session.setConfig(config);
-                    session.connect();
-                    Channel channel = session.openChannel("sftp");
-                    channel.connect();
-                    connection = (ChannelSftp)channel;
-                    try{USERHOME = connection.pwd();}
-                    catch(Exception e){
-                        System.out.println("ERROR: Could not retrieve remote user home directory");}
-                    REMOTECONFIGDIRECTORY = USERHOME+"/twister/config/";
-                    passed = true;
-//                     if(combo.getItemCount()>0)setUILook(combo.getSelectedItem().toString());
-//                 }
-//                 else return false;
+                JSch jsch = new JSch();
+                Session session = jsch.getSession(user, host, 22);
+                session.setPassword(password);
+                Properties config = new Properties();
+                config.put("StrictHostKeyChecking", "no");
+                session.setConfig(config);
+                session.connect();
+                Channel channel = session.openChannel("sftp");
+                channel.connect();
+                connection = (ChannelSftp)channel;
+                try{USERHOME = connection.pwd();}
+                catch(Exception e){
+                    System.out.println("ERROR: Could not retrieve remote user home directory");}
+                REMOTECONFIGDIRECTORY = USERHOME+"/twister/config/";
+                passed = true;
             }
             catch(JSchException ex){
                 if(ex.toString().indexOf("Auth fail")!=-1)
@@ -780,8 +679,6 @@ public class RunnerRepository {
     public static File getDBConfFile(String name,boolean fromServer){
         File file = new File(temp+bar+"Twister"+bar+"config"+bar+name);
         if(fromServer){
-//             InputStream in = null;
-            
             String content= RunnerRepository.getRemoteFileContent(RunnerRepository.REMOTEDATABASECONFIGPATH+name);
 
             try{BufferedWriter writer = new BufferedWriter(new FileWriter(file));
@@ -789,42 +686,8 @@ public class RunnerRepository {
                 writer.close();
             } catch(Exception e){
                 e.printStackTrace();
-            }
-            
-//             for(String s:content){
-//                 writer.write(s);
-//                 writer.newLine();
-//             }
-//              writer.close();
-            
-//             try{c.cd(RunnerRepository.REMOTEDATABASECONFIGPATH);}
-//             catch(Exception e){
-//                 System.out.println("Could not get :"+RunnerRepository.REMOTEDATABASECONFIGPATH);}
-//             System.out.print("Getting "+name+" as database config file.... ");
-//             try{in = c.get(name);
-//                 InputStreamReader inputStreamReader = new InputStreamReader(in);
-//                 BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
-//                 BufferedWriter writer = null;
-//                 String line;
-//                 try{writer = new BufferedWriter(new FileWriter(file));
-//                     while ((line=bufferedReader.readLine())!= null){
-//                         writer.write(line);
-//                         writer.newLine();}
-//                     bufferedReader.close();
-//                     writer.close();
-//                     inputStreamReader.close();
-//                     in.close();
-//                     System.out.println("successfull");}
-//                 catch(Exception e){
-//                     System.out.println("failed");
-//                     e.printStackTrace();}}
-//             catch(Exception e){
-//                 System.out.println("Could not get :"+
-//                     name+" from: "+RunnerRepository.REMOTEDATABASECONFIGPATH+
-//                     " as database config file");}
-                
-                
-                }
+            }   
+        }
         return file;}
         
         
@@ -836,7 +699,6 @@ public class RunnerRepository {
     public static File getEmailConfFile(String name,boolean fromServer){
         File file = new File(temp+bar+"Twister"+bar+"config"+bar+name);
         if(fromServer){
-            
             String content= RunnerRepository.getRemoteFileContent(RunnerRepository.REMOTEEMAILCONFIGPATH+name);
             try{BufferedWriter writer = new BufferedWriter(new FileWriter(file));
                 writer.write(content);
@@ -844,39 +706,7 @@ public class RunnerRepository {
             } catch (Exception e){
                 e.printStackTrace();
             }
-//             for(String s:content){
-//                 writer.write(s);
-//                 writer.newLine();
-//             }
-//             writer.close();
-            
-//             InputStream in = null;
-//             try{c.cd(RunnerRepository.REMOTEEMAILCONFIGPATH);}
-//             catch(Exception e){
-//                 System.out.println("Could not get :"+RunnerRepository.REMOTEEMAILCONFIGPATH);}
-//             System.out.print("Getting "+name+" as email config file.... ");
-//             try{in = c.get(name);
-//                 InputStreamReader inputStreamReader = new InputStreamReader(in);
-//                 BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
-//                 BufferedWriter writer = null;
-//                 String line;
-//                 try{writer = new BufferedWriter(new FileWriter(file));
-//                     while ((line=bufferedReader.readLine())!= null){
-//                         writer.write(line);
-//                         writer.newLine();}
-//                     bufferedReader.close();
-//                     writer.close();
-//                     inputStreamReader.close();
-//                     in.close();
-//                     System.out.println("successfull");}
-//                 catch(Exception e){
-//                     System.out.println("failed");
-//                     e.printStackTrace();}}
-//             catch(Exception e){
-//                 System.out.println("Could not get :"+name+
-//                 " from: "+RunnerRepository.REMOTEEMAILCONFIGPATH+" as email config file");}
-            
-            }
+        }
         return file;}
      
     /*
@@ -890,22 +720,7 @@ public class RunnerRepository {
         DefaultMutableTreeNode root = new DefaultMutableTreeNode("Root");
         try{DocumentBuilder db = dbf.newDocumentBuilder();
             Document doc = db.parse(dbConf);
-            doc.getDocumentElement().normalize();                
-//             NodeList nodeLst = doc.getElementsByTagName("table_structure");      
-//             for(int i=0;i<nodeLst.getLength();i++){
-//                 Element tablee = (Element)nodeLst.item(i);
-//                 NodeList fields = tablee.getElementsByTagName("field");
-//                 DefaultMutableTreeNode table = new DefaultMutableTreeNode(tablee.getAttribute("name"));
-//                 for(int j=0;j<fields.getLength();j++){
-//                     Element fielde = (Element)fields.item(j);   
-//                     DefaultMutableTreeNode field = new DefaultMutableTreeNode(fielde.getAttribute("Field"));
-//                     table.add(field);}
-//                 root.add(table);}
-//             NodeList nodeLst = doc.getElementsByTagName("twister_user_defined");
-//             Element tablee = (Element)nodeLst.item(0);
-//             NodeList fields = tablee.getElementsByTagName("field_section");
-//             tablee = (Element)fields.item(0);
-//             fields = tablee.getElementsByTagName("field");
+            doc.getDocumentElement().normalize();
             NodeList nodeLst = doc.getElementsByTagName("insert_section");
             Element tablee = (Element)nodeLst.item(0);
             NodeList fields = tablee.getElementsByTagName("field");
@@ -985,14 +800,11 @@ public class RunnerRepository {
             ByteArrayOutputStream buffer = new ByteArrayOutputStream();
             OutputStream out=null;
             InputStreamReader inputStreamReader = null;
-            BufferedReader bufferedReader = null;  
-//             BufferedWriter writer=null;
-//             File file;
+            BufferedReader bufferedReader = null;
             String line = null;
             String name = null;
             
             
-//             try{
             if(RunnerRepository.getRemoteFolderContent(USERHOME+"/twister/config/").length==0){
                 System.out.println("Could not get config folder from:"+USERHOME+"/twister/config/");
                 CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,RunnerRepository.window,
@@ -1004,20 +816,6 @@ public class RunnerRepository {
                 run = false;
                 if(!applet)System.exit(0);
             }
-//                 c.cd(USERHOME+"/twister/config/");
-//                 System.out.println("c.ls.size(): "+c.ls(".").size());
-//                 System.out.println("HOME: "+c.getHome());
-//             }
-//             catch(Exception e){
-//                 System.out.println("Could not get :"+USERHOME+"/twister/config/");
-//                 CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,RunnerRepository.window,
-//                                         "Warning", "Could not get :"+USERHOME+
-//                                         "/twister/config/");
-//                 if(Window.deleteTemp(new File(RunnerRepository.temp+bar+"Twister")))
-//                     System.out.println(RunnerRepository.temp+bar+"Twister deleted successfull");
-//                 else System.out.println("Could not delete: "+RunnerRepository.temp+bar+"Twister");
-//                 run = false;
-//                 if(!applet)System.exit(0);}
                 
                 
             String content = RunnerRepository.getRemoteFileContent(USERHOME+"/twister/config/fwmconfig.xml");
@@ -1034,34 +832,6 @@ public class RunnerRepository {
             BufferedWriter writer = new BufferedWriter(new FileWriter(file));
             writer.write(content);
             writer.close();
-            
-//             try{in = c.get("fwmconfig.xml");}
-//             catch(Exception e){
-//                 CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, RunnerRepository.window,
-//                                         "Warning","Could not get fwmconfig.xml from "+
-//                                         c.pwd()+" creating a blank one.");
-//                 System.out.println("Could not get fwmconfig.xml from "+
-//                                         c.pwd()+" creating a blank one.");
-//                 ConfigFiles.saveXML(true);
-//                 in = c.get("fwmconfig.xml");}
-                
-                
-                
-//             inputStreamReader = new InputStreamReader(in);
-//             bufferedReader = new BufferedReader(inputStreamReader);  
-//             file = new File(temp+bar+"Twister"+bar+"config"+bar+"fwmconfig.xml");
-//             writer = new BufferedWriter(new FileWriter(file));
-//             while((line=bufferedReader.readLine())!= null){
-//                 writer.write(line);
-//                 writer.newLine();}
-//             bufferedReader.close();
-//             writer.close();
-//             inputStreamReader.close();
-//             in.close();
-            
-            
-            
-//             System.out.println("fwmconfig.xml local size: "+file.length()+" bytes");
             String usersdir="";
             try{Thread.sleep(100);}
             catch(Exception e){e.printStackTrace();}
@@ -1116,7 +886,7 @@ public class RunnerRepository {
                 PREDEFINEDSUITES = getTagContent(doc,"PredefinedSuitesPath");
                 SECONDARYLOGSPATH = getTagContent(doc,"ArchiveLogsPath");
                 PATHENABLED = getTagContent(doc,"ArchiveLogsPathActive");
-                //REMOTEHARDWARECONFIGDIRECTORY = getTagContent(doc,"HardwareConfig");
+                TESTCONFIGPATH = getTagContent(doc,"TestConfigPath");
                 GLOBALSREMOTEFILE = getTagContent(doc,"GlobalParams");
             }
             catch(Exception e){e.printStackTrace();}
@@ -1130,48 +900,6 @@ public class RunnerRepository {
             introscreen.repaint();
             try{Thread.sleep(100);}
             catch(Exception e){e.printStackTrace();}
-            
-            
-//            !!!!!!!!!!!!!!!!!
-            
-            
-            
-//             try{c.cd(usersdir);}
-//             catch(Exception e){
-//                 System.out.println("Could not get to "+usersdir+"on sftp");}
-//             int subdirnr = usersdir.split("/").length-1;
-//             int size ;
-//             try{System.out.println("c.ls.size(): "+c.ls(".").size());
-//                 size= c.ls(usersdir).size();}
-//             catch(Exception e){
-//                 System.out.println("No suites xml");
-//                 size=0;}
-//             for(int i=0;i<size;i++){
-//                 name = ((LsEntry)c.ls(usersdir).get(i)).getFilename();
-//                 if(name.split("\\.").length==0)continue; 
-//                 if(name.toLowerCase().indexOf(".xml")==-1)continue;
-//                 System.out.print("Getting "+name+" ....");
-//                 in = c.get(name);
-//                 inputStreamReader = new InputStreamReader(in);
-//                 bufferedReader = new BufferedReader(inputStreamReader);
-//                 file = new File(temp+bar+"Twister"+bar+"Users"+bar+name);
-//                 writer = new BufferedWriter(new FileWriter(file));
-//                 while ((line=bufferedReader.readLine())!= null){
-//                     writer.write(line);
-//                     writer.newLine();}
-//                 bufferedReader.close();
-//                 writer.close();
-//                 inputStreamReader.close();
-//                 in.close();
-//                 System.out.println("successfull");}
-//             introscreen.setStatus("Finished getting users xml");
-            
-
-            
-            
-            
-            
-//          !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 
             try{Thread.sleep(100);}
@@ -1196,18 +924,7 @@ public class RunnerRepository {
             try{Thread.sleep(100);}
             catch(Exception e){e.printStackTrace();}
             int length = RunnerRepository.getRemoteFolderContent(result.toString()+path[path.length-2]).length;
-//             try{length = c.ls(result.toString()+path[path.length-2]).size();}
-//             catch(Exception e){
-//                 System.out.println("Could not get "+result.toString()+dir);}
             if(length>2){
-                
-                
-//                 introscreen.setStatus("Started looking for xml file");
-//                 introscreen.addPercent(0.035);
-//                 introscreen.repaint();
-//                 introscreen.setStatus("Started getting xml file");
-//                 introscreen.addPercent(0.07);
-//                 introscreen.repaint();
                 introscreen.setStatus("Started writing xml file");
                 introscreen.addPercent(0.035);
                 introscreen.repaint();
@@ -1221,32 +938,7 @@ public class RunnerRepository {
                 introscreen.setStatus("Finished writing xml ");
                 introscreen.addPercent(0.035);
                 introscreen.repaint();
-                
-                
-                
-//                 in = c.get(XMLREMOTEDIR);                
-//                 data = new byte[900];
-//                 buffer = new ByteArrayOutputStream();
-//                 while ((nRead = in.read(data, 0, data.length)) != -1){
-//                     buffer.write(data, 0, nRead);}
-//                 introscreen.setStatus("Finished reading xml ");
-//                 introscreen.addPercent(0.035);
-//                 introscreen.repaint();
-//                 buffer.flush();
-//                 out = new FileOutputStream(temp+bar+"Twister"+bar+"XML"+
-//                             bar+XMLREMOTEDIR.split("/")[XMLREMOTEDIR.split("/").length-1]);
-//                 introscreen.setStatus("Started writing xml file");
-//                 introscreen.addPercent(0.035);
-//                 introscreen.repaint();
-//                 buffer.writeTo(out);
-//                 out.close();
-//                 buffer.close();
-//                 in.close();
-            
             }
-//             introscreen.setStatus("Finished writing xml");
-//             introscreen.addPercent(0.035);
-//             introscreen.repaint();
         }
         catch(Exception e){e.printStackTrace();}}
         
@@ -1412,17 +1104,18 @@ public class RunnerRepository {
     public static String getConfigDirectory(){
         return CONFIGDIRECTORY;}
         
+     
+    /*
+     * local config directory from temp
+     */
+    public static String getTestConfigPath(){
+        return TESTCONFIGPATH;}
+        
     /*
      * add suite to test suite list
      */
     public static void addTestSuita(Item suita){
         suitetest.add(suita);}
-    
-    /*
-     * HTTPServerPort set by fwmconfig file
-     */
-//     public static String getHTTPServerPort(){
-//         return HTTPSERVERPORT;}
         
     /*
      * method to get suite from test suite list 
@@ -1809,8 +1502,6 @@ public class RunnerRepository {
             sftpoccupied = false;
             return b.toString();
         } catch (Exception e){
-//             CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,RunnerRepository.window,
-//                                         "Warning", "Could not get remote file content from:"+file);
             e.printStackTrace();
             sftpoccupied = false;
             return null;
@@ -1871,44 +1562,6 @@ public class RunnerRepository {
         }
     }
     
-//     /*
-//      * method to copy plugins configuration file
-//      * to server 
-//      */
-//     public static boolean uploadPluginsFile(){
-//         try{
-//             DOMSource source = new DOMSource(pluginsconfig);
-//             File file = new File(RunnerRepository.PLUGINSLOCALGENERALCONF);
-//             Result result = new StreamResult(file);
-//             TransformerFactory transformerFactory = TransformerFactory.newInstance();
-//             Transformer transformer = transformerFactory.newTransformer();
-//             transformer.setOutputProperty(OutputKeys.INDENT, "yes");
-//             transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "4");
-//             transformer.transform(source, result);
-//             System.out.println("Saving "+file.getName()+" to: "+RunnerRepository.USERHOME+"/twister/config/");            
-//             //System.out.println(RunnerRepository.USERHOME+"/twister/config/");
-//             FileInputStream in = new FileInputStream(file);
-//             
-//             JSch jsch = new JSch();
-//             Session session = jsch.getSession(user, host, 22);
-//             session.setPassword(password);
-//             Properties config = new Properties();
-//             config.put("StrictHostKeyChecking", "no");
-//             session.setConfig(config);
-//             session.connect();
-//             Channel channel = session.openChannel("sftp");
-//             channel.connect();
-//             ChannelSftp ch = (ChannelSftp)channel;
-//             ch.cd(USERHOME+"/twister/config/");
-//             ch.put(in, file.getName());
-//             in.close();
-//             return true;}
-//         catch(Exception e){
-//             e.printStackTrace();
-//             return false;
-//         }
-//     }
-    
     /*
      * save the layouts of the frameworks
      * for reuse on opening
@@ -1941,10 +1594,6 @@ public class RunnerRepository {
      * open project file from server
      */
     public static void openProjectFile(){
-//         try{c.cd(REMOTEUSERSDIRECTORY);}
-//         catch(Exception e){
-//             System.out.println("Could not get to "+REMOTEUSERSDIRECTORY+"on sftp");}
-        //int subdirnr = REMOTEUSERSDIRECTORY.split("/").length-1;
         int size;
         Vector v=null;
         try{v = connection.ls(REMOTEUSERSDIRECTORY);
@@ -1993,8 +1642,7 @@ public class RunnerRepository {
             if(user.equals("New File")){
                 user = CustomDialog.showInputDialog(JOptionPane.QUESTION_MESSAGE,
                                                     JOptionPane.OK_CANCEL_OPTION, window,
-                                                    "File Name", "Please enter file name").
-                                                    toUpperCase();
+                                                    "File Name", "Please enter file name");
                 if(!user.equals("NULL")){
                     RunnerRepository.emptySuites();
                     RunnerRepository.window.mainpanel.p1.sc.g.getSelectedCollection().clear();
@@ -2018,22 +1666,7 @@ public class RunnerRepository {
                     File file = new File(temp+bar+"Twister"+bar+"Users"+bar+user);
                     BufferedWriter writer = new BufferedWriter(new FileWriter(file));
                     writer.write(content);
-                    writer.close();
-                    
-//                     InputStream in = c.get(REMOTEUSERSDIRECTORY+"/"+user);
-//                     InputStreamReader inputStreamReader = new InputStreamReader(in);
-//                     BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
-//                     File file = new File(temp+bar+"Twister"+bar+"Users"+bar+user);
-//                     BufferedWriter writer = new BufferedWriter(new FileWriter(file));
-//                     String line;
-//                     while ((line=bufferedReader.readLine())!= null){
-//                         writer.write(line);
-//                         writer.newLine();}
-//                     bufferedReader.close();
-//                     writer.close();
-//                     inputStreamReader.close();
-//                     in.close();
-                    
+                    writer.close();                   
                     
                     RunnerRepository.emptySuites();
                     window.mainpanel.p1.sc.g.setUser((new StringBuilder()).append(RunnerRepository.getUsersDirectory()).
@@ -2048,27 +1681,6 @@ public class RunnerRepository {
                 RunnerRepository.window.mainpanel.p1.sc.g.repaint();
             }
             RunnerRepository.window.mainpanel.p1.sc.g.selectedcollection.clear();
-        
-        
-        
-            
-//             System.out.print("Getting "+name+" ....");
-//             in = c.get(name);
-//             inputStreamReader = new InputStreamReader(in);
-//             bufferedReader = new BufferedReader(inputStreamReader);
-//             file = new File(temp+bar+"Twister"+bar+"Users"+bar+name);
-//             writer = new BufferedWriter(new FileWriter(file));
-//             while ((line=bufferedReader.readLine())!= null){
-//                 writer.write(line);
-//                 writer.newLine();}
-//             bufferedReader.close();
-//             writer.close();
-//             inputStreamReader.close();
-//             in.close();
-//             System.out.println("successfull");
-//         introscreen.setStatus("Finished getting users xml");
-    
-    
     }
     
     public static String getVersion(){
@@ -2125,14 +1737,6 @@ public class RunnerRepository {
                 return false;
             }
             
-//             try{c.cd(USERHOME+"/twister/config/");}
-//             catch(Exception e){
-//                 System.out.println("Could not get :"+USERHOME+"/twister/config/");
-//                 CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,RunnerRepository.window,
-//                                         "Warning", "Could not get :"+USERHOME+
-//                                         "/twister/config/");
-//                 return false;}
-            
             String content = RunnerRepository.getRemoteFileContent(USERHOME+"/twister/config/plugins.xml");
             if(content==null){
                 CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, RunnerRepository.window,
@@ -2140,27 +1744,6 @@ public class RunnerRepository {
                                         USERHOME+"/twister/config/");
                 return false;
             }
-
-//             try{in = c.get("plugins.xml");}
-//             catch(Exception e){
-//                 CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, RunnerRepository.window,
-//                                         "Warning","Could not get plugins.xml from "+
-//                                         c.pwd());
-//                 System.out.println("Could not get plugins.xml from "+
-//                                         c.pwd());
-//                 return false;}
-//             inputStreamReader = new InputStreamReader(in);
-//             bufferedReader = new BufferedReader(inputStreamReader);  
-//             file = new File(PLUGINSLOCALGENERALCONF);
-//             writer = new BufferedWriter(new FileWriter(file));
-//             while((line=bufferedReader.readLine())!= null){
-//                 writer.write(line);
-//                 writer.newLine();}
-//             bufferedReader.close();
-//             writer.close();
-//             inputStreamReader.close();
-//             in.close();
-//             System.out.println("plugins.xml local size: "+file.length()+" bytes");
 
             file = new File(PLUGINSLOCALGENERALCONF);
             writer = new BufferedWriter(new FileWriter(file));

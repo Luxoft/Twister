@@ -1,6 +1,6 @@
 /*
 File: TCDetails.java ; This file is part of Twister.
-Version: 2.003
+Version: 2.004
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -36,8 +36,7 @@ import javax.swing.JScrollPane;
 
 public class TCDetails extends JPanel{
 //     public JTextArea text = new JTextArea("This is a sample text for helping on screen allignament");
-    public JEditorPane text = new JEditorPane("text/html","This is a sample text for helping on screen allignament");
-    public JLabel title = new JLabel("This is the title");
+    public JEditorPane text = new JEditorPane("text/html","");
     private JPanel selector = new JPanel();
 //     private RoundButton tcdetails = new RoundButton("TC details");
 //     private RoundButton logs = new RoundButton("Logs");

@@ -1,6 +1,6 @@
 /*
 File: Main.java ; This file is part of Twister.
-Version: 2.003
+Version: 2.004
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -38,7 +38,6 @@ import java.io.InputStreamReader;
 public class Main{
     
     public static void main(String args[]){
-//         RunnerRepository.initialize(false,"11.126.32.20",null);}
         try {
             URL url = new URL("http://tsc-server/twister_gui/logo.png");
             RunnerRepository.logo = ImageIO.read(url).getScaledInstance(230, 100, Image.SCALE_FAST);
@@ -49,7 +48,10 @@ public class Main{
         RunnerRepository.password = "tscguest";
         RunnerRepository.host = "tsc-server";
         readLogoTxt();
-        PermissionValidator.init(null);
+        
+        PermissionValidator.init("CREATE_PROJECT,CHANGE_PROJECT,DELETE_PROJECT,"+
+                                 "CHANGE_FWM_CFG,CHANGE_GLOBALS,RUN_TESTS,EDIT_TC,"+
+                                 "CHANGE_DB_CFG,CHANGE_EML_CFG,CHANGE_SERVICES");
         RunnerRepository.initialize("false","tsc-server",null);}
 //             RunnerRepository.initialize(false,"11.126.32.15",null);}
 

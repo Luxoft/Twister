@@ -1,6 +1,6 @@
 /*
 File: Panel4.java ; This file is part of Twister.
-Version: 2.003
+Version: 2.004
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -42,6 +42,7 @@ public class Panel4 extends JPanel{
     private PanicDetect panic;
     private Services services;
     private About about;
+    private TestConfigurations testconfig;
     
 
     public Panel4(){
@@ -56,6 +57,7 @@ public class Panel4 extends JPanel{
         services = new Services();
         plugins = new Plugins();
         about = new About();
+        testconfig = new TestConfigurations();
         main = new JPanel();        
         main.setLayout(null);
         main.setBounds(240,10,(int)screenSize.getWidth()-320,
@@ -109,12 +111,13 @@ public class Panel4 extends JPanel{
             public void actionPerformed(ActionEvent ev){                
                 setPlugins();}});
         add(plugins);
-        RoundButton ctrlpanel = new RoundButton("Control Panel");
+        RoundButton ctrlpanel = new RoundButton("Test Configurations");
         ctrlpanel.setBounds(20,280,200,25);
         ctrlpanel.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){                
-                setCtrlPanel();}});
+                setTestConfig();}});
         add(ctrlpanel);
+        ctrlpanel.setEnabled(false);
         RoundButton logout = new RoundButton("Logout");
         logout.setBounds(20,310,200,25);
         logout.addActionListener(new ActionListener(){
@@ -130,8 +133,12 @@ public class Panel4 extends JPanel{
         setPaths();
     }
     
-    public void setCtrlPanel(){
-        RunnerRepository.starter.maincomp.loadComponent("ControlPanel");
+    public void setTestConfig(){
+        main.removeAll();
+        main.setLayout(new BorderLayout());
+        main.add(testconfig,BorderLayout.CENTER);
+        main.repaint();
+        main.revalidate();
     }
     
     public void setLogout(){
