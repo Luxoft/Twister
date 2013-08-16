@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# version: 2.011
+# version: 2.012
 
 # File: cli.py ; This file is part of Twister.
 
@@ -214,6 +214,43 @@ def deQueueTest(proxy, user, data):
 
 	print
 
+def string_check(option, opt, value, parser):
+        # break the option instance into a list
+        # formed by pair [short_version/long_version] (e.g. [-u/--users])
+        # we want to get the long_version
+        pair_list = str(option).split("/")
+        if len(pair_list) == 1:
+            alternate_string = pair_list[0]
+        else:
+            alternate_string = pair_list[1]
+
+        # check if the long version is in parameters list
+        # special case for -u
+        if alternate_string in parser._get_args(None) or opt == '-u':
+            if alternate_string == '--eps':
+                parser.values.eps = True
+            elif alternate_string == '--users':
+                parser.values.users = True
+            elif alternate_string == '--stats':
+                parser.values.stats = True
+            elif alternate_string == '--details':
+                parser.values.details = all
+            elif alternate_string == '--status-details':
+                # status-details needs an argument; we want to get it and
+                # compare with possible options (all,finished,pending,running)
+                param_list = parser._get_args(None)
+                try:
+                    option = param_list[param_list.index(alternate_string)+1]
+                except:
+                    option = None
+                if option in ['all','finished','pending','running']:
+                    parser.values.status_details = option
+                else:
+                    parser.values.status_details = None
+        else:
+             print "Bad option "
+             print "Usage: %prog --server <ip:port> --command [...parameters]"
+             exit(1)
 
 # --------------------------------------------------------------------------------------------------
 #   M a i n
@@ -231,18 +268,22 @@ if __name__ == '__main__':
 
 	parser = OptionParser(usage=usage, version=version)
 
+        # set the dafault values for None to make sure thay will exist
+        # in parser list for any scenario
+        parser.set_defaults(users=None,eps=None,stats=None,details=None,status_details=None)
+
 	# The most important option is the server. By default, it's user:password@127.0.0.1:8000.
 	parser.add_option("--server",      action="store", default="http://user:password@127.0.0.1:8000/",
 		help="Your user and password @ central engine IP and port (default: http://user:password@127.0.0.1:8000/)")
 
-	parser.add_option('-u', "--users", action="store_true", help="Show active and inactive users.")
+	parser.add_option('-u', "--users", action="callback", callback=string_check, help="Show active and inactive users.")
 
-	parser.add_option("--eps",         action="store_true", help="Show active and inactive Eps.")
+	parser.add_option("--eps",         action="callback", callback=string_check, help="Show active and inactive Eps.")
 
-	parser.add_option("--stats",       action="store_true", help="Show stats.")
+	parser.add_option("--stats",       action="callback", callback=string_check, help="Show stats.")
 
-	parser.add_option("--details",        action="store_true", help="Show detailed status for All files.")
-	parser.add_option("--status-details", action="store", help="Show detailed status for running, finished, pending, or all files.")
+	parser.add_option("--details",        action="callback", callback=string_check, help="Show detailed status for All files.")
+	parser.add_option("--status-details", action="callback", callback=string_check, help="Show detailed status for running, finished, pending, or all files.")
 
 	parser.add_option("-q", "--queue",   action="store", help="Queue a file at the end of a suite. Specify queue like `Suite:file_path`.")
 	parser.add_option("-d", "--dequeue", action="store", help="Un-Queue 1 or more files. Specify like `EP, EP:suite_id, EP:Suite, or EP:file_id`.")
