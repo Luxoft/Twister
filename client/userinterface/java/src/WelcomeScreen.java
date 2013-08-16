@@ -1,6 +1,6 @@
 /*
 File: WelcomeScreen.java ; This file is part of Twister.
-Version: 2.001
+Version: 2.002
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -28,25 +28,29 @@ import java.awt.KeyboardFocusManager;
 import java.awt.KeyEventDispatcher;
 import java.awt.event.KeyEvent;
 import javax.swing.JTextArea;
+import java.awt.event.AWTEventListener;
+import java.awt.AWTEvent;
 
 public class WelcomeScreen extends JPanel{
-    private KeyEventDispatcher ked;
+    private AWTEventListener ked;
     private JTextArea tf;
     
     public WelcomeScreen(){
-        Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
-        setBounds((int)(screenSize.getWidth()-700)/2,(int)(screenSize.getHeight()-380)/2,700,380);
-        //setAlwaysOnTop(true);
+        setPreferredSize(new Dimension(700,380));
         setFocusable(true);
-        ked = new KeyEventDispatcher() {
-            @Override
-            public boolean dispatchKeyEvent(KeyEvent e) {
-                MainRepository.continueLogin();
-                MainRepository.countdown = true;
-                KeyboardFocusManager.getCurrentKeyboardFocusManager().removeKeyEventDispatcher(ked);
-                return false;
-            }
-        };
+
+        ked = new AWTEventListener(){
+                public void eventDispatched(AWTEvent e){
+                    MainRepository.continueLogin();
+                    MainRepository.countdown = true;
+                    Toolkit.getDefaultToolkit().removeAWTEventListener(ked);
+                }
+            };
+            
+        Toolkit.getDefaultToolkit().addAWTEventListener(ked
+            , AWTEvent.KEY_EVENT_MASK);
+
+
         setLayout(null);
         tf = new JTextArea();
         tf.setBackground(getBackground());
@@ -56,22 +60,9 @@ public class WelcomeScreen extends JPanel{
         tf.setBorder(null);
         tf.setText(MainRepository.logotxt);
         add(tf);
-        
-//         component.getInputMap().put(KeyStroke.getKeyStroke("F2"),
-//                                     "login");
-//         component.getActionMap().put("login",
-//                                      login);
-        
-//         addKeyListener(new KeyAdapter(){
-//             public void keyReleased(KeyEvent ev){
-//                 MainRepository.continueLogin();
-//                 //WelcomeScreen.this.dispose();
-//                 MainRepository.countdown = true;
-//             }
-//         });
 
-        KeyboardFocusManager.getCurrentKeyboardFocusManager()
-          .addKeyEventDispatcher(ked);
+//         KeyboardFocusManager.getCurrentKeyboardFocusManager()
+//           .addKeyEventDispatcher(ked);
 
         //setVisible(true);
         //requestFocusInWindow();
@@ -95,5 +86,6 @@ public class WelcomeScreen extends JPanel{
         g.drawString("V.: "+MainRepository.getVersion(), 530, 165);
         g.drawString("Build date: "+MainRepository.getBuildDate(), 483, 180);
         g.drawString("Press any Key to Logon", 275, 350);
+        requestFocus();
     }
 }

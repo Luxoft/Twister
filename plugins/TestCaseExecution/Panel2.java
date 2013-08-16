@@ -1,6 +1,6 @@
 /*
 File: Panel2.java ; This file is part of Twister.
-Version: 2.001
+Version: 2.002
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -174,6 +174,37 @@ public class Panel2 extends JPanel{
                 }
                 stoppushed = false;}
             else if(result.equals("running")){
+                
+                if(first){
+                    while(!RunnerRepository.initialized){
+                        try{Thread.sleep(1000);}
+                        catch(Exception ex){
+                            ex.printStackTrace();
+                        }
+                    }
+                    first = false;
+                    RunnerRepository.window.mainpanel.p1.setGenerate(false);
+                    stoppushed = false;
+                    runned = true;
+                    cestatus.setText("CE status: running"+startedtime+elapsedtime+user);
+                    stop.setEnabled(true);
+                    RunnerRepository.window.mainpanel.p1.edit.setEnabled(false);
+                    cleared=false;
+                    play.setText("Pause");
+                    play.setIcon(new ImageIcon(RunnerRepository.pauseicon));
+                    RunnerRepository.window.mainpanel.p1.setRunning();
+                } else {
+                    RunnerRepository.window.mainpanel.p1.setGenerate(false);
+                    stoppushed = false;
+                    runned = true;
+                    cestatus.setText("CE status: running"+startedtime+elapsedtime+user);
+                    stop.setEnabled(true);
+                    RunnerRepository.window.mainpanel.p1.edit.setEnabled(false);
+                    cleared=false;
+                    play.setText("Pause");
+                    play.setIcon(new ImageIcon(RunnerRepository.pauseicon));
+                }
+                
                 RunnerRepository.window.mainpanel.p1.setGenerate(false);
                 stoppushed = false;
                 runned = true;
@@ -183,10 +214,10 @@ public class Panel2 extends JPanel{
                 cleared=false;
                 play.setText("Pause");
                 play.setIcon(new ImageIcon(RunnerRepository.pauseicon));
-                if(first){
-                    RunnerRepository.window.mainpanel.p1.setRunning();
-                    first = false;
-                }
+//                 if(first){
+//                     RunnerRepository.window.mainpanel.p1.setRunning();
+//                     first = false;
+//                 }
             }
             if(!play.isEnabled()){
                 play.setEnabled(true);
@@ -205,7 +236,7 @@ public class Panel2 extends JPanel{
 //                     }
             }
         catch(Exception e){
-            //e.printStackTrace();
+            e.printStackTrace();
             if(first){
                 while(!RunnerRepository.initialized){
                     try{Thread.sleep(1000);}

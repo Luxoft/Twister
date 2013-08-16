@@ -1,6 +1,6 @@
 /*
 File: DatabaseInterface.java ; This file is part of Twister.
-Version: 2.003
+Version: 2.005
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -581,7 +581,7 @@ public class DatabaseInterface extends JPanel {
                 generateFile();
             }});
         savepanel.add(save);
-        if(!PermissionValidtor.canEditDB()){
+        if(!PermissionValidator.canEditDB()){
             //save.setEnabled(false);
         }
         add(savepanel,BorderLayout.SOUTH);
@@ -687,8 +687,8 @@ public class DatabaseInterface extends JPanel {
             FileInputStream in = new FileInputStream(file);
             RunnerRepository.uploadRemoteFile(RunnerRepository.REMOTEDATABASECONFIGPATH, in, file.getName());
             CustomDialog.showInfo(JOptionPane.PLAIN_MESSAGE,RunnerRepository.window,
-                                   "Succes",
-                                   "File succesfully generated");
+                                   "Success",
+                                   "File successfully generated");
         } catch (Exception e){
             CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,RunnerRepository.window,
                                   "Warning",

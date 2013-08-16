@@ -35,12 +35,22 @@ public class Item implements Cloneable{
     private boolean runnable = true;
     private ArrayList<String[]> userDefined = new ArrayList<String[]>();
     private boolean prerequisite = false;
+    private boolean teardown = false;
     private boolean optional = false;
     private String [] servers;
     private String [] libs;
     private boolean panicdetect = false;
+    private int ceindex;
     
-    public String[] getLibs() {
+    public int getCEindex() {
+		return ceindex;
+	}
+
+	public void setCEindex(int ceindex) {
+		this.ceindex = ceindex;
+	}
+
+	public String[] getLibs() {
 		return libs;
 	}
 
@@ -63,6 +73,15 @@ public class Item implements Cloneable{
         if(prerequisite){
             setCheck(true);
             setRunnable(true);}}
+    
+    public void setTeardown(boolean teardown){
+        this.teardown = teardown;
+        if(teardown){
+            setCheck(true);
+            setRunnable(true);}}
+    
+    public boolean isTeardown(){
+        return teardown;}
         
     public boolean isPrerequisite(){
         return prerequisite;}
@@ -199,7 +218,6 @@ public class Item implements Cloneable{
     public void setPos(ArrayList<Integer> indexpos){
         this.indexpos=indexpos;
         for(int i=0;i<getSubItemsNr();i++){
-            @SuppressWarnings("unchecked")
 			ArrayList<Integer> clona = (ArrayList<Integer>)indexpos.clone();
             clona.add(new Integer(i));
             getSubItem(i).setPos(clona);}}

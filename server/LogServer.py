@@ -37,6 +37,7 @@ def create_listener(PORT):
     """
     Create streaming socket server on a local host and a random port.
     """
+    log.debug('Preparing to start on `{}`...'.format(PORT))
     for res in socket.getaddrinfo(None, PORT, socket.AF_UNSPEC, socket.SOCK_STREAM, 0, socket.AI_PASSIVE):
         af, socktype, proto, canonname, sa = res
         try:

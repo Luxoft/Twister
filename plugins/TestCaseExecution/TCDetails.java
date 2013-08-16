@@ -1,6 +1,6 @@
 /*
 File: TCDetails.java ; This file is part of Twister.
-Version: 2.002
+Version: 2.004
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -18,6 +18,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 import javax.swing.JPanel;
+import javax.swing.JEditorPane;
 import javax.swing.JTextArea;
 import java.awt.Font;
 import java.awt.Color;
@@ -31,18 +32,20 @@ import java.awt.Graphics;
 import java.awt.event.ActionEvent;
 import javax.swing.JButton;
 import java.io.File;
+import javax.swing.JScrollPane;
 
 public class TCDetails extends JPanel{
-    public JTextArea text = new JTextArea("This is a sample text for helping on screen allignament");
-    public JLabel title = new JLabel("This is the title");
+//     public JTextArea text = new JTextArea("This is a sample text for helping on screen allignament");
+    public JEditorPane text = new JEditorPane("text/html","");
     private JPanel selector = new JPanel();
 //     private RoundButton tcdetails = new RoundButton("TC details");
 //     private RoundButton logs = new RoundButton("Logs");
     public JButton tcdetails = new JButton("TC details");
     public JButton logs = new JButton("Logs");
-    private JPanel p1,p2;
+    private JPanel p1;
     
     public TCDetails(){
+        //text.setContentType("text/html");
         selector.setPreferredSize(new Dimension(200,35));
         selector.setBackground(Color.WHITE);
         selector.setLayout(null);
@@ -55,8 +58,9 @@ public class TCDetails extends JPanel{
         setMinimumSize(new Dimension(0,0));
         setMaximumSize(new Dimension(1000,1000));
         setLayout(new BorderLayout());
-        text.setWrapStyleWord(true);
-        text.setLineWrap(true);
+        //text.set
+        //text.setWrapStyleWord(true);
+        //text.setLineWrap(true);
         text.setEditable(false);        
         text.setCursor(null);  
         text.setOpaque(false);  
@@ -64,19 +68,31 @@ public class TCDetails extends JPanel{
         text.setFont(new Font("Arial",Font.PLAIN,12));
         setBackground(Color.WHITE); 
         text.setBackground(Color.WHITE);       
+//         p1 = new JPanel();
+//         p1.setBackground(Color.WHITE); 
+//         p1.setLayout(new BorderLayout());
+//         p1.add(new JLabel("Title:  "),BorderLayout.WEST);
+//         title.setFont(new Font("Arial",Font.PLAIN,12));
+//         p1.add(title,BorderLayout.CENTER);        
+//         p2 = new JPanel();
+//         p2.setBackground(Color.WHITE); 
+//         p2.setLayout(new BorderLayout());
+//         p2.add(new JLabel("Description:  "),BorderLayout.NORTH);
+//         p2.add(text,BorderLayout.CENTER);        
+//         add(p1,BorderLayout.NORTH);
+//         add(p2,BorderLayout.CENTER);
+
+
         p1 = new JPanel();
-        p1.setBackground(Color.WHITE); 
         p1.setLayout(new BorderLayout());
-        p1.add(new JLabel("Title:  "),BorderLayout.WEST);
-        title.setFont(new Font("Arial",Font.PLAIN,12));
-        p1.add(title,BorderLayout.CENTER);        
-        p2 = new JPanel();
-        p2.setBackground(Color.WHITE); 
-        p2.setLayout(new BorderLayout());
-        p2.add(new JLabel("Description:  "),BorderLayout.NORTH);
-        p2.add(text,BorderLayout.CENTER);        
-        add(p1,BorderLayout.NORTH);
-        add(p2,BorderLayout.CENTER);
+        add(p1,BorderLayout.CENTER);
+        JPanel p = new JPanel();
+        p.setLayout(new BorderLayout());
+        p.add(text,BorderLayout.CENTER);
+        JScrollPane sc = new JScrollPane(p);
+        p1.add(sc, BorderLayout.CENTER);
+        
+
         add(selector,BorderLayout.SOUTH);
         logs.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
@@ -107,7 +123,6 @@ public class TCDetails extends JPanel{
                     }
                         
                 }
-//                 new XMLReader(xml).parseXML(g, true);
                 new XMLReader(xml).parseXML(g, true,RunnerRepository.getTestSuite(),false);
                 RunnerRepository.window.mainpanel.getP2().updateTabs();
             }
@@ -115,7 +130,7 @@ public class TCDetails extends JPanel{
                 e.printStackTrace();
             }
         remove(p1);
-        remove(p2);
+//         remove(p2);
         add(RunnerRepository.window.mainpanel.getP2().tabbed,BorderLayout.CENTER);
         revalidate();
         repaint();
@@ -123,8 +138,8 @@ public class TCDetails extends JPanel{
     
     public void setTCDetails(){
         remove(RunnerRepository.window.mainpanel.getP2().tabbed);
-        add(p1,BorderLayout.NORTH);
-        add(p2,BorderLayout.CENTER);
+        add(p1,BorderLayout.CENTER);
+//         add(p2,BorderLayout.CENTER);
         revalidate();
         repaint();
     }

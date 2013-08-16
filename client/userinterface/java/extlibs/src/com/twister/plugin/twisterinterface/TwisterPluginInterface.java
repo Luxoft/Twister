@@ -18,6 +18,7 @@ limitations under the License.
 */
 package com.twister.plugin.twisterinterface;
 
+import java.applet.Applet;
 import java.awt.Component;
 import java.util.ArrayList;
 import java.util.Hashtable;
@@ -27,10 +28,12 @@ import com.twister.Item;
 public interface TwisterPluginInterface{
 	void init(ArrayList <Item>suite,ArrayList <Item>suitetest,
 			  Hashtable<String, String>variables,
-			  Document pluginsConfig);
+			  Document pluginsConfig,Applet container);
 	void terminate();
     Component getContent();
     String getName();
     String getDescription(String localplugindir);
     String getFileName();
+    void setInterface(CommonInterface commoninterface);
+    void resizePlugin(int width, int height);
 }

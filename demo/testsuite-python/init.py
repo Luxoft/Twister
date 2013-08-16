@@ -1,8 +1,12 @@
 
 #
-# version: 2.002
+# version: 2.003
 # <title>init file</title>
 # <description>...</description>
+# <tags>tag1!tag2, tag3@tag4; **&&$$</tags>
+# <meta1><Dudu><Testing inside></test></meta1>
+# <meta2>###
+# ###</meta2>
 #
 
 # `USER`, `EP`, `SUITE_NAME` and `FILE_NAME` are magic variables,

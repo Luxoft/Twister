@@ -31,7 +31,6 @@ This file starts the Twister Server.
 import os
 import sys
 import cherrypy
-import paramiko
 
 TWISTER_PATH = os.getenv('TWISTER_PATH')
 if not TWISTER_PATH:
@@ -41,36 +40,7 @@ sys.path.append(TWISTER_PATH)
 
 from common.tsclogging import *
 from server.CentralEngineClasses import CentralEngine
-
-#
-
-def check_passwd(realm, user, passwd):
-    """
-    This function is called before ALL XML-RPC calls,
-    to check the username and password.
-    """
-    if cherrypy.session.get('user_passwd') == (user+':'+passwd):
-        return True
-    elif passwd == 'EP':
-        cherrypy.session['username'] = user
-        return True
-
-    t = paramiko.Transport(('localhost', 22))
-    t.logger.setLevel(40) # Less spam, please
-    t.start_client()
-
-    # This operation is really heavy!!!
-    try:
-        t.auth_password(user, passwd)
-        cherrypy.session['username'] = user
-        cherrypy.session['user_passwd'] = (user+':'+passwd)
-        t.stop_thread()
-        t.close()
-        return True
-    except:
-        t.stop_thread()
-        t.close()
-        return False
+from server.CentralEngineOthers import check_passwd
 
 #
 

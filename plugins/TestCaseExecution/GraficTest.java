@@ -1,6 +1,6 @@
 /*
 File: GraficTest.java ; This file is part of Twister.
-Version: 2.002
+Version: 2.003
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -143,7 +143,7 @@ public class GraficTest extends JPanel{
                     }                    
                 }
                 for(Log l:logs){
-                    l.findNext(item.getName()+"` >>>",true,"<<< START filename: `");
+                    l.findNext(item.getCEindex()+":"+item.getName()+"` >>>",true,"<<< START filename: `");
                 }
             }
             else if(keypress==2){

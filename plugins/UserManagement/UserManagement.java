@@ -1,6 +1,6 @@
 /*
 File: UserManagement.java ; This file is part of Twister.
-Version: 2.003
+Version: 2.004
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -627,12 +627,7 @@ public class UserManagement extends BasePlugin implements TwisterPluginInterface
 								usertable.rowAtPoint(ev.getPoint()),
 								1).toString();
 		
-		//PropertyChangeListener pcl = ((JSpinner.DefaultEditor) timeoutt.getEditor()).getTextField().getPropertyChangeListeners("MyPropListener")[0];
-		//((JSpinner.DefaultEditor) timeoutt.getEditor()).getTextField().removePropertyChangeListener(pcl);
-		
 		((JSpinner.DefaultEditor) timeoutt.getEditor()).getTextField().setText(timeout);
-		
-		//((JSpinner.DefaultEditor) timeoutt.getEditor()).getTextField().addPropertyChangeListener("MyPropListener", pcl);
 		
 		String groups[] = 
 				usertable.getValueAt(
@@ -664,7 +659,6 @@ public class UserManagement extends BasePlugin implements TwisterPluginInterface
 			Object [] groups = hm.keySet().toArray();
 			DefaultTableModel dtm = ((DefaultTableModel)groupstable.getModel());
 			dtm.setRowCount(0);
-			
 			StringBuilder sb = new StringBuilder();
 			for(Object o:groups){
 				sb.setLength(0);
@@ -699,7 +693,7 @@ public class UserManagement extends BasePlugin implements TwisterPluginInterface
                 }
                 sb.setLength(sb.length()-1);
                 int resp = (Integer)CustomDialog.showDialog(new JLabel("Set groups to: "+sb.toString()+"?"),JOptionPane.QUESTION_MESSAGE,
-                        									JOptionPane.OK_CANCEL_OPTION,UserManagement.this, "Set goups!",null);
+                        									JOptionPane.OK_CANCEL_OPTION,UserManagement.this, "Set groups!",null);
                 if(resp != JOptionPane.OK_OPTION){
                 	return;
                 }

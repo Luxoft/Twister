@@ -1,7 +1,7 @@
 package com.twister;
 /*
 File: MySftpBrowser.java ; This file is part of Twister.
-Version: 2.004
+Version: 2.005
 Copyright (C) 2012 , Luxoft
 
 Authors: Andrei Costachi <acostachi@luxoft.com>
@@ -21,6 +21,7 @@ limitations under the License.
 
 
 import javax.swing.GroupLayout.Alignment;
+import javax.swing.AbstractAction;
 import javax.swing.JCheckBox;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
@@ -97,17 +98,19 @@ public class MySftpBrowser extends JFrame {
 	private JCheckBox date = new JCheckBox("date");
 	private JCheckBox size = new JCheckBox("size");
 	private JTable table;
+	private boolean onlyfolders;
+	private AbstractAction action;//action to perform on open button trigger
 //	private DataOutputStream dataOut;
 //	private DataInputStream dataIn;
 //	private Channel ssh;
-	
 
 	/*
 	 * c - SFTP connection initialized in repository text - the jtextfield that
 	 * holds the path container - the parent for sftp browser
 	 */
 	public MySftpBrowser(String host, String user, String passwd,
-			JTextField text, final Container container) {
+			JTextField text, final Container container, boolean onlyfolders) {
+		this.onlyfolders = onlyfolders;
 		this.text = text;
 		this.container = container;
 		author.setSelected(true);
@@ -315,34 +318,34 @@ public class MySftpBrowser extends JFrame {
 								SwingConstants.LEFT, 2),
 						new MyLabel(group, null,
 								SwingConstants.LEFT, 2),
-//						new MyLabel("", null,
-//								SwingConstants.LEFT, 2)
 								0l
 						,
 						new MyLabel(format.format(date), null,
 								SwingConstants.LEFT, 2), });
 			}
-			for (LsEntry s : files) {
-				d= s.getAttrs().getMTime();
-				d*=1000;
-				date = new Date(d);
-				
-				data = s.getLongname().split("\\s+");
-				user = data[2];
-				group = data [3];
-				
-				model.addRow(new Object[] {
-						new MyLabel(s.getFilename(), null,
-								SwingConstants.LEFT, 1),
-						new MyLabel(user, null,
-								SwingConstants.LEFT, 2),
-						new MyLabel(group, null,
-								SwingConstants.LEFT, 2),
-//						new MyLabel(s.getAttrs().getSize() + "", null,
-//								SwingConstants.LEFT, 2)
-								s.getAttrs().getSize(),
-						new MyLabel(format.format(date), null,
-								SwingConstants.LEFT, 2), });
+			if(!onlyfolders){
+				for (LsEntry s : files) {
+					d= s.getAttrs().getMTime();
+					d*=1000;
+					date = new Date(d);
+					
+					data = s.getLongname().split("\\s+");
+					user = data[2];
+					group = data [3];
+					
+					model.addRow(new Object[] {
+							new MyLabel(s.getFilename(), null,
+									SwingConstants.LEFT, 1),
+							new MyLabel(user, null,
+									SwingConstants.LEFT, 2),
+							new MyLabel(group, null,
+									SwingConstants.LEFT, 2),
+//							new MyLabel(s.getAttrs().getSize() + "", null,
+//									SwingConstants.LEFT, 2)
+									s.getAttrs().getSize(),
+							new MyLabel(format.format(date), null,
+									SwingConstants.LEFT, 2), });
+				}
 			}
 			model.fireTableDataChanged();
 			table.revalidate();
@@ -354,6 +357,23 @@ public class MySftpBrowser extends JFrame {
 
 	public boolean isVisible() {
 		return visible;
+	}
+	
+	
+	public boolean isOnlyfolders() {
+		return onlyfolders;
+	}
+
+	public void setOnlyfolders(boolean onlyfolders) {
+		this.onlyfolders = onlyfolders;
+	}
+
+	public AbstractAction getAction() {
+		return action;
+	}
+
+	public void setAction(AbstractAction action) {
+		this.action = action;
 	}
 
 	/*
@@ -369,6 +389,9 @@ public class MySftpBrowser extends JFrame {
 		s.append(tfilename.getText());
 		if (text != null)
 			text.setText(s.toString());
+		if(action!=null){
+			action.actionPerformed(null);
+		}
 	}
 
 	/*

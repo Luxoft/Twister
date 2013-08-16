@@ -1,6 +1,6 @@
 /*
 File: Window.java ; This file is part of Twister.
-Version: 2.002
+Version: 2.003
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -69,14 +69,14 @@ public class Window extends JFrame{
         logout.setBounds(500,3,100,20);
         logout.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
-                mainpanel.p4.setLogout();
+                RunnerRepository.starter.maincomp.loadComponent("login");
             }
         });
         controlpanel = new JButton("Control Panel");
         controlpanel.setBounds(605,3,150,20);
         controlpanel.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
-                mainpanel.p4.setCtrlPanel();
+                RunnerRepository.starter.maincomp.loadComponent("ControlPanel");
             }
         });
         

@@ -1,6 +1,6 @@
 /*
 File: UnitTesting.java ; This file is part of Twister.
-Version: 2.002
+Version: 2.003
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -159,7 +159,7 @@ public class UnitTesting extends JFrame {
         sc = new JScrollPane(log);
         p1.add(sc);
         textarea = new JEditTextArea();
-        if(!PermissionValidtor.canEditTC()){
+        if(!PermissionValidator.canEditTC()){
             textarea.setEditable(false);
         }
         jPanel1 = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,textarea,p1);
@@ -327,7 +327,7 @@ public class UnitTesting extends JFrame {
         JMenuBar menu = new JMenuBar();
         JMenu filemenu = new JMenu("File");
         JMenuItem saveuser = new JMenuItem("Save");
-        if(!PermissionValidtor.canEditTC()){
+        if(!PermissionValidator.canEditTC()){
             saveuser.setEnabled(false);
         }
         saveuser.addActionListener(new ActionListener() {
