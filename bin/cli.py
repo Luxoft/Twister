@@ -1,6 +1,6 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2.7
 
-# version: 2.012
+# version: 2.013
 
 # File: cli.py ; This file is part of Twister.
 
