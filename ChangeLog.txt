@@ -1,3 +1,18 @@
+16th August
+
+- fix for issue #64; error message fixed and email text box widen 
+- code changes to sanitize the input parameters for issue #63
+- fixed the spelling mistakes for issue #62
+- fixed issue #39
+- fix for de-queue issue #37
+- code changes in LogServer.py to set the python version to 2.7
+- changes in GUI to fix issues with Internet Explorer
+- implemented a timeout in GUI to avoid freezing when the server is not responding
+- updates to UserGuide
+- additional tags available for test cases
+- enabled user administration for development server type
+- password removed from the Java console
+
 09th August 2013
 
 - the passwords are encrypted
