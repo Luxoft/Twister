@@ -1,7 +1,7 @@
 
 # File: CentralEngineOthers.py ; This file is part of Twister.
 
-# version: 2.026
+# version: 2.027
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -1474,7 +1474,8 @@ class Project:
                 return log
 
             # Decode e-mail password
-            SMTPPwd = self.decryptText(eMailConfig['SMTPPwd'])
+            try:
+                SMTPPwd = self.decryptText(eMailConfig['SMTPPwd'])
             except:
                 log = 'SMTP: Password is not set!'
                 logError(log)
