@@ -1,7 +1,7 @@
 
 # File: CentralEngineOthers.py ; This file is part of Twister.
 
-# version: 2.025
+# version: 2.026
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -1475,6 +1475,10 @@ class Project:
 
             # Decode e-mail password
             SMTPPwd = self.decryptText(eMailConfig['SMTPPwd'])
+            except:
+                log = 'SMTP: Password is not set!'
+                logError(log)
+                return log
             if not SMTPPwd:
                 log = 'SMTP: Invalid password! Please update your password and try again!'
                 logError(log)
@@ -1499,7 +1503,7 @@ class Project:
 
                     server.login(eMailConfig['SMTPUser'], eMailConfig['SMTPPwd'])
                 except:
-                    log = 'SMTP: Cannot autentificate to SMTP server! Invalid user or password!'
+                    log = 'SMTP: Cannot authenticate to SMTP server! Invalid user or password!'
                     logError(log)
                     return log
 
@@ -1668,7 +1672,7 @@ class Project:
 
                 server.login(eMailConfig['SMTPUser'], eMailConfig['SMTPPwd'])
             except:
-                log = 'SMTP: Cannot autentificate to SMTP server! Invalid user or password!'
+                log = 'SMTP: Cannot authenticate to SMTP server! Invalid user or password!'
                 logError(log)
                 return log
 
