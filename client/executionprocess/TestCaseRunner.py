@@ -180,11 +180,12 @@ class TwisterRunner:
             try: os.makedirs(libs_path)
             except: pass
 
-        all_libs = ['TscCommonLib.py'] # Normal python files or folders
+        all_libs = [] # Normal python files or folders
         zip_libs = [] # Zip libraries
 
         # If Reseting libs, open and destroy
         if reset_libs:
+            all_libs.insert(0, 'TscCommonLib.py')
             __init = open(libs_path + os.sep + '__init__.py', 'w')
             __init.write('\nimport os, sys\n')
             __init.write('\nPROXY = "{}"\n'.format(self.CONFIG['PROXY']))
@@ -242,7 +243,7 @@ class TwisterRunner:
             __init.write('try:\n')
             __init.write('\timport %s\n' % ext[0])
             __init.write('\tfrom %s import *\n' % ext[0])
-            __init.write('except Exception, e:\n\tprint("Cannot import library `{}`! Exception `%s`!" % e)\n\n'.format(ext[0]))
+            __init.write('except Exception as e:\n\tprint("Cannot import library `{}`! Exception `%s`!" % e)\n\n'.format(ext[0]))
             lib_pth = libs_path + os.sep + lib_file
 
             f = open(lib_pth, 'wb')
