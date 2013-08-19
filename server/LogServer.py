@@ -1,7 +1,7 @@
 
 # File: LogServer.py ; This file is part of Twister.
 
-# version: 2.002
+# version: 2.003
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -30,6 +30,10 @@ logging.basicConfig(
 console = logging.StreamHandler()
 console.setLevel(logging.NOTSET)
 log.addHandler(console)
+
+if not sys.version.startswith('2.7'):
+    print('Python version error! Log Server must run on Python 2.7!')
+    exit(1)
 
 #
 
