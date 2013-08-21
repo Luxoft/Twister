@@ -1,7 +1,7 @@
 
 # File: TestCaseRunner.py ; This file is part of Twister.
 
-# version: 2.012
+# version: 2.013
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -529,20 +529,15 @@ class TwisterRunner:
                 'FILE_ID'   : file_id,
                 'FILE_NAME' : filename,
                 'PROPERTIES': props,
-                'PROXY'     : self.proxy,
-                'logMsg'    : self.commonLib.logMsg,
-                'getGlobal' : self.commonLib.getGlobal,
-                'setGlobal' : self.commonLib.setGlobal,
-                'py_exec'   : self.commonLib.py_exec,
-                'getResource'       : self.commonLib.getResource,
-                'setResource'       : self.commonLib.setResource,
-                'renameResource'    : self.commonLib.renameResource,
-                'deleteResource'    : self.commonLib.deleteResource,
-                'getResourceStatus' : self.commonLib.getResourceStatus,
-                'allocResource'     : self.commonLib.allocResource,
-                'reserveResource'   : self.commonLib.reserveResource,
-                'freeResource'      : self.commonLib.freeResource,
+                'PROXY'     : self.proxy
             }
+
+            # Find all functions from commonLib
+            to_inject = [ f for f in dir(self.commonLib) if callable(getattr(self.commonLib, f)) ]
+            # Expose all known function in tests
+            for f in to_inject:
+                # print('DEBUG: Exposing Python command `{}` into TCL...'.format(f))
+                globs[f] = getattr(self.commonLib, f)
 
             try:
                 result = current_runner._eval(str_to_execute, globs, args)

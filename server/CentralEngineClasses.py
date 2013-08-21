@@ -1648,9 +1648,9 @@ class CentralEngine(_cptools.XMLRPCController):
             # CLI Logs are special, exploded for each EP
             if logType.lower() == 'logcli':
                 for epname in self.listEPs(user).split(','):
-                    logShort = epname +'_'+ logShort
-                    if logName == logShort:
-                        logPath = _ +'/'+ logShort
+                    logCli = epname +'_'+ logShort
+                    if logName == logCli:
+                        logPath = _ +'/'+ logCli
                         break
             else:
                 # For normal, non-CLI logs...
