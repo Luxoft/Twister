@@ -1,7 +1,7 @@
 
 # File: CentralEngineClasses.py ; This file is part of Twister.
 
-# version: 2.018
+# version: 2.019
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -1595,7 +1595,10 @@ class CentralEngine(_cptools.XMLRPCController):
         # Calling Panic Detect
         # self._panicDetectLogParse(user, epname, log_string)
 
-        logPath = logFolder + os.sep + epname + '_CLI.log'
+        logTypes = self.project.getUserInfo(user, 'log_types')
+        _, logCli = os.path.split( logTypes.get('logCli', 'CLI.log') )
+        # EP Name + CLI Path
+        logPath = logFolder + os.sep + epname +'_'+ logCli
 
         return self._logServerMsg(user, logPath + ':' + log_string)
 
@@ -1634,14 +1637,28 @@ class CentralEngine(_cptools.XMLRPCController):
         Resets one log.\n
         Called from the Java GUI.
         """
-        logType = str(logName)
         logTypes = self.project.getUserInfo(user, 'log_types')
+        logPath = ''
 
-        if logType not in logTypes:
-            logError('Log Error! Log type `{}` is not in the list of defined types: `{}`!'.format(logType, logTypes))
+        # Cycle all log types and paths
+        for logType, logN in logTypes.iteritems():
+            _, logShort = os.path.split(logN)
+            # CLI Logs are special, exploded for each EP
+            if logType.lower() == 'logcli':
+                for epname in self.listEPs(user).split(','):
+                    logShort = epname +'_'+ logShort
+                    if logName == logShort:
+                        logPath = _ +'/'+ logShort
+                        break
+            else:
+                # For normal, non-CLI logs...
+                if logName == logShort:
+                    logPath = logN
+                    break
+
+        if not logPath:
+            logError('Log Error! Log name `{}` cannot be found!'.format(logName))
             return False
-
-        logPath = self.project.getUserInfo(user, 'log_types')[logType]
 
         data = json.dumps({
             'cmd': 'del',
