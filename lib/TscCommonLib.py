@@ -118,7 +118,7 @@ class TscCommonLib:
 
 
     def renameResource(self, res_query, new_name):
-        try: return self.ra_proxy.renameResource(es_query, new_name)
+        try: return self.ra_proxy.renameResource(res_query, new_name)
         except: return None
 
 

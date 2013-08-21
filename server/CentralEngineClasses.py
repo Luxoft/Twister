@@ -173,6 +173,7 @@ class CentralEngine(_cptools.XMLRPCController):
         Encrypt a piece of text, using AES.\n
         This function is called from the Java GUI.
         """
+        if not text: return ''
         return self.project.encryptText(text)
 
 
@@ -182,6 +183,7 @@ class CentralEngine(_cptools.XMLRPCController):
         Decrypt a piece of text, using AES.\n
         This function is called from the Java GUI.
         """
+        if not text: return ''
         return self.project.decryptText(text)
 
 

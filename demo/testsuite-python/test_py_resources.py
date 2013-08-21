@@ -1,20 +1,22 @@
 
-# version: 2.002
+# version: 2.003
 
-# getResource, setResource and * are now included in the interpreter !!
-# No need to import anything anymore !
-# from ce_libs import getResource, setResource, deleteResource, getResourceStatus
-# from ce_libs import allocResource, reserveResource, freeResource
+# getResource, setResource and *the rest* are now included in the interpreter !
+# No need to import anything !
 
 #
 # <title>Test Resource Allocator</title>
 # <description>This test is checking the Resource Allocator.</description>
+# <tags>testbed, resources, devices, SUTSs</tags>
 #
+
+from os import urandom
+from binascii import hexlify
 
 def test():
 
 	testName = 'test_py_resources.py'
-	logMsg('logTest', "\nTestCase:%s starting\n" % testName)
+	logMsg('logTest', "\nTestCase: `{}` starting\n".format(testName))
 
 	error_code = "PASS"
 
@@ -22,30 +24,64 @@ def test():
 	print 'Query Root...', getResource('/')
 	print
 
-	print 'Device 1::', getResource('/tb1')
-	print 'Device 1::', getResource(101)
+	py_res = 'tb_' + hexlify(urandom(4))
+	print 'Create a tb `{}`...'.format(py_res)
+	res_id = setResource(py_res, '/', {'meta1': 1, 'meta2': 2})
+	print 'Ok.\n'
+
+	if not res_id:
+		return "FAIL"
+
+	r = getResource('/' + py_res)
+	print 'Find device by name::', r
+	if not r: return "FAIL"
+
+	r = getResource(res_id)
+	print 'Find device by ID::', r
+	if not r: return "FAIL"
 	print
 
-	print 'Meta 1::', getResource('tb1/module1:meta1')
-	print 'Meta 2::', getResource('tb1/module1:meta2')
+	r = getResource('/{}:meta1'.format(py_res))
+	print 'Meta 1::', r
+	if not r: return "FAIL"
+
+	r = getResource('/{}:meta2'.format(py_res))
+	print 'Meta 2::', r
+	if not r: return "FAIL"
 	print
 
-	id1 = setResource('test1', 'tb3/module_x', {'extra-info': 'yes'})
-	print 'Create resource::', id1
-	print 'Check info::', getResource(id1)
+	print 'Update resource::', setResource(py_res, '/', {'more-info': 'y'})
+	r = getResource(res_id)
+	print 'Check status::', r
+	if 'more-info' not in r['meta']: return "FAIL"
 	print
 
-	print 'Update resource::', setResource('test1', 'dev3/module_x', {'more-info': 'y'})
-	print 'Check status::', getResource(id1)
+	for i in range(1, 4):
+		tag = 'tag{}'.format(i)
+		r = setResource(py_res, '/', {tag: str(i)})
+		print 'Set tag `{}` = `{}` ... {}'.format(tag, i, r)
+		if not r: return "FAIL"
+
+		path = '/' + py_res + ':' + tag
+		r = renameResource(path, 'tagx')
+		print 'Rename tag `{}` = `tagx` ... {}'.format(path, r)
+		if not r: return "FAIL"
+
+		path = '/' + py_res + ':tagx'
+		r = deleteResource(path)
+		print 'Delete tag `{}` ... {}'.format(path, r)
+		if not r: return "FAIL"
+		print
+
+	print 'Check status 1::', getResourceStatus(res_id)
+	print 'Reserve resource::', reserveResource(res_id)
+	print 'Check status 2::', getResourceStatus(res_id)
 	print
 
-	print 'Check status 1::', getResourceStatus(id1)
-	print 'Reserve resource::', reserveResource(id1)
-	print 'Check status 2::', getResourceStatus(id1)
-	print
-
-	print 'Delete resource::', deleteResource(id1)
-	print 'Check info::', getResource(id1)
+	print 'Delete resource::', deleteResource(res_id)
+	r = getResource(res_id)
+	print 'Check info::', r
+	if r: return "FAIL"
 	print
 
 	logMsg('logTest', "TestCase:%s %s\n" % (testName, error_code))
