@@ -1,7 +1,7 @@
 
 # File: TestCaseRunner.py ; This file is part of Twister.
 
-# version: 2.013
+# version: 2.014
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -316,6 +316,10 @@ class TwisterRunner:
                 suite_id   = id
                 suite_name = node['name']
                 suite_str  = suite_id +' - '+ suite_name
+
+                # If this is a top level suite, set current_suite flag in EP Variables
+                if suite_id in SuitesManager:
+                    self.proxy.setEpVariable(self.userName, self.epName, 'curent_suite', suite_id)
 
                 print('\n===== ===== ===== ===== =====')
                 print(' Starting suite `{}`'.format(suite_str))

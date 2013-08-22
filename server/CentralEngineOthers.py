@@ -1,7 +1,7 @@
 
 # File: CentralEngineOthers.py ; This file is part of Twister.
 
-# version: 2.027
+# version: 2.028
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -982,7 +982,6 @@ class Project:
             logDebug('Project: Invalid EP name `{}` !'.format(epname))
             return False
         if suite_id not in eps[epname]['suites'].getSuites():
-            logDebug( eps[epname]['suites'].getSuites() )
             logDebug('Project: Invalid Suite ID `{}` !'.format(suite_id))
             return False
 
