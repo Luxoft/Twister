@@ -26,6 +26,9 @@ print 'Suite:', SUITE_NAME
 print 'Remote file:', FILE_NAME
 print 'Local file:', __file__
 
+import ce_libs
+print  ce_libs
+
 _RESULT = 'PASS'
 
 #

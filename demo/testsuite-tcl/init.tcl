@@ -2,6 +2,7 @@
 #
 # <title>init file</title>
 # <description>...</description>
+# <tags>tag1!tag2, tag3@tag4; **&&$$</tags>
 #
 
 # Load a few sources
@@ -17,6 +18,7 @@ puts "User name :: $USER"
 puts "Exec process:: $EP"
 puts "Suite name :: $SUITE_NAME"
 puts "TestBed :: $currentTB"
+puts "Remote file:: $FILE_NAME"
 
 # Load Expect and some demo library
 package require Expect

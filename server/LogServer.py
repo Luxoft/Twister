@@ -1,7 +1,7 @@
 
 # File: LogServer.py ; This file is part of Twister.
 
-# version: 2.003
+# version: 2.004
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -134,7 +134,9 @@ def process_cmd(sock):
                 # For CLI
                 if logType.lower() == 'logcli':
                     for epname in info['epnames'].split(','):
-                        logPath = info['logsPath'] + os.sep + epname + '_CLI.log'
+                        # Name and full path of logCLI
+                        logCli = os.path.split(info['logTypes'][logType])[1]
+                        logPath = info['logsPath'] +'/'+ epname +'_'+ logCli
                         try:
                             open(logPath, 'w').close()
                         except:

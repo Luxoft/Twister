@@ -1,7 +1,7 @@
 
 # File: ResourceAllocator.py ; This file is part of Twister.
 
-# version: 2.003
+# version: 2.004
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -29,14 +29,17 @@ Resource Allocator
 ******************
 
 All functions are exposed and can be accessed using XML-RPC, or the browser.\n
-Its role is to manage nodes that represent test-beds and real devices.
+Its role is to manage nodes that represent test-beds and real devices, or SUTs.
 """
 
-import os, sys
+import os
+import sys
 import ast
-import json
+import copy
 import thread
 import cherrypy
+try: import simplejson as json
+except: import json
 
 from binascii import hexlify
 from cherrypy import _cptools
@@ -52,6 +55,13 @@ from common.tsclogging import *
 RESOURCE_FREE     = 1
 RESOURCE_BUSY     = 2
 RESOURCE_RESERVED = 3
+
+ROOT_DEVICE = 1
+ROOT_SUT    = 2
+
+ROOT_NAMES = {
+    ROOT_DEVICE: 'Device', ROOT_SUT: 'SUT'
+}
 
 #
 
@@ -131,10 +141,12 @@ class ResourceAllocator(_cptools.XMLRPCController):
         self.project = project
         self.parent  = parent
 
-        self.resources = {'name': '/', 'meta': {}, 'children': {}}
+        self.resources = {'version': 0, 'name': '/', 'meta': {}, 'children': {}}
+        self.systems   = {'version': 0, 'name': '/', 'meta': {}, 'children': {}}
         self.acc_lock = thread.allocate_lock() # Task change lock
         self.ren_lock = thread.allocate_lock() # Rename lock
-        self.cfg_file = '{}/config/resources.json'.format(TWISTER_PATH)
+        self.res_file = '{}/config/resources.json'.format(TWISTER_PATH)
+        self.sut_file = '{}/config/systems.json'.format(TWISTER_PATH)
         self._load(v=True)
 
 #
@@ -142,28 +154,59 @@ class ResourceAllocator(_cptools.XMLRPCController):
     def _load(self, v=False):
 
         with self.acc_lock:
+
             if not self.resources['children']:
-                self.resources = {'name': '/', 'meta': {}, 'children': {}}
+                self.resources = {'version': 0, 'name': '/', 'meta': {}, 'children': {}}
+            if not self.systems['children']:
+                self.systems = {'version': 0, 'name': '/', 'meta': {}, 'children': {}}
+
             try:
-                f = open(self.cfg_file, 'r')
+                f = open(self.res_file, 'r')
                 self.resources = json.load(f)
                 f.close() ; del f
                 if v:
-                    logDebug('RA: Resources loaded successfully.')
+                    logDebug('RA: Devices loaded successfully.')
             except:
                 if v:
-                    logDebug('RA: There are no resources to load! Invalid path `{}`!'.format(self.cfg_file))
+                    logDebug('RA: There are no devices to load! Invalid path `{}`!'.format(self.res_file))
+            try:
+                f = open(self.sut_file, 'r')
+                self.systems = json.load(f)
+                f.close() ; del f
+                if v:
+                    logDebug('RA: SUTs loaded successfully.')
+            except:
+                if v:
+                    logDebug('RA: There are no SUTs to load! Invalid path `{}`!'.format(self.sut_file))
 
         return True
 
 
-    def _save(self):
+    def _save(self, root_id=ROOT_DEVICE):
+        '''
+        Function used to write the changes on HDD.
+        The save is separate for Devices and SUTs, so the version is not incremented
+        for both, before saving.
+        '''
 
         # Write changes, using the Access Lock.
         with self.acc_lock:
-            f = open(self.cfg_file, 'w')
-            json.dump(self.resources, f, indent=4)
-            f.close() ; del f
+
+            if root_id == ROOT_DEVICE:
+                v = self.resources.get('version', 0) + 1
+                logDebug('Saving {} file, version `{}`.'.format(ROOT_NAMES[root_id], v))
+                self.resources['version'] = v
+                f = open(self.res_file, 'w')
+                json.dump(self.resources, f, indent=4)
+                f.close() ; del f
+
+            else:
+                v = self.systems.get('version', 0) + 1
+                self.systems['version'] = v
+                logDebug('Saving {} file, version `{}`.'.format(ROOT_NAMES[root_id], v))
+                f = open(self.sut_file, 'w')
+                json.dump(self.systems, f, indent=4)
+                f.close() ; del f
 
         return True
 
@@ -173,30 +216,40 @@ class ResourceAllocator(_cptools.XMLRPCController):
         '''
         Simple echo function, for testing connection.
         '''
-        logDebug('Echo: %s' % str(msg))
-        return 'RA reply: %s' % str(msg)
+        logDebug('Echo: {}'.format(msg))
+        return 'RA reply: {}'.format(msg)
 
 #
 
     @cherrypy.expose
-    def getResource(self, query):
+    def getResource(self, query, root_id=ROOT_DEVICE):
         '''
         Show all the properties, or just 1 property of a resource.
         Must provide a Resource ID, or a Query.
+        The function is used for both Devices and SUTs, by providing the ROOT ID.
         '''
         self._load(v=False)
+
+        # If the root is not provided, use the default root
+        if root_id == ROOT_DEVICE:
+            resources = self.resources
+        else:
+            resources = self.systems
+
+        root_name = ROOT_NAMES[root_id]
+
         # If no resources...
-        if not self.resources['children']:
+        if not resources['children']:
             # Return default structure for root
             if query == '/':
                 return {'path': '', 'meta': {}, 'id': '1', 'children': []}
 
-            msg = 'Get Resource: There are no resources defined !'
+            msg = 'Get {}: There are no devices defined !'.format(root_name)
             logError(msg)
             return '*ERROR* ' + msg
 
         if not query:
-            msg = 'Get Resource: Cannot get a null resource !'
+            msg = 'Get {}: Cannot get a null resource !'.format(root_name)
             logError(msg)
             return '*ERROR* ' + msg
 
@@ -204,7 +257,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
         # If the query asks for a specific Meta Tag
         if query.count(':') > 1:
-            msg = 'Get Resource: Invalid query ! Cannot access more than 1 meta info !'
+            msg = 'Get {}: Invalid query ! Cannot access more than 1 meta info !'.format(root_name)
             logError(msg)
             return '*ERROR* ' + msg
 
@@ -216,14 +269,14 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
         # If the query is an ID
         if '/' not in query:
-            result = _recursive_find_id(self.resources, query, [])
+            result = _recursive_find_id(resources, query, [])
             if not result:
                 return False
 
         # If the query is a slash string query
         else:
             parts = [q for q in query.split('/') if q]
-            result = self.resources
+            result = resources
 
             for part in parts:
                 if not result: return False
@@ -242,12 +295,22 @@ class ResourceAllocator(_cptools.XMLRPCController):
         else:
             return result['meta'].get(meta, '')
 
+
+    @cherrypy.expose
+    def getSut(self, query):
+        '''
+        Show all the properties, or just 1 property of a SUT.
+        Must provide a SUT ID, or a Query.
+        '''
+        return self.getResource(query, ROOT_SUT)
+
 #
 
     @cherrypy.expose
-    def setResource(self, name, parent=None, props={}):
+    def setResource(self, name, parent=None, props={}, root_id=ROOT_DEVICE):
         '''
         Create or change a resource, using a name, a parent Path or ID and some properties.
+        The function is used for both Devices and SUTs, by providing the ROOT ID.
         '''
         # Check the username from CherryPy connection
         cherry_roles = self.project._checkUser()
@@ -259,12 +322,23 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
         self._load(v=False)
 
-        parent_p = _get_res_pointer(self.resources, parent)
+        # If the root is not provided, use the default root
+        if root_id == ROOT_DEVICE:
+            resources = self.resources
+        else:
+            resources = self.systems
+
+        root_name = ROOT_NAMES[root_id]
+        parent_p = _get_res_pointer(resources, parent)
 
         if not parent_p:
-            msg = 'Set Resource: Cannot find parent path or ID `{0}` !'.format(parent)
+            msg = 'Set {}: Cannot find parent path or ID `{}` !'.format(root_name, parent)
             logError(msg)
             return '*ERROR* ' + msg
+
+        if '/' in name:
+            logDebug('Set {}: Stripping slash characters from `{}`...'.format(root_name, name))
+            name = name.replace('/', '')
 
         if isinstance(props, dict):
             pass
@@ -273,11 +347,11 @@ class ResourceAllocator(_cptools.XMLRPCController):
             try:
                 props = ast.literal_eval(props)
             except Exception, e:
-                msg = 'Set Resource: Cannot parse properties: `{}`, `{}` !'.format(props, e)
+                msg = 'Set {}: Cannot parse properties: `{}`, `{}` !'.format(root_name, props, e)
                 logError(msg)
                 return '*ERROR* ' + msg
         else:
-            msg = 'Set Resource: Invalid properties `{0}` !'.format(props)
+            msg = 'Set {}: Invalid properties `{}` !'.format(root_name, props)
             logError(msg)
             return '*ERROR* ' + msg
 
@@ -287,34 +361,48 @@ class ResourceAllocator(_cptools.XMLRPCController):
         try: del parent_p['path']
         except: pass
 
+        # Make a copy, to compare the changes at the end
+        old_parent = copy.deepcopy(parent_p)
+
         # If the resource exists, patch the new properties!
         if name in parent_p['children']:
             child_p = parent_p['children'][name]
             child_p['meta'].update(props)
-            # Write changes.
-            self._save()
-            logDebug('Updated resource `{0}` : `{1}`.'.format(child_p['id'], props))
+
+            if old_parent != parent_p:
+                self._save(root_id)
+                logDebug('Updated {} `{}`, id `{}` : `{}`.'.format(root_name, name, child_p['id'], props))
+            else:
+                logDebug('No changes have been made to {} `{}`, id `{}`.'.format(root_name, name, child_p['id']))
             return True
 
         # If the resource is new, create it.
         else:
             res_id = False
-
             while not res_id:
                 res_id = hexlify(os.urandom(5))
                 # If by any chance, this ID already exists, generate another one!
-                if _recursive_find_id(self.resources, res_id, []):
+                if _recursive_find_id(resources, res_id, []):
                     res_id = False
 
             parent_p['children'][name] = {'id': res_id, 'meta': props, 'children': {}}
-            # Write changes.
-            self._save()
-            logDebug('Created resource `{0}` : `{1}`.'.format(res_id, props))
+
+            # Write changes for Device or SUT
+            self._save(root_id)
+            logDebug('Created {} `{}`, id `{}` : `{}`.'.format(root_name, name, res_id, props))
             return res_id
 
 
     @cherrypy.expose
-    def renameResource(self, res_query, new_name):
+    def setSut(self, name, parent=None, props={}):
+        '''
+        Create or change a SUT, using a name, a parent Path or ID and some properties.
+        '''
+        return self.setResource(name, parent, props, ROOT_SUT)
+
+
+    @cherrypy.expose
+    def renameResource(self, res_query, new_name, root_id=ROOT_DEVICE):
         '''
         Rename a resource.
         '''
@@ -328,19 +416,27 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
         self._load(v=False)
 
+        # If the root is not provided, use the default root
+        if root_id == ROOT_DEVICE:
+            resources = self.resources
+        else:
+            resources = self.systems
+
+        root_name = ROOT_NAMES[root_id]
+
         # If no resources...
-        if not self.resources['children']:
-            msg = 'Rename Resource: There are no resources defined !'
+        if not resources['children']:
+            msg = 'Rename {}: There are no resources defined !'.format(root_name)
             logError(msg)
             return '*ERROR* ' + msg
 
         if '/' in new_name:
-            msg = 'Rename Resource: New resource name cannot contain `/` !'
+            msg = 'Rename {}: New resource name cannot contain `/` !'.format(root_name)
             logError(msg)
             return '*ERROR* ' + msg
 
         if ':' in new_name:
-            msg = 'Rename Resource: New resource name cannot contain `:` !'
+            msg = 'Rename {}: New resource name cannot contain `:` !'.format(root_name)
             logError(msg)
             return '*ERROR* ' + msg
 
@@ -351,10 +447,13 @@ class ResourceAllocator(_cptools.XMLRPCController):
             meta = ''
 
         # Find the resource pointer.
-        res_p = self.getResource(res_query)
+        if root_id == ROOT_DEVICE:
+            res_p = self.getResource(res_query)
+        else:
+            res_p = self.getSut(res_query)
 
         if not res_p:
-            msg = 'Rename Resource: Cannot find resource path or ID `{0}` !'.format(res_query)
+            msg = 'Rename {}: Cannot find resource path or ID `{}` !'.format(root_name, res_query)
             logError(msg)
             return '*ERROR* ' + msg
 
@@ -364,45 +463,61 @@ class ResourceAllocator(_cptools.XMLRPCController):
         new_path = list(node_path) ; new_path[-1] = new_name
 
         if not node_path:
-            msg = 'Rename Resource: Cannot find resource node path `{0}` !'.format(node_path)
+            msg = 'Rename {}: Cannot find resource node path `{}` !'.format(root_name, node_path)
             logError(msg)
             return '*ERROR* ' + msg
 
-        exec_string = 'self.resources["children"]["{0}"]'.format('"]["children"]["'.join(node_path))
+        # Must use the real pointer instead of `resource` pointer in order to update the real data
+        if root_id == ROOT_DEVICE:
+            exec_string = 'self.resources["children"]["{}"]'.format('"]["children"]["'.join(node_path))
+        else:
+            exec_string = 'self.systems["children"]["{}"]'.format('"]["children"]["'.join(node_path))
 
         with self.ren_lock:
 
             # If must rename a Meta info
             if meta:
-                exec( 'val = {0}["meta"].get("{1}")'.format(exec_string, meta) )
+                exec( 'val = {}["meta"].get("{}")'.format(exec_string, meta) )
 
                 if val is None:
-                    msg = 'Rename Resource: Cannot find resource meta info `{0}` !'.format(meta)
+                    msg = 'Rename {}: Cannot find resource meta info `{}` !'.format(root_name, meta)
                     logError(msg)
                     return '*ERROR* ' + msg
 
                 exec( '{0}["meta"]["{1}"] = {0}["meta"]["{2}"]'.format(exec_string, new_name, meta) )
-                exec( 'del {0}["meta"]["{1}"]'.format(exec_string, meta) )
+                exec( 'del {}["meta"]["{}"]'.format(exec_string, meta) )
 
-                logDebug('Renamed resource meta `{0}:{1}` to `{0}:{2}`.'.format('/'.join(node_path), meta, new_name))
+                logDebug('Renamed {0} meta `{1}:{2}` to `{1}:{3}`.'.format(root_name, '/'.join(node_path), meta, new_name))
 
             # If must rename a normal node
             else:
-                new_string = 'self.resources["children"]["{0}"]'.format('"]["children"]["'.join(new_path))
+                # Must use the real pointer instead of `resource` pointer in order to update the real data
+                if root_id == ROOT_DEVICE:
+                    new_string = 'self.resources["children"]["{}"]'.format('"]["children"]["'.join(new_path))
+                else:
+                    new_string = 'self.systems["children"]["{}"]'.format('"]["children"]["'.join(new_path))
 
                 exec( new_string + ' = ' + exec_string )
                 exec( 'del ' + exec_string )
 
-                logDebug('Renamed resource path `{0}` to `{1}`.'.format('/'.join(node_path), '/'.join(new_path)))
+                logDebug('Renamed {} path `{}` to `{}`.'.format(root_name, '/'.join(node_path), '/'.join(new_path)))
 
-            # # Write changes.
-            self._save()
+            # Write changes.
+            self._save(root_id)
 
         return True
 
 
     @cherrypy.expose
-    def deleteResource(self, res_query):
+    def renameSut(self, res_query, new_name):
+        '''
+        Rename a SUT.
+        '''
+        return self.renameResource(res_query, new_name, ROOT_SUT)
+
+
+    @cherrypy.expose
+    def deleteResource(self, res_query, root_id=ROOT_DEVICE):
         '''
         Permanently delete a resource.
         '''
@@ -416,9 +531,17 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
         self._load(v=False)
 
+        # If the root is not provided, use the default root
+        if root_id == ROOT_DEVICE:
+            resources = self.resources
+        else:
+            resources = self.systems
+
+        root_name = ROOT_NAMES[root_id]
+
         # If no resources...
-        if not self.resources['children']:
-            msg = 'Del Resource: There are no resources defined !'
+        if not resources['children']:
+            msg = 'Del {}: There are no resources defined !'.format(root_name)
             logError(msg)
             return '*ERROR* ' + msg
 
@@ -429,10 +552,13 @@ class ResourceAllocator(_cptools.XMLRPCController):
             meta = ''
 
         # Find the resource pointer.
-        res_p = self.getResource(res_query)
+        if root_id == ROOT_DEVICE:
+            res_p = self.getResource(res_query)
+        else:
+            res_p = self.getSut(res_query)
 
         if not res_p:
-            msg = 'Del Resource: Cannot find resource path or ID `{0}` !'.format(res_query)
+            msg = 'Del {}: Cannot find resource path or ID `{}` !'.format(root_name, res_query)
             logError(msg)
             return '*ERROR* ' + msg
 
@@ -440,33 +566,45 @@ class ResourceAllocator(_cptools.XMLRPCController):
         node_path = [p for p in res_p['path'].split('/') if p]
 
         if not node_path:
-            msg = 'Del Resource: Cannot find resource node path `{0}` !'.format(node_path)
+            msg = 'Del {}: Cannot find resource node path `{}` !'.format(root_name, node_path)
             logError(msg)
             return '*ERROR* ' + msg
 
-        exec_string = 'self.resources["children"]["{0}"]'.format('"]["children"]["'.join(node_path))
+        # Must use the real pointer instead of `resource` pointer in order to update the real data
+        if root_id == ROOT_DEVICE:
+            exec_string = 'self.resources["children"]["{}"]'.format('"]["children"]["'.join(node_path))
+        else:
+            exec_string = 'self.systems["children"]["{}"]'.format('"]["children"]["'.join(node_path))
 
         # If must delete a Meta info
         if meta:
-            exec( 'val = {0}["meta"].get("{1}")'.format(exec_string, meta) )
+            exec( 'val = {}["meta"].get("{}")'.format(exec_string, meta) )
 
             if val is None:
-                msg = 'Del Resource: Cannot find resource meta info `{0}` !'.format(meta)
+                msg = 'Del {}: Cannot find resource meta info `{}` !'.format(root_name, meta)
                 logError(msg)
                 return '*ERROR* ' + msg
 
-            exec( 'del {0}["meta"]["{1}"]'.format(exec_string, meta) )
-            logDebug('Deleted resource meta `{0}:{1}`.'.format('/'.join(node_path), meta))
+            exec( 'del {}["meta"]["{}"]'.format(exec_string, meta) )
+            logDebug('Deleted {} meta `{}:{}`.'.format(root_name, '/'.join(node_path), meta))
 
         # If must delete a normal node
         else:
             exec( 'del ' + exec_string )
-            logDebug('Deleted resource path `{0}`.'.format('/'.join(node_path)))
+            logDebug('Deleted {} path `{}`.'.format(root_name, '/'.join(node_path)))
 
         # Write changes.
-        self._save()
+        self._save(root_id)
 
         return True
+
+
+    @cherrypy.expose
+    def deleteSut(self, res_query):
+        '''
+        Permanently delete a SUT.
+        '''
+        return self.deleteResource(res_query, ROOT_SUT)
 
 
     @cherrypy.expose
@@ -484,14 +622,14 @@ class ResourceAllocator(_cptools.XMLRPCController):
         tbvalue = self.resources['children'].get(tbname)
 
         if not tbvalue:
-            msg = 'Find Epname: Cannot find TestBed `{0}` !'.format(tbname)
+            msg = 'Find Epname: Cannot find TestBed `{}` !'.format(tbname)
             logError(msg)
             return '*ERROR* ' + msg
 
         ep = tbvalue['meta'].get('epnames')
 
         if not ep:
-            msg = 'Find Epname: TestBed `{0}` does not have any EPs !'.format(tbname)
+            msg = 'Find Epname: TestBed `{}` does not have any EPs !'.format(tbname)
             logError(msg)
             return '*ERROR* ' + msg
 
@@ -516,7 +654,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
         res_p = self.getResource(res_query)
 
         if not res_p:
-            msg = 'Get Status: Cannot find resource path or ID `{0}` !'.format(res_query)
+            msg = 'Get Status: Cannot find resource path or ID `{}` !'.format(res_query)
             logError(msg)
             return '*ERROR* ' + msg
 
@@ -530,7 +668,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
         res_p = _get_res_pointer(self.resources, res_query)
 
         if not res_p:
-            msg = 'Alloc Resource: Cannot find resource path or ID `{0}` !'.format(res_query)
+            msg = 'Alloc Resource: Cannot find resource path or ID `{}` !'.format(res_query)
             logError(msg)
             return '*ERROR* ' + msg
         if res_p.get('status') == RESOURCE_BUSY:
@@ -551,7 +689,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
         res_p = _get_res_pointer(self.resources, res_query)
 
         if not res_p:
-            msg = 'Reserve Resource: Cannot find resource path or ID `{0}` !'.format(res_query)
+            msg = 'Reserve Resource: Cannot find resource path or ID `{}` !'.format(res_query)
             logError(msg)
             return '*ERROR* ' + msg
         if res_p.get('status') == RESOURCE_BUSY:
@@ -572,7 +710,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
         res_p = _get_res_pointer(self.resources, res_query)
 
         if not res_p:
-            msg = 'Free Resource: Cannot find resource path or ID `{0}` !'.format(res_query)
+            msg = 'Free Resource: Cannot find resource path or ID `{}` !'.format(res_query)
             logError(msg)
             return '*ERROR* ' + msg
 
