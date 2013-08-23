@@ -78,8 +78,8 @@ def process_cmd(sock):
 
         # Message from client.
         data = conn.recv((2**14))
-        if data:
-            log.debug('Message: `{}`.'.format(repr(data)))
+        # if data:
+        #     log.debug('Message: `{}`.'.format(repr(data)))
 
 
         # ~~~ Reset 1 Log ~~~

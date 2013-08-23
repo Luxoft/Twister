@@ -92,7 +92,7 @@ class ReportingServer:
 
         # Create database parser IF necessary, or FORCED...
         if force or (usr not in self.db_parser):
-            # logDebug('Reporting Server: Parsing DB config `{}` for user `{}`.'.format(db_file, usr))
+            logDebug('Reporting Server: Parsing DB config `{}` for user `{}`.'.format(db_file, usr))
 
             self.db_parser[usr]      = DBParser(db_file)
             self.glob_fields[usr]    = self.db_parser[usr].getReportFields()
@@ -108,8 +108,8 @@ class ReportingServer:
         Reconnect to the database.
         '''
         db_config = self.db_parser[usr].db_config
-        # logDebug('Reporting Server: Connecting on DB from `{}:{}`...'\
-        #          ''.format(db_config.get('server'), db_config.get('database')))
+        logDebug('Reporting Server: Connecting on DB from `{}:{}`...'\
+                 ''.format(db_config.get('server'), db_config.get('database')))
 
         # Decode database password
         db_password = self.project.decryptText( db_config.get('password') )
