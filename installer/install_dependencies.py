@@ -170,6 +170,7 @@ def install_offline(lib_name):
         return
 
     fopen = tarfile.open(p_library[0])
+    print('Extracting `{}`...\nThis might take some time...\n'.format(p_library[0]))
     p_library_root = fopen.getnames()[0].split(os.sep)[0]
     fopen.extractall()
     fopen.close() ; del fopen

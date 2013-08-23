@@ -1,4 +1,10 @@
 
+#
+# <title>Test Resource Allocator</title>
+# <description>This test is checking the Resource Allocator.</description>
+# <tags>testbed, resources, devices, SUTSs</tags>
+#
+
 proc Test {} {
     #set testName [lindex [info frame 0] [expr {[llength [info frame 0]] - 3}]]
     set testName "test_tb_resources.tcl"
