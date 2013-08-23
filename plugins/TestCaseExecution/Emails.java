@@ -1,6 +1,6 @@
 /*
 File: Emails.java ; This file is part of Twister.
-Version: 2.005
+Version: 2.006
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -60,6 +60,7 @@ public class Emails extends JPanel{
     private JPasswordField tpass;
     private JTextArea emails, message, subject;
     private JLabel enable;
+    private String initialpass;
 
     public Emails(){
         setLayout(null);
@@ -189,9 +190,9 @@ public class Emails extends JPanel{
                 else enable.setText("Disabled");}});
         add(check);
         JButton save = new JButton("Save");
-        if(!PermissionValidator.canEditEmail()){
-            save.setEnabled(false);
-        }
+//         if(!PermissionValidator.canEditEmail()){
+//             save.setEnabled(false);
+//         }
         save.setBounds(352,525,80,20);
         save.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
@@ -215,14 +216,30 @@ public class Emails extends JPanel{
                         nodeLst = doc.getElementsByTagName("SMTPUser");
                         if(nodeLst.item(0).getChildNodes().getLength()>0)nodeLst.item(0).getChildNodes().item(0).setNodeValue(tuser.getText());
                         else nodeLst.item(0).appendChild(doc.createTextNode(tuser.getText()));
-                        if(tpass.getPassword().length != 0 && !(new String(tpass.getPassword()).equals("****"))){
+                        if( !(new String(tpass.getPassword()).equals("****"))){
                             nodeLst = doc.getElementsByTagName("SMTPPwd");
-                            String p = "";                            
-                            try{p = RunnerRepository.getRPCClient().execute("encryptText", new Object[]{new String(tpass.getPassword())}).toString();
-                            } catch(Exception e){
-                                e.printStackTrace();
-                                System.out.println("Could not encrypt password");
+                            
+                            
+                            
+//                             String p = "";                            
+//                             try{p = RunnerRepository.getRPCClient().execute("encryptText", new Object[]{new String(tpass.getPassword())}).toString();
+//                             } catch(Exception e){
+//                                 e.printStackTrace();
+//                                 System.out.println("Could not encrypt password");
+//                             }
+                            
+                            
+                            String p = new String(tpass.getPassword());
+                            if(!initialpass.equals(p)){
+                                try{p = RunnerRepository.getRPCClient().execute("encryptText", new Object[]{p}).toString();
+                                    tpass.setText(p);
+                                    initialpass = p;
+                                } catch(Exception e){
+                                    e.printStackTrace();
+                                }
                             }
+                            
+                            
                             if(nodeLst.item(0).getChildNodes().getLength()>0)nodeLst.item(0).getChildNodes().item(0).setNodeValue(p);
                             else nodeLst.item(0).appendChild(doc.createTextNode(p));}
                         nodeLst = doc.getElementsByTagName("From");
@@ -249,7 +266,7 @@ public class Emails extends JPanel{
                         transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "4");                        
                         transformer.transform(source, result);  
                         FileInputStream input = new FileInputStream(theone);
-                        RunnerRepository.uploadRemoteFile(RunnerRepository.REMOTEEMAILCONFIGPATH,input,theone.getName());
+                        saved = RunnerRepository.uploadRemoteFile(RunnerRepository.REMOTEEMAILCONFIGPATH,input,theone.getName());
                     }
                     catch(Exception e){
                         e.printStackTrace();
@@ -262,9 +279,9 @@ public class Emails extends JPanel{
                 else CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, Emails.this, "Warning", "File could not be saved");}});
         add(save);
         JButton test = new JButton("Test");
-        if(!PermissionValidator.canEditEmail()){
-            test.setEnabled(false);
-        }
+//         if(!PermissionValidator.canEditEmail()){
+//             test.setEnabled(false);
+//         }
         test.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 testEmail();
@@ -294,7 +311,9 @@ public class Emails extends JPanel{
         tipname.setText(ipname);}
         
     public void setPassword(String password){
-        tpass.setText(password);}
+        tpass.setText(password);
+        initialpass = password;
+    }
     
     public void setPort(String port){
         tport.setText(port);}

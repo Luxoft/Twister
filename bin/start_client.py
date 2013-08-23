@@ -2,7 +2,7 @@
 
 # File: start_client.py ; This file is part of Twister.
 
-# version: 2.009
+# version: 2.010
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -33,6 +33,7 @@ import socket
 import cherrypy
 import xmlrpclib
 import subprocess
+import traceback
 
 from time import sleep
 from datetime import datetime
@@ -301,9 +302,12 @@ class TwisterClientService(_cptools.XMLRPCController):
 
         sleep(2.4)
         try:
-            last_seen_alive = self.eps[epname]['proxy'].getEpVariable(self.username, epname, 'last_seen_alive')
+            proxy = self.eps[epname]['proxy']
+            last_seen_alive = proxy.getEpVariable(self.username, epname, 'last_seen_alive')
         except:
             print('Error: Cannot connect to Central Engine to check the EP!\n')
+            trace = traceback.format_exc()[34:].strip()
+            print(trace)
             return False
 
         now_dtime = datetime.today()
@@ -341,8 +345,14 @@ class TwisterClientService(_cptools.XMLRPCController):
             return False
 
         sleep(2.4)
-        os.killpg(self.eps[epname]['pid'].pid, 9)
-        self.eps[epname]['pid'] = None
+
+        try:
+            os.killpg(self.eps[epname]['pid'].pid, 9)
+            self.eps[epname]['pid'] = None
+        except:
+            trace = traceback.format_exc()[34:].strip()
+            print(trace)
+            return False
 
         print('Stopping EP `{}` !'.format(epname))
         return True
@@ -357,9 +367,14 @@ class TwisterClientService(_cptools.XMLRPCController):
             return False
 
         if self.eps[epname]['pid']:
-            os.killpg(self.eps[epname]['pid'].pid, 9)
-            self.eps[epname]['pid'] = None
-            print('Killing EP {} !'.format(epname))
+            try:
+                os.killpg(self.eps[epname]['pid'].pid, 9)
+                self.eps[epname]['pid'] = None
+                print('Killing EP `{}` !'.format(epname))
+            except:
+                trace = traceback.format_exc()[34:].strip()
+                print(trace)
+                return False
 
         print('Executing: {}'.format(self.eps[epname]['exec_str']))
         self.eps[epname]['pid'] = subprocess.Popen(

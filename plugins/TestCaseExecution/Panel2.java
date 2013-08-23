@@ -1,6 +1,6 @@
 /*
 File: Panel2.java ; This file is part of Twister.
-Version: 2.002
+Version: 2.0010
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -150,7 +150,6 @@ public class Panel2 extends JPanel{
                         }
                     }
                     RunnerRepository.openProjectFile();
-//                     RunnerRepository.window.mainpanel.askForFile();
                     first = false;
                 }
                 RunnerRepository.window.mainpanel.p1.setGenerate(true);
@@ -204,7 +203,6 @@ public class Panel2 extends JPanel{
                     play.setText("Pause");
                     play.setIcon(new ImageIcon(RunnerRepository.pauseicon));
                 }
-                
                 RunnerRepository.window.mainpanel.p1.setGenerate(false);
                 stoppushed = false;
                 runned = true;
@@ -214,10 +212,6 @@ public class Panel2 extends JPanel{
                 cleared=false;
                 play.setText("Pause");
                 play.setIcon(new ImageIcon(RunnerRepository.pauseicon));
-//                 if(first){
-//                     RunnerRepository.window.mainpanel.p1.setRunning();
-//                     first = false;
-//                 }
             }
             if(!play.isEnabled()){
                 play.setEnabled(true);
@@ -245,7 +239,6 @@ public class Panel2 extends JPanel{
                     }
                 }
                 RunnerRepository.openProjectFile();
-//                 RunnerRepository.window.mainpanel.askForFile();
                 first = false;
             }
             try{Thread.sleep(1000);}
@@ -445,7 +438,7 @@ public class Panel2 extends JPanel{
         int [] val = new int[10];
         val[0] = stats.length;
         for(String s:stats){
-            if(s.equals("10"))val[1]++;
+            if(s.equals("10")||s.equals("-1"))val[1]++;
             else if(s.equals("1"))val[2]++;
             else if(s.equals("2"))val[3]++;
             else if(s.equals("3"))val[4]++;
@@ -466,7 +459,7 @@ public class Panel2 extends JPanel{
     public int manageSubchildren(Item item, String[]statuses, int index){
         int index2 = index;
         if(item.getType()==1&&statuses.length>index2){
-            if(statuses[index2].equals("10"))item.getSubItem(0).setValue("pending");
+            if(statuses[index2].equals("10")||statuses[index2].equals("-1"))item.getSubItem(0).setValue("pending");
             else if(statuses[index2].equals("1"))item.getSubItem(0).setValue("running");
             else if(statuses[index2].equals("2"))item.getSubItem(0).setValue("pass");
             else if(statuses[index2].equals("3"))item.getSubItem(0).setValue("fail");
