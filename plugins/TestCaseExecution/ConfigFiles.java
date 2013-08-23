@@ -1,6 +1,6 @@
 /*
 File: ConfigFiles.java ; This file is part of Twister.
-Version: 2.009
+Version: 2.010
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -80,14 +80,13 @@ import java.io.FileWriter;
 
 public class ConfigFiles extends JPanel{
     public static JTextField ttcpath,tMasterXML,tUsers,tepid,
-                              tSuites,
-                              tlog,trunning,//tname,//thardwareconfig,
-                              tdebug,tsummary,tinfo,tcli,tdbfile,
-                              temailfile,tceport,
-                              libpath,tsecondarylog,
-                              testconfigpath,
-//                               thttpPort,
-                              tglobalsfile;
+                             tSuites,
+                             tlog,trunning,
+                             tdebug,tsummary,tinfo,tcli,tdbfile,
+                             temailfile,tceport,
+                             libpath,tsecondarylog,
+                             testconfigpath,
+                             tglobalsfile;
     JPanel paths;
     private static JCheckBox logsenabled  = new JCheckBox("Enabled");
     //public JPanel emailpanel;                    
@@ -181,32 +180,6 @@ public class ConfigFiles extends JPanel{
         p72.add(addField(tcli,"Cli: ",4));        
         p7.add(p71);
         p7.add(p72);
-        //thardwareconfig = new JTextField();
-//         addPanel("Hardware Config XML",
-//                 "Location of the XML file that contains the devices configuration",
-//                 thardwareconfig,RunnerRepository.REMOTEHARDWARECONFIGDIRECTORY,467,true,null);                
-//         ActionListener actionlistener = new ActionListener(){
-//             public void actionPerformed(ActionEvent ev){
-//                 if(!tname.getText().equals("")){saveXML(false);}
-//                 else{
-//                     CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,
-//                                             ConfigFiles.this, "Filename missing",
-//                                             "No file name given");}}};
-//         tname = new JTextField();
-//         addPanel("File name","File name to store this configuration",
-//                     tname,"",808,true,actionlistener);
-                 
-//         JPanel p9 = new JPanel();
-//         p9.setBackground(Color.WHITE);
-//         TitledBorder border8 = BorderFactory.createTitledBorder("Library path");
-//         border8.setTitleFont(new Font("Arial",Font.PLAIN,14));
-//         border8.setBorder(BorderFactory.createLineBorder(new Color(150,150,150), 1));
-//         p9.setBorder(border8);
-//         p9.setLayout(null);    
-//         p9.setBounds(80,808,800,50);
-//         paths.add(p9);
-        
-        
         libpath = new JTextField();
         addPanel("Library path",
                 "Secondary user library path",libpath,
@@ -220,8 +193,9 @@ public class ConfigFiles extends JPanel{
         p8.setBorder(border8);
         p8.setLayout(null);    
         p8.setBounds(80,1084,800,50);
-        paths.add(p8);
-        
+        if(PermissionValidator.canChangeFWM()){
+            paths.add(p8);
+        }
         JButton save = new JButton("Save");
         save.setToolTipText("Save and automatically load config");
         save.setBounds(490,20,70,20);
@@ -231,9 +205,9 @@ public class ConfigFiles extends JPanel{
                 loadConfig("fwmconfig.xml");
             }});
         p8.add(save);
-        if(!PermissionValidator.canChangeFWM()){
-            save.setEnabled(false);
-        }
+//         if(!PermissionValidator.canChangeFWM()){
+//             save.setEnabled(false);
+//         }
         JButton saveas = new JButton("Save as");
         saveas.setBounds(570,20,90,20);
         saveas.addActionListener(new ActionListener(){
@@ -280,9 +254,9 @@ public class ConfigFiles extends JPanel{
                 catch(Exception e){e.printStackTrace();}}});
         loadXML.setBounds(670,20,120,20);
         p8.add(loadXML);
-        if(!PermissionValidator.canChangeFWM()){
-            loadXML.setEnabled(false);
-        }
+//         if(!PermissionValidator.canChangeFWM()){
+//             loadXML.setEnabled(false);
+//         }
         
                     
                     
@@ -317,6 +291,30 @@ public class ConfigFiles extends JPanel{
 //                 RunnerRepository.getHTTPServerPort(),740,false,null);
         
         //paths.add(loadXML);
+        
+        
+        if(!PermissionValidator.canChangeFWM()){
+            ttcpath.setEnabled(false);
+            tMasterXML.setEnabled(false);
+            tUsers.setEnabled(false);
+            tepid.setEnabled(false);
+            tSuites.setEnabled(false);
+            tlog.setEnabled(false);
+            trunning.setEnabled(false);
+            tdebug.setEnabled(false);
+            tsummary.setEnabled(false);
+            tinfo.setEnabled(false);
+            tcli.setEnabled(false);
+            tdbfile.setEnabled(false);
+            temailfile.setEnabled(false);
+            tceport.setEnabled(false);
+            libpath.setEnabled(false);
+            tsecondarylog.setEnabled(false);
+            testconfigpath.setEnabled(false);
+            tglobalsfile.setEnabled(false);
+            logsenabled.setEnabled(false);
+        }
+        
     }
         
     public void setEnabledTabs(boolean enable){
@@ -325,36 +323,7 @@ public class ConfigFiles extends JPanel{
             if(i!=3)RunnerRepository.window.mainpanel.setEnabledAt(i, enable);}}
         
     public void loadConfig(String config){
-        try{
-            
-//             InputStream in = null;
-//             try{in = RunnerRepository.c.get(config);}
-//             catch(Exception e){System.out.println("Could not connect to "+config);}
-//             byte [] data = new byte[100];
-//             ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-//             int nRead;
-//             try{while ((nRead = in.read(data, 0, data.length)) != -1){
-//                 buffer.write(data, 0, nRead);}
-//                 buffer.flush();}
-//             catch(Exception e){
-//                 System.out.println("could not copy data from server "+config);}
-//             File theone = new File(RunnerRepository.temp+RunnerRepository.getBar()+
-//                                     "Twister"+RunnerRepository.getBar()+"config"+
-//                                     RunnerRepository.getBar()+config);
-//             FileOutputStream out=null;
-//             try{out = new FileOutputStream(RunnerRepository.temp+RunnerRepository.getBar()+
-//                                             "Twister"+RunnerRepository.getBar()+"config"+
-//                                             RunnerRepository.getBar()+config);
-//                 buffer.writeTo(out);
-//                 out.close();
-//                 buffer.close();
-//                 in.close();}
-//             catch(Exception e){
-//                 System.out.println("Could not write to "+RunnerRepository.temp+RunnerRepository.getBar()+
-//                                     "Twister"+RunnerRepository.getBar()+
-//                                     "config"+RunnerRepository.getBar()+config);}
-                                    
-                                    
+        try{                    
             String content = RunnerRepository.getRemoteFileContent(RunnerRepository.USERHOME+"/twister/config/"+config);
             File theone = new File(RunnerRepository.temp+RunnerRepository.getBar()+
                                     "Twister"+RunnerRepository.getBar()+"config"+
@@ -364,10 +333,7 @@ public class ConfigFiles extends JPanel{
                 writer.close();
             } catch(Exception e){
                 e.printStackTrace();
-            }
-                                    
-                                    
-                                    
+            }                      
             DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
             DocumentBuilder db = dbf.newDocumentBuilder();
             Document doc=null;
@@ -391,9 +357,7 @@ public class ConfigFiles extends JPanel{
                         String[] children = dir.list();
                         for (int i=0; i<children.length; i++){new File(dir, children[i]).delete();}
                         RunnerRepository.parseConfig();
-//                         RunnerRepository.window.mainpanel.p2 = new Panel2(RunnerRepository.applet);
                         RunnerRepository.window.mainpanel.getP2().init(RunnerRepository.applet);
-//                         RunnerRepository.window.mainpanel.setComponentAt(1, RunnerRepository.window.mainpanel.getP2());
                         RunnerRepository.window.mainpanel.p1.ep.refreshStructure();
                         RunnerRepository.window.mainpanel.p1.lp.refreshStructure();
                         RunnerRepository.window.mainpanel.p4.getDBConfig().refresh();
@@ -409,10 +373,8 @@ public class ConfigFiles extends JPanel{
                         tUsers.setText(RunnerRepository.REMOTEUSERSDIRECTORY);
                         tepid.setText(RunnerRepository.REMOTEEPIDDIR);
                         tlog.setText(RunnerRepository.LOGSPATH);
-                        
                         tsecondarylog.setText(RunnerRepository.SECONDARYLOGSPATH);
                         logsenabled.setSelected(Boolean.parseBoolean(RunnerRepository.PATHENABLED));
-                        
                         if(RunnerRepository.getLogs().size()>0)trunning.setText(RunnerRepository.getLogs().get(0));
                         trunning.setText(RunnerRepository.getLogs().get(0));
                         tdebug.setText(RunnerRepository.getLogs().get(1));
@@ -424,10 +386,13 @@ public class ConfigFiles extends JPanel{
                         temailfile.setText(RunnerRepository.REMOTEEMAILCONFIGPATH+
                                             RunnerRepository.REMOTEEMAILCONFIGFILE);
                         tglobalsfile.setText(RunnerRepository.GLOBALSREMOTEFILE);
-//                         thttpPort.setText(RunnerRepository.getHTTPServerPort());
                         tSuites.setText(RunnerRepository.PREDEFINEDSUITES);
                         tceport.setText(RunnerRepository.getCentralEnginePort());
                         RunnerRepository.emptySuites();
+                        RunnerRepository.window.mainpanel.p4.getTestConfig().tree.refreshStructure();
+                        RunnerRepository.window.mainpanel.p4.getTestConfig().cfgedit.reinitialize();
+                        RunnerRepository.window.mainpanel.p1.edit(false);
+                        RunnerRepository.window.mainpanel.p1.sc.g.setUser(null);
                         RunnerRepository.openProjectFile();
                     }
                     else{
@@ -492,6 +457,9 @@ public class ConfigFiles extends JPanel{
         JButton b = null;
         if(withbutton){
             b = new JButton("...");
+            if(!PermissionValidator.canChangeFWM()){
+                b.setEnabled(false);
+            }
             b.setMaximumSize(new Dimension(50,20));
             b.setPreferredSize(new Dimension(50,20));
             if(actionlistener==null){
@@ -502,8 +470,6 @@ public class ConfigFiles extends JPanel{
                         if(RunnerRepository.container!=null)c = RunnerRepository.container.getParent();
                         else c = RunnerRepository.window;
                         try{
-//                             String passwd = RunnerRepository.getRPCClient().execute("sendFile", new Object[]{"/etc/passwd"}).toString();
-//                             new MySftpBrowser(RunnerRepository.host,RunnerRepository.user,RunnerRepository.password,textfield,c,passwd);
                             new MySftpBrowser(RunnerRepository.host,RunnerRepository.user,RunnerRepository.password,textfield,c,false);
                         }catch(Exception e){
                             System.out.println("There was a problem in opening sftp browser!");

@@ -1,6 +1,6 @@
 /*
 File: Panel1.java ; This file is part of Twister.
-Version: 2.007
+Version: 2.008
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -363,7 +363,7 @@ public class Panel1 extends JPanel{
         edit.setBounds(10,20,65,25);
         edit.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent ev){
-                edit();}});}
+                edit(true);}});}
         
         
     /*
@@ -425,13 +425,28 @@ public class Panel1 extends JPanel{
      * on server with name provided by user
      */
     private void saveSuiteAs(){
-        if(!sc.g.getUser().equals("")){
             String user = CustomDialog.showInputDialog(JOptionPane.QUESTION_MESSAGE,
                                                     JOptionPane.OK_CANCEL_OPTION, RunnerRepository.window,
                                                     "File Name", "Please enter project file name");
             
             if(user!=null&&!user.equals("")){
-                if(sc.g.printXML(user+".xml", false,false,
+                if(user.toLowerCase().indexOf(".xml")!=-1){
+                    int index = user.toLowerCase().indexOf(".xml");
+                    user = user.substring(0, index);
+                }
+                user+=".xml";
+                if(!PermissionValidator.canChangeProject()){
+                    String [] files = RunnerRepository.getRemoteFolderContent(RunnerRepository.getRemoteUsersDirectory());
+                    for(String st:files){
+                        if(st.equals(user)){
+                            CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, 
+                                                RunnerRepository.window, "Warning",
+                                                "File already exists, override not allowed, please enter different name.");
+                            return;
+                        }
+                    }
+                }
+                if(sc.g.printXML(user, false,false,
                              RunnerRepository.window.mainpanel.p1.suitaDetails.stopOnFail(),
                              RunnerRepository.window.mainpanel.p1.suitaDetails.preStopOnFail(),
                              RunnerRepository.window.mainpanel.p1.suitaDetails.saveDB(),
@@ -441,14 +456,15 @@ public class Panel1 extends JPanel{
                                             "File successfully saved");
                 else CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, 
                                             RunnerRepository.window, "Warning", 
-                                            "Warning, file not saved");}}}
+                                            "Warning, file not saved");}}
+//                                         }
         
     /*
      * save opened suite file
      * on server
      */
     private void saveSuiteFile(){
-        if(!sc.g.getUser().equals("")){
+        if(sc.g.getUser()!=null&&!sc.g.getUser().equals("")){
             if(sc.g.printXML(sc.g.getUser(), false,false,
                              RunnerRepository.window.mainpanel.p1.suitaDetails.stopOnFail(),
                              RunnerRepository.window.mainpanel.p1.suitaDetails.preStopOnFail(),
@@ -459,8 +475,8 @@ public class Panel1 extends JPanel{
                                         RunnerRepository.window, "Success",
                                         "File successfully saved");
             else CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, 
-                                        RunnerRepository.window, "Warning", 
-                                        "Warning, file not saved");}}
+                                        RunnerRepository.window, "Error", 
+                                        "Error, file not saved");}}
         
     /*
      * contract selected suite
@@ -653,7 +669,7 @@ public class Panel1 extends JPanel{
                         tcmenu.getMenuComponent(7).setEnabled(false);}
                     else tcmenu.getMenuComponent(6).setEnabled(false);}}}}
                     
-    public void edit(){
+    public void edit(boolean openlast){
         splitPane3.setLeftComponent(sc.pane);
         try{
             SwingUtilities.invokeLater(new Runnable(){
@@ -676,43 +692,27 @@ public class Panel1 extends JPanel{
         add(addsuite);
         suitaDetails.setEnabled(true);
         tcdetails.tcdetails.doClick();
-        String user = "last_edited.xml";
         RunnerRepository.emptySuites();
-        if(RunnerRepository.window.mainpanel.p1.sc.g.getUser()==null&&
-           RunnerRepository.window.mainpanel.p1.sc.g.getUser().equals("")){
-              RunnerRepository.window.mainpanel.p1.sc.g.setUser(RunnerRepository.getUsersDirectory()+
-                                                            RunnerRepository.getBar()+user);
-        }
-        
-        
-        try{
+        if(openlast){
+            try{
+                String user = "last_edited.xml";
+                if(RunnerRepository.window.mainpanel.p1.sc.g.getUser()==null&&
+                   RunnerRepository.window.mainpanel.p1.sc.g.getUser().equals("")){
+                      RunnerRepository.window.mainpanel.p1.sc.g.setUser(RunnerRepository.getUsersDirectory()+
+                                                                    RunnerRepository.getBar()+user);
+                }
+                File file = new File(RunnerRepository.temp+RunnerRepository.getBar()+"Twister"+RunnerRepository.getBar()+"Users"+RunnerRepository.getBar()+user);
+                BufferedWriter writer = new BufferedWriter(new FileWriter(file));
+                String content = RunnerRepository.getRemoteFileContent(RunnerRepository.getRemoteUsersDirectory()+"/"+user);
+                writer.write(content);
+                writer.close();
+                RunnerRepository.window.mainpanel.p1.sc.g.parseXML(new File(RunnerRepository.getUsersDirectory()+
+                                                                              RunnerRepository.getBar()+user));
+            } catch (Exception e){
+                e.printStackTrace();
+            }
             
-            
-            File file = new File(RunnerRepository.temp+RunnerRepository.getBar()+"Twister"+RunnerRepository.getBar()+"Users"+RunnerRepository.getBar()+user);
-            BufferedWriter writer = new BufferedWriter(new FileWriter(file));
-            String content = RunnerRepository.getRemoteFileContent(RunnerRepository.getRemoteUsersDirectory()+"/"+user);
-            writer.write(content);
-            writer.close();
-//             
-//             InputStream in = RunnerRepository.c.get(RunnerRepository.getRemoteUsersDirectory()+"/"+user);
-//             InputStreamReader inputStreamReader = new InputStreamReader(in);
-//             BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
-//             File file = new File(RunnerRepository.temp+RunnerRepository.getBar()+"Twister"+RunnerRepository.getBar()+"Users"+RunnerRepository.getBar()+user);
-//             BufferedWriter writer = new BufferedWriter(new FileWriter(file));
-//             String line;
-//             while ((line=bufferedReader.readLine())!= null){
-//                 writer.write(line);
-//                 writer.newLine();}
-//             bufferedReader.close();
-//             writer.close();
-//             inputStreamReader.close();
-//             in.close();
-        } catch (Exception e){
-            e.printStackTrace();
         }
-        
-        RunnerRepository.window.mainpanel.p1.sc.g.parseXML(new File(RunnerRepository.getUsersDirectory()+
-                                                              RunnerRepository.getBar()+user));
         if(RunnerRepository.getSuiteNr() > 0){
             RunnerRepository.window.mainpanel.p1.sc.g.updateLocations(RunnerRepository.getSuita(0));}
         RunnerRepository.window.mainpanel.p1.suitaDetails.setGlobalDetails();

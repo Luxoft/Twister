@@ -1,6 +1,6 @@
 /*
 File: ControlPanel.java ; This file is part of Twister.
-Version: 2.003
+Version: 2.004
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -65,6 +65,7 @@ public class ControlPanel extends BasePlugin implements TwisterPluginInterface {
 	private CommonInterface maincomp;
 	private Icon background,reports,runner,reportst,texec,um,tum,logout;
 	private boolean canum = false;
+	private boolean canrep = false;
 
 	@Override
 	public void init(ArrayList<Item> suite, ArrayList<Item> suitetest,
@@ -72,9 +73,9 @@ public class ControlPanel extends BasePlugin implements TwisterPluginInterface {
 			final Document pluginsConfig,Applet applet) {
 		super.init(suite, suitetest, variables, pluginsConfig,applet);
 		System.out.println("Initializing " + getName() + " ... ");	
+		String [] permissions = variables.get("permissions").split(",");
+		Arrays.sort(permissions);
 		try{
-			String [] permissions = variables.get("permissions").split(",");
-			Arrays.sort(permissions);
 			if(Arrays.binarySearch(permissions, "CHANGE_USERS")>-1){
 				canum = true;
 			}
@@ -82,7 +83,14 @@ public class ControlPanel extends BasePlugin implements TwisterPluginInterface {
 			canum = false;
 			e.printStackTrace();
 		}
-		
+		try{
+			if(Arrays.binarySearch(permissions, "VIEW_REPORTS")>-1){
+				canrep = true;
+			}
+		} catch(Exception e){
+			canrep = false;
+			e.printStackTrace();
+		}
 		try {
 			InputStream in = getClass().getResourceAsStream("background.png");
 			Image im = ImageIO.read(in);
@@ -140,11 +148,13 @@ public class ControlPanel extends BasePlugin implements TwisterPluginInterface {
 				
 				g2d.setStroke(new BasicStroke(4F)); 
 				
-				g2d.setColor(new Color(10,92,129));
-				g2d.drawRoundRect(250, 115, 160, 220, 25, 25);
+				if(canrep){
+					g2d.setColor(new Color(10,92,129));
+					g2d.drawRoundRect(250, 115, 160, 220, 25, 25);
 				
-				g2d.setColor(new Color(31,112,139));
-				g2d.fillRoundRect(250, 115, 160, 220, 25, 25);
+					g2d.setColor(new Color(31,112,139));
+					g2d.fillRoundRect(250, 115, 160, 220, 25, 25);
+				}
 				
 				
 				g2d.setColor(new Color(10,92,129));
@@ -171,28 +181,7 @@ public class ControlPanel extends BasePlugin implements TwisterPluginInterface {
 		l.setBounds(10,100,175,311);
 		pn.add(l);
 		
-		final JLabel lrep = new JLabel(reports);
-		lrep.setBounds(250,115,160,220);
-		pn.add(lrep);
-		lrep.addMouseListener(new MouseAdapter(){
-			
-			@Override
-			public void mouseExited(MouseEvent e) {
-				lrep.setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
-				
-			}
-			
-			@Override
-			public void mouseEntered(MouseEvent e) {
-				lrep.setCursor(new Cursor(Cursor.HAND_CURSOR));
-			}
-			
-			@Override
-			public void mouseClicked(MouseEvent e) {
-				reports();
-				
-			}
-		});
+		
 		
 		final JLabel lout = new JLabel(logout);
 		lout.setBounds(850,410,92,111);
@@ -217,9 +206,36 @@ public class ControlPanel extends BasePlugin implements TwisterPluginInterface {
 			}
 		});
 		
-		l = new JLabel(reportst);
-		l.setBounds(270,245,121,91);
-		pn.add(l);
+		if(canrep){
+			l = new JLabel(reportst);
+			l.setBounds(270,245,121,91);
+			pn.add(l);
+			
+			final JLabel lrep = new JLabel(reports);
+			lrep.setBounds(250,115,160,220);
+			pn.add(lrep);
+			lrep.addMouseListener(new MouseAdapter(){
+				
+				@Override
+				public void mouseExited(MouseEvent e) {
+					lrep.setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
+					
+				}
+				
+				@Override
+				public void mouseEntered(MouseEvent e) {
+					lrep.setCursor(new Cursor(Cursor.HAND_CURSOR));
+				}
+				
+				@Override
+				public void mouseClicked(MouseEvent e) {
+					reports();
+					
+				}
+			});
+		}
+		
+		
 		
 		final JLabel trunner  = new JLabel(runner);
 		trunner.setBounds(480,115,160,220);
@@ -243,37 +259,39 @@ public class ControlPanel extends BasePlugin implements TwisterPluginInterface {
 			}
 		});
 
+		
+		
 		l = new JLabel(texec);
 		l.setBounds(490,265,140,60);
 		pn.add(l);
 		
 		
-			if(canum){
-				final JLabel lum = new JLabel(um);
-				lum.setBounds(710, 115, 160, 220);
-				pn.add(lum);
-				lum.addMouseListener(new MouseAdapter(){
-					
-					@Override
-					public void mouseExited(MouseEvent e) {
-						lum.setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
-						
-					}
-					
-					@Override
-					public void mouseEntered(MouseEvent e) {
-						lum.setCursor(new Cursor(Cursor.HAND_CURSOR));
-					}
-					
-					@Override
-					public void mouseClicked(MouseEvent e) {
-						um();
-					}
-				});
-				l = new JLabel(tum);
-				l.setBounds(695,265,191,68);
-				pn.add(l);
-			}
+		if(canum){
+			final JLabel lum = new JLabel(um);
+			lum.setBounds(710, 115, 160, 220);
+			pn.add(lum);
+			lum.addMouseListener(new MouseAdapter(){
+
+				@Override
+				public void mouseExited(MouseEvent e) {
+					lum.setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
+
+				}
+
+				@Override
+				public void mouseEntered(MouseEvent e) {
+					lum.setCursor(new Cursor(Cursor.HAND_CURSOR));
+				}
+
+				@Override
+				public void mouseClicked(MouseEvent e) {
+					um();
+				}
+			});
+			l = new JLabel(tum);
+			l.setBounds(695,265,191,68);
+			pn.add(l);
+		}
 		
 		
 		

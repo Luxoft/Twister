@@ -1,6 +1,6 @@
 /*
 File: GraficTest.java ; This file is part of Twister.
-Version: 2.003
+Version: 2.004
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -525,26 +525,22 @@ public class GraficTest extends JPanel{
      * on view dimension
      */
     public void updateScroll(){
-//         System.out.println("Update Scroll: "+(maxWidth+100));
         int y1=0;
         for(int i=0;i<RunnerRepository.getTestSuiteNr();i++){
             if(RunnerRepository.getTestSuita(i).isVisible()){
                 y1 = getLastY(RunnerRepository.getTestSuita(i),y1);
             }
         }
-        setPreferredSize(new Dimension(maxWidth+120,y1+10));
+        setPreferredSize(new Dimension(maxWidth+145,y1+10));
         if(y1>getHeight()){
-            setPreferredSize(new Dimension(maxWidth+120,y1+10));
-//             setPreferredSize(new Dimension(425,y1+10));
+            setPreferredSize(new Dimension(maxWidth+145,y1+10));
             RunnerRepository.window.mainpanel.getP2().sc.revalidate();}
         if(getHeight()>595){
             if(y1<getHeight()-10){
-//                 setPreferredSize(new Dimension(425,y1+10));
-                setPreferredSize(new Dimension(maxWidth+120,y1+10));
+                setPreferredSize(new Dimension(maxWidth+145,y1+10));
                 RunnerRepository.window.mainpanel.getP2().sc.revalidate();}
             if(y1<595){
-//                 setPreferredSize(new Dimension(445,595));
-                setPreferredSize(new Dimension(maxWidth+120,595));
+                setPreferredSize(new Dimension(maxWidth+145,595));
                 RunnerRepository.window.mainpanel.getP2().sc.revalidate();}}}
           
                 
