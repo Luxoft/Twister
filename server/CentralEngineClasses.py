@@ -1,7 +1,7 @@
 
 # File: CentralEngineClasses.py ; This file is part of Twister.
 
-# version: 2.020
+# version: 2.021
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -592,7 +592,7 @@ class CentralEngine(_cptools.XMLRPCController):
 
         try:
             socket.create_connection((ip, int(port)), 2)
-            logDebug('Trying to stop `{} {}`.'.format(user, epname))
+            logWarning('Trying to stop `{} {}`.'.format(user, epname))
             return proxy.stopEP(epname)
         except Exception as e:
             trace = traceback.format_exc()[33:].strip()
@@ -613,7 +613,7 @@ class CentralEngine(_cptools.XMLRPCController):
 
         try:
             socket.create_connection((ip, int(port)), 2)
-            logDebug('Trying to restart `{} {}`.'.format(user, epname))
+            logWarning('Trying to restart `{} {}`.'.format(user, epname))
             return proxy.restartEP(epname)
         except Exception as e:
             trace = traceback.format_exc()[33:].strip()
@@ -1712,9 +1712,9 @@ class CentralEngine(_cptools.XMLRPCController):
             try:
                 if re.search(value['expression'], log_string) is not None:
                     if value['enabled']:
-                        # stop ep action
-                        self.setExecStatus(self.user, epname,
-                            'STATUS_STOP', msg='panic detected; status chaged')
+                        # Stop EP
+                        self.setExecStatus(user, epname, STATUS_STOP,
+                            msg='Panic detect activated, expression `{}` found in CLI log!'.format(value['expression']))
                         status = True
             except Exception as e:
                 trace = traceback.format_exc()[33:].strip()
