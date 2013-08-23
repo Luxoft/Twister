@@ -1,6 +1,6 @@
 /*
 File: Panel1.java ; This file is part of Twister.
-Version: 2.008
+Version: 2.009
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -812,7 +812,6 @@ public class Panel1 extends JPanel{
     }
     
     public void setRunning(){
-        System.out.println("!!!!!!!!! Should be called!!!!!!!!!!!!");
         splitPane3.setLeftComponent(RunnerRepository.window.mainpanel.getP2().sc.pane);
         try{
             SwingUtilities.invokeLater(new Runnable(){

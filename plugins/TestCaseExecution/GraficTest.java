@@ -1,6 +1,6 @@
 /*
 File: GraficTest.java ; This file is part of Twister.
-Version: 2.004
+Version: 2.005
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -623,9 +623,6 @@ public class GraficTest extends JPanel{
             else g.drawImage(RunnerRepository.getTCIcon(),(int)item.getRectangle().getX()+5,
                             (int)item.getRectangle().getY()+1,null);}
         else{
-//             g.drawImage(RunnerRepository.getPropertyIcon(),(int)item.getRectangle().getX()+2,(int)item.getRectangle().getY()+1,null);
-//             g.drawString(item.getName()+" : "+item.getValue(),(int)item.getRectangle().getX()+25,(int)item.getRectangle().getY()+15);
-//             System.out.println(item.getName()+" : "+item.getValue()+" "+maxWidth+2+" "+(int)item.getRectangle().getY()+1);
             g.drawImage(RunnerRepository.getPropertyIcon(),maxWidth+2,(int)item.getRectangle().getY()+1,null);
             g.drawString(item.getName()+" : "+item.getValue(),maxWidth+25,(int)item.getRectangle().getY()+15);
         }

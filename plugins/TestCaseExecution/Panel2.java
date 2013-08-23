@@ -1,6 +1,6 @@
 /*
 File: Panel2.java ; This file is part of Twister.
-Version: 2.003
+Version: 2.0010
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -459,7 +459,7 @@ public class Panel2 extends JPanel{
     public int manageSubchildren(Item item, String[]statuses, int index){
         int index2 = index;
         if(item.getType()==1&&statuses.length>index2){
-            if(statuses[index2].equals("10"))item.getSubItem(0).setValue("pending");
+            if(statuses[index2].equals("10")||statuses[index2].equals("-1"))item.getSubItem(0).setValue("pending");
             else if(statuses[index2].equals("1"))item.getSubItem(0).setValue("running");
             else if(statuses[index2].equals("2"))item.getSubItem(0).setValue("pass");
             else if(statuses[index2].equals("3"))item.getSubItem(0).setValue("fail");
