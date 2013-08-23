@@ -1607,12 +1607,15 @@ class CentralEngine(_cptools.XMLRPCController):
         del parser, plugins
 
         # Calling Panic Detect
-        self._panicDetectLogParse(user, epname, log_string)
+        pd = self._panicDetectLogParse(user, epname, log_string)
 
         logTypes = self.project.getUserInfo(user, 'log_types')
         _, logCli = os.path.split( logTypes.get('logCli', 'CLI.log') )
         # EP Name + CLI Path
         logPath = logFolder + os.sep + epname +'_'+ logCli
+
+        if pd:
+            self.logMessage(user, 'logDebug', 'PANIC DETECT: Execution stopped.')
 
         return self._logServerMsg(user, logPath + ':' + log_string)
 
@@ -1704,8 +1707,7 @@ class CentralEngine(_cptools.XMLRPCController):
 
         enabled = self.getSuiteVariable(user, epname, suiteID, 'pd')
 
-        if enabled.lower() == 'false':
-            status = True
+        if not enabled or enabled.lower() == 'false':
             return status
 
         for key, value in self.project.panicDetectRegularExpressions[user].iteritems():

@@ -53,7 +53,7 @@ from common.tsclogging import *
 from common.xmlparser  import *
 
 if mako.__version__ < '0.7':
-    logWarning('Warning! Mako-template version is old: `{}`! Some pages might crash!\n'.format(mako.__version__))
+    logWarning('Warning! Mako-template version `{}` is old! Some pages might crash!\n'.format(mako.__version__))
 
 # --------------------------------------------------------------------------------------------------
 # # # #    C L A S S    R e p o r t i n g    # # #
@@ -123,7 +123,7 @@ class ReportingServer:
         self.conn[usr] = MySQLdb.connect(host=db_config.get('server'), db=db_config.get('database'),
                                          user=db_config.get('user'), passwd=db_password)
 
-        logDebug('Rep Server: [{}] Connecting on DB `{}:{}` successful.'\
+        logDebug('Rep Server: [{}] Connected on DB `{}:{}` successful.'\
                  ''.format(time.strftime('%Y-%m-%d %H:%M:%S'), db_config.get('server'), db_config.get('database')))
         self.curs[usr] = self.conn[usr].cursor()
 
@@ -182,6 +182,8 @@ class ReportingServer:
 
         if not os.path.isdir(userHome(usr) + '/twister/config'):
             return '<br><b>Error! Username `{}` doesn\'t have a Twister config folder!</b>'.format(usr)
+
+        logDebug('Rep Server: [{}] Before report `{}` for user `{}`...'.format(time.strftime('%Y-%m-%d %H:%M:%S'),report,usr))
 
         self.load_config(usr) # Re-load all Database XML
         if usr not in self.conn: self.connect_db(usr)
@@ -283,6 +285,8 @@ class ReportingServer:
                 u_options[opt] = this_option
 
             output = Template(filename=TWISTER_PATH + '/server/template/rep_base.htm')
+            logDebug('Rep Server: [{}] After select fields `{}` for user `{}`.'.format(time.strftime('%Y-%m-%d %H:%M:%S'),report,usr))
+
             return output.render(title=report, usr=usr, links=self.glob_links[usr], options=u_options)
 
 
@@ -359,6 +363,8 @@ class ReportingServer:
             #DEBUG.write(report +' -> '+ user_choices +' -> '+ query_compr + '\n\n') ; DEBUG.flush()
 
         output = Template(filename=TWISTER_PATH + '/server/template/rep_base.htm')
+        logDebug('Rep Server: [{}] After complete report `{}` for user `{}`.'.format(time.strftime('%Y-%m-%d %H:%M:%S'),report,usr))
+
         return output.render(usr=usr, title=report, links=self.glob_links[usr], ajax_link=ajax_link, user_choices=user_choices,
             report=descr, chart=report_dict['type'])
 
