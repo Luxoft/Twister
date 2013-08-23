@@ -1,25 +1,6 @@
 /*
 File: ConfigEditor.java ; This file is part of Twister.
-Version: 2.001
-
-Copyright (C) 2012-2013 , Luxoft
-
-Authors: Andrei Costachi <acostachi@luxoft.com>
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-/*
-File: Globals.java ; This file is part of Twister.
-Version: 2.004
+Version: 2.002
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -55,7 +36,6 @@ import javax.xml.xpath.XPathConstants;
 import org.w3c.dom.NodeList;
 import org.w3c.dom.Node;
 import org.w3c.dom.Element;
-import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -119,6 +99,8 @@ import javax.swing.JMenu;
 import javax.swing.JMenuItem;
 import com.twister.MySftpBrowser;
 import javax.swing.AbstractAction;
+import java.awt.GridBagLayout;
+import java.awt.GridBagConstraints;
 
 public class ConfigEditor extends JPanel{
     private ChannelSftp ch ;
@@ -138,25 +120,27 @@ public class ConfigEditor extends JPanel{
     private MyFocusAdapter focusadapter;
     private File currentfile;
     private String remotelocation;
+    private ConfigTree cfgtree;
+    private JMenuItem save,saveas;
+    private JLabel displayname;
     
     public ConfigEditor(){
         initSftp();
-        //parseDocument();
         init();
-        //buildTree();
     }
-    
-//     public void refresh(){
-//         ((DefaultMutableTreeNode)tree.getModel().getRoot()).removeAllChildren();
-//         parseDocument();
-//         buildTree();
-//     }
     
     public void parseDocument(File file){
         try{this.currentfile = file;
+            displayname.setText("Filename: "+file.getName());
+            save.setEnabled(true);
+            saveas.setEnabled(true);
             DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
             DocumentBuilder db = dbf.newDocumentBuilder();
-            doc = db.parse(file);
+            try{doc = db.parse(file); 
+            } catch (Exception e){
+                doc = db.newDocument();
+                doc.appendChild(doc.createElement("root"));
+            }
             doc.getDocumentElement().normalize();  
         } catch(Exception e){
             e.printStackTrace();
@@ -236,27 +220,47 @@ public class ConfigEditor extends JPanel{
     }
 
     public void init(){
+        displayname = new JLabel("Filename:");
         JMenuBar menubar = new JMenuBar();
+        menubar.setLayout(new BorderLayout());
+        menubar.setPreferredSize(new Dimension(500,25));
         JMenu menu = new JMenu("File");
-        menubar.add(menu);
-        JMenuItem item = new JMenuItem("New");
-        item.addActionListener(new ActionListener(){
-            public void actionPerformed(ActionEvent ev){
-                newConfigFile();
-            }});
-        menu.add(item);
-        item = new JMenuItem("Save");
-        item.addActionListener(new ActionListener(){
+        menu.setBounds(0,0,70,25);
+        menubar.add(menu,BorderLayout.WEST);
+        
+        
+        JPanel temp = new JPanel();
+        temp.setLayout(new GridBagLayout());
+        temp.add(displayname,new GridBagConstraints());
+        
+        
+        
+        menubar.add(temp,BorderLayout.CENTER);
+        
+        
+        
+        
+        
+//         JMenuItem item = new JMenuItem("New");
+//         item.addActionListener(new ActionListener(){
+//             public void actionPerformed(ActionEvent ev){
+//                 newConfigFile();
+//             }});
+//         menu.add(item);
+        save = new JMenuItem("Save");
+        save.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 save();
             }});
-        menu.add(item);
-        item = new JMenuItem("Save As");
-        item.addActionListener(new ActionListener(){
+        save.setEnabled(false);
+        menu.add(save);
+        saveas = new JMenuItem("Save As");
+        saveas.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 saveAs();
             }});
-        menu.add(item);
+        saveas.setEnabled(false);
+        menu.add(saveas);
         root = new DefaultMutableTreeNode("root", true);
         tree = new JTree(root);
         tree.setRootVisible(false);
@@ -269,7 +273,7 @@ public class ConfigEditor extends JPanel{
         addparam = new JButton("Add Parameter");
         remove = new JButton("Remove");
         
-        addconf.setBounds(0,5,120,20);
+        addconf.setBounds(0,5,120,25);
         buttonPanel.add(addconf);
         addconf.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
@@ -277,7 +281,7 @@ public class ConfigEditor extends JPanel{
             }
         });
         
-        addparam.setBounds(130,5,140,20);
+        addparam.setBounds(130,5,140,25);
         buttonPanel.add(addparam);
         addparam.setEnabled(false);
         addparam.addActionListener(new ActionListener(){
@@ -286,7 +290,7 @@ public class ConfigEditor extends JPanel{
             }
         });
 
-        remove.setBounds(280,5,100,20);
+        remove.setBounds(280,5,100,25);
         remove.setEnabled(false);
         buttonPanel.add(remove);
         remove.addActionListener(new ActionListener(){
@@ -309,7 +313,7 @@ public class ConfigEditor extends JPanel{
         );
         buttonPanelLayout.setVerticalGroup(
             buttonPanelLayout.createParallelGroup(GroupLayout.Alignment.LEADING)
-            .addGap(0, 50, Short.MAX_VALUE)
+            .addGap(0, 35, Short.MAX_VALUE)
         );
         tree.addKeyListener(new KeyAdapter(){
             public void keyReleased(KeyEvent ev){
@@ -366,6 +370,7 @@ public class ConfigEditor extends JPanel{
                         }
                     }
                 } else {
+                    if(currentfile==null)return;
                     setDescription(null,null,null,null,null);
                     tree.setSelectionPath(null);
                     remove.setEnabled(false);
@@ -380,8 +385,17 @@ public class ConfigEditor extends JPanel{
         );
     }
     
+    public void setConfigTree(ConfigTree cfgtree){
+        this.cfgtree = cfgtree;
+    }
+    
     private void saveAs(){
         final JTextField tf = new JTextField();
+        try{tf.setText(((DefaultMutableTreeNode)cfgtree.tree.getModel().
+                                                getRoot()).getFirstChild().toString());
+        }catch(Exception e){
+            e.printStackTrace();
+        }
         AbstractAction action = new AbstractAction(){
             public void actionPerformed(ActionEvent ev){
                 String txt[]  = tf.getText().split("/");
@@ -404,6 +418,11 @@ public class ConfigEditor extends JPanel{
     private void save(){
         if(remotelocation==null){
             final JTextField tf = new JTextField();
+            try{tf.setText(((DefaultMutableTreeNode)cfgtree.tree.getModel().
+                                                getRoot()).getFirstChild().toString());
+            }catch(Exception e){
+                e.printStackTrace();
+            }
             AbstractAction action = new AbstractAction(){
                 public void actionPerformed(ActionEvent ev){
                     remotelocation = tf.getText();
@@ -423,7 +442,6 @@ public class ConfigEditor extends JPanel{
             e.printStackTrace();
             System.out.println("Could not upload file "+currentfile.getName()+" to "+remotelocation+" on server");
         }
-
     }
     
     public void setRemoteLocation(String remotelocation){
@@ -590,8 +608,6 @@ public class ConfigEditor extends JPanel{
         remove.setEnabled(false);
         addconf.setEnabled(true);
         addparam.setEnabled(false);
-//         writeXML();
-//         uploadFile();
         setDescription(null, null, null, null, null);
     }
 
@@ -616,9 +632,7 @@ public class ConfigEditor extends JPanel{
                 return;
             }
             for(int i=0;i<root.getChildCount();i++){
-                
                 Object node = ((DefaultMutableTreeNode)root.getChildAt(i)).getUserObject();
-                
                 if(node.getClass() == MyFolder.class){
                     if(((MyFolder)node).toString().equals(resp)){
                         CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,this,
@@ -647,8 +661,6 @@ public class ConfigEditor extends JPanel{
                 if(root.getChildCount()==1){
                     ((DefaultTreeModel)tree.getModel()).reload();
                 }
-//                 writeXML();
-//                 uploadFile();
                 
             } catch(Exception e){
                 e.printStackTrace();
@@ -1074,9 +1086,7 @@ public class ConfigEditor extends JPanel{
             
             DefaultMutableTreeNode temp = new DefaultMutableTreeNode(folder,true);
             ((DefaultTreeModel)tree.getModel()).insertNodeInto(temp, treenode,treenode.getChildCount());
-            
-//             writeXML();
-//             uploadFile();
+
         }
     }
     
@@ -1087,10 +1097,10 @@ public class ConfigEditor extends JPanel{
         ((DefaultTreeModel)tree.getModel()).removeNodeFromParent(treenode);
         Node child = node.getNode().getParentNode().getParentNode();
         child.getParentNode().removeChild(child);
-        if(refresh){
-//             writeXML();
-//             uploadFile();
-        }
+//         if(refresh){
+// //             writeXML();
+// //             uploadFile();
+//         }
         remove.setEnabled(false);
         addconf.setEnabled(true);
         addparam.setEnabled(false);
@@ -1214,6 +1224,19 @@ public class ConfigEditor extends JPanel{
         }
     }
     
+    public void reinitialize(){
+        root.removeAllChildren();
+        ((DefaultTreeModel)tree.getModel()).reload();
+        currentfile = null;
+        setDescription(null,null,null,null,null);
+        tree.setSelectionPath(null);
+        remove.setEnabled(false);
+        addconf.setEnabled(false);
+        addparam.setEnabled(false);
+        save.setEnabled(false);
+        saveas.setEnabled(false);
+    }
+    
     
 //     private void uploadFile(){
 //         try{StringBuilder path = new StringBuilder();
@@ -1291,8 +1314,6 @@ public class ConfigEditor extends JPanel{
             } else {
                 name.setNodeValue(tname.getText());
                 ((DefaultTreeModel)tree.getModel()).nodeChanged(treenode);
-//                 writeXML();
-//                 uploadFile();
             }
         }
     }

@@ -1,6 +1,6 @@
 /*
 File: DatabaseInterface.java ; This file is part of Twister.
-Version: 2.005
+Version: 2.006
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -96,6 +96,7 @@ public class DatabaseInterface extends JPanel {
     private JTextField tdatabase;
     private JPasswordField tpassword;
     private JTextField tuser;
+    private String initialpass;
     
     public DatabaseInterface() {
         initComponents();
@@ -180,6 +181,7 @@ public class DatabaseInterface extends JPanel {
                     } else {
                         System.out.println("password section is wrong configured in database file");
                     }
+                    initialpass = new String(tpassword.getPassword());
                     
                 } else {
                     System.out.println("db_config section is wrong configured in database file");
@@ -453,6 +455,12 @@ public class DatabaseInterface extends JPanel {
         tpassword.setPreferredSize(new Dimension(200,25));
         d.add(tpassword,gridBagConstraints);
         maindatabasepanel.add(d);
+        if(!PermissionValidator.canEditDB()){
+            tdatabase.setEnabled(false);
+            tserver.setEnabled(false);
+            tuser.setEnabled(false);
+            tpassword.setEnabled(false);
+        }
     }
     
     private void initComponents() {   
@@ -580,9 +588,8 @@ public class DatabaseInterface extends JPanel {
             public void actionPerformed(ActionEvent ev){
                 generateFile();
             }});
-        savepanel.add(save);
-        if(!PermissionValidator.canEditDB()){
-            //save.setEnabled(false);
+        if(PermissionValidator.canEditDB()){
+            savepanel.add(save);
         }
         add(savepanel,BorderLayout.SOUTH);
     }
@@ -613,16 +620,14 @@ public class DatabaseInterface extends JPanel {
             em.appendChild(subem);
             subem = document.createElement("password");
             
-//             String p = "";
-//             byte mydata[]=new String(tpassword.getPassword()).getBytes();
-//             try{p = DatatypeConverter.printBase64Binary(mydata);}
-//             catch(Exception e){e.printStackTrace();}
-            
-            String p = "";                            
-            try{p = RunnerRepository.getRPCClient().execute("encryptText", new Object[]{new String(tpassword.getPassword())}).toString();
-            } catch(Exception e){
-                e.printStackTrace();
-                System.out.println("Could not encrypt password");
+            String p = new String(tpassword.getPassword());
+            if(!initialpass.equals(p)){
+                try{p = RunnerRepository.getRPCClient().execute("encryptText", new Object[]{p}).toString();
+                    tpassword.setText(p);
+                    initialpass = p;
+                } catch(Exception e){
+                    e.printStackTrace();
+                }
             }
             
             subem.appendChild(document.createTextNode(p));

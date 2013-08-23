@@ -1,6 +1,6 @@
 /*
 File: UserManagement.java ; This file is part of Twister.
-Version: 2.004
+Version: 2.005
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -20,6 +20,7 @@ limitations under the License.
 
 
 import java.applet.Applet;
+import java.awt.BorderLayout;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.GridBagConstraints;
@@ -54,11 +55,15 @@ import javax.swing.JList;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JSpinner;
+import javax.swing.JTable;
+import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.ListSelectionModel;
 import javax.swing.SpinnerDateModel;
 import javax.swing.SpinnerModel;
 import javax.swing.SpinnerNumberModel;
+import javax.swing.UIManager;
+import javax.swing.border.EmptyBorder;
 import javax.swing.event.AncestorEvent;
 import javax.swing.event.AncestorListener;
 import javax.swing.event.ChangeEvent;
@@ -66,6 +71,7 @@ import javax.swing.event.ChangeListener;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableCellRenderer;
 
 import com.twister.CustomDialog;
 import com.twister.Item;
@@ -114,14 +120,15 @@ public class UserManagement extends BasePlugin implements TwisterPluginInterface
 			InputStream in = getClass().getResourceAsStream("back.png");
 			Image im = ImageIO.read(in);
 			back = new ImageIcon(im);
-			System.out.println(back.getIconHeight());
 		} catch (Exception e){
 			e.printStackTrace();
 		}
 		initComponents();
 		try{applet.removeAll();
-			applet.setLayout(new GridBagLayout());
-			applet.add(p, new GridBagConstraints());
+			//applet.setLayout(new GridBagLayout());
+			//applet.add(p, new GridBagConstraints());
+			applet.setLayout(new BorderLayout());
+			applet.add(p, BorderLayout.CENTER);
 			applet.revalidate();
 			applet.repaint();
 		} catch (Exception e){
@@ -249,7 +256,7 @@ public class UserManagement extends BasePlugin implements TwisterPluginInterface
 		timeoutt.setBorder(null);
 		JComponent editor = new JSpinner.DateEditor(timeoutt, "mm");
 		timeoutt.setEditor(editor);
-		((JSpinner.DefaultEditor) timeoutt.getEditor()).getTextField().setText("00:00:00");
+		((JSpinner.DefaultEditor) timeoutt.getEditor()).getTextField().setText("00");
 		
 		
 		((JSpinner.DefaultEditor) timeoutt.getEditor()).getTextField().addPropertyChangeListener("value",new PropertyChangeListener() {
@@ -272,7 +279,6 @@ public class UserManagement extends BasePlugin implements TwisterPluginInterface
 	                sb.setLength(sb.length()-1);
 	                try {
 						String st = client.execute("usersAndGroupsManager", new Object[]{"set user",usernamet.getText(),sb.toString(), ((JSpinner.DefaultEditor) timeoutt.getEditor()).getTextField().getText()}).toString();
-						System.out.println(st);
 						if(st.equals("true")){
 							populateUsersTable();
 						}
@@ -338,14 +344,21 @@ public class UserManagement extends BasePlugin implements TwisterPluginInterface
 
         userspanel.setBackground(new java.awt.Color(220, 220, 220));
 
-        userlabel.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
+        userlabel.setFont(new java.awt.Font("Tahoma", 0, 18)); 
         userlabel.setText("Users");
 
         usertable.setModel(new javax.swing.table.DefaultTableModel(
             new Object [][] {},
             new String [] {
-                "User Name","Timeout", "User Groups", "User Roles"}
-        ));
+                "User Name","Timeout", "User Groups", "User Roles"}){
+            public Class getColumnClass(int columnIndex) {
+                return String.class;
+              }
+            }
+        );
+        
+        
+        usertable.setDefaultRenderer(String.class, new MultiLineCellRenderer());
         userscroll.setViewportView(usertable);
 
         javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
@@ -450,8 +463,12 @@ public class UserManagement extends BasePlugin implements TwisterPluginInterface
             },
             new String [] {
             		"Group Name", "Group Roles"
-            }
-        ));
+            }){
+        	public Class getColumnClass(int columnIndex) {
+        		return String.class;
+            }}
+        );
+        groupstable.setDefaultRenderer(String.class, new MultiLineCellRenderer());
         groupstablescroll.setViewportView(groupstable);
 
         editgroups.setText("Edit Group Roles");
@@ -532,18 +549,14 @@ public class UserManagement extends BasePlugin implements TwisterPluginInterface
 	
 	private void addUser(){
 		try {
-
 			HashMap<String,HashMap> hm = (HashMap<String,HashMap>)client.execute("usersAndGroupsManager", new Object[]{"list groups"});
 			Object [] resp = hm.keySet().toArray();
 			String [] groups = new String[resp.length];
 			for(int i=0;i<resp.length;i++){
 				groups[i] = resp[i].toString();
 			}
-			
-			
 			resp = (Object[])client.execute("listUsers", new Object[]{});
 			ArrayList<String> al = new ArrayList<String>();
-			
 			int rows = usertable.getRowCount();
 			boolean found;
 			for(Object ob:resp){
@@ -558,8 +571,6 @@ public class UserManagement extends BasePlugin implements TwisterPluginInterface
 					al.add(ob.toString());
 				}
 			}
-			
-			
 			String [] users = new String[al.size()];
 			al.toArray(users);
 			new AddUser((int)auser.getLocationOnScreen().getX()-320,(int)auser.getLocationOnScreen().getY()-240,users,groups,this);
@@ -711,6 +722,63 @@ public class UserManagement extends BasePlugin implements TwisterPluginInterface
         }
     }  
 	
+	class MultiLineCellRenderer extends JTextArea implements TableCellRenderer {
+		private List<List<Integer>> rowColHeight = new ArrayList<List<Integer>>();
+		
+		  public MultiLineCellRenderer() {
+		    setLineWrap(true);
+		    setWrapStyleWord(true);
+		    setOpaque(true);
+		  }
+
+		  public Component getTableCellRendererComponent(JTable table, Object value,
+		      boolean isSelected, boolean hasFocus, int row, int column) {
+		    if (isSelected) {
+		      setForeground(table.getSelectionForeground());
+		      setBackground(table.getSelectionBackground());
+		    } else {
+		      setForeground(table.getForeground());
+		      setBackground(table.getBackground());
+		    }
+		    setFont(table.getFont());
+		    if (hasFocus) {
+		      setBorder(UIManager.getBorder("Table.focusCellHighlightBorder"));
+		      if (table.isCellEditable(row, column)) {
+		        setForeground(UIManager.getColor("Table.focusCellForeground"));
+		        setBackground(UIManager.getColor("Table.focusCellBackground"));
+		      }
+		    } else {
+		      setBorder(new EmptyBorder(1, 2, 1, 2));
+		    }
+		    setText((value == null) ? "" : value.toString());
+		    adjustRowHeight(table, row, column);
+		    return this;
+		  }
+		  
+		  private void adjustRowHeight(JTable table, int row, int column) {
+		      int cWidth = table.getTableHeader().getColumnModel().getColumn(column).getWidth();
+		      setSize(new Dimension(cWidth, 1000));
+		      int prefH = getPreferredSize().height;
+		      while (rowColHeight.size() <= row) {
+		        rowColHeight.add(new ArrayList<Integer>(column));
+		      }
+		      List<Integer> colHeights = rowColHeight.get(row);
+		      while (colHeights.size() <= column) {
+		        colHeights.add(0);
+		      }
+		      colHeights.set(column, prefH);
+		      int maxH = prefH;
+		      for (Integer colHeight : colHeights) {
+		        if (colHeight > maxH) {
+		          maxH = colHeight;
+		        }
+		      }
+		      if (table.getRowHeight(row) != maxH) {
+		        table.setRowHeight(row, maxH);
+		      }
+		    }
+		}
+	
 	
 	
 	public static void main(String [] args){
@@ -729,3 +797,4 @@ public class UserManagement extends BasePlugin implements TwisterPluginInterface
 	}
 	
 }
+
