@@ -324,7 +324,8 @@ class WebInterface:
 
             if log.startswith('logCli_'):
                 epname = '_'.join(log.split('_')[1:])
-                log = logsPath + os.sep + decode(epname) + '_CLI.log'
+                logCli = os.path.split(logs.get('logCli', 'CLI.log'))[1]
+                log = logsPath + os.sep + decode(epname) +'_'+ logCli
             else:
                 log = logs.get(log)
 

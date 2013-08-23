@@ -1,7 +1,7 @@
 
 # File: TestCaseRunnerClasses.py ; This file is part of Twister.
 
-# version: 2.003
+# version: 2.004
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -34,14 +34,12 @@ import os
 import sys
 import time
 import glob
+from shutil import copyfile
 
 import subprocess # For running Perl
 from collections import OrderedDict # For dumping TCL
 
 from ConfigParser import SafeConfigParser
-
-from shutil import copyfile
-
 
 TWISTER_PATH = os.getenv('TWISTER_PATH')
 if not TWISTER_PATH:
@@ -82,7 +80,10 @@ class TCRunTcl:
 
         self.tcl = Tkinter.Tcl()
 
-        import ce_libs
+        try: import ce_libs
+        except: pass
+        try: reload(ce_libs)
+        except: pass
 
         # Find all functions from CE Libs
         to_inject = [ f for f in dir(ce_libs) if callable(getattr(ce_libs, f)) ]
@@ -251,6 +252,10 @@ class TCRunPython:
 import os, sys
 __file__ = '%s'
 sys.argv = %s
+try: import ce_libs
+except: pass
+try: reload(ce_libs)
+except: pass
 """ % (fpath, str([self.filename] + params))
 
         f = open(fpath, 'wb')

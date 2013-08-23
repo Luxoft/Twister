@@ -1,7 +1,7 @@
 
 # File: CentralEngineClasses.py ; This file is part of Twister.
 
-# version: 2.018
+# version: 2.021
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -43,6 +43,7 @@ import re
 import glob
 import time
 import datetime
+import traceback
 import random
 import socket
 import binascii
@@ -173,6 +174,7 @@ class CentralEngine(_cptools.XMLRPCController):
         Encrypt a piece of text, using AES.\n
         This function is called from the Java GUI.
         """
+        if not text: return ''
         return self.project.encryptText(text)
 
 
@@ -182,6 +184,7 @@ class CentralEngine(_cptools.XMLRPCController):
         Decrypt a piece of text, using AES.\n
         This function is called from the Java GUI.
         """
+        if not text: return ''
         return self.project.decryptText(text)
 
 
@@ -278,8 +281,9 @@ class CentralEngine(_cptools.XMLRPCController):
         try:
             ret = self.project.sendMail(user, force)
             return ret
-        except Exception, e:
-            logError('E-mail: Sending e-mail exception `{}` !'.format(e))
+        except Exception as e:
+            trace = traceback.format_exc()[33:].strip()
+            logError('E-mail: Sending e-mail exception `{}` !'.format(trace))
             return False
 
 
@@ -569,7 +573,8 @@ class CentralEngine(_cptools.XMLRPCController):
             logDebug('Trying to start `{} {}`.'.format(user, epname))
             return proxy.startEP(epname)
         except Exception as e:
-            logError('Error: Start EP error: {er}'.format(er=e))
+            trace = traceback.format_exc()[33:].strip()
+            logError('Error: Start EP error: {}'.format(trace))
             return False
 
 
@@ -587,10 +592,11 @@ class CentralEngine(_cptools.XMLRPCController):
 
         try:
             socket.create_connection((ip, int(port)), 2)
-            logDebug('Trying to stop `{} {}`.'.format(user, epname))
+            logWarning('Trying to stop `{} {}`.'.format(user, epname))
             return proxy.stopEP(epname)
         except Exception as e:
-            logError('Error: Stop EP error: {er}'.format(er=e))
+            trace = traceback.format_exc()[33:].strip()
+            logError('Error: Stop EP error: {}'.format(trace))
             return False
 
 
@@ -607,10 +613,11 @@ class CentralEngine(_cptools.XMLRPCController):
 
         try:
             socket.create_connection((ip, int(port)), 2)
-            logDebug('Trying to restart `{} {}`.'.format(user, epname))
+            logWarning('Trying to restart `{} {}`.'.format(user, epname))
             return proxy.restartEP(epname)
         except Exception as e:
-            logError('Error: Restart EP error: {er}'.format(er=e))
+            trace = traceback.format_exc()[33:].strip()
+            logError('Error: Restart EP error: {}'.format(trace))
             return False
 
 
@@ -833,7 +840,9 @@ class CentralEngine(_cptools.XMLRPCController):
                             logProc.wait()
                             logDebug('Terminated log server `{}`, for user `{}`.'.format(logProc.pid, user))
                         except Exception as e:
-                            logWarning('Cannot stop Log Server PID `{}`, for user `{}`! Exception `{}`!'.format(logProc.pid, user, e))
+                            trace = traceback.format_exc()[33:].strip()
+                            logWarning('Cannot stop Log Server PID `{}`, for user `{}`! '\
+                                       'Exception `{}`!'.format(logProc.pid, user, trace))
 
                     # Execute "onStop" for all plugins!
                     parser = PluginParser(user)
@@ -842,8 +851,9 @@ class CentralEngine(_cptools.XMLRPCController):
                         plugin = self._buildPlugin(user, pname,  {'ce_stop': 'automatic'})
                         try:
                             plugin.onStop()
-                        except Exception, e:
-                            logWarning('Error on running plugin `{} onStop` - Exception: `{}`!'.format(pname, e))
+                        except Exception as e:
+                            trace = traceback.format_exc()[33:].strip()
+                            logWarning('Error on running plugin `{} onStop` - Exception: `{}`!'.format(pname, trace))
                     del parser, plugins
 
         return reversed[new_status]
@@ -951,8 +961,9 @@ class CentralEngine(_cptools.XMLRPCController):
                 plugin = self._buildPlugin(user, pname)
                 try:
                     plugin.onStart()
-                except Exception, e:
-                    logWarning('Error on running plugin `{} onStop` - Exception: `{}`!'.format(pname, e))
+                except Exception as e:
+                    trace = traceback.format_exc()[33:].strip()
+                    logWarning('Error on running plugin `{} onStop` - Exception: `{}`!'.format(pname, trace))
             del parser, plugins
 
             # Start all active EPs !
@@ -979,8 +990,9 @@ class CentralEngine(_cptools.XMLRPCController):
                 plugin = self._buildPlugin(user, pname, {'ce_stop': 'manual'})
                 try:
                     plugin.onStop()
-                except Exception, e:
-                    logWarning('Error on running plugin `{} onStop` - Exception: `{}`!'.format(pname, e))
+                except Exception as e:
+                    trace = traceback.format_exc()[33:].strip()
+                    logWarning('Error on running plugin `{} onStop` - Exception: `{}`!'.format(pname, trace))
             del parser, plugins
 
             # Stop all active EPs !
@@ -1187,9 +1199,10 @@ class CentralEngine(_cptools.XMLRPCController):
 
         try:
             return plugin_p.run(args)
-        except Exception, e:
+        except Exception as e:
+            trace = traceback.format_exc()[33:].strip()
             logError('CE ERROR: Plugin `{}`, ran with arguments `{}` and returned EXCEPTION: `{}`!'\
-                     .format(plugin, args, e))
+                     .format(plugin, args, trace))
             return 'Error on running plugin `{}` - Exception: `{}`!'.format(plugin, e)
 
 
@@ -1578,7 +1591,7 @@ class CentralEngine(_cptools.XMLRPCController):
         try:
             log_string = binascii.a2b_base64(logMessage)
         except:
-            logError('Live Log Error: Invalid b64 log!')
+            logError('Live Log Error: Invalid base64 log!')
             return False
 
         # Execute "onLog" for all plugins
@@ -1588,14 +1601,21 @@ class CentralEngine(_cptools.XMLRPCController):
             plugin = self._buildPlugin(user, pname, {'log_type': 'cli'})
             try:
                 plugin.onLog(epname, log_string)
-            except Exception, e:
-                logWarning('Error on running plugin `{} onStop` - Exception: `{}`!'.format(pname, e))
+            except Exception as e:
+                trace = traceback.format_exc()[33:].strip()
+                logWarning('Error on running plugin `{} onStop` - Exception: `{}`!'.format(pname, trace))
         del parser, plugins
 
         # Calling Panic Detect
-        # self._panicDetectLogParse(user, epname, log_string)
+        pd = self._panicDetectLogParse(user, epname, log_string)
 
-        logPath = logFolder + os.sep + epname + '_CLI.log'
+        logTypes = self.project.getUserInfo(user, 'log_types')
+        _, logCli = os.path.split( logTypes.get('logCli', 'CLI.log') )
+        # EP Name + CLI Path
+        logPath = logFolder + os.sep + epname +'_'+ logCli
+
+        if pd:
+            self.logMessage(user, 'logDebug', 'PANIC DETECT: Execution stopped.')
 
         return self._logServerMsg(user, logPath + ':' + log_string)
 
@@ -1634,14 +1654,28 @@ class CentralEngine(_cptools.XMLRPCController):
         Resets one log.\n
         Called from the Java GUI.
         """
-        logType = str(logName)
         logTypes = self.project.getUserInfo(user, 'log_types')
+        logPath = ''
 
-        if logType not in logTypes:
-            logError('Log Error! Log type `{}` is not in the list of defined types: `{}`!'.format(logType, logTypes))
+        # Cycle all log types and paths
+        for logType, logN in logTypes.iteritems():
+            _, logShort = os.path.split(logN)
+            # CLI Logs are special, exploded for each EP
+            if logType.lower() == 'logcli':
+                for epname in self.listEPs(user).split(','):
+                    logCli = epname +'_'+ logShort
+                    if logName == logCli:
+                        logPath = _ +'/'+ logCli
+                        break
+            else:
+                # For normal, non-CLI logs...
+                if logName == logShort:
+                    logPath = logN
+                    break
+
+        if not logPath:
+            logError('Log Error! Log name `{}` cannot be found!'.format(logName))
             return False
-
-        logPath = self.project.getUserInfo(user, 'log_types')[logType]
 
         data = json.dumps({
             'cmd': 'del',
@@ -1660,29 +1694,33 @@ class CentralEngine(_cptools.XMLRPCController):
         """
         status = False
 
-        self.project.panicDetectConfig(user, 'list')
+        self.project.panicDetectConfig(user, {'command': 'list'})
 
         if not self.project.panicDetectRegularExpressions.has_key(user):
             return status
 
-        # verify if for current suite Panic Detect is enabled
+        # Verify if for current suite Panic Detect is enabled
         suiteID = self.getEpVariable(user, epname, 'curent_suite')
-        enabled = self.getSuiteVariable(user, epname, suiteID, 'pd')
-        if enabled.lower() == 'false':
-            status = True
+        # When running first, the current_suite is not defined yet
+        if not suiteID:
+            return status
 
+        enabled = self.getSuiteVariable(user, epname, suiteID, 'pd')
+
+        if not enabled or enabled.lower() == 'false':
             return status
 
         for key, value in self.project.panicDetectRegularExpressions[user].iteritems():
             try:
-                if re.search(value['expresion'], log_string) is not None:
+                if re.search(value['expression'], log_string) is not None:
                     if value['enabled']:
-                        # stop ep action
-                        self.setExecStatus(self.user, epname,
-                            'STATUS_STOP', msg='panic detected; status chaged')
+                        # Stop EP
+                        self.setExecStatus(user, epname, STATUS_STOP,
+                            msg='Panic detect activated, expression `{}` found in CLI log!'.format(value['expression']))
                         status = True
-            except Exception, e:
-                logError(e)
+            except Exception as e:
+                trace = traceback.format_exc()[33:].strip()
+                logError(trace)
 
         return status
 

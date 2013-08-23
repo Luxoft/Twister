@@ -1,5 +1,5 @@
 
-# version: 2.005
+# version: 2.006
 
 # Major list of constants.
 
@@ -35,6 +35,7 @@ ROLES = [
 	'CHANGE_PROJECT',	# Can change defined projects ? (applet)
 	'DELETE_PROJECT',	# Can delete projects ? (applet)
 
+	'VIEW_REPORTS',		# Can view ? (server + applet)
 	'CHANGE_FWM_CFG',	# Can change his main config ? (applet)
 	'CHANGE_GLOBALS',	# Can change global parameters ? (applet)
 	'CHANGE_DB_CFG',	# Can change database config ? (applet)

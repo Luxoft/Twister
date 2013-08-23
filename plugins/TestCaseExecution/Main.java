@@ -1,6 +1,6 @@
 /*
 File: Main.java ; This file is part of Twister.
-Version: 2.004
+Version: 2.005
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -49,9 +49,9 @@ public class Main{
         RunnerRepository.host = "tsc-server";
         readLogoTxt();
         
-        PermissionValidator.init("CREATE_PROJECT,CHANGE_PROJECT,DELETE_PROJECT,"+
+        PermissionValidator.init("CREATE_PROJECT,CHANGE_PROJECT,DELETE_PROJECT,CHANGE_PLUGINS,"+
                                  "CHANGE_FWM_CFG,CHANGE_GLOBALS,RUN_TESTS,EDIT_TC,"+
-                                 "CHANGE_DB_CFG,CHANGE_EML_CFG,CHANGE_SERVICES");
+                                 "CHANGE_DB_CFG, CHANGE_EML_CFG,CHANGE_SERVICES");
         RunnerRepository.initialize("false","tsc-server",null);}
 //             RunnerRepository.initialize(false,"11.126.32.15",null);}
 

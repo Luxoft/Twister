@@ -1,6 +1,6 @@
 /*
 File: Plugins.java ; This file is part of Twister.
-Version: 2.002
+Version: 2.003
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -323,7 +323,9 @@ public class Plugins extends JPanel{
             if(addremove.getText().equals("Remove")){
                 GridBagConstraints gridBagConstraints = new GridBagConstraints();
                 gridBagConstraints.gridx = 1;
-                localtable.add(addremove, gridBagConstraints);
+                if(PermissionValidator.canChangePlugins()){
+                    localtable.add(addremove, gridBagConstraints);
+                }
                 gridBagConstraints.gridx = 0;
                 localtable.add(lname, gridBagConstraints);
                 int height = localtable.getComponentCount()*40;                
@@ -332,7 +334,10 @@ public class Plugins extends JPanel{
             else{
                 GridBagConstraints gridBagConstraints = new GridBagConstraints();
                 gridBagConstraints.gridx = 1;
-                remotetable2.add(addremove, gridBagConstraints);
+                if(PermissionValidator.canChangePlugins()){
+                    remotetable2.add(addremove, gridBagConstraints);
+                }
+                
                 gridBagConstraints.gridx = 0;
                 remotetable2.add(lname, gridBagConstraints);
             }
@@ -501,6 +506,9 @@ public class Plugins extends JPanel{
             constraints.weighty = 0.1;
             layout.setConstraints(component, constraints);}            
         final MyCheck check = new MyCheck();
+        if(!PermissionValidator.canChangePlugins()){
+            check.setEnabled(false);
+        }
         JLabel name = new JLabel();
         JTextArea description = new JTextArea();
         JButton readmore = new JButton("Read more");        

@@ -198,7 +198,7 @@ class SshConnection:
             print('ssh connection created!')
         except Exception, e:
             self.__del__()
-            print('telnet connection failed: {er}'.format(er=e))
+            print('ssh connection failed: {er}'.format(er=e))
 
 
     def __del__(self):

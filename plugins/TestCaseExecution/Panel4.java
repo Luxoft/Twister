@@ -1,6 +1,6 @@
 /*
 File: Panel4.java ; This file is part of Twister.
-Version: 2.004
+Version: 2.005
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -43,6 +43,7 @@ public class Panel4 extends JPanel{
     private Services services;
     private About about;
     private TestConfigurations testconfig;
+    private SystemUnderTest sut;
     
 
     public Panel4(){
@@ -58,6 +59,7 @@ public class Panel4 extends JPanel{
         plugins = new Plugins();
         about = new About();
         testconfig = new TestConfigurations();
+        sut = new SystemUnderTest();
         main = new JPanel();        
         main.setLayout(null);
         main.setBounds(240,10,(int)screenSize.getWidth()-320,
@@ -117,13 +119,14 @@ public class Panel4 extends JPanel{
             public void actionPerformed(ActionEvent ev){                
                 setTestConfig();}});
         add(ctrlpanel);
-        ctrlpanel.setEnabled(false);
-        RoundButton logout = new RoundButton("Logout");
-        logout.setBounds(20,310,200,25);
-        logout.addActionListener(new ActionListener(){
+//         ctrlpanel.setEnabled(false);
+        RoundButton SUT = new RoundButton("System Under Test");
+        SUT.setEnabled(false);
+        SUT.setBounds(20,310,200,25);
+        SUT.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){                
-                setLogout();}});
-        add(logout);
+                setSut();}});
+        add(SUT);
         RoundButton about = new RoundButton("About");
         about.setBounds(20,340,200,25);
         about.addActionListener(new ActionListener(){
@@ -133,16 +136,21 @@ public class Panel4 extends JPanel{
         setPaths();
     }
     
+     public void setSut(){
+        main.removeAll();
+        main.setLayout(new BorderLayout());
+        main.add(sut,BorderLayout.CENTER);
+        sut.tbs.setTree(tb.getTree());
+        main.repaint();
+        main.revalidate();
+    }
+    
     public void setTestConfig(){
         main.removeAll();
         main.setLayout(new BorderLayout());
         main.add(testconfig,BorderLayout.CENTER);
         main.repaint();
         main.revalidate();
-    }
-    
-    public void setLogout(){
-        RunnerRepository.starter.maincomp.loadComponent("login");
     }
     
     /*
@@ -194,6 +202,9 @@ public class Panel4 extends JPanel{
         tb.setPreferredSize(new Dimension(main.getWidth()-5,
                                           main.getHeight()-5));
         main.add(tb);
+        if(sut.tbs.getTree()!=null){
+            tb.setTree(sut.tbs.getTree());
+        }
         main.repaint();
         main.revalidate();}
     
@@ -264,6 +275,10 @@ public class Panel4 extends JPanel{
         main.add(plugins);
         main.repaint();
         main.revalidate();}
+        
+    public TestConfigurations getTestConfig(){
+        return testconfig;
+    }
         
     public Plugins getPlugins(){
         return plugins;}    

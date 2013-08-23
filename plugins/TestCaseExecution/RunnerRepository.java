@@ -1,6 +1,6 @@
 /*
 File: RunnerRepository.java ; This file is part of Twister.
-Version: 2.0019
+Version: 2.0020
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -151,8 +151,8 @@ public class RunnerRepository {
     private static String[] lookAndFeels;
     public static Container container;
     private static Document pluginsconfig;
-    private static String version = "2.021";
-    private static String builddate = "16.08.2013";
+    private static String version = "2.022";
+    private static String builddate = "23.08.2013";
     public static String logotxt,os,python;
     
     public static void setStarter(Starter starter){
@@ -1519,15 +1519,18 @@ public class RunnerRepository {
             catch(Exception e){e.printStackTrace();}
         }
         sftpoccupied = true;
-        try{RunnerRepository.connection.cd(location);}
-        catch(Exception e){
-            CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,RunnerRepository.window,
-                                        "Warning", "Could not upload remote to :"+location+" location");
-            e.printStackTrace();
-            sftpoccupied = false;
-            return false;
-        }
-        try{RunnerRepository.connection.put(input, filename);
+//         try{RunnerRepository.connection.cd(location);}
+//         catch(Exception e){
+//             CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,RunnerRepository.window,
+//                                         "Warning", "Could not upload remote to :"+location+" location");
+//             e.printStackTrace();
+//             sftpoccupied = false;
+//             return false;
+//         }
+        try{
+            System.out.println(location+"/"+filename);
+            RunnerRepository.connection.put(input,location+"/"+filename);
+            
             input.close();
             sftpoccupied = false;
             return true;
@@ -1700,9 +1703,6 @@ public class RunnerRepository {
             configuration.setBasicUserName(user);
             configuration.setServerURL(new URL("http://"+user+":"+password+"@"+RunnerRepository.host+
                                         ":"+RunnerRepository.getCentralEnginePort()+"/"));
-            
-            System.out.println("http://"+user+":"+password+"@"+RunnerRepository.host+
-                                        ":"+RunnerRepository.getCentralEnginePort()+"/");
             client = new XmlRpcClient();
             client.setConfig(configuration);
             System.out.println("Client initialized: "+client);}

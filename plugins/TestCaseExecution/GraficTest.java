@@ -1,6 +1,6 @@
 /*
 File: GraficTest.java ; This file is part of Twister.
-Version: 2.003
+Version: 2.005
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -525,26 +525,22 @@ public class GraficTest extends JPanel{
      * on view dimension
      */
     public void updateScroll(){
-//         System.out.println("Update Scroll: "+(maxWidth+100));
         int y1=0;
         for(int i=0;i<RunnerRepository.getTestSuiteNr();i++){
             if(RunnerRepository.getTestSuita(i).isVisible()){
                 y1 = getLastY(RunnerRepository.getTestSuita(i),y1);
             }
         }
-        setPreferredSize(new Dimension(maxWidth+120,y1+10));
+        setPreferredSize(new Dimension(maxWidth+145,y1+10));
         if(y1>getHeight()){
-            setPreferredSize(new Dimension(maxWidth+120,y1+10));
-//             setPreferredSize(new Dimension(425,y1+10));
+            setPreferredSize(new Dimension(maxWidth+145,y1+10));
             RunnerRepository.window.mainpanel.getP2().sc.revalidate();}
         if(getHeight()>595){
             if(y1<getHeight()-10){
-//                 setPreferredSize(new Dimension(425,y1+10));
-                setPreferredSize(new Dimension(maxWidth+120,y1+10));
+                setPreferredSize(new Dimension(maxWidth+145,y1+10));
                 RunnerRepository.window.mainpanel.getP2().sc.revalidate();}
             if(y1<595){
-//                 setPreferredSize(new Dimension(445,595));
-                setPreferredSize(new Dimension(maxWidth+120,595));
+                setPreferredSize(new Dimension(maxWidth+145,595));
                 RunnerRepository.window.mainpanel.getP2().sc.revalidate();}}}
           
                 
@@ -627,9 +623,6 @@ public class GraficTest extends JPanel{
             else g.drawImage(RunnerRepository.getTCIcon(),(int)item.getRectangle().getX()+5,
                             (int)item.getRectangle().getY()+1,null);}
         else{
-//             g.drawImage(RunnerRepository.getPropertyIcon(),(int)item.getRectangle().getX()+2,(int)item.getRectangle().getY()+1,null);
-//             g.drawString(item.getName()+" : "+item.getValue(),(int)item.getRectangle().getX()+25,(int)item.getRectangle().getY()+15);
-//             System.out.println(item.getName()+" : "+item.getValue()+" "+maxWidth+2+" "+(int)item.getRectangle().getY()+1);
             g.drawImage(RunnerRepository.getPropertyIcon(),maxWidth+2,(int)item.getRectangle().getY()+1,null);
             g.drawString(item.getName()+" : "+item.getValue(),maxWidth+25,(int)item.getRectangle().getY()+15);
         }

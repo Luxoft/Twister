@@ -1,7 +1,7 @@
 
 # File: LogServer.py ; This file is part of Twister.
 
-# version: 2.002
+# version: 2.004
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -30,6 +30,10 @@ logging.basicConfig(
 console = logging.StreamHandler()
 console.setLevel(logging.NOTSET)
 log.addHandler(console)
+
+if not sys.version.startswith('2.7'):
+    print('Python version error! Log Server must run on Python 2.7!')
+    exit(1)
 
 #
 
@@ -74,8 +78,8 @@ def process_cmd(sock):
 
         # Message from client.
         data = conn.recv((2**14))
-        if data:
-            log.debug('Message: `{}`.'.format(repr(data)))
+        # if data:
+        #     log.debug('Message: `{}`.'.format(repr(data)))
 
 
         # ~~~ Reset 1 Log ~~~
@@ -130,7 +134,9 @@ def process_cmd(sock):
                 # For CLI
                 if logType.lower() == 'logcli':
                     for epname in info['epnames'].split(','):
-                        logPath = info['logsPath'] + os.sep + epname + '_CLI.log'
+                        # Name and full path of logCLI
+                        logCli = os.path.split(info['logTypes'][logType])[1]
+                        logPath = info['logsPath'] +'/'+ epname +'_'+ logCli
                         try:
                             open(logPath, 'w').close()
                         except:

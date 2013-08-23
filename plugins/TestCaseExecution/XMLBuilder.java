@@ -1,6 +1,6 @@
 /*
 File: XMLBuilder.java ; This file is part of Twister.
-Version: 2.006
+Version: 2.007
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -34,6 +34,8 @@ import javax.xml.transform.stream.StreamResult;
 import javax.xml.transform.Result;
 import java.io.FileInputStream;
 import java.util.Iterator;
+import javax.swing.JOptionPane;
+import com.twister.CustomDialog;
 
 public class XMLBuilder{
     private DocumentBuilderFactory documentBuilderFactory;
@@ -125,7 +127,6 @@ public class XMLBuilder{
              String [] EPS;;
              for(int i=0;i<nrsuite;i++){
                  sb.setLength(0);
-                 
                  Item current = suite.get(i);
                  Node parent = RunnerRepository.window.mainpanel.p4.getTB().getParentNode();
                  for(String s:current.getEpId()){
@@ -138,21 +139,10 @@ public class XMLBuilder{
                                 String []str = {ep,child.getName()};
                                 item.setEpId(str);
                                 temporary.add(item);
-                                
-//                                 sb.append(ep);
-//                                 sb.append(";"); 
                             }
                         }
                     }
                 }
-//                 sb.deleteCharAt(sb.length()-1);
-//                 EPS = sb.toString().split(";");
-//                 for(String s:EPS){
-//                     Item item = current.clone();
-//                     String []str = {s};
-//                     item.setEpId(str);
-//                     temporary.add(item);
-//                 }
              }
              suite = temporary;
              nrsuite = suite.size();
@@ -179,50 +169,22 @@ public class XMLBuilder{
                 em2.appendChild(document.createTextNode(sb.toString()));
                 rootElement.appendChild(em2);
             }
-            
-            
             em2 = document.createElement("tsName");
             em2.appendChild(document.createTextNode(suite.get(i).getName()));
             rootElement.appendChild(em2);
-            
             em2 = document.createElement("PanicDetect");
             em2.appendChild(document.createTextNode(suite.get(i).isPanicdetect()+""));
             rootElement.appendChild(em2);
-            
             if(suite.get(i).getEpId()!=null&&suite.get(i).getEpId().length>0){
-//                 Element EP = document.createElement("EpId");
-//                 StringBuilder b = new StringBuilder();
-//                 for(String s:suite.get(i).getEpId()){
-//                     b.append(s+";");
-//                 }
-//                 b.deleteCharAt(b.length()-1);
-//                 EP.appendChild(document.createTextNode(b.toString()));
-//                 rootElement.appendChild(EP);
                 if(skip){
                     Element EP = document.createElement("EpId");
-//                     StringBuilder b = new StringBuilder();
-//                     Node parent = RunnerRepository.window.mainpanel.p4.getTB().getParentNode();
-//                     for(String s:suite.get(i).getEpId()){
-//                         Iterator iter = parent.getChildren().keySet().iterator();
-//                         while(iter.hasNext()){
-//                             Node child = parent.getChild(iter.next().toString());
-//                             if(child!=null&&child.getName().equals(s)){
-//                                 b.append(child.getEPs());
-//                                 b.append(";");   
-//                             }
-//                         }
-//                     }
-//                     if(b.length()>0)b.deleteCharAt(b.length()-1);   
                     EP.appendChild(document.createTextNode(suite.get(i).getEpId()[0]));
-                    
                     rootElement.appendChild(EP);
-                    
                     EP = document.createElement("TbName");
                     EP.appendChild(document.createTextNode(suite.get(i).getEpId()[1]));
                     rootElement.appendChild(EP);
                 }
                 else {
-                    
                     StringBuilder b = new StringBuilder();
                     for(String s:suite.get(i).getEpId()){
                         b.append(s+";");
@@ -231,9 +193,6 @@ public class XMLBuilder{
                     Element EP = document.createElement("TbName");
                     EP.appendChild(document.createTextNode(b.toString()));
                     rootElement.appendChild(EP);
-                    
-                    
-                    
                     EP = document.createElement("EpId");
                     Node parent = RunnerRepository.window.mainpanel.p4.getTB().getParentNode();
                     b.setLength(0);
@@ -242,62 +201,24 @@ public class XMLBuilder{
                         while(iter.hasNext()){
                             Node child = parent.getChild(iter.next().toString());
                             if(child!=null&&child.getName().equals(s)){
-                                for(String ep:child.getEPs().split(";")){
-                                    b.append(ep);
-                                    b.append(";");
-//                                     Item item = current.clone();
-//                                     String []str = {ep,child.getName()};
-//                                     item.setEpId(str);
-//                                     temporary.add(item);
-                                    
-                        //                                 sb.append(ep);
-                        //                                 sb.append(";"); 
+                                if(child.getEPs()==null || child.getEPs().equals("")){
+                                    CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, 
+                                                            RunnerRepository.window, "Warning", 
+                                                            "Warning, no ep's found for: "+child.getName());
                                 }
-                                b.deleteCharAt(b.length()-1);
+                                else {
+                                    for(String ep:child.getEPs().split(";")){
+                                        b.append(ep);
+                                        b.append(";");
+                                    }
+                                    b.deleteCharAt(b.length()-1);
+                                }
                             }
                         }
                     }
                     EP.appendChild(document.createTextNode(b.toString()));
                     rootElement.appendChild(EP);
-                    
-                    
-                    
-                    
-                    
-                    
-                    
                 }
-                
-//                 if(skip){
-//                     Element EP = document.createElement("EpId");
-//                     StringBuilder b = new StringBuilder();
-//                     Node parent = RunnerRepository.window.mainpanel.p4.getTB().getParentNode();
-//                     for(String s:suite.get(i).getEpId()){
-//                         Iterator iter = parent.getChildren().keySet().iterator();
-//                         while(iter.hasNext()){
-//                             Node child = parent.getChild(iter.next().toString());
-//                             if(child!=null&&child.getName().equals(s)){
-//                                 b.append(child.getEPs());
-//                                 b.append(";");   
-//                             }
-//                         }
-//                     }
-//                     if(b.length()>0)b.deleteCharAt(b.length()-1);   
-//                     EP.appendChild(document.createTextNode(b.toString()));
-//                     rootElement.appendChild(EP);
-//                     
-//                 }
-                
-                
-//                 Element EP = document.createElement("TbName");
-//                 StringBuilder b = new StringBuilder();
-//                 for(String s:suite.get(i).getEpId()){
-//                     b.append(s+";");
-//                 }
-//                 b.deleteCharAt(b.length()-1);
-//                 EP.appendChild(document.createTextNode(b.toString()));
-//                 rootElement.appendChild(EP);
-            
             }
             for(int j=0;j<suite.get(i).getUserDefNr();j++){
                 Element userdef = document.createElement("UserDefined");

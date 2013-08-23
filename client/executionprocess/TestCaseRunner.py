@@ -1,7 +1,7 @@
 
 # File: TestCaseRunner.py ; This file is part of Twister.
 
-# version: 2.012
+# version: 2.014
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -180,11 +180,12 @@ class TwisterRunner:
             try: os.makedirs(libs_path)
             except: pass
 
-        all_libs = ['TscCommonLib.py'] # Normal python files or folders
+        all_libs = [] # Normal python files or folders
         zip_libs = [] # Zip libraries
 
         # If Reseting libs, open and destroy
         if reset_libs:
+            all_libs.insert(0, 'TscCommonLib.py')
             __init = open(libs_path + os.sep + '__init__.py', 'w')
             __init.write('\nimport os, sys\n')
             __init.write('\nPROXY = "{}"\n'.format(self.CONFIG['PROXY']))
@@ -242,7 +243,7 @@ class TwisterRunner:
             __init.write('try:\n')
             __init.write('\timport %s\n' % ext[0])
             __init.write('\tfrom %s import *\n' % ext[0])
-            __init.write('except Exception, e:\n\tprint("Cannot import library `{}`! Exception `%s`!" % e)\n\n'.format(ext[0]))
+            __init.write('except Exception as e:\n\tprint("Cannot import library `{}`! Exception `%s`!" % e)\n\n'.format(ext[0]))
             lib_pth = libs_path + os.sep + lib_file
 
             f = open(lib_pth, 'wb')
@@ -315,6 +316,10 @@ class TwisterRunner:
                 suite_id   = id
                 suite_name = node['name']
                 suite_str  = suite_id +' - '+ suite_name
+
+                # If this is a top level suite, set current_suite flag in EP Variables
+                if suite_id in SuitesManager:
+                    self.proxy.setEpVariable(self.userName, self.epName, 'curent_suite', suite_id)
 
                 print('\n===== ===== ===== ===== =====')
                 print(' Starting suite `{}`'.format(suite_str))
@@ -528,20 +533,15 @@ class TwisterRunner:
                 'FILE_ID'   : file_id,
                 'FILE_NAME' : filename,
                 'PROPERTIES': props,
-                'PROXY'     : self.proxy,
-                'logMsg'    : self.commonLib.logMsg,
-                'getGlobal' : self.commonLib.getGlobal,
-                'setGlobal' : self.commonLib.setGlobal,
-                'py_exec'   : self.commonLib.py_exec,
-                'getResource'       : self.commonLib.getResource,
-                'setResource'       : self.commonLib.setResource,
-                'renameResource'    : self.commonLib.renameResource,
-                'deleteResource'    : self.commonLib.deleteResource,
-                'getResourceStatus' : self.commonLib.getResourceStatus,
-                'allocResource'     : self.commonLib.allocResource,
-                'reserveResource'   : self.commonLib.reserveResource,
-                'freeResource'      : self.commonLib.freeResource,
+                'PROXY'     : self.proxy
             }
+
+            # Find all functions from commonLib
+            to_inject = [ f for f in dir(self.commonLib) if callable(getattr(self.commonLib, f)) ]
+            # Expose all known function in tests
+            for f in to_inject:
+                # print('DEBUG: Exposing Python command `{}` into TCL...'.format(f))
+                globs[f] = getattr(self.commonLib, f)
 
             try:
                 result = current_runner._eval(str_to_execute, globs, args)
