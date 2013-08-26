@@ -1,7 +1,7 @@
 
 # File: ReportingServer.py ; This file is part of Twister.
 
-# version: 2.006
+# version: 2.007
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -32,6 +32,7 @@ The reports can be fully customized, by editing the DB.xml file.
 import os
 import sys
 import re
+import time
 import datetime
 import json
 import mako
@@ -52,7 +53,7 @@ from common.tsclogging import *
 from common.xmlparser  import *
 
 if mako.__version__ < '0.7':
-    logWarning('Warning! Mako-template version is old: `{}`! Some pages might crash!\n'.format(mako.__version__))
+    logWarning('Warning! Mako-template version `{}` is old! Some pages might crash!\n'.format(mako.__version__))
 
 # --------------------------------------------------------------------------------------------------
 # # # #    C L A S S    R e p o r t i n g    # # #
@@ -81,24 +82,26 @@ class ReportingServer:
         Read DB Config File for 1 user.
         '''
         if not os.path.isdir(userHome(usr) + '/twister/config'):
-            logError('Reporting Server: Cannot find Twister for user `{}` !'.format(usr))
+            logError('Report Server: Cannot find Twister for user `{}` !'.format(usr))
             return False
 
         # Get the path to DB.XML
         db_file = self.project.getUserInfo(usr, 'db_config')
         if not db_file:
-            logError('Reporting Server: Null DB.XML file for user `{}`! Nothing to do!'.format(usr))
+            logError('Report Server: Null DB.XML file for user `{}`! Nothing to do!'.format(usr))
             return False
 
         # Create database parser IF necessary, or FORCED...
         if force or (usr not in self.db_parser):
-            # logDebug('Reporting Server: Parsing DB config `{}` for user `{}`.'.format(db_file, usr))
+            logDebug('Rep Server: [{}] Parsing DB config `{}` for user `{}`.'.format(time.strftime('%Y-%m-%d %H:%M:%S'), db_file, usr))
 
             self.db_parser[usr]      = DBParser(db_file)
             self.glob_fields[usr]    = self.db_parser[usr].getReportFields()
             self.glob_reports[usr]   = self.db_parser[usr].getReports()
             self.glob_redirects[usr] = self.db_parser[usr].getRedirects()
             self.glob_links[usr]     = ['Home'] + self.glob_reports[usr].keys() + self.glob_redirects[usr].keys() + ['Help']
+
+            logDebug('Rep Server: [{}] Parsing for user `{}` complete.'.format(time.strftime('%Y-%m-%d %H:%M:%S'), usr))
 
             self.connect_db(usr)
 
@@ -108,8 +111,8 @@ class ReportingServer:
         Reconnect to the database.
         '''
         db_config = self.db_parser[usr].db_config
-        # logDebug('Reporting Server: Connecting on DB from `{}:{}`...'\
-        #          ''.format(db_config.get('server'), db_config.get('database')))
+        logDebug('Rep Server: [{}] Connecting on DB from `{}:{}`...'\
+                 ''.format(time.strftime('%Y-%m-%d %H:%M:%S'), db_config.get('server'), db_config.get('database')))
 
         # Decode database password
         db_password = self.project.decryptText( db_config.get('password') )
@@ -119,6 +122,9 @@ class ReportingServer:
 
         self.conn[usr] = MySQLdb.connect(host=db_config.get('server'), db=db_config.get('database'),
                                          user=db_config.get('user'), passwd=db_password)
+
+        logDebug('Rep Server: [{}] Connected on DB `{}:{}` successful.'\
+                 ''.format(time.strftime('%Y-%m-%d %H:%M:%S'), db_config.get('server'), db_config.get('database')))
         self.curs[usr] = self.conn[usr].cursor()
 
 
@@ -176,6 +182,8 @@ class ReportingServer:
 
         if not os.path.isdir(userHome(usr) + '/twister/config'):
             return '<br><b>Error! Username `{}` doesn\'t have a Twister config folder!</b>'.format(usr)
+
+        logDebug('Rep Server: [{}] Before report `{}` for user `{}`...'.format(time.strftime('%Y-%m-%d %H:%M:%S'),report,usr))
 
         self.load_config(usr) # Re-load all Database XML
         if usr not in self.conn: self.connect_db(usr)
@@ -277,6 +285,8 @@ class ReportingServer:
                 u_options[opt] = this_option
 
             output = Template(filename=TWISTER_PATH + '/server/template/rep_base.htm')
+            logDebug('Rep Server: [{}] After select fields `{}` for user `{}`.'.format(time.strftime('%Y-%m-%d %H:%M:%S'),report,usr))
+
             return output.render(title=report, usr=usr, links=self.glob_links[usr], options=u_options)
 
 
@@ -353,6 +363,8 @@ class ReportingServer:
             #DEBUG.write(report +' -> '+ user_choices +' -> '+ query_compr + '\n\n') ; DEBUG.flush()
 
         output = Template(filename=TWISTER_PATH + '/server/template/rep_base.htm')
+        logDebug('Rep Server: [{}] After complete report `{}` for user `{}`.'.format(time.strftime('%Y-%m-%d %H:%M:%S'),report,usr))
+
         return output.render(usr=usr, title=report, links=self.glob_links[usr], ajax_link=ajax_link, user_choices=user_choices,
             report=descr, chart=report_dict['type'])
 

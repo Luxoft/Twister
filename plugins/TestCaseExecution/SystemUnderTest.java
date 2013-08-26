@@ -1,6 +1,6 @@
 /*
-File: TestConfigurations.java ; This file is part of Twister.
-Version: 2.002
+File: SystemUnderTest.java ; This file is part of Twister.
+Version: 2.001
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -24,18 +24,17 @@ import java.awt.BorderLayout;
 import javax.swing.SwingUtilities;
 import java.awt.Dimension;
 
-public class TestConfigurations extends JPanel{
-    public ConfigTree tree;
-    public ConfigEditor cfgedit;
-    
+public class SystemUnderTest extends JPanel{
+    public TestBeds tbs;
+    public SUT sut;
 
-    public TestConfigurations(){
+    public SystemUnderTest(){
+        tbs = new TestBeds();
+        sut = new SUT();
         setLayout(new BorderLayout());
-        cfgedit = new ConfigEditor();
-        tree = new ConfigTree();
         final JSplitPane sp = new JSplitPane();
-        sp.setLeftComponent(tree);
-        sp.setRightComponent(cfgedit);
+        sp.setLeftComponent(sut);
+        sp.setRightComponent(tbs);
         sp.setOrientation(JSplitPane.HORIZONTAL_SPLIT);
         sp.setResizeWeight(0.5);
         SwingUtilities.invokeLater(new Runnable() {
@@ -44,7 +43,5 @@ public class TestConfigurations extends JPanel{
                 }
             });
         add(sp,BorderLayout.CENTER);
-        tree.setConfigEditor(cfgedit);
-        cfgedit.setConfigTree(tree);
     }
 }

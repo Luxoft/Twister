@@ -150,18 +150,18 @@ if TO_INSTALL == 'server':
     try: os.remove(os.getcwd() + '/config')
     except: pass
     if os.path.exists(INSTALL_PATH + 'config'):
-        print('\nBack-up `config` folder (from `{0}` to `{1}`)...'.format(INSTALL_PATH+'config', os.getcwd()))
+        print('\nBack-up `config` folder (from `{}` to `{}`)...'.format(INSTALL_PATH+'config', os.getcwd()))
         shutil.move(INSTALL_PATH + 'config', os.getcwd())
 
     # Deleting previous versions of Twister
     try:
         dir_util.remove_tree(INSTALL_PATH)
-        print('Removed folder `%s`.' % INSTALL_PATH)
-    except: print('Warning! Cannot delete Twister dir `{0}` !'.format(INSTALL_PATH))
+        print('Removed folder `{}`.'.format(INSTALL_PATH))
+    except: print('Warning! Cannot delete Twister dir `{}` !'.format(INSTALL_PATH))
     try:
         os.makedirs(INSTALL_PATH)
-        print('Created folder `%s`.' % INSTALL_PATH)
-    except: print('Warning! Cannot create Twister dir `{0}` !'.format(INSTALL_PATH))
+        print('Created folder `{}`.'.format(INSTALL_PATH))
+    except: print('Warning! Cannot create Twister dir `{}` !'.format(INSTALL_PATH))
 
 else:
 
@@ -169,7 +169,7 @@ else:
     INSTALL_PATH = userHome(user_name) + os.sep + 'twister/'
 
     if os.path.exists(INSTALL_PATH):
-        print('WARNING! Another version of Twister is installed at `%s`!' % INSTALL_PATH)
+        print('WARNING! Another version of Twister is installed at `{}`!'.format(INSTALL_PATH))
         print('If you continue, all files from that folder will be PERMANENTLY DELETED,')
         print('Only the `config` folder will be saved!')
         selected = raw_input('Are you sure you want to continue? (yes/no): ')
@@ -178,14 +178,14 @@ else:
 
             # Backup CONFIG folder for client
             if os.path.exists(INSTALL_PATH + 'config'):
-                print('\nBack-up `config` folder (from `{0}` to `{1}`)...'.format(INSTALL_PATH+'config', os.getcwd()))
+                print('\nBack-up `config` folder (from `{}` to `{}`)...'.format(INSTALL_PATH+'config', os.getcwd()))
                 shutil.move(INSTALL_PATH + 'config', os.getcwd())
 
             # Deleting previous versions of Twister
             try: dir_util.remove_tree(INSTALL_PATH)
-            except: print('Error! Cannot delete Twister dir `{0}` !'.format(INSTALL_PATH))
+            except: print('Error! Cannot delete Twister dir `{}` !'.format(INSTALL_PATH))
             try: os.mkdir(INSTALL_PATH)
-            except: print('Error! Cannot create Twister dir `{0}` !'.format(INSTALL_PATH))
+            except: print('Error! Cannot create Twister dir `{}` !'.format(INSTALL_PATH))
 
         else:
             print('\nPlease backup your data, then restart the installer.')

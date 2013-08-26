@@ -1,3 +1,20 @@
+23rd August
+
+- added new button for "Test Configurations" in Configuration tab
+- fix for issue #33 ; the project file can be saved even if an EP is not assigned
+- fix for issue #65 ; GUI is ok for small screen resolution
+- fix for issue #67 ; saving in email.xml is fine
+- fix for issue #68 ; corrected the counter for pending
+- fix for issue #69 ; clear log is working
+- fix for issue #72 ; when configuration is change the Project switch to edit mode
+- fix for issue #73 ; user can change the name of CLI.log and the new name is used
+- fix for issue #76 ; database password reloaded correctly
+- fixed panic detection mechanism
+- reorganised the order of tetxt boxes in Configuration->Paths
+- updated smoke test cases with more details
+- added some backend code for clearcase plugin; GUI to be added
+- Added VIEW_REPORTS role for users.
+
 16th August
 
 - fix for issue #64; error message fixed and email text box widen 
