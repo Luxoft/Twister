@@ -1,7 +1,7 @@
 
 # File: CentralEngineOthers.py ; This file is part of Twister.
 
-# version: 2.028
+# version: 2.029
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -1694,20 +1694,24 @@ class Project:
         '''
         Parses the log file of one EP and returns the log of one test file.
         '''
-        logPath = self.getUserInfo(user, 'logs_path') + os.sep + epname + '_CLI.log'
+        logFolder = self.getUserInfo(user, 'logs_path')
+        logTypes  = self.getUserInfo(user, 'log_types')
+        _, logCli = os.path.split( logTypes.get('logCli', 'CLI.log') )
+        # Logs Path + EP Name + CLI Name
+        logPath = logFolder + os.sep + epname +'_'+ logCli
 
         try:
             data = open(logPath, 'r').read()
         except:
-            logError('Find Log: File `{0}` cannot be read!'.format(logPath))
+            logError('Find Log: File `{}` cannot be read!'.format(logPath))
             return '*no log*'
 
-        fbegin = data.find('<<< START filename: `%s:%s' % (file_id, file_name))
+        fbegin = data.find('<<< START filename: `{}:{}'.format(file_id, file_name))
         if fbegin == -1:
-            logDebug('Find Log: Cannot find `{0}:{1}` in log `{2}`!'.format(file_id, file_name, logPath))
+            logDebug('Find Log: Cannot find `{}:{}` in log `{}`!'.format(file_id, file_name, logPath))
 
-        fend = data.find('<<< END filename: `%s:%s' % (file_id, file_name))
-        fend += len('<<< END filename: `%s:%s` >>>' % (file_id, file_name))
+        fend = data.find('<<< END filename: `{}:{}'.format(file_id, file_name))
+        fend += len('<<< END filename: `{}:{}` >>>'.format(file_id, file_name))
 
         return data[fbegin:fend]
 

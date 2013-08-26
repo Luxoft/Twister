@@ -1,7 +1,7 @@
 
 # File: CentralEngineClasses.py ; This file is part of Twister.
 
-# version: 2.021
+# version: 2.022
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -282,7 +282,7 @@ class CentralEngine(_cptools.XMLRPCController):
             ret = self.project.sendMail(user, force)
             return ret
         except Exception as e:
-            trace = traceback.format_exc()[33:].strip()
+            trace = traceback.format_exc()[34:].strip()
             logError('E-mail: Sending e-mail exception `{}` !'.format(trace))
             return False
 
@@ -562,7 +562,7 @@ class CentralEngine(_cptools.XMLRPCController):
 
         _proxy = self._getClientEpProxy(user, epname)
         if not _proxy:
-            logDebug('Cannot start `{}` for user `{}` ! Invalid proxy `{}` !'.format(epname, user, _proxy))
+            logDebug('Cannot start `{}` for user `{}` ! The Client Manager is not started !'.format(epname, user))
             return False
 
         proxy = xmlrpclib.ServerProxy('http://{pr}/twisterclient/'.format(pr=_proxy))
@@ -573,7 +573,7 @@ class CentralEngine(_cptools.XMLRPCController):
             logDebug('Trying to start `{} {}`.'.format(user, epname))
             return proxy.startEP(epname)
         except Exception as e:
-            trace = traceback.format_exc()[33:].strip()
+            trace = traceback.format_exc()[34:].strip()
             logError('Error: Start EP error: {}'.format(trace))
             return False
 
@@ -584,7 +584,7 @@ class CentralEngine(_cptools.XMLRPCController):
 
         _proxy = self._getClientEpProxy(user, epname)
         if not _proxy:
-            logDebug('Cannot stop `{}` for user `{}` ! Invalid proxy `{}` !'.format(epname, user, _proxy))
+            logDebug('Cannot stop `{}` for user `{}` ! The Client Manager is not started !'.format(epname, user))
             return False
 
         proxy = xmlrpclib.ServerProxy('http://{pr}/twisterclient/'.format(pr=_proxy))
@@ -595,7 +595,7 @@ class CentralEngine(_cptools.XMLRPCController):
             logWarning('Trying to stop `{} {}`.'.format(user, epname))
             return proxy.stopEP(epname)
         except Exception as e:
-            trace = traceback.format_exc()[33:].strip()
+            trace = traceback.format_exc()[34:].strip()
             logError('Error: Stop EP error: {}'.format(trace))
             return False
 
@@ -606,6 +606,7 @@ class CentralEngine(_cptools.XMLRPCController):
 
         _proxy = self._getClientEpProxy(user, epname)
         if not _proxy:
+            logDebug('Cannot restart `{}` for user `{}` ! The Client Manager is not started !'.format(epname, user))
             return False
 
         proxy = xmlrpclib.ServerProxy('http://{pr}/twisterclient/'.format(pr=_proxy))
@@ -616,7 +617,7 @@ class CentralEngine(_cptools.XMLRPCController):
             logWarning('Trying to restart `{} {}`.'.format(user, epname))
             return proxy.restartEP(epname)
         except Exception as e:
-            trace = traceback.format_exc()[33:].strip()
+            trace = traceback.format_exc()[34:].strip()
             logError('Error: Restart EP error: {}'.format(trace))
             return False
 
@@ -769,12 +770,12 @@ class CentralEngine(_cptools.XMLRPCController):
             return False
 
         if not self.searchEP(user, epname):
-            logError('CE ERROR! EP `%s` is not in the list of defined EPs: `%s`!' %
-                (str(epname), self.listEPs(user)) )
+            logError('CE ERROR! EP `{}` is not in the list of defined EPs: `{}`!'
+                     ''.format(epname, self.listEPs(user)) )
             return False
         if new_status not in execStatus.values():
-            logError("CE ERROR! Status value `%s` is not in the list of defined statuses: `%s`!" %\
-                     (str(new_status), str(execStatus.values())) )
+            logError("CE ERROR! Status value `{}` is not in the list of defined statuses: `{}`!"
+                     "".format(new_status, execStatus.values()) )
             return False
 
         # Status resume => start running
@@ -808,6 +809,7 @@ class CentralEngine(_cptools.XMLRPCController):
             if self.project.getUserInfo(user, 'status'):
 
                 self.project.setUserInfo(user, 'status', STATUS_STOP)
+
                 logDebug('CE: All processes stopped for user `{}`! General status changed to STOP.\n'.format(user))
 
                 # If this run is Not temporary
@@ -838,7 +840,7 @@ class CentralEngine(_cptools.XMLRPCController):
                             subprocess.call('kill $(pgrep -P %i)' % logProc.pid, shell=True)
                             logProc.terminate()
                             logProc.wait()
-                            logDebug('Terminated log server `{}`, for user `{}`.'.format(logProc.pid, user))
+                            logDebug('Terminated log server PID `{}`, for user `{}`.'.format(logProc.pid, user))
                         except Exception as e:
                             trace = traceback.format_exc()[33:].strip()
                             logWarning('Cannot stop Log Server PID `{}`, for user `{}`! '\
@@ -855,6 +857,23 @@ class CentralEngine(_cptools.XMLRPCController):
                             trace = traceback.format_exc()[33:].strip()
                             logWarning('Error on running plugin `{} onStop` - Exception: `{}`!'.format(pname, trace))
                     del parser, plugins
+
+                    # Cycle all files to change the PENDING status to NOT_EXEC
+                    eps_pointer = self.project.users[user]['eps']
+                    statuses_changed = 0
+
+                    # All files, for current EP
+                    files = eps_pointer[epname]['suites'].getFiles()
+                    for file_id in files:
+                        current_status = self.project.getFileInfo(user, epname, file_id).get('status', -1)
+                        # Change the files with PENDING status, to NOT_EXEC
+                        if current_status in [STATUS_PENDING, -1]:
+                            self.project.setFileInfo(user, epname, file_id, 'status', STATUS_NOT_EXEC)
+                            statuses_changed += 1
+
+                    if statuses_changed:
+                        logDebug('Changed `{}` file statuses from Pending to Not executed.'.format(statuses_changed))
+
 
         return reversed[new_status]
 
@@ -876,8 +895,8 @@ class CentralEngine(_cptools.XMLRPCController):
             return False
 
         if new_status not in execStatus.values():
-            logError("CE ERROR! Status value `%s` is not in the list of defined statuses: `%s`!" % \
-                (str(new_status), str(execStatus.values())) )
+            logError("CE ERROR! Status value `{}` is not in the list of defined statuses: `{}`!"
+                     "".format(new_status, execStatus.values()) )
             return False
 
         reversed = dict((v,k) for k,v in execStatus.iteritems())
@@ -962,7 +981,7 @@ class CentralEngine(_cptools.XMLRPCController):
                 try:
                     plugin.onStart()
                 except Exception as e:
-                    trace = traceback.format_exc()[33:].strip()
+                    trace = traceback.format_exc()[34:].strip()
                     logWarning('Error on running plugin `{} onStop` - Exception: `{}`!'.format(pname, trace))
             del parser, plugins
 
@@ -991,14 +1010,29 @@ class CentralEngine(_cptools.XMLRPCController):
                 try:
                     plugin.onStop()
                 except Exception as e:
-                    trace = traceback.format_exc()[33:].strip()
+                    trace = traceback.format_exc()[34:].strip()
                     logWarning('Error on running plugin `{} onStop` - Exception: `{}`!'.format(pname, trace))
             del parser, plugins
 
-            # Stop all active EPs !
+            # Cycle all active EPs to: STOP them and to change the PENDING status to NOT_EXEC
             active_eps = self.project.parsers[user].getActiveEps()
+            eps_pointer = self.project.users[user]['eps']
+            statuses_changed = 0
+
             for epname in active_eps:
+                # All files, for current EP
+                files = eps_pointer[epname]['suites'].getFiles()
+                for file_id in files:
+                    current_status = self.project.getFileInfo(user, epname, file_id).get('status', -1)
+                    # Change the files with PENDING status, to NOT_EXEC
+                    if current_status in [STATUS_PENDING, -1]:
+                        self.project.setFileInfo(user, epname, file_id, 'status', STATUS_NOT_EXEC)
+                        statuses_changed += 1
+                # Send STOP to EP Manager
                 self.stopEP(user, epname)
+
+            if statuses_changed:
+                logDebug('Changed `{}` file statuses from Pending to Not executed.'.format(statuses_changed))
 
 
         # Update status for User
@@ -1200,7 +1234,7 @@ class CentralEngine(_cptools.XMLRPCController):
         try:
             return plugin_p.run(args)
         except Exception as e:
-            trace = traceback.format_exc()[33:].strip()
+            trace = traceback.format_exc()[34:].strip()
             logError('CE ERROR: Plugin `{}`, ran with arguments `{}` and returned EXCEPTION: `{}`!'\
                      .format(plugin, args, trace))
             return 'Error on running plugin `{}` - Exception: `{}`!'.format(plugin, e)
@@ -1602,7 +1636,7 @@ class CentralEngine(_cptools.XMLRPCController):
             try:
                 plugin.onLog(epname, log_string)
             except Exception as e:
-                trace = traceback.format_exc()[33:].strip()
+                trace = traceback.format_exc()[34:].strip()
                 logWarning('Error on running plugin `{} onStop` - Exception: `{}`!'.format(pname, trace))
         del parser, plugins
 
@@ -1611,11 +1645,11 @@ class CentralEngine(_cptools.XMLRPCController):
 
         logTypes = self.project.getUserInfo(user, 'log_types')
         _, logCli = os.path.split( logTypes.get('logCli', 'CLI.log') )
-        # EP Name + CLI Path
+        # Logs Path + EP Name + CLI Name
         logPath = logFolder + os.sep + epname +'_'+ logCli
 
         if pd:
-            self.logMessage(user, 'logDebug', 'PANIC DETECT: Execution stopped.')
+            self.logMessage(user, 'logRunning', 'PANIC DETECT: Execution stopped.')
 
         return self._logServerMsg(user, logPath + ':' + log_string)
 
@@ -1711,16 +1745,16 @@ class CentralEngine(_cptools.XMLRPCController):
             return status
 
         for key, value in self.project.panicDetectRegularExpressions[user].iteritems():
-            try:
-                if re.search(value['expression'], log_string) is not None:
-                    if value['enabled']:
+            if value.get('enabled') == 'true':
+                try:
+                    if re.search(value['expression'], log_string):
                         # Stop EP
                         self.setExecStatus(user, epname, STATUS_STOP,
                             msg='Panic detect activated, expression `{}` found in CLI log!'.format(value['expression']))
                         status = True
-            except Exception as e:
-                trace = traceback.format_exc()[33:].strip()
-                logError(trace)
+                except Exception as e:
+                    trace = traceback.format_exc()[34:].strip()
+                    logError(trace)
 
         return status
 
