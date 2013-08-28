@@ -1,7 +1,7 @@
 
 # File: CentralEngineOthers.py ; This file is part of Twister.
 
-# version: 2.029
+# version: 2.030
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -323,7 +323,7 @@ class Project:
 
         # Save everything.
         self._dump()
-        logDebug('Project: Created user `{}` ...'.format(user))
+        logDebug('Project: Registered user `{}` ...'.format(user))
 
         return True
 
@@ -351,7 +351,7 @@ class Project:
         if not files_config:
             files_config = self.users[user]['project_path']
 
-        logDebug('Project: RESET configuration for user `{}`, using config files `{}` and `{}`.'
+        logDebug('Project: Reload configuration for user `{}`, with config files `{}` and `{}`.'
             ''.format(user, base_config, files_config))
 
         del self.parsers[user]
@@ -362,7 +362,7 @@ class Project:
 
         # Save everything.
         self._dump()
-        logDebug('Project: RESET operation took %.4f seconds.' % (time.clock()-ti))
+        logDebug('Project: Reload user operation took %.4f seconds.' % (time.clock()-ti))
         return True
 
 

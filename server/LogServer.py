@@ -1,7 +1,7 @@
 
 # File: LogServer.py ; This file is part of Twister.
 
-# version: 2.004
+# version: 2.005
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -175,6 +175,14 @@ def process_cmd(sock):
             f.close()
 
 
+        # ~~~ Write Log Message ~~~
+        elif data.upper() == 'EXIT':
+            log.warning('Log Server:  *sigh* received EXIT signal...')
+            # Reply to client.
+            conn.send('EXIT!')
+            return True
+
+
         # ~~~ Null ~~~
         else:
             resp = 'Null!'
@@ -198,7 +206,12 @@ if __name__ == '__main__':
 
     sock = create_listener(int(PORT[0]))
 
-    while True: process_cmd(sock)
+    while True:
+        p = process_cmd(sock)
+        # If the response is True, time to exit
+        if p: break
+
+    log.warning('Log Server:  Bye bye.')
 
 
 # Eof()

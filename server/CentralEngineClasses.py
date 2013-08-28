@@ -1,7 +1,7 @@
 
 # File: CentralEngineClasses.py ; This file is part of Twister.
 
-# version: 2.022
+# version: 2.023
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -832,19 +832,18 @@ class CentralEngine(_cptools.XMLRPCController):
                     db_auto_save = self.project.getUserInfo(user, 'db_auto_save')
                     if db_auto_save and save_to_db: self.commitToDatabase(user)
 
-                    # Find the log process for this User and kill it
-                    logProc = self.loggers[user].get('proc')
+                    # Find the log process for this User and ask it to Exit
+                    port = self.loggers[user]['port']
+                    sock = self._logConnect(user, port)
 
-                    if logProc:
-                        try:
-                            subprocess.call('kill $(pgrep -P %i)' % logProc.pid, shell=True)
-                            logProc.terminate()
-                            logProc.wait()
-                            logDebug('Terminated log server PID `{}`, for user `{}`.'.format(logProc.pid, user))
-                        except Exception as e:
-                            trace = traceback.format_exc()[33:].strip()
-                            logWarning('Cannot stop Log Server PID `{}`, for user `{}`! '\
-                                       'Exception `{}`!'.format(logProc.pid, user, trace))
+                    if sock:
+                        sock.sendall('EXIT')
+                        resp = sock.recv(1024)
+                        if resp == 'EXIT!':
+                            sock.close()
+                            logDebug('Terminated log server `localhost:{}`, for user `{}`.'.format(port, user))
+                        else:
+                            logWarning('Cannot stop log server `localhost:{}`, for user `{}`! Response `{}`.'.format(port, user, resp))
 
                     # Execute "onStop" for all plugins!
                     parser = PluginParser(user)
@@ -1287,7 +1286,7 @@ class CentralEngine(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
-    def getLibrariesList(self, user=''):
+    def getLibrariesList(self, user='', all=True):
         """
         Returns the list of exposed libraries, from CE libraries folder.\n
         This list will be used to syncronize the libs on all EP computers.\n
@@ -1301,7 +1300,7 @@ class CentralEngine(_cptools.XMLRPCController):
         if user_path == '/':
             user_path = ''
 
-        glob_libs = []
+        glob_libs = [] # Default empty
         user_libs = []
 
         # All libraries for user
@@ -1313,7 +1312,8 @@ class CentralEngine(_cptools.XMLRPCController):
 
         # All Python source files from Libraries folder AND all library folders
         if not glob_libs:
-            glob_libs = [d for d in os.listdir(libs_path) if \
+            if all:
+                glob_libs = [d for d in os.listdir(libs_path) if \
                     ( os.path.isfile(libs_path + d) and \
                     '__init__.py' not in d and \
                     os.path.splitext(d)[1] in ['.py', '.zip']) or \
@@ -1326,6 +1326,7 @@ class CentralEngine(_cptools.XMLRPCController):
                         os.path.splitext(d)[1] in ['.py', '.zip']) or \
                         os.path.isdir(user_path + d) ]
 
+        # Return a list with unique names, sorted alphabetically
         return sorted( list(set(glob_libs + user_libs)) )
 
 

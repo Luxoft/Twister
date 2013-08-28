@@ -21,7 +21,6 @@
 # limitations under the License.
 #
 
-
 from telnetlib import Telnet
 from time import sleep
 #from time import time as epochtime
@@ -30,11 +29,11 @@ from thread import start_new_thread
 #from os.path import dirname, exists, abspath, join, getsize
 #Efrom json import load, dump
 
-
-
-
 #__dir__ = dirname(abspath(__file__))
 
+__all__ = ['TelnetManager', 'TelnetConnection']
+
+#
 
 class TelnetManager(object):
     """ Twister Telnet connections manager """
