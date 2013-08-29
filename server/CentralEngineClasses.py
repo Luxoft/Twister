@@ -54,6 +54,8 @@ import platform
 import subprocess
 import MySQLdb
 
+from rpyc import connect as rpycConnect
+
 import pickle
 try: import simplejson as json
 except: import json
@@ -109,7 +111,8 @@ class CentralEngine(_cptools.XMLRPCController):
         logDebug('CE: Initialization took %.4f seconds.' % (time.clock()-ti))
 
         # User loggers
-        self.loggers = {}
+        self.loggers = dict()
+        self.clients = dict()
 
         self.manager = ServiceManager()
         self.rest = WebInterface(self, self.project)
@@ -512,23 +515,18 @@ class CentralEngine(_cptools.XMLRPCController):
     def _getClientEpProxy(self, user, epname):
         """ Helper function. """
 
-        # Check if epname is known and registered
-        userClientsInfo = self.project.getUserInfo(user, 'clients')
-        if not userClientsInfo:
+        if not user in self.clients:
+            logError('Error: Unknown user : `{}`.'.format(user))
             return False
-        else:
-            userClientsInfo = json.loads(userClientsInfo)
 
-        userClientsInfoEPs = list()
-        for cl in userClientsInfo:
-            userClientsInfoEPs += userClientsInfo[cl]
-        if not self.searchEP(user, epname) or not epname in userClientsInfoEPs:
+        # Check if epname is known and registered
+        if not self.searchEP(user, epname):
             logError('Error: Unknown EP : `{}`.'.format(epname))
             return False
 
         # Get proxy address
-        for cl in userClientsInfo:
-            if epname in userClientsInfo[cl]:
+        for cl in self.clients[user]:
+            if epname in self.clients[user][cl]:
                 return cl
 
         logError('Error: Unknown proxy for EP : `{}`.'.format(epname))
@@ -540,16 +538,26 @@ class CentralEngine(_cptools.XMLRPCController):
         """ Register client. """
 
         clients = json.loads(clients)
-        _clients = {}
+        _clients = dict()
 
-        for client in clients:
-            if client.split(':')[0]:
-                addr = client.split(':')[0]
-            else:
-                addr = cherrypy.request.headers['Remote-Addr']
-            _clients.update([('{}:{}'.format(addr,
-                                      client.split(':')[1]), clients[client]), ])
+        registered = False
+        for clientPort in clients:
+            try:
+                proxy = rpycConnect(cherrypy.request.headers['Remote-Addr'], int(clientPort))
+                proxy.root.hello(cherrypy.request.headers['Host'])
+                self.clients.update([(user, {proxy: clients[clientPort]}), ])
+                _clients.update([('{}:{}'.format(cherrypy.request.headers['Remote-Addr'],
+                                                            clientPort), clients[clientPort]), ])
+                registered = True
+            except Exception as e:
+                trace = traceback.format_exc()[34:].strip()
+                logError('Error: Register client error: {}'.format(trace))
+                continue
         clients = json.dumps(_clients)
+
+        if not registered:
+            logDebug('Registered client manager for user\n\t`{}` -> {}.'.format(user, clients))
+            return False
 
         self.setUserVariable(user, 'clients', clients)
         logDebug('Registered client manager for user\n\t`{}` -> {}.'.format(user, clients))
@@ -560,18 +568,14 @@ class CentralEngine(_cptools.XMLRPCController):
     def startEP(self, user, epname):
         """ Start EP for client. """
 
-        _proxy = self._getClientEpProxy(user, epname)
-        if not _proxy:
+        proxy = self._getClientEpProxy(user, epname)
+        if not proxy:
             logDebug('Cannot start `{}` for user `{}` ! The Client Manager is not started !'.format(epname, user))
             return False
 
-        proxy = xmlrpclib.ServerProxy('http://{pr}/twisterclient/'.format(pr=_proxy))
-        ip, port = _proxy.split(':')
-
         try:
-            socket.create_connection((ip, int(port)), 2)
             logDebug('Trying to start `{} {}`.'.format(user, epname))
-            return proxy.startEP(epname)
+            return proxy.root.start_ep(epname)
         except Exception as e:
             trace = traceback.format_exc()[34:].strip()
             logError('Error: Start EP error: {}'.format(trace))
@@ -582,18 +586,14 @@ class CentralEngine(_cptools.XMLRPCController):
     def stopEP(self, user, epname):
         """ Stop EP for client. """
 
-        _proxy = self._getClientEpProxy(user, epname)
-        if not _proxy:
+        proxy = self._getClientEpProxy(user, epname)
+        if not proxy:
             logDebug('Cannot stop `{}` for user `{}` ! The Client Manager is not started !'.format(epname, user))
             return False
 
-        proxy = xmlrpclib.ServerProxy('http://{pr}/twisterclient/'.format(pr=_proxy))
-        ip, port = _proxy.split(':')
-
         try:
-            socket.create_connection((ip, int(port)), 2)
             logWarning('Trying to stop `{} {}`.'.format(user, epname))
-            return proxy.stopEP(epname)
+            return proxy.root.stop_ep(epname)
         except Exception as e:
             trace = traceback.format_exc()[34:].strip()
             logError('Error: Stop EP error: {}'.format(trace))
@@ -604,18 +604,14 @@ class CentralEngine(_cptools.XMLRPCController):
     def restartEP(self, user, epname):
         """ Restart EP for client. """
 
-        _proxy = self._getClientEpProxy(user, epname)
-        if not _proxy:
+        proxy = self._getClientEpProxy(user, epname)
+        if not proxy:
             logDebug('Cannot restart `{}` for user `{}` ! The Client Manager is not started !'.format(epname, user))
             return False
 
-        proxy = xmlrpclib.ServerProxy('http://{pr}/twisterclient/'.format(pr=_proxy))
-        ip, port = _proxy.split(':')
-
         try:
-            socket.create_connection((ip, int(port)), 2)
             logWarning('Trying to restart `{} {}`.'.format(user, epname))
-            return proxy.restartEP(epname)
+            return proxy.root.restart_ep(epname)
         except Exception as e:
             trace = traceback.format_exc()[34:].strip()
             logError('Error: Restart EP error: {}'.format(trace))
