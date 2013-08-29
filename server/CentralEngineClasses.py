@@ -834,17 +834,18 @@ class CentralEngine(_cptools.XMLRPCController):
                     if db_auto_save and save_to_db: self.commitToDatabase(user)
 
                     # Find the log process for this User and ask it to Exit
-                    port = self.loggers[user]['port']
-                    sock = self._logConnect(user, port)
-
-                    if sock:
-                        sock.sendall('EXIT')
-                        resp = sock.recv(1024)
-                        if resp == 'EXIT!':
-                            sock.close()
-                            logDebug('Terminated log server `localhost:{}`, for user `{}`.'.format(port, user))
-                        else:
-                            logWarning('Cannot stop log server `localhost:{}`, for user `{}`! Response `{}`.'.format(port, user, resp))
+                    conn = self.loggers.get(user, {}).get('conn', None)
+                    if conn:
+                        try:
+                            conn.root.exit()
+                        except EOFError:
+                            if conn.closed:
+                                logDebug('Terminated log server `localhost:{}`, for user `{}`.'.format(port, user))
+                            else:
+                                logWarning('Error on stopping log server `localhost:{}`, for user `{}`!'.format(port, user))
+                        except Exception as e:
+                            trace = traceback.format_exc()[33:].strip()
+                            logWarning('Cannot stop log server `localhost:{}`, for user `{}`! Exception `{}`.'.format(port, user, trace))
 
                     # Execute "onStop" for all plugins!
                     parser = PluginParser(user)
@@ -1507,7 +1508,17 @@ class CentralEngine(_cptools.XMLRPCController):
         """
         Launch a log server.
         """
-        # Searching for a free port in the safe range...
+
+        # Try to re-use the logger server, if available
+        conn = self.loggers.get(user, {}).get('conn', None)
+        if conn:
+            try:
+                conn.root.hello()
+                return conn
+            except:
+                pass
+
+        # If the server is not available, search for a free port in the safe range...
         while 1:
             free = False
             port = random.randrange(60000, 62000)
@@ -1520,65 +1531,18 @@ class CentralEngine(_cptools.XMLRPCController):
         p_cmd = 'su {} -c "{} -u {}/server/LogServer.py {}"'.format(user, sys.executable, TWISTER_PATH, port)
         proc = subprocess.Popen(p_cmd, cwd='{}/twister'.format(userHome(user)), shell=True)
         proc.poll()
+        time.sleep(0.2)
 
-        time.sleep(0.3)
+        try:
+            conn = rpycConnect('127.0.0.1', port)
+            conn.root.hello()
+        except:
+            return False
+
         logDebug('Log Server for user `{}` launched on `127.0.0.1:{}` - PID `{}`.'.format(user, port, proc.pid))
+        self.loggers[user] = {'proc': proc, 'conn': conn, 'port': port}
 
-        self.loggers[user] = {'proc': proc, 'port': port}
-
-
-    def _logConnect(self, user, port):
-        """
-        Create a log server connection.
-        """
-        for res in socket.getaddrinfo('127.0.0.1', port, socket.AF_UNSPEC, socket.SOCK_STREAM):
-            af, socktype, proto, canonname, sa = res
-            try:
-                sock = socket.socket(af, socktype, proto)
-            except socket.error as msg:
-                logWarning('Sock create exception: `{}`.'.format(msg))
-                sock = None
-                continue
-            try:
-                sock.connect(sa)
-            except socket.error as msg:
-                logWarning('Sock connect exception: `{}`.'.format(msg))
-                sock.close()
-                sock = None
-                continue
-            break
-        if sock is None:
-            logError('Internal Log Error! Could not connect to Log Server!')
-            return False
-        else:
-            return sock
-
-
-    def _logServerMsg(self, user, msg):
-        """
-        Helper function to access the Log Server.
-        """
-        if user not in self.loggers:
-            self._logServer(user)
-
-        sock = self._logConnect(user, self.loggers[user]['port'])
-
-        if not sock:
-            logError('Creating a new connection...')
-            self._logServer(user)
-            sock = self._logConnect(user, self.loggers[user]['port'])
-            if not sock:
-                return False
-
-        sock.sendall(msg)
-        resp = sock.recv(1024)
-
-        if resp == 'Ok!':
-            sock.close()
-            return True
-        else:
-            sock.close()
-            return False
+        return conn
 
 
     @cherrypy.expose
@@ -1604,8 +1568,11 @@ class CentralEngine(_cptools.XMLRPCController):
             return False
 
         logPath = self.project.getUserInfo(user, 'log_types')[logType]
-
-        return self._logServerMsg(user, logPath + ':' + logMessage)
+        srvr = self._logServer(user)
+        if srvr:
+            return srvr.root.write_log(logPath + ':' + logMessage)
+        else:
+            return False
 
 
     @cherrypy.expose
@@ -1653,7 +1620,11 @@ class CentralEngine(_cptools.XMLRPCController):
         if pd:
             self.logMessage(user, 'logRunning', 'PANIC DETECT: Execution stopped.')
 
-        return self._logServerMsg(user, logPath + ':' + log_string)
+        srvr = self._logServer(user)
+        if srvr:
+            return srvr.root.write_log(logPath + ':' + log_string)
+        else:
+            return False
 
 
     @cherrypy.expose
@@ -1678,10 +1649,16 @@ class CentralEngine(_cptools.XMLRPCController):
             'epnames': self.listEPs(user),
             })
 
-        ret = self._logServerMsg(user, data)
+        srvr = self._logServer(user)
+        if srvr:
+            ret = srvr.root.reset_logs(data)
+        else:
+            return False
         if ret:
             logDebug('Logs reset.')
-        return ret
+            return True
+        else:
+            return False
 
 
     @cherrypy.expose
@@ -1718,10 +1695,16 @@ class CentralEngine(_cptools.XMLRPCController):
             'logPath': logPath,
             })
 
-        ret = self._logServerMsg(user, data)
+        srvr = self._logServer(user)
+        if srvr:
+            ret = srvr.root.reset_log(data)
+        else:
+            return False
         if ret:
             logDebug('Cleaned log `{}`.'.format(logPath))
-        return ret
+            return True
+        else:
+            return False
 
 
     def _panicDetectLogParse(self, user, epname, log_string):

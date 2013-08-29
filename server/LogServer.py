@@ -5,18 +5,40 @@
 
 # Copyright (C) 2012-2013 , Luxoft
 
+# Authors:
+#    Adrian Toader <adtoader@luxoft.com>
+#    Andrei Costachi <acostachi@luxoft.com>
+#    Andrei Toma <atoma@luxoft.com>
+#    Cristi Constantin <crconstantin@luxoft.com>
+#    Daniel Cioata <dcioata@luxoft.com>
+
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at:
+
+# http://www.apache.org/licenses/LICENSE-2.0
+
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 """
-User Log Socket server.
+User Log Server, based on RPyc.
 This process runs in the Twister Client folder.
 """
 
 import os, sys
 import time
 import glob
-import random
-import socket
 import json
+import random
 import logging
+
+import rpyc
+from rpyc.utils.server import ThreadedServer
+
 
 log = logging.getLogger(__name__)
 
@@ -31,168 +53,145 @@ console = logging.StreamHandler()
 console.setLevel(logging.NOTSET)
 log.addHandler(console)
 
+
 if not sys.version.startswith('2.7'):
     print('Python version error! Log Server must run on Python 2.7!')
     exit(1)
 
 #
 
-def create_listener(PORT):
-    """
-    Create streaming socket server on a local host and a random port.
-    """
-    log.debug('Preparing to start on `{}`...'.format(PORT))
-    for res in socket.getaddrinfo(None, PORT, socket.AF_UNSPEC, socket.SOCK_STREAM, 0, socket.AI_PASSIVE):
-        af, socktype, proto, canonname, sa = res
+class LogServer(rpyc.Service):
+
+    def __init__(self, conn):
+        log.debug('Warming up the service...')
+        self._conn = conn
+
+
+    def on_connect(self):
+        client_addr = self._conn._config['endpoints'][1]
+        log.debug('Connected from `{}`.'.format(client_addr))
+
+
+    def on_disconnect(self):
+        client_addr = self._conn._config['endpoints'][1]
+        log.debug('Disconnected from `{}`.'.format(client_addr))
+
+
+    def exposed_hello(self):
+        return True
+
+
+    def exposed_write_log(self, data):
+        """ Write a Log Message """
+        global log
+        logFile, logMsg = data.split(':')[0], ':'.join( data.split(':')[1:] )
+
         try:
-            sock = socket.socket(af, socktype, proto)
-        except socket.error as msg:
-            sock = None
-            continue
-        try:
-            sock.bind(sa)
-            sock.listen(1)
-        except socket.error as msg:
-            sock.close()
-            sock = None
-            continue
-        break
-    if sock is None:
-        log.error('Cannot open socket!')
-        sys.exit(1)
-    else:
-        log.debug('Started server on `{}`.'.format(sa))
-        return sock
-
-
-def process_cmd(sock):
-    """
-    Process 1 command, from 1 client.
-    """
-    global log
-    conn, addr = sock.accept()
-    # log.debug('Connected by `{}`.'.format(addr))
-
-    while 1:
-        resp = 'Ok!' # Default response
-
-        # Message from client.
-        data = conn.recv((2**14))
-        # if data:
-        #     log.debug('Message: `{}`.'.format(repr(data)))
-
-
-        # ~~~ Reset 1 Log ~~~
-        if data.startswith("{") and '"del"' in data:
+            f = open(logFile, 'a')
+        except:
+            logFolder = os.path.split(logFile)[0] + '/logs'
             try:
-                info = json.loads(data)
+                os.makedirs(logFolder)
             except:
-                log.error('Cannot parse JSON data!')
-                return False
-
-            logPath = info['logPath']
-
-            try:
-                open(logPath, 'w').close()
-                log.debug('Cleaned log `{}`.'.format(logPath))
-            except:
-                resp = 'Log folder `{}` cannot be reset!'.format(logPath)
+                resp = 'Log folder `{}` cannot be created!'.format(logFolder)
                 log.error(resp)
-
-
-        # ~~~ Reset all Logs ~~~
-        elif data.startswith("{") and '"reset"' in data:
-            try:
-                info = json.loads(data)
-            except:
-                log.error('Cannot parse JSON data!')
                 return False
 
-            log.debug('Cleaning `{}` log files...'.format(len(info['logTypes'])))
-            err = False
+        f.write(logMsg)
+        f.close()
+        return True
 
-            for log_path in glob.glob(info['logsPath'] + os.sep + '*.log'):
-                if info['archiveLogsPath'] and info['archiveLogsActive'] == 'true':
-                    archiveLogsPath = info['archiveLogsPath'].rstrip('/')
-                    log_time = str(time.time()).split('.')[0]
-                    archPath = '{}/{}.{}'.format(archiveLogsPath, os.path.basename(log_path), log_time)
-                    # Create path if it doesn't exist
-                    try: os.makedirs(archiveLogsPath)
-                    except: pass
-                    # Move file in archive
-                    try:
-                        os.rename(log_path, archPath)
-                        log.debug('Log file `{}` archived in `{}`.'.format(log_path, archPath))
-                    except Exception as e:
-                        log.error('Cannot archive log `{}` in `{}`! Exception `{}`!'.format(log_path, archiveLogsPath, e))
+
+    def exposed_reset_log(self, data):
+        """ Reset 1 Log """
+        global log
+
+        try:
+            info = json.loads(data)
+        except:
+            log.error('Cannot parse JSON data!')
+            return False
+
+        logPath = info['logPath']
+
+        try:
+            open(logPath, 'w').close()
+            log.debug('Cleaned log `{}`.'.format(logPath))
+            return True
+        except:
+            resp = 'Log folder `{}` cannot be reset!'.format(logPath)
+            log.error(resp)
+            return False
+
+
+    def exposed_reset_logs(self, data):
+        """ Reset all Logs """
+        global log
+
+        try:
+            info = json.loads(data)
+        except:
+            log.error('Cannot parse JSON data!')
+            return False
+
+        log.debug('Cleaning `{}` log files...'.format(len(info['logTypes'])))
+        err = False
+
+        for log_path in glob.glob(info['logsPath'] + os.sep + '*.log'):
+            if info['archiveLogsPath'] and info['archiveLogsActive'] == 'true':
+                archiveLogsPath = info['archiveLogsPath'].rstrip('/')
+                log_time = str(time.time()).split('.')[0]
+                archPath = '{}/{}.{}'.format(archiveLogsPath, os.path.basename(log_path), log_time)
+                # Create path if it doesn't exist
+                try: os.makedirs(archiveLogsPath)
+                except: pass
+                # Move file in archive
                 try:
-                    os.remove(log_path)
+                    os.rename(log_path, archPath)
+                    log.debug('Log file `{}` archived in `{}`.'.format(log_path, archPath))
                 except Exception as e:
-                    pass
+                    log.error('Cannot archive log `{}` in `{}`! Exception `{}`!'.format(log_path, archiveLogsPath, e))
+            try:
+                os.remove(log_path)
+            except Exception as e:
+                pass
 
-            for logType in info['logTypes']:
-                # For CLI
-                if logType.lower() == 'logcli':
-                    for epname in info['epnames'].split(','):
-                        # Name and full path of logCLI
-                        logCli = os.path.split(info['logTypes'][logType])[1]
-                        logPath = info['logsPath'] +'/'+ epname +'_'+ logCli
-                        try:
-                            open(logPath, 'w').close()
-                        except:
-                            log.error('Log file `{}` cannot be re-written!'.format(logPath))
-                            err = True
-                # For normal logs
-                else:
-                    logPath = info['logTypes'][logType]
+        for logType in info['logTypes']:
+            # For CLI
+            if logType.lower() == 'logcli':
+                for epname in info['epnames'].split(','):
+                    # Name and full path of logCLI
+                    logCli = os.path.split(info['logTypes'][logType])[1]
+                    logPath = info['logsPath'] +'/'+ epname +'_'+ logCli
                     try:
                         open(logPath, 'w').close()
                     except:
                         log.error('Log file `{}` cannot be re-written!'.format(logPath))
                         err = True
-
-            if err:
-                resp = 'Cound not reset all logs!'
+            # For normal logs
             else:
-                log.debug('Success!')
-
-
-        # ~~~ Write Log Message ~~~
-        elif ':' in data:
-            logFile, logMsg = data.split(':')[0], ':'.join( data.split(':')[1:] )
-
-            try:
-                f = open(logFile, 'a')
-            except:
-                logFolder = os.path.split(logFile)[0] + '/logs'
+                logPath = info['logTypes'][logType]
                 try:
-                    os.makedirs(logFolder)
+                    open(logPath, 'w').close()
                 except:
-                    resp = 'Log folder `{}` cannot be created!'.format(logFolder)
-                    log.error(resp)
+                    log.error('Log file `{}` cannot be re-written!'.format(logPath))
+                    err = True
 
-            f.write(logMsg)
-            f.close()
-
-
-        # ~~~ Write Log Message ~~~
-        elif data.upper() == 'EXIT':
-            log.warning('Log Server:  *sigh* received EXIT signal...')
-            # Reply to client.
-            conn.send('EXIT!')
+        if err:
+            log.warning('Cound not reset all logs!')
+            return False
+        else:
+            log.debug('Success!')
             return True
 
 
-        # ~~~ Null ~~~
-        else:
-            resp = 'Null!'
-            break
-
+    def exposed_exit(self):
+        """ Must Exit """
+        global t, log
+        log.warning('Log Server: *sigh* received EXIT signal...')
+        t.close()
         # Reply to client.
-        conn.send(resp)
-
-    conn.close()
-    # log.debug('Closed conn from `{}`.'.format(addr))
+        return True
 
 #
 
@@ -204,14 +203,10 @@ if __name__ == '__main__':
         log.error('Log Server: Must start with parameter PORT number!')
         exit(1)
 
-    sock = create_listener(int(PORT[0]))
+    t = ThreadedServer(LogServer, port=int(PORT[0]))
+    t.start()
 
-    while True:
-        p = process_cmd(sock)
-        # If the response is True, time to exit
-        if p: break
-
-    log.warning('Log Server:  Bye bye.')
+    log.warning('Log Server: Bye bye.')
 
 
 # Eof()
