@@ -541,7 +541,12 @@ class CentralEngine(_cptools.XMLRPCController):
         _clients = dict()
 
         registered = False
-        for clientPort in clients:
+        for client in clients:
+            clientPort = client.split(':')
+            if len(clientPort) > 1:
+                clientPort = clientPort[1]
+            else:
+                clientPort = clientPort[0]
             try:
                 proxy = rpycConnect(cherrypy.request.headers['Remote-Addr'], int(clientPort))
                 proxy.root.hello(cherrypy.request.headers['Host'])

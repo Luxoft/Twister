@@ -46,7 +46,7 @@ from ConfigParser import SafeConfigParser
 
 from json import loads as jsonLoads, dumps as jsonDumps
 
-from rpyc import Service as rpycService
+from rpyc import Service as rpycService, connect as rpycConnect
 from rpyc.utils.server import ThreadedServer as rpycThreadedServer
 
 
@@ -182,11 +182,10 @@ def TwisterClientServiceConfigurationParse(conn):
 
     response = RegisterEPs(response)
 
+    if not response:
+        raise Exception('Unregistered')
+
     conn.service.config = response
-    print('|||||||||config|||||||||')
-    print(repr(conn.service.config))
-    print('||||||||||||||||||||||||')
-    return
 
 
 def RegisterEPs(config, ce_proxy=None):
@@ -249,7 +248,7 @@ def RegisterEPs(config, ce_proxy=None):
                         print('User project reset.')
                         break
                     else:
-                        print('CE on `{}` is running wi11257th status `{}`.'.format(
+                        print('CE on `{}` is running with status `{}`.'.format(
                               proxy._ServerProxy__host.split('@')[1], ceStatus))
                         print('Waiting to stop..')
                     sleep(2)
@@ -259,9 +258,7 @@ def RegisterEPs(config, ce_proxy=None):
                         if ep in proxyEpsList[currentCE]:
                             print('Warning: epname {} already registered. Trying to stop..'.format(ep))
                             try:
-                                p = xmlrpclib.ServerProxy('http://{}:{}/twisterclient/'.format(
-                                                        prxy.split(':')[0], prxy.split(':')[1]))
-
+                                p = rpycConnect(prxy.split(':')[0], int(prxy.split(':')[1]))
                                 try:
                                     last_seen_alive = config['eps'][ep]['proxy'].getEpVariable(
                                                         config['username'], ep, 'last_seen_alive')
@@ -273,7 +270,10 @@ def RegisterEPs(config, ce_proxy=None):
                                             proxyEpsList[currentCE].pop(proxyEpsList[currentCE].index(ep))
                                             print('Warning: epname {} is running. Will not register.'.format(ep))
                                     else:
-                                        p.stopEP(ep)
+                                        try:
+                                            p.root.stop_ep(ep)
+                                        except Exception as e:
+                                            pass
                                         userCeClientInfo[prxy].pop(userCeClientInfo[prxy].index(ep))
                                         if not userCeClientInfo[prxy]:
                                             userCeClientInfo.pop(prxy)
@@ -288,7 +288,6 @@ def RegisterEPs(config, ce_proxy=None):
 
                 userCeClientInfo.update([(clientKey, proxyEpsList[currentCE]), ])
                 userCeClientInfo = jsonDumps(userCeClientInfo)
-
                 proxy.registerClient(config['username'], userCeClientInfo)
                 unregistered = False
 
@@ -328,17 +327,16 @@ class TwisterClientService(rpycService):
 
     def on_disconnect(self):
         """ runs when the connection has already closed (to finalize the service, if needed) """
-        print('||||||||||||||||||||||||||||||||||||||||||||||||||')
-        print(self._conn._config['endpoints'])
-        print('||||||||||||||||||||||||||||||||||||||||||||||||||')
+
         client_addr = self._conn._config['endpoints'][1]
         try:
             proxy = self.connections.pop('{ip}:{port}'.format(ip=client_addr[0], port=client_addr[1]))
-            self.config = RegisterEPs(self.config, proxy)
+            if proxy:
+                self.config = RegisterEPs(self.config, proxy)
         except Exception as e:
             print('On disconnect error: {er}'.format(er=e))
 
-        print('Disconnected from `{}`.'.format(ip=client_addr[0], port=client_addr[1]))
+        print('Disconnected from `{ip}:{port}`.'.format(ip=client_addr[0], port=client_addr[1]))
 
         if not self.connections:
             self.config = RegisterEPs(self.config)
