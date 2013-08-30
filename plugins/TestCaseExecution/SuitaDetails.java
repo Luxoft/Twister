@@ -1,6 +1,6 @@
 /*
 File: SuitaDetails.java ; This file is part of Twister.
-Version: 2.009
+Version: 2.0010
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -529,7 +529,7 @@ public class SuitaDetails extends JPanel {
         stats[5] = new JLabel();
         stats[5].setBounds(118,95,100,25);
 
-        JLabel l7 = new JLabel("Stopped:");
+        JLabel l7 = new JLabel("Aborted:");
         l7.setBounds(10,115,70,25);
         summary.add(l7);
         stats[6] = new JLabel();
