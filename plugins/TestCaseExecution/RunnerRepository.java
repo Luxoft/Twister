@@ -1,6 +1,6 @@
 /*
 File: RunnerRepository.java ; This file is part of Twister.
-Version: 2.0020
+Version: 2.0021
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -152,7 +152,7 @@ public class RunnerRepository {
     public static Container container;
     private static Document pluginsconfig;
     private static String version = "2.022";
-    private static String builddate = "23.08.2013";
+    private static String builddate = "30.08.2013";
     public static String logotxt,os,python;
     
     public static void setStarter(Starter starter){
@@ -295,8 +295,8 @@ public class RunnerRepository {
                 
                 parseDBConfig(RunnerRepository.REMOTEDATABASECONFIGFILE,true);
                 if(!isCE()){
-                    CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,RunnerRepository.window,
-                                        "Warning", "CE is not running, please start CE in "+
+                    CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,RunnerRepository.window,
+                                        "Error", "CE is not running, please start CE in "+
                                                     "order for Twister Framework to run properly");
                 }
                 try{REMOTEPLUGINSDIR = client.execute("getTwisterPath", new Object[]{}).toString()+"/plugins";
@@ -776,17 +776,17 @@ public class RunnerRepository {
         try{DocumentBuilder db = dbf.newDocumentBuilder();
             Document doc = db.parse(dbConf);
             doc.getDocumentElement().normalize();                
-            window.mainpanel.p4.getEmails().setCheck(Boolean.parseBoolean(getTagContent(doc, "Enabled")));
-            String smtppath = getTagContent(doc, "SMTPPath");
+            window.mainpanel.p4.getEmails().setCheck(Boolean.parseBoolean(getTagContent(doc, "Enabled", "email config.")));
+            String smtppath = getTagContent(doc, "SMTPPath", "email config.");
             window.mainpanel.p4.getEmails().setIPName(smtppath.split(":")[0]);
             window.mainpanel.p4.getEmails().setPort(smtppath.split(":")[1]);
-            window.mainpanel.p4.getEmails().setUser(getTagContent(doc, "SMTPUser"));
-            window.mainpanel.p4.getEmails().setFrom(getTagContent(doc, "From"));
-            window.mainpanel.p4.getEmails().setEmails(getTagContent(doc, "To"));
-            if(!getTagContent(doc, "SMTPPwd").equals("")){
+            window.mainpanel.p4.getEmails().setUser(getTagContent(doc, "SMTPUser", "email config."));
+            window.mainpanel.p4.getEmails().setFrom(getTagContent(doc, "From", "email config."));
+            window.mainpanel.p4.getEmails().setEmails(getTagContent(doc, "To", "email config."));
+            if(!getTagContent(doc, "SMTPPwd", "email config.").equals("")){
                 window.mainpanel.p4.getEmails().setPassword("****");}
-            window.mainpanel.p4.getEmails().setMessage(getTagContent(doc, "Message"));
-            window.mainpanel.p4.getEmails().setSubject(getTagContent(doc, "Subject"));}
+            window.mainpanel.p4.getEmails().setMessage(getTagContent(doc, "Message", "email config."));
+            window.mainpanel.p4.getEmails().setSubject(getTagContent(doc, "Subject", "email config."));}
         catch(Exception e){e.printStackTrace();}}
         
         
@@ -844,27 +844,27 @@ public class RunnerRepository {
             try{DocumentBuilder db = dbf.newDocumentBuilder();
                 Document doc = db.parse(RunnerRepository.getFwmConfig());
                 doc.getDocumentElement().normalize();    
-                LOGSPATH = getTagContent(doc,"LogsPath");
+                LOGSPATH = getTagContent(doc,"LogsPath", "framework config.");
                 if(doc.getElementsByTagName("LogFiles").getLength()==0)
                     System.out.println("LogFiles tag not found in fwmconfig");
                 else{
-                    logs.add(getTagContent(doc,"logRunning"));
-                    logs.add(getTagContent(doc,"logDebug"));
-                    logs.add(getTagContent(doc,"logSummary"));
-                    logs.add(getTagContent(doc,"logTest"));
-                    logs.add(getTagContent(doc,"logCli"));}
+                    logs.add(getTagContent(doc,"logRunning", "framework config."));
+                    logs.add(getTagContent(doc,"logDebug", "framework config."));
+                    logs.add(getTagContent(doc,"logSummary", "framework config."));
+                    logs.add(getTagContent(doc,"logTest", "framework config."));
+                    logs.add(getTagContent(doc,"logCli", "framework config."));}
 //                 HTTPSERVERPORT = getTagContent(doc,"HttpServerPort");
-                CENTRALENGINEPORT = getTagContent(doc,"CentralEnginePort");
+                CENTRALENGINEPORT = getTagContent(doc,"CentralEnginePort", "framework config.");
                 //RESOURCEALLOCATORPORT = getTagContent(doc,"ResourceAllocatorPort");
-                usersdir = getTagContent(doc,"UsersPath");
+                usersdir = getTagContent(doc,"UsersPath", "framework config.");
                 REMOTEUSERSDIRECTORY = usersdir;
                 XMLREMOTEDIR = USERHOME+"/twister/config/testsuites.xml";
 //                 getTagContent(doc,"MasterXMLTestSuite");
                 XMLDIRECTORY = RunnerRepository.temp+bar+"Twister"+bar+"XML"+
                                         bar+XMLREMOTEDIR.split("/")[XMLREMOTEDIR.split("/").length-1];
-                REMOTELIBRARY = getTagContent(doc,"LibsPath");
-                REMOTEEPIDDIR = getTagContent(doc,"EpNames");
-                REMOTEDATABASECONFIGFILE = getTagContent(doc,"DbConfigFile");
+                REMOTELIBRARY = getTagContent(doc,"LibsPath", "framework config.");
+                REMOTEEPIDDIR = getTagContent(doc,"EpNames", "framework config.");
+                REMOTEDATABASECONFIGFILE = getTagContent(doc,"DbConfigFile", "framework config.");
                 String [] path = REMOTEDATABASECONFIGFILE.split("/");
                 StringBuffer result = new StringBuffer();
                 if (path.length > 0) {
@@ -873,7 +873,7 @@ public class RunnerRepository {
                         result.append("/");}}
                 REMOTEDATABASECONFIGPATH = result.toString();
                 REMOTEDATABASECONFIGFILE = path[path.length-1];
-                REMOTEEMAILCONFIGFILE = getTagContent(doc,"EmailConfigFile");
+                REMOTEEMAILCONFIGFILE = getTagContent(doc,"EmailConfigFile", "framework config.");
                 path = REMOTEEMAILCONFIGFILE.split("/");
                 result = new StringBuffer();
                 if (path.length > 0) {
@@ -882,12 +882,12 @@ public class RunnerRepository {
                         result.append("/");}}
                 REMOTEEMAILCONFIGPATH = result.toString();
                 REMOTEEMAILCONFIGFILE = path[path.length-1];
-                TESTSUITEPATH = getTagContent(doc,"TestCaseSourcePath");
-                PREDEFINEDSUITES = getTagContent(doc,"PredefinedSuitesPath");
-                SECONDARYLOGSPATH = getTagContent(doc,"ArchiveLogsPath");
-                PATHENABLED = getTagContent(doc,"ArchiveLogsPathActive");
-                TESTCONFIGPATH = getTagContent(doc,"TestConfigPath");
-                GLOBALSREMOTEFILE = getTagContent(doc,"GlobalParams");
+                TESTSUITEPATH = getTagContent(doc,"TestCaseSourcePath", "framework config.");
+                PREDEFINEDSUITES = getTagContent(doc,"PredefinedSuitesPath", "framework config.");
+                SECONDARYLOGSPATH = getTagContent(doc,"ArchiveLogsPath", "framework config.");
+                PATHENABLED = getTagContent(doc,"ArchiveLogsPathActive", "framework config.");
+                TESTCONFIGPATH = getTagContent(doc,"TestConfigPath", "framework config.");
+                GLOBALSREMOTEFILE = getTagContent(doc,"GlobalParams", "framework config.");
             }
             catch(Exception e){e.printStackTrace();}
             try{Thread.sleep(100);}
@@ -947,12 +947,12 @@ public class RunnerRepository {
      * doc - xml document
      * tag - tag name
      */
-    public static String getTagContent(Document doc, String tag){
+    public static String getTagContent(Document doc, String tag, String file){
         NodeList nodeLst = doc.getElementsByTagName(tag);
         if(nodeLst.getLength()==0){
             System.out.println("tag "+tag+" not found in "+doc.getDocumentURI());
             CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,RunnerRepository.window,
-                                        "Warning", tag+" tag not found in framework config");
+                                        "Warning", tag+" tag not found in "+file);
             return "";
         }
         Node fstNode = nodeLst.item(0);
@@ -963,7 +963,7 @@ public class RunnerRepository {
         catch(Exception e){
             System.out.println(tag+" empty");
             CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,RunnerRepository.window,
-                                        "Warning", tag+" tag is empty in framework config");
+                                        "Warning", tag+" tag is empty in "+file);
             temp = "";}
         return temp;}
         

@@ -22,7 +22,7 @@ $JDK_PATH/javac  -deprecation -d classes -source 1.6 -target 1.6  -cp $EXTLIBS  
 
 # Generate JAR file
 cd classes;
-$JDK_PATH/jar  cf ../target/applet.jar Icons *.class
+$JDK_PATH/jar  cfm ../target/applet.jar ../manifestaddition.txt Icons *.class
 
 # Sign the JAR file using the keystore
 cd ../target

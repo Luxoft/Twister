@@ -1,6 +1,6 @@
 /*
 File: ConfigTree.java ; This file is part of Twister.
-Version: 2.002
+Version: 2.003
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -52,6 +52,8 @@ import com.twister.MySftpBrowser;
 import javax.swing.event.TreeSelectionListener;
 import javax.swing.event.TreeSelectionEvent;
 import javax.swing.tree.TreePath;
+import java.util.Enumeration;
+import java.util.ArrayList;
 import java.util.Enumeration;
 
 public class ConfigTree extends JPanel{
@@ -197,6 +199,21 @@ public class ConfigTree extends JPanel{
         });
         add(new JScrollPane(tree),BorderLayout.CENTER);
         add(buttons,BorderLayout.SOUTH);
+    }
+    
+    public String [] getFiles(){
+        ArrayList<String> a = new ArrayList<String>();
+        Enumeration e = root.depthFirstEnumeration();
+        DefaultMutableTreeNode element;
+        while(e.hasMoreElements()){
+            element = (DefaultMutableTreeNode)e.nextElement();
+            if(element.isLeaf()){
+                a.add(element.getParent().toString()+"/"+element.toString());
+            }
+        }
+        String [] files=new String[a.size()];
+        a.toArray(files);
+        return files;
     }
     
 //     private void removeFile(){

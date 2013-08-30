@@ -1,6 +1,6 @@
 /*
 File: TB.java ; This file is part of Twister.
-Version: 2.002
+Version: 2.003
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -100,7 +100,7 @@ public class TB extends JPanel{
         
         root = new DefaultMutableTreeNode("root", true);
         tree = new JTree(root);
-//         tree.setTransferHandler(new TreeTransferHandler());  
+        tree.setTransferHandler(new TreeTransferHandler());  
         tree.setCellRenderer(new CustomIconRenderer());
         
         optpan = new NodePanel(tree,client);
@@ -240,7 +240,7 @@ public class TB extends JPanel{
             }
             if(goon){
                 try{
-                    Node newnode = new Node(null,resp,resp,parent,null);
+                    Node newnode = new Node(null,resp,resp,parent,null,(byte)0);
                     resp = client.execute("setResource", new Object[]{resp,"/",null}).toString();
                     if(resp.indexOf("ERROR")==-1){
                         parent.addChild(resp, newnode);
@@ -266,7 +266,7 @@ public class TB extends JPanel{
                 }
             } else {
                 CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,RunnerRepository.window,"Warning", 
-                                        "There is a TB with the same name, please use another name.");
+                                        "There is a TB with the same name, please use different name.");
             }
         }    
     }
@@ -308,7 +308,7 @@ public class TB extends JPanel{
             }
             if(goon){
                 try{
-                    Node newnode = new Node(null,parent.getPath().getPath()+"/"+resp,resp,parent,null);
+                    Node newnode = new Node(null,parent.getPath().getPath()+"/"+resp,resp,parent,null,(byte)(1));
                     resp = client.execute("setResource", new Object[]{resp,parent.getID(),null}).toString();
                     if(resp.indexOf("ERROR")==-1){
                         parent.addChild(resp,newnode);
@@ -407,7 +407,11 @@ public class TB extends JPanel{
         try{HashMap hash= (HashMap)client.execute("getResource", new Object[]{id});
             String path = hash.get("path").toString();
             String name = path.split("/")[path.split("/").length-1];
-            Node node = new Node(id,path,name,parent,null);
+            byte type = 1;
+            if(parent!=null&&parent.toString().equals("")){
+                type = 0;
+            }
+            Node node = new Node(id,path,name,parent,null,type);
             Object[] children = (Object[])hash.get("children");
             for(Object o:children){
                 node.addChild(o.toString(), null);
@@ -556,13 +560,11 @@ class TreeTransferHandler extends TransferHandler {
             // Make up a node array of copies for transfer and  
             // another for/of the nodes that will be removed in  
             // exportDone after a successful drop.  
-            List<DefaultMutableTreeNode> copies =  
-                new ArrayList<DefaultMutableTreeNode>();  
+            List<Node> copies =  new ArrayList<Node>();  
 //             List<DefaultMutableTreeNode> toRemove =  
 //                 new ArrayList<DefaultMutableTreeNode>();  
-            DefaultMutableTreeNode node =  
-                (DefaultMutableTreeNode)paths[0].getLastPathComponent();  
-            DefaultMutableTreeNode copy = copy(node);
+            DefaultMutableTreeNode node =  (DefaultMutableTreeNode)paths[0].getLastPathComponent();  
+            Node copy = copy((Node)node.getUserObject());
             copies.add(copy);  
 //             toRemove.add(node);  
             for(int i = 1; i < paths.length; i++) {  
@@ -572,25 +574,23 @@ class TreeTransferHandler extends TransferHandler {
                 if(next.getLevel() < node.getLevel()) {  
                     break;  
                 } else if(next.getLevel() > node.getLevel()) {  // child node  
-                    copy.add(copy(next));  
+//                     copy.add(copy((Node)next.getUserObject()));  
                     // node already contains child  
                 } else {                                        // sibling  
-                    copies.add(copy(next));  
+                    copies.add(copy((Node)next.getUserObject()));  
 //                     toRemove.add(next);  
                 }  
             }  
-            DefaultMutableTreeNode[] nodes =  
-                copies.toArray(new DefaultMutableTreeNode[copies.size()]);  
-//             nodesToRemove =  
-//                 toRemove.toArray(new DefaultMutableTreeNode[toRemove.size()]);  
+            Node[] nodes =  
+                copies.toArray(new Node[copies.size()]);
             return new NodesTransferable(nodes);  
         }  
         return null;  
     }  
    
     /** Defensive copy used in createTransferable. */  
-    private DefaultMutableTreeNode copy(TreeNode node) {  
-        return new DefaultMutableTreeNode(node);  
+    private Node copy(Node node) {  
+        return node.clone();  
     }  
    
 //     protected void exportDone(JComponent source, Transferable data, int action) {  
@@ -605,52 +605,52 @@ class TreeTransferHandler extends TransferHandler {
 //     }  
    
     public int getSourceActions(JComponent c) {  
-        return COPY_OR_MOVE;  
+        return COPY;  
     }  
    
-    public boolean importData(TransferHandler.TransferSupport support) {  
-        if(!canImport(support)) {  
-            return false;  
-        }  
-        // Extract transfer data.  
-        DefaultMutableTreeNode[] nodes = null;  
-        try {  
-            Transferable t = support.getTransferable();  
-            nodes = (DefaultMutableTreeNode[])t.getTransferData(nodesFlavor);  
-        } catch(UnsupportedFlavorException ufe) {  
-            System.out.println("UnsupportedFlavor: " + ufe.getMessage());  
-        } catch(java.io.IOException ioe) {  
-            System.out.println("I/O error: " + ioe.getMessage());  
-        }  
-        // Get drop location info.  
-        JTree.DropLocation dl =  
-                (JTree.DropLocation)support.getDropLocation();  
-        int childIndex = dl.getChildIndex();  
-        TreePath dest = dl.getPath();  
-        DefaultMutableTreeNode parent =  
-            (DefaultMutableTreeNode)dest.getLastPathComponent();  
-        JTree tree = (JTree)support.getComponent();  
-        DefaultTreeModel model = (DefaultTreeModel)tree.getModel();  
-        // Configure for drop mode.  
-        int index = childIndex;    // DropMode.INSERT  
-        if(childIndex == -1) {     // DropMode.ON  
-            index = parent.getChildCount();  
-        }  
-        // Add data to model.  
-        for(int i = 0; i < nodes.length; i++) {  
-            model.insertNodeInto(nodes[i], parent, index++);  
-        }  
-        return true;  
-    }  
+//     public boolean importData(TransferHandler.TransferSupport support) {  
+//         if(!canImport(support)) {  
+//             return false;  
+//         }  
+//         // Extract transfer data.  
+//         DefaultMutableTreeNode[] nodes = null;  
+//         try {  
+//             Transferable t = support.getTransferable();  
+//             nodes = (DefaultMutableTreeNode[])t.getTransferData(nodesFlavor);  
+//         } catch(UnsupportedFlavorException ufe) {  
+//             System.out.println("UnsupportedFlavor: " + ufe.getMessage());  
+//         } catch(java.io.IOException ioe) {  
+//             System.out.println("I/O error: " + ioe.getMessage());  
+//         }  
+//         // Get drop location info.  
+//         JTree.DropLocation dl =  
+//                 (JTree.DropLocation)support.getDropLocation();  
+//         int childIndex = dl.getChildIndex();  
+//         TreePath dest = dl.getPath();  
+//         DefaultMutableTreeNode parent =  
+//             (DefaultMutableTreeNode)dest.getLastPathComponent();  
+//         JTree tree = (JTree)support.getComponent();  
+//         DefaultTreeModel model = (DefaultTreeModel)tree.getModel();  
+//         // Configure for drop mode.  
+//         int index = childIndex;    // DropMode.INSERT  
+//         if(childIndex == -1) {     // DropMode.ON  
+//             index = parent.getChildCount();  
+//         }  
+//         // Add data to model.  
+//         for(int i = 0; i < nodes.length; i++) {  
+//             model.insertNodeInto(nodes[i], parent, index++);  
+//         }  
+//         return true;  
+//     }  
    
     public String toString() {  
         return getClass().getName();  
     }  
    
     public class NodesTransferable implements Transferable {  
-        DefaultMutableTreeNode[] nodes;  
+        Node[] nodes;  
    
-        public NodesTransferable(DefaultMutableTreeNode[] nodes) {  
+        public NodesTransferable(Node[] nodes) {  
             this.nodes = nodes;  
          }  
    

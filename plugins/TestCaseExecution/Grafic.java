@@ -1,6 +1,6 @@
 /*
 File: Grafic.java ; This file is part of Twister.
-Version: 2.008
+Version: 2.009
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -79,6 +79,7 @@ import java.util.Set;
 import java.util.Iterator;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
+import javax.swing.DefaultComboBoxModel;
 
 public class Grafic extends JPanel{
     private static final long serialVersionUID = 1L;
@@ -1475,6 +1476,11 @@ public class Grafic extends JPanel{
                     public void actionPerformed(ActionEvent ev){
                         switchCheck();}});}
             if(type==1){
+                menuitem = new JMenuItem("Set Configurations");
+                p.add(menuitem);
+                menuitem.addActionListener(new ActionListener(){
+                    public void actionPerformed(ActionEvent ev){
+                        setConfigurations(false);}});
                 menuitem = new JMenuItem("Switch Runnable");
                 p.add(menuitem);
                 menuitem.addActionListener(new ActionListener(){
@@ -1486,6 +1492,57 @@ public class Grafic extends JPanel{
                     public void actionPerformed(ActionEvent ev){
                         switchOptional();}});}}
         p.show(this,ev.getX(),ev.getY());}
+        
+    private void setConfigurations(boolean solo){
+        JPanel p = new JPanel();
+        p.setLayout(null);
+        p.setPreferredSize(new Dimension(515,200));
+        JLabel ep = new JLabel("Configurations: ");
+        ep.setBounds(5,5,95,25);
+        JList tep = new JList();
+        JScrollPane scep = new JScrollPane(tep);
+        scep.setBounds(100,5,400,180);
+        p.add(ep);
+        p.add(scep);
+        String [] vecresult = RunnerRepository.window.mainpanel.p4.getTestConfig().tree.getFiles();
+        tep.setModel(new DefaultComboBoxModel(vecresult));
+        if(solo){
+            Item item=null;
+            int nr = selectedcollection.size();
+            ArrayList<Integer>temp = new ArrayList<Integer>();
+            for(int i=0;i<nr;i++){
+                temp.clear();
+                int [] indices = selectedcollection.get(i);
+                for(int j=0;j<indices.length;j++)temp.add(new Integer(indices[j]));
+                item = getItem(temp,false);
+            }
+            ArrayList<String> array = new ArrayList<String>(Arrays.asList(vecresult));
+            String [] strings = item.getConfigurations();
+            int [] sel = new int[strings.length];
+            for(int i=0;i<strings.length;i++){
+                sel[i]=array.indexOf(strings[i]);
+            }
+            tep.setSelectedIndices(sel);
+            
+        }
+        int resp = (Integer)CustomDialog.showDialog(p,JOptionPane.PLAIN_MESSAGE, 
+                            JOptionPane.OK_CANCEL_OPTION, Grafic.this, "Test Configurations Files",null);
+        if(resp == JOptionPane.OK_OPTION){
+            String configs[] = new String[tep.getSelectedValues().length];
+            for(int i=0;i<configs.length;i++){
+                configs[i] = tep.getSelectedValues()[i].toString();
+            }
+            Item item=null;
+            int nr = selectedcollection.size();
+            ArrayList<Integer>temp = new ArrayList<Integer>();
+            for(int i=0;i<nr;i++){
+                temp.clear();
+                int [] indices = selectedcollection.get(i);
+                for(int j=0;j<indices.length;j++)temp.add(new Integer(indices[j]));
+                item = getItem(temp,false);
+                item.setConfigurations(configs);}
+        }
+    }
         
     public void switchOptional(){
         Item item=null;
@@ -1561,6 +1618,11 @@ public class Grafic extends JPanel{
 //                     tc.getRectangle().setSize(width+50,(int)tc.getRectangle().getHeight());
 //                     updateLocations(tc);
 //                     repaint();}}});
+        item = new JMenuItem("Set Configurations");
+        p.add(item);
+        item.addActionListener(new ActionListener(){
+            public void actionPerformed(ActionEvent ev){
+                setConfigurations(true);}});
         item = new JMenuItem("Expand");
         p.add(item);
         item.addActionListener(new ActionListener(){
