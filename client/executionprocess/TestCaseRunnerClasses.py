@@ -41,7 +41,7 @@ from collections import OrderedDict # For dumping TCL
 
 from ConfigParser import SafeConfigParser
 
-TWISTER_PATH = os.getenv('TWISTER_PATH')
+TWISTER_PATH = os.getenv('TWISTER_PATH').rstrip('/')
 if not TWISTER_PATH:
     print('TWISTER_PATH environment variable is not set! Exiting!')
     exit(1)
@@ -249,12 +249,11 @@ class TCRunPython:
         globs_copy['time'] = time
 
         to_execute = r"""
-import os, sys
 __file__ = '%s'
 sys.argv = %s
 try: import ce_libs
 except: pass
-try: reload(ce_libs)
+try: ce_libs = reload(ce_libs)
 except: pass
 """ % (fpath, str([self.filename] + params))
 
