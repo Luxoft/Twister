@@ -16,6 +16,7 @@
 - issue #82 - User Guide 8 - "How to run the test files" missing Icon for Timeout
 - issue #84 - Stop button does not clean-up test status
 - issue #86 - Twister server upgrade fails
+- added 2 new variables ( twister_ce_type, twister_server_location )
 - rework on User Guide
 
 23rd August
