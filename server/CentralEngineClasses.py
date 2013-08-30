@@ -912,6 +912,9 @@ class CentralEngine(_cptools.XMLRPCController):
                 # Update status for all active EPs
                 active_eps = self.project.parsers[user].getActiveEps()
                 for epname in active_eps:
+                    if not self.searchEP(user, epname):
+                        logError('Set Status: `{}` is not in the list of defined EPs: `{}`!'.format(epname, self.listEPs(user)) )
+                        continue
                     self.project.setEpInfo(user, epname, 'status', STATUS_STOP)
 
                 if msg:
@@ -987,6 +990,8 @@ class CentralEngine(_cptools.XMLRPCController):
             # Start all active EPs !
             active_eps = self.project.parsers[user].getActiveEps()
             for epname in active_eps:
+                if not self.searchEP(user, epname):
+                    continue
                 self.startEP(user, epname)
 
         # If the engine is running, or paused and it received STOP from the user...
@@ -1019,6 +1024,8 @@ class CentralEngine(_cptools.XMLRPCController):
             statuses_changed = 0
 
             for epname in active_eps:
+                if not self.searchEP(user, epname):
+                    continue
                 # All files, for current EP
                 files = eps_pointer[epname]['suites'].getFiles()
                 for file_id in files:
@@ -1040,6 +1047,9 @@ class CentralEngine(_cptools.XMLRPCController):
         # Update status for all active EPs
         active_eps = self.project.parsers[user].getActiveEps()
         for epname in active_eps:
+            if not self.searchEP(user, epname):
+                logError('Set Status: `{}` is not in the list of defined EPs: `{}`!'.format(epname, self.listEPs(user)) )
+                continue
             self.project.setEpInfo(user, epname, 'status', new_status)
 
         reversed = dict((v,k) for k,v in execStatus.iteritems())

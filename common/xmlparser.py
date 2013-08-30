@@ -692,18 +692,20 @@ class TSCParser:
         return res
 
 
-    def getGlobalParams(self):
+    def getGlobalParams(self, globs_file=None):
         """
         Returns a dictionary containing All global parameters,
         that will be available for all tests.
         """
-        globs_file = self.project_globals['glob_params']
-
+        # First check, the parameter
+        if not globs_file:
+            globs_file = self.project_globals['glob_params']
+        # Second check, the user config file
         if not globs_file:
             logError('Get Globals: Globals Config file is not defined! Please check framework config XML file!')
             return {}
         if not os.path.isfile(globs_file):
-            logError('Get Globals: Globals Config file `%s` does not exist! Please check framework config XML file!' % globs_file)
+            logError('Get Globals: Globals Config file `{}` does not exist! Please check framework config XML file!'.format(globs_file))
             return {}
 
         params_xml = etree.parse(globs_file)
