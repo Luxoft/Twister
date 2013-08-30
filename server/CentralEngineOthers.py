@@ -1,7 +1,7 @@
 
 # File: CentralEngineOthers.py ; This file is part of Twister.
 
-# version: 2.030
+# version: 2.031
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -1791,9 +1791,13 @@ class Project:
                     except: ce_ip = ''
 
                     # Insert/ fix DB variables
-                    subst_data['twister_user']     = user
+                    subst_data['twister_user']    = user
+                    subst_data['twister_ce_type'] = self.server_init['ce_server_type'].lower()
+                    subst_data['twister_server_location'] = self.server_init.get('ce_server_location', '')
+
                     subst_data['twister_rf_fname'] = '{}/config/resources.json'.format(TWISTER_PATH)
                     subst_data['twister_pf_fname'] = '{}/config/project_users.json'.format(TWISTER_PATH)
+
                     subst_data['twister_ce_os']    = system
                     subst_data['twister_ce_hostname'] = ce_host
                     subst_data['twister_ce_ip']       = ce_ip
@@ -1822,6 +1826,9 @@ class Project:
                     # Pre-Suite or Post-Suite files will not be saved to database
                     if subst_data.get('Pre-Suite') or subst_data.get('Post-Suite'):
                         continue
+
+                    # :: Debug ::
+                    # import pprint ; pprint.pprint(subst_data)
 
                     # For every insert SQL statement, build correct data...
                     for query in queries:
