@@ -1,6 +1,6 @@
 /*
 File: Panel4.java ; This file is part of Twister.
-Version: 2.005
+Version: 2.006
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -90,39 +90,39 @@ public class Panel4 extends JPanel{
                 setDuts();}});
         add(duts);
         RoundButton globals = new RoundButton("Global Parameters");
-        globals.setBounds(20,160,200,25);
+        globals.setBounds(20,220,200,25);
         globals.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 setGlobals();}});
         add(globals);
         RoundButton panicb = new RoundButton("Panic Detect");
-        panicb.setBounds(20,190,200,25);
+        panicb.setBounds(20,280,200,25);
         panicb.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){                
                 setPanic();}});
         add(panicb);
         RoundButton servicesb = new RoundButton("Services");
-        servicesb.setBounds(20,220,200,25);
+        servicesb.setBounds(20,250,200,25);
         servicesb.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){                
                 setServices();}});
         add(servicesb);
         RoundButton plugins = new RoundButton("Plugins");
-        plugins.setBounds(20,250,200,25);
+        plugins.setBounds(20,310,200,25);
         plugins.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){                
                 setPlugins();}});
         add(plugins);
         RoundButton ctrlpanel = new RoundButton("Test Configurations");
-        ctrlpanel.setBounds(20,280,200,25);
+        ctrlpanel.setBounds(20,190,200,25);
         ctrlpanel.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){                
                 setTestConfig();}});
         add(ctrlpanel);
 //         ctrlpanel.setEnabled(false);
         RoundButton SUT = new RoundButton("System Under Test");
-        SUT.setEnabled(false);
-        SUT.setBounds(20,310,200,25);
+//         SUT.setEnabled(false);
+        SUT.setBounds(20,160,200,25);
         SUT.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){                
                 setSut();}});
@@ -141,6 +141,7 @@ public class Panel4 extends JPanel{
         main.setLayout(new BorderLayout());
         main.add(sut,BorderLayout.CENTER);
         sut.tbs.setTree(tb.getTree());
+        sut.sut.getSUT();
         main.repaint();
         main.revalidate();
     }
@@ -297,6 +298,10 @@ public class Panel4 extends JPanel{
         
     public ConfigFiles getConfig(){
         return config;}
+        
+    public SystemUnderTest getSut(){
+        return sut;
+    }
         
     public Globals getGlobals(){
         return glob;}

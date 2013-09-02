@@ -41,11 +41,11 @@ try:
 except:
     raise Exception('CommonLib must run from Twister!\n')
 
-all = ['TscCommonLib']
+__all__ = ['TscCommonLib']
 
 #
 
-class TscCommonLib:
+class TscCommonLib(object):
 
     platform_sys = platform.system().lower()
     proxy_path = PROXY

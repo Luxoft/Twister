@@ -1,7 +1,7 @@
 
 # File: CentralEngineOthers.py ; This file is part of Twister.
 
-# version: 2.028
+# version: 2.031
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -323,7 +323,7 @@ class Project:
 
         # Save everything.
         self._dump()
-        logDebug('Project: Created user `{}` ...'.format(user))
+        logDebug('Project: Registered user `{}` ...'.format(user))
 
         return True
 
@@ -351,7 +351,7 @@ class Project:
         if not files_config:
             files_config = self.users[user]['project_path']
 
-        logDebug('Project: RESET configuration for user `{}`, using config files `{}` and `{}`.'
+        logDebug('Project: Reload configuration for user `{}`, with config files `{}` and `{}`.'
             ''.format(user, base_config, files_config))
 
         del self.parsers[user]
@@ -362,7 +362,7 @@ class Project:
 
         # Save everything.
         self._dump()
-        logDebug('Project: RESET operation took %.4f seconds.' % (time.clock()-ti))
+        logDebug('Project: Reload user operation took %.4f seconds.' % (time.clock()-ti))
         return True
 
 
@@ -1694,20 +1694,24 @@ class Project:
         '''
         Parses the log file of one EP and returns the log of one test file.
         '''
-        logPath = self.getUserInfo(user, 'logs_path') + os.sep + epname + '_CLI.log'
+        logFolder = self.getUserInfo(user, 'logs_path')
+        logTypes  = self.getUserInfo(user, 'log_types')
+        _, logCli = os.path.split( logTypes.get('logCli', 'CLI.log') )
+        # Logs Path + EP Name + CLI Name
+        logPath = logFolder + os.sep + epname +'_'+ logCli
 
         try:
             data = open(logPath, 'r').read()
         except:
-            logError('Find Log: File `{0}` cannot be read!'.format(logPath))
+            logError('Find Log: File `{}` cannot be read!'.format(logPath))
             return '*no log*'
 
-        fbegin = data.find('<<< START filename: `%s:%s' % (file_id, file_name))
+        fbegin = data.find('<<< START filename: `{}:{}'.format(file_id, file_name))
         if fbegin == -1:
-            logDebug('Find Log: Cannot find `{0}:{1}` in log `{2}`!'.format(file_id, file_name, logPath))
+            logDebug('Find Log: Cannot find `{}:{}` in log `{}`!'.format(file_id, file_name, logPath))
 
-        fend = data.find('<<< END filename: `%s:%s' % (file_id, file_name))
-        fend += len('<<< END filename: `%s:%s` >>>' % (file_id, file_name))
+        fend = data.find('<<< END filename: `{}:{}'.format(file_id, file_name))
+        fend += len('<<< END filename: `{}:{}` >>>'.format(file_id, file_name))
 
         return data[fbegin:fend]
 
@@ -1787,9 +1791,13 @@ class Project:
                     except: ce_ip = ''
 
                     # Insert/ fix DB variables
-                    subst_data['twister_user']     = user
+                    subst_data['twister_user']    = user
+                    subst_data['twister_ce_type'] = self.server_init['ce_server_type'].lower()
+                    subst_data['twister_server_location'] = self.server_init.get('ce_server_location', '')
+
                     subst_data['twister_rf_fname'] = '{}/config/resources.json'.format(TWISTER_PATH)
                     subst_data['twister_pf_fname'] = '{}/config/project_users.json'.format(TWISTER_PATH)
+
                     subst_data['twister_ce_os']    = system
                     subst_data['twister_ce_hostname'] = ce_host
                     subst_data['twister_ce_ip']       = ce_ip
@@ -1818,6 +1826,9 @@ class Project:
                     # Pre-Suite or Post-Suite files will not be saved to database
                     if subst_data.get('Pre-Suite') or subst_data.get('Post-Suite'):
                         continue
+
+                    # :: Debug ::
+                    # import pprint ; pprint.pprint(subst_data)
 
                     # For every insert SQL statement, build correct data...
                     for query in queries:

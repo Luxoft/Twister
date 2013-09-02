@@ -63,7 +63,7 @@ class Plugin(BasePlugin):
 		# response structure
 		response = False
 
-		if not args.has_key('command'):
+		if not args.has_key('command') or not isinstance(args['command'], str):
 			return response
 
 		_response = cleartool.cmd(args['command'])
@@ -74,3 +74,20 @@ class Plugin(BasePlugin):
 		}
 
 		return jsonDump(response)
+
+
+
+
+"""
+
+#### plugins.xml config ####
+
+<Plugin>
+	<name>ClearCase</name>
+	<jarfile>ClearCasePlugin.jar</jarfile>
+	<pyfile>ClearCasePlugin.py</pyfile>
+	<status>disabled</status>
+</Plugin>
+
+"""
+

@@ -21,13 +21,13 @@
 # limitations under the License.
 #
 
-
 from time import sleep
 
 from paramiko import Transport
 
+__all__ = ['SshManager', 'SshConnection']
 
-
+#
 
 class SshManager(object):
     """ Twister SSH connections manager """

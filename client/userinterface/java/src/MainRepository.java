@@ -1,6 +1,6 @@
 /*
 File: MainRepository.java ; This file is part of Twister.
-Version: 2.006
+Version: 2.007
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -72,8 +72,8 @@ public class MainRepository {
     private static TwisterPluginInterface plugin;
     private static XmlRpcClient client;
     private static Hashtable<String,String> hash = new Hashtable<String,String>();
-    private static String version = "2.022";
-    private static String builddate = "23.08.2013";
+    private static String version = "2.023";
+    private static String builddate = "30.08.2013";
     public static int time = 10;//seconds
     public static boolean countdown = false;
     public static String logotxt;
@@ -172,7 +172,7 @@ public class MainRepository {
         MainRepository.user = user;
         MainRepository.password = password;
         ceport = getCEPort(user,password);
-        if(ceport==null)return;
+        if(ceport==null||ceport.equals(""))return;
         initializeRPC(user,password,ceport);
     }
     
@@ -196,7 +196,15 @@ public class MainRepository {
             Channel channel = session.openChannel("sftp");
             channel.connect();
             connection = (ChannelSftp)channel;
-            Document doc = db.parse(connection.get(connection.getHome()+"/twister/config/fwmconfig.xml"));
+            Document doc = null;;
+            try{ 
+                doc = db.parse(connection.get(connection.getHome()+"/twister/config/fwmconfig.xml"));
+            } catch(Exception e){
+                CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,container,
+                                            "Error", "Could not get "+connection.getHome()+"/twister/config/fwmconfig.xml.\n "+
+                                             "! Client has not been installed, please install latest Client package.");
+                return "";
+            }
             doc.getDocumentElement().normalize();
             String tag = "CentralEnginePort";
             NodeList nodeLst = doc.getElementsByTagName(tag);

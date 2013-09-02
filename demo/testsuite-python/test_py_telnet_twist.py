@@ -96,7 +96,7 @@ def test():
 	print 'list_connections'
 	print tm.list_connections()
 
-	logMsg('Twister Telnet test done.')
+	logMsg('logRunning','Twister Telnet test done.')
 	# This return is used by the framework!
 	return "PASS"
 

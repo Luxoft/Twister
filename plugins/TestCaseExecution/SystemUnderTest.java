@@ -1,6 +1,6 @@
 /*
 File: SystemUnderTest.java ; This file is part of Twister.
-Version: 2.001
+Version: 2.002
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -26,11 +26,11 @@ import java.awt.Dimension;
 
 public class SystemUnderTest extends JPanel{
     public TestBeds tbs;
-    public SUT sut;
+    public SUTEditor sut;
 
     public SystemUnderTest(){
         tbs = new TestBeds();
-        sut = new SUT();
+        sut = new SUTEditor();
         setLayout(new BorderLayout());
         final JSplitPane sp = new JSplitPane();
         sp.setLeftComponent(sut);

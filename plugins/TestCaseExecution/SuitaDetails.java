@@ -1,6 +1,6 @@
 /*
 File: SuitaDetails.java ; This file is part of Twister.
-Version: 2.008
+Version: 2.0010
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -69,6 +69,7 @@ import javax.swing.SwingConstants;
 import javax.swing.Box;
 import javax.swing.event.DocumentListener;
 import javax.swing.event.DocumentEvent;
+import javax.swing.tree.DefaultMutableTreeNode;
 
 public class SuitaDetails extends JPanel {
     private JPanel defsContainer,global, suiteoptions, tcoptions, summary;
@@ -148,7 +149,7 @@ public class SuitaDetails extends JPanel {
         suiteoptions.setBackground(Color.WHITE);
         JLabel suite = new JLabel("Suite name: ");
         tsuite = new JTextField();
-        ep = new JLabel("Run on TB:");
+        ep = new JLabel("Run on SUT:");
         combo = new JList();
         suitelib = new JButton("Libraries");
         panicdetect = new JCheckBox("Panic Detect");
@@ -528,7 +529,7 @@ public class SuitaDetails extends JPanel {
         stats[5] = new JLabel();
         stats[5].setBounds(118,95,100,25);
 
-        JLabel l7 = new JLabel("Stopped:");
+        JLabel l7 = new JLabel("Aborted:");
         l7.setBounds(10,115,70,25);
         summary.add(l7);
         stats[6] = new JLabel();
@@ -763,20 +764,34 @@ public class SuitaDetails extends JPanel {
         for(ListSelectionListener l:combo.getListSelectionListeners()){
             combo.removeListSelectionListener(l);
         }
+        
         StringBuilder b = new StringBuilder();
-        Node parentnode = RunnerRepository.window.mainpanel.p4.getTB().getParentNode();
-        HashMap children =  parentnode.getChildren();
-        if(children!=null&&children.size()!=0){
-            Set keys = children.keySet();
-            Iterator iter = keys.iterator();
-            while(iter.hasNext()){
-                String n = iter.next().toString();
-                String name = parentnode.getChild(n).getName();
-                b.append(name);
-                b.append(";");
-            }
+        DefaultMutableTreeNode root = RunnerRepository.window.mainpanel.p4.getSut().sut.root;
+        int sutsnr = root.getChildCount();
+        for(int i=0;i<sutsnr;i++){
+            b.append(root.getChildAt(i).toString());
+            b.append(";");
         }
-        String [] vecresult = b.toString().split(";");   
+        
+        
+        
+//         StringBuilder b = new StringBuilder();
+        
+//         Node parentnode = RunnerRepository.window.mainpanel.p4.getTB().getParentNode();
+//         HashMap children =  parentnode.getChildren();
+//         if(children!=null&&children.size()!=0){
+//             Set keys = children.keySet();
+//             Iterator iter = keys.iterator();
+//             while(iter.hasNext()){
+//                 String n = iter.next().toString();
+//                 String name = parentnode.getChild(n).getName();
+//                 b.append(name);
+//                 b.append(";");
+//             }
+//         }
+        String [] vecresult = b.toString().split(";");
+        
+        
         combo.setModel(new DefaultComboBoxModel(vecresult));
         
         String [] strings = parent.getEpId();
