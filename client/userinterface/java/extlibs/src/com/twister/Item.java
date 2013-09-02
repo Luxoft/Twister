@@ -1,6 +1,6 @@
 /*
 File: Item.java ; This file is part of Twister.
-Version: 2.001
+Version: 2.002
 Copyright (C) 2012 , Luxoft
 
 Authors: Andrei Costachi <acostachi@luxoft.com>
@@ -37,10 +37,11 @@ public class Item implements Cloneable{
     private boolean prerequisite = false;
     private boolean teardown = false;
     private boolean optional = false;
-    private String [] servers;
-    private String [] libs;
+    private String [] servers,libs;
+    private String [] configurations = {}; 
     private boolean panicdetect = false;
     private int ceindex;
+    
     
     public int getCEindex() {
 		return ceindex;
@@ -254,7 +255,15 @@ public class Item implements Cloneable{
         temp[1] = userDef;
         userDefined.set(index, temp);}
     
-    public ArrayList<Integer> getPos(){
+    public String[] getConfigurations() {
+		return configurations;
+	}
+
+	public void setConfigurations(String[] configurations) {
+		this.configurations = configurations;
+	}
+
+	public ArrayList<Integer> getPos(){
         return indexpos;}
 
 	public boolean isOptional() {

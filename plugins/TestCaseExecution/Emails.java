@@ -1,6 +1,6 @@
 /*
 File: Emails.java ; This file is part of Twister.
-Version: 2.006
+Version: 2.007
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -218,17 +218,6 @@ public class Emails extends JPanel{
                         else nodeLst.item(0).appendChild(doc.createTextNode(tuser.getText()));
                         if( !(new String(tpass.getPassword()).equals("****"))){
                             nodeLst = doc.getElementsByTagName("SMTPPwd");
-                            
-                            
-                            
-//                             String p = "";                            
-//                             try{p = RunnerRepository.getRPCClient().execute("encryptText", new Object[]{new String(tpass.getPassword())}).toString();
-//                             } catch(Exception e){
-//                                 e.printStackTrace();
-//                                 System.out.println("Could not encrypt password");
-//                             }
-                            
-                            
                             String p = new String(tpass.getPassword());
                             if(!initialpass.equals(p)){
                                 try{p = RunnerRepository.getRPCClient().execute("encryptText", new Object[]{p}).toString();
@@ -238,8 +227,6 @@ public class Emails extends JPanel{
                                     e.printStackTrace();
                                 }
                             }
-                            
-                            
                             if(nodeLst.item(0).getChildNodes().getLength()>0)nodeLst.item(0).getChildNodes().item(0).setNodeValue(p);
                             else nodeLst.item(0).appendChild(doc.createTextNode(p));}
                         nodeLst = doc.getElementsByTagName("From");
@@ -249,9 +236,15 @@ public class Emails extends JPanel{
                         if(nodeLst.item(0).getChildNodes().getLength()>0)nodeLst.item(0).getChildNodes().item(0).setNodeValue(emails.getText());
                         else nodeLst.item(0).appendChild(doc.createTextNode(emails.getText()));
                         nodeLst = doc.getElementsByTagName("Message");
+                        if(message.getText().equals("")){
+                            CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,Emails.this,"Warning", "Message is empty");
+                        }
                         if(nodeLst.item(0).getChildNodes().getLength()>0)nodeLst.item(0).getChildNodes().item(0).setNodeValue(message.getText());
                         else nodeLst.item(0).appendChild(doc.createTextNode(message.getText()));
                         nodeLst = doc.getElementsByTagName("Subject");
+                        if(subject.getText().equals("")){
+                            CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,Emails.this,"Warning", "Subject is empty");
+                        }
                         if(nodeLst.item(0).getChildNodes().getLength()>0)nodeLst.item(0).getChildNodes().item(0).setNodeValue(subject.getText());
                         else nodeLst.item(0).appendChild(doc.createTextNode(subject.getText()));}
                     catch(Exception e){

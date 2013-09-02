@@ -1,6 +1,6 @@
 /*
 File: Panel2.java ; This file is part of Twister.
-Version: 2.0010
+Version: 2.0011
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -464,7 +464,7 @@ public class Panel2 extends JPanel{
             else if(statuses[index2].equals("2"))item.getSubItem(0).setValue("pass");
             else if(statuses[index2].equals("3"))item.getSubItem(0).setValue("fail");
             else if(statuses[index2].equals("4"))item.getSubItem(0).setValue("skipped");
-            else if(statuses[index2].equals("5"))item.getSubItem(0).setValue("stopped");
+            else if(statuses[index2].equals("5"))item.getSubItem(0).setValue("aborted");
             else if(statuses[index2].equals("6"))item.getSubItem(0).setValue("not executed");
             else if(statuses[index2].equals("7")||statuses[index2].equals("8")){
                 item.getSubItem(0).setValue("timeout");}

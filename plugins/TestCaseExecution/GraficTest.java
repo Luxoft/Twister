@@ -1,6 +1,6 @@
 /*
 File: GraficTest.java ; This file is part of Twister.
-Version: 2.005
+Version: 2.006
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -610,7 +610,7 @@ public class GraficTest extends JPanel{
                    (int)item.getRectangle().getX()+5,(int)item.getRectangle().getY()+1,null);
             else if(value.equals("SKIPPED")) g.drawImage(RunnerRepository.getSkippedIcon(), 
                    (int)item.getRectangle().getX()+5,(int)item.getRectangle().getY()+1,null);
-            else if(value.equals("STOPPED")) g.drawImage(RunnerRepository.getStoppedIcon(), 
+            else if(value.equals("ABORTED")) g.drawImage(RunnerRepository.getStoppedIcon(), 
                    (int)item.getRectangle().getX()+5,(int)item.getRectangle().getY()+1,null);
             else if(value.equals("NOT EXECUTED")) g.drawImage(RunnerRepository.getNotExecIcon(), 
                    (int)item.getRectangle().getX()+5,(int)item.getRectangle().getY()+1,null);

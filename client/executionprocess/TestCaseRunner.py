@@ -1,7 +1,7 @@
 
 # File: TestCaseRunner.py ; This file is part of Twister.
 
-# version: 2.014
+# version: 2.015
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -54,7 +54,7 @@ import traceback
 from collections import OrderedDict
 from threading import Timer
 
-TWISTER_PATH = os.getenv('TWISTER_PATH')
+TWISTER_PATH = os.getenv('TWISTER_PATH').rstrip('/')
 if not TWISTER_PATH:
     print('TWISTER_PATH environment variable is not set! Exiting!')
     exit(1)
@@ -127,6 +127,7 @@ class TwisterRunner:
         self.user_passwd = self.proxy.getUserVariable(self.userName, 'user_passwd')
 
         # After getting Test-Bed name, save all libraries from CE
+        self.libs_list = []
         self.saveLibraries()
         # After download, inject libraries path for the current EP
         sys.path.append(self.EP_CACHE)
@@ -168,10 +169,19 @@ class TwisterRunner:
         reset_libs = False
 
         if not libs_list:
-            libs_list = self.proxy.getLibrariesList(self.userName)
+            # This is a list with unique names, sorted alphabetically
+            libs_list = self.proxy.getLibrariesList(self.userName, False)
+            # Pop CommonLib from the list of libraries...
+            if 'TscCommonLib.py' in libs_list:
+                libs_list.pop(libs_list.index('TscCommonLib.py'))
+            # And inject it in the first position
+            libs_list.insert(0, 'TscCommonLib.py')
+            # Save the list for later
+            self.libs_list.extend(libs_list)
             reset_libs = True
         else:
-            libs_list = [lib.strip() for lib in libs_list.split(';')]
+            libs_list = [lib.strip() for lib in libs_list.split(';') if lib.strip() not in self.libs_list]
+            self.libs_list.extend(libs_list)
 
         if reset_libs:
             # Remove libs path only if saving libraries for all project
@@ -185,13 +195,12 @@ class TwisterRunner:
 
         # If Reseting libs, open and destroy
         if reset_libs:
-            all_libs.insert(0, 'TscCommonLib.py')
             __init = open(libs_path + os.sep + '__init__.py', 'w')
             __init.write('\nimport os, sys\n')
             __init.write('\nPROXY = "{}"\n'.format(self.CONFIG['PROXY']))
             __init.write('USER = "{}"\n'.format(self.userName))
             __init.write('EP = "{}"\n'.format(self.epName))
-            __init.write('TB = "{}"\n'.format(self.tbName))
+            __init.write('TB = "{}"\n\n'.format(self.tbName))
 
         # If not Reseting, just append
         else:
@@ -207,11 +216,6 @@ class TwisterRunner:
             else:
                 all_libs.append(lib)
 
-        if reset_libs:
-            __init.write('\nall = ["%s"]\n\n' % ('", "'.join([os.path.splitext(lib)[0] for lib in all_libs])))
-        else:
-            __init.write('\nall += ["%s"]\n\n' % ('", "'.join([os.path.splitext(lib)[0] for lib in all_libs])))
-
         for lib_file in zip_libs:
             lib_data = self.proxy.downloadLibrary(self.userName, lib_file)
             time.sleep(0.1) # Must take it slow
@@ -220,6 +224,7 @@ class TwisterRunner:
                 continue
 
             print('Downloading Zip library `{}` ...'.format(lib_file))
+            time.sleep(0.5)
 
             # Write ZIP imports.
             __init.write('\nsys.path.append(os.path.split(__file__)[0] + "/{}")\n\n'.format(lib_file))
@@ -237,6 +242,7 @@ class TwisterRunner:
                 continue
 
             print('Downloading library `{}` ...'.format(lib_file))
+            time.sleep(0.5)
 
             ext = os.path.splitext(lib_file)
             # Write normal imports.

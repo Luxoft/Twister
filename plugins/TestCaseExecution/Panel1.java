@@ -1,6 +1,6 @@
 /*
 File: Panel1.java ; This file is part of Twister.
-Version: 2.009
+Version: 2.0010
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -75,6 +75,7 @@ import javax.swing.JTabbedPane;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.Transferable;
 import java.awt.dnd.DnDConstants;
+import javax.swing.tree.DefaultMutableTreeNode;
 
 /*
  * Suites generation panel
@@ -749,12 +750,16 @@ public class Panel1 extends JPanel{
         
         Node parent = RunnerRepository.window.mainpanel.p4.getTB().getParentNode();
         boolean found ;
+        DefaultMutableTreeNode root = RunnerRepository.window.mainpanel.p4.getSut().sut.root;
+        int sutsnr = root.getChildCount();
         for(Item i:RunnerRepository.getSuite()){
             for(String tb:i.getEpId()){
-                Iterator iter = parent.getChildren().keySet().iterator();
+                //Iterator iter = parent.getChildren().keySet().iterator();
+                
+//                 Iterator iter = root.children().;
                 found = false;
-                while(iter.hasNext()){
-                    Node child = parent.getChild(iter.next().toString());
+                for(int j=0;j<sutsnr;j++){
+                    SUT child = (SUT)((DefaultMutableTreeNode)root.getChildAt(j)).getUserObject();
                     if(child!=null&&child.getName().equals(tb)){
                         if(child.getEPs()==null){
                             break;
@@ -766,9 +771,24 @@ public class Panel1 extends JPanel{
                     }
                     if(found)break;
                 }
+                
+                
+//                 while(iter.hasNext()){
+//                     Node child = parent.getChild(iter.next().toString());
+//                     if(child!=null&&child.getName().equals(tb)){
+//                         if(child.getEPs()==null){
+//                             break;
+//                         }
+//                         if(!child.getEPs().equals("")){
+//                             found = true;
+//                         }
+//                         break;
+//                     }
+//                     if(found)break;
+//                 }
                 if(!found){
                     CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, RunnerRepository.window,
-                                        "Warning","Please set EP for TB: "+ tb);
+                                        "Warning","Please set EP for SUT: "+ tb);
                     execute = false;
                     break;
                 }

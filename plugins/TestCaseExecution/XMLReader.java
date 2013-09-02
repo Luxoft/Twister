@@ -1,6 +1,6 @@
 /*
 File: XMLReader.java ; This file is part of Twister.
-Version: 2.008
+Version: 2.009
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -91,7 +91,7 @@ public class XMLReader{
                         text[0] = fstNm.item(0).getNodeValue()+" : ";
                     } catch(Exception e){ e.printStackTrace();}
                     try{                          
-                        fstNmElmntLst = ((Element)node).getElementsByTagName("TbName");
+                        fstNmElmntLst = ((Element)node).getElementsByTagName("SutName");
                         fstNmElmnt = (Element)fstNmElmntLst.item(0);
                         fstNm = fstNmElmnt.getChildNodes();
                         text[0] += fstNm.item(0).getNodeValue();
@@ -99,11 +99,11 @@ public class XMLReader{
                     theone.setEpId(text);
                 } else{
                         try{
-                            fstNmElmntLst = ((Element)node).getElementsByTagName("TbName");
+                            fstNmElmntLst = ((Element)node).getElementsByTagName("SutName");
                             fstNmElmnt = (Element)fstNmElmntLst.item(0);
                             fstNm = fstNmElmnt.getChildNodes();
                         } catch(Exception ex){
-                            System.out.println("Could not find EpId/TbName tag");
+                            System.out.println("Could not find EpId/SutName tag");
                             ex.printStackTrace();
                         }
                     theone.setEpId(fstNm.item(0).getNodeValue().split(";"));
@@ -143,6 +143,22 @@ public class XMLReader{
                 if(test){f = secNm.item(0).getNodeValue().toString();}   
                 theone = new Item(f,1,-1,-1,width+40,20,indexes);
                 theone.setCEindex(index++);
+                k=2;
+                secNmElmntLst = ((Element)node).getElementsByTagName("ConfigFiles");
+                if(secNmElmntLst.getLength()>0){;
+                    secNmElmnt = (Element)secNmElmntLst.item(0);
+                    secNm = secNmElmnt.getChildNodes();
+                    String configs[] ={};
+                    if(secNm.getLength()>0){
+                        configs= secNm.item(0).getNodeValue().toString().split(";");
+                    }
+                    
+                    
+//                     try{}
+//                     catch(Exception e){e.printStackTrace();}
+                    theone.setConfigurations(configs);
+                    k=4;
+                }
                 if(test){
                     ArrayList <Integer> indexpos3 = (ArrayList <Integer>)indexes.clone();
                     indexpos3.add(new Integer(0));
@@ -165,7 +181,8 @@ public class XMLReader{
                     property.setSubItemVisible(false);
                     property.setValue(value);
                     theone.addSubItem(property);}
-                k=2;}
+//                 k=4;
+            }
 //            if(!(test&&theone.getType()==1)){//if it is test the props should not be read further
                 int subchildren = node.getChildNodes().getLength();
                 int index=0;
@@ -347,7 +364,7 @@ public class XMLReader{
                     text[0] = fstNm.item(0).getNodeValue()+" : ";
                 } catch(Exception e){ e.printStackTrace();}
                 try{                          
-                    fstNmElmntLst = fstElmnt.getElementsByTagName("TbName");
+                    fstNmElmntLst = fstElmnt.getElementsByTagName("SutName");
                     fstNmElmnt = (Element)fstNmElmntLst.item(0);
                     fstNm = fstNmElmnt.getChildNodes();
                     text[0] += fstNm.item(0).getNodeValue();
@@ -360,11 +377,11 @@ public class XMLReader{
 //                     fstNmElmnt = (Element)fstNmElmntLst.item(0);
 //                     fstNm = fstNmElmnt.getChildNodes();
 //                 } catch(Exception e){
-                    try{fstNmElmntLst = fstElmnt.getElementsByTagName("TbName");
+                    try{fstNmElmntLst = fstElmnt.getElementsByTagName("SutName");
                         fstNmElmnt = (Element)fstNmElmntLst.item(0);
                         fstNm = fstNmElmnt.getChildNodes();
                     } catch (Exception ex){
-                        System.out.println("There is an element that has no EpId or TbName!!!");
+                        System.out.println("There is an element that has no EpId or SutName!!!");
                         ex.printStackTrace();
                     }
 //                 }

@@ -1,6 +1,6 @@
 /*
 File: XMLBuilder.java ; This file is part of Twister.
-Version: 2.007
+Version: 2.008
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -36,6 +36,7 @@ import java.io.FileInputStream;
 import java.util.Iterator;
 import javax.swing.JOptionPane;
 import com.twister.CustomDialog;
+import javax.swing.tree.DefaultMutableTreeNode;
 
 public class XMLBuilder{
     private DocumentBuilderFactory documentBuilderFactory;
@@ -87,6 +88,7 @@ public class XMLBuilder{
         } else {
             em2.appendChild(document.createTextNode("false"));
         }
+        root.appendChild(em2);
         em2 = document.createElement("PrePostMandatory");;
         if(prestoponfail){
             em2.appendChild(document.createTextNode("true"));
@@ -124,15 +126,17 @@ public class XMLBuilder{
         int nrsuite = suite.size();
         if(skip && nrsuite>0){
              ArrayList <Item> temporary = new <Item> ArrayList();
-             String [] EPS;;
+             String [] EPS;
+             
+            DefaultMutableTreeNode parent = RunnerRepository.window.mainpanel.p4.getSut().sut.root;
+            int sutsnr = parent.getChildCount();             
              for(int i=0;i<nrsuite;i++){
                  sb.setLength(0);
                  Item current = suite.get(i);
-                 Node parent = RunnerRepository.window.mainpanel.p4.getTB().getParentNode();
                  for(String s:current.getEpId()){
-                    Iterator iter = parent.getChildren().keySet().iterator();
-                    while(iter.hasNext()){
-                        Node child = parent.getChild(iter.next().toString());
+//                     Iterator iter = parent.getChildren().keySet().iterator();
+                    for(int j=0;j<sutsnr;j++){
+                        SUT child = (SUT)((DefaultMutableTreeNode)parent.getChildAt(j)).getUserObject();
                         if(child!=null&&child.getName().equals(s)){
                             for(String ep:child.getEPs().split(";")){
                                 Item item = current.clone();
@@ -143,6 +147,23 @@ public class XMLBuilder{
                         }
                     }
                 }
+                 
+                 
+//                  Node parent = RunnerRepository.window.mainpanel.p4.getTB().getParentNode();
+//                  for(String s:current.getEpId()){
+//                     Iterator iter = parent.getChildren().keySet().iterator();
+//                     while(iter.hasNext()){
+//                         Node child = parent.getChild(iter.next().toString());
+//                         if(child!=null&&child.getName().equals(s)){
+//                             for(String ep:child.getEPs().split(";")){
+//                                 Item item = current.clone();
+//                                 String []str = {ep,child.getName()};
+//                                 item.setEpId(str);
+//                                 temporary.add(item);
+//                             }
+//                         }
+//                     }
+//                 }
              }
              suite = temporary;
              nrsuite = suite.size();
@@ -180,7 +201,7 @@ public class XMLBuilder{
                     Element EP = document.createElement("EpId");
                     EP.appendChild(document.createTextNode(suite.get(i).getEpId()[0]));
                     rootElement.appendChild(EP);
-                    EP = document.createElement("TbName");
+                    EP = document.createElement("SutName");
                     EP.appendChild(document.createTextNode(suite.get(i).getEpId()[1]));
                     rootElement.appendChild(EP);
                 }
@@ -190,17 +211,31 @@ public class XMLBuilder{
                         b.append(s+";");
                     }
                     b.deleteCharAt(b.length()-1);
-                    Element EP = document.createElement("TbName");
+                    Element EP = document.createElement("SutName");
                     EP.appendChild(document.createTextNode(b.toString()));
                     rootElement.appendChild(EP);
                     EP = document.createElement("EpId");
                     Node parent = RunnerRepository.window.mainpanel.p4.getTB().getParentNode();
                     b.setLength(0);
+                    
+                    
+                    DefaultMutableTreeNode noderoot = RunnerRepository.window.mainpanel.p4.getSut().sut.root;
+                    int sutsnr = noderoot.getChildCount();
+                    
                     for(String s:suite.get(i).getEpId()){
-                        Iterator iter = parent.getChildren().keySet().iterator();
-                        while(iter.hasNext()){
-                            Node child = parent.getChild(iter.next().toString());
+                        
+                        
+                        for(int j=0;j<sutsnr;j++){
+                            SUT child = (SUT)((DefaultMutableTreeNode)noderoot.getChildAt(j)).getUserObject();
                             if(child!=null&&child.getName().equals(s)){
+                        
+                        
+//                         Iterator iter = parent.getChildren().keySet().iterator();
+//                         while(iter.hasNext()){
+//                             Node child = parent.getChild(iter.next().toString());
+//                             if(child!=null&&child.getName().equals(s)){
+                                
+                                
                                 if(child.getEPs()==null || child.getEPs().equals("")){
                                     CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, 
                                                             RunnerRepository.window, "Warning", 
@@ -216,6 +251,31 @@ public class XMLBuilder{
                             }
                         }
                     }
+                    
+                    
+                    
+//                     for(String s:suite.get(i).getEpId()){
+//                         Iterator iter = parent.getChildren().keySet().iterator();
+//                         while(iter.hasNext()){
+//                             Node child = parent.getChild(iter.next().toString());
+//                             if(child!=null&&child.getName().equals(s)){
+//                                 if(child.getEPs()==null || child.getEPs().equals("")){
+//                                     CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, 
+//                                                             RunnerRepository.window, "Warning", 
+//                                                             "Warning, no ep's found for: "+child.getName());
+//                                 }
+//                                 else {
+//                                     for(String ep:child.getEPs().split(";")){
+//                                         b.append(ep);
+//                                         b.append(";");
+//                                     }
+//                                     b.deleteCharAt(b.length()-1);
+//                                 }
+//                             }
+//                         }
+//                     }
+                    
+                    
                     EP.appendChild(document.createTextNode(b.toString()));
                     rootElement.appendChild(EP);
                 }
@@ -385,6 +445,17 @@ public class XMLBuilder{
             }
             
             tc.appendChild(em3);
+            
+            em3 = document.createElement("ConfigFiles");
+            StringBuilder sb = new StringBuilder();
+            for(String s:item.getConfigurations()){
+                sb.append(s);
+                sb.append(";");
+            }
+            if(sb.length()>0)sb.setLength(sb.length()-1);
+            em3.appendChild(document.createTextNode(sb.toString()));
+            tc.appendChild(em3);
+            
             if(temp || skip){
 //                 Element em6 = document.createElement("tcID");
 //                 em6.appendChild(document.createTextNode(id+""));
@@ -465,7 +536,7 @@ public class XMLBuilder{
                     EP.appendChild(document.createTextNode(item.getEpId()[0]));
                     rootElement2.appendChild(EP);
                     
-                    EP = document.createElement("TbName");
+                    EP = document.createElement("SutName");
                     EP.appendChild(document.createTextNode(item.getEpId()[1]));
                     rootElement2.appendChild(EP);
                     
@@ -474,7 +545,7 @@ public class XMLBuilder{
                     
                 } else {
 
-                    Element EP = document.createElement("TbName");
+                    Element EP = document.createElement("SutName");
                     StringBuilder b = new StringBuilder();
                     for(String s:item.getEpId()){
                         b.append(s+";");
@@ -486,10 +557,20 @@ public class XMLBuilder{
                     EP = document.createElement("EpId");
                     Node parent = RunnerRepository.window.mainpanel.p4.getTB().getParentNode();
                     b.setLength(0);
+                    DefaultMutableTreeNode noderoot = RunnerRepository.window.mainpanel.p4.getSut().sut.root;
+                    int sutsnr = noderoot.getChildCount();
+                    
                     for(String s:item.getEpId()){
-                        Iterator iter = parent.getChildren().keySet().iterator();
-                        while(iter.hasNext()){
-                            Node child = parent.getChild(iter.next().toString());
+                        
+//                         Iterator iter = parent.getChildren().keySet().iterator();
+//                         while(iter.hasNext()){
+//                             Node child = parent.getChild(iter.next().toString());
+                            
+                         for(int j=0;j<sutsnr;j++){
+                            SUT child = (SUT)((DefaultMutableTreeNode)noderoot.getChildAt(j)).getUserObject();
+                            
+                            
+                            
                             if(child!=null&&child.getName().equals(s)){
                                 for(String ep:child.getEPs().split(";")){
                                     b.append(ep);

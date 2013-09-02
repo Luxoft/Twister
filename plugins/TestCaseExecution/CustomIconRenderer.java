@@ -1,6 +1,6 @@
 /*
 File: CustomIconRenderer.java ; This file is part of Twister.
-Version: 2.002
+Version: 2.003
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -39,9 +39,14 @@ class CustomIconRenderer extends DefaultTreeCellRenderer {
         super.getTreeCellRendererComponent(tree, value, sel,expanded, leaf, row, hasFocus);
         Object nodeObj = ((DefaultMutableTreeNode)value).getUserObject();
         if (nodeObj instanceof Node){
-            if(((Node)nodeObj).getParent().getParent()==null){
+//             if(((Node)nodeObj).getParent().getParent()==null){
+//                 setIcon(TB);
+//             } else {
+//                 setIcon(device);
+//             }
+            if(((Node)nodeObj).getType()==0){
                 setIcon(TB);
-            } else {
+            } else if(((Node)nodeObj).getType()==1){
                 setIcon(device);
             }
         } else if(nodeObj instanceof MyFolder){

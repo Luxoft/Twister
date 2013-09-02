@@ -1,6 +1,6 @@
 /*
 File: Grafic.java ; This file is part of Twister.
-Version: 2.008
+Version: 2.0010
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -79,6 +79,8 @@ import java.util.Set;
 import java.util.Iterator;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
+import javax.swing.DefaultComboBoxModel;
+import javax.swing.tree.DefaultMutableTreeNode;
 
 public class Grafic extends JPanel{
     private static final long serialVersionUID = 1L;
@@ -1475,6 +1477,11 @@ public class Grafic extends JPanel{
                     public void actionPerformed(ActionEvent ev){
                         switchCheck();}});}
             if(type==1){
+                menuitem = new JMenuItem("Set Configurations");
+                p.add(menuitem);
+                menuitem.addActionListener(new ActionListener(){
+                    public void actionPerformed(ActionEvent ev){
+                        setConfigurations(false);}});
                 menuitem = new JMenuItem("Switch Runnable");
                 p.add(menuitem);
                 menuitem.addActionListener(new ActionListener(){
@@ -1486,6 +1493,57 @@ public class Grafic extends JPanel{
                     public void actionPerformed(ActionEvent ev){
                         switchOptional();}});}}
         p.show(this,ev.getX(),ev.getY());}
+        
+    private void setConfigurations(boolean solo){
+        JPanel p = new JPanel();
+        p.setLayout(null);
+        p.setPreferredSize(new Dimension(515,200));
+        JLabel ep = new JLabel("Configurations: ");
+        ep.setBounds(5,5,95,25);
+        JList tep = new JList();
+        JScrollPane scep = new JScrollPane(tep);
+        scep.setBounds(100,5,400,180);
+        p.add(ep);
+        p.add(scep);
+        String [] vecresult = RunnerRepository.window.mainpanel.p4.getTestConfig().tree.getFiles();
+        tep.setModel(new DefaultComboBoxModel(vecresult));
+        if(solo){
+            Item item=null;
+            int nr = selectedcollection.size();
+            ArrayList<Integer>temp = new ArrayList<Integer>();
+            for(int i=0;i<nr;i++){
+                temp.clear();
+                int [] indices = selectedcollection.get(i);
+                for(int j=0;j<indices.length;j++)temp.add(new Integer(indices[j]));
+                item = getItem(temp,false);
+            }
+            ArrayList<String> array = new ArrayList<String>(Arrays.asList(vecresult));
+            String [] strings = item.getConfigurations();
+            int [] sel = new int[strings.length];
+            for(int i=0;i<strings.length;i++){
+                sel[i]=array.indexOf(strings[i]);
+            }
+            tep.setSelectedIndices(sel);
+            
+        }
+        int resp = (Integer)CustomDialog.showDialog(p,JOptionPane.PLAIN_MESSAGE, 
+                            JOptionPane.OK_CANCEL_OPTION, Grafic.this, "Test Configurations Files",null);
+        if(resp == JOptionPane.OK_OPTION){
+            String configs[] = new String[tep.getSelectedValues().length];
+            for(int i=0;i<configs.length;i++){
+                configs[i] = tep.getSelectedValues()[i].toString();
+            }
+            Item item=null;
+            int nr = selectedcollection.size();
+            ArrayList<Integer>temp = new ArrayList<Integer>();
+            for(int i=0;i<nr;i++){
+                temp.clear();
+                int [] indices = selectedcollection.get(i);
+                for(int j=0;j<indices.length;j++)temp.add(new Integer(indices[j]));
+                item = getItem(temp,false);
+                item.setConfigurations(configs);}
+        }
+    }
         
     public void switchOptional(){
         Item item=null;
@@ -1561,6 +1619,11 @@ public class Grafic extends JPanel{
 //                     tc.getRectangle().setSize(width+50,(int)tc.getRectangle().getHeight());
 //                     updateLocations(tc);
 //                     repaint();}}});
+        item = new JMenuItem("Set Configurations");
+        p.add(item);
+        item.addActionListener(new ActionListener(){
+            public void actionPerformed(ActionEvent ev){
+                setConfigurations(true);}});
         item = new JMenuItem("Expand");
         p.add(item);
         item.addActionListener(new ActionListener(){
@@ -2636,7 +2699,7 @@ public class Grafic extends JPanel{
             JLabel name = new JLabel("Suite Name:");
             name.setBounds(5,5,80,20);
             name.setFont(new Font("TimesRoman", Font.PLAIN, 14));
-            JLabel EPId = new JLabel("TB name:");
+            JLabel EPId = new JLabel("SUT name:");
             EPId.setBounds(5,30,80,20);
             EPId.setFont(new Font("TimesRoman", Font.PLAIN, 14));
             namefield = new JTextField(30);
@@ -2671,28 +2734,45 @@ public class Grafic extends JPanel{
 
 
             StringBuilder b = new StringBuilder();
-            Node parentnode = RunnerRepository.window.mainpanel.p4.getTB().getParentNode();
-            try{parentnode.getChildren();}
-            catch(Exception e){
-                e.printStackTrace();
-                System.out.println("There are no Test Beds present, please check Test Beds section");}
-            HashMap children =  parentnode.getChildren();
-            if(children!=null&&children.size()!=0){
-                Set keys = children.keySet();
-                Iterator iter = keys.iterator();
-                while(iter.hasNext()){
-                    String n = iter.next().toString();
-                    String tempname = parentnode.getChild(n).getName();
-                    b.append(tempname);
+//             Node parentnode = RunnerRepository.window.mainpanel.p4.getTB().getParentNode();
+//             try{parentnode.getChildren();}
+//             catch(Exception e){
+//                 e.printStackTrace();
+//                 System.out.println("There is no SUT present, please check Test Beds section");}
+//             HashMap children =  parentnode.getChildren();
+//             if(children!=null&&children.size()!=0){
+//                 Set keys = children.keySet();
+//                 Iterator iter = keys.iterator();
+//                 while(iter.hasNext()){
+//                     String n = iter.next().toString();
+//                     String tempname = parentnode.getChild(n).getName();
+//                     b.append(tempname);
+//                     b.append(";");
+//                 }
+//             }
+//             
+//             String result = b.toString();
+//             String [] vecresult = result.split(";");
+//             epidfield = new JList<String>(vecresult);
+            
+            
+            DefaultMutableTreeNode root = RunnerRepository.window.mainpanel.p4.getSut().sut.root;
+            int sutsnr = root.getChildCount();
+            String [] vecresult = {};
+            if(sutsnr==0){
+                System.out.println("There is no SUT present, please check Test Beds section");
+            } else {
+                for(int i=0;i<sutsnr;i++){
+                    b.append(root.getChildAt(i).toString());
                     b.append(";");
                 }
+                vecresult = b.toString().split(";");
+                try{epidfield.setSelectedIndex(0);}
+                catch(Exception e){e.printStackTrace();}
             }
             
-            String result = b.toString();
-            String [] vecresult = result.split(";");
             epidfield = new JList<String>(vecresult);
-            try{epidfield.setSelectedIndex(0);}
-            catch(Exception e){e.printStackTrace();}
+            
             
             
             

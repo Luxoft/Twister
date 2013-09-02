@@ -1,6 +1,6 @@
 /*
 File: SUT.java ; This file is part of Twister.
-Version: 2.001
+Version: 2.002
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -17,19 +17,52 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JTree;
-import java.awt.BorderLayout;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import javax.swing.tree.DefaultMutableTreeNode;
 
-public class SUT extends JPanel{
+public class SUT{
+    private String name, eps;
+    private DefaultMutableTreeNode epsnode;
+
+    public SUT(String name, String eps){
+        this.eps = eps;
+        this.name=name;
+    }
     
-    public SUT(){
-        JTree tree = new JTree();
-        tree.setDragEnabled(true);
-        tree.setCellRenderer(new CustomIconRenderer());
-        setLayout(new BorderLayout());
-        JScrollPane sp = new JScrollPane(tree);
-        add(sp,BorderLayout.CENTER);
+     public DefaultMutableTreeNode getEPNode(){
+        return epsnode;
+    }
+    
+    public void setEPNode(DefaultMutableTreeNode epsnode){
+        this.epsnode = epsnode;
+    }
+    
+   
+    public String getEPs(){
+        return eps;
+    }
+    
+    public void setEPs(String eps){
+        this.eps = eps;
+        if(epsnode!=null){
+            epsnode.setUserObject("EP: "+eps);
+        }
+    }
+    
+    
+    public String getName(){
+        return name;
+    }
+    
+    public void setName(String name){
+        this.name=name;
+    }   
+    
+   
+    
+    public String toString(){
+        return this.name;
     }
 }

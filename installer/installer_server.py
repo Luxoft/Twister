@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# version: 2.002
+# version: 2.003
 
 # File: installer.py ; This file is part of Twister.
 
@@ -76,7 +76,7 @@ else:
 del selected
 
 if os.path.exists(INSTALL_PATH):
-    print('\nWARNING! Another version of Twister is installed at `%s`!' % INSTALL_PATH)
+    print('\nWARNING! Another version of Twister is installed at `{}`!'.format(INSTALL_PATH))
     print('If you continue, all files from that folder will be PERMANENTLY DELETED!!')
     print('If you created custom libs (in lib/ folder) and plugins (in plugin/ folder),')
     print('you should make a back-up, then restart the installer.')
@@ -89,8 +89,19 @@ if os.path.exists(INSTALL_PATH):
 
 # Backup CONFIG folder for server
 if os.path.exists(INSTALL_PATH + 'config'):
-    print('\nBack-up `config` folder (from `{0}` to `{1}`)...'.format(INSTALL_PATH+'config', os.getcwd()))
-    shutil.move(INSTALL_PATH + 'config', os.getcwd())
+    if os.getuid() != 0: # Normal user
+        tmp_config = os.getcwd()
+    else: # ROOT user
+        tmp_config = '/tmp/twister_server_config'
+    print('\nBack-up `config` folder (from `{}` to `{}`)...'.format(INSTALL_PATH+'config', tmp_config))
+    try:
+        shutil.move(INSTALL_PATH+'config', tmp_config)
+    except Exception as e:
+        print('\nInsuficient rights to move the config folder `{}`!\n'
+              'The installation cannot continue if you don\'t have permissions to move that folder!\n'.format(INSTALL_PATH+'config'))
+        exit(1)
+else:
+    tmp_config = ''
 
 # Deleting previous versions of Twister
 try:
@@ -168,11 +179,11 @@ for fname in to_copy:
         print('Path `{}` does not exist and will not be copied!'.format(fpath))
 
 
-# Restore Config folder, if any
-if os.path.exists(cwd_path + 'config'):
-    print('\nMoving `config` folder back (from `{0}` to `{1}`)...'.format(cwd_path+'config', INSTALL_PATH+'config'))
-    dir_util.copy_tree(cwd_path + 'config', INSTALL_PATH+'config')
-    dir_util.remove_tree(cwd_path + 'config')
+# Restore CONFIG folder, if any
+if os.path.exists(tmp_config):
+    print('\nMoving `config` folder back (from `{}` to `{}`)...'.format(tmp_config, INSTALL_PATH+'config'))
+    dir_util.copy_tree(tmp_config, INSTALL_PATH+'config')
+    dir_util.remove_tree(tmp_config)
 
 
 tcr_proc = subprocess.Popen(['chmod', '775', INSTALL_PATH, '-R'],)

@@ -1,6 +1,6 @@
 /*
 File: Node.java ; This file is part of Twister.
-Version: 2.001
+Version: 2.002
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -19,6 +19,7 @@ limitations under the License.
 */
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 
 public class Node{
     private String id,name;
@@ -27,13 +28,20 @@ public class Node{
     private HashMap<String,String> properties = new HashMap<String,String>();
     private Node parent;
     private String eps;
+    private byte type;//0 -tb;1module
+    
 
-    public Node(String id, String path, String name, Node parent,String eps){
+    public Node(String id, String path, String name, Node parent,String eps, byte type){
         this.eps = eps;
         this.parent = parent;
         this.id = id;
         this.path = new Path(path);
         this.name=name;
+        this.type = type;
+    }
+    
+    public byte getType(){
+        return type;
     }
     
     public String getEPs(){
@@ -50,6 +58,14 @@ public class Node{
     
     public HashMap getProperties(){
         return properties;
+    }
+    
+    public  void setProperties(HashMap prop){
+        this.properties = prop;
+    }
+    
+    public  void setChildren(HashMap children){
+        this.children = children;
     }
     
     public String getID(){
@@ -109,5 +125,20 @@ public class Node{
     
     public String toString(){
         return this.name;
+    }
+    
+    public Node clone(){
+        Node clone = new Node(id, path.getPath(), name, null, eps, type);
+        HashMap<String,Node> children = getChildren();
+        HashMap<String,Node> childrenclone = new HashMap<String,Node>(children);
+        Iterator iter = children.keySet().iterator();
+        while(iter.hasNext()){
+            String key = (String)iter.next();
+            childrenclone.put(key, children.get(key).clone());
+        }
+        HashMap<String,String>propclone = new HashMap<String,String>(properties);
+        clone.setProperties(propclone);
+        clone.setChildren(childrenclone);
+        return clone;
     }
 }
