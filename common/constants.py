@@ -1,5 +1,5 @@
 
-# version: 2.007
+# version: 2.008
 
 # Major list of constants.
 
@@ -43,6 +43,7 @@ ROLES = [
 	'CHANGE_PLUGINS',	# Can load/ unload plugins ? (applet)
 
 	'CHANGE_TESTBED',	# Can change the global testbed ? (server + applet)
+	'CHANGE_SUT',		# Can change the global SUT ? (server + applet)
 	'CHANGE_SERVICES',	# Can start/ stop services ? (server + applet)
 	'CHANGE_USERS',		# Can create, change and delete users ? (server + applet)
 ]

@@ -1,7 +1,7 @@
 
 # File: ResourceAllocator.py ; This file is part of Twister.
 
-# version: 2.004
+# version: 2.005
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -300,9 +300,33 @@ class ResourceAllocator(_cptools.XMLRPCController):
     def getSut(self, query):
         '''
         Show all the properties, or just 1 property of a SUT.
-        Must provide a SUT ID, or a Query.
+        Must provide a SUT ID, or a SUT Path.
         '''
         return self.getResource(query, ROOT_SUT)
+
+
+    @cherrypy.expose
+    def parseSut(self, sut):
+        '''
+        Returns details about all tbs and devices from a SUT.
+        Must provide a SUT ID, or a SUT Path.
+        '''
+        sut = self.getSut(sut)
+        if not sut:
+            return False
+
+        children = sut['children']
+        result = []
+
+        for node_id in children:
+            # This is a node that represents a TB or Device
+            data = self.getSut(node_id)
+            # Find the ID of the TB or Device
+            dev_id = '/'.join( data['path'].split('/')[1:] )
+            # The dictionary data
+            result.append( self.getResource(dev_id) )
+
+        return sorted(result, key=lambda dev: dev['path'])
 
 #
 
@@ -312,20 +336,26 @@ class ResourceAllocator(_cptools.XMLRPCController):
         Create or change a resource, using a name, a parent Path or ID and some properties.
         The function is used for both Devices and SUTs, by providing the ROOT ID.
         '''
-        # Check the username from CherryPy connection
-        cherry_roles = self.project._checkUser()
-        if not cherry_roles:
-            return False
-        if 'CHANGE_TESTBED' not in cherry_roles['roles']:
-            logDebug('Privileges ERROR! Username `{user}` cannot use Set Resource!'.format(**cherry_roles))
-            return False
-
         self._load(v=False)
 
         # If the root is not provided, use the default root
         if root_id == ROOT_DEVICE:
+            # Check the username from CherryPy connection
+            cherry_roles = self.project._checkUser()
+            if not cherry_roles:
+                return False
+            if 'CHANGE_TESTBED' not in cherry_roles['roles']:
+                logDebug('Privileges ERROR! Username `{user}` cannot use Set Resource!'.format(**cherry_roles))
+                return False
             resources = self.resources
         else:
+            # Check the username from CherryPy connection
+            cherry_roles = self.project._checkUser()
+            if not cherry_roles:
+                return False
+            if 'CHANGE_SUT' not in cherry_roles['roles']:
+                logDebug('Privileges ERROR! Username `{user}` cannot use Set Sut!'.format(**cherry_roles))
+                return False
             resources = self.systems
 
         root_name = ROOT_NAMES[root_id]
@@ -406,20 +436,26 @@ class ResourceAllocator(_cptools.XMLRPCController):
         '''
         Rename a resource.
         '''
-        # Check the username from CherryPy connection
-        cherry_roles = self.project._checkUser()
-        if not cherry_roles:
-            return False
-        if 'CHANGE_TESTBED' not in cherry_roles['roles']:
-            logDebug('Privileges ERROR! Username `{user}` cannot use Rename Resource!'.format(**cherry_roles))
-            return False
-
         self._load(v=False)
 
         # If the root is not provided, use the default root
         if root_id == ROOT_DEVICE:
+            # Check the username from CherryPy connection
+            cherry_roles = self.project._checkUser()
+            if not cherry_roles:
+                return False
+            if 'CHANGE_TESTBED' not in cherry_roles['roles']:
+                logDebug('Privileges ERROR! Username `{user}` cannot use Rename Resource!'.format(**cherry_roles))
+                return False
             resources = self.resources
         else:
+            # Check the username from CherryPy connection
+            cherry_roles = self.project._checkUser()
+            if not cherry_roles:
+                return False
+            if 'CHANGE_SUT' not in cherry_roles['roles']:
+                logDebug('Privileges ERROR! Username `{user}` cannot use Rename SUT!'.format(**cherry_roles))
+                return False
             resources = self.systems
 
         root_name = ROOT_NAMES[root_id]
@@ -521,20 +557,26 @@ class ResourceAllocator(_cptools.XMLRPCController):
         '''
         Permanently delete a resource.
         '''
-        # Check the username from CherryPy connection
-        cherry_roles = self.project._checkUser()
-        if not cherry_roles:
-            return False
-        if 'CHANGE_TESTBED' not in cherry_roles['roles']:
-            logDebug('Privileges ERROR! Username `{user}` cannot use Delete Resource!'.format(**cherry_roles))
-            return False
-
         self._load(v=False)
 
         # If the root is not provided, use the default root
         if root_id == ROOT_DEVICE:
+            # Check the username from CherryPy connection
+            cherry_roles = self.project._checkUser()
+            if not cherry_roles:
+                return False
+            if 'CHANGE_TESTBED' not in cherry_roles['roles']:
+                logDebug('Privileges ERROR! Username `{user}` cannot use Delete Resource!'.format(**cherry_roles))
+                return False
             resources = self.resources
         else:
+            # Check the username from CherryPy connection
+            cherry_roles = self.project._checkUser()
+            if not cherry_roles:
+                return False
+            if 'CHANGE_SUT' not in cherry_roles['roles']:
+                logDebug('Privileges ERROR! Username `{user}` cannot use Delete SUT!'.format(**cherry_roles))
+                return False
             resources = self.systems
 
         root_name = ROOT_NAMES[root_id]

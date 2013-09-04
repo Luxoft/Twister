@@ -123,10 +123,10 @@ def install_w_internet(lib_name):
         elif platform.dist()[0] in ['fedora', 'centos']:
             tcr_proc = subprocess.Popen(['yum', '-y', 'install', 'mysql-devel'], cwd=pkg_path)
         else:
-            tcr_proc = subprocess.Popen(['apt-get', 'install', 'python-dev', 'libmysqlclient-dev', '-y', '--force-yes'], cwd=pkg_path)
+            tcr_proc = subprocess.Popen(['apt-get', 'install', 'python-mysqldb', '-y', '--force-yes'], cwd=pkg_path)
 
         try: tcr_proc.wait()
-        except: print('Error while installing `MySQL-python`!')
+        except: print('Error while installing `Python-MySQL`!')
 
         tcr_proc = subprocess.Popen(['easy_install', 'MySQL-python'], cwd=pkg_path)
         tcr_proc.wait()
@@ -137,7 +137,7 @@ def install_w_internet(lib_name):
         if platform.dist()[0] in ['fedora', 'centos']:
             tcr_proc = subprocess.Popen(['yum', '-y', 'install', 'libxslt-devel', 'libxml2-devel'], cwd=pkg_path)
         else:
-            tcr_proc = subprocess.Popen(['apt-get', 'install', 'python-dev', 'libxslt-dev', 'libxml2-dev', '-y', '--force-yes'], cwd=pkg_path)
+            tcr_proc = subprocess.Popen(['apt-get', 'install', 'python-lxml', '-y', '--force-yes'], cwd=pkg_path)
 
         try: tcr_proc.wait()
         except: print('Error while installing `Python LXML`!')
