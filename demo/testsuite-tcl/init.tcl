@@ -17,7 +17,7 @@ logMessage logTest "\n\nTestCase: init.tcl starting\n"
 puts "User name :: $USER"
 puts "Exec process:: $EP"
 puts "Suite name :: $SUITE_NAME"
-puts "TestBed :: $currentTB"
+puts "SUT :: $SUT"
 puts "Remote file:: $FILE_NAME"
 
 # Load Expect and some demo library

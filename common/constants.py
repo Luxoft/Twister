@@ -1,5 +1,5 @@
 
-# version: 2.008
+# version: 2.009
 
 # Major list of constants.
 
@@ -86,7 +86,7 @@ PROJECTCONFIG_TAGS = (
 # Suites Tags, from Project Config XML :
 
 SUITES_TAGS = (
-	{'name':'tb',			'tag':'SutName',			'default':''},
+	{'name':'sut',			'tag':'SutName',			'default':''},
 	{'name':'name',			'tag':'tsName',				'default':''},
 	{'name':'pd',			'tag':'PanicDetect',		'default':''},
 	{'name':'libraries',	'tag':'libraries',			'default':''},

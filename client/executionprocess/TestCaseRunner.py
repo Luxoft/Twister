@@ -1,7 +1,7 @@
 
 # File: TestCaseRunner.py ; This file is part of Twister.
 
-# version: 2.015
+# version: 2.016
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -117,8 +117,8 @@ class TwisterRunner:
             print('TC error: Cannot connect to CE path `{}`! Exiting!'.format(self.CONFIG['PROXY']))
             exit(1)
 
-        # The Test-Bed name. Common for all files in this EP.
-        self.tbName = self.proxy.getEpVariable(self.userName, self.epName, 'test_bed')
+        # The SUT name. Common for all files in this EP.
+        self.Sut = self.proxy.getEpVariable(self.userName, self.epName, 'sut')
         # Get the `exit on test Fail` value
         self.exit_on_test_fail = self.proxy.getUserVariable(self.userName, 'exit_on_test_fail')
         # Get tests delay
@@ -174,7 +174,7 @@ class TwisterRunner:
             # Pop CommonLib from the list of libraries...
             if 'TscCommonLib.py' in libs_list:
                 libs_list.pop(libs_list.index('TscCommonLib.py'))
-            # And inject it in the first position
+            # And inject it in the first position! This is important!
             libs_list.insert(0, 'TscCommonLib.py')
             # Save the list for later
             self.libs_list.extend(libs_list)
@@ -200,7 +200,7 @@ class TwisterRunner:
             __init.write('\nPROXY = "{}"\n'.format(self.CONFIG['PROXY']))
             __init.write('USER = "{}"\n'.format(self.userName))
             __init.write('EP = "{}"\n'.format(self.epName))
-            __init.write('TB = "{}"\n\n'.format(self.tbName))
+            __init.write('TB = "{}"\n\n'.format(self.Sut))
 
         # If not Reseting, just append
         else:
@@ -533,7 +533,7 @@ class TwisterRunner:
                 'USER'      : self.userName,
                 'PASSWD'    : self.user_passwd,
                 'EP'        : self.epName,
-                'currentTB' : self.tbName,
+                'SUT'       : self.Sut,
                 'SUITE_ID'  : suite_id,
                 'SUITE_NAME': suite_name,
                 'FILE_ID'   : file_id,

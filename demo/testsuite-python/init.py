@@ -1,6 +1,6 @@
 
 #
-# version: 2.003
+# version: 2.004
 # <title>init file</title>
 # <description>...</description>
 # <tags>tag1!tag2, tag3@tag4; **&&$$</tags>
@@ -20,7 +20,7 @@ print 'I am init file.'
 print 'I am not doing anything special, just printing some variables.'
 
 print 'Hello, user', USER, '!'
-print 'Test Bed:', currentTB
+print 'System under test:', SUT
 print 'Exec process:', EP
 print 'Suite:', SUITE_NAME
 print 'Remote file:', FILE_NAME

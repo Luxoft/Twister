@@ -1300,7 +1300,7 @@ class CentralEngine(_cptools.XMLRPCController):
         """
         Returns the list of exposed libraries, from CE libraries folder.\n
         This list will be used to syncronize the libs on all EP computers.\n
-        Called from the Runner.
+        Called from the Runner and the Java GUI.
         """
         global TWISTER_PATH
         libs_path = (TWISTER_PATH + '/lib/').replace('//', '/')
@@ -1313,21 +1313,13 @@ class CentralEngine(_cptools.XMLRPCController):
         glob_libs = [] # Default empty
         user_libs = []
 
-        # All libraries for user
-        if user:
-            # If `libraries` is empty, will default to ALL libraries
-            tmp_libs = self.project.getUserInfo(user, 'libraries') or ''
-            glob_libs = [x.strip() for x in tmp_libs.split(';')] if tmp_libs else []
-            del tmp_libs
-
         # All Python source files from Libraries folder AND all library folders
-        if not glob_libs:
-            if all:
-                glob_libs = [d for d in os.listdir(libs_path) if \
-                    ( os.path.isfile(libs_path + d) and \
-                    '__init__.py' not in d and \
-                    os.path.splitext(d)[1] in ['.py', '.zip']) or \
-                    os.path.isdir(libs_path + d) ]
+        if all:
+            glob_libs = [d for d in os.listdir(libs_path) if \
+                ( os.path.isfile(libs_path + d) and \
+                '__init__.py' not in d and \
+                os.path.splitext(d)[1] in ['.py', '.zip']) or \
+                os.path.isdir(libs_path + d) ]
 
             if user_path and os.path.isdir(user_path):
                 user_libs = [d for d in os.listdir(user_path) if \
@@ -1335,9 +1327,16 @@ class CentralEngine(_cptools.XMLRPCController):
                         '__init__.py' not in d and \
                         os.path.splitext(d)[1] in ['.py', '.zip']) or \
                         os.path.isdir(user_path + d) ]
+        # All libraries for user
+        else:
+            if user:
+                # If `libraries` is empty, will default to ALL libraries
+                tmp_libs = self.project.getUserInfo(user, 'libraries') or ''
+                glob_libs = [x.strip() for x in tmp_libs.split(';')] if tmp_libs else []
+                del tmp_libs
 
         # Return a list with unique names, sorted alphabetically
-        return sorted( list(set(glob_libs + user_libs)) )
+        return sorted( set(glob_libs + user_libs) )
 
 
     @cherrypy.expose
@@ -1470,7 +1469,7 @@ class CentralEngine(_cptools.XMLRPCController):
         # This returns 2 groups : the tag name and the text inside it
         tags = re.findall('#[ ]+?<(?P<tag>\w+)>([ -~\n]+?)</(?P=tag)>', text)
 
-        return '<br>\n'.join(['<b>' + title + '</b> : ' + descr for title, descr in tags])
+        return '<br>\n'.join(['<b>' + title + '</b> : ' + descr.replace('<', '&lt;') for title, descr in tags])
 
 
 # --------------------------------------------------------------------------------------------------

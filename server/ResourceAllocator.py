@@ -1,7 +1,7 @@
 
 # File: ResourceAllocator.py ; This file is part of Twister.
 
-# version: 2.005
+# version: 2.006
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -222,7 +222,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
 #
 
     @cherrypy.expose
-    def getResource(self, query, root_id=ROOT_DEVICE):
+    def getResource(self, query, root_id=ROOT_DEVICE, flatten=True):
         '''
         Show all the properties, or just 1 property of a resource.
         Must provide a Resource ID, or a Query.
@@ -278,18 +278,42 @@ class ResourceAllocator(_cptools.XMLRPCController):
             parts = [q for q in query.split('/') if q]
             result = resources
 
-            for part in parts:
-                if not result: return False
-                result = result['children'].get(part)
+            # If this is a normal resource
+            if root_id == ROOT_DEVICE:
+                for part in parts:
+                    if not result: return False
+                    result = result['children'].get(part)
+            # If this is a SUT
+            else:
+                for part in parts:
+                    if not result: return False
+                    res = result['children'].get(part)
+                    if not res:
+                        # Ok, this might be a Device path, instead of SUT path!
+                        tb_id = result['meta'].get('_id')
+                        # If this SUT doesn't have a Device ID assigned, bye bye!
+                        if not tb_id: return False
+                        res_data = _recursive_find_id(self.resources, tb_id, [])
+                        # If the Device ID is invalid, bye bye!
+                        if not res_data: return False
+                        # Find out the Device path from Resources and add the rest of the parts
+                        link_path = '/' + '/'.join(res_data.get('path', '')) + '/' + part
+                        result = self.getResource(link_path, flatten=False)
+                        # After this, scan the next PART from PARTS
+                    else:
+                        result = res
 
             if not result: return False
-
+            # Delete empty node paths
             result['path'] = [p for p in parts if p]
 
         result = dict(result)
 
         if not meta:
-            result['children'] = sorted([result['children'][node]['id'] for node in result.get('children') or []], key=lambda node: node.lower())
+            # Flatten the children ?
+            if flatten:
+                result['children'] = sorted([result['children'][node]['id'] for node in result.get('children') or []],
+                                     key=lambda node: node.lower())
             result['path'] = '/'.join(result.get('path', ''))
             return result
         else:
@@ -303,30 +327,6 @@ class ResourceAllocator(_cptools.XMLRPCController):
         Must provide a SUT ID, or a SUT Path.
         '''
         return self.getResource(query, ROOT_SUT)
-
-
-    @cherrypy.expose
-    def parseSut(self, sut):
-        '''
-        Returns details about all tbs and devices from a SUT.
-        Must provide a SUT ID, or a SUT Path.
-        '''
-        sut = self.getSut(sut)
-        if not sut:
-            return False
-
-        children = sut['children']
-        result = []
-
-        for node_id in children:
-            # This is a node that represents a TB or Device
-            data = self.getSut(node_id)
-            # Find the ID of the TB or Device
-            dev_id = '/'.join( data['path'].split('/')[1:] )
-            # The dictionary data
-            result.append( self.getResource(dev_id) )
-
-        return sorted(result, key=lambda dev: dev['path'])
 
 #
 
@@ -647,35 +647,6 @@ class ResourceAllocator(_cptools.XMLRPCController):
         Permanently delete a SUT.
         '''
         return self.deleteResource(res_query, ROOT_SUT)
-
-
-    @cherrypy.expose
-    def findEpname(self, tbname):
-        '''
-        Calculate EP Name, based on test bed.
-        '''
-        self._load(v=False)
-        # If no resources...
-        if not self.resources['children']:
-            msg = 'Find Epname: There are no resources defined !'
-            logError(msg)
-            return '*ERROR* ' + msg
-
-        tbvalue = self.resources['children'].get(tbname)
-
-        if not tbvalue:
-            msg = 'Find Epname: Cannot find TestBed `{}` !'.format(tbname)
-            logError(msg)
-            return '*ERROR* ' + msg
-
-        ep = tbvalue['meta'].get('epnames')
-
-        if not ep:
-            msg = 'Find Epname: TestBed `{}` does not have any EPs !'.format(tbname)
-            logError(msg)
-            return '*ERROR* ' + msg
-
-        return ep
 
 
 # # # Allocation and reservation of resources # # #

@@ -1,7 +1,7 @@
 
 # File: CentralEngineOthers.py ; This file is part of Twister.
 
-# version: 2.031
+# version: 2.032
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -211,8 +211,8 @@ class Project:
         # Generate the list of EPs in order
         for epname in epList:
             self.users[user]['eps'][epname] = OrderedDict()
-            self.users[user]['eps'][epname]['status']   = STATUS_STOP
-            self.users[user]['eps'][epname]['test_bed'] = ''
+            self.users[user]['eps'][epname]['status'] = STATUS_STOP
+            self.users[user]['eps'][epname]['sut']    = ''
             # Each EP has a SuitesManager, helper class for managing file and suite nodes!
             self.users[user]['eps'][epname]['suites'] = SuitesManager()
 
@@ -225,7 +225,7 @@ class Project:
             epname = suite['ep']
             if epname not in self.users[user]['eps']:
                 continue
-            self.users[user]['eps'][epname]['test_bed'] = suite['tb']
+            self.users[user]['eps'][epname]['sut'] = suite['sut']
             self.users[user]['eps'][epname]['suites'][s_id] = suite
 
         # Ordered list of file IDs, used for Get Status ALL
@@ -1309,7 +1309,7 @@ class Project:
             finfo['type']  = 'file'
             finfo['suite'] = suite_id
             finfo['file']  = fname
-            finfo['Runnable']   = "true"
+            finfo['Runnable'] = "true"
 
             # Add file for the user, in a specific suite
             suite = SuitesManager.findId(suite_id)
