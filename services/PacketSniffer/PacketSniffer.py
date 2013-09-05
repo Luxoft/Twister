@@ -214,7 +214,8 @@ class Sniffer(Automaton):
 		# Try to ping status from CE!
 		for ce in self.ceObjects:
 			try:
-				_proxy = str(ce.proxy).split()[2][:-2].split(':')
+				_proxy = str(ce.proxy).split()[2][:-2].split(':')[1:]
+				_proxy[0] = _proxy[0].split('@')[1]
 				create_connection((_proxy[0], _proxy[1]), 2)
 				#ce.proxy.echo('ping')
 				self.reinitRetries = 0
