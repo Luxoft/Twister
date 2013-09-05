@@ -178,7 +178,7 @@ class Sniffer(Automaton):
 		_epConfig = list(set([(ep['CE_IP'], ep['CE_PORT']) for ep in self.epConfig]))
 		self.ceObjects = [
 			CentralEngineObject(
-				ServerProxy('http://{ip}:{port}/'.format(ip=ep[0], port=ep[1])),
+				ServerProxy('http://{_us}:EP@{ip}:{port}/'.format(_us=self.username, ip=ep[0], port=ep[1])),
 			)
 			for ep in _epConfig
 		]
@@ -232,7 +232,7 @@ class Sniffer(Automaton):
 				_epConfig = list(set([(ep['CE_IP'], ep['CE_PORT']) for ep in self.epConfig]))
 				self.ceObjects = [
 					CentralEngineObject(
-						ServerProxy('http://{ip}:{port}/'.format(ip=ep[0],
+						ServerProxy('http://{_us}:EP@{ip}:{port}/'.format(_us=self.username, ip=ep[0],
 															port=ep[1])),
 					)
 					for ep in _epConfig
