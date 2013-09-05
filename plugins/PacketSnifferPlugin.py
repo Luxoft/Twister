@@ -173,22 +173,25 @@ class Plugin(BasePlugin):
         elif args['command'] in ['pause', 'resume']:
             response['type'] = 'pause/resume reply'
 
+            oldStatus = self.status
+
             self.status = ('paused', 'running')[args['command']=='resume']
 
             response['state'] = self.status
 
-            if self.status == 'paused':
-                for sniffer in self.sniffers:
-                    try:
-                        sniffer.pause()
-                    except Exception as e:
-                        print('error: {}'.format(e))
-            else:
-                for sniffer in self.sniffers:
-                    try:
-                        sniffer.resume()
-                    except Exception as e:
-                        print('error: {}'.format(e))
+            if oldStatus == self.status:
+                if self.status == 'paused':
+                    for sniffer in self.sniffers:
+                        try:
+                            sniffer.pause()
+                        except Exception as e:
+                            print('error: {}'.format(e))
+                else:
+                    for sniffer in self.sniffers:
+                        try:
+                            sniffer.resume()
+                        except Exception as e:
+                            print('error: {}'.format(e))
 
         # restart
         elif args['command'] == 'restart':

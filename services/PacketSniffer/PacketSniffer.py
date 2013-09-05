@@ -482,6 +482,7 @@ class PacketSnifferService(rpycService):
 			return False
 
 		self.sniffer.PAUSED = False
+		print('PT debug: sniffer status chaged: running')
 
 		return True
 
@@ -493,6 +494,7 @@ class PacketSnifferService(rpycService):
 			return False
 
 		self.sniffer.PAUSED = True
+		print('PT debug: sniffer status chaged: paused')
 
 		return True
 
@@ -504,6 +506,7 @@ class PacketSnifferService(rpycService):
 			return False
 
 		self.sniffer.PAUSED = False
+		print('PT debug: sniffer status chaged: running')
 
 		return True
 
