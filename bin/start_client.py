@@ -217,7 +217,7 @@ def RegisterEPs(config, ce_proxy=None):
     retries = 0
     maxRetries = 8
 
-    # Try to register to Central Engine, forever
+    # Try to register to Central Engine
     while unregistered:
         for currentCE in proxyEpsList:
             try:

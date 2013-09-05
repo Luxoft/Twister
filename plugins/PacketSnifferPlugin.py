@@ -37,7 +37,12 @@ from copy import deepcopy
 from time import time
 
 from json import dumps
-from scapy.all import wrpcap, Ether
+from scapy.all import Packet, NoPayload, wrpcap
+
+from rpyc import Service as rpycService
+from rpyc.utils.factory import connect as rpycConnect
+
+from thread import allocate_lock
 
 from BasePlugin import BasePlugin
 
@@ -64,14 +69,15 @@ class Plugin(BasePlugin):
         # plugin status, packets list, temporary path to save pcap files,
         # packets list index limit, registered sniffers
         self.status = 'paused'
-        self.packets = []
+        self.packets = list()
+        self.packetsLock = allocate_lock()
         self.pcapPath = getenv('TWISTER_PATH') + '/tmp'
         if not exists(self.pcapPath):
             makedirs(self.pcapPath)
         self.packetsIndexLimit = (self.data['historyLength']
                                     - self.data['packetsBuffer'])
-        self.filters = {}
-        self.sniffers = {}
+        self.filters = dict()
+        self.sniffers = list()
 
         self.commands = {
             'simple': [
@@ -83,8 +89,8 @@ class Plugin(BasePlugin):
                 'setfilters',
             ],
             'argumented': [
-                'query', 'querypkt', 'pushpkt',
-                'registersniff', 'restarted',
+                'query', 'querypkt',
+                'registersniff',
             ]
         }
 
@@ -116,32 +122,23 @@ class Plugin(BasePlugin):
 
         # echo
         elif args['command'] == 'echo':
-            response['type'] = 'echo reply'
-
-            if args.has_key('data'):
-                try:
-                    response['state'] = self.sniffers[args['data']]
-                    response['data'] = {'filters': self.filters}
-                except Exception, e:
-                    response['status']['success'] = False
-                    response['status']['message'] = 'command data not valid: \
-                                                        {err}'.format(err=e)
-            else:
-                response = self.status
+            #response['type'] = 'echo reply'
+            response = self.status
 
         # registersniff
         elif args['command'] == 'registersniff':
             response['type'] = 'register sniff reply'
 
             try:
-                self.sniffers.update([(args['data'], self.status), ])
+                self.sniffers.append(rpycConnect(cherrypy.request.headers['Remote-Addr'],
+                                                    args['data'], PluginService))
             except Exception, e:
                 response['status']['success'] = False
                 response['status']['message'] = 'error: {err}'.format(err=e)
 
         # get / set filters
         elif args['command'] == 'getfilters':
-            response['type'] = 'getfilters reply'
+            #response['type'] = 'getfilters reply'
 
             response = self.filters
         elif args['command'] == 'setfilters':
@@ -156,8 +153,15 @@ class Plugin(BasePlugin):
                 else:
                     self.filters = {}
 
-                self.packets = []
+                with self.packetsLock:
+                    self.packets = []
                 response['data'] = {'index': 0}
+
+                for sniffer in self.sniffers:
+                    try:
+                        sniffer.set_filters(self.filters)
+                    except Exception as e:
+                        print('error: {}'.format(e))
 
             except Exception, e:
                 response['status']['success'] = False
@@ -172,35 +176,33 @@ class Plugin(BasePlugin):
             response['state'] = self.status
 
             if self.status == 'paused':
-                for key in self.sniffers.iterkeys():
-                    self.sniffers[key] = 'paused'
+                for sniffer in self.sniffers:
+                    try:
+                        sniffer.pause()
+                    except Exception as e:
+                        print('error: {}'.format(e))
             else:
-                for key in self.sniffers.iterkeys():
-                    self.sniffers[key] = 'running'
+                for sniffer in self.sniffers:
+                    try:
+                        sniffer.resume()
+                    except Exception as e:
+                        print('error: {}'.format(e))
 
         # restart
         elif args['command'] == 'restart':
             response['type'] = 'restart reply'
 
-            for key in self.sniffers.iterkeys():
-                    self.sniffers[key] = 'restart'
-
-        # restarted
-        elif args['command'] == 'restarted':
-            response['type'] = 'restarted reply'
-
-            try:
-                self.sniffers[args['data']] = 'running'
-            except Exception, e:
-                response['status']['success'] = False
-                response['status']['message'] = 'command data not valid: \
-                                                    {err}'.format(err=e)
+            for sniffer in self.sniffers:
+                    try:
+                        sniffer.restart()
+                    except Exception as e:
+                        print('error: {}'.format(e))
 
         # reset
         elif args['command'] == 'reset':
             response['type'] = 'reset reply'
-
-            self.packets = []
+            with self.packetsLock:
+                self.packets = []
 
             response['data'] = {'index': 0}
 
@@ -212,77 +214,59 @@ class Plugin(BasePlugin):
         # query for packet command (you must supply data field
         # in argument dictionary which represents the id of the packet) """
         elif args['command'] in ['query', 'querypkt']:
-            try:
+            with self.packetsLock:
                 try:
-                    packetIndex = int(args['data'])
-                    packet = deepcopy(self.packets[packetIndex])
-                except Exception, e:
-                    packetIndex = None
-                    packet = None
+                    try:
+                        packetIndex = int(args['data'])
+                        packet = deepcopy(self.packets[packetIndex])
+                    except Exception, e:
+                        packetIndex = None
+                        packet = None
 
-                if not packetIndex == 0:
-                    packetID = str(args['data'])
-                    for _packet in self.packets:
-                        if _packet['packet_head']['id'] == packetID:
-                            packetIndex = self.packets.index(_packet)
-                            packet = deepcopy(_packet)
+                    if not packetIndex == 0:
+                        packetID = str(args['data'])
+                        for _packet in self.packets:
+                            if _packet['packet_head']['id'] == packetID:
+                                packetIndex = self.packets.index(_packet)
+                                packet = deepcopy(_packet)
 
 
-                if packetIndex is not None:
-                    if args['command'] == 'query':
-                        response['type'] = 'query reply'
+                    if packetIndex is not None:
+                        if args['command'] == 'query':
+                            response['type'] = 'query reply'
 
-                        queriedPackets = []
-                        packetID = None
-                        packetIndex += 1
-                        for _packet in self.packets[packetIndex:packetIndex \
-                                                    + self.data['packetsBuffer']]:
-                            pk = deepcopy(_packet)
-                            pk.pop('packet')
-                            packetID = pk['packet_head']['id']
-                            queriedPackets.append(dumps(pk, encoding='latin'))
+                            queriedPackets = []
+                            packetID = None
+                            packetIndex += 1
+                            for _packet in self.packets[packetIndex:packetIndex \
+                                                        + self.data['packetsBuffer']]:
+                                pk = deepcopy(_packet)
+                                pk.pop('packet_source')
+                                packetID = pk['packet_head']['id']
+                                queriedPackets.append(dumps(pk, encoding='latin'))
 
-                        response['data'] = {
-                            'id': (args['data'], packetID)[packetID is not None],
-                            'packets': queriedPackets
-                        }
+                            response['data'] = {
+                                'id': (args['data'], packetID)[packetID is not None],
+                                'packets': queriedPackets
+                            }
 
+                        else:
+                            #response['type'] = 'querypkt reply'
+
+                            packet = dumps(packet['packet_dict'], encoding='latin')
+                            response = packet    #response['data'] = packet
                     else:
-                        #response['type'] = 'querypkt reply'
+                        response['status']['success'] = False
+                        if self.packets:
+                            response['status']['message'] = 'packet index unknown'
+                        else:
+                            response['status']['message'] = 'packets list empty'
 
-                        packet = dumps(packet['packet'], encoding='latin')
-                        response = packet    #response['data'] = packet
-                else:
-                    response['status']['success'] = False
-                    if self.packets:
-                        response['status']['message'] = 'packet index unknown'
-                    else:
-                        response['status']['message'] = 'packets list empty'
-
-                del packet
-            except Exception, e:
-                response['status']['success'] = False
-                response['status']['message'] = 'command data not valid: \
-                                                    {err}'.format(err=e)
-
-        # # pushpkt
-        # """ push packet command (data is an encoded string representing
-        # a dictionary whre you can find the sniffed packet) """
-        elif args['command'] == 'pushpkt':
-            response['type'] = 'pushpkt reply'
-
-            args['data'] = literal_eval(a2b_base64(args['data']))
-            for packet in args['data']:
-                try:
-                    _packet = literal_eval(a2b_base64(packet))
-                    self.packets.append(_packet)
+                    del packet
                 except Exception, e:
                     response['status']['success'] = False
                     response['status']['message'] = 'command data not valid: \
                                                         {err}'.format(err=e)
-
-            if len(self.packets) >= self.packetsIndexLimit:
-                del self.packets[:self.data['packetsBuffer']]
 
         # savepcap
         elif args['command'] == 'savepcap':
@@ -294,7 +278,7 @@ class Plugin(BasePlugin):
                                     user=self.user,
                                     epoch_time=str(time()).replace('.', '|'))
 
-                wrpcap(filePath, [Ether(p['packet_str']) for p in self.packets])
+                wrpcap(filePath, [p['packet_source'] for p in self.packets])
 
                 response = filePath
             except Exception, e:
@@ -306,6 +290,85 @@ class Plugin(BasePlugin):
             response['status']['message'] = 'except'
 
         return response
+
+
+
+
+class PluginService(rpyc.Service):
+    """  """
+
+    plugin = None
+
+    def on_connect(self):
+        """  """
+
+        try:
+            client_addr = self._conn._config['endpoints'][1]
+            print('Connected from `{}`.'.format(client_addr))
+        except Exception as e:
+            #print('Connect error: {er}'.format(er=e))
+            pass
+
+
+    def on_disconnect(self):
+        """  """
+
+        try:
+            client_addr = self._conn._config['endpoints'][1]
+            print('Disconnected from `{ip}:{port}`.'.format(ip=client_addr[0], port=client_addr[1]))
+        except Exception as e:
+            #print('Disconnect error: {er}'.format(er=e))
+            pass
+
+
+    def exposed_pushpkt(self, packet):
+        """  """
+
+        if not self.plugin:
+            print('error: no plugin')
+            return False
+
+        if not isinstance(packet, Packet):
+            print('error: invalid packet')
+            return False
+
+        packet.update([('packet_dict' , self.packet_dict(packet)), ])
+        with self.plugin.packetsLock:
+            self.packets.append(packet)
+
+        if len(self.packets) >= self.packetsIndexLimit:
+            del self.packets[:self.data['packetsBuffer']]
+
+        return True
+
+
+    def packet_to_dict(self, packet):
+        """ Recursive function to parse packet and return dict """
+
+        if isinstance(packet, Packet):
+            _packet = packet.fields
+            if not isinstance(packet.payload, NoPayload):
+                _packet['payload'] = packet.payload
+
+            return {packet.name: self.packet_to_dict(_packet)}
+
+        elif isinstance(packet, dict):
+            for k,v in packet.iteritems():
+                packet[k] = self.packet_to_dict(v)
+
+            return packet
+
+        elif isinstance(packet, list):
+            for v in packet:
+                packet[packet.index(v)] = self.packet_to_dict(v)
+
+        else:
+
+            return packet
+
+
+
+
 
 
 

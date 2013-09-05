@@ -29,6 +29,8 @@
 from binascii import b2a_base64
 
 from xmlrpclib import ServerProxy
+from rpyc import Service as rpycService
+from rpyc.utils.server import ThreadedServer as rpycThreadedServer
 from uuid import uuid4
 from time import sleep, time
 from thread import start_new_thread, allocate_lock
@@ -52,16 +54,9 @@ from array import array
 
 
 
-packetsLock = allocate_lock()
-
-sniffedPackets = list()
-endAll = False
-RESTART = False
-IFACE = None
-ifaceError = False
-
-
 def all_interfaces():
+	"""  """
+
 	is_64bits = maxsize > 2**32
 	struct_size = 40 if is_64bits else 32
 	sock = socket(AF_INET, SOCK_DGRAM)
@@ -85,58 +80,49 @@ def all_interfaces():
 
 
 class PacketSniffer():
-	def __init__(self, user, epConfig, OFPort=None, _iface=None, _uid=None):
-		self.snifferData = dict(
-			user = user,
-			epConfig = epConfig,
-			OFPort = OFPort,
-			_uid = _uid,
-		)
-		IFACE = _iface
+	"""  """
 
-		self.sniffer = Sniffer(self.snifferData['user'],
-										self.snifferData['epConfig'],
-										self.snifferData['OFPort'],
-										IFACE,
-										self.snifferData['_uid'])
+	def __init__(self, user, epConfig, OFPort=None, iface=None):
+		"""  """
 
-		self.parser = ParseData(self.sniffer)
+		self.rpycThreadedServer = None
+
+		# port range
+		minport, maxport = 4444, 4488
+
+		self.clientPort = 4444
+
+		# find firs free port in range ..
+		while self.clientPort <= maxport:
+			try:
+				self.rpycThreadedServer = rpycThreadedServer(PacketSnifferService, port=self.clientPort)
+				self.sniffer = Sniffer(user, epConfig, self.rpycThreadedServer, OFPort, iface)
+				self.rpycThreadedServer.sniffer = self.sniffer
+				break
+			except Exception as e:
+				print(e)
+				print('Sniffer warning, the port `{}` is taken!'.format(self.clientPort))
+				self.clientPort += 1
+
+				if self.clientPort > maxport:
+					print('Cound not find any free port in range {} - {} !'.format(minport, maxport))
+					self.rpycThreadedServer = None
+					self.sniffer = None
+					self.clientPort = None
 
 
 	def run(self):
+		"""  """
+
+		if not self.rpycThreadedServer:
+			print('Error: server not started')
+
+		print('Sniffer will start on : `0.0.0.0:{}`.'.format(self.clientPort))
+
 		self.sniffer.runbg()
-		while not self.sniffer._started:
-			sleep(2)
-		start_new_thread(self.parser.run, ())
+		self.rpycThreadedServer.start()
 
-		global endAll
-		global RESTART
 
-		while not endAll:
-			if RESTART:
-				endAll = True
-				self.sniffer.stop()
-				del(self.sniffer)
-
-				global sniffedPackets
-				sniffedPackets = []
-
-				self.sniffer = Sniffer(self.snifferData['user'],
-										self.snifferData['epConfig'],
-										self.snifferData['OFPort'],
-										IFACE,
-										self.snifferData['_uid'])
-				self.sniffer.runbg()
-
-				sleep(2)
-				del(self.parser)
-
-				endAll = False
-				self.parser = ParseData(self.sniffer)
-				start_new_thread(self.parser.run, ())
-
-				RESTART = False
-			sleep(2)
 
 
 class Sniffer(Automaton):
@@ -144,7 +130,7 @@ class Sniffer(Automaton):
 	Packet Sniffer Scapy Automaton
 	"""
 
-	def parse_args(self, user, epConfig, OFPort=None, _iface=None, _uid=None):
+	def parse_args(self, user, epConfig, rpycConn, OFPort=None, _iface=None):
 		Automaton.parse_args(self)
 
 		self.has_iface = None
@@ -174,97 +160,163 @@ class Sniffer(Automaton):
 		self.userip = gethostbyname(gethostname())
 		self.userhost = gethostname()
 
+		# rpyc server
+		self.rpycConn = rpycConn
+
+		# CE / EP
 		self.epConfig = epConfig
-		_epConfig = list(set([(ep['CE_IP'], ep['CE_PORT']) for ep in self.epConfig]))
-		self.ceObjects = [
-			CentralEngineObject(
-				ServerProxy('http://{ip}:{port}/'.format(ip=ep[0], port=ep[1])),
-			)
-			for ep in _epConfig
-		]
-
-		self.ceTraffic = [(ep[0], ep[1]) for ep in _epConfig]
-
-		self.uid = (uuid4(), _uid)[_uid is not None]
+		self.ceTraffic = list(set([(ep['CE_IP'], ep['CE_PORT']) for ep in self.epConfig]))
+		self.uid = uuid4()
 
 		self.reinitRetries = 0
 		self.reinitMaxRetries = 4
-		self._started = False
 
 	def master_filter(self, packet):
-		try:
-			# default filter: exclude CE traffic
-			sourcePort = str(packet.payload.payload.fields['sport'])
-			destinationPort = str(packet.payload.payload.fields['dport'])
-			sourceIp = packet.payload.fields['src']
-			destinationIp = packet.payload.fields['dst']
-			if ((sourceIp, sourcePort) in self.ceTraffic
-				or (destinationIp, destinationPort) in self.ceTraffic):
-				return False
-		except Exception, e:
-			sourcePort = 'None'
-			destinationPort = 'None'
+		"""  """
 
-		return True
+		packetHead = self.packet_head_parse(packet)
 
+		# default filter: exclude CE traffic
+		if ((packetHead['source']['ip'], str(packetHead['source']['port'])) in self.ceTraffic or
+			(packetHead['destination']['ip'], str(packetHead['destination']['port'])) in self.ceTraffic):
+			return False
 
-	# BEGIN
-	@ATMT.state(initial=1)
-	def BEGIN(self):
+		if not self.filters: return True
+
+		filterStatus = True
+
+		if self.filters.has_key('-proto'):
+			pkt = packet
+			protocols = []
+			while not isinstance(pkt, NoPayload):
+				protocols.append(pkt.name)
+				pkt = pkt.payload
+
+			filterStatus = self.filters['-proto'] in protocols
+
+		if self.filters.has_key('-mac_src'):
+			filterStatus = (self.filters['-mac_src'] ==
+											packetHead['source']['mac'])
+
+		if self.filters.has_key('-mac_dst'):
+			filterStatus = (self.filters['-mac_dst'] ==
+											self.packetHead['destination']['mac'])
+
+		if self.filters.has_key('-port_src'):
+			filterStatus = (self.filters['-port_src'] ==
+									str(self.packetHead['source']['port']))
+
+		if self.filters.has_key('-port_dst'):
+			filterStatus = (self.filters['-port_dst'] ==
+									str(self.packetHead['destination']['port']))
+
+		if self.filters.has_key('-ip_src'):
+			filterStatus = (self.filters['-ip_src'] ==
+											self.packetHead['source']['ip'])
+
+		if self.filters.has_key('-ip_dst'):
+			filterStatus = (self.filters['-ip_dst'] ==
+											self.packetHead['destination']['ip'])
+
+		return filterStatus
+
+	def registerCE(self, ce_list):
+		"""  """
+
+		print('PT: starting register..')
+
 		# Try to ping status from CE!
-		for ce in self.ceObjects:
+		ceObjects = dict()
+		for ce in ce_list:
 			try:
-				_proxy = str(ce.proxy).split()[2][:-2].split(':')
-				create_connection((_proxy[0], _proxy[1]), 2)
-				#ce.proxy.echo('ping')
+				create_connection((ce[0], ce[1]), 2)
+				ceObjects.update([('{ip}:{port}'.format(ip=ce[0], port=ce[1]),
+								ServerProxy('http://{ip}:{port}/'.format(ip=ce[0], port=ce[1]))), ])
 				self.reinitRetries = 0
-			except Exception, e:
-				self.ceObjects.pop(self.ceObjects.index(ce))
-
+			except Exception as e:
 				print 'PT warning: Central Engine is down .... [{0}]'.format(e)
 
-		if not self.ceObjects:
+		if not ceObjects:
 			if self.reinitRetries < self.reinitMaxRetries:
-				print 'PT debug: no central engines; \
-						will retry [{r}] ..'.format(r=self.reinitRetries)
+				print 'PT debug: no central engines; will retry [{r}] ..'.format(r=self.reinitRetries)
 				self.reinitRetries += 1
-
-				_epConfig = list(set([(ep['CE_IP'], ep['CE_PORT']) for ep in self.epConfig]))
-				self.ceObjects = [
-					CentralEngineObject(
-						ServerProxy('http://{ip}:{port}/'.format(ip=ep[0],
-															port=ep[1])),
-					)
-					for ep in _epConfig
-				]
 				sleep(2)
 
-				raise self.BEGIN()
+				self.registerCE(self.ceTraffic)
 			else:
 				raise self.END()
 
 		args = {
 			'command': 'registersniff',
-			'data': str(self.uid)
+			'port': self.rpycConn.port
 		}
 
 		try:
-			for ce in self.ceObjects:
+			for ce in ceObjects:
 				# create user if ep is not running
-				ce.proxy.getExecStatusAll(self.username)
+				ce.getExecStatusAll(self.username)
 
-				pluginData = ce.proxy.runPlugin(self.username,
-												'PacketSnifferPlugin', args)
+				pluginData = ce.runPlugin(self.username, 'PacketSnifferPlugin', args)
 
 				if pluginData['status']['success']:
-					print 'registered to central engine %s..' % ce.proxy
+					print 'registered to central engine %s..' % ce
 				else:
-					print 'running unregistered to central engine %s ..' % ce.proxy
+					print 'running unregistered to central engine %s ..' % ce
 					print pluginData['status']['message']
-		except Exception, e:
-			print 'PT debug: [BEGIN] {err}'.format(err=e)
+		except Exception as e:
+			print 'PT debug: register CE {err}'.format(err=e)
 
-		self._started = True
+		print('PT: register end.')
+
+	def packet_head_parse(self, packet):
+		"""  """
+
+		source = {}
+		destination = {}
+		try:
+			source['mac'] = packet.fields['src']
+			destination['mac'] = packet.fields['dst']
+
+			try:
+				source['ip'] = packet.payload.fields['src']
+				destination['ip'] = packet.payload.fields['dst']
+			except Exception as e:
+				source['ip'] = 'None'
+				destination['ip'] = 'None'
+
+				#print 'PT debug: packet head exception (ip): {ex}'.format(ex=e)
+			try:
+				source['port'] = packet.payload.payload.fields['sport']
+				destination['port'] = packet.payload.payload.fields['dport']
+			except Exception as e:
+				source['port'] = 'None'
+				destination['port'] = 'None'
+
+				#print 'PT debug: packet head exception (port): {ex}'.format(ex=e)
+		except Exception as e:
+			source['mac'] = 'None'
+			destination['mac'] = 'None'
+
+			#print 'PT debug: packet head exception (mac): {ex}'.format(ex=e)
+
+		data = {
+			'protocol': packet.payload.payload.name,
+			'source': source,
+			'destination': destination,
+		}
+
+		return data
+
+
+	# BEGIN
+	@ATMT.state(initial=1)
+	def BEGIN(self):
+		"""  """
+
+		while not self.rpycConn.active:
+			sleep(0.8)
+
+		self.registerCE(self.ceTraffic)
 
 		raise self.WAITING()
 
@@ -272,12 +324,16 @@ class Sniffer(Automaton):
 	# WAITING
 	@ATMT.state()
 	def WAITING(self):
+		"""  """
+
 		pass
 
 
 	# RECEIVING
 	@ATMT.receive_condition(WAITING)
 	def receive_data(self, pkt):
+		"""  """
+
 		if self.has_iface is not None and not self.has_iface:
 			raise self.WAITING()
 
@@ -287,13 +343,27 @@ class Sniffer(Automaton):
 	# RECEIVED
 	@ATMT.state()
 	def RECEIVING(self, packet):
-		global sniffedPackets
-		try:
-			with packetsLock:
-				if packet not in sniffedPackets:
-					sniffedPackets.append(packet)
-		except Exception, e:
-			print 'PT debug: [RECEIVING] {err}'.format(err=e)
+		"""  """
+
+		data = {
+			'sniffer': {
+				'ip': self.userip,
+				'hostname': self.userhost,
+				'username': self.username,
+			},
+			'packet_head': self.packet_head_parse(packet),
+			'packet_source': packet,
+		}
+		data['packet_head'].update([('id', str(time())), ])
+
+		with self.rpycConn.connectionsLock:
+			for conn in self.rpycConn.connections:
+				if self.rpycConn.connections[conn]:
+					try:
+						self.rpycConn.connections[conn].root.pushpkt(data)
+					except Exception as e:
+						#print('error: {}'.format(e))
+						pass
 
 		raise self.WAITING()
 
@@ -301,293 +371,149 @@ class Sniffer(Automaton):
 	# END
 	@ATMT.state(final=1)
 	def END(self):
-		global endAll
+		"""  """
 
-		endAll = True
+		self.rpycConn.close()
 
 		print '|||| state: END ||||'
+
 
 	"""
 	# EVENTS
 	@ATMT.ioevent(BEGIN, name='commands')
 	def transition(self, fd):
 		print 'in trans'
-		commands = ['stop', 'restart', 'pause', 'resume']
+		commands = ['start', 'pause', 'resume', 'restart', 'stop']
 
 		command = fd.recv()
 
 		if command in commands:
 			print 'PT debug: got command {cmd}'.format(cmd=command)
-			if command == 'stop':
+			if command == 'start':
+				self.PAUSED = False
 
-				raise self.END()
+			elif command == 'pause':
+				self.PAUSED = True
+
+			elif command == 'resume':
+				self.PAUSED = False
 
 			elif command == 'restart':
 
 				self.restart()
 
-			elif command in ['pause', 'resume']:
-				self.PAUSED = (True, False)[self.PAUSED]
-
 				raise self.WAITING()
+
+			elif command == 'stop':
+
+				raise self.END()
 	"""
 
 
-class ParseData():
-	""" Parse Data from / to CE """
 
-	def __init__(self, sniffer=None):
-		self.sniffer = sniffer
-		self.packet = None
-		self.packetHead = None
-		self.packetsToParse = list()
-		self.packetsToSend = list()
 
-	def run(self):
-		if not self.sniffer:
-			return
+class PacketSnifferService(rpycService):
+	"""  """
 
-		print 'PT debug: data parser ready ..'
+	sniffer = None
+	connections = dict()
+	connectionsLock = allocate_lock()
 
-		global endAll
-		global sniffedPackets
-		while not endAll:
+	def on_connect(self):
+		"""  """
+
+		try:
+			client_addr = self._conn._config['endpoints'][1]
+			with self.connectionsLock:
+				self.connections.update([('{ip}:{port}'.format(ip=client_addr[0], port=client_addr[1]), None), ])
+			print('Connected from `{}`.'.format(client_addr))
+		except Exception as e:
+			print('Connect error: {er}'.format(er=e))
+
+
+	def on_disconnect(self):
+		"""  """
+
+		try:
+			client_addr = self._conn._config['endpoints'][1]
+			with self.connectionsLock:
+				self.connections.pop('{ip}:{port}'.format(ip=client_addr[0], port=client_addr[1]))
 			if self.sniffer:
-				self.ce_status_update()
-				try:
-					with packetsLock:
-						self.packetsToParse = list(sniffedPackets)
-						del sniffedPackets[:]
+				self.sniffer.registerCE([(client_addr[0], client_addr[1])])
+			print('Disconnected from `{ip}:{port}`.'.format(ip=client_addr[0], port=client_addr[1]))
+		except Exception as e:
+			print('Disconnect error: {er}'.format(er=e))
 
-					for packet in self.packetsToParse:
-						self.packet = packet
-						self.packetHead = self.packet_parse()
+		if not self.connections and self.sniffer:
+			self.sniffer.registerCE(self.sniffer.ceTraffic)
 
-						if self.filter():
-							self.packetsToSend.append({'packetHead': self.packetHead,
-														'packet': self.packet})
-					del self.packetsToParse[:]
 
-					if self.packetsToSend:
-						self.send()
-				except Exception, e:
-					#print 'no packets in list'
-					self.packet = None
-					self.packetHead = None
+	def exposed_hello(self, proxy):
+		"""  """
 
-			sleep(0.8)
-		print 'PT debug: data parser thread ended ..'
-
-	def ce_status_update(self):
-		restart = False
-
-		# Try to ping status from CE!
-		for ce in self.sniffer.ceObjects:
-			try:
-				response = ce.proxy.echo('ping')
-				#self.sniffer.reinitRetries = 0
-
-				args = {
-					'command': 'None',
-					'data': str(self.sniffer.uid)
-				}
-				args['command'] = 'echo'
-				pluginData = ce.proxy.runPlugin(self.sniffer.username,
-													'PacketSnifferPlugin', args)
-
-				ce.pluginStatus = pluginData['state']
-
-				self.sniffer.filters = pluginData['data']['filters']
-				if self.sniffer.filters.has_key('-i'):
-					global RESTART
-					global IFACE
-
-					if not IFACE == self.sniffer.filters['-i']:
-						IFACE = self.sniffer.filters['-i']
-						RESTART = True
-
-				if ce.pluginStatus == 'restart':
-					args['command'] = 'restarted'
-					ce.proxy.runPlugin(self.sniffer.username,
-												'PacketSnifferPlugin', args)
-
-					print 'PT debug: sniffer restart ..\n'
-
-					restart = True
-
-				else:
-					ce.PAUSED = not ce.pluginStatus == 'running'
-
-				_paused = self.sniffer.PAUSED
-
-				self.sniffer.PAUSED = (sum([ce.PAUSED for ce in self.sniffer.ceObjects])
-								== len(self.sniffer.ceObjects))
-
-				if not _paused == self.sniffer.PAUSED:
-					print 'PT debug: sniffer paused status chaged: \
-												{s}'.format(s=self.sniffer.PAUSED)
-
-			except Exception, e:
-				print 'PT warning: Central Engine is down .... [{0}]'.format(e)
-
-				RESTART = True #self.sniffer.io.commands.send('restart')
-
-				sleep(2)
-
-		if restart: RESTART = True #self.sniffer.io.commands.send('restart')
-
-	def filter(self):
-		if not self.sniffer.filters: return True
-
-		filterStatus = True
-
-		if self.sniffer.filters.has_key('-proto'):
-			pkt = self.packet
-			protocols = []
-			while not isinstance(pkt, NoPayload):
-				protocols.append(pkt.name)
-				pkt = pkt.payload
-
-			filterStatus = self.sniffer.filters['-proto'] in protocols
-
-		if self.sniffer.filters.has_key('-mac_src'):
-			filterStatus = (self.sniffer.filters['-mac_src'] ==
-											self.packetHead['source']['mac'])
-
-		if self.sniffer.filters.has_key('-mac_dst'):
-			filterStatus = (self.sniffer.filters['-mac_dst'] ==
-											self.packetHead['destination']['mac'])
-
-		if self.sniffer.filters.has_key('-port_src'):
-			filterStatus = (self.sniffer.filters['-port_src'] ==
-									str(self.packetHead['source']['port']))
-
-		if self.sniffer.filters.has_key('-port_dst'):
-			filterStatus = (self.sniffer.filters['-port_dst'] ==
-									str(self.packetHead['destination']['port']))
-
-		if self.sniffer.filters.has_key('-ip_src'):
-			filterStatus = (self.sniffer.filters['-ip_src'] ==
-											self.packetHead['source']['ip'])
-
-		if self.sniffer.filters.has_key('-ip_dst'):
-			filterStatus = (self.sniffer.filters['-ip_dst'] ==
-											self.packetHead['destination']['ip'])
-
-		return filterStatus
-
-	def packet_parse(self):
-		source = {}
-		destination = {}
 		try:
-			source['mac'] = self.packet.fields['src']
-			destination['mac'] = self.packet.fields['dst']
+			client_addr = self._conn._config['endpoints'][1]
+			with self.connectionsLock:
+				self.connections.update([('{ip}:{port}'.format(ip=client_addr[0], port=client_addr[1]),
+														{'proxy': proxy, 'instance': self.root}), ])
+			print('Hello from {}'.format(proxy))
+		except Exception as e:
+			print('Hello error: {er}'.format(er=e))
 
-			try:
-				source['ip'] = self.packet.payload.fields['src']
-				destination['ip'] = self.packet.payload.fields['dst']
-			except Exception, e:
-				source['ip'] = 'None'
-				destination['ip'] = 'None'
 
-				#print 'PT debug: packet head exception (ip): {ex}'.format(ex=e)
+	def exposed_start(self):
+		"""  """
 
-			try:
-				source['port'] = self.packet.payload.payload.fields['sport']
-				destination['port'] = self.packet.payload.payload.fields['dport']
-			except Exception, e:
-				source['port'] = 'None'
-				destination['port'] = 'None'
+		if not self.sniffer.PAUSED:
+			return False
 
-				#print 'PT debug: packet head exception (port): {ex}'.format(ex=e)
-		except Exception, e:
-			source['mac'] = 'None'
-			destination['mac'] = 'None'
+		self.sniffer.PAUSED = False
 
-			#print 'PT debug: packet head exception (mac): {ex}'.format(ex=e)
+		return True
 
-		data = {
-			'protocol': self.packet.payload.payload.name,
-			'source': source,
-			'destination': destination,
-		}
 
-		return data
+	def exposed_pause(self):
+		"""  """
 
-	def packet_to_dict(self, packet):
-		""" Recursive function to parse packet and return dict """
+		if self.sniffer.PAUSED:
+			return False
 
-		if isinstance(packet, Packet):
-			_packet = packet.fields
-			if not isinstance(packet.payload, NoPayload):
-				_packet['payload'] = packet.payload
+		self.sniffer.PAUSED = True
 
-			return {packet.name: self.packet_to_dict(_packet)}
+		return True
 
-		elif isinstance(packet, dict):
-			for k,v in packet.iteritems():
-				packet[k] = self.packet_to_dict(v)
 
-			return packet
+	def exposed_resume(self):
+		"""  """
 
-		elif isinstance(packet, list):
-			for v in packet:
-				packet[packet.index(v)] = self.packet_to_dict(v)
+		if not self.sniffer.PAUSED:
+			return False
 
-		else:
+		self.sniffer.PAUSED = False
 
-			return packet
+		return True
 
-	def send(self):
-		packetListToSend = list()
-		for _pkt in self.packetsToSend:
-			self.packet = _pkt['packet']
-			self.packetHead = _pkt['packetHead']
 
-			packet_str = str(self.packet)
+	def exposed_stop(self):
+		"""  """
+		##
+		return True
 
-			try:
-				sourcePort = self.packet.payload.payload.fields['sport']
-				destinationPort = self.packet.payload.payload.fields['dport']
-			except Exception, e:
-				sourcePort = None
-				destinationPort = None
 
-			if self.sniffer.OFPort in [sourcePort, destinationPort] and of_message_parse:
-				_packet = of_message_parse(str(self.packet.load))
-				packet = {'pkt': _packet.show()}
-			else:
-				packet = self.packet_to_dict(self.packet)
+	def exposed_restart(self):
+		"""  """
 
-			data = {
-				'sniffer': {
-					'ip': self.sniffer.userip,
-					'hostname': self.sniffer.userhost,
-					'username': self.sniffer.username,
-				},
-				'packet_head': self.packetHead,
-				'packet': packet,
-				'packet_str': packet_str,
-			}
-			data['packet_head'].update([('id', str(time())), ])
-			data = b2a_base64(str(data))
-			packetListToSend.append(data)
-		del self.packetsToSend[:]
-		packetListToSend = b2a_base64(str(packetListToSend))
+		self.sniffer.stop()
+		sleep(2)
+		self.sniffer.runbg()
 
-		# push packet to central engines
-		try:
-			for ce in self.sniffer.ceObjects:
-				response = ce.proxy.runPlugin(self.sniffer.username,
-										'PacketSnifferPlugin',
-										{'command': 'pushpkt', 'data': packetListToSend})
-				if not response['status']['success']:
-					self.ce_status_update()
+		return True
 
-					response = ce.proxy.runPlugin(self.sniffer.username,
-										'PacketSnifferPlugin',
-										{'command': 'pushpkt', 'data': packetListToSend})
-					if not response['status']['success']:
-						print 'PT debug: [SENDING] response: {r}'.format(r=response)
-		except Exception, e:
-			print 'PT debug: [RECEIVING] {err}'.format(err=e)
+
+	def exposed_set_filters(self, filters):
+		"""  """
+
+		self.sniffer.filters = filters
+
+		return True
+

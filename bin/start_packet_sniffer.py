@@ -45,7 +45,7 @@ if __dir__: chdir(__dir__)
 
 
 
-def __main__():
+if __name__ == "__main__":
     usage = 'Usage: %prog --of_port <port>'
     version = '%prog v1.0'
     parser = OptionParser(usage=usage, version=version)
@@ -83,16 +83,10 @@ def __main__():
     epConfig = list(epConfig.itervalues())
 
     # initiate and start sniffer
-    sniffer = PacketSniffer(options.user, epConfig,
-                        options.of_port, _iface=options.eth_interface)
+    sniffer = PacketSniffer(user=options.user, epConfig=epConfig,
+                        OFPort=options.of_port, iface=options.eth_interface)
 
     print 'Packet Sniffer start..'
 
     sniffer.run()
 
-    return
-
-
-
-
-__main__()
