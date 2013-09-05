@@ -42,6 +42,8 @@ from scapy.all import Packet, NoPayload, wrpcap
 from rpyc import Service as rpycService
 from rpyc.utils.factory import connect as rpycConnect
 
+import cherrypy
+
 from thread import allocate_lock
 
 from BasePlugin import BasePlugin
@@ -82,6 +84,7 @@ class Plugin(BasePlugin):
         self.commands = {
             'simple': [
                 'echo',
+                'registersniff',
                 'pause', 'resume',
                 'restart', 'reset',
                 'savepcap',
@@ -90,7 +93,6 @@ class Plugin(BasePlugin):
             ],
             'argumented': [
                 'query', 'querypkt',
-                'registersniff',
             ]
         }
 
@@ -294,7 +296,7 @@ class Plugin(BasePlugin):
 
 
 
-class PluginService(rpyc.Service):
+class PluginService(rpycService):
     """  """
 
     plugin = None
@@ -334,10 +336,10 @@ class PluginService(rpyc.Service):
 
         packet.update([('packet_dict' , self.packet_dict(packet)), ])
         with self.plugin.packetsLock:
-            self.packets.append(packet)
+            self.plugin.packets.append(packet)
 
-        if len(self.packets) >= self.packetsIndexLimit:
-            del self.packets[:self.data['packetsBuffer']]
+        if len(self.plugin.packets) >= self.packetsIndexLimit:
+            del self.plugin.plugin.packets[:self.data['packetsBuffer']]
 
         return True
 

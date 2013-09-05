@@ -231,7 +231,8 @@ class Sniffer(Automaton):
 			try:
 				create_connection((ce[0], ce[1]), 2)
 				ceObjects.update([('{ip}:{port}'.format(ip=ce[0], port=ce[1]),
-								ServerProxy('http://{ip}:{port}/'.format(ip=ce[0], port=ce[1]))), ])
+								ServerProxy('http://{us}:EP@{ip}:{port}/'.format(us=self.username,
+																		ip=ce[0], port=ce[1]))), ])
 				self.reinitRetries = 0
 			except Exception as e:
 				print 'PT warning: Central Engine is down .... [{0}]'.format(e)
@@ -248,25 +249,36 @@ class Sniffer(Automaton):
 
 		args = {
 			'command': 'registersniff',
-			'port': self.rpycConn.port
+			'data': self.rpycConn.port
 		}
 
+		registered = False
 		try:
 			for ce in ceObjects:
 				# create user if ep is not running
-				ce.getExecStatusAll(self.username)
+				ceObjects[ce].getExecStatusAll(self.username)
 
-				pluginData = ce.runPlugin(self.username, 'PacketSnifferPlugin', args)
+				pluginData = ceObjects[ce].runPlugin(self.username, 'PacketSnifferPlugin', args)
+
+				if not isinstance(pluginData, dict):
+					print('PT debug: {}'.format(pluginData))
 
 				if pluginData['status']['success']:
-					print 'registered to central engine %s..' % ce
+					registered = True
+					print('registered to central engine {}..'.format(ce))
 				else:
-					print 'running unregistered to central engine %s ..' % ce
-					print pluginData['status']['message']
+					print('could not register to central engine {}..'.format(ce))
+					print(pluginData['status']['message'])
 		except Exception as e:
 			print 'PT debug: register CE {err}'.format(err=e)
+			return False
+
+		if not registered:
+			return False
 
 		print('PT: register end.')
+
+		return True
 
 	def packet_head_parse(self, packet):
 		"""  """
@@ -316,7 +328,9 @@ class Sniffer(Automaton):
 		while not self.rpycConn.active:
 			sleep(0.8)
 
-		self.registerCE(self.ceTraffic)
+		response = self.registerCE(self.ceTraffic)
+		if not response:
+			raise self.END()
 
 		raise self.WAITING()
 
