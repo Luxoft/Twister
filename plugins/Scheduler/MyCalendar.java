@@ -1,37 +1,8 @@
-import java.awt.Color;
-import java.awt.Font;
-import java.awt.Graphics;
-import java.awt.Graphics2D;
-import java.awt.Image;
-import java.awt.RenderingHints;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
-import java.io.IOException;
-import java.io.InputStream;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Locale;
-
-import javax.swing.BorderFactory;
-import javax.swing.JButton;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.JTable;
-import javax.swing.border.BevelBorder;
-import javax.swing.table.DefaultTableModel;
-
-import javax.swing.ImageIcon;
-import javax.imageio.ImageIO;
-
 /*
 File: MyCalendar.java ; This file is part of Twister.
+Version: 2.002
 
-Copyright (C) 2012 , Luxoft
+Copyright (C) 2012-2013 , Luxoft
 
 Authors: Andrei Costachi <acostachi@luxoft.com>
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -47,6 +18,26 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import java.awt.Color;
+import java.awt.Font;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.HashMap;
+import java.util.Locale;
+
+import javax.swing.BorderFactory;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JTable;
+import javax.swing.border.BevelBorder;
+import javax.swing.table.DefaultTableModel;
+
 public class MyCalendar extends JPanel{
 	private static final long serialVersionUID = 1L;
 	private Calendar calendar;
@@ -60,7 +51,8 @@ public class MyCalendar extends JPanel{
 		setLayout(null);
 		days = new Days(table);
 		calendar.set(Calendar.DAY_OF_MONTH, 1);
-		String dayname = new SimpleDateFormat("EEEE",Locale.US).format(calendar.getTime()).toLowerCase();
+		String dayname = new SimpleDateFormat("EEEE",Locale.US).
+								format(calendar.getTime()).toLowerCase();
 		days.setDays(calendar.getActualMaximum(Calendar.DAY_OF_MONTH),dayname);
 		days.setBounds(0, 0, 668, 300);
 		add(days);		
@@ -69,7 +61,8 @@ public class MyCalendar extends JPanel{
 
 
 /*
- * jpanel class for days representation in scheduler
+ * jpanel class used for days 
+ * representation in scheduler
  */
 class Days extends JPanel{
 	private static final long serialVersionUID = 1L;
@@ -338,7 +331,8 @@ class Days extends JPanel{
 			gr.drawString(day+1+"",dayX+7,dayY+(dayHeight/3)-5);
 			gr.setFont(new Font("Bodoni MT", Font.PLAIN, 11));
 			int namewidth = gr.getFontMetrics().stringWidth(daynames[dayindex]);
-			gr.drawString(daynames[dayindex],dayX+dayWidth-namewidth-6,dayY+(dayHeight/3)-3);
+			gr.drawString(daynames[dayindex],dayX+dayWidth-namewidth-6,
+							dayY+(dayHeight/3)-3);
 			dayindex++;
 			if(dayindex>6)dayindex=0;
 			int nr = 0;
@@ -347,7 +341,8 @@ class Days extends JPanel{
 			if(nr>0){
 				gr.setColor(new Color(80,80,80,100));
 				gr.setFont(new Font("Bodoni MT", Font.BOLD, 23));
-				gr.drawString(nr+"",dayX+(dayWidth/2)-5,dayY+(int)(dayHeight*0.75));
+				gr.drawString(nr+"",dayX+(dayWidth/2)-5,
+								dayY+(int)(dayHeight*0.75));
 			}
 		}
 	}

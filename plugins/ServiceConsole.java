@@ -1,6 +1,6 @@
 /*
 File: ServiceConsole.java ; This file is part of Twister.
-Version: 2.001
+Version: 2.002
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -19,18 +19,15 @@ limitations under the License.
 */
 
 
+import java.applet.Applet;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Font;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Hashtable;
@@ -75,10 +72,10 @@ public class ServiceConsole extends BasePlugin implements TwisterPluginInterface
 	private JCheckBox [] services;
 
 	@Override
-	public void init(ArrayList<Item> suite, ArrayList<Item> suitetest,
-			final Hashtable<String, String> variables,
-			final Document pluginsConfig) {
-		super.init(suite, suitetest, variables, pluginsConfig);
+	public void init(ArrayList <Item>suite,ArrayList <Item>suitetest,
+			  final Hashtable<String, String>variables,
+			  Document pluginsConfig,Applet container){
+		super.init(suite, suitetest, variables,pluginsConfig,container);
 		System.out.println("Initializing " + getName() + " ... ");
 		initializeSFTP();
 		initializeRPC();
@@ -189,6 +186,8 @@ public class ServiceConsole extends BasePlugin implements TwisterPluginInterface
 			configuration.setServerURL(new URL("http://"
 					+ variables.get("host") + ":"
 					+ variables.get("centralengineport")));
+			configuration.setBasicPassword(variables.get("password"));
+            configuration.setBasicUserName(variables.get("user"));
 			client = new XmlRpcClient();
 			client.setConfig(configuration);
 			System.out.println("Client initialized: " + client);

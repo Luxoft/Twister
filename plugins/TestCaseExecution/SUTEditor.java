@@ -1,6 +1,6 @@
 /*
 File: SUTEditor.java ; This file is part of Twister.
-Version: 2.001
+Version: 2.002
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -57,12 +57,11 @@ import java.util.Enumeration;
 
 public class SUTEditor extends JPanel{
     private JTextField tsutname;
-    private JButton remsut;
     private JTree tree;
     private XmlRpcClient client;
     private Node parent;
     public DefaultMutableTreeNode root;
-    private JButton renamesut;
+    private JButton renamesut,remsut,addcomp;
     
     public SUTEditor(){
         initializeRPC();
@@ -75,8 +74,11 @@ public class SUTEditor extends JPanel{
         tree.setDragEnabled(true);
         tree.setRootVisible(false);
         tree.setDropMode(DropMode.ON_OR_INSERT);
-        tree.setTransferHandler(new ImportTreeTransferHandler());
-        tree.setDragEnabled(true);
+        if(PermissionValidator.canChangeSut()){
+            tree.setTransferHandler(new ImportTreeTransferHandler());
+            tree.setDragEnabled(true);
+        }
+        
         tree.setCellRenderer(new CustomIconRenderer());
         setLayout(new BorderLayout());
         JScrollPane sp = new JScrollPane(tree);
@@ -90,34 +92,42 @@ public class SUTEditor extends JPanel{
 //             }});
 //         sutopt.add(setep);
         
-        renamesut = new JButton("Modify SUT");
+        renamesut = new JButton("Modify");
         renamesut.setEnabled(false);
         renamesut.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 TreePath tp = tree.getSelectionPath();
                 DefaultMutableTreeNode treenode = (DefaultMutableTreeNode)tp.getLastPathComponent();
-                if(treenode.getLevel()!=1)return;
-                
-                
-                
+                Object ob = treenode.getUserObject();
                 JPanel p = new JPanel();
                 p.setLayout(null);
-                p.setPreferredSize(new Dimension(250,200));
                 JLabel sut = new JLabel("SUT name: ");
                 sut.setBounds(5,5,80,25);
                 JTextField tsut = new JTextField(treenode.toString());
                 tsut.setBounds(90,5,155,25);
-                JLabel ep = new JLabel("Run on EP's: ");
-                ep.setBounds(5,35,80,25);
-                JList tep = new JList();
-                JScrollPane scep = new JScrollPane(tep);
-                scep.setBounds(90,35,155,150);
                 p.add(sut);
                 p.add(tsut);
-                p.add(ep);
-                p.add(scep);
-                SUT s = (SUT)treenode.getUserObject();
-                populateEPs(tep,s.getEPs());
+                p.setPreferredSize(new Dimension(250,200));
+                DefaultMutableTreeNode parent = (DefaultMutableTreeNode)treenode.getParent();
+                JList tep = new JList();
+                SUT s=null;
+                if(ob instanceof Comp){
+                    p.setPreferredSize(new Dimension(250,35));
+                } else {
+                    JLabel ep = new JLabel("Run on EP's: ");
+                    ep.setBounds(5,35,80,25);
+                    
+                    JScrollPane scep = new JScrollPane(tep);
+                    scep.setBounds(90,35,155,150);
+                    p.add(ep);
+                    p.add(scep);
+                    s = (SUT)treenode.getUserObject();
+                    populateEPs(tep,s.getEPs());
+                }
+                //if(treenode.getLevel()!=1)return;                
+                
+                
+                
                 
                 
 //                 s.getEPs();
@@ -133,36 +143,47 @@ public class SUTEditor extends JPanel{
                 
                 
                 int resp = (Integer)CustomDialog.showDialog(p,JOptionPane.PLAIN_MESSAGE, 
-                            JOptionPane.OK_CANCEL_OPTION, SUTEditor.this, "Modify SUT",null);
+                            JOptionPane.OK_CANCEL_OPTION, SUTEditor.this, "Modify",null);
                             
                 if(resp == JOptionPane.OK_OPTION&&!tsut.getText().equals("")){
-                    if(checkExistingName(root, tsut.getText(),treenode)){
+                    if(checkExistingName(parent, tsut.getText(),treenode)){
                         CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,SUTEditor.this,"Warning", 
-                                        "There is a SUT with the same name, please use different name.");
-                         return;
+                                        "This name is already used, please use different name.");
+                        return;
                     }
                     try{
-                        String query = client.execute("renameSut", new Object[]{"/"+treenode.toString(),
-                                                                                        tsut.getText()}).toString();
+                        String torename = "";
+                        if(ob instanceof Comp){
+                            torename = ((Comp)ob).getID();
+                        } else {
+                            torename = "/"+treenode.toString();
+                        }
+                        
+                        String query = client.execute("renameSut", new Object[]{torename,tsut.getText()}).toString();
                         if(query.equals("true")){
-                            StringBuilder sb = new StringBuilder();
-                            for(int i=0;i<tep.getSelectedValuesList().size();i++){
-                                sb.append(tep.getSelectedValuesList().get(i).toString());
-                                sb.append(";");
+                            if(ob instanceof SUT){
+                                StringBuilder sb = new StringBuilder();
+                                for(int i=0;i<tep.getSelectedValuesList().size();i++){
+                                    sb.append(tep.getSelectedValuesList().get(i).toString());
+                                    sb.append(";");
+                                }
+                                String seleps = "{'epnames':'"+sb.toString()+"'}";
+                                query = client.execute("setSut", new Object[]{"/"+tsut.getText(),"/",seleps}).toString();
+                                if(query.indexOf("ERROR")==-1){
+                                    s.setName(tsut.getText());
+                                    s.setEPs(sb.toString());
+                                    ((DefaultTreeModel)tree.getModel()).nodeChanged(treenode);
+                                    ((DefaultTreeModel)tree.getModel()).nodeChanged(s.getEPNode());
+                                    RunnerRepository.window.mainpanel.p1.suitaDetails.setComboTBs();
+                                } else {
+                                    CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SUTEditor.this,"Error", query);
+                                }
                             }
-                            String seleps = "{'epnames':'"+sb.toString()+"'}";
-                            query = client.execute("setSut", new Object[]{"/"+tsut.getText(),"/",seleps}).toString();
-                            if(query.indexOf("ERROR")==-1){
-                                s.setName(tsut.getText());
-                                s.setEPs(sb.toString());
-                                ((DefaultTreeModel)tree.getModel()).nodeChanged(treenode);
-                                ((DefaultTreeModel)tree.getModel()).nodeChanged(s.getEPNode());
-                            } else {
-                                System.out.println(query);
-                                CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SUTEditor.this,"Error", query);
+                            else {
+                                ((Comp)ob).setName(tsut.getText()); 
                             }
+                            ((DefaultTreeModel)tree.getModel()).nodeChanged(treenode);
                         }else{
-                            System.out.println(query);
                             CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SUTEditor.this,"Error", query);
                         }
                     } catch (Exception e){
@@ -171,29 +192,8 @@ public class SUTEditor extends JPanel{
                     
                     
                 }
-                
-//                 String user = CustomDialog.showInputDialog(JOptionPane.QUESTION_MESSAGE,
-//                                                     JOptionPane.OK_CANCEL_OPTION, SUTEditor.this,
-//                                                     "SUT Name", "Please enter SUT name");
-//                 if(user!=null&&!user.equals("NULL")){
-//                     try{String resp = client.execute("renameSut", new Object[]{"/"+treenode.toString(),user}).toString();
-//                         if(resp.indexOf("ERROR")==-1){
-//                             treenode.setUserObject(user);
-//                             ((DefaultTreeModel)tree.getModel()).nodeChanged(treenode);
-//                         } else {
-//                             CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,SUTEditor.this,"Warning", resp);
-//                         }
-//                     } catch(Exception e){
-//                         e.printStackTrace();
-//                     }
-//                 }
-                
-                
-                
-                
             }
         });
-        sutopt.add(renamesut);
         JButton addsut = new JButton("Add SUT");
         addsut.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
@@ -221,7 +221,7 @@ public class SUTEditor extends JPanel{
                 if(resp == JOptionPane.OK_OPTION&&!tsut.getText().equals("")){
                     if(checkExistingName(root, tsut.getText(),null)){
                         CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,SUTEditor.this,"Warning", 
-                                        "There is a SUT with the same name, please use different name.");
+                                        "This name is already used, please use different name.");
                          return;
                     }
                     try{
@@ -249,6 +249,7 @@ public class SUTEditor extends JPanel{
                             element.add(eps);
                             
                             model.insertNodeInto(element, root, root.getChildCount());
+                            RunnerRepository.window.mainpanel.p1.suitaDetails.setComboTBs();
                         } else {
                             CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,SUTEditor.this,"Warning", respons);
                         }
@@ -260,6 +261,50 @@ public class SUTEditor extends JPanel{
             }
         });
         
+        
+        addcomp = new JButton("Add Component");
+        addcomp.addActionListener(new ActionListener(){
+            public void actionPerformed(ActionEvent ev){
+                
+                String name = CustomDialog.showInputDialog(JOptionPane.PLAIN_MESSAGE,
+                                                    JOptionPane.OK_CANCEL_OPTION, 
+                                                    SUTEditor.this, "Name", "Component name: ");
+                if(name!=null&&!name.equals("")){
+                    TreePath tp = tree.getSelectionPath();
+                    DefaultMutableTreeNode treenode = (DefaultMutableTreeNode)tp.getLastPathComponent();
+                    int level = treenode.getLevel();
+                    String parent = "";
+                    if(level==1){
+                        parent =  "/"+treenode.getPath()[treenode.getPath().length-1];
+                    } else {
+                        parent = treenode.getFirstChild().toString().split("ID: ")[1];
+                    }
+                    if(checkExistingName(treenode, name, null)){
+                        CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,SUTEditor.this,"Warning", 
+                                        "This name is already used, please use different name.");
+                        return;
+                    }
+                    try{String resp = client.execute("setSut", new Object[]{name,parent,null}).toString();
+                        if(resp.indexOf("ERROR")==-1){
+                            Comp comp = new Comp(name,resp,"");
+                            DefaultMutableTreeNode component = new DefaultMutableTreeNode(comp,true);
+                            DefaultMutableTreeNode id = new DefaultMutableTreeNode("ID: "+resp,false);
+                            component.add(id);
+                            ((DefaultTreeModel)tree.getModel()).insertNodeInto(component, treenode, treenode.getChildCount());
+                        } else {
+                            CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,SUTEditor.this,"Warning", resp);
+                        }
+                    } catch (Exception e){
+                        System.out.println("Could not send command to add component to server");
+                        e.printStackTrace();
+                    }
+                    
+//                     DefaultMutableTreeNode eps = new DefaultMutableTreeNode(resp,true);
+//                     ((DefaultTreeModel)tree.getModel()).insertNodeInto(eps, treenode, treenode.getChildCount());
+                }
+            }
+        });
+        
         remsut = new JButton("Remove");
         remsut.setEnabled(false);
         remsut.addActionListener(new ActionListener(){
@@ -267,27 +312,27 @@ public class SUTEditor extends JPanel{
                 TreePath tp = tree.getSelectionPath();
                 if(tp==null||tp.getPathCount()==0)return;
                 DefaultMutableTreeNode treenode = (DefaultMutableTreeNode)tp.getLastPathComponent();
-                if(treenode.getLevel()>2)return;
-                
                 try{
                     String torem = "/"+treenode.toString();
+                    Object userobj = treenode.getUserObject();
                     if(treenode.getLevel()!=1){
-                        Node node = (Node)treenode.getUserObject();
-                        torem = "/"+treenode.getParent().toString()+"/"+node.getID();
                         
-//                         torem = node.getID();
+                        if(userobj instanceof Node){
+                            String parent="";
+                            Comp componnet = ((Comp)((DefaultMutableTreeNode)treenode.getParent()).getUserObject());
+                            torem = componnet.getID()+":_id";
+                        } else if (userobj instanceof Comp) {
+                            torem = ((Comp)userobj).getID();
+                        }
                     }
                     String s = client.execute("deleteSut", new Object[]{torem}).toString();
                     if(s.indexOf("ERROR")==-1){
-                        if(treenode.getLevel()!=1){
-                            Node node = (Node)treenode.getUserObject();
-                            Node parent = node.getParent();
-                            if(parent!=null){
-                                parent.removeChild(node.getID());
-                            }
-                        }
                         ((DefaultTreeModel)tree.getModel()).removeNodeFromParent(treenode);
                         selectedSUT(null);
+                        
+                        if(!(userobj instanceof Node)&&!(userobj instanceof Comp)){
+                            RunnerRepository.window.mainpanel.p1.suitaDetails.setComboTBs();
+                        }
                     } else {
                         CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,SUTEditor.this,"Warning", s);
                     }
@@ -296,9 +341,12 @@ public class SUTEditor extends JPanel{
                 }
             }
         });
-        sutopt.add(renamesut);
-        sutopt.add(addsut);
-        sutopt.add(remsut);
+        if(PermissionValidator.canChangeSut()){
+            sutopt.add(addsut);
+            sutopt.add(addcomp);
+            sutopt.add(renamesut);
+            sutopt.add(remsut);
+        }
         add(sutopt,BorderLayout.SOUTH);        
         tree.addTreeSelectionListener(new TreeSelectionListener(){
             public void valueChanged(TreeSelectionEvent ev){                
@@ -315,35 +363,14 @@ public class SUTEditor extends JPanel{
         getSUT();
     }
     
-//     private void setEps(){
-//         JList tep = new JList();
-//         JScrollPane epscroll = new JScrollPane(tep);
-//         epscroll.setPreferredSize(new Dimension(150,200));
-//         JPanel p = new JPanel();
-//         p.add(epscroll);
-//         populateEPs(tep);
-//         int resp = (Integer)CustomDialog.showDialog(p,JOptionPane.PLAIN_MESSAGE, 
-//                             JOptionPane.OK_CANCEL_OPTION, SUTEditor.this, "Run on EP: ",null);
-//         if(resp == JOptionPane.OK_OPTION){
-//             Object [] selections = tep.getSelectedValues();
-//         }
-//     }
-
     public boolean checkExistingName(DefaultMutableTreeNode parent, String name, DefaultMutableTreeNode current){
         Enumeration e = parent.children();
         while(e.hasMoreElements()){
             DefaultMutableTreeNode child = (DefaultMutableTreeNode)e.nextElement();
             if(child!=current&&name.equals(child.toString())){
-//                 if(current!=null&&)
                 return true;
             }
         }
-        
-//         for(String s:parent.getChildren().keySet()){
-//             if(name.equals(parent.getChildren().get(s).getName())){
-//                 return true;
-//             }
-//         }
         return false;
     }
     
@@ -378,23 +405,24 @@ public class SUTEditor extends JPanel{
     private void selectedSUT(DefaultMutableTreeNode newNode){
         
         if(newNode!=null){
-            if(newNode.getUserObject()  instanceof SUT){
+            if(newNode.getUserObject()  instanceof SUT || 
+               newNode.getUserObject()  instanceof Comp){
                 renamesut.setEnabled(true);
             } else {
                 renamesut.setEnabled(false);
             }
-            
-            if(newNode.getLevel()<3&&!newNode.isLeaf()){
+            if(newNode.getUserObject()  instanceof Node ||
+               newNode.getUserObject()  instanceof Comp ||
+               (newNode.getLevel()<3&&!newNode.isLeaf())){
                 remsut.setEnabled(true);
             } else{
                 remsut.setEnabled(false); 
             }
-//             if(newNode.getLevel()>2){
-//                 remsut.setEnabled(false);                
-//             } else {
-//                 remsut.setEnabled(true);
-//             }
-            
+            if(newNode.getLevel()==1 || newNode.getUserObject()  instanceof Comp){
+                addcomp.setEnabled(true);
+            } else {
+                addcomp.setEnabled(false);
+            }            
         } else{
             remsut.setEnabled(false);
             renamesut.setEnabled(false);
@@ -425,9 +453,8 @@ public class SUTEditor extends JPanel{
                 for(Object ob:subchildren){
                     String childid = ob.toString();
                     HashMap subhash= (HashMap)client.execute("getSut", new Object[]{childid});
-                    String subpath = subhash.get("path").toString();
-                    String subname = subpath.split("/")[subpath.split("/").length-1];
-                    buildChildren(new Object[]{subname},child,null);
+                    String id = subhash.get("id").toString();
+                    buildChildren(new Object[]{id},child);
                 }
                 model.insertNodeInto(child, root, root.getChildCount());
             }
@@ -436,25 +463,59 @@ public class SUTEditor extends JPanel{
         }
     }
     
-    private void buildChildren(Object [] children, DefaultMutableTreeNode treenode, Node parent){
+    
+    private void buildChildren(Object [] children, DefaultMutableTreeNode treenode){
         String childid, subchildid;
         for(Object o:children){
-            childid = o.toString();
-            try{                
-                Node child = getTB(childid,parent);
-                DefaultMutableTreeNode treechild = new DefaultMutableTreeNode(child);
-                ((DefaultTreeModel)tree.getModel()).insertNodeInto(treechild, treenode,treenode.getChildCount());
-                DefaultMutableTreeNode temp = new DefaultMutableTreeNode("ID: "+child.getID(),false);
-                ((DefaultTreeModel)tree.getModel()).insertNodeInto(temp, treechild,treechild.getChildCount());
-                DefaultMutableTreeNode temp2 = new DefaultMutableTreeNode(child.getPath(),false);
-                ((DefaultTreeModel)tree.getModel()).insertNodeInto(temp2, treechild,treechild.getChildCount());
-                Object []  subchildren = child.getChildren().keySet().toArray();
-                buildChildren(subchildren,treechild,child);
-            }catch(Exception e){
+            try{childid = o.toString();
+                HashMap subhash= (HashMap)client.execute("getSut", new Object[]{childid});
+                String subpath = subhash.get("path").toString();
+                String subname = subpath.split("/")[subpath.split("/").length-1];
+                HashMap meta = (HashMap)subhash.get("meta");
+                String id = subhash.get("id").toString();
+                Comp comp = new Comp(subname,id,meta.get("_id")+"");
+                DefaultMutableTreeNode component = new DefaultMutableTreeNode(comp,true);
+                DefaultMutableTreeNode nodeid = new DefaultMutableTreeNode("ID: "+id,false);
+                component.add(nodeid);
+                ((DefaultTreeModel)tree.getModel()).insertNodeInto(component, treenode, treenode.getChildCount());
+                if(meta.get("_id")!=null){
+                    String referenceid = meta.get("_id").toString();
+                    Node child = getTB(referenceid,null);
+                    DefaultMutableTreeNode treechild = new DefaultMutableTreeNode(child);
+                    DefaultMutableTreeNode temp = new DefaultMutableTreeNode("ID: "+child.getID(),false);
+                    treechild.add(temp);
+                    DefaultMutableTreeNode temp2 = new DefaultMutableTreeNode(child.getPath(),false);
+                    treechild.add(temp2);
+                    ((DefaultTreeModel)tree.getModel()).insertNodeInto(treechild, component,component.getChildCount());
+                }
+                Object [] subchildren = (Object[])subhash.get("children");
+                buildChildren(subchildren,component);
+            } catch (Exception e){
                 e.printStackTrace();
             }
         }
     }
+    
+    
+//     private void buildChildren(Object [] children, DefaultMutableTreeNode treenode, Node parent){
+//         String childid, subchildid;
+//         for(Object o:children){
+//             childid = o.toString();
+//             try{
+//                 Node child = getTB(childid,parent);
+//                 DefaultMutableTreeNode treechild = new DefaultMutableTreeNode(child);
+//                 ((DefaultTreeModel)tree.getModel()).insertNodeInto(treechild, treenode,treenode.getChildCount());
+//                 DefaultMutableTreeNode temp = new DefaultMutableTreeNode("ID: "+child.getID(),false);
+//                 ((DefaultTreeModel)tree.getModel()).insertNodeInto(temp, treechild,treechild.getChildCount());
+//                 DefaultMutableTreeNode temp2 = new DefaultMutableTreeNode(child.getPath(),false);
+//                 ((DefaultTreeModel)tree.getModel()).insertNodeInto(temp2, treechild,treechild.getChildCount());
+//                 Object []  subchildren = child.getChildren().keySet().toArray();
+//                 buildChildren(subchildren,treechild,child);
+//             }catch(Exception e){
+//                 e.printStackTrace();
+//             }
+//         }
+//     }
     
     /*
      * create a node based om an id
@@ -574,7 +635,10 @@ public class SUTEditor extends JPanel{
             JTree.DropLocation dl = (JTree.DropLocation)support.getDropLocation(); 
             TreePath dest = dl.getPath();  
             DefaultMutableTreeNode target = (DefaultMutableTreeNode)dest.getLastPathComponent(); 
-            if(target.getLevel()!=1){
+//             if(target.getLevel()!=1){
+//                 return false;
+//             }
+            if(!(target.getUserObject() instanceof Comp)){
                 return false;
             }
             Node[] nodes = null; 
@@ -611,39 +675,64 @@ public class SUTEditor extends JPanel{
         }  
        
         public boolean importData(TransferHandler.TransferSupport support) {  
-            if(!canImport(support)) {  
-                return false;  
-            }  
-            Node[] nodes = null;  
-            try {  
-                Transferable t = support.getTransferable();  
-                nodes = (Node[])t.getTransferData(nodesFlavor);  
-            } catch(UnsupportedFlavorException ufe) {  
-                System.out.println("UnsupportedFlavor: " + ufe.getMessage());  
-            } catch(java.io.IOException ioe) {  
-                System.out.println("I/O error: " + ioe.getMessage());  
-            }
-            JTree.DropLocation dl = (JTree.DropLocation)support.getDropLocation();  
-            TreePath dest = dl.getPath();  
-            DefaultMutableTreeNode parent = (DefaultMutableTreeNode)dest.getLastPathComponent();  
-            JTree tree = (JTree)support.getComponent();  
-            DefaultTreeModel model = (DefaultTreeModel)tree.getModel();  
-            int index = parent.getChildCount();  
-//             }
-            for(int i = 0; i < nodes.length; i++) { 
-                try{
-                    String resp = client.execute("setSut", new Object[]{nodes[i].getID(),"/"+parent.getPath()[parent.getPath().length-1],null}).toString();
-                    if(resp.indexOf("ERROR")==-1){
-                        DefaultMutableTreeNode element = createChildren(nodes[i]);
-                        model.insertNodeInto(element, parent, index++);
+            try{
+                if(!canImport(support)) {  
+                    return false;  
+                }
+                Node[] nodes = null;  
+                try {  
+                    Transferable t = support.getTransferable();  
+                    nodes = (Node[])t.getTransferData(nodesFlavor);  
+                } catch(UnsupportedFlavorException ufe) {  
+                    System.out.println("UnsupportedFlavor: " + ufe.getMessage());  
+                } catch(java.io.IOException ioe) {  
+                    System.out.println("I/O error: " + ioe.getMessage());  
+                }
+                JTree.DropLocation dl = (JTree.DropLocation)support.getDropLocation();  
+                TreePath dest = dl.getPath();  
+                DefaultMutableTreeNode parent = (DefaultMutableTreeNode)dest.getLastPathComponent();
+                JTree tree = (JTree)support.getComponent();  
+                DefaultTreeModel model = ((DefaultTreeModel)tree.getModel());  
+                if(parent.getChildCount()>1){
+                    for(int i=0;i<parent.getChildCount();i++){
+                        if(((DefaultMutableTreeNode)parent.getChildAt(i)).getUserObject() instanceof Node){
+                            model.removeNodeFromParent((DefaultMutableTreeNode)parent.getChildAt(i));
+                        }
                     }
                     
-                } catch (Exception e){
-                    e.printStackTrace();
                 }
-                
-            } 
-            return true;  
+                int index = parent.getChildCount();  
+                for(int i = 0; i < nodes.length; i++){ 
+                    try{
+                        Comp comparent = (Comp)parent.getUserObject();
+                        HashMap <String,String>hm = new <String,String>HashMap();
+                        hm.put("_id", nodes[i].getID());
+                        String parentid="";
+                        if(((DefaultMutableTreeNode)parent.getParent()).getUserObject() instanceof Comp){
+                            parentid = ((Comp)((DefaultMutableTreeNode)parent.getParent()).getUserObject()).getID();
+                        } else {
+                            parentid = "/"+parent.getParent().toString();
+                        }
+                        String resp = client.execute("setSut", new Object[]{comparent.getName(),parentid,hm}).toString();
+    //                     String resp = client.execute("setSut", new Object[]{nodes[i].getID(),"/"+parent.getPath()[parent.getPath().length-1],null}).toString();
+                        if(resp.indexOf("ERROR")==-1){
+                            DefaultMutableTreeNode element = createChildren(nodes[i]);
+                            model.insertNodeInto(element, parent, index++);
+                        }
+                        else{
+                            CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,SUTEditor.this,"ERROR", resp);
+                        }
+                        
+                    } catch (Exception e){
+                        e.printStackTrace();
+                    }
+                    
+                } 
+                return true; 
+            } catch(Exception e){
+                e.printStackTrace();
+                return false;
+            }
         } 
         
         private DefaultMutableTreeNode createChildren(Node node){
@@ -656,16 +745,16 @@ public class SUTEditor extends JPanel{
             parent.add(temp);
             
             
-            Object [] objects = node.getChildren().values().toArray();
-            try{
-                for(Object ob:objects){
-                    Node n = (Node)ob;
-                    DefaultMutableTreeNode child = createChildren(n);
-                    parent.add(child);
-                }
-            } catch (Exception e){
-                e.printStackTrace();
-            }
+//             Object [] objects = node.getChildren().values().toArray();
+//             try{
+//                 for(Object ob:objects){
+//                     Node n = (Node)ob;
+//                     DefaultMutableTreeNode child = createChildren(n);
+//                     parent.add(child);
+//                 }
+//             } catch (Exception e){
+//                 e.printStackTrace();
+//             }
             
             return parent;
         }

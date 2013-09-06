@@ -1,6 +1,6 @@
 /*
 File: PacketSnifferPlugin.java ; This file is part of Twister.
-Version: 2.001
+Version: 2.002
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -18,6 +18,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
  */
 
+import java.applet.Applet;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Cursor;
@@ -117,7 +118,7 @@ public class PacketSnifferPlugin extends BasePlugin implements
 			client.setConfig(configuration);
 			final PacketSnifferPlugin sch = new PacketSnifferPlugin();
 			sch.setRPC(client);
-			sch.init(null, null, null, null);
+			sch.init(null, null, null, null,null);
 			JFrame f = new JFrame();
 			f.add(sch.getContent());
 			f.setVisible(true);
@@ -136,10 +137,10 @@ public class PacketSnifferPlugin extends BasePlugin implements
 	}
 
 	@Override
-	public void init(ArrayList<Item> suite, ArrayList<Item> suitetest,
-			final Hashtable<String, String> variables,
-			final Document pluginsConfig) {
-		super.init(suite, suitetest, variables, pluginsConfig);
+	public void init(ArrayList <Item>suite,ArrayList <Item>suitetest,
+			  final Hashtable<String, String>variables,
+			  Document pluginsConfig,Applet container){
+		super.init(suite, suitetest, variables,pluginsConfig,container);
 		System.out.println("Initializing " + getName() + " ...");
 		p = new JPanel();
 		initializeSFTP();
@@ -901,11 +902,10 @@ public class PacketSnifferPlugin extends BasePlugin implements
 	public void initializeRPC() {
 		try {
 			XmlRpcClientConfigImpl configuration = new XmlRpcClientConfigImpl();
-			configuration.setServerURL(new URL("http://"
-					+ variables.get("host") + ":"
-					+ variables.get("centralengineport")));
-
-			// configuration.setServerURL(new URL("http://tsc-server:88/"));
+			configuration.setServerURL(new URL("http://"+variables.get("host")+
+					":"+variables.get("centralengineport")));
+			configuration.setBasicPassword(variables.get("password"));
+	        configuration.setBasicUserName(variables.get("user"));
 			client = new XmlRpcClient();
 			client.setConfig(configuration);
 			System.out.println("Client initialized: " + client);

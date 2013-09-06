@@ -2,7 +2,7 @@
 File: GITPlugin.java ; This file is part of Twister.
 
 Copyright (C) 2012 , Luxoft
-
+Version: 2.001
 Authors: Andrei Costachi <acostachi@luxoft.com>
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import java.applet.Applet;
 import java.awt.Component;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -88,10 +89,16 @@ public class GITPlugin extends BasePlugin implements TwisterPluginInterface {
 	private Node npassword,nserver,nsnapshot,ndefaultOp,nusername,nbranch;
 	
 
+	
 	@Override
-	public void init(ArrayList<Item> suite, ArrayList<Item> suitetest,
-			final Hashtable<String, String> variables,final Document pluginsConfig) {
-		super.init(suite, suitetest, variables,pluginsConfig);
+	public void init(ArrayList <Item>suite,ArrayList <Item>suitetest,
+			  Hashtable<String, String>variables,
+			  Document pluginsConfig,Applet container){
+	
+	//@Override
+	//public void init(ArrayList<Item> suite, ArrayList<Item> suitetest,
+	//		final Hashtable<String, String> variables,final Document pluginsConfig) {
+		super.init(suite, suitetest, variables,pluginsConfig, container);
 		System.out.println("Initializing "+getName()+" ...");
 		initializeSFTP();
 		initializeRPC();
@@ -343,6 +350,8 @@ public class GITPlugin extends BasePlugin implements TwisterPluginInterface {
 		try{XmlRpcClientConfigImpl configuration = new XmlRpcClientConfigImpl();
         configuration.setServerURL(new URL("http://"+variables.get("host")+
                                     ":"+variables.get("centralengineport")));
+        configuration.setBasicPassword(variables.get("password"));
+        configuration.setBasicUserName(variables.get("user"));
         client = new XmlRpcClient();
         client.setConfig(configuration);
         System.out.println("Client initialized: "+client);}
@@ -357,7 +366,7 @@ public class GITPlugin extends BasePlugin implements TwisterPluginInterface {
         	final MySftpBrowser browser = new MySftpBrowser(variables.get("host"),
         													variables.get("user"), 
         													variables.get("password"), 
-        													tsnapshot, p);
+        													tsnapshot, p,false);
         	//final MySftpBrowser browser = new MySftpBrowser(c, tsnapshot, p);
         	new Thread(){
         		public void run(){

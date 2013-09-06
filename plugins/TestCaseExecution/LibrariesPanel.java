@@ -1,6 +1,6 @@
 /*
 File: LibrariesPanel.java ; This file is part of Twister.
-Version: 2.003
+Version: 2.004
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -135,6 +135,7 @@ public class LibrariesPanel{
     private DefaultMutableTreeNode child2;
     private JEditTextArea textarea;
     public static ChannelSftp connection;
+    public static Session session;
 
     public LibrariesPanel(boolean applet) {
         RunnerRepository.introscreen.setStatus("Started Libraries interface initialization");
@@ -818,7 +819,7 @@ public class LibrariesPanel{
     private void initializeSftp(){
         try{
             JSch jsch = new JSch();
-            Session session = jsch.getSession(RunnerRepository.user, RunnerRepository.host, 22);
+            session = jsch.getSession(RunnerRepository.user, RunnerRepository.host, 22);
             session.setPassword(RunnerRepository.password);
             Properties config = new Properties();
             config.put("StrictHostKeyChecking", "no");

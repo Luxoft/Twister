@@ -1,6 +1,6 @@
 /*
 File: WelcomeScreen.java ; This file is part of Twister.
-Version: 2.003
+Version: 2.004
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -30,10 +30,11 @@ import java.awt.event.KeyEvent;
 import javax.swing.JTextArea;
 import java.awt.event.AWTEventListener;
 import java.awt.AWTEvent;
+import javax.swing.JLabel;
 
 public class WelcomeScreen extends JPanel{
     private AWTEventListener ked;
-    private JTextArea tf;
+    private JTextArea tf,tf2;
     
     public WelcomeScreen(){
         setPreferredSize(new Dimension(700,380));
@@ -51,11 +52,19 @@ public class WelcomeScreen extends JPanel{
         tf = new JTextArea();
         tf.setBackground(getBackground());
         tf.setFont(new Font("TimesRoman", Font.BOLD, 14));
-        tf.setBounds(15,120,230,120);
+        tf.setBounds(15,130,230,120);
         tf.setEditable(false);
         tf.setBorder(null);
         tf.setText(MainRepository.logotxt);
+        tf2 = new JTextArea();
+        tf2.setBackground(getBackground());
+        tf2.setFont(new Font("TimesRoman", Font.BOLD, 14));
+        tf2.setBounds(480,130,230,120);
+        tf2.setEditable(false);
+        tf2.setBorder(null);
+        tf2.setText("   Twister Framework \n\n             V.: "+MainRepository.getVersion()+" \n Build date: "+MainRepository.getBuildDate());
         add(tf);
+        add(tf2);
     }
     
     public void paint(Graphics g){
@@ -63,9 +72,9 @@ public class WelcomeScreen extends JPanel{
         g.drawImage(MainRepository.background, 260, 20, null);
         g.drawImage(MainRepository.logo, 15, 20, null);
         g.setFont(new Font("TimesRoman", Font.BOLD, 14));
-        g.drawString("Twister Framework", 490, 130);
-        g.drawString("V.: "+MainRepository.getVersion(), 530, 165);
-        g.drawString("Build date: "+MainRepository.getBuildDate(), 483, 180);
+//         g.drawString("Twister Framework", 490, 130);
+//         g.drawString("V.: "+MainRepository.getVersion(), 530, 165);
+//         g.drawString("Build date: "+MainRepository.getBuildDate(), 483, 180);
         g.drawString("Press any Key to Logon", 275, 350);
         requestFocus();
     }

@@ -1,6 +1,6 @@
 /*
 File: About.java ; This file is part of Twister.
-Version: 2.003
+Version: 2.004
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -36,20 +36,32 @@ public class About extends JPanel{
                 super.paintComponent(g);
                 g.drawImage(RunnerRepository.background, 260, 0, null);
                 g.drawImage(RunnerRepository.logo, 0, 0, null);
-                g.setFont(new Font("TimesRoman", Font.BOLD, 14));
-                g.drawString("Twister Framework", 485, 130);
-                g.drawString("V.: "+RunnerRepository.getVersion(), 525, 165);
-                g.drawString("Build date: "+RunnerRepository.getBuildDate(), 478, 180);
-                g.drawString(RunnerRepository.os, 478, 195);
-                g.drawString(RunnerRepository.python, 478, 210);
+//                 g.setFont(new Font("TimesRoman", Font.BOLD, 14));
+//                 g.drawString("Twister Framework", 485, 130);
+//                 g.drawString("V.: "+RunnerRepository.getVersion(), 525, 165);
+//                 g.drawString("Build date: "+RunnerRepository.getBuildDate(), 478, 180);
+//                 g.drawString(RunnerRepository.os, 478, 195);
+//                 g.drawString(RunnerRepository.python, 478, 210);
             }
         };
         p.setLayout(null);
         
+        
+        JTextArea ta2 = new JTextArea();
+        ta2.setBackground(getBackground());
+        ta2.setFont(new Font("TimesRoman", Font.BOLD, 14));
+        ta2.setBounds(480,130,230,120);
+        ta2.setEditable(false);
+        ta2.setBorder(null);
+        ta2.setText("   Twister Framework \n\n             V.: "+RunnerRepository.getVersion()+" \nBuild date: "+RunnerRepository.getBuildDate()+
+                    "\n"+RunnerRepository.os+"\n"+RunnerRepository.python);
+        add(ta2);
+        
+        
         ta = new JTextArea();
         ta.setBackground(p.getBackground());
         ta.setFont(new Font("TimesRoman", Font.BOLD, 14));
-        ta.setBounds(0,120,230,120);
+        ta.setBounds(0,130,230,120);
         ta.setEditable(false);
         ta.setBorder(null);
         ta.setText(RunnerRepository.logotxt);
