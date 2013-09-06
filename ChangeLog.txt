@@ -9,6 +9,7 @@
   servers, the user is not allowed to change the SUT
 - fixed a LogServer issue for log_summary; it was happening only for NIS users
 - fix for issue#91 ; secondary libraries are loaded
+- fix issue #70 ; plugins can be loaded
 - updated User Guide
 
 30th August
