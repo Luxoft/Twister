@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# version: 2.003
+# version: 2.004
 #
 # -*- coding: utf-8 -*-
 #
@@ -34,6 +34,7 @@ from time import sleep, time
 from thread import start_new_thread, allocate_lock
 from scapy.all import Automaton, ATMT, TCP, bind_layers, Packet, NoPayload, Raw
 
+
 from PacketSnifferClasses import OpenFlow, CentralEngineObject
 try:
 	from openflow.of_13.parse import of_message_parse
@@ -41,8 +42,9 @@ except Exception as e:
 	of_message_parse = None
 	print('WARNING: openflow lib not found')
 
+
 from sys import maxsize
-from socket import gethostname, gethostbyname, socket, AF_INET, SOCK_DGRAM, inet_ntoa
+from socket import gethostname, gethostbyname, socket, AF_INET, SOCK_DGRAM, inet_ntoa, create_connection
 from fcntl import ioctl
 from struct import unpack, pack
 from array import array
@@ -97,12 +99,14 @@ class PacketSniffer():
 										self.snifferData['OFPort'],
 										IFACE,
 										self.snifferData['_uid'])
+
 		self.parser = ParseData(self.sniffer)
 
 
 	def run(self):
 		self.sniffer.runbg()
-		sleep(2)
+		while not self.sniffer._started:
+			sleep(2)
 		start_new_thread(self.parser.run, ())
 
 		global endAll
@@ -171,11 +175,10 @@ class Sniffer(Automaton):
 		self.userhost = gethostname()
 
 		self.epConfig = epConfig
-		_epConfig = list(set([(ep['CE_IP'], ep['CE_PORT'])
-									for ep in self.epConfig if ep['ENABLED']]))
+		_epConfig = list(set([(ep['CE_IP'], ep['CE_PORT']) for ep in self.epConfig]))
 		self.ceObjects = [
 			CentralEngineObject(
-				ServerProxy('http://{ip}:{port}/'.format(ip=ep[0], port=ep[1])),
+				ServerProxy('http://{_us}:EP@{ip}:{port}/'.format(_us=self.username, ip=ep[0], port=ep[1])),
 			)
 			for ep in _epConfig
 		]
@@ -186,6 +189,7 @@ class Sniffer(Automaton):
 
 		self.reinitRetries = 0
 		self.reinitMaxRetries = 4
+		self._started = False
 
 	def master_filter(self, packet):
 		try:
@@ -201,6 +205,10 @@ class Sniffer(Automaton):
 			sourcePort = 'None'
 			destinationPort = 'None'
 
+		# only OFP packets
+		#if not (sourcePort == '6633' or destinationPort == '6633'):
+		#	return False
+
 		return True
 
 
@@ -210,33 +218,35 @@ class Sniffer(Automaton):
 		# Try to ping status from CE!
 		for ce in self.ceObjects:
 			try:
-				response = ce.proxy.echo('ping')
+				_proxy = str(ce.proxy).split()[2][:-2].split(':')[1:]
+				_proxy[0] = _proxy[0].split('@')[1]
+				create_connection((_proxy[0], _proxy[1]), 2)
+				#ce.proxy.echo('ping')
 				self.reinitRetries = 0
 			except Exception, e:
 				self.ceObjects.pop(self.ceObjects.index(ce))
 
 				print 'PT warning: Central Engine is down .... [{0}]'.format(e)
 
-				if len(self.ceObjects) == 0:
-					if self.reinitRetries < self.reinitMaxRetries:
-						print 'PT debug: no central engines; \
-								will retry [{r}] ..'.format(r=self.reinitRetries)
-						self.reinitRetries += 1
+		if not self.ceObjects:
+			if self.reinitRetries < self.reinitMaxRetries:
+				print 'PT debug: no central engines; \
+						will retry [{r}] ..'.format(r=self.reinitRetries)
+				self.reinitRetries += 1
 
-						_epConfig = list(set([(ep['CE_IP'], ep['CE_PORT'])
-									for ep in self.epConfig if ep['ENABLED']]))
-						self.ceObjects = [
-							CentralEngineObject(
-								ServerProxy('http://{ip}:{port}/'.format(ip=ep[0],
-																	port=ep[1])),
-							)
-							for ep in _epConfig
-						]
-						sleep(2)
+				_epConfig = list(set([(ep['CE_IP'], ep['CE_PORT']) for ep in self.epConfig]))
+				self.ceObjects = [
+					CentralEngineObject(
+						ServerProxy('http://{_us}:EP@{ip}:{port}/'.format(_us=self.username, ip=ep[0],
+															port=ep[1])),
+					)
+					for ep in _epConfig
+				]
+				sleep(2)
 
-						raise self.BEGIN()
-					else:
-						raise self.END()
+				raise self.BEGIN()
+			else:
+				raise self.END()
 
 		args = {
 			'command': 'registersniff',
@@ -250,6 +260,7 @@ class Sniffer(Automaton):
 
 				pluginData = ce.proxy.runPlugin(self.username,
 												'PacketSnifferPlugin', args)
+
 				if pluginData['status']['success']:
 					print 'registered to central engine %s..' % ce.proxy
 				else:
@@ -257,6 +268,8 @@ class Sniffer(Automaton):
 					print pluginData['status']['message']
 		except Exception, e:
 			print 'PT debug: [BEGIN] {err}'.format(err=e)
+
+		self._started = True
 
 		raise self.WAITING()
 
@@ -334,6 +347,7 @@ class ParseData():
 		self.packetHead = None
 		self.packetsToParse = list()
 		self.packetsToSend = list()
+		self.ceSendLock = allocate_lock()
 
 	def run(self):
 		if not self.sniffer:
@@ -351,17 +365,19 @@ class ParseData():
 						self.packetsToParse = list(sniffedPackets)
 						del sniffedPackets[:]
 
-					for packet in self.packetsToParse:
-						self.packet = packet
-						self.packetHead = self.packet_parse()
+					with self.ceSendLock:
+						for packet in self.packetsToParse:
+							self.packet = packet
+							self.packetHead = self.packet_parse()
 
-						if self.filter():
-							self.packetsToSend.append({'packetHead': self.packetHead,
-														'packet': self.packet})
-					del self.packetsToParse[:]
+							if self.filter():
+								self.packetsToSend.append({'packetHead': self.packetHead,
+															'packet': self.packet})
+						del self.packetsToParse[:]
 
-					if self.packetsToSend:
-						self.send()
+						if self.packetsToSend:
+							self.send()
+						del self.packetsToSend[:]
 				except Exception, e:
 					#print 'no packets in list'
 					self.packet = None
@@ -546,8 +562,11 @@ class ParseData():
 				destinationPort = None
 
 			if self.sniffer.OFPort in [sourcePort, destinationPort] and of_message_parse:
-				_packet = of_message_parse(str(self.packet.load))
-				packet = {'pkt': _packet.show()}
+				try:
+					_packet = of_message_parse(str(self.packet.payload))
+					packet = {'pkt': _packet.show()}
+				except Exception as e:
+					packet = self.packet_to_dict(self.packet)
 			else:
 				packet = self.packet_to_dict(self.packet)
 
@@ -564,7 +583,7 @@ class ParseData():
 			data['packet_head'].update([('id', str(time())), ])
 			data = b2a_base64(str(data))
 			packetListToSend.append(data)
-		del self.packetsToSend[:]
+
 		packetListToSend = b2a_base64(str(packetListToSend))
 
 		# push packet to central engines
