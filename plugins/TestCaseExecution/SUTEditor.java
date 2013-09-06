@@ -101,7 +101,7 @@ public class SUTEditor extends JPanel{
                 Object ob = treenode.getUserObject();
                 JPanel p = new JPanel();
                 p.setLayout(null);
-                JLabel sut = new JLabel("SUT name: ");
+                JLabel sut = new JLabel("Name: ");
                 sut.setBounds(5,5,80,25);
                 JTextField tsut = new JTextField(treenode.toString());
                 tsut.setBounds(90,5,155,25);
