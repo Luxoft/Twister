@@ -205,6 +205,10 @@ class Sniffer(Automaton):
 			sourcePort = 'None'
 			destinationPort = 'None'
 
+		# only OFP packets
+		#if not (sourcePort == '6633' or destinationPort == '6633'):
+		#	return False
+
 		return True
 
 
@@ -343,6 +347,7 @@ class ParseData():
 		self.packetHead = None
 		self.packetsToParse = list()
 		self.packetsToSend = list()
+		self.ceSendLock = allocate_lock()
 
 	def run(self):
 		if not self.sniffer:
@@ -360,17 +365,19 @@ class ParseData():
 						self.packetsToParse = list(sniffedPackets)
 						del sniffedPackets[:]
 
-					for packet in self.packetsToParse:
-						self.packet = packet
-						self.packetHead = self.packet_parse()
+					with self.ceSendLock:
+						for packet in self.packetsToParse:
+							self.packet = packet
+							self.packetHead = self.packet_parse()
 
-						if self.filter():
-							self.packetsToSend.append({'packetHead': self.packetHead,
-														'packet': self.packet})
-					del self.packetsToParse[:]
+							if self.filter():
+								self.packetsToSend.append({'packetHead': self.packetHead,
+															'packet': self.packet})
+						del self.packetsToParse[:]
 
-					if self.packetsToSend:
-						self.send()
+						if self.packetsToSend:
+							self.send()
+						del self.packetsToSend[:]
 				except Exception, e:
 					#print 'no packets in list'
 					self.packet = None
@@ -555,8 +562,11 @@ class ParseData():
 				destinationPort = None
 
 			if self.sniffer.OFPort in [sourcePort, destinationPort] and of_message_parse:
-				_packet = of_message_parse(str(self.packet.load))
-				packet = {'pkt': _packet.show()}
+				try:
+					_packet = of_message_parse(str(self.packet.payload))
+					packet = {'pkt': _packet.show()}
+				except Exception as e:
+					packet = self.packet_to_dict(self.packet)
 			else:
 				packet = self.packet_to_dict(self.packet)
 
@@ -573,7 +583,7 @@ class ParseData():
 			data['packet_head'].update([('id', str(time())), ])
 			data = b2a_base64(str(data))
 			packetListToSend.append(data)
-		del self.packetsToSend[:]
+
 		packetListToSend = b2a_base64(str(packetListToSend))
 
 		# push packet to central engines
