@@ -466,7 +466,7 @@ class Project:
         return True
 
 
-    def listUsers(self, active=False):
+    def listUsers(self, active=False, nis=True):
         """
         Find all system users that have Twister installer.\n
         If `active` is True, list only the users that are registered in Central Engine.
@@ -477,16 +477,18 @@ class Project:
             path = line.split(':')[5]
             if os.path.isdir(path + '/twister/config'):
                 users.append(line.split(':')[0])
+
         # Check if the machine has NIS users
-        try:
-            subprocess.check_output('nisdomainname')
-            u = subprocess.check_output("ypcat passwd | awk -F : '{print $1}'", shell=True)
-            for user in u.split():
-                home = userHome(user)
-                if os.path.isdir(home + '/twister/config'):
-                    users.append(user)
-        except:
-            pass
+        if nis:
+            try:
+                subprocess.check_output('nisdomainname')
+                u = subprocess.check_output("ypcat passwd | awk -F : '{print $1}'", shell=True)
+                for user in u.split():
+                    home = userHome(user)
+                    if os.path.isdir(home + '/twister/config'):
+                        users.append(user)
+            except:
+                pass
 
         users = sorted( set(users) )
         # Filter active users ?
@@ -689,7 +691,8 @@ class Project:
                     try:
                         subprocess.check_output('ypmatch {} passwd'.format(name), shell=True)
                     except:
-                        return '*ERROR* : Invalid NIS user `{}` !'.format(name)
+                        if name not in self.listUsers(nis=False):
+                            return '*ERROR* : Invalid system user `{}` !'.format(name)
             except:
                 pass
             try:
