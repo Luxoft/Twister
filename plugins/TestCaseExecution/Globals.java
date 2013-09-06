@@ -1,6 +1,6 @@
 /*
 File: Globals.java ; This file is part of Twister.
-Version: 2.004
+Version: 2.005
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -97,7 +97,8 @@ import java.awt.event.FocusListener;
 import java.awt.Color;
 
 public class Globals {
-    private ChannelSftp ch ;
+    public ChannelSftp ch ;
+    public Session session;
     public JScrollPane panel;
     public JPanel main, pdesc;
     private JTree tree;
@@ -1163,7 +1164,7 @@ public class Globals {
     public void initSftp(){
         try{
             JSch jsch = new JSch();
-            Session session = jsch.getSession(RunnerRepository.user, RunnerRepository.host, 22);
+            session = jsch.getSession(RunnerRepository.user, RunnerRepository.host, 22);
             session.setPassword(RunnerRepository.password);
             Properties config = new Properties();
             config.put("StrictHostKeyChecking", "no");

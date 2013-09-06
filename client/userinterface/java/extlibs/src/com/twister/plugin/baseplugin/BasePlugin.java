@@ -1,6 +1,6 @@
 /*
 File: BasePlugin.java ; This file is part of Twister.
-Version: 2.001
+Version: 2.002
 Copyright (C) 2012 , Luxoft
 
 Authors: Andrei Costachi <acostachi@luxoft.com>
@@ -83,6 +83,7 @@ public class BasePlugin extends JPanel implements TwisterPluginInterface {
 			String line;
 			while ((line = br.readLine()) != null) {
 				sb.append(line);
+				sb.append("\n");
 			}
 			br.close();
 			return sb.toString();

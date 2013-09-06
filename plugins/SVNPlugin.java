@@ -2,7 +2,7 @@
 File: SVNPlugin.java ; This file is part of Twister.
 
 Copyright (C) 2012 , Luxoft
-
+Version: 2.001
 Authors: Andrei Costachi <acostachi@luxoft.com>
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import java.applet.Applet;
 import java.awt.Component;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -89,9 +90,10 @@ public class SVNPlugin extends BasePlugin implements TwisterPluginInterface {
 	
 
 	@Override
-	public void init(ArrayList<Item> suite, ArrayList<Item> suitetest,
-			final Hashtable<String, String> variables,final Document pluginsConfig) {
-		super.init(suite, suitetest, variables,pluginsConfig);
+	public void init(ArrayList <Item>suite,ArrayList <Item>suitetest,
+			  final Hashtable<String, String>variables,
+			  Document pluginsConfig,Applet container){
+		super.init(suite, suitetest, variables,pluginsConfig,container);
 		System.out.println("Initializing plugin: "+getName()+" ...");
 		initializeSFTP();
 		initializeRPC();
@@ -344,7 +346,7 @@ public class SVNPlugin extends BasePlugin implements TwisterPluginInterface {
 	public void selectSnapshot(){
 		try{
         	final String initial = tsnapshot.getText();
-        	final MySftpBrowser browser = new MySftpBrowser(variables.get("host"), variables.get("user"), variables.get("password"), tsnapshot, p);
+        	final MySftpBrowser browser = new MySftpBrowser(variables.get("host"), variables.get("user"), variables.get("password"), tsnapshot, p,false);
         	//final MySftpBrowser browser = new MySftpBrowser(c, tsnapshot, p);
         	new Thread(){
         		public void run(){

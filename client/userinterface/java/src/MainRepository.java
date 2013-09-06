@@ -1,6 +1,6 @@
 /*
 File: MainRepository.java ; This file is part of Twister.
-Version: 2.007
+Version: 2.008
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -72,8 +72,8 @@ public class MainRepository {
     private static TwisterPluginInterface plugin;
     private static XmlRpcClient client;
     private static Hashtable<String,String> hash = new Hashtable<String,String>();
-    private static String version = "2.023";
-    private static String builddate = "30.08.2013";
+    private static String version = "2.024";
+    private static String builddate = "06.09.2013";
     public static int time = 10;//seconds
     public static boolean countdown = false;
     public static String logotxt;
@@ -286,7 +286,7 @@ public class MainRepository {
 //                     return;
 //                 }
 //             }
-
+            if(plugin!=null)plugin.terminate();
             if(pluginname.equals("ControlPanel")){
                 new Thread(){
                     public void run(){

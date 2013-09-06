@@ -1,7 +1,7 @@
 
 # File: LogServer.py ; This file is part of Twister.
 
-# version: 2.005
+# version: 2.006
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -41,7 +41,7 @@ def create_listener(PORT):
     """
     Create streaming socket server on a local host and a random port.
     """
-    log.debug('Preparing to start on `{}`...'.format(PORT))
+    log.debug('Log: Preparing to start on `{}`...'.format(PORT))
     for res in socket.getaddrinfo(None, PORT, socket.AF_UNSPEC, socket.SOCK_STREAM, 0, socket.AI_PASSIVE):
         af, socktype, proto, canonname, sa = res
         try:
@@ -61,7 +61,7 @@ def create_listener(PORT):
         log.error('Cannot open socket!')
         sys.exit(1)
     else:
-        log.debug('Started server on `{}`.'.format(sa))
+        log.debug('Log: Started server on `{}`.'.format(sa))
         return sock
 
 
@@ -75,12 +75,13 @@ def process_cmd(sock):
 
     while 1:
         resp = 'Ok!' # Default response
+        buff = 2**15
 
         # Message from client.
-        data = conn.recv((2**14))
-        # if data:
-        #     log.debug('Message: `{}`.'.format(repr(data)))
+        data = conn.recv(buff)
 
+        # if data:
+        #    log.debug('Log: Received message with `len = {}`.'.format(len(data)))
 
         # ~~~ Reset 1 Log ~~~
         if data.startswith("{") and '"del"' in data:
@@ -94,7 +95,7 @@ def process_cmd(sock):
 
             try:
                 open(logPath, 'w').close()
-                log.debug('Cleaned log `{}`.'.format(logPath))
+                log.debug('Log: Cleaned log `{}`.'.format(logPath))
             except:
                 resp = 'Log folder `{}` cannot be reset!'.format(logPath)
                 log.error(resp)
@@ -108,7 +109,7 @@ def process_cmd(sock):
                 log.error('Cannot parse JSON data!')
                 return False
 
-            log.debug('Cleaning `{}` log files...'.format(len(info['logTypes'])))
+            log.debug('Log: Cleaning `{}` log files...'.format(len(info['logTypes'])))
             err = False
 
             for log_path in glob.glob(info['logsPath'] + os.sep + '*.log'):
@@ -122,7 +123,7 @@ def process_cmd(sock):
                     # Move file in archive
                     try:
                         os.rename(log_path, archPath)
-                        log.debug('Log file `{}` archived in `{}`.'.format(log_path, archPath))
+                        log.debug('Log: File `{}` archived in `{}`.'.format(log_path, archPath))
                     except Exception as e:
                         log.error('Cannot archive log `{}` in `{}`! Exception `{}`!'.format(log_path, archiveLogsPath, e))
                 try:
@@ -177,7 +178,7 @@ def process_cmd(sock):
 
         # ~~~ Write Log Message ~~~
         elif data.upper() == 'EXIT':
-            log.warning('Log Server:  *sigh* received EXIT signal...')
+            # log.warning('Log Server:  *sigh* received EXIT signal...')
             # Reply to client.
             conn.send('EXIT!')
             return True
@@ -211,7 +212,7 @@ if __name__ == '__main__':
         # If the response is True, time to exit
         if p: break
 
-    log.warning('Log Server:  Bye bye.')
+    log.warning('Log Server: Bye bye.')
 
 
 # Eof()
