@@ -1,8 +1,9 @@
 
 #
-# version: 2.002
-# <title>test 03</title>
-# <description>Testing the EP.</description>
+# <ver>version: 2.003</ver>
+# <title>Test EPs</title>
+# <description>This suite checks the most basic functionality of Twister.<br>
+# It checks if the EPs are running the tests successfully and it calls all CE functions, to ensure they work as expected.</description>
 #
 
 import time

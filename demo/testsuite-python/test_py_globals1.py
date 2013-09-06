@@ -8,7 +8,7 @@ from binascii import hexlify
 
 """
 <title>Testing Globals</title>
-<description>This test is checking the globals.
+<description>This test is checking the globals.<br>
 The global variable `global1` will be updated several times to see if it's working!</description>
 """
 

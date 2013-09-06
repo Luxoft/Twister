@@ -1,5 +1,5 @@
 
-# version: 2.007
+# version: 2.009
 
 # Major list of constants.
 
@@ -43,6 +43,7 @@ ROLES = [
 	'CHANGE_PLUGINS',	# Can load/ unload plugins ? (applet)
 
 	'CHANGE_TESTBED',	# Can change the global testbed ? (server + applet)
+	'CHANGE_SUT',		# Can change the global SUT ? (server + applet)
 	'CHANGE_SERVICES',	# Can start/ stop services ? (server + applet)
 	'CHANGE_USERS',		# Can create, change and delete users ? (server + applet)
 ]
@@ -66,6 +67,7 @@ FWMCONFIG_TAGS = (
 	{'name':'db_config',	'tag':'DbConfigFile',		'default':''},
 	{'name':'eml_config',	'tag':'EmailConfigFile',	'default':''},
 	{'name':'glob_params',	'tag':'GlobalParams',		'default':''},
+	{'name':'tcfg_path',	'tag':'TestConfigPath',		'default':''},
 	{'name':'archive_logs_path', 'tag':'ArchiveLogsPath', 'default': False},
 	{'name':'archive_logs_path_active', 'tag':'ArchiveLogsPathActive', 'default': ''},
 )
@@ -85,7 +87,7 @@ PROJECTCONFIG_TAGS = (
 # Suites Tags, from Project Config XML :
 
 SUITES_TAGS = (
-	{'name':'tb',			'tag':'SutName',			'default':''},
+	{'name':'sut',			'tag':'SutName',			'default':''},
 	{'name':'name',			'tag':'tsName',				'default':''},
 	{'name':'pd',			'tag':'PanicDetect',		'default':''},
 	{'name':'libraries',	'tag':'libraries',			'default':''},

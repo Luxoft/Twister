@@ -1,7 +1,8 @@
 /*
 File: Scheduler.java ; This file is part of Twister.
+Version: 2.001
 
-Copyright (C) 2012 , Luxoft
+Copyright (C) 2012-2013 , Luxoft
 
 Authors: Andrei Costachi <acostachi@luxoft.com>
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,6 +17,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+import java.applet.Applet;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Cursor;
@@ -117,7 +119,7 @@ public class Scheduler extends BasePlugin implements TwisterPluginInterface {
 	    	client.setConfig(configuration);
 	    	Scheduler sch = new Scheduler();
 	    	sch.setRPC(client);
-	    	sch.init(null, null, null, null);
+	    	sch.init(null, null, null, null,null);
 			JFrame f = new JFrame();
 			f.add(sch.getContent());
 			f.setVisible(true);
@@ -141,8 +143,8 @@ public class Scheduler extends BasePlugin implements TwisterPluginInterface {
 	 */
 	@Override
 	public void init(ArrayList<Item> suite, ArrayList<Item> suitetest,
-			final Hashtable<String, String> variables,final Document pluginsConfig) {
-		super.init(suite, suitetest, variables,pluginsConfig);
+			final Hashtable<String, String> variables,final Document pluginsConfig,Applet container) {
+		super.init(suite, suitetest, variables,pluginsConfig,container);
 		System.out.println("Initializing "+getName()+" ...");
 		calendar = Calendar.getInstance();
 		initializeSFTP();
@@ -167,23 +169,18 @@ public class Scheduler extends BasePlugin implements TwisterPluginInterface {
 		jScrollPane1.setBorder(null);
 		jTable1 = new JTable();
 		jTable1.getTableHeader().setReorderingAllowed(false);
-		
 		panel1.setLayout(null);
-		
         panel1.setMaximumSize(new Dimension(800, 600));
         panel1.setMinimumSize(new Dimension(800, 600));
         panel1.setPreferredSize(new Dimension(800, 600));
-        
-        
         mycalendar = new MyCalendar(calendar,jTable1);
 		mycalendar.setBounds(65, 85, 667, 300);
 		try {
-			InputStream in = getClass().getResourceAsStream("background.png");
+			InputStream in = getClass().getResourceAsStream("schedulerbackground.png");
 			Image im = ImageIO.read(in);
 			ImageIcon icon = new ImageIcon(im);
 	        JLabel background = new JLabel(icon);
 	        background.setBounds(0, 0, 800, 600);
-	        
 	        in = getClass().getResourceAsStream("modify0.png");
 			im = ImageIO.read(in);
 			modify0 = new ImageIcon(im);			
@@ -204,7 +201,6 @@ public class Scheduler extends BasePlugin implements TwisterPluginInterface {
 				}
 			});
 			modify.setBounds(337, 393, 123, 32);
-			
 			in = getClass().getResourceAsStream("remove0.png");
 			im = ImageIO.read(in);
 			remove0 = new ImageIcon(im);
@@ -225,7 +221,6 @@ public class Scheduler extends BasePlugin implements TwisterPluginInterface {
 				}
 			});
 			remove.setBounds(540, 393, 127, 26);
-			
 			in = getClass().getResourceAsStream("add0.png");
 			im = ImageIO.read(in);
 			add0 = new ImageIcon(im);			
@@ -248,7 +243,6 @@ public class Scheduler extends BasePlugin implements TwisterPluginInterface {
 				}
 			});
 			add.setBounds(150, 393, 81, 26);
-			
 			in = getClass().getResourceAsStream("btn0.png");
 			im = ImageIO.read(in);
 			right0 = new ImageIcon(im);			
@@ -267,7 +261,8 @@ public class Scheduler extends BasePlugin implements TwisterPluginInterface {
 					right.setIcon(right0);
 					calendar.add(Calendar.MONTH, 1);
 					calendar.set(Calendar.DAY_OF_MONTH, 1);
-					String dayname = new SimpleDateFormat("EEEE",Locale.US).format(calendar.getTime()).toLowerCase();
+					String dayname = new SimpleDateFormat("EEEE",Locale.US).
+										format(calendar.getTime()).toLowerCase();
 					mycalendar.days.setDays(calendar.getActualMaximum(Calendar.DAY_OF_MONTH),dayname);
 					updateSchedules();
 					p.repaint();
@@ -275,7 +270,6 @@ public class Scheduler extends BasePlugin implements TwisterPluginInterface {
 				}
 			});
 			right.setBounds(480, 30, 28, 28);
-			
 			in = getClass().getResourceAsStream("lbtn0.png");
 			im = ImageIO.read(in);
 			left0 = new ImageIcon(im);
@@ -296,7 +290,8 @@ public class Scheduler extends BasePlugin implements TwisterPluginInterface {
 					left.setIcon(left0);
 					calendar.add(Calendar.MONTH, -1);
 					calendar.set(Calendar.DAY_OF_MONTH, 1);
-					String dayname = new SimpleDateFormat("EEEE",Locale.US).format(calendar.getTime()).toLowerCase();
+					String dayname = new SimpleDateFormat("EEEE",Locale.US).
+										format(calendar.getTime()).toLowerCase();
 					mycalendar.days.setDays(calendar.getActualMaximum(Calendar.DAY_OF_MONTH),dayname);
 					updateSchedules();
 					p.repaint();
@@ -398,7 +393,9 @@ public class Scheduler extends BasePlugin implements TwisterPluginInterface {
 		try{c.cd(variables.get("remoteusersdir"));
 		}
         catch(Exception e){
-            System.out.println("Could not get to "+variables.get("remoteusersdir")+"on sftp");}
+            System.out.println("Could not get to "+
+            					variables.get("remoteusersdir")+
+            					"on sftp");}
         int size ;
         try{size= c.ls(variables.get("remoteusersdir")).size();
         	}
@@ -582,9 +579,11 @@ public class Scheduler extends BasePlugin implements TwisterPluginInterface {
         	}
         	
         	public void mouseReleased(MouseEvent ev){
-        		String selectedproject = variables.get("remoteusersdir")+"/"+tproject.getSelectedItem().toString();
+        		String selectedproject = variables.get("remoteusersdir")+
+        								"/"+tproject.getSelectedItem().toString();
 				String selecteddate = date.getText();
-				String selectedhour = ((JSpinner.DefaultEditor) timeSpinner.getEditor()).getTextField().getText();
+				String selectedhour = ((JSpinner.DefaultEditor) timeSpinner.getEditor()).
+																getTextField().getText();
 				String isforced ;
 				if(tick.isVisible()){
 					isforced = "1";
@@ -602,7 +601,8 @@ public class Scheduler extends BasePlugin implements TwisterPluginInterface {
 						temp.set(Calendar.YEAR, Integer.parseInt(st[0]));
 						temp.set(Calendar.MONTH, Integer.parseInt(st[1])-1);
 						temp.set(Calendar.DAY_OF_MONTH, Integer.parseInt(st[2]));
-						selecteddate = new SimpleDateFormat("EEEE",Locale.US).format(temp.getTime()).toLowerCase();
+						selecteddate = new SimpleDateFormat("EEEE",Locale.US).
+											format(temp.getTime()).toLowerCase();
 						StringBuilder sb = new StringBuilder();
 						sb.append(Character.toUpperCase(selecteddate.charAt(0)));
 						sb.append(selecteddate.substring(1));
@@ -660,7 +660,7 @@ public class Scheduler extends BasePlugin implements TwisterPluginInterface {
 	}
 	
 	/*
-	 * displays a list of peroject files
+	 * displays a list of project files
 	 * and inserts the name of the selected one
 	 * into the field
 	 */
@@ -710,7 +710,8 @@ public class Scheduler extends BasePlugin implements TwisterPluginInterface {
 		if(jTable1.getSelectedRow()!=-1){
 			int row = jTable1.getSelectedRow();
 			try {
-				String s = client.execute("Delete",new Object[]{"tscguest",jTable1.getModel().getValueAt(row, 7)}).toString();
+				String s = client.execute("Delete",new Object[]{"tscguest",
+																jTable1.getModel().getValueAt(row, 7)}).toString();
 				if(Boolean.parseBoolean(s)){
 					updateSchedules();
 					mycalendar.days.updateSelectedDay(mycalendar.days.getSelectedDaynr());
@@ -726,12 +727,6 @@ public class Scheduler extends BasePlugin implements TwisterPluginInterface {
 	@Override
 	public Component getContent() {
 		return p;
-	}
-
-	@Override
-	public String getDescription() {
-		String description = "Scheduler";
-		return description;
 	}
 
 	@Override
@@ -805,7 +800,8 @@ public class Scheduler extends BasePlugin implements TwisterPluginInterface {
 					c.set(Calendar.DAY_OF_MONTH, 1);
 					int month = c.get(Calendar.MONTH);
 					while(c.get(Calendar.MONTH)==month){
-						String compare = new SimpleDateFormat("EEEE",Locale.US).format(c.getTime()).toLowerCase();
+						String compare = new SimpleDateFormat("EEEE",Locale.US).
+											format(c.getTime()).toLowerCase();
 						if(day.equals(compare)){
 							schedules[c.get(Calendar.DAY_OF_MONTH)-1].add(hash);
 						}
@@ -856,6 +852,8 @@ public class Scheduler extends BasePlugin implements TwisterPluginInterface {
 		try{
 			XmlRpcClientConfigImpl configuration = new XmlRpcClientConfigImpl();
 	        configuration.setServerURL(new URL("http://"+variables.get("host")+":88/"));
+	        configuration.setBasicPassword(variables.get("password"));
+	        configuration.setBasicUserName(variables.get("user"));
 	        client = new XmlRpcClient();
 	        client.setConfig(configuration);
 	        System.out.println("Client initialized: "+client);}

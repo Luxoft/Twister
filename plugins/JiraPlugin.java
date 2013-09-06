@@ -1,6 +1,6 @@
 /*
 File: JiraPlugin.java ; This file is part of Twister.
-Version: 2.001
+Version: 2.002
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -18,14 +18,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import java.applet.Applet;
 import java.awt.Component;
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -104,9 +101,10 @@ public class JiraPlugin extends BasePlugin implements TwisterPluginInterface {
 	private XmlRpcClient client;
 	
 	@Override
-	public void init(ArrayList<Item> suite, ArrayList<Item> suitetest,
-			final Hashtable<String, String> variables,final Document pluginsConfig) {
-		super.init(suite, suitetest, variables,pluginsConfig);
+	public void init(ArrayList <Item>suite,ArrayList <Item>suitetest,
+			  final Hashtable<String, String>variables,
+			  Document pluginsConfig,Applet container){
+		super.init(suite, suitetest, variables,pluginsConfig,container);
 
 		System.out.println("Initializing "+getName()+" ...");
 		
@@ -180,6 +178,8 @@ public class JiraPlugin extends BasePlugin implements TwisterPluginInterface {
 			
 			configuration.setServerURL(new URL("http://"+this.variables.get("host")+
 					":"+this.variables.get("centralengineport")));
+			configuration.setBasicPassword(variables.get("password"));
+	        configuration.setBasicUserName(variables.get("user"));
 			client = new XmlRpcClient();
 			client.setConfig(configuration);
 			System.out.println("Client initialized: "+client);
@@ -1090,7 +1090,7 @@ public class JiraPlugin extends BasePlugin implements TwisterPluginInterface {
 		
 		JiraPlugin plugin = new JiraPlugin();
 		isApplet = false;
-		plugin.init(null, null, variables, null);
+		plugin.init(null, null, variables, null, null);
 	
 	}
 }

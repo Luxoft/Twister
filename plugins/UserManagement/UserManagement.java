@@ -1,6 +1,6 @@
 /*
 File: UserManagement.java ; This file is part of Twister.
-Version: 2.005
+Version: 2.006
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -314,6 +314,8 @@ public class UserManagement extends BasePlugin implements TwisterPluginInterface
         editgroups = new javax.swing.JButton();
         auser = new javax.swing.JButton("Add User");
         
+        auser = new javax.swing.JButton("Add User");
+        
         auser.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
@@ -555,39 +557,47 @@ public class UserManagement extends BasePlugin implements TwisterPluginInterface
 			for(int i=0;i<resp.length;i++){
 				groups[i] = resp[i].toString();
 			}
-			resp = (Object[])client.execute("listUsers", new Object[]{});
-			ArrayList<String> al = new ArrayList<String>();
-			int rows = usertable.getRowCount();
-			boolean found;
-			for(Object ob:resp){
-				found = false;
-				for(int j=0;j<rows;j++){
-					if(ob.toString().equals(usertable.getValueAt(j, 0).toString())){
-						found = true;
-						break;
-					}
-				}
-				if(!found){
-					al.add(ob.toString());
-				}
-			}
-			String [] users = new String[al.size()];
-			al.toArray(users);
-			new AddUser((int)auser.getLocationOnScreen().getX()-320,(int)auser.getLocationOnScreen().getY()-240,users,groups,this);
+			new AddUser((int)auser.getLocationOnScreen().getX()-320,(int)auser.getLocationOnScreen().getY()-240,groups,this);
 		} catch (XmlRpcException e) {
 			e.printStackTrace();
 		}
 	}
 	
-	public void addUser(String username, String groups){
+	public String [] getUsers(){
+		Object[] resp=null;
 		try {
-			
-			
-			
-			
+			resp = (Object[])client.execute("listUsers", new Object[]{});
+		} catch (XmlRpcException e) {
+			e.printStackTrace();
+		}
+		ArrayList<String> al = new ArrayList<String>();
+		int rows = usertable.getRowCount();
+		boolean found;
+		for(Object ob:resp){
+			found = false;
+			for(int j=0;j<rows;j++){
+				if(ob.toString().equals(usertable.getValueAt(j, 0).toString())){
+					found = true;
+					break;
+				}
+			}
+			if(!found){
+				al.add(ob.toString());
+			}
+		}
+		String [] users = new String[al.size()];
+		al.toArray(users);
+		return users;
+	}
+	
+	public void addUser(String username, String groups, AddUser au){
+		try {
 			String st = client.execute("usersAndGroupsManager", new Object[]{"set user",username,groups,"01"}).toString();
 			if(st.equals("true")){
 				populateUsersTable();
+				au.dispose();
+			} else {
+				CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE, UserManagement.this, "ERROR", st);
 			}
         } catch (XmlRpcException e) {
 			e.printStackTrace();

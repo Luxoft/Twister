@@ -1,6 +1,6 @@
 /*
 File: ExplorerPanel.java ; This file is part of Twister.
-Version: 2.006
+Version: 2.007
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -142,6 +142,7 @@ public class ExplorerPanel {
     private DefaultMutableTreeNode child2;
     private JEditTextArea textarea;
     public static ChannelSftp connection;
+    public static Session session;
     public DragSource ds;
     
     public ExplorerPanel(boolean applet) {
@@ -813,7 +814,7 @@ public class ExplorerPanel {
     private void initializeSftp(){
         try{
             JSch jsch = new JSch();
-            Session session = jsch.getSession(RunnerRepository.user, RunnerRepository.host, 22);
+            session = jsch.getSession(RunnerRepository.user, RunnerRepository.host, 22);
             session.setPassword(RunnerRepository.password);
             Properties config = new Properties();
             config.put("StrictHostKeyChecking", "no");

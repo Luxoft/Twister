@@ -1,6 +1,6 @@
 /*
 File: NodePanel.java ; This file is part of Twister.
-Version: 2.002
+Version: 2.003
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -300,7 +300,7 @@ public class NodePanel extends JPanel{
                             parent.setName(tname.getText());
                             tpath.setText(parent.getPath().getPath());
                             ((DefaultTreeModel)tree.getModel()).nodeChanged(treenode);
-                            RunnerRepository.window.mainpanel.p1.suitaDetails.setComboTBs();
+//                             RunnerRepository.window.mainpanel.p1.suitaDetails.setComboTBs();
                         } else {
                             System.out.println("There was an error: "+query);
                             CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,NodePanel.this,

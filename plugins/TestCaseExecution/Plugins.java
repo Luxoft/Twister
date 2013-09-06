@@ -1,6 +1,6 @@
 /*
 File: Plugins.java ; This file is part of Twister.
-Version: 2.003
+Version: 2.004
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -86,7 +86,8 @@ public class Plugins extends JPanel{
     private JScrollPane pluginsscroll;
     private JPanel plugintable, titleborder, downloadtable, localtable, remotetable2;
     public JSplitPane horizontalsplit, verticalsplit;
-    private ChannelSftp ch;
+    public ChannelSftp ch;
+    public Session session;
     private boolean finished = true;
 
     public Plugins(){
@@ -105,7 +106,7 @@ public class Plugins extends JPanel{
     public void initSftp(){
         try{
             JSch jsch = new JSch();
-            Session session = jsch.getSession(RunnerRepository.user, RunnerRepository.host, 22);
+            session = jsch.getSession(RunnerRepository.user, RunnerRepository.host, 22);
             session.setPassword(RunnerRepository.password);
             Properties config = new Properties();
             config.put("StrictHostKeyChecking", "no");

@@ -1,6 +1,6 @@
 /*
 File: JenkinsPlugin.java ; This file is part of Twister.
-Version: 2.001
+Version: 2.003
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -18,16 +18,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import java.applet.Applet;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Hashtable;
@@ -69,9 +66,10 @@ public class JenkinsPlugin extends BasePlugin implements TwisterPluginInterface 
 	private JTextField tscript,tproject; 
 
 	@Override
-	public void init(ArrayList<Item> suite, ArrayList<Item> suitetest,
-			final Hashtable<String, String> variables,final Document pluginsConfig) {
-		super.init(suite, suitetest, variables,pluginsConfig);
+	public void init(ArrayList <Item>suite,ArrayList <Item>suitetest,
+			  final Hashtable<String, String>variables,
+			  Document pluginsConfig,Applet container){
+		super.init(suite, suitetest, variables,pluginsConfig,container);
 		System.out.println("Initializing "+getName()+" ...");
 		initializeSFTP();
 		initializeRPC();
@@ -85,11 +83,11 @@ public class JenkinsPlugin extends BasePlugin implements TwisterPluginInterface 
         panel.setMinimumSize(new Dimension(300, 70));
         panel.setMaximumSize(new Dimension(300, 70));
         panel.setSize(300, 70);
-        JLabel lscript = new JLabel("Script:");
-        lscript.setBounds(5,5,60,25);
+        JLabel lscript = new JLabel("Build Script:");
+        lscript.setBounds(5,5,80,25);
         panel.add(lscript);
         tscript = new JTextField();
-        tscript.setBounds(70,5,150,25);
+        tscript.setBounds(90,5,150,25);
         tscript.setText(script.getNodeValue());
         panel.add(tscript);
         tscript.getDocument().addDocumentListener( new DocumentListener() {
@@ -117,17 +115,15 @@ public class JenkinsPlugin extends BasePlugin implements TwisterPluginInterface 
         bscript.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent arg0) {
-				//Repository.host,Repository.user,Repository.password,textfield,c
-				MySftpBrowser browser = new MySftpBrowser(variables.get("host"), variables.get("user"), variables.get("password"), tscript, p);
-				//MySftpBrowser browser = new MySftpBrowser(c, tscript, p);
+				MySftpBrowser browser = new MySftpBrowser(variables.get("host"), variables.get("user"), variables.get("password"), tscript, p,false);
 			}
 		});
         
-        JLabel lproject = new JLabel("Project:");
-        lproject.setBounds(5,35,60,25);
+        JLabel lproject = new JLabel("Project File:");
+        lproject.setBounds(5,35,80,25);
         panel.add(lproject);
         tproject = new JTextField();
-        tproject.setBounds(70,35,150,25);
+        tproject.setBounds(90,35,150,25);
         tproject.setText(project.getNodeValue());
         panel.add(tproject);
         tproject.getDocument().addDocumentListener( new DocumentListener() {
@@ -155,8 +151,7 @@ public class JenkinsPlugin extends BasePlugin implements TwisterPluginInterface 
         bproject.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent arg0) {
-				MySftpBrowser browser = new MySftpBrowser(variables.get("host"), variables.get("user"), variables.get("password"), tproject, p);
-				//MySftpBrowser browser = new MySftpBrowser(c, tproject, p);
+				MySftpBrowser browser = new MySftpBrowser(variables.get("host"), variables.get("user"), variables.get("password"), tproject, p,false);
 			}
 		});
         p.add(panel);
@@ -212,6 +207,8 @@ public class JenkinsPlugin extends BasePlugin implements TwisterPluginInterface 
 		try{XmlRpcClientConfigImpl configuration = new XmlRpcClientConfigImpl();
         configuration.setServerURL(new URL("http://"+variables.get("host")+
                                     ":"+variables.get("centralengineport")));
+        configuration.setBasicPassword(variables.get("password"));
+        configuration.setBasicUserName(variables.get("user"));
         client = new XmlRpcClient();
         client.setConfig(configuration);
         System.out.println("Client initialized: "+client);}

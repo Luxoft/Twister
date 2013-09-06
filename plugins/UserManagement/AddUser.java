@@ -1,6 +1,6 @@
 /*
 File: AddUser.java ; This file is part of Twister.
-Version: 2.002
+Version: 2.003
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -24,6 +24,8 @@ import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.ListSelectionModel;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
 
 import com.twister.CustomDialog;
 
@@ -40,11 +42,13 @@ public class AddUser extends JFrame{
     private javax.swing.JScrollPane usersscroll;
     private String [] users,groups;
     private UserManagement um;
+    private javax.swing.JButton listusers;
+    private javax.swing.JTextField tusername;
+    private javax.swing.JLabel username;
 	
-	public AddUser(int x,int y, String [] users,String [] groups,UserManagement um){
+	public AddUser(int x,int y,String [] groups,UserManagement um){
 		this.um = um;
 		this.groups = groups;
-		this.users = users;
 		setTitle("Add existing user to configuration");
 		setVisible(true);
 		setBounds(x,y,320,240);
@@ -57,6 +61,25 @@ public class AddUser extends JFrame{
 	private void initComponents() {
 		p = new JPanel();
 		
+		tusername = new javax.swing.JTextField();
+        listusers = new javax.swing.JButton();
+        username = new javax.swing.JLabel();
+        listusers.setText("List Users");
+        listusers.addActionListener(new ActionListener() {
+			
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				users = um.getUsers();
+				userslist.setModel(new javax.swing.AbstractListModel() {
+		            public int getSize() { return users.length; }
+		            public Object getElementAt(int i) { return users[i]; }
+		        });
+				
+			}
+		});
+        
+        username.setText("Username:"); 
+        
 		cancel = new javax.swing.JButton();
 		cancel.setText("Cancel");
         cancel.addActionListener(new ActionListener() {
@@ -71,9 +94,7 @@ public class AddUser extends JFrame{
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				
-				if(userslist.getSelectedIndex()!=-1&&groupslist.getSelectedIndex()!=-1){
-					
-					
+				if(!tusername.getText().equals("")&&groupslist.getSelectedIndex()!=-1){
 					String [] selected = new String[groupslist.getSelectedValuesList().size()];
 					for(int i=0;i<groupslist.getSelectedValuesList().size();i++){
 	                    selected[i] = groupslist.getSelectedValuesList().get(i).toString();
@@ -84,14 +105,10 @@ public class AddUser extends JFrame{
 	                	sb.append(",");
 	                }
 	                sb.setLength(sb.length()-1);
-					
-					
-					
-					um.addUser(userslist.getSelectedValue().toString(), sb.toString());
-					AddUser.this.dispose();
+					um.addUser(tusername.getText(), sb.toString(),AddUser.this);
 				} else {
 					CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,AddUser.this,
-		                    "Warning", "Please select at least one user and one group");
+		                    "Warning", "Please set one user and one group");
 					return;
 				}
 			}
@@ -99,6 +116,14 @@ public class AddUser extends JFrame{
         userslabel = new javax.swing.JLabel();
         usersscroll = new javax.swing.JScrollPane();
         userslist = new javax.swing.JList();
+        userslist.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
+			
+			@Override
+			public void valueChanged(ListSelectionEvent e) {
+				tusername.setText(userslist.getSelectedValue().toString());
+				
+			}
+		});
         groupslabel = new javax.swing.JLabel();
         groupscroll = new javax.swing.JScrollPane();
         groupslist = new javax.swing.JList();
@@ -110,10 +135,7 @@ public class AddUser extends JFrame{
         userslabel.setText("Available users:");
         userslist.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 
-        userslist.setModel(new javax.swing.AbstractListModel() {
-            public int getSize() { return users.length; }
-            public Object getElementAt(int i) { return users[i]; }
-        });
+        
         usersscroll.setViewportView(userslist);
 
         groupslabel.setText("Available groups:");
@@ -127,46 +149,57 @@ public class AddUser extends JFrame{
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(p);
         p.setLayout(layout);
         layout.setHorizontalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(layout.createSequentialGroup()
-                .addContainerGap()
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(layout.createSequentialGroup()
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(userslabel)
-                            .addComponent(usersscroll, javax.swing.GroupLayout.DEFAULT_SIZE, 189, Short.MAX_VALUE))
-                        .addGap(18, 18, 18)
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(groupslabel)
-                            .addComponent(groupscroll, javax.swing.GroupLayout.DEFAULT_SIZE, 189, Short.MAX_VALUE))
-                        .addContainerGap())
-                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                        .addGap(0, 0, Short.MAX_VALUE)
-                        .addComponent(add)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                .addGroup(layout.createSequentialGroup()
+                    .addContainerGap()
+                    .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addComponent(tusername)
+                        .addGroup(layout.createSequentialGroup()
+                            .addComponent(username)
+                            .addGap(0, 0, Short.MAX_VALUE))
+                        .addComponent(usersscroll, javax.swing.GroupLayout.DEFAULT_SIZE, 193, Short.MAX_VALUE)
+                        .addGroup(layout.createSequentialGroup()
+                            .addComponent(listusers)
+                            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
+                    .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(layout.createSequentialGroup()
+                            .addGap(18, 18, 18)
+                            .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                .addComponent(groupslabel)
+                                .addComponent(groupscroll))
+                            .addContainerGap())
+                        .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
+                            .addGap(67, 67, 67)
+                            .addComponent(add)
+                            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                            .addComponent(cancel)
+                            .addGap(10, 10, 10))))
+            );
+
+            layout.linkSize(javax.swing.SwingConstants.HORIZONTAL, new java.awt.Component[] {add, cancel});
+
+            layout.setVerticalGroup(
+                layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
+                    .addContainerGap()
+                    .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                        .addComponent(groupslabel)
+                        .addComponent(username))
+                    .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                    .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(layout.createSequentialGroup()
+                            .addComponent(tusername, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                            .addComponent(listusers)
+                            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                            .addComponent(usersscroll, javax.swing.GroupLayout.DEFAULT_SIZE, 174, Short.MAX_VALUE))
+                        .addComponent(groupscroll))
+                    .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                    .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                         .addComponent(cancel)
-                        .addGap(10, 10, 10))))
-        );
-
-        layout.linkSize(javax.swing.SwingConstants.HORIZONTAL, new java.awt.Component[] {add, cancel});
-
-        layout.setVerticalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                .addContainerGap()
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(userslabel)
-                    .addComponent(groupslabel))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(usersscroll, javax.swing.GroupLayout.DEFAULT_SIZE, 229, Short.MAX_VALUE)
-                    .addComponent(groupscroll))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(cancel)
-                    .addComponent(add))
-                .addContainerGap())
-        );
+                        .addComponent(add))
+                    .addContainerGap())
+            );
 		add(p);
     }
 }

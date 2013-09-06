@@ -1,8 +1,9 @@
 
 #
-# version: 2.003
-# <title>test 02</title>
-# <description>Testing the logs.</description>
+# <ver>version: 2.004</ver>
+# <title>Test the Logs</title>
+# <description>This suite checks the most basic functionality of Twister.<br>
+# It checks if the EPs are running the tests successfully and it calls all CE functions, to ensure they work as expected.</description>
 #
 
 import time

@@ -1,6 +1,6 @@
 /*
 File: RunnerRepository.java ; This file is part of Twister.
-Version: 2.0021
+Version: 2.0022
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -116,6 +116,7 @@ public class RunnerRepository {
     public static Window window;//main window displayed if twister is running local
     //public static ChannelSftp c;//main sftp connection used by Twister
     public static ChannelSftp connection;//main sftp connection used by Twister
+    public static Session session;
     public static Hashtable variables ;
     public static Starter starter;
     public static String user,host,password,temp,TWISTERINI, USERHOME, REMOTECONFIGDIRECTORY,
@@ -136,7 +137,7 @@ public class RunnerRepository {
                         timeouticon,waiticon,workingicon,moduleicon,deviceicon,upicon,
                         addsuitaicon,removeicon,vlcclient,vlcserver,switche,optional,
                         flootw,rack150,rack151,rack152,switche2,inicon,outicon,baricon;
-    public static boolean run = true;//signal that Twister is not closing
+    public static boolean run ;//signal that Twister is not closing
     public static boolean applet,initialized,sftpoccupied; //keeps track if twister is run from applet or localy;;stfpconnection flag
     public static IntroScreen introscreen;    
     private static ArrayList <String []> databaseUserFields ;
@@ -151,8 +152,8 @@ public class RunnerRepository {
     private static String[] lookAndFeels;
     public static Container container;
     private static Document pluginsconfig;
-    private static String version = "2.022";
-    private static String builddate = "30.08.2013";
+    private static String version = "2.024";
+    private static String builddate = "06.09.2013";
     public static String logotxt,os,python;
     
     public static void setStarter(Starter starter){
@@ -167,6 +168,7 @@ public class RunnerRepository {
      */
     public static void initialize(String applet,String host,Applet container){
         RunnerRepository.initialized = false;
+        RunnerRepository.run = true;
         RunnerRepository.container = container;
         suite = new ArrayList <Item> ();
         suitetest = new ArrayList <Item> ();
@@ -612,7 +614,7 @@ public class RunnerRepository {
                 
     private static void ssh(String user, String passwd, String host){
         try{JSch jsch = new JSch();
-            Session session = jsch.getSession(user, host, 22);
+            session = jsch.getSession(user, host, 22);
             session.setPassword(passwd);
             session.setConfig("StrictHostKeyChecking", "no");
             session.connect();
@@ -633,7 +635,7 @@ public class RunnerRepository {
         boolean passed = false;
             try{
                 JSch jsch = new JSch();
-                Session session = jsch.getSession(user, host, 22);
+                session = jsch.getSession(user, host, 22);
                 session.setPassword(password);
                 Properties config = new Properties();
                 config.put("StrictHostKeyChecking", "no");

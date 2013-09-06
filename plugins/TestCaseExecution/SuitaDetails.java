@@ -1,6 +1,6 @@
 /*
 File: SuitaDetails.java ; This file is part of Twister.
-Version: 2.0010
+Version: 2.0011
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -344,7 +344,7 @@ public class SuitaDetails extends JPanel {
         );
         
         try{Object [] s = (Object [])RunnerRepository.getRPCClient().execute("getLibrariesList",
-                                                                        new Object[]{});
+                                                                        new Object[]{RunnerRepository.user});
             String [] libs = new String[s.length];
             for(int i=0;i<s.length;i++){
                 libs[i] = s[i].toString();
@@ -403,7 +403,7 @@ public class SuitaDetails extends JPanel {
         );
         
         try{Object [] s = (Object [])RunnerRepository.getRPCClient().execute("getLibrariesList",
-                                                                        new Object[]{});
+                                                                        new Object[]{RunnerRepository.user});
             String [] libs = new String[s.length];
             for(int i=0;i<s.length;i++){
                 libs[i] = s[i].toString();
@@ -764,7 +764,6 @@ public class SuitaDetails extends JPanel {
         for(ListSelectionListener l:combo.getListSelectionListeners()){
             combo.removeListSelectionListener(l);
         }
-        
         StringBuilder b = new StringBuilder();
         DefaultMutableTreeNode root = RunnerRepository.window.mainpanel.p4.getSut().sut.root;
         int sutsnr = root.getChildCount();
