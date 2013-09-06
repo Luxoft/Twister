@@ -1,3 +1,24 @@
+30th August
+
+- added new button to define System Under Test (SUT); the EP is associated with 
+  SUT; the test bed has no associated EP anymore
+- the test case(s) can have an associated configuration file
+- issue #57 - SSH_twist demo crashes
+- issue #60 - Takes 5 minutes for Reports tab to return control to user.
+- issue #68 - GUI error_codes mapping not correct.
+- issue #71 - email warnings misplaced, could be more specific
+- issue #77 - Email not working, CLI logs exceptions and internal command 
+              failure trying to kill Log Server.
+- issue #78 - Request Error message if user/twister not installed
+- issue #79 - PanicDetect is not fully functional
+- issue #80 - Global param checked "Stop on fail" not working;
+- issue #81 - Library selection and de-selection not behaving as expected
+- issue #82 - User Guide 8 - "How to run the test files" missing Icon for Timeout
+- issue #84 - Stop button does not clean-up test status
+- issue #86 - Twister server upgrade fails
+- added 2 new variables ( twister_ce_type, twister_server_location )
+- rework on User Guide
+
 23rd August
 
 - added new button for "Test Configurations" in Configuration tab

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# version: 2.003
+# version: 2.004
 
 # File: CentralEngine.py ; This file is part of Twister.
 
@@ -74,6 +74,7 @@ if __name__ == "__main__":
             'log.screen': False,
 
             'tools.sessions.on': True,
+            'tools.sessions.timeout': 0,
             'tools.auth_basic.on': True,
             'tools.auth_basic.realm': 'Twister Server',
             'tools.auth_basic.checkpassword': check_passwd,

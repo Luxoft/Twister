@@ -1,7 +1,7 @@
 
 # File: CentralEngineClasses.py ; This file is part of Twister.
 
-# version: 2.023
+# version: 2.024
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -490,9 +490,9 @@ class CentralEngine(_cptools.XMLRPCController):
     @cherrypy.expose
     def getGlobalVariable(self, user, var_path):
         """
-        Sending a global variable, using a path.
+        Send a global variable, using a path to the variable.
         """
-        return self.project.getGlobalVariable(user, var_path)
+        return self.project.getGlobalVariable(user, var_path, False)
 
 
     @cherrypy.expose
@@ -502,6 +502,15 @@ class CentralEngine(_cptools.XMLRPCController):
         The change is not persistent.
         """
         return self.project.setGlobalVariable(user, var_path, value)
+
+
+    @cherrypy.expose
+    def getConfig(self, user, cfg_path, var_path):
+        """
+        Send a config file, using the full path to a config file and
+        the full path to a config variable in that file.
+        """
+        return self.project.getGlobalVariable(user, var_path, cfg_path)
 
 
 # --------------------------------------------------------------------------------------------------
@@ -1300,7 +1309,7 @@ class CentralEngine(_cptools.XMLRPCController):
         """
         Returns the list of exposed libraries, from CE libraries folder.\n
         This list will be used to syncronize the libs on all EP computers.\n
-        Called from the Runner.
+        Called from the Runner and the Java GUI.
         """
         global TWISTER_PATH
         libs_path = (TWISTER_PATH + '/lib/').replace('//', '/')
@@ -1313,21 +1322,13 @@ class CentralEngine(_cptools.XMLRPCController):
         glob_libs = [] # Default empty
         user_libs = []
 
-        # All libraries for user
-        if user:
-            # If `libraries` is empty, will default to ALL libraries
-            tmp_libs = self.project.getUserInfo(user, 'libraries') or ''
-            glob_libs = [x.strip() for x in tmp_libs.split(';')] if tmp_libs else []
-            del tmp_libs
-
         # All Python source files from Libraries folder AND all library folders
-        if not glob_libs:
-            if all:
-                glob_libs = [d for d in os.listdir(libs_path) if \
-                    ( os.path.isfile(libs_path + d) and \
-                    '__init__.py' not in d and \
-                    os.path.splitext(d)[1] in ['.py', '.zip']) or \
-                    os.path.isdir(libs_path + d) ]
+        if all:
+            glob_libs = [d for d in os.listdir(libs_path) if \
+                ( os.path.isfile(libs_path + d) and \
+                '__init__.py' not in d and \
+                os.path.splitext(d)[1] in ['.py', '.zip']) or \
+                os.path.isdir(libs_path + d) ]
 
             if user_path and os.path.isdir(user_path):
                 user_libs = [d for d in os.listdir(user_path) if \
@@ -1335,9 +1336,16 @@ class CentralEngine(_cptools.XMLRPCController):
                         '__init__.py' not in d and \
                         os.path.splitext(d)[1] in ['.py', '.zip']) or \
                         os.path.isdir(user_path + d) ]
+        # All libraries for user
+        else:
+            if user:
+                # If `libraries` is empty, will default to ALL libraries
+                tmp_libs = self.project.getUserInfo(user, 'libraries') or ''
+                glob_libs = [x.strip() for x in tmp_libs.split(';')] if tmp_libs else []
+                del tmp_libs
 
         # Return a list with unique names, sorted alphabetically
-        return sorted( list(set(glob_libs + user_libs)) )
+        return sorted( set(glob_libs + user_libs) )
 
 
     @cherrypy.expose
@@ -1465,12 +1473,13 @@ class CentralEngine(_cptools.XMLRPCController):
         except:
             return ''
 
-        # Find starting with #, optional space, followed by a <tag> ended with the same </tag>
-        # containing any character in range 0x20 to 0x7e (all numbers, letters and ASCII symbols)
-        # This returns 2 groups : the tag name and the text inside it
-        tags = re.findall('#[ ]+?<(?P<tag>\w+)>([ -~\n]+?)</(?P=tag)>', text)
+        # Find lines starting with # or beggining of line, followed by optional space,
+        # followed by a <tag> ended with the same </tag> containing any character
+        # in range 0x20 to 0x7e (all numbers, letters and ASCII symbols)
+        # This returns 2 groups : the tag name and the text inside it.
+        tags = re.findall('^[ ]*?[#]*?[ ]*?<(?P<tag>\w+)>([ -~\n]+?)</(?P=tag)>', text, re.MULTILINE)
 
-        return '<br>\n'.join(['<b>' + title + '</b> : ' + descr for title, descr in tags])
+        return '<br>\n'.join(['<b>' + title + '</b> : ' + descr.replace('<', '&lt;') for title, descr in tags])
 
 
 # --------------------------------------------------------------------------------------------------
@@ -1581,12 +1590,11 @@ class CentralEngine(_cptools.XMLRPCController):
 
         sock.sendall(msg)
         resp = sock.recv(1024)
+        sock.close()
 
         if resp == 'Ok!':
-            sock.close()
             return True
         else:
-            sock.close()
             return False
 
 
