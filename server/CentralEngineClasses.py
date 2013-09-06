@@ -1150,14 +1150,14 @@ class CentralEngine(_cptools.XMLRPCController):
             self.project.setFileInfo(user, epname, file_id, 'twister_tc_date_finished',  (now.isoformat()))
             suite_name = self.project.getSuiteInfo(user, epname, suite).get('name')
 
-            try:
-                with open(logPath, 'a') as status_file:
-                    status_file.write(' {ep}::{suite}::{file} | {status} | {elapsed} | {date}\n'.format(
-                        ep = epname.center(9), suite = suite_name.center(9), file = filename.center(28),
-                        status = status_str.center(11),
-                        elapsed = ('%.2fs' % time_elapsed).center(10),
-                        date = now.strftime('%a %b %d, %H:%M:%S')))
-            except:
+            logMessage = ' {ep}::{suite}::{file} | {status} | {elapsed} | {date}\n'.format(
+                    ep = epname.center(9), suite = suite_name.center(9), file = filename.center(28),
+                    status = status_str.center(11),
+                    elapsed = ('%.2fs' % time_elapsed).center(10),
+                    date = now.strftime('%a %b %d, %H:%M:%S'))
+
+            resp = self._logServerMsg(user, logPath + ':' + logMessage)
+            if not resp:
                 logError('Summary log file `{}` cannot be written! User `{}` won\'t see any '\
                          'statistics!'.format(logPath, user))
 

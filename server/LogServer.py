@@ -80,8 +80,8 @@ def process_cmd(sock):
         # Message from client.
         data = conn.recv(buff)
 
-        if data:
-            log.debug('Log: Received message with `len = {}`.'.format(len(data)))
+        # if data:
+        #    log.debug('Log: Received message with `len = {}`.'.format(len(data)))
 
         # ~~~ Reset 1 Log ~~~
         if data.startswith("{") and '"del"' in data:
@@ -178,7 +178,7 @@ def process_cmd(sock):
 
         # ~~~ Write Log Message ~~~
         elif data.upper() == 'EXIT':
-            log.warning('Log Server:  *sigh* received EXIT signal...')
+            # log.warning('Log Server:  *sigh* received EXIT signal...')
             # Reply to client.
             conn.send('EXIT!')
             return True
@@ -212,7 +212,7 @@ if __name__ == '__main__':
         # If the response is True, time to exit
         if p: break
 
-    log.warning('Log Server:  Bye bye.')
+    log.warning('Log Server: Bye bye.')
 
 
 # Eof()
