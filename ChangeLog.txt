@@ -1,3 +1,17 @@
+6th September
+
+- changes in SUT definition; every component under a SUT has an abstract name
+  that can be referred by the test cases
+- user management changes; the name of a new user can be added as text or
+  selected from a list of available users; the username is validated using
+  ypmatch for NIS environments; issue #90 in github
+- added new role CHANGE_SUT; if this role is not selected for production
+  servers, the user is not allowed to change the SUT
+- fixed a LogServer issue for log_summary; it was happening only for NIS users
+- fix for issue#91 ; secondary libraries are loaded
+- fix issue #70 ; plugins can be loaded
+- updated User Guide
+
 30th August
 
 - added new button to define System Under Test (SUT); the EP is associated with 
