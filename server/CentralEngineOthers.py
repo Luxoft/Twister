@@ -1,7 +1,7 @@
 
 # File: CentralEngineOthers.py ; This file is part of Twister.
 
-# version: 2.032
+# version: 2.033
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -681,6 +681,16 @@ class Project:
             cfg = create_cfg()
             if not name:
                 return '*ERROR* : The user name cannot be empty!'
+            # Try to check the user for NIS domains
+            try:
+                d = subprocess.check_output('nisdomainname', shell=True)
+                if d.strip() != '(none)':
+                    try:
+                        subprocess.check_output('ypmatch {} passwd'.format(name), shell=True)
+                    except:
+                        return '*ERROR* : Invalid NIS user `{}` !'.format(name)
+            except:
+                pass
             try:
                 usr_group = args[0][0]
             except Exception, e:
