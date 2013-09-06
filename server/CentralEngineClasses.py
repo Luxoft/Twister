@@ -1,7 +1,7 @@
 
 # File: CentralEngineClasses.py ; This file is part of Twister.
 
-# version: 2.023
+# version: 2.024
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -490,9 +490,9 @@ class CentralEngine(_cptools.XMLRPCController):
     @cherrypy.expose
     def getGlobalVariable(self, user, var_path):
         """
-        Sending a global variable, using a path.
+        Send a global variable, using a path to the variable.
         """
-        return self.project.getGlobalVariable(user, var_path)
+        return self.project.getGlobalVariable(user, var_path, False)
 
 
     @cherrypy.expose
@@ -502,6 +502,15 @@ class CentralEngine(_cptools.XMLRPCController):
         The change is not persistent.
         """
         return self.project.setGlobalVariable(user, var_path, value)
+
+
+    @cherrypy.expose
+    def getConfig(self, user, cfg_path, var_path):
+        """
+        Send a config file, using the full path to a config file and
+        the full path to a config variable in that file.
+        """
+        return self.project.getGlobalVariable(user, var_path, cfg_path)
 
 
 # --------------------------------------------------------------------------------------------------
@@ -1464,10 +1473,11 @@ class CentralEngine(_cptools.XMLRPCController):
         except:
             return ''
 
-        # Find starting with #, optional space, followed by a <tag> ended with the same </tag>
-        # containing any character in range 0x20 to 0x7e (all numbers, letters and ASCII symbols)
-        # This returns 2 groups : the tag name and the text inside it
-        tags = re.findall('#[ ]+?<(?P<tag>\w+)>([ -~\n]+?)</(?P=tag)>', text)
+        # Find lines starting with # or beggining of line, followed by optional space,
+        # followed by a <tag> ended with the same </tag> containing any character
+        # in range 0x20 to 0x7e (all numbers, letters and ASCII symbols)
+        # This returns 2 groups : the tag name and the text inside it.
+        tags = re.findall('^[ ]*?[#]*?[ ]*?<(?P<tag>\w+)>([ -~\n]+?)</(?P=tag)>', text, re.MULTILINE)
 
         return '<br>\n'.join(['<b>' + title + '</b> : ' + descr.replace('<', '&lt;') for title, descr in tags])
 
@@ -1578,14 +1588,14 @@ class CentralEngine(_cptools.XMLRPCController):
             if not sock:
                 return False
 
+        sock.setblocking(0)
         sock.sendall(msg)
         resp = sock.recv(1024)
+        sock.close()
 
         if resp == 'Ok!':
-            sock.close()
             return True
         else:
-            sock.close()
             return False
 
 

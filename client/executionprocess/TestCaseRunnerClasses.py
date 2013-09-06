@@ -123,13 +123,14 @@ class TCRunTcl:
         self.epname = globs['EP']
 
         # Inject variables
+        self.tcl.setvar('USER',       globs['USER'])
+        self.tcl.setvar('EP',         globs['EP'])
+        self.tcl.setvar('SUT',        globs['SUT'])
         self.tcl.setvar('SUITE_ID',   globs['SUITE_ID'])
         self.tcl.setvar('SUITE_NAME', globs['SUITE_NAME'])
         self.tcl.setvar('FILE_ID',    globs['FILE_ID'])
         self.tcl.setvar('FILE_NAME',  globs['FILE_NAME'])
-        self.tcl.setvar('USER',       globs['USER'])
-        self.tcl.setvar('EP',         globs['EP'])
-        self.tcl.setvar('SUT',        globs['SUT'])
+        self.tcl.setvar('CONFIG', ';'.join(globs['CONFIG']))
 
         # Inject common functions
         self.tcl.createcommand('logMessage',  globs['logMsg'])

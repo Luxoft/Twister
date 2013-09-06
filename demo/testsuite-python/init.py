@@ -23,6 +23,10 @@ print 'Hello, user', USER, '!'
 print 'System under test:', SUT
 print 'Exec process:', EP
 print 'Suite:', SUITE_NAME
+print 'Config files:', CONFIG
+print 'Properties:', PROPERTIES
+print
+
 print 'Remote file:', FILE_NAME
 print 'Local file:', __file__
 

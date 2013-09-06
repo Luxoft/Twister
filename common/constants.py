@@ -67,6 +67,7 @@ FWMCONFIG_TAGS = (
 	{'name':'db_config',	'tag':'DbConfigFile',		'default':''},
 	{'name':'eml_config',	'tag':'EmailConfigFile',	'default':''},
 	{'name':'glob_params',	'tag':'GlobalParams',		'default':''},
+	{'name':'tcfg_path',	'tag':'TestConfigPath',		'default':''},
 	{'name':'archive_logs_path', 'tag':'ArchiveLogsPath', 'default': False},
 	{'name':'archive_logs_path_active', 'tag':'ArchiveLogsPathActive', 'default': ''},
 )

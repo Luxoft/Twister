@@ -1,7 +1,7 @@
 
 # File: TestCaseRunner.py ; This file is part of Twister.
 
-# version: 2.016
+# version: 2.017
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -358,6 +358,8 @@ class TwisterRunner:
             dependancy = node.get('dependancy')
             # Is this test file optional?
             optional_test = node.get('Optional')
+            # Configuration files?
+            config_files = [c for c in node.get('config_files').split(';') if c]
             # Get args
             args = node.get('param')
             if args:
@@ -368,7 +370,7 @@ class TwisterRunner:
             # Extra properties, from the applet
             props = dict(node)
             for prop in ['type', 'status', 'file', 'suite', 'dependancy', 'Runnable',
-                         'setup_file', 'teardown_file', 'Optional', 'param']:
+                         'setup_file', 'teardown_file', 'Optional', 'config_files', 'param']:
                 # Removing all known File properties
                 try: del props[prop]
                 except: pass
@@ -539,6 +541,7 @@ class TwisterRunner:
                 'FILE_ID'   : file_id,
                 'FILE_NAME' : filename,
                 'PROPERTIES': props,
+                'CONFIG'    : config_files,
                 'PROXY'     : self.proxy
             }
 

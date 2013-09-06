@@ -1,7 +1,7 @@
 
 # File: CentralEngineOthers.py ; This file is part of Twister.
 
-# version: 2.033
+# version: 2.034
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -354,7 +354,8 @@ class Project:
         logDebug('Project: Reload configuration for user `{}`, with config files `{}` and `{}`.'
             ''.format(user, base_config, files_config))
 
-        del self.parsers[user]
+        try: del self.parsers[user]
+        except: pass
         self.parsers[user] = TSCParser(user, base_config, files_config)
 
         resp = self._common_user_reset(user, base_config, files_config)
@@ -1151,11 +1152,16 @@ class Project:
 # # #
 
 
-    def _findGlobalVariable(self, user, node_path):
+    def _findGlobalVariable(self, user, node_path, globs_file=False):
         """
         Helper function.
         """
-        var_pointer = self.users[user]['global_params']
+        if not globs_file:
+            var_pointer = self.users[user]['global_params']
+        else:
+            var_pointer = self.parsers[user].getGlobalParams(globs_file)
+        if not var_pointer:
+            return False
 
         for node in node_path:
             if node in var_pointer:
@@ -1167,7 +1173,7 @@ class Project:
         return var_pointer
 
 
-    def getGlobalVariable(self, user, variable):
+    def getGlobalVariable(self, user, variable, globs_file=False):
         """
         Sending a global variable, using a path.
         """
@@ -1176,13 +1182,13 @@ class Project:
 
         try: node_path = [v for v in variable.split('/') if v]
         except:
-            logError('Global Variable: Invalid variable type `{0}`, for user `{1}`!'.format(variable, user))
+            logError('Global Variable: Invalid variable type `{}`, for user `{}`!'.format(variable, user))
             return False
 
-        var_pointer = self._findGlobalVariable(user, node_path)
+        var_pointer = self._findGlobalVariable(user, node_path, globs_file)
 
         if not var_pointer:
-            logError('Global Variable: Invalid variable path `{0}`, for user `{1}`!'.format(node_path, user))
+            logError('Global Variable: Invalid variable path `{}`, for user `{}`!'.format(node_path, user))
             return False
 
         return var_pointer
