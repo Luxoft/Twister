@@ -1588,7 +1588,6 @@ class CentralEngine(_cptools.XMLRPCController):
             if not sock:
                 return False
 
-        sock.setblocking(0)
         sock.sendall(msg)
         resp = sock.recv(1024)
         sock.close()

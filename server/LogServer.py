@@ -75,16 +75,10 @@ def process_cmd(sock):
 
     while 1:
         resp = 'Ok!' # Default response
+        buff = 2**15
 
         # Message from client.
-        buff = 2**10
-        data = ''
-
-        while True:
-            msg = conn.recv(buff)
-            if not msg: break
-            data += msg
-            if len(msg) < buff: break
+        data = conn.recv(buff)
 
         if data:
             log.debug('Log: Received message with `len = {}`.'.format(len(data)))
