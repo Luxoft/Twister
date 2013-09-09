@@ -1,7 +1,7 @@
 
 # File: ResourceAllocator.py ; This file is part of Twister.
 
-# version: 2.006
+# version: 2.007
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -502,6 +502,10 @@ class ResourceAllocator(_cptools.XMLRPCController):
             msg = 'Rename {}: Cannot find resource node path `{}` !'.format(root_name, node_path)
             logError(msg)
             return '*ERROR* ' + msg
+
+        if node_path == new_path:
+            logDebug('No changes have been made to {} `{}`.'.format(root_name, new_name))
+            return True
 
         # Must use the real pointer instead of `resource` pointer in order to update the real data
         if root_id == ROOT_DEVICE:
