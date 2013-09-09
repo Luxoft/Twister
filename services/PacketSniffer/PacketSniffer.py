@@ -36,14 +36,7 @@ from time import sleep, time
 from thread import start_new_thread, allocate_lock
 from scapy.all import Automaton, ATMT, TCP, bind_layers, Packet, NoPayload, Raw
 
-
-from PacketSnifferClasses import OpenFlow, CentralEngineObject
-try:
-	from openflow.of_13.parse import of_message_parse
-except Exception as e:
-	of_message_parse = None
-	print('WARNING: openflow lib not found')
-
+#from PacketSnifferClasses import OpenFlow, CentralEngineObject
 
 from sys import maxsize
 from socket import gethostname, gethostbyname, socket, AF_INET, SOCK_DGRAM, inet_ntoa, create_connection
@@ -97,7 +90,7 @@ class PacketSniffer():
 			try:
 				self.rpycThreadedServer = rpycThreadedServer(PacketSnifferService, port=self.clientPort)
 				self.sniffer = Sniffer(user, epConfig, self.rpycThreadedServer, OFPort, iface)
-				self.rpycThreadedServer.sniffer = self.sniffer
+				self.rpycThreadedServer.service.sniffer = self.sniffer
 				break
 			except Exception as e:
 				print(e)
@@ -120,7 +113,22 @@ class PacketSniffer():
 		print('Sniffer will start on : `0.0.0.0:{}`.'.format(self.clientPort))
 
 		self.sniffer.runbg()
-		self.rpycThreadedServer.start()
+		try:
+			self.rpycThreadedServer.start()
+		except (KeyboardInterrupt, SystemExit):
+			pass
+		self.stop()
+
+
+	def stop(self):
+		"""  """
+
+		print('Terminating..')
+
+		self.sniffer.stop()
+		self.rpycThreadedServer.close()
+
+		print('Terminated.')
 
 
 
@@ -325,6 +333,8 @@ class Sniffer(Automaton):
 	def BEGIN(self):
 		"""  """
 
+		print '|||| BEGIN ||||'
+
 		while not self.rpycConn.active:
 			sleep(0.8)
 
@@ -370,14 +380,14 @@ class Sniffer(Automaton):
 		}
 		data['packet_head'].update([('id', str(time())), ])
 
-		with self.rpycConn.connectionsLock:
-			for conn in self.rpycConn.connections:
-				if self.rpycConn.connections[conn]:
+		with self.rpycConn.service.connectionsLock:
+			for conn in self.rpycConn.service.connections:
+				if self.rpycConn.service.connections[conn]:
 					try:
-						self.rpycConn.connections[conn].root.pushpkt(data)
+						self.rpycConn.service.connections[conn]._conn.root.pushpkt(data)
 					except Exception as e:
-						#print('error: {}'.format(e))
-						pass
+						print('error: {}'.format(e))
+						#pass
 
 		raise self.WAITING()
 
@@ -389,7 +399,7 @@ class Sniffer(Automaton):
 
 		self.rpycConn.close()
 
-		print '|||| state: END ||||'
+		print '|||| END ||||'
 
 
 	"""
@@ -440,6 +450,9 @@ class PacketSnifferService(rpycService):
 			client_addr = self._conn._config['endpoints'][1]
 			with self.connectionsLock:
 				self.connections.update([('{ip}:{port}'.format(ip=client_addr[0], port=client_addr[1]), None), ])
+				print('||||||||||||||||||||||||||||')
+				print(self.connections)
+				print('||||||||||||||||||||||||||||')
 			print('Connected from `{}`.'.format(client_addr))
 		except Exception as e:
 			print('Connect error: {er}'.format(er=e))
@@ -452,9 +465,11 @@ class PacketSnifferService(rpycService):
 			client_addr = self._conn._config['endpoints'][1]
 			with self.connectionsLock:
 				self.connections.pop('{ip}:{port}'.format(ip=client_addr[0], port=client_addr[1]))
+
+			print('Disconnected from `{ip}:{port}`.'.format(ip=client_addr[0], port=client_addr[1]))
+
 			if self.sniffer:
 				self.sniffer.registerCE([(client_addr[0], client_addr[1])])
-			print('Disconnected from `{ip}:{port}`.'.format(ip=client_addr[0], port=client_addr[1]))
 		except Exception as e:
 			print('Disconnect error: {er}'.format(er=e))
 
@@ -462,21 +477,31 @@ class PacketSnifferService(rpycService):
 			self.sniffer.registerCE(self.sniffer.ceTraffic)
 
 
-	def exposed_hello(self, proxy):
+	def exposed_hello(self, status):
 		"""  """
 
 		try:
 			client_addr = self._conn._config['endpoints'][1]
 			with self.connectionsLock:
-				self.connections.update([('{ip}:{port}'.format(ip=client_addr[0], port=client_addr[1]),
-														{'proxy': proxy, 'instance': self.root}), ])
-			print('Hello from {}'.format(proxy))
+				self.connections.update([
+						('{ip}:{port}'.format(ip=client_addr[0], port=client_addr[1]), self), ])
+				if status == 'running':
+					self.exposed_start()
+
+				print('||||||||||||||||||||||||||||')
+				print(self.connections)
+				print('||||||||||||||||||||||||||||')
+			print(self.connections['{ip}:{port}'.format(ip=client_addr[0], port=client_addr[1])]._conn.root.pushpkt({'test': 1}))
+			print('Hello from {}'.format(client_addr))
 		except Exception as e:
 			print('Hello error: {er}'.format(er=e))
 
 
 	def exposed_start(self):
 		"""  """
+
+		if not self.sniffer:
+			return False
 
 		if not self.sniffer.PAUSED:
 			return False
@@ -490,6 +515,9 @@ class PacketSnifferService(rpycService):
 	def exposed_pause(self):
 		"""  """
 
+		if not self.sniffer:
+			return False
+
 		if self.sniffer.PAUSED:
 			return False
 
@@ -501,6 +529,9 @@ class PacketSnifferService(rpycService):
 
 	def exposed_resume(self):
 		"""  """
+
+		if not self.sniffer:
+			return False
 
 		if not self.sniffer.PAUSED:
 			return False
@@ -520,6 +551,9 @@ class PacketSnifferService(rpycService):
 	def exposed_restart(self):
 		"""  """
 
+		if not self.sniffer:
+			return False
+
 		self.sniffer.stop()
 		sleep(2)
 		self.sniffer.runbg()
@@ -529,6 +563,9 @@ class PacketSnifferService(rpycService):
 
 	def exposed_set_filters(self, filters):
 		"""  """
+
+		if not self.sniffer:
+			return False
 
 		self.sniffer.filters = filters
 

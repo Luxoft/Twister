@@ -42,6 +42,12 @@ from scapy.all import Packet, NoPayload, wrpcap
 from rpyc import Service as rpycService
 from rpyc.utils.factory import connect as rpycConnect
 
+try:
+    from openflow.of_13.parse import of_message_parse
+except Exception as e:
+    of_message_parse = None
+    print('WARNING: openflow lib not found')
+
 import cherrypy
 
 from thread import allocate_lock
@@ -96,6 +102,8 @@ class Plugin(BasePlugin):
             ]
         }
 
+        PluginService.plugin = self
+
 
     def run(self, args):
         args = {k: v[0] if isinstance(v, list) else v for k,v in args.iteritems()}
@@ -132,11 +140,13 @@ class Plugin(BasePlugin):
             response['type'] = 'register sniff reply'
 
             try:
-                self.sniffers.append(rpycConnect(cherrypy.request.headers['Remote-Addr'],
-                                                    args['data'], PluginService))
+                connection = rpycConnect(cherrypy.request.headers['Remote-Addr'],
+                                                    args['data'], PluginService)
+                connection.root.hello(self.status)
+                self.sniffers.append(connection)
             except Exception, e:
                 response['status']['success'] = False
-                response['status']['message'] = 'error: {err}'.format(err=e)
+                response['status']['message'] = 'register sniff error: {err}'.format(err=e)
 
         # get / set filters
         elif args['command'] == 'getfilters':
@@ -161,13 +171,13 @@ class Plugin(BasePlugin):
 
                 for sniffer in self.sniffers:
                     try:
-                        sniffer.set_filters(self.filters)
+                        sniffer.root.set_filters(self.filters)
                     except Exception as e:
-                        print('error: {}'.format(e))
+                        print('set filters error: {}'.format(e))
 
             except Exception, e:
                 response['status']['success'] = False
-                response['status']['message'] = 'error: {err}'.format(err=e)
+                response['status']['message'] = 'set filters error: {err}'.format(err=e)
 
         # pause / resume
         elif args['command'] in ['pause', 'resume']:
@@ -177,21 +187,27 @@ class Plugin(BasePlugin):
 
             self.status = ('paused', 'running')[args['command']=='resume']
 
-            response['state'] = self.status
-
-            if oldStatus == self.status:
+            if not oldStatus == self.status:
                 if self.status == 'paused':
                     for sniffer in self.sniffers:
                         try:
-                            sniffer.pause()
+                            _response = sniffer.root.pause()
+                            if not _response:
+                                self.status = oldStatus
+                                response['status']['success'] = False
                         except Exception as e:
-                            print('error: {}'.format(e))
+                            print('pause / resume error: {}'.format(e))
                 else:
                     for sniffer in self.sniffers:
                         try:
-                            sniffer.resume()
+                            _response = sniffer.root.resume()
+                            if not _response:
+                                self.status = oldStatus
+                                response['status']['success'] = False
                         except Exception as e:
-                            print('error: {}'.format(e))
+                            print('pasue / resume error: {}'.format(e))
+
+            response['state'] = self.status
 
         # restart
         elif args['command'] == 'restart':
@@ -199,9 +215,11 @@ class Plugin(BasePlugin):
 
             for sniffer in self.sniffers:
                     try:
-                        sniffer.restart()
+                        _response = sniffer.root.restart()
+                        if not _response:
+                            response['status']['success'] = False
                     except Exception as e:
-                        print('error: {}'.format(e))
+                        print('restart error: {}'.format(e))
 
         # reset
         elif args['command'] == 'reset':
@@ -288,7 +306,7 @@ class Plugin(BasePlugin):
                 response = filePath
             except Exception, e:
                 response['status']['success'] = False
-                response['status']['message'] = 'error: {err}'.format(err=e)
+                response['status']['message'] = 'savepcap error: {err}'.format(err=e)
 
         else:
             response['status']['success'] = False
@@ -303,9 +321,12 @@ class PluginService(rpycService):
     """  """
 
     plugin = None
+    connections = dict()
 
     def on_connect(self):
         """  """
+
+        self.connections.update([(str(self) , 6633), ])
 
         try:
             client_addr = self._conn._config['endpoints'][1]
@@ -318,6 +339,8 @@ class PluginService(rpycService):
     def on_disconnect(self):
         """  """
 
+        self.connections.pop(str(self))
+        self.plugin.sniffers.pop(self.plugin.sniffers.index(self))
         try:
             client_addr = self._conn._config['endpoints'][1]
             print('Disconnected from `{ip}:{port}`.'.format(ip=client_addr[0], port=client_addr[1]))
@@ -326,18 +349,31 @@ class PluginService(rpycService):
             pass
 
 
+    def exposed_set_ofp_port(self, port):
+        """  """
+
+        self.connections.update([(str(self) , port), ])
+
+
     def exposed_pushpkt(self, packet):
         """  """
 
         if not self.plugin:
-            print('error: no plugin')
+            print('push packet error: no plugin')
             return False
 
-        if not isinstance(packet, Packet):
-            print('error: invalid packet')
-            return False
+        if (self.connections.has_key(str(self))
+            and self.connections[str(self)] in [packet['source']['port'], packet['destination']['port']]
+            and of_message_parse):
+            try:
+                _packet = of_message_parse(str(packet.payload))
+                packet = _packet.show()
+            except Exception as e:
+                packet = self.packet_to_dict(packet)
+        else:
+            packet = self.packet_to_dict(packet)
 
-        packet.update([('packet_dict' , self.packet_dict(packet)), ])
+        packet.update([('packet_dict' , packet), ])
         with self.plugin.packetsLock:
             self.plugin.packets.append(packet)
 
