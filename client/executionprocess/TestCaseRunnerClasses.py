@@ -1,7 +1,7 @@
 
 # File: TestCaseRunnerClasses.py ; This file is part of Twister.
 
-# version: 2.004
+# version: 2.005
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -123,13 +123,14 @@ class TCRunTcl:
         self.epname = globs['EP']
 
         # Inject variables
+        self.tcl.setvar('USER',       globs['USER'])
+        self.tcl.setvar('EP',         globs['EP'])
+        self.tcl.setvar('SUT',        globs['SUT'])
         self.tcl.setvar('SUITE_ID',   globs['SUITE_ID'])
         self.tcl.setvar('SUITE_NAME', globs['SUITE_NAME'])
         self.tcl.setvar('FILE_ID',    globs['FILE_ID'])
         self.tcl.setvar('FILE_NAME',  globs['FILE_NAME'])
-        self.tcl.setvar('USER',       globs['USER'])
-        self.tcl.setvar('EP',         globs['EP'])
-        self.tcl.setvar('currentTB',  globs['currentTB'])
+        self.tcl.setvar('CONFIG', ';'.join(globs['CONFIG']))
 
         # Inject common functions
         self.tcl.createcommand('logMessage',  globs['logMsg'])

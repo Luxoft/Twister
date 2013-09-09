@@ -493,9 +493,9 @@ class CentralEngine(_cptools.XMLRPCController):
     @cherrypy.expose
     def getGlobalVariable(self, user, var_path):
         """
-        Sending a global variable, using a path.
+        Send a global variable, using a path to the variable.
         """
-        return self.project.getGlobalVariable(user, var_path)
+        return self.project.getGlobalVariable(user, var_path, False)
 
 
     @cherrypy.expose
@@ -505,6 +505,15 @@ class CentralEngine(_cptools.XMLRPCController):
         The change is not persistent.
         """
         return self.project.setGlobalVariable(user, var_path, value)
+
+
+    @cherrypy.expose
+    def getConfig(self, user, cfg_path, var_path):
+        """
+        Send a config file, using the full path to a config file and
+        the full path to a config variable in that file.
+        """
+        return self.project.getGlobalVariable(user, var_path, cfg_path)
 
 
 # --------------------------------------------------------------------------------------------------
@@ -836,6 +845,7 @@ class CentralEngine(_cptools.XMLRPCController):
                     # Find the log process for this User and ask it to Exit
                     conn = self.loggers.get(user, {}).get('conn', None)
                     if conn:
+                        port = self.loggers.get(user, {}).get('port', None)
                         try:
                             conn.root.exit()
                         except EOFError:

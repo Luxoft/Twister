@@ -1,7 +1,7 @@
 
 # File: TscCommonLib.py ; This file is part of Twister.
 
-# version: 2.003
+# version: 2.004
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -98,6 +98,14 @@ class TscCommonLib(object):
         except:
             self.global_vars[var] = value
             return True
+
+
+    def getConfig(self, cfg_path, var_path=''):
+        """
+        Function to get a config, using the full path to a config file and
+        the full path to a config variable in that file.
+        """
+        return self.ce_proxy.getConfig(self.userName, cfg_path, var_path)
 
 
     def py_exec(self, code_string):
