@@ -1,7 +1,7 @@
 
 # File: ResourceAllocator.py ; This file is part of Twister.
 
-# version: 2.004
+# version: 2.006
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -222,7 +222,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
 #
 
     @cherrypy.expose
-    def getResource(self, query, root_id=ROOT_DEVICE):
+    def getResource(self, query, root_id=ROOT_DEVICE, flatten=True):
         '''
         Show all the properties, or just 1 property of a resource.
         Must provide a Resource ID, or a Query.
@@ -278,18 +278,42 @@ class ResourceAllocator(_cptools.XMLRPCController):
             parts = [q for q in query.split('/') if q]
             result = resources
 
-            for part in parts:
-                if not result: return False
-                result = result['children'].get(part)
+            # If this is a normal resource
+            if root_id == ROOT_DEVICE:
+                for part in parts:
+                    if not result: return False
+                    result = result['children'].get(part)
+            # If this is a SUT
+            else:
+                for part in parts:
+                    if not result: return False
+                    res = result['children'].get(part)
+                    if not res:
+                        # Ok, this might be a Device path, instead of SUT path!
+                        tb_id = result['meta'].get('_id')
+                        # If this SUT doesn't have a Device ID assigned, bye bye!
+                        if not tb_id: return False
+                        res_data = _recursive_find_id(self.resources, tb_id, [])
+                        # If the Device ID is invalid, bye bye!
+                        if not res_data: return False
+                        # Find out the Device path from Resources and add the rest of the parts
+                        link_path = '/' + '/'.join(res_data.get('path', '')) + '/' + part
+                        result = self.getResource(link_path, flatten=False)
+                        # After this, scan the next PART from PARTS
+                    else:
+                        result = res
 
             if not result: return False
-
+            # Delete empty node paths
             result['path'] = [p for p in parts if p]
 
         result = dict(result)
 
         if not meta:
-            result['children'] = sorted([result['children'][node]['id'] for node in result.get('children') or []], key=lambda node: node.lower())
+            # Flatten the children ?
+            if flatten:
+                result['children'] = sorted([result['children'][node]['id'] for node in result.get('children') or []],
+                                     key=lambda node: node.lower())
             result['path'] = '/'.join(result.get('path', ''))
             return result
         else:
@@ -300,7 +324,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
     def getSut(self, query):
         '''
         Show all the properties, or just 1 property of a SUT.
-        Must provide a SUT ID, or a Query.
+        Must provide a SUT ID, or a SUT Path.
         '''
         return self.getResource(query, ROOT_SUT)
 
@@ -312,20 +336,26 @@ class ResourceAllocator(_cptools.XMLRPCController):
         Create or change a resource, using a name, a parent Path or ID and some properties.
         The function is used for both Devices and SUTs, by providing the ROOT ID.
         '''
-        # Check the username from CherryPy connection
-        cherry_roles = self.project._checkUser()
-        if not cherry_roles:
-            return False
-        if 'CHANGE_TESTBED' not in cherry_roles['roles']:
-            logDebug('Privileges ERROR! Username `{user}` cannot use Set Resource!'.format(**cherry_roles))
-            return False
-
         self._load(v=False)
 
         # If the root is not provided, use the default root
         if root_id == ROOT_DEVICE:
+            # Check the username from CherryPy connection
+            cherry_roles = self.project._checkUser()
+            if not cherry_roles:
+                return False
+            if 'CHANGE_TESTBED' not in cherry_roles['roles']:
+                logDebug('Privileges ERROR! Username `{user}` cannot use Set Resource!'.format(**cherry_roles))
+                return False
             resources = self.resources
         else:
+            # Check the username from CherryPy connection
+            cherry_roles = self.project._checkUser()
+            if not cherry_roles:
+                return False
+            if 'CHANGE_SUT' not in cherry_roles['roles']:
+                logDebug('Privileges ERROR! Username `{user}` cannot use Set Sut!'.format(**cherry_roles))
+                return False
             resources = self.systems
 
         root_name = ROOT_NAMES[root_id]
@@ -406,20 +436,26 @@ class ResourceAllocator(_cptools.XMLRPCController):
         '''
         Rename a resource.
         '''
-        # Check the username from CherryPy connection
-        cherry_roles = self.project._checkUser()
-        if not cherry_roles:
-            return False
-        if 'CHANGE_TESTBED' not in cherry_roles['roles']:
-            logDebug('Privileges ERROR! Username `{user}` cannot use Rename Resource!'.format(**cherry_roles))
-            return False
-
         self._load(v=False)
 
         # If the root is not provided, use the default root
         if root_id == ROOT_DEVICE:
+            # Check the username from CherryPy connection
+            cherry_roles = self.project._checkUser()
+            if not cherry_roles:
+                return False
+            if 'CHANGE_TESTBED' not in cherry_roles['roles']:
+                logDebug('Privileges ERROR! Username `{user}` cannot use Rename Resource!'.format(**cherry_roles))
+                return False
             resources = self.resources
         else:
+            # Check the username from CherryPy connection
+            cherry_roles = self.project._checkUser()
+            if not cherry_roles:
+                return False
+            if 'CHANGE_SUT' not in cherry_roles['roles']:
+                logDebug('Privileges ERROR! Username `{user}` cannot use Rename SUT!'.format(**cherry_roles))
+                return False
             resources = self.systems
 
         root_name = ROOT_NAMES[root_id]
@@ -521,20 +557,26 @@ class ResourceAllocator(_cptools.XMLRPCController):
         '''
         Permanently delete a resource.
         '''
-        # Check the username from CherryPy connection
-        cherry_roles = self.project._checkUser()
-        if not cherry_roles:
-            return False
-        if 'CHANGE_TESTBED' not in cherry_roles['roles']:
-            logDebug('Privileges ERROR! Username `{user}` cannot use Delete Resource!'.format(**cherry_roles))
-            return False
-
         self._load(v=False)
 
         # If the root is not provided, use the default root
         if root_id == ROOT_DEVICE:
+            # Check the username from CherryPy connection
+            cherry_roles = self.project._checkUser()
+            if not cherry_roles:
+                return False
+            if 'CHANGE_TESTBED' not in cherry_roles['roles']:
+                logDebug('Privileges ERROR! Username `{user}` cannot use Delete Resource!'.format(**cherry_roles))
+                return False
             resources = self.resources
         else:
+            # Check the username from CherryPy connection
+            cherry_roles = self.project._checkUser()
+            if not cherry_roles:
+                return False
+            if 'CHANGE_SUT' not in cherry_roles['roles']:
+                logDebug('Privileges ERROR! Username `{user}` cannot use Delete SUT!'.format(**cherry_roles))
+                return False
             resources = self.systems
 
         root_name = ROOT_NAMES[root_id]
@@ -605,35 +647,6 @@ class ResourceAllocator(_cptools.XMLRPCController):
         Permanently delete a SUT.
         '''
         return self.deleteResource(res_query, ROOT_SUT)
-
-
-    @cherrypy.expose
-    def findEpname(self, tbname):
-        '''
-        Calculate EP Name, based on test bed.
-        '''
-        self._load(v=False)
-        # If no resources...
-        if not self.resources['children']:
-            msg = 'Find Epname: There are no resources defined !'
-            logError(msg)
-            return '*ERROR* ' + msg
-
-        tbvalue = self.resources['children'].get(tbname)
-
-        if not tbvalue:
-            msg = 'Find Epname: Cannot find TestBed `{}` !'.format(tbname)
-            logError(msg)
-            return '*ERROR* ' + msg
-
-        ep = tbvalue['meta'].get('epnames')
-
-        if not ep:
-            msg = 'Find Epname: TestBed `{}` does not have any EPs !'.format(tbname)
-            logError(msg)
-            return '*ERROR* ' + msg
-
-        return ep
 
 
 # # # Allocation and reservation of resources # # #

@@ -1,7 +1,7 @@
 
 # File: CentralEngineOthers.py ; This file is part of Twister.
 
-# version: 2.030
+# version: 2.034
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -211,8 +211,8 @@ class Project:
         # Generate the list of EPs in order
         for epname in epList:
             self.users[user]['eps'][epname] = OrderedDict()
-            self.users[user]['eps'][epname]['status']   = STATUS_STOP
-            self.users[user]['eps'][epname]['test_bed'] = ''
+            self.users[user]['eps'][epname]['status'] = STATUS_STOP
+            self.users[user]['eps'][epname]['sut']    = ''
             # Each EP has a SuitesManager, helper class for managing file and suite nodes!
             self.users[user]['eps'][epname]['suites'] = SuitesManager()
 
@@ -225,7 +225,7 @@ class Project:
             epname = suite['ep']
             if epname not in self.users[user]['eps']:
                 continue
-            self.users[user]['eps'][epname]['test_bed'] = suite['tb']
+            self.users[user]['eps'][epname]['sut'] = suite['sut']
             self.users[user]['eps'][epname]['suites'][s_id] = suite
 
         # Ordered list of file IDs, used for Get Status ALL
@@ -354,7 +354,8 @@ class Project:
         logDebug('Project: Reload configuration for user `{}`, with config files `{}` and `{}`.'
             ''.format(user, base_config, files_config))
 
-        del self.parsers[user]
+        try: del self.parsers[user]
+        except: pass
         self.parsers[user] = TSCParser(user, base_config, files_config)
 
         resp = self._common_user_reset(user, base_config, files_config)
@@ -465,7 +466,7 @@ class Project:
         return True
 
 
-    def listUsers(self, active=False):
+    def listUsers(self, active=False, nis=True):
         """
         Find all system users that have Twister installer.\n
         If `active` is True, list only the users that are registered in Central Engine.
@@ -476,16 +477,18 @@ class Project:
             path = line.split(':')[5]
             if os.path.isdir(path + '/twister/config'):
                 users.append(line.split(':')[0])
+
         # Check if the machine has NIS users
-        try:
-            subprocess.check_output('nisdomainname')
-            u = subprocess.check_output("ypcat passwd | awk -F : '{print $1}'", shell=True)
-            for user in u.split():
-                home = userHome(user)
-                if os.path.isdir(home + '/twister/config'):
-                    users.append(user)
-        except:
-            pass
+        if nis:
+            try:
+                subprocess.check_output('nisdomainname')
+                u = subprocess.check_output("ypcat passwd | awk -F : '{print $1}'", shell=True)
+                for user in u.split():
+                    home = userHome(user)
+                    if os.path.isdir(home + '/twister/config'):
+                        users.append(user)
+            except:
+                pass
 
         users = sorted( set(users) )
         # Filter active users ?
@@ -681,6 +684,17 @@ class Project:
             cfg = create_cfg()
             if not name:
                 return '*ERROR* : The user name cannot be empty!'
+            # Try to check the user for NIS domains
+            try:
+                d = subprocess.check_output('nisdomainname', shell=True)
+                if d.strip() != '(none)':
+                    try:
+                        subprocess.check_output('ypmatch {} passwd'.format(name), shell=True)
+                    except:
+                        if name not in self.listUsers(nis=False):
+                            return '*ERROR* : Invalid system user `{}` !'.format(name)
+            except:
+                pass
             try:
                 usr_group = args[0][0]
             except Exception, e:
@@ -1141,11 +1155,16 @@ class Project:
 # # #
 
 
-    def _findGlobalVariable(self, user, node_path):
+    def _findGlobalVariable(self, user, node_path, globs_file=False):
         """
         Helper function.
         """
-        var_pointer = self.users[user]['global_params']
+        if not globs_file:
+            var_pointer = self.users[user]['global_params']
+        else:
+            var_pointer = self.parsers[user].getGlobalParams(globs_file)
+        if not var_pointer:
+            return False
 
         for node in node_path:
             if node in var_pointer:
@@ -1157,7 +1176,7 @@ class Project:
         return var_pointer
 
 
-    def getGlobalVariable(self, user, variable):
+    def getGlobalVariable(self, user, variable, globs_file=False):
         """
         Sending a global variable, using a path.
         """
@@ -1166,13 +1185,13 @@ class Project:
 
         try: node_path = [v for v in variable.split('/') if v]
         except:
-            logError('Global Variable: Invalid variable type `{0}`, for user `{1}`!'.format(variable, user))
+            logError('Global Variable: Invalid variable type `{}`, for user `{}`!'.format(variable, user))
             return False
 
-        var_pointer = self._findGlobalVariable(user, node_path)
+        var_pointer = self._findGlobalVariable(user, node_path, globs_file)
 
         if not var_pointer:
-            logError('Global Variable: Invalid variable path `{0}`, for user `{1}`!'.format(node_path, user))
+            logError('Global Variable: Invalid variable path `{}`, for user `{}`!'.format(node_path, user))
             return False
 
         return var_pointer
@@ -1309,7 +1328,7 @@ class Project:
             finfo['type']  = 'file'
             finfo['suite'] = suite_id
             finfo['file']  = fname
-            finfo['Runnable']   = "true"
+            finfo['Runnable'] = "true"
 
             # Add file for the user, in a specific suite
             suite = SuitesManager.findId(suite_id)
@@ -1791,9 +1810,13 @@ class Project:
                     except: ce_ip = ''
 
                     # Insert/ fix DB variables
-                    subst_data['twister_user']     = user
+                    subst_data['twister_user']    = user
+                    subst_data['twister_ce_type'] = self.server_init['ce_server_type'].lower()
+                    subst_data['twister_server_location'] = self.server_init.get('ce_server_location', '')
+
                     subst_data['twister_rf_fname'] = '{}/config/resources.json'.format(TWISTER_PATH)
                     subst_data['twister_pf_fname'] = '{}/config/project_users.json'.format(TWISTER_PATH)
+
                     subst_data['twister_ce_os']    = system
                     subst_data['twister_ce_hostname'] = ce_host
                     subst_data['twister_ce_ip']       = ce_ip
@@ -1822,6 +1845,9 @@ class Project:
                     # Pre-Suite or Post-Suite files will not be saved to database
                     if subst_data.get('Pre-Suite') or subst_data.get('Post-Suite'):
                         continue
+
+                    # :: Debug ::
+                    # import pprint ; pprint.pprint(subst_data)
 
                     # For every insert SQL statement, build correct data...
                     for query in queries:
