@@ -143,6 +143,7 @@ class Plugin(BasePlugin):
                 connection = rpycConnect(cherrypy.request.headers['Remote-Addr'],
                                                     args['data'], PluginService)
                 connection.root.hello(self.status)
+                connection.root.test()
                 self.sniffers.append(connection)
             except Exception, e:
                 response['status']['success'] = False
