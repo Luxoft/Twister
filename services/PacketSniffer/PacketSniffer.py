@@ -30,10 +30,9 @@ from binascii import b2a_base64
 
 from xmlrpclib import ServerProxy
 from rpyc import Service as rpycService
-from rpyc.utils.server import ThreadPoolServer as rpycThreadedServer
-#from rpyc.utils.factory import connect as rpycConnect
+from rpyc.utils.server import ThreadedServer as rpycThreadedServer
 from uuid import uuid4
-from time import sleep, time
+from time import sleep
 from thread import start_new_thread, allocate_lock
 from scapy.all import Automaton, ATMT, TCP, bind_layers, Packet, NoPayload, Raw
 
@@ -163,7 +162,6 @@ class Sniffer(Automaton):
 
 		# packet filters
 		self.filters = None
-		#self.rpycServ = None
 
 		# user
 		self.username = user
@@ -340,8 +338,6 @@ class Sniffer(Automaton):
 		while not self.rpycConn.active:
 			sleep(0.8)
 
-		#self.rpycServ = rpycConnect('localhost', self.rpycConn.port)
-
 		response = self.registerCE(self.ceTraffic)
 		if not response:
 			raise self.END()
@@ -382,18 +378,10 @@ class Sniffer(Automaton):
 			'packet_head': self.packet_head_parse(packet),
 			'packet_source': packet,
 		}
-		data['packet_head'].update([('id', str(time())), ])
-
-		#self.rpycServ.root.test()
+		data['packet_head'].update([('id', str(uuid4())), ])
 
 		with self.rpycConn.service.connectionsLock:
 			for conn in self.rpycConn.service.connections:
-				print('|||||||||||||')
-				print(self.rpycConn.service.connections)
-				c = self.rpycConn.service.connections[conn]
-				print(c)
-				print(dir(c))
-				print('|||||||||||||')
 				if self.rpycConn.service.connections[conn]:
 					try:
 						self.rpycConn.service.connections[conn].pushpkt(data)
@@ -458,17 +446,10 @@ class PacketSnifferService(rpycService):
 
 	def on_connect(self):
 		"""  """
-		"""print('|||||||||||||||||||||||||on conn|||||||||||||||||||||||||||||||')
-		print(self)
-		print(dir(self))
-		print(self._conn)
-		print(dir(self._conn))
-		print(self._conn._config)
-		print(self._conn._config['endpoints'])
-		print('||||||||||||||||||||||||||||||||||||||||||||||||||||||||')"""
+
 		try:
-			#client_addr = self._conn._config['endpoints'][1]
-			client_addr = self._conn._config['connid'].split(':')
+			client_addr = self._conn._config['endpoints'][1]
+			#client_addr = self._conn._config['connid'].split(':')
 			with self.connectionsLock:
 				self.connections.update([('{ip}:{port}'.format(ip=client_addr[0], port=client_addr[1]), None), ])
 
@@ -481,8 +462,8 @@ class PacketSnifferService(rpycService):
 		"""  """
 
 		try:
-			#client_addr = self._conn._config['endpoints'][1]
-			client_addr = self._conn._config['connid'].split(':')
+			client_addr = self._conn._config['endpoints'][1]
+			#client_addr = self._conn._config['connid'].split(':')
 			with self.connectionsLock:
 				self.connections.pop('{ip}:{port}'.format(ip=client_addr[0], port=client_addr[1]))
 
@@ -496,33 +477,13 @@ class PacketSnifferService(rpycService):
 		if not self.connections and self.sniffer:
 			self.sniffer.registerCE(self.sniffer.ceTraffic)
 
-	def exposed_test(self):
-		print('|||||||||||||||in test|||||||||||||||')
-		with self.connectionsLock:
-			print(self)
-			print(dir(self))
-			print(self.connections)
-			for c in self.connections:
-				print(self.connections[c])
-				if self.connections[c]:
-					print(dir(self.connections[c]))
-		print('||||||||||||||||end test|||||||||||||||||||||||')
-
 
 	def exposed_hello(self, status):
 		"""  """
 
 		try:
-			#client_addr = self._conn._config['endpoints'][1]
-			client_addr = self._conn._config['connid'].split(':')
-			print('|||||||||||||||||||hello||||||||||||||||||||||')
-			print(self)
-			print(dir(self))
-			print(self._conn)
-			print(dir(self._conn))
-			print(self._conn.root)
-			print(dir(self._conn.root))
-			print('||||||||||||||||||||||||||||||||||||||||||||||')
+			client_addr = self._conn._config['endpoints'][1]
+			#client_addr = self._conn._config['connid'].split(':')
 			with self.connectionsLock:
 				self.connections.update([
 						('{ip}:{port}'.format(ip=client_addr[0], port=client_addr[1]), self._conn.root), ])
