@@ -565,7 +565,7 @@ class ParseData():
 
 			if self.sniffer.OFPort in [sourcePort, destinationPort] and of_message_parse:
 				try:
-					_packet = of_message_parse(str(self.packet.payload))
+					_packet = of_message_parse(str(self.packet.payload.payload.load))
 					packet = {'pkt': _packet.show()}
 				except Exception as e:
 					packet = self.packet_to_dict(self.packet)
