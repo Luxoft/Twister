@@ -200,7 +200,7 @@ class TwisterRunner:
             __init.write('\nPROXY = "{}"\n'.format(self.CONFIG['PROXY']))
             __init.write('USER = "{}"\n'.format(self.userName))
             __init.write('EP = "{}"\n'.format(self.epName))
-            __init.write('TB = "{}"\n\n'.format(self.Sut))
+            __init.write('SUT = "{}"\n\n'.format(self.Sut))
 
         # If not Reseting, just append
         else:

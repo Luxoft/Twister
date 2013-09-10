@@ -312,13 +312,20 @@ class ResourceAllocator(_cptools.XMLRPCController):
         if not meta:
             # Flatten the children ?
             if flatten:
-                result['children'] = sorted([result['children'][node]['id'] for node in result.get('children') or []],
+                result['children'] = sorted([result['children'][node]['id'] for
+                                     node in result.get('children') or []],
                                      key=lambda node: node.lower())
             result['path'] = '/'.join(result.get('path', ''))
             return result
         else:
-            return result['meta'].get(meta, '')
-
+            ret = result['meta'].get(meta, '')
+            if ret:
+                return ret
+            # If this is a normal resource
+            if root_id == ROOT_DEVICE:
+                return ret
+            else:
+                return self.getResource(result['path'] +':'+ meta)
 
     @cherrypy.expose
     def getSut(self, query):
