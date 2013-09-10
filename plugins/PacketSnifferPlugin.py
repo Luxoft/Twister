@@ -342,7 +342,7 @@ class PluginService(rpycService):
         """  """
 
         self.connections.pop(str(self))
-        self.plugin.sniffers.pop(self.plugin.sniffers.index(self))
+        self.plugin.sniffers.pop(self.plugin.sniffers.index(self._conn))
         try:
             client_addr = self._conn._config['endpoints'][1]
             print('Disconnected from `{ip}:{port}`.'.format(ip=client_addr[0], port=client_addr[1]))
@@ -364,18 +364,17 @@ class PluginService(rpycService):
             print('push packet error: no plugin')
             return False
 
-        print(packet)
-
         if (self.connections.has_key(str(self))
-            and self.connections[str(self)] in [packet['source']['port'], packet['destination']['port']]
+            and self.connections[str(self)] in
+            [packet['packet_head']['source']['port'], packet['packet_head']['destination']['port']]
             and of_message_parse):
             try:
-                _packet = of_message_parse(str(packet.payload))
+                _packet = of_message_parse(str(packet['packet_source'].payload.payload.load))
                 packet = _packet.show()
             except Exception as e:
-                packet = self.packet_to_dict(packet)
+                packet = self.packet_to_dict(packet['packet_source'])
         else:
-            packet = self.packet_to_dict(packet)
+            packet = self.packet_to_dict(packet['packet_source'])
 
         packet.update([('packet_dict' , packet), ])
         with self.plugin.packetsLock:
