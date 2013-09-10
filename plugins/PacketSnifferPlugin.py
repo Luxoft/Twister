@@ -41,6 +41,7 @@ from scapy.all import Packet, NoPayload, wrpcap
 
 from rpyc import Service as rpycService
 from rpyc.utils.factory import connect as rpycConnect
+from rpyc.utils.helpers import BgServingThread as rpycBgServingThread
 
 try:
     from openflow.of_13.parse import of_message_parse
@@ -142,8 +143,8 @@ class Plugin(BasePlugin):
             try:
                 connection = rpycConnect(cherrypy.request.headers['Remote-Addr'],
                                                     args['data'], PluginService)
+                rpycBgServingThread(connection)
                 connection.root.hello(self.status)
-                connection.root.test()
                 self.sniffers.append(connection)
             except Exception, e:
                 response['status']['success'] = False
@@ -362,6 +363,8 @@ class PluginService(rpycService):
         if not self.plugin:
             print('push packet error: no plugin')
             return False
+
+        print(packet)
 
         if (self.connections.has_key(str(self))
             and self.connections[str(self)] in [packet['source']['port'], packet['destination']['port']]
