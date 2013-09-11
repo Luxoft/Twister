@@ -364,6 +364,15 @@ class PluginService(rpycService):
             print('push packet error: no plugin')
             return False
 
+        print('|||||||||||||||||||||||||||||||||||||||||||')
+        print(packet)
+        print(dir(packet))
+        print(type(packet))
+        p = packet.copy()
+        print(p)
+        print(type(p))
+        print('|||||||||||||||||||||||||||||||||||||||||||')
+
         if (self.connections.has_key(str(self))
             and self.connections[str(self)] in
             [packet['packet_head']['source']['port'], packet['packet_head']['destination']['port']]
