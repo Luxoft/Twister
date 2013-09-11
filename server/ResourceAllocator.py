@@ -1,7 +1,7 @@
 
 # File: ResourceAllocator.py ; This file is part of Twister.
 
-# version: 2.007
+# version: 2.008
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -325,7 +325,11 @@ class ResourceAllocator(_cptools.XMLRPCController):
             if root_id == ROOT_DEVICE:
                 return ret
             else:
-                return self.getResource(result['path'] +':'+ meta)
+                # Ok, this might be a Device ID, instead of SUT ID!
+                tb_id = result['meta'].get('_id')
+                # If this SUT doesn't have a Device ID assigned, bye bye!
+                if not tb_id: return ''
+                return self.getResource(tb_id +':'+ meta)
 
     @cherrypy.expose
     def getSut(self, query):
