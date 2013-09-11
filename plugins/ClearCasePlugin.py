@@ -27,53 +27,57 @@
 #
 
 
+"""
+    ClearCase plugin wraps cleartool library.
+    Executes the given commands using cleartool library.
+"""
+
+
 from BasePlugin import BasePlugin
 
 from json import dumps as jsonDump
 
 
 try:
-	import cleartool
+    import cleartool
 except Exception as e:
-	raise e
+    raise e
 
 
 
 
 class Plugin(BasePlugin):
-	"""  """
+    """ ClearCase plugin. """
 
-	def __init__(self, user, data):
-		"""  """
+    def __init__(self, user, data):
+        if not data:
+            return False
 
-		if not data:
-			return False
+        BasePlugin.__init__(self, user, data)
 
-		BasePlugin.__init__(self, user, data)
-
-		self.user = user
-		self.data = data
+        self.user = user
+        self.data = data
 
 
-	def run(self, args):
-		"""  """
+    def run(self, args):
+        """  """
 
-		args = {k: v[0] if isinstance(v, list) else v for k,v in args.iteritems()}
+        args = {k: v[0] if isinstance(v, list) else v for k,v in args.iteritems()}
 
-		# response structure
-		response = False
+        # response structure
+        response = False
 
-		if not args.has_key('command') or not isinstance(args['command'], str):
-			return response
+        if not args.has_key('command') or not isinstance(args['command'], str):
+            return response
 
-		_response = cleartool.cmd(args['command'])
-		response = {
-			'status': _response[0],
-			'data': _response[1],
-			'error': _response[2]
-		}
+        _response = cleartool.cmd(args['command'])
+        response = {
+            'status': _response[0],
+            'data': _response[1],
+            'error': _response[2]
+        }
 
-		return jsonDump(response)
+        return jsonDump(response)
 
 
 
@@ -83,10 +87,10 @@ class Plugin(BasePlugin):
 #### plugins.xml config ####
 
 <Plugin>
-	<name>ClearCase</name>
-	<jarfile>ClearCasePlugin.jar</jarfile>
-	<pyfile>ClearCasePlugin.py</pyfile>
-	<status>disabled</status>
+    <name>ClearCase</name>
+    <jarfile>ClearCasePlugin.jar</jarfile>
+    <pyfile>ClearCasePlugin.py</pyfile>
+    <status>disabled</status>
 </Plugin>
 
 """

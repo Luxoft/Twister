@@ -27,6 +27,12 @@
 #
 
 
+"""
+    PacketSniffer plugin manage the sniffed packets from client
+    and makes them usable for the interface.
+"""
+
+
 from os import getenv, makedirs
 from os.path import exists
 
