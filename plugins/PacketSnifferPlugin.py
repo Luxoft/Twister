@@ -224,7 +224,7 @@ class Plugin(BasePlugin):
                     packetID = str(args['data'])
                     for _packet in self.packets:
                         if _packet['packet_head']['id'] == packetID:
-                            packetIndex = self.packets.index(_packet)
+                            packetIndex = self.packets.index(_packet) + 1
                             packet = deepcopy(_packet)
 
 
@@ -234,8 +234,6 @@ class Plugin(BasePlugin):
 
                         queriedPackets = []
                         packetID = None
-                        if not packetIndex == 0:
-                            packetIndex += 1
                         for _packet in self.packets[packetIndex:packetIndex \
                                                     + self.data['packetsBuffer']]:
                             pk = deepcopy(_packet)
