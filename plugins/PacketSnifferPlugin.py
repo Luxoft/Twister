@@ -234,7 +234,8 @@ class Plugin(BasePlugin):
 
                         queriedPackets = []
                         packetID = None
-                        packetIndex += 1
+                        if not packetIndex == 0:
+                            packetIndex += 1
                         for _packet in self.packets[packetIndex:packetIndex \
                                                     + self.data['packetsBuffer']]:
                             pk = deepcopy(_packet)
