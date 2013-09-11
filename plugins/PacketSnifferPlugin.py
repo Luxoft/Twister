@@ -37,7 +37,7 @@ from copy import deepcopy
 from time import time
 
 from json import dumps
-from scapy.all import Packet, NoPayload, wrpcap
+from scapy.all import Packet, NoPayload, Ether, wrpcap
 
 from rpyc import Service as rpycService
 from rpyc.utils.factory import connect as rpycConnect
@@ -141,8 +141,13 @@ class Plugin(BasePlugin):
             response['type'] = 'register sniff reply'
 
             try:
-                connection = rpycConnect(cherrypy.request.headers['Remote-Addr'],
-                                                    args['data'], PluginService)
+                connection = rpycConnect(host=cherrypy.request.headers['Remote-Addr'],
+                                                    port=args['data'], service=PluginService,
+                                                    config={'allow_all_attrs': True,
+                                                            'allow_pickle': True,
+                                                            'allow_getattr': True,
+                                                            'allow_setattr': True,
+                                                            'allow_delattr': True})
                 rpycBgServingThread(connection)
                 connection.root.hello(self.status)
                 self.sniffers.append(connection)
@@ -252,7 +257,7 @@ class Plugin(BasePlugin):
                         packetID = str(args['data'])
                         for _packet in self.packets:
                             if _packet['packet_head']['id'] == packetID:
-                                packetIndex = self.packets.index(_packet)
+                                packetIndex = self.packets.index(_packet) + 1
                                 packet = deepcopy(_packet)
 
 
@@ -262,7 +267,6 @@ class Plugin(BasePlugin):
 
                             queriedPackets = []
                             packetID = None
-                            packetIndex += 1
                             for _packet in self.packets[packetIndex:packetIndex \
                                                         + self.data['packetsBuffer']]:
                                 pk = deepcopy(_packet)
@@ -285,6 +289,7 @@ class Plugin(BasePlugin):
                         if self.packets:
                             response['status']['message'] = 'packet index unknown'
                         else:
+                            response['data'] = dict()
                             response['status']['message'] = 'packets list empty'
 
                     del packet
@@ -354,7 +359,7 @@ class PluginService(rpycService):
     def exposed_set_ofp_port(self, port):
         """  """
 
-        self.connections.update([(str(self) , port), ])
+        self.connections.update([(str(self) , deepcopy(port)), ])
 
 
     def exposed_pushpkt(self, packet):
@@ -364,20 +369,8 @@ class PluginService(rpycService):
             print('push packet error: no plugin')
             return False
 
-        print('|||||||||||||||||||||||||||||||||||||||||||')
-        print(self)
-        print(dir(self))
-        print(self._conn)
-        print(dir(self._conn))
-        print(self._conn.root)
-        print(dir(self._conn.root))
-        print(packet)
-        print(dir(packet))
-        print(type(packet))
-        #p = deepcopy(packet)
-        #print(p)
-        #print(type(p))
-        print('|||||||||||||||||||||||||||||||||||||||||||')
+        packet = deepcopy(packet)
+        packet.update([('packet_source', Ether(packet['packet_source'])), ])
 
         if (self.connections.has_key(str(self))
             and self.connections[str(self)] in
@@ -385,18 +378,18 @@ class PluginService(rpycService):
             and of_message_parse):
             try:
                 _packet = of_message_parse(str(packet['packet_source'].payload.payload.load))
-                packet = _packet.show()
+                _packet = _packet.show()
             except Exception as e:
-                packet = self.packet_to_dict(packet['packet_source'])
+                _packet = self.packet_to_dict(packet['packet_source'])
         else:
-            packet = self.packet_to_dict(packet['packet_source'])
+            _packet = self.packet_to_dict(packet['packet_source'])
 
-        packet.update([('packet_dict' , packet), ])
+        packet.update([('packet_dict' , _packet), ])
         with self.plugin.packetsLock:
             self.plugin.packets.append(packet)
 
-        if len(self.plugin.packets) >= self.packetsIndexLimit:
-            del self.plugin.plugin.packets[:self.data['packetsBuffer']]
+        if len(self.plugin.packets) >= self.plugin.packetsIndexLimit:
+            del self.plugin.packets[:self.plugin.data['packetsBuffer']]
 
         return True
 

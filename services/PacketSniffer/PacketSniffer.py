@@ -33,6 +33,7 @@ from rpyc import Service as rpycService
 from rpyc.utils.server import ThreadedServer as rpycThreadedServer
 from uuid import uuid4
 from time import sleep
+from copy import deepcopy
 from thread import start_new_thread, allocate_lock
 from scapy.all import Automaton, ATMT, TCP, bind_layers, Packet, NoPayload, Raw
 
@@ -91,7 +92,11 @@ class PacketSniffer():
 				self.rpycThreadedServer = rpycThreadedServer(service=PacketSnifferService,
 																port=self.clientPort,
 																protocol_config={
-																	'allow_public_attrs': True})
+																	'allow_all_attrs': True,
+																	'allow_pickle': True,
+																	'allow_getattr': True,
+																	'allow_setattr': True,
+																	'allow_delattr': True})
 				self.sniffer = Sniffer(user, epConfig, self.rpycThreadedServer, OFPort, iface)
 				self.rpycThreadedServer.service.sniffer = self.sniffer
 				break
@@ -211,23 +216,23 @@ class Sniffer(Automaton):
 
 		if self.filters.has_key('-mac_dst'):
 			filterStatus = (self.filters['-mac_dst'] ==
-											self.packetHead['destination']['mac'])
+											packetHead['destination']['mac'])
 
 		if self.filters.has_key('-port_src'):
 			filterStatus = (self.filters['-port_src'] ==
-									str(self.packetHead['source']['port']))
+									str(packetHead['source']['port']))
 
 		if self.filters.has_key('-port_dst'):
 			filterStatus = (self.filters['-port_dst'] ==
-									str(self.packetHead['destination']['port']))
+									str(packetHead['destination']['port']))
 
 		if self.filters.has_key('-ip_src'):
 			filterStatus = (self.filters['-ip_src'] ==
-											self.packetHead['source']['ip'])
+											packetHead['source']['ip'])
 
 		if self.filters.has_key('-ip_dst'):
 			filterStatus = (self.filters['-ip_dst'] ==
-											self.packetHead['destination']['ip'])
+											packetHead['destination']['ip'])
 
 		return filterStatus
 
@@ -379,7 +384,7 @@ class Sniffer(Automaton):
 				'username': self.username,
 			},
 			'packet_head': self.packet_head_parse(packet),
-			'packet_source': packet,
+			'packet_source': str(packet),
 		}
 		data['packet_head'].update([('id', str(uuid4())), ])
 
@@ -491,6 +496,9 @@ class PacketSnifferService(rpycService):
 				self.connections.update([
 						('{ip}:{port}'.format(ip=client_addr[0], port=client_addr[1]), self._conn.root), ])
 
+			self.connections['{ip}:{port}'.format(ip=client_addr[0],
+												port=client_addr[1])].set_ofp_port(self.sniffer.OFPort)
+
 			if status == 'running':
 				self.exposed_start()
 
@@ -546,10 +554,10 @@ class PacketSnifferService(rpycService):
 		return True
 
 
-	def exposed_stop(self):
-		"""  """
-		##
-		return True
+	#def exposed_stop(self):
+	#	"""  """
+	#	##
+	#	return True
 
 
 	def exposed_restart(self):
@@ -571,7 +579,7 @@ class PacketSnifferService(rpycService):
 		if not self.sniffer:
 			return False
 
-		self.sniffer.filters = filters
+		self.sniffer.filters = deepcopy(filters)
 
 		return True
 
