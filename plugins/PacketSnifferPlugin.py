@@ -257,6 +257,7 @@ class Plugin(BasePlugin):
                     if self.packets:
                         response['status']['message'] = 'packet index unknown'
                     else:
+                        response['data'] = dict()
                         response['status']['message'] = 'packets list empty'
 
                 del packet
