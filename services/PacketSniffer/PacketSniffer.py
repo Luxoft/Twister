@@ -88,7 +88,10 @@ class PacketSniffer():
 		# find firs free port in range ..
 		while self.clientPort <= maxport:
 			try:
-				self.rpycThreadedServer = rpycThreadedServer(PacketSnifferService, port=self.clientPort)
+				self.rpycThreadedServer = rpycThreadedServer(service=PacketSnifferService,
+																port=self.clientPort,
+																protocol_config={
+																	'allow_public_attrs': True})
 				self.sniffer = Sniffer(user, epConfig, self.rpycThreadedServer, OFPort, iface)
 				self.rpycThreadedServer.service.sniffer = self.sniffer
 				break

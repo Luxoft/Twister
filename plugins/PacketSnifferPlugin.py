@@ -365,12 +365,18 @@ class PluginService(rpycService):
             return False
 
         print('|||||||||||||||||||||||||||||||||||||||||||')
+        print(self)
+        print(dir(self))
+        print(self._conn)
+        print(dir(self._conn))
+        print(self._conn.root)
+        print(dir(self._conn.root))
         print(packet)
         print(dir(packet))
         print(type(packet))
-        p = packet.copy()
-        print(p)
-        print(type(p))
+        #p = deepcopy(packet)
+        #print(p)
+        #print(type(p))
         print('|||||||||||||||||||||||||||||||||||||||||||')
 
         if (self.connections.has_key(str(self))
