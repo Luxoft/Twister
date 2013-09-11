@@ -1,7 +1,7 @@
 
 # File: CentralEngineClasses.py ; This file is part of Twister.
 
-# version: 2.024
+# version: 2.025
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -39,19 +39,15 @@ from __future__ import with_statement
 
 import os
 import sys
-import re
-import glob
 import time
 import datetime
 import traceback
-import random
 import socket
 import binascii
 import tarfile
 import xmlrpclib
 import urlparse
 import platform
-import subprocess
 import MySQLdb
 
 import pickle
@@ -104,12 +100,9 @@ class CentralEngine(_cptools.XMLRPCController):
             srv_ver = 'version `{}`'.format(srv_ver)
         except: srv_ver = ''
 
-        logDebug('CE: Starting Twister Server {}...'.format(srv_ver)) ; ti = time.clock()
-        self.project = Project()
-        logDebug('CE: Initialization took %.4f seconds.' % (time.clock()-ti))
-
-        # User loggers
-        self.loggers = {}
+        logDebug('CE: Starting Twister Server {}...'.format(srv_ver)) ; ti = time.time()
+        self.project = Project(self)
+        logDebug('CE: Initialization took %.4f seconds.' % (time.time()-ti))
 
         self.manager = ServiceManager()
         self.rest = WebInterface(self, self.project)
@@ -294,9 +287,9 @@ class CentralEngine(_cptools.XMLRPCController):
         exactly as the user defined them in Database.XML.\n
         This function is called from the Java GUI, or from an EP.
         """
-
         logDebug('CE: Preparing to save into database...')
         time.sleep(3)
+
         ret = self.project.saveToDatabase(user)
         if ret:
             logDebug('CE: Saving to database was successful!')
@@ -702,7 +695,7 @@ class CentralEngine(_cptools.XMLRPCController):
     @cherrypy.expose
     def resetProject(self, user):
         """
-        Reset project for user.
+        Reset project for 1 user.
         """
         twister_cache = userHome(user) + '/twister/.twister_cache'
         setFileOwner(user, twister_cache)
@@ -768,122 +761,10 @@ class CentralEngine(_cptools.XMLRPCController):
         """
         Set execution status for one EP. (0, 1, 2, or 3)\n
         Returns a string (stopped, paused, running).\n
+        The `message` parameter can explain why the status has changed.\n
         Called from the EP.
         """
-        # Check the username from CherryPy connection
-        cherry_roles = self.project._checkUser()
-        if not cherry_roles:
-            return False
-        if not 'RUN_TESTS' in cherry_roles['roles']:
-            logDebug('Privileges ERROR! Username `{user}` cannot change EP status!'.format(**cherry_roles))
-            return False
-
-        if not self.searchEP(user, epname):
-            logError('CE ERROR! EP `{}` is not in the list of defined EPs: `{}`!'
-                     ''.format(epname, self.listEPs(user)) )
-            return False
-        if new_status not in execStatus.values():
-            logError("CE ERROR! Status value `{}` is not in the list of defined statuses: `{}`!"
-                     "".format(new_status, execStatus.values()) )
-            return False
-
-        # Status resume => start running
-        if new_status == STATUS_RESUME:
-            new_status = STATUS_RUNNING
-
-        ret = self.project.setEpInfo(user, epname, 'status', new_status)
-        reversed = dict((v,k) for k,v in execStatus.iteritems())
-
-        if ret:
-            if msg:
-                logDebug('CE: Status changed for `{} {}` - {} (from `{}`).\n\tMessage: `{}`.'.format(
-                    user, epname, reversed[new_status], cherrypy.request.headers['Remote-Addr'], msg))
-            else:
-                logDebug('CE: Status changed for `{} {}` - {} (from `{}`).'.format(
-                    user, epname, reversed[new_status], cherrypy.request.headers['Remote-Addr']))
-        else:
-            logError('CE ERROR! Cannot change status for `{} {}` !'.format(user, epname))
-
-        # Send start/ stop command to EP !
-        if new_status == STATUS_RUNNING:
-            self.startEP(user, epname)
-        elif new_status == STATUS_STOP:
-            self.stopEP(user, epname)
-
-        # If all Stations are stopped, the status for current user is also stop!
-        # This is important, so that in the Java GUI, the buttons will change to [Play | Stop]
-        if not sum([self.project.getEpInfo(user, ep).get('status', 8) for ep in self.project.parsers[user].getActiveEps()]):
-
-            # If User status was not Stop
-            if self.project.getUserInfo(user, 'status'):
-
-                self.project.setUserInfo(user, 'status', STATUS_STOP)
-
-                logDebug('CE: All processes stopped for user `{}`! General status changed to STOP.\n'.format(user))
-
-                # If this run is Not temporary
-                if not (user + '_old' in self.project.users):
-                    # On Central Engine stop, send e-mail
-                    self.sendMail(user)
-
-                    # Execute "Post Script"
-                    script_post = self.project.getUserInfo(user, 'script_post')
-                    script_mandatory = self.project.getUserInfo(user, 'script_mandatory')
-                    save_to_db = True
-                    if script_post:
-                        result = execScript(script_post)
-                        if result: logDebug('Post Script executed!\n"{}"\n'.format(result))
-                        elif script_mandatory:
-                            logError('CE: Post Script failed and script is mandatory! Will not save the results into database!')
-                            save_to_db = False
-
-                    # On Central Engine stop, save to database
-                    db_auto_save = self.project.getUserInfo(user, 'db_auto_save')
-                    if db_auto_save and save_to_db: self.commitToDatabase(user)
-
-                    # Find the log process for this User and ask it to Exit
-                    port = self.loggers[user]['port']
-                    sock = self._logConnect(user, port)
-
-                    if sock:
-                        sock.sendall('EXIT')
-                        resp = sock.recv(1024)
-                        if resp == 'EXIT!':
-                            sock.close()
-                            logDebug('Terminated log server `localhost:{}`, for user `{}`.'.format(port, user))
-                        else:
-                            logWarning('Cannot stop log server `localhost:{}`, for user `{}`! Response `{}`.'.format(port, user, resp))
-
-                    # Execute "onStop" for all plugins!
-                    parser = PluginParser(user)
-                    plugins = parser.getPlugins()
-                    for pname in plugins:
-                        plugin = self._buildPlugin(user, pname,  {'ce_stop': 'automatic'})
-                        try:
-                            plugin.onStop()
-                        except Exception as e:
-                            trace = traceback.format_exc()[33:].strip()
-                            logWarning('Error on running plugin `{} onStop` - Exception: `{}`!'.format(pname, trace))
-                    del parser, plugins
-
-                    # Cycle all files to change the PENDING status to NOT_EXEC
-                    eps_pointer = self.project.users[user]['eps']
-                    statuses_changed = 0
-
-                    # All files, for current EP
-                    files = eps_pointer[epname]['suites'].getFiles()
-                    for file_id in files:
-                        current_status = self.project.getFileInfo(user, epname, file_id).get('status', -1)
-                        # Change the files with PENDING status, to NOT_EXEC
-                        if current_status in [STATUS_PENDING, -1]:
-                            self.project.setFileInfo(user, epname, file_id, 'status', STATUS_NOT_EXEC)
-                            statuses_changed += 1
-
-                    if statuses_changed:
-                        logDebug('Changed `{}` file statuses from Pending to Not executed.'.format(statuses_changed))
-
-
-        return reversed[new_status]
+        return self.project.setExecStatus(user, epname, new_status, msg)
 
 
     @cherrypy.expose
@@ -891,187 +772,10 @@ class CentralEngine(_cptools.XMLRPCController):
         """
         Set execution status for all EPs. (STATUS_STOP, STATUS_PAUSED, STATUS_RUNNING).\n
         Returns a string (stopped, paused, running).\n
-        The `message` parameter can explain why the status has changed.\n
-        Both CE and EP have a status.
+        The `message` parameter can explain why the status has changed.
+        Called from the applet.
         """
-        # Check the username from CherryPy connection
-        cherry_roles = self.project._checkUser()
-        if not cherry_roles:
-            return False
-        if not 'RUN_TESTS' in cherry_roles['roles']:
-            logDebug('Privileges ERROR! Username `{user}` cannot change exec status!'.format(**cherry_roles))
-            return False
-
-        if new_status not in execStatus.values():
-            logError("CE ERROR! Status value `{}` is not in the list of defined statuses: `{}`!"
-                     "".format(new_status, execStatus.values()) )
-            return False
-
-        reversed = dict((v,k) for k,v in execStatus.iteritems())
-
-        # If this is a Temporary user
-        user_agent = cherrypy.request.headers['User-Agent'].lower()
-        if 'xml rpc' in user_agent and (user+'_old') in self.project.users:
-            if msg.lower() != 'kill' and new_status != STATUS_STOP:
-                return '*ERROR*! Cannot change status while running temporary!'
-            else:
-                # Update status for User
-                self.project.setUserInfo(user, 'status', STATUS_STOP)
-
-                # Update status for all active EPs
-                active_eps = self.project.parsers[user].getActiveEps()
-                for epname in active_eps:
-                    if not self.searchEP(user, epname):
-                        logError('Set Status: `{}` is not in the list of defined EPs: `{}`!'.format(epname, self.listEPs(user)) )
-                        continue
-                    self.project.setEpInfo(user, epname, 'status', STATUS_STOP)
-
-                if msg:
-                    logDebug("CE: Status chang for TEMP `%s %s` -> %s. Message: `%s`.\n" % (user, active_eps, reversed[STATUS_STOP], str(msg)))
-                else:
-                    logDebug("CE: Status chang for TEMP `%s %s` -> %s.\n" % (user, active_eps, reversed[STATUS_STOP]))
-                return reversed[STATUS_STOP]
-
-        # Status resume => start running. The logs must not reset on resume
-        if new_status == STATUS_RESUME:
-            new_status = STATUS_RUNNING
-
-        # Return the current status, or 8 = INVALID
-        executionStatus = self.project.getUserInfo(user, 'status') or 8
-
-        # Re-initialize the Master XML and Reset all logs on fresh start!
-        # This will always happen when the START button is pressed, if CE is stopped
-        if (executionStatus == STATUS_STOP or executionStatus == STATUS_INVALID) and new_status == STATUS_RUNNING:
-
-            # If the Msg contains 2 paths, separated by comma
-            if msg and len(msg.split(',')) == 2:
-                path1 = msg.split(',')[0]
-                path2 = msg.split(',')[1]
-                if os.path.isfile(path1) and os.path.isfile(path2):
-                    logDebug('CE: Using custom XML files: `{}` and `{}`.'.format(path1, path2))
-                    self.project.reset(user, path1, path2)
-                    msg = ''
-
-            # Or if the Msg is a path to an existing file...
-            elif msg and os.path.isfile(msg):
-                data = open(msg).read().strip()
-                # If the file is XML, send it to project reset function
-                if data[0] == '<' and data [-1] == '>':
-                    logDebug('CE: Using custom XML file: `{}`...'.format(msg))
-                    self.project.reset(user, msg)
-                    msg = ''
-                else:
-                    logDebug('CE: You are probably trying to use file `{}` as config file, but it\'s not a valid XML!'.format(msg))
-                    self.project.reset(user)
-                del data
-
-            else:
-                self.project.reset(user)
-
-            self.resetLogs(user)
-
-            # User start time and elapsed time
-            self.project.setUserInfo(user, 'start_time', datetime.datetime.today().strftime('%Y-%m-%d %H:%M:%S'))
-            self.project.setUserInfo(user, 'elapsed_time', 0)
-
-            # Execute "Pre Script"
-            script_pre = self.project.getUserInfo(user, 'script_pre')
-            script_mandatory = self.project.getUserInfo(user, 'script_mandatory')
-            if script_pre:
-                result = execScript(script_pre)
-                if result: logDebug('Pre Script executed! {}'.format(result))
-                elif script_mandatory:
-                    logError('CE: Pre Script failed and script is mandatory! The project failed!')
-                    return reversed[STATUS_STOP]
-
-            # Execute "onStart" for all plugins!
-            parser = PluginParser(user)
-            plugins = parser.getPlugins()
-            for pname in plugins:
-                plugin = self._buildPlugin(user, pname)
-                try:
-                    plugin.onStart()
-                except Exception as e:
-                    trace = traceback.format_exc()[34:].strip()
-                    logWarning('Error on running plugin `{} onStop` - Exception: `{}`!'.format(pname, trace))
-            del parser, plugins
-
-            # Start all active EPs !
-            active_eps = self.project.parsers[user].getActiveEps()
-            for epname in active_eps:
-                if not self.searchEP(user, epname):
-                    continue
-                self.startEP(user, epname)
-
-        # If the engine is running, or paused and it received STOP from the user...
-        elif (executionStatus == STATUS_RUNNING or executionStatus == STATUS_PAUSED) and new_status == STATUS_STOP:
-
-            # Execute "Post Script"
-            script_post = self.project.getUserInfo(user, 'script_post')
-            script_mandatory = self.project.getUserInfo(user, 'script_mandatory')
-            if script_post:
-                result = execScript(script_post)
-                if result: logDebug('Post Script executed!\n"{}"\n'.format(result))
-                elif script_mandatory:
-                    logError('CE: Post Script failed!')
-
-            # Execute "onStop" for all plugins... ?
-            parser = PluginParser(user)
-            plugins = parser.getPlugins()
-            for pname in plugins:
-                plugin = self._buildPlugin(user, pname, {'ce_stop': 'manual'})
-                try:
-                    plugin.onStop()
-                except Exception as e:
-                    trace = traceback.format_exc()[34:].strip()
-                    logWarning('Error on running plugin `{} onStop` - Exception: `{}`!'.format(pname, trace))
-            del parser, plugins
-
-            # Cycle all active EPs to: STOP them and to change the PENDING status to NOT_EXEC
-            active_eps = self.project.parsers[user].getActiveEps()
-            eps_pointer = self.project.users[user]['eps']
-            statuses_changed = 0
-
-            for epname in active_eps:
-                if not self.searchEP(user, epname):
-                    continue
-                # All files, for current EP
-                files = eps_pointer[epname]['suites'].getFiles()
-                for file_id in files:
-                    current_status = self.project.getFileInfo(user, epname, file_id).get('status', -1)
-                    # Change the files with PENDING status, to NOT_EXEC
-                    if current_status in [STATUS_PENDING, -1]:
-                        self.project.setFileInfo(user, epname, file_id, 'status', STATUS_NOT_EXEC)
-                        statuses_changed += 1
-                # Send STOP to EP Manager
-                self.stopEP(user, epname)
-
-            if statuses_changed:
-                logDebug('Changed `{}` file statuses from Pending to Not executed.'.format(statuses_changed))
-
-
-        # Update status for User
-        self.project.setUserInfo(user, 'status', new_status)
-
-        # Update status for all active EPs
-        active_eps = self.project.parsers[user].getActiveEps()
-        for epname in active_eps:
-            if not self.searchEP(user, epname):
-                logError('Set Status: `{}` is not in the list of defined EPs: `{}`!'.format(epname, self.listEPs(user)) )
-                continue
-            self.project.setEpInfo(user, epname, 'status', new_status)
-
-        reversed = dict((v,k) for k,v in execStatus.iteritems())
-
-
-        if msg and msg != ',':
-            logDebug('CE: Status changed for `{} {}` - {} (from `{}`).\n\tMessage: `{}`.'.format(
-                user, active_eps, reversed[new_status], cherrypy.request.headers['Remote-Addr'], msg))
-        else:
-            logDebug('CE: Status changed for `{} {}` - {} (from `{}`).'.format(
-                user, active_eps, reversed[new_status], cherrypy.request.headers['Remote-Addr']))
-
-        return reversed[new_status]
+        return self.project.setExecStatusAll(user, new_status, msg)
 
 
 # --------------------------------------------------------------------------------------------------
@@ -1107,62 +811,7 @@ class CentralEngine(_cptools.XMLRPCController):
         Set status for one file and write in log summary.\n
         Called from the Runner.
         """
-        if not self.searchEP(user, epname):
-            logError('CE ERROR! EP `%s` is not in the list of defined EPs: `%s`!' % \
-                (str(epname), self.listEPs(user)) )
-            return False
-        if new_status not in testStatus.values():
-            logError("CE ERROR! Status value `%s` is not in the list of defined statuses: `%s`!" % \
-                (str(new_status), str(testStatus.values())) )
-            return False
-
-        data = self.project.getFileInfo(user, epname, file_id)
-        if not data:
-            logDebug('CE ERROR! Invalid File ID `{}` !'.format(file_id))
-            return False
-
-        filename = os.path.split(data['file'])[1]
-        suite = data['suite']
-
-        # Sets file status
-        self.project.setFileInfo(user, epname, file_id, 'status', new_status)
-        reversed = dict((v,k) for k,v in testStatus.iteritems())
-        status_str = reversed[new_status]
-
-        # Get logSummary path from framework config
-        logPath = self.project.getUserInfo(user, 'log_types')['logSummary']
-
-        # Write all statuses in logs, because all files will be saved to database
-        if status_str=='not executed': status_str='*NO EXEC*'
-        else: status_str='*%s*' % status_str.upper()
-
-        if new_status != STATUS_WORKING:
-
-            # Inject information into Files. This will be used when saving into database.
-            now = datetime.datetime.today()
-
-            self.project.setFileInfo(user, epname, file_id, 'twister_tc_status', status_str.replace('*', ''))
-            self.project.setFileInfo(user, epname, file_id, 'twister_tc_crash_detected',
-                                    data.get('twister_tc_crash_detected', 0))
-            self.project.setFileInfo(user, epname, file_id, 'twister_tc_time_elapsed',   int(time_elapsed))
-            self.project.setFileInfo(user, epname, file_id, 'twister_tc_date_started',
-                                    (now - datetime.timedelta(seconds=time_elapsed)).isoformat())
-            self.project.setFileInfo(user, epname, file_id, 'twister_tc_date_finished',  (now.isoformat()))
-            suite_name = self.project.getSuiteInfo(user, epname, suite).get('name')
-
-            logMessage = ' {ep}::{suite}::{file} | {status} | {elapsed} | {date}\n'.format(
-                    ep = epname.center(9), suite = suite_name.center(9), file = filename.center(28),
-                    status = status_str.center(11),
-                    elapsed = ('%.2fs' % time_elapsed).center(10),
-                    date = now.strftime('%a %b %d, %H:%M:%S'))
-
-            resp = self._logServerMsg(user, logPath + ':' + logMessage)
-            if not resp:
-                logError('Summary log file `{}` cannot be written! User `{}` won\'t see any '\
-                         'statistics!'.format(logPath, user))
-
-        # Return string
-        return status_str
+        self.project.setFileStatus(user, epname, file_id, new_status, time_elapsed)
 
 
     @cherrypy.expose
@@ -1177,40 +826,6 @@ class CentralEngine(_cptools.XMLRPCController):
 # --------------------------------------------------------------------------------------------------
 #           L I B R A R Y   AND   T E S T   S U I T E   F I L E S
 # --------------------------------------------------------------------------------------------------
-
-
-    def _buildPlugin(self, user, plugin, extra_data={}):
-        """
-        Parses the list of plugins and creates an instance of the requested plugin.
-        All the data
-        """
-
-        # The pointer to the plugin = User name and Plugin name
-        key = user +' '+ plugin
-
-        if key in self.project.plugins:
-            plugin = self.project.plugins.get(key)
-            return plugin
-
-        # If the plugin is not initialised
-        parser = PluginParser(user)
-        pdict = parser.getPlugins().get(plugin)
-        if not pdict:
-            logError('CE ERROR: Cannot find plugin `%s`!' % plugin)
-            return False
-        del parser
-
-        data = dict(self.project.getUserInfo(user))
-        data.update(pdict)
-        data.update(extra_data)
-        data['ce'] = self
-        del data['eps']
-        del data['status']
-        del data['plugin']
-
-        plugin = pdict['plugin'](user, data)
-        self.project.plugins[key] = plugin
-        return plugin
 
 
     @cherrypy.expose
@@ -1240,7 +855,7 @@ class CentralEngine(_cptools.XMLRPCController):
         else:
             return 'CE ERROR: Invalid type of argument for plugin `%s` : %s !' % (plugin, type(args))
 
-        plugin_p = self._buildPlugin(user, plugin)
+        plugin_p = self.project._buildPlugin(user, plugin)
 
         if not plugin_p:
             msg = 'CE ERROR: Plugin `{0}` does not exist for user `{1}`!'.format(plugin, user)
@@ -1400,11 +1015,6 @@ class CentralEngine(_cptools.XMLRPCController):
         Returns all files that must be run on one EP.\n
         Called from the Runner.
         """
-        if not self.searchEP(user, epname):
-            logError('CE ERROR! EP `%s` is not in the list of defined EPs: `%s`!' %\
-                     (str(epname), self.listEPs(user)) )
-            return False
-
         try: data = self.project.getEpFiles(user, epname)
         except: data = False
         return data
@@ -1416,11 +1026,6 @@ class CentralEngine(_cptools.XMLRPCController):
         Returns all files that must be run on one Suite.\n
         Called from the Runner.
         """
-        if not self.searchEP(user, epname):
-            logError('CE ERROR! EP `%s` is not in the list of defined EPs: `%s`!' %\
-                     (str(epname), self.listEPs(user)) )
-            return False
-
         try: data = self.project.getSuiteFiles(user, epname, suite)
         except: data = False
         return data
@@ -1468,18 +1073,8 @@ class CentralEngine(_cptools.XMLRPCController):
         Returns the title, description and all tags from a test file.\n
         Called from the Java GUI.
         """
-        try:
-            text = open(fname,'rb').read()
-        except:
-            return ''
-
-        # Find lines starting with # or beggining of line, followed by optional space,
-        # followed by a <tag> ended with the same </tag> containing any character
-        # in range 0x20 to 0x7e (all numbers, letters and ASCII symbols)
-        # This returns 2 groups : the tag name and the text inside it.
-        tags = re.findall('^[ ]*?[#]*?[ ]*?<(?P<tag>\w+)>([ -~\n]+?)</(?P=tag)>', text, re.MULTILINE)
-
-        return '<br>\n'.join(['<b>' + title + '</b> : ' + descr.replace('<', '&lt;') for title, descr in tags])
+        # This function is defined in helpers.
+        return getFileTags(fname)
 
 
 # --------------------------------------------------------------------------------------------------
@@ -1492,110 +1087,7 @@ class CentralEngine(_cptools.XMLRPCController):
         """
         Called in the Java GUI to show the logs.
         """
-        if fstart is None:
-            return '*ERROR for {0}!* Parameter FSTART is NULL!'.format(user)
-        if not filename:
-            return '*ERROR for {0}!* Parameter FILENAME is NULL!'.format(user)
-
-        fpath = self.project.getUserInfo(user, 'logs_path')
-
-        if not fpath or not os.path.exists(fpath):
-            return '*ERROR for {0}!* Logs path `{1}` is invalid! Using master config `{2}` and suites config `{3}`.'\
-                .format(user, fpath, self.project.getUserInfo(user, 'config_path'), self.project.getUserInfo(user, 'project_path'))
-
-        filename = fpath + os.sep + filename
-
-        if not os.path.exists(filename):
-            return '*ERROR for {0}!* File `{1}` does not exist! Using master config `{2}` and suites config `{3}`'.\
-                format(user, filename, self.project.getUserInfo(user, 'config_path'), self.project.getUserInfo(user, 'project_path'))
-
-        if not read or read=='0':
-            return os.path.getsize(filename)
-
-        fstart = long(fstart)
-        f = open(filename)
-        f.seek(fstart)
-        data = f.read()
-        f.close()
-
-        return binascii.b2a_base64(data)
-
-
-    def _logServer(self, user):
-        """
-        Launch a log server.
-        """
-        # Searching for a free port in the safe range...
-        while 1:
-            free = False
-            port = random.randrange(60000, 62000)
-            try:
-                socket.create_connection((None, port), 1)
-            except:
-                free = True
-            if free: break
-
-        p_cmd = 'su {} -c "{} -u {}/server/LogServer.py {}"'.format(user, sys.executable, TWISTER_PATH, port)
-        proc = subprocess.Popen(p_cmd, cwd='{}/twister'.format(userHome(user)), shell=True)
-        proc.poll()
-
-        time.sleep(0.3)
-        logDebug('Log Server for user `{}` launched on `127.0.0.1:{}` - PID `{}`.'.format(user, port, proc.pid))
-
-        self.loggers[user] = {'proc': proc, 'port': port}
-
-
-    def _logConnect(self, user, port):
-        """
-        Create a log server connection.
-        """
-        for res in socket.getaddrinfo('127.0.0.1', port, socket.AF_UNSPEC, socket.SOCK_STREAM):
-            af, socktype, proto, canonname, sa = res
-            try:
-                sock = socket.socket(af, socktype, proto)
-            except socket.error as msg:
-                logWarning('Sock create exception: `{}`.'.format(msg))
-                sock = None
-                continue
-            try:
-                sock.connect(sa)
-            except socket.error as msg:
-                logWarning('Sock connect exception: `{}`.'.format(msg))
-                sock.close()
-                sock = None
-                continue
-            break
-        if sock is None:
-            logError('Internal Log Error! Could not connect to Log Server!')
-            return False
-        else:
-            return sock
-
-
-    def _logServerMsg(self, user, msg):
-        """
-        Helper function to access the Log Server.
-        """
-        if user not in self.loggers:
-            self._logServer(user)
-
-        sock = self._logConnect(user, self.loggers[user]['port'])
-
-        if not sock:
-            logError('Creating a new connection...')
-            self._logServer(user)
-            sock = self._logConnect(user, self.loggers[user]['port'])
-            if not sock:
-                return False
-
-        sock.sendall(msg)
-        resp = sock.recv(1024)
-        sock.close()
-
-        if resp == 'Ok!':
-            return True
-        else:
-            return False
+        return self.project.getLogFile(user, read, fstart, filename)
 
 
     @cherrypy.expose
@@ -1605,24 +1097,7 @@ class CentralEngine(_cptools.XMLRPCController):
         In order for the user to be able to access the logs written by CE, which runs as ROOT,
         CE will start a small process in the name of the user and the process will write the logs.
         """
-        if os.getuid():
-            logError('Log Error! Central Engine must run as ROOT in order to start the Log Server!')
-            return False
-
-        logType = str(logType)
-        logTypes = self.project.getUserInfo(user, 'log_types')
-
-        if logType == 'logsummary':
-            logWarning('Log Warning! logSummary is reserved and cannot be written into!')
-            return False
-
-        if logType not in logTypes:
-            logError('Log Error! Log type `{}` is not in the list of defined types: `{}`!'.format(logType, logTypes))
-            return False
-
-        logPath = self.project.getUserInfo(user, 'log_types')[logType]
-
-        return self._logServerMsg(user, logPath + ':' + logMessage)
+        return self.project.logMessage(user, logType, logMessage)
 
 
     @cherrypy.expose
@@ -1631,74 +1106,7 @@ class CentralEngine(_cptools.XMLRPCController):
         Writes CLI messages in a big log, so all output can be checked LIVE.\n
         Called from the EP.
         """
-        if os.getuid():
-            logError('Log Error! Central Engine must run as ROOT in order to start the Log Server!')
-            return False
-
-        logFolder = self.project.getUserInfo(user, 'logs_path')
-
-        if not logFolder:
-            logError('Log Error! Invalid logs folder `{}`!'.format(logFolder))
-            return False
-
-        try:
-            log_string = binascii.a2b_base64(logMessage)
-        except:
-            logError('Live Log Error: Invalid base64 log!')
-            return False
-
-        # Execute "onLog" for all plugins
-        parser = PluginParser(user)
-        plugins = parser.getPlugins()
-        for pname in plugins:
-            plugin = self._buildPlugin(user, pname, {'log_type': 'cli'})
-            try:
-                plugin.onLog(epname, log_string)
-            except Exception as e:
-                trace = traceback.format_exc()[34:].strip()
-                logWarning('Error on running plugin `{} onStop` - Exception: `{}`!'.format(pname, trace))
-        del parser, plugins
-
-        # Calling Panic Detect
-        pd = self._panicDetectLogParse(user, epname, log_string)
-
-        logTypes = self.project.getUserInfo(user, 'log_types')
-        _, logCli = os.path.split( logTypes.get('logCli', 'CLI.log') )
-        # Logs Path + EP Name + CLI Name
-        logPath = logFolder + os.sep + epname +'_'+ logCli
-
-        if pd:
-            self.logMessage(user, 'logRunning', 'PANIC DETECT: Execution stopped.')
-
-        return self._logServerMsg(user, logPath + ':' + log_string)
-
-
-    @cherrypy.expose
-    def resetLogs(self, user):
-        """
-        All logs defined in master config are erased.\n
-        Called from the Java GUI and every time the project is reset.
-        """
-        logsPath = self.project.getUserInfo(user, 'logs_path')
-        logTypes = self.project.getUserInfo(user, 'log_types')
-
-        # Archive logs
-        archiveLogsActive = self.project.getUserInfo(user, 'archive_logs_path_active')
-        archiveLogsPath   = self.project.getUserInfo(user, 'archive_logs_path')
-
-        data = json.dumps({
-            'cmd': 'reset',
-            'logsPath': logsPath,
-            'logTypes': logTypes,
-            'archiveLogsActive': archiveLogsActive,
-            'archiveLogsPath': archiveLogsPath,
-            'epnames': self.listEPs(user),
-            })
-
-        ret = self._logServerMsg(user, data)
-        if ret:
-            logDebug('Logs reset.')
-        return ret
+        return self.project.logLIVE(user, epname, logMessage)
 
 
     @cherrypy.expose
@@ -1707,75 +1115,16 @@ class CentralEngine(_cptools.XMLRPCController):
         Resets one log.\n
         Called from the Java GUI.
         """
-        logTypes = self.project.getUserInfo(user, 'log_types')
-        logPath = ''
-
-        # Cycle all log types and paths
-        for logType, logN in logTypes.iteritems():
-            _, logShort = os.path.split(logN)
-            # CLI Logs are special, exploded for each EP
-            if logType.lower() == 'logcli':
-                for epname in self.listEPs(user).split(','):
-                    logCli = epname +'_'+ logShort
-                    if logName == logCli:
-                        logPath = _ +'/'+ logCli
-                        break
-            else:
-                # For normal, non-CLI logs...
-                if logName == logShort:
-                    logPath = logN
-                    break
-
-        if not logPath:
-            logError('Log Error! Log name `{}` cannot be found!'.format(logName))
-            return False
-
-        data = json.dumps({
-            'cmd': 'del',
-            'logPath': logPath,
-            })
-
-        ret = self._logServerMsg(user, data)
-        if ret:
-            logDebug('Cleaned log `{}`.'.format(logPath))
-        return ret
+        return self.project.resetLog(user, logName)
 
 
-    def _panicDetectLogParse(self, user, epname, log_string):
+    @cherrypy.expose
+    def resetLogs(self, user):
         """
-        Panic Detect parse log mechanism.
+        All logs defined in master config are erased.\n
+        Called from the Java GUI and every time the project is reset.
         """
-        status = False
-
-        self.project.panicDetectConfig(user, {'command': 'list'})
-
-        if not self.project.panicDetectRegularExpressions.has_key(user):
-            return status
-
-        # Verify if for current suite Panic Detect is enabled
-        suiteID = self.getEpVariable(user, epname, 'curent_suite')
-        # When running first, the current_suite is not defined yet
-        if not suiteID:
-            return status
-
-        enabled = self.getSuiteVariable(user, epname, suiteID, 'pd')
-
-        if not enabled or enabled.lower() == 'false':
-            return status
-
-        for key, value in self.project.panicDetectRegularExpressions[user].iteritems():
-            if value.get('enabled') == 'true':
-                try:
-                    if re.search(value['expression'], log_string):
-                        # Stop EP
-                        self.setExecStatus(user, epname, STATUS_STOP,
-                            msg='Panic detect activated, expression `{}` found in CLI log!'.format(value['expression']))
-                        status = True
-                except Exception as e:
-                    trace = traceback.format_exc()[34:].strip()
-                    logError(trace)
-
-        return status
+        return self.project.resetLogs(user)
 
 
     @cherrypy.expose

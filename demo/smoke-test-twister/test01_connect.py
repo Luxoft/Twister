@@ -13,7 +13,7 @@
 _RESULT = 'Invalid'
 
 try:
-    print('Central engine connection: {}'.format(PROXY))
+    print('Central engine connection: {}'.format( str(PROXY) ))
 except:
     print('This test should run from Twister!\n')
     _RESULT = 'Pass'
