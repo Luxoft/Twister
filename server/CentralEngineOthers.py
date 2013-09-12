@@ -1,7 +1,7 @@
 
 # File: CentralEngineOthers.py ; This file is part of Twister.
 
-# version: 2.035
+# version: 2.036
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -2149,12 +2149,12 @@ class Project:
                 return False
 
             # Database parser, fields, queries
-            # This is created every time the Save is called
+            # This is created every time the Save to Database is called
             db_parser = DBParser(db_file)
             db_config = db_parser.db_config
-            queries = db_parser.getQueries() # List
-            fields  = db_parser.getFields()  # Dictionary
-            scripts = db_parser.getScripts() # List
+            queries = db_parser.getInsertQueries()  # List
+            fields  = db_parser.getDbSelectFields() # Dictionary
+            scripts = db_parser.getUserScriptFields() # List
             del db_parser
 
             if not queries:
@@ -2326,18 +2326,19 @@ class Project:
         Parses the list of plugins and creates an instance of the requested plugin.
         All the data
         """
-        # The pointer to the plugin = User name and Plugin name
+        # The pointer to the plug-in = User name and Plugin name
         key = user +' '+ plugin
+        plug_ptr = None
 
+        # If the plug-in was already created, re-use it
         if key in self.plugins:
-            plugin = self.plugins.get(key)
-            return plugin
+            plug_ptr = self.plugins.get(key)
 
-        # If the plugin is not initialised
         parser = PluginParser(user)
+        # All the info about the current plug
         pdict = parser.getPlugins().get(plugin)
         if not pdict:
-            logError('CE ERROR: Cannot find plugin `{}`!'.format(plugin))
+            logError('Plug-ins: Cannot find plug-in name `{}`!'.format(plugin))
             return False
         del parser
 
@@ -2345,11 +2346,28 @@ class Project:
         data.update(pdict)
         data.update(extra_data)
         data['ce'] = self
-        del data['eps']
-        del data['status']
-        del data['plugin']
+        try: del data['eps']
+        except: pass
+        try: del data['global_params']
+        except: pass
+        try: del data['status']
+        except: pass
+        # Delete the un-initialized plug class
+        try: del data['plugin']
+        except: pass
 
-        plugin = pdict['plugin'](user, data)
+        # Initialize the plug
+        if not plug_ptr:
+            plugin = pdict['plugin'](user, data)
+        # Update the data and re-use the old instance
+        else:
+            try:
+                plug_ptr.data.update(data)
+            except:
+                plug_ptr.data = data
+                logError('Plug-ins: Warning! Overwriting the `data` attr from plug-in `{}`!'.format(plugin))
+            plugin = plug_ptr
+
         self.plugins[key] = plugin
         return plugin
 
