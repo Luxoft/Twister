@@ -1,6 +1,6 @@
 /*
 File: Main.java ; This file is part of Twister.
-Version: 2.006
+Version: 2.007
 
 Copyright (C) 2012-2013 , Luxoft
 

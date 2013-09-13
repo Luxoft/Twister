@@ -1,6 +1,6 @@
 /*
 File: Panel2.java ; This file is part of Twister.
-Version: 2.0011
+Version: 2.0012
 
 Copyright (C) 2012-2013 , Luxoft
 
