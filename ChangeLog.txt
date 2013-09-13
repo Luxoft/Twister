@@ -1,3 +1,21 @@
+13th September
+
+- changes for secondary libraries; there is no need to use syntax
+    from ce_libs import <my_library>
+  in test cases to get the library's methods
+- added a folder category in reporting to be able to group the reports
+- the project name is available as an internal variable to be saved in DB
+- added a mechanism to cache the NIS users when server starts; the list
+  of users is updated every hour by the server
+- added description files for all plugins
+- changed users_and_groups.ini file to have groups_development and 
+  groups_production
+- fixed issue #89 - all configuration panels display panel name
+- fixed issue #85 - fixed editing test case property
+- updated user guide
+- update plugins&libraries document
+
+
 6th September
 
 - changes in SUT definition; every component under a SUT has an abstract name
