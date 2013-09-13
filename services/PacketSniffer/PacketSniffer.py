@@ -30,7 +30,7 @@ from binascii import b2a_base64
 
 from xmlrpclib import ServerProxy
 from uuid import uuid4
-from time import sleep, time
+from time import sleep
 from thread import start_new_thread, allocate_lock
 from scapy.all import Automaton, ATMT, TCP, bind_layers, Packet, NoPayload, Raw
 
@@ -215,6 +215,8 @@ class Sniffer(Automaton):
 	# BEGIN
 	@ATMT.state(initial=1)
 	def BEGIN(self):
+		print '|||| state: BEGIN ||||'
+
 		# Try to ping status from CE!
 		for ce in self.ceObjects:
 			try:
@@ -563,7 +565,7 @@ class ParseData():
 
 			if self.sniffer.OFPort in [sourcePort, destinationPort] and of_message_parse:
 				try:
-					_packet = of_message_parse(str(self.packet.payload))
+					_packet = of_message_parse(str(self.packet.payload.payload.load))
 					packet = {'pkt': _packet.show()}
 				except Exception as e:
 					packet = self.packet_to_dict(self.packet)
@@ -580,7 +582,7 @@ class ParseData():
 				'packet': packet,
 				'packet_str': packet_str,
 			}
-			data['packet_head'].update([('id', str(time())), ])
+			data['packet_head'].update([('id', str(uuid4())), ])
 			data = b2a_base64(str(data))
 			packetListToSend.append(data)
 

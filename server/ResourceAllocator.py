@@ -1,7 +1,7 @@
 
 # File: ResourceAllocator.py ; This file is part of Twister.
 
-# version: 2.006
+# version: 2.008
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -312,13 +312,24 @@ class ResourceAllocator(_cptools.XMLRPCController):
         if not meta:
             # Flatten the children ?
             if flatten:
-                result['children'] = sorted([result['children'][node]['id'] for node in result.get('children') or []],
+                result['children'] = sorted([result['children'][node]['id'] for
+                                     node in result.get('children') or []],
                                      key=lambda node: node.lower())
             result['path'] = '/'.join(result.get('path', ''))
             return result
         else:
-            return result['meta'].get(meta, '')
-
+            ret = result['meta'].get(meta, '')
+            if ret:
+                return ret
+            # If this is a normal resource
+            if root_id == ROOT_DEVICE:
+                return ret
+            else:
+                # Ok, this might be a Device ID, instead of SUT ID!
+                tb_id = result['meta'].get('_id')
+                # If this SUT doesn't have a Device ID assigned, bye bye!
+                if not tb_id: return ''
+                return self.getResource(tb_id +':'+ meta)
 
     @cherrypy.expose
     def getSut(self, query):
@@ -502,6 +513,10 @@ class ResourceAllocator(_cptools.XMLRPCController):
             msg = 'Rename {}: Cannot find resource node path `{}` !'.format(root_name, node_path)
             logError(msg)
             return '*ERROR* ' + msg
+
+        if node_path == new_path:
+            logDebug('No changes have been made to {} `{}`.'.format(root_name, new_name))
+            return True
 
         # Must use the real pointer instead of `resource` pointer in order to update the real data
         if root_id == ROOT_DEVICE:

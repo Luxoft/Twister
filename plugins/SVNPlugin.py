@@ -1,7 +1,8 @@
 
-# version: 2.001
+# version: 2.002
 
 import os
+import shutil
 import subprocess
 from BasePlugin import BasePlugin
 
@@ -23,8 +24,11 @@ class Plugin(BasePlugin):
 
     def run(self, args):
 
-        src = self.data['server']
-        dst = self.data['snapshot']
+        src = self.data.get('server')
+        dst = self.data.get('snapshot')
+
+        if not args.get('command'):
+            return '*ERROR* Must specify a command like `snapshot` or `update` !'
 
         if args['command'] == ['snapshot']:
             return self.execCheckout(src, dst, 'checkout', overwrite=True)
@@ -36,14 +40,14 @@ class Plugin(BasePlugin):
             return self.execCheckout(src, dst, 'checkout', overwrite=True)
 
         else:
-            return 'Invalid command: `%s & %s`!' % (args['command'], args['overwrite'])
+            return 'Invalid command: `{} & {}`!'.format(args['command'], args['overwrite'])
 
 
     def execCheckout(self, src, dst, command, overwrite=False):
 
         if overwrite and os.path.exists(dst):
-            print 'SVN plugin: Deleting folder `%s` !' % dst
-            os.rmdir(dst)
+            print 'SVN Plugin: Deleting folder `{}` ...'.format(dst)
+            shutil.rmtree(dst, ignore_errors=True)
 
         usr = self.data['username']
         pwd = self.data['password']
@@ -52,21 +56,21 @@ class Plugin(BasePlugin):
             try:
                 p = subprocess.Popen(['svn', command, src, dst, '--username', usr], shell=False)
                 p.wait()
-            except Exception, e:
+            except Exception as e:
                 return 'Error on calling SVN {cmd} (from `{src}` to `{dst}`): `{e}`!'.format(
                     cmd=command, src=src, dst=dst, e=e)
         elif usr and pwd:
             try:
                 p = subprocess.Popen(['svn', command, src, dst, '--username', usr, '--password', pwd], shell=False)
                 p.wait()
-            except Exception, e:
+            except Exception as e:
                 return 'Error on calling SVN {cmd} (from `{src}` to `{dst}`): `{e}`!'.format(
                     cmd=command, src=src, dst=dst, e=e)
         else:
             try:
                 p = subprocess.Popen(['svn', command, src, dst], shell=False)
                 p.wait()
-            except Exception, e:
+            except Exception as e:
                 return 'Error on calling SVN {cmd} (from `{src}` to `{dst}`): `{e}`!'.format(
                     cmd=command, src=src, dst=dst, e=e)
 

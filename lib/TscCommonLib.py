@@ -37,7 +37,7 @@ import xmlrpclib
 
 # This will work, because TWISTER_PATH is appended to sys.path.
 try:
-    from __init__ import PROXY, USER, EP, TB
+    from ce_libs import PROXY, USER, EP, SUT
 except:
     raise Exception('CommonLib must run from Twister!\n')
 
@@ -51,7 +51,7 @@ class TscCommonLib(object):
     proxy_path = PROXY
     userName = USER
     epName   = EP
-    tbName   = TB
+    sutName  = SUT
     global_vars = {}
 
 

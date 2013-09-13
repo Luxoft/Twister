@@ -1,7 +1,7 @@
 
 # version: 2.001
 
-from ce_libs import TelnetManager
+from TscTelnetLib import TelnetManager
 
 #
 # <title>Testing Twister Telnet library</title>
@@ -103,5 +103,5 @@ def test():
 #
 
 # Must have one of the statuses:
-# 'pass', 'fail', 'skipped', 'aborted', 'not executed', 'timeout', 'invalid'
+# 'pass', 'fail', 'skipped', 'aborted', 'not executed', 'timeout'
 _RESULT = test()

@@ -1,0 +1,26 @@
+
+---------------------------------------
+|||| ClearCase PLugin Installation ||||
+---------------------------------------
+
+
+Default:
+ - twister server side path: /opt/twister
+ - twister client side path: /home/user/twister
+
+
+	---- SERVER side ----
+
+1. sudo cp /path/to/ClearCasePlugin/ClearCase/* /opt/twister/plugins
+
+2. vim /path/to/twister/config/plugins.xml
+
+append config:
+
+<Plugin>
+    <name>ClearCase</name>
+    <jarfile>ClearCasePlugin.jar</jarfile>
+    <pyfile>ClearCasePlugin.py</pyfile>
+    <status>disabled</status>
+</Plugin>
+

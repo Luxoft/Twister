@@ -21,6 +21,12 @@
 # limitations under the License.
 #
 
+
+"""
+    This module contains SSH connection functions.
+"""
+
+
 from time import sleep
 
 from paramiko import Transport
