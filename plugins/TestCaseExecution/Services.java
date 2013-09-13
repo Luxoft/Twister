@@ -41,7 +41,8 @@ import java.util.Arrays;
 public class Services extends JPanel{
     
     public Services(){
-        setBorder(BorderFactory.createTitledBorder("Services"));
+        //setBorder(BorderFactory.createTitledBorder("Services"));
+        setBackground(Color.WHITE);
         setLayout(new BoxLayout(this, BoxLayout.PAGE_AXIS));
         try{
             String result = RunnerRepository.getRPCClient().execute("serviceManagerCommand",
@@ -130,11 +131,13 @@ public class Services extends JPanel{
         public MyPanel(final String name){
             setLayout(null);
             this.name = name;
+            setBackground(Color.WHITE);
             setBorder(BorderFactory.createTitledBorder(name));
             setPreferredSize(new Dimension(755, 60));
             setMinimumSize(new Dimension(755, 60));
             setMaximumSize(new Dimension(755, 60));
             status = new JLabel("enabled");
+            status.setBackground(Color.WHITE);
             status.setBounds(335,25,80,20);
             add(status);
             desc = new JTextArea();

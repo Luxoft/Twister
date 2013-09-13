@@ -454,7 +454,8 @@ public class RunnerRepository {
         RunnerRepository.window.mainpanel.setSize(width-20,height-20);
         RunnerRepository.window.mainpanel.p1.splitPane.setSize(width-52,height-120);
         RunnerRepository.window.mainpanel.setSize(width-28,height-40);
-        RunnerRepository.window.mainpanel.p4.getScroll().setSize(width-310,height-150);
+        RunnerRepository.window.mainpanel.p4.getScroll().setSize(width-310,height-155);
+        RunnerRepository.window.mainpanel.p4.getScroll().setPreferredSize(new Dimension(width-310,height-155));
         RunnerRepository.window.mainpanel.p4.getMain().setSize(width-300,height-130);
         RunnerRepository.window.mainpanel.p4.getTB().setPreferredSize(
             new Dimension(width-300,height-150));
@@ -466,8 +467,10 @@ public class RunnerRepository {
             new Dimension(width-305,height-155));
         RunnerRepository.window.logout.setLocation(width-130, 3);
         RunnerRepository.window.controlpanel.setLocation(width-285, 3);
-        container.validate();
-        container.repaint();
+        if(container!=null){
+            container.validate();
+            container.repaint();
+        }
         
     }
     
