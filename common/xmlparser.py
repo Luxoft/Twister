@@ -1,7 +1,7 @@
 
 # File: xmlparser.py ; This file is part of Twister.
 
-# version: 2.010
+# version: 2.011
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -853,6 +853,7 @@ class DBParser():
             d['id']       = report.get('ID', '')
             d['type']     = report.get('Type', '')
             d['path']     = report.get('Path', '')
+            d['folder']   = report.get('Folder', '')
             d['sqlquery'] = report.get('SQLQuery', '')
             d['sqltotal'] = report.get('SQLTotal', '')   # SQL Total Query
             d['sqlcompr'] = report.get('SQLCompare', '') # SQL Query Compare side by side

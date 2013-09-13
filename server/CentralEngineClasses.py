@@ -1,7 +1,7 @@
 
 # File: CentralEngineClasses.py ; This file is part of Twister.
 
-# version: 2.025
+# version: 2.026
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -469,14 +469,16 @@ class CentralEngine(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
-    def setStartedBy(self, user, name):
+    def setStartedBy(self, user, data):
         """
         Remember the user that started the Central Engine.\n
         Called from the Java GUI.
         """
-
-        logDebug('CE: Started by user name `%s`.'  % str(name))
+        name = data.split(';')[0]
+        proj = data.split(';')[1:]
+        logDebug('CE: Started by name `{}`, project `{}`.'.format(name, project))
         self.project.setUserInfo(user, 'started_by', str(name))
+        self.project.setUserInfo(user, 'proj_xml_name', str(proj))
         return 1
 
 
