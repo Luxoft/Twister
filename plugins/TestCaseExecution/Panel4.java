@@ -1,6 +1,6 @@
 /*
 File: Panel4.java ; This file is part of Twister.
-Version: 2.006
+Version: 2.007
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -199,10 +199,16 @@ public class Panel4 extends JPanel{
      */
     public void setDuts(){        
         main.removeAll();
-        main.setLayout(new FlowLayout());
-        tb.setPreferredSize(new Dimension(main.getWidth()-5,
-                                          main.getHeight()-5));
-        main.add(tb);
+//         main.setLayout(new FlowLayout());
+        
+        main.setLayout(new BorderLayout());
+        main.add(tb,BorderLayout.CENTER);
+        
+        
+        
+        //main.add(tb);
+        tb.setPreferredSize(new Dimension(main.getWidth(),
+                                          main.getHeight()));
         if(sut.tbs.getTree()!=null){
             tb.setTree(sut.tbs.getTree());
         }
@@ -270,10 +276,12 @@ public class Panel4 extends JPanel{
      */
     public void setPlugins(){        
         main.removeAll();
-        main.setLayout(new FlowLayout());
-        plugins.setPreferredSize(new Dimension(main.getWidth()-5,
-                                               main.getHeight()-5));
-        main.add(plugins);
+        //main.setLayout(new FlowLayout());
+        plugins.setPreferredSize(new Dimension(main.getWidth(),
+                                               main.getHeight()));
+        //main.add(plugins);
+        main.setLayout(new BorderLayout());
+        main.add(plugins,BorderLayout.CENTER);
         main.repaint();
         main.revalidate();}
         

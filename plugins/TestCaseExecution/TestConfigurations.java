@@ -1,6 +1,6 @@
 /*
 File: TestConfigurations.java ; This file is part of Twister.
-Version: 2.002
+Version: 2.003
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -23,6 +23,7 @@ import javax.swing.JSplitPane;
 import java.awt.BorderLayout;
 import javax.swing.SwingUtilities;
 import java.awt.Dimension;
+import javax.swing.BorderFactory;
 
 public class TestConfigurations extends JPanel{
     public ConfigTree tree;
@@ -30,6 +31,7 @@ public class TestConfigurations extends JPanel{
     
 
     public TestConfigurations(){
+        setBorder(BorderFactory.createTitledBorder("Test Configurations"));
         setLayout(new BorderLayout());
         cfgedit = new ConfigEditor();
         tree = new ConfigTree();

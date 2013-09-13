@@ -1,6 +1,6 @@
 /*
 File: RunnerRepository.java ; This file is part of Twister.
-Version: 2.0022
+Version: 2.0023
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -152,8 +152,8 @@ public class RunnerRepository {
     private static String[] lookAndFeels;
     public static Container container;
     private static Document pluginsconfig;
-    private static String version = "2.024";
-    private static String builddate = "06.09.2013";
+    private static String version = "2.025";
+    private static String builddate = "13.09.2013";
     public static String logotxt,os,python;
     
     public static void setStarter(Starter starter){

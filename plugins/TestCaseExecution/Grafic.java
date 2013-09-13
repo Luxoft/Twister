@@ -1,6 +1,6 @@
 /*
 File: Grafic.java ; This file is part of Twister.
-Version: 2.0010
+Version: 2.0011
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -1295,9 +1295,14 @@ public class Grafic extends JPanel{
                 }
                 else{if(selectedcollection.size()==1){
                         if(getItem(selected,false).getType()==0) propertyPopUp(ev,getItem(selected,false));
-                        else if(getItem(selected,false).getType()==1) tcPopUp(ev,getItem(selected,false));
+                        else if(getItem(selected,false).getType()==1){
+                            Item temp = getItem(selected,false);
+                            RunnerRepository.window.mainpanel.p1.suitaDetails.setParent(temp);
+                            RunnerRepository.window.mainpanel.p1.suitaDetails.setTCDetails();
+                            tcPopUp(ev,getItem(selected,false));
+                            System.out.println("Here3");
+                        }
                         else{
-                            System.out.println("Here2");
                             Item temp = getItem(selected,false);
                             boolean root = false;
                             RunnerRepository.window.mainpanel.p1.suitaDetails.setParent(temp);
@@ -1321,7 +1326,8 @@ public class Grafic extends JPanel{
                             suitaPopUp(ev,getItem(selected,false));
                         }
                     }
-                    else{multipleSelectionPopUp(ev);}}}}
+                    else{
+                        multipleSelectionPopUp(ev);}}}}
         if(selectedcollection.size()>0)RunnerRepository.window.mainpanel.p1.remove.setEnabled(true);}
     
     /*
@@ -1543,6 +1549,7 @@ public class Grafic extends JPanel{
                 item = getItem(temp,false);
                 item.setConfigurations(configs);}
         }
+        repaint();
     }
         
     public void switchOptional(){
@@ -2222,6 +2229,19 @@ public class Grafic extends JPanel{
                 g.drawImage(RunnerRepository.optional,(int)item.getRectangle().getX()+43,
                         (int)item.getRectangle().getY()+1,null);
             }
+            StringBuilder sb = new StringBuilder();
+            sb.append("- ");
+            String [] path;
+            for(String st:item.getConfigurations()){
+                path = st.split("/");
+                st = path[path.length-1];
+                sb.append(st);
+                sb.append("; ");
+            }
+            if(sb.length()>0) sb.deleteCharAt(sb.length()-2);
+            g.drawString(sb.toString(),(int)(item.getRectangle().getX()+item.getRectangle().getWidth()),
+                        (int)(item.getRectangle().getY()+15));
+            
         }
         else{if(item.getPos().get(item.getPos().size()-1).intValue()==0){
             g.drawImage(RunnerRepository.getPropertyIcon(),

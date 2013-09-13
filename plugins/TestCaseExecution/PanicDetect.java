@@ -1,6 +1,6 @@
 /*
 File: PanicDetect.java ; This file is part of Twister.
-Version: 2.001
+Version: 2.002
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -42,12 +42,14 @@ import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.event.DocumentEvent;
+import javax.swing.BorderFactory;
 
 public class PanicDetect extends JPanel{
     private JButton add;
     private JPanel addpanel;
     
     public PanicDetect(){
+        setBorder(BorderFactory.createTitledBorder("Panic Detect"));
         setLayout(new BoxLayout(this, BoxLayout.PAGE_AXIS));
         add = new JButton("Add");
         add.addActionListener(new ActionListener(){

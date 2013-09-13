@@ -1,6 +1,6 @@
 /*
 File: ServiceConsole.java ; This file is part of Twister.
-Version: 2.002
+Version: 2.003
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -77,9 +77,9 @@ public class ServiceConsole extends BasePlugin implements TwisterPluginInterface
 			  Document pluginsConfig,Applet container){
 		super.init(suite, suitetest, variables,pluginsConfig,container);
 		System.out.println("Initializing " + getName() + " ... ");
-		initializeSFTP();
+		//initializeSFTP();
 		initializeRPC();
-		createXMLStructure();
+		//createXMLStructure();
 		
 		JMenuBar menubar = new JMenuBar();
 		JMenu menu = new JMenu("Services");
@@ -148,8 +148,6 @@ public class ServiceConsole extends BasePlugin implements TwisterPluginInterface
 	public void terminate() {
 		super.terminate();
 		p = null;
-		c.disconnect();
-		c = null;
 		client = null;
 		services = null;
 	}
@@ -160,25 +158,25 @@ public class ServiceConsole extends BasePlugin implements TwisterPluginInterface
 		return name;
 	}
 
-	public void initializeSFTP() {
-		try {
-			JSch jsch = new JSch();
-			String user = variables.get("user");
-			Session session = jsch.getSession(user, variables.get("host"), 22);
-			session.setPassword(variables.get("password"));
-			Properties config = new Properties();
-			config.put("StrictHostKeyChecking", "no");
-			session.setConfig(config);
-			session.connect();
-			Channel channel = session.openChannel("sftp");
-			channel.connect();
-			c = (ChannelSftp) channel;
-			System.out.println("SFTP successfully initialized");
-		} catch (Exception e) {
-			System.out.println("SFTP could not be initialized");
-			e.printStackTrace();
-		}
-	}
+//	public void initializeSFTP() {
+//		try {
+//			JSch jsch = new JSch();
+//			String user = variables.get("user");
+//			Session session = jsch.getSession(user, variables.get("host"), 22);
+//			session.setPassword(variables.get("password"));
+//			Properties config = new Properties();
+//			config.put("StrictHostKeyChecking", "no");
+//			session.setConfig(config);
+//			session.connect();
+//			Channel channel = session.openChannel("sftp");
+//			channel.connect();
+//			c = (ChannelSftp) channel;
+//			System.out.println("SFTP successfully initialized");
+//		} catch (Exception e) {
+//			System.out.println("SFTP could not be initialized");
+//			e.printStackTrace();
+//		}
+//	}
 
 	public void initializeRPC() {
 		try {
@@ -198,34 +196,34 @@ public class ServiceConsole extends BasePlugin implements TwisterPluginInterface
 		}
 	}
 
-	/*
-	 * method to copy plugins configuration file to server
-	 */
-	public boolean uploadPluginsFile() {
-		try {
-			DOMSource source = new DOMSource(pluginsConfig);
-			File file = new File(variables.get("pluginslocalgeneralconf"));
-			Result result = new StreamResult(file);
-			TransformerFactory transformerFactory = TransformerFactory
-					.newInstance();
-			Transformer transformer = transformerFactory.newTransformer();
-			transformer.setOutputProperty(OutputKeys.INDENT, "yes");
-			transformer.setOutputProperty(
-					"{http:xml.apache.org/xslt}indent-amount", "4");
-			transformer.transform(source, result);
-			FileInputStream in = new FileInputStream(file);
-			String location =variables.get("remoteuserhome") + "/twister/config/"; 
-			c.cd(location);
-			c.put(in, file.getName());
-			in.close();
-			System.out.println("Saved " + file.getName() + " to: "
-					+ variables.get("remoteuserhome") + "/twister/config/");
-			return true;
-		} catch (Exception e) {
-			e.printStackTrace();
-			return false;
-		}
-	}
+//	/*
+//	 * method to copy plugins configuration file to server
+//	 */
+//	public boolean uploadPluginsFile() {
+//		try {
+//			DOMSource source = new DOMSource(pluginsConfig);
+//			File file = new File(variables.get("pluginslocalgeneralconf"));
+//			Result result = new StreamResult(file);
+//			TransformerFactory transformerFactory = TransformerFactory
+//					.newInstance();
+//			Transformer transformer = transformerFactory.newTransformer();
+//			transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+//			transformer.setOutputProperty(
+//					"{http:xml.apache.org/xslt}indent-amount", "4");
+//			transformer.transform(source, result);
+//			FileInputStream in = new FileInputStream(file);
+//			String location =variables.get("remoteuserhome") + "/twister/config/"; 
+//			c.cd(location);
+//			c.put(in, file.getName());
+//			in.close();
+//			System.out.println("Saved " + file.getName() + " to: "
+//					+ variables.get("remoteuserhome") + "/twister/config/");
+//			return true;
+//		} catch (Exception e) {
+//			e.printStackTrace();
+//			return false;
+//		}
+//	}
 	
 	class MyInternalFrame extends JInternalFrame{
 		private static final long serialVersionUID = 1L;

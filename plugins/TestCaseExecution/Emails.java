@@ -1,6 +1,6 @@
 /*
 File: Emails.java ; This file is part of Twister.
-Version: 2.007
+Version: 2.008
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -65,7 +65,8 @@ public class Emails extends JPanel{
     public Emails(){
         setLayout(null);
         setPreferredSize(new Dimension(450,560));
-        setBorder(BorderFactory.createBevelBorder(BevelBorder.LOWERED));
+//         setBorder(BorderFactory.createBevelBorder(BevelBorder.LOWERED));
+        setBorder(BorderFactory.createTitledBorder("Email"));
         setBackground(Color.WHITE);
         TitledBorder border = BorderFactory.createTitledBorder("SMTP server");
         border.setTitleFont(new Font("Arial",Font.PLAIN,14));

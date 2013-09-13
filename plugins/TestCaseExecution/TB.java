@@ -1,6 +1,6 @@
 /*
 File: TB.java ; This file is part of Twister.
-Version: 2.003
+Version: 2.004
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -75,6 +75,7 @@ public class TB extends JPanel{
     }
 
     public void initPanel(){
+        setBorder(BorderFactory.createTitledBorder("Test Beds"));
         JPanel buttonPanel = new JPanel();
         buttonPanel.setLayout(null);
         
@@ -115,25 +116,27 @@ public class TB extends JPanel{
         layout.setHorizontalGroup(
             layout.createParallelGroup(GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
-                .addContainerGap()
+                //.addContainerGap()
                 .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
                     .addComponent(jScrollPane1, GroupLayout.DEFAULT_SIZE, 351, Short.MAX_VALUE)
                     .addComponent(buttonPanel, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                .addGap(18, 18, 18)
+                //.addGap(18, 18, 18)
                 .addComponent(optpan, GroupLayout.PREFERRED_SIZE, 450, GroupLayout.PREFERRED_SIZE)
-                .addContainerGap())
+                //.addContainerGap()
+                )
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(GroupLayout.Alignment.LEADING)
             .addGroup(GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                .addContainerGap()
+                //.addContainerGap()
                 .addGroup(layout.createParallelGroup(GroupLayout.Alignment.TRAILING)
                     .addComponent(optpan, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addGroup(layout.createSequentialGroup()
                         .addComponent(jScrollPane1)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                         .addComponent(buttonPanel, GroupLayout.PREFERRED_SIZE, 47, GroupLayout.PREFERRED_SIZE)))
-                .addContainerGap())
+                //.addContainerGap()
+                )
         );       
         
         tree.addKeyListener(new KeyAdapter(){
