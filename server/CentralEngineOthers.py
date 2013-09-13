@@ -2212,7 +2212,7 @@ class Project:
                     subst_data['twister_server_location'] = self.server_init.get('ce_server_location', '')
 
                     subst_data['twister_rf_fname'] = '{}/config/resources.json'.format(TWISTER_PATH)
-                    subst_data['twister_pf_fname'] = self.users[user].get(proj_xml_name, '')
+                    subst_data['twister_pf_fname'] = self.users[user].get('proj_xml_name', '')
 
                     subst_data['twister_ce_os']      = system
                     subst_data['twister_ce_hostname'] = ce_host
@@ -2328,7 +2328,7 @@ class Project:
         """
         # The pointer to the plug-in = User name and Plugin name
         key = user +' '+ plugin
-        plug_ptr = None
+        plug_ptr = False
 
         # If the plug-in was already created, re-use it
         if key in self.plugins:

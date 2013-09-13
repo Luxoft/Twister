@@ -476,7 +476,7 @@ class CentralEngine(_cptools.XMLRPCController):
         """
         name = data.split(';')[0]
         proj = data.split(';')[1:]
-        logDebug('CE: Started by name `{}`, project `{}`.'.format(name, project))
+        logDebug('CE: Started by name `{}`, project `{}`.'.format(name, proj))
         self.project.setUserInfo(user, 'started_by', str(name))
         self.project.setUserInfo(user, 'proj_xml_name', str(proj))
         return 1
@@ -813,7 +813,7 @@ class CentralEngine(_cptools.XMLRPCController):
         Set status for one file and write in log summary.\n
         Called from the Runner.
         """
-        self.project.setFileStatus(user, epname, file_id, new_status, time_elapsed)
+        return self.project.setFileStatus(user, epname, file_id, new_status, time_elapsed)
 
 
     @cherrypy.expose
