@@ -42,6 +42,7 @@ import binascii
 
 import MySQLdb
 import cherrypy
+from collections import OrderedDict
 from mako.template import Template
 
 TWISTER_PATH = os.getenv('TWISTER_PATH')
@@ -218,7 +219,7 @@ class ReportingServer:
 
         if vars_to_replace and not cherrypy.request.params:
             # Options are defined as: Type, Label, Data
-            u_options = {}
+            u_options = OrderedDict()
 
             for opt in vars_to_replace:
                 u_field = self.glob_fields[usr].get(opt.replace('@', ''))
