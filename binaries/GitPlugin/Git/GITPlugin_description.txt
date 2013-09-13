@@ -1,0 +1,11 @@
+Git Plugin is an interface for connecting to a Git repository where
+the tests are located and it will replicate the content locally.
+After you download and activate the plugin a new tab will appear
+called GITPlugin. You can configure the how to connect to the repository.
+GIT Plugin has a few parameters to be configured:
+    - server complete path
+    - branch used for clone
+    - user and password to connect to server
+    - snapshot folder, where all data is cloned
+
+

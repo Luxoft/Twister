@@ -1,7 +1,9 @@
 
-import os
+# version: 2.003
 
-# version: 2.001
+import os, sys
+import shutil
+import time
 import pexpect
 from BasePlugin import BasePlugin
 
@@ -24,8 +26,11 @@ class Plugin(BasePlugin):
 
     def run(self, args):
 
-        src = self.data['server']
-        dst = self.data['snapshot']
+        src = self.data.get('server')
+        dst = self.data.get('snapshot')
+
+        if not args.get('command'):
+            return '*ERROR* Must specify a command like `snapshot` or `update` !'
 
         if args['command'] == ['snapshot']:
             return self.execCheckout(src, dst, 'clone', overwrite=True)
@@ -40,21 +45,22 @@ class Plugin(BasePlugin):
             return self.execCheckout('', '', '', overwrite=True)
 
         else:
-            return 'Invalid command: `%s & %s`!' % (args['command'], args['overwrite'])
+            return 'Invalid command: `{} & {}`!'.format(args['command'], args['overwrite'])
 
 
     def execCheckout(self, src, dst, command, overwrite=False):
 
-        if overwrite and os.path.exists(dst):
-            print 'GIT plugin: Deleting folder `%s` !' % dst
-            os.rmdir(dst)
         if not src:
-            return 'Git source folder is NULL !'
+            return '*ERROR* Git source folder is NULL !'
+        if '//' not in src:
+            return '*ERROR* Git source folder `{}` is invalid !'.format(src)
         if not dst:
-            return 'Git destination folder is NULL !'
+            return '*ERROR* Git destination folder is NULL !'
 
         usr = self.data['username']
         pwd = self.data['password']
+
+        src = src.replace('//', '//{}@'.format(usr))
 
         branch = self.data['branch']
         if branch: branch = '-b ' + branch
@@ -63,29 +69,69 @@ class Plugin(BasePlugin):
         # Normal Git clone operation
         if command == 'clone':
 
+            if overwrite and os.path.exists(dst):
+                print 'GIT Plugin: Deleting folder `{}` ...'.format(dst)
+                shutil.rmtree(dst, ignore_errors=True)
+
+            to_exec = 'git clone {branch} {src} {dst}'.format(branch=branch, src=src, dst=dst)
+            print('GIT Plugin: Exec `{}` .'.format(to_exec.strip()))
+
             try:
-                child = pexpect.spawn('git clone {branch} {src} {dst}'.format(branch=branch, src=src, dst=dst))
+                child = pexpect.spawn(to_exec.strip())
+                child.logfile = sys.stdout
                 if pwd:
                     child.expect('.*password:')
-                    child.sendline('')
-            except:
+                    child.sendline(pwd)
+            except Exception as e:
                 return 'Error on calling GIT {cmd} (from `{src}` to `{dst}`): `{e}`!'.format(
                     cmd=command, src=src, dst=dst, e=e)
+
+            time.sleep(1)
+
+            try:
+                child.expect('Resolving deltas.*done\.', 120)
+                child.sendline('\n\n')
+            except Exception as e:
+                return 'Error after calling GIT {cmd}: `{e}`!'.format(cmd=command, e=e)
+
+            time.sleep(1)
+            print('-'*40)
 
         # Git pull operation
         elif command == 'pull':
 
             try:
-                child = pexpect.spawn('git pull -f {branch} {src} {dst}'.format(branch=branch, src=src, dst=dst))
+                os.chdir(dst)
+                print('GIT Plugin: CHDIR into `{}`.'.format(dst))
+            except:
+                return '*ERROR* Cannot chdir into `{}`! Cannot pull!'.format(dst)
+
+            to_exec = 'git pull -f {branch}'.format(branch=branch)
+            print('GIT Plugin: Exec `{}` .'.format(to_exec.strip()))
+
+            try:
+                child = pexpect.spawn(to_exec.strip())
+                child.logfile = sys.stdout
                 if pwd:
                     child.expect('.*password:')
-                    child.sendline('')
-            except:
+                    child.sendline(pwd)
+            except Exception as e:
                 return 'Error on calling GIT {cmd} (from `{src}` to `{dst}`): `{e}`!'.format(
                     cmd=command, src=src, dst=dst, e=e)
 
+            time.sleep(1)
+
+            try:
+                child.expect(['up-to-date', 'files changed'], 120)
+                child.sendline('\n\n')
+            except Exception as e:
+                return 'Error after calling GIT {cmd}: `{e}`!'.format(cmd=command, e=e)
+
+            time.sleep(1)
+            print('-'*40)
+
         else:
-            return 'Error on calling GIT command `%s`!' % command
+            return '*ERROR* Unknown plugin command `{}`!'.format(command)
 
         return 'true'
 
