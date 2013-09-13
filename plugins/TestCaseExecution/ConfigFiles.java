@@ -95,9 +95,12 @@ public class ConfigFiles extends JPanel{
 //         initializeFileBrowser();
         paths = new JPanel();
         paths.setBackground(Color.WHITE);
-        paths.setBorder(BorderFactory.createTitledBorder("Paths"));
+        //paths.setBorder(BorderFactory.createTitledBorder("Paths"));
         paths.setLayout(null);
         paths.setPreferredSize(new Dimension(930,1144));
+        paths.setSize(new Dimension(930,1144));
+        paths.setMinimumSize(new Dimension(930,1144));
+        paths.setMaximumSize(new Dimension(930,1144));
         //paths.setBorder(BorderFactory.createBevelBorder(BevelBorder.LOWERED));
         setLayout(null);
         ttcpath = new JTextField();
