@@ -1,7 +1,7 @@
 
-# version: 2.002
+# version: 2.003
 
-import os
+import os, sys
 import shutil
 import time
 import pexpect
@@ -50,10 +50,6 @@ class Plugin(BasePlugin):
 
     def execCheckout(self, src, dst, command, overwrite=False):
 
-        if overwrite and os.path.exists(dst):
-            print 'GIT Plugin: Deleting folder `{}` ...'.format(dst)
-            shutil.rmtree(dst, ignore_errors=True)
-
         if not src:
             return '*ERROR* Git source folder is NULL !'
         if '//' not in src:
@@ -73,11 +69,16 @@ class Plugin(BasePlugin):
         # Normal Git clone operation
         if command == 'clone':
 
+            if overwrite and os.path.exists(dst):
+                print 'GIT Plugin: Deleting folder `{}` ...'.format(dst)
+                shutil.rmtree(dst, ignore_errors=True)
+
             to_exec = 'git clone {branch} {src} {dst}'.format(branch=branch, src=src, dst=dst)
             print('GIT Plugin: Exec `{}` .'.format(to_exec.strip()))
 
             try:
                 child = pexpect.spawn(to_exec.strip())
+                child.logfile = sys.stdout
                 if pwd:
                     child.expect('.*password:')
                     child.sendline(pwd)
@@ -86,8 +87,14 @@ class Plugin(BasePlugin):
                     cmd=command, src=src, dst=dst, e=e)
 
             time.sleep(1)
-            print(child.before)
-            print(child.after)
+
+            try:
+                child.expect('Resolving deltas.*done\.', 120)
+                child.sendline('\n\n')
+            except Exception as e:
+                return 'Error after calling GIT {cmd}: `{e}`!'.format(cmd=command, e=e)
+
+            time.sleep(1)
             print('-'*40)
 
         # Git pull operation
@@ -104,6 +111,7 @@ class Plugin(BasePlugin):
 
             try:
                 child = pexpect.spawn(to_exec.strip())
+                child.logfile = sys.stdout
                 if pwd:
                     child.expect('.*password:')
                     child.sendline(pwd)
@@ -112,8 +120,14 @@ class Plugin(BasePlugin):
                     cmd=command, src=src, dst=dst, e=e)
 
             time.sleep(1)
-            print(child.before)
-            print(child.after)
+
+            try:
+                child.expect(['up-to-date', 'files changed'], 120)
+                child.sendline('\n\n')
+            except Exception as e:
+                return 'Error after calling GIT {cmd}: `{e}`!'.format(cmd=command, e=e)
+
+            time.sleep(1)
             print('-'*40)
 
         else:
