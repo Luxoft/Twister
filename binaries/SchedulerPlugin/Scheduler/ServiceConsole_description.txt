@@ -1,0 +1,2 @@
+ServiceConsole plugin is a plugin that 
+opens the console for services found on Central Engine

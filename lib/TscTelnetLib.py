@@ -21,6 +21,12 @@
 # limitations under the License.
 #
 
+
+"""
+    This module contains Telnet connection functions.
+"""
+
+
 from telnetlib import Telnet
 from time import sleep
 #from time import time as epochtime

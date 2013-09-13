@@ -1,6 +1,6 @@
 /*
 File: RunnerRepository.java ; This file is part of Twister.
-Version: 2.0022
+Version: 2.0023
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -152,8 +152,8 @@ public class RunnerRepository {
     private static String[] lookAndFeels;
     public static Container container;
     private static Document pluginsconfig;
-    private static String version = "2.024";
-    private static String builddate = "06.09.2013";
+    private static String version = "2.025";
+    private static String builddate = "13.09.2013";
     public static String logotxt,os,python;
     
     public static void setStarter(Starter starter){
@@ -454,7 +454,8 @@ public class RunnerRepository {
         RunnerRepository.window.mainpanel.setSize(width-20,height-20);
         RunnerRepository.window.mainpanel.p1.splitPane.setSize(width-52,height-120);
         RunnerRepository.window.mainpanel.setSize(width-28,height-40);
-        RunnerRepository.window.mainpanel.p4.getScroll().setSize(width-310,height-150);
+        RunnerRepository.window.mainpanel.p4.getScroll().setSize(width-310,height-155);
+        RunnerRepository.window.mainpanel.p4.getScroll().setPreferredSize(new Dimension(width-310,height-155));
         RunnerRepository.window.mainpanel.p4.getMain().setSize(width-300,height-130);
         RunnerRepository.window.mainpanel.p4.getTB().setPreferredSize(
             new Dimension(width-300,height-150));
@@ -466,8 +467,10 @@ public class RunnerRepository {
             new Dimension(width-305,height-155));
         RunnerRepository.window.logout.setLocation(width-130, 3);
         RunnerRepository.window.controlpanel.setLocation(width-285, 3);
-        container.validate();
-        container.repaint();
+        if(container!=null){
+            container.validate();
+            container.repaint();
+        }
         
     }
     

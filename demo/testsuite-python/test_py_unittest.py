@@ -1,7 +1,7 @@
 
 # version: 2.001
 
-from ce_libs import TwisterTest
+from TscUnitTestLib import TwisterTest
 
 #
 # <title>Unit Test Library</title>

@@ -1,7 +1,7 @@
 
 # File: CentralEngineOthers.py ; This file is part of Twister.
 
-# version: 2.034
+# version: 2.038
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -75,22 +75,26 @@ import os
 import sys
 import re
 import time
-import paramiko
+import datetime
+import random
 import subprocess
 import socket
 import platform
 import smtplib
-import urlparse
 import binascii
-import cherrypy
+import traceback
 import MySQLdb
+import paramiko
+import cherrypy
 
 try: import simplejson as json
 except: import json
 
-from thread import allocate_lock
-from string import Template
+import cherrypy.process.plugins
 from collections import OrderedDict
+from thread import allocate_lock
+from thread import start_new_thread
+from string import Template
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
@@ -132,7 +136,7 @@ def check_passwd(realm, user, passwd):
     t.logger.setLevel(40) # Less spam, please
     t.start_client()
 
-    # This operation is really heavy!!!
+    # This operation is pretty heavy!!!
     try:
         t.auth_password(user, passwd)
         usrs_and_pwds[user] = passwd
@@ -145,6 +149,50 @@ def check_passwd(realm, user, passwd):
         t.stop_thread()
         t.close()
         return False
+
+#
+
+def cache_users():
+    """
+    Find all system users that have Twister installer.
+    """
+    global TWISTER_PATH
+    ti = time.time()
+    logDebug('Starting to cache users...')
+
+    lines = open('/etc/passwd').readlines()
+    users = []
+    for line in lines:
+        path = line.split(':')[5]
+        if os.path.isdir(path + '/twister/config'):
+            users.append(line.split(':')[0])
+
+    # Check if the machine has NIS users.
+    # This operation CAN TAKE A LOT OF TIME!
+    try:
+        subprocess.check_output('nisdomainname')
+        u = subprocess.check_output("ypcat passwd | awk -F : '{print $1}'", shell=True)
+        for user in u.split():
+            home = userHome(user)
+            if os.path.isdir(home + '/twister/config'):
+                users.append(user)
+    except:
+        pass
+
+    # Eliminate duplicates
+    users = sorted( set(users) )
+    # Write the users on HDD
+    with open(TWISTER_PATH + '/config/cached_users.json', 'w') as f:
+        try:
+            json.dump(users, f, indent=4)
+        except:
+            logError('Cache users operation failed! Cannot write in file `{}`!'.format(f))
+            return False
+
+    tf = time.time()
+    logDebug('Cache users operation took `{:.2f}` seconds...'.format( (tf-ti) ))
+
+    return True
 
 
 # --------------------------------------------------------------------------------------------------
@@ -164,13 +212,15 @@ class Project:
 
     """
 
-    def __init__(self):
+    def __init__(self, parent):
 
+        self.parent = parent
         self.users = {}
         self.parsers = {}
-        self.plugins = {}
-        self.test_ids = {}
-        self.suite_ids = {}
+        self.test_ids = {}  # IDs shortcut
+        self.suite_ids = {} # IDs shortcut
+        self.plugins = {}   # User plugins
+        self.loggers = {}   # User loggers
 
         self.usr_lock = allocate_lock()  # User change lock
         self.int_lock = allocate_lock()  # Internal use lock
@@ -186,7 +236,15 @@ class Project:
         else:
             cfg = iniparser.ConfigObj(cfg_path)
             self.server_init = cfg.dict()
-        logDebug('CE: Running server type `{ce_server_type}`.'.format(**self.server_init))
+            # Fix invalid, or inexistend type key?
+            self.server_init['ce_server_type'] = self.server_init.get('ce_server_type', 'no_type').lower()
+        # Fix server type spelling errors, or invalid types?
+        if self.server_init['ce_server_type'] not in ['no_type', 'production', 'development']:
+            logError('Production/ Development ERROR: Reset invalid server type from '\
+                '`{ce_server_type}` to `no_type`!'.format(**self.server_init))
+            self.server_init['ce_server_type'] = 'no_type'
+
+        logDebug('Running server type `{ce_server_type}`.'.format(**self.server_init))
 
         # Panic Detect, load config for current user
         self.panicDetectConfigPath = '{}/config/PanicDetectData.json'.format(TWISTER_PATH)
@@ -196,8 +254,14 @@ class Project:
         with open(self.panicDetectConfigPath, 'rb') as config:
             self.panicDetectRegularExpressions = json.load(config)
 
+        # Start cache users at the beggining...
+        start_new_thread(cache_users, ())
+        # And repeat every hour
+        self.cache_usrs = cherrypy.process.plugins.BackgroundTask(60*60, cache_users)
+        self.cache_usrs.start()
 
-    def _common_user_reset(self, user, base_config, files_config):
+
+    def _common_proj_reset(self, user, base_config, files_config):
 
         # List with all EPs for this User
         epList = self.parsers[user].epnames
@@ -318,7 +382,7 @@ class Project:
         else:
             self.parsers[user] = TSCParser(user, base_config, files_config)
 
-        resp = self._common_user_reset(user, base_config, files_config)
+        resp = self._common_proj_reset(user, base_config, files_config)
         if not resp: return False
 
         # Save everything.
@@ -358,7 +422,7 @@ class Project:
         except: pass
         self.parsers[user] = TSCParser(user, base_config, files_config)
 
-        resp = self._common_user_reset(user, base_config, files_config)
+        resp = self._common_proj_reset(user, base_config, files_config)
         if not resp: return False
 
         # Save everything.
@@ -422,19 +486,9 @@ class Project:
 
         # This user doesn't exist in users and groups
         if not cherry_roles:
-            if self.server_init['ce_server_type'].lower() == 'production':
-                logWarning('Production Server: Username `{}` cannot be found in users and roles!'.format(cherry_usr))
-                return False
-            # The user doesn't exist ... creating a virtual user
-            cherry_roles = {'roles': [], 'groups': []}
-            # logDebug('Username `{}` cannot be found in users and roles!'.format(cherry_usr))
-
-        # This user doesn't have any roles in users and groups
-        if not cherry_roles['roles']:
-            if self.server_init['ce_server_type'].lower() == 'production':
-                logWarning('Production Server: Username `{}` doesn\'t have any roles!'.format(cherry_usr))
-                return False
-            # logDebug('Username `{}` doesn\'t have any roles!'.format(cherry_usr))
+            # The user doesn't exist ...
+            logWarning('Production Server: Username `{}` doesn\'t have any roles!'.format(cherry_usr))
+            return {'roles': [], 'groups': [], 'user': cherry_usr}
 
         cherry_roles['user'] = cherry_usr
         return cherry_roles
@@ -466,31 +520,16 @@ class Project:
         return True
 
 
-    def listUsers(self, active=False, nis=True):
+    def listUsers(self, active=False):
         """
-        Find all system users that have Twister installer.\n
-        If `active` is True, list only the users that are registered in Central Engine.
+        Return the cached list of users.
         """
-        lines = open('/etc/passwd').readlines()
         users = []
-        for line in lines:
-            path = line.split(':')[5]
-            if os.path.isdir(path + '/twister/config'):
-                users.append(line.split(':')[0])
-
-        # Check if the machine has NIS users
-        if nis:
+        with open(TWISTER_PATH + '/config/cached_users.json', 'r') as f:
             try:
-                subprocess.check_output('nisdomainname')
-                u = subprocess.check_output("ypcat passwd | awk -F : '{print $1}'", shell=True)
-                for user in u.split():
-                    home = userHome(user)
-                    if os.path.isdir(home + '/twister/config'):
-                        users.append(user)
+                users = json.load(f)
             except:
-                pass
-
-        users = sorted( set(users) )
+                return users
         # Filter active users ?
         if active:
             users = [u for u in users if u in self.users]
@@ -528,6 +567,10 @@ class Project:
             logError('Users and Groups parsing error `{}`!'.format(e))
             return {'users': {}, 'groups': {}}
 
+        srv_type = self.server_init['ce_server_type']
+        # Type = no_type => type = development
+        if srv_type == 'no_type': srv_type = 'development'
+
         # Cycle all groups
         for grp, grp_data in cfg['groups'].iteritems():
 
@@ -549,16 +592,16 @@ class Project:
         # Cycle all users
         for usr, usr_data in cfg['users'].iteritems():
             # Invalid user ?
-            if 'groups' not in usr_data:
+            if 'groups_'+srv_type not in usr_data:
                 continue
 
             usr_data['roles'] = []
 
-            if isinstance(usr_data['groups'], str):
-                grps = [g.strip() for g in usr_data['groups'].split(',') if g]
+            if isinstance(usr_data['groups_'+srv_type], str):
+                grps = [g.strip() for g in usr_data['groups_'+srv_type].split(',') if g]
             else:
                 # It's a list
-                grps = usr_data['groups']
+                grps = usr_data['groups_'+srv_type]
 
             # Start adding and fixing roles for current user
             for grp in grps:
@@ -580,16 +623,8 @@ class Project:
                         # It's a list
                         usr_data['roles'] += roles
 
-            # If the server is no_type or devel, the user has ALL ROLES except for CHANGE_USERS!
-            if self.server_init['ce_server_type'].lower() != 'production':
-                _ROLES = sorted(ROLES)
-                # If the user didn't have the USERS role, delete it
-                if 'CHANGE_USERS' not in usr_data['roles']:
-                    _ROLES.pop(_ROLES.index('CHANGE_USERS'))
-                usr_data['roles'] = _ROLES
-            else:
-                # Fix roles. Must be a list.
-                usr_data['roles'] = sorted( set(usr_data['roles']) )
+            # Fix roles. Must be a list.
+            usr_data['roles'] = sorted( set(usr_data['roles']) )
 
             # Get old timeout value for user, OR create a new default value
             if not usr_data.get('timeout'):
@@ -960,6 +995,10 @@ class Project:
         r = self.changeUser(user)
         if not r: return []
 
+        if epname not in self.users[user]['eps']:
+            logDebug('Project: Invalid EP name `{}` !'.format(epname))
+            return False
+
         files = self.users[user]['eps'][epname]['suites'].getFiles()
         return files
 
@@ -1013,6 +1052,13 @@ class Project:
         r = self.changeUser(user)
         if not r: return []
         eps = self.users[user]['eps']
+
+        if epname not in eps:
+            logDebug('Project: Invalid EP name `{}` !'.format(epname))
+            return False
+        if suite_id not in eps[epname]['suites'].getSuites():
+            logDebug('Project: Invalid Suite ID `{}` !'.format(suite_id))
+            return False
 
         return eps[epname]['suites'].getFiles(suite_id)
 
@@ -1094,6 +1140,315 @@ class Project:
         return True
 
 
+# # #
+
+
+    def setExecStatus(self, user, epname, new_status, msg=''):
+        """
+        Set execution status for one EP. (0, 1, 2, or 3)
+        Returns a string (stopped, paused, running).
+        The `message` parameter can explain why the status has changed.
+        """
+        # Check the username from CherryPy connection
+        cherry_roles = self._checkUser()
+        if not cherry_roles:
+            return False
+        if not 'RUN_TESTS' in cherry_roles['roles']:
+            logDebug('Privileges ERROR! Username `{user}` cannot change EP status!'.format(**cherry_roles))
+            return False
+
+        if epname not in self.users[user]['eps']:
+            logDebug('Project: Invalid EP name `{}` !'.format(epname))
+            return False
+        if new_status not in execStatus.values():
+            logError('Project: Status value `{}` is not in the list of defined statuses: `{}`!'
+                     ''.format(new_status, execStatus.values()) )
+            return False
+
+        # Status resume => start running
+        if new_status == STATUS_RESUME:
+            new_status = STATUS_RUNNING
+
+        ret = self.setEpInfo(user, epname, 'status', new_status)
+        reversed = dict((v,k) for k,v in execStatus.iteritems())
+
+        if ret:
+            if msg:
+                logDebug('Project: Status changed for `{} {}` - {} (from `{}`).\n\tMessage: `{}`.'.format(
+                    user, epname, reversed[new_status], cherrypy.request.headers['Remote-Addr'], msg))
+            else:
+                logDebug('Project: Status changed for `{} {}` - {} (from `{}`).'.format(
+                    user, epname, reversed[new_status], cherrypy.request.headers['Remote-Addr']))
+        else:
+            logError('Project: Cannot change status for `{} {}` !'.format(user, epname))
+
+        # Send start/ stop command to EP !
+        if new_status == STATUS_RUNNING:
+            self.parent.startEP(user, epname)
+        elif new_status == STATUS_STOP:
+            self.parent.stopEP(user, epname)
+
+        # If all Stations are stopped, the status for current user is also stop!
+        # This is important, so that in the Java GUI, the buttons will change to [Play | Stop]
+        if not sum([self.getEpInfo(user, ep).get('status', 8) for ep in self.parsers[user].getActiveEps()]):
+
+            # If User status was not Stop
+            if self.getUserInfo(user, 'status'):
+
+                self.setUserInfo(user, 'status', STATUS_STOP)
+
+                logDebug('Project: All processes stopped for user `{}`! General status changed to STOP.\n'.format(user))
+
+                # If this run is Not temporary
+                if not (user + '_old' in self.users):
+                    # On Central Engine stop, send e-mail
+                    self.sendMail(user)
+
+                    # Execute "Post Script"
+                    script_post = self.getUserInfo(user, 'script_post')
+                    script_mandatory = self.getUserInfo(user, 'script_mandatory')
+                    save_to_db = True
+                    if script_post:
+                        result = execScript(script_post)
+                        if result: logDebug('Post Script executed!\n"{}"\n'.format(result))
+                        elif script_mandatory:
+                            logError('Project: Post Script failed and script is mandatory! Will not save the results into database!')
+                            save_to_db = False
+
+                    # On Central Engine stop, save to database
+                    db_auto_save = self.getUserInfo(user, 'db_auto_save')
+                    if db_auto_save and save_to_db:
+                        time.sleep(2) # Wait all the logs
+                        self.saveToDatabase(user)
+
+                    # Find the log process for this User and ask it to Exit
+                    port = self.loggers[user]['port']
+                    sock = self._logConnect(user, port)
+
+                    if sock:
+                        sock.sendall('EXIT')
+                        resp = sock.recv(1024)
+                        if resp == 'EXIT!':
+                            sock.close()
+                            logDebug('Terminated log server `localhost:{}`, for user `{}`.'.format(port, user))
+                        else:
+                            logWarning('Cannot stop log server `localhost:{}`, for user `{}`! Response `{}`.'.format(port, user, resp))
+
+                    # Execute "onStop" for all plugins!
+                    parser = PluginParser(user)
+                    plugins = parser.getPlugins()
+                    for pname in plugins:
+                        plugin = self._buildPlugin(user, pname,  {'ce_stop': 'automatic'})
+                        try:
+                            plugin.onStop()
+                        except Exception as e:
+                            trace = traceback.format_exc()[33:].strip()
+                            logWarning('Error on running plugin `{} onStop` - Exception: `{}`!'.format(pname, trace))
+                    del parser, plugins
+
+                    # Cycle all files to change the PENDING status to NOT_EXEC
+                    eps_pointer = self.users[user]['eps']
+                    statuses_changed = 0
+
+                    # All files, for current EP
+                    files = eps_pointer[epname]['suites'].getFiles()
+                    for file_id in files:
+                        current_status = self.getFileInfo(user, epname, file_id).get('status', -1)
+                        # Change the files with PENDING status, to NOT_EXEC
+                        if current_status in [STATUS_PENDING, -1]:
+                            self.setFileInfo(user, epname, file_id, 'status', STATUS_NOT_EXEC)
+                            statuses_changed += 1
+
+                    if statuses_changed:
+                        logDebug('Changed `{}` file statuses from Pending to Not executed.'.format(statuses_changed))
+
+        return reversed[new_status]
+
+
+    def setExecStatusAll(self, user, new_status, msg=''):
+        """
+        Set execution status for all EPs. (STATUS_STOP, STATUS_PAUSED, STATUS_RUNNING).
+        Returns a string (stopped, paused, running).
+        The `message` parameter can explain why the status has changed.
+        """
+        # Check the username from CherryPy connection
+        cherry_roles = self._checkUser()
+        if not cherry_roles:
+            return False
+        if not 'RUN_TESTS' in cherry_roles['roles']:
+            logDebug('Privileges ERROR! Username `{user}` cannot change exec status!'.format(**cherry_roles))
+            return False
+
+        if new_status not in execStatus.values():
+            logError('Project: Status value `{}` is not in the list of defined statuses: `{}`!'
+                     ''.format(new_status, execStatus.values()) )
+            return False
+
+        reversed = dict((v,k) for k,v in execStatus.iteritems())
+
+        # If this is a Temporary user
+        user_agent = cherrypy.request.headers['User-Agent'].lower()
+        if 'xml rpc' in user_agent and (user+'_old') in self.users:
+            if msg.lower() != 'kill' and new_status != STATUS_STOP:
+                return '*ERROR*! Cannot change status while running temporary!'
+            else:
+                # Update status for User
+                self.setUserInfo(user, 'status', STATUS_STOP)
+
+                # Update status for all active EPs
+                active_eps = self.parsers[user].getActiveEps()
+                for epname in active_eps:
+                    if epname not in self.users[user]['eps']:
+                        logError('Set Status: `{}` is not a valid EP Name!'.format(epname))
+                        continue
+                    self.setEpInfo(user, epname, 'status', STATUS_STOP)
+
+                if msg:
+                    logDebug("Status chang for TEMP `%s %s` -> %s. Message: `%s`.\n" % (user, active_eps, reversed[STATUS_STOP], str(msg)))
+                else:
+                    logDebug("Status chang for TEMP `%s %s` -> %s.\n" % (user, active_eps, reversed[STATUS_STOP]))
+                return reversed[STATUS_STOP]
+
+        # Status resume => start running. The logs must not reset on resume
+        if new_status == STATUS_RESUME:
+            new_status = STATUS_RUNNING
+
+        # Return the current status, or 8 = INVALID
+        executionStatus = self.getUserInfo(user, 'status') or 8
+
+        # Re-initialize the Master XML and Reset all logs on fresh start!
+        # This will always happen when the START button is pressed, if CE is stopped
+        if (executionStatus == STATUS_STOP or executionStatus == STATUS_INVALID) and new_status == STATUS_RUNNING:
+
+            # If the Msg contains 2 paths, separated by comma
+            if msg and len(msg.split(',')) == 2:
+                path1 = msg.split(',')[0]
+                path2 = msg.split(',')[1]
+                if os.path.isfile(path1) and os.path.isfile(path2):
+                    logDebug('Using custom XML files: `{}` and `{}`.'.format(path1, path2))
+                    self.reset(user, path1, path2)
+                    msg = ''
+
+            # Or if the Msg is a path to an existing file...
+            elif msg and os.path.isfile(msg):
+                data = open(msg).read().strip()
+                # If the file is XML, send it to project reset function
+                if data[0] == '<' and data [-1] == '>':
+                    logDebug('Using custom XML file: `{}`...'.format(msg))
+                    self.reset(user, msg)
+                    msg = ''
+                else:
+                    logDebug('You are probably trying to use file `{}` as config file, but it\'s not a valid XML!'.format(msg))
+                    self.reset(user)
+                del data
+
+            else:
+                self.reset(user)
+
+            self.resetLogs(user)
+
+            # User start time and elapsed time
+            self.setUserInfo(user, 'start_time', datetime.datetime.today().strftime('%Y-%m-%d %H:%M:%S'))
+            self.setUserInfo(user, 'elapsed_time', 0)
+
+            # Execute "Pre Script"
+            script_pre = self.getUserInfo(user, 'script_pre')
+            script_mandatory = self.getUserInfo(user, 'script_mandatory')
+            if script_pre:
+                result = execScript(script_pre)
+                if result: logDebug('Pre Script executed! {}'.format(result))
+                elif script_mandatory:
+                    logError('Pre Script failed and script is mandatory! The project failed!')
+                    return reversed[STATUS_STOP]
+
+            # Execute "onStart" for all plugins!
+            parser = PluginParser(user)
+            plugins = parser.getPlugins()
+            for pname in plugins:
+                plugin = self._buildPlugin(user, pname)
+                try:
+                    plugin.onStart()
+                except Exception as e:
+                    trace = traceback.format_exc()[34:].strip()
+                    logWarning('Error on running plugin `{} onStop` - Exception: `{}`!'.format(pname, trace))
+            del parser, plugins
+
+            # Start all active EPs !
+            active_eps = self.parsers[user].getActiveEps()
+            for epname in active_eps:
+                if epname not in self.users[user]['eps']:
+                    continue
+                self.parent.startEP(user, epname)
+
+        # If the engine is running, or paused and it received STOP from the user...
+        elif (executionStatus == STATUS_RUNNING or executionStatus == STATUS_PAUSED) and new_status == STATUS_STOP:
+
+            # Execute "Post Script"
+            script_post = self.getUserInfo(user, 'script_post')
+            script_mandatory = self.getUserInfo(user, 'script_mandatory')
+            if script_post:
+                result = execScript(script_post)
+                if result: logDebug('Post Script executed!\n"{}"\n'.format(result))
+                elif script_mandatory:
+                    logError('Post Script failed!')
+
+            # Execute "onStop" for all plugins... ?
+            parser = PluginParser(user)
+            plugins = parser.getPlugins()
+            for pname in plugins:
+                plugin = self._buildPlugin(user, pname, {'ce_stop': 'manual'})
+                try:
+                    plugin.onStop()
+                except Exception as e:
+                    trace = traceback.format_exc()[34:].strip()
+                    logWarning('Error on running plugin `{} onStop` - Exception: `{}`!'.format(pname, trace))
+            del parser, plugins
+
+            # Cycle all active EPs to: STOP them and to change the PENDING status to NOT_EXEC
+            active_eps = self.parsers[user].getActiveEps()
+            eps_pointer = self.users[user]['eps']
+            statuses_changed = 0
+
+            for epname in active_eps:
+                if epname not in self.users[user]['eps']:
+                    continue
+                # All files, for current EP
+                files = eps_pointer[epname]['suites'].getFiles()
+                for file_id in files:
+                    current_status = self.getFileInfo(user, epname, file_id).get('status', -1)
+                    # Change the files with PENDING status, to NOT_EXEC
+                    if current_status in [STATUS_PENDING, -1]:
+                        self.setFileInfo(user, epname, file_id, 'status', STATUS_NOT_EXEC)
+                        statuses_changed += 1
+                # Send STOP to EP Manager
+                self.parent.stopEP(user, epname)
+
+            if statuses_changed:
+                logDebug('Set Status: Changed `{}` file statuses from Pending to Not executed.'.format(statuses_changed))
+
+        # Update status for User
+        self.setUserInfo(user, 'status', new_status)
+
+        # Update status for all active EPs
+        active_eps = self.parsers[user].getActiveEps()
+        for epname in active_eps:
+            if epname not in self.users[user]['eps']:
+                logError('Set Status: `{}` is not a valid EP Name!'.format(epname))
+                continue
+            self.setEpInfo(user, epname, 'status', new_status)
+
+        reversed = dict((v,k) for k,v in execStatus.iteritems())
+
+        if msg and msg != ',':
+            logDebug('Status changed for `{} {}` - {} (from `{}`).\n\tMessage: `{}`.'.format(
+                user, active_eps, reversed[new_status], cherrypy.request.headers['Remote-Addr'], msg))
+        else:
+            logDebug('Status changed for `{} {}` - {} (from `{}`).'.format(
+                user, active_eps, reversed[new_status], cherrypy.request.headers['Remote-Addr']))
+
+        return reversed[new_status]
+
+
     def getFileStatusAll(self, user, epname=None, suite_id=None):
         """
         Return the status of all files, in order.
@@ -1131,6 +1486,71 @@ class Project:
                 final.append(statuses[tcid])
 
         return final
+
+
+    def setFileStatus(self, user, epname, file_id, new_status=10, time_elapsed=0.0):
+        """
+        Set status for one file and write in log summary.
+        """
+        r = self.changeUser(user)
+        if not r: return False
+        eps = self.users[user]['eps']
+
+        if epname not in eps:
+            logDebug('Project: Invalid EP name `{}` !'.format(epname))
+            return False
+        if new_status not in testStatus.values():
+            logError('Project: Status value `{}` is not in the list of defined statuses: `{}`!'
+                     ''.format(new_status, testStatus.values()) )
+            return False
+
+        data = self.getFileInfo(user, epname, file_id)
+        if not data:
+            logDebug('Project: Invalid File ID `{}` !'.format(file_id))
+            return False
+
+        filename = os.path.split(data['file'])[1]
+        suite = data['suite']
+
+        # Sets file status
+        self.setFileInfo(user, epname, file_id, 'status', new_status)
+        reversed = dict((v,k) for k,v in testStatus.iteritems())
+        status_str = reversed[new_status]
+
+        # Write all statuses in logs, because all files will be saved to database
+        if status_str=='not executed': status_str='*NO EXEC*'
+        else: status_str='*%s*' % status_str.upper()
+
+        if new_status != STATUS_WORKING:
+
+            # Inject information into Files. This will be used when saving into database.
+            now = datetime.datetime.today()
+
+            self.setFileInfo(user, epname, file_id, 'twister_tc_status', status_str.replace('*', ''))
+            self.setFileInfo(user, epname, file_id, 'twister_tc_crash_detected',
+                                    data.get('twister_tc_crash_detected', 0))
+            self.setFileInfo(user, epname, file_id, 'twister_tc_time_elapsed',   int(time_elapsed))
+            self.setFileInfo(user, epname, file_id, 'twister_tc_date_started',
+                                    (now - datetime.timedelta(seconds=time_elapsed)).isoformat())
+            self.setFileInfo(user, epname, file_id, 'twister_tc_date_finished',  (now.isoformat()))
+            suite_name = self.getSuiteInfo(user, epname, suite).get('name')
+
+            logMessage = ' {ep}::{suite}::{file} | {status} | {elapsed} | {date}\n'.format(
+                    ep = epname.center(9), suite = suite_name.center(9), file = filename.center(28),
+                    status = status_str.center(11),
+                    elapsed = ('%.2fs' % time_elapsed).center(10),
+                    date = now.strftime('%a %b %d, %H:%M:%S'))
+
+            # Get logSummary path from framework config
+            logPath = self.getUserInfo(user, 'log_types')['logSummary']
+            resp = self._logServerMsg(user, logPath + ':' + logMessage)
+
+            if not resp:
+                logError('Summary log file `{}` cannot be written! User `{}` won\'t see any '\
+                         'statistics!'.format(logPath, user))
+
+        # Return string
+        return status_str
 
 
     def setFileStatusAll(self, user, epname=None, new_status=10):
@@ -1225,7 +1645,7 @@ class Project:
         var_pointer = self._findGlobalVariable(user, node_path[:-1])
 
         if not var_pointer:
-            logError('Global Variable: Invalid variable path `{0}`, for user `{1}`!'.format(node_path, user))
+            logError('Global Variable: Invalid variable path `{}`, for user `{}`!'.format(node_path, user))
             return False
 
         with self.glb_lock:
@@ -1706,35 +2126,6 @@ class Project:
                 return log
 
 
-# # #
-
-
-    def findLog(self, user, epname, file_id, file_name):
-        '''
-        Parses the log file of one EP and returns the log of one test file.
-        '''
-        logFolder = self.getUserInfo(user, 'logs_path')
-        logTypes  = self.getUserInfo(user, 'log_types')
-        _, logCli = os.path.split( logTypes.get('logCli', 'CLI.log') )
-        # Logs Path + EP Name + CLI Name
-        logPath = logFolder + os.sep + epname +'_'+ logCli
-
-        try:
-            data = open(logPath, 'r').read()
-        except:
-            logError('Find Log: File `{}` cannot be read!'.format(logPath))
-            return '*no log*'
-
-        fbegin = data.find('<<< START filename: `{}:{}'.format(file_id, file_name))
-        if fbegin == -1:
-            logDebug('Find Log: Cannot find `{}:{}` in log `{}`!'.format(file_id, file_name, logPath))
-
-        fend = data.find('<<< END filename: `{}:{}'.format(file_id, file_name))
-        fend += len('<<< END filename: `{}:{}` >>>'.format(file_id, file_name))
-
-        return data[fbegin:fend]
-
-
     def saveToDatabase(self, user):
         """
         Save all data from a user: Ep, Suite, File, into database,
@@ -1752,12 +2143,12 @@ class Project:
                 return False
 
             # Database parser, fields, queries
-            # This is created every time the Save is called
+            # This is created every time the Save to Database is called
             db_parser = DBParser(db_file)
             db_config = db_parser.db_config
-            queries = db_parser.getQueries() # List
-            fields  = db_parser.getFields()  # Dictionary
-            scripts = db_parser.getScripts() # List
+            queries = db_parser.getInsertQueries()  # List
+            fields  = db_parser.getDbSelectFields() # Dictionary
+            scripts = db_parser.getUserScriptFields() # List
             del db_parser
 
             if not queries:
@@ -1815,11 +2206,11 @@ class Project:
                     subst_data['twister_server_location'] = self.server_init.get('ce_server_location', '')
 
                     subst_data['twister_rf_fname'] = '{}/config/resources.json'.format(TWISTER_PATH)
-                    subst_data['twister_pf_fname'] = '{}/config/project_users.json'.format(TWISTER_PATH)
+                    subst_data['twister_pf_fname'] = self.users[user].get('proj_xml_name', '')
 
-                    subst_data['twister_ce_os']    = system
+                    subst_data['twister_ce_os']      = system
                     subst_data['twister_ce_hostname'] = ce_host
-                    subst_data['twister_ce_ip']       = ce_ip
+                    subst_data['twister_ce_ip']      = ce_ip
                     subst_data['twister_ce_python_revision'] = '.'.join([str(v) for v in sys.version_info])
                     subst_data['twister_ep_name']    = epname
                     subst_data['twister_suite_name'] = suite_info['name']
@@ -1924,6 +2315,370 @@ class Project:
             return True
 
 
+    def _buildPlugin(self, user, plugin, extra_data={}):
+        """
+        Parses the list of plugins and creates an instance of the requested plugin.
+        All the data
+        """
+        # The pointer to the plug-in = User name and Plugin name
+        key = user +' '+ plugin
+        plug_ptr = False
+
+        # If the plug-in was already created, re-use it
+        if key in self.plugins:
+            plug_ptr = self.plugins.get(key)
+
+        parser = PluginParser(user)
+        # All the info about the current plug
+        pdict = parser.getPlugins().get(plugin)
+        if not pdict:
+            logError('Plug-ins: Cannot find plug-in name `{}`!'.format(plugin))
+            return False
+        del parser
+
+        data = dict(self.getUserInfo(user))
+        data.update(pdict)
+        data.update(extra_data)
+        data['ce'] = self
+        try: del data['eps']
+        except: pass
+        try: del data['global_params']
+        except: pass
+        try: del data['status']
+        except: pass
+        # Delete the un-initialized plug class
+        try: del data['plugin']
+        except: pass
+
+        # Initialize the plug
+        if not plug_ptr:
+            plugin = pdict['plugin'](user, data)
+        # Update the data and re-use the old instance
+        else:
+            try:
+                plug_ptr.data.update(data)
+            except:
+                plug_ptr.data = data
+                logError('Plug-ins: Warning! Overwriting the `data` attr from plug-in `{}`!'.format(plugin))
+            plugin = plug_ptr
+
+        self.plugins[key] = plugin
+        return plugin
+
+
+# # #
+
+
+    def getLogFile(self, user, read, fstart, filename):
+        """
+        Called in the Java GUI to show the logs.
+        """
+        if fstart is None:
+            return '*ERROR for {}!* Parameter FSTART is NULL!'.format(user)
+        if not filename:
+            return '*ERROR for {}!* Parameter FILENAME is NULL!'.format(user)
+
+        fpath = self.getUserInfo(user, 'logs_path')
+
+        if not fpath or not os.path.exists(fpath):
+            return '*ERROR for {0}!* Logs path `{1}` is invalid! Using master config `{2}` and suites config `{3}`.'\
+                .format(user, fpath, self.getUserInfo(user, 'config_path'), self.getUserInfo(user, 'project_path'))
+
+        filename = fpath + os.sep + filename
+
+        if not os.path.exists(filename):
+            return '*ERROR for {0}!* File `{1}` does not exist! Using master config `{2}` and suites config `{3}`'.\
+                format(user, filename, self.getUserInfo(user, 'config_path'), self.getUserInfo(user, 'project_path'))
+
+        if not read or read=='0':
+            return os.path.getsize(filename)
+
+        fstart = long(fstart)
+        f = open(filename)
+        f.seek(fstart)
+        data = f.read()
+        f.close()
+
+        return binascii.b2a_base64(data)
+
+
+    def _logServer(self, user):
+        """
+        Launch a log server.
+        """
+        # Searching for a free port in the safe range...
+        while 1:
+            free = False
+            port = random.randrange(60000, 62000)
+            try:
+                socket.create_connection((None, port), 1)
+            except:
+                free = True
+            if free: break
+
+        p_cmd = 'su {} -c "{} -u {}/server/LogServer.py {}"'.format(user, sys.executable, TWISTER_PATH, port)
+        proc = subprocess.Popen(p_cmd, cwd='{}/twister'.format(userHome(user)), shell=True)
+        proc.poll()
+
+        time.sleep(0.3)
+        logDebug('Log Server for user `{}` launched on `127.0.0.1:{}` - PID `{}`.'.format(user, port, proc.pid))
+
+        self.loggers[user] = {'proc': proc, 'port': port}
+
+
+    def _logConnect(self, user, port):
+        """
+        Create a log server connection.
+        """
+        for res in socket.getaddrinfo('127.0.0.1', port, socket.AF_UNSPEC, socket.SOCK_STREAM):
+            af, socktype, proto, canonname, sa = res
+            try:
+                sock = socket.socket(af, socktype, proto)
+            except socket.error as msg:
+                logWarning('Sock create exception: `{}`.'.format(msg))
+                sock = None
+                continue
+            try:
+                sock.connect(sa)
+            except socket.error as msg:
+                logWarning('Sock connect exception: `{}`.'.format(msg))
+                sock.close()
+                sock = None
+                continue
+            break
+        if sock is None:
+            logError('Internal Log Error! Could not connect to Log Server!')
+            return False
+        else:
+            return sock
+
+
+    def _logServerMsg(self, user, msg):
+        """
+        Helper function to access the Log Server.
+        """
+        if user not in self.loggers:
+            self._logServer(user)
+
+        sock = self._logConnect(user, self.loggers[user]['port'])
+
+        if not sock:
+            logError('Creating a new connection...')
+            self._logServer(user)
+            sock = self._logConnect(user, self.loggers[user]['port'])
+            if not sock:
+                return False
+
+        sock.sendall(msg)
+        resp = sock.recv(1024)
+        sock.close()
+
+        if resp == 'Ok!':
+            return True
+        else:
+            return False
+
+
+    def logMessage(self, user, logType, logMessage):
+        """
+        This function is exposed in all tests, all logs are centralized in the HOME of the user.\n
+        In order for the user to be able to access the logs written by CE, which runs as ROOT,
+        CE will start a small process in the name of the user and the process will write the logs.
+        """
+        if os.getuid():
+            logError('Log Error! Central Engine must run as ROOT in order to start the Log Server!')
+            return False
+
+        logType = str(logType)
+        logTypes = self.getUserInfo(user, 'log_types')
+
+        if logType not in logTypes:
+            logError('Log Error! Log type `{}` is not in the list of defined types: `{}`!'.format(logType, logTypes))
+            return False
+
+        if logType == 'logSummary':
+            logWarning('Log Warning! logSummary is reserved and cannot be written into!')
+            return False
+
+        logPath = self.getUserInfo(user, 'log_types')[logType]
+
+        return self._logServerMsg(user, logPath + ':' + logMessage)
+
+
+    def logLIVE(self, user, epname, logMessage):
+        """
+        Writes CLI messages in a big log, so all output can be checked LIVE.\n
+        Called from the EP.
+        """
+        if os.getuid():
+            logError('Log Error! Central Engine must run as ROOT in order to start the Log Server!')
+            return False
+
+        logFolder = self.getUserInfo(user, 'logs_path')
+
+        if not logFolder:
+            logError('Log Error! Invalid logs folder `{}`!'.format(logFolder))
+            return False
+
+        try:
+            log_string = binascii.a2b_base64(logMessage)
+        except:
+            logError('Live Log Error: Invalid base64 log!')
+            return False
+
+        # Execute "onLog" for all plugins
+        plugins = PluginParser(user).getPlugins()
+        for pname in plugins:
+            plugin = self._buildPlugin(user, pname, {'log_type': 'cli'})
+            try:
+                plugin.onLog(epname, log_string)
+            except Exception as e:
+                trace = traceback.format_exc()[34:].strip()
+                logWarning('Error on running plugin `{} onStop` - Exception: `{}`!'.format(pname, trace))
+        del plugins
+
+        # Calling Panic Detect
+        pd = self._panicDetectLogParse(user, epname, log_string)
+
+        logTypes = self.getUserInfo(user, 'log_types')
+        _, logCli = os.path.split( logTypes.get('logCli', 'CLI.log') )
+        # Logs Path + EP Name + CLI Name
+        logPath = logFolder + os.sep + epname +'_'+ logCli
+
+        if pd:
+            self.logMessage(user, 'logRunning', 'PANIC DETECT: Execution stopped.')
+
+        return self._logServerMsg(user, logPath + ':' + log_string)
+
+
+    def resetLog(self, user, logName):
+        """
+        Resets one log.\n
+        Called from the Java GUI.
+        """
+        logTypes = self.getUserInfo(user, 'log_types')
+        logPath = ''
+
+        # Cycle all log types and paths
+        for logType, logN in logTypes.iteritems():
+            _, logShort = os.path.split(logN)
+            # CLI Logs are special, exploded for each EP
+            if logType.lower() == 'logcli':
+                for epname in self.getUserInfo(user, 'eps'):
+                    logCli = epname +'_'+ logShort
+                    if logName == logCli:
+                        logPath = _ +'/'+ logCli
+                        break
+            else:
+                # For normal, non-CLI logs...
+                if logName == logShort:
+                    logPath = logN
+                    break
+
+        if not logPath:
+            logError('Log Error! Log name `{}` cannot be found!'.format(logName))
+            return False
+
+        data = json.dumps({
+            'cmd': 'del',
+            'logPath': logPath,
+            })
+
+        ret = self._logServerMsg(user, data)
+        if ret:
+            logDebug('Cleaned log `{}`.'.format(logPath))
+        return ret
+
+
+    def resetLogs(self, user):
+        """
+        All logs defined in master config are erased.\n
+        Called from the Java GUI and every time the project is reset.
+        """
+        logsPath = self.getUserInfo(user, 'logs_path')
+        logTypes = self.getUserInfo(user, 'log_types')
+
+        # Archive logs
+        archiveLogsPath   = self.getUserInfo(user, 'archive_logs_path')
+        archiveLogsActive = self.getUserInfo(user, 'archive_logs_path_active')
+
+        data = json.dumps({
+            'cmd': 'reset',
+            'logsPath': logsPath,
+            'logTypes': logTypes,
+            'archiveLogsActive': archiveLogsActive,
+            'archiveLogsPath': archiveLogsPath,
+            'epnames': ','.join( self.getUserInfo(user, 'eps').keys() ),
+            })
+
+        ret = self._logServerMsg(user, data)
+        if ret:
+            logDebug('Logs reset.')
+        return ret
+
+
+    def findLog(self, user, epname, file_id, file_name):
+        '''
+        Parses the log file of one EP and returns the log of one test file.
+        '''
+        logFolder = self.getUserInfo(user, 'logs_path')
+        logTypes  = self.getUserInfo(user, 'log_types')
+        _, logCli = os.path.split( logTypes.get('logCli', 'CLI.log') )
+        # Logs Path + EP Name + CLI Name
+        logPath = logFolder + os.sep + epname +'_'+ logCli
+
+        try:
+            data = open(logPath, 'r').read()
+        except:
+            logError('Find Log: File `{}` cannot be read!'.format(logPath))
+            return '*no log*'
+
+        fbegin = data.find('<<< START filename: `{}:{}'.format(file_id, file_name))
+        if fbegin == -1:
+            logDebug('Find Log: Cannot find `{}:{}` in log `{}`!'.format(file_id, file_name, logPath))
+
+        fend = data.find('<<< END filename: `{}:{}'.format(file_id, file_name))
+        fend += len('<<< END filename: `{}:{}` >>>'.format(file_id, file_name))
+
+        return data[fbegin:fend]
+
+
+    def _panicDetectLogParse(self, user, epname, log_string):
+        """
+        Panic Detect parse log mechanism.
+        """
+        status = False
+        self.panicDetectConfig(user, {'command': 'list'})
+
+        if not self.panicDetectRegularExpressions.has_key(user):
+            return status
+
+        # Verify if for current suite Panic Detect is enabled
+        suiteID = self.getEpInfo(user, epname).get('curent_suite')
+        # When running first, the current_suite is not defined yet
+        if not suiteID:
+            return status
+
+        enabled = self.getSuiteInfo(user, epname, suiteID).get('pd')
+
+        if not enabled or enabled.lower() == 'false':
+            return status
+
+        for key, value in self.panicDetectRegularExpressions[user].iteritems():
+            if value.get('enabled') == 'true':
+                try:
+                    if re.search(value['expression'], log_string):
+                        # Stop EP
+                        self.setExecStatus(user, epname, STATUS_STOP,
+                            msg='Panic detect activated, expression `{}` found in CLI log!'.format(value['expression']))
+                        status = True
+                except Exception as e:
+                    trace = traceback.format_exc()[34:].strip()
+                    logError(trace)
+
+        return status
+
+
     def panicDetectConfig(self, user, args):
         """ Panic Detect mechanism.
         Valid commands: list, add, update, remove regular expression;
@@ -2007,7 +2762,7 @@ class Project:
 
                 #response['data'] = regExpID
                 response = regExpID
-                logDebug('Panic Detect: added regular expression `{e}` for user: {u}.'.format(u=user, e=regExpID))
+                logDebug('Panic Detect: added regular expression `{e}` for user: `{u}`.'.format(u=user, e=regExpID))
             except Exception, e:
                 #response['status']['success'] = False
                 #response['status']['message'] = '{er}'.format(er=e)
@@ -2039,7 +2794,7 @@ class Project:
 
                 #response['data'] = regExpID
                 response = True
-                logDebug('Panic Detect: updated regular expression `{e}` for user: {u}.'.format(u=user, e=regExpID))
+                logDebug('Panic Detect: updated regular expression `{e}` for user: `{u}`.'.format(u=user, e=regExpID))
             except Exception, e:
                 #response['status']['success'] = False
                 #response['status']['message'] = '{er}'.format(er=e)
@@ -2062,7 +2817,7 @@ class Project:
 
                 #response['data'] = regExpID
                 response = True
-                logDebug('Panic Detect: removed regular expresion `{e}` for user: {u}.'.format(u=user, e=regExpID))
+                logDebug('Panic Detect: removed regular expresion `{e}` for user: `{u}`.'.format(u=user, e=regExpID))
             except Exception, e:
                 #response['status']['success'] = False
                 #response['status']['message'] = '{er}'.format(er=e)

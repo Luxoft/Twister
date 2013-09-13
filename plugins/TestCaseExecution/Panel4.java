@@ -1,6 +1,6 @@
 /*
 File: Panel4.java ; This file is part of Twister.
-Version: 2.006
+Version: 2.007
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -160,8 +160,10 @@ public class Panel4 extends JPanel{
      */
     public void setAbout(){
         main.removeAll();
-        main.setLayout(new FlowLayout());
-        main.add(about);
+        //main.setLayout(new FlowLayout());
+        //main.add(about);
+        main.setLayout(new BorderLayout());
+        main.add(about,BorderLayout.CENTER);
         main.repaint();
         main.revalidate();}
        
@@ -170,13 +172,39 @@ public class Panel4 extends JPanel{
      * into this window
      */
     public void setEmail(){
-        main.removeAll();
-        main.setLayout(null);
+        //main.removeAll();
+        //main.setLayout(null);
         scroll = new JScrollPane(emails);
-        scroll.setBounds(5,15,main.getWidth()-10,main.getHeight()-20);
-        main.add(scroll);
+        //scroll.setBounds(5,15,main.getWidth()-10,main.getHeight()-20);
+        //main.add(scroll);
+        //main.repaint();
+        //main.revalidate();
+    
+    
+    
+        main.removeAll();
+        main.setLayout(new BorderLayout());
+        
+        //main.setLayout(null);
+        JPanel p = new JPanel();
+        //p.setPreferredSize(new Dimension(main.getWidth(),
+        //                                  main.getHeight()));
+        //scroll = new JScrollPane(config.paths);
+        scroll.getVerticalScrollBar().setUnitIncrement(16);
+        //scroll.setBounds(5,15,main.getWidth()-10,main.getHeight()-20);
+        scroll.setPreferredSize(new Dimension(main.getWidth()-10,main.getHeight()-25));
+        scroll.getVerticalScrollBar().setValue(0);
+        p.add(scroll);
+        p.setBorder(BorderFactory.createTitledBorder("Email"));
+        main.add(p,BorderLayout.CENTER);
+        //main.add(scroll);
         main.repaint();
-        main.revalidate();}
+        main.revalidate();
+    
+    
+    
+    
+    }
      
     /*
      * set database content
@@ -199,10 +227,16 @@ public class Panel4 extends JPanel{
      */
     public void setDuts(){        
         main.removeAll();
-        main.setLayout(new FlowLayout());
-        tb.setPreferredSize(new Dimension(main.getWidth()-5,
-                                          main.getHeight()-5));
-        main.add(tb);
+//         main.setLayout(new FlowLayout());
+        
+        main.setLayout(new BorderLayout());
+        main.add(tb,BorderLayout.CENTER);
+        
+        
+        
+        //main.add(tb);
+        tb.setPreferredSize(new Dimension(main.getWidth(),
+                                          main.getHeight()));
         if(sut.tbs.getTree()!=null){
             tb.setTree(sut.tbs.getTree());
         }
@@ -215,12 +249,21 @@ public class Panel4 extends JPanel{
      */
     public void setPaths(){
         main.removeAll();
-        main.setLayout(null);
+        main.setLayout(new BorderLayout());
+        
+        //main.setLayout(null);
+        JPanel p = new JPanel();
+        //p.setPreferredSize(new Dimension(main.getWidth(),
+        //                                  main.getHeight()));
         scroll = new JScrollPane(config.paths);
         scroll.getVerticalScrollBar().setUnitIncrement(16);
-        scroll.setBounds(5,15,main.getWidth()-10,main.getHeight()-20);
+        //scroll.setBounds(5,15,main.getWidth()-10,main.getHeight()-20);
+        scroll.setPreferredSize(new Dimension(main.getWidth()-10,main.getHeight()-25));
         scroll.getVerticalScrollBar().setValue(0);
-        main.add(scroll);
+        p.add(scroll);
+        p.setBorder(BorderFactory.createTitledBorder("Paths"));
+        main.add(p,BorderLayout.CENTER);
+        //main.add(scroll);
         main.repaint();
         main.revalidate();}
         
@@ -230,11 +273,31 @@ public class Panel4 extends JPanel{
      * into this window
      */    
     public void setServices(){
+        //main.removeAll();
+        //main.setLayout(new BorderLayout());
+        //main.add(services,BorderLayout.CENTER);
+        scroll = new JScrollPane(services);
+        //main.add(scroll,BorderLayout.CENTER);
+        //main.repaint();
+        //main.revalidate();
+        
+        
         main.removeAll();
         main.setLayout(new BorderLayout());
-        main.add(services,BorderLayout.CENTER);
-        scroll = new JScrollPane(services);
-        main.add(scroll,BorderLayout.CENTER);
+        
+        //main.setLayout(null);
+        JPanel p = new JPanel();
+        //p.setPreferredSize(new Dimension(main.getWidth(),
+        //                                  main.getHeight()));
+        //scroll = new JScrollPane(config.paths);
+        scroll.getVerticalScrollBar().setUnitIncrement(16);
+        //scroll.setBounds(5,15,main.getWidth()-10,main.getHeight()-20);
+        scroll.setPreferredSize(new Dimension(main.getWidth()-10,main.getHeight()-25));
+        scroll.getVerticalScrollBar().setValue(0);
+        p.add(scroll);
+        p.setBorder(BorderFactory.createTitledBorder("Services"));
+        main.add(p,BorderLayout.CENTER);
+        //main.add(scroll);
         main.repaint();
         main.revalidate();}
         
@@ -243,10 +306,30 @@ public class Panel4 extends JPanel{
      * into this window
      */
     public void setPanic(){
+        //main.removeAll();
+        //main.setLayout(new BorderLayout());
+        scroll = new JScrollPane(panic);
+        //main.add(scroll,BorderLayout.CENTER);
+        //main.repaint();
+        //main.revalidate();
+    
+    
         main.removeAll();
         main.setLayout(new BorderLayout());
-        scroll = new JScrollPane(panic);
-        main.add(scroll,BorderLayout.CENTER);
+        
+        //main.setLayout(null);
+        JPanel p = new JPanel();
+        //p.setPreferredSize(new Dimension(main.getWidth(),
+        //                                  main.getHeight()));
+        //scroll = new JScrollPane(config.paths);
+        scroll.getVerticalScrollBar().setUnitIncrement(16);
+        //scroll.setBounds(5,15,main.getWidth()-10,main.getHeight()-20);
+        scroll.setPreferredSize(new Dimension(main.getWidth()-10,main.getHeight()-25));
+        scroll.getVerticalScrollBar().setValue(0);
+        p.add(scroll);
+        p.setBorder(BorderFactory.createTitledBorder("Panic Detect"));
+        main.add(p,BorderLayout.CENTER);
+        //main.add(scroll);
         main.repaint();
         main.revalidate();}
         
@@ -270,10 +353,12 @@ public class Panel4 extends JPanel{
      */
     public void setPlugins(){        
         main.removeAll();
-        main.setLayout(new FlowLayout());
-        plugins.setPreferredSize(new Dimension(main.getWidth()-5,
-                                               main.getHeight()-5));
-        main.add(plugins);
+        //main.setLayout(new FlowLayout());
+        plugins.setPreferredSize(new Dimension(main.getWidth(),
+                                               main.getHeight()));
+        //main.add(plugins);
+        main.setLayout(new BorderLayout());
+        main.add(plugins,BorderLayout.CENTER);
         main.repaint();
         main.revalidate();}
         

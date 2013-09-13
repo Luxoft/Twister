@@ -16,8 +16,31 @@
 <div class="row-fluid" style="margin-left:15px;margin-top:15px;">
 
 	<div class="span2">
-	<ul class="nav nav-pills nav-stacked">
-	% for link in links:
+	<%
+	was_folder = False
+	%>
+	<ul class="nav nav-pills nav-stacked" style="margin-left:-10px">
+	% for tpl in links:
+	<%
+	link   = tpl['link']
+	ltype  = tpl['type']
+	folder = tpl['folder']
+	%>
+
+		% if ltype == 'link' and folder and folder != was_folder:
+		<!-- Start of folder `${folder}` // before ${was_folder} -->
+		<%
+		was_folder = folder
+		%>
+		<li><a><i class="icon-folder-open"></i> ${folder}</a></li>
+		% endif
+		% if was_folder and folder != was_folder:
+		<!-- End of folder `${was_folder}` -->
+		<%
+		was_folder = False
+		%>
+		% endif
+
 		% if link == 'Home' and link == title:
 		<li class="active"><a href="/report/home/${usr}"><i class="icon-home"></i> ${link}</a></li>
 		% elif link == 'Help' and link == title:
@@ -26,13 +49,20 @@
 		<li><a href="/report/home/${usr}"><i class="icon-home"></i> ${link}</a></li>
 		% elif link == 'Help':
 		<li><a href="/report/help/${usr}"><i class="icon-flag"></i> ${link}</a></li>
-		% elif link.startswith('goto'):
+		% elif ltype == 'redir':
 		<li><a href="/report/rep/${link}/${usr}"><i class="icon-share-alt"></i> ${link}</a></li>
 		% elif link == title:
 		<li class="active"><a href="/report/rep/${link}/${usr}"><i class="icon-asterisk"></i> ${link}</a></li>
+		% elif ltype == 'link':
+			% if was_folder:
+			<li style="margin-left:12px"><a href="/report/rep/${link}/${usr}"><i class="icon-arrow-right"></i> ${link}</a></li>
+			% else:
+			<li><a href="/report/rep/${link}/${usr}"><i class="icon-arrow-right"></i> ${link}</a></li>
+			% endif
 		% else:
-		<li><a href="/report/rep/${link}/${usr}"><i class="icon-arrow-right"></i> ${link}</a></li>
+		<p>This should not be here!</p>
 		% endif
+
 	% endfor
 	</ul>
 	</div> <!-- /span 2 -->

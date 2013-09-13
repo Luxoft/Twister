@@ -25,17 +25,23 @@ import java.awt.Dimension;
 import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.Font;
+import javax.swing.BorderFactory;
 
 public class About extends JPanel{
     private JTextArea ta;
     
     public About(){
         setLayout(new BorderLayout());
+        //setBackground(Color.WHITE);
+        setBorder(BorderFactory.createTitledBorder("About"));
+        JPanel p1 = new JPanel();
+        p1.setBackground(Color.WHITE);
+        //p1.setLayout(new FlowLayout());
         JPanel p = new JPanel(){
             public void paintComponent(Graphics g){
                 super.paintComponent(g);
-                g.drawImage(RunnerRepository.background, 260, 0, null);
-                g.drawImage(RunnerRepository.logo, 0, 0, null);
+                g.drawImage(RunnerRepository.background, 260, 10, null);
+                g.drawImage(RunnerRepository.logo, 5, 10, null);
 //                 g.setFont(new Font("TimesRoman", Font.BOLD, 14));
 //                 g.drawString("Twister Framework", 485, 130);
 //                 g.drawString("V.: "+RunnerRepository.getVersion(), 525, 165);
@@ -44,24 +50,26 @@ public class About extends JPanel{
 //                 g.drawString(RunnerRepository.python, 478, 210);
             }
         };
+        p1.setBorder(BorderFactory.createLineBorder(Color.GRAY, 1));
         p.setLayout(null);
-        
+        p.setBackground(Color.WHITE);
         
         JTextArea ta2 = new JTextArea();
-        ta2.setBackground(getBackground());
+        ta2.setBackground(Color.WHITE);
+        ta2.setBackground(p.getBackground());
         ta2.setFont(new Font("TimesRoman", Font.BOLD, 14));
-        ta2.setBounds(480,130,230,120);
+        ta2.setBounds(480,140,230,120);
         ta2.setEditable(false);
         ta2.setBorder(null);
         ta2.setText("   Twister Framework \n\n             V.: "+RunnerRepository.getVersion()+" \nBuild date: "+RunnerRepository.getBuildDate()+
                     "\n"+RunnerRepository.os+"\n"+RunnerRepository.python);
-        add(ta2);
+        p.add(ta2);
         
         
         ta = new JTextArea();
         ta.setBackground(p.getBackground());
         ta.setFont(new Font("TimesRoman", Font.BOLD, 14));
-        ta.setBounds(0,130,230,120);
+        ta.setBounds(5,140,230,120);
         ta.setEditable(false);
         ta.setBorder(null);
         ta.setText(RunnerRepository.logotxt);
@@ -70,6 +78,7 @@ public class About extends JPanel{
         p.setPreferredSize(new Dimension(730,380));
         p.setMinimumSize(new Dimension(730,380));
         p.setMaximumSize(new Dimension(730,380));
-        add(p,BorderLayout.CENTER );
+        p1.add(p);
+        add(p1,BorderLayout.CENTER);
     }
 }

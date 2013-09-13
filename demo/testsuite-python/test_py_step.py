@@ -2,7 +2,7 @@
 # version: 2.001
 
 import os
-from ce_libs import STEP
+from TscStepLib import STEP
 
 """
 <title>Testing Step Library</title>
@@ -89,5 +89,5 @@ STEP(
 #
 
 # Must have one of the statuses:
-# 'pass', 'fail', 'skipped', 'aborted', 'not executed', 'timeout', 'invalid'
+# 'pass', 'fail', 'skipped', 'aborted', 'not executed', 'timeout'
 _RESULT = 'pass'

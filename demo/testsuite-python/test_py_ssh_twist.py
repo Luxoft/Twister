@@ -1,7 +1,7 @@
 
 # version: 2.003
 
-from ce_libs import SshManager
+from TscSshLib import SshManager
 
 #
 # <title>Testing Twister Ssh library</title>
@@ -93,5 +93,5 @@ def test():
 #
 
 # Must have one of the statuses:
-# 'pass', 'fail', 'skipped', 'aborted', 'not executed', 'timeout', 'invalid'
+# 'pass', 'fail', 'skipped', 'aborted', 'not executed', 'timeout'
 _RESULT = test()

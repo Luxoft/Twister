@@ -1,6 +1,6 @@
 /*
 File: ClearCasePlugin.java ; This file is part of Twister.
-Version: 2.001
+Version: 2.002
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -93,7 +93,11 @@ public class ClearCasePlugin extends BasePlugin implements TwisterPluginInterfac
 					String command = tf.getText();
 					ta.append("command: "+command+"\n");
 					String resp = executeCommand(command);
-					JsonElement el = new JsonParser().parse(resp);
+					JsonElement el=null;
+					try{el = new JsonParser().parse(resp);}
+					catch(Exception e){
+						System.out.println("Server response: "+resp);
+						e.printStackTrace();}
 					JsonObject jobject = el.getAsJsonObject();
 					String stat = jobject.get("status").getAsString();
 					String data = jobject.get("data").getAsString();
@@ -111,9 +115,7 @@ public class ClearCasePlugin extends BasePlugin implements TwisterPluginInterfac
 		sp.setBorder(null);
 		p.add(sp, BorderLayout.CENTER);
 		p.add(tf, BorderLayout.SOUTH);
-//      createXMLStructure();
 		System.out.println(getName()+" initialized");
-//		executeCommand("lsvob");
 	}
 
 	@Override

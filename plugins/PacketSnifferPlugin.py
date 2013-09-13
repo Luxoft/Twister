@@ -27,6 +27,12 @@
 #
 
 
+"""
+    PacketSniffer plugin manage the sniffed packets from client
+    and makes them usable for the interface.
+"""
+
+
 from os import getenv, makedirs
 from os.path import exists
 
@@ -224,7 +230,7 @@ class Plugin(BasePlugin):
                     packetID = str(args['data'])
                     for _packet in self.packets:
                         if _packet['packet_head']['id'] == packetID:
-                            packetIndex = self.packets.index(_packet)
+                            packetIndex = self.packets.index(_packet) + 1
                             packet = deepcopy(_packet)
 
 
@@ -234,7 +240,6 @@ class Plugin(BasePlugin):
 
                         queriedPackets = []
                         packetID = None
-                        packetIndex += 1
                         for _packet in self.packets[packetIndex:packetIndex \
                                                     + self.data['packetsBuffer']]:
                             pk = deepcopy(_packet)
@@ -257,6 +262,7 @@ class Plugin(BasePlugin):
                     if self.packets:
                         response['status']['message'] = 'packet index unknown'
                     else:
+                        response['data'] = dict()
                         response['status']['message'] = 'packets list empty'
 
                 del packet

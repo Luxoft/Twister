@@ -1,6 +1,6 @@
 /*
 File: SystemUnderTest.java ; This file is part of Twister.
-Version: 2.002
+Version: 2.003
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -23,12 +23,14 @@ import javax.swing.JSplitPane;
 import java.awt.BorderLayout;
 import javax.swing.SwingUtilities;
 import java.awt.Dimension;
+import javax.swing.BorderFactory;
 
 public class SystemUnderTest extends JPanel{
     public TestBeds tbs;
     public SUTEditor sut;
 
     public SystemUnderTest(){
+        setBorder(BorderFactory.createTitledBorder("System Under Test"));
         tbs = new TestBeds();
         sut = new SUTEditor();
         setLayout(new BorderLayout());
