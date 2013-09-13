@@ -1,6 +1,6 @@
 /*
 File: Plugins.java ; This file is part of Twister.
-Version: 2.004
+Version: 2.005
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -190,14 +190,18 @@ public class Plugins extends JPanel{
      * Initialize and populate
      * Plugins panel
      */
-    public void initComponents(){        
+    public void initComponents(){     
+        setBorder(BorderFactory.createTitledBorder("Plugins"));
         RunnerPluginsLoader.setClassPath();
         titleborder = new JPanel();
         pluginsscroll = new JScrollPane();
         plugintable = new JPanel();
+        plugintable.setBackground(Color.WHITE);
         downloadtable = new JPanel();
         localtable = new JPanel();
-        remotetable2 = new JPanel();      
+        localtable.setBackground(Color.WHITE);
+        remotetable2 = new JPanel();   
+        remotetable2.setBackground(Color.WHITE);
         downloadtable.setBorder(BorderFactory.createTitledBorder(
             BorderFactory.createLineBorder(new Color(0, 0, 0)),
                                             "Download"));
@@ -240,6 +244,7 @@ public class Plugins extends JPanel{
         gridBagConstraints.ipady = 20;
         remotetable2.add(remotedescription, gridBagConstraints);
         remotedescription = new JLabel("Local installed plugins ");
+        remotedescription.setBackground(Color.WHITE);
         gridBagConstraints = new GridBagConstraints();
         gridBagConstraints.anchor = GridBagConstraints.NORTH;
         gridBagConstraints.gridx = 0;
@@ -304,6 +309,7 @@ public class Plugins extends JPanel{
             if(name.indexOf(".jar")==-1)continue;
             final String tempname = name;
             lname = new JLabel(name);
+            lname.setBackground(Color.WHITE);
             final MyButton addremove = new MyButton("Download");
             addremove.setMyLabel(lname);
             for(String localfile:downloadedplugins){
@@ -511,8 +517,11 @@ public class Plugins extends JPanel{
             check.setEnabled(false);
         }
         JLabel name = new JLabel();
+        name.setBackground(Color.WHITE);
         JTextArea description = new JTextArea();
-        JButton readmore = new JButton("Read more");        
+        description.setBackground(Color.WHITE);
+        JButton readmore = new JButton("Read more"); 
+        check.setBackground(Color.WHITE);
         check.setText("Activate");
         check.setName(tname);
         GridBagConstraints gridBagConstraints = new GridBagConstraints();        
@@ -673,7 +682,7 @@ public class Plugins extends JPanel{
                 main.revalidate();
                 main.repaint();}
         }
-        enablePlugin(check.isSelected(),pluginname);
+        //enablePlugin(check.isSelected(),pluginname);
     }
                 
                
@@ -777,23 +786,23 @@ public class Plugins extends JPanel{
             System.out.println("Error in copying plugin file " +filename+ " localy");
             return false;}}
                 
-    public void enablePlugin(boolean value, String filename){
-        Document doc = RunnerRepository.getPluginsConfig();
-        NodeList list1 = doc.getElementsByTagName("Plugin");
-        Element item;
-        Element compare;
-        for(int i=0;i<list1.getLength();i++){
-            item = (Element)list1.item(i);
-            compare = (Element)item.getElementsByTagName("jarfile").item(0);
-            if(compare.getChildNodes().item(0).getNodeValue().equals(filename)){
-                compare = (Element)item.getElementsByTagName("status").item(0);
-                if(value)compare.getChildNodes().item(0).setNodeValue("enabled");
-                else compare.getChildNodes().item(0).setNodeValue("disabled");
-                boolean res = uploadPluginsFile();
-                return;
-            }
-        }
-    }
+//     public void enablePlugin(boolean value, String filename){
+//         Document doc = RunnerRepository.getPluginsConfig();
+//         NodeList list1 = doc.getElementsByTagName("Plugin");
+//         Element item;
+//         Element compare;
+//         for(int i=0;i<list1.getLength();i++){
+//             item = (Element)list1.item(i);
+//             compare = (Element)item.getElementsByTagName("jarfile").item(0);
+//             if(compare.getChildNodes().item(0).getNodeValue().equals(filename)){
+//                 compare = (Element)item.getElementsByTagName("status").item(0);
+//                 //if(value)compare.getChildNodes().item(0).setNodeValue("enabled");
+//                 //else compare.getChildNodes().item(0).setNodeValue("disabled");
+//                 //uploadPluginsFile();
+//                 return;
+//             }
+//         }
+//     }
                 
     /*
      * method to check if plugin with filename

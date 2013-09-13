@@ -1,6 +1,6 @@
 /*
 File: Main.java ; This file is part of Twister.
-Version: 2.006
+Version: 2.007
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -44,29 +44,29 @@ public class Main{
     
     public static void main(String args[]){
         try {
-            JFrame f = new JFrame();
-            JButton b = new JButton("STOP");
-            b.addActionListener(new ActionListener(){
-                public void actionPerformed(ActionEvent ev){
-                    RunnerRepository.run = false;
-                    RunnerRepository.session.disconnect();
-                    RunnerRepository.connection.disconnect();        
-                    RunnerRepository.window.mainpanel.p1.ep.session.disconnect();
-                    RunnerRepository.window.mainpanel.p1.ep.connection.disconnect();
-                    RunnerRepository.window.mainpanel.p1.lp.session.disconnect();
-                    RunnerRepository.window.mainpanel.p1.lp.connection.disconnect();
-                    RunnerRepository.window.mainpanel.p4.getPlugins().session.disconnect();
-                    RunnerRepository.window.mainpanel.p4.getPlugins().ch.disconnect();
-                    RunnerRepository.window.mainpanel.p4.getGlobals().session.disconnect();
-                    RunnerRepository.window.mainpanel.p4.getGlobals().ch.disconnect();
-                    RunnerRepository.window.mainpanel.p4.getTestConfig().tree.session.disconnect();
-                    RunnerRepository.window.mainpanel.p4.getTestConfig().tree.connection.disconnect();
-                    RunnerRepository.window.mainpanel.p4.getTestConfig().cfgedit.session.disconnect();
-                    RunnerRepository.window.mainpanel.p4.getTestConfig().cfgedit.ch.disconnect();
-                }
-            });
-            f.add(b);
-            f.setVisible(true);
+//             JFrame f = new JFrame();
+//             JButton b = new JButton("STOP");
+//             b.addActionListener(new ActionListener(){
+//                 public void actionPerformed(ActionEvent ev){
+//                     RunnerRepository.run = false;
+//                     RunnerRepository.session.disconnect();
+//                     RunnerRepository.connection.disconnect();        
+//                     RunnerRepository.window.mainpanel.p1.ep.session.disconnect();
+//                     RunnerRepository.window.mainpanel.p1.ep.connection.disconnect();
+//                     RunnerRepository.window.mainpanel.p1.lp.session.disconnect();
+//                     RunnerRepository.window.mainpanel.p1.lp.connection.disconnect();
+//                     RunnerRepository.window.mainpanel.p4.getPlugins().session.disconnect();
+//                     RunnerRepository.window.mainpanel.p4.getPlugins().ch.disconnect();
+//                     RunnerRepository.window.mainpanel.p4.getGlobals().session.disconnect();
+//                     RunnerRepository.window.mainpanel.p4.getGlobals().ch.disconnect();
+//                     RunnerRepository.window.mainpanel.p4.getTestConfig().tree.session.disconnect();
+//                     RunnerRepository.window.mainpanel.p4.getTestConfig().tree.connection.disconnect();
+//                     RunnerRepository.window.mainpanel.p4.getTestConfig().cfgedit.session.disconnect();
+//                     RunnerRepository.window.mainpanel.p4.getTestConfig().cfgedit.ch.disconnect();
+//                 }
+//             });
+//             f.add(b);
+//             f.setVisible(true);
             URL url = new URL("http://tsc-server/twister_gui/logo.png");
             RunnerRepository.logo = ImageIO.read(url).getScaledInstance(230, 100, Image.SCALE_FAST);
         } catch (Exception e) {

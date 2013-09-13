@@ -1,0 +1,9 @@
+Jenkins Plugin is an interface for connecting to a Jenkins continuous
+integration server.
+After a Jenkins job it's done it will execute the Jenkins Post Script.
+This script will verify if the build finished successfully. If yes, it
+tells the Twister Plugin that the build is ready.
+The plugin will run first the build script in order to upload the build
+on the DUT (Device Under Test).
+After will start to run the tests previously saved in a Project File.
+After execution it will save the result in the database if needed.

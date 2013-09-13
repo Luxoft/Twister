@@ -1,6 +1,6 @@
 /*
 File: SUTEditor.java ; This file is part of Twister.
-Version: 2.002
+Version: 2.003
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -152,14 +152,16 @@ public class SUTEditor extends JPanel{
                         return;
                     }
                     try{
-                        String torename = "";
-                        if(ob instanceof Comp){
-                            torename = ((Comp)ob).getID();
-                        } else {
-                            torename = "/"+treenode.toString();
+                        String query="true";
+                        if(!treenode.toString().equals(tsut.getText())){
+                            String torename = "";
+                            if(ob instanceof Comp){
+                                torename = ((Comp)ob).getID();
+                            } else {
+                                torename = "/"+treenode.toString();
+                            }
+                            query = client.execute("renameSut", new Object[]{torename,tsut.getText()}).toString();
                         }
-                        
-                        String query = client.execute("renameSut", new Object[]{torename,tsut.getText()}).toString();
                         if(query.equals("true")){
                             if(ob instanceof SUT){
                                 StringBuilder sb = new StringBuilder();
@@ -167,7 +169,7 @@ public class SUTEditor extends JPanel{
                                     sb.append(tep.getSelectedValuesList().get(i).toString());
                                     sb.append(";");
                                 }
-                                String seleps = "{'epnames':'"+sb.toString()+"'}";
+                                String seleps = "{'_epnames_"+RunnerRepository.user+"':'"+sb.toString()+"'}";
                                 query = client.execute("setSut", new Object[]{"/"+tsut.getText(),"/",seleps}).toString();
                                 if(query.indexOf("ERROR")==-1){
                                     s.setName(tsut.getText());
@@ -230,7 +232,7 @@ public class SUTEditor extends JPanel{
                             sb.append(tep.getSelectedValuesList().get(i).toString());
                             sb.append(";");
                         }
-                        String query = "{'epnames':'"+sb.toString()+"'}";
+                        String query = "{'_epnames_"+RunnerRepository.user+"':'"+sb.toString()+"'}";
                         
                         
                         String user = tsut.getText();
@@ -442,7 +444,7 @@ public class SUTEditor extends JPanel{
                 hash= (HashMap)client.execute("getSut", new Object[]{o.toString()});
                 path = hash.get("path").toString();
                 name = path.split("/")[path.split("/").length-1];
-                try{eps = ((HashMap)hash.get("meta")).get("epnames").toString();}
+                try{eps = ((HashMap)hash.get("meta")).get("_epnames_"+RunnerRepository.user).toString();}
                 catch(Exception e){eps = "";}
                 SUT s = new SUT(name,eps);
                 epsnode = new DefaultMutableTreeNode("EP: "+eps,false);
@@ -542,7 +544,7 @@ public class SUTEditor extends JPanel{
                 Iterator iter = keys.iterator();
                 while(iter.hasNext()){
                     String n = iter.next().toString();
-                    if(n.equals("epnames")){
+                    if(n.equals("_epnames_"+RunnerRepository.user)){
                         node.setEPs(meta.get(n).toString());
                         continue;
                     }

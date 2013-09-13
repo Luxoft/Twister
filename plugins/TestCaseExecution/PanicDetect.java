@@ -1,6 +1,6 @@
 /*
 File: PanicDetect.java ; This file is part of Twister.
-Version: 2.001
+Version: 2.002
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -42,12 +42,16 @@ import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.event.DocumentEvent;
+import javax.swing.BorderFactory;
+import java.awt.Color;
 
 public class PanicDetect extends JPanel{
     private JButton add;
     private JPanel addpanel;
     
     public PanicDetect(){
+        //setBorder(BorderFactory.createTitledBorder("Panic Detect"));
+        setBackground(Color.WHITE);
         setLayout(new BoxLayout(this, BoxLayout.PAGE_AXIS));
         add = new JButton("Add");
         add.addActionListener(new ActionListener(){
@@ -57,6 +61,7 @@ public class PanicDetect extends JPanel{
         });
         add.setBounds(415,5,100,25);
         addpanel = new JPanel();
+        addpanel.setBackground(Color.WHITE);
         addpanel.setPreferredSize(new Dimension(520, 35));
         addpanel.setMinimumSize(new Dimension(520, 35));
         addpanel.setMaximumSize(new Dimension(520, 35));
@@ -130,6 +135,7 @@ public class PanicDetect extends JPanel{
             this.enabled.setSelected(enabled);
             this.id = id;
             this.enabled.setSelected(enabled);
+            setBackground(Color.WHITE);
         }
 
         public MyPanel(){
@@ -138,10 +144,12 @@ public class PanicDetect extends JPanel{
             setMinimumSize(new Dimension(620, 35));
             setMaximumSize(new Dimension(620, 35));
             JLabel regexl = new JLabel("RegEx: ");
+            regexl.setBackground(Color.WHITE);
             regexl.setBounds(10,5,60,25);
             add(regexl);
             regex = new JTextField();
             enabled = new JCheckBox("Enabled");
+            enabled.setBackground(Color.WHITE);
             remove = new JButton("Remove");
             regex.setBounds(75, 5, 200, 25);
             add(regex);

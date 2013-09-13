@@ -1,7 +1,7 @@
 
 # File: xmlparser.py ; This file is part of Twister.
 
-# version: 2.010
+# version: 2.011
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -765,7 +765,12 @@ class DBParser():
 #           USED BY CENTRAL ENGINE
 # --------------------------------------------------------------------------------------------------
 
-    def getFields(self):
+    def getInsertQueries(self):
+        """ Used by Central Engine. """
+        return [q.text for q in self.xmlDict.xpath('insert_section/sql_statement')]
+
+
+    def getDbSelectFields(self):
         """
         Used by Central Engine.
         Returns a dictionary with field ID : DB select.
@@ -780,7 +785,7 @@ class DBParser():
         return dict(zip( [str(x) for x in ids], [str(x) for x in sqls] ))
 
 
-    def getScripts(self):
+    def getUserScriptFields(self):
         """
         Used by Central Engine.
         Returns a list with field IDs.
@@ -803,11 +808,6 @@ class DBParser():
 
         query = res[0].get('SQLQuery')
         return query
-
-
-    def getQueries(self):
-        """ Used by Central Engine. """
-        return [q.text for q in self.xmlDict.xpath('insert_section/sql_statement')]
 
 # --------------------------------------------------------------------------------------------------
 #           USED BY WEB SERVER - REPORTS
@@ -853,6 +853,7 @@ class DBParser():
             d['id']       = report.get('ID', '')
             d['type']     = report.get('Type', '')
             d['path']     = report.get('Path', '')
+            d['folder']   = report.get('Folder', '')
             d['sqlquery'] = report.get('SQLQuery', '')
             d['sqltotal'] = report.get('SQLTotal', '')   # SQL Total Query
             d['sqlcompr'] = report.get('SQLCompare', '') # SQL Query Compare side by side

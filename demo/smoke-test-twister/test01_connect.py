@@ -9,14 +9,15 @@
 # `PROXY`, `USER`, `SUITE_NAME` and `FILE_NAME` are magic variables, injected by Twister.
 
 # Must have one of the statuses:
-# 'pass', 'fail', 'skipped', 'aborted', 'not executed', 'timeout', 'invalid'
-_RESULT = 'Invalid'
+# 'pass', 'fail', 'skipped', 'aborted', 'not executed', 'timeout'
+_RESULT = 'Aborted'
 
 try:
-    print('Central engine connection: {}'.format(PROXY))
+    print('Central engine connection: {}'.format( str(PROXY) ))
+    _RESULT = 'Pass'
 except:
     print('This test should run from Twister!\n')
-    _RESULT = 'Pass'
+    _RESULT = 'Fail'
 
 try:
     print(PROXY.echo('Hello Central Engine! I am the user `{}`!\n'.format(USER)))

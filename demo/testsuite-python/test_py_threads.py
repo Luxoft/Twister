@@ -3,7 +3,7 @@
 
 import re
 import time
-from ce_libs import tasks_reset, tasks_append, tasks_start
+from TscThreadsLib import tasks_reset, tasks_append, tasks_start
 
 #
 # <title>Testing Threads Library</title>
@@ -68,5 +68,5 @@ def test():
 #
 
 # Must have one of the statuses:
-# 'pass', 'fail', 'skipped', 'aborted', 'not executed', 'timeout', 'invalid'
+# 'pass', 'fail', 'skipped', 'aborted', 'not executed', 'timeout'
 _RESULT = test()

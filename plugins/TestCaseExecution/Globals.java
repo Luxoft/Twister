@@ -1,6 +1,6 @@
 /*
 File: Globals.java ; This file is part of Twister.
-Version: 2.005
+Version: 2.006
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -229,6 +229,7 @@ public class Globals {
         tree.setCellRenderer(new CustomIconRenderer());
         panel = new JScrollPane(tree);
         main = new JPanel();
+        main.setBorder(BorderFactory.createTitledBorder("Global Parameters"));
         panel = new JScrollPane(tree);
         JPanel buttonPanel = new JPanel();
         

@@ -1,6 +1,6 @@
 /*
 File: UserManagement.java ; This file is part of Twister.
-Version: 2.006
+Version: 2.007
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -84,7 +84,7 @@ import org.apache.xmlrpc.client.XmlRpcClient;
 import org.apache.xmlrpc.client.XmlRpcClientConfigImpl;
 import org.w3c.dom.Document;
 
-public class UserManagement extends BasePlugin implements TwisterPluginInterface {
+public class UserManagement implements TwisterPluginInterface {
 	private static final long serialVersionUID = 1L;
 	private JPanel p;
 	private CommonInterface maincomp;
@@ -107,12 +107,14 @@ public class UserManagement extends BasePlugin implements TwisterPluginInterface
     private JButton bckbtn;
     private JLabel timeout;
     private JSpinner timeoutt;
+    private Hashtable<String, String> variables;
 
 	@Override
 	public void init(ArrayList<Item> suite, ArrayList<Item> suitetest,
 			final Hashtable<String, String> variables,
 			final Document pluginsConfig,Applet applet) {
-		super.init(suite, suitetest, variables, pluginsConfig,applet);
+		//super.init(suite, suitetest, variables, pluginsConfig,applet);
+		this.variables = variables;
 		System.out.println("Initializing " + getName() + " ... ");	
 		p = new JPanel();
 		
@@ -162,7 +164,6 @@ public class UserManagement extends BasePlugin implements TwisterPluginInterface
 
 	@Override
 	public void terminate() {
-		super.terminate();
 		p = null;
 	}
 
@@ -352,7 +353,7 @@ public class UserManagement extends BasePlugin implements TwisterPluginInterface
         usertable.setModel(new javax.swing.table.DefaultTableModel(
             new Object [][] {},
             new String [] {
-                "User Name","Timeout", "User Groups", "User Roles"}){
+                "User Name","Timeout (min)", "User Groups", "User Roles"}){
             public Class getColumnClass(int columnIndex) {
                 return String.class;
               }
@@ -597,7 +598,7 @@ public class UserManagement extends BasePlugin implements TwisterPluginInterface
 				populateUsersTable();
 				au.dispose();
 			} else {
-				CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE, UserManagement.this, "ERROR", st);
+				CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE, p, "ERROR", st);
 			}
         } catch (XmlRpcException e) {
 			e.printStackTrace();
@@ -608,7 +609,7 @@ public class UserManagement extends BasePlugin implements TwisterPluginInterface
 	private void removeUser(){
 		int row = usertable.getSelectedRow();
 		if(row==-1){
-			CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,this,
+			CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,p,
                     "Warning", "Please select a row from users table");
 			return;
 		}
@@ -628,7 +629,7 @@ public class UserManagement extends BasePlugin implements TwisterPluginInterface
 	public void editGroup(){
 		int row = groupstable.getSelectedRow();
 		if(row==-1){
-			CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,this,
+			CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,p,
                     "Warning", "Please select a row from groups table");
 			return;
 		}
@@ -714,7 +715,7 @@ public class UserManagement extends BasePlugin implements TwisterPluginInterface
                 }
                 sb.setLength(sb.length()-1);
                 int resp = (Integer)CustomDialog.showDialog(new JLabel("Set groups to: "+sb.toString()+"?"),JOptionPane.QUESTION_MESSAGE,
-                        									JOptionPane.OK_CANCEL_OPTION,UserManagement.this, "Set groups!",null);
+                        									JOptionPane.OK_CANCEL_OPTION,p, "Set groups!",null);
                 if(resp != JOptionPane.OK_OPTION){
                 	return;
                 }
@@ -804,6 +805,17 @@ public class UserManagement extends BasePlugin implements TwisterPluginInterface
 		cp.init(null, null, ht, null,null);
 		fr.add(cp.getContent());
 		fr.setVisible(true);
+	}
+
+	@Override
+	public String getDescription(String arg0) {
+		return "";
+	}
+
+	@Override
+	public void resizePlugin(int arg0, int arg1) {
+		// TODO Auto-generated method stub
+		
 	}
 	
 }
