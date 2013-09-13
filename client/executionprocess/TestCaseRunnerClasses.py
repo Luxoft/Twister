@@ -252,10 +252,6 @@ class TCRunPython:
         to_execute = r"""
 __file__ = '%s'
 sys.argv = %s
-try: import ce_libs
-except: pass
-try: ce_libs = reload(ce_libs)
-except: pass
 """ % (fpath, str([self.filename] + params))
 
         f = open(fpath, 'wb')
