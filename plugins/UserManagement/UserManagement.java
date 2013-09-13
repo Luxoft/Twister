@@ -107,7 +107,7 @@ public class UserManagement implements TwisterPluginInterface {
     private JButton bckbtn;
     private JLabel timeout;
     private JSpinner timeoutt;
-    private  Hashtable<String, String> variables;
+    private Hashtable<String, String> variables;
 
 	@Override
 	public void init(ArrayList<Item> suite, ArrayList<Item> suitetest,
@@ -353,7 +353,7 @@ public class UserManagement implements TwisterPluginInterface {
         usertable.setModel(new javax.swing.table.DefaultTableModel(
             new Object [][] {},
             new String [] {
-                "User Name","Timeout", "User Groups", "User Roles"}){
+                "User Name","Timeout (min)", "User Groups", "User Roles"}){
             public Class getColumnClass(int columnIndex) {
                 return String.class;
               }
@@ -715,7 +715,7 @@ public class UserManagement implements TwisterPluginInterface {
                 }
                 sb.setLength(sb.length()-1);
                 int resp = (Integer)CustomDialog.showDialog(new JLabel("Set groups to: "+sb.toString()+"?"),JOptionPane.QUESTION_MESSAGE,
-                        									JOptionPane.OK_CANCEL_OPTION,UserManagement.this, "Set groups!",null);
+                        									JOptionPane.OK_CANCEL_OPTION,p, "Set groups!",null);
                 if(resp != JOptionPane.OK_OPTION){
                 	return;
                 }
