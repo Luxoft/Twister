@@ -34,6 +34,9 @@ public class About extends JPanel{
         setLayout(new BorderLayout());
         //setBackground(Color.WHITE);
         setBorder(BorderFactory.createTitledBorder("About"));
+        JPanel p1 = new JPanel();
+        p1.setBackground(Color.WHITE);
+        //p1.setLayout(new FlowLayout());
         JPanel p = new JPanel(){
             public void paintComponent(Graphics g){
                 super.paintComponent(g);
@@ -47,7 +50,7 @@ public class About extends JPanel{
 //                 g.drawString(RunnerRepository.python, 478, 210);
             }
         };
-        p.setBorder(BorderFactory.createLineBorder(Color.GRAY, 1));
+        p1.setBorder(BorderFactory.createLineBorder(Color.GRAY, 1));
         p.setLayout(null);
         p.setBackground(Color.WHITE);
         
@@ -60,7 +63,7 @@ public class About extends JPanel{
         ta2.setBorder(null);
         ta2.setText("   Twister Framework \n\n             V.: "+RunnerRepository.getVersion()+" \nBuild date: "+RunnerRepository.getBuildDate()+
                     "\n"+RunnerRepository.os+"\n"+RunnerRepository.python);
-        add(ta2);
+        p.add(ta2);
         
         
         ta = new JTextArea();
@@ -75,6 +78,7 @@ public class About extends JPanel{
         p.setPreferredSize(new Dimension(730,380));
         p.setMinimumSize(new Dimension(730,380));
         p.setMaximumSize(new Dimension(730,380));
-        add(p,BorderLayout.CENTER );
+        p1.add(p);
+        add(p1,BorderLayout.CENTER);
     }
 }
