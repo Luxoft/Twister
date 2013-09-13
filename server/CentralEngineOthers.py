@@ -1,7 +1,7 @@
 
 # File: CentralEngineOthers.py ; This file is part of Twister.
 
-# version: 2.037
+# version: 2.038
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -236,6 +236,14 @@ class Project:
         else:
             cfg = iniparser.ConfigObj(cfg_path)
             self.server_init = cfg.dict()
+            # Fix invalid, or inexistend type key?
+            self.server_init['ce_server_type'] = self.server_init.get('ce_server_type', 'no_type').lower()
+        # Fix server type spelling errors, or invalid types?
+        if self.server_init['ce_server_type'] not in ['no_type', 'production', 'development']:
+            logError('Production/ Development ERROR: Reset invalid server type from '\
+                '`{ce_server_type}` to `no_type`!'.format(**self.server_init))
+            self.server_init['ce_server_type'] = 'no_type'
+
         logDebug('Running server type `{ce_server_type}`.'.format(**self.server_init))
 
         # Panic Detect, load config for current user
@@ -478,19 +486,9 @@ class Project:
 
         # This user doesn't exist in users and groups
         if not cherry_roles:
-            if self.server_init['ce_server_type'].lower() == 'production':
-                logWarning('Production Server: Username `{}` cannot be found in users and roles!'.format(cherry_usr))
-                return False
-            # The user doesn't exist ... creating a virtual user
-            cherry_roles = {'roles': [], 'groups': []}
-            # logDebug('Username `{}` cannot be found in users and roles!'.format(cherry_usr))
-
-        # This user doesn't have any roles in users and groups
-        if not cherry_roles['roles']:
-            if self.server_init['ce_server_type'].lower() == 'production':
-                logWarning('Production Server: Username `{}` doesn\'t have any roles!'.format(cherry_usr))
-                return False
-            # logDebug('Username `{}` doesn\'t have any roles!'.format(cherry_usr))
+            # The user doesn't exist ...
+            logWarning('Production Server: Username `{}` doesn\'t have any roles!'.format(cherry_usr))
+            return {'roles': [], 'groups': [], 'user': cherry_usr}
 
         cherry_roles['user'] = cherry_usr
         return cherry_roles
@@ -569,6 +567,10 @@ class Project:
             logError('Users and Groups parsing error `{}`!'.format(e))
             return {'users': {}, 'groups': {}}
 
+        srv_type = self.server_init['ce_server_type']
+        # Type = no_type => type = development
+        if srv_type == 'no_type': srv_type = 'development'
+
         # Cycle all groups
         for grp, grp_data in cfg['groups'].iteritems():
 
@@ -590,16 +592,16 @@ class Project:
         # Cycle all users
         for usr, usr_data in cfg['users'].iteritems():
             # Invalid user ?
-            if 'groups' not in usr_data:
+            if 'groups_'+srv_type not in usr_data:
                 continue
 
             usr_data['roles'] = []
 
-            if isinstance(usr_data['groups'], str):
-                grps = [g.strip() for g in usr_data['groups'].split(',') if g]
+            if isinstance(usr_data['groups_'+srv_type], str):
+                grps = [g.strip() for g in usr_data['groups_'+srv_type].split(',') if g]
             else:
                 # It's a list
-                grps = usr_data['groups']
+                grps = usr_data['groups_'+srv_type]
 
             # Start adding and fixing roles for current user
             for grp in grps:
@@ -621,16 +623,8 @@ class Project:
                         # It's a list
                         usr_data['roles'] += roles
 
-            # If the server is no_type or devel, the user has ALL ROLES except for CHANGE_USERS!
-            if self.server_init['ce_server_type'].lower() != 'production':
-                _ROLES = sorted(ROLES)
-                # If the user didn't have the USERS role, delete it
-                if 'CHANGE_USERS' not in usr_data['roles']:
-                    _ROLES.pop(_ROLES.index('CHANGE_USERS'))
-                usr_data['roles'] = _ROLES
-            else:
-                # Fix roles. Must be a list.
-                usr_data['roles'] = sorted( set(usr_data['roles']) )
+            # Fix roles. Must be a list.
+            usr_data['roles'] = sorted( set(usr_data['roles']) )
 
             # Get old timeout value for user, OR create a new default value
             if not usr_data.get('timeout'):
