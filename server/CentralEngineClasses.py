@@ -475,7 +475,7 @@ class CentralEngine(_cptools.XMLRPCController):
         Called from the Java GUI.
         """
         name = data.split(';')[0]
-        proj = data.split(';')[1:]
+        proj = ';'.join(data.split(';')[1:])
         logDebug('CE: Started by name `{}`, project `{}`.'.format(name, proj))
         self.project.setUserInfo(user, 'started_by', str(name))
         self.project.setUserInfo(user, 'proj_xml_name', str(proj))
