@@ -1,0 +1,2 @@
+Jira Plugin is an interface for connecting to a Jira server where you
+can create, edit , see comments and search for issues.
