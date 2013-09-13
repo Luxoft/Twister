@@ -190,7 +190,8 @@ public class Plugins extends JPanel{
      * Initialize and populate
      * Plugins panel
      */
-    public void initComponents(){        
+    public void initComponents(){     
+        setBorder(BorderFactory.createTitledBorder("Plugins"));
         RunnerPluginsLoader.setClassPath();
         titleborder = new JPanel();
         pluginsscroll = new JScrollPane();
@@ -673,7 +674,7 @@ public class Plugins extends JPanel{
                 main.revalidate();
                 main.repaint();}
         }
-        enablePlugin(check.isSelected(),pluginname);
+        //enablePlugin(check.isSelected(),pluginname);
     }
                 
                
@@ -777,23 +778,23 @@ public class Plugins extends JPanel{
             System.out.println("Error in copying plugin file " +filename+ " localy");
             return false;}}
                 
-    public void enablePlugin(boolean value, String filename){
-        Document doc = RunnerRepository.getPluginsConfig();
-        NodeList list1 = doc.getElementsByTagName("Plugin");
-        Element item;
-        Element compare;
-        for(int i=0;i<list1.getLength();i++){
-            item = (Element)list1.item(i);
-            compare = (Element)item.getElementsByTagName("jarfile").item(0);
-            if(compare.getChildNodes().item(0).getNodeValue().equals(filename)){
-                compare = (Element)item.getElementsByTagName("status").item(0);
-                if(value)compare.getChildNodes().item(0).setNodeValue("enabled");
-                else compare.getChildNodes().item(0).setNodeValue("disabled");
-                boolean res = uploadPluginsFile();
-                return;
-            }
-        }
-    }
+//     public void enablePlugin(boolean value, String filename){
+//         Document doc = RunnerRepository.getPluginsConfig();
+//         NodeList list1 = doc.getElementsByTagName("Plugin");
+//         Element item;
+//         Element compare;
+//         for(int i=0;i<list1.getLength();i++){
+//             item = (Element)list1.item(i);
+//             compare = (Element)item.getElementsByTagName("jarfile").item(0);
+//             if(compare.getChildNodes().item(0).getNodeValue().equals(filename)){
+//                 compare = (Element)item.getElementsByTagName("status").item(0);
+//                 //if(value)compare.getChildNodes().item(0).setNodeValue("enabled");
+//                 //else compare.getChildNodes().item(0).setNodeValue("disabled");
+//                 //uploadPluginsFile();
+//                 return;
+//             }
+//         }
+//     }
                 
     /*
      * method to check if plugin with filename

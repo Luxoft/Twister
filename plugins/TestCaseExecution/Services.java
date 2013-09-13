@@ -41,6 +41,7 @@ import java.util.Arrays;
 public class Services extends JPanel{
     
     public Services(){
+        setBorder(BorderFactory.createTitledBorder("Services"));
         setLayout(new BoxLayout(this, BoxLayout.PAGE_AXIS));
         try{
             String result = RunnerRepository.getRPCClient().execute("serviceManagerCommand",

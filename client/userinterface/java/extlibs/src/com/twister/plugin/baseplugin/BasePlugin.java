@@ -21,15 +21,30 @@ package com.twister.plugin.baseplugin;
 import java.applet.Applet;
 import java.awt.Component;
 import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileReader;
 import java.util.ArrayList;
 import java.util.Hashtable;
+import java.util.Properties;
+
 import javax.swing.JPanel;
+import javax.xml.transform.OutputKeys;
+import javax.xml.transform.Result;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 import org.w3c.dom.Node;
+
+import com.jcraft.jsch.Channel;
+import com.jcraft.jsch.ChannelSftp;
+import com.jcraft.jsch.JSch;
+import com.jcraft.jsch.Session;
 import com.twister.Item;
 import com.twister.plugin.twisterinterface.CommonInterface;
 import com.twister.plugin.twisterinterface.TwisterPluginInterface;
@@ -41,6 +56,8 @@ public class BasePlugin extends JPanel implements TwisterPluginInterface {
 	protected Hashtable<String, String> variables;
 	protected Document pluginsConfig;
 	protected Element rootElement;
+	protected ChannelSftp c;
+	protected Session session;
 
 	@Override
 	public void init(ArrayList<Item> suite, ArrayList<Item> suitetest,
@@ -49,15 +66,34 @@ public class BasePlugin extends JPanel implements TwisterPluginInterface {
 		this.suitetest = suitetest;
 		this.variables = variables;
 		this.pluginsConfig = pluginsConfig;
+		initializeSFTP();
+		createXMLStructure();
+		setEnabledValue(true);
+		uploadPluginsFile();
 	}
 
 	@Override
 	public void terminate() {
+		setEnabledValue(false);
+		uploadPluginsFile();
+		session.disconnect();
+		c.disconnect();
+		c = null;
+		session = null;
 		suite = null;
 		suitetest = null;
 		variables = null;
 		pluginsConfig = null;
 		rootElement = null;
+	}
+	
+	public void setEnabledValue(boolean value){
+		Element item = (Element)rootElement.getElementsByTagName("status").item(0);
+		if(value){
+			item.getChildNodes().item(0).setNodeValue("enabled");
+		} else {
+			item.getChildNodes().item(0).setNodeValue("disabled");
+		}
 	}
 
 	@Override
@@ -98,6 +134,58 @@ public class BasePlugin extends JPanel implements TwisterPluginInterface {
 	public String getFileName() {
 		return "FileName.jar";
 	}
+	
+	/*
+     * method to copy plugins configuration file
+     * to server 
+     */
+    public boolean uploadPluginsFile(){
+        try{
+            DOMSource source = new DOMSource(pluginsConfig);
+            File file = new File(variables.get("pluginslocalgeneralconf"));
+            Result result = new StreamResult(file);
+            TransformerFactory transformerFactory = TransformerFactory.newInstance();
+            Transformer transformer = transformerFactory.newTransformer();
+            transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+            transformer.setOutputProperty("{http:xml.apache.org/xslt}indent-amount","4");
+            transformer.transform(source, result);
+            c.cd(variables.get("remoteuserhome")+"/twister/config/");
+            FileInputStream in = new FileInputStream(file);
+            c.put(in, file.getName());
+            in.close();
+            System.out.println("Saved "+file.getName()+" to: "+
+					variables.get("remoteuserhome")+"/twister/config/");
+            return true;}
+        catch(Exception e){
+            e.printStackTrace();
+            return false;
+        }
+    }
+    
+    public ChannelSftp getSFTP(){
+    	return c;
+    }
+    
+    public void initializeSFTP(){
+		try{
+			JSch jsch = new JSch();
+            String user = variables.get("user");
+            session = jsch.getSession(user, variables.get("host"), 22);
+            session.setPassword(variables.get("password"));
+            Properties config = new Properties();
+            config.put("StrictHostKeyChecking", "no");
+            session.setConfig(config);
+            session.connect();
+            Channel channel = session.openChannel("sftp");
+            channel.connect();
+            c = (ChannelSftp)channel;
+            System.out.println("SFTP successfully initialized");
+		}
+		catch(Exception e){
+			System.out.println("SFTP could not be initialized");
+			e.printStackTrace();
+		}
+	}
 
 	/*
 	 * method to check and create XML structure for this plugin
@@ -132,7 +220,7 @@ public class BasePlugin extends JPanel implements TwisterPluginInterface {
 			em2.appendChild(doc.createTextNode(filename));
 			rootElement.appendChild(em2);
 			em2 = doc.createElement("status");
-			em2.appendChild(doc.createTextNode("disabled"));
+			em2.appendChild(doc.createTextNode("enabled"));
 			rootElement.appendChild(em2);
 		}
 	}

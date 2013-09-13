@@ -229,6 +229,7 @@ public class Globals {
         tree.setCellRenderer(new CustomIconRenderer());
         panel = new JScrollPane(tree);
         main = new JPanel();
+        main.setBorder(BorderFactory.createTitledBorder("Globals"));
         panel = new JScrollPane(tree);
         JPanel buttonPanel = new JPanel();
         

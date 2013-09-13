@@ -71,10 +71,10 @@ public class JenkinsPlugin extends BasePlugin implements TwisterPluginInterface 
 			  Document pluginsConfig,Applet container){
 		super.init(suite, suitetest, variables,pluginsConfig,container);
 		System.out.println("Initializing "+getName()+" ...");
-		initializeSFTP();
+		//initializeSFTP();
 		initializeRPC();
 		p = new JPanel();
-        createXMLStructure();
+        //createXMLStructure();
         script = getPropValue("script");
         project = getPropValue("project");
         JPanel panel = new JPanel();
@@ -182,26 +182,26 @@ public class JenkinsPlugin extends BasePlugin implements TwisterPluginInterface 
 		return name;
 	}
 	
-	public void initializeSFTP(){
-		try{
-			JSch jsch = new JSch();
-            String user = variables.get("user");
-            Session session = jsch.getSession(user, variables.get("host"), 22);
-            session.setPassword(variables.get("password"));
-            Properties config = new Properties();
-            config.put("StrictHostKeyChecking", "no");
-            session.setConfig(config);
-            session.connect();
-            Channel channel = session.openChannel("sftp");
-            channel.connect();
-            c = (ChannelSftp)channel;
-            System.out.println("SFTP successfully initialized");
-		}
-		catch(Exception e){
-			System.out.println("SFTP could not be initialized");
-			e.printStackTrace();
-		}
-	}
+//	public void initializeSFTP(){
+//		try{
+//			JSch jsch = new JSch();
+//            String user = variables.get("user");
+//            Session session = jsch.getSession(user, variables.get("host"), 22);
+//            session.setPassword(variables.get("password"));
+//            Properties config = new Properties();
+//            config.put("StrictHostKeyChecking", "no");
+//            session.setConfig(config);
+//            session.connect();
+//            Channel channel = session.openChannel("sftp");
+//            channel.connect();
+//            c = (ChannelSftp)channel;
+//            System.out.println("SFTP successfully initialized");
+//		}
+//		catch(Exception e){
+//			System.out.println("SFTP could not be initialized");
+//			e.printStackTrace();
+//		}
+//	}
 	
 	public void initializeRPC(){
 		try{XmlRpcClientConfigImpl configuration = new XmlRpcClientConfigImpl();
@@ -217,30 +217,30 @@ public class JenkinsPlugin extends BasePlugin implements TwisterPluginInterface 
                         "for RPC client initialization");}
 	}
 	
-	/*
-     * method to copy plugins configuration file
-     * to server 
-     */
-    public boolean uploadPluginsFile(){
-        try{
-            DOMSource source = new DOMSource(pluginsConfig);
-            File file = new File(variables.get("pluginslocalgeneralconf"));
-            Result result = new StreamResult(file);
-            TransformerFactory transformerFactory = TransformerFactory.newInstance();
-            Transformer transformer = transformerFactory.newTransformer();
-            transformer.setOutputProperty(OutputKeys.INDENT, "yes");
-            transformer.setOutputProperty("{http:xml.apache.org/xslt}indent-amount","4");
-            transformer.transform(source, result);
-            c.cd(variables.get("remoteuserhome")+"/twister/config/");
-            FileInputStream in = new FileInputStream(file);
-            c.put(in, file.getName());
-            in.close();
-            System.out.println("Saved "+file.getName()+" to: "+
-					variables.get("remoteuserhome")+"/twister/config/");
-            return true;}
-        catch(Exception e){
-            e.printStackTrace();
-            return false;
-        }
-    }
+//	/*
+//     * method to copy plugins configuration file
+//     * to server 
+//     */
+//    public boolean uploadPluginsFile(){
+//        try{
+//            DOMSource source = new DOMSource(pluginsConfig);
+//            File file = new File(variables.get("pluginslocalgeneralconf"));
+//            Result result = new StreamResult(file);
+//            TransformerFactory transformerFactory = TransformerFactory.newInstance();
+//            Transformer transformer = transformerFactory.newTransformer();
+//            transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+//            transformer.setOutputProperty("{http:xml.apache.org/xslt}indent-amount","4");
+//            transformer.transform(source, result);
+//            c.cd(variables.get("remoteuserhome")+"/twister/config/");
+//            FileInputStream in = new FileInputStream(file);
+//            c.put(in, file.getName());
+//            in.close();
+//            System.out.println("Saved "+file.getName()+" to: "+
+//					variables.get("remoteuserhome")+"/twister/config/");
+//            return true;}
+//        catch(Exception e){
+//            e.printStackTrace();
+//            return false;
+//        }
+//    }
 }

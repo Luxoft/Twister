@@ -23,6 +23,7 @@ import javax.swing.JSplitPane;
 import java.awt.BorderLayout;
 import javax.swing.SwingUtilities;
 import java.awt.Dimension;
+import javax.swing.BorderFactory;
 
 public class TestConfigurations extends JPanel{
     public ConfigTree tree;
@@ -30,6 +31,7 @@ public class TestConfigurations extends JPanel{
     
 
     public TestConfigurations(){
+        setBorder(BorderFactory.createTitledBorder("Test Configurations"));
         setLayout(new BorderLayout());
         cfgedit = new ConfigEditor();
         tree = new ConfigTree();

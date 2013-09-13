@@ -42,12 +42,14 @@ import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.event.DocumentEvent;
+import javax.swing.BorderFactory;
 
 public class PanicDetect extends JPanel{
     private JButton add;
     private JPanel addpanel;
     
     public PanicDetect(){
+        setBorder(BorderFactory.createTitledBorder("Panic Detect"));
         setLayout(new BoxLayout(this, BoxLayout.PAGE_AXIS));
         add = new JButton("Add");
         add.addActionListener(new ActionListener(){

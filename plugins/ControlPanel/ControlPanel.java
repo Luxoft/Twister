@@ -59,7 +59,7 @@ import com.twister.plugin.twisterinterface.CommonInterface;
 import com.twister.plugin.twisterinterface.TwisterPluginInterface;
 import org.w3c.dom.Document;
 
-public class ControlPanel extends BasePlugin implements TwisterPluginInterface {
+public class ControlPanel implements TwisterPluginInterface {
 	private static final long serialVersionUID = 1L;
 	private JPanel p;
 	private CommonInterface maincomp;
@@ -71,7 +71,7 @@ public class ControlPanel extends BasePlugin implements TwisterPluginInterface {
 	public void init(ArrayList<Item> suite, ArrayList<Item> suitetest,
 			final Hashtable<String, String> variables,
 			final Document pluginsConfig,Applet applet) {
-		super.init(suite, suitetest, variables, pluginsConfig,applet);
+		//super.init(suite, suitetest, variables, pluginsConfig,applet);
 		System.out.println("Initializing " + getName() + " ... ");	
 		String [] permissions = variables.get("permissions").split(",");
 		Arrays.sort(permissions);
@@ -385,7 +385,6 @@ public class ControlPanel extends BasePlugin implements TwisterPluginInterface {
 
 	@Override
 	public void terminate() {
-		super.terminate();
 		p = null;
 	}
 
@@ -428,5 +427,16 @@ public class ControlPanel extends BasePlugin implements TwisterPluginInterface {
 		cp.init(null, null, ht, null,null);
 		fr.add(cp.getContent());
 		fr.setVisible(true);
+	}
+
+	@Override
+	public String getDescription(String arg0) {
+		return "";
+	}
+
+	@Override
+	public void resizePlugin(int arg0, int arg1) {
+		// TODO Auto-generated method stub
+		
 	}	
 }

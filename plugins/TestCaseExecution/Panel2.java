@@ -301,9 +301,11 @@ public class Panel2 extends JPanel{
                 RunnerRepository.window.mainpanel.getP2().sc.g.repaint();    
                 status = (String)RunnerRepository.getRPCClient().execute("setExecStatusAll",
                                                                     new Object[]{RunnerRepository.getUser(),2});
+                String [] path = RunnerRepository.window.mainpanel.p1.sc.g.getUser().split("\\\\");
+                String file = path[path.length-1];
                 RunnerRepository.getRPCClient().execute("setStartedBy",
                                                     new Object[]{RunnerRepository.getUser(),
-                                                                 RunnerRepository.getUser()});
+                                                                 RunnerRepository.getUser()+";"+file});
                 play.setText("Pause");
                 play.setIcon(new ImageIcon(RunnerRepository.pauseicon));}
             else if(play.getText().equals("Resume")){
