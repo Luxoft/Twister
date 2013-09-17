@@ -1,7 +1,7 @@
 
 # File: CentralEngineOthers.py ; This file is part of Twister.
 
-# version: 2.038
+# version: 2.039
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -83,6 +83,7 @@ import platform
 import smtplib
 import binascii
 import traceback
+import threading
 import MySQLdb
 import paramiko
 import cherrypy
@@ -90,7 +91,6 @@ import cherrypy
 try: import simplejson as json
 except: import json
 
-import cherrypy.process.plugins
 from collections import OrderedDict
 from thread import allocate_lock
 from thread import start_new_thread
@@ -152,7 +152,7 @@ def check_passwd(realm, user, passwd):
 
 #
 
-def cache_users():
+def cache_users(repeat=False):
     """
     Find all system users that have Twister installer.
     """
@@ -192,7 +192,7 @@ def cache_users():
     tf = time.time()
     logDebug('Cache users operation took `{:.2f}` seconds...'.format( (tf-ti) ))
 
-    return True
+    if repeat: threading.Timer(60*60, cache_users, (True,)).start()
 
 
 # --------------------------------------------------------------------------------------------------
@@ -255,10 +255,9 @@ class Project:
             self.panicDetectRegularExpressions = json.load(config)
 
         # Start cache users at the beggining...
-        start_new_thread(cache_users, ())
+        start_new_thread(cache_users, (False,))
         # And repeat every hour
-        self.cache_usrs = cherrypy.process.plugins.BackgroundTask(60*60, cache_users)
-        self.cache_usrs.start()
+        threading.Timer(60*60, cache_users, (True,)).start()
 
 
     def _common_proj_reset(self, user, base_config, files_config):
@@ -668,6 +667,10 @@ class Project:
         # List of roles for current CherryPy user
         cherry_roles = cherry_all['roles']
 
+        srv_type = self.server_init['ce_server_type']
+        # Type = no_type => type = development
+        if srv_type == 'no_type': srv_type = 'development'
+
         if 'CHANGE_USERS' not in cherry_roles and cmd in \
             ['update param', 'set user', 'delete user', 'set group', 'delete group']:
             return '*ERROR* : Insufficient privileges to execute command `{}` !'.format(cmd)
@@ -748,7 +751,9 @@ class Project:
 
             # Create new section in Users
             cfg['users'][name] = user_before
-            cfg['users'][name]['groups']  = usr_group
+            cfg['users'][name]['groups_production']  = ''
+            cfg['users'][name]['groups_development'] = ''
+            cfg['users'][name]['groups_' + srv_type] = usr_group
             cfg['users'][name]['key']    = user_before.get('key', binascii.hexlify(os.urandom(16)))
             cfg['users'][name]['timeout'] = usr_timeout
             with self.usr_lock: cfg.write()
