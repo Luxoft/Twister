@@ -79,6 +79,7 @@ import datetime
 import random
 import subprocess
 import socket
+socket.setdefaulttimeout(4)
 import platform
 import smtplib
 import binascii

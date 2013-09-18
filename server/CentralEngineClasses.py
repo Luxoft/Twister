@@ -43,6 +43,7 @@ import time
 import datetime
 import traceback
 import socket
+socket.setdefaulttimeout(4)
 import binascii
 import tarfile
 import xmlrpclib
@@ -181,17 +182,7 @@ class CentralEngine(_cptools.XMLRPCController):
         return self.project.decryptText(text)
 
 
-    @cherrypy.expose
-    def runUserScript(self, script_path):
-        """
-        Executes a script.
-        Returns a string containing the text printed by the script.\n
-        This function is called from the Java GUI.
-        """
-        return execScript(script_path)
-
-
-#
+# # #
 
 
     @cherrypy.expose
@@ -215,6 +206,16 @@ class CentralEngine(_cptools.XMLRPCController):
         Manage users, groups and permissions.
         """
         return self.project.usersAndGroupsManager(cmd, name, args, kwargs)
+
+
+    @cherrypy.expose
+    def runUserScript(self, script_path):
+        """
+        Executes a script.
+        Returns a string containing the text printed by the script.\n
+        This function is called from the Java GUI.
+        """
+        return execScript(script_path)
 
 
     @cherrypy.expose
@@ -573,7 +574,6 @@ class CentralEngine(_cptools.XMLRPCController):
         ip, port = _proxy.split(':')
 
         try:
-            socket.create_connection((ip, int(port)), 2)
             logDebug('Trying to start `{} {}`.'.format(user, epname))
             return proxy.startEP(epname)
         except Exception as e:
@@ -595,7 +595,6 @@ class CentralEngine(_cptools.XMLRPCController):
         ip, port = _proxy.split(':')
 
         try:
-            socket.create_connection((ip, int(port)), 2)
             logWarning('Trying to stop `{} {}`.'.format(user, epname))
             return proxy.stopEP(epname)
         except Exception as e:
@@ -617,7 +616,6 @@ class CentralEngine(_cptools.XMLRPCController):
         ip, port = _proxy.split(':')
 
         try:
-            socket.create_connection((ip, int(port)), 2)
             logWarning('Trying to restart `{} {}`.'.format(user, epname))
             return proxy.restartEP(epname)
         except Exception as e:

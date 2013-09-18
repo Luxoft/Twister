@@ -37,13 +37,15 @@ import sys
 import ast
 import copy
 import thread
-import cherrypy
+
 try: import simplejson as json
 except: import json
 
+import cherrypy
 from lxml import etree
 from binascii import hexlify
 from cherrypy import _cptools
+from mako.template import Template
 
 TWISTER_PATH = os.getenv('TWISTER_PATH')
 if not TWISTER_PATH:
@@ -231,6 +233,16 @@ class ResourceAllocator(_cptools.XMLRPCController):
         self.sut_file = '{}/config/systems.json'.format(TWISTER_PATH)
         self._load(v=True)
 
+
+    @cherrypy.expose
+    def default(self, *vpath, **params):
+        user_agent = cherrypy.request.headers['User-Agent'].lower()
+        if 'xmlrpc' in user_agent or 'xml rpc' in user_agent:
+            return super(ResourceAllocator, self).default(*vpath, **params)
+        # If the connection is not XML-RPC, return the RA main
+        output = Template(filename=TWISTER_PATH + '/server/template/ra_main.htm')
+        return output.render()
+
 #
 
     def _load(self, v=False):
@@ -303,7 +315,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
-    def flatten(self, root_id=ROOT_DEVICE):
+    def tree(self, root_id=ROOT_DEVICE):
         '''
         Return the structure, list based.
         '''
