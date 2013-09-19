@@ -65,21 +65,22 @@ var props = {
 $('#tree1').tree(props);
 $('#tree2').tree(props);
 
-$.getJSON("/ra/flatten/1",
+$.getJSON("/ra/tree/1",
 	function(jdata) {
 		$('#tree1').tree('loadData', jdata);
 	});
 
-$.getJSON("/ra/flatten/2",
+$.getJSON("/ra/tree/2",
 	function(jdata) {
 		$('#tree2').tree('loadData', jdata);
 	});
 
 function parseNode(node) {
-	var txt =
-		"Name :: " + node.name +
-		"<br>ID :: " + node.id +
-		"<br>Meta :: " + node.meta;
+	var txt = "Name :: " + node.name + " ;<br>ID :: " + node.id;
+	for (m in node.meta) {
+		txt += (" ;<br>Meta :: " + m + " = " + node.meta[m]);
+	};
+	txt += " ;";
 	return txt;
 };
 

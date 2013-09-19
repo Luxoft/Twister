@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# version: 2.004
+# version: 2.005
 
 # File: CentralEngine.py ; This file is part of Twister.
 
@@ -32,15 +32,22 @@ import os
 import sys
 import cherrypy
 
+if not sys.version.startswith('2.7'):
+    print('Python version error! Central Engine must run on Python 2.7!')
+    exit(1)
+
 TWISTER_PATH = os.getenv('TWISTER_PATH')
 if not TWISTER_PATH:
     print('TWISTER_PATH environment variable is not set! Exiting!')
     exit(1)
-sys.path.append(TWISTER_PATH)
+if TWISTER_PATH not in sys.path:
+    sys.path.append(TWISTER_PATH)
+
 
 from common.tsclogging import *
+from server.CentralEngineProject import Project, check_passwd
 from server.CentralEngineClasses import CentralEngine
-from server.CentralEngineOthers import check_passwd
+from server.ExecutionManager     import ExecutionManager
 
 #
 
@@ -62,8 +69,16 @@ if __name__ == "__main__":
             logCritical('Twister Server: Must start with parameter PORT number!')
             exit(1)
 
-    # Root path
-    root = CentralEngine()
+    # Project manager does everything
+    proj = Project()
+    # CE is the XML-RPC interface
+    ce = CentralEngine(proj)
+    # EE Manager is the helper for EPs and Clients
+    ee = ExecutionManager(proj)
+
+    ce.web = proj.web
+    ce.ra  = proj.ra
+    ce.report = proj.report
 
     # Config
     conf = {'global': {
@@ -74,7 +89,7 @@ if __name__ == "__main__":
             'log.screen': False,
 
             'tools.sessions.on': True,
-            'tools.sessions.timeout': 0,
+            'tools.sessions.timeout': 60*24*365,
             'tools.auth_basic.on': True,
             'tools.auth_basic.realm': 'Twister Server',
             'tools.auth_basic.checkpassword': check_passwd,
@@ -86,6 +101,6 @@ if __name__ == "__main__":
         }
 
     # Start !
-    cherrypy.quickstart(root, '/', config=conf)
+    cherrypy.quickstart(ce, '/', config=conf)
 
 #

@@ -1,7 +1,7 @@
 
-# File: CentralEngineOthers.py ; This file is part of Twister.
+# File: CentralEngineProject.py ; This file is part of Twister.
 
-# version: 2.039
+# version: 2.040
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -100,11 +100,17 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
 
+if not sys.version.startswith('2.7'):
+    print('Python version error! Central Engine must run on Python 2.7!')
+    exit(1)
+
 TWISTER_PATH = os.getenv('TWISTER_PATH')
 if not TWISTER_PATH:
     print('$TWISTER_PATH environment variable is not set! Exiting!')
     exit(1)
-sys.path.append(TWISTER_PATH)
+if TWISTER_PATH not in sys.path:
+    sys.path.append(TWISTER_PATH)
+
 
 from common.constants  import *
 from common.helpers    import *
@@ -112,6 +118,11 @@ from common.tsclogging import *
 from common.xmlparser  import *
 from common.suitesmanager import *
 from common import iniparser
+
+from ServiceManager   import ServiceManager
+from CentralEngineWebUi import WebInterface
+from ResourceAllocator  import ResourceAllocator
+from ReportingServer  import ReportingServer
 
 usrs_and_pwds = {}
 
@@ -123,14 +134,17 @@ def check_passwd(realm, user, passwd):
     to check the username and password.
     """
     global usrs_and_pwds
+    user_passwd = binascii.hexlify(user+':'+passwd)
 
-    if cherrypy.session.get('user_passwd') == binascii.hexlify(user+':'+passwd):
+    if cherrypy.session.get('user_passwd') == user_passwd:
         return True
     elif user in usrs_and_pwds and usrs_and_pwds.get(user) == passwd:
-        cherrypy.session['username'] = user
+        if not cherrypy.session.get('username'):
+            cherrypy.session['username'] = user
         return True
     elif passwd == 'EP':
-        cherrypy.session['username'] = user
+        if not cherrypy.session.get('username'):
+            cherrypy.session['username'] = user
         return True
 
     t = paramiko.Transport(('localhost', 22))
@@ -142,7 +156,7 @@ def check_passwd(realm, user, passwd):
         t.auth_password(user, passwd)
         usrs_and_pwds[user] = passwd
         cherrypy.session['username'] = user
-        cherrypy.session['user_passwd'] = binascii.hexlify(user+':'+passwd)
+        cherrypy.session['user_passwd'] = user_passwd
         t.stop_thread()
         t.close()
         return True
@@ -201,7 +215,7 @@ def cache_users(repeat=False):
 # --------------------------------------------------------------------------------------------------
 
 
-class Project:
+class Project(object):
 
     """
     This class controls data about:
@@ -210,12 +224,24 @@ class Project:
     - EPs
     - suites
     - test files
-
     """
 
-    def __init__(self, parent):
+    def __init__(self):
 
-        self.parent = parent
+        try:
+            self.srv_ver = open(TWISTER_PATH + '/server/version.txt').read().strip()
+            self.srv_ver = 'version `{}`'.format(self.srv_ver)
+        except: self.srv_ver = ''
+
+        ti = time.time()
+        logDebug('STARTING TWISTER SERVER {}...'.format(self.srv_ver))
+
+        self.manager = ServiceManager()
+        self.web   = WebInterface(self)
+        self.ra    = ResourceAllocator(self)
+        self.report = ReportingServer(self)
+
+        # Users, parsers, IDs...
         self.users = {}
         self.parsers = {}
         self.test_ids = {}  # IDs shortcut
@@ -259,6 +285,8 @@ class Project:
         start_new_thread(cache_users, (False,))
         # And repeat every hour
         threading.Timer(60*60, cache_users, (True,)).start()
+
+        logDebug('SERVER INITIALIZATION TOOK %.4f SECONDS.' % (time.time()-ti))
 
 
     def _common_proj_reset(self, user, base_config, files_config):

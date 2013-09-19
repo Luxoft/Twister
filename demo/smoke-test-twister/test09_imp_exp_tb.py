@@ -1,6 +1,6 @@
 
 #
-# <ver>version: 2.001</ver>
+# <ver>version: 2.002</ver>
 # <title>Test Import/ Export XML</title>
 # <description>This suite checks the most basic functionality of Twister.<br>
 # This test tries to export the TB as XML, then import it again to see if the data is the same.</description>
@@ -23,7 +23,10 @@ def check(ra, _xml_file):
     try:
         res = ra.getResource('/')
         sut = ra.getSut('/')
-        del res['version']
+        try: del res['version']
+        except: pass
+        try: del res['name']
+        except: pass
         print('Resource Allocator connection OK.\n')
     except:
         print('Cannot connect to Resource Allocator server!')
@@ -52,7 +55,10 @@ def check(ra, _xml_file):
     print('Comparing the old resource, with the new resource...')
     # New resources must be the same as the old resources!
     new_res = ra.getResource('/')
-    del new_res['version']
+    try: del new_res['version']
+    except: pass
+    try: del new_res['name']
+    except: pass
     #
     print('{} children [vs] {} children.'.format( len(res['children']), len(new_res['children']) ))
 
