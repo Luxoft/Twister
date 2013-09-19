@@ -2390,7 +2390,10 @@ class Project:
             return '*ERROR for {0}!* Logs path `{1}` is invalid! Using master config `{2}` and suites config `{3}`.'\
                 .format(user, fpath, self.getUserInfo(user, 'config_path'), self.getUserInfo(user, 'project_path'))
 
-        filename = fpath + os.sep + filename
+        if filename == 'server_log':
+            filename = '{}/{}'.format(TWISTER_PATH, 'server_log.log')
+        else:
+            filename = fpath + os.sep + filename
 
         if not os.path.exists(filename):
             return '*ERROR for {0}!* File `{1}` does not exist! Using master config `{2}` and suites config `{3}`'.\

@@ -1087,8 +1087,6 @@ class CentralEngine(_cptools.XMLRPCController):
         """
         Called in the Java GUI to show the logs.
         """
-        if filename == 'server_log':
-            filename = '{}{}'.format(TWISTER_PATH, 'server_log.log')
         return self.project.getLogFile(user, read, fstart, filename)
 
 
