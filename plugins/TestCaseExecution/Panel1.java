@@ -1,6 +1,6 @@
 /*
 File: Panel1.java ; This file is part of Twister.
-Version: 2.0010
+Version: 2.0011
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -316,12 +316,11 @@ public class Panel1 extends JPanel{
         tabs.add("Test Case", new JScrollPane(ep.tree));
         tabs.add("Predefined Suites", new JScrollPane(lp.tree));
         splitPane2 = new JSplitPane(JSplitPane.VERTICAL_SPLIT,
-//                                                 new JScrollPane(ep.tree),
                                                 tabs,
                                                 tcdetails);
         try{
             SwingUtilities.invokeLater(new Runnable() {
-                public void run() {
+                public void run(){
                     splitPane2.setDividerLocation(RunnerRepository.getLayouts().
                                                  get("mainh2splitlocation").getAsInt());
                 }
@@ -331,6 +330,8 @@ public class Panel1 extends JPanel{
         }           
         splitPane3 = new JSplitPane(JSplitPane.VERTICAL_SPLIT,
                                                 sc.pane,suitaDetails);
+//         splitPane3 = new JSplitPane(JSplitPane.VERTICAL_SPLIT,
+//                                                 new JScrollPane(),suitaDetails);
         try{
             SwingUtilities.invokeLater(new Runnable() {
                 public void run() {
@@ -671,12 +672,15 @@ public class Panel1 extends JPanel{
                     else tcmenu.getMenuComponent(6).setEnabled(false);}}}}
                     
     public void edit(boolean openlast){
+        final int loc = splitPane3.getDividerLocation();
         splitPane3.setLeftComponent(sc.pane);
+//         JScrollPane sp = new JScrollPane();
+//         sp.setPreferredSize(new Dimension(800,600));
+//         splitPane3.setLeftComponent(sp);
         try{
             SwingUtilities.invokeLater(new Runnable(){
                 public void run() {
-                    splitPane3.setDividerLocation(RunnerRepository.getLayouts().
-                                                 get("mainh1splitlocation").getAsInt());
+                    splitPane3.setDividerLocation(loc);
                 }
             });
         } catch(Exception e){
@@ -832,17 +836,20 @@ public class Panel1 extends JPanel{
     }
     
     public void setRunning(){
+        final int loc = splitPane3.getDividerLocation();
         splitPane3.setLeftComponent(RunnerRepository.window.mainpanel.getP2().sc.pane);
+//         JScrollPane sp = new JScrollPane();
+//         sp.setPreferredSize(new Dimension(800,600));
+//         splitPane3.setLeftComponent(sc);
         try{
             SwingUtilities.invokeLater(new Runnable(){
                 public void run() {
-                    splitPane3.setDividerLocation(RunnerRepository.getLayouts().
-                                                 get("mainh1splitlocation").getAsInt());
+                    splitPane3.setDividerLocation(loc);
                 }
             });
         } catch(Exception e){
             splitPane3.setDividerLocation(0.5);
-        }   
+        }  
         remove(openedfile);
         remove(remove);
         remove(generate);
@@ -856,6 +863,7 @@ public class Panel1 extends JPanel{
         suitaDetails.setEnabled(false);
         tcdetails.logs.doClick();
         repaint();
+        
     }
         
     /*

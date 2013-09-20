@@ -1,6 +1,6 @@
 /*
 File: RunnerRepository.java ; This file is part of Twister.
-Version: 2.0023
+Version: 2.0024
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -329,7 +329,7 @@ public class RunnerRepository {
     
     //test if CE is running
     public static boolean isCE(){
-        try{client.execute("echo", new Object[]{"test if CE is running"});
+        try{client.execute("echo", new Object[]{"ping"});
             return true;
         } catch(Exception e){
             e.printStackTrace();

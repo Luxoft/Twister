@@ -1,7 +1,7 @@
 package com.twister;
 /*
 File: MySftpBrowser.java ; This file is part of Twister.
-Version: 2.006
+Version: 2.007
 Copyright (C) 2012 , Luxoft
 
 Authors: Andrei Costachi <acostachi@luxoft.com>
@@ -167,13 +167,6 @@ public class MySftpBrowser extends JFrame {
 				c.disconnect();
 				session.disconnect();
 				dispose();
-//				try {
-//					dataIn.close();
-//					dataOut.close();
-//				} catch (IOException e1) {
-//					e1.printStackTrace();
-//				}
-//		        ssh.disconnect();  
 			}
 		});
 		setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
@@ -381,14 +374,15 @@ public class MySftpBrowser extends JFrame {
 	 * constructor with the selection of the user
 	 */
 	public void save() {
-		StringBuilder s = new StringBuilder();
-		s.append("/");
-		for (int i = 1; i < tree.getItemCount(); i++) {
-			s.append(tree.getItemAt(i) + "/");
-		}
-		s.append(tfilename.getText());
-		if (text != null)
+		if (text != null){
+			StringBuilder s = new StringBuilder();
+			s.append("/");
+			for (int i = 1; i < tree.getItemCount(); i++) {
+				s.append(tree.getItemAt(i) + "/");
+			}
+			s.append(tfilename.getText());
 			text.setText(s.toString());
+		}
 		if(action!=null){
 			action.actionPerformed(null);
 		}

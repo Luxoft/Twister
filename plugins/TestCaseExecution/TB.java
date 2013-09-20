@@ -1,6 +1,6 @@
 /*
 File: TB.java ; This file is part of Twister.
-Version: 2.004
+Version: 2.005
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -56,6 +56,16 @@ import javax.swing.JOptionPane;
 import javax.swing.JLabel;
 import javax.swing.JTextField;
 import javax.swing.JButton;
+import javax.swing.JMenuBar;
+import javax.swing.JMenu;
+import javax.swing.JMenuItem;
+import java.awt.BorderLayout;
+import java.awt.Container;
+import javax.swing.AbstractAction;
+import com.twister.MySftpBrowser;
+import java.awt.Toolkit;
+import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.StringSelection;
 
 public class TB extends JPanel{
     private XmlRpcClient client;
@@ -101,6 +111,21 @@ public class TB extends JPanel{
         
         root = new DefaultMutableTreeNode("root", true);
         tree = new JTree(root);
+        tree.addKeyListener(new KeyAdapter(){
+            public void keyReleased(KeyEvent ev){
+                if(ev.getKeyCode()==KeyEvent.VK_C && ev.isControlDown()){
+                    try{if(tree.getSelectionPath()==null){return;}
+                        String s = tree.getSelectionPath().getLastPathComponent().toString();
+                        s = s.replace("ID: ","");
+                        s = s.replace("Path: ","");
+                        StringSelection selection = new StringSelection(s);
+                        Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+                        clipboard.setContents(selection, selection);
+                    } catch(Exception e){
+                        e.printStackTrace();
+                    }
+                }
+            }});
         tree.setTransferHandler(new TreeTransferHandler());  
         tree.setCellRenderer(new CustomIconRenderer());
         
@@ -111,31 +136,92 @@ public class TB extends JPanel{
         jScrollPane1 = new JScrollPane();
         tree.setBorder(BorderFactory.createBevelBorder(BevelBorder.LOWERED));
         jScrollPane1.setViewportView(tree);
+        
+        JPanel treepanel = new JPanel();
+        treepanel.setLayout(new java.awt.BorderLayout());
+        treepanel.add(jScrollPane1, java.awt.BorderLayout.CENTER);
+        
+        JMenuBar menubar = new JMenuBar();
+        JMenu menu = new JMenu("File");
+        menubar.add(menu);
+        treepanel.add(menubar,BorderLayout.NORTH);
+        JMenuItem imp = new JMenuItem("Import from XML");
+        imp.addActionListener(new ActionListener(){
+            public void actionPerformed(ActionEvent ev){
+                Container c;
+                if(RunnerRepository.container!=null)c = RunnerRepository.container.getParent();
+                else c = RunnerRepository.window;
+                final JTextField tf = new JTextField();
+                new MySftpBrowser(RunnerRepository.host,RunnerRepository.user,RunnerRepository.password,tf,c,false).setAction(new AbstractAction(){
+                    public void actionPerformed(ActionEvent ev){
+                        try{
+                            String resp = client.execute("import_xml", new Object[]{tf.getText(),1}).toString();
+                            System.out.println(resp);
+                            if(resp.equals("true")){
+                                root.removeAllChildren();
+                                parent = getTB("/",null);
+                                DefaultTreeModel model = (DefaultTreeModel)tree.getModel();
+                                buildTree(parent,root);
+                                ((DefaultTreeModel)tree.getModel()).reload();
+                            } else {
+                                CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,TB.this,"ERROR", resp);
+                            }
+                        } catch(Exception e){
+                            e.printStackTrace();
+                        }
+                    }
+                });
+            }});
+        menu.add(imp);
+        JMenuItem exp = new JMenuItem("Export to XML");
+        exp.addActionListener(new ActionListener(){
+            public void actionPerformed(ActionEvent ev){
+                Container c;
+                if(RunnerRepository.container!=null)c = RunnerRepository.container.getParent();
+                else c = RunnerRepository.window;
+                final JTextField tf = new JTextField();
+                try{tf.setText(RunnerRepository.getTestConfigPath());
+                }catch(Exception e){
+                    e.printStackTrace();
+                }
+                AbstractAction action = new AbstractAction(){
+                    public void actionPerformed(ActionEvent ev){
+                        try{
+                            String resp = client.execute("export_xml", new Object[]{tf.getText(),1}).toString();
+                            System.out.println(resp);
+                        } catch(Exception e){
+                            e.printStackTrace();
+                        }
+                    }
+                };
+                new MySftpBrowser(RunnerRepository.host,RunnerRepository.user,RunnerRepository.password,tf,c,false).setAction(action);
+            }});
+        menu.add(exp);
+        
+        
+        
         GroupLayout layout = new GroupLayout(this);
         this.setLayout(layout);
         layout.setHorizontalGroup(
             layout.createParallelGroup(GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
-                //.addContainerGap()
                 .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
-                    .addComponent(jScrollPane1, GroupLayout.DEFAULT_SIZE, 351, Short.MAX_VALUE)
-                    .addComponent(buttonPanel, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                //.addGap(18, 18, 18)
+//                     .addComponent(jScrollPane1, GroupLayout.DEFAULT_SIZE, 351, Short.MAX_VALUE)
+                    .addComponent(buttonPanel, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(treepanel, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
                 .addComponent(optpan, GroupLayout.PREFERRED_SIZE, 450, GroupLayout.PREFERRED_SIZE)
-                //.addContainerGap()
                 )
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(GroupLayout.Alignment.LEADING)
             .addGroup(GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                //.addContainerGap()
                 .addGroup(layout.createParallelGroup(GroupLayout.Alignment.TRAILING)
                     .addComponent(optpan, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addGroup(layout.createSequentialGroup()
-                        .addComponent(jScrollPane1)
+//                         .addComponent(jScrollPane1)
+                        .addComponent(treepanel, javax.swing.GroupLayout.DEFAULT_SIZE, 454, Short.MAX_VALUE)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                         .addComponent(buttonPanel, GroupLayout.PREFERRED_SIZE, 47, GroupLayout.PREFERRED_SIZE)))
-                //.addContainerGap()
                 )
         );       
         
@@ -385,7 +471,6 @@ public class TB extends JPanel{
             Iterator iter = node.getChildren().keySet().iterator();
             while(iter.hasNext()){
                 String childid = iter.next().toString();
-                
                 Node child = getTB(childid,node);
                 node.addChild(childid, child);
                 DefaultMutableTreeNode treechild = new DefaultMutableTreeNode(child);
@@ -457,8 +542,6 @@ public class TB extends JPanel{
         try{XmlRpcClientConfigImpl configuration = new XmlRpcClientConfigImpl();
             configuration.setServerURL(new URL("http://"+RunnerRepository.host+
                                         ":"+RunnerRepository.getCentralEnginePort()+"/ra/"));
-                                        
-                                        //+RunnerRepository.getResourceAllocatorPort()));
             configuration.setEnabledForExtensions(true);
             configuration.setBasicPassword(RunnerRepository.password);
             configuration.setBasicUserName(RunnerRepository.user);
@@ -608,7 +691,7 @@ class TreeTransferHandler extends TransferHandler {
 //     }  
    
     public int getSourceActions(JComponent c) {  
-        return COPY;  
+        return MOVE;  
     }  
    
 //     public boolean importData(TransferHandler.TransferSupport support) {  

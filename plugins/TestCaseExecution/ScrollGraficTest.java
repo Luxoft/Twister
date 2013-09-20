@@ -1,6 +1,6 @@
 /*
 File: ScrollGraficTest.java ; This file is part of Twister.
-Version: 2.001
+Version: 2.002
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -21,6 +21,7 @@ import javax.swing.JPanel;
 import java.awt.ScrollPane;
 import javax.swing.JScrollPane;
 import java.awt.Color;
+import java.awt.Dimension;
 
 public class ScrollGraficTest extends JPanel{ 
     private static final long serialVersionUID = 1L;
@@ -30,5 +31,9 @@ public class ScrollGraficTest extends JPanel{
     public ScrollGraficTest(int x, int y,boolean applet){
         g = new GraficTest(0,0,applet);
         pane = new JScrollPane(g);
+//         pane.setMinimumSize(new Dimension(10,10));
+//         pane.setPreferredSize(new Dimension(100,100));
+//         pane.setMaximumSize(new Dimension(1000,1000));
         pane.getVerticalScrollBar().setUnitIncrement(16);
-        add(pane);}}
+//         add(pane);
+    }}

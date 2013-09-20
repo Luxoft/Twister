@@ -1,6 +1,6 @@
 /*
 File: SuitaDetails.java ; This file is part of Twister.
-Version: 2.0011
+Version: 2.0012
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -116,6 +116,7 @@ public class SuitaDetails extends JPanel {
                 setTCDetails();
             }
         } else {
+            System.out.println(getPreferredSize().getWidth());
             setTitle("Summary");
             scroll.setViewportView(summary);
             revalidate();
@@ -381,8 +382,6 @@ public class SuitaDetails extends JPanel {
             }
             parent.setLibs(libs);
         }
-        
-        
     }
     
     // show libraries selection window for project 
@@ -448,7 +447,6 @@ public class SuitaDetails extends JPanel {
     public void setGlobalLibs(String [] globallib){
         this.globallib = globallib;
     }
-    
             
     private void initComponents(ArrayList<String []> descriptions){
         global = new JPanel();
@@ -460,6 +458,9 @@ public class SuitaDetails extends JPanel {
         border = BorderFactory.createTitledBorder("Global options");
         setBorder(border);
         scroll = new JScrollPane();
+//         setMinimumSize(new Dimension(10,10));
+//         setMaximumSize(new Dimension(1000,1000));
+//         setPreferredSize(new Dimension(100,100));
         defsContainer = new JPanel();
         setLayout(new BorderLayout());
         defsContainer.setBackground(Color.WHITE);
@@ -959,10 +960,10 @@ class ParamPanel extends JPanel{
     }
     
     public void setParent(Item parent){
-        if(parent!=this.parent){
+        //if(parent!=this.parent){
             this.parent = parent;
             initializeParent();
-        }
+        //}
     }
     
     private void initializeParent(){
@@ -1064,14 +1065,15 @@ class PropPanel extends JPanel{
     }
     
     public void setParent(Item parent){
-        if(parent!=this.parent){
+        //if(parent!=this.parent){
             this.parent = parent;
             initializeParent();
-        }
+        //}
     }
     
     private void initializeParent(){
         jPanel1.removeAll();
+        System.out.println(parent.getName()+" : "+parent.getSubItemsNr());
         for(Item i:parent.getSubItems()){
             if((!i.getName().equals("Running"))&&(!i.getName().equals("param"))){
                 Prop prop = new Prop(parent,i);
