@@ -2,7 +2,7 @@
 
 # File: start_client.py ; This file is part of Twister.
 
-# version: 2.010
+# version: 2.011
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -30,6 +30,7 @@
 
 import os, sys
 import socket
+socket.setdefaulttimeout(3)
 import cherrypy
 import xmlrpclib
 import subprocess
@@ -40,7 +41,7 @@ from datetime import datetime
 from cherrypy import _cptools
 from ConfigParser import SafeConfigParser
 from json import loads as jsonLoads, dumps as jsonDumps
-from socket import gethostname, gethostbyaddr, create_connection
+from socket import gethostname, gethostbyaddr
 from thread import start_new_thread
 
 #
@@ -213,7 +214,6 @@ class TwisterClientService(_cptools.XMLRPCController):
                 try:
                     proxy = self.eps[proxyEpsList[currentCE][0]]['proxy']
                     __proxy = proxy._ServerProxy__host.split('@')[1].split(':')
-                    create_connection((__proxy[0], __proxy[1]), 2)
                 except Exception, e:
                     print('CE proxy error: `{}` on `{}`.'.format(e, __proxy))
                     continue

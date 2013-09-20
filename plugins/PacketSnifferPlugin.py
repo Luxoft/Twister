@@ -62,10 +62,16 @@ class Plugin(BasePlugin):
         BasePlugin.__init__(self, user, data)
 
         # history list length, packets buffer size, query buffer size
-        self.data['historyLength'] = (40000,
-            int(self.data['historyLength']))[int(self.data['historyLength'])>0]
-        self.data['packetsBuffer'] = (400,
-            int(self.data['packetsBuffer']))[int(self.data['packetsBuffer'])>0]
+        if data.has_key('historyLength'):
+            self.data['historyLength'] = (40000,
+                int(self.data['historyLength']))[int(self.data['historyLength'])>0]
+        else:
+            self.data.update([('historyLength', 40000), ])
+        if data.has_key('packetsBuffer'):
+            self.data['packetsBuffer'] = (400,
+                int(self.data['packetsBuffer']))[int(self.data['packetsBuffer'])>0]
+        else:
+            self.data.update([('packetsBuffer', 400), ])
 
         # plugin status, packets list, temporary path to save pcap files,
         # packets list index limit, registered sniffers

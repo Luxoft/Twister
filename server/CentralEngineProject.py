@@ -1,7 +1,7 @@
 
-# File: CentralEngineOthers.py ; This file is part of Twister.
+# File: CentralEngineProject.py ; This file is part of Twister.
 
-# version: 2.038
+# version: 2.040
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -79,10 +79,12 @@ import datetime
 import random
 import subprocess
 import socket
+socket.setdefaulttimeout(4)
 import platform
 import smtplib
 import binascii
 import traceback
+import threading
 import MySQLdb
 import paramiko
 import cherrypy
@@ -90,7 +92,6 @@ import cherrypy
 try: import simplejson as json
 except: import json
 
-import cherrypy.process.plugins
 from collections import OrderedDict
 from thread import allocate_lock
 from thread import start_new_thread
@@ -99,11 +100,17 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
 
+if not sys.version.startswith('2.7'):
+    print('Python version error! Central Engine must run on Python 2.7!')
+    exit(1)
+
 TWISTER_PATH = os.getenv('TWISTER_PATH')
 if not TWISTER_PATH:
     print('$TWISTER_PATH environment variable is not set! Exiting!')
     exit(1)
-sys.path.append(TWISTER_PATH)
+if TWISTER_PATH not in sys.path:
+    sys.path.append(TWISTER_PATH)
+
 
 from common.constants  import *
 from common.helpers    import *
@@ -111,6 +118,11 @@ from common.tsclogging import *
 from common.xmlparser  import *
 from common.suitesmanager import *
 from common import iniparser
+
+from ServiceManager   import ServiceManager
+from CentralEngineWebUi import WebInterface
+from ResourceAllocator  import ResourceAllocator
+from ReportingServer  import ReportingServer
 
 usrs_and_pwds = {}
 
@@ -122,14 +134,17 @@ def check_passwd(realm, user, passwd):
     to check the username and password.
     """
     global usrs_and_pwds
+    user_passwd = binascii.hexlify(user+':'+passwd)
 
-    if cherrypy.session.get('user_passwd') == binascii.hexlify(user+':'+passwd):
+    if cherrypy.session.get('user_passwd') == user_passwd:
         return True
     elif user in usrs_and_pwds and usrs_and_pwds.get(user) == passwd:
-        cherrypy.session['username'] = user
+        if not cherrypy.session.get('username'):
+            cherrypy.session['username'] = user
         return True
     elif passwd == 'EP':
-        cherrypy.session['username'] = user
+        if not cherrypy.session.get('username'):
+            cherrypy.session['username'] = user
         return True
 
     t = paramiko.Transport(('localhost', 22))
@@ -141,7 +156,7 @@ def check_passwd(realm, user, passwd):
         t.auth_password(user, passwd)
         usrs_and_pwds[user] = passwd
         cherrypy.session['username'] = user
-        cherrypy.session['user_passwd'] = binascii.hexlify(user+':'+passwd)
+        cherrypy.session['user_passwd'] = user_passwd
         t.stop_thread()
         t.close()
         return True
@@ -152,7 +167,7 @@ def check_passwd(realm, user, passwd):
 
 #
 
-def cache_users():
+def cache_users(repeat=False):
     """
     Find all system users that have Twister installer.
     """
@@ -192,7 +207,7 @@ def cache_users():
     tf = time.time()
     logDebug('Cache users operation took `{:.2f}` seconds...'.format( (tf-ti) ))
 
-    return True
+    if repeat: threading.Timer(60*60, cache_users, (True,)).start()
 
 
 # --------------------------------------------------------------------------------------------------
@@ -200,7 +215,7 @@ def cache_users():
 # --------------------------------------------------------------------------------------------------
 
 
-class Project:
+class Project(object):
 
     """
     This class controls data about:
@@ -209,12 +224,24 @@ class Project:
     - EPs
     - suites
     - test files
-
     """
 
-    def __init__(self, parent):
+    def __init__(self):
 
-        self.parent = parent
+        try:
+            self.srv_ver = open(TWISTER_PATH + '/server/version.txt').read().strip()
+            self.srv_ver = 'version `{}`'.format(self.srv_ver)
+        except: self.srv_ver = ''
+
+        ti = time.time()
+        logDebug('STARTING TWISTER SERVER {}...'.format(self.srv_ver))
+
+        self.manager = ServiceManager()
+        self.web   = WebInterface(self)
+        self.ra    = ResourceAllocator(self)
+        self.report = ReportingServer(self)
+
+        # Users, parsers, IDs...
         self.users = {}
         self.parsers = {}
         self.test_ids = {}  # IDs shortcut
@@ -255,10 +282,11 @@ class Project:
             self.panicDetectRegularExpressions = json.load(config)
 
         # Start cache users at the beggining...
-        start_new_thread(cache_users, ())
+        start_new_thread(cache_users, (False,))
         # And repeat every hour
-        self.cache_usrs = cherrypy.process.plugins.BackgroundTask(60*60, cache_users)
-        self.cache_usrs.start()
+        threading.Timer(60*60, cache_users, (True,)).start()
+
+        logDebug('SERVER INITIALIZATION TOOK %.4f SECONDS.' % (time.time()-ti))
 
 
     def _common_proj_reset(self, user, base_config, files_config):
@@ -668,6 +696,10 @@ class Project:
         # List of roles for current CherryPy user
         cherry_roles = cherry_all['roles']
 
+        srv_type = self.server_init['ce_server_type']
+        # Type = no_type => type = development
+        if srv_type == 'no_type': srv_type = 'development'
+
         if 'CHANGE_USERS' not in cherry_roles and cmd in \
             ['update param', 'set user', 'delete user', 'set group', 'delete group']:
             return '*ERROR* : Insufficient privileges to execute command `{}` !'.format(cmd)
@@ -748,7 +780,9 @@ class Project:
 
             # Create new section in Users
             cfg['users'][name] = user_before
-            cfg['users'][name]['groups']  = usr_group
+            cfg['users'][name]['groups_production']  = ''
+            cfg['users'][name]['groups_development'] = ''
+            cfg['users'][name]['groups_' + srv_type] = usr_group
             cfg['users'][name]['key']    = user_before.get('key', binascii.hexlify(os.urandom(16)))
             cfg['users'][name]['timeout'] = usr_timeout
             with self.usr_lock: cfg.write()
@@ -2384,7 +2418,10 @@ class Project:
             return '*ERROR for {0}!* Logs path `{1}` is invalid! Using master config `{2}` and suites config `{3}`.'\
                 .format(user, fpath, self.getUserInfo(user, 'config_path'), self.getUserInfo(user, 'project_path'))
 
-        filename = fpath + os.sep + filename
+        if filename == 'server_log':
+            filename = '{}/{}'.format(TWISTER_PATH, 'server_log.log')
+        else:
+            filename = fpath + os.sep + filename
 
         if not os.path.exists(filename):
             return '*ERROR for {0}!* File `{1}` does not exist! Using master config `{2}` and suites config `{3}`'.\

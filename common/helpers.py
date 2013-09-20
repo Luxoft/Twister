@@ -1,7 +1,7 @@
 
 # File: helpers.py ; This file is part of Twister.
 
-# version: 2.002
+# version: 2.003
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -29,8 +29,10 @@ This module contains a lot of helper, common functions.
 """
 
 import os
+import sys
 import re
 import binascii
+import platform
 import subprocess
 
 from Crypto.Cipher import AES
@@ -91,6 +93,15 @@ def getFileTags(fname):
     tags = re.findall('^[ ]*?[#]*?[ ]*?<(?P<tag>\w+)>([ -~\n]+?)</(?P=tag)>', text, re.MULTILINE)
 
     return '<br>\n'.join(['<b>' + title + '</b> : ' + descr.replace('<', '&lt;') for title, descr in tags])
+
+
+def systemInfo():
+    '''
+    Returns some system information.
+    '''
+    system = platform.machine() +' '+ platform.system() +', '+ ' '.join(platform.linux_distribution())
+    python = '.'.join([str(v) for v in sys.version_info])
+    return '{}\nPython {}'.format(system.strip(), python)
 
 
 def execScript(script_path):
