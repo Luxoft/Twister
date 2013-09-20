@@ -1,6 +1,6 @@
 /*
 File: ConfigEditor.java ; This file is part of Twister.
-Version: 2.003
+Version: 2.004
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -228,26 +228,10 @@ public class ConfigEditor extends JPanel{
         JMenu menu = new JMenu("File");
         menu.setBounds(0,0,70,25);
         menubar.add(menu,BorderLayout.WEST);
-        
-        
         JPanel temp = new JPanel();
         temp.setLayout(new GridBagLayout());
         temp.add(displayname,new GridBagConstraints());
-        
-        
-        
         menubar.add(temp,BorderLayout.CENTER);
-        
-        
-        
-        
-        
-//         JMenuItem item = new JMenuItem("New");
-//         item.addActionListener(new ActionListener(){
-//             public void actionPerformed(ActionEvent ev){
-//                 newConfigFile();
-//             }});
-//         menu.add(item);
         save = new JMenuItem("Save");
         save.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){

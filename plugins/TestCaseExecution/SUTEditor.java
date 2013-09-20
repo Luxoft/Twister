@@ -1,6 +1,6 @@
 /*
 File: SUTEditor.java ; This file is part of Twister.
-Version: 2.003
+Version: 2.004
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -54,6 +54,17 @@ import javax.swing.JList;
 import javax.swing.DefaultComboBoxModel;
 import java.util.Arrays;
 import java.util.Enumeration;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyAdapter;
+import java.awt.Toolkit;
+import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.StringSelection;
+import javax.swing.JMenuBar;
+import javax.swing.JMenu;
+import javax.swing.JMenuItem;
+import com.twister.MySftpBrowser;
+import java.awt.Container;
+import javax.swing.AbstractAction;
 
 public class SUTEditor extends JPanel{
     private JTextField tsutname;
@@ -66,6 +77,19 @@ public class SUTEditor extends JPanel{
     public SUTEditor(){
         initializeRPC();
         tree = new JTree();
+        tree.addKeyListener(new KeyAdapter(){
+            public void keyReleased(KeyEvent ev){
+                if(ev.getKeyCode()==KeyEvent.VK_C && ev.isControlDown()){
+                    if(tree.getSelectionPath()==null){return;}
+                    String s = tree.getSelectionPath().getLastPathComponent().toString();
+                    s = s.replace("EP: ","");
+                    s = s.replace("ID: ","");
+                    s = s.replace("Path: ","");
+                    StringSelection selection = new StringSelection(s);
+                    Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+                    clipboard.setContents(selection, selection);
+                }
+            }});
         tree.getSelectionModel().setSelectionMode(TreeSelectionModel.SINGLE_TREE_SELECTION);
         root = new DefaultMutableTreeNode("root");
 //         parent = getTB("/",null);
@@ -124,23 +148,6 @@ public class SUTEditor extends JPanel{
                     s = (SUT)treenode.getUserObject();
                     populateEPs(tep,s.getEPs());
                 }
-                //if(treenode.getLevel()!=1)return;                
-                
-                
-                
-                
-                
-//                 s.getEPs();
-//                 
-//                 String [] strings = s.getEPs().split(";");
-//                 int [] sel = new int[strings.length];
-//                 for(int i=0;i<strings.length;i++){
-//                     sel[i]=array.indexOf(strings[i]);
-//                 }
-//                 tep.setSelectedIndices(sel);
-//                 
-                
-                
                 
                 int resp = (Integer)CustomDialog.showDialog(p,JOptionPane.PLAIN_MESSAGE, 
                             JOptionPane.OK_CANCEL_OPTION, SUTEditor.this, "Modify",null);
@@ -238,11 +245,7 @@ public class SUTEditor extends JPanel{
                         String user = tsut.getText();
                         String respons = client.execute("setSut", new Object[]{user,"/",query}).toString();
                         if(respons.indexOf("ERROR")==-1){
-                            
                             DefaultTreeModel model = (DefaultTreeModel)tree.getModel();
-//                             DefaultMutableTreeNode root = (DefaultMutableTreeNode)model.getRoot();
-                            
-
                             SUT s = new SUT(user,sb.toString());
                             DefaultMutableTreeNode eps = new DefaultMutableTreeNode("EP: "+sb.toString(),false);
                             s.setEPNode(eps);
@@ -362,6 +365,61 @@ public class SUTEditor extends JPanel{
                 }
             }
         });
+        JMenuBar menubar = new JMenuBar();
+        JMenu menu = new JMenu("File");
+        menubar.add(menu);
+        add(menubar,BorderLayout.NORTH);
+        JMenuItem imp = new JMenuItem("Import from XML");
+        imp.addActionListener(new ActionListener(){
+            public void actionPerformed(ActionEvent ev){
+                Container c;
+                if(RunnerRepository.container!=null)c = RunnerRepository.container.getParent();
+                else c = RunnerRepository.window;
+                final JTextField tf = new JTextField();
+                new MySftpBrowser(RunnerRepository.host,RunnerRepository.user,RunnerRepository.password,tf,c,false).setAction(new AbstractAction(){
+                    public void actionPerformed(ActionEvent ev){
+                        try{
+                            String resp = client.execute("import_xml", new Object[]{tf.getText(),2}).toString();
+                            if(resp.equals("true")){
+                                getSUT();
+                                RunnerRepository.window.mainpanel.p1.suitaDetails.setComboTBs();
+                            } else {
+                                CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SUTEditor.this,"ERROR", resp);
+                            }
+                        } catch(Exception e){
+                            e.printStackTrace();
+                        }
+                    }
+                });
+            }});
+        menu.add(imp);
+        JMenuItem exp = new JMenuItem("Export to XML");
+        exp.addActionListener(new ActionListener(){
+            public void actionPerformed(ActionEvent ev){
+                Container c;
+                if(RunnerRepository.container!=null)c = RunnerRepository.container.getParent();
+                else c = RunnerRepository.window;
+                final JTextField tf = new JTextField();
+                try{tf.setText(RunnerRepository.getTestConfigPath());
+                }catch(Exception e){
+                    e.printStackTrace();
+                }
+                AbstractAction action = new AbstractAction(){
+                    public void actionPerformed(ActionEvent ev){
+                        try{
+                            String resp = client.execute("export_xml", new Object[]{tf.getText(),2}).toString();
+                            System.out.println(resp);
+                        } catch(Exception e){
+                            e.printStackTrace();
+                        }
+                    }
+                };
+                MySftpBrowser browser = new MySftpBrowser(RunnerRepository.host,RunnerRepository.user,RunnerRepository.password,tf,c,false);
+                browser.setAction(action);
+                browser.setButtonText("Save");
+            }});
+        menu.add(exp);
+        
         getSUT();
     }
     
@@ -498,27 +556,6 @@ public class SUTEditor extends JPanel{
         }
     }
     
-    
-//     private void buildChildren(Object [] children, DefaultMutableTreeNode treenode, Node parent){
-//         String childid, subchildid;
-//         for(Object o:children){
-//             childid = o.toString();
-//             try{
-//                 Node child = getTB(childid,parent);
-//                 DefaultMutableTreeNode treechild = new DefaultMutableTreeNode(child);
-//                 ((DefaultTreeModel)tree.getModel()).insertNodeInto(treechild, treenode,treenode.getChildCount());
-//                 DefaultMutableTreeNode temp = new DefaultMutableTreeNode("ID: "+child.getID(),false);
-//                 ((DefaultTreeModel)tree.getModel()).insertNodeInto(temp, treechild,treechild.getChildCount());
-//                 DefaultMutableTreeNode temp2 = new DefaultMutableTreeNode(child.getPath(),false);
-//                 ((DefaultTreeModel)tree.getModel()).insertNodeInto(temp2, treechild,treechild.getChildCount());
-//                 Object []  subchildren = child.getChildren().keySet().toArray();
-//                 buildChildren(subchildren,treechild,child);
-//             }catch(Exception e){
-//                 e.printStackTrace();
-//             }
-//         }
-//     }
-    
     /*
      * create a node based om an id
      * the node is created from the data 
@@ -560,31 +597,6 @@ public class SUTEditor extends JPanel{
             return null;
         }
     }
-//         try{
-//             
-//             for(Object ob:children){
-//                 String childid = ob.toString();
-//                 
-// //                 Node child = getTB(childid,node);
-// //                 node.addChild(childid, child);
-//                 DefaultMutableTreeNode treechild = new DefaultMutableTreeNode(child);
-//                 ((DefaultTreeModel)tree.getModel()).insertNodeInto(treechild, treenode,treenode.getChildCount());
-//                 DefaultMutableTreeNode temp = new DefaultMutableTreeNode("ID: "+child.getID());
-//                 ((DefaultTreeModel)tree.getModel()).insertNodeInto(temp, treechild,treechild.getChildCount());
-//                 DefaultMutableTreeNode temp2 = new DefaultMutableTreeNode(child.getPath());
-//                 ((DefaultTreeModel)tree.getModel()).insertNodeInto(temp2, treechild,treechild.getChildCount());
-//                 
-//                 HashMap hash= (HashMap)client.execute("getSut", new Object[]{child});
-//                 Object[] children = (Object[])hash.get("children");
-//                 buildChildren(children,treechild);
-//                 
-//                 
-//                 
-//             }
-//         } catch(Exception e){
-//             e.printStackTrace();
-//         }
-//     }
     
     
     /*
@@ -722,7 +734,7 @@ public class SUTEditor extends JPanel{
                             model.insertNodeInto(element, parent, index++);
                         }
                         else{
-                            CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,SUTEditor.this,"ERROR", resp);
+                            CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SUTEditor.this,"ERROR", resp);
                         }
                         
                     } catch (Exception e){

@@ -1,6 +1,6 @@
 /*
 File: Panel2.java ; This file is part of Twister.
-Version: 2.0012
+Version: 2.0013
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -419,10 +419,15 @@ public class Panel2 extends JPanel{
             try{for(int i=0;i<RunnerRepository.getLogs().size();i++){
                     if(i==4)continue;
                     if(RunnerRepository.getLogs().get(i).equals(""))continue;
-                    Log log = new Log(500,0,RunnerRepository.getLogs().get(i));
+                    Log log = new Log(RunnerRepository.getLogs().get(i));
                     logs.add(log);
                     tabbed.addTab(RunnerRepository.getLogs().get(i),log.container);
-                }}
+                }
+                Log log = new Log("server_log");
+                log.clearlog.setEnabled(false);
+                logs.add(log);
+                tabbed.addTab("server_log",log.container);
+            }
             catch(Exception e){e.printStackTrace();}}});
         TabsReorder.enableReordering(tabbed);} 
 

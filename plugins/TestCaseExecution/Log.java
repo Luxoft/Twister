@@ -1,6 +1,6 @@
 /*
 File: Log.java ; This file is part of Twister.
-Version: 2.002
+Version: 2.003
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -64,8 +64,9 @@ public class Log extends JPanel{
     private long response = 0;
     public JPanel container;
     private int lastIndexFound = -1;
+    public JButton clearlog;
 
-    public Log(int x, int y,final String log){
+    public Log(final String log){
         this.log = log;
         size = 0;
         line = 0;
@@ -98,7 +99,7 @@ public class Log extends JPanel{
         savelog.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 saveLog();}});
-        JButton clearlog = new JButton("Clear log");
+        clearlog = new JButton("Clear log");
         clearlog.setFont(new Font("TimesRoman", Font.PLAIN, 10));
         clearlog.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){

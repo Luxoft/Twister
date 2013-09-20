@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# version: 2.002
+# version: 2.003
 
 # File: install_dev.py ; This file is part of Twister.
 
@@ -208,6 +208,8 @@ if TO_INSTALL == 'server':
         'lib/',
         'config/resources.json',
         'config/services.ini',
+        'config/users_and_groups.ini',
+        'config/server_init.ini',
         'plugins/',
         'services/',
     ]
@@ -216,6 +218,8 @@ if TO_INSTALL == 'server':
         'bin/start_server',
         'config/resources.json',
         'config/services.ini',
+        'config/users_and_groups.ini',
+        'config/server_init.ini',
         'config/',
         'log/',
     ]

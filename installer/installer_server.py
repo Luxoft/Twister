@@ -51,11 +51,25 @@ if __dir__: os.chdir(__dir__)
 # Python executable. Alternatively, it can be "python2.7".
 PYTHON_EXE = sys.executable
 
+def userHome(user):
+    return subprocess.check_output('echo ~' + user, shell=True).strip()
+
+try:
+    user_name = os.getenv('USER')
+    if user_name=='root':
+        user_name = os.getenv('SUDO_USER')
+    if not user_name:
+        print('Cannot guess the Username! Exiting!\n')
+        exit(1)
+except:
+    print('Cannot guess the Username! Exiting!\n')
+    exit(1)
+
 # --------------------------------------------------------------------------------------------------
 # Previous installations of Twister
 # --------------------------------------------------------------------------------------------------
 
-print('\nWelcome to the Twister Installer !\n')
+print('Welcome to the Twister Installer !\n')
 
 print('Please type where you wish to install the servers.')
 print('Don\'t forget to add `twister` at the end of the path!')
@@ -64,7 +78,7 @@ selected = raw_input('Path : ')
 selected = selected.rstrip('/')
 
 if selected and not os.path.isdir( os.path.split(selected)[0] ):
-    print('The path to `{0}` does not exist! Exiting!\n'.format(os.path.split(selected)[0]))
+    print('The path to `{}` does not exist! Exiting!\n'.format(os.path.split(selected)[0]))
     exit(1)
 
 # Twister server path
@@ -90,7 +104,11 @@ if os.path.exists(INSTALL_PATH):
 # Backup CONFIG folder for server
 if os.path.exists(INSTALL_PATH + 'config'):
     if os.getuid() != 0: # Normal user
-        tmp_config = os.getcwd()
+        tmp_config = userHome(user_name) + '/.twister'
+        try: os.mkdir(tmp_config)
+        except:
+            print('Error! Cannot create .twister dir `{}`! The installation cannot continue!\n'.format(tmp_config))
+            exit(1)
     else: # ROOT user
         tmp_config = '/tmp/twister_server_config'
     print('\nBack-up `config` folder (from `{}` to `{}`)...'.format(INSTALL_PATH+'config', tmp_config))

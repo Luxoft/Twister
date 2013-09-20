@@ -1,6 +1,6 @@
 /*
 File: Grafic.java ; This file is part of Twister.
-Version: 2.0011
+Version: 2.0012
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -1143,7 +1143,6 @@ public class Grafic extends JPanel{
                         Item temp = getItem(selected,false);
                         int userDefNr = temp.getUserDefNr();
                         boolean root = false;
-                        
                         RunnerRepository.window.mainpanel.p1.suitaDetails.setParent(temp);
                         if(temp.getPos().size()==1){
                             root = true;
@@ -1300,7 +1299,6 @@ public class Grafic extends JPanel{
                             RunnerRepository.window.mainpanel.p1.suitaDetails.setParent(temp);
                             RunnerRepository.window.mainpanel.p1.suitaDetails.setTCDetails();
                             tcPopUp(ev,getItem(selected,false));
-                            System.out.println("Here3");
                         }
                         else{
                             Item temp = getItem(selected,false);
@@ -1399,16 +1397,19 @@ public class Grafic extends JPanel{
             p.add(item);
             item.addActionListener(new ActionListener(){
                 public void actionPerformed(ActionEvent ev){
-                    int index = prop.getPos().get(prop.getPos().size()-1);
-                    if(getTcParent(prop,false).getSubItemsNr()-1>index){
-                        for(int i=index+1;i<getTcParent(prop,false).getSubItemsNr();i++){
-                            Item temporaryprop = getTcParent(prop,false).getSubItem(i);
-                            temporaryprop.updatePos(prop.getPos().size()-1,
-                                                    temporaryprop.getPos().get(prop.getPos().size()-1)-1);}}
-                    getTcParent(prop,false).getSubItems().remove(prop);
-                    selectedcollection.clear();
-                    updateLocations(getTcParent(prop,false));
-                    repaint();}});
+                    removeSelected();
+//                     int index = prop.getPos().get(prop.getPos().size()-1);
+//                     if(getTcParent(prop,false).getSubItemsNr()-1>index){
+//                         for(int i=index+1;i<getTcParent(prop,false).getSubItemsNr();i++){
+//                             Item temporaryprop = getTcParent(prop,false).getSubItem(i);
+//                             temporaryprop.updatePos(prop.getPos().size()-1,
+//                                                     temporaryprop.getPos().get(prop.getPos().size()-1)-1);}}
+//                     getTcParent(prop,false).getSubItems().remove(prop);
+//                     selectedcollection.clear();
+//                     updateLocations(getTcParent(prop,false));
+//                     repaint();
+                
+                }});
             p.show(this,ev.getX(),ev.getY());}}
     
     /*
@@ -1680,8 +1681,10 @@ public class Grafic extends JPanel{
         p.add(item);
         item.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
-                removeTC(tc);
-                selectedcollection.clear();}});
+                removeSelected();
+//                 removeTC(tc);
+//                 selectedcollection.clear();
+            }});
         p.show(this,ev.getX(),ev.getY());}
        
     /*
@@ -1876,14 +1879,13 @@ public class Grafic extends JPanel{
                 else found = false;
                 ArrayList <Integer> indexpos3 = (ArrayList <Integer>)tc.getPos().clone();
                 indexpos3.add(new Integer(tc.getSubItemsNr()));
-                FontMetrics metrics = getGraphics().getFontMetrics(new Font("TimesRoman", 0, 11));
-                int width = metrics.stringWidth(name.getText()+":  "+value.getText()) + 38;
-                Item property = new Item(name.getText(),0,-1,-1,width,20,indexpos3);
+                Item property = new Item(name.getText(),0,-1,-1,0,20,indexpos3);
                 property.setValue(value.getText());
-                if(!tc.getSubItem(0).isVisible())property.setSubItemVisible(false);
+                property.setSubItemVisible(false);
                 tc.addSubItem(property);
-                updateLocations(tc);
-                repaint();}
+                RunnerRepository.window.mainpanel.p1.suitaDetails.setParent(tc);
+                RunnerRepository.window.mainpanel.p1.suitaDetails.setTCDetails();
+            }
             else found = false;}}
             
     /*
@@ -1903,14 +1905,17 @@ public class Grafic extends JPanel{
         if(resp == JOptionPane.OK_OPTION){
             ArrayList <Integer> indexpos3 = (ArrayList <Integer>)tc.getPos().clone();
             indexpos3.add(new Integer(tc.getSubItemsNr()));
-            FontMetrics metrics = getGraphics().getFontMetrics(new Font("TimesRoman", 0, 11));
-            int width = metrics.stringWidth(name.getText()+":  "+value.getText()) + 38;
-            Item property = new Item(name.getText(),0,-1,-1,width,20,indexpos3);
+//             FontMetrics metrics = getGraphics().getFontMetrics(new Font("TimesRoman", 0, 11));
+//             int width = metrics.stringWidth(name.getText()+":  "+value.getText()) + 38;
+            Item property = new Item(name.getText(),0,-1,-1,0,20,indexpos3);
             property.setValue(value.getText());
             if(!tc.getSubItem(0).isVisible())property.setSubItemVisible(false);
             tc.addSubItem(property);
             updateLocations(tc);
-            repaint();}}
+            RunnerRepository.window.mainpanel.p1.suitaDetails.setParent(tc);
+            RunnerRepository.window.mainpanel.p1.suitaDetails.setTCDetails();
+//             repaint();
+        }}
     
     /*
      * panel displayed on
@@ -1990,6 +1995,7 @@ public class Grafic extends JPanel{
                 updateLocations(RunnerRepository.getSuita(0));}
             selectedcollection.clear();
             deselectAll();
+            System.out.println("Here");
             RunnerRepository.window.mainpanel.p1.suitaDetails.setGlobalDetails();
             RunnerRepository.window.mainpanel.p1.suitaDetails.clearDefs();
             RunnerRepository.window.mainpanel.p1.suitaDetails.setParent(null);

@@ -1,6 +1,6 @@
 /*
 File: ConfigTree.java ; This file is part of Twister.
-Version: 2.004
+Version: 2.005
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -108,7 +108,6 @@ public class ConfigTree extends JPanel{
                               DefaultMutableTreeNode node = (DefaultMutableTreeNode) enumeration.nextElement();
                               if((node.getParent()+"/"+node).toString().equals(tf.getText())){
                                   tree.setSelectionPath(new TreePath(((DefaultTreeModel)tree.getModel()).getPathToRoot(node)));
-                                  //doubleClicked();
                               }
                             }
                         } catch(Exception e){
