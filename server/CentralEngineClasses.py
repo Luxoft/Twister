@@ -1,7 +1,7 @@
 
 # File: CentralEngineClasses.py ; This file is part of Twister.
 
-# version: 2.026
+# version: 2.027
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -43,37 +43,27 @@ import time
 import datetime
 import traceback
 import socket
+socket.setdefaulttimeout(4)
 import binascii
 import tarfile
 import xmlrpclib
 import urlparse
-import platform
 import MySQLdb
 
 import pickle
 try: import simplejson as json
 except: import json
 
-
-if not sys.version.startswith('2.7'):
-    print('Python version error! Central Engine must run on Python 2.7!')
-    exit(1)
+import cherrypy
+from cherrypy import _cptools
 
 TWISTER_PATH = os.getenv('TWISTER_PATH')
 if not TWISTER_PATH:
     print('$TWISTER_PATH environment variable is not set! Exiting!')
     exit(1)
-sys.path.append(TWISTER_PATH)
+if TWISTER_PATH not in sys.path:
+    sys.path.append(TWISTER_PATH)
 
-
-import cherrypy
-from cherrypy import _cptools
-
-from CentralEngineOthers import Project
-from ServiceManager    import ServiceManager
-from CentralEngineRest import WebInterface
-from ResourceAllocator import ResourceAllocator
-from ReportingServer   import ReportingServer
 
 from common.constants  import *
 from common.helpers    import *
@@ -92,22 +82,10 @@ class CentralEngine(_cptools.XMLRPCController):
     *This class is the core of all operations.*
     """
 
-    def __init__(self):
+    def __init__(self, proj):
 
-        # Build all Parsers + EP + Files structure
-        try:
-            srv_ver = open(TWISTER_PATH + '/server/version.txt').read().strip()
-            srv_ver = 'version `{}`'.format(srv_ver)
-        except: srv_ver = ''
-
-        logDebug('CE: Starting Twister Server {}...'.format(srv_ver)) ; ti = time.time()
-        self.project = Project(self)
-        logDebug('CE: Initialization took %.4f seconds.' % (time.time()-ti))
-
-        self.manager = ServiceManager()
-        self.rest = WebInterface(self, self.project)
-        self.ra   = ResourceAllocator(self, self.project)
-        self.report = ReportingServer(self, self.project)
+        proj.parent  = self
+        self.project = proj
 
 
     @cherrypy.expose
@@ -116,7 +94,7 @@ class CentralEngine(_cptools.XMLRPCController):
         if 'xmlrpc' in user_agent or 'xml rpc' in user_agent:
             return super(CentralEngine, self).default(*vpath, **params)
         # If the connection is not XML-RPC, redirect to REST
-        raise cherrypy.HTTPRedirect('/rest/' + '/'.join(vpath))
+        raise cherrypy.HTTPRedirect('/web/' + '/'.join(vpath))
 
 
 # --------------------------------------------------------------------------------------------------
@@ -148,9 +126,7 @@ class CentralEngine(_cptools.XMLRPCController):
         '''
         Returns some system information.
         '''
-        system = platform.machine() +' '+ platform.system() +', '+ ' '.join(platform.linux_distribution())
-        python = '.'.join([str(v) for v in sys.version_info])
-        return '{}\nPython {}'.format(system.strip(), python)
+        return systemInfo()
 
 
     @cherrypy.expose
@@ -181,17 +157,7 @@ class CentralEngine(_cptools.XMLRPCController):
         return self.project.decryptText(text)
 
 
-    @cherrypy.expose
-    def runUserScript(self, script_path):
-        """
-        Executes a script.
-        Returns a string containing the text printed by the script.\n
-        This function is called from the Java GUI.
-        """
-        return execScript(script_path)
-
-
-#
+# # #
 
 
     @cherrypy.expose
@@ -206,7 +172,7 @@ class CentralEngine(_cptools.XMLRPCController):
         if 'CHANGE_SERVICES' not in cherry_roles['roles']:
             logDebug('Privileges ERROR! Username `{user}` cannot use Service Manager!'.format(**cherry_roles))
             return False
-        return self.manager.sendCommand(command, name, args, kwargs)
+        return self.project.manager.sendCommand(command, name, args, kwargs)
 
 
     @cherrypy.expose
@@ -215,6 +181,16 @@ class CentralEngine(_cptools.XMLRPCController):
         Manage users, groups and permissions.
         """
         return self.project.usersAndGroupsManager(cmd, name, args, kwargs)
+
+
+    @cherrypy.expose
+    def runUserScript(self, script_path):
+        """
+        Executes a script.
+        Returns a string containing the text printed by the script.\n
+        This function is called from the Java GUI.
+        """
+        return execScript(script_path)
 
 
     @cherrypy.expose
@@ -270,7 +246,6 @@ class CentralEngine(_cptools.XMLRPCController):
         Username and password are used for authentication.\n
         This function is called every time the Central Engine stops.
         """
-
         try:
             ret = self.project.sendMail(user, force)
             return ret
@@ -283,9 +258,9 @@ class CentralEngine(_cptools.XMLRPCController):
     @cherrypy.expose
     def commitToDatabase(self, user):
         """
-        For each EP, for each Suite and each File, the results of the tests are saved to database,
+        For each File from each EP, from each Suite, the results of the tests are saved to database,
         exactly as the user defined them in Database.XML.\n
-        This function is called from the Java GUI, or from an EP.
+        This function is called from the Java GUI.
         """
         logDebug('CE: Preparing to save into database...')
         time.sleep(3)
@@ -573,7 +548,6 @@ class CentralEngine(_cptools.XMLRPCController):
         ip, port = _proxy.split(':')
 
         try:
-            socket.create_connection((ip, int(port)), 2)
             logDebug('Trying to start `{} {}`.'.format(user, epname))
             return proxy.startEP(epname)
         except Exception as e:
@@ -595,7 +569,6 @@ class CentralEngine(_cptools.XMLRPCController):
         ip, port = _proxy.split(':')
 
         try:
-            socket.create_connection((ip, int(port)), 2)
             logWarning('Trying to stop `{} {}`.'.format(user, epname))
             return proxy.stopEP(epname)
         except Exception as e:
@@ -617,7 +590,6 @@ class CentralEngine(_cptools.XMLRPCController):
         ip, port = _proxy.split(':')
 
         try:
-            socket.create_connection((ip, int(port)), 2)
             logWarning('Trying to restart `{} {}`.'.format(user, epname))
             return proxy.restartEP(epname)
         except Exception as e:

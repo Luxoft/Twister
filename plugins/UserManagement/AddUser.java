@@ -51,7 +51,7 @@ public class AddUser extends JFrame{
 		this.groups = groups;
 		setTitle("Add existing user to configuration");
 		setVisible(true);
-		setBounds(x,y,320,240);
+		setBounds(x,y,420,340);
 		setAlwaysOnTop(true);
 		setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 		initComponents();

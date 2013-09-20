@@ -1,7 +1,7 @@
 
 # File: LogServer.py ; This file is part of Twister.
 
-# version: 2.006
+# version: 2.007
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -14,10 +14,12 @@ import os, sys
 import time
 import glob
 import random
+import struct
 import socket
 import json
 import logging
 
+socket.setdefaulttimeout(5)
 log = logging.getLogger(__name__)
 
 logging.basicConfig(
@@ -46,6 +48,7 @@ def create_listener(PORT):
         af, socktype, proto, canonname, sa = res
         try:
             sock = socket.socket(af, socktype, proto)
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_LINGER, struct.pack('ii', 1, 0))
         except socket.error as msg:
             sock = None
             continue

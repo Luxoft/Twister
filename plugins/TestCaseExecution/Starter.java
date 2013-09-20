@@ -1,6 +1,6 @@
 /*
 File: Starter.java ; This file is part of Twister.
-Version: 2.005
+Version: 2.006
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -31,6 +31,7 @@ import java.awt.Image;
 import javax.imageio.ImageIO;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.io.File;
 
 public class Starter implements TwisterPluginInterface{
     public CommonInterface maincomp;
@@ -87,6 +88,12 @@ public class Starter implements TwisterPluginInterface{
     
     public void terminate(){
         System.out.println("Stopping TC Runner");
+        RunnerRepository.saveMainLayout();
+        File file = new File(RunnerRepository.temp);
+        if(file.exists()){
+            if(Window.deleteTemp(file))
+                System.out.println(RunnerRepository.temp+" deleted successfull");
+            else System.out.println("Could not delete: "+RunnerRepository.temp);}
         RunnerRepository.run = false;
         RunnerRepository.session.disconnect();
         RunnerRepository.connection.disconnect();        

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# version: 2.005
+# version: 2.006
 
 # File: ExecutionProcess.py ; This file is part of Twister.
 
@@ -42,6 +42,7 @@ import xmlrpclib
 import pickle
 import binascii
 import socket
+socket.setdefaulttimeout(3)
 import threading
 import subprocess
 import platform
@@ -280,12 +281,6 @@ if __name__=='__main__':
 
     CE_Path = 'http://{}:EP@{}/'.format(userName, host)
     tcr_pid = None # PID of TC Runner
-
-    try:
-        socket.create_connection(host.split(':'), 2)
-    except:
-        print('EP Error: No Central Engine was found at `{}` !'.format(host))
-        exit(1)
 
     proxy = xmlrpclib.ServerProxy(CE_Path)
 
