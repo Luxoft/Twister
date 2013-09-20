@@ -382,6 +382,7 @@ public class SUTEditor extends JPanel{
                             String resp = client.execute("import_xml", new Object[]{tf.getText(),2}).toString();
                             if(resp.equals("true")){
                                 getSUT();
+                                RunnerRepository.window.mainpanel.p1.suitaDetails.setComboTBs();
                             } else {
                                 CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SUTEditor.this,"ERROR", resp);
                             }
@@ -413,7 +414,9 @@ public class SUTEditor extends JPanel{
                         }
                     }
                 };
-                new MySftpBrowser(RunnerRepository.host,RunnerRepository.user,RunnerRepository.password,tf,c,false).setAction(action);
+                MySftpBrowser browser = new MySftpBrowser(RunnerRepository.host,RunnerRepository.user,RunnerRepository.password,tf,c,false);
+                browser.setAction(action);
+                browser.setButtonText("Save");
             }});
         menu.add(exp);
         

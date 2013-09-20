@@ -194,7 +194,9 @@ public class TB extends JPanel{
                         }
                     }
                 };
-                new MySftpBrowser(RunnerRepository.host,RunnerRepository.user,RunnerRepository.password,tf,c,false).setAction(action);
+                MySftpBrowser browser = new MySftpBrowser(RunnerRepository.host,RunnerRepository.user,RunnerRepository.password,tf,c,false);
+                browser.setAction(action);
+                browser.setButtonText("Save");
             }});
         menu.add(exp);
         

@@ -195,6 +195,10 @@ public class MySftpBrowser extends JFrame {
 		}
 	}
 	
+	public void setButtonText(String text){
+		open.setText(text);
+	}
+	
 	private void columnSwitch(TableColumn col, boolean enable){
 		if(!enable){
 			col.setMinWidth(0);
