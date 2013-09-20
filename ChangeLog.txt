@@ -1,3 +1,15 @@
+20th September
+
+- fixed a bug with user groups, when creating new users.
+- CE logs are displayed in the GUI; issue #14
+- Fixed installer client and server when the twister repo is located in
+  an admin folder; issue #92
+- fixed speeling error for snapshot view in GIT plugin
+- fixed test case properties editing; issue #85
+- implemented copy/paste in sut/TB; issue #93
+- implemented import/export XML->JSON for SUT and TB
+ 
+
 13th September
 
 - changes for secondary libraries; there is no need to use syntax
