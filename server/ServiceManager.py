@@ -54,7 +54,8 @@ TWISTER_PATH = os.getenv('TWISTER_PATH')
 if not TWISTER_PATH:
     print('$TWISTER_PATH environment variable is not set! Exiting!')
     exit(1)
-sys.path.append(TWISTER_PATH)
+if TWISTER_PATH not in sys.path:
+    sys.path.append(TWISTER_PATH)
 
 from common.tsclogging import *
 from common import iniparser

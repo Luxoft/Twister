@@ -1,5 +1,5 @@
 
-# File: CentralEngineRest.py ; This file is part of Twister.
+# File: CentralEngineWebUi.py ; This file is part of Twister.
 
 # version: 2.007
 
@@ -25,8 +25,8 @@
 # limitations under the License.
 
 """
-Central Engine Management
-*************************
+Central Engine Web Interface
+****************************
 
 All functions are exposed and can be accessed using the browser.\n
 It is used mostly for debugging. Its role is to view statistics,
@@ -149,10 +149,9 @@ def dirList(tests_path, path, newdict):
 
 class WebInterface:
 
-    def __init__(self, parent, project):
+    def __init__(self, project):
 
         self.project = project
-        self.parent  = parent
 
 
     def user_agent(self):
@@ -192,7 +191,7 @@ class WebInterface:
         if self.user_agent() == 'x':
             return 0
         if not user:
-            raise cherrypy.HTTPRedirect('/rest/#tab_users')
+            raise cherrypy.HTTPRedirect('/web/#tab_users')
 
         host = cherrypy.request.headers['Host']
         reversed = dict((v,k) for k,v in execStatus.iteritems())
@@ -340,8 +339,8 @@ class WebInterface:
     @cherrypy.expose
     def resetUser(self, user):
         self.project.reset(user)
-        self.parent.resetLogs(user)
-        raise cherrypy.HTTPRedirect('http://{host}/rest/users/{user}'.format(
+        self.project.resetLogs(user)
+        raise cherrypy.HTTPRedirect('http://{host}/web/users/{user}'.format(
             host = cherrypy.request.headers['Host'], user = user
         ))
 
@@ -354,8 +353,8 @@ class WebInterface:
         if status not in execStatus.values():
             return output.render(title='Error!', body='<b>Status value `{0}` is not in the list of valid statuses: {1}!</b>'\
                 .format(status, execStatus.values()))
-        self.parent.setExecStatusAll(user, status, 'User status changed from REST interface.')
-        raise cherrypy.HTTPRedirect('http://{host}/rest/users/{user}#tab_home'.format(
+        self.project.setExecStatusAll(user, status, 'User status changed from REST interface.')
+        raise cherrypy.HTTPRedirect('http://{host}/web/users/{user}#tab_home'.format(
             host = cherrypy.request.headers['Host'], user = user
         ))
 
@@ -368,8 +367,8 @@ class WebInterface:
         if status not in execStatus.values():
             return output.render(title='Error!', body='<b>Status value `{0}` is not in the list of valid statuses: {1}!</b>'\
                 .format(status, execStatus.values()))
-        self.parent.setExecStatus(user, epname, status, 'EP status changed from REST interface.')
-        raise cherrypy.HTTPRedirect('http://{host}/rest/users/{user}#tab_proc'.format(
+        self.project.setExecStatus(user, epname, status, 'EP status changed from REST interface.')
+        raise cherrypy.HTTPRedirect('http://{host}/web/users/{user}#tab_proc'.format(
             host = cherrypy.request.headers['Host'], user = user, epname = epname
         ))
 

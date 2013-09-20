@@ -49,7 +49,8 @@ TWISTER_PATH = os.getenv('TWISTER_PATH')
 if not TWISTER_PATH:
     print('\n$TWISTER_PATH environment variable is not set! Exiting!\n')
     exit(1)
-sys.path.append(TWISTER_PATH)
+if TWISTER_PATH not in sys.path:
+    sys.path.append(TWISTER_PATH)
 
 from common.helpers    import *
 from common.tsclogging import *
@@ -74,10 +75,9 @@ class ReportingServer:
     curs = {}
 
 
-    def __init__(self, parent, project):
+    def __init__(self, project):
 
         self.project = project
-        self.parent  = parent
 
 
     def load_config(self, usr, force=False):

@@ -1,6 +1,6 @@
 /*
 File: RunnerRepository.java ; This file is part of Twister.
-Version: 2.0023
+Version: 2.0024
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -152,8 +152,8 @@ public class RunnerRepository {
     private static String[] lookAndFeels;
     public static Container container;
     private static Document pluginsconfig;
-    private static String version = "2.025";
-    private static String builddate = "13.09.2013";
+    private static String version = "2.026";
+    private static String builddate = "20.09.2013";
     public static String logotxt,os,python;
     
     public static void setStarter(Starter starter){
@@ -329,7 +329,7 @@ public class RunnerRepository {
     
     //test if CE is running
     public static boolean isCE(){
-        try{client.execute("echo", new Object[]{"test if CE is running"});
+        try{client.execute("echo", new Object[]{"ping"});
             return true;
         } catch(Exception e){
             e.printStackTrace();

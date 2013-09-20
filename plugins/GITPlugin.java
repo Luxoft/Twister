@@ -2,7 +2,7 @@
 File: GITPlugin.java ; This file is part of Twister.
 
 Copyright (C) 2012 , Luxoft
-Version: 2.002
+Version: 2.003
 Authors: Andrei Costachi <acostachi@luxoft.com>
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -114,7 +114,7 @@ public class GITPlugin extends BasePlugin implements TwisterPluginInterface {
         tbranch = new JTextField();
         snapshot = new JLabel("Snapshot: ");
         tsnapshot = new JTextField();
-        snap = new JButton("Create snaphot");
+        snap = new JButton("Create snaphsot");
         update = new JButton("Update");
         check = new JCheckBox("overwrite");
         browse = new JButton("...");
@@ -517,7 +517,7 @@ public class GITPlugin extends BasePlugin implements TwisterPluginInterface {
 			if(result.equals("true")){
 				frame.setVisible(false);
 				JOptionPane.showConfirmDialog(GITPlugin.this, "Success",
-											  "Snaphot", JOptionPane.CLOSED_OPTION, 
+											  "Snapshot", JOptionPane.CLOSED_OPTION, 
 											  JOptionPane.INFORMATION_MESSAGE);
 				refreshTree(tsnapshot.getText(),frame); 
 			}
@@ -525,7 +525,7 @@ public class GITPlugin extends BasePlugin implements TwisterPluginInterface {
 				frame.dispose();
 				JOptionPane.showConfirmDialog(GITPlugin.this, "Snapshot operation"+
 													" failed with error:\n "+result, 
-													"Snaphot", JOptionPane.CLOSED_OPTION,
+													"Snapshot", JOptionPane.CLOSED_OPTION,
 													JOptionPane.WARNING_MESSAGE);
 			}
 		} catch (Exception e) {
@@ -548,14 +548,14 @@ public class GITPlugin extends BasePlugin implements TwisterPluginInterface {
 			if(result.equals("true")){
 				frame.setVisible(false);
 				JOptionPane.showConfirmDialog(GITPlugin.this, "Success",
-						  					  "Snaphot", JOptionPane.CLOSED_OPTION, 
+						  					  "Snapshot", JOptionPane.CLOSED_OPTION, 
 						  					  JOptionPane.INFORMATION_MESSAGE);
 				refreshTree(tsnapshot.getText(),frame);}
 			else{
 				frame.dispose();
 				JOptionPane.showConfirmDialog(GITPlugin.this, "Update operation"+
 													" failed with error:\n "+result, 
-						  					   "Snaphot", JOptionPane.CLOSED_OPTION,
+						  					   "Snapshot", JOptionPane.CLOSED_OPTION,
 						  					  		   JOptionPane.WARNING_MESSAGE);
 			}
 		} catch (Exception e) {
