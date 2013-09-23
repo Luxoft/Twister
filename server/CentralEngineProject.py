@@ -2508,8 +2508,10 @@ class Project(object):
 
         def send(sock, msg):
             sock.sendall(msg)
-            resp = sock.recv(1024)
-            return resp
+            r = sock.recv(1024)
+            return r
+
+        resp = ''
 
         if ':' in msg:
             logFile, logMsg = msg.split(':')[0], ':'.join( msg.split(':')[1:] )
