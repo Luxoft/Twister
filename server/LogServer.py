@@ -1,7 +1,7 @@
 
 # File: LogServer.py ; This file is part of Twister.
 
-# version: 2.007
+# version: 2.008
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -19,7 +19,6 @@ import socket
 import json
 import logging
 
-socket.setdefaulttimeout(5)
 log = logging.getLogger(__name__)
 
 logging.basicConfig(
