@@ -2506,8 +2506,28 @@ class Project(object):
             if not sock:
                 return False
 
-        sock.sendall(msg)
-        resp = sock.recv(1024)
+        def send(sock, msg):
+            sock.sendall(msg)
+            resp = sock.recv(1024)
+            return resp
+
+        if ':' in msg:
+            logFile, logMsg = msg.split(':')[0], ':'.join( msg.split(':')[1:] )
+            lmsg = 2 ** 12
+            lead = len(logFile)
+            ind  = 0
+            while 1:
+                i1 = ind
+                i2 = i1 + lmsg - lead - 1
+                if i2 <= 0: i2 = -1
+                if not logMsg[i1:i2]:
+                    break
+                msg = logFile +':'+ logMsg[i1:i2]
+                resp = send(sock, msg)
+                ind = i2
+        else:
+            resp = send(sock, msg)
+
         sock.close()
 
         if resp == 'Ok!':

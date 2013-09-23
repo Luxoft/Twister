@@ -78,7 +78,7 @@ def process_cmd(sock):
 
     while 1:
         resp = 'Ok!' # Default response
-        buff = 2**15
+        buff = 2**12
 
         # Message from client.
         data = conn.recv(buff)
@@ -171,12 +171,14 @@ def process_cmd(sock):
                 logFolder = os.path.split(logFile)[0] + '/logs'
                 try:
                     os.makedirs(logFolder)
+                    f = open(logFile, 'a')
                 except:
                     resp = 'Log folder `{}` cannot be created!'.format(logFolder)
                     log.error(resp)
 
             f.write(logMsg)
             f.close()
+            del f
 
 
         # ~~~ Write Log Message ~~~
