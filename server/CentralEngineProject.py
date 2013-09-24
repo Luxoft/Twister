@@ -1,7 +1,7 @@
 
 # File: CentralEngineProject.py ; This file is part of Twister.
 
-# version: 2.041
+# version: 2.042
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -2032,6 +2032,16 @@ class Project(object):
             # Information that will be mapped into subject or message of the e-mail
             map_info = {'date': time.strftime("%Y-%m-%d %H:%M")}
 
+            map_info['twister_user']    = user
+            map_info['twister_ce_type'] = self.server_init['ce_server_type'].lower()
+            map_info['twister_server_location'] = self.server_init.get('ce_server_location', '')
+            map_info['twister_rf_fname']    = '{}/config/resources.json'.format(TWISTER_PATH)
+            map_info['twister_pf_fname']    = self.users[user].get('proj_xml_name', '')
+            map_info['twister_ce_os']       = system
+            map_info['twister_ce_hostname'] = ce_host
+            map_info['twister_ce_ip']       = ce_ip
+            map_info['twister_ce_python_revision'] = '.'.join([str(v) for v in sys.version_info])
+
             # Get all useful information, available for each EP
             for ep, ep_data in self.users[user]['eps'].iteritems():
 
@@ -2060,7 +2070,14 @@ class Project(object):
                         else:
                             map_info[k] = str(suite_data[k])
 
-            # print 'E-mail map info::', map_info
+            try: del map_info['name']
+            except: pass
+            try: del map_info['type']
+            except: pass
+            try: del map_info['pd']
+            except: pass
+
+            # print 'E-mail map info::', json.dumps(map_info, indent=4, sort_keys=True)
 
             # Subject template string
             tmpl = Template(eMailConfig['Subject'])
