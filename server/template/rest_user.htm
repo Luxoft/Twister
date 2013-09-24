@@ -30,7 +30,7 @@
 <body>
 <div class="container-fluid">
 
-<ul class="pager" style="position:absolute;margin-top:-45px;"><li class="previous"><a href="/rest">Back</a></li></ul>
+<ul class="pager" style="position:absolute;margin-top:-45px;"><li class="previous"><a href="/web">Back</a></li></ul>
 
 <div class="tabbable">
 	<ul class="nav nav-pills">
@@ -45,9 +45,9 @@
 		<h1>User `${user}`</h1><br>
 		<table class="table table-bordered">
 			<tr><td width="200"><b>Status</b></td><td><span id="user_status">${status}</span>
-				<small>(<a href="http://${host}/rest/setUserStatus/${user}/2"><i class="icon-play"></i> start</a>&nbsp; |
-				<a href="http://${host}/rest/setUserStatus/${user}/0"><i class="icon-stop"></i> stop</a>&nbsp; |
-				<a href="http://${host}/rest/resetUser/${user}"><i class="icon-warning-sign"></i> reset!</a> )</small>
+				<small>(<a href="http://${host}/web/setUserStatus/${user}/2"><i class="icon-play"></i> start</a>&nbsp; |
+				<a href="http://${host}/web/setUserStatus/${user}/0"><i class="icon-stop"></i> stop</a>&nbsp; |
+				<a href="http://${host}/web/resetUser/${user}"><i class="icon-warning-sign"></i> reset!</a> )</small>
 			</td></tr>
 			<tr><td><b>Master config</b></td><td><span id="master_path"></span></td></tr>
 			<tr><td><b>Project config</b></td><td><span id="project_path"></span></td></tr>
@@ -103,9 +103,9 @@ for ep in eps:
 		% for ep in eps:
 			<div class="tab-pane${' active' if loop.first else ''}" id="${encode(ep)}">
 				<div class="well well-small" style="width:350px">
-				Actions:&nbsp;<a href="/rest/setEpStatus/${user}/${ep}/2"><i class="icon-play"></i> </a>&nbsp;|
-				&nbsp; <a href="/rest/setEpStatus/${user}/${ep}/1"><i class="icon-pause"></i> </a>&nbsp;|
-				&nbsp; <a href="/rest/setEpStatus/${user}/${ep}/0"><i class="icon-stop"></i> </a>&nbsp;|
+				Actions:&nbsp;<a href="/web/setEpStatus/${user}/${ep}/2"><i class="icon-play"></i> </a>&nbsp;|
+				&nbsp; <a href="/web/setEpStatus/${user}/${ep}/1"><i class="icon-pause"></i> </a>&nbsp;|
+				&nbsp; <a href="/web/setEpStatus/${user}/${ep}/0"><i class="icon-stop"></i> </a>&nbsp;|
 				&nbsp; <a class="tree_edit" style="cursor:pointer"><i class="icon-pencil"></i> </a>
 				</div>
 				<!-- First file tree -->
@@ -176,7 +176,7 @@ function updateUserStats() {
 	var refresh_int = 1500; // update every X ms
 	var status_dict = ${exec_status};
 	//var updt_usr = function() {
-		$.getJSON("/rest/json_get_project",
+		$.getJSON("/web/json_get_project",
 			// On success, execute the following :
 			function(jdata) {
 				$("span#user_status").text(status_dict[ jdata["${user}"]["status"] ]); // User status
@@ -198,7 +198,7 @@ function createTree(ep_name) {
 	// jsTree config
 	var tconfig = {
 		"plugins" : ["json_data", "themes", "ui", "types", "crrm", "hotkeys", "dnd"],
-		"json_data" : { "ajax" : { "url" : "/rest/json_eps/${user}/" + ep_name } },
+		"json_data" : { "ajax" : { "url" : "/web/json_eps/${user}/" + ep_name } },
 		"themes" : {"theme" : "classic", "dots" : true, "icons" : true},
 		"types" : {
 			"valid_children" : ["suite"],
@@ -255,7 +255,7 @@ function createFileTree(ep_name) {
 	var tconfig = {
 		"plugins" : ["json_data", "themes", "ui", "types", "dnd"],
 		"initially_open" : ["root"],
-		"json_data" : { "ajax" : { "url" : "/rest/json_folders/${user}/" } },
+		"json_data" : { "ajax" : { "url" : "/web/json_folders/${user}/" } },
 		"themes" : { "theme" : "classic", "dots" : true, "icons" : true },
 		"types" : {
 			"valid_children" : ["folder"],
@@ -276,7 +276,7 @@ function createFileTree(ep_name) {
 };
 
 function updateUserLogs(log_name) {
-	$.getJSON("/rest/json_logs/${user}/" + log_name,
+	$.getJSON("/web/json_logs/${user}/" + log_name,
 		// Update log on success
 		function(html) {
 			$("#" + log_name).html(html);
@@ -301,7 +301,7 @@ function treeSave(elem) {
 	$(".tree_edit").show();
 	$("#b_" + ep_name).css('visibility', 'hidden');
 	$(".can_edit_tree").remove();
-	$.ajax( "/rest/json_save_project/${user}/" + ep_name,
+	$.ajax( "/web/json_save_project/${user}/" + ep_name,
 			{
 				data : JSON.stringify(json_repr),
 				contentType : 'application/json',

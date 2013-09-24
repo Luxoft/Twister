@@ -58,7 +58,7 @@
 		<h1>Connected Users</h1><br>
 		<table class="table table-bordered">
 		% for usr in users:
-			<tr><td width="200"><a href="/rest/users/${usr}"><i class="icon-star-empty"></i> <strong>${usr}</strong></a></td><td><code>/home/${usr}/twister</code></td></tr>
+			<tr><td width="200"><a href="/web/users/${usr}"><i class="icon-star-empty"></i> <strong>${usr}</strong></a></td><td><code>/home/${usr}/twister</code></td></tr>
 		% endfor
 		</table>
 	</div>
@@ -95,7 +95,7 @@ function drawServerStats() {
 	var cpu_values = [];
 	var mem_values = [];
 	var draw_srv = function() {
-		$.getJSON("/rest/json_stats",
+		$.getJSON("/web/json_stats",
 			// On success, execute the following :
 			function(jdata) {
 				cpu_values.push(jdata["cpu"]);
@@ -112,7 +112,7 @@ function drawServerStats() {
 	setTimeout(draw_srv, refresh_int);
 };
 function getServerLog() {
-	$.getJSON("/rest/json_logs",
+	$.getJSON("/web/json_logs",
 		// On success, execute the following :
 		function(html) {
 			$('#server_log').html(html);

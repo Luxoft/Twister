@@ -1,7 +1,7 @@
 
 # File: ServiceManager.py ; This file is part of Twister.
 
-# version: 2.001
+# version: 2.002
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -54,7 +54,8 @@ TWISTER_PATH = os.getenv('TWISTER_PATH')
 if not TWISTER_PATH:
     print('$TWISTER_PATH environment variable is not set! Exiting!')
     exit(1)
-sys.path.append(TWISTER_PATH)
+if TWISTER_PATH not in sys.path:
+    sys.path.append(TWISTER_PATH)
 
 from common.tsclogging import *
 from common import iniparser
@@ -182,13 +183,13 @@ class ServiceManager():
             config_path = ''
 
         if not os.path.isfile(script_path):
-            error = 'SM: Cannot start service `{0}`! No such script file `{1}`!'.format(
+            error = 'SM: Cannot start service `{}`! No such script file `{}`!'.format(
                 service['name'], script_path)
             logError(error)
             return error
 
         if service['config'] and (not config_path):
-            error = 'SM: Cannot start service `{0}`! No such config file `{1}`!'.format(
+            error = 'SM: Cannot start service `{}`! No such config file `{}`!'.format(
                 service['name'], config_path)
             logError(error)
             return error
@@ -198,6 +199,11 @@ class ServiceManager():
         env.update({'TWISTER_PATH': TWISTER_PATH})
 
         log_path = '{0}/services/{1}/{2}'.format(TWISTER_PATH, service['name'], service['logfile'])
+        logs_dir = os.path.split(log_path)[0]
+
+        if not os.path.isdir(logs_dir):
+            try: os.mkdir(logs_dir)
+            except: logError('SM: Cannot create logs folder `{}`!'.format(logs_dir))
 
         with open(log_path, 'wb') as out:
             try:

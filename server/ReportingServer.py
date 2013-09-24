@@ -1,7 +1,7 @@
 
 # File: ReportingServer.py ; This file is part of Twister.
 
-# version: 2.008
+# version: 2.009
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -27,6 +27,8 @@
 This file contains the Reporting Server.
 It is used to view the results of the test executions.
 The reports can be fully customized, by editing the DB.xml file.
+The INDEX/ HOME links force the reload of the DB.xml file,
+the rest of the links just use the cached data, from last reload.
 """
 
 import os
@@ -40,13 +42,15 @@ import binascii
 
 import MySQLdb
 import cherrypy
+from collections import OrderedDict
 from mako.template import Template
 
 TWISTER_PATH = os.getenv('TWISTER_PATH')
 if not TWISTER_PATH:
     print('\n$TWISTER_PATH environment variable is not set! Exiting!\n')
     exit(1)
-sys.path.append(TWISTER_PATH)
+if TWISTER_PATH not in sys.path:
+    sys.path.append(TWISTER_PATH)
 
 from common.helpers    import *
 from common.tsclogging import *
@@ -71,10 +75,9 @@ class ReportingServer:
     curs = {}
 
 
-    def __init__(self, parent, project):
+    def __init__(self, project):
 
         self.project = project
-        self.parent  = parent
 
 
     def load_config(self, usr, force=False):
@@ -98,7 +101,15 @@ class ReportingServer:
             self.glob_fields[usr]    = self.db_parser[usr].getReportFields()
             self.glob_reports[usr]   = self.db_parser[usr].getReports()
             self.glob_redirects[usr] = self.db_parser[usr].getRedirects()
-            self.glob_links[usr]     = ['Home'] + self.glob_reports[usr].keys() + self.glob_redirects[usr].keys() + ['Help']
+
+            # There are more types of reports:
+            # Normal links, like Home, Help and other normal reports
+            # Redirect links, that don't contain reports
+            # Folders, that don't go anywhere, are just labels for reports
+            self.glob_links[usr] = [{'link': 'Home', 'folder': '', 'type': 'link'}] +\
+                           [{'link': k, 'folder': v.get('folder', ''), 'type': 'link'} for k, v in self.glob_reports[usr].iteritems() ] +\
+                           [{'link': k, 'folder': '', 'type': 'redir'} for k in self.glob_redirects[usr] ] +\
+                           [{'link': 'Help', 'folder': '', 'type': 'link'}]
 
             self.connect_db(usr)
 
@@ -133,7 +144,8 @@ class ReportingServer:
         if not os.path.isdir(userHome(usr) + '/twister/config'):
             return '<br><b>Error! Username `{}` doesn\'t have a Twister config folder!</b>'.format(usr)
 
-        self.load_config(usr, True) # FORCE re-load all Database XML
+        # FORCE re-load all Database XML on INDEX/ HOME links !
+        self.load_config(usr, True)
         output = Template(filename=TWISTER_PATH + '/server/template/rep_base.htm')
         return output.render(title='Home', usr=usr, links=self.glob_links[usr])
 
@@ -207,7 +219,7 @@ class ReportingServer:
 
         if vars_to_replace and not cherrypy.request.params:
             # Options are defined as: Type, Label, Data
-            u_options = {}
+            u_options = OrderedDict()
 
             for opt in vars_to_replace:
                 u_field = self.glob_fields[usr].get(opt.replace('@', ''))

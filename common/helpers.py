@@ -1,7 +1,7 @@
 
 # File: helpers.py ; This file is part of Twister.
 
-# version: 2.001
+# version: 2.003
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -30,7 +30,9 @@ This module contains a lot of helper, common functions.
 
 import os
 import sys
+import re
 import binascii
+import platform
 import subprocess
 
 from Crypto.Cipher import AES
@@ -75,6 +77,31 @@ def setFileOwner(user, path):
             return False
 
     return True
+
+
+def getFileTags(fname):
+    """
+    Returns the title, description and all tags from a test file.
+    """
+    try: text = open(fname,'rb').read()
+    except: return ''
+
+    # Find lines starting with # or beggining of line, followed by optional space,
+    # followed by a <tag> ended with the same </tag> containing any character
+    # in range 0x20 to 0x7e (all numbers, letters and ASCII symbols)
+    # This returns 2 groups : the tag name and the text inside it.
+    tags = re.findall('^[ ]*?[#]*?[ ]*?<(?P<tag>\w+)>([ -~\n]+?)</(?P=tag)>', text, re.MULTILINE)
+
+    return '<br>\n'.join(['<b>' + title + '</b> : ' + descr.replace('<', '&lt;') for title, descr in tags])
+
+
+def systemInfo():
+    '''
+    Returns some system information.
+    '''
+    system = platform.machine() +' '+ platform.system() +', '+ ' '.join(platform.linux_distribution())
+    python = '.'.join([str(v) for v in sys.version_info])
+    return '{}\nPython {}'.format(system.strip(), python)
 
 
 def execScript(script_path):

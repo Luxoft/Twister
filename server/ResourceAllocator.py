@@ -1,7 +1,7 @@
 
 # File: ResourceAllocator.py ; This file is part of Twister.
 
-# version: 2.006
+# version: 2.009
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -37,18 +37,22 @@ import sys
 import ast
 import copy
 import thread
-import cherrypy
+
 try: import simplejson as json
 except: import json
 
+import cherrypy
+from lxml import etree
 from binascii import hexlify
 from cherrypy import _cptools
+from mako.template import Template
 
 TWISTER_PATH = os.getenv('TWISTER_PATH')
 if not TWISTER_PATH:
     print('TWISTER_PATH environment variable is not set! Exiting!')
     exit(1)
-sys.path.append(TWISTER_PATH)
+if TWISTER_PATH not in sys.path:
+    sys.path.append(TWISTER_PATH)
 
 from common.tsclogging import *
 
@@ -132,22 +136,112 @@ def _get_res_pointer(parent_node, query):
 
     return resource_p
 
+
+def flattenNodes(parent_node, result):
+    # The node is valid ?
+    if not parent_node:
+        return False
+    # This node has children ?
+    if not parent_node.get('children'):
+        return False
+
+    for node in sorted(parent_node['children'].keys()):
+        nd = dict(parent_node['children'][node])
+        nd['label'] = node
+        ch = flattenNodes(parent_node['children'][node], [])
+        nd['children'] = ch or []
+        result.append(nd)
+    return result
+
+
+def xml_to_res(xml, gparams):
+    for folder in xml.xpath('folder'):
+        # Create empty resource node
+        nd = {'meta': {}, 'id': '', 'children': {}}
+        # Populate META properties
+        nd['meta'] = {gparam.find('name').text: gparam.find('value').text for gparam in folder.xpath('param')}
+        # If the XML node contains an ID, use it; else, create a random ID
+        if nd['meta'].get('id'):
+            nd['id'] = nd['meta']['id']
+            del nd['meta']['id']
+        else:
+            nd['id'] = hexlify(os.urandom(5))
+        # Add children for this node
+        nd['children'] = xml_to_res(folder, {})
+        gparams[folder.find('fname').text] = nd
+    return gparams
+
+
+def res_to_xml(parent_node, xml):
+    # The node is valid ?
+    if not parent_node:
+        return False
+    # This node has children ?
+    if not parent_node.get('children'):
+        return False
+
+    for node in sorted(parent_node['children'].keys()):
+        nd = dict(parent_node['children'][node])
+
+        # Create empty folder
+        folder = etree.SubElement(xml, 'folder')
+        # Folder fname
+        fname = etree.SubElement(folder, 'fname')
+        fname.text = node
+        # Folder fdesc
+        fdesc = etree.SubElement(folder, 'fdesc')
+
+        # The ID is special
+        if nd.get('id'):
+            tag = etree.SubElement(folder, 'param')
+            prop = etree.SubElement(tag, 'name')
+            prop.text = 'id'
+            val  = etree.SubElement(tag, 'value')
+            val.text = nd['id']
+            typ  = etree.SubElement(tag, 'type')
+            typ.text = 'string'
+            desc  = etree.SubElement(tag, 'desc')
+
+        for k, v in nd['meta'].iteritems():
+            tag = etree.SubElement(folder, 'param')
+            prop = etree.SubElement(tag, 'name')
+            prop.text = str(k)
+            val  = etree.SubElement(tag, 'value')
+            val.text = str(v)
+            typ  = etree.SubElement(tag, 'type')
+            typ.text = 'string'
+            desc  = etree.SubElement(tag, 'desc')
+
+        ch = res_to_xml(nd, folder)
+
+    return xml
+
 #
 
 class ResourceAllocator(_cptools.XMLRPCController):
 
-    def __init__(self, parent, project):
+    def __init__(self, project):
 
         self.project = project
-        self.parent  = parent
 
         self.resources = {'version': 0, 'name': '/', 'meta': {}, 'children': {}}
         self.systems   = {'version': 0, 'name': '/', 'meta': {}, 'children': {}}
         self.acc_lock = thread.allocate_lock() # Task change lock
         self.ren_lock = thread.allocate_lock() # Rename lock
+        self.imp_lock = thread.allocate_lock() # Import lock
         self.res_file = '{}/config/resources.json'.format(TWISTER_PATH)
         self.sut_file = '{}/config/systems.json'.format(TWISTER_PATH)
         self._load(v=True)
+
+
+    @cherrypy.expose
+    def default(self, *vpath, **params):
+        user_agent = cherrypy.request.headers['User-Agent'].lower()
+        if 'xmlrpc' in user_agent or 'xml rpc' in user_agent:
+            return super(ResourceAllocator, self).default(*vpath, **params)
+        # If the connection is not XML-RPC, return the RA main
+        output = Template(filename=TWISTER_PATH + '/server/template/ra_main.htm')
+        return output.render()
 
 #
 
@@ -218,6 +312,83 @@ class ResourceAllocator(_cptools.XMLRPCController):
         '''
         logDebug('Echo: {}'.format(msg))
         return 'RA reply: {}'.format(msg)
+
+
+    @cherrypy.expose
+    def tree(self, root_id=ROOT_DEVICE, *arg, **kw):
+        '''
+        Return the structure, list based.
+        '''
+        try: root_id = int(root_id)
+        except: root_id=ROOT_DEVICE
+
+        if root_id == ROOT_DEVICE:
+            root = self.resources
+        else:
+            root = self.systems
+
+        result = [{'name': '/', 'id': '1', 'meta': {}, 'children': flattenNodes(root, [])}]
+        cherrypy.response.headers['Content-Type']  = 'application/json; charset=utf-8'
+        cherrypy.response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        cherrypy.response.headers['Pragma']  = 'no-cache'
+        cherrypy.response.headers['Expires'] = 0
+        return json.dumps(result, indent=4, sort_keys=True)
+
+
+    @cherrypy.expose
+    def import_xml(self, xml_file, root_id=ROOT_DEVICE):
+        '''
+        Import one XML file.
+        WARNING! This erases everything!
+        '''
+        if not os.path.isfile(xml_file):
+            logError('Import XML: XML file `{}` does not exist!'.format(xml_file))
+            return False
+
+        params_xml = etree.parse(xml_file)
+
+        with self.imp_lock:
+            try:
+                result = {'version': 0, 'name': '/', 'id': '1', 'meta': {}, 'children': xml_to_res(params_xml, {})}
+            except Exception as e:
+                logError('Import XML: Exception `{}`.'.format(e))
+                return False
+            if root_id == ROOT_DEVICE:
+                self.resources = result
+            else:
+                self.systems = result
+
+        # Write changes for Device or SUT
+        self._save(root_id)
+
+        root_name = ROOT_NAMES[root_id]
+        logDebug('All {} are now overwritten! Created `{}` major nodes, with children.'.format(root_name, len(result['children'])))
+        return True
+
+
+    @cherrypy.expose
+    def export_xml(self, xml_file, root_id=ROOT_DEVICE):
+        '''
+        Export as XML file.
+        '''
+        try:
+            f = open(xml_file, 'w')
+        except:
+            logError('Export XML: XML file `{}` cannot be written!'.format(xml_file))
+            return False
+
+        if root_id == ROOT_DEVICE:
+            root = self.resources
+        else:
+            root = self.systems
+
+        xml = etree.Element('root')
+        result = res_to_xml(root, xml)
+        f.write('<?xml version="1.0" encoding="UTF-8" standalone="no"?>\n\n')
+        f.write(etree.tostring(xml, pretty_print=True))
+        f.close()
+
+        return True
 
 #
 
@@ -312,13 +483,24 @@ class ResourceAllocator(_cptools.XMLRPCController):
         if not meta:
             # Flatten the children ?
             if flatten:
-                result['children'] = sorted([result['children'][node]['id'] for node in result.get('children') or []],
+                result['children'] = sorted([result['children'][node]['id'] for
+                                     node in result.get('children') or []],
                                      key=lambda node: node.lower())
             result['path'] = '/'.join(result.get('path', ''))
             return result
         else:
-            return result['meta'].get(meta, '')
-
+            ret = result['meta'].get(meta, '')
+            if ret:
+                return ret
+            # If this is a normal resource
+            if root_id == ROOT_DEVICE:
+                return ret
+            else:
+                # Ok, this might be a Device ID, instead of SUT ID!
+                tb_id = result['meta'].get('_id')
+                # If this SUT doesn't have a Device ID assigned, bye bye!
+                if not tb_id: return ''
+                return self.getResource(tb_id +':'+ meta)
 
     @cherrypy.expose
     def getSut(self, query):
@@ -502,6 +684,10 @@ class ResourceAllocator(_cptools.XMLRPCController):
             msg = 'Rename {}: Cannot find resource node path `{}` !'.format(root_name, node_path)
             logError(msg)
             return '*ERROR* ' + msg
+
+        if node_path == new_path:
+            logDebug('No changes have been made to {} `{}`.'.format(root_name, new_name))
+            return True
 
         # Must use the real pointer instead of `resource` pointer in order to update the real data
         if root_id == ROOT_DEVICE:

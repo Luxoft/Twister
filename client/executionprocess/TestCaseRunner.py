@@ -1,7 +1,7 @@
 
 # File: TestCaseRunner.py ; This file is part of Twister.
 
-# version: 2.017
+# version: 2.018
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -130,14 +130,18 @@ class TwisterRunner:
         self.libs_list = []
         self.saveLibraries()
         # After download, inject libraries path for the current EP
-        sys.path.append(self.EP_CACHE)
+        sys.path.insert(0, self.EP_CACHE + '/ce_libs')
 
         try:
             import ce_libs
-            from ce_libs import TscCommonLib
+        except:
+            print('TC error: Cannot import the CE libraries!')
+            exit(1)
+        try:
+            from TscCommonLib import TscCommonLib
             self.commonLib = TscCommonLib()
         except:
-            print('TC error: Cannot import the shared libraries!')
+            print('TC error: Cannot import the Common libraries!')
             exit(1)
 
 
@@ -193,18 +197,14 @@ class TwisterRunner:
         all_libs = [] # Normal python files or folders
         zip_libs = [] # Zip libraries
 
-        # If Reseting libs, open and destroy
-        if reset_libs:
-            __init = open(libs_path + os.sep + '__init__.py', 'w')
-            __init.write('\nimport os, sys\n')
-            __init.write('\nPROXY = "{}"\n'.format(self.CONFIG['PROXY']))
-            __init.write('USER = "{}"\n'.format(self.userName))
-            __init.write('EP = "{}"\n'.format(self.epName))
-            __init.write('TB = "{}"\n\n'.format(self.Sut))
-
-        # If not Reseting, just append
-        else:
-            __init = open(libs_path + os.sep + '__init__.py', 'a')
+        # Create ce_libs library file
+        __init = open(libs_path + os.sep + 'ce_libs.py', 'w')
+        __init.write('\nimport os, sys\n')
+        __init.write('\nPROXY = "{}"\n'.format(self.CONFIG['PROXY']))
+        __init.write('USER = "{}"\n'.format(self.userName))
+        __init.write('EP = "{}"\n'.format(self.epName))
+        __init.write('SUT = "{}"\n\n'.format(self.Sut))
+        __init.close()
 
         for lib in libs_list:
             if not lib:
@@ -227,7 +227,7 @@ class TwisterRunner:
             time.sleep(0.5)
 
             # Write ZIP imports.
-            __init.write('\nsys.path.append(os.path.split(__file__)[0] + "/{}")\n\n'.format(lib_file))
+            # __init.write('\nsys.path.append(os.path.split(__file__)[0] + "/{}")\n\n'.format(lib_file))
             lib_pth = libs_path + os.sep + lib_file
 
             f = open(lib_pth, 'wb')
@@ -246,10 +246,10 @@ class TwisterRunner:
 
             ext = os.path.splitext(lib_file)
             # Write normal imports.
-            __init.write('try:\n')
-            __init.write('\timport %s\n' % ext[0])
-            __init.write('\tfrom %s import *\n' % ext[0])
-            __init.write('except Exception as e:\n\tprint("Cannot import library `{}`! Exception `%s`!" % e)\n\n'.format(ext[0]))
+            # __init.write('try:\n')
+            # __init.write('\timport %s\n' % ext[0])
+            # __init.write('\tfrom %s import *\n' % ext[0])
+            # __init.write('except Exception as e:\n\tprint("Cannot import library `{}`! Exception `%s`!" % e)\n\n'.format(ext[0]))
             lib_pth = libs_path + os.sep + lib_file
 
             f = open(lib_pth, 'wb')
@@ -272,8 +272,6 @@ class TwisterRunner:
         tcr_proc = subprocess.Popen(['chown', self.userName+':'+self.userName, libs_path, '-R'],)
         tcr_proc.wait()
         del tcr_proc
-
-        __init.close()
 
 
     def proxySetTestStatus(self, file_id, status, time_t):
@@ -595,8 +593,8 @@ class TwisterRunner:
             end_time = time.strftime('%Y-%m-%d %H:%M:%S')
             # --------------------------------------------------------------------------------------
 
-
             print('Test statistics: Start time {} -- End time {} -- {:0.2f} sec.\n'.format(start_time, end_time, timer_f))
+
 
             if result==STATUS_PASS or result == 'PASS':
                 self.proxySetTestStatus(file_id, STATUS_PASS, timer_f) # File status PASS
