@@ -1,7 +1,7 @@
 
 # File: ClearCasePlugin.py ; This file is part of Twister.
 
-# version: 2.002
+# version: 2.003
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -63,6 +63,14 @@ class Plugin(BasePlugin):
         self.conn = None
 
 
+    def __del__(self):
+        try: self.conn.cmd({'command': 'exit'})
+        except: pass
+        del self.user
+        del self.data
+        del self.conn
+
+
     def _connect(self):
 
         # Searching for a free port in the safe range...
@@ -114,10 +122,41 @@ class Plugin(BasePlugin):
         try:
             resp = self.conn.cmd(args)
         except Exception as e:
-            print('CC Srv: Exception on args `{}` - `{}` !'.format(args, e))
+            print('CC Plug-in: Exception on args `{}` - `{}` !'.format(args, e))
             return False
 
         return resp
+
+
+    def onStart(self, clear_case_view=None):
+        """
+        Called on project start.
+        """
+        # No data provided ?
+        if not clear_case_view:
+            return False
+        # The view is already active ?
+        if 'clear_case_view' in self.data:
+            return True
+
+        print('CC Plug-in: Changing ClearCase View to `{}`.'.format(clear_case_view))
+
+        self.data['clear_case_view'] = clear_case_view
+        self.run( {'command': 'setview {}'.format(clear_case_view)} )
+
+
+    def getTestFile(self, fname):
+        """
+        Send 1 ClearCase file.
+        """
+        return self.conn.getTestFile(fname)
+
+
+    def getTestDescription(self, user, fname):
+        """
+        Returns the title, description and all tags from a test file.
+        """
+        return self.conn.getTestDescription(user, fname)
 
 #
 

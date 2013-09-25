@@ -28,6 +28,8 @@ from __future__ import print_function
 
 import os
 import sys
+import re
+import xmlrpclib
 
 import cherrypy
 from cherrypy import _cptools
@@ -75,6 +77,7 @@ class CC(_cptools.XMLRPCController):
             return False
 
         if args['command'] == 'exit':
+            print('Clearcase Plugin Srv: Shutting down...')
             cherrypy.engine.exit()
 
         _r = cleartool.cmd(args['command'])
@@ -86,6 +89,37 @@ class CC(_cptools.XMLRPCController):
         }
 
         return json.dumps(response)
+
+
+    @cherrypy.expose
+    def getTestDescription(self, user, fname):
+        """
+        Returns the title, description and all tags from a test file.
+        """
+        try: text = open(fname,'rb').read()
+        except: return ''
+
+        li_tags = re.findall('^[ ]*?[#]*?[ ]*?<(?P<tag>\w+)>([ -~\n]+?)</(?P=tag)>', text, re.MULTILINE)
+        tags = '<br>\n'.join(['<b>' + title + '</b> : ' + descr.replace('<', '&lt;') for title, descr in li_tags])
+
+        data = cleartool.cmd( 'ls {}'.format(fname) )[1]
+        if data:
+            data = data.split()[0].split('@@')[1]
+            extra_info = '<b>ClearCase Version</b> : {}'.format(data)
+
+        return tags + '<br>\n' + extra_info
+
+
+    @cherrypy.expose
+    def getTestFile(self, fname):
+        """
+        Send 1 ClearCase file.
+        """
+        try: open(fname,'r')
+        except: return ''
+
+        with open(filename, 'rb') as handle:
+            return xmlrpclib.Binary(handle.read())
 
 #
 

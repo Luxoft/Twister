@@ -1,5 +1,5 @@
 
-# version: 2.009
+# version: 2.010
 
 # Major list of constants.
 
@@ -82,6 +82,7 @@ PROJECTCONFIG_TAGS = (
 	{'name':'script_pre',		'tag':'ScriptPre',			'default':''},
 	{'name':'script_post',		'tag':'ScriptPost',			'default':''},
 	{'name':'script_mandatory',	'tag':'PrePostMandatory',	'default':False, 'type':'bool'},
+	{'name':'clear_case_view',	'tag':'ClearCaseView'	,	'default':''},
 )
 
 # Suites Tags, from Project Config XML :
