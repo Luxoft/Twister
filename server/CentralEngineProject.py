@@ -1,7 +1,7 @@
 
 # File: CentralEngineProject.py ; This file is part of Twister.
 
-# version: 2.042
+# version: 2.043
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -1408,7 +1408,7 @@ class Project(object):
                         plugin.onStart()
                 except Exception as e:
                     trace = traceback.format_exc()[34:].strip()
-                    logWarning('Error on running plugin `{} onStop` - Exception: `{}`!'.format(pname, trace))
+                    logWarning('Error on running plugin `{} onStart` - Exception: `{}`!'.format(pname, trace))
             del parser, plugins
 
             # Start all active EPs !

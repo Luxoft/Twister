@@ -1,7 +1,7 @@
 
 # File: ClearCasePlugin.py ; This file is part of Twister.
 
-# version: 2.003
+# version: 2.004
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -97,6 +97,7 @@ class Plugin(BasePlugin):
             print('Cannot connect to CC Srv on `127.0.0.1:{}` - `{}` !'.format(port, e))
             proc.terminate()
             self.conn = None
+            del self.data['clear_case_view']
             return False
 
         return True
@@ -134,10 +135,8 @@ class Plugin(BasePlugin):
         """
         # No data provided ?
         if not clear_case_view:
+            print('CC Plug-in onStart: ClearCase View empty `{}`! Your tests will NOT run!'.format(clear_case_view))
             return False
-        # The view is already active ?
-        if 'clear_case_view' in self.data:
-            return True
 
         print('CC Plug-in: Changing ClearCase View to `{}`.'.format(clear_case_view))
 
@@ -145,18 +144,41 @@ class Plugin(BasePlugin):
         self.run( {'command': 'setview {}'.format(clear_case_view)} )
 
 
+    def onStop(self, *arg, **kwarg):
+        """
+        Called on project stop.
+        """
+        # Test connection ...
+        if not isinstance(self.conn, xmlrpclib.ServerProxy):
+            return True
+        try:
+            self.conn.hello()
+        except:
+            return True
+        try:
+            resp = self.conn.cmd({'command': 'exit'})
+        except Exception as e:
+            return True
+
+
     def getTestFile(self, fname):
         """
         Send 1 ClearCase file.
         """
-        return self.conn.getTestFile(fname)
+        try:
+            return self.conn.getTestFile(fname)
+        except Exception as e:
+            return ''
 
 
     def getTestDescription(self, user, fname):
         """
         Returns the title, description and all tags from a test file.
         """
-        return self.conn.getTestDescription(user, fname)
+        try:
+            return self.conn.getTestDescription(user, fname)
+        except Exception as e:
+            return ''
 
 #
 

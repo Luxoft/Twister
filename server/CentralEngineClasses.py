@@ -1,7 +1,7 @@
 
 # File: CentralEngineClasses.py ; This file is part of Twister.
 
-# version: 2.029
+# version: 2.030
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -1026,6 +1026,9 @@ class CentralEngine(_cptools.XMLRPCController):
         filename = data['file']
         tests_path = self.project.getUserInfo(user, 'tests_path')
 
+        # Inject this empty variable just to be sure.
+        self.project.setFileInfo(user, epname, file_id, 'twister_tc_revision', '')
+
         # Fix ~ $HOME path
         if filename.startswith('~'):
             filename = userHome(user) + filename[1:]
@@ -1038,18 +1041,29 @@ class CentralEngine(_cptools.XMLRPCController):
                 if 'ClearCase' in self.listPlugins(user) and data.get('clearcase'):
                     plugin_p = self.project._buildPlugin(user, 'ClearCase')
                     try:
-                        return plugin_p.getTestFile(filename)
+                        data = plugin_p.getTestFile(filename)
                     except Exception as e:
                         trace = traceback.format_exc()[34:].strip()
                         logError('Error getting ClearCase file `{}` : `{}`!'.format(filename, trace))
                         return ''
+                    try:
+                        descr = plugin_p.getTestDescription(user, filename)
+                        cctag = '<b>ClearCase Version</b> :'
+                        if descr:
+                            pos = descr.find(cctag) + len(cctag)
+                            rev = descr[pos:].strip()
+                            self.project.setFileInfo(user, epname, file_id, 'twister_tc_revision', rev)
+                    except Exception as e:
+                        pass
+                    logDebug('CE: Execution process `{}:{}` requested file `{}`.'.format(user, epname, filename))
+                    return data
 
                 logError('*ERROR* TestCase file: `{}` does not exist!'.format(filename))
                 return ''
             else:
                 filename = tests_path + os.sep + filename
 
-        logDebug('CE: Execution process `{}:{}` requested file `{}`'.format(user, epname, filename))
+        logDebug('CE: Execution process `{}:{}` requested file `{}`.'.format(user, epname, filename))
 
         with open(filename, 'rb') as handle:
             return xmlrpclib.Binary(handle.read())
