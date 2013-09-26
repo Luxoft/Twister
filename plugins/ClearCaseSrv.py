@@ -118,7 +118,7 @@ class CC(_cptools.XMLRPCController):
         try: open(fname,'r')
         except: return ''
 
-        with open(filename, 'rb') as handle:
+        with open(fname, 'rb') as handle:
             return xmlrpclib.Binary(handle.read())
 
 #

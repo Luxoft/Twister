@@ -1,7 +1,7 @@
 
 # File: CentralEngineClasses.py ; This file is part of Twister.
 
-# version: 2.028
+# version: 2.029
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -52,7 +52,7 @@ import MySQLdb
 
 import pickle
 try: import simplejson as json
-except: import json
+except Exception as e: import json
 
 import cherrypy
 from cherrypy import _cptools
@@ -1029,9 +1029,21 @@ class CentralEngine(_cptools.XMLRPCController):
         # Fix ~ $HOME path
         if filename.startswith('~'):
             filename = userHome(user) + filename[1:]
+
         # Fix incomplete file path
         if not os.path.isfile(filename):
             if not os.path.isfile(tests_path + os.sep + filename):
+
+                # Injected ClearCase file ?
+                if 'ClearCase' in self.listPlugins(user) and data.get('clearcase'):
+                    plugin_p = self.project._buildPlugin(user, 'ClearCase')
+                    try:
+                        return plugin_p.getTestFile(filename)
+                    except Exception as e:
+                        trace = traceback.format_exc()[34:].strip()
+                        logError('Error getting ClearCase file `{}` : `{}`!'.format(filename, trace))
+                        return ''
+
                 logError('*ERROR* TestCase file: `{}` does not exist!'.format(filename))
                 return ''
             else:
