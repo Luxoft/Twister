@@ -1,6 +1,6 @@
 /*
 File: Plugins.java ; This file is part of Twister.
-Version: 2.005
+Version: 2.006
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -236,6 +236,7 @@ public class Plugins extends JPanel{
             TwisterPluginInterface plugin = (TwisterPluginInterface)plugins.get(name);
             description = plugin.getDescription(RunnerRepository.PLUGINSDIRECTORY);
             addPlugin(name,description,plugin);}
+        addPlugin("ClearCase","ClearCase plugin",null);
         JLabel remotedescription = new JLabel("Remote plugins found on server");
         GridBagConstraints gridBagConstraints = new GridBagConstraints();
         gridBagConstraints.anchor = GridBagConstraints.NORTH;
@@ -637,6 +638,16 @@ public class Plugins extends JPanel{
      */
     public void pluginClicked(final MyCheck check){
         String pluginname = check.getName();
+        if(pluginname.equals("ClearCase")){
+            if(check.isSelected()){
+                RunnerRepository.window.mainpanel.add(RunnerRepository.window.mainpanel.getP5(), "ClearCase");
+                RunnerRepository.window.mainpanel.p1.tabs.add("ClearCase Tests", new JScrollPane(RunnerRepository.window.mainpanel.p1.cp.tree));
+            } else {    
+                RunnerRepository.window.mainpanel.remove(RunnerRepository.window.mainpanel.getP5());
+                RunnerRepository.window.mainpanel.p1.tabs.remove(2);
+            }
+            return;
+        }
         final TwisterPluginInterface plugin = (TwisterPluginInterface)plugins.get(pluginname);
         final MainPanel main = RunnerRepository.window.mainpanel;
         if(check.isSelected()){
@@ -675,14 +686,10 @@ public class Plugins extends JPanel{
                         "the plugin with filename: "+plugin.getName());
                     e.printStackTrace();
                 }
-                
-                
-                //main.remove(plugin.getContent());
                 plugin.terminate();
                 main.revalidate();
                 main.repaint();}
         }
-        //enablePlugin(check.isSelected(),pluginname);
     }
                 
                

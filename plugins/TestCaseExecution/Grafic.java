@@ -1,6 +1,6 @@
 /*
 File: Grafic.java ; This file is part of Twister.
-Version: 2.0012
+Version: 2.0013
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -2366,8 +2366,8 @@ public class Grafic extends JPanel{
                                     getModel().getChild((TreeNode)((TreePath)child).getLastPathComponent(),j));}
         return nr;}}
         
-    public void drop(int x, int y,boolean tc){
-        if(tc){
+    public void drop(int x, int y,String source){
+        if(source.equals("tc")){
             deselectAll();
             requestFocus();
             int max = RunnerRepository.window.mainpanel.p1.ep.getSelected().length;
@@ -2400,10 +2400,10 @@ public class Grafic extends JPanel{
                         newItem.setVisible(false);
                         clone.add(newItem);}
                     else{
-                        subtreeTC((TreeNode)RunnerRepository.window.mainpanel.p1.ep.getSelected()[i].getLastPathComponent(),null,0);}}
+                        subtreeTC((TreeNode)RunnerRepository.window.mainpanel.p1.ep.getSelected()[i].getLastPathComponent(),null,0,"tc");}}
                 handleMouseDroped(y);
             }
-        } else {
+        } else if(source.equals("lib")){
             deselectAll();
             requestFocus();
             int max = RunnerRepository.window.mainpanel.p1.lp.getSelected().length;
@@ -2456,12 +2456,59 @@ public class Grafic extends JPanel{
 //                         newItem.setVisible(false);
 //                         clone.add(newItem);
                     }
-                    else{
-                        subtreeTC((TreeNode)RunnerRepository.window.mainpanel.p1.lp.getSelected()[i].getLastPathComponent(),null,0);}}
+//                     else{
+//                         subtreeTC((TreeNode)RunnerRepository.window.mainpanel.p1.lp.getSelected()[i].getLastPathComponent(),null,0);}
+                }
                 handleMouseDroped(y);
                 Item parent = getFirstSuitaParent(list.get(0), false);
                 if(parent!=null)checkSameName(parent);
             }
+        }else if(source.equals("clearcase")){
+            
+            
+            
+            
+            deselectAll();
+            requestFocus();
+            int max = RunnerRepository.window.mainpanel.p1.cp.getSelected().length;
+            if(max>0){
+                for(int i=0;i<max;i++){
+                    boolean cond = RunnerRepository.window.mainpanel.p1.cp.tree.getModel().
+                                        isLeaf((TreeNode)RunnerRepository.window.mainpanel.p1.
+                                        cp.getSelected()[i].getLastPathComponent());//has no children                
+                    if(cond){
+                        String name = RunnerRepository.window.mainpanel.p1.cp.
+                                        getSelected()[i].getPath()[RunnerRepository.window.mainpanel.p1.cp.getSelected()[i].
+                                                                    getPathCount()-2]+"/"+RunnerRepository.window.mainpanel.p1.
+                                                                    cp.getSelected()[i].getPath()[RunnerRepository.window.
+                                                                    mainpanel.p1.cp.getSelected()[i].getPathCount()-1];
+                        
+//                         try{name = name.split(RunnerRepository.window.mainpanel.getP5().root)[1];}
+//                         catch(Exception e){
+//                             System.out.println("Could not find projects path:"+RunnerRepository.window.mainpanel.getP5().root+" in filename:"+name);
+//                             e.printStackTrace();}
+                        FontMetrics metrics = getGraphics().getFontMetrics(new Font("TimesRoman", Font.PLAIN, 13));
+                        Item newItem = new Item(name,1, -1, -1, metrics.stringWidth(name)+48, 20, null);
+                        newItem.setClearcase(true);
+                        ArrayList<Integer> pos = new ArrayList <Integer>();
+                        pos.add(new Integer(0));
+                        ArrayList<Integer> pos2 = (ArrayList <Integer>)pos.clone();
+                        pos2.add(new Integer(0));
+                        Item property = new Item("Running",0,-1,-1,(metrics.stringWidth("Running:  true"))+28,20,pos2);
+                        property.setValue("true");
+                        property.setSubItemVisible(false);
+                        newItem.addSubItem(property);
+                        newItem.setVisible(false);
+                        clone.add(newItem);}
+                    else{
+                        subtreeTC((TreeNode)RunnerRepository.window.mainpanel.p1.cp.getSelected()[i].getLastPathComponent(),null,0,"clearcase");}}
+                handleMouseDroped(y);
+            }
+            
+            
+            
+            
+            
         }
     }
     
@@ -2503,63 +2550,131 @@ public class Grafic extends JPanel{
     public ArrayList<int []> getSelectedCollection(){
         return selectedcollection;}
         
-    public int subtreeTC(Object child, Item parent, int location){
-        boolean cond; //if it is directory or file
-        cond = RunnerRepository.window.mainpanel.p1.ep.tree.getModel().isLeaf((TreeNode)child);
-        ArrayList <TreeNode>list = new ArrayList<TreeNode>();        
-        while ((TreeNode)child != null){
-            list.add((TreeNode)child);
-            child = ((TreeNode)child).getParent();}
-        Collections.reverse(list);
-        child = new TreePath(list.toArray());
-        if(cond){
-            if(parent==null){//called from jtree drop
-                String name = ((TreePath)child).getPath()[((TreePath)child).getPathCount()-2]+
-                                                            "/"+((TreePath)child).getPath()[((TreePath)child).
-                                                                                            getPathCount()-1];
-                name = name.split(RunnerRepository.getTestSuitePath())[1];
-                FontMetrics metrics = getGraphics().getFontMetrics(new Font("TimesRoman", Font.PLAIN, 13));
-                Item newItem = new Item(name,1, -1, -1, metrics.stringWidth(name)+48, 20, null);
-                ArrayList<Integer> pos = new ArrayList <Integer>();
-                pos.add(new Integer(0));
-                ArrayList<Integer> pos2 = (ArrayList <Integer>)pos.clone();
-                pos2.add(new Integer(0));
-                Item property = new Item("Running",0,-1,-1,(metrics.stringWidth("Running:  true"))+28,20,pos2);
-                property.setValue("true");
-                property.setSubItemVisible(false);
-                newItem.addSubItem(property);
-                newItem.setVisible(false);
-                clone.add(newItem);
-                return 0;}
-            addNewTC(((TreePath)child).getPath()[((TreePath)child).getPathCount()-2]+
-                                                "/"+((TreePath)child).getPath()[((TreePath)child).
-                                                getPathCount()-1],parent,location);
-            return location+1;}
-        else{int nr = RunnerRepository.window.mainpanel.p1.ep.tree.getModel().
-                                getChildCount(((TreePath)child).getLastPathComponent());
-            for(int j=0;j<nr;j++){
-                location = subtreeTC(RunnerRepository.window.mainpanel.p1.ep.tree.getModel().
-                                    getChild((TreeNode)((TreePath)child).getLastPathComponent(),j),
-                                    parent,location);}
-            return location;}}
+    public int subtreeTC(Object child, Item parent, int location, String source){
+        if(source.equals("tc")){
+            
+            boolean cond; //if it is directory or file
+            cond = RunnerRepository.window.mainpanel.p1.ep.tree.getModel().isLeaf((TreeNode)child);
+            ArrayList <TreeNode>list = new ArrayList<TreeNode>();        
+            while ((TreeNode)child != null){
+                list.add((TreeNode)child);
+                child = ((TreeNode)child).getParent();}
+            Collections.reverse(list);
+            child = new TreePath(list.toArray());
+            if(cond){
+                if(parent==null){//called from jtree drop
+                    String name = ((TreePath)child).getPath()[((TreePath)child).getPathCount()-2]+
+                                                                "/"+((TreePath)child).getPath()[((TreePath)child).
+                                                                                                getPathCount()-1];
+                    name = name.split(RunnerRepository.getTestSuitePath())[1];
+                    FontMetrics metrics = getGraphics().getFontMetrics(new Font("TimesRoman", Font.PLAIN, 13));
+                    Item newItem = new Item(name,1, -1, -1, metrics.stringWidth(name)+48, 20, null);
+                    ArrayList<Integer> pos = new ArrayList <Integer>();
+                    pos.add(new Integer(0));
+                    ArrayList<Integer> pos2 = (ArrayList <Integer>)pos.clone();
+                    pos2.add(new Integer(0));
+                    Item property = new Item("Running",0,-1,-1,(metrics.stringWidth("Running:  true"))+28,20,pos2);
+                    property.setValue("true");
+                    property.setSubItemVisible(false);
+                    newItem.addSubItem(property);
+                    newItem.setVisible(false);
+                    clone.add(newItem);
+                    return 0;}
+                addNewTC(((TreePath)child).getPath()[((TreePath)child).getPathCount()-2]+
+                                                    "/"+((TreePath)child).getPath()[((TreePath)child).
+                                                    getPathCount()-1],parent,location,source);
+                return location+1;}
+            else{int nr = RunnerRepository.window.mainpanel.p1.ep.tree.getModel().
+                                    getChildCount(((TreePath)child).getLastPathComponent());
+                for(int j=0;j<nr;j++){
+                    location = subtreeTC(RunnerRepository.window.mainpanel.p1.ep.tree.getModel().
+                                        getChild((TreeNode)((TreePath)child).getLastPathComponent(),j),
+                                        parent,location,source);}
+                return location;}
+        } else if(source.equals("clearcase")){
+            
+            boolean cond; //if it is directory or file
+            cond = RunnerRepository.window.mainpanel.p1.cp.tree.getModel().isLeaf((TreeNode)child);
+            ArrayList <TreeNode>list = new ArrayList<TreeNode>();        
+            while ((TreeNode)child != null){
+                list.add((TreeNode)child);
+                child = ((TreeNode)child).getParent();}
+            Collections.reverse(list);
+            child = new TreePath(list.toArray());
+            if(cond){
+                if(parent==null){//called from jtree drop
+                    String name = ((TreePath)child).getPath()[((TreePath)child).getPathCount()-2]+
+                                                                "/"+((TreePath)child).getPath()[((TreePath)child).
+                                                                                                getPathCount()-1];
+                    //name = name.split(RunnerRepository.window.mainpanel.getP5().root)[1];
+                    FontMetrics metrics = getGraphics().getFontMetrics(new Font("TimesRoman", Font.PLAIN, 13));
+                    Item newItem = new Item(name,1, -1, -1, metrics.stringWidth(name)+48, 20, null);
+                    newItem.setClearcase(true);
+                    ArrayList<Integer> pos = new ArrayList <Integer>();
+                    pos.add(new Integer(0));
+                    ArrayList<Integer> pos2 = (ArrayList <Integer>)pos.clone();
+                    pos2.add(new Integer(0));
+                    Item property = new Item("Running",0,-1,-1,(metrics.stringWidth("Running:  true"))+28,20,pos2);
+                    property.setValue("true");
+                    property.setSubItemVisible(false);
+                    newItem.addSubItem(property);
+                    newItem.setVisible(false);
+                    clone.add(newItem);
+                    return 0;}
+                addNewTC(((TreePath)child).getPath()[((TreePath)child).getPathCount()-2]+
+                                                    "/"+((TreePath)child).getPath()[((TreePath)child).
+                                                    getPathCount()-1],parent,location,source);
+                return location+1;}
+            else{int nr = RunnerRepository.window.mainpanel.p1.cp.tree.getModel().
+                                    getChildCount(((TreePath)child).getLastPathComponent());
+                for(int j=0;j<nr;j++){
+                    location = subtreeTC(RunnerRepository.window.mainpanel.p1.cp.tree.getModel().
+                                        getChild((TreeNode)((TreePath)child).getLastPathComponent(),j),
+                                        parent,location,source);}
+                return location;}
+        }
+        return -1;
+            
+            
+    }
     /*
      * adds new tc, accepts a file that is tc and suite pos in vector
      */
-    public void addNewTC(String file,Item parent,int location){
-        file = file.split(RunnerRepository.getTestSuitePath())[1];
-        FontMetrics metrics = getGraphics().getFontMetrics(new Font("TimesRoman", Font.PLAIN, 13));
-        ArrayList <Integer> indexpos = (ArrayList <Integer>)parent.getPos().clone();
-        indexpos.add(new Integer(location));
-        Item tc = new Item(file,1,-1,-1,metrics.stringWidth(file)+48,20,indexpos);
-        ArrayList <Integer> indexpos2 = (ArrayList <Integer>)indexpos.clone();
-        indexpos2.add(new Integer(0));
-        Item property = new Item("Running",0,-1,-1,(metrics.stringWidth("Running:  true"))+28,20,indexpos2);
-        property.setSubItemVisible(false);
-        property.setValue("true");
-        tc.addSubItem(property);
-        if(parent.getSubItemsNr()>0){if(!parent.getSubItem(0).isVisible())tc.setSubItemVisible(false);}
-        tc.setVisible(false);
-        parent.insertSubItem(tc,location);}
+    public void addNewTC(String file,Item parent,int location,String source){
+        if(source.equals("tc")){
+            file = file.split(RunnerRepository.getTestSuitePath())[1];
+            FontMetrics metrics = getGraphics().getFontMetrics(new Font("TimesRoman", Font.PLAIN, 13));
+            ArrayList <Integer> indexpos = (ArrayList <Integer>)parent.getPos().clone();
+            indexpos.add(new Integer(location));
+            Item tc = new Item(file,1,-1,-1,metrics.stringWidth(file)+48,20,indexpos);
+            ArrayList <Integer> indexpos2 = (ArrayList <Integer>)indexpos.clone();
+            indexpos2.add(new Integer(0));
+            Item property = new Item("Running",0,-1,-1,(metrics.stringWidth("Running:  true"))+28,20,indexpos2);
+            property.setSubItemVisible(false);
+            property.setValue("true");
+            tc.addSubItem(property);
+            if(parent.getSubItemsNr()>0){if(!parent.getSubItem(0).isVisible())tc.setSubItemVisible(false);}
+            tc.setVisible(false);
+            parent.insertSubItem(tc,location);
+        } else if(source.equals("clearcase")){
+            //file = file.split(RunnerRepository.window.mainpanel.getP5().root)[1];
+            FontMetrics metrics = getGraphics().getFontMetrics(new Font("TimesRoman", Font.PLAIN, 13));
+            ArrayList <Integer> indexpos = (ArrayList <Integer>)parent.getPos().clone();
+            indexpos.add(new Integer(location));
+            Item tc = new Item(file,1,-1,-1,metrics.stringWidth(file)+48,20,indexpos);
+            tc.setClearcase(true);
+            ArrayList <Integer> indexpos2 = (ArrayList <Integer>)indexpos.clone();
+            indexpos2.add(new Integer(0));
+            Item property = new Item("Running",0,-1,-1,(metrics.stringWidth("Running:  true"))+28,20,indexpos2);
+            property.setSubItemVisible(false);
+            property.setValue("true");
+            tc.addSubItem(property);
+            if(parent.getSubItemsNr()>0){if(!parent.getSubItem(0).isVisible())tc.setSubItemVisible(false);}
+            tc.setVisible(false);
+            parent.insertSubItem(tc,location);
+        }
+    
+    }
       
     /*
      * inserts new tc, accepts a file that is tc and suite pos in vector

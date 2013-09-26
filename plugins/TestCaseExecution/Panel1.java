@@ -1,6 +1,6 @@
 /*
 File: Panel1.java ; This file is part of Twister.
-Version: 2.0011
+Version: 2.0012
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -92,6 +92,8 @@ public class Panel1 extends JPanel{
     public JButton remove,generate,showoptionals,addsuite,edit;
     private TCDetails tcdetails = new TCDetails();
     public LibrariesPanel lp;
+    public ClearCasePanel cp;
+    public JTabbedPane tabs;
     
     public Panel1(String user, final boolean applet, int width){
         RunnerRepository.introscreen.setStatus("Started Suites interface initialization");
@@ -309,12 +311,14 @@ public class Panel1 extends JPanel{
         tdtl = new TreeDropTargetListener();        
         sc = new ScrollGrafic(10, 32, tdtl, user, applet);
         ep = new ExplorerPanel(applet);
-        lp = new LibrariesPanel(applet);
+        lp = new LibrariesPanel();
+        cp = new ClearCasePanel();
         //ep = new ExplorerPanel(470, 32, tdtl, applet, RunnerRepository.c);
         setLayout(null); 
-        JTabbedPane tabs = new JTabbedPane();
+        tabs = new JTabbedPane();
         tabs.add("Test Case", new JScrollPane(ep.tree));
         tabs.add("Predefined Suites", new JScrollPane(lp.tree));
+        //tabs.add("ClearCase Tests", new JScrollPane(cp.tree));
         splitPane2 = new JSplitPane(JSplitPane.VERTICAL_SPLIT,
                                                 tabs,
                                                 tcdetails);
@@ -1158,19 +1162,32 @@ class TreeDropTargetListener implements DropTargetListener {
                     if(!g.getOnlyOptionals()){
                         g.clearDraggingLine();
                         g.drop((int)dropTargetDropEvent.getLocation().getX(),
-                               (int)dropTargetDropEvent.getLocation().getY(),false);
+                               (int)dropTargetDropEvent.getLocation().getY(),"lib");
                     }
                 }
                 catch(Exception e){
                     e.printStackTrace();
                     System.out.println("Could not get folder location");
                 }
-            } else {//drop called from tc
+            } else if(str.equals("tc")){//drop called from tc
+                System.out.println("tc");
                 try{g.setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
                     if(!g.getOnlyOptionals()){
                         g.clearDraggingLine();
                         g.drop((int)dropTargetDropEvent.getLocation().getX(),
-                               (int)dropTargetDropEvent.getLocation().getY(),true);
+                               (int)dropTargetDropEvent.getLocation().getY(),"tc");
+                    }
+                }
+                catch(Exception e){
+                    e.printStackTrace();
+                    System.out.println("Could not get folder location");}
+            } else if(str.equals("clearcase")){//drop called from clearcase
+                System.out.println("clearcase");
+                try{g.setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
+                    if(!g.getOnlyOptionals()){
+                        g.clearDraggingLine();
+                        g.drop((int)dropTargetDropEvent.getLocation().getX(),
+                               (int)dropTargetDropEvent.getLocation().getY(),"clearcase");
                     }
                 }
                 catch(Exception e){
