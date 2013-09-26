@@ -67,7 +67,7 @@ class TscCommonLib(object):
             raise Exception('Invalid ip:port `{}`!\n'.format(socket_path[0]))
         del socket_path
 
-        self.ce_proxy = xmlrpclib.ServerProxy(self.proxy_path)
+        self.ce_proxy = xmlrpclib.ServerProxy(self.proxy_path.rstrip('/') + '/')
         self.ra_proxy = xmlrpclib.ServerProxy(self.proxy_path.rstrip('/') + '/ra/')
 
 
