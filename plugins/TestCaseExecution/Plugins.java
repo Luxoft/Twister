@@ -88,6 +88,7 @@ public class Plugins extends JPanel{
     public JSplitPane horizontalsplit, verticalsplit;
     public ChannelSftp ch;
     public Session session;
+    private boolean clearcase = false;
     private boolean finished = true;
 
     public Plugins(){
@@ -405,6 +406,7 @@ public class Plugins extends JPanel{
             plugins.remove(filename);
             addremove.setText("Download");
             plugintable.removeAll();
+            addPlugin("ClearCase","ClearCase plugin",null);
             Iterator iterator = plugins.keySet().iterator();
             String name;
             String description;
@@ -431,6 +433,7 @@ public class Plugins extends JPanel{
                 remotetable2.revalidate();
                 remotetable2.repaint();
                 plugintable.removeAll();
+                addPlugin("ClearCase","ClearCase plugin",null);
                 RunnerRepository.addPlugin(filename);
                 RunnerPluginsLoader.setClassPath();
                 getPlugins();
@@ -514,6 +517,9 @@ public class Plugins extends JPanel{
             constraints.weighty = 0.1;
             layout.setConstraints(component, constraints);}            
         final MyCheck check = new MyCheck();
+        if(tname.equals("ClearCase")&&clearcase){
+            check.setSelected(true);
+        }
         if(!PermissionValidator.canChangePlugins()){
             check.setEnabled(false);
         }
@@ -639,6 +645,7 @@ public class Plugins extends JPanel{
     public void pluginClicked(final MyCheck check){
         String pluginname = check.getName();
         if(pluginname.equals("ClearCase")){
+            clearcase = check.isSelected();
             if(check.isSelected()){
                 RunnerRepository.window.mainpanel.add(RunnerRepository.window.mainpanel.getP5(), "ClearCase");
                 RunnerRepository.window.mainpanel.p1.tabs.add("ClearCase Tests", new JScrollPane(RunnerRepository.window.mainpanel.p1.cp.tree));
