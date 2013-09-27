@@ -693,7 +693,11 @@ public class SuitaDetails extends JPanel {
             if(parent.isTeardown())teardown.setSelected(true);
             else teardown.setSelected(false);
             ttcname.setText(getItemParent().getName());
-            tview.setText(RunnerRepository.window.mainpanel.getP5().view);
+            if(parent.isClearcase()){
+                tview.setText(RunnerRepository.window.mainpanel.getP5().view);
+            } else {
+                tview.setText("");
+            }
             KeyListener k [] = ttcname.getKeyListeners();
             for(KeyListener t : k){
                 ttcname.removeKeyListener(t);
