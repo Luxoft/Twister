@@ -1,6 +1,6 @@
 /*
 File: ClearCasePanel.java ; This file is part of Twister.
-Version: 2.004
+Version: 2.005
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -201,6 +201,7 @@ public class ClearCasePanel{
                             + tree.getSelectionPath().getLastPathComponent()
                                     .toString();
                     System.out.println("thefile: "+thefile);
+                    RunnerRepository.getRPCClient().execute("runPlugin", new Object[] { RunnerRepository.user,"ClearCase","command=setview "+RunnerRepository.window.mainpanel.getP5().view });
                     String result = RunnerRepository.getRPCClient().execute(
                             "getTestDescription", new Object[] { thefile })
                             + "";
@@ -278,8 +279,10 @@ public class ClearCasePanel{
             final String remotefilename = tree.getSelectionPath().getPathComponent(
                                     tree.getSelectionPath().getPathCount() - 2)
                                     + "/" + tree.getSelectionPath().getLastPathComponent();
-            RunnerRepository.window.mainpanel.getP5().sendCommand("cleartool lsco "+remotefilename, true);
-            String response = RunnerRepository.window.mainpanel.getP5().readOutput(false);
+//             RunnerRepository.window.mainpanel.getP5().sendCommand("cleartool lsco "+remotefilename, true);
+//             String response = RunnerRepository.window.mainpanel.getP5().readOutput(false);
+            RunnerRepository.window.mainpanel.getP5().sendCommand("cleartool lsco "+remotefilename);
+            String response = RunnerRepository.window.mainpanel.getP5().readOutput();
             if(response.indexOf("checkout")==-1){
                 item = new JMenuItem("View");
                 p.add(item);
@@ -346,8 +349,10 @@ public class ClearCasePanel{
     }
     
     public void uncheckout(String remotefilename){
-            RunnerRepository.window.mainpanel.getP5().sendCommand("cleartool unco -rm \""+remotefilename+"\"", false);
-            String response = RunnerRepository.window.mainpanel.getP5().readOutput(true);
+//             RunnerRepository.window.mainpanel.getP5().sendCommand("cleartool unco -rm \""+remotefilename+"\"", false);
+//             String response = RunnerRepository.window.mainpanel.getP5().readOutput(true);
+            RunnerRepository.window.mainpanel.getP5().sendCommand("cleartool unco -rm \""+remotefilename+"\"");
+            String response = RunnerRepository.window.mainpanel.getP5().readOutput();
             System.out.println("response: ---"+response+"---");
      }
     
@@ -356,8 +361,10 @@ public class ClearCasePanel{
          String comment = CustomDialog.showInputDialog(JOptionPane.PLAIN_MESSAGE, JOptionPane.OK_CANCEL_OPTION,
                                                     tree, "Comment", "Please enter comment");
         if(comment!=null){
-            RunnerRepository.window.mainpanel.getP5().sendCommand("cleartool ci -c "+comment+" "+remotefilename, true);
-            String response = RunnerRepository.window.mainpanel.getP5().readOutput(false);
+            RunnerRepository.window.mainpanel.getP5().sendCommand("cleartool ci -c "+comment+" "+remotefilename);
+            String response = RunnerRepository.window.mainpanel.getP5().readOutput();
+//             RunnerRepository.window.mainpanel.getP5().sendCommand("cleartool ci -c "+comment+" "+remotefilename, true);
+//             String response = RunnerRepository.window.mainpanel.getP5().readOutput(false);
             System.out.println("response: ---"+response+"---");
         }
      }
@@ -367,8 +374,10 @@ public class ClearCasePanel{
         String comment = CustomDialog.showInputDialog(JOptionPane.PLAIN_MESSAGE, JOptionPane.OK_CANCEL_OPTION,
                                                     tree, "Comment", "Please enter comment");
         if(comment!=null){
-            RunnerRepository.window.mainpanel.getP5().sendCommand("cleartool co -c \""+comment+"\" "+remotefilename, true);
-            String response = RunnerRepository.window.mainpanel.getP5().readOutput(false);
+            RunnerRepository.window.mainpanel.getP5().sendCommand("cleartool co -c \""+comment+"\" "+remotefilename);
+            String response = RunnerRepository.window.mainpanel.getP5().readOutput();
+//             RunnerRepository.window.mainpanel.getP5().sendCommand("cleartool co -c \""+comment+"\" "+remotefilename, true);
+//             String response = RunnerRepository.window.mainpanel.getP5().readOutput(false);
             System.out.println("response: ---"+response+"---");
         }
     }
@@ -416,14 +425,15 @@ public class ClearCasePanel{
                 if (ID.equals("Embedded")) {
                     openEmbeddedEditor(editable, remotefilename, localfilename,ctfile,save);
                 } else {
-                    RunnerRepository.window.mainpanel.getP5().sendCommand("cp "+remotefilename+" ~", false);
-                    RunnerRepository.window.mainpanel.getP5().readOutput(true);
+                    RunnerRepository.window.mainpanel.getP5().sendCommand("cp "+remotefilename+" ~");
+                    RunnerRepository.window.mainpanel.getP5().readOutput();
+//                      RunnerRepository.window.mainpanel.getP5().sendCommand("cp "+remotefilename+" ~", false);
+//                     RunnerRepository.window.mainpanel.getP5().readOutput(true);
                     File file2 = copyFileLocaly(editable, localfilename);
-                    RunnerRepository.window.mainpanel.getP5().sendCommand("rm -f ~/"+editable, false);
-                    RunnerRepository.window.mainpanel.getP5().readOutput(true);
-                    
-                    
-//                     File file2 = copyFileLocaly(remotefilename, localfilename);
+                    RunnerRepository.window.mainpanel.getP5().sendCommand("rm -f ~/"+editable);
+                    RunnerRepository.window.mainpanel.getP5().readOutput();
+//                     RunnerRepository.window.mainpanel.getP5().sendCommand("rm -f ~/"+editable, false);
+//                     RunnerRepository.window.mainpanel.getP5().readOutput(true);
                     String execute = RunnerRepository.getEditors().get(ID)
                             .getAsString();
                     executeCommand(execute,localfilename);
@@ -530,11 +540,15 @@ public class ClearCasePanel{
         System.out.println("localfilename: "+localfilename);  
         System.out.println("remotefilename: "+remotefilename);
 //         RunnerRepository.window.mainpanel.getP5().sendCommand("cat "+remotefilename, true);
-        RunnerRepository.window.mainpanel.getP5().sendCommand("cp "+remotefilename+" ~", false);
-        RunnerRepository.window.mainpanel.getP5().readOutput(true);
+        RunnerRepository.window.mainpanel.getP5().sendCommand("cp "+remotefilename+" ~");
+        RunnerRepository.window.mainpanel.getP5().readOutput();
+//         RunnerRepository.window.mainpanel.getP5().sendCommand("cp "+remotefilename+" ~", false);
+//         RunnerRepository.window.mainpanel.getP5().readOutput(true);
         File file2 = copyFileLocaly(editable, localfilename);
-        RunnerRepository.window.mainpanel.getP5().sendCommand("rm -f ~/"+editable, false);
-        RunnerRepository.window.mainpanel.getP5().readOutput(true);
+//         RunnerRepository.window.mainpanel.getP5().sendCommand("rm -f ~/"+editable, false);
+//         RunnerRepository.window.mainpanel.getP5().readOutput(true);
+        RunnerRepository.window.mainpanel.getP5().sendCommand("rm -f ~/"+editable);
+        RunnerRepository.window.mainpanel.getP5().readOutput();
 //         String content = RunnerRepository.window.mainpanel.getP5().readOutput(false);
 //         try{BufferedWriter out = new BufferedWriter(new FileWriter(localfilename));
 //             out.write(content);
@@ -743,8 +757,10 @@ public class ClearCasePanel{
             connection.put(in, remotefile);
             in.close();
             
-            RunnerRepository.window.mainpanel.getP5().sendCommand("cp "+remotefile+" "+ctfile, false);
-            String response = RunnerRepository.window.mainpanel.getP5().readOutput(true);
+//             RunnerRepository.window.mainpanel.getP5().sendCommand("cp "+remotefile+" "+ctfile, false);
+//             String response = RunnerRepository.window.mainpanel.getP5().readOutput(true);
+            RunnerRepository.window.mainpanel.getP5().sendCommand("cp "+remotefile+" "+ctfile);
+            String response = RunnerRepository.window.mainpanel.getP5().readOutput();
             
         } catch (Exception e) {
             e.printStackTrace();

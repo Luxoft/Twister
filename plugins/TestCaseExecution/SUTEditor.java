@@ -1,6 +1,6 @@
 /*
 File: SUTEditor.java ; This file is part of Twister.
-Version: 2.004
+Version: 2.005
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -408,6 +408,9 @@ public class SUTEditor extends JPanel{
                     public void actionPerformed(ActionEvent ev){
                         try{
                             String resp = client.execute("export_xml", new Object[]{tf.getText(),2}).toString();
+                            if(resp.equals("false")){
+                                CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SUTEditor.this,"ERROR", resp);
+                            }
                             System.out.println(resp);
                         } catch(Exception e){
                             e.printStackTrace();

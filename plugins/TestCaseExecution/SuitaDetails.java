@@ -1,6 +1,6 @@
 /*
 File: SuitaDetails.java ; This file is part of Twister.
-Version: 2.0012
+Version: 2.0013
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -78,7 +78,7 @@ public class SuitaDetails extends JPanel {
     private TitledBorder border;    
     private JCheckBox stoponfail, runnable, optional, prerequisites,
                       savedb, panicdetect,teardown,prestoponfail;
-    private JTextField tprescript, tpostscript;
+    private JTextField tprescript, tpostscript,tview;
     private JButton browse1,browse2,suitelib;
     private Item parent;
     private JTextField tsuite,ttcname,ttcdelay;
@@ -563,6 +563,8 @@ public class SuitaDetails extends JPanel {
         tcoptions.setBackground(Color.WHITE);
         JLabel tcname = new JLabel("TC name:");
         ttcname = new JTextField();
+        JLabel view = new JLabel("TC view: ");
+        tview = new JTextField();
         runnable = new JCheckBox("Runnable");
         runnable.setBackground(Color.WHITE);
         optional = new JCheckBox("Optional");
@@ -602,7 +604,11 @@ public class SuitaDetails extends JPanel {
                                     .addGroup(layout.createSequentialGroup()
                                         .addComponent(tcname)
                                         .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
-                                        .addComponent(ttcname, GroupLayout.PREFERRED_SIZE, 300, GroupLayout.PREFERRED_SIZE)))
+                                        .addComponent(ttcname, GroupLayout.PREFERRED_SIZE, 300, GroupLayout.PREFERRED_SIZE))
+                                    .addGroup(layout.createSequentialGroup()
+                                        .addComponent(view)
+                                        .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+                                        .addComponent(tview, GroupLayout.PREFERRED_SIZE, 300, GroupLayout.PREFERRED_SIZE)))
                                 .addGap(0, 0, Short.MAX_VALUE)))
                         .addContainerGap()))
                 );
@@ -615,6 +621,11 @@ public class SuitaDetails extends JPanel {
                             .addComponent(tcname)
                             .addComponent(ttcname, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
                         .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
+                        .addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+                            .addComponent(view)
+                            .addComponent(tview, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
+                        .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
+                        
                         .addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
                             .addComponent(runnable)
                             .addComponent(optional)
@@ -682,6 +693,7 @@ public class SuitaDetails extends JPanel {
             if(parent.isTeardown())teardown.setSelected(true);
             else teardown.setSelected(false);
             ttcname.setText(getItemParent().getName());
+            tview.setText(RunnerRepository.window.mainpanel.getP5().view);
             KeyListener k [] = ttcname.getKeyListeners();
             for(KeyListener t : k){
                 ttcname.removeKeyListener(t);
