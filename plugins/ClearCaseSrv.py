@@ -79,6 +79,8 @@ class CC(_cptools.XMLRPCController):
         if args['command'] == 'exit':
             print('Clearcase Plugin Srv: Shutting down...')
             cherrypy.engine.exit()
+        elif args['command'].startswith('setview'):
+            print('Clearcase Plugin Srv: Changing view: `{}`.'.format(args['command']))
 
         _r = cleartool.cmd(args['command'])
 
