@@ -1,6 +1,6 @@
 /*
 File: JiraPlugin.java ; This file is part of Twister.
-Version: 2.001
+Version: 2.003
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -18,14 +18,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import java.applet.Applet;
 import java.awt.Component;
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -39,6 +36,12 @@ import java.util.Properties;
 import javax.swing.JFrame;
 
 import javax.swing.JOptionPane;
+import javax.xml.transform.OutputKeys;
+import javax.xml.transform.Result;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
 
 import com.jcraft.jsch.Channel;
 import com.jcraft.jsch.ChannelSftp;
@@ -104,9 +107,10 @@ public class JiraPlugin extends BasePlugin implements TwisterPluginInterface {
 	private XmlRpcClient client;
 	
 	@Override
-	public void init(ArrayList<Item> suite, ArrayList<Item> suitetest,
-			final Hashtable<String, String> variables,final Document pluginsConfig) {
-		super.init(suite, suitetest, variables,pluginsConfig);
+	public void init(ArrayList <Item>suite,ArrayList <Item>suitetest,
+			  final Hashtable<String, String>variables,
+			  Document pluginsConfig,Applet container){
+		super.init(suite, suitetest, variables,pluginsConfig,container);
 
 		System.out.println("Initializing "+getName()+" ...");
 		
@@ -118,9 +122,8 @@ public class JiraPlugin extends BasePlugin implements TwisterPluginInterface {
 		p = new JiraPanel(this);
 		
         if (isApplet){
-        	
-        	createXMLStructure();
-            
+        	//createXMLStructure();
+        	//uploadPluginsFile();
             Node jiraServerNode = getPropValue("jiraserver");
             jiraserver = jiraServerNode.getTextContent();
         }
@@ -134,6 +137,34 @@ public class JiraPlugin extends BasePlugin implements TwisterPluginInterface {
         
 		System.out.println(getName()+" initialized");
 	}
+	
+//	/*
+//     * method to copy plugins configuration file
+//     * to server 
+//     */
+//    public boolean uploadPluginsFile(){
+//        try{
+//            DOMSource source = new DOMSource(pluginsConfig);
+//            File file = new File(variables.get("pluginslocalgeneralconf"));
+//            Result result = new StreamResult(file);
+//            TransformerFactory transformerFactory = TransformerFactory.newInstance();
+//            Transformer transformer = transformerFactory.newTransformer();
+//            transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+//            transformer.setOutputProperty("{http:xml.apache.org/xslt}indent-amount",
+//            																	 "4");
+//            transformer.transform(source, result);
+//            c.cd(variables.get("remoteuserhome")+"/twister/config/");
+//            FileInputStream in = new FileInputStream(file);
+//            c.put(in, file.getName());
+//            in.close();
+//            System.out.println("Saved "+file.getName()+" to: "+
+//					variables.get("remoteuserhome")+"/twister/config/");
+//            return true;}
+//        catch(Exception e){
+//            e.printStackTrace();
+//            return false;
+//        }
+//    }
 
 
 	@Override
@@ -180,6 +211,8 @@ public class JiraPlugin extends BasePlugin implements TwisterPluginInterface {
 			
 			configuration.setServerURL(new URL("http://"+this.variables.get("host")+
 					":"+this.variables.get("centralengineport")));
+			configuration.setBasicPassword(variables.get("password"));
+	        configuration.setBasicUserName(variables.get("user"));
 			client = new XmlRpcClient();
 			client.setConfig(configuration);
 			System.out.println("Client initialized: "+client);
@@ -191,26 +224,26 @@ public class JiraPlugin extends BasePlugin implements TwisterPluginInterface {
 			}
 		}
 		
-	public void initializeSFTP(){
-		try{
-			JSch jsch = new JSch();
-            String user = variables.get("user");
-            Session session = jsch.getSession(user, variables.get("host"), 22);
-            session.setPassword(variables.get("password"));
-            Properties config = new Properties();
-            config.put("StrictHostKeyChecking", "no");
-            session.setConfig(config);
-            session.connect();
-            Channel channel = session.openChannel("sftp");
-            channel.connect();
-            c = (ChannelSftp)channel;
-            System.out.println("SFTP successfully initialized");
-		}
-		catch(Exception e){
-			System.out.println("SFTP could not be initialized");
-			e.printStackTrace();
-		}
-	}
+//	public void initializeSFTP(){
+//		try{
+//			JSch jsch = new JSch();
+//            String user = variables.get("user");
+//            Session session = jsch.getSession(user, variables.get("host"), 22);
+//            session.setPassword(variables.get("password"));
+//            Properties config = new Properties();
+//            config.put("StrictHostKeyChecking", "no");
+//            session.setConfig(config);
+//            session.connect();
+//            Channel channel = session.openChannel("sftp");
+//            channel.connect();
+//            c = (ChannelSftp)channel;
+//            System.out.println("SFTP successfully initialized");
+//		}
+//		catch(Exception e){
+//			System.out.println("SFTP could not be initialized");
+//			e.printStackTrace();
+//		}
+//	}
 	
 	/**
 	 * Jira login method 
@@ -225,9 +258,14 @@ public class JiraPlugin extends BasePlugin implements TwisterPluginInterface {
 			params.put("command", "login");
 			params.put("server", p.tfJiraServer.getText());			
 			params.put("user", p.tfUsername.getText());
-			params.put("passwd", new String(p.tfPassword.getPassword()));			
-			Object[] result = (Object[]) client.execute("runPlugin", new Object[]{variables.get("user"),
+			params.put("passwd", new String(p.tfPassword.getPassword()));	
+			Object ob =  client.execute("runPlugin", new Object[]{variables.get("user"),
 					 getName(),params});
+			Object[] result=null;
+			try{result = (Object[])ob;}
+			catch(Exception e){
+				e.printStackTrace();
+				System.out.println(ob);}
 
 			if (result != null){
 				projects = result;
@@ -249,8 +287,8 @@ public class JiraPlugin extends BasePlugin implements TwisterPluginInterface {
 				jiraElements.put(PRIORITY_FIELD, JiraGetPriorities());
 				jiraElements.put(STATUS_FIELD, JiraGetStatuses());				
 				}
-			
 		} catch (Exception e) {
+			e.printStackTrace();
 			System.out.println("Login failed");
 			JOptionPane.showConfirmDialog(p, "Login failed with error:\n "+e.getMessage(), 
 					   "Jira Login", JOptionPane.CLOSED_OPTION,
@@ -1074,6 +1112,8 @@ public class JiraPlugin extends BasePlugin implements TwisterPluginInterface {
 		}
 	}	
 	
+	
+	
 // ---------------------- END UTILITY METHODS ----------------------		
 	/**
 	 * The main method used for debugging
@@ -1082,15 +1122,15 @@ public class JiraPlugin extends BasePlugin implements TwisterPluginInterface {
 	public static void main(String args[]){
 		
 		variables = new Hashtable<String, String>();
-		variables.put("user", "monica");
-		variables.put("password", "neobug6");
-		variables.put("host", "11.126.32.15");
+		variables.put("user", "tscguest");
+		variables.put("password", "tscguest");
+		variables.put("host", "11.126.32.9");
 		variables.put("centralengineport", "8000");
-		variables.put("remoteuserhome", "/home/monica");
+		variables.put("remoteuserhome", "/home/tscguest");
 		
 		JiraPlugin plugin = new JiraPlugin();
 		isApplet = false;
-		plugin.init(null, null, variables, null);
+		plugin.init(null, null, variables, null, null);
 	
 	}
 }

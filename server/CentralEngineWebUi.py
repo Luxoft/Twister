@@ -35,7 +35,6 @@ logs and the connected users. A user can also start and stop the EPs.
 
 import os, sys
 import json
-import time
 import platform
 
 import mako
@@ -49,41 +48,14 @@ if not TWISTER_PATH:
     exit(1)
 sys.path.append(TWISTER_PATH)
 
-from common.constants import *
+from common.constants  import *
+from common.helpers    import *
 from common.tsclogging import *
 
 if mako.__version__ < '0.7':
     logWarning('Warning! Mako-template version is old: `{}`! Some pages might crash!\n'.format(mako.__version__))
 
-
-# # # # #
-
-
-def calcMemory():
-    import subprocess
-    memLine = subprocess.check_output(['free', '-o']).split('\n')[1]
-    memUsed    = int(memLine.split()[2])
-    mebBuffers = int(memLine.split()[-2])
-    memCached  = int(memLine.split()[-1])
-    Total      = float(memLine.split()[1])
-    memPer = ((memUsed - mebBuffers - memCached) * 100.) / Total
-    return float('%.2f' % memPer)
-
-def getCpuData():
-    statLine = open('/proc/stat', 'r').readline()
-    timeList = statLine.split(' ')[2:6]
-    for i in range(len(timeList)):
-        timeList[i] = float(timeList[i])
-    return timeList
-
-def calcCpu():
-    x = getCpuData()
-    time.sleep(0.5)
-    y = getCpuData()
-    for i in range(len(x)):
-        y[i] -= x[i]
-    cpuPer = sum(y[:-1]) / sum(y) * 100.
-    return float('%.2f' % cpuPer)
+#
 
 def prepareLog(log_file, pos=0):
     if not os.path.isfile(log_file):
@@ -93,7 +65,7 @@ def prepareLog(log_file, pos=0):
     log = f.read().rstrip()
     f.close() ; del f
 
-    max_len = 100000
+    max_len = 50000
     if len(log) > max_len:
         log = '[... log size exceded ...]   ' + log[-max_len:]
 
@@ -107,8 +79,7 @@ def prepareLog(log_file, pos=0):
     .warn {color:orange; text-shadow: 1px 1px 1px #aaa}
     .crit {color:red; text-shadow: 1px 1px 1px #aaa}
     </style>
-    '''
-    body += log
+    ''' + log
     del log
     body = body.replace(';INFO&',   ';<b class="nfo">INFO</b>&')
     body = body.replace(';DEBUG&',  ';<b class="dbg">DEBUG</b>&')
@@ -119,27 +90,6 @@ def prepareLog(log_file, pos=0):
     body = body.replace(';error:',    ';<b class="err">error</b>:')
     body = body.replace(';warning:',  ';<b class="warn">warning</b>:')
     return body
-
-def dirList(tests_path, path, newdict):
-    """
-    Create recursive list of folders and files from Tests path.
-    """
-    len_path = len(tests_path) + 1
-    if os.path.isdir(path):
-        dlist = [] # Folders list
-        flist = [] # Files list
-        for fname in sorted(os.listdir(path), key=str.lower):
-            short_path = (path + os.sep + fname)[len_path:]
-            nd = {'data': short_path, 'children': []}
-            if os.path.isdir(path + os.sep + fname):
-                nd['attr'] = {'rel': 'folder'}
-                dlist.append(nd)
-            else:
-                flist.append(nd)
-        # Folders first, files after
-        newdict['children'] = dlist + flist
-    for nitem in newdict['children']:
-        dirList(tests_path, tests_path + os.sep + nitem['data'], nitem)
 
 
 # --------------------------------------------------------------------------------------------------

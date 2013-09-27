@@ -2,7 +2,7 @@
 File: SVNPlugin.java ; This file is part of Twister.
 
 Copyright (C) 2012 , Luxoft
-
+Version: 2.002
 Authors: Andrei Costachi <acostachi@luxoft.com>
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import java.applet.Applet;
 import java.awt.Component;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -89,11 +90,12 @@ public class SVNPlugin extends BasePlugin implements TwisterPluginInterface {
 	
 
 	@Override
-	public void init(ArrayList<Item> suite, ArrayList<Item> suitetest,
-			final Hashtable<String, String> variables,final Document pluginsConfig) {
-		super.init(suite, suitetest, variables,pluginsConfig);
+	public void init(ArrayList <Item>suite,ArrayList <Item>suitetest,
+			  final Hashtable<String, String>variables,
+			  Document pluginsConfig,Applet container){
+		super.init(suite, suitetest, variables,pluginsConfig,container);
 		System.out.println("Initializing plugin: "+getName()+" ...");
-		initializeSFTP();
+		//initializeSFTP();
 		initializeRPC();
 		p = new JPanel();
 		
@@ -110,7 +112,7 @@ public class SVNPlugin extends BasePlugin implements TwisterPluginInterface {
         check = new JCheckBox("overwrite");
         browse = new JButton("...");
         
-        createXMLStructure();
+        //createXMLStructure();
         
         npassword = getPropValue("password");
         nserver = getPropValue("server");
@@ -304,26 +306,26 @@ public class SVNPlugin extends BasePlugin implements TwisterPluginInterface {
 		return progress;
 	}
 	
-	public void initializeSFTP(){
-		try{
-			JSch jsch = new JSch();
-            String user = variables.get("user");
-            Session session = jsch.getSession(user, variables.get("host"), 22);
-            session.setPassword(variables.get("password"));
-            Properties config = new Properties();
-            config.put("StrictHostKeyChecking", "no");
-            session.setConfig(config);
-            session.connect();
-            Channel channel = session.openChannel("sftp");
-            channel.connect();
-            c = (ChannelSftp)channel;
-            System.out.println("SFTP successfully initialized");
-		}
-		catch(Exception e){
-			System.out.println("SFTP could not be initialized");
-			e.printStackTrace();
-		}
-	}
+//	public void initializeSFTP(){
+//		try{
+//			JSch jsch = new JSch();
+//            String user = variables.get("user");
+//            Session session = jsch.getSession(user, variables.get("host"), 22);
+//            session.setPassword(variables.get("password"));
+//            Properties config = new Properties();
+//            config.put("StrictHostKeyChecking", "no");
+//            session.setConfig(config);
+//            session.connect();
+//            Channel channel = session.openChannel("sftp");
+//            channel.connect();
+//            c = (ChannelSftp)channel;
+//            System.out.println("SFTP successfully initialized");
+//		}
+//		catch(Exception e){
+//			System.out.println("SFTP could not be initialized");
+//			e.printStackTrace();
+//		}
+//	}
 	
 	public void initializeRPC(){
 		try{XmlRpcClientConfigImpl configuration = new XmlRpcClientConfigImpl();
@@ -344,7 +346,7 @@ public class SVNPlugin extends BasePlugin implements TwisterPluginInterface {
 	public void selectSnapshot(){
 		try{
         	final String initial = tsnapshot.getText();
-        	final MySftpBrowser browser = new MySftpBrowser(variables.get("host"), variables.get("user"), variables.get("password"), tsnapshot, p);
+        	final MySftpBrowser browser = new MySftpBrowser(variables.get("host"), variables.get("user"), variables.get("password"), tsnapshot, p,false);
         	//final MySftpBrowser browser = new MySftpBrowser(c, tsnapshot, p);
         	new Thread(){
         		public void run(){
@@ -580,27 +582,27 @@ public class SVNPlugin extends BasePlugin implements TwisterPluginInterface {
      * method to copy plugins configuration file
      * to server 
      */
-    public boolean uploadPluginsFile(){
-        try{
-            DOMSource source = new DOMSource(pluginsConfig);
-            File file = new File(variables.get("pluginslocalgeneralconf"));
-            Result result = new StreamResult(file);
-            TransformerFactory transformerFactory = TransformerFactory.newInstance();
-            Transformer transformer = transformerFactory.newTransformer();
-            transformer.setOutputProperty(OutputKeys.INDENT, "yes");
-            transformer.setOutputProperty("{http:xml.apache.org/xslt}indent-amount",
-            																	 "4");
-            transformer.transform(source, result);
-            c.cd(variables.get("remoteuserhome")+"/twister/config/");
-            FileInputStream in = new FileInputStream(file);
-            c.put(in, file.getName());
-            in.close();
-            System.out.println("Saved "+file.getName()+" to: "+
-					variables.get("remoteuserhome")+"/twister/config/");
-            return true;}
-        catch(Exception e){
-            e.printStackTrace();
-            return false;
-        }
-    }
+//    public boolean uploadPluginsFile(){
+//        try{
+//            DOMSource source = new DOMSource(pluginsConfig);
+//            File file = new File(variables.get("pluginslocalgeneralconf"));
+//            Result result = new StreamResult(file);
+//            TransformerFactory transformerFactory = TransformerFactory.newInstance();
+//            Transformer transformer = transformerFactory.newTransformer();
+//            transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+//            transformer.setOutputProperty("{http:xml.apache.org/xslt}indent-amount",
+//            																	 "4");
+//            transformer.transform(source, result);
+//            c.cd(variables.get("remoteuserhome")+"/twister/config/");
+//            FileInputStream in = new FileInputStream(file);
+//            c.put(in, file.getName());
+//            in.close();
+//            System.out.println("Saved "+file.getName()+" to: "+
+//					variables.get("remoteuserhome")+"/twister/config/");
+//            return true;}
+//        catch(Exception e){
+//            e.printStackTrace();
+//            return false;
+//        }
+//    }
 }

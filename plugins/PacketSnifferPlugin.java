@@ -1,6 +1,6 @@
 /*
 File: PacketSnifferPlugin.java ; This file is part of Twister.
-Version: 2.001
+Version: 2.003
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -18,6 +18,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
  */
 
+import java.applet.Applet;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Cursor;
@@ -111,19 +112,25 @@ public class PacketSnifferPlugin extends BasePlugin implements
 
 	public static void main(String[] args) {
 		try {
-			XmlRpcClientConfigImpl configuration = new XmlRpcClientConfigImpl();
-			configuration.setServerURL(new URL("http://11.126.32.9:8000/"));
-			XmlRpcClient client = new XmlRpcClient();
-			client.setConfig(configuration);
+			//XmlRpcClientConfigImpl configuration = new XmlRpcClientConfigImpl();
+			//configuration.setServerURL(new URL("http://11.126.32.9:8000/"));
+			//XmlRpcClient client = new XmlRpcClient();
+			//client.setConfig(configuration);
 			final PacketSnifferPlugin sch = new PacketSnifferPlugin();
-			sch.setRPC(client);
-			sch.init(null, null, null, null);
+			//sch.setRPC(client);
+			Hashtable<String, String>variables = new Hashtable<String,String>();
+			variables.put("user", "twister_demo");
+			variables.put("password", "tsc");
+			variables.put("centralengineport", "8000");
+			//variables.put("host", "tsc-server");
+			variables.put("host", "11.126.32.20");
+			sch.init(null, null, variables, null,null);
 			JFrame f = new JFrame();
 			f.add(sch.getContent());
 			f.setVisible(true);
 			f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 			f.setBounds(100, 50, 900, 900);
-			System.out.println("Client initialized: " + client);
+//			System.out.println("Client initialized: " + client);
 		} catch (Exception e) {
 			System.out.println("Could not conect to "
 					+ "http://tsc-server:8000 for RPC client initialization");
@@ -136,20 +143,14 @@ public class PacketSnifferPlugin extends BasePlugin implements
 	}
 
 	@Override
-	public void init(ArrayList<Item> suite, ArrayList<Item> suitetest,
-			final Hashtable<String, String> variables,
-			final Document pluginsConfig) {
-		super.init(suite, suitetest, variables, pluginsConfig);
+	public void init(ArrayList <Item>suite,ArrayList <Item>suitetest,
+			  final Hashtable<String, String>variables,
+			  Document pluginsConfig,Applet container){
+		super.init(suite, suitetest, variables,pluginsConfig,container);
 		System.out.println("Initializing " + getName() + " ...");
 		p = new JPanel();
-		initializeSFTP();
+		//initializeSFTP();
 		initializeRPC();
-		try{
-			createXMLStructure();
-		} catch (Exception e){
-			System.out.println("Could not create plugin configuration from plugins XML");
-			e.printStackTrace();
-		}
 		initializeMainPanel();
 		try {
 			length = Integer.parseInt(getPropValue("historyLength")
@@ -295,6 +296,7 @@ public class PacketSnifferPlugin extends BasePlugin implements
 									String id = jTable1.getValueAt(
 											jTable1.getSelectedRow(), 7)
 											.toString();
+									System.out.println("requested id: "+id);
 									pac = client.execute(
 											"runPlugin",
 											new Object[] {
@@ -302,12 +304,13 @@ public class PacketSnifferPlugin extends BasePlugin implements
 													getName(),
 													"command=querypkt&data="
 															+ id }).toString();
-									JsonElement el = new JsonParser()
-											.parse(pac);
+									JsonElement el = new JsonParser().parse(pac);
 									JsonObject jobject = el.getAsJsonObject();
 									Gson gson = new GsonBuilder()
 											.setPrettyPrinting().create();
 									String json = gson.toJson(jobject);
+									json = json.replaceAll("\"","");
+									json = json.replaceAll("\\\\n","\n");
 									content.setText(json);
 								} catch (Exception e) {
 									System.out.println("Server response: "
@@ -776,64 +779,57 @@ public class PacketSnifferPlugin extends BasePlugin implements
 	/*
 	 * initialize main SFTP connection
 	 */
-	public void initializeSFTP() {
-		try {
-			JSch jsch = new JSch();
-			String user = variables.get("user");
-			// String user = "tscguest";
-			Session session = jsch.getSession(user, variables.get("host"), 22);
-			// Session session = jsch.getSession(user, "tsc-server", 22);
-			session.setPassword(variables.get("password"));
-			// session.setPassword("tscguest");
-			Properties config = new Properties();
-			config.put("StrictHostKeyChecking", "no");
-			session.setConfig(config);
-			session.connect();
-			Channel channel = session.openChannel("sftp");
-			channel.connect();
-			c = (ChannelSftp) channel;
-			System.out.println("SFTP successfully initialized");
-		} catch (Exception e) {
-			System.out.println("SFTP could not be initialized");
-			e.printStackTrace();
-		}
-	}
+//	public void initializeSFTP() {
+//		try {
+//			JSch jsch = new JSch();
+//			String user = variables.get("user");
+//			// String user = "tscguest";
+//			Session session = jsch.getSession(user, variables.get("host"), 22);
+//			// Session session = jsch.getSession(user, "tsc-server", 22);
+//			session.setPassword(variables.get("password"));
+//			// session.setPassword("tscguest");
+//			Properties config = new Properties();
+//			config.put("StrictHostKeyChecking", "no");
+//			session.setConfig(config);
+//			session.connect();
+//			Channel channel = session.openChannel("sftp");
+//			channel.connect();
+//			c = (ChannelSftp) channel;
+//			System.out.println("SFTP successfully initialized");
+//		} catch (Exception e) {
+//			System.out.println("SFTP could not be initialized");
+//			e.printStackTrace();
+//		}
+//	}
 
 	public void updateTable(String command) {
 		HashMap<String, HashMap> hash = null;
 		try {
 			DefaultTableModel model = ((DefaultTableModel) jTable1.getModel());
-			hash = (HashMap<String, HashMap>) client.execute("runPlugin",
+			Object obj = client.execute("runPlugin",
 					new Object[] { variables.get("user"), getName(),
-							"command=query&data=" + index });
-			// .execute("runPlugin", new Object[] { variables.get("user"),
-			// getName(),command});
-			// System.out.println("hash: " + hash.toString()+" index: "+ index);
-			// System.out.println("hash: " + hash.toString()+" index: "+ index);
-			// HashMap<String, HashMap[]> hash2 = hash.get("data");
+					"command=query&data=" + index });
+			//System.out.println("Response: "+obj.toString());
+			
+			
+			hash = (HashMap<String, HashMap>) obj;
+			//hash = (HashMap<String, HashMap>) client.execute("runPlugin",
+			//		new Object[] { variables.get("user"), getName(),
+			//				"command=query&data=" + index });
 			HashMap hash2 = hash.get("data");
-			// System.out.println("hash2: "+hash2.toString());
+			if(hash2.isEmpty()){
+				return;
+			}
 			index = hash2.get("id").toString();
-			// System.out.println("index: " + index);
+			//System.out.println("index: "+index);
 			Object[] hash3 = (Object[]) hash2.get("packets");
-			// System.out.println("hash3: "+hash3.toString()+" - "+hash3.length);
+			//System.out.println("packets length: "+hash3.length);
+			
 			String protocol, sip, smac, sport, dip, dmac, dport, id = null;
 			for (Object ob : hash3) {
 				try {
-					// System.out.println(ob.toString());
 					JsonElement el = new JsonParser().parse(ob.toString());
 					JsonObject jobject = el.getAsJsonObject();
-					// JsonElement pael = jobject.get("packet");
-					// jobject = pael.getAsJsonObject();
-					// String packet = jobject.toString();
-					// System.out.println("packet: "+packet);
-
-					// Gson gson = new
-					// GsonBuilder().setPrettyPrinting().create();
-					// String json = gson.toJson(jobject);
-					// System.out.println("packet: "+json);
-
-					// jobject = el.getAsJsonObject();
 
 					el = jobject.get("packet_head");
 					jobject = el.getAsJsonObject();
@@ -843,30 +839,22 @@ public class PacketSnifferPlugin extends BasePlugin implements
 					source = jobject.get("ip");
 					sip = source.toString();
 					sip = sip.substring(1, sip.length() - 1);
-					// System.out.println("source:"+source.toString());
 					source = jobject.get("mac");
 					smac = source.toString();
 					smac = smac.substring(1, smac.length() - 1);
-					// System.out.println("mac:"+source.toString());
 					source = jobject.get("port");
 					sport = source.toString();
-					//sport = sport.substring(1, sport.length() - 1);
-					// System.out.println("port:"+source.toString());
 					jobject = el.getAsJsonObject();
 					source = jobject.get("destination");
 					jobject = source.getAsJsonObject();
 					source = jobject.get("ip");
 					dip = source.toString();
 					dip = dip.substring(1, dip.length() - 1);
-					// System.out.println("source:"+source.toString());
 					source = jobject.get("mac");
 					dmac = source.toString();
 					dmac = dmac.substring(1, dmac.length() - 1);
-					// System.out.println("mac:"+source.toString());
 					source = jobject.get("port");
 					dport = source.toString();
-					//dport = dport.substring(1, dport.length() - 1);
-					// System.out.println("port:"+source.toString());
 					jobject = el.getAsJsonObject();
 					source = jobject.get("protocol");
 					protocol = source.toString();
@@ -874,7 +862,6 @@ public class PacketSnifferPlugin extends BasePlugin implements
 					source = jobject.get("id");
 					id = source.toString();
 					id = id.substring(1, id.length() - 1);
-					// System.out.println("protocol:"+source.toString());
 					model.addRow(new Object[] { protocol, sip, smac, sport,
 							dip, dmac, dport, id });
 				} catch (Exception e) {
@@ -885,6 +872,7 @@ public class PacketSnifferPlugin extends BasePlugin implements
 			if (model.getRowCount() > length) {
 				int delete = model.getRowCount() - length;
 				for (int i = 0; i < delete; i++) {
+					//System.out.println("delete");
 					model.removeRow(0);
 				}
 			}
@@ -901,11 +889,10 @@ public class PacketSnifferPlugin extends BasePlugin implements
 	public void initializeRPC() {
 		try {
 			XmlRpcClientConfigImpl configuration = new XmlRpcClientConfigImpl();
-			configuration.setServerURL(new URL("http://"
-					+ variables.get("host") + ":"
-					+ variables.get("centralengineport")));
-
-			// configuration.setServerURL(new URL("http://tsc-server:88/"));
+			configuration.setServerURL(new URL("http://"+variables.get("host")+
+					":"+variables.get("centralengineport")));
+			configuration.setBasicPassword(variables.get("password"));
+	        configuration.setBasicUserName(variables.get("user"));
 			client = new XmlRpcClient();
 			client.setConfig(configuration);
 			System.out.println("Client initialized: " + client);
@@ -923,31 +910,31 @@ public class PacketSnifferPlugin extends BasePlugin implements
 		}
 	}
 
-	/*
-	 * method to copy plugins configuration file to server
-	 */
-	public boolean uploadPluginsFile() {
-		try {
-			DOMSource source = new DOMSource(pluginsConfig);
-			File file = new File(variables.get("pluginslocalgeneralconf"));
-			Result result = new StreamResult(file);
-			TransformerFactory transformerFactory = TransformerFactory
-					.newInstance();
-			Transformer transformer = transformerFactory.newTransformer();
-			transformer.setOutputProperty(OutputKeys.INDENT, "yes");
-			transformer.setOutputProperty(
-					"{http:xml.apache.org/xslt}indent-amount", "4");
-			transformer.transform(source, result);
-			c.cd(variables.get("remoteuserhome") + "/twister/config/");
-			FileInputStream in = new FileInputStream(file);
-			c.put(in, file.getName());
-			in.close();
-			System.out.println("Saved " + file.getName() + " to: "
-					+ variables.get("remoteuserhome") + "/twister/config/");
-			return true;
-		} catch (Exception e) {
-			e.printStackTrace();
-			return false;
-		}
-	}
+//	/*
+//	 * method to copy plugins configuration file to server
+//	 */
+//	public boolean uploadPluginsFile() {
+//		try {
+//			DOMSource source = new DOMSource(pluginsConfig);
+//			File file = new File(variables.get("pluginslocalgeneralconf"));
+//			Result result = new StreamResult(file);
+//			TransformerFactory transformerFactory = TransformerFactory
+//					.newInstance();
+//			Transformer transformer = transformerFactory.newTransformer();
+//			transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+//			transformer.setOutputProperty(
+//					"{http:xml.apache.org/xslt}indent-amount", "4");
+//			transformer.transform(source, result);
+//			c.cd(variables.get("remoteuserhome") + "/twister/config/");
+//			FileInputStream in = new FileInputStream(file);
+//			c.put(in, file.getName());
+//			in.close();
+//			System.out.println("Saved " + file.getName() + " to: "
+//					+ variables.get("remoteuserhome") + "/twister/config/");
+//			return true;
+//		} catch (Exception e) {
+//			e.printStackTrace();
+//			return false;
+//		}
+//	}
 }

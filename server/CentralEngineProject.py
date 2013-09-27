@@ -1,7 +1,7 @@
 
 # File: CentralEngineProject.py ; This file is part of Twister.
 
-# version: 2.042
+# version: 2.043
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -288,7 +288,7 @@ class Project(object):
         # And repeat every hour
         threading.Timer(60*60, cache_users, (True,)).start()
 
-        logDebug('SERVER INITIALIZATION TOOK %.4f SECONDS.' % (time.time()-ti))
+        logDebug('SERVER INITIALIZATION TOOK `{:.4f}` SECONDS.'.format(time.time()-ti))
 
 
     def _common_proj_reset(self, user, base_config, files_config):
@@ -457,7 +457,7 @@ class Project(object):
 
         # Save everything.
         self._dump()
-        logDebug('Project: Reload user operation took %.4f seconds.' % (time.clock()-ti))
+        logDebug('Project: Reload user operation took `{:.4f}` seconds.'.format(time.clock()-ti))
         return True
 
 
@@ -1405,10 +1405,14 @@ class Project(object):
             for pname in plugins:
                 plugin = self._buildPlugin(user, pname)
                 try:
-                    plugin.onStart()
+                    # For ClearCase plugin, send the ClearCase View
+                    if pname == 'ClearCase':
+                        plugin.onStart( self.getUserInfo(user, 'clear_case_view') )
+                    else:
+                        plugin.onStart()
                 except Exception as e:
                     trace = traceback.format_exc()[34:].strip()
-                    logWarning('Error on running plugin `{} onStop` - Exception: `{}`!'.format(pname, trace))
+                    logWarning('Error on running plugin `{} onStart` - Exception: `{}`!'.format(pname, trace))
             del parser, plugins
 
             # Start all active EPs !
@@ -2029,6 +2033,11 @@ class Project(object):
             logDebug('E-mail: Preparing... Server `{SMTPPath}`, user `{SMTPUser}`, from `{From}`, to `{To}`...'\
                 ''.format(**eMailConfig))
 
+            ce_host = socket.gethostname()
+            try: ce_ip = socket.gethostbyname(ce_host)
+            except: ce_ip = ''
+            system = platform.machine() +' '+ platform.system() +', '+ ' '.join(platform.linux_distribution())
+
             # Information that will be mapped into subject or message of the e-mail
             map_info = {'date': time.strftime("%Y-%m-%d %H:%M")}
 
@@ -2374,14 +2383,15 @@ class Project(object):
     def _buildPlugin(self, user, plugin, extra_data={}):
         """
         Parses the list of plugins and creates an instance of the requested plugin.
-        All the data
+        All the data is reloaded from plugins.xml, every time.
+        If the `_plugin_reload` key is found in the extra_data, the plug-in must be recreated.
         """
         # The pointer to the plug-in = User name and Plugin name
         key = user +' '+ plugin
         plug_ptr = False
 
-        # If the plug-in was already created, re-use it
-        if key in self.plugins:
+        # If the plug-in was already created, re-use it, unless it is Forced to Reload
+        if key in self.plugins and '_plugin_reload' not in extra_data:
             plug_ptr = self.plugins.get(key)
 
         parser = PluginParser(user)
