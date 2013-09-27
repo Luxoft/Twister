@@ -93,7 +93,7 @@ public class ClearCase extends JPanel{
 //     public void sendCommand(String command,boolean endstring){
 //         
 //         try{if(endstring){
-//                 command+=" ; echo @_@_";
+//                 command+=" ; echo @_#_";
 //             }
 //             ps.println(command); 
 //             ps.flush();
@@ -105,9 +105,9 @@ public class ClearCase extends JPanel{
     public void sendCommand(String command){
         try{
 //             if(endstring){
-//                 command+=" ; echo @_@_";
+//                 command+=" ; echo @_#_";
 //             }
-            command+=" ; echo @_@_";
+            command+=" ; echo @_#_";
             ps.println(command); 
             ps.flush();
         } catch(Exception e){
@@ -156,15 +156,15 @@ public class ClearCase extends JPanel{
 //                 while((line = in.readLine()) != null) {
 //                     System.out.println("line: "+line);
 //                     responseData.append(line+"\n");
-//                     if(line.indexOf("@_@_")!=-1){
+//                     if(line.indexOf("@_#_")!=-1){
 //                         if(firstfind){
 //                             firstfind = false;
 //                             in.readLine();
 //                             in.readLine();
-//                             return responseData.substring(0, responseData.indexOf("@_@_")).toString();
+//                             return responseData.substring(0, responseData.indexOf("@_#_")).toString();
 //                         }
 //                         else{
-//                             responseData = new StringBuilder(responseData.substring(responseData.indexOf("@_@_")+4, responseData.length()));
+//                             responseData = new StringBuilder(responseData.substring(responseData.indexOf("@_#_")+4, responseData.length()));
 //                             firstfind = true;
 //                         }
 //                     }
@@ -202,9 +202,9 @@ public class ClearCase extends JPanel{
                                 "ERROR", "ClearTool not installed!");
                         return null;
                     }
-                    if(line.indexOf("@_@_")!=-1){
-                        if(firstfind){
-                            firstfind = false;
+                    if(line.indexOf("@_#_")!=-1&&line.indexOf("echo")==-1){
+//                         if(firstfind){
+//                             firstfind = false;
                             in.readLine();
                             in.readLine();
                             if(responseData.indexOf("cleartool: command not found")!=-1){
@@ -212,12 +212,14 @@ public class ClearCase extends JPanel{
                                         "ERROR", "ClearTool not installed!");
                                 return null;
                             }
-                            return responseData.substring(0, responseData.indexOf("@_@_")).toString();
-                        }
-                        else{
-                            responseData = new StringBuilder(responseData.substring(responseData.indexOf("@_@_")+4, responseData.length()));
-                            firstfind = true;
-                        }
+                            return responseData.substring(0, responseData.indexOf("@_#_")).toString();
+//                         }
+//                         else{
+//                             responseData = new StringBuilder(responseData.substring(responseData.indexOf("@_#_")+4, responseData.length()));
+//                             firstfind = true;
+//                         }
+                    } else if(line.indexOf("echo @_#_")!=-1){
+                        responseData = new StringBuilder(responseData.substring(responseData.indexOf("@_#_")+4, responseData.length()));
                     }
                 }
                 return responseData.toString();
