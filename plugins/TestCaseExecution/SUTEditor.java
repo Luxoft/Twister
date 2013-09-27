@@ -384,7 +384,7 @@ public class SUTEditor extends JPanel{
                                 getSUT();
                                 RunnerRepository.window.mainpanel.p1.suitaDetails.setComboTBs();
                             } else {
-                                CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SUTEditor.this,"ERROR", resp);
+                                CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SUTEditor.this,"ERROR", "Could not import!");
                             }
                         } catch(Exception e){
                             e.printStackTrace();
@@ -409,7 +409,7 @@ public class SUTEditor extends JPanel{
                         try{
                             String resp = client.execute("export_xml", new Object[]{tf.getText(),2}).toString();
                             if(resp.equals("false")){
-                                CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SUTEditor.this,"ERROR", resp);
+                                CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SUTEditor.this,"ERROR", "Could not save");
                             }
                             System.out.println(resp);
                         } catch(Exception e){
