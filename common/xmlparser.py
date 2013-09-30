@@ -1,7 +1,7 @@
 
 # File: xmlparser.py ; This file is part of Twister.
 
-# version: 2.011
+# version: 2.012
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -705,14 +705,14 @@ class TSCParser:
             logError('Get Globals: Globals Config file is not defined! Please check framework config XML file!')
             return {}
         if not os.path.isfile(globs_file):
-            logError('Get Globals: Globals Config file `{}` does not exist! Please check framework config XML file!'.format(globs_file))
+            logError('Get Globals: Globals Config file `{}` does not exist!'.format(globs_file))
             return {}
 
         params_xml = etree.parse(globs_file)
 
         def recursive(xml, gparams):
             for folder in xml.xpath('folder'):
-                tmp = {gparam.find('name').text: gparam.find('value').text for gparam in folder.xpath('param')}
+                tmp = {gparam.find('name').text: gparam.find('value').text or '' for gparam in folder.xpath('param')}
                 tmp.update( recursive(folder, tmp) )
                 gparams[folder.find('fname').text] = tmp
             return gparams

@@ -5,6 +5,22 @@
     <SMTPPwd></SMTPPwd>
     <From></From>
     <To></To>
-    <Subject>Report for [$date]</Subject>
-    <Message></Message>
+    <Subject>Report for [$twister_user] [$date]</Subject>
+    <Message>
+    :: E-mail variables ::
+    date = $date
+    twister_user = $twister_user
+    twister_ce_hostname = $twister_ce_hostname
+    twister_ce_ip = $twister_ce_ip
+    twister_ce_os = $twister_ce_os
+    twister_ce_python_revision = $twister_ce_python_revision
+    twister_ce_type = $twister_ce_type
+    twister_ep_hostname = $twister_ep_hostname
+    twister_ep_ip = $twister_ep_ip
+    twister_ep_os = $twister_ep_os
+    twister_ep_python_revision = $twister_ep_python_revision
+    twister_pf_fname = $twister_pf_fname
+    twister_rf_fname = $twister_rf_fname
+    twister_server_location = $twister_server_location
+    </Message>
 </Root>

@@ -1,6 +1,6 @@
 /*
 File: LibrariesPanel.java ; This file is part of Twister.
-Version: 2.004
+Version: 2.005
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -137,7 +137,7 @@ public class LibrariesPanel{
     public static ChannelSftp connection;
     public static Session session;
 
-    public LibrariesPanel(boolean applet) {
+    public LibrariesPanel() {
         RunnerRepository.introscreen.setStatus("Started Libraries interface initialization");
         RunnerRepository.introscreen.addPercent(0.035);
         RunnerRepository.introscreen.repaint();
@@ -146,12 +146,10 @@ public class LibrariesPanel{
         root = new DefaultMutableTreeNode("root", true);
         DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
         try {
-            //RunnerRepository.c.cd(RunnerRepository.USERHOME+"/twister/config/");
             connection.cd(RunnerRepository.getPredefinedSuitesPath());
             RunnerRepository.introscreen.setStatus("Started retrieving tc directories");
             RunnerRepository.introscreen.addPercent(0.035);
             RunnerRepository.introscreen.repaint();
-//             getList(root, connection);
             getList(root, connection,RunnerRepository.getPredefinedSuitesPath());
             RunnerRepository.introscreen.setStatus("Finished retrieving tc directories");
             RunnerRepository.introscreen.addPercent(0.035);
@@ -163,30 +161,16 @@ public class LibrariesPanel{
         tree = new JTree(root);
         tree.expandRow(1);
         tree.setTransferHandler(new TransferHandler(){
-            
-//             public boolean canImport(TransferSupport supp)
-//         	{
-//         		return true;
-//         	}
         	
         	protected Transferable createTransferable(JComponent c)
         	{
         		return new StringSelection("lib");
         	}
         	
-//         	protected void exportDone(JComponent c, Transferable t, int action)
-//         	{
-//         	}
-//         	
         	public int getSourceActions(JComponent c)
         	{
         		return TransferHandler.COPY_OR_MOVE;
         	}
-//         	
-//         	public boolean importData(TransferSupport supp)
-//         	{
-//         		return true;
-//         	}
         	
         });
         
@@ -198,10 +182,6 @@ public class LibrariesPanel{
                 treeClickReleased(ev);
             }
         });
-//         DragSource ds = new DragSource();
-//         ds.getDefaultDragSource();
-//         ds.createDefaultDragGestureRecognizer(tree,
-//                 DnDConstants.ACTION_COPY_OR_MOVE, new TreeDragGestureListener());
          tree.setDragEnabled(true);
         tree.setRootVisible(false);
         RunnerRepository.introscreen.setStatus("Finished Explorer interface initialization");
@@ -337,31 +317,8 @@ public class LibrariesPanel{
                 }
             });
         }
-//         if ((tree.getSelectionPath()!=null)&&(tree.getSelectionPaths().length == 1)
-//         && (tree.getModel().isLeaf(tree.getSelectionPath()
-//                         .getLastPathComponent()))){
-//             item = new JMenuItem("Unit testing");
-//             p.add(item);
-//             item.addActionListener(new ActionListener(){
-//                 public void actionPerformed(ActionEvent ev){
-//                     unitTesting();}});
-             
-//         }   
         p.show(tree, ev.getX(), ev.getY());
     }
-    
-//     /*
-//      * unit testing window
-//      */
-//     public void unitTesting(){
-//         String remotefilename = tree.getSelectionPath().getPathComponent(
-//                 tree.getSelectionPath().getPathCount() - 2)+
-//                 "/" + tree.getSelectionPath().getLastPathComponent();
-//         System.out.println("remotefilename:"+remotefilename);
-//         UnitTesting testing = new UnitTesting();
-//         testing.setBounds(300,100,800,600);
-//         testing.setVisible(true);
-//     }
 
     /*
      * Propmpts user to select editor and 
@@ -718,9 +675,7 @@ public class LibrariesPanel{
         catch(Exception e){e.printStackTrace();}
         try {
             connection.cd(RunnerRepository.getPredefinedSuitesPath());
-            //RunnerRepository.c.cd(RunnerRepository.USERHOME+"/twister/config/");
             getList(root, connection, RunnerRepository.getPredefinedSuitesPath());
-//             getList(root, connection);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -749,10 +704,8 @@ public class LibrariesPanel{
      * construct the list for folders representation in jtree
      */
     public void getList(DefaultMutableTreeNode node, ChannelSftp c, String curentdir) {
-//     public void getList(DefaultMutableTreeNode node, ChannelSftp c) {
         try {
             DefaultMutableTreeNode child = new DefaultMutableTreeNode(curentdir);
-//             DefaultMutableTreeNode child = new DefaultMutableTreeNode(c.pwd());
             Vector<LsEntry> vector1 = c.ls(".");
             Vector<String> vector = new Vector<String>();
             Vector<String> folders = new Vector<String>();
@@ -772,20 +725,6 @@ public class LibrariesPanel{
                 } else {
                     files.add(vector1.get(i).getFilename());
                 }
-                
-//                 try{
-//                     current = c.pwd();
-//                     c.cd(vector1.get(i).getFilename());
-//                     c.cd(current);
-//                     folders.add(vector1.get(i).getFilename());
-//                 } catch (SftpException e) {
-//                     if (e.id == 4) {
-//                         files.add(vector1.get(i).getFilename());
-//                     }
-//                     else{
-//                            e.printStackTrace();
-//                        }
-//                 }
             }
             Collections.sort(folders);
             Collections.sort(files);
@@ -832,69 +771,14 @@ public class LibrariesPanel{
             e.printStackTrace();
         }
     }
-//     class MyTree extends JTree implements DragGestureListener, DragSourceListener{
-//         private DragSource dragSource;
-//         
-//         public MyTree(DefaultMutableTreeNode node){
-//             super(node);
-//             dragSource = new DragSource();
-//             dragSource.createDefaultDragGestureRecognizer(this, DnDConstants.ACTION_COPY_OR_MOVE, this);
-//         }
-//         
-//         public void dragGestureRecognized(DragGestureEvent evt) {
-//             Transferable transferable = new StringSelection("lib");            
-//             dragSource.startDrag(evt, DragSource.DefaultCopyDrop, transferable, this);
-// 	    }
-// 	    
-// 	    public void dragEnter(DragSourceDragEvent evt) {
-//         }
-//         
-//         public void dragOver(DragSourceDragEvent evt) {
-//         }
-//         
-//         public void dragExit(DragSourceEvent evt) {
-//         }
-//         
-//         public void dropActionChanged(DragSourceDragEvent evt) {
-//         }
-//         
-//         public void dragDropEnd(DragSourceDropEvent evt) {
-//         }
-// 	    
-//     }
 }
+// class Compare implements Comparator {
 // 
-class Compare implements Comparator {
-
-    public int compare(Object emp1, Object emp2) {
-        return ((TreePath) emp1)
-                .getLastPathComponent()
-                .toString()
-                .compareToIgnoreCase(
-                        ((TreePath) emp2).getLastPathComponent().toString());
-    }
-}
-
-// class TreeDragGestureListener implements DragGestureListener {
-// 
-//     public void dragGestureRecognized(DragGestureEvent dragGestureEvent) {
-//     }
-// }
-
-// class MyDragSourceListener implements DragSourceListener {
-// 
-//     public void dragDropEnd(DragSourceDropEvent dragSourceDropEvent) {
-//     }
-// 
-//     public void dragEnter(DragSourceDragEvent dragSourceDragEvent) {
-//     }
-// 
-//     public void dragExit(DragSourceEvent dragSourceEvent) {
-//     }
-// 
-//     public void dragOver(DragSourceDragEvent dragSourceDragEvent) {
-//     }
-// 
-//     public void dropActionChanged(DragSourceDragEvent dragSourceDragEvent) {
+//     public int compare(Object emp1, Object emp2) {
+//         return ((TreePath) emp1)
+//                 .getLastPathComponent()
+//                 .toString()
+//                 .compareToIgnoreCase(
+//                         ((TreePath) emp2).getLastPathComponent().toString());
 //     }
 // }

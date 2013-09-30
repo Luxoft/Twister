@@ -164,7 +164,7 @@ public class TB extends JPanel{
                                 buildTree(parent,root);
                                 ((DefaultTreeModel)tree.getModel()).reload();
                             } else {
-                                CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,TB.this,"ERROR", resp);
+                                CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,TB.this,"ERROR", "Could not import!");
                             }
                         } catch(Exception e){
                             e.printStackTrace();
@@ -188,6 +188,9 @@ public class TB extends JPanel{
                     public void actionPerformed(ActionEvent ev){
                         try{
                             String resp = client.execute("export_xml", new Object[]{tf.getText(),1}).toString();
+                            if(resp.equals("false")){
+                                CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,TB.this,"ERROR", "Could not save");
+                            }
                             System.out.println(resp);
                         } catch(Exception e){
                             e.printStackTrace();

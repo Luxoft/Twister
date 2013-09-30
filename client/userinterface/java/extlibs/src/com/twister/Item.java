@@ -1,6 +1,6 @@
 /*
 File: Item.java ; This file is part of Twister.
-Version: 2.002
+Version: 2.006
 Copyright (C) 2012 , Luxoft
 
 Authors: Andrei Costachi <acostachi@luxoft.com>
@@ -41,6 +41,7 @@ public class Item implements Cloneable{
     private String [] configurations = {}; 
     private boolean panicdetect = false;
     private int ceindex;
+    private boolean clearcase = false;
     
     
     public int getCEindex() {
@@ -204,7 +205,15 @@ public class Item implements Cloneable{
     public boolean isRunnable(){
         return runnable;}
     
-    public int getType(){
+    public boolean isClearcase() {
+		return clearcase;
+	}
+
+	public void setClearcase(boolean clearcase) {
+		this.clearcase = clearcase;
+	}
+
+	public int getType(){
         return type;}
         
     public String getValue(){

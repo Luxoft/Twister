@@ -315,7 +315,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
-    def tree(self, root_id=ROOT_DEVICE):
+    def tree(self, root_id=ROOT_DEVICE, *arg, **kw):
         '''
         Return the structure, list based.
         '''

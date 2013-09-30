@@ -1,3 +1,25 @@
+27th September 
+
+- added ClearCase built-in plugin
+- a new variable twister_tc_revision can be saved into DB
+- fix for issue #94; nested configurations can be retrieved in test cases
+- Implemented more variables inside e-mail subject and body, after the tests are run
+    twister_user
+    twister_ce_hostname
+    twister_ce_ip
+    twister_ce_os
+    twister_ce_python_revision
+    twister_ce_type
+    twister_ep_hostname
+    twister_ep_ip
+    twister_ep_os
+    twister_ep_python_revision
+    twister_pf_fname
+    twister_rf_fname
+    twister_server_location
+- updated userGuide
+- updated Plugins document
+
 20th September
 
 - fixed a bug with user groups, when creating new users.

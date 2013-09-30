@@ -1,7 +1,7 @@
 
 # File: CentralEngineClasses.py ; This file is part of Twister.
 
-# version: 2.027
+# version: 2.030
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -52,7 +52,7 @@ import MySQLdb
 
 import pickle
 try: import simplejson as json
-except: import json
+except Exception as e: import json
 
 import cherrypy
 from cherrypy import _cptools
@@ -1012,30 +1012,58 @@ class CentralEngine(_cptools.XMLRPCController):
         Called from the Runner.
         """
         if not self.searchEP(user, epname):
-            logError('CE ERROR! EP `{}` is not in the list of defined EPs: `{}`!'.format(epname, self.listEPs(user)))
+            logError('*ERROR* `{}` is not in the list of defined EPs: `{}`!'.format(epname, self.listEPs(user)))
             return False
         if not self.project.getEpInfo(user, epname).get('status'):
-            logError('CE ERROR! `{}` requested file list, but the EP is closed! Exiting!'.format(epname))
+            logError('*ERROR* `{}` requested file list, but the EP is closed!'.format(epname))
             return False
 
         data = self.project.getFileInfo(user, epname, file_id)
         if not data:
-            logError('CE ERROR! Invalid File ID `{}` !'.format(file_id))
+            logError('*ERROR* Invalid File ID `{}` !'.format(file_id))
             return False
 
         filename = data['file']
         tests_path = self.project.getUserInfo(user, 'tests_path')
 
+        # Inject this empty variable just to be sure.
+        self.project.setFileInfo(user, epname, file_id, 'twister_tc_revision', '')
+
+        # Fix ~ $HOME path
         if filename.startswith('~'):
             filename = userHome(user) + filename[1:]
+
+        # Fix incomplete file path
         if not os.path.isfile(filename):
             if not os.path.isfile(tests_path + os.sep + filename):
-                logError('CE ERROR! TestCase file: `{}` does not exist!'.format(filename))
+
+                # Injected ClearCase file ?
+                if 'ClearCase' in self.listPlugins(user) and data.get('clearcase'):
+                    plugin_p = self.project._buildPlugin(user, 'ClearCase')
+                    try:
+                        data = plugin_p.getTestFile(filename)
+                    except Exception as e:
+                        trace = traceback.format_exc()[34:].strip()
+                        logError('Error getting ClearCase file `{}` : `{}`!'.format(filename, trace))
+                        return ''
+                    try:
+                        descr = plugin_p.getTestDescription(user, filename)
+                        cctag = '<b>ClearCase Version</b> :'
+                        if descr:
+                            pos = descr.find(cctag) + len(cctag)
+                            rev = descr[pos:].strip()
+                            self.project.setFileInfo(user, epname, file_id, 'twister_tc_revision', rev)
+                    except Exception as e:
+                        pass
+                    logDebug('CE: Execution process `{}:{}` requested file `{}`.'.format(user, epname, filename))
+                    return data
+
+                logError('*ERROR* TestCase file: `{}` does not exist!'.format(filename))
                 return ''
             else:
-                filename = tests_path + os.sep + filename.lstrip('/')
+                filename = tests_path + os.sep + filename
 
-        logDebug('CE: Station {} requested file `{}`'.format(epname, filename))
+        logDebug('CE: Execution process `{}:{}` requested file `{}`.'.format(user, epname, filename))
 
         with open(filename, 'rb') as handle:
             return xmlrpclib.Binary(handle.read())
@@ -1047,8 +1075,24 @@ class CentralEngine(_cptools.XMLRPCController):
         Returns the title, description and all tags from a test file.\n
         Called from the Java GUI.
         """
-        # This function is defined in helpers.
-        return getFileTags(fname)
+        if os.path.isfile(fname):
+            # This function is defined in helpers.
+            return getFileTags(fname)
+
+        # If the user has roles and the ClearCase plugin is enabled...
+        cherry_roles = self.project._checkUser()
+        if cherry_roles:
+            user = cherry_roles['user']
+            if 'ClearCase' in self.listPlugins(user):
+                plugin_p = self.project._buildPlugin(user, 'ClearCase')
+                try:
+                    return plugin_p.getTestDescription(user, fname)
+                except Exception as e:
+                    trace = traceback.format_exc()[34:].strip()
+                    logError('Error getting description from ClearCase file `{}` : `{}`!'.format(fname, trace))
+                    return ''
+
+        return ''
 
 
 # --------------------------------------------------------------------------------------------------

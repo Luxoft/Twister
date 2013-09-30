@@ -2,7 +2,7 @@
 File: GITPlugin.java ; This file is part of Twister.
 
 Copyright (C) 2012 , Luxoft
-Version: 2.003
+Version: 2.004
 Authors: Andrei Costachi <acostachi@luxoft.com>
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -114,7 +114,7 @@ public class GITPlugin extends BasePlugin implements TwisterPluginInterface {
         tbranch = new JTextField();
         snapshot = new JLabel("Snapshot: ");
         tsnapshot = new JTextField();
-        snap = new JButton("Create snaphsot");
+        snap = new JButton("Create snapshot");
         update = new JButton("Update");
         check = new JCheckBox("overwrite");
         browse = new JButton("...");

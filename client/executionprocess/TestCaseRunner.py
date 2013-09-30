@@ -367,8 +367,8 @@ class TwisterRunner:
 
             # Extra properties, from the applet
             props = dict(node)
-            for prop in ['type', 'status', 'file', 'suite', 'dependancy', 'Runnable',
-                         'setup_file', 'teardown_file', 'Optional', 'config_files', 'param']:
+            for prop in ['type', 'status', 'file', 'suite', 'dependancy', 'Runnable', 'setup_file',
+                         'teardown_file', 'Optional', 'config_files', 'param', 'clearcase']:
                 # Removing all known File properties
                 try: del props[prop]
                 except: pass

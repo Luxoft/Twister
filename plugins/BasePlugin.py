@@ -1,7 +1,7 @@
 
 # File: BasePlugin.py ; This file is part of Twister.
 
-# version: 2.001
+# version: 2.002
 
 # Copyright (C) 2012 , Luxoft
 
@@ -37,14 +37,14 @@ class BasePlugin(object):
         self.data = data
 
 
-    def run(self, args):
+    def run(self, *arg, **kwarg):
         """
         This function is called from the Java GUI.
         """
         pass
 
 
-    def onStart(self):
+    def onStart(self, *arg, **kwarg):
         """
         This function is called from the Central Engine,
         every time it Starts the execution, from status Stop or Invalid.
@@ -54,7 +54,7 @@ class BasePlugin(object):
         pass
 
 
-    def onPause(self):
+    def onPause(self, *arg, **kwarg):
         """
         This function is called from the Central Engine,
         every time it Pauses the execution of all EPs.
@@ -62,7 +62,7 @@ class BasePlugin(object):
         pass
 
 
-    def onStop(self):
+    def onStop(self, *arg, **kwarg):
         """
         This function is called from the Central Engine,
         every time it Stops the execution of all EPs.

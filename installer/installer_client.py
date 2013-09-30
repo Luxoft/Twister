@@ -74,6 +74,7 @@ except:
 
 # Twister client path
 INSTALL_PATH = userHome(user_name) + os.sep + 'twister/'
+tmp_config   = ''
 
 print('Hello `{}` !\n'.format(user_name))
 
