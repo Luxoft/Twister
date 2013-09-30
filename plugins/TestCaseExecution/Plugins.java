@@ -1,6 +1,6 @@
 /*
 File: Plugins.java ; This file is part of Twister.
-Version: 2.006
+Version: 2.007
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -92,12 +92,14 @@ public class Plugins extends JPanel{
     private boolean finished = true;
 
     public Plugins(){
+        clearcase = isClearCaseEnabled();
         initSftp();
         copyPreConfiguredPlugins();
         RunnerPluginsLoader.setClassPath();
         getPlugins();
         initComponents();
         loadRemotePluginList();
+        
     }
     
     /*
@@ -517,8 +519,19 @@ public class Plugins extends JPanel{
             constraints.weighty = 0.1;
             layout.setConstraints(component, constraints);}            
         final MyCheck check = new MyCheck();
+        check.setBackground(Color.WHITE);
+        check.setText("Activate");
+        check.setName(tname);
         if(tname.equals("ClearCase")&&clearcase){
             check.setSelected(true);
+            new Thread(){
+                public void run(){
+                    while(RunnerRepository.initialized == false || RunnerRepository.window.mainpanel.p1.tabs == null){
+                        try{Thread.sleep(200);}
+                        catch(Exception e){e.printStackTrace();}
+                    }
+                pluginClicked(check);
+                }}.start();
         }
         if(!PermissionValidator.canChangePlugins()){
             check.setEnabled(false);
@@ -528,9 +541,6 @@ public class Plugins extends JPanel{
         JTextArea description = new JTextArea();
         description.setBackground(Color.WHITE);
         JButton readmore = new JButton("Read more"); 
-        check.setBackground(Color.WHITE);
-        check.setText("Activate");
-        check.setName(tname);
         GridBagConstraints gridBagConstraints = new GridBagConstraints();        
         gridBagConstraints.gridx = 0;
         gridBagConstraints.ipadx = 10;
@@ -579,11 +589,17 @@ public class Plugins extends JPanel{
         check.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 pluginClicked(check);}});
+//         boolean plugenabled = false;
+//         if(tname.equals("ClearCase")){
+//             plugenabled = isClearCaseEnabled();
+//         } else {
+//             plugenabled = isPluginEnabled(tname);
+//         }
         if(isPluginEnabled(tname)){
             //wait for MainPanel to be initialized
             new Thread(){
                 public void run(){
-                    while(RunnerRepository.initialized == false){
+                    while(RunnerRepository.initialized == false || RunnerRepository.window.mainpanel.p1.tabs == null){
                         try{Thread.sleep(200);}
                         catch(Exception e){e.printStackTrace();}
                     }
@@ -637,6 +653,96 @@ public class Plugins extends JPanel{
         frame.setBounds(200,100,800,600);
         frame.setVisible(true);
     }
+    
+    public boolean isClearCaseEnabled(){
+        Document doc = RunnerRepository.getPluginsConfig();
+		NodeList list1 = doc.getElementsByTagName("Plugin");
+		Element item,compare;
+		Element rootElement = null;
+		boolean found = false;
+		for (int i = 0; i < list1.getLength(); i++) {
+			item = (Element) list1.item(i);
+			compare = (Element) item.getElementsByTagName("name").item(0);
+			if (compare.getChildNodes().item(0).getNodeValue()
+					.equals("ClearCase")) {
+				found = true;
+				rootElement = item;
+				break;
+			}
+		}
+		if (!found) {
+		    return false;
+		} else {
+            item = (Element)rootElement.getElementsByTagName("status").item(0);
+            String value = item.getChildNodes().item(0).getNodeValue();
+            if(value.equals("enabled")){
+            	return true;
+            } else {
+            	return false;
+            }
+		}
+    }
+    
+    public void setClearCaseState(boolean value){
+        Document doc = RunnerRepository.getPluginsConfig();
+		NodeList list1 = doc.getElementsByTagName("Plugin");
+		Element item,compare;
+		Element rootElement = null;
+		boolean found = false;
+		for (int i = 0; i < list1.getLength(); i++) {
+			item = (Element) list1.item(i);
+			compare = (Element) item.getElementsByTagName("name").item(0);
+			if (compare.getChildNodes().item(0).getNodeValue()
+					.equals("ClearCase")) {
+				found = true;
+				rootElement = item;
+				break;
+			}
+		}
+		if (!found) {
+			rootElement = doc.createElement("Plugin");
+			doc.getFirstChild().appendChild(rootElement);
+			Element em2 = doc.createElement("name");
+			em2.appendChild(doc.createTextNode("ClearCase"));
+			rootElement.appendChild(em2);
+			em2 = doc.createElement("jarfile");
+			em2.appendChild(doc.createTextNode("ClearCasePlugin.jar"));
+			rootElement.appendChild(em2);
+			em2 = doc.createElement("pyfile");
+			em2.appendChild(doc.createTextNode("ClearCasePlugin.py"));
+			rootElement.appendChild(em2);
+			em2 = doc.createElement("status");
+			String status = "disabled";
+			if(value)status = "enabled";
+			em2.appendChild(doc.createTextNode(status));
+			rootElement.appendChild(em2);
+		} else {
+		    item = (Element)rootElement.getElementsByTagName("status").item(0);
+    		if(value){
+    			item.getChildNodes().item(0).setNodeValue("enabled");
+    		} else {
+    			item.getChildNodes().item(0).setNodeValue("disabled");
+    		}
+		}
+		try{
+            DOMSource source = new DOMSource(doc);
+            File file = new File(RunnerRepository.PLUGINSLOCALGENERALCONF);
+            Result result = new StreamResult(file);
+            TransformerFactory transformerFactory = TransformerFactory.newInstance();
+            Transformer transformer = transformerFactory.newTransformer();
+            transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+            transformer.setOutputProperty("{http:xml.apache.org/xslt}indent-amount","4");
+            transformer.transform(source, result);
+            FileInputStream in = new FileInputStream(file);
+            RunnerRepository.uploadRemoteFile(RunnerRepository.USERHOME+"/twister/config/", in, file.getName());
+            in.close();
+            System.out.println("Saved "+file.getName()+" to: "+
+					RunnerRepository.USERHOME+"/twister/config/");}
+        catch(Exception e){
+            e.printStackTrace();
+        }
+		
+    }
             
     /*
      * method to display or remove
@@ -646,13 +752,14 @@ public class Plugins extends JPanel{
         String pluginname = check.getName();
         if(pluginname.equals("ClearCase")){
             clearcase = check.isSelected();
-            if(check.isSelected()){
+            if(clearcase){
                 RunnerRepository.window.mainpanel.add(RunnerRepository.window.mainpanel.getP5(), "ClearCase");
                 RunnerRepository.window.mainpanel.p1.tabs.add("ClearCase Tests", new JScrollPane(RunnerRepository.window.mainpanel.p1.cp.tree));
             } else {    
                 RunnerRepository.window.mainpanel.remove(RunnerRepository.window.mainpanel.getP5());
                 RunnerRepository.window.mainpanel.p1.tabs.remove(2);
             }
+            setClearCaseState(clearcase);
             return;
         }
         final TwisterPluginInterface plugin = (TwisterPluginInterface)plugins.get(pluginname);

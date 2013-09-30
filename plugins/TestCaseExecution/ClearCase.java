@@ -1,6 +1,6 @@
 /*
 File: ClearCase.java ; This file is part of Twister.
-Version: 2.002
+Version: 2.003
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -203,8 +203,6 @@ public class ClearCase extends JPanel{
                         return null;
                     }
                     if(line.indexOf("@_#_")!=-1&&line.indexOf("echo")==-1){
-//                         if(firstfind){
-//                             firstfind = false;
                             in.readLine();
                             in.readLine();
                             if(responseData.indexOf("cleartool: command not found")!=-1){
@@ -213,11 +211,6 @@ public class ClearCase extends JPanel{
                                 return null;
                             }
                             return responseData.substring(0, responseData.indexOf("@_#_")).toString();
-//                         }
-//                         else{
-//                             responseData = new StringBuilder(responseData.substring(responseData.indexOf("@_#_")+4, responseData.length()));
-//                             firstfind = true;
-//                         }
                     } else if(line.indexOf("echo @_#_")!=-1){
                         responseData = new StringBuilder(responseData.substring(responseData.indexOf("@_#_")+4, responseData.length()));
                     }
@@ -321,10 +314,7 @@ public class ClearCase extends JPanel{
                     if(ltag.getText().equals("")||lview.getText().equals("")){
                         CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,ClearCase.this,
                                         "Warning", "View and Tag are mandatory!");
-                                        
-                        
                         return;
-                        
                     }
                     StringBuilder sb = new StringBuilder();
                     sb.append("cleartool mkview -tag ");
@@ -344,15 +334,22 @@ public class ClearCase extends JPanel{
                     if(shareable.isSelected()){
                         sb.append(" -shareable_dos ");
                     }
-                    
                     sb.append(" "+lview.getText());
-                    
                     System.out.println("Sending command: "+sb.toString());
-                    
-//                     sendCommand(sb.toString(), true);
                     sendCommand(sb.toString());
-//                     String response = readOutput(false);
                     String response = readOutput();
+                    sb.setLength(0);
+                    if(response.indexOf("Error")!=-1){
+                        String[] lines = response.split("\n");
+                        sb.append("<html>");
+                        for(String l:lines){
+                            sb.append(l);
+                            sb.append("<br>");
+                        }
+                        sb.append("</html>");
+                        CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,ClearCase.this,
+                                              "ERROR", sb.toString());
+                    }
                     tviews.setText(response);
                 }
             }
@@ -364,9 +361,7 @@ public class ClearCase extends JPanel{
                                         "Warning", "Please set view!");
                     return;
                 }
-//                 sendCommand("cleartool catcs -tag "+view,true);
                 sendCommand("cleartool catcs -tag "+view);
-//                 String content = readOutput(false);
                 String content = readOutput();
                 tviews.setText(content);
             }
@@ -381,27 +376,20 @@ public class ClearCase extends JPanel{
                     command+=" -long";
                 }
                 sendCommand(command);
-//                 sendCommand(command,true);
                 tviews.setText(readOutput());
-//                 tviews.setText(readOutput(false));
             }
         });
         setview.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
-//                 sendCommand("cleartool lsview -short",true);
-//                 String [] resp = readOutput(false).split("\n");
                 sendCommand("cleartool lsview -short");
                 String [] resp = readOutput().split("\n");
                 showViews(resp);
             }
         });
-
         views.setText("Views:");
-
         tviews.setColumns(20);
         tviews.setRows(5);
         jScrollPane2.setViewportView(tviews);
-
         cshort.setText("Short");
         cshort.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
@@ -419,11 +407,8 @@ public class ClearCase extends JPanel{
                 System.out.println("selected");
             }
         });
-
         clong.setText("Long");
-
         setview.setText("Set View");
-        
         javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
         jPanel1.setLayout(jPanel1Layout);
         jPanel1Layout.setHorizontalGroup(

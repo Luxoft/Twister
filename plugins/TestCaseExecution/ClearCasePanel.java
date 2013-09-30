@@ -1,6 +1,6 @@
 /*
 File: ClearCasePanel.java ; This file is part of Twister.
-Version: 2.005
+Version: 2.006
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -279,8 +279,6 @@ public class ClearCasePanel{
             final String remotefilename = tree.getSelectionPath().getPathComponent(
                                     tree.getSelectionPath().getPathCount() - 2)
                                     + "/" + tree.getSelectionPath().getLastPathComponent();
-//             RunnerRepository.window.mainpanel.getP5().sendCommand("cleartool lsco "+remotefilename, true);
-//             String response = RunnerRepository.window.mainpanel.getP5().readOutput(false);
             RunnerRepository.window.mainpanel.getP5().sendCommand("cleartool lsco "+remotefilename);
             String response = RunnerRepository.window.mainpanel.getP5().readOutput();
             if(response.indexOf("checkout")==-1){
@@ -298,7 +296,6 @@ public class ClearCasePanel{
                         checkOut(remotefilename);
                     }
                 });
-                
             } else {
                 item = new JMenuItem("Edit");
                 p.add(item);
@@ -353,20 +350,43 @@ public class ClearCasePanel{
 //             String response = RunnerRepository.window.mainpanel.getP5().readOutput(true);
             RunnerRepository.window.mainpanel.getP5().sendCommand("cleartool unco -rm \""+remotefilename+"\"");
             String response = RunnerRepository.window.mainpanel.getP5().readOutput();
+            if(response.indexOf("Error")!=-1){
+                String[] lines = response.split("\n");
+                StringBuilder sb = new StringBuilder();
+                sb.append("<html>");
+                for(String l:lines){
+                    sb.append(l);
+                    sb.append("<br>");
+                }
+                sb.append("</html>");
+                CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,tree,
+                                      "ERROR", sb.toString());
+            }
             System.out.println("response: ---"+response+"---");
      }
     
     
      public void checkIn(String remotefilename){
+         
          String comment = CustomDialog.showInputDialog(JOptionPane.PLAIN_MESSAGE, JOptionPane.OK_CANCEL_OPTION,
                                                     tree, "Comment", "Please enter comment");
-        if(comment!=null){
-            RunnerRepository.window.mainpanel.getP5().sendCommand("cleartool ci -c "+comment+" "+remotefilename);
-            String response = RunnerRepository.window.mainpanel.getP5().readOutput();
-//             RunnerRepository.window.mainpanel.getP5().sendCommand("cleartool ci -c "+comment+" "+remotefilename, true);
-//             String response = RunnerRepository.window.mainpanel.getP5().readOutput(false);
-            System.out.println("response: ---"+response+"---");
-        }
+         if(comment!=null){
+             RunnerRepository.window.mainpanel.getP5().sendCommand("cleartool ci -c "+comment+" "+remotefilename);
+             String response = RunnerRepository.window.mainpanel.getP5().readOutput();
+             if(response.indexOf("Error")!=-1){
+                String[] lines = response.split("\n");
+                StringBuilder sb = new StringBuilder();
+                sb.append("<html>");
+                for(String l:lines){
+                    sb.append(l);
+                    sb.append("<br>");
+                }
+                sb.append("</html>");
+                CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,tree,
+                                      "ERROR", sb.toString());
+            }
+             System.out.println("response: ---"+response+"---");
+         }
      }
     
     
@@ -376,8 +396,18 @@ public class ClearCasePanel{
         if(comment!=null){
             RunnerRepository.window.mainpanel.getP5().sendCommand("cleartool co -c \""+comment+"\" "+remotefilename);
             String response = RunnerRepository.window.mainpanel.getP5().readOutput();
-//             RunnerRepository.window.mainpanel.getP5().sendCommand("cleartool co -c \""+comment+"\" "+remotefilename, true);
-//             String response = RunnerRepository.window.mainpanel.getP5().readOutput(false);
+            if(response.indexOf("Error")!=-1){
+                String[] lines = response.split("\n");
+                StringBuilder sb = new StringBuilder();
+                sb.append("<html>");
+                for(String l:lines){
+                    sb.append(l);
+                    sb.append("<br>");
+                }
+                sb.append("</html>");
+                CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,tree,
+                                      "ERROR", sb.toString());
+            }
             System.out.println("response: ---"+response+"---");
         }
     }
