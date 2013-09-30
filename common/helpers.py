@@ -1,7 +1,7 @@
 
 # File: helpers.py ; This file is part of Twister.
 
-# version: 2.003
+# version: 2.004
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -31,6 +31,7 @@ This module contains a lot of helper, common functions.
 import os
 import sys
 import re
+import time
 import binascii
 import platform
 import subprocess
@@ -95,10 +96,67 @@ def getFileTags(fname):
     return '<br>\n'.join(['<b>' + title + '</b> : ' + descr.replace('<', '&lt;') for title, descr in tags])
 
 
+def dirList(tests_path, path, newdict):
+    """
+    Create recursive list of folders and files from Tests path.
+    The format of a node is: {"data": "name", "attr": {"rel": "folder"}, "children": []}
+    """
+    len_path = len(tests_path) + 1
+    if os.path.isdir(path):
+        dlist = [] # Folders list
+        flist = [] # Files list
+        for fname in sorted(os.listdir(path), key=str.lower):
+            short_path = (path + os.sep + fname)[len_path:]
+            nd = {'data': short_path, 'children': []}
+            if os.path.isdir(path + os.sep + fname):
+                nd['attr'] = {'rel': 'folder'}
+                dlist.append(nd)
+            else:
+                flist.append(nd)
+        # Folders first, files second
+        newdict['children'] = dlist + flist
+    for nitem in newdict['children']:
+        # Recursive !
+        dirList(tests_path, tests_path + os.sep + nitem['data'], nitem)
+
+
+def calcMemory():
+    """
+    Calculate used memory percentage.
+    """
+    memLine = subprocess.check_output(['free', '-o']).split('\n')[1]
+    memUsed  = int(memLine.split()[2])
+    mebBuff  = int(memLine.split()[-2])
+    memCache = int(memLine.split()[-1])
+    Total    = float(memLine.split()[1])
+    memPer = ((memUsed - mebBuff - memCache) * 100.) / Total
+    return float('%.2f' % memPer)
+
+def _getCpuData():
+    """ Helper function """
+    statLine = open('/proc/stat', 'r').readline()
+    timeList = statLine.split(' ')[2:6]
+    for i in range(len(timeList)):
+        timeList[i] = float(timeList[i])
+    return timeList
+
+def calcCpu():
+    """
+    Calculate used CPU percentage.
+    """
+    x = _getCpuData()
+    time.sleep(0.5)
+    y = _getCpuData()
+    for i in range(len(x)):
+        y[i] -= x[i]
+    cpuPer = sum(y[:-1]) / sum(y) * 100.
+    return float('%.2f' % cpuPer)
+
+
 def systemInfo():
-    '''
+    """
     Returns some system information.
-    '''
+    """
     system = platform.machine() +' '+ platform.system() +', '+ ' '.join(platform.linux_distribution())
     python = '.'.join([str(v) for v in sys.version_info])
     return '{}\nPython {}'.format(system.strip(), python)

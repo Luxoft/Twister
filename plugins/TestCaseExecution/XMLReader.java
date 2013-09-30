@@ -1,6 +1,6 @@
 /*
 File: XMLReader.java ; This file is part of Twister.
-Version: 2.009
+Version: 2.011
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -137,27 +137,35 @@ public class XMLReader{
                 secNmElmnt = (Element)secNmElmntLst.item(0);
                 secNm = secNmElmnt.getChildNodes();
                 FontMetrics metrics = g.getFontMetrics(new Font("TimesRoman", 0, 13));
-                String f = secNm.item(0).getNodeValue().toString().
+                NodeList clearcase = ((Element)node).getElementsByTagName("ClearCase");
+                String f = "";
+                boolean isclearcase = false;
+                if(clearcase.getLength()==0){
+                    f = secNm.item(0).getNodeValue().toString().
                             split(RunnerRepository.getTestSuitePath())[1];
+                    k=2;
+                } else {
+                    f = secNm.item(0).getNodeValue().toString();
+                    isclearcase = true;
+                    k=4;
+                }
+                
                 int width = metrics.stringWidth(f) + 8;
                 if(test){f = secNm.item(0).getNodeValue().toString();}   
                 theone = new Item(f,1,-1,-1,width+40,20,indexes);
+                theone.setClearcase(isclearcase);
                 theone.setCEindex(index++);
-                k=2;
+                
                 secNmElmntLst = ((Element)node).getElementsByTagName("ConfigFiles");
-                if(secNmElmntLst.getLength()>0){;
+                if(secNmElmntLst.getLength()>0){
                     secNmElmnt = (Element)secNmElmntLst.item(0);
                     secNm = secNmElmnt.getChildNodes();
                     String configs[] ={};
                     if(secNm.getLength()>0){
                         configs= secNm.item(0).getNodeValue().toString().split(";");
                     }
-                    
-                    
-//                     try{}
-//                     catch(Exception e){e.printStackTrace();}
                     theone.setConfigurations(configs);
-                    k=4;
+                    k+=2;
                 }
                 if(test){
                     ArrayList <Integer> indexpos3 = (ArrayList <Integer>)indexes.clone();
@@ -298,6 +306,17 @@ public class XMLReader{
                     catch(Exception e){
                         e.printStackTrace();
                         RunnerRepository.window.mainpanel.p1.suitaDetails.setPreScript("");
+                    }
+                    continue;
+                }
+                else if(fstNode.getNodeName().equals("ClearCaseView")){
+                    try{
+                        String view = fstNode.getChildNodes().item(0).getNodeValue().toString();
+                        RunnerRepository.window.mainpanel.getP5().view = view;}
+                    catch(Exception e){
+                        RunnerRepository.window.mainpanel.getP5().view = "";
+//                         e.printStackTrace();
+//                         RunnerRepository.window.mainpanel.p1.suitaDetails.setPreScript("");
                     }
                     continue;
                 }

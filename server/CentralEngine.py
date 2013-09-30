@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# version: 2.005
+# version: 2.006
 
 # File: CentralEngine.py ; This file is part of Twister.
 
@@ -27,6 +27,10 @@
 """
 This file starts the Twister Server.
 """
+
+# Patch for _DummyThread __stop error
+import threading
+threading._DummyThread._Thread__stop = lambda x: 1
 
 import os
 import sys
