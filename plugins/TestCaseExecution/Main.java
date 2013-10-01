@@ -72,9 +72,6 @@ public class Main{
         } catch (Exception e) {
             e.printStackTrace();
         }
-        RunnerRepository.user = "tscguest";
-        RunnerRepository.password = "tscguest";
-        RunnerRepository.host = "tsc-server";
         readLogoTxt();
         
         PermissionValidator.init("CREATE_PROJECT,CHANGE_PROJECT,DELETE_PROJECT,CHANGE_PLUGINS,"+

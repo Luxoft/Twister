@@ -1,6 +1,6 @@
 /*
 File: ClearCasePanel.java ; This file is part of Twister.
-Version: 2.006
+Version: 2.007
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -151,7 +151,8 @@ public class ClearCasePanel{
             e.printStackTrace();
         }
         
-        tree = new JTree(root);
+        tree = new JTree();
+        tree.setModel(new DefaultTreeModel(root,true));
         tree.expandRow(1);
         tree.setTransferHandler(new TransferHandler(){
             
@@ -269,26 +270,37 @@ public class ClearCasePanel{
         } else {
             editable = "";
         }
-        if ((tree.getSelectionPath()!=null)&&(tree.getSelectionPaths().length == 1)
-                && (tree.getModel().isLeaf(tree.getSelectionPath()
-                        .getLastPathComponent()))
-                && ((editable.indexOf(".tcl") != -1)
-                    || (editable.indexOf(".py") != -1)
-                    || (editable.indexOf(".java") != -1)
-                    || (editable.indexOf(".pl") != -1))) {
-            final String remotefilename = tree.getSelectionPath().getPathComponent(
+        if ((tree.getSelectionPath()!=null)&&(tree.getSelectionPaths().length == 1)) {
+//             System.out.println(tree.getSelectionPath().getPathCount());
+            final String remotefilename ;
+            if(tree.getModel().isLeaf(tree.getSelectionPath()
+                        .getLastPathComponent())){
+                remotefilename = tree.getSelectionPath().getPathComponent(
                                     tree.getSelectionPath().getPathCount() - 2)
                                     + "/" + tree.getSelectionPath().getLastPathComponent();
+            } else {
+                remotefilename = tree.getSelectionPath().getLastPathComponent().toString();
+            }
+//             if(tree.getSelectionPath().getPathCount()==2){
+//                 remotefilename = tree.getSelectionPath().getLastPathComponent().toString();
+//             } else {
+//                 remotefilename = tree.getSelectionPath().getPathComponent(
+//                                     tree.getSelectionPath().getPathCount() - 2)
+//                                     + "/" + tree.getSelectionPath().getLastPathComponent();
+//             }
+//             final String remotefilename = tree.getSelectionPath().getPathComponent(
+//                                     tree.getSelectionPath().getPathCount() - 2)
+//                                     + "/" + tree.getSelectionPath().getLastPathComponent();
             RunnerRepository.window.mainpanel.getP5().sendCommand("cleartool lsco "+remotefilename);
             String response = RunnerRepository.window.mainpanel.getP5().readOutput();
             if(response.indexOf("checkout")==-1){
-                item = new JMenuItem("View");
-                p.add(item);
-                item.addActionListener(new ActionListener() {
-                    public void actionPerformed(ActionEvent ev) {
-                        editTC(editable,false);
-                    }
-                });
+//                 item = new JMenuItem("View");
+//                 p.add(item);
+//                 item.addActionListener(new ActionListener() {
+//                     public void actionPerformed(ActionEvent ev) {
+//                         editTC(editable,false);
+//                     }
+//                 });
                 item = new JMenuItem("Checkout");
                 p.add(item);
                 item.addActionListener(new ActionListener() {
@@ -297,20 +309,20 @@ public class ClearCasePanel{
                     }
                 });
             } else {
-                item = new JMenuItem("Edit");
-                p.add(item);
-                item.addActionListener(new ActionListener() {
-                    public void actionPerformed(ActionEvent ev) {
-                        editTC(editable, true);
-                    }
-                });
-                item = new JMenuItem("Edit with");
-                p.add(item);
-                item.addActionListener(new ActionListener() {
-                    public void actionPerformed(ActionEvent evnt) {
-                        editWith(editable,remotefilename,true);
-                    }
-                });
+//                 item = new JMenuItem("Edit");
+//                 p.add(item);
+//                 item.addActionListener(new ActionListener() {
+//                     public void actionPerformed(ActionEvent ev) {
+//                         editTC(editable, true);
+//                     }
+//                 });
+//                 item = new JMenuItem("Edit with");
+//                 p.add(item);
+//                 item.addActionListener(new ActionListener() {
+//                     public void actionPerformed(ActionEvent evnt) {
+//                         editWith(editable,remotefilename,true);
+//                     }
+//                 });
                 item = new JMenuItem("Checkin");
                 p.add(item);
                 item.addActionListener(new ActionListener() {
@@ -326,21 +338,67 @@ public class ClearCasePanel{
                     }
                 });
             }
-            item = new JMenuItem("Editors");
-            p.add(item);
-            item.addActionListener(new ActionListener() {
-                public void actionPerformed(ActionEvent evnt) {
-                    try {
-                        new Editors(ev.getLocationOnScreen()).setVisible(true);
-                    } catch (Exception e) {
-                        System.out
-                                .println("There was an error in opening editors"+
-                                         " configuration window, please check "+
-                                         "configuration file");
-                        e.printStackTrace();
-                    }
+//             item = new JMenuItem("Editors");
+//             p.add(item);
+//             item.addActionListener(new ActionListener() {
+//                 public void actionPerformed(ActionEvent evnt) {
+//                     try {
+//                         new Editors(ev.getLocationOnScreen()).setVisible(true);
+//                     } catch (Exception e) {
+//                         System.out
+//                                 .println("There was an error in opening editors"+
+//                                          " configuration window, please check "+
+//                                          "configuration file");
+//                         e.printStackTrace();
+//                     }
+//                 }
+//             });
+            if((tree.getModel().isLeaf(tree.getSelectionPath()
+                        .getLastPathComponent()))
+                && ((editable.indexOf(".tcl") != -1)
+                    || (editable.indexOf(".py") != -1)
+                    || (editable.indexOf(".java") != -1)
+                    || (editable.indexOf(".pl") != -1))){
+                if(response.indexOf("checkout")==-1){
+                    item = new JMenuItem("View");
+                    p.add(item);
+                    item.addActionListener(new ActionListener() {
+                        public void actionPerformed(ActionEvent ev) {
+                            editTC(editable,false);
+                        }
+                    });
+                } else {
+                    item = new JMenuItem("Edit");
+                    p.add(item);
+                    item.addActionListener(new ActionListener() {
+                        public void actionPerformed(ActionEvent ev) {
+                            editTC(editable, true);
+                        }
+                    });
+                    item = new JMenuItem("Edit with");
+                    p.add(item);
+                    item.addActionListener(new ActionListener() {
+                        public void actionPerformed(ActionEvent evnt) {
+                            editWith(editable,remotefilename,true);
+                        }
+                    });
+                    item = new JMenuItem("Editors");
+                    p.add(item);
+                    item.addActionListener(new ActionListener() {
+                        public void actionPerformed(ActionEvent evnt) {
+                            try {
+                                new Editors(ev.getLocationOnScreen()).setVisible(true);
+                            } catch (Exception e) {
+                                System.out
+                                        .println("There was an error in opening editors"+
+                                                 " configuration window, please check "+
+                                                 "configuration file");
+                                e.printStackTrace();
+                            }
+                        }
+                    });
                 }
-            });
+            }
         }
         p.show(tree, ev.getX(), ev.getY());
     }

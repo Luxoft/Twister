@@ -1,6 +1,6 @@
 /*
 File: ClearCase.java ; This file is part of Twister.
-Version: 2.003
+Version: 2.004
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -56,6 +56,9 @@ import javax.swing.JTextField;
 import com.twister.CustomDialog;
 import java.util.Vector;
 import java.awt.Dimension;
+import javax.swing.JComboBox;
+import java.awt.event.ItemListener;
+import java.awt.event.ItemEvent;
 
 public class ClearCase extends JPanel{
 //     private DataInputStream dataIn;
@@ -243,9 +246,187 @@ public class ClearCase extends JPanel{
         JButton setview = new JButton("Set View");
 //         JButton endview = new JButton("End View");
         JButton showconf = new JButton("Show Config Spec");
+        JButton mkelem = new JButton("Make Element");
+        JButton rmelem = new JButton("Remove Element");
+        JButton mklabel = new JButton("Make Label");
         JButton mkview = new JButton("Make View");
         lview = new JLabel();
         vob = new JLabel();
+        
+        mklabel.addActionListener(new ActionListener(){
+            public void actionPerformed(ActionEvent ev){
+                JPanel p = new JPanel();
+                p.setLayout(null);
+                p.setPreferredSize(new Dimension(350,280));
+                JLabel label = new JLabel("Label: ");
+                label.setBounds(10,10,70,25);
+                JTextField tlabel = new JTextField();
+                tlabel.setBounds(90,10,250,25);
+                p.add(label);
+                p.add(tlabel);
+                
+                JLabel element = new JLabel("Element: ");
+                element.setBounds(10,40,70,25);
+                JTextField telement = new JTextField();
+                telement.setBounds(90,40,250,25);
+                p.add(element);
+                p.add(telement);
+                
+                JLabel version = new JLabel("Version: ");
+                version.setBounds(10,70,70,25);
+                JTextField tversion = new JTextField();
+                tversion.setBounds(90,70,250,25);
+                p.add(version);
+                p.add(tversion);
+                
+                JLabel comment = new JLabel("Comment: ");
+                comment.setBounds(10,100,70,25);
+                JTextArea tcomment = new JTextArea();
+                JScrollPane sp = new JScrollPane(tcomment);
+                sp.setBounds(90,100,250,150);
+                p.add(comment);
+                p.add(sp);
+                
+                JCheckBox recursive = new JCheckBox("Recursive");
+                recursive.setBounds(10,250,100,25);
+                p.add(recursive);
+                
+                int resp = (Integer)CustomDialog.showDialog(p,JOptionPane.PLAIN_MESSAGE,
+                                                        JOptionPane.OK_CANCEL_OPTION, 
+                                                        RunnerRepository.window, "Remove Element",
+                                                        null);
+                if(resp == JOptionPane.OK_OPTION){
+                    String ulabel = tlabel.getText();
+                    String ucomment = tcomment.getText();
+                    String uelement = telement.getText();
+                    String urecursive = "";
+                    if(recursive.isSelected())urecursive = " -r ";
+                    String uversion="";
+                    if(!tversion.getText().equals(""))uversion = " -version "+tversion.getText()+" ";
+                    sendCommand("cleartool mklabel "+urecursive+uversion+" -c \""+ucomment+"\" "+ulabel+" "+uelement);
+                    String response = readOutput();
+                    System.out.println(response);
+                    tviews.setText(response);
+                }
+        }});
+        
+        rmelem.addActionListener(new ActionListener(){
+            public void actionPerformed(ActionEvent ev){
+                JPanel p = new JPanel();
+                p.setLayout(null);
+                p.setPreferredSize(new Dimension(350,200));
+                JLabel element = new JLabel("Element: ");
+                element.setBounds(10,10,70,25);
+                JTextField telement = new JTextField();
+                telement.setBounds(90,10,250,25);
+                p.add(element);
+                p.add(telement);
+                
+                JLabel comment = new JLabel("Comment: ");
+                comment.setBounds(10,40,70,25);
+                JTextArea tcomment = new JTextArea();
+                JScrollPane sp = new JScrollPane(tcomment);
+                sp.setBounds(90,40,250,150);
+                p.add(comment);
+                p.add(sp);
+                
+                int resp = (Integer)CustomDialog.showDialog(p,JOptionPane.PLAIN_MESSAGE,
+                                                        JOptionPane.OK_CANCEL_OPTION, 
+                                                        RunnerRepository.window, "Remove Element",
+                                                        null);
+                if(resp == JOptionPane.OK_OPTION){
+                    String uelement = telement.getText();
+                    String ucomment = tcomment.getText();
+                    sendCommand("cleartool rmelem -f -c "+ucomment+" "+uelement);
+                    String response = readOutput();
+                    System.out.println(response);
+                    tviews.setText(response);
+                }
+            }
+        });
+        
+        mkelem.addActionListener(new ActionListener(){
+            public void actionPerformed(ActionEvent ev){
+                JPanel p = new JPanel();
+                p.setLayout(null);
+                p.setPreferredSize(new Dimension(350,250));
+                JLabel element = new JLabel("Element: ");
+                element.setBounds(10,10,70,25);
+                JTextField telement = new JTextField();
+                telement.setBounds(90,10,250,25);
+                p.add(element);
+                p.add(telement);
+                
+                JLabel comment = new JLabel("Comment: ");
+                comment.setBounds(10,40,70,25);
+                JTextArea tcomment = new JTextArea();
+                JScrollPane sp = new JScrollPane(tcomment);
+                sp.setBounds(90,40,250,150);
+                p.add(comment);
+                p.add(sp);
+                
+                JLabel eltype = new JLabel("Element type: ");
+                eltype.setBounds(10,195,80,25);
+                final JTextField teltype = new JTextField("file");
+                teltype.setEnabled(false);
+                teltype.setBounds(220,195,120,25);
+                JComboBox celtype = new JComboBox(new String[]{"file","compressed_file",
+                                                               "text_file","compressed_text_file",
+                                                               "binary_delta_file","html","ms_word",
+                                                               "rose","rosert","xde","xml","directory ",
+                                                               "file_system_object","user_defined"});
+                celtype.addItemListener(new ItemListener(){
+                    public void itemStateChanged(ItemEvent event) {
+                        if (event.getStateChange() == ItemEvent.SELECTED) {
+                            Object item = event.getItem();
+                            if(item.toString().equals("user_defined")){
+                                teltype.setEnabled(true);
+                                teltype.setText("");
+                                teltype.requestFocus();
+                            } else {
+                                teltype.setEnabled(false);
+                                teltype.setText(item.toString());
+                            }
+                        }
+                }});
+                celtype.setBounds(90,195,125,25);
+                
+                p.add(eltype);
+                p.add(celtype);
+                p.add(teltype);
+                
+                int resp = (Integer)CustomDialog.showDialog(p,JOptionPane.PLAIN_MESSAGE,
+                                                        JOptionPane.OK_CANCEL_OPTION, 
+                                                        RunnerRepository.window, "Make Element",
+                                                        null);
+                if(resp == JOptionPane.OK_OPTION){
+                    String uelement = telement.getText();
+                    String ucomment = tcomment.getText();
+                    String utype = teltype.getText();
+//                     sendCommand("newgrp neptune");
+//                     try{System.out.println(in.readLine());
+//                         System.out.println(in.readLine());
+//                         System.out.println(in.readLine());
+//                         System.out.println(in.readLine());
+//                     } catch (Exception e){
+//                         e.printStackTrace();
+//                     }
+//                     System.out.println(readOutput());
+//                     sendCommand("cleartool setview bogdan_twister");
+//                     try{System.out.println(in.readLine());
+//                         System.out.println(in.readLine());
+//                         System.out.println(in.readLine());
+//                         System.out.println(in.readLine());
+//                     } catch (Exception e){
+//                         e.printStackTrace();
+//                     }
+                    //System.out.println(readOutput());
+                    sendCommand("cleartool mkelem -c "+ucomment+" -eltype "+utype+" "+uelement);
+                    String response = readOutput();
+                    System.out.println(response);
+                    tviews.setText(response);
+                }
+            }});
         
 //         endview.addActionListener(new ActionListener(){
 //             public void actionPerformed(ActionEvent ev){
@@ -425,12 +606,15 @@ public class ClearCase extends JPanel{
                         .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                             .addComponent(setview, javax.swing.GroupLayout.PREFERRED_SIZE, 100, javax.swing.GroupLayout.PREFERRED_SIZE)
                             .addComponent(mkview, javax.swing.GroupLayout.PREFERRED_SIZE, 119, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(mkelem, javax.swing.GroupLayout.PREFERRED_SIZE, 119, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(rmelem, javax.swing.GroupLayout.PREFERRED_SIZE, 119, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(mklabel, javax.swing.GroupLayout.PREFERRED_SIZE, 119, javax.swing.GroupLayout.PREFERRED_SIZE)
                             .addComponent(showconf, javax.swing.GroupLayout.PREFERRED_SIZE, 140, javax.swing.GroupLayout.PREFERRED_SIZE))
                         .addComponent(listviews, javax.swing.GroupLayout.PREFERRED_SIZE, 100, javax.swing.GroupLayout.PREFERRED_SIZE)))
                 .addContainerGap())
         );
 
-        jPanel1Layout.linkSize(javax.swing.SwingConstants.HORIZONTAL, new java.awt.Component[] {listviews, setview,mkview, showconf});
+        jPanel1Layout.linkSize(javax.swing.SwingConstants.HORIZONTAL, new java.awt.Component[] {listviews,setview,mkview,mkelem,rmelem,mklabel,showconf});
 
         jPanel1Layout.setVerticalGroup(
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -444,6 +628,12 @@ public class ClearCase extends JPanel{
                 .addComponent(setview)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(mkview)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(mkelem)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(rmelem)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(mklabel)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(showconf)
                 .addContainerGap(144, Short.MAX_VALUE))
@@ -602,7 +792,7 @@ public class ClearCase extends JPanel{
         sendCommand("cleartool pwd");
         String curentdir = readOutput();
         curentdir = curentdir.substring(2, curentdir.length()-1);
-        DefaultMutableTreeNode child = new DefaultMutableTreeNode(curentdir);
+        DefaultMutableTreeNode child = new DefaultMutableTreeNode(curentdir,true);
         node.add(child);
         Vector<String> folders = new Vector<String>();
         Vector<String> files = new Vector<String>();
@@ -652,7 +842,7 @@ public class ClearCase extends JPanel{
             readOutput();
         }
         for(String file:files){
-            DefaultMutableTreeNode child2 = new DefaultMutableTreeNode(file);
+            DefaultMutableTreeNode child2 = new DefaultMutableTreeNode(file,false);
             child.add(child2);
         }
 
