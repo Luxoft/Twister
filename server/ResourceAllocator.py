@@ -1,7 +1,7 @@
 
 # File: ResourceAllocator.py ; This file is part of Twister.
 
-# version: 2.009
+# version: 2.010
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -207,7 +207,10 @@ def res_to_xml(parent_node, xml):
             prop = etree.SubElement(tag, 'name')
             prop.text = str(k)
             val  = etree.SubElement(tag, 'value')
-            val.text = str(v)
+            if v:
+                val.text = str(v)
+            else:
+                val.text = ''
             typ  = etree.SubElement(tag, 'type')
             typ.text = 'string'
             desc  = etree.SubElement(tag, 'desc')

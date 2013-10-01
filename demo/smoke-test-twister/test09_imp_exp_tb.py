@@ -59,7 +59,7 @@ def check(ra, _xml_file):
     except: pass
     try: del new_res['name']
     except: pass
-    #
+
     print('{} children [vs] {} children.'.format( len(res['children']), len(new_res['children']) ))
 
     logMsg('logDebug', '\n- Old resource :\n')
@@ -73,6 +73,8 @@ def check(ra, _xml_file):
     if res != new_res:
         print('Check failed! The resources are different after import/ export!')
         return False
+
+    print('-' * 60 + '\n')
 
     return True
 
@@ -96,7 +98,7 @@ def test(PROXY, USER):
 
     py_res = 'tb_' + hexlify(os.urandom(4))
     print('Create TB `{}`...'.format(py_res))
-    res_id = setResource(py_res, '/', {'meta1': 1, 'meta2': 2})
+    res_id = setResource(py_res, '/', {'meta1': 1, 'meta2': 2, 'meta3': ''})
     print('Ok.\n')
 
     # -----
