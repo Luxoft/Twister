@@ -1,13 +1,9 @@
 
-# version: 2.003
-
-# getResource, setResource and *the rest* are now included in the interpreter !
-# No need to import anything !
-
 #
-# <title>Test CommonLib and Resource Allocator</title>
-# <description>This test is checking the exposed functions from CommonLib and
-# the testbeds/ devices from Resource Allocator.</description>
+# <ver>version: 2.004</ver>
+# <title>Test CommonLib and Resource Allocator / TestBed and Resources</title>
+# <description>This suite checks the most basic functionality of Twister.<br>
+# Functions `getResource`, `setResource` and *the rest* are included in the interpreter!</description>
 # <tags>testbed, resources, devices</tags>
 #
 
@@ -95,5 +91,5 @@ def test():
 #
 
 # Must have one of the statuses:
-# 'pass', 'fail', 'skipped', 'aborted', 'not executed', 'timeout', 'invalid'
+# 'pass', 'fail', 'skipped', 'aborted', 'not executed', 'timeout'
 _RESULT = test()

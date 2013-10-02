@@ -1,7 +1,7 @@
 
 # File: CentralEngineClasses.py ; This file is part of Twister.
 
-# version: 2.030
+# version: 2.031
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -147,7 +147,8 @@ class CentralEngine(_cptools.XMLRPCController):
         This function is called from the Java GUI.
         """
         if not text: return ''
-        return self.project.encryptText(text)
+        cherry_user = cherrypy.session.get('username')
+        return self.project.encryptText(cherry_user, text)
 
 
     @cherrypy.expose
@@ -157,7 +158,8 @@ class CentralEngine(_cptools.XMLRPCController):
         This function is called from the Java GUI.
         """
         if not text: return ''
-        return self.project.decryptText(text)
+        cherry_user = cherrypy.session.get('username')
+        return self.project.decryptText(cherry_user, text)
 
 
 # # #
@@ -170,9 +172,10 @@ class CentralEngine(_cptools.XMLRPCController):
         Valid commands are: list, start, stop, status, get config, save config, get log.
         """
         # Check the username from CherryPy connection
-        cherry_roles = self.project._checkUser()
-        if not cherry_roles: return False
-        if 'CHANGE_SERVICES' not in cherry_roles['roles']:
+        user = cherrypy.session.get('username')
+        user_roles = self.project.authenticate(user)
+        if not user_roles: return False
+        if 'CHANGE_SERVICES' not in user_roles['roles']:
             logDebug('Privileges ERROR! Username `{user}` cannot use Service Manager!'.format(**cherry_roles))
             return False
         return self.project.manager.sendCommand(command, name, args, kwargs)
@@ -183,7 +186,8 @@ class CentralEngine(_cptools.XMLRPCController):
         """
         Manage users, groups and permissions.
         """
-        return self.project.usersAndGroupsManager(cmd, name, args, kwargs)
+        user = cherrypy.session.get('username')
+        return self.project.usersAndGroupsManager(user, cmd, name, args, kwargs)
 
 
     @cherrypy.expose
@@ -1084,17 +1088,16 @@ class CentralEngine(_cptools.XMLRPCController):
             return getFileTags(fname)
 
         # If the user has roles and the ClearCase plugin is enabled...
-        cherry_roles = self.project._checkUser()
-        if cherry_roles:
-            user = cherry_roles['user']
-            if 'ClearCase' in self.listPlugins(user):
-                plugin_p = self.project._buildPlugin(user, 'ClearCase')
-                try:
-                    return plugin_p.getTestDescription(user, fname)
-                except Exception as e:
-                    trace = traceback.format_exc()[34:].strip()
-                    logError('Error getting description from ClearCase file `{}` : `{}`!'.format(fname, trace))
-                    return ''
+        user = cherrypy.session.get('username')
+        user_roles = self.project.authenticate(user)
+        if user_roles and 'ClearCase' in self.listPlugins(user):
+            plugin_p = self.project._buildPlugin(user, 'ClearCase')
+            try:
+                return plugin_p.getTestDescription(user, fname)
+            except Exception as e:
+                trace = traceback.format_exc()[34:].strip()
+                logError('Error getting description from ClearCase file `{}` : `{}`!'.format(fname, trace))
+                return ''
 
         return ''
 

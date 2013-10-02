@@ -1,7 +1,7 @@
 
 # File: ResourceAllocator.py ; This file is part of Twister.
 
-# version: 2.009
+# version: 2.010
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -207,7 +207,10 @@ def res_to_xml(parent_node, xml):
             prop = etree.SubElement(tag, 'name')
             prop.text = str(k)
             val  = etree.SubElement(tag, 'value')
-            val.text = str(v)
+            if v:
+                val.text = str(v)
+            else:
+                val.text = ''
             typ  = etree.SubElement(tag, 'type')
             typ.text = 'string'
             desc  = etree.SubElement(tag, 'desc')
@@ -502,6 +505,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
                 if not tb_id: return ''
                 return self.getResource(tb_id +':'+ meta)
 
+
     @cherrypy.expose
     def getSut(self, query):
         '''
@@ -523,20 +527,20 @@ class ResourceAllocator(_cptools.XMLRPCController):
         # If the root is not provided, use the default root
         if root_id == ROOT_DEVICE:
             # Check the username from CherryPy connection
-            cherry_roles = self.project._checkUser()
-            if not cherry_roles:
-                return False
-            if 'CHANGE_TESTBED' not in cherry_roles['roles']:
+            user = cherrypy.session.get('username')
+            user_roles = self.project.authenticate(user)
+            if not user_roles: return False
+            if 'CHANGE_SUT' not in user_roles['roles']:
                 logDebug('Privileges ERROR! Username `{user}` cannot use Set Resource!'.format(**cherry_roles))
                 return False
             resources = self.resources
         else:
             # Check the username from CherryPy connection
-            cherry_roles = self.project._checkUser()
-            if not cherry_roles:
-                return False
-            if 'CHANGE_SUT' not in cherry_roles['roles']:
-                logDebug('Privileges ERROR! Username `{user}` cannot use Set Sut!'.format(**cherry_roles))
+            user = cherrypy.session.get('username')
+            user_roles = self.project.authenticate(user)
+            if not user_roles: return False
+            if 'CHANGE_SUT' not in user_roles['roles']:
+                logDebug('Privileges ERROR! Username `{user}` cannot use Set SUT!'.format(**cherry_roles))
                 return False
             resources = self.systems
 
@@ -623,19 +627,19 @@ class ResourceAllocator(_cptools.XMLRPCController):
         # If the root is not provided, use the default root
         if root_id == ROOT_DEVICE:
             # Check the username from CherryPy connection
-            cherry_roles = self.project._checkUser()
-            if not cherry_roles:
-                return False
-            if 'CHANGE_TESTBED' not in cherry_roles['roles']:
+            user = cherrypy.session.get('username')
+            user_roles = self.project.authenticate(user)
+            if not user_roles: return False
+            if 'CHANGE_SUT' not in user_roles['roles']:
                 logDebug('Privileges ERROR! Username `{user}` cannot use Rename Resource!'.format(**cherry_roles))
                 return False
             resources = self.resources
         else:
             # Check the username from CherryPy connection
-            cherry_roles = self.project._checkUser()
-            if not cherry_roles:
-                return False
-            if 'CHANGE_SUT' not in cherry_roles['roles']:
+            user = cherrypy.session.get('username')
+            user_roles = self.project.authenticate(user)
+            if not user_roles: return False
+            if 'CHANGE_SUT' not in user_roles['roles']:
                 logDebug('Privileges ERROR! Username `{user}` cannot use Rename SUT!'.format(**cherry_roles))
                 return False
             resources = self.systems
@@ -748,19 +752,19 @@ class ResourceAllocator(_cptools.XMLRPCController):
         # If the root is not provided, use the default root
         if root_id == ROOT_DEVICE:
             # Check the username from CherryPy connection
-            cherry_roles = self.project._checkUser()
-            if not cherry_roles:
-                return False
-            if 'CHANGE_TESTBED' not in cherry_roles['roles']:
+            user = cherrypy.session.get('username')
+            user_roles = self.project.authenticate(user)
+            if not user_roles: return False
+            if 'CHANGE_SUT' not in user_roles['roles']:
                 logDebug('Privileges ERROR! Username `{user}` cannot use Delete Resource!'.format(**cherry_roles))
                 return False
             resources = self.resources
         else:
             # Check the username from CherryPy connection
-            cherry_roles = self.project._checkUser()
-            if not cherry_roles:
-                return False
-            if 'CHANGE_SUT' not in cherry_roles['roles']:
+            user = cherrypy.session.get('username')
+            user_roles = self.project.authenticate(user)
+            if not user_roles: return False
+            if 'CHANGE_SUT' not in user_roles['roles']:
                 logDebug('Privileges ERROR! Username `{user}` cannot use Delete SUT!'.format(**cherry_roles))
                 return False
             resources = self.systems

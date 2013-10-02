@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# version: 2.006
+# version: 2.007
 
 # File: CentralEngine.py ; This file is part of Twister.
 
@@ -34,7 +34,9 @@ threading._DummyThread._Thread__stop = lambda x: 1
 
 import os
 import sys
+import thread
 import cherrypy
+from rpyc.utils.server import ThreadedServer
 
 if not sys.version.startswith('2.7'):
     print('Python version error! Central Engine must run on Python 2.7!')
@@ -49,9 +51,9 @@ if TWISTER_PATH not in sys.path:
 
 
 from common.tsclogging import *
-from server.CentralEngineProject import Project, check_passwd
+from server.CentralEngineProject import Project
 from server.CentralEngineClasses import CentralEngine
-from server.ExecutionManager     import ExecutionManager
+from server.ExecutionManager     import ExecutionManagerService
 
 #
 
@@ -77,14 +79,34 @@ if __name__ == "__main__":
     proj = Project()
     # CE is the XML-RPC interface
     ce = CentralEngine(proj)
-    # EE Manager is the helper for EPs and Clients
-    ee = ExecutionManager(proj)
 
     ce.web = proj.web
     ce.ra  = proj.ra
     ce.report = proj.report
 
-    # Config
+
+    # RPyc config
+    config = {
+        'allow_pickle': True,
+        'allow_getattr': True,
+        'allow_setattr': True,
+        'allow_delattr': True,
+        'allow_all_attrs': True,
+        }
+
+    # EE Manager is the helper for EPs and Clients
+    # Inject the project as variable for EE
+    ExecutionManagerService.inject_object('project', proj)
+
+    rpycServer = ThreadedServer(ExecutionManagerService, port=8008, protocol_config=config)
+
+    def startRpyc(rpycServer):
+        rpycServer.start()
+
+    thread.start_new_thread(startRpyc, (rpycServer,))
+
+
+    # CherryPy config
     conf = {'global': {
             'server.socket_host': '0.0.0.0',
             'server.socket_port': serverPort,
@@ -96,7 +118,7 @@ if __name__ == "__main__":
             'tools.sessions.timeout': 60*24*365,
             'tools.auth_basic.on': True,
             'tools.auth_basic.realm': 'Twister Server',
-            'tools.auth_basic.checkpassword': check_passwd,
+            'tools.auth_basic.checkpassword': Project.check_passwd,
             },
             '/static': {
             'tools.staticdir.on': True,

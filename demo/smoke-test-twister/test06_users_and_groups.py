@@ -1,8 +1,9 @@
 
 #
-# version: 2.002
-# <title>Users and Groups</title>
-# <description>List users, groups, roles. To run this test, your user must be a twister ADMIN!</description>
+# <ver>version: 2.003</ver>
+# <title>Test Users, Groups, Roles</title>
+# <description>This suite checks the most basic functionality of Twister.<br>
+# It checks if the EPs are running the tests successfully and it calls all CE functions, to ensure they work as expected.</description>
 #
 
 import os
@@ -89,7 +90,7 @@ def test(PROXY, USER):
     return 'Pass'
 
 # Must have one of the statuses:
-# 'pass', 'fail', 'skipped', 'aborted', 'not executed', 'timeout', 'invalid'
+# 'pass', 'fail', 'skipped', 'aborted', 'not executed', 'timeout'
 _RESULT = test(PROXY, USER)
 
 # Eof()

@@ -1,13 +1,9 @@
 
-# version: 2.001
-
-# getSut, setSut and *the rest* are now included in the interpreter !
-# No need to import anything !
-
 #
-# <title>Test CommonLib and Resource Allocator</title>
-# <description>This test is checking the exposed functions from CommonLib and
-# the SUTs from Resource Allocator.</description>
+# <ver>version: 2.002</ver>
+# <title>Test CommonLib and Resource Allocator / SUTs</title>
+# <description>This suite checks the most basic functionality of Twister.<br>
+# Functions `getSut`, `setSut` and *the rest* are included in the interpreter!</description>
 # <tags>testbed, resources, SUTs</tags>
 #
 
@@ -90,5 +86,5 @@ def test():
 #
 
 # Must have one of the statuses:
-# 'pass', 'fail', 'skipped', 'aborted', 'not executed', 'timeout', 'invalid'
+# 'pass', 'fail', 'skipped', 'aborted', 'not executed', 'timeout'
 _RESULT = test()

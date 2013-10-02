@@ -87,9 +87,9 @@ import traceback
 import threading
 import MySQLdb
 import paramiko
-import cherrypy
 
-from rpyc import connect as rpycConnect
+import cherrypy
+import rpyc
 
 try: import simplejson as json
 except: import json
@@ -130,46 +130,7 @@ usrs_and_pwds = {}
 
 #
 
-def check_passwd(realm, user, passwd):
-    """
-    This function is called before ALL XML-RPC calls,
-    to check the username and password.
-    """
-    global usrs_and_pwds
-    user_passwd = binascii.hexlify(user+':'+passwd)
-
-    if cherrypy.session.get('user_passwd') == user_passwd:
-        return True
-    elif user in usrs_and_pwds and usrs_and_pwds.get(user) == passwd:
-        if not cherrypy.session.get('username'):
-            cherrypy.session['username'] = user
-        return True
-    elif passwd == 'EP':
-        if not cherrypy.session.get('username'):
-            cherrypy.session['username'] = user
-        return True
-
-    t = paramiko.Transport(('localhost', 22))
-    t.logger.setLevel(40) # Less spam, please
-    t.start_client()
-
-    # This operation is pretty heavy!!!
-    try:
-        t.auth_password(user, passwd)
-        usrs_and_pwds[user] = passwd
-        cherrypy.session['username'] = user
-        cherrypy.session['user_passwd'] = user_passwd
-        t.stop_thread()
-        t.close()
-        return True
-    except:
-        t.stop_thread()
-        t.close()
-        return False
-
-#
-
-def cache_users(repeat=False):
+def cache_users():
     """
     Find all system users that have Twister installer.
     """
@@ -209,7 +170,7 @@ def cache_users(repeat=False):
     tf = time.time()
     logDebug('Cache users operation took `{:.2f}` seconds...'.format( (tf-ti) ))
 
-    if repeat: threading.Timer(60*60, cache_users, (True,)).start()
+    threading.Timer(60*60, cache_users, ()).start()
 
 
 # --------------------------------------------------------------------------------------------------
@@ -284,11 +245,82 @@ class Project(object):
             self.panicDetectRegularExpressions = json.load(config)
 
         # Start cache users at the beggining...
-        start_new_thread(cache_users, (False,))
-        # And repeat every hour
-        threading.Timer(60*60, cache_users, (True,)).start()
+        start_new_thread(cache_users, ())
 
         logDebug('SERVER INITIALIZATION TOOK `{:.4f}` SECONDS.'.format(time.time()-ti))
+
+
+    @staticmethod
+    def check_passwd(realm, user, passwd):
+        """
+        This function is called before ALL XML-RPC calls,
+        to check the username and password.
+        A user CANNOT use Twister if he doesn't authenticate.
+        """
+        global usrs_and_pwds
+        user_passwd = binascii.hexlify(user+':'+passwd)
+
+        if cherrypy.session.get('user_passwd') == user_passwd:
+            return True
+        elif user in usrs_and_pwds and usrs_and_pwds.get(user) == passwd:
+            if not cherrypy.session.get('username'):
+                cherrypy.session['username'] = user
+            return True
+        elif passwd == 'EP':
+            if not cherrypy.session.get('username'):
+                cherrypy.session['username'] = user
+            return True
+
+        t = paramiko.Transport(('localhost', 22))
+        t.logger.setLevel(40) # Less spam, please
+        t.start_client()
+
+        # This operation is pretty heavy!!!
+        try:
+            t.auth_password(user, passwd)
+            t.stop_thread()
+            t.close()
+            usrs_and_pwds[user] = passwd
+            cherrypy.session['username'] = user
+            cherrypy.session['user_passwd'] = user_passwd
+            return True
+        except:
+            t.stop_thread()
+            t.close()
+            return False
+
+
+    @staticmethod
+    def rpyc_check_passwd(user, passwd):
+        """
+        This function must be called before ALL RPyc calls,
+        to check the username and password.
+        A user CANNOT use Twister if he doesn't authenticate.
+        """
+        global usrs_and_pwds
+
+        if (not user) or (not passwd):
+            return False
+
+        rpyc_user = 'rpyc_' + user
+        if usrs_and_pwds.get(rpyc_user) == passwd:
+            return True
+
+        t = paramiko.Transport(('localhost', 22))
+        t.logger.setLevel(40) # Less spam, please
+        t.start_client()
+
+        # This operation is pretty heavy!!!
+        try:
+            t.auth_password(user, passwd)
+            t.stop_thread()
+            t.close()
+            usrs_and_pwds[rpyc_user] = passwd
+            return True
+        except:
+            t.stop_thread()
+            t.close()
+            return False
 
 
     def _common_proj_reset(self, user, base_config, files_config):
@@ -351,23 +383,20 @@ class Project(object):
         self.roles = self._parseUsersAndGroups()
         if not self.roles: return False
 
-        # The username from CherryPy connection
-        cherry_usr = cherrypy.session.get('username')
-
-        # List of roles for current CherryPy user
-        cherry_roles = self.roles['users'].get(cherry_usr)
+        # List of roles for current user
+        user_roles = self.roles['users'].get(user)
 
         # This user doesn't exist in users and groups
-        if not cherry_roles:
-            logWarning('CherryPy user `{}` cannot be found in users and roles!'.format(cherry_usr))
-            return False
+        if not user_roles:
+            logWarning('User `{}` cannot be found in users and roles!'.format(user))
+            user_roles = {'roles': [], 'groups': []}
         # This user doesn't have any roles in users and groups
-        if not cherry_roles['roles']:
-            logWarning('CherryPy user `{}` doesn\'t have any roles!'.format(cherry_usr))
-            return False
+        if not user_roles['roles']:
+            logWarning('User `{}` doesn\'t have any roles!'.format(user))
+            user_roles = {'roles': [], 'groups': []}
 
-        self.users[user]['user_groups'] = ', '.join(cherry_roles['groups'])
-        self.users[user]['user_roles']  = ', '.join(cherry_roles['roles'])
+        self.users[user]['user_groups'] = ', '.join(user_roles['groups'])
+        self.users[user]['user_roles']  = ', '.join(user_roles['roles'])
 
         return True
 
@@ -434,7 +463,7 @@ class Project(object):
             logError('Project ERROR: Config path `{}` does not exist! Using default config!'.format(base_config))
             base_config = False
 
-        r = self.changeUser(user)
+        r = self.authenticate(user)
         if not r: return False
 
         ti = time.clock()
@@ -500,56 +529,6 @@ class Project(object):
         return True
 
 
-    def _checkUser(self):
-        """
-        Check CherryPy user. Used to quick find the roles of the current CherryPy user.
-        """
-        # Reload users and groups
-        self.roles = self._parseUsersAndGroups()
-        if not self.roles: return False
-
-        # The username from CherryPy connection
-        cherry_usr = cherrypy.session.get('username')
-
-        # List of roles for current CherryPy user
-        cherry_roles = self.roles['users'].get(cherry_usr)
-
-        # This user doesn't exist in users and groups
-        if not cherry_roles:
-            # The user doesn't exist ...
-            logWarning('Production Server: Username `{}` doesn\'t have any roles!'.format(cherry_usr))
-            return {'roles': [], 'groups': [], 'user': cherry_usr}
-
-        cherry_roles['user'] = cherry_usr
-        return cherry_roles
-
-
-    def changeUser(self, user):
-        """
-        Switch user hook. This function is used EVERYWHERE.\n
-        This uses a lock, in order to create the user structure only once.
-        If the lock is not present, on CE startup, all running EPs from one user will rush
-        to create the memory structure.
-        """
-
-        with self.usr_lock:
-
-            cherry_roles = self._checkUser()
-            if not cherry_roles:
-                return False
-
-            if not user:
-                return False
-            if user not in self.users:
-                r = self.createUser(user)
-                if not r: return False
-
-            self.users[user]['user_groups'] = ', '.join(cherry_roles['groups'])
-            self.users[user]['user_roles']  = ', '.join(cherry_roles['roles'])
-
-        return True
-
-
     def listUsers(self, active=False):
         """
         Return the cached list of users.
@@ -564,6 +543,48 @@ class Project(object):
         if active:
             users = [u for u in users if u in self.users]
         return users
+
+
+    def authenticate(self, user):
+        """
+        This func uses what it can to identify the current user and check his roles.\n
+        The function is used EVERYWHERE.\n
+        It uses a lock, in order to create the user structure only once.
+        """
+        if not user:
+            return False
+
+        if (user not in usrs_and_pwds) and ('rpyc_' + user not in usrs_and_pwds):
+            logError('Auth: Username `{}` is not authenticated!'.format(user))
+            return False
+
+        if user not in self.users:
+            r = self.createUser(user)
+            if not r: return False
+
+        with self.usr_lock:
+
+            # Reload users and groups
+            self.roles = self._parseUsersAndGroups()
+            if not self.roles: return False
+
+            # List of roles for current CherryPy user
+            user_roles = self.roles['users'].get(user)
+
+            # This user doesn't exist in users and groups
+            if not user_roles:
+                # The user doesn't exist ...
+                logWarning('Production Server: Username `{}` doesn\'t have any roles!'.format(user))
+                user_roles = {'roles': [], 'groups': []}
+
+            # Add the user in the dict
+            user_roles['user'] = user
+
+            # Populate the roles in project structure
+            self.users[user]['user_groups'] = ', '.join(user_roles['groups'])
+            self.users[user]['user_roles']  = ', '.join(user_roles['roles'])
+
+        return user_roles
 
 
     def _dump(self):
@@ -666,7 +687,7 @@ class Project(object):
         return cfg.dict()
 
 
-    def usersAndGroupsManager(self, cmd, name='', *args, **kwargs):
+    def usersAndGroupsManager(self, user, cmd, name='', *args, **kwargs):
         """
         Manage users, groups and permissions.\n
         Commands:
@@ -685,10 +706,8 @@ class Project(object):
             self.roles = self._parseUsersAndGroups()
             if not self.roles: return '*ERROR* : Invalid users and groups file!'
 
-        # The username from CherryPy connection
-        cherry_usr = cherrypy.session.get('username')
         # List of roles for current CherryPy user
-        cherry_all = self.roles['users'].get(cherry_usr)
+        cherry_all = self.roles['users'].get(user)
 
         # This user doesn't exist in users and groups
         if not cherry_all:
@@ -860,28 +879,26 @@ class Project(object):
             return '*ERROR* : Unknown command `{}` !'.format(cmd)
 
 
-    def encryptText(self, text):
+    def encryptText(self, user, text):
         """
         Encrypt a piece of text, using AES.\n
         It can use the user key, or the shared key.
         """
-        # Check the username from CherryPy connection
-        cherry_roles = self._checkUser()
-        if not cherry_roles: return False
-        key = cherry_roles.get('key')
+        # Check the username data
+        user_roles = self.authenticate(user)
+        key = user_roles.get('key')
         if not key: return False
         return encrypt(text, key)
 
 
-    def decryptText(self, text):
+    def decryptText(self, user, text):
         """
         Decrypt a piece of text, using AES.\n
         It can use the user key, or the shared key.
         """
-        # Check the username from CherryPy connection
-        cherry_roles = self._checkUser()
-        if not cherry_roles: return False
-        key = cherry_roles.get('key')
+        # Check the username data
+        user_roles = self.authenticate(user)
+        key = user_roles.get('key')
         if not key: return False
         return decrypt(text, key)
 
@@ -919,7 +936,7 @@ class Project(object):
         """
         List all available settings, for 1 config of a user.
         """
-        r = self.changeUser(user)
+        r = self.authenticate(user)
         if not r: return False
         cfg_path = self._getConfigPath(user, config)
         return self.parsers[user].listSettings(cfg_path, x_filter)
@@ -929,7 +946,7 @@ class Project(object):
         """
         Fetch a value from 1 config of a user.
         """
-        r = self.changeUser(user)
+        r = self.authenticate(user)
         if not r: return False
         cfg_path = self._getConfigPath(user, config)
         return self.parsers[user].getSettingsValue(cfg_path, key)
@@ -939,7 +956,7 @@ class Project(object):
         """
         Set a value for a key in the config of a user.
         """
-        r = self.changeUser(user)
+        r = self.authenticate(user)
         if not r: return False
         cfg_path = self._getConfigPath(user, config)
         try:
@@ -956,7 +973,7 @@ class Project(object):
         """
         Del a key from the config of a user.
         """
-        r = self.changeUser(user)
+        r = self.authenticate(user)
         if not r: return False
         cfg_path = self._getConfigPath(user, config)
         try:
@@ -977,21 +994,14 @@ class Project(object):
         Returns data for the current user, including all EP info.
         If the key is not specified, it can be a huge dictionary.
         """
-        global usrs_and_pwds
-
-        r = self.changeUser(user)
+        r = self.authenticate(user)
         if not r:
             if key:
                 return []
             else:
                 return {}
 
-        if key == 'user_passwd':
-            cherry_usr = cherrypy.session.get('username')
-            # Return the password only if the connected user is the user that asks the pwd
-            if user == cherry_usr:
-                return usrs_and_pwds.get(user, '')
-        elif key:
+        if key:
             return self.users[user].get(key)
         else:
             return self.users[user]
@@ -1001,7 +1011,7 @@ class Project(object):
         """
         Create or overwrite a variable with a value, for the current user.
         """
-        r = self.changeUser(user)
+        r = self.authenticate(user)
         if not r: return False
 
         if not key or key == 'eps':
@@ -1017,7 +1027,7 @@ class Project(object):
         """
         Retrieve all info available, about one EP.
         """
-        r = self.changeUser(user)
+        r = self.authenticate(user)
         if not r: return {}
 
         return self.users[user]['eps'].get(epname, {})
@@ -1028,7 +1038,7 @@ class Project(object):
         Return a list with all file IDs associated with one EP.
         The files are found recursive.
         """
-        r = self.changeUser(user)
+        r = self.authenticate(user)
         if not r: return []
 
         if epname not in self.users[user]['eps']:
@@ -1043,7 +1053,7 @@ class Project(object):
         """
         Create or overwrite a variable with a value, for one EP.
         """
-        r = self.changeUser(user)
+        r = self.authenticate(user)
         if not r: return False
 
         if epname not in self.users[user]['eps']:
@@ -1063,7 +1073,7 @@ class Project(object):
         Retrieve all info available, about one suite.
         The files are NOT recursive.
         """
-        r = self.changeUser(user)
+        r = self.authenticate(user)
         if not r: return {}
         eps = self.users[user]['eps']
 
@@ -1085,7 +1095,7 @@ class Project(object):
         """
         Return a list with all file IDs associated with one Suite.
         """
-        r = self.changeUser(user)
+        r = self.authenticate(user)
         if not r: return []
         eps = self.users[user]['eps']
 
@@ -1103,7 +1113,7 @@ class Project(object):
         """
         Create or overwrite a variable with a value, for one Suite.
         """
-        r = self.changeUser(user)
+        r = self.authenticate(user)
         if not r: return False
         eps = self.users[user]['eps']
 
@@ -1134,7 +1144,7 @@ class Project(object):
         Retrieve all info available, about one Test File.\n
         The file ID must be unique!
         """
-        r = self.changeUser(user)
+        r = self.authenticate(user)
         if not r: return {}
         eps = self.users[user]['eps']
 
@@ -1153,7 +1163,7 @@ class Project(object):
         """
         Create or overwrite a variable with a value, for one Test File.
         """
-        r = self.changeUser(user)
+        r = self.authenticate(user)
         if not r: return False
         eps = self.users[user]['eps']
 
@@ -1186,7 +1196,7 @@ class Project(object):
         The `message` parameter can explain why the status has changed.
         """
         # Check the username from CherryPy connection
-        cherry_roles = self._checkUser()
+        cherry_roles = self.authenticate(user)
         if not cherry_roles:
             return False
         if not 'RUN_TESTS' in cherry_roles['roles']:
@@ -1310,7 +1320,7 @@ class Project(object):
         The `message` parameter can explain why the status has changed.
         """
         # Check the username from CherryPy connection
-        cherry_roles = self._checkUser()
+        cherry_roles = self.authenticate(user)
         if not cherry_roles:
             return False
         if not 'RUN_TESTS' in cherry_roles['roles']:
@@ -1496,7 +1506,7 @@ class Project(object):
         Return the status of all files, in order.
         This can be filtered for an EP and a Suite.
         """
-        r = self.changeUser(user)
+        r = self.authenticate(user)
         if not r: return []
 
         if suite_id and not epname:
@@ -1534,7 +1544,7 @@ class Project(object):
         """
         Set status for one file and write in log summary.
         """
-        r = self.changeUser(user)
+        r = self.authenticate(user)
         if not r: return False
         eps = self.users[user]['eps']
 
@@ -1600,7 +1610,7 @@ class Project(object):
         """
         Reset the status of all files, to value: x.
         """
-        r = self.changeUser(user)
+        r = self.authenticate(user)
         if not r: return False
         eps = self.users[user]['eps']
 
@@ -1643,7 +1653,7 @@ class Project(object):
         """
         Sending a global variable, using a path.
         """
-        r = self.changeUser(user)
+        r = self.authenticate(user)
         if not r: return False
 
         try: node_path = [v for v in variable.split('/') if v]
@@ -1665,7 +1675,7 @@ class Project(object):
         Set a global variable path, for a user.\n
         The change is not persistent.
         """
-        r = self.changeUser(user)
+        r = self.authenticate(user)
         if not r: return False
 
         try: node_path = [v for v in variable.split('/') if v]
@@ -1703,7 +1713,7 @@ class Project(object):
         """
         This function writes in TestSuites.XML file.
         """
-        r = self.changeUser(user)
+        r = self.authenticate(user)
         if not r: return False
         cfg_path = self._getConfigPath(user, 'project')
         logDebug('Create Suite: Will create suite `{0}` for user `{1}` project.'.format(suite, user))
@@ -1714,7 +1724,7 @@ class Project(object):
         """
         This function writes in TestSuites.XML file.
         """
-        r = self.changeUser(user)
+        r = self.authenticate(user)
         if not r: return False
         xpath_suite = '/Root/TestSuite[tsName="{0}"]'.format(suite)
         logDebug('Del Suite: Will remove suite `{0}` from user `{1}` project.'.format(suite, user))
@@ -1725,7 +1735,7 @@ class Project(object):
         """
         This function writes in TestSuites.XML file.
         """
-        r = self.changeUser(user)
+        r = self.authenticate(user)
         if not r: return False
         cfg_path = self._getConfigPath(user, 'project')
         logDebug('Create File: Will create file `{0} - {1}` for user `{2}` project.'.format(suite, fname, user))
@@ -1736,7 +1746,7 @@ class Project(object):
         """
         This function writes in TestSuites.XML file.
         """
-        r = self.changeUser(user)
+        r = self.authenticate(user)
         if not r: return False
         xpath_file = '/Root/TestSuite[tsName="{0}"]/TestCase[tcName="{1}"]'.format(suite, fname)
         logDebug('Del File: Will remove file `{0} - {1}` from user `{2}` project.'.format(suite, fname, user))
@@ -1747,7 +1757,7 @@ class Project(object):
         """
         This function temporary adds a file at the end of the given suite, during runtime.
         """
-        r = self.changeUser(user)
+        r = self.authenticate(user)
         if not r: return False
 
         if fname.startswith('~/'):
@@ -1810,7 +1820,7 @@ class Project(object):
         This function temporary removes the file id from the project, during runtime.
         If the file did already run, the function does nothing!
         """
-        r = self.changeUser(user)
+        r = self.authenticate(user)
         if not r: return False
 
         if not data:
@@ -1944,7 +1954,7 @@ class Project(object):
         """
         with self.eml_lock:
 
-            r = self.changeUser(user)
+            r = self.authenticate(user)
             if not r: return False
 
             # This is updated every time.
@@ -1956,7 +1966,7 @@ class Project(object):
 
             # Decode e-mail password
             try:
-                SMTPPwd = self.decryptText(eMailConfig['SMTPPwd'])
+                SMTPPwd = self.decryptText(user, eMailConfig['SMTPPwd'])
             except:
                 log = 'SMTP: Password is not set!'
                 logError(log)
@@ -2198,7 +2208,7 @@ class Project(object):
         """
         with self.db_lock:
 
-            r = self.changeUser(user)
+            r = self.authenticate(user)
             if not r: return False
 
             # Get the path to DB.XML
@@ -2223,7 +2233,7 @@ class Project(object):
             system = platform.machine() +' '+ platform.system() +', '+ ' '.join(platform.linux_distribution())
 
             # Decode database password
-            db_password = self.decryptText( db_config.get('password') )
+            db_password = self.decryptText(user, db_config.get('password'))
             if not db_password:
                 logError('Database: Cannot decrypt the database password!')
                 return False
@@ -2501,7 +2511,7 @@ class Project(object):
         time.sleep(0.2)
 
         try:
-            conn = rpycConnect('127.0.0.1', port)
+            conn = rpyc.connect('127.0.0.1', port)
             conn.root.hello()
         except:
             return False
