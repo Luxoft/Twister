@@ -80,6 +80,7 @@ if __name__ == "__main__":
     # CE is the XML-RPC interface
     ce = CentralEngine(proj)
 
+    proj.ip_port = ('127.0.0.1', serverPort)
     ce.web = proj.web
     ce.ra  = proj.ra
     ce.report = proj.report
@@ -97,6 +98,7 @@ if __name__ == "__main__":
     # EE Manager is the helper for EPs and Clients
     # Inject the project as variable for EE
     ExecutionManagerService.inject_object('project', proj)
+    ExecutionManagerService.inject_object('cherry', ce)
 
     rpycServer = ThreadedServer(ExecutionManagerService, port=8008, protocol_config=config)
 

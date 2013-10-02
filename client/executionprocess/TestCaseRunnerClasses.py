@@ -147,7 +147,7 @@ class TCRunTcl:
         self.tcl.createcommand('reserveResource',   globs['reserveResource'])
         self.tcl.createcommand('freeResource',      globs['freeResource'])
 
-        to_execute = str_to_execute.data
+        to_execute = str_to_execute
         to_execute = '\nset argc %i\n' % len(params) + to_execute
         to_execute = 'set argv {%s}\n' % str(params)[1:-1] + to_execute
 
@@ -256,7 +256,7 @@ sys.argv = %s
 
         f = open(fpath, 'wb')
         f.write(to_execute)
-        f.write(str_to_execute.data)
+        f.write(str_to_execute)
         f.close() ; del f
 
         execfile(fpath, globs_copy)
@@ -287,7 +287,7 @@ class TCRunPerl:
         '''
         #
         _RESULT = None
-        to_execute = str_to_execute.data
+        to_execute = str_to_execute
         #
         f = open('__to_execute.plx', 'wb')
         f.write(to_execute)
@@ -352,7 +352,7 @@ class TCRunJava:
         filePath = os.path.join(filesPath, fileName)
 
         with open(filePath, 'wb+') as f:
-            f.write(str_to_execute.data)
+            f.write(str_to_execute)
 
 
         # compile java test

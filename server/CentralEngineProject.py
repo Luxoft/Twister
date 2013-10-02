@@ -127,6 +127,7 @@ from ResourceAllocator  import ResourceAllocator
 from ReportingServer  import ReportingServer
 
 usrs_and_pwds = {}
+usr_pwds_lock = allocate_lock()
 
 #
 
@@ -199,6 +200,7 @@ class Project(object):
         ti = time.time()
         logDebug('STARTING TWISTER SERVER {}...'.format(self.srv_ver))
 
+        self.ip_port = None # Will be injected by the Central Engine CherryPy
         self.manager = ServiceManager()
         self.web   = WebInterface(self)
         self.ra    = ResourceAllocator(self)
@@ -257,19 +259,20 @@ class Project(object):
         to check the username and password.
         A user CANNOT use Twister if he doesn't authenticate.
         """
-        global usrs_and_pwds
+        global usrs_and_pwds, usr_pwds_lock
         user_passwd = binascii.hexlify(user+':'+passwd)
 
-        if cherrypy.session.get('user_passwd') == user_passwd:
-            return True
-        elif user in usrs_and_pwds and usrs_and_pwds.get(user) == passwd:
-            if not cherrypy.session.get('username'):
-                cherrypy.session['username'] = user
-            return True
-        elif passwd == 'EP':
-            if not cherrypy.session.get('username'):
-                cherrypy.session['username'] = user
-            return True
+        with usr_pwds_lock:
+            if cherrypy.session.get('user_passwd') == user_passwd:
+                return True
+            elif user in usrs_and_pwds and usrs_and_pwds.get(user) == passwd:
+                if not cherrypy.session.get('username'):
+                    cherrypy.session['username'] = user
+                return True
+            elif passwd == 'EP':
+                if not cherrypy.session.get('username'):
+                    cherrypy.session['username'] = user
+                return True
 
         t = paramiko.Transport(('localhost', 22))
         t.logger.setLevel(40) # Less spam, please
@@ -297,14 +300,19 @@ class Project(object):
         to check the username and password.
         A user CANNOT use Twister if he doesn't authenticate.
         """
-        global usrs_and_pwds
+        global usrs_and_pwds, usr_pwds_lock
+        rpyc_user = 'rpyc_' + user
 
         if (not user) or (not passwd):
             return False
 
-        rpyc_user = 'rpyc_' + user
-        if usrs_and_pwds.get(rpyc_user) == passwd:
-            return True
+        with usr_pwds_lock:
+            if usrs_and_pwds.get(rpyc_user) == passwd:
+                usrs_and_pwds[rpyc_user] = passwd
+                return True
+            elif passwd == 'EP':
+                usrs_and_pwds[rpyc_user] = passwd
+                return True
 
         t = paramiko.Transport(('localhost', 22))
         t.logger.setLevel(40) # Less spam, please
@@ -1220,11 +1228,11 @@ class Project(object):
 
         if ret:
             if msg:
-                logDebug('Project: Status changed for `{} {}` - {} (from `{}`).\n\tMessage: `{}`.'.format(
-                    user, epname, reversed[new_status], cherrypy.request.headers['Remote-Addr'], msg))
+                logDebug('Project: Status changed for `{} {}` - {}.\n\tMessage: `{}`.'.format(
+                    user, epname, reversed[new_status], msg))
             else:
-                logDebug('Project: Status changed for `{} {}` - {} (from `{}`).'.format(
-                    user, epname, reversed[new_status], cherrypy.request.headers['Remote-Addr']))
+                logDebug('Project: Status changed for `{} {}` - {}.'.format(
+                    user, epname, reversed[new_status]))
         else:
             logError('Project: Cannot change status for `{} {}` !'.format(user, epname))
 
@@ -1333,29 +1341,6 @@ class Project(object):
             return False
 
         reversed = dict((v,k) for k,v in execStatus.iteritems())
-
-        # If this is a Temporary user
-        user_agent = cherrypy.request.headers['User-Agent'].lower()
-        if 'xml rpc' in user_agent and (user+'_old') in self.users:
-            if msg.lower() != 'kill' and new_status != STATUS_STOP:
-                return '*ERROR*! Cannot change status while running temporary!'
-            else:
-                # Update status for User
-                self.setUserInfo(user, 'status', STATUS_STOP)
-
-                # Update status for all active EPs
-                active_eps = self.parsers[user].getActiveEps()
-                for epname in active_eps:
-                    if epname not in self.users[user]['eps']:
-                        logError('Set Status: `{}` is not a valid EP Name!'.format(epname))
-                        continue
-                    self.setEpInfo(user, epname, 'status', STATUS_STOP)
-
-                if msg:
-                    logDebug("Status chang for TEMP `%s %s` -> %s. Message: `%s`.\n" % (user, active_eps, reversed[STATUS_STOP], str(msg)))
-                else:
-                    logDebug("Status chang for TEMP `%s %s` -> %s.\n" % (user, active_eps, reversed[STATUS_STOP]))
-                return reversed[STATUS_STOP]
 
         # Status resume => start running. The logs must not reset on resume
         if new_status == STATUS_RESUME:
@@ -1492,11 +1477,11 @@ class Project(object):
         reversed = dict((v,k) for k,v in execStatus.iteritems())
 
         if msg and msg != ',':
-            logDebug('Status changed for `{} {}` - {} (from `{}`).\n\tMessage: `{}`.'.format(
-                user, active_eps, reversed[new_status], cherrypy.request.headers['Remote-Addr'], msg))
+            logDebug('Status changed for `{} {}` - {}.\n\tMessage: `{}`.'.format(
+                user, active_eps, reversed[new_status], msg))
         else:
-            logDebug('Status changed for `{} {}` - {} (from `{}`).'.format(
-                user, active_eps, reversed[new_status], cherrypy.request.headers['Remote-Addr']))
+            logDebug('Status changed for `{} {}` - {}.'.format(
+                user, active_eps, reversed[new_status]))
 
         return reversed[new_status]
 
@@ -1945,6 +1930,48 @@ class Project(object):
 
 
 # # #
+
+
+    def getLibrariesList(self, user='', all=True):
+        """
+        Returns the list of exposed libraries, from CE libraries folder.\n
+        This list will be used to syncronize the libs on all EP computers.
+        """
+        global TWISTER_PATH
+        libs_path = (TWISTER_PATH + '/lib/').replace('//', '/')
+        user_path = ''
+        if self.getUserInfo(user, 'libs_path'):
+            user_path = self.getUserInfo(user, 'libs_path') + os.sep
+        if user_path == '/':
+            user_path = ''
+
+        glob_libs = [] # Default empty
+        user_libs = []
+
+        # All Python source files from Libraries folder AND all library folders
+        if all:
+            glob_libs = [d for d in os.listdir(libs_path) if \
+                ( os.path.isfile(libs_path + d) and \
+                '__init__.py' not in d and \
+                os.path.splitext(d)[1] in ['.py', '.zip']) or \
+                os.path.isdir(libs_path + d) ]
+
+            if user_path and os.path.isdir(user_path):
+                user_libs = [d for d in os.listdir(user_path) if \
+                        ( os.path.isfile(user_path + d) and \
+                        '__init__.py' not in d and \
+                        os.path.splitext(d)[1] in ['.py', '.zip']) or \
+                        os.path.isdir(user_path + d) ]
+        # All libraries for user
+        else:
+            if user:
+                # If `libraries` is empty, will default to ALL libraries
+                tmp_libs = self.getUserInfo(user, 'libraries') or ''
+                glob_libs = [x.strip() for x in tmp_libs.split(';')] if tmp_libs else []
+                del tmp_libs
+
+        # Return a list with unique names, sorted alphabetically
+        return sorted( set(glob_libs + user_libs) )
 
 
     def sendMail(self, user, force=False):

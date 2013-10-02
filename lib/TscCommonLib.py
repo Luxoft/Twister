@@ -33,6 +33,8 @@ You can use : getGlobal, setGlobal, getResource, setResource, logMessage.
 import os, sys
 import socket
 import platform
+import marshal
+import rpyc
 import xmlrpclib
 
 # This will work, because TWISTER_PATH is appended to sys.path.
@@ -49,6 +51,7 @@ class TscCommonLib(object):
 
     platform_sys = platform.system().lower()
     proxy_path = PROXY
+    cherry_path = None
     userName = USER
     epName   = EP
     sutName  = SUT
@@ -57,25 +60,41 @@ class TscCommonLib(object):
 
     def __init__(self):
 
-        socket_path = self.proxy_path.strip('/').split('@')[1:]
-        if not socket_path:
-            raise Exception('Invalid proxy path `{}`!\n'.format(socket_path))
+        # Connect to RPyc server
+        try:
+            ce_ip, ce_port = self.proxy_path.split(':')
+            self.ce_proxy = rpyc.connect(ce_ip, int(ce_port))
+            self.ce_proxy.root.hello()
+        except:
+            print('*ERROR* Cannot connect to CE path `{}`! Exiting!'.format(self.proxy_path))
+            exit(1)
+
+        # Authenticate on RPyc server
+        try:
+            check = self.ce_proxy.root.login(self.userName, 'EP')
+        except:
+            check = False
+        if not check:
+            print('*ERROR* Cannot authenticate on CE path `{}`! Exiting!'.format(self.proxy_path))
+            exit(1)
+
+        self.cherry_path = self.ce_proxy.root.cherryPort()
 
         try:
-            socket.create_connection(socket_path[0].split(':'), 2)
+            socket.create_connection(self.cherry_path, 2)
         except:
-            raise Exception('Invalid ip:port `{}`!\n'.format(socket_path[0]))
-        del socket_path
-
-        self.ce_proxy = xmlrpclib.ServerProxy(self.proxy_path)
-        self.ra_proxy = xmlrpclib.ServerProxy(self.proxy_path.rstrip('/') + '/ra/')
+            raise Exception('Invalid ip:port `{}`!\n'.format(self.cherry_path))
+        try:
+            self.ra_proxy = xmlrpclib.ServerProxy('http://{0}:EP@{1[0]}:{1[1]}/ra/'.format(self.userName, self.cherry_path))
+        except:
+            raise Exception('Invalid Resource Allocator ip:port `{}`!\n'.format(self.cherry_path))
 
 
     def logMsg(self, logType, logMessage):
         """
         Shortcut function for sending a message in a log to Central Engine.
         """
-        self.ce_proxy.logMessage(self.userName, logType, logMessage)
+        self.ce_proxy.root.logMessage(logType, logMessage)
 
 
     def getGlobal(self, var):
@@ -85,7 +104,7 @@ class TscCommonLib(object):
         if var in self.global_vars:
             return self.global_vars[var]
         # Else...
-        return self.ce_proxy.getGlobalVariable(self.userName, var)
+        return self.ce_proxy.root.getGlobalVariable(var)
 
 
     def setGlobal(self, var, value):
@@ -94,7 +113,7 @@ class TscCommonLib(object):
         """
         try:
             marshal.dumps(value)
-            return self.ce_proxy.setGlobalVariable(self.userName, var, value)
+            return self.ce_proxy.root.setGlobalVariable(var, value)
         except:
             self.global_vars[var] = value
             return True
@@ -105,7 +124,7 @@ class TscCommonLib(object):
         Function to get a config, using the full path to a config file and
         the full path to a config variable in that file.
         """
-        return self.ce_proxy.getConfig(self.userName, cfg_path, var_path)
+        return self.ce_proxy.root.getConfig(cfg_path, var_path)
 
 
     def py_exec(self, code_string):

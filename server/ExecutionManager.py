@@ -1,7 +1,7 @@
 
 # File: ExecutionManager.py ; This file is part of Twister.
 
-# version: 2.002
+# version: 2.003
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -26,7 +26,9 @@
 
 import os
 import sys
+import copy
 import thread
+import tarfile
 import rpyc
 
 TWISTER_PATH = os.getenv('TWISTER_PATH')
@@ -138,8 +140,8 @@ class ExecutionManagerService(rpyc.Service):
 
     def _check_login(self):
         """
-        Check user login.
-        Uses the internal connection to auto-detect the user.
+        Auto-detect the user based on the client connection,
+        then check user login.
         """
         global connections, conn_lock
         str_addr = self._get_addr()
@@ -149,6 +151,13 @@ class ExecutionManagerService(rpyc.Service):
             return False
         else:
             return user
+
+
+    def exposed_cherryPort(self):
+        """
+        Returns the CherryPy IP and PORT, for the Central Engine
+        """
+        return self.project.ip_port
 
 
     def exposed_resetProject(self):
@@ -170,7 +179,7 @@ class ExecutionManagerService(rpyc.Service):
         if not user: return False
         data = self.project.getUserInfo(user, variable)
         if data is None: data = False
-        return data
+        return copy.copy(data)
 
 
     def exposed_setUserVariable(self, key, variable):
@@ -188,17 +197,18 @@ class ExecutionManagerService(rpyc.Service):
         """
         user = self._check_login()
         if not user: return False
-        epList = self.project.getUserInfo(user, 'eps').keys()
-        return ','.join(epList)
+        return self.project.getUserInfo(user, 'eps').keys()
 
 
-    def exposed_getEpVariable(self, epname, variable, compress=False):
+    def exposed_getEpVariable(self, epname, variable):
         """
         Send an EP variable
         """
         user = self._check_login()
         if not user: return False
-        return self.project.getEpInfo(user, epname).get(variable, False)
+        data = self.project.getEpInfo(user, epname).get(variable, False)
+        if data is None: data = False
+        return copy.copy(data)
 
 
     def exposed_setEpVariable(self, epname, variable, value):
@@ -279,75 +289,257 @@ class ExecutionManagerService(rpyc.Service):
 # # #
 
 
-    def registerClient(self, user, clients):
+    def registerClient(self, clients):
         " "
+        user = self._check_login()
+        if not user: return False
         return False
 
 
-    def startEP(self, user, epname):
+    def startEP(self, epname):
         " "
+        user = self._check_login()
+        if not user: return False
         return False
 
 
-    def stopEP(self, user, epname):
+    def stopEP(self, epname):
         " "
+        user = self._check_login()
+        if not user: return False
         return False
 
 
-    def restartEP(self, user, epname):
+    def restartEP(self, epname):
         " "
+        user = self._check_login()
+        if not user: return False
         return False
 
 
 # # #
 
 
-    def getEpStatus(self, user, epname):
-        " "
-        return False
+    def exposed_getEpStatus(self, epname):
+        """
+        Return execution status for one EP. (stopped, paused, running, invalid)
+        """
+        user = self._check_login()
+        if not user: return False
+
+        if epname not in self.project.getUserInfo(user, 'eps'):
+            logDebug('*ERROR* Invalid EP name `{}` !'.format(epname))
+            return False
+
+        data = self.project.getEpInfo(user, epname)
+
+        reversed = dict((v,k) for k,v in execStatus.iteritems())
+        return reversed[data.get('status', 8)]
 
 
-    def getEpStatusAll(self, user):
-        " "
-        return False
+    def exposed_getEpStatusAll(self):
+        """
+        Return execution status for all EPs. (stopped, paused, running, invalid)
+        """
+        user = self._check_login()
+        if not user: return False
+
+        data = self.project.getUserInfo(user)
+
+        reversed = dict((v,k) for k,v in execStatus.iteritems())
+        return reversed[data.get('status', 8)]
 
 
-    def setEpStatus(self, user, epname, new_status, msg=''):
-        " "
+    def exposed_setEpStatus(self, epname, new_status, msg=''):
+        """
+        Set execution status for one EP. (0, 1, 2, or 3)
+        Returns a string (stopped, paused, running).
+        The `message` parameter can explain why the status has changed.
+        """
+        user = self._check_login()
+        if not user: return False
         return self.project.setExecStatus(user, epname, new_status, msg)
 
 
-    def setEpStatusAll(self, user, new_status, msg=''):
-        " "
+    def exposed_setEpStatusAll(self, new_status, msg=''):
+        """
+        Set execution status for all EPs. (STATUS_STOP, STATUS_PAUSED, STATUS_RUNNING)
+        Returns a string (stopped, paused, running).
+        The `message` parameter can explain why the status has changed.
+        """
+        user = self._check_login()
+        if not user: return False
         return self.project.setExecStatusAll(user, new_status, msg)
+
+
+    def exposed_getFileStatusAll(self, epname=None, suite=None):
+        """
+        Returns a list with all statuses, for all files, in order.
+        The status of one file can be obtained with ce.getFileVariable.
+        """
+        user = self._check_login()
+        if not user: return False
+
+        if epname not in self.project.getUserInfo(user, 'eps'):
+            logDebug('*ERROR* Invalid EP name `{}` !'.format(epname))
+            return False
+
+        return self.project.getFileStatusAll(user, epname, suite)
+
+
+    def exposed_setFileStatus(self, epname, file_id, new_status=10, time_elapsed=0.0):
+        """
+        Set status for one file and write in log summary.
+        Called from the Runner.
+        """
+        user = self._check_login()
+        if not user: return False
+        return self.project.setFileStatus(user, epname, file_id, new_status, time_elapsed)
+
+
+    def exposed_setFileStatusAll(self, epname, new_status):
+        """
+        Reset file status for all files of one EP.
+        Called from the Runner.
+        """
+        user = self._check_login()
+        if not user: return False
+        return self.project.setFileStatusAll(user, epname, new_status)
 
 
 # # #
 
 
-    def getLibrariesList(self, user='', all=True):
-        " "
-        return False
+    def exposed_listLibraries(self, all=True):
+        """
+        Returns the list of exposed libraries, from CE libraries folder.
+        This list will be used to syncronize the libs on all EP computers.
+        """
+        user = self._check_login()
+        if not user: return False
+        return self.project.getLibrariesList(user, all)
 
 
-    def downloadLibrary(self, user, name):
-        " "
-        return False
+    def exposed_downloadLibrary(self, name):
+        """
+        Sends required library to the EP, to be syncronized.
+        The library can be global for all users, or per user.
+        """
+        user = self._check_login()
+        if not user: return False
+        global TWISTER_PATH
+
+        lib_path = (TWISTER_PATH + '/lib/' + name).replace('//', '/')
+        if self.project.getUserInfo(user, 'libs_path'):
+            user_lib = self.project.getUserInfo(user, 'libs_path') + os.sep + name
+        else:
+            user_lib = ''
+
+        # If the requested library is in the second path (user path)
+        if os.path.exists(user_lib):
+            final_path = user_lib
+        # If the requested library is in the main path (global path)
+        elif os.path.exists(lib_path):
+            final_path = lib_path
+        else:
+            logError('*ERROR* Library `{}` does not exist!'.format(name))
+            return False
+
+        # Python and Zip files
+        if os.path.isfile(final_path):
+            logDebug('CE: Requested library file: `{}`.'.format(name))
+            with open(final_path, 'rb') as binary:
+                return binary.read()
+
+        # Library folders must be compressed
+        else:
+            logDebug('CE: Requested library folder: `{}`.'.format(name))
+            final_dir, final_file = os.path.split(final_path)
+            rnd = binascii.hexlify(os.urandom(5))
+            tgz = final_file + '_' + rnd + '.tgz'
+            os.chdir(final_dir)
+            with tarfile.open(tgz, 'w:gz') as binary:
+                binary.add(name=final_file, recursive=True)
+            with open(tgz, 'r') as binary:
+                data = binary.read()
+            os.remove(tgz)
+            return data
 
 
-    def getTestFile(self, user, epname, file_id):
-        " "
-        return False
+    def exposed_downloadFile(self, epname, file_info):
+        """
+        Sends requested file to the EP, to be executed.
+        """
+        user = self._check_login()
+        if not user: return False
+
+        if epname not in self.project.getUserInfo(user, 'eps'):
+            logDebug('*ERROR* Invalid EP name `{}` !'.format(epname))
+            return False
+
+        tests_path = self.project.getUserInfo(user, 'tests_path')
+
+        # If this is a test file path
+        if os.path.isfile(tests_path + os.sep + file_info):
+            filename = tests_path + os.sep + file_info
+
+        # If this is a file ID
+        else:
+            file_id = file_info
+            data = self.project.getFileInfo(user, epname, file_id)
+            if not data:
+                logError('*ERROR* Invalid File ID `{}` !'.format(file_id))
+                return False
+
+            filename = data['file']
+
+            # Fix ~ $HOME path (from project XML)
+            if filename.startswith('~'):
+                filename = userHome(user) + filename[1:]
+            # Fix incomplete file path (from project XML)
+            if not os.path.isfile(filename):
+                filename = tests_path + os.sep + filename
+
+            # Inject this empty variable just to be sure.
+            self.project.setFileInfo(user, epname, file_id, 'twister_tc_revision', '')
+
+        logDebug('CE: Execution process `{}:{}` requested file `{}`.'.format(user, epname, filename))
+
+        with open(filename, 'rb') as handle:
+            return handle.read()
 
 
-    def getEpFiles(self, user, epname):
-        " "
-        return False
+    def exposed_getEpFiles(self, epname):
+        """
+        Returns all files that must be run on one EP.
+        """
+        user = self._check_login()
+        if not user: return False
+        try: data = self.project.getEpFiles(user, epname)
+        except: data = False
+        return data
 
 
-    def getSuiteFiles(self, user, epname, suite):
-        " "
-        return False
+    def exposed_getSuiteFiles(self, epname, suite):
+        """
+        Returns all files that must be run on one Suite ID.
+        """
+        user = self._check_login()
+        if not user: return False
+        try: data = self.project.getSuiteFiles(user, epname, suite)
+        except: data = False
+        return data
+
+
+    def exposed_logMessage(self, logType, logMessage):
+        """
+        This function is exposed in all tests and all logs are centralized in the HOME of the user.
+        In order for the user to be able to access the logs written by CE, which runs as ROOT,
+        CE will start a small process in the name of the user and the process will write the logs.
+        """
+        user = self._check_login()
+        if not user: return False
+        return self.project.logMessage(user, logType, logMessage)
 
 
 # Eof()
