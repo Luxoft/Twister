@@ -1,6 +1,6 @@
 /*
 File: ClearCase.java ; This file is part of Twister.
-Version: 2.004
+Version: 2.005
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -59,6 +59,8 @@ import java.awt.Dimension;
 import javax.swing.JComboBox;
 import java.awt.event.ItemListener;
 import java.awt.event.ItemEvent;
+import java.awt.event.FocusAdapter;
+import java.awt.event.FocusEvent;
 
 public class ClearCase extends JPanel{
 //     private DataInputStream dataIn;
@@ -71,6 +73,7 @@ public class ClearCase extends JPanel{
     public String view="";
     private PrintStream ps;
     private JLabel lview, vob;
+    private JButton showconf,mkelem,rmelem,mklabel,mkattr,mkview,describe;
     
     public ClearCase(String host, String user, String password){
         initializeSSH(host, user, password);
@@ -196,27 +199,46 @@ public class ClearCase extends JPanel{
                 StringBuilder responseData = new StringBuilder();
                 while((line = in.readLine()) != null) {
                     System.out.println("line: "+line);
-                    responseData.append(line+"\n");
+                    if(line.indexOf("@_#_")!=-1&&line.indexOf("echo")!=-1){
+                        responseData.setLength(0);
+                    }
+                    if(line.indexOf("@_#_")==-1){
+                        responseData.append(line+"\n");
+                    }
+                    else if(line.indexOf("@_#_")!=-1&&line.indexOf("echo")==-1){
+                            in.readLine();
+                            in.readLine();
+                            //return responseData.substring(0, responseData.indexOf("@_#_")).toString();
+                            return responseData.toString();
+                    } 
+                    if(line.indexOf("No such file or directory")!=-1){
+                        in.readLine();
+                        in.readLine();
+                        return responseData.toString();
+                    }
+//                     else if(line.indexOf("echo @_#_")==-1){
+//                         
+//                     }
+                    
+//                     if(line.indexOf("@_#_")!=-1&&line.indexOf("echo")!=-1){
+//                     } else {
+//                         responseData.append(line+"\n");
+//                     }
+                    
                     if(responseData.indexOf("cleartool: command not found")!=-1){
                         in.readLine();
                         in.readLine();
-                        firstfind = false;
                         CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,ClearCase.this,
                                 "ERROR", "ClearTool not installed!");
                         return null;
                     }
-                    if(line.indexOf("@_#_")!=-1&&line.indexOf("echo")==-1){
-                            in.readLine();
-                            in.readLine();
-                            if(responseData.indexOf("cleartool: command not found")!=-1){
-                                CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,ClearCase.this,
-                                        "ERROR", "ClearTool not installed!");
-                                return null;
-                            }
-                            return responseData.substring(0, responseData.indexOf("@_#_")).toString();
-                    } else if(line.indexOf("echo @_#_")!=-1){
-                        responseData = new StringBuilder(responseData.substring(responseData.indexOf("@_#_")+4, responseData.length()));
-                    }
+//                     if(line.indexOf("@_#_")!=-1&&line.indexOf("echo")==-1){
+//                             in.readLine();
+//                             in.readLine();
+//                             return responseData.substring(0, responseData.indexOf("@_#_")).toString();
+//                     } else if(line.indexOf("echo @_#_")!=-1){
+//                         responseData = new StringBuilder(responseData.substring(responseData.indexOf("@_#_")+4, responseData.length()));
+//                     }
                 }
                 return responseData.toString();
             } catch(Exception e){
@@ -237,21 +259,333 @@ public class ClearCase extends JPanel{
     private void initComponents() {
         JPanel jPanel1 = new JPanel();
         JButton listviews = new JButton("List Views");
+        JButton setview = new JButton("Set View");
+        showconf = new JButton("Show Config Spec");
+        showconf.setEnabled(false);
+        mkelem = new JButton("Make Element");
+        mkelem.setEnabled(false);
+        rmelem = new JButton("Remove Element");
+        rmelem.setEnabled(false);
+        mklabel = new JButton("Make Label");
+        mklabel.setEnabled(false);
+        mkattr = new JButton("Make Attribute");
+        mkattr.setEnabled(false);
+        mkview = new JButton("Make View");
+        mkview.setEnabled(false);
+        describe = new JButton("Describe");
+        describe.setEnabled(false);
         JLabel views = new JLabel();
         JScrollPane jScrollPane2 = new JScrollPane();
         final JTextArea tviews = new JTextArea();
         tviews.setEditable(false);
         final JCheckBox cshort = new JCheckBox();
         final JCheckBox clong = new JCheckBox();
-        JButton setview = new JButton("Set View");
-//         JButton endview = new JButton("End View");
-        JButton showconf = new JButton("Show Config Spec");
-        JButton mkelem = new JButton("Make Element");
-        JButton rmelem = new JButton("Remove Element");
-        JButton mklabel = new JButton("Make Label");
-        JButton mkview = new JButton("Make View");
+        
+        
+        
         lview = new JLabel();
         vob = new JLabel();
+        
+        mkattr.addActionListener(new ActionListener(){
+            public void actionPerformed(ActionEvent ev){
+                JPanel p = new JPanel();
+                p.setLayout(null);
+                p.setPreferredSize(new Dimension(350,240));
+                
+                JLabel attr = new JLabel("Attribute: ");
+                attr.setBounds(10,10,70,25);
+                JTextField tattr = new JTextField();
+                tattr.setBounds(70,10,100,25);
+                p.add(attr);
+                p.add(tattr);
+                
+                JLabel value = new JLabel("Value: ");
+                value.setBounds(185,10,70,25);
+                JTextField tvalue = new JTextField();
+                tvalue.setBounds(230,10,100,25);
+                p.add(value);
+                p.add(tvalue);
+                
+                JLabel el = new JLabel("Element: ");
+                el.setBounds(10,40,70,25);
+                JTextField tel = new JTextField();
+                tel.setBounds(70,40,260,25);
+                p.add(el);
+                p.add(tel);
+                
+                JLabel version = new JLabel("Version: ");
+                version.setBounds(10,70,70,25);
+                JTextField tversion = new JTextField();
+                tversion.setBounds(70,70,260,25);
+                p.add(version);
+                p.add(tversion);
+                
+                
+                
+                JLabel comment = new JLabel("Comment: ");
+                comment.setBounds(10,100,70,25);
+                JTextArea tcomment = new JTextArea();
+                JScrollPane sp = new JScrollPane(tcomment);
+                sp.setBounds(70,100,260,80);
+                p.add(comment);
+                p.add(sp);
+                
+                JLabel cf = new JLabel("Comment File: ");
+                cf.setBounds(10,185,90,25);
+                JTextField tcf = new JTextField();
+                tcf.setBounds(95,185,235,25);
+                p.add(cf);
+                p.add(tcf);
+                
+//                 JLabel version = new JLabel("Version: ");
+//                 version.setBounds(10,70,70,25);
+//                 JTextField tversion = new JTextField();
+//                 tversion.setBounds(90,70,250,25);
+//                 p.add(version);
+//                 p.add(tversion);
+//                 
+//                 JLabel comment = new JLabel("Comment: ");
+//                 comment.setBounds(10,100,70,25);
+//                 JTextArea tcomment = new JTextArea();
+//                 JScrollPane sp = new JScrollPane(tcomment);
+//                 sp.setBounds(90,100,250,150);
+//                 p.add(comment);
+//                 p.add(sp);
+//                 
+                JCheckBox recursive = new JCheckBox("recursive");
+                recursive.setBounds(10,215,80,25);
+                p.add(recursive);
+                JCheckBox replace = new JCheckBox("replace");
+                replace.setBounds(95,215,80,25);
+                p.add(replace);
+                
+                int resp = (Integer)CustomDialog.showDialog(p,JOptionPane.PLAIN_MESSAGE,
+                                                        JOptionPane.OK_CANCEL_OPTION, 
+                                                        RunnerRepository.window, "Make Attribute",
+                                                        null);
+                if(resp == JOptionPane.OK_OPTION){
+                    StringBuilder sb = new StringBuilder();
+                    sb.append("cleartool mkattr ");
+                    if(!tcomment.getText().equals("")){
+                        sb.append(" -c ");
+                        sb.append(tcomment.getText());
+                        sb.append(" ");
+                    } else if(!tcf.getText().equals("")){
+                        sb.append(" -cfi ");
+                        sb.append(tcf.getText());
+                        sb.append(" ");
+                    } else {
+                        sb.append(" -nc ");
+                    }
+                    
+                    if(!tversion.getText().equals("")){
+                        sb.append(" -ver ");
+                        sb.append(tversion.getText());
+                        sb.append(" ");
+                    }
+                    
+                    if(recursive.isSelected()){
+                        sb.append(" -r ");
+                    }
+                    
+                    if(replace.isSelected()){
+                        sb.append(" -rep ");
+                    }
+                    
+                    sb.append(tattr.getText());
+                    sb.append(" ");
+                    sb.append(tvalue.getText());
+                    sb.append(" ");
+                    sb.append(tel.getText());
+                    
+                    System.out.println("command: "+sb.toString());
+                    sendCommand(sb.toString());
+                    String response = readOutput();
+                    System.out.println(response);
+                    tviews.setText(response);
+                }
+        }});
+        
+        describe.addActionListener(new ActionListener(){
+            public void actionPerformed(ActionEvent ev){
+                JPanel p = new JPanel();
+                p.setLayout(null);
+                p.setPreferredSize(new Dimension(350,200));
+                
+                final JTextField telement = new JTextField();
+                final JTextField tcview = new JTextField();
+                final JTextField thlink = new JTextField();
+                final JTextField tlbtype = new JTextField();
+                final JTextField tvob = new JTextField();
+                
+                JLabel element = new JLabel("Element: ");
+                element.setBounds(10,10,70,25);
+                telement.addFocusListener(new FocusAdapter(){
+                    public void focusGained(FocusEvent ev){
+                        tcview.setText("");
+                        thlink.setText("");
+                        tvob.setText("");
+                        tlbtype.setText("");
+                    }
+                });
+                telement.setBounds(90,10,250,25);
+                p.add(element);
+                p.add(telement);
+                
+                
+                JLabel cview = new JLabel("Current View: ");
+                cview.setBounds(10,40,80,25);
+                tcview.addFocusListener(new FocusAdapter(){
+                    public void focusGained(FocusEvent ev){
+                        telement.setText("");
+                        thlink.setText("");
+                        tvob.setText("");
+                        tlbtype.setText("");
+                    }
+                });
+                tcview.setBounds(90,40,250,25);
+                p.add(cview);
+                p.add(tcview);
+                
+                JLabel hlink = new JLabel("HLink: ");
+                hlink.setBounds(10,70,80,25);
+                thlink.addFocusListener(new FocusAdapter(){
+                    public void focusGained(FocusEvent ev){
+                        telement.setText("");
+                        tcview.setText("");
+                        tvob.setText("");
+                        tlbtype.setText("");
+                    }
+                });
+                thlink.setBounds(90,70,250,25);
+                p.add(hlink);
+                p.add(thlink);
+                
+                JLabel lbtype = new JLabel("Label Type: ");
+                lbtype.setBounds(10,100,80,25);
+                tlbtype.addFocusListener(new FocusAdapter(){
+                    public void focusGained(FocusEvent ev){
+                        telement.setText("");
+                        tcview.setText("");
+                        tvob.setText("");
+                        thlink.setText("");
+                    }
+                });
+                tlbtype.setBounds(90,100,250,25);
+                p.add(lbtype);
+                p.add(tlbtype);
+                
+                JLabel vob = new JLabel("Vob: ");
+                vob.setBounds(10,130,80,25);
+                tvob.addFocusListener(new FocusAdapter(){
+                    public void focusGained(FocusEvent ev){
+                        telement.setText("");
+                        tcview.setText("");
+                        tlbtype.setText("");
+                        thlink.setText("");
+                    }
+                });
+                tvob.setBounds(90,130,250,25);
+                p.add(vob);
+                p.add(tvob);
+                
+                final JCheckBox jlong = new JCheckBox("long");
+                jlong.setBounds(10,160,55,25);
+                final JCheckBox jshort = new JCheckBox("short");
+                jshort.setBounds(65,160,55,25);
+                final JCheckBox format = new JCheckBox("format");
+                format.setBounds(120,160,65,25);
+                final JTextField tformat = new JTextField();
+                tformat.setEnabled(false);
+                tformat.setBounds(185,160,155,25);
+                p.add(jlong);
+                p.add(jshort);
+                p.add(format);
+                p.add(tformat);
+                
+                jlong.addActionListener(new ActionListener(){
+                    public void actionPerformed(ActionEvent ev){
+                        if(jlong.isSelected()){
+                            format.setSelected(false);
+                            jshort.setSelected(false);
+                            tformat.setEnabled(false);
+                            tformat.setText("");
+                        }
+                    }
+                });
+                
+                jshort.addActionListener(new ActionListener(){
+                    public void actionPerformed(ActionEvent ev){
+                        if(jshort.isSelected()){
+                            jlong.setSelected(false);
+                            format.setSelected(false);
+                            tformat.setEnabled(false);
+                            tformat.setText("");
+                        }
+                    }
+                });
+                
+                format.addActionListener(new ActionListener(){
+                    public void actionPerformed(ActionEvent ev){
+                        if(format.isSelected()){
+                            jlong.setSelected(false);
+                            jshort.setSelected(false);
+                            tformat.setEnabled(true);
+                        }
+                    }
+                });
+                
+                
+                int resp = (Integer)CustomDialog.showDialog(p,JOptionPane.PLAIN_MESSAGE,
+                                                        JOptionPane.OK_CANCEL_OPTION, 
+                                                        RunnerRepository.window, "Describe",
+                                                        null);
+                if(resp == JOptionPane.OK_OPTION){
+//                     final JTextField telement = new JTextField();
+//                     final JTextField tcview = new JTextField();
+//                     final JTextField thlink = new JTextField();
+//                     final JTextField tlbtype = new JTextField();
+//                     final JTextField tvob = new JTextField();
+
+//                         p.add(jlong);
+//                         p.add(jshort);
+//                         p.add(format);
+//                         p.add(tformat);
+
+                    StringBuilder sb = new StringBuilder();
+                    sb.append("cleartool describe ");
+                    if(jlong.isSelected()){
+                        sb.append(" -long ");
+                    } else if (jshort.isSelected()){
+                        sb.append(" -short ");
+                    } else if(format.isSelected()){
+                        sb.append(" -format \"");
+                        sb.append(tformat.getText());
+                        sb.append("\" ");
+                    }
+                    
+                    if(!telement.getText().equals("")){
+                        sb.append(telement.getText());
+                    } else if(!tcview.getText().equals("")){
+                        sb.append(" -cview ");
+                        sb.append(tcview.getText());
+                    }else if(!thlink.getText().equals("")){
+                        sb.append(" hlink:");
+                        sb.append(thlink.getText());
+                    }else if(!tlbtype.getText().equals("")){
+                        sb.append(" lbtype:");
+                        sb.append(tlbtype.getText());
+                    }else if(!tvob.getText().equals("")){
+                        sb.append(" vob:");
+                        sb.append(tvob.getText());
+                    }
+                    System.out.println("command: "+sb.toString());
+                    sendCommand(sb.toString());
+                    String response = readOutput();
+                    System.out.println(response);
+                    tviews.setText(response);
+                }
+        }});
         
         mklabel.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
@@ -287,7 +621,7 @@ public class ClearCase extends JPanel{
                 p.add(comment);
                 p.add(sp);
                 
-                JCheckBox recursive = new JCheckBox("Recursive");
+                JCheckBox recursive = new JCheckBox("recursive");
                 recursive.setBounds(10,250,100,25);
                 p.add(recursive);
                 
@@ -297,13 +631,14 @@ public class ClearCase extends JPanel{
                                                         null);
                 if(resp == JOptionPane.OK_OPTION){
                     String ulabel = tlabel.getText();
-                    String ucomment = tcomment.getText();
+                    String ucomment = " -c "+tcomment.getText();
+                    if(tcomment.getText().equals(""))ucomment = " -nc ";
                     String uelement = telement.getText();
                     String urecursive = "";
-                    if(recursive.isSelected())urecursive = " -r ";
+                    if(recursive.isSelected())urecursive = " -recurse ";
                     String uversion="";
                     if(!tversion.getText().equals(""))uversion = " -version "+tversion.getText()+" ";
-                    sendCommand("cleartool mklabel "+urecursive+uversion+" -c \""+ucomment+"\" "+ulabel+" "+uelement);
+                    sendCommand("cleartool mklabel "+urecursive+uversion+ucomment+" "+ulabel+" "+uelement);
                     String response = readOutput();
                     System.out.println(response);
                     tviews.setText(response);
@@ -336,8 +671,9 @@ public class ClearCase extends JPanel{
                                                         null);
                 if(resp == JOptionPane.OK_OPTION){
                     String uelement = telement.getText();
-                    String ucomment = tcomment.getText();
-                    sendCommand("cleartool rmelem -f -c "+ucomment+" "+uelement);
+                    String ucomment = " -c "+tcomment.getText();
+                    if(tcomment.equals(""))ucomment = " -nc ";
+                    sendCommand("cleartool rmelem -f "+ucomment+" "+uelement);
                     String response = readOutput();
                     System.out.println(response);
                     tviews.setText(response);
@@ -401,7 +737,8 @@ public class ClearCase extends JPanel{
                                                         null);
                 if(resp == JOptionPane.OK_OPTION){
                     String uelement = telement.getText();
-                    String ucomment = tcomment.getText();
+                    String ucomment = " -c "+tcomment.getText();
+                    if(tcomment.equals(""))ucomment = " -nc ";
                     String utype = teltype.getText();
 //                     sendCommand("newgrp neptune");
 //                     try{System.out.println(in.readLine());
@@ -421,7 +758,7 @@ public class ClearCase extends JPanel{
 //                         e.printStackTrace();
 //                     }
                     //System.out.println(readOutput());
-                    sendCommand("cleartool mkelem -c "+ucomment+" -eltype "+utype+" "+uelement);
+                    sendCommand("cleartool mkelem "+ucomment+" -eltype "+utype+" "+uelement);
                     String response = readOutput();
                     System.out.println(response);
                     tviews.setText(response);
@@ -481,7 +818,7 @@ public class ClearCase extends JPanel{
                 p.add(gpath);
                 p.add(lgpath);
                 
-                JCheckBox shareable = new JCheckBox("Shareable");
+                JCheckBox shareable = new JCheckBox("shareable");
                 shareable.setBounds(10,190,100,25);
                 p.add(shareable);
                 
@@ -565,6 +902,13 @@ public class ClearCase extends JPanel{
                 sendCommand("cleartool lsview -short");
                 String [] resp = readOutput().split("\n");
                 showViews(resp);
+                showconf.setEnabled(true);
+                mkelem.setEnabled(true);
+                rmelem.setEnabled(true);
+                mklabel.setEnabled(true);
+                mkattr.setEnabled(true);
+                mkview.setEnabled(true);
+                describe.setEnabled(true);
             }
         });
         views.setText("Views:");
@@ -609,12 +953,14 @@ public class ClearCase extends JPanel{
                             .addComponent(mkelem, javax.swing.GroupLayout.PREFERRED_SIZE, 119, javax.swing.GroupLayout.PREFERRED_SIZE)
                             .addComponent(rmelem, javax.swing.GroupLayout.PREFERRED_SIZE, 119, javax.swing.GroupLayout.PREFERRED_SIZE)
                             .addComponent(mklabel, javax.swing.GroupLayout.PREFERRED_SIZE, 119, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(showconf, javax.swing.GroupLayout.PREFERRED_SIZE, 140, javax.swing.GroupLayout.PREFERRED_SIZE))
+                            .addComponent(mkattr, javax.swing.GroupLayout.PREFERRED_SIZE, 119, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(showconf, javax.swing.GroupLayout.PREFERRED_SIZE, 140, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(describe, javax.swing.GroupLayout.PREFERRED_SIZE, 140, javax.swing.GroupLayout.PREFERRED_SIZE))
                         .addComponent(listviews, javax.swing.GroupLayout.PREFERRED_SIZE, 100, javax.swing.GroupLayout.PREFERRED_SIZE)))
                 .addContainerGap())
         );
 
-        jPanel1Layout.linkSize(javax.swing.SwingConstants.HORIZONTAL, new java.awt.Component[] {listviews,setview,mkview,mkelem,rmelem,mklabel,showconf});
+        jPanel1Layout.linkSize(javax.swing.SwingConstants.HORIZONTAL, new java.awt.Component[] {listviews,setview,mkview,mkelem,rmelem,mklabel,mkattr,showconf,describe});
 
         jPanel1Layout.setVerticalGroup(
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -635,7 +981,11 @@ public class ClearCase extends JPanel{
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(mklabel)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(mkattr)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(showconf)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(describe)
                 .addContainerGap(144, Short.MAX_VALUE))
         );
 
@@ -791,7 +1141,7 @@ public class ClearCase extends JPanel{
 //         String curentdir = readOutput(true);
         sendCommand("cleartool pwd");
         String curentdir = readOutput();
-        curentdir = curentdir.substring(2, curentdir.length()-1);
+        curentdir = curentdir.substring(1, curentdir.length()-1);
         DefaultMutableTreeNode child = new DefaultMutableTreeNode(curentdir,true);
         node.add(child);
         Vector<String> folders = new Vector<String>();
