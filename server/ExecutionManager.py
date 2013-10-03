@@ -26,9 +26,11 @@
 
 import os
 import sys
+import json
 import copy
 import thread
 import tarfile
+import traceback
 import rpyc
 
 TWISTER_PATH = os.getenv('TWISTER_PATH')
@@ -45,6 +47,7 @@ from common.tsclogging import *
 
 #
 
+clients = {}
 connections = {}
 conn_lock = thread.allocate_lock()
 
@@ -83,12 +86,12 @@ class ExecutionManagerService(rpyc.Service):
         global connections, conn_lock
         str_addr = self._get_addr()
 
-        try:
-            with conn_lock:
+        with conn_lock:
+            try:
                 connections[str_addr] = {}
                 logDebug('EE: Connected from `{}`.'.format(str_addr))
-        except Exception as e:
-            logError('EE: Connect error: {er}.'.format(er=e))
+            except Exception as e:
+                logError('EE: Connect error: {er}.'.format(er=e))
 
 
     def on_disconnect(self):
@@ -98,12 +101,12 @@ class ExecutionManagerService(rpyc.Service):
         global connections, conn_lock
         str_addr = self._get_addr()
 
-        try:
-            with conn_lock:
+        with conn_lock:
+            try:
                 del connections[str_addr]
                 logDebug('EE: Disconnected from `{}`.'.format(str_addr))
-        except Exception as e:
-            logError('EE: Disconnect error: {er}.'.format(er=e))
+            except Exception as e:
+                logError('EE: Disconnect error: {er}.'.format(er=e))
 
 
     def exposed_hello(self):
@@ -117,7 +120,16 @@ class ExecutionManagerService(rpyc.Service):
         """
         For testing connection
         """
+        if msg != 'ping':
+            logInfo(':: {}'.format(msg))
         return 'Echo: {}'.format(msg)
+
+
+    def exposed_cherryPort(self):
+        """
+        Returns the CherryPy IP and PORT, for the Central Engine
+        """
+        return self.project.ip_port
 
 
     def exposed_login(self, user, passwd):
@@ -153,11 +165,7 @@ class ExecutionManagerService(rpyc.Service):
             return user
 
 
-    def exposed_cherryPort(self):
-        """
-        Returns the CherryPy IP and PORT, for the Central Engine
-        """
-        return self.project.ip_port
+# # #
 
 
     def exposed_resetProject(self):
@@ -289,32 +297,125 @@ class ExecutionManagerService(rpyc.Service):
 # # #
 
 
-    def registerClient(self, clients):
-        " "
-        user = self._check_login()
-        if not user: return False
+    def _getClientEpProxy(self, user, epname):
+        """ Helper function. """
+        global clients
+
+        if user not in clients:
+            logError('Error: Unknown user : `{}`.'.format(user))
+            return False
+
+        # Check if epname is known and registered
+        if epname not in self.project.getUserInfo(user, 'eps'):
+            logDebug('*ERROR* Invalid EP name `{}` !'.format(epname))
+            return False
+
+        # Get proxy address
+        for cl in clients[user]:
+            if epname in clients[user][cl]:
+                return cl
+
+        logError('Error: Unknown proxy for EP : `{}`.'.format(epname))
         return False
 
 
-    def startEP(self, epname):
-        " "
+    def exposed_registerClient(self, clients):
+        """ Register client. """
         user = self._check_login()
         if not user: return False
-        return False
+
+        registered = False
+        _clients = {}
+        clients = json.loads(clients)
+        print('??? Register', clients)
+
+        remote_addr = self._conn._config['endpoints'][1]
+        print('??? END POINTS', remote_addr )
+
+        for client in clients:
+            clientPort = client.split(':')
+            if len(clientPort) > 1:
+                clientPort = clientPort[1]
+            else:
+                clientPort = clientPort[0]
+
+            try:
+                proxy = rpyc.connect(remote_addr, int(clientPort))
+                proxy.root.hello(self.project.ip_port[0])
+
+                clients[user] = {proxy: clients[clientPort]}
+                _clients.update([('{}:{}'.format(remote_addr, clientPort), clients[clientPort]), ])
+                registered = True
+            except Exception as e:
+                trace = traceback.format_exc()[34:].strip()
+                logError('Error: Register client error: {}'.format(trace))
+                continue
+        clients = json.dumps(_clients)
+
+        if not registered:
+            logDebug('Registered client manager for user\n\t`{}` -> {}.'.format(user, clients))
+            return False
+
+        self.project.setUserInfo(user, 'clients', clients)
+        logDebug('Registered client manager for user\n\t`{}` -> {}.'.format(user, clients))
+        return True
 
 
-    def stopEP(self, epname):
-        " "
+    def exposed_startEP(self, epname):
+        """ Start EP for client. """
         user = self._check_login()
         if not user: return False
-        return False
+
+        proxy = self._getClientEpProxy(user, epname)
+        if not proxy:
+            logDebug('Cannot start `{}` for user `{}`! The Client Manager is not started !'.format(epname, user))
+            return False
+
+        try:
+            logDebug('Starting `{} {}`...'.format(user, epname))
+            return proxy.root.start_ep(epname)
+        except Exception as e:
+            trace = traceback.format_exc()[34:].strip()
+            logError('Error: Start EP error: {}'.format(trace))
+            return False
 
 
-    def restartEP(self, epname):
-        " "
+    def exposed_stopEP(self, epname):
+        """ Stop EP for client. """
         user = self._check_login()
         if not user: return False
-        return False
+
+        proxy = self._getClientEpProxy(user, epname)
+        if not proxy:
+            logDebug('Cannot stop `{}` for user `{}`! The Client Manager is not started !'.format(epname, user))
+            return False
+
+        try:
+            logWarning('Stopping `{} {}`...'.format(user, epname))
+            return proxy.root.stop_ep(epname)
+        except Exception as e:
+            trace = traceback.format_exc()[34:].strip()
+            logError('Error: Stop EP error: {}'.format(trace))
+            return False
+
+
+    def exposed_restartEP(self, epname):
+        """ Restart EP for client. """
+        user = self._check_login()
+        if not user: return False
+
+        proxy = self._getClientEpProxy(user, epname)
+        if not proxy:
+            logDebug('Cannot restart `{}` for user `{}`! The Client Manager is not started !'.format(epname, user))
+            return False
+
+        try:
+            logWarning('Restarting `{} {}`...'.format(user, epname))
+            return proxy.root.restart_ep(epname)
+        except Exception as e:
+            trace = traceback.format_exc()[34:].strip()
+            logError('Error: Restart EP error: {}'.format(trace))
+            return False
 
 
 # # #
@@ -531,6 +632,9 @@ class ExecutionManagerService(rpyc.Service):
         return data
 
 
+# # #
+
+
     def exposed_logMessage(self, logType, logMessage):
         """
         This function is exposed in all tests and all logs are centralized in the HOME of the user.
@@ -540,6 +644,33 @@ class ExecutionManagerService(rpyc.Service):
         user = self._check_login()
         if not user: return False
         return self.project.logMessage(user, logType, logMessage)
+
+
+    def exposed_logLIVE(self, epname, logMessage):
+        """
+        Writes CLI messages in a big log, so all output can be checked LIVE.
+        """
+        user = self._check_login()
+        if not user: return False
+        return self.project.logLIVE(user, epname, logMessage)
+
+
+    def exposed_resetLog(self, logName):
+        """
+        Resets one log.
+        """
+        user = self._check_login()
+        if not user: return False
+        return self.project.resetLog(user, logName)
+
+
+    def exposed_resetLogs(self):
+        """
+        All logs defined in master config are erased.\n
+        """
+        user = self._check_login()
+        if not user: return False
+        return self.project.resetLogs(user)
 
 
 # Eof()

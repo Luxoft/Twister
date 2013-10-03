@@ -41,7 +41,7 @@ from collections import OrderedDict # For dumping TCL
 
 from ConfigParser import SafeConfigParser
 
-TWISTER_PATH = os.getenv('TWISTER_PATH').rstrip('/')
+TWISTER_PATH = os.getenv('TWISTER_PATH')
 if not TWISTER_PATH:
     print('TWISTER_PATH environment variable is not set! Exiting!')
     exit(1)
