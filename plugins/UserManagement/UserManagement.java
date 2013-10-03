@@ -1,6 +1,6 @@
 /*
 File: UserManagement.java ; This file is part of Twister.
-Version: 2.007
+Version: 2.008
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -28,6 +28,8 @@ import java.awt.GridBagLayout;
 import java.awt.Image;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.beans.PropertyChangeEvent;
@@ -68,6 +70,8 @@ import javax.swing.event.AncestorEvent;
 import javax.swing.event.AncestorListener;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.table.DefaultTableModel;
@@ -106,7 +110,8 @@ public class UserManagement implements TwisterPluginInterface {
     private XmlRpcClient client;
     private JButton bckbtn;
     private JLabel timeout;
-    private JSpinner timeoutt;
+    //private JSpinner timeoutt;
+    private JTextField timeoutt;
     private Hashtable<String, String> variables;
 
 	@Override
@@ -250,21 +255,23 @@ public class UserManagement implements TwisterPluginInterface {
 	}
 	
 	
+	
+	
 	private void initComponents() {
 		timeout = new JLabel("Timeout:");
-		SpinnerModel model = new SpinnerDateModel();
-		timeoutt = new JSpinner(model);
+		//SpinnerModel model = new SpinnerDateModel();
+		//timeoutt = new JSpinner(model);
+		timeoutt = new JTextField();
 		timeoutt.setBorder(null);
-		JComponent editor = new JSpinner.DateEditor(timeoutt, "mm");
-		timeoutt.setEditor(editor);
-		((JSpinner.DefaultEditor) timeoutt.getEditor()).getTextField().setText("00");
+		//JComponent editor = new JSpinner.DateEditor(timeoutt, "mm");
+		//timeoutt.setEditor(editor);
+		//((JSpinner.DefaultEditor) timeoutt.getEditor()).getTextField().setText("00");
 		
 		
-		((JSpinner.DefaultEditor) timeoutt.getEditor()).getTextField().addPropertyChangeListener("value",new PropertyChangeListener() {
-			
-			@Override
-			public void propertyChange(PropertyChangeEvent evt) {
-				
+		//((JSpinner.DefaultEditor) timeoutt.getEditor()).getTextField().addPropertyChangeListener("value",new PropertyChangeListener() {
+		
+		timeoutt.addKeyListener(new KeyAdapter() {
+			public void keyReleased(KeyEvent ev){
 				if(!usernamet.getText().equals("")){
 					
 					
@@ -279,7 +286,7 @@ public class UserManagement implements TwisterPluginInterface {
 	                }
 	                sb.setLength(sb.length()-1);
 	                try {
-						String st = client.execute("usersAndGroupsManager", new Object[]{"set user",usernamet.getText(),sb.toString(), ((JSpinner.DefaultEditor) timeoutt.getEditor()).getTextField().getText()}).toString();
+						String st = client.execute("usersAndGroupsManager", new Object[]{"set user",usernamet.getText(),sb.toString(), timeoutt.getText()}).toString();
 						if(st.equals("true")){
 							populateUsersTable();
 						}
@@ -287,8 +294,41 @@ public class UserManagement implements TwisterPluginInterface {
 						ex.printStackTrace();
 					}
 				}
-			}
-		});
+				
+				
+		}});
+		
+		
+		
+//		timeoutt.addPropertyChangeListener("value",new PropertyChangeListener() {
+//			
+//			@Override
+//			public void propertyChange(PropertyChangeEvent evt) {
+//				
+//				if(!usernamet.getText().equals("")){
+//					
+//					
+//	                String [] selected = new String[groupslist.getSelectedValuesList().size()];
+//	                for(int i=0;i<groupslist.getSelectedValuesList().size();i++){
+//	                    selected[i] = groupslist.getSelectedValuesList().get(i).toString();
+//	                }
+//	                StringBuilder sb = new StringBuilder();
+//	                for(String st:selected){
+//	                	sb.append(st);
+//	                	sb.append(",");
+//	                }
+//	                sb.setLength(sb.length()-1);
+//	                try {
+//						String st = client.execute("usersAndGroupsManager", new Object[]{"set user",usernamet.getText(),sb.toString(), timeoutt.getText()}).toString();
+//						if(st.equals("true")){
+//							populateUsersTable();
+//						}
+//	                } catch (XmlRpcException ex) {
+//						ex.printStackTrace();
+//					}
+//				}
+//			}
+//		});
 		
 		jPanel1 = new javax.swing.JPanel();
 		jPanel1.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(153, 153, 153)));
@@ -641,19 +681,19 @@ public class UserManagement implements TwisterPluginInterface {
 	}
 	
 	public void setUser(MouseEvent ev){
+		int row = usertable.rowAtPoint(ev.getPoint());
 		String username = usertable.getValueAt(
-				usertable.rowAtPoint(ev.getPoint()),
+				row,
 				0).toString();
 		usernamet.setText(username);
 		String timeout = usertable.getValueAt(
 								usertable.rowAtPoint(ev.getPoint()),
 								1).toString();
 		
-		((JSpinner.DefaultEditor) timeoutt.getEditor()).getTextField().setText(timeout);
-		
+		timeoutt.setText(timeout);
 		String groups[] = 
 				usertable.getValueAt(
-        				usertable.rowAtPoint(ev.getPoint()),
+        				row,
 						2).toString().split(",");
 		
 		for(ListSelectionListener l:groupslist.getListSelectionListeners()){

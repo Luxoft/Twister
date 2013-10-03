@@ -1,6 +1,6 @@
 /*
 File: TB.java ; This file is part of Twister.
-Version: 2.005
+Version: 2.006
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -66,6 +66,8 @@ import com.twister.MySftpBrowser;
 import java.awt.Toolkit;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.StringSelection;
+import java.awt.event.HierarchyListener;
+import java.awt.event.HierarchyEvent;
 
 public class TB extends JPanel{
     private XmlRpcClient client;
@@ -75,6 +77,9 @@ public class TB extends JPanel{
     private NodePanel optpan;
     private JButton add, remove;
     private JScrollPane jScrollPane1;
+    private JLabel jusers;
+    
+    
 
     public TB(){
         initializeRPC();
@@ -85,9 +90,42 @@ public class TB extends JPanel{
     }
 
     public void initPanel(){
+        
+        
+        
         setBorder(BorderFactory.createTitledBorder("Test Beds"));
-        JPanel buttonPanel = new JPanel();
+        final JPanel buttonPanel = new JPanel();
         buttonPanel.setLayout(null);
+        
+        buttonPanel.addHierarchyListener(new HierarchyListener() {
+            public void hierarchyChanged(HierarchyEvent e) {
+                if ((HierarchyEvent.SHOWING_CHANGED & e.getChangeFlags()) !=0 
+                     && buttonPanel.isShowing()) {
+                  setLoggedInUsers();
+                } else if ((HierarchyEvent.SHOWING_CHANGED & e.getChangeFlags()) !=0 
+                     && !buttonPanel.isShowing()) {
+                  logout();
+                }
+            }
+        });
+        
+        jusers = new JLabel("TB Users:");
+        jusers.setBounds(400,5,300,20);
+        buttonPanel.add(jusers);
+        
+        JButton refresh  = new JButton("Refresh Tree");
+        refresh.addActionListener(new ActionListener(){
+            public void actionPerformed(ActionEvent ev){
+                root.removeAllChildren();
+                parent = getTB("/",null);
+                buildTree(parent,root);
+                ((DefaultTreeModel)tree.getModel()).reload();
+                optpan.setParent(null,null);
+                remove.setEnabled(false);
+                add.setText("Add TB");
+        }});
+        refresh.setBounds(265,5,120,20);
+        buttonPanel.add(refresh);
         
         add = new JButton("Add TB");
         add.setBounds(0,5,155,20);
@@ -287,7 +325,6 @@ public class TB extends JPanel{
     }   
     
     public void removeComp(){
-        
         TreePath tp = tree.getSelectionPath();
         DefaultMutableTreeNode treenode = (DefaultMutableTreeNode)tp.getLastPathComponent();
         Node node = (Node)treenode.getUserObject();
@@ -486,6 +523,46 @@ public class TB extends JPanel{
                 ((DefaultTreeModel)tree.getModel()).insertNodeInto(temp2, treechild,treechild.getChildCount());
                 buildTree(child,treechild);
             }
+        } catch(Exception e){
+            e.printStackTrace();
+        }
+    }
+    
+    public void logout(){
+        try{HashMap hash= (HashMap)client.execute("getResource", new Object[]{"/"});
+            HashMap meta = (HashMap)hash.get("meta");
+            String users="";
+            try{users = meta.get("users").toString();
+                users=users.replace(RunnerRepository.user+";", "");
+                client.execute("setResource", new Object[]{"/" , "/" , "{'users': '"+users+"'}"});
+            }
+            catch(Exception e){
+                e.printStackTrace();
+                users = "";
+                client.execute("setResource", new Object[]{"/" , "/" , "{'users': '"+users+"'}"});
+            }
+            System.out.println("users:"+users);
+        } catch(Exception e){
+            e.printStackTrace();
+        }
+        
+    }
+    
+    public void setLoggedInUsers(){
+        try{HashMap hash= (HashMap)client.execute("getResource", new Object[]{"/"});
+            HashMap meta = (HashMap)hash.get("meta");
+            String users="";
+            try{users = meta.get("users").toString();
+                users+=RunnerRepository.user+";";
+                client.execute("setResource", new Object[]{"/" , "/" , "{'users': '"+users+"'}"});
+            }
+            catch(Exception e){
+                e.printStackTrace();
+                users = RunnerRepository.user+";";
+                client.execute("setResource", new Object[]{"/" , "/" , "{'users': '"+users+"'}"});
+            }
+            System.out.println("users:"+users);
+            jusers.setText("TB Users: "+users);
         } catch(Exception e){
             e.printStackTrace();
         }

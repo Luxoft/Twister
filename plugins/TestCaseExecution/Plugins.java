@@ -1,6 +1,6 @@
 /*
 File: Plugins.java ; This file is part of Twister.
-Version: 2.007
+Version: 2.008
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -656,75 +656,78 @@ public class Plugins extends JPanel{
     
     public boolean isClearCaseEnabled(){
         Document doc = RunnerRepository.getPluginsConfig();
-		NodeList list1 = doc.getElementsByTagName("Plugin");
-		Element item,compare;
-		Element rootElement = null;
-		boolean found = false;
-		for (int i = 0; i < list1.getLength(); i++) {
-			item = (Element) list1.item(i);
-			compare = (Element) item.getElementsByTagName("name").item(0);
-			if (compare.getChildNodes().item(0).getNodeValue()
-					.equals("ClearCase")) {
-				found = true;
-				rootElement = item;
-				break;
-			}
-		}
-		if (!found) {
-		    return false;
-		} else {
+        if(doc==null){
+            return false;
+        }
+        NodeList list1 = doc.getElementsByTagName("Plugin");
+        Element item,compare;
+        Element rootElement = null;
+        boolean found = false;
+        for (int i = 0; i < list1.getLength(); i++) {
+            item = (Element) list1.item(i);
+            compare = (Element) item.getElementsByTagName("name").item(0);
+            if (compare.getChildNodes().item(0).getNodeValue()
+                    .equals("ClearCase")) {
+                found = true;
+                rootElement = item;
+                break;
+            }
+        }
+        if (!found) {
+            return false;
+        } else {
             item = (Element)rootElement.getElementsByTagName("status").item(0);
             String value = item.getChildNodes().item(0).getNodeValue();
             if(value.equals("enabled")){
-            	return true;
+                return true;
             } else {
-            	return false;
+                return false;
             }
-		}
+        }
     }
     
     public void setClearCaseState(boolean value){
         Document doc = RunnerRepository.getPluginsConfig();
-		NodeList list1 = doc.getElementsByTagName("Plugin");
-		Element item,compare;
-		Element rootElement = null;
-		boolean found = false;
-		for (int i = 0; i < list1.getLength(); i++) {
-			item = (Element) list1.item(i);
-			compare = (Element) item.getElementsByTagName("name").item(0);
-			if (compare.getChildNodes().item(0).getNodeValue()
-					.equals("ClearCase")) {
-				found = true;
-				rootElement = item;
-				break;
-			}
-		}
-		if (!found) {
-			rootElement = doc.createElement("Plugin");
-			doc.getFirstChild().appendChild(rootElement);
-			Element em2 = doc.createElement("name");
-			em2.appendChild(doc.createTextNode("ClearCase"));
-			rootElement.appendChild(em2);
-			em2 = doc.createElement("jarfile");
-			em2.appendChild(doc.createTextNode("ClearCasePlugin.jar"));
-			rootElement.appendChild(em2);
-			em2 = doc.createElement("pyfile");
-			em2.appendChild(doc.createTextNode("ClearCasePlugin.py"));
-			rootElement.appendChild(em2);
-			em2 = doc.createElement("status");
-			String status = "disabled";
-			if(value)status = "enabled";
-			em2.appendChild(doc.createTextNode(status));
-			rootElement.appendChild(em2);
-		} else {
-		    item = (Element)rootElement.getElementsByTagName("status").item(0);
-    		if(value){
-    			item.getChildNodes().item(0).setNodeValue("enabled");
-    		} else {
-    			item.getChildNodes().item(0).setNodeValue("disabled");
-    		}
-		}
-		try{
+        NodeList list1 = doc.getElementsByTagName("Plugin");
+        Element item,compare;
+        Element rootElement = null;
+        boolean found = false;
+        for (int i = 0; i < list1.getLength(); i++) {
+            item = (Element) list1.item(i);
+            compare = (Element) item.getElementsByTagName("name").item(0);
+            if (compare.getChildNodes().item(0).getNodeValue()
+                    .equals("ClearCase")) {
+                found = true;
+                rootElement = item;
+                break;
+            }
+        }
+        if (!found) {
+            rootElement = doc.createElement("Plugin");
+            doc.getFirstChild().appendChild(rootElement);
+            Element em2 = doc.createElement("name");
+            em2.appendChild(doc.createTextNode("ClearCase"));
+            rootElement.appendChild(em2);
+            em2 = doc.createElement("jarfile");
+            em2.appendChild(doc.createTextNode("ClearCasePlugin.jar"));
+            rootElement.appendChild(em2);
+            em2 = doc.createElement("pyfile");
+            em2.appendChild(doc.createTextNode("ClearCasePlugin.py"));
+            rootElement.appendChild(em2);
+            em2 = doc.createElement("status");
+            String status = "disabled";
+            if(value)status = "enabled";
+            em2.appendChild(doc.createTextNode(status));
+            rootElement.appendChild(em2);
+        } else {
+            item = (Element)rootElement.getElementsByTagName("status").item(0);
+            if(value){
+                item.getChildNodes().item(0).setNodeValue("enabled");
+            } else {
+                item.getChildNodes().item(0).setNodeValue("disabled");
+            }
+        }
+        try{
             DOMSource source = new DOMSource(doc);
             File file = new File(RunnerRepository.PLUGINSLOCALGENERALCONF);
             Result result = new StreamResult(file);
@@ -737,11 +740,11 @@ public class Plugins extends JPanel{
             RunnerRepository.uploadRemoteFile(RunnerRepository.USERHOME+"/twister/config/", in, file.getName());
             in.close();
             System.out.println("Saved "+file.getName()+" to: "+
-					RunnerRepository.USERHOME+"/twister/config/");}
+                    RunnerRepository.USERHOME+"/twister/config/");}
         catch(Exception e){
             e.printStackTrace();
         }
-		
+        
     }
             
     /*
