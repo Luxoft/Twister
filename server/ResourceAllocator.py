@@ -1,7 +1,7 @@
 
 # File: ResourceAllocator.py ; This file is part of Twister.
 
-# version: 2.010
+# version: 2.011
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -416,7 +416,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
         if not resources['children']:
             # Return default structure for root
             if query == '/':
-                return {'path': '', 'meta': {}, 'id': '1', 'children': []}
+                return {'path': '', 'meta': resources.get('meta', {}), 'id': '1', 'children': []}
 
             msg = 'Get {}: There are no devices defined !'.format(root_name)
             logError(msg)
@@ -505,6 +505,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
                 if not tb_id: return ''
                 return self.getResource(tb_id +':'+ meta)
 
+
     @cherrypy.expose
     def getSut(self, query):
         '''
@@ -544,6 +545,31 @@ class ResourceAllocator(_cptools.XMLRPCController):
             resources = self.systems
 
         root_name = ROOT_NAMES[root_id]
+
+        # If this is the root resource, update the properties
+        if name == '/' and parent == '/':
+            if isinstance(props, dict):
+                pass
+            elif (isinstance(props, str) or isinstance(props, unicode)):
+                props = props.strip()
+                try:
+                    props = ast.literal_eval(props)
+                except Exception as e:
+                    msg = 'Set {}: Cannot parse properties: `{}`, `{}` !'.format(root_name, props, e)
+                    logError(msg)
+                    return '*ERROR* ' + msg
+            else:
+                msg = 'Set {}: Invalid properties `{}` !'.format(root_name, props)
+                logError(msg)
+                return '*ERROR* ' + msg
+
+            resources['meta'].update(props)
+            # Write changes for Device or SUT
+            self._save(root_id)
+            logDebug('Set {}: Updated ROOT with properties: `{}`.'.format(root_name, props))
+            return True
+
+
         parent_p = _get_res_pointer(resources, parent)
 
         if not parent_p:
