@@ -1,6 +1,6 @@
 /*
 File: TB.java ; This file is part of Twister.
-Version: 2.006
+Version: 2.007
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -90,9 +90,6 @@ public class TB extends JPanel{
     }
 
     public void initPanel(){
-        
-        
-        
         setBorder(BorderFactory.createTitledBorder("Test Beds"));
         final JPanel buttonPanel = new JPanel();
         buttonPanel.setLayout(null);
@@ -101,7 +98,7 @@ public class TB extends JPanel{
             public void hierarchyChanged(HierarchyEvent e) {
                 if ((HierarchyEvent.SHOWING_CHANGED & e.getChangeFlags()) !=0 
                      && buttonPanel.isShowing()) {
-                  setLoggedInUsers();
+                  setLoggedInUsers(true);
                 } else if ((HierarchyEvent.SHOWING_CHANGED & e.getChangeFlags()) !=0 
                      && !buttonPanel.isShowing()) {
                   logout();
@@ -109,9 +106,7 @@ public class TB extends JPanel{
             }
         });
         
-        jusers = new JLabel("TB Users:");
-        jusers.setBounds(400,5,300,20);
-        buttonPanel.add(jusers);
+        
         
         JButton refresh  = new JButton("Refresh Tree");
         refresh.addActionListener(new ActionListener(){
@@ -179,10 +174,28 @@ public class TB extends JPanel{
         treepanel.setLayout(new java.awt.BorderLayout());
         treepanel.add(jScrollPane1, java.awt.BorderLayout.CENTER);
         
+        JPanel upperpanel = new JPanel();
+        upperpanel.setLayout(new java.awt.BorderLayout());
+        JPanel activetbusers = new JPanel();
+        activetbusers.setLayout(new BorderLayout());
+        //activetbusers.setLayout(null);
+        jusers = new JLabel("TB Active Users:");
+        jusers.setBorder(BorderFactory.createEmptyBorder(0, 5, 0, 0));
+        JButton refreshtb = new JButton("Refresh Active Users");
+        //refreshtb.setBounds(5,5,100,20);
+        //jusers.setBounds(110,5,400,20);
+        activetbusers.add(refreshtb,BorderLayout.WEST);
+        activetbusers.add(jusers,BorderLayout.CENTER);
+        refreshtb.addActionListener(new ActionListener(){
+            public void actionPerformed(ActionEvent ev){
+                setLoggedInUsers(false);}});
         JMenuBar menubar = new JMenuBar();
         JMenu menu = new JMenu("File");
         menubar.add(menu);
-        treepanel.add(menubar,BorderLayout.NORTH);
+        treepanel.add(upperpanel,BorderLayout.NORTH);
+        upperpanel.add(activetbusers,BorderLayout.NORTH);
+        upperpanel.add(menubar,BorderLayout.CENTER);
+
         JMenuItem imp = new JMenuItem("Import from XML");
         imp.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
@@ -249,12 +262,9 @@ public class TB extends JPanel{
             layout.createParallelGroup(GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
                 .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
-//                     .addComponent(jScrollPane1, GroupLayout.DEFAULT_SIZE, 351, Short.MAX_VALUE)
                     .addComponent(buttonPanel, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addComponent(treepanel, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                .addComponent(optpan, GroupLayout.PREFERRED_SIZE, 450, GroupLayout.PREFERRED_SIZE)
-                )
-        );
+                .addComponent(optpan, GroupLayout.PREFERRED_SIZE, 450, GroupLayout.PREFERRED_SIZE)));
         layout.setVerticalGroup(
             layout.createParallelGroup(GroupLayout.Alignment.LEADING)
             .addGroup(GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
@@ -548,13 +558,16 @@ public class TB extends JPanel{
         
     }
     
-    public void setLoggedInUsers(){
+    public void setLoggedInUsers(boolean addusr){
         try{HashMap hash= (HashMap)client.execute("getResource", new Object[]{"/"});
             HashMap meta = (HashMap)hash.get("meta");
             String users="";
             try{users = meta.get("users").toString();
-                users+=RunnerRepository.user+";";
-                client.execute("setResource", new Object[]{"/" , "/" , "{'users': '"+users+"'}"});
+                if(addusr){
+                    users+=RunnerRepository.user+";";
+                    client.execute("setResource", new Object[]{"/" , "/" , "{'users': '"+users+"'}"});
+                }
+                
             }
             catch(Exception e){
                 e.printStackTrace();
@@ -562,7 +575,7 @@ public class TB extends JPanel{
                 client.execute("setResource", new Object[]{"/" , "/" , "{'users': '"+users+"'}"});
             }
             System.out.println("users:"+users);
-            jusers.setText("TB Users: "+users);
+            jusers.setText("TB Active Users: "+users);
         } catch(Exception e){
             e.printStackTrace();
         }
