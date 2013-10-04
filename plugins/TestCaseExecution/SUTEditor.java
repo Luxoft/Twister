@@ -1,6 +1,6 @@
 /*
 File: SUTEditor.java ; This file is part of Twister.
-Version: 2.005
+Version: 2.006
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -65,6 +65,9 @@ import javax.swing.JMenuItem;
 import com.twister.MySftpBrowser;
 import java.awt.Container;
 import javax.swing.AbstractAction;
+import java.awt.event.HierarchyListener;
+import java.awt.event.HierarchyEvent;
+import javax.swing.BorderFactory;
 
 public class SUTEditor extends JPanel{
     private JTextField tsutname;
@@ -73,8 +76,20 @@ public class SUTEditor extends JPanel{
     private Node parent;
     public DefaultMutableTreeNode root;
     private JButton renamesut,remsut,addcomp;
+    private JLabel jusers;
     
     public SUTEditor(){
+        addHierarchyListener(new HierarchyListener() {
+            public void hierarchyChanged(HierarchyEvent e) {
+                if ((HierarchyEvent.SHOWING_CHANGED & e.getChangeFlags()) !=0 
+                     && isShowing()) {
+                  setLoggedInUsers(true);
+                } else if ((HierarchyEvent.SHOWING_CHANGED & e.getChangeFlags()) !=0 
+                     && !isShowing()) {
+                  logout();
+                }
+            }
+        });
         initializeRPC();
         tree = new JTree();
         tree.addKeyListener(new KeyAdapter(){
@@ -365,10 +380,43 @@ public class SUTEditor extends JPanel{
                 }
             }
         });
+        
+        
+        
+        
+        JPanel upperpanel = new JPanel();
+        upperpanel.setLayout(new java.awt.BorderLayout());
+        JPanel activetbusers = new JPanel();
+        activetbusers.setLayout(new BorderLayout());
+        //activetbusers.setLayout(null);
+        jusers = new JLabel("TB Active Users:");
+        jusers.setBorder(BorderFactory.createEmptyBorder(0, 5, 0, 0));
+        JButton refreshtb = new JButton("Refresh Active Users");
+        //refreshtb.setBounds(5,5,100,20);
+        //jusers.setBounds(110,5,400,20);
+        activetbusers.add(refreshtb,BorderLayout.WEST);
+        activetbusers.add(jusers,BorderLayout.CENTER);
+        refreshtb.addActionListener(new ActionListener(){
+            public void actionPerformed(ActionEvent ev){
+                setLoggedInUsers(false);}});
         JMenuBar menubar = new JMenuBar();
         JMenu menu = new JMenu("File");
         menubar.add(menu);
-        add(menubar,BorderLayout.NORTH);
+        add(upperpanel,BorderLayout.NORTH);
+        upperpanel.add(activetbusers,BorderLayout.NORTH);
+        upperpanel.add(menubar,BorderLayout.CENTER);
+        
+//         JMenuBar menubar = new JMenuBar();
+//         JMenu menu = new JMenu("File");
+//         menubar.add(menu);
+//         add(menubar,BorderLayout.NORTH);
+        
+        
+        
+        
+        
+        
+        
         JMenuItem imp = new JMenuItem("Import from XML");
         imp.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
@@ -424,6 +472,50 @@ public class SUTEditor extends JPanel{
         menu.add(exp);
         
         getSUT();
+    }
+    
+    public void logout(){
+        try{HashMap hash= (HashMap)client.execute("getSut", new Object[]{"/"});
+            HashMap meta = (HashMap)hash.get("meta");
+            String users="";
+            try{users = meta.get("users").toString();
+                users=users.replace(RunnerRepository.user+";", "");
+                client.execute("setSut", new Object[]{"/" , "/" , "{'users': '"+users+"'}"});
+            }
+            catch(Exception e){
+                e.printStackTrace();
+                users = "";
+                client.execute("setSut", new Object[]{"/" , "/" , "{'users': '"+users+"'}"});
+            }
+            System.out.println("users:"+users);
+        } catch(Exception e){
+            e.printStackTrace();
+        }
+        
+    }
+    
+    
+    public void setLoggedInUsers(boolean addusr){
+        try{HashMap hash= (HashMap)client.execute("getSut", new Object[]{"/"});
+            HashMap meta = (HashMap)hash.get("meta");
+            String users="";
+            try{users = meta.get("users").toString();
+                if(addusr){
+                    users+=RunnerRepository.user+";";
+                    client.execute("setSut", new Object[]{"/" , "/" , "{'users': '"+users+"'}"});
+                }
+                
+            }
+            catch(Exception e){
+                e.printStackTrace();
+                users = RunnerRepository.user+";";
+                client.execute("setSut", new Object[]{"/" , "/" , "{'users': '"+users+"'}"});
+            }
+            System.out.println("users:"+users);
+            jusers.setText("SUT Active Users: "+users);
+        } catch(Exception e){
+            e.printStackTrace();
+        }
     }
     
     public boolean checkExistingName(DefaultMutableTreeNode parent, String name, DefaultMutableTreeNode current){

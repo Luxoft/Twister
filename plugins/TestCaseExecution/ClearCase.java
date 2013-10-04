@@ -1,6 +1,6 @@
 /*
 File: ClearCase.java ; This file is part of Twister.
-Version: 2.006
+Version: 2.007
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -113,7 +113,7 @@ public class ClearCase extends JPanel{
 //             if(endstring){
 //                 command+=" ; echo @_#_";
 //             }
-            command+=" ; echo @_#_";
+            command+=" ; echo \"@_#_\"";
             ps.println(command); 
             ps.flush();
         } catch(Exception e){
@@ -193,17 +193,23 @@ public class ClearCase extends JPanel{
 //             }
 //     }
 
-    public String readOutput(){
+    public String readOutput(String command){
         try{
             String line = null;
             StringBuilder responseData = new StringBuilder();
             while((line = in.readLine()) != null) {
                 System.out.println("line: "+line);
-                if(line.indexOf("echo @_#_")!=-1){
+                if(line.indexOf("echo @_#_")!=-1 || line.indexOf(command)!=-1){
                     responseData.setLength(0);
                 }
                 if(line.indexOf("@_#_")==-1){
-                    responseData.append(line+"\n");
+                    if(command!=null){
+                        if(line.indexOf(command)==-1){
+                            responseData.append(line+"\n");
+                        }
+                    } else {
+                        responseData.append(line+"\n");
+                    }
                 }
                 else if(line.indexOf("@_#_")!=-1&&line.indexOf("echo")==-1){
                         in.readLine();
@@ -303,7 +309,7 @@ public class ClearCase extends JPanel{
                     sendCommand(command+" | grep "+filter);
                 }
                 
-                tviews.setText(readOutput());
+                tviews.setText(readOutput("cleartool lsview"));
         }});
         
         mkattr.addActionListener(new ActionListener(){
@@ -420,7 +426,7 @@ public class ClearCase extends JPanel{
                     
                     System.out.println("command: "+sb.toString());
                     sendCommand(sb.toString());
-                    String response = readOutput();
+                    String response = readOutput("cleartool mkattr");
                     System.out.println(response);
                     tviews.setText(response);
                 }
@@ -601,7 +607,7 @@ public class ClearCase extends JPanel{
                     }
                     System.out.println("command: "+sb.toString());
                     sendCommand(sb.toString());
-                    String response = readOutput();
+                    String response = readOutput("cleartool describe");
                     System.out.println(response);
                     tviews.setText(response);
                 }
@@ -659,7 +665,7 @@ public class ClearCase extends JPanel{
                     String uversion="";
                     if(!tversion.getText().equals(""))uversion = " -version "+tversion.getText()+" ";
                     sendCommand("cleartool mklabel "+urecursive+uversion+ucomment+" "+ulabel+" "+uelement);
-                    String response = readOutput();
+                    String response = readOutput("cleartool mklabel");
                     System.out.println(response);
                     tviews.setText(response);
                 }
@@ -694,7 +700,7 @@ public class ClearCase extends JPanel{
                     String ucomment = " -c "+tcomment.getText();
                     if(tcomment.equals(""))ucomment = " -nc ";
                     sendCommand("cleartool rmelem -f "+ucomment+" "+uelement);
-                    String response = readOutput();
+                    String response = readOutput("cleartool rmelem");
                     System.out.println(response);
                     tviews.setText(response);
                 }
@@ -779,7 +785,7 @@ public class ClearCase extends JPanel{
 //                     }
                     //System.out.println(readOutput());
                     sendCommand("cleartool mkelem "+ucomment+" -eltype "+utype+" "+uelement);
-                    String response = readOutput();
+                    String response = readOutput("cleartool mkelem");
                     System.out.println(response);
                     tviews.setText(response);
                 }
@@ -875,7 +881,7 @@ public class ClearCase extends JPanel{
                     sb.append(" "+lview.getText());
                     System.out.println("Sending command: "+sb.toString());
                     sendCommand(sb.toString());
-                    String response = readOutput();
+                    String response = readOutput("cleartool mkview");
                     sb.setLength(0);
                     if(response.indexOf("Error")!=-1){
                         String[] lines = response.split("\n");
@@ -900,7 +906,7 @@ public class ClearCase extends JPanel{
                     return;
                 }
                 sendCommand("cleartool catcs -tag "+view);
-                String content = readOutput();
+                String content = readOutput("cleartool catcs");
                 tviews.setText(content);
             }
         });
@@ -916,13 +922,13 @@ public class ClearCase extends JPanel{
                     command+=" -long";
                 }
                 sendCommand(command+" | grep "+RunnerRepository.user);
-                tviews.setText(readOutput());
+                tviews.setText(readOutput("cleartool lsview"));
             }
         });
         setview.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 sendCommand("cleartool lsview -short | grep "+RunnerRepository.user);
-                String [] resp = readOutput().split("\n");
+                String [] resp = readOutput("cleartool lsview").split("\n");
                 showViews(resp);
             }
         });
@@ -1147,8 +1153,13 @@ public class ClearCase extends JPanel{
         refresh.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 String filter = tfilter.getText();
-                sendCommand("cleartool lsview -short | grep "+filter);
-                String [] resp = readOutput().split("\n");
+                if(filter.equals("")){
+                    sendCommand("cleartool lsview -short");
+                } else {
+                    sendCommand("cleartool lsview -short | grep "+filter);
+                }
+                
+                String [] resp = readOutput("cleartool lsview").split("\n");
                 jList1.setModel(new DefaultComboBoxModel(resp));
         }});
         
@@ -1185,7 +1196,7 @@ public class ClearCase extends JPanel{
 //             sendCommand("cd  "+jTextField1.getText(),false);
 //             readOutput(true);
             sendCommand("cd  "+jTextField1.getText());
-            readOutput();
+            readOutput("cleartool setview");
             RunnerRepository.window.mainpanel.p1.cp.refreshStructure();
             lview.setText("View: "+view);
             vob.setText("Vob: "+root);
@@ -1203,7 +1214,7 @@ public class ClearCase extends JPanel{
 //         sendCommand("cleartool pwd",true);
 //         String curentdir = readOutput(true);
         sendCommand("cleartool pwd");
-        String curentdir = readOutput();
+        String curentdir = readOutput("cleartool pwd");
         //curentdir = curentdir.substring(0, curentdir.length()-1);
         curentdir = curentdir.replace("\n", "");        
         DefaultMutableTreeNode child = new DefaultMutableTreeNode(curentdir,true);
@@ -1215,7 +1226,7 @@ public class ClearCase extends JPanel{
 //         sendCommand("cleartool ls -l",true);
 //         String [] lines = readOutput(false).split("\n");
         sendCommand("cleartool ls -l");
-        String [] lines = readOutput().split("\n");
+        String [] lines = readOutput("cleartool ls -l").split("\n");
         for(String line:lines){
             if(line.indexOf("directory")==-1){
                 directory = false;
@@ -1248,12 +1259,12 @@ public class ClearCase extends JPanel{
 //             sendCommand("cd  "+curentdir+"/"+folder,false);
 //             readOutput(true);
             sendCommand("cd  "+curentdir+"/"+folder);
-            readOutput();
+            readOutput(null);
             buildTree(child);
 //             sendCommand("cd  "+curentdir,false);
 //             readOutput(true);
             sendCommand("cd  "+curentdir);
-            readOutput();
+            readOutput(null);
         }
         for(String file:files){
             DefaultMutableTreeNode child2 = new DefaultMutableTreeNode(file,false);
