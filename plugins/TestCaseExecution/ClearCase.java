@@ -1,6 +1,6 @@
 /*
 File: ClearCase.java ; This file is part of Twister.
-Version: 2.007
+Version: 2.008
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -199,7 +199,7 @@ public class ClearCase extends JPanel{
             StringBuilder responseData = new StringBuilder();
             while((line = in.readLine()) != null) {
                 System.out.println("line: "+line);
-                if(line.indexOf("echo @_#_")!=-1 || line.indexOf(command)!=-1){
+                if(line.indexOf("echo @_#_")!=-1 || (command!=null&&line.indexOf(command)!=-1)){
                     responseData.setLength(0);
                 }
                 if(line.indexOf("@_#_")==-1){
