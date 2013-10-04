@@ -88,7 +88,6 @@ class CentralEngine(_cptools.XMLRPCController):
 
         proj.parent  = self
         self.project = proj
-        self.clients = dict()
 
 
     @cherrypy.expose
@@ -488,122 +487,6 @@ class CentralEngine(_cptools.XMLRPCController):
         the full path to a config variable in that file.
         """
         return self.project.getGlobalVariable(user, var_path, cfg_path)
-
-
-# --------------------------------------------------------------------------------------------------
-#           C L I E N T   C O N T R O L
-# --------------------------------------------------------------------------------------------------
-
-
-    def _getClientEpProxy(self, user, epname):
-        """ Helper function. """
-
-        if not user in self.clients:
-            logError('Error: Unknown user : `{}`.'.format(user))
-            return False
-
-        # Check if epname is known and registered
-        if not self.searchEP(user, epname):
-            logError('Error: Unknown EP : `{}`.'.format(epname))
-            return False
-
-        # Get proxy address
-        for cl in self.clients[user]:
-            if epname in self.clients[user][cl]:
-                return cl
-
-        logError('Error: Unknown proxy for EP : `{}`.'.format(epname))
-        return False
-
-
-    @cherrypy.expose
-    def registerClient(self, user, clients):
-        """ Register client. """
-
-        clients = json.loads(clients)
-        _clients = dict()
-
-        registered = False
-        for client in clients:
-            clientPort = client.split(':')
-            if len(clientPort) > 1:
-                clientPort = clientPort[1]
-            else:
-                clientPort = clientPort[0]
-            try:
-                proxy = rpycConnect(cherrypy.request.headers['Remote-Addr'], int(clientPort))
-                proxy.root.hello(cherrypy.request.headers['Host'])
-                self.clients.update([(user, {proxy: clients[clientPort]}), ])
-                _clients.update([('{}:{}'.format(cherrypy.request.headers['Remote-Addr'],
-                                                            clientPort), clients[clientPort]), ])
-                registered = True
-            except Exception as e:
-                trace = traceback.format_exc()[34:].strip()
-                logError('Error: Register client error: {}'.format(trace))
-                continue
-        clients = json.dumps(_clients)
-
-        if not registered:
-            logDebug('Registered client manager for user\n\t`{}` -> {}.'.format(user, clients))
-            return False
-
-        self.setUserVariable(user, 'clients', clients)
-        logDebug('Registered client manager for user\n\t`{}` -> {}.'.format(user, clients))
-        return True
-
-
-    @cherrypy.expose
-    def startEP(self, user, epname):
-        """ Start EP for client. """
-
-        proxy = self._getClientEpProxy(user, epname)
-        if not proxy:
-            logDebug('Cannot start `{}` for user `{}` ! The Client Manager is not started !'.format(epname, user))
-            return False
-
-        try:
-            logDebug('Trying to start `{} {}`.'.format(user, epname))
-            return proxy.root.start_ep(epname)
-        except Exception as e:
-            trace = traceback.format_exc()[34:].strip()
-            logError('Error: Start EP error: {}'.format(trace))
-            return False
-
-
-    @cherrypy.expose
-    def stopEP(self, user, epname):
-        """ Stop EP for client. """
-
-        proxy = self._getClientEpProxy(user, epname)
-        if not proxy:
-            logDebug('Cannot stop `{}` for user `{}` ! The Client Manager is not started !'.format(epname, user))
-            return False
-
-        try:
-            logWarning('Trying to stop `{} {}`.'.format(user, epname))
-            return proxy.root.stop_ep(epname)
-        except Exception as e:
-            trace = traceback.format_exc()[34:].strip()
-            logError('Error: Stop EP error: {}'.format(trace))
-            return False
-
-
-    @cherrypy.expose
-    def restartEP(self, user, epname):
-        """ Restart EP for client. """
-
-        proxy = self._getClientEpProxy(user, epname)
-        if not proxy:
-            logDebug('Cannot restart `{}` for user `{}` ! The Client Manager is not started !'.format(epname, user))
-            return False
-
-        try:
-            logWarning('Trying to restart `{} {}`.'.format(user, epname))
-            return proxy.root.restart_ep(epname)
-        except Exception as e:
-            trace = traceback.format_exc()[34:].strip()
-            logError('Error: Restart EP error: {}'.format(trace))
-            return False
 
 
     @cherrypy.expose

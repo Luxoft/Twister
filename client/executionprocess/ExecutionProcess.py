@@ -160,7 +160,7 @@ class TwisterRunner(object):
         try:
             ce_ip, ce_port = self.cePath.split(':')
             self.proxy = rpyc.connect(ce_ip, int(ce_port))
-            self.proxy.root.hello()
+            self.proxy.root.hello(epName)
             print('EP Debug: Connected to CE at `{}`...'.format(cePath))
         except:
             print('*ERROR* Cannot connect to CE path `{}`! Exiting!'.format(cePath))

@@ -47,7 +47,6 @@ from common.tsclogging import *
 
 #
 
-clients = {}
 connections = {}
 conn_lock = thread.allocate_lock()
 
@@ -91,7 +90,7 @@ class ExecutionManagerService(rpyc.Service):
                 connections[str_addr] = {}
                 logDebug('EE: Connected from `{}`.'.format(str_addr))
             except Exception as e:
-                logError('EE: Connect error: {er}.'.format(er=e))
+                logError('EE: Connect error: {}.'.format(e))
 
 
     def on_disconnect(self):
@@ -106,14 +105,7 @@ class ExecutionManagerService(rpyc.Service):
                 del connections[str_addr]
                 logDebug('EE: Disconnected from `{}`.'.format(str_addr))
             except Exception as e:
-                logError('EE: Disconnect error: {er}.'.format(er=e))
-
-
-    def exposed_hello(self):
-        """
-        For testing connection
-        """
-        return True
+                logError('EE: Disconnect error: {}.'.format(e))
 
 
     def exposed_echo(self, msg):
@@ -140,14 +132,28 @@ class ExecutionManagerService(rpyc.Service):
         str_addr = self._get_addr()
         resp = self.project.rpyc_check_passwd(user, passwd)
 
-        try:
-            with conn_lock:
-                connections[str_addr] = {'checked': resp, 'user': user}
-        except Exception as e:
-            logError('EE: Disconnect error: {er}.'.format(er=e))
+        with conn_lock:
+            old_data = connections.get(str_addr, {})
+            old_data.update({'checked': resp, 'user': user})
+            connections[str_addr] = old_data
 
         print('Connections ::', connections)
         return resp
+
+
+    def exposed_hello(self, hello=''):
+        """
+        For testing connection and setting a name.
+        """
+        global connections, conn_lock
+        str_addr = self._get_addr()
+
+        with conn_lock:
+            old_data = connections.get(str_addr, {})
+            old_data.update({'hello': str(hello)})
+            connections[str_addr] = old_data
+
+        return True
 
 
     def _check_login(self):
@@ -297,67 +303,71 @@ class ExecutionManagerService(rpyc.Service):
 # # #
 
 
-    def _getClientEpProxy(self, user, epname):
-        """ Helper function. """
-        global clients
-
-        if user not in clients:
-            logError('Error: Unknown user : `{}`.'.format(user))
-            return False
-
-        # Check if epname is known and registered
-        if epname not in self.project.getUserInfo(user, 'eps'):
-            logDebug('*ERROR* Invalid EP name `{}` !'.format(epname))
-            return False
-
-        # Get proxy address
-        for cl in clients[user]:
-            if epname in clients[user][cl]:
-                return cl
-
-        logError('Error: Unknown proxy for EP : `{}`.'.format(epname))
-        return False
-
-
-    def exposed_registerClient(self, clients):
-        """ Register client. """
+    def exposed_getRegisteredEps(self):
+        """
+        Return all registered EPs for a client.
+        The user is identified automatically
+        and the IP and PORT are also found automatically.
+        """
+        global connections
+        str_addr = self._get_addr()
         user = self._check_login()
         if not user: return False
 
-        registered = False
-        _clients = {}
-        clients = json.loads(clients)
-        print('??? Register', clients)
+        try:
+            # Send this IP to the remote proxy Service
+            hello = self._conn.root.hello(self.project.ip_port[0])
+        except Exception as e:
+            trace = traceback.format_exc()[34:].strip()
+            logError('Error: Register client error: {}'.format(trace))
+            hello = False
 
-        remote_addr = self._conn._config['endpoints'][1]
-        print('??? END POINTS', remote_addr )
-
-        for client in clients:
-            clientPort = client.split(':')
-            if len(clientPort) > 1:
-                clientPort = clientPort[1]
-            else:
-                clientPort = clientPort[0]
-
-            try:
-                proxy = rpyc.connect(remote_addr, int(clientPort))
-                proxy.root.hello(self.project.ip_port[0])
-
-                clients[user] = {proxy: clients[clientPort]}
-                _clients.update([('{}:{}'.format(remote_addr, clientPort), clients[clientPort]), ])
-                registered = True
-            except Exception as e:
-                trace = traceback.format_exc()[34:].strip()
-                logError('Error: Register client error: {}'.format(trace))
-                continue
-        clients = json.dumps(_clients)
-
-        if not registered:
-            logDebug('Registered client manager for user\n\t`{}` -> {}.'.format(user, clients))
+        # If the Hello from the other end of the connection failed...
+        if not hello:
+            logDebug('Could not send Hello to the Client Manager `{}` for user `{}`!'.format(str_addr, user))
             return False
 
-        self.project.setUserInfo(user, 'clients', clients)
-        logDebug('Registered client manager for user\n\t`{}` -> {}.'.format(user, clients))
+        return connections[str_addr].get('eps', [])
+
+
+    def exposed_registerEps(self, eps):
+        """
+        Register all EPs for a client.
+        The user is identified automatically
+        and the IP and PORT are also found automatically.
+        """
+        global connections, conn_lock
+        str_addr = self._get_addr()
+        user = self._check_login()
+        if not user: return False
+
+        if not isinstance(eps, type([])):
+            logError('*ERROR* Can only register a List of EP names!')
+            return False
+        else:
+            eps = sorted(eps)
+
+        try:
+            # Send this IP to the remote proxy Service
+            hello = self._conn.root.hello(self.project.ip_port[0])
+        except Exception as e:
+            trace = traceback.format_exc()[34:].strip()
+            logError('Error: Register client error: {}'.format(trace))
+            hello = False
+
+        # If the Hello from the other end of the connection failed...
+        if not hello:
+            logDebug('Could not send Hello to the Client Manager `{}` for user `{}`!'.format(str_addr, user))
+            return False
+
+        # Register the EPs to this unique client address
+        with conn_lock:
+            # old_eps = connections[str_addr].get('eps', [])
+            # eps = sorted(set(old_eps + eps))
+            eps = sorted(set(eps))
+            connections[str_addr]['eps'] = eps
+
+        logDebug('Registered client manager for user\n\t`{}` -> Client from `{}` = {}.'.format(user, str_addr, eps))
         return True
 
 
