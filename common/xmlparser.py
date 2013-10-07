@@ -398,22 +398,23 @@ class TSCParser:
 
         # Suite XML object
         suite_xml = etree.Element('TestSuite')
-        suite_xml.text = '\n' ; suite_xml.tail = '\n\n'
         tsName = etree.SubElement(suite_xml, 'tsName')
-        tsName.text = suite ; tsName.tail = '\n'
+        tsName.text = suite
         epName = etree.SubElement(suite_xml, 'EpId')
-        epName.text = info.get('ep', ' ')
-        epName.tail = '\n'
+        epName.text = info.get('ep', ' ') ; epName.tail = '\n'
         try: del info['ep']
+        except: pass
+        sutName = etree.SubElement(suite_xml, 'SutName')
+        sutName.text = info.get('sut', ' ') ; sutName.tail = '\n'
+        try: del info['sut']
         except: pass
 
         for k, v in info.iteritems():
             tag = etree.SubElement(suite_xml, 'UserDefined')
-            tag.text = '\n' ; tag.tail = '\n'
             prop = etree.SubElement(tag, 'propName')
-            prop.text = str(k) ; prop.tail = '\n'
+            prop.text = str(k)
             val  = etree.SubElement(tag, 'propValue')
-            val.text = str(v) ; val.tail = '\n'
+            val.text = str(v)
 
         # Insert the new suite and save
         xml_root.insert(insert_pos, suite_xml)
