@@ -125,49 +125,11 @@ from ResourceAllocator  import ResourceAllocator
 from ReportingServer  import ReportingServer
 
 usrs_and_pwds = {}
+usr_pwds_lock = allocate_lock()
 
 #
 
-def check_passwd(realm, user, passwd):
-    """
-    This function is called before ALL XML-RPC calls,
-    to check the username and password.
-    """
-    global usrs_and_pwds
-    user_passwd = binascii.hexlify(user+':'+passwd)
-
-    if cherrypy.session.get('user_passwd') == user_passwd:
-        return True
-    elif user in usrs_and_pwds and usrs_and_pwds.get(user) == passwd:
-        if not cherrypy.session.get('username'):
-            cherrypy.session['username'] = user
-        return True
-    elif passwd == 'EP':
-        if not cherrypy.session.get('username'):
-            cherrypy.session['username'] = user
-        return True
-
-    t = paramiko.Transport(('localhost', 22))
-    t.logger.setLevel(40) # Less spam, please
-    t.start_client()
-
-    # This operation is pretty heavy!!!
-    try:
-        t.auth_password(user, passwd)
-        usrs_and_pwds[user] = passwd
-        cherrypy.session['username'] = user
-        cherrypy.session['user_passwd'] = user_passwd
-        t.stop_thread()
-        t.close()
-        return True
-    except:
-        t.stop_thread()
-        t.close()
-        return False
-
-#
-
-def cache_users(repeat=False):
+def cache_users():
     """
     Find all system users that have Twister installer.
     """
@@ -207,8 +169,9 @@ def cache_users(repeat=False):
     tf = time.time()
     logDebug('Cache users operation took `{:.2f}` seconds...'.format( (tf-ti) ))
 
-    if repeat: threading.Timer(60*60, cache_users, (True,)).start()
+    threading.Timer(60*60, cache_users, ()).start()
 
+#
 
 # --------------------------------------------------------------------------------------------------
 # # # #    C L A S S    P r o j e c t    # # #
@@ -281,12 +244,51 @@ class Project(object):
         with open(self.panicDetectConfigPath, 'rb') as config:
             self.panicDetectRegularExpressions = json.load(config)
 
-        # Start cache users at the beggining...
-        start_new_thread(cache_users, (False,))
-        # And repeat every hour
-        threading.Timer(60*60, cache_users, (True,)).start()
+        # Start cache users at the beggining... and repeat every hour
+        start_new_thread(cache_users, ())
 
         logDebug('SERVER INITIALIZATION TOOK `{:.4f}` SECONDS.'.format(time.time()-ti))
+
+
+    @staticmethod
+    def check_passwd(realm, user, passwd):
+        """
+        This function is called before ALL XML-RPC calls,
+        to check the username and password.
+        A user CANNOT use Twister if he doesn't authenticate.
+        """
+        global usrs_and_pwds, usr_pwds_lock
+        user_passwd = binascii.hexlify(user+':'+passwd)
+
+        with usr_pwds_lock:
+            if cherrypy.session.get('user_passwd') == user_passwd:
+                return True
+            elif user in usrs_and_pwds and usrs_and_pwds.get(user) == passwd:
+                if not cherrypy.session.get('username'):
+                    cherrypy.session['username'] = user
+                return True
+            elif passwd == 'EP':
+                if not cherrypy.session.get('username'):
+                    cherrypy.session['username'] = user
+                return True
+
+        t = paramiko.Transport(('localhost', 22))
+        t.logger.setLevel(40) # Less spam, please
+        t.start_client()
+
+        # This operation is pretty heavy!!!
+        try:
+            t.auth_password(user, passwd)
+            t.stop_thread()
+            t.close()
+            usrs_and_pwds[user] = passwd
+            cherrypy.session['username'] = user
+            cherrypy.session['user_passwd'] = user_passwd
+            return True
+        except:
+            t.stop_thread()
+            t.close()
+            return False
 
 
     def _common_proj_reset(self, user, base_config, files_config):

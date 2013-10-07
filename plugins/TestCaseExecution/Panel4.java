@@ -227,14 +227,8 @@ public class Panel4 extends JPanel{
      */
     public void setDuts(){        
         main.removeAll();
-//         main.setLayout(new FlowLayout());
-        
         main.setLayout(new BorderLayout());
         main.add(tb,BorderLayout.CENTER);
-        
-        
-        
-        //main.add(tb);
         tb.setPreferredSize(new Dimension(main.getWidth(),
                                           main.getHeight()));
         if(sut.tbs.getTree()!=null){

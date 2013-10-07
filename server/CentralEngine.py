@@ -49,7 +49,7 @@ if TWISTER_PATH not in sys.path:
 
 
 from common.tsclogging import *
-from server.CentralEngineProject import Project, check_passwd
+from server.CentralEngineProject import Project
 from server.CentralEngineClasses import CentralEngine
 from server.ExecutionManager     import ExecutionManager
 
@@ -96,7 +96,7 @@ if __name__ == "__main__":
             'tools.sessions.timeout': 60*24*365,
             'tools.auth_basic.on': True,
             'tools.auth_basic.realm': 'Twister Server',
-            'tools.auth_basic.checkpassword': check_passwd,
+            'tools.auth_basic.checkpassword': Project.check_passwd,
             },
             '/static': {
             'tools.staticdir.on': True,
