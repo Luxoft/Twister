@@ -1,3 +1,10 @@
+04th October
+
+- added more support for ClearCase ( mkview, mkelem, rmelem, mklabel, mkattr, describe )
+- ClearCase erros displayed in GUI
+- Fixed empty values when exporting / importing resources as XML.
+- Fixed the installers to backup the config folders correctly
+
 27th September 
 
 - added ClearCase built-in plugin

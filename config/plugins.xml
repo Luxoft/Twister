@@ -74,7 +74,7 @@
 
 	<Plugin>
 		<name>ClearCase</name>
-		<jarfile></jarfile>
+		<jarfile>ClearCasePlugin.jar</jarfile>
 		<pyfile>ClearCasePlugin.py</pyfile>
 		<status>disabled</status>
 	</Plugin>
