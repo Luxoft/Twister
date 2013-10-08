@@ -94,9 +94,6 @@ public class ClearCase extends JPanel{
             in = new BufferedReader(new InputStreamReader(channel.getInputStream(),"UTF-8"));
             OutputStream ops = channel.getOutputStream();
             ps = new PrintStream(ops, false);
-            
-            sendCommand("stty columns 100000");
-            System.out.println(readOutput(null));
         }catch(Exception e){
             e.printStackTrace();
         }
@@ -116,12 +113,16 @@ public class ClearCase extends JPanel{
     
     public void sendCommand(String command){
         try{
+//             sendCommand("stty columns 300");
+//             readOutput(null);
 //             if(endstring){
 //                 command+=" ; echo @_#_";
 //             }
             command+=" ; echo \"@_#_\"";
             //command+=" ; echo very_long_string_for_testing";
-            ps.println(command); 
+            ps.println("stty columns 300 ;");
+            ps.flush();
+            ps.println(command+" ; stty columns 80"); 
             ps.flush();
         } catch(Exception e){
             e.printStackTrace();
@@ -205,9 +206,7 @@ public class ClearCase extends JPanel{
             String line = null;
             StringBuilder responseData = new StringBuilder();
             while((line = in.readLine()) != null) {
-//                 line = line.replaceAll("[^\\x00-\\x7F]", "");
-//                 line = line.replaceAll("\\r", "");
-//                 line = line.replaceAll("\\n", "");
+                line = line.replaceAll("[^\\x20-\\x7E]", "");
                 System.out.println("line: "+line);
                 if(line.indexOf("echo \"@_#_\"")!=-1 || (command!=null&&line.indexOf(command)!=-1)){
                 //if(line.indexOf("echo very_long_string_for_testing")!=-1 || (command!=null&&line.indexOf(command)!=-1)){
@@ -228,11 +227,15 @@ public class ClearCase extends JPanel{
                         in.readLine();
                         //in.readLine();
                         //return responseData.substring(0, responseData.indexOf("@_#_")).toString();
+//                         sendCommand("stty columns 80");
+                        //readOutput(null);
                         return responseData.toString();
                 } 
                 if(line.indexOf("No such file or directory")!=-1){
                     in.readLine();
                     //in.readLine();
+//                     sendCommand("stty columns 80");
+                    //readOutput(null);
                     return responseData.toString();
                 }
 //                     else if(line.indexOf("echo @_#_")==-1){
@@ -249,6 +252,8 @@ public class ClearCase extends JPanel{
                     //in.readLine();
                     CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,ClearCase.this,
                             "ERROR", "ClearTool not installed!");
+//                     sendCommand("stty columns 80");
+                    //readOutput(null);
                     return null;
                 }
 //                     if(line.indexOf("@_#_")!=-1&&line.indexOf("echo")==-1){
@@ -259,14 +264,21 @@ public class ClearCase extends JPanel{
 //                         responseData = new StringBuilder(responseData.substring(responseData.indexOf("@_#_")+4, responseData.length()));
 //                     }
             }
+//             sendCommand("stty columns 80");
+            //readOutput(null);
             return responseData.toString();
         } catch(Exception e){
             e.printStackTrace();
+//             sendCommand("stty columns 80");
+            //readOutput(null);
+            //sendCommand("stty columns 80");
+            //in.readLine();
             return null;
         }
     }
     
     public void disconnect(){
+        sendCommand("stty columns 80");
         try{in.close();}
         catch(Exception e){e.printStackTrace();}
         try{ps.close();}
