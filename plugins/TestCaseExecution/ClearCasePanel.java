@@ -1,6 +1,6 @@
 /*
 File: ClearCasePanel.java ; This file is part of Twister.
-Version: 2.008
+Version: 2.009
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -860,7 +860,7 @@ public class ClearCasePanel{
 
     public void refreshStructure() {
         try{root.remove(0);}
-        catch(Exception e){e.printStackTrace();}
+        catch(Exception e){}
         RunnerRepository.window.mainpanel.getP5().buildTree(root);
         ((DefaultTreeModel) tree.getModel()).reload();
         tree.expandRow(0);

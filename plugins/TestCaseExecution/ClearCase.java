@@ -1,6 +1,6 @@
 /*
 File: ClearCase.java ; This file is part of Twister.
-Version: 2.008
+Version: 2.009
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -25,6 +25,7 @@ import javax.swing.tree.DefaultMutableTreeNode;
 import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.Session;
 import com.jcraft.jsch.Channel;
+import com.jcraft.jsch.ChannelShell;
 import com.jcraft.jsch.ChannelSftp;
 import com.jcraft.jsch.ChannelSftp.LsEntry;
 import com.jcraft.jsch.JSchException;
@@ -61,12 +62,14 @@ import java.awt.event.ItemListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
 
 public class ClearCase extends JPanel{
 //     private DataInputStream dataIn;
 //     private DataOutputStream dataOut;
     private BufferedReader in;
-    private Channel channel;
+    private ChannelShell channel;
     private boolean firstfind = false;
     private Session session;
     public String root="";
@@ -86,11 +89,14 @@ public class ClearCase extends JPanel{
             session.setPassword(password);
             session.setConfig("StrictHostKeyChecking", "no");
             session.connect();
-            channel = session.openChannel("shell");
+            channel = (ChannelShell)session.openChannel("shell");
             channel.connect();
-            in = new BufferedReader(new InputStreamReader(channel.getInputStream()));
+            in = new BufferedReader(new InputStreamReader(channel.getInputStream(),"UTF-8"));
             OutputStream ops = channel.getOutputStream();
             ps = new PrintStream(ops, false);
+            
+            sendCommand("stty columns 100000");
+            System.out.println(readOutput(null));
         }catch(Exception e){
             e.printStackTrace();
         }
@@ -114,6 +120,7 @@ public class ClearCase extends JPanel{
 //                 command+=" ; echo @_#_";
 //             }
             command+=" ; echo \"@_#_\"";
+            //command+=" ; echo very_long_string_for_testing";
             ps.println(command); 
             ps.flush();
         } catch(Exception e){
@@ -198,11 +205,16 @@ public class ClearCase extends JPanel{
             String line = null;
             StringBuilder responseData = new StringBuilder();
             while((line = in.readLine()) != null) {
+//                 line = line.replaceAll("[^\\x00-\\x7F]", "");
+//                 line = line.replaceAll("\\r", "");
+//                 line = line.replaceAll("\\n", "");
                 System.out.println("line: "+line);
-                if(line.indexOf("echo @_#_")!=-1 || (command!=null&&line.indexOf(command)!=-1)){
+                if(line.indexOf("echo \"@_#_\"")!=-1 || (command!=null&&line.indexOf(command)!=-1)){
+                //if(line.indexOf("echo very_long_string_for_testing")!=-1 || (command!=null&&line.indexOf(command)!=-1)){
                     responseData.setLength(0);
                 }
                 if(line.indexOf("@_#_")==-1){
+//                 if(line.indexOf("very_long_string_for_testing")==-1){
                     if(command!=null){
                         if(line.indexOf(command)==-1){
                             responseData.append(line+"\n");
@@ -212,6 +224,7 @@ public class ClearCase extends JPanel{
                     }
                 }
                 else if(line.indexOf("@_#_")!=-1&&line.indexOf("echo")==-1){
+                //else if(line.indexOf("very_long_string_for_testing")!=-1&&line.indexOf("echo")==-1){
                         in.readLine();
                         //in.readLine();
                         //return responseData.substring(0, responseData.indexOf("@_#_")).toString();
@@ -280,10 +293,20 @@ public class ClearCase extends JPanel{
         mkview.setEnabled(false);
         describe = new JButton("Describe");
         describe.setEnabled(false);
+        final JButton refresh = new JButton("Refresh");
+        final JTextField tfilter = new JTextField();
+        tfilter.setEnabled(false);
+        refresh.setEnabled(false);
         JLabel views = new JLabel();
         JLabel filter = new JLabel("Filter: ");
-        final JTextField tfilter = new JTextField();
-        JButton refresh = new JButton("Refresh");
+        tfilter.addKeyListener(new KeyAdapter(){
+            public void keyReleased(KeyEvent ev){
+                if(ev.getKeyCode()==KeyEvent.VK_ENTER){
+                    refresh.doClick();
+                }
+            }
+        });
+        
         JScrollPane jScrollPane2 = new JScrollPane();
         final JTextArea tviews = new JTextArea();
         tviews.setEditable(false);
@@ -314,6 +337,8 @@ public class ClearCase extends JPanel{
         
         mkattr.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
+                refresh.setEnabled(false);
+                tfilter.setEnabled(false);
                 JPanel p = new JPanel();
                 p.setLayout(null);
                 p.setPreferredSize(new Dimension(350,240));
@@ -434,6 +459,8 @@ public class ClearCase extends JPanel{
         
         describe.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
+                refresh.setEnabled(false);
+                tfilter.setEnabled(false);
                 JPanel p = new JPanel();
                 p.setLayout(null);
                 p.setPreferredSize(new Dimension(350,200));
@@ -615,6 +642,8 @@ public class ClearCase extends JPanel{
         
         mklabel.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
+                refresh.setEnabled(false);
+                tfilter.setEnabled(false);
                 JPanel p = new JPanel();
                 p.setLayout(null);
                 p.setPreferredSize(new Dimension(350,280));
@@ -673,6 +702,8 @@ public class ClearCase extends JPanel{
         
         rmelem.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
+                refresh.setEnabled(false);
+                tfilter.setEnabled(false);
                 JPanel p = new JPanel();
                 p.setLayout(null);
                 p.setPreferredSize(new Dimension(350,200));
@@ -709,6 +740,8 @@ public class ClearCase extends JPanel{
         
         mkelem.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
+                refresh.setEnabled(false);
+                tfilter.setEnabled(false);
                 JPanel p = new JPanel();
                 p.setLayout(null);
                 p.setPreferredSize(new Dimension(350,250));
@@ -803,6 +836,8 @@ public class ClearCase extends JPanel{
 //         });
         mkview.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
+                refresh.setEnabled(false);
+                tfilter.setEnabled(false);
                 JPanel p = new JPanel();
                 p.setLayout(null);
                 p.setPreferredSize(new Dimension(300,250));
@@ -900,6 +935,8 @@ public class ClearCase extends JPanel{
         });
         showconf.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
+                refresh.setEnabled(false);
+                tfilter.setEnabled(false);
                 if(view.equals("")){
                     CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,ClearCase.this,
                                         "Warning", "Please set view!");
@@ -923,10 +960,14 @@ public class ClearCase extends JPanel{
                 }
                 sendCommand(command+" | grep "+RunnerRepository.user);
                 tviews.setText(readOutput("cleartool lsview"));
+                refresh.setEnabled(true);
+                tfilter.setEnabled(true);
             }
         });
         setview.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
+                refresh.setEnabled(false);
+                tfilter.setEnabled(false);
                 sendCommand("cleartool lsview -short | grep "+RunnerRepository.user);
                 String [] resp = readOutput("cleartool lsview").split("\n");
                 showViews(resp);
@@ -1103,7 +1144,7 @@ public class ClearCase extends JPanel{
         JTextField jTextField1 = new JTextField();
         JScrollPane jScrollPane1 = new JScrollPane();
         final JList jList1 = new JList();
-        JLabel filter = new JLabel("Filter:");
+        JLabel filter = new JLabel("List View Filter:");
         final JTextField tfilter = new JTextField();
         tfilter.setText(RunnerRepository.user);
         JButton refresh = new JButton("Refresh");
@@ -1216,7 +1257,8 @@ public class ClearCase extends JPanel{
         sendCommand("cleartool pwd");
         String curentdir = readOutput("cleartool pwd");
         //curentdir = curentdir.substring(0, curentdir.length()-1);
-        curentdir = curentdir.replace("\n", "");        
+        curentdir = curentdir.replace("\n", "");   
+        
         DefaultMutableTreeNode child = new DefaultMutableTreeNode(curentdir,true);
         node.add(child);
         Vector<String> folders = new Vector<String>();
