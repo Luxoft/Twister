@@ -1,7 +1,7 @@
 
 # File: ResourceAllocator.py ; This file is part of Twister.
 
-# version: 2.011
+# version: 2.012
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -159,7 +159,7 @@ def xml_to_res(xml, gparams):
         # Create empty resource node
         nd = {'meta': {}, 'id': '', 'children': {}}
         # Populate META properties
-        nd['meta'] = {gparam.find('name').text: gparam.find('value').text for gparam in folder.xpath('param')}
+        nd['meta'] = {gparam.find('name').text: gparam.find('value').text or '' for gparam in folder.xpath('param')}
         # If the XML node contains an ID, use it; else, create a random ID
         if nd['meta'].get('id'):
             nd['id'] = nd['meta']['id']

@@ -1,6 +1,6 @@
 #!/usr/bin/env python2.7
 
-# version: 2.014
+# version: 2.015
 
 # File: cli.py ; This file is part of Twister.
 
@@ -36,7 +36,9 @@ Commands :
 '''
 
 import os
+import time
 import datetime
+import binascii
 import xmlrpclib
 import subprocess
 from optparse import OptionParser
@@ -253,6 +255,32 @@ def string_check(option, opt, value, parser):
 		exit(1)
 
 
+def runTest(user, sut, fname):
+	"""
+	Run a test blocking and show the logs.
+	"""
+	global proxy, ra
+	sut = sut.strip('/')
+	r = proxy.delSettingsKey(user, 'project', '//TestSuite')
+	print('Cleanup the old suites...')
+	s = ra.getSut('/'+sut)
+	eps = [e for e in s['meta'].get('_epnames_'+user, '').split(';') if e]
+	r = proxy.setPersistentSuite(user, 'Suite1', {'ep': eps[0], 'sut': sut})
+	print('Created suite: `Suite1` on SUT `{}` and EP `{}`.'.format(sut, eps[0]))
+	r = proxy.setPersistentFile(user, 'Suite1', fname, {})
+	print('Added file: `{}`.'.format(fname))
+	print('Started execution!...')
+	proxy.setExecStatusAll(user, 2)
+	while 1:
+		status = proxy.getExecStatusAll(user)
+		if status.startswith('stopped'):
+			break
+		time.sleep(1)
+	print('Execution complete.\n')
+	log = proxy.getLogFile(user, 1, 0, eps[0]+'_CLI.log')
+	print(binascii.a2b_base64(log))
+
+
 # --------------------------------------------------------------------------------------------------
 #   M a i n
 # --------------------------------------------------------------------------------------------------
@@ -288,6 +316,9 @@ if __name__ == '__main__':
 	parser.add_option("-q", "--queue",   action="store", help="Queue a file at the end of a suite. Specify queue like `Suite:file_path`.")
 	parser.add_option("-d", "--dequeue", action="store", help="Un-Queue 1 or more files. Specify like `EP, EP:suite_id, EP:Suite, or EP:file_id`.")
 
+	parser.add_option("--run-test",      action="store", help="Add a file in a suite, run blocking and then show the log. Specify the fname and the SUT.")
+	parser.add_option("--sut",           action="store", help="Use this with the `run-test` option.")
+
 	parser.add_option("-s", "--set",     action="store", help="Set status: start/ stop/ pause. (Must also specify a config and a project)")
 	parser.add_option("-c", "--config",  action="store", help="Path to FWMCONFIG.XML file.")
 	parser.add_option("-p", "--project", action="store", help="Path to PROJECT.XML file.")
@@ -312,8 +343,9 @@ if __name__ == '__main__':
 
 	# Test Central Engine valid IP + PORT
 	try:
-		proxy = xmlrpclib.ServerProxy(options.server)
-		proxy._ServerProxy__transport._extra_headers.append( ('username', user) )
+		server = options.server.rstrip('/') + '/'
+		proxy = xmlrpclib.ServerProxy(server)
+		ra = xmlrpclib.ServerProxy(server + 'ra/')
 		# print('Connection to Central Engine at `{}` is ok.\n'.format(options.server))
 	except:
 		print('The server must be a valid IP and PORT combination ! Exiting !\n')
@@ -367,6 +399,15 @@ if __name__ == '__main__':
 	# Un-Queue a file, using the File ID
 	if options.dequeue:
 		deQueueTest(proxy, user, options.dequeue)
+		exit()
+
+
+	# Run a single test, using the File path and the SUT
+	if options.run_test:
+		if not options.sut:
+			print('Must specify a SUT to run this file!')
+			exit(1)
+		runTest(user, options.sut, options.run_test)
 		exit()
 
 
