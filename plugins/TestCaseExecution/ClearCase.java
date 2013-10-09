@@ -1,6 +1,6 @@
 /*
 File: ClearCase.java ; This file is part of Twister.
-Version: 2.009
+Version: 2.010
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -77,6 +77,8 @@ public class ClearCase extends JPanel{
     private PrintStream ps;
     private JLabel lview, vob;
     private JButton showconf,mkelem,rmelem,mklabel,mkattr,mkview,describe;
+    private String prompt = "twister_prompt#";
+    private String shell;
     
     public ClearCase(String host, String user, String password){
         initializeSSH(host, user, password);
@@ -94,6 +96,56 @@ public class ClearCase extends JPanel{
             in = new BufferedReader(new InputStreamReader(channel.getInputStream(),"UTF-8"));
             OutputStream ops = channel.getOutputStream();
             ps = new PrintStream(ops, false);
+//             String readln="";
+//             while(in.ready()){
+//                 System.out.println("readln:"+in.readLine());
+//             }
+//             while((readln = in.readLine())!=null){
+//                 System.out.println("readln:"+readln);
+//             }
+            
+            
+//             sendCommand("echo $SHELL");
+
+
+//             Thread th = new Thread(){
+//                 public void run(){
+//                     while(true){
+//                         try{System.out.println("Line- "+in.readLine());}
+//                         catch(Exception e){e.printStackTrace();}
+//                     }
+//                 }
+//             };
+//             th.start();
+//             try{Thread.sleep(3000);}
+//             catch (Exception e){e.printStackTrace();}
+//             th.stop();            
+            sendStartCommand("echo $SHELL");
+            shell = readFirstOutput(null);
+            System.out.println("Shell: "+shell+"---");
+            
+            if(shell.indexOf("/bash")!=-1||shell.indexOf("/ksh")!=-1){
+                try{
+                    ps.println("export PS1=\"twister_prompt#\"");
+                    ps.flush();
+                } catch(Exception e){
+                    e.printStackTrace();
+                }
+                if(shell.indexOf("/ksh")!=-1){
+                    readOutput(null);
+                } else {
+                    readOutput("export PS1");
+                }
+            }else if(shell.indexOf("/csh")!=-1||shell.indexOf("/tcsh")!=-1){
+                try{
+                    ps.println("set prompt=\"twister_prompt#\"");
+                    ps.flush();
+                } catch(Exception e){
+                    e.printStackTrace();
+                }
+                readOutput("set prompt");
+            }
+            //System.out.println("shell response: "+readOutput(null));
         }catch(Exception e){
             e.printStackTrace();
         }
@@ -110,110 +162,38 @@ public class ClearCase extends JPanel{
 //             e.printStackTrace();
 //         }
 //     }
-    
+
     public void sendCommand(String command){
         try{
-//             sendCommand("stty columns 300");
-//             readOutput(null);
-//             if(endstring){
-//                 command+=" ; echo @_#_";
-//             }
-            command+=" ; echo \"@_#_\"";
-            //command+=" ; echo very_long_string_for_testing";
-            ps.println("stty columns 300 ;");
-            ps.flush();
-            ps.println(command+" ; stty columns 80"); 
+            ps.println(command); 
             ps.flush();
         } catch(Exception e){
             e.printStackTrace();
         }
     }
     
-//     public String readOutput(boolean consume){
-//         try{
-//             if(consume){
-//                 StringBuilder sb = new StringBuilder();
-//                 String line = in.readLine();
-//                 line = in.readLine();
-//                 sb.append(line+"\n");
-//                 System.out.println("line: "+line);
-//                 line = in.readLine();
-//                 sb.append(line+"\n");
-//                 System.out.println("line: "+line);
-//                 if(line.indexOf("No such")!=-1){
-//                     line = in.readLine();
-//                     sb.append(line+"\n");
-//                     System.out.println("line: "+line);
-//                     line = in.readLine();
-//                     sb.append(line+"\n");
-//                     System.out.println("line: "+line);
-//                     return sb.toString();
-//                 } else if(line.indexOf("Error")!=-1){
-// //                     sb.append(line+"\n");
-//                     while(line.indexOf("Error")!=-1){
-//                         line = in.readLine();
-//                         sb.append(line+"\n");
-//                         System.out.println("line: "+line);
-//                         line = in.readLine();
-//                         sb.append(line+"\n");
-//                         System.out.println("line: "+line);
-//                     }
-//                     return sb.toString();
-//                 }
-//                 System.out.println("line: "+line);
-//                 System.out.println("line: "+in.readLine());
-//                 return line;
-//             }
-//             else {
-//                 String line = null;
-//                 StringBuilder responseData = new StringBuilder();
-//                 while((line = in.readLine()) != null) {
-//                     System.out.println("line: "+line);
-//                     responseData.append(line+"\n");
-//                     if(line.indexOf("@_#_")!=-1){
-//                         if(firstfind){
-//                             firstfind = false;
-//                             in.readLine();
-//                             in.readLine();
-//                             return responseData.substring(0, responseData.indexOf("@_#_")).toString();
-//                         }
-//                         else{
-//                             responseData = new StringBuilder(responseData.substring(responseData.indexOf("@_#_")+4, responseData.length()));
-//                             firstfind = true;
-//                         }
-//                     }
-//                     else{
-//                         if(line.indexOf("Error")!=-1){
-//                             in.readLine();
-//                             in.readLine();
-//                             firstfind = false;
-//                             return responseData.toString();
-//                         }
-//                     }
-//                 }
-//                 return responseData.toString();
-//                 
-//             
-//             }
-//             } catch(Exception e){
-//                 e.printStackTrace();
-//                 return null;
-//             }
-//     }
+    public void sendStartCommand(String command){
+        try{
+            command+=" ; echo \"@_#_\"";
+            System.out.println("sending command: "+command);
+            ps.println(command); 
+            ps.flush();
+        } catch(Exception e){
+            e.printStackTrace();
+        }
+    }
 
-    public String readOutput(String command){
+    public String readFirstOutput(String command){
         try{
             String line = null;
             StringBuilder responseData = new StringBuilder();
             while((line = in.readLine()) != null) {
-                line = line.replaceAll("[^\\x20-\\x7E]", "");
                 System.out.println("line: "+line);
+                line = line.replaceAll("[^\\x20-\\x7E]", "");
                 if(line.indexOf("echo \"@_#_\"")!=-1 || (command!=null&&line.indexOf(command)!=-1)){
-                //if(line.indexOf("echo very_long_string_for_testing")!=-1 || (command!=null&&line.indexOf(command)!=-1)){
                     responseData.setLength(0);
                 }
                 if(line.indexOf("@_#_")==-1){
-//                 if(line.indexOf("very_long_string_for_testing")==-1){
                     if(command!=null){
                         if(line.indexOf(command)==-1){
                             responseData.append(line+"\n");
@@ -223,56 +203,64 @@ public class ClearCase extends JPanel{
                     }
                 }
                 else if(line.indexOf("@_#_")!=-1&&line.indexOf("echo")==-1){
-                //else if(line.indexOf("very_long_string_for_testing")!=-1&&line.indexOf("echo")==-1){
-                        in.readLine();
-                        //in.readLine();
-                        //return responseData.substring(0, responseData.indexOf("@_#_")).toString();
-//                         sendCommand("stty columns 80");
-                        //readOutput(null);
+                        System.out.println("Line: "+in.readLine());
+                        return responseData.toString();
+                } 
+                if(line.indexOf("No such file or directory")!=-1){
+                    System.out.println("Line: "+in.readLine());
+                    return responseData.toString();
+                }
+                if(responseData.indexOf("cleartool: command not found")!=-1){
+                    System.out.println("Line: "+in.readLine());
+                    CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,ClearCase.this,
+                            "ERROR", "ClearTool not installed!");
+                    return null;
+                }
+            }
+            return responseData.toString();
+        } catch(Exception e){
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+
+    public String readOutput(String command){
+        try{
+            String line = null;
+            StringBuilder responseData = new StringBuilder();
+            while((line = in.readLine()) != null) {
+                System.out.println("line: "+line);
+                line = line.replaceAll("[^\\x20-\\x7E]", "");
+                if((!line.equals(prompt)&&line.indexOf(prompt)!=-1) || (command!=null&&line.indexOf(command)!=-1)){
+                    responseData.setLength(0);
+                }
+                if(line.indexOf(prompt)==-1&&!line.equals("")){
+                    if(command!=null){
+                        if(line.indexOf(command)==-1){
+                            responseData.append(line+"\n");
+                        }
+                    } else {
+                        responseData.append(line+"\n");
+                    }
+                }
+                else if(line.equals(prompt)){
                         return responseData.toString();
                 } 
                 if(line.indexOf("No such file or directory")!=-1){
                     in.readLine();
-                    //in.readLine();
-//                     sendCommand("stty columns 80");
-                    //readOutput(null);
                     return responseData.toString();
                 }
-//                     else if(line.indexOf("echo @_#_")==-1){
-//                         
-//                     }
-                
-//                     if(line.indexOf("@_#_")!=-1&&line.indexOf("echo")!=-1){
-//                     } else {
-//                         responseData.append(line+"\n");
-//                     }
-                
                 if(responseData.indexOf("cleartool: command not found")!=-1){
                     in.readLine();
-                    //in.readLine();
                     CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,ClearCase.this,
                             "ERROR", "ClearTool not installed!");
-//                     sendCommand("stty columns 80");
-                    //readOutput(null);
                     return null;
                 }
-//                     if(line.indexOf("@_#_")!=-1&&line.indexOf("echo")==-1){
-//                             in.readLine();
-//                             in.readLine();
-//                             return responseData.substring(0, responseData.indexOf("@_#_")).toString();
-//                     } else if(line.indexOf("echo @_#_")!=-1){
-//                         responseData = new StringBuilder(responseData.substring(responseData.indexOf("@_#_")+4, responseData.length()));
-//                     }
             }
-//             sendCommand("stty columns 80");
-            //readOutput(null);
             return responseData.toString();
         } catch(Exception e){
             e.printStackTrace();
-//             sendCommand("stty columns 80");
-            //readOutput(null);
-            //sendCommand("stty columns 80");
-            //in.readLine();
             return null;
         }
     }
@@ -1229,6 +1217,14 @@ public class ClearCase extends JPanel{
             view = jList1.getSelectedValue().toString();
 //             sendCommand("cleartool setview "+view,false);
 //             readOutput(true);
+            //sendCommand("cleartool setview "+view);
+//             String prompt = "";
+//             if(shell.indexOf("/bash")!=-1||shell.indexOf("/ksh")!=-1){
+//                 prompt = "export PS1=\"twister_prompt#\"";
+//             }else if(shell.indexOf("/csh")!=-1||shell.indexOf("/tcsh")!=-1){
+//                 prompt = "set prompt=\"twister_prompt#\"";
+//             }
+            
             sendCommand("cleartool setview "+view);
             try{String line = in.readLine();
                 System.out.println("line: "+line);
@@ -1242,6 +1238,24 @@ public class ClearCase extends JPanel{
                 }
             } catch (Exception e){
                 e.printStackTrace();
+            }
+            
+            if(shell.indexOf("/bash")!=-1||shell.indexOf("/ksh")!=-1){
+                try{
+                    ps.println("export PS1=\"twister_prompt#\"");
+                    ps.flush();
+                } catch(Exception e){
+                    e.printStackTrace();
+                }
+                readOutput("export PS1");
+            }else if(shell.indexOf("/csh")!=-1||shell.indexOf("/tcsh")!=-1){
+                try{
+                    ps.println("set prompt=\"twister_prompt#\"");
+                    ps.flush();
+                } catch(Exception e){
+                    e.printStackTrace();
+                }
+                readOutput("set prompt");
             }
             
 //             readOutput();
