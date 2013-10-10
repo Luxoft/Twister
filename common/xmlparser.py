@@ -1,7 +1,7 @@
 
 # File: xmlparser.py ; This file is part of Twister.
 
-# version: 2.012
+# version: 2.013
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -771,33 +771,27 @@ class DBParser():
         return [q.text for q in self.xmlDict.xpath('insert_section/sql_statement')]
 
 
-    def getDbSelectFields(self):
+    def getInsertFields(self):
         """
         Used by Central Engine.
-        Returns a dictionary with field ID : DB select.
+        Returns a dictionary with field ID : field info.
         """
-        if not self.xmlDict.xpath('insert_section/field'):
-            print('Db Parser: There are no fields in the field_section, in DB config!')
+        fields = self.xmlDict.xpath('insert_section/field')
+
+        if not fields:
+            print('Db Parser: Cannot load the reports fields section!')
             return {}
 
-        ids = self.xmlDict.xpath('insert_section/field[@Type="DbSelect"]/@ID')
-        sqls = self.xmlDict.xpath('insert_section/field[@Type="DbSelect"]/@SQLQuery')
+        res = OrderedDict()
 
-        return dict(zip( [str(x) for x in ids], [str(x) for x in sqls] ))
+        for field in fields:
+            d = {}
+            d['id']    = field.get('ID', '')
+            d['type']  = field.get('Type', '')
+            d['query'] = field.get('SQLQuery', '')
+            res[d['id']]  = d
 
-
-    def getUserScriptFields(self):
-        """
-        Used by Central Engine.
-        Returns a list with field IDs.
-        """
-        if not self.xmlDict.xpath('insert_section/field'):
-            print('Db Parser: There are no fields in the field_section, in DB config!')
-            return {}
-
-        scripts = self.xmlDict.xpath('insert_section/field[@Type="UserScript"]/@ID')
-
-        return [str(x) for x in scripts]
+        return res
 
 
     def getQuery(self, field_id):
