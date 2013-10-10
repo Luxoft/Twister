@@ -192,6 +192,7 @@ public class ClearCase extends JPanel{
                 line = line.replaceAll("[^\\x20-\\x7E]", "");
                 if(line.indexOf("echo \"@_#_\"")!=-1 || (command!=null&&line.indexOf(command)!=-1)){
                     responseData.setLength(0);
+                    continue;
                 }
                 if(line.indexOf("@_#_")==-1){
                     if(command!=null){
@@ -203,15 +204,15 @@ public class ClearCase extends JPanel{
                     }
                 }
                 else if(line.indexOf("@_#_")!=-1&&line.indexOf("echo")==-1){
-                        System.out.println("Line: "+in.readLine());
+                        //System.out.println("Line: "+in.readLine());
                         return responseData.toString();
                 } 
                 if(line.indexOf("No such file or directory")!=-1){
-                    System.out.println("Line: "+in.readLine());
+                    //System.out.println("Line: "+in.readLine());
                     return responseData.toString();
                 }
                 if(responseData.indexOf("cleartool: command not found")!=-1){
-                    System.out.println("Line: "+in.readLine());
+                    //System.out.println("Line: "+in.readLine());
                     CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,ClearCase.this,
                             "ERROR", "ClearTool not installed!");
                     return null;
@@ -248,11 +249,11 @@ public class ClearCase extends JPanel{
                         return responseData.toString();
                 } 
                 if(line.indexOf("No such file or directory")!=-1){
-                    in.readLine();
+                    //in.readLine();
                     return responseData.toString();
                 }
                 if(responseData.indexOf("cleartool: command not found")!=-1){
-                    in.readLine();
+                    //in.readLine();
                     CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,ClearCase.this,
                             "ERROR", "ClearTool not installed!");
                     return null;
