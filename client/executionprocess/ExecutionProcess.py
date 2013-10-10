@@ -98,6 +98,13 @@ class Logger(object):
         self.stdout = stdout # The OUTPUT stream
         self.logfile = file(filename, 'a')
 
+    def __del__(self):
+        """
+        Send the last chunk of buffer.
+        """
+        self.proxy.logLIVE(epName, binascii.b2a_base64(self.buffer))
+        del self.buffer
+
     def write(self, text):
         """
         Write in the OUT stream, in the log file and send to CE.
@@ -122,7 +129,7 @@ class Logger(object):
             if (ctimer - self.timer) > 2.0:
                 self.proxy.logLIVE(epName, binascii.b2a_base64(self.buffer))
                 self.buffer = ''
-            elif len(self.buffer) > 512:
+            elif len(self.buffer) > 256:
                 self.proxy.logLIVE(epName, binascii.b2a_base64(self.buffer))
                 self.buffer = ''
         self.timer = ctimer
@@ -160,7 +167,7 @@ class TwisterRunner(object):
         try:
             ce_ip, ce_port = self.cePath.split(':')
             self.proxy = rpyc.connect(ce_ip, int(ce_port))
-            self.proxy.root.hello(epName)
+            self.proxy.root.hello('ep::{}'.format(epName))
             print('EP Debug: Connected to CE at `{}`...'.format(cePath))
         except:
             print('*ERROR* Cannot connect to CE path `{}`! Exiting!'.format(cePath))
@@ -683,6 +690,8 @@ if __name__=='__main__':
 
     runner = TwisterRunner(userName, epName, cePath)
     runner.run()
+
+    del logger
 
     print('\n~ Stop the Execution Process ~\n\n')
 

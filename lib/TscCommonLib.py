@@ -78,7 +78,7 @@ class TscCommonLib(object):
             print('*ERROR* Cannot authenticate on CE path `{}`! Exiting!'.format(self.proxy_path))
             exit(1)
 
-        self.cherry_path = self.ce_proxy.root.cherryPort()
+        self.cherry_path = self.ce_proxy.root.cherryAddr()
 
         try:
             socket.create_connection(self.cherry_path, 2)

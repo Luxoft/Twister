@@ -86,7 +86,6 @@ class CentralEngine(_cptools.XMLRPCController):
 
     def __init__(self, proj):
 
-        proj.parent  = self
         self.project = proj
 
 

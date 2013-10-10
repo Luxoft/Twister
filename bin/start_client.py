@@ -2,7 +2,7 @@
 
 # File: start_client.py ; This file is part of Twister.
 
-# version: 1.004
+# version: 1.005
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -114,7 +114,7 @@ class TwisterClient(object):
 
 #
 
-    def _createConn(self, ce_ip, ce_port):
+    def _createConn(self, ce_ip, ce_port, debug=True):
         """
         Helper for creating Central Engine connection.
         """
@@ -130,11 +130,13 @@ class TwisterClient(object):
         # Connect to RPyc server
         try:
             proxy = rpyc.connect(ce_ip, ce_port, service=TwisterClientService, config=config)
-            BgServingThread(proxy)
             proxy.root.hello('client')
+            bg = BgServingThread(proxy)
             print('Client Debug: Connected to CE at `{}:{}`...'.format(ce_ip, ce_port))
         except Exception as e:
-            print('*ERROR* Cannot connect to CE path `{}:{}`! Exception `{}`!'.format(ce_ip, ce_port, e))
+            if debug:
+                trace = traceback.format_exc()[34:].strip()
+                print('*ERROR* Cannot connect to CE path `{}:{}`! Exception `{}`!'.format(ce_ip, ce_port, trace))
             return None
 
         # Authenticate on RPyc server
@@ -169,29 +171,33 @@ class TwisterClient(object):
         if proxy:
             # If the hello works, the connection is just fine
             try:
-                proxy.root.hello('client')
+                proxy.root.echo('ping')
                 return proxy
             # If the hello doesn't work, it means the connection was destroyed
             except:
                 proxy = None
 
+        err_msg = False
+
         while retries <= maxRetries:
             retries += 1
             if not proxy:
                 # Maybe creating a new Central Engine connection will work ?
-                proxy = self._createConn(ce_ip, ce_port)
+                proxy = self._createConn(ce_ip, ce_port, (not err_msg))
                 self.proxyDict[cePath] = proxy
             else:
                 break
             if not proxy:
                 self.proxyDict[cePath] = None
-                print('*ERROR* Cannot connect to Central Engine at `{}`... Retry {}...'.format(cePath, retries))
+                if not err_msg:
+                    print('*ERROR* Cannot connect to Central Engine at `{}`... Retrying...'.format(cePath))
+                    err_msg = True
                 time.sleep(2)
             else:
                 break
 
         if not proxy:
-            print('*ERROR* Central Engine is down forever.')
+            print('*ERROR* Central Engine at `{}` is down forever.'.format(cePath))
             return {}
 
         return proxy
@@ -276,14 +282,13 @@ class TwisterClient(object):
             epData['ce_port'] = cfg.get(currentEP, 'CE_PORT')
 
             epData['exec_str'] = 'nohup {py} -u {path}/client/executionprocess/ExecutionProcess.py '\
-                   '{user} {ep} "{ip}:{port}" {sniff} > "{path}/.twister_cache/{ep}_LIVE.log" &'.format(
+                   '{user} {ep} "{ip}:{port}" > /dev/null &'.format(
                     py = sys.executable,
                     path = TWISTER_PATH,
                     user = self.userName,
                     ep = currentEP,
                     ip = epData['ce_ip'],
-                    port = epData['ce_port'],
-                    sniff = self.snifferEth,
+                    port = epData['ce_port']
                 )
 
             # Making, or re-using the Central Engine connection
@@ -392,6 +397,15 @@ class TwisterClientService(rpyc.Service):
             print('ClientService: Disconnect Error: `{}`!'.format(trace))
 
 
+    def exposed_echo(self, msg):
+        """
+        For testing connection
+        """
+        if msg != 'ping':
+            print(':: {}'.format(msg))
+        return 'Echo: {}'.format(msg)
+
+
     def exposed_hello(self, proxy):
         """
         The first function called.
@@ -410,66 +424,32 @@ class TwisterClientService(rpyc.Service):
 
     def exposed_start_ep(self, epname):
         """  """
-        global client
+        print('IN START EP')
+        global userName, client
 
         if epname not in client.epNames:
             print('*ERROR* Unknown EP name : `{}` !'.format(epname))
-            return False
-
-        time.sleep(1)
-
-        try:
-            proxy = client.epNames[epname]['proxy'].root
-            last_seen_alive = proxy.getEpVariable(epname, 'last_seen_alive')
-        except:
-            trace = traceback.format_exc()[34:].strip()
-            print('Error: Cannot connect to Central Engine to check the EP! Exception `{}`!'.format(trace))
             return False
 
         if client.epNames[epname]['pid']:
             print('Error: Process {} is already started for user {}! (pid={})\n'.format(
-                  epname, username, client.epNames[epname]['pid']))
+                  epname, userName, client.epNames[epname]['pid']))
             return False
 
-        print('Executing: {}'.format(client.epNames[epname]['exec_str']))
+        print('Executing: `{}`.'.format(client.epNames[epname]['exec_str']))
+
         client.epNames[epname]['pid'] = subprocess.Popen(
                                client.epNames[epname]['exec_str'], shell=True, preexec_fn=os.setsid
                                )
 
-        print('EP `{}` for user `{}` launched in background!\n'.format(epname, glob_config['username']))
-        return True
+        print('EP `{}` for user `{}` launched in background!\n'.format(epname, userName))
 
-
-    def exposed_restart_ep(self, epname):
-        """  """
-        global client
-
-        if epname not in client.epNames:
-            print('*ERROR* Unknown EP name : `{}` !'.format(epname))
-            return False
-
-        if client.epNames[epname]['pid']:
-            try:
-                os.killpg(client.epNames[epname]['pid'].pid, 9)
-                client.epNames[epname]['pid'] = None
-                print('Killing EP `{}` !'.format(epname))
-            except:
-                trace = traceback.format_exc()[34:].strip()
-                print(trace)
-                return False
-
-        print('Executing: {}'.format(client.epNames[epname]['exec_str']))
-        client.epNames[epname]['pid'] = subprocess.Popen(
-                               client.epNames[epname]['exec_str'], shell=True, preexec_fn=os.setsid
-                               )
-
-        print('Restarted EP `{}` for user `{}` !\n'.format(epname, glob_config['username']))
         return True
 
 
     def exposed_stop_ep(self, epname):
         """  """
-        global client
+        global userName, client
 
         if epname not in client.epNames:
             print('*ERROR* Unknown EP name : `{}` !'.format(epname))
@@ -479,7 +459,8 @@ class TwisterClientService(rpyc.Service):
             print('Error: EP `{}` is not running !'.format(epname))
             return False
 
-        time.sleep(1)
+        print('Preparing to stop EP `{}`...'.format(epname))
+        time.sleep(1) # A small delay
 
         try:
             os.killpg(client.epNames[epname]['pid'].pid, 9)
@@ -489,7 +470,7 @@ class TwisterClientService(rpyc.Service):
             print(trace)
             return False
 
-        print('Stopping EP `{}` !'.format(epname))
+        print('Stopped EP `{}` !'.format(epname))
         return True
 
 

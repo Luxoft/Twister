@@ -121,6 +121,7 @@ from common.xmlparser  import *
 from common.suitesmanager import *
 from common import iniparser
 
+from ExecutionManager import ExecutionManagerService
 from ServiceManager   import ServiceManager
 from CentralEngineWebUi import WebInterface
 from ResourceAllocator  import ResourceAllocator
@@ -201,6 +202,7 @@ class Project(object):
         logDebug('STARTING TWISTER SERVER {}...'.format(self.srv_ver))
 
         self.ip_port = None # Will be injected by the Central Engine CherryPy
+        self.ee      = ExecutionManagerService(None)
         self.manager = ServiceManager()
         self.web   = WebInterface(self)
         self.ra    = ResourceAllocator(self)
@@ -1238,9 +1240,9 @@ class Project(object):
 
         # Send start/ stop command to EP !
         if new_status == STATUS_RUNNING:
-            self.parent.startEP(user, epname)
+            self.ee.exposed_startEP(epname)
         elif new_status == STATUS_STOP:
-            self.parent.stopEP(user, epname)
+            self.ee.exposed_stopEP(epname)
 
         # If all Stations are stopped, the status for current user is also stop!
         # This is important, so that in the Java GUI, the buttons will change to [Play | Stop]
@@ -1415,7 +1417,7 @@ class Project(object):
             for epname in active_eps:
                 if epname not in self.users[user]['eps']:
                     continue
-                self.parent.startEP(user, epname)
+                self.ee.exposed_startEP(epname)
 
         # If the engine is running, or paused and it received STOP from the user...
         elif (executionStatus == STATUS_RUNNING or executionStatus == STATUS_PAUSED) and new_status == STATUS_STOP:
@@ -1458,7 +1460,7 @@ class Project(object):
                         self.setFileInfo(user, epname, file_id, 'status', STATUS_NOT_EXEC)
                         statuses_changed += 1
                 # Send STOP to EP Manager
-                self.parent.stopEP(user, epname)
+                self.ee.exposed_stopEP(epname)
 
             if statuses_changed:
                 logDebug('Set Status: Changed `{}` file statuses from Pending to Not executed.'.format(statuses_changed))
@@ -2248,9 +2250,11 @@ class Project(object):
             # This is created every time the Save to Database is called
             db_parser = DBParser(db_file)
             db_config = db_parser.db_config
-            queries = db_parser.getInsertQueries()  # List
-            fields  = db_parser.getDbSelectFields() # Dictionary
-            scripts = db_parser.getUserScriptFields() # List
+            queries = db_parser.getInsertQueries() # List
+            fields  = db_parser.getInsertFields()  # Dictionary
+            default_subst = {k: '' for k, v in fields.iteritems()}
+            auto_fields  = {k: v['query'] for k, v in fields.iteritems()}
+            user_scripts = [k for k, v in fields.iteritems() if v['type'] == 'UserScript']
             del db_parser
 
             if not queries:
@@ -2282,7 +2286,7 @@ class Project(object):
                 for file_id in SuitesManager.getFiles():
 
                     # Substitute data
-                    subst_data = {'file_id': file_id}
+                    subst_data = dict(default_subst)
 
                     # Add EP info
                     subst_data.update(ep_info)
@@ -2321,6 +2325,15 @@ class Project(object):
                     subst_data['twister_tc_title'] = ''
                     subst_data['twister_tc_description'] = ''
 
+                    try: del subst_data['name']
+                    except: pass
+                    try: del subst_data['status']
+                    except: pass
+                    try: del subst_data['type']
+                    except: pass
+                    try: del subst_data['pd']
+                    except: pass
+
                     # Escape all unicodes variables before SQL Statements!
                     subst_data = {k: conn.escape_string(v) if isinstance(v, unicode) else v for k,v in subst_data.iteritems()}
 
@@ -2353,7 +2366,7 @@ class Project(object):
                             field = field[1:]
 
                             # If the field is not `UserScript`, ignore it
-                            if field not in scripts:
+                            if field not in user_scripts:
                                 continue
 
                             # Get Script Path, or null string
@@ -2370,7 +2383,7 @@ class Project(object):
 
                         for field in vars_to_replace:
                             # Delete the @ character
-                            u_query = fields.get(field.replace('@', ''))
+                            u_query = auto_fields.get(field.replace('@', ''))
 
                             if not u_query:
                                 logError('File: `{0}`, cannot build query! Field `{1}` is not defined in the fields section!'\

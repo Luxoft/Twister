@@ -101,6 +101,7 @@ if __name__ == "__main__":
     ExecutionManagerService.inject_object('cherry', ce)
 
     rpycServer = ThreadedServer(ExecutionManagerService, port=8008, protocol_config=config)
+    rpycServer.logger.setLevel(30)
 
     def startRpyc(rpycServer):
         rpycServer.start()
