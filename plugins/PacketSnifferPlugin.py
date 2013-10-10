@@ -247,7 +247,7 @@ class Plugin(BasePlugin):
                         queriedPackets = []
                         packetID = None
                         for _packet in self.packets[packetIndex:packetIndex \
-                                                    + self.data['packetsBuffer']]:
+                                                    + int(self.data['packetsBuffer'])]:
                             pk = deepcopy(_packet)
                             pk.pop('packet')
                             packetID = pk['packet_head']['id']
