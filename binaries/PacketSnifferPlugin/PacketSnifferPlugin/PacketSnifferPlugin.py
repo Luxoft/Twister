@@ -294,7 +294,7 @@ class Plugin(BasePlugin):
                                                         {err}'.format(err=e)
 
             if len(self.packets) >= self.packetsIndexLimit:
-                del self.packets[:self.data['packetsBuffer']]
+                del self.packets[:int(self.data['packetsBuffer'])]
 
         # savepcap
         elif args['command'] == 'savepcap':
