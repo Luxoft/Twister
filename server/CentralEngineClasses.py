@@ -263,9 +263,9 @@ class CentralEngine(_cptools.XMLRPCController):
         This function is called from the Java GUI.
         """
         logDebug('CE: Preparing to save into database...')
-        time.sleep(3)
-
+        time.sleep(2) # Wait all the logs
         ret = self.project.saveToDatabase(user)
+
         if ret:
             logDebug('CE: Saving to database was successful!')
         else:
