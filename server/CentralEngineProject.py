@@ -121,7 +121,6 @@ from common.xmlparser  import *
 from common.suitesmanager import *
 from common import iniparser
 
-from ExecutionManager import ExecutionManagerService
 from ServiceManager   import ServiceManager
 from CentralEngineWebUi import WebInterface
 from ResourceAllocator  import ResourceAllocator
@@ -202,7 +201,7 @@ class Project(object):
         logDebug('STARTING TWISTER SERVER {}...'.format(self.srv_ver))
 
         self.ip_port = None # Will be injected by the Central Engine CherryPy
-        self.ee      = ExecutionManagerService(None)
+        self.ee      = None
         self.manager = ServiceManager()
         self.web   = WebInterface(self)
         self.ra    = ResourceAllocator(self)

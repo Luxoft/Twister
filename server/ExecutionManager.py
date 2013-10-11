@@ -84,22 +84,46 @@ class ExecutionManagerService(rpyc.Service):
             return ''
 
 
+    def timeout(self, conn, args=(), kwargs={}, timeout_duration=1, default=None):
+        '''This function will spwan a thread and run the given function using the args, kwargs and
+        return the given default value if the timeout_duration is exceeded
+        '''
+        import threading
+        class InterruptableThread(threading.Thread):
+            def __init__(self):
+                threading.Thread.__init__(self)
+                self.result = None
+            def run(self):
+                try:
+                    self.result = str(conn.root)
+                except Exception as e:
+                    self.result = 'except: {}'.format(e)
+        it = InterruptableThread()
+        it.start()
+        it.join(timeout_duration)
+        if it.isAlive():
+            return it.result
+        else:
+            return it.result
+
+
     def on_connect(self):
         """
         On client connect
         """
         str_addr = self._get_addr()
-        print(': Connected from `{}`.'.format(str_addr))
+        print('||||||||||||||||||||||||||||||||||||')
+        print(str_addr)
+        print(self.timeout(self._conn))
+        print('||||||||||||||||||||||||||||||||||||')
 
-        with self.conn_lock:
-            try:
+        try:
+            with self.conn_lock:
                 self.conns[str_addr] = {'conn': self._conn.root}
-            except Exception as e:
-                logError('EE: Connect error: {}.'.format(e))
-                return
+        except Exception as e:
+            logError('EE: Connect error: {}.'.format(e))
 
         logDebug('EE: Connected from `{}`.'.format(str_addr))
-        return
 
 
     def on_disconnect(self):
@@ -107,18 +131,15 @@ class ExecutionManagerService(rpyc.Service):
         On client disconnect
         """
         str_addr = self._get_addr()
-        print(': Disconnected from `{}`.'.format(str_addr))
 
-        with self.conn_lock:
-            # Delete everything for this address
-            try:
+        # Delete everything for this address
+        try:
+            with self.conn_lock:
                 del self.conns[str_addr]
-            except Exception as e:
-                logError('EE: Disconnect error: {}.'.format(e))
-                return
+        except Exception as e:
+            logError('EE: Disconnect error: {}.'.format(e))
 
         logDebug('EE: Disconnected from `{}`.'.format(str_addr))
-        return
 
 
     def exposed_cherryAddr(self):

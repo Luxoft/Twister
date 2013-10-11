@@ -7,6 +7,7 @@
 # Copyright (C) 2012-2013 , Luxoft
 
 # Authors:
+#    Adrian Toader <adtoader@luxoft.com>
 #    Andrei Costachi <acostachi@luxoft.com>
 #    Andrei Toma <atoma@luxoft.com>
 #    Cristi Constantin <crconstantin@luxoft.com>
@@ -75,17 +76,7 @@ if __name__ == "__main__":
             logCritical('Twister Server: Must start with parameter PORT number!')
             exit(1)
 
-    # Project manager does everything
-    proj = Project()
-    # CE is the XML-RPC interface
-    ce = CentralEngine(proj)
-
-    proj.ip_port = ('127.0.0.1', serverPort)
-    ce.web = proj.web
-    ce.ra  = proj.ra
-    ce.report = proj.report
-
-
+    # rpyc server
     # RPyc config
     config = {
         'allow_pickle': True,
@@ -95,18 +86,28 @@ if __name__ == "__main__":
         'allow_all_attrs': True,
         }
 
+    rpycServer = ThreadedServer(ExecutionManagerService, port=8008, protocol_config=config)
+
+    # Project manager does everything
+    proj = Project()
+    proj.ee = rpycServer.service
+    # CE is the XML-RPC interface
+    ce = CentralEngine(proj)
+
+    proj.ip_port = ('127.0.0.1', serverPort)
+    ce.web = proj.web
+    ce.ra  = proj.ra
+    ce.report = proj.report
+
     # EE Manager is the helper for EPs and Clients
     # Inject the project as variable for EE
-    ExecutionManagerService.inject_object('project', proj)
-    ExecutionManagerService.inject_object('cherry', ce)
+    rpycServer.service.inject_object('project', proj)
+    rpycServer.service.inject_object('cherry', ce)
 
-    rpycServer = ThreadedServer(ExecutionManagerService, port=8008, protocol_config=config)
     rpycServer.logger.setLevel(30)
 
-    def startRpyc(rpycServer):
-        rpycServer.start()
-
-    thread.start_new_thread(startRpyc, (rpycServer,))
+    # start rpyc server
+    thread.start_new_thread(rpycServer.start, ())
 
 
     # CherryPy config
