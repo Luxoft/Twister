@@ -1,6 +1,6 @@
 /*
 File: ClearCasePanel.java ; This file is part of Twister.
-Version: 2.010
+Version: 2.011
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -427,8 +427,7 @@ public class ClearCasePanel{
                     sb.append("<br>");
                 }
                 sb.append("</html>");
-                CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,tree,
-                                      "ERROR", sb.toString());
+                CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,tree, "ERROR", sb.toString());
             }
          }
      }

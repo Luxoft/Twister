@@ -1,6 +1,6 @@
 /*
 File: About.java ; This file is part of Twister.
-Version: 2.004
+Version: 2.005
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -58,7 +58,7 @@ public class About extends JPanel{
         ta2.setBackground(Color.WHITE);
         ta2.setBackground(p.getBackground());
         ta2.setFont(new Font("TimesRoman", Font.BOLD, 14));
-        ta2.setBounds(480,140,230,120);
+        ta2.setBounds(480,140,350,120);
         ta2.setEditable(false);
         ta2.setBorder(null);
         ta2.setText("   Twister Framework \n\n             V.: "+RunnerRepository.getVersion()+" \nBuild date: "+RunnerRepository.getBuildDate()+

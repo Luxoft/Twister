@@ -1,6 +1,6 @@
 /*
 File: ClearCase.java ; This file is part of Twister.
-Version: 2.010
+Version: 2.011
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -204,15 +204,15 @@ public class ClearCase extends JPanel{
                     }
                 }
                 else if(line.indexOf("@_#_")!=-1&&line.indexOf("echo")==-1){
-                        //System.out.println("Line: "+in.readLine());
+                        System.out.println("Line: "+in.readLine());
                         return responseData.toString();
                 } 
                 if(line.indexOf("No such file or directory")!=-1){
-                    //System.out.println("Line: "+in.readLine());
+                    System.out.println("Line: "+in.readLine());
                     return responseData.toString();
                 }
                 if(responseData.indexOf("cleartool: command not found")!=-1){
-                    //System.out.println("Line: "+in.readLine());
+                    System.out.println("Line: "+in.readLine());
                     CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,ClearCase.this,
                             "ERROR", "ClearTool not installed!");
                     return null;
@@ -224,7 +224,91 @@ public class ClearCase extends JPanel{
             return null;
         }
     }
+    
+//     public String readFirstOutput(String command){
+//         try{
+//             String line = null;
+//             StringBuilder responseData = new StringBuilder();
+//             char [] buffer = new char[5];
+//             int read;
+//             while(true) {
+//                 if((read = in.read(buffer,0,5))!=-1){
+//                     responseData.append(buffer, 0, read);
+//                 }
+//                 System.out.println("line: "+responseData.toString());
+//                 if(responseData.indexOf("echo \"@_#_\"")!=-1){
+//                     int index = responseData.indexOf("echo \"@_#_\"")+11;
+//                     String temp = responseData.substring(index);
+//                     responseData.setLength(0);
+//                     responseData.append(temp);
+//                 }
+//                 else if(responseData.indexOf("@_#_")!=-1&&responseData.indexOf("echo")==-1){
+//                         return responseData.toString();
+//                 } 
+//                 if(responseData.indexOf("No such file or directory")!=-1){
+//                     return responseData.toString();
+//                 }
+//                 if(responseData.indexOf("cleartool: command not found")!=-1){
+//                     CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,ClearCase.this,
+//                             "ERROR", "ClearTool not installed!");
+//                     return null;
+//                 }
+//             }
+//         } catch(Exception e){
+//             e.printStackTrace();
+//             return null;
+//         }
+//     }
 
+//     public String readOutput(String command){
+//         try{
+//             String line = null;
+//             StringBuilder responseData = new StringBuilder();
+//             char [] buffer = new char[5];
+//             int read;
+//             while(true) {
+//                 if((read = in.read(buffer,0,5))!=-1){
+//                     responseData.append(buffer, 0, read);
+//                 }
+//                 System.out.println("line: "+responseData.toString());
+// //                 if((!line.equals(prompt)&&line.indexOf(prompt)!=-1) || (command!=null&&line.indexOf(command)!=-1)){
+// //                     responseData.setLength(0);
+// //                 }
+// 
+//                 if(responseData.indexOf("echo \"@_#_\"")!=-1){
+//                     int index = responseData.indexOf("echo \"@_#_\"")+11;
+//                     String temp = responseData.substring(index);
+//                     responseData.setLength(0);
+//                     responseData.append(temp);
+//                 }
+//                 
+//                 if(line.indexOf(prompt)==-1&&!line.equals("")){
+//                     if(command!=null){
+//                         if(line.indexOf(command)==-1){
+//                             responseData.append(line+"\n");
+//                         }
+//                     } else {
+//                         responseData.append(line+"\n");
+//                     }
+//                 }
+//                 else if(line.equals(prompt)){
+//                         return responseData.toString();
+//                 } 
+//                 if(line.indexOf("No such file or directory")!=-1){
+//                     return responseData.toString();
+//                 }
+//                 if(responseData.indexOf("cleartool: command not found")!=-1){
+//                     CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,ClearCase.this,
+//                             "ERROR", "ClearTool not installed!");
+//                     return null;
+//                 }
+//             }
+//             return responseData.toString();
+//         } catch(Exception e){
+//             e.printStackTrace();
+//             return null;
+//         }
+//     }
 
     public String readOutput(String command){
         try{
@@ -249,11 +333,13 @@ public class ClearCase extends JPanel{
                         return responseData.toString();
                 } 
                 if(line.indexOf("No such file or directory")!=-1){
-                    //in.readLine();
+                    CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,ClearCase.this,
+                            "ERROR", line);
+                    in.readLine();
                     return responseData.toString();
                 }
                 if(responseData.indexOf("cleartool: command not found")!=-1){
-                    //in.readLine();
+                    in.readLine();
                     CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,ClearCase.this,
                             "ERROR", "ClearTool not installed!");
                     return null;
@@ -267,7 +353,6 @@ public class ClearCase extends JPanel{
     }
     
     public void disconnect(){
-        sendCommand("stty columns 80");
         try{in.close();}
         catch(Exception e){e.printStackTrace();}
         try{ps.close();}
@@ -1012,18 +1097,23 @@ public class ClearCase extends JPanel{
                     .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
                         .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                             .addComponent(setview, javax.swing.GroupLayout.PREFERRED_SIZE, 100, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(mkview, javax.swing.GroupLayout.PREFERRED_SIZE, 119, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(mkelem, javax.swing.GroupLayout.PREFERRED_SIZE, 119, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(rmelem, javax.swing.GroupLayout.PREFERRED_SIZE, 119, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(mklabel, javax.swing.GroupLayout.PREFERRED_SIZE, 119, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(mkattr, javax.swing.GroupLayout.PREFERRED_SIZE, 119, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            //.addComponent(mkview, javax.swing.GroupLayout.PREFERRED_SIZE, 119, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            //.addComponent(mkelem, javax.swing.GroupLayout.PREFERRED_SIZE, 119, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            //.addComponent(rmelem, javax.swing.GroupLayout.PREFERRED_SIZE, 119, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            //.addComponent(mklabel, javax.swing.GroupLayout.PREFERRED_SIZE, 119, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            //.addComponent(mkattr, javax.swing.GroupLayout.PREFERRED_SIZE, 119, javax.swing.GroupLayout.PREFERRED_SIZE)
                             .addComponent(showconf, javax.swing.GroupLayout.PREFERRED_SIZE, 140, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(describe, javax.swing.GroupLayout.PREFERRED_SIZE, 140, javax.swing.GroupLayout.PREFERRED_SIZE))
+                            //.addComponent(describe, javax.swing.GroupLayout.PREFERRED_SIZE, 140, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            )
                         .addComponent(listviews, javax.swing.GroupLayout.PREFERRED_SIZE, 100, javax.swing.GroupLayout.PREFERRED_SIZE)))
                 .addContainerGap())
         );
 
-        jPanel1Layout.linkSize(javax.swing.SwingConstants.HORIZONTAL, new java.awt.Component[] {listviews,setview,mkview,mkelem,rmelem,mklabel,mkattr,showconf,describe});
+        jPanel1Layout.linkSize(javax.swing.SwingConstants.HORIZONTAL, new java.awt.Component[] {listviews,setview,
+//             mkview,mkelem,rmelem,mklabel,mkattr,
+            showconf
+//             ,describe
+        });
 
         jPanel1Layout.setVerticalGroup(
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -1036,19 +1126,19 @@ public class ClearCase extends JPanel{
                 .addGap(7, 7, 7)
                 .addComponent(setview)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(mkview)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(mkelem)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(rmelem)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(mklabel)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(mkattr)
+//                 .addComponent(mkview)
+//                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+//                 .addComponent(mkelem)
+//                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+//                 .addComponent(rmelem)
+//                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+//                 .addComponent(mklabel)
+//                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+//                 .addComponent(mkattr)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(showconf)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(describe)
+//                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+//                 .addComponent(describe)
                 .addContainerGap(144, Short.MAX_VALUE))
         );
 
@@ -1264,7 +1354,7 @@ public class ClearCase extends JPanel{
 //             sendCommand("cd  "+jTextField1.getText(),false);
 //             readOutput(true);
             sendCommand("cd  "+jTextField1.getText());
-            readOutput("cleartool setview");
+            readOutput("cd  "+jTextField1.getText());
             RunnerRepository.window.mainpanel.p1.cp.refreshStructure();
             lview.setText("View: "+view);
             vob.setText("Vob: "+root);
@@ -1340,18 +1430,5 @@ public class ClearCase extends JPanel{
             child.add(child2);
         }
 
-    }
-    
-    
-    public static void main(){
-        try{ClearCase cc = new ClearCase("11.126.32.21","bpopescu","ina_1974CNP");
-            JFrame f = new JFrame();
-            f.setBounds(100, 100, 800, 600);
-            f.setVisible(true);
-            f.add(cc);
-            f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        }catch(Exception e){
-            e.printStackTrace();
-        }
     }
 }
