@@ -80,8 +80,8 @@ class Plugin(BasePlugin):
         self.pcapPath = getenv('TWISTER_PATH') + '/tmp'
         if not exists(self.pcapPath):
             makedirs(self.pcapPath)
-        self.packetsIndexLimit = (self.data['historyLength']
-                                    - self.data['packetsBuffer'])
+        self.packetsIndexLimit = (int(self.data['historyLength'])
+                                    - int(self.data['packetsBuffer']))
         self.filters = {}
         self.sniffers = {}
 
