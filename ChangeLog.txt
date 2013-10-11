@@ -1,3 +1,12 @@
+11th October
+
+- testing results can be saved in database even if an optional suite parameter
+  is empty
+- a test case can retrieve an empty suite parameter; no crash occurs
+- changing user group for a server operation mode ( development or production )
+  do not affect the groups for other operation mode
+- export/import operations for test beds support empty strings
+
 04th October
 
 - added more support for ClearCase ( mkview, mkelem, rmelem, mklabel, mkattr, describe )
