@@ -152,8 +152,8 @@ public class RunnerRepository {
     private static String[] lookAndFeels;
     public static Container container;
     private static Document pluginsconfig;
-    private static String version = "2.038";
-    private static String builddate = "11.10.2013";
+    private static String version = "2.039";
+    private static String builddate = "14.10.2013";
     public static String logotxt,os,python;
     
     public static void setStarter(Starter starter){

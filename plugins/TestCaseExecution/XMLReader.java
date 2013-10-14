@@ -1,6 +1,6 @@
 /*
 File: XMLReader.java ; This file is part of Twister.
-Version: 2.011
+Version: 2.012
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -312,9 +312,9 @@ public class XMLReader{
                 else if(fstNode.getNodeName().equals("ClearCaseView")){
                     try{
                         String view = fstNode.getChildNodes().item(0).getNodeValue().toString();
-                        RunnerRepository.window.mainpanel.getP5().view = view;}
+                        ClearCase.setView(view);}
                     catch(Exception e){
-                        RunnerRepository.window.mainpanel.getP5().view = "";
+                        ClearCase.setView("");
 //                         e.printStackTrace();
 //                         RunnerRepository.window.mainpanel.p1.suitaDetails.setPreScript("");
                     }
