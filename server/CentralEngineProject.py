@@ -1,7 +1,7 @@
 
 # File: CentralEngineProject.py ; This file is part of Twister.
 
-# version: 2.043
+# version: 2.045
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -782,8 +782,8 @@ class Project(object):
 
             # Create new section in Users
             cfg['users'][name] = user_before
-            cfg['users'][name]['groups_production']  = ''
-            cfg['users'][name]['groups_development'] = ''
+            cfg['users'][name]['groups_production']  = user_before.get('groups_production','')
+            cfg['users'][name]['groups_development'] = user_before.get('groups_development','')
             cfg['users'][name]['groups_' + srv_type] = usr_group
             cfg['users'][name]['key']    = user_before.get('key', binascii.hexlify(os.urandom(16)))
             cfg['users'][name]['timeout'] = usr_timeout
@@ -1254,8 +1254,14 @@ class Project(object):
                     # On Central Engine stop, save to database
                     db_auto_save = self.getUserInfo(user, 'db_auto_save')
                     if db_auto_save and save_to_db:
+                        logDebug('Project: Preparing to save into database...')
                         time.sleep(2) # Wait all the logs
-                        self.saveToDatabase(user)
+                        ret = self.saveToDatabase(user)
+                        if ret:
+                            logDebug('Project: Saving to database was successful!')
+                        else:
+                            logDebug('Project: Could not save to database!')
+                        return ret
 
                     # Find the log process for this User and ask it to Exit
                     port = self.loggers[user]['port']
@@ -2152,10 +2158,13 @@ class Project(object):
 
             if (not eMailConfig['Enabled']) or (eMailConfig['Enabled'] in ['0', 'false']):
                 e_mail_path = os.path.split(self.users[user]['config_path'])[0] +os.sep+ 'e-mail.htm'
-                open(e_mail_path, 'w').write(msg.as_string())
-                logDebug('E-mail.htm file written. The message will NOT be sent.')
-                # Update file ownership
-                setFileOwner(user, e_mail_path)
+                try:
+                    open(e_mail_path, 'w').write(msg.as_string())
+                    logDebug('E-mail.htm file written. The message will NOT be sent.')
+                    # Update file ownership
+                    setFileOwner(user, e_mail_path)
+                except:
+                    logDebug('E-mail.htm file cannot be saved! Also, the message will NOT be sent.')
                 return True
 
             try:
@@ -2208,9 +2217,11 @@ class Project(object):
             # This is created every time the Save to Database is called
             db_parser = DBParser(db_file)
             db_config = db_parser.db_config
-            queries = db_parser.getInsertQueries()  # List
-            fields  = db_parser.getDbSelectFields() # Dictionary
-            scripts = db_parser.getUserScriptFields() # List
+            queries = db_parser.getInsertQueries() # List
+            fields  = db_parser.getInsertFields()  # Dictionary
+            default_subst = {k: '' for k, v in fields.iteritems()}
+            auto_fields  = {k: v['query'] for k, v in fields.iteritems()}
+            user_scripts = [k for k, v in fields.iteritems() if v['type'] == 'UserScript']
             del db_parser
 
             if not queries:
@@ -2242,7 +2253,7 @@ class Project(object):
                 for file_id in SuitesManager.getFiles():
 
                     # Substitute data
-                    subst_data = {'file_id': file_id}
+                    subst_data = dict(default_subst)
 
                     # Add EP info
                     subst_data.update(ep_info)
@@ -2281,6 +2292,15 @@ class Project(object):
                     subst_data['twister_tc_title'] = ''
                     subst_data['twister_tc_description'] = ''
 
+                    try: del subst_data['name']
+                    except: pass
+                    try: del subst_data['status']
+                    except: pass
+                    try: del subst_data['type']
+                    except: pass
+                    try: del subst_data['pd']
+                    except: pass
+
                     # Escape all unicodes variables before SQL Statements!
                     subst_data = {k: conn.escape_string(v) if isinstance(v, unicode) else v for k,v in subst_data.iteritems()}
 
@@ -2313,7 +2333,7 @@ class Project(object):
                             field = field[1:]
 
                             # If the field is not `UserScript`, ignore it
-                            if field not in scripts:
+                            if field not in user_scripts:
                                 continue
 
                             # Get Script Path, or null string
@@ -2330,7 +2350,7 @@ class Project(object):
 
                         for field in vars_to_replace:
                             # Delete the @ character
-                            u_query = fields.get(field.replace('@', ''))
+                            u_query = auto_fields.get(field.replace('@', ''))
 
                             if not u_query:
                                 logError('File: `{0}`, cannot build query! Field `{1}` is not defined in the fields section!'\

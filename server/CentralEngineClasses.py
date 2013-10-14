@@ -1,7 +1,7 @@
 
 # File: CentralEngineClasses.py ; This file is part of Twister.
 
-# version: 2.030
+# version: 2.031
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -263,9 +263,9 @@ class CentralEngine(_cptools.XMLRPCController):
         This function is called from the Java GUI.
         """
         logDebug('CE: Preparing to save into database...')
-        time.sleep(3)
-
+        time.sleep(2) # Wait all the logs
         ret = self.project.saveToDatabase(user)
+
         if ret:
             logDebug('CE: Saving to database was successful!')
         else:
@@ -375,11 +375,14 @@ class CentralEngine(_cptools.XMLRPCController):
         - the name of the suite, the test files, etc.
         """
 
-        data = self.project.getEpInfo(user, epname).get(variable, False)
+        data = self.project.getEpInfo(user, epname)
+        if not data: return False
+        value = data.get(variable, False)
+        if value is None: return False
         if compress:
-            return pickle.dumps(data)
+            return pickle.dumps(value)
         else:
-            return data
+            return value
 
 
     @cherrypy.expose
@@ -409,7 +412,7 @@ class CentralEngine(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
-    def getSuiteVariable(self, user, epname, suite, variable):
+    def getSuiteVariable(self, user, epname, suite, variable, compress=False):
         """
         Function called from the Execution Process,
         to get information that is available only here, or are hard to get.
@@ -417,7 +420,12 @@ class CentralEngine(_cptools.XMLRPCController):
 
         data = self.project.getSuiteInfo(user, epname, suite)
         if not data: return False
-        return data.get(variable, False)
+        value = data.get(variable, False)
+        if value is None: return False
+        if compress:
+            return pickle.dumps(value)
+        else:
+            return value
 
 
     @cherrypy.expose
@@ -428,7 +436,9 @@ class CentralEngine(_cptools.XMLRPCController):
 
         data = self.project.getFileInfo(user, epname, file_id)
         if not data: return False
-        return data.get(variable, False)
+        value = data.get(variable, False)
+        if value is None: return False
+        return value
 
 
     @cherrypy.expose
