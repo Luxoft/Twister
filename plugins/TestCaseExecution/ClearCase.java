@@ -1,6 +1,6 @@
 /*
 File: ClearCase.java ; This file is part of Twister.
-Version: 2.011
+Version: 2.012
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -73,12 +73,21 @@ public class ClearCase extends JPanel{
     private boolean firstfind = false;
     private Session session;
     public String root="";
-    public String view="";
+    private static String view="";
     private PrintStream ps;
     private JLabel lview, vob;
     private JButton showconf,mkelem,rmelem,mklabel,mkattr,mkview,describe;
     private String prompt = "twister_prompt#";
     private String shell;
+    
+    public static void setView(String view){
+        ClearCase.view = view;
+    }
+    
+    public static String getView(){
+        return ClearCase.view;
+    }   
+    
     
     public ClearCase(String host, String user, String password){
         initializeSSH(host, user, password);

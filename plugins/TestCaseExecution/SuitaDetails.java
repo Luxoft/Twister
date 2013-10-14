@@ -1,6 +1,6 @@
 /*
 File: SuitaDetails.java ; This file is part of Twister.
-Version: 2.0013
+Version: 2.0014
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -694,7 +694,7 @@ public class SuitaDetails extends JPanel {
             else teardown.setSelected(false);
             ttcname.setText(getItemParent().getName());
             if(parent.isClearcase()){
-                tview.setText(RunnerRepository.window.mainpanel.getP5().view);
+                tview.setText(ClearCase.getView());
             } else {
                 tview.setText("");
             }
