@@ -1,6 +1,6 @@
 /*
 File: Plugins.java ; This file is part of Twister.
-Version: 2.008
+Version: 2.009
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -756,11 +756,20 @@ public class Plugins extends JPanel{
         if(pluginname.equals("ClearCase")){
             clearcase = check.isSelected();
             if(clearcase){
-                RunnerRepository.window.mainpanel.add(RunnerRepository.window.mainpanel.getP5(), "ClearCase");
-                RunnerRepository.window.mainpanel.p1.tabs.add("ClearCase Tests", new JScrollPane(RunnerRepository.window.mainpanel.p1.cp.tree));
-            } else {    
-                RunnerRepository.window.mainpanel.remove(RunnerRepository.window.mainpanel.getP5());
+                MainPanel mp = RunnerRepository.window.mainpanel;
+                mp.p5 = new ClearCase(RunnerRepository.host,RunnerRepository.user,RunnerRepository.password);
+                mp.p1.cp = new ClearCasePanel();
+                mp.add(mp.p5, "ClearCase");
+                //RunnerRepository.window.mainpanel.add(RunnerRepository.window.mainpanel.getP5(), "ClearCase");
+                mp.p1.tabs.add("ClearCase Tests", new JScrollPane(mp.p1.cp.tree));
+//                 RunnerRepository.window.mainpanel.p1.tabs.add("ClearCase Tests", new JScrollPane(RunnerRepository.window.mainpanel.p1.cp.tree));
+            } else {  
+                MainPanel mp = RunnerRepository.window.mainpanel;
+                mp.remove(mp.p5);
                 RunnerRepository.window.mainpanel.p1.tabs.remove(2);
+                mp.p5.disconnect();
+                mp.p5 = null;
+                mp.p1.cp = null;
             }
             setClearCaseState(clearcase);
             return;

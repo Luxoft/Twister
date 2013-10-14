@@ -112,11 +112,7 @@ public class applet extends Applet{
     public void stop(){
         System.out.println("applet stopping");}
         
-    /*
-     * applet destroy method
-     * removes the temp directory created
-     * by twister on startup
-     */
+
     public void destroy(){
         System.exit(0);}
         

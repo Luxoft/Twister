@@ -79,12 +79,26 @@ def __main__():
 
     # load execution process configuration
     epConfig = ConfigObj(options.twister_path + '/config/epname.ini')
-    epConfig.pop('PACKETSNIFFERPLUGIN')
+
+    snifferConfig = epConfig.pop('PACKETSNIFFERPLUGIN')
+
     epConfig = list(epConfig.itervalues())
+
+    if not snifferConfig['ENABLED']:
+        print 'Packet Sniffer not enabled. exiting..'
+        exit(0)
+
+    try:
+        snifferIface = snifferConfig['ETH_INTERFACE']
+    except Exception, e:
+        snifferIface = 'eth0'
+
+    if options.eth_interface:
+        snifferIface = options.eth_interface
 
     # initiate and start sniffer
     sniffer = PacketSniffer(options.user, epConfig,
-                        options.of_port, _iface=options.eth_interface)
+                        options.of_port, _iface=snifferIface)
 
     print 'Packet Sniffer start..'
 

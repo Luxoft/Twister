@@ -1,6 +1,6 @@
 /*
 File: RunnerRepository.java ; This file is part of Twister.
-Version: 2.0030
+Version: 2.0033
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -152,8 +152,8 @@ public class RunnerRepository {
     private static String[] lookAndFeels;
     public static Container container;
     private static Document pluginsconfig;
-    private static String version = "2.034";
-    private static String builddate = "04.10.2013";
+    private static String version = "2.038";
+    private static String builddate = "11.10.2013";
     public static String logotxt,os,python;
     
     public static void setStarter(Starter starter){
@@ -1743,6 +1743,10 @@ public class RunnerRepository {
             }
             
             String content = RunnerRepository.getRemoteFileContent(USERHOME+"/twister/config/plugins.xml");
+            if(content.equals("")){
+                RunnerRepository.removeRemoteFile(USERHOME+"/twister/config/plugins.xml");
+                return false;
+            }
             if(content==null){
                 CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, RunnerRepository.window,
                                         "Warning","Could not get plugins.xml from "+

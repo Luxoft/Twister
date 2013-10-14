@@ -80,8 +80,8 @@ class Plugin(BasePlugin):
         self.pcapPath = getenv('TWISTER_PATH') + '/tmp'
         if not exists(self.pcapPath):
             makedirs(self.pcapPath)
-        self.packetsIndexLimit = (self.data['historyLength']
-                                    - self.data['packetsBuffer'])
+        self.packetsIndexLimit = (int(self.data['historyLength'])
+                                    - int(self.data['packetsBuffer']))
         self.filters = {}
         self.sniffers = {}
 
@@ -247,7 +247,7 @@ class Plugin(BasePlugin):
                         queriedPackets = []
                         packetID = None
                         for _packet in self.packets[packetIndex:packetIndex \
-                                                    + self.data['packetsBuffer']]:
+                                                    + int(self.data['packetsBuffer'])]:
                             pk = deepcopy(_packet)
                             pk.pop('packet')
                             packetID = pk['packet_head']['id']
@@ -294,7 +294,7 @@ class Plugin(BasePlugin):
                                                         {err}'.format(err=e)
 
             if len(self.packets) >= self.packetsIndexLimit:
-                del self.packets[:self.data['packetsBuffer']]
+                del self.packets[:int(self.data['packetsBuffer'])]
 
         # savepcap
         elif args['command'] == 'savepcap':

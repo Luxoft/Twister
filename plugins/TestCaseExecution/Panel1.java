@@ -1,6 +1,6 @@
 /*
 File: Panel1.java ; This file is part of Twister.
-Version: 2.0012
+Version: 2.0013
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -312,7 +312,7 @@ public class Panel1 extends JPanel{
         sc = new ScrollGrafic(10, 32, tdtl, user, applet);
         ep = new ExplorerPanel(applet);
         lp = new LibrariesPanel();
-        cp = new ClearCasePanel();
+        //cp = new ClearCasePanel();
         //ep = new ExplorerPanel(470, 32, tdtl, applet, RunnerRepository.c);
         setLayout(null); 
         tabs = new JTabbedPane();

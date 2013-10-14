@@ -1,7 +1,7 @@
 package com.twister;
 /*
 File: MySftpBrowser.java ; This file is part of Twister.
-Version: 2.007
+Version: 2.008
 Copyright (C) 2012 , Luxoft
 
 Authors: Andrei Costachi <acostachi@luxoft.com>
@@ -34,6 +34,8 @@ import javax.swing.JTextField;
 import javax.swing.JComboBox;
 
 import java.awt.Component;
+import java.awt.KeyEventDispatcher;
+import java.awt.KeyboardFocusManager;
 
 import javax.swing.DefaultListCellRenderer;
 import javax.swing.ImageIcon;
@@ -53,6 +55,7 @@ import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableColumn;
 
+import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.ActionListener;
@@ -113,6 +116,23 @@ public class MySftpBrowser extends JFrame {
 		this.onlyfolders = onlyfolders;
 		this.text = text;
 		this.container = container;
+		KeyboardFocusManager manager = KeyboardFocusManager.getCurrentKeyboardFocusManager();
+        manager.addKeyEventDispatcher(new KeyEventDispatcher() {
+			@Override
+			public boolean dispatchKeyEvent(KeyEvent e) {
+	            if (e.getID() == KeyEvent.KEY_PRESSED) {
+	            	if(e.getKeyCode()==KeyEvent.VK_ENTER){
+	            		open.doClick();
+	            		//return false;
+	            	}
+	            	else if(e.getKeyCode()==KeyEvent.VK_ESCAPE){
+	            		cancel.doClick();
+	            		//return true;
+	            	}
+	            }
+	            return false;
+			}
+		});
 		author.setSelected(true);
 		group.setSelected(true);
 		date.setSelected(true);

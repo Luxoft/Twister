@@ -1,6 +1,6 @@
 /*
 File: MainPanel.java ; This file is part of Twister.
-Version: 2.006
+Version: 2.007
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -48,7 +48,7 @@ public class MainPanel extends JTabbedPane{
     public Panel1 p1;//suites tab
     public Panel2 p2;//masterxml tab
     public Panel4 p4;//configure tab
-    private ClearCase p5;
+    public ClearCase p5;
     private boolean applet;
     
     public Panel2 getP2(){
@@ -72,7 +72,7 @@ public class MainPanel extends JTabbedPane{
         p1 = new Panel1("", applet,(int)screenSize.getWidth());
         p2 = new Panel2(applet);    
         p4 = new Panel4(); 
-        p5 = new ClearCase(RunnerRepository.host,RunnerRepository.user,RunnerRepository.password);
+        //p5 = new ClearCase(RunnerRepository.host,RunnerRepository.user,RunnerRepository.password);
 //         p5 = new Panel5(1500,612);
         setBounds(0, 5, (int)screenSize.getWidth()-50, 672);
         addTab("Project", new ImageIcon(), p1);
