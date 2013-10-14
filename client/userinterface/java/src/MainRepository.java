@@ -72,8 +72,8 @@ public class MainRepository {
     private static TwisterPluginInterface plugin;
     private static XmlRpcClient client;
     private static Hashtable<String,String> hash = new Hashtable<String,String>();
-    private static String version = "2.038";
-    private static String builddate = "11.10.2013";
+    private static String version = "2.039";
+    private static String builddate = "14.10.2013";
     public static int time = 10;//seconds
     public static boolean countdown = false;
     public static String logotxt;

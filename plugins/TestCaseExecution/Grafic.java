@@ -1,6 +1,6 @@
 /*
 File: Grafic.java ; This file is part of Twister.
-Version: 2.0013
+Version: 2.0014
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -2908,11 +2908,12 @@ public class Grafic extends JPanel{
                     b.append(";");
                 }
                 vecresult = b.toString().split(";");
-                try{epidfield.setSelectedIndex(0);}
-                catch(Exception e){e.printStackTrace();}
+                
             }
             
             epidfield = new JList<String>(vecresult);
+			try{epidfield.setSelectedIndex(0);}
+            catch(Exception e){e.printStackTrace();}
             
             
             

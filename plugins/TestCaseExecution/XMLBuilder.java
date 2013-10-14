@@ -1,6 +1,6 @@
 /*
 File: XMLBuilder.java ; This file is part of Twister.
-Version: 2.009
+Version: 2.010
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -100,7 +100,7 @@ public class XMLBuilder{
         em2.appendChild(document.createTextNode(prescript));
         root.appendChild(em2);
         em2 = document.createElement("ClearCaseView");
-        em2.appendChild(document.createTextNode(RunnerRepository.window.mainpanel.getP5().view));
+        em2.appendChild(document.createTextNode(ClearCase.getView()));
         root.appendChild(em2);
         em2 = document.createElement("libraries");
         StringBuilder sb = new StringBuilder();

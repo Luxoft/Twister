@@ -1,6 +1,6 @@
 /*
 File: ClearCasePanel.java ; This file is part of Twister.
-Version: 2.011
+Version: 2.012
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -202,7 +202,7 @@ public class ClearCasePanel{
                             + tree.getSelectionPath().getLastPathComponent()
                                     .toString();
                     System.out.println("thefile: "+thefile);
-                    RunnerRepository.getRPCClient().execute("runPlugin", new Object[] { RunnerRepository.user,"ClearCase","command=setview "+RunnerRepository.window.mainpanel.getP5().view });
+                    RunnerRepository.getRPCClient().execute("runPlugin", new Object[] { RunnerRepository.user,"ClearCase","command=setview "+ClearCase.getView() });
                     String result = RunnerRepository.getRPCClient().execute(
                             "getTestDescription", new Object[] { thefile })
                             + "";
