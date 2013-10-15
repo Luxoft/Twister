@@ -1,7 +1,7 @@
 
 # File: TscCommonLib.py ; This file is part of Twister.
 
-# version: 2.004
+# version: 2.005
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -31,6 +31,7 @@ You can use : getGlobal, setGlobal, getResource, setResource, logMessage.
 '''
 
 import os, sys
+import pickle
 import socket
 import platform
 import xmlrpclib
@@ -106,6 +107,88 @@ class TscCommonLib(object):
         the full path to a config variable in that file.
         """
         return self.ce_proxy.getConfig(self.userName, cfg_path, var_path)
+
+
+    def countProjectFiles(self):
+        """
+        Returns the number of files inside the current project.
+        """
+        p = self.ce_proxy.getEpVariable(self.userName, self.epName, 'suites', True)
+        data = pickle.loads(p)
+        files = data.getFiles(recursive=True)
+        return len(files)
+
+
+    def currentFileIndex(self, FILE_ID=None):
+        """
+        Returns the index of this file in the project.
+        """
+        file_id = None
+        if FILE_ID:
+            file_id = FILE_ID
+        else:
+            try: file_id = self.FILE_ID
+            except: pass
+        if not file_id:
+            return -1
+
+        p = self.ce_proxy.getEpVariable(self.userName, self.epName, 'suites', True)
+        data = pickle.loads(p)
+        files = data.getFiles(recursive=True)
+        try: return files.index(file_id)
+        except: return -1
+
+
+    def countSuiteFiles(self, SUITE_ID=None):
+        """
+        Returns the number of files inside a suite ID.
+        If the suite ID is not provided, the count will try to use `self.SUITE_ID`.
+        If the ID is not found, the count will fail.
+        """
+        suite_id = None
+        if SUITE_ID:
+            suite_id = SUITE_ID
+        else:
+            try: suite_id = self.SUITE_ID
+            except: pass
+        if not suite_id:
+            return -1
+
+        p = self.ce_proxy.getSuiteVariable(self.userName, self.epName, suite_id, 'children', True)
+        data = pickle.loads(p)
+        files = data.keys() # First level of files, depth=1
+        return len(files)
+
+
+    def currentFSuiteIndex(self, SUITE_ID=None, FILE_ID=None):
+        """
+        If the suite ID is not provided, the count will try to use `self.SUITE_ID`.
+        If the ID is not found, the count will fail.
+        Same with the file ID.
+        """
+        suite_id = None
+        if SUITE_ID:
+            suite_id = SUITE_ID
+        else:
+            try: suite_id = self.SUITE_ID
+            except: pass
+        if not suite_id:
+            return -1
+
+        file_id = None
+        if FILE_ID:
+            file_id = FILE_ID
+        else:
+            try: file_id = self.FILE_ID
+            except: pass
+        if not file_id:
+            return -1
+
+        p = self.ce_proxy.getSuiteVariable(self.userName, self.epName, suite_id, 'children', True)
+        data = pickle.loads(p)
+        files = data.keys() # First level of files, depth=1
+        try: return files.index(file_id)
+        except: return -1
 
 
     def py_exec(self, code_string):

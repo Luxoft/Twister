@@ -326,15 +326,20 @@ class CentralEngine(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
-    def getUserVariable(self, user, variable):
+    def getUserVariable(self, user, variable, compress=False):
         """
         Function called from the Execution Process,
         to get information that is available only here, or are hard to get.
         """
 
         data = self.project.getUserInfo(user, variable)
-        if data is None: data = False
-        return data
+        if not data: return False
+        value = data.get(variable, False)
+        if value is None: return False
+        if compress:
+            return pickle.dumps(value)
+        else:
+            return value
 
 
     @cherrypy.expose

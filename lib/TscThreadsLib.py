@@ -31,6 +31,7 @@ Use `tasks_append` to insert functions that take a long time to finish.\n
 Use `tasks_start` to spawn all the functions from the queue.
 '''
 
+import traceback
 from threading import Thread
 
 #
@@ -47,7 +48,12 @@ class ThreadWithReturnValue(Thread):
 
     def run(self):
         if self._Thread__target is not None:
-            self._return = self._Thread__target(*self._Thread__args, **self._Thread__kwargs)
+            try:
+                self._return = self._Thread__target(*self._Thread__args, **self._Thread__kwargs)
+            except:
+                trace = traceback.format_exc()[34:].strip()
+                print('Exception:: {}'.format(trace))
+                self._return = False
 
 #
 
