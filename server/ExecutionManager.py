@@ -78,33 +78,9 @@ class ExecutionManagerService(rpyc.Service):
         Helper method to find the IP + Port of the current connection
         """
         try:
-            tuple_addr = self._conn._config['endpoints'][1]
-            return '{}:{}'.format(tuple_addr[0], tuple_addr[1])
+            return self._conn._config['connid']
         except:
             return ''
-
-
-    def timeout(self, conn, args=(), kwargs={}, timeout_duration=1, default=None):
-        '''This function will spwan a thread and run the given function using the args, kwargs and
-        return the given default value if the timeout_duration is exceeded
-        '''
-        import threading
-        class InterruptableThread(threading.Thread):
-            def __init__(self):
-                threading.Thread.__init__(self)
-                self.result = None
-            def run(self):
-                try:
-                    self.result = str(conn.root)
-                except Exception as e:
-                    self.result = 'except: {}'.format(e)
-        it = InterruptableThread()
-        it.start()
-        it.join(timeout_duration)
-        if it.isAlive():
-            return it.result
-        else:
-            return it.result
 
 
     def on_connect(self):
@@ -112,14 +88,12 @@ class ExecutionManagerService(rpyc.Service):
         On client connect
         """
         str_addr = self._get_addr()
-        print('||||||||||||||||||||||||||||||||||||')
-        print(str_addr)
-        print(self.timeout(self._conn))
-        print('||||||||||||||||||||||||||||||||||||')
 
+        # Add this connection in the list of connections,
+        # If this connection CAN be added!
         try:
             with self.conn_lock:
-                self.conns[str_addr] = {'conn': self._conn.root}
+                self.conns[str_addr] = {'conn': self._conn}
         except Exception as e:
             logError('EE: Connect error: {}.'.format(e))
 
@@ -131,6 +105,8 @@ class ExecutionManagerService(rpyc.Service):
         On client disconnect
         """
         str_addr = self._get_addr()
+        hello = self.conns[str_addr].get('hello', '')
+        if hello: hello += ' - '
 
         # Delete everything for this address
         try:
@@ -139,7 +115,7 @@ class ExecutionManagerService(rpyc.Service):
         except Exception as e:
             logError('EE: Disconnect error: {}.'.format(e))
 
-        logDebug('EE: Disconnected from `{}`.'.format(str_addr))
+        logDebug('EE: Disconnected from `{}{}`.'.format(hello, str_addr))
 
 
     def exposed_cherryAddr(self):
@@ -159,6 +135,20 @@ class ExecutionManagerService(rpyc.Service):
         return 'Echo: {}'.format(msg)
 
 
+    def exposed_hello(self, hello=''):
+        """
+        For testing connection and setting a name.
+        """
+        str_addr = self._get_addr()
+
+        with self.conn_lock:
+            old_data = self.conns.get(str_addr, {})
+            old_data.update({'hello': str(hello)})
+            self.conns[str_addr] = old_data
+
+        return True
+
+
     def exposed_login(self, user, passwd):
         """
         Log in before anything else.
@@ -166,7 +156,6 @@ class ExecutionManagerService(rpyc.Service):
         """
         str_addr = self._get_addr()
         resp = self.project.rpyc_check_passwd(user, passwd)
-        print(': Login ? {} {}'.format(user, passwd))
 
         with self.conn_lock:
             old_data = self.conns.get(str_addr, {})
@@ -175,22 +164,6 @@ class ExecutionManagerService(rpyc.Service):
 
         print('Connections :: {} //'.format(pformat(self.conns, indent=2, width=100)))
         return resp
-
-
-    def exposed_hello(self, hello=''):
-        """
-        For testing connection and setting a name.
-        """
-        str_addr = self._get_addr()
-        print(': Hello {} :: {}'.format(str_addr, hello))
-
-        with self.conn_lock:
-            old_data = self.conns.get(str_addr, {})
-            old_data.update({'hello': str(hello)})
-            self.conns[str_addr] = old_data
-
-        print('Connections :: {} //'.format(pformat(self.conns, indent=2, width=100)))
-        return True
 
 
     def _check_login(self):
@@ -339,12 +312,12 @@ class ExecutionManagerService(rpyc.Service):
 # # #
 
 
-    def exposed_registeredEps(self):
+    @classmethod
+    def exposed_registeredEps(self, user=None):
         """
         Return all registered EPs for a client.
-        The user is identified automatically.
+        The user MUST be given as a parameter.
         """
-        user = self._check_login()
         if not user: return False
         eps = []
 
@@ -355,6 +328,7 @@ class ExecutionManagerService(rpyc.Service):
                 # If this connection has registered EPs, append them
                 e = data.get('eps')
                 if e: eps.extend(e)
+
         return sorted(set(eps))
 
 
@@ -401,72 +375,80 @@ class ExecutionManagerService(rpyc.Service):
         return True
 
 
-    def exposed_startEP(self, epname):
+    @classmethod
+    def exposed_startEP(self, epname, usr=None):
         """
         Start EP for client.
         This must work from any ExecManager instance.
         """
-        user = self._check_login()
+        if isinstance(self, ExecutionManagerService):
+            user = self._check_login()
+        else:
+            user = usr
         if not user: return False
 
         conn = False
 
         # The EP that is required to be started is registered by a client
         # Must find the client that registered it, and use the RPyc connection
-        with self.conn_lock:
-            for str_addr, data in self.conns.iteritems():
-                # There might be more clients for a user...
-                # And this Addr might be an EP, not a client
-                if user == data['user'] and data['checked']:
-                    # If this connection has registered EPs
-                    eps = data.get('eps')
-                    if eps and epname in eps:
-                        conn = data['conn']
-                        break
+        for str_addr, data in self.conns.iteritems():
+            # There might be more clients for a user...
+            # And this Addr might be an EP, not a client
+            if user == data['user'] and data['checked']:
+                # If this connection has registered EPs
+                eps = data.get('eps')
+                if eps and epname in eps:
+                    conn = data['conn']
+                    break
 
         if not conn:
             logError('Unknown Execution Process: `{}` !'.format(epname))
             return False
 
         try:
-            logDebug('Starting `{} {}`...'.format(user, epname))
-            return conn.start_ep(epname)
+            result = conn.root.start_ep(epname)
+            logDebug('Starting `{} {}`... {}!'.format(user, epname, result))
+            return result
         except Exception as e:
             trace = traceback.format_exc()[34:].strip()
             logError('Error: Start EP error: {}'.format(trace))
             return False
 
 
-    def exposed_stopEP(self, epname):
+    @classmethod
+    def exposed_stopEP(self, epname, usr=None):
         """
         Stop EP for client.
         This must work from any ExecManager instance.
         """
-        user = self._check_login()
+        if isinstance(self, ExecutionManagerService):
+            user = self._check_login()
+        else:
+            user = usr
         if not user: return False
 
-        bgsrv = False
+        conn = False
 
-        # The EP that is required to be started is registered by a client
+        # The EP that is required to be stopped is registered by a client
         # Must find the client that registered it, and use the RPyc connection
-        with self.conn_lock:
-            for str_addr, data in self.conns.iteritems():
-                # There might be more clients for a user...
-                # And this Addr might be an EP, not a client
-                if user == data['user'] and data['checked']:
-                    # If this connection has registered EPs
-                    eps = data.get('eps')
-                    if eps and epname in eps:
-                        bgsrv = data.get('conn')
-                        break
+        for str_addr, data in self.conns.iteritems():
+            # There might be more clients for a user...
+            # And this Addr might be an EP, not a client
+            if user == data['user'] and data['checked']:
+                # If this connection has registered EPs
+                eps = data.get('eps')
+                if eps and epname in eps:
+                    conn = data['conn']
+                    break
 
-        if not bgsrv:
+        if not conn:
             logError('Unknown Execution Process: `{}` !'.format(epname))
             return False
 
         try:
-            logDebug('Stopping `{} {}`...'.format(user, epname))
-            return bgsrv._conn.root.stop_ep(epname)
+            result = conn.root.stop_ep(epname)
+            logDebug('Stopping `{} {}`... {}!'.format(user, epname, result))
+            return result
         except Exception as e:
             trace = traceback.format_exc()[34:].strip()
             logError('Error: Stop EP error: {}'.format(trace))

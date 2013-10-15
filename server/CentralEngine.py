@@ -37,7 +37,7 @@ import os
 import sys
 import thread
 import cherrypy
-from rpyc.utils.server import ThreadedServer
+from rpyc.utils.server import ThreadPoolServer
 
 if not sys.version.startswith('2.7'):
     print('Python version error! Central Engine must run on Python 2.7!')
@@ -76,7 +76,6 @@ if __name__ == "__main__":
             logCritical('Twister Server: Must start with parameter PORT number!')
             exit(1)
 
-    # rpyc server
     # RPyc config
     config = {
         'allow_pickle': True,
@@ -86,11 +85,11 @@ if __name__ == "__main__":
         'allow_all_attrs': True,
         }
 
-    rpycServer = ThreadedServer(ExecutionManagerService, port=8008, protocol_config=config)
+    rpycServer = ThreadPoolServer(ExecutionManagerService, port=8008, protocol_config=config)
 
     # Project manager does everything
     proj = Project()
-    proj.ee = rpycServer.service
+    proj.rsrv = rpycServer.service
     # CE is the XML-RPC interface
     ce = CentralEngine(proj)
 

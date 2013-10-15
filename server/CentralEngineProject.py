@@ -200,8 +200,8 @@ class Project(object):
         ti = time.time()
         logDebug('STARTING TWISTER SERVER {}...'.format(self.srv_ver))
 
+        self.rsrv    = None  # RPyc server pointer
         self.ip_port = None # Will be injected by the Central Engine CherryPy
-        self.ee      = None
         self.manager = ServiceManager()
         self.web   = WebInterface(self)
         self.ra    = ResourceAllocator(self)
@@ -1239,9 +1239,9 @@ class Project(object):
 
         # Send start/ stop command to EP !
         if new_status == STATUS_RUNNING:
-            self.ee.exposed_startEP(epname)
+            self.rsrv.exposed_startEP(epname, user)
         elif new_status == STATUS_STOP:
-            self.ee.exposed_stopEP(epname)
+            self.rsrv.exposed_stopEP(epname, user)
 
         # If all Stations are stopped, the status for current user is also stop!
         # This is important, so that in the Java GUI, the buttons will change to [Play | Stop]
@@ -1416,7 +1416,7 @@ class Project(object):
             for epname in active_eps:
                 if epname not in self.users[user]['eps']:
                     continue
-                self.ee.exposed_startEP(epname)
+                self.rsrv.exposed_startEP(epname, user)
 
         # If the engine is running, or paused and it received STOP from the user...
         elif (executionStatus == STATUS_RUNNING or executionStatus == STATUS_PAUSED) and new_status == STATUS_STOP:
@@ -1459,7 +1459,7 @@ class Project(object):
                         self.setFileInfo(user, epname, file_id, 'status', STATUS_NOT_EXEC)
                         statuses_changed += 1
                 # Send STOP to EP Manager
-                self.ee.exposed_stopEP(epname)
+                self.rsrv.exposed_stopEP(epname, user)
 
             if statuses_changed:
                 logDebug('Set Status: Changed `{}` file statuses from Pending to Not executed.'.format(statuses_changed))
