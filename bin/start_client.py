@@ -2,7 +2,7 @@
 
 # File: start_client.py ; This file is part of Twister.
 
-# version: 2.011
+# version: 2.012
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -42,7 +42,7 @@ from cherrypy import _cptools
 from ConfigParser import SafeConfigParser
 from json import loads as jsonLoads, dumps as jsonDumps
 from socket import gethostname, gethostbyaddr
-from thread import start_new_thread, allocate_lock
+from thread import start_new_thread
 
 #
 
@@ -111,8 +111,6 @@ class TwisterClientService(_cptools.XMLRPCController):
 
         self.eps = dict()
         self.proxyList = dict()
-
-        self.registerLock = allocate_lock()
 
         # Close all sniffer and ep instaces and parse eps
         pipe = subprocess.Popen('ps ax | grep start_packet_sniffer.py', shell=True, stdout=subprocess.PIPE)
@@ -226,6 +224,7 @@ class TwisterClientService(_cptools.XMLRPCController):
 
         # Try to register to Central Engine, forever
         while unregistered:
+            ce_down = list()
             for currentCE in proxyEpsList:
                 try:
                     proxy = self.eps[proxyEpsList[currentCE][0]]['proxy']
@@ -298,12 +297,15 @@ class TwisterClientService(_cptools.XMLRPCController):
                     unregistered = False
 
                 except Exception as e:
-                    self.proxyList.pop(currentCE)
+                    ce_down.append(currentCE)
                     print('Error: {er}'.format(er=e))
 
             if unregistered:
                 print('Error: Central Engine is down... will retry...')
             sleep(2)
+
+        for ce in ce_down:
+            self.proxyList.pop(ce)
 
         print('Client is now registered on CE.\n')
 
