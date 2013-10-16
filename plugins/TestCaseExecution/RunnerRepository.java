@@ -1,6 +1,6 @@
 /*
 File: RunnerRepository.java ; This file is part of Twister.
-Version: 2.0033
+Version: 2.0034
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -136,7 +136,8 @@ public class RunnerRepository {
                         background,notexecicon,pendingicon,skipicon,stoppedicon,
                         timeouticon,waiticon,workingicon,moduleicon,deviceicon,upicon,
                         addsuitaicon,removeicon,vlcclient,vlcserver,switche,optional,
-                        flootw,rack150,rack151,rack152,switche2,inicon,outicon,baricon;
+                        flootw,rack150,rack151,rack152,switche2,inicon,outicon,baricon,
+                        invalidicon;
     public static boolean run ;//signal that Twister is not closing
     public static boolean applet,initialized,sftpoccupied; //keeps track if twister is run from applet or localy;;stfpconnection flag
     public static IntroScreen introscreen;    
@@ -152,8 +153,8 @@ public class RunnerRepository {
     private static String[] lookAndFeels;
     public static Container container;
     private static Document pluginsconfig;
-    private static String version = "2.039";
-    private static String builddate = "14.10.2013";
+    private static String version = "2.040";
+    private static String builddate = "16.10.2013";
     public static String logotxt,os,python;
     
     public static void setStarter(Starter starter){
@@ -445,6 +446,7 @@ public class RunnerRepository {
             RunnerRepository.outicon = loadIcon("out.png");
             RunnerRepository.passwordicon = loadIcon("passwordicon.png");
             RunnerRepository.baricon = loadIcon("bar.png");
+            RunnerRepository.invalidicon = loadIcon("invalid.png");
         }
         catch(Exception e){e.printStackTrace();}
     }
@@ -783,8 +785,10 @@ public class RunnerRepository {
             doc.getDocumentElement().normalize();                
             window.mainpanel.p4.getEmails().setCheck(Boolean.parseBoolean(getTagContent(doc, "Enabled", "email config.")));
             String smtppath = getTagContent(doc, "SMTPPath", "email config.");
-            window.mainpanel.p4.getEmails().setIPName(smtppath.split(":")[0]);
-            window.mainpanel.p4.getEmails().setPort(smtppath.split(":")[1]);
+            if(smtppath.split(":").length==2){
+                window.mainpanel.p4.getEmails().setIPName(smtppath.split(":")[0]);
+                window.mainpanel.p4.getEmails().setPort(smtppath.split(":")[1]);
+            }
             window.mainpanel.p4.getEmails().setUser(getTagContent(doc, "SMTPUser", "email config."));
             window.mainpanel.p4.getEmails().setFrom(getTagContent(doc, "From", "email config."));
             window.mainpanel.p4.getEmails().setEmails(getTagContent(doc, "To", "email config."));
@@ -1252,6 +1256,9 @@ public class RunnerRepository {
         
     public static Image getTimeoutIcon(){
         return timeouticon;}
+        
+    public static Image getInvalidIcon(){
+        return invalidicon;}
         
     public static Image getSkippedIcon(){
         return skipicon;}
