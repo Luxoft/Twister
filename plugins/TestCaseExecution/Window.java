@@ -1,6 +1,6 @@
 /*
 File: Window.java ; This file is part of Twister.
-Version: 2.003
+Version: 2.004
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -49,7 +49,7 @@ import java.awt.event.ActionListener;
 public class Window extends JFrame{
     MainPanel mainpanel;//applet main container
     private static final long serialVersionUID = 1L;
-    Applet container;
+    Container container;
     JPanel appletpanel;
     public JButton logout, controlpanel;
     
@@ -58,7 +58,7 @@ public class Window extends JFrame{
      * container - if not null, applet container
      */
    
-    public Window(final boolean applet, Applet container){
+    public Window(final boolean applet, Container container){
         this.container = container;
         setTitle("Luxoft - Test Automation Framework");
         RunnerRepository.introscreen.setStatus("Started Frame initialization");
@@ -91,7 +91,7 @@ public class Window extends JFrame{
             appletpanel.add(logout);
             appletpanel.add(controlpanel);
             appletpanel.add(mainpanel);
-            
+            container.removeAll();
             container.setLayout(null);
             container.add(appletpanel);
         }
@@ -164,7 +164,7 @@ public class Window extends JFrame{
         RunnerRepository.introscreen.setStatus("Starting applet");
         RunnerRepository.introscreen.addPercent(1);
         RunnerRepository.introscreen.repaint();
-        RunnerRepository.introscreen.dispose();
+//         RunnerRepository.introscreen.dispose();
     }
     
     /*
