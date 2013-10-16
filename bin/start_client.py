@@ -42,7 +42,7 @@ from cherrypy import _cptools
 from ConfigParser import SafeConfigParser
 from json import loads as jsonLoads, dumps as jsonDumps
 from socket import gethostname, gethostbyaddr
-from thread import start_new_thread
+from thread import start_new_thread, allocate_lock
 
 #
 
@@ -90,6 +90,7 @@ def keepalive(service):
                         p=service.eps[currentEP]['ce_port']) == _proxy):
                     currentEP['proxy'] = newProxy
 
+            sleep(2.8)
             service.registerEPs(ce)
 
         sleep(0.8)
@@ -110,6 +111,8 @@ class TwisterClientService(_cptools.XMLRPCController):
 
         self.eps = dict()
         self.proxyList = dict()
+
+        self.registerLock = allocate_lock()
 
         # Close all sniffer and ep instaces and parse eps
         pipe = subprocess.Popen('ps ax | grep start_packet_sniffer.py', shell=True, stdout=subprocess.PIPE)
@@ -205,7 +208,7 @@ class TwisterClientService(_cptools.XMLRPCController):
             print('Starting Client Service register...')
 
         # List of Central Engine connections
-        proxyEpsList = {}
+        proxyEpsList = dict()
 
         for currentEP in self.eps:
             _proxy = '{}:{}'.format(self.eps[currentEP]['ce_ip'], self.eps[currentEP]['ce_port'])
@@ -295,6 +298,7 @@ class TwisterClientService(_cptools.XMLRPCController):
                     unregistered = False
 
                 except Exception as e:
+                    self.proxyList.pop(currentCE)
                     print('Error: {er}'.format(er=e))
 
             if unregistered:
