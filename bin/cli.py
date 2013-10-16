@@ -39,7 +39,7 @@ import os
 import time
 import datetime
 import binascii
-import xmlrpclib
+from rpyc.utils.factory import connect as rpycConnect
 import subprocess
 from optparse import OptionParser
 
@@ -344,8 +344,8 @@ if __name__ == '__main__':
 	# Test Central Engine valid IP + PORT
 	try:
 		server = options.server.rstrip('/') + '/'
-		proxy = xmlrpclib.ServerProxy(server)
-		ra = xmlrpclib.ServerProxy(server + 'ra/')
+		proxy = rpycConnect(server)
+		ra = rpycConnect(server + 'ra/')
 		# print('Connection to Central Engine at `{}` is ok.\n'.format(options.server))
 	except:
 		print('The server must be a valid IP and PORT combination ! Exiting !\n')
