@@ -1,6 +1,6 @@
 /*
 File: XMLReader.java ; This file is part of Twister.
-Version: 2.012
+Version: 2.013
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -283,13 +283,11 @@ public class XMLReader{
                     continue;
                 }
                 else if(fstNode.getNodeName().equals("tcdelay")){
-                    try{
-                        String delay = fstNode.getChildNodes().item(0).getNodeValue().toString();
-                        RunnerRepository.window.mainpanel.p1.suitaDetails.setDelay(delay);}
-                    catch(Exception e){
-                        e.printStackTrace();
-                        RunnerRepository.window.mainpanel.p1.suitaDetails.setDelay("");
-                    }
+                    String delay = "";
+                    try{delay = fstNode.getChildNodes().item(0).getNodeValue().toString();}
+                    catch(Exception e){}
+                    RunnerRepository.window.mainpanel.p1.suitaDetails.setDelay(delay);
+                    
                     continue;
                 }
                 else if(fstNode.getNodeName().equals("dbautosave")){
@@ -304,7 +302,7 @@ public class XMLReader{
                         String script = fstNode.getChildNodes().item(0).getNodeValue().toString();
                         RunnerRepository.window.mainpanel.p1.suitaDetails.setPreScript(script);}
                     catch(Exception e){
-                        e.printStackTrace();
+                        //e.printStackTrace();
                         RunnerRepository.window.mainpanel.p1.suitaDetails.setPreScript("");
                     }
                     continue;
@@ -321,22 +319,23 @@ public class XMLReader{
                     continue;
                 }
                 else if(fstNode.getNodeName().equals("ScriptPost")){
-                    try{
-                        String script = fstNode.getChildNodes().item(0).getNodeValue().toString();
-                        RunnerRepository.window.mainpanel.p1.suitaDetails.setPostScript(script);}
-                    catch(Exception e){
-                        e.printStackTrace();
-                        RunnerRepository.window.mainpanel.p1.suitaDetails.setPostScript("");
-                    }
+                    String script = "";
+                    try{script = fstNode.getChildNodes().item(0).getNodeValue().toString();}
+                    catch(Exception e){}
+                    RunnerRepository.window.mainpanel.p1.suitaDetails.setPostScript(script);
+//                     catch(Exception e){
+//                         e.printStackTrace();
+//                         RunnerRepository.window.mainpanel.p1.suitaDetails.setPostScript("");
+//                     }
                     continue;
                 }
                 else if(fstNode.getNodeName().equals("libraries")){
-                    try{
-                        String [] libraries = fstNode.getChildNodes().item(0).getNodeValue().toString().split(";");
-                        RunnerRepository.window.mainpanel.p1.suitaDetails.setGlobalLibs(libraries);}
-                    catch(Exception e){
-                        e.printStackTrace();
-                    }
+                    
+                        String [] libraries = {};
+                        try{libraries = fstNode.getChildNodes().item(0).getNodeValue().toString().split(";");}
+                        catch(Exception e){}
+                        RunnerRepository.window.mainpanel.p1.suitaDetails.setGlobalLibs(libraries);
+                    
                     continue;
                 }
             }
@@ -397,10 +396,14 @@ public class XMLReader{
 //                     fstNm = fstNmElmnt.getChildNodes();
 //                 } catch(Exception e){
                     try{fstNmElmntLst = fstElmnt.getElementsByTagName("SutName");
-                        fstNmElmnt = (Element)fstNmElmntLst.item(0);
-                        fstNm = fstNmElmnt.getChildNodes();
+                        if(fstNmElmntLst.getLength()>0){
+                            fstNmElmnt = (Element)fstNmElmntLst.item(0);
+                            fstNm = fstNmElmnt.getChildNodes();
+                        } else {
+                            System.out.println("There is an element that has no EpId or SutName!!!");
+                        }
                     } catch (Exception ex){
-                        System.out.println("There is an element that has no EpId or SutName!!!");
+                        
                         ex.printStackTrace();
                     }
 //                 }

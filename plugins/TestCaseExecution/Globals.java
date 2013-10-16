@@ -1,6 +1,6 @@
 /*
 File: Globals.java ; This file is part of Twister.
-Version: 2.006
+Version: 2.007
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -1054,6 +1054,11 @@ public class Globals {
             Node n = ((Element)node).getElementsByTagName("fname").item(0);
             MyFolder fname = new MyFolder(n.getFirstChild());
             n = ((Element)node).getElementsByTagName("fdesc").item(0);
+            if(n==null){
+                n = doc.createElement("fdesc");
+                ((Element)node).appendChild(n);
+            }
+            
             try{
                 if(n.getChildNodes().getLength()>0){
                     fname.setDesc(n.getFirstChild()); 
@@ -1064,9 +1069,6 @@ public class Globals {
                 }
             } catch (Exception e){
                 e.printStackTrace();
-//                 Node tn = doc.createTextNode("");
-//                 n.appendChild(tn);
-//                 fname.setDesc(tn);
             }
             DefaultMutableTreeNode temp = new DefaultMutableTreeNode(fname,true);
             parent.add(temp);
@@ -1087,6 +1089,10 @@ public class Globals {
                 temp.add(new DefaultMutableTreeNode(param,true));
                 
                 n = ((Element)nodes.item(i)).getElementsByTagName("desc").item(0);
+                if(n==null){
+                    n = doc.createElement("desc");
+                    ((Element)nodes.item(i)).appendChild(n);
+                }
                 if(n.getFirstChild()!=null){
                     param.setDesc(n.getFirstChild());
                 } else {
@@ -1096,6 +1102,10 @@ public class Globals {
                 }
                 
                 n = ((Element)nodes.item(i)).getElementsByTagName("type").item(0);
+                if(n==null){
+                    n = doc.createElement("type");
+                    ((Element)nodes.item(i)).appendChild(n);
+                }
                 if(n.getFirstChild()!=null){
                     param.setType(n.getFirstChild());
                 } else {

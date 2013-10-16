@@ -1,6 +1,6 @@
 /*
 File: ClearCasePanel.java ; This file is part of Twister.
-Version: 2.012
+Version: 2.013
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -111,7 +111,6 @@ import com.google.gson.JsonPrimitive;
 import javax.swing.JComboBox;
 import javax.swing.JCheckBox;
 import javax.swing.DefaultComboBoxModel;
-import javax.swing.GroupLayout;
 import java.awt.event.ItemListener;
 import java.awt.event.ItemEvent;
 import com.twister.Item;
@@ -127,6 +126,7 @@ import java.awt.dnd.DragSourceListener;
 import java.nio.file.Paths;
 import java.nio.file.Files;
 import java.nio.ByteBuffer;
+import javax.swing.GroupLayout;
 
 public class ClearCasePanel{
 
@@ -281,26 +281,9 @@ public class ClearCasePanel{
             } else {
                 remotefilename = tree.getSelectionPath().getLastPathComponent().toString();
             }
-//             if(tree.getSelectionPath().getPathCount()==2){
-//                 remotefilename = tree.getSelectionPath().getLastPathComponent().toString();
-//             } else {
-//                 remotefilename = tree.getSelectionPath().getPathComponent(
-//                                     tree.getSelectionPath().getPathCount() - 2)
-//                                     + "/" + tree.getSelectionPath().getLastPathComponent();
-//             }
-//             final String remotefilename = tree.getSelectionPath().getPathComponent(
-//                                     tree.getSelectionPath().getPathCount() - 2)
-//                                     + "/" + tree.getSelectionPath().getLastPathComponent();
             RunnerRepository.window.mainpanel.getP5().sendCommand("cleartool lsco "+remotefilename);
             String response = RunnerRepository.window.mainpanel.getP5().readOutput("cleartool lsco");
             if(response.indexOf("checkout")==-1){
-//                 item = new JMenuItem("View");
-//                 p.add(item);
-//                 item.addActionListener(new ActionListener() {
-//                     public void actionPerformed(ActionEvent ev) {
-//                         editTC(editable,false);
-//                     }
-//                 });
                 item = new JMenuItem("Checkout");
                 p.add(item);
                 item.addActionListener(new ActionListener() {
@@ -309,20 +292,6 @@ public class ClearCasePanel{
                     }
                 });
             } else {
-//                 item = new JMenuItem("Edit");
-//                 p.add(item);
-//                 item.addActionListener(new ActionListener() {
-//                     public void actionPerformed(ActionEvent ev) {
-//                         editTC(editable, true);
-//                     }
-//                 });
-//                 item = new JMenuItem("Edit with");
-//                 p.add(item);
-//                 item.addActionListener(new ActionListener() {
-//                     public void actionPerformed(ActionEvent evnt) {
-//                         editWith(editable,remotefilename,true);
-//                     }
-//                 });
                 item = new JMenuItem("Checkin");
                 p.add(item);
                 item.addActionListener(new ActionListener() {
@@ -442,7 +411,6 @@ public class ClearCasePanel{
             } else {
                 comment = " -c "+" \""+comment+"\" ";
             }
-//             RunnerRepository.window.mainpanel.getP5().sendCommand("cleartool co -c \""+comment+"\" "+remotefilename);
             RunnerRepository.window.mainpanel.getP5().sendCommand("cleartool co " +comment+remotefilename);
             String response = RunnerRepository.window.mainpanel.getP5().readOutput("cleartool co");
             if(response.indexOf("Error")!=-1){
@@ -506,13 +474,9 @@ public class ClearCasePanel{
                 } else {
                     RunnerRepository.window.mainpanel.getP5().sendCommand("cp "+remotefilename+" ~");
                     RunnerRepository.window.mainpanel.getP5().readOutput(null);
-//                      RunnerRepository.window.mainpanel.getP5().sendCommand("cp "+remotefilename+" ~", false);
-//                     RunnerRepository.window.mainpanel.getP5().readOutput(true);
                     File file2 = copyFileLocaly(editable, localfilename);
                     RunnerRepository.window.mainpanel.getP5().sendCommand("rm -f ~/"+editable);
                     RunnerRepository.window.mainpanel.getP5().readOutput(null);
-//                     RunnerRepository.window.mainpanel.getP5().sendCommand("rm -f ~/"+editable, false);
-//                     RunnerRepository.window.mainpanel.getP5().readOutput(true);
                     String execute = RunnerRepository.getEditors().get(ID)
                             .getAsString();
                     executeCommand(execute,localfilename);
@@ -540,63 +504,40 @@ public class ClearCasePanel{
         GroupLayout layout = new GroupLayout(p);
         p.setLayout(layout);
         layout.setHorizontalGroup(layout
-                .createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                .addGroup(
-                        layout.createSequentialGroup()
+                .createParallelGroup(GroupLayout.Alignment.LEADING)
+                .addGroup(layout.createSequentialGroup()
                                 .addContainerGap()
-                                .addGroup(
-                                        layout.createParallelGroup(
-                                                javax.swing.GroupLayout.Alignment.LEADING)
+                                .addGroup(layout.createParallelGroup(
+                                                GroupLayout.Alignment.LEADING)
                                                 .addComponent(jLabel1))
-                                .addPreferredGap(
-                                        javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                                 .addGroup(
                                         layout.createParallelGroup(
-                                                javax.swing.GroupLayout.Alignment.LEADING)
-                                                .addComponent(
-                                                        jComboBox1,
-                                                        javax.swing.GroupLayout.PREFERRED_SIZE,
-                                                        84,
-                                                        javax.swing.GroupLayout.PREFERRED_SIZE))
-                                .addContainerGap(
-                                        javax.swing.GroupLayout.DEFAULT_SIZE,
-                                        Short.MAX_VALUE)));
+                                                GroupLayout.Alignment.LEADING)
+                                                .addComponent(jComboBox1,
+                                                            GroupLayout.PREFERRED_SIZE,
+                                                            84,
+                                                            GroupLayout.PREFERRED_SIZE))
+                                .addContainerGap(GroupLayout.DEFAULT_SIZE,
+                                                Short.MAX_VALUE)));
         layout.setVerticalGroup(layout
-                .createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                .createParallelGroup(GroupLayout.Alignment.LEADING)
                 .addGroup(
                         layout.createSequentialGroup()
                                 .addContainerGap()
-                                .addGroup(
-                                        layout.createParallelGroup(
-                                                javax.swing.GroupLayout.Alignment.BASELINE)
+                                .addGroup(layout.createParallelGroup(
+                                                GroupLayout.Alignment.BASELINE)
                                                 .addComponent(jLabel1)
-                                                .addComponent(
-                                                        jComboBox1,
-                                                        javax.swing.GroupLayout.PREFERRED_SIZE,
-                                                        javax.swing.GroupLayout.DEFAULT_SIZE,
-                                                        javax.swing.GroupLayout.PREFERRED_SIZE))
-                                .addPreferredGap(
-                                        javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addGroup(
-                                        layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING))
-                                .addContainerGap(
-                                        javax.swing.GroupLayout.DEFAULT_SIZE,
-                                        Short.MAX_VALUE)));
+                                                .addComponent(jComboBox1,
+                                                                GroupLayout.PREFERRED_SIZE,
+                                                                GroupLayout.DEFAULT_SIZE,
+                                                                GroupLayout.PREFERRED_SIZE))
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addGroup(layout.createParallelGroup(GroupLayout.Alignment.TRAILING))
+                                .addContainerGap(GroupLayout.DEFAULT_SIZE,
+                                                Short.MAX_VALUE)));
         return p;
     }
-    
-//     /*
-//      * open unit testing window to edit editable 
-//      */
-//     public void unitTesting(String editable) {
-//         String remotefilename = tree.getSelectionPath().getPathComponent(
-//                 tree.getSelectionPath().getPathCount() - 2)
-//                 + "/" + tree.getSelectionPath().getLastPathComponent();
-//         String localfilename = RunnerRepository.temp + RunnerRepository.getBar()
-//                 + "Twister" + RunnerRepository.getBar()
-//                 + tree.getSelectionPath().getLastPathComponent();
-//         new UnitTesting(editable,localfilename,remotefilename);
-//     }
 
     /*
      * open default editor and edit selected TC
@@ -618,31 +559,17 @@ public class ClearCasePanel{
                 + tree.getSelectionPath().getLastPathComponent();
         System.out.println("localfilename: "+localfilename);  
         System.out.println("remotefilename: "+remotefilename);
-//         RunnerRepository.window.mainpanel.getP5().sendCommand("cat "+remotefilename, true);
         RunnerRepository.window.mainpanel.getP5().sendCommand("cp "+remotefilename+" ~");
         RunnerRepository.window.mainpanel.getP5().readOutput(null);
-//         RunnerRepository.window.mainpanel.getP5().sendCommand("cp "+remotefilename+" ~", false);
-//         RunnerRepository.window.mainpanel.getP5().readOutput(true);
         File file2 = copyFileLocaly(editable, localfilename);
-//         RunnerRepository.window.mainpanel.getP5().sendCommand("rm -f ~/"+editable, false);
-//         RunnerRepository.window.mainpanel.getP5().readOutput(true);
         RunnerRepository.window.mainpanel.getP5().sendCommand("rm -f ~/"+editable);
         RunnerRepository.window.mainpanel.getP5().readOutput(null);
-//         String content = RunnerRepository.window.mainpanel.getP5().readOutput(false);
-//         try{BufferedWriter out = new BufferedWriter(new FileWriter(localfilename));
-//             out.write(content);
-//             out.close();
-//         } catch (Exception e){
-//             e.printStackTrace();
-//         }
         
         if (defaulteditor.equals("Embedded")) {
             openEmbeddedEditor(editable, editable, localfilename, remotefilename,save);
         } else {
-//             File file2 = copyFileLocaly(remotefilename, localfilename);
             executeCommand(RunnerRepository.getEditors().get(defaulteditor).toString(),
                            localfilename);
-//             sendFileToServer(file2, remotefilename);
             file2.delete();
         }
     }
@@ -734,9 +661,6 @@ public class ClearCasePanel{
             textarea.setTokenMarker(new PerlTokenMarker());
         }
         f.add(textarea);
-//         JButton save = new JButton("Save");
-//         save.setPreferredSize(new Dimension(70, 20));
-//         save.setMaximumSize(new Dimension(70, 20));
         final File file = new File(localfile);
         JMenuBar menu = new JMenuBar();
         JMenu filemenu = new JMenu("File");
@@ -835,9 +759,6 @@ public class ClearCasePanel{
             FileInputStream in = new FileInputStream(localfile);
             connection.put(in, remotefile);
             in.close();
-            
-//             RunnerRepository.window.mainpanel.getP5().sendCommand("cp "+remotefile+" "+ctfile, false);
-//             String response = RunnerRepository.window.mainpanel.getP5().readOutput(true);
             RunnerRepository.window.mainpanel.getP5().sendCommand("cp "+remotefile+" "+ctfile);
             String response = RunnerRepository.window.mainpanel.getP5().readOutput(null);
             
@@ -873,61 +794,6 @@ public class ClearCasePanel{
     public boolean getDragging() {
         return dragging;
     }
-
-    /*
-     * construct the list for folders representation in jtree
-     */
-//     public void getList(DefaultMutableTreeNode node, ChannelSftp c, String curentdir) {
-//         try {
-//             DefaultMutableTreeNode child = new DefaultMutableTreeNode(curentdir);
-//             Vector<LsEntry> vector1 = c.ls(".");
-//             Vector<String> vector = new Vector<String>();
-//             Vector<String> folders = new Vector<String>();
-//             Vector<String> files = new Vector<String>();
-//             int lssize = vector1.size();
-//             if (lssize > 2) {
-//                 node.add(child);
-//             }
-//             String current;
-//             for (int i = 0; i < lssize; i++) {
-//                 if (vector1.get(i).getFilename().split("\\.").length == 0){
-//                     continue;
-//                 }
-//                 
-//                 if(vector1.get(i).getAttrs().isDir()){
-//                     folders.add(vector1.get(i).getFilename());
-//                 } else {
-//                     files.add(vector1.get(i).getFilename());
-//                 }
-//             }
-//             Collections.sort(folders);
-//             Collections.sort(files);
-//             for (int i = 0; i < folders.size(); i++) {
-//                 vector.add(folders.get(i));
-//             }
-//             for (int i = 0; i < files.size(); i++) {
-//                 vector.add(files.get(i));
-//             }
-//             for (int i = 0; i < vector.size(); i++) {
-//                 try {
-//                     current = c.pwd();
-//                     c.cd(vector.get(i));
-//                     getList(child, c,curentdir+"/"+vector.get(i));
-//                     c.cd(current);
-//                 } catch (SftpException e) {
-//                     if (e.id == 4) {
-//                         child2 = new DefaultMutableTreeNode(vector.get(i));
-//                         child.add(child2);
-//                     } else {
-//                         e.printStackTrace();
-//                     }
-//                 }
-//                 
-//             }
-//         } catch (Exception e) {
-//             e.printStackTrace();
-//         }
-//     }
     
     private void initializeSftp(){
         try{
