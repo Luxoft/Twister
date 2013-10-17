@@ -43,7 +43,7 @@ import time
 import datetime
 import traceback
 import socket
-socket.setdefaulttimeout(4)
+socket.setdefaulttimeout(5)
 import binascii
 import tarfile
 import xmlrpclib
@@ -331,8 +331,6 @@ class CentralEngine(_cptools.XMLRPCController):
         Function called from the Execution Process,
         to get information that is available only here, or are hard to get.
         """
-
-
         data = self.project.getUserInfo(user, variable)
         if data is None: data = False
         return data
@@ -344,7 +342,6 @@ class CentralEngine(_cptools.XMLRPCController):
         Function called from the Execution Process,
         to set information that is available only here, or are hard to get.
         """
-
         return self.project.setUserInfo(user, key, variable)
 
 
@@ -560,7 +557,9 @@ class CentralEngine(_cptools.XMLRPCController):
 
         try:
             logDebug('Trying to start `{} {}`.'.format(user, epname))
-            return proxy.startEP(epname)
+            r = proxy.startEP(epname)
+            del proxy
+            return r
         except Exception as e:
             trace = traceback.format_exc()[34:].strip()
             logError('Error: Start EP error: {}'.format(trace))
@@ -581,7 +580,9 @@ class CentralEngine(_cptools.XMLRPCController):
 
         try:
             logWarning('Trying to stop `{} {}`.'.format(user, epname))
-            return proxy.stopEP(epname)
+            r = proxy.stopEP(epname)
+            del proxy
+            return r
         except Exception as e:
             trace = traceback.format_exc()[34:].strip()
             logError('Error: Stop EP error: {}'.format(trace))
@@ -602,7 +603,9 @@ class CentralEngine(_cptools.XMLRPCController):
 
         try:
             logWarning('Trying to restart `{} {}`.'.format(user, epname))
-            return proxy.restartEP(epname)
+            r = proxy.restartEP(epname)
+            del proxy
+            return r
         except Exception as e:
             trace = traceback.format_exc()[34:].strip()
             logError('Error: Restart EP error: {}'.format(trace))
@@ -1029,6 +1032,7 @@ class CentralEngine(_cptools.XMLRPCController):
             logError('*ERROR* `{}` requested file list, but the EP is closed!'.format(epname))
             return False
 
+        # All data about the current file ID
         data = self.project.getFileInfo(user, epname, file_id)
         if not data:
             logError('*ERROR* Invalid File ID `{}` !'.format(file_id))
