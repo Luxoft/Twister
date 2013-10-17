@@ -45,6 +45,7 @@ if TWISTER_PATH not in sys.path:
 from common.constants  import *
 from common.helpers    import *
 from common.tsclogging import *
+from common.xmlparser  import *
 
 #
 
@@ -282,6 +283,9 @@ class ExecutionManagerService(rpyc.Service):
         return self.project.setFileInfo(user, epname, filename, variable, value)
 
 
+# # #   Global Variables and Config Files   # # #
+
+
     def exposed_getGlobalVariable(self, var_path):
         """
         Global variables
@@ -309,7 +313,7 @@ class ExecutionManagerService(rpyc.Service):
         return self.project.getGlobalVariable(user, var_path, cfg_path)
 
 
-# # #
+# # #   Register / Start / Stop EPs   # # #
 
 
     @classmethod
@@ -455,7 +459,7 @@ class ExecutionManagerService(rpyc.Service):
             return False
 
 
-# # #
+# # #   EP and File statuses   # # #
 
 
     def exposed_getEpStatus(self, epname):
@@ -545,7 +549,7 @@ class ExecutionManagerService(rpyc.Service):
         return self.project.setFileStatusAll(user, epname, new_status)
 
 
-# # #
+# # #   Download Files and Libraries   # # #
 
 
     def exposed_listLibraries(self, all=True):
@@ -604,6 +608,28 @@ class ExecutionManagerService(rpyc.Service):
             return data
 
 
+    def exposed_getEpFiles(self, epname):
+        """
+        Returns all files that must be run on one EP.
+        """
+        user = self._check_login()
+        if not user: return False
+        try: data = self.project.getEpFiles(user, epname)
+        except: data = False
+        return data
+
+
+    def exposed_getSuiteFiles(self, epname, suite):
+        """
+        Returns all files that must be run on one Suite ID.
+        """
+        user = self._check_login()
+        if not user: return False
+        try: data = self.project.getSuiteFiles(user, epname, suite)
+        except: data = False
+        return data
+
+
     def exposed_downloadFile(self, epname, file_info):
         """
         Sends requested file to the EP, to be executed.
@@ -647,29 +673,51 @@ class ExecutionManagerService(rpyc.Service):
             return handle.read()
 
 
-    def exposed_getEpFiles(self, epname):
-        """
-        Returns all files that must be run on one EP.
-        """
-        user = self._check_login()
-        if not user: return False
-        try: data = self.project.getEpFiles(user, epname)
-        except: data = False
-        return data
+# # #   Plugins   # # #
 
 
-    def exposed_getSuiteFiles(self, epname, suite):
+    def exposed_listPlugins(self):
         """
-        Returns all files that must be run on one Suite ID.
+        List all user plugins.
         """
         user = self._check_login()
         if not user: return False
-        try: data = self.project.getSuiteFiles(user, epname, suite)
-        except: data = False
-        return data
+        parser = PluginParser(user)
+        pluginsList = parser.getPlugins()
+        return pluginsList.keys()
 
 
-# # #
+    def exposed_runPlugin(self, plugin, args):
+        """
+        Exposed API for running plug-ins from Execution Processes.
+        """
+        user = self._check_login()
+        if not user: return False
+
+        # If argument is a valid dict, pass
+        if type(args) == type(dict()):
+            if not 'command' in args:
+                return '*ERROR* Invalid dictionary for plugin `{}` : {} !'.format(plugin, args)
+        else:
+            return '*ERROR* Invalid type of argument for plugin `{}` : {} !'.format(plugin, type(args))
+
+        plugin_p = self.project._buildPlugin(user, plugin)
+
+        if not plugin_p:
+            msg = '*ERROR* Plugin `{}` does not exist for user `{}`!'.format(plugin, user)
+            logError(msg)
+            return msg
+
+        try:
+            return plugin_p.run(args)
+        except:
+            trace = traceback.format_exc()[34:].strip()
+            logError('*ERROR* Plugin `{}`, ran with arguments `{}` and raised Exception: `{}`!'\
+                     .format(plugin, args, trace))
+            return 'Error on running plugin `{}` - Exception: `{}`!'.format(plugin, e)
+
+
+# # #   Logs   # # #
 
 
     def exposed_logMessage(self, logType, logMessage):
@@ -708,6 +756,49 @@ class ExecutionManagerService(rpyc.Service):
         user = self._check_login()
         if not user: return False
         return self.project.resetLogs(user)
+
+
+# # #   Resource Allocator   # # #
+
+
+    def exposed_getResource(self, query):
+        try: return self.project.ra.getResource(query)
+        except: return False
+
+
+    def exposed_setResource(self, name, parent=None, props={}):
+        try: return self.project.ra.setResource(name, parent, props)
+        except: return False
+
+
+    def exposed_renameResource(self, res_query, new_name):
+        try: return self.project.ra.renameResource(res_query, new_name)
+        except: return False
+
+
+    def exposed_deleteResource(self, query):
+        try: return self.project.ra.deleteResource(query)
+        except: return False
+
+
+    def exposed_getSut(self, query):
+        try: return self.project.ra.getSut(query)
+        except: return False
+
+
+    def exposed_setSut(self, name, parent=None, props={}):
+        try: return self.project.ra.setSut(name, parent, props)
+        except: return False
+
+
+    def exposed_renameSut(self, res_query, new_name):
+        try: return self.project.ra.renameSut(res_query, new_name)
+        except: return False
+
+
+    def exposed_deleteSut(self, query):
+        try: return self.project.ra.deleteSut(query)
+        except: return False
 
 
 # Eof()

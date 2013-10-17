@@ -1,7 +1,7 @@
 
 # File: TscCommonLib.py ; This file is part of Twister.
 
-# version: 2.004
+# version: 2.005
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -51,7 +51,6 @@ class TscCommonLib(object):
 
     platform_sys = platform.system().lower()
     proxy_path = PROXY
-    cherry_path = None
     userName = USER
     epName   = EP
     sutName  = SUT
@@ -64,7 +63,7 @@ class TscCommonLib(object):
         try:
             ce_ip, ce_port = self.proxy_path.split(':')
             self.ce_proxy = rpyc.connect(ce_ip, int(ce_port))
-            self.ce_proxy.root.hello()
+            self.ce_proxy.root.hello('lib::{}'.format(self.epName))
         except:
             print('*ERROR* Cannot connect to CE path `{}`! Exiting!'.format(self.proxy_path))
             exit(1)
@@ -77,17 +76,6 @@ class TscCommonLib(object):
         if not check:
             print('*ERROR* Cannot authenticate on CE path `{}`! Exiting!'.format(self.proxy_path))
             exit(1)
-
-        self.cherry_path = self.ce_proxy.root.cherryAddr()
-
-        try:
-            socket.create_connection(self.cherry_path, 2)
-        except:
-            raise Exception('Invalid ip:port `{}`!\n'.format(self.cherry_path))
-        try:
-            self.ra_proxy = xmlrpclib.ServerProxy('http://{0}:EP@{1[0]}:{1[1]}/ra/'.format(self.userName, self.cherry_path))
-        except:
-            raise Exception('Invalid Resource Allocator ip:port `{}`!\n'.format(self.cherry_path))
 
 
     def logMsg(self, logType, logMessage):
@@ -226,62 +214,62 @@ class TscCommonLib(object):
 
 
     def getResource(self, query):
-        try: return self.ra_proxy.getResource(query)
+        try: return self.ce_proxy.getResource(query)
         except: return None
 
 
     def setResource(self, name, parent=None, props={}):
-        try: return self.ra_proxy.setResource(name, parent, props)
+        try: return self.ce_proxy.setResource(name, parent, props)
         except: return None
 
 
     def renameResource(self, res_query, new_name):
-        try: return self.ra_proxy.renameResource(res_query, new_name)
+        try: return self.ce_proxy.renameResource(res_query, new_name)
         except: return None
 
 
     def deleteResource(self, query):
-        try: return self.ra_proxy.deleteResource(query)
+        try: return self.ce_proxy.deleteResource(query)
         except: return None
 
 
     def getSut(self, query):
-        try: return self.ra_proxy.getSut(query)
+        try: return self.ce_proxy.getSut(query)
         except: return None
 
 
     def setSut(self, name, parent=None, props={}):
-        try: return self.ra_proxy.setSut(name, parent, props)
+        try: return self.ce_proxy.setSut(name, parent, props)
         except: return None
 
 
     def renameSut(self, res_query, new_name):
-        try: return self.ra_proxy.renameSut(res_query, new_name)
+        try: return self.ce_proxy.renameSut(res_query, new_name)
         except: return None
 
 
     def deleteSut(self, query):
-        try: return self.ra_proxy.deleteSut(query)
+        try: return self.ce_proxy.deleteSut(query)
         except: return None
 
 
     def getResourceStatus(self, query):
-        try: return self.ra_proxy.getResourceStatus(query)
+        try: return self.ce_proxy.getResourceStatus(query)
         except: return None
 
 
     def allocResource(self, query):
-        try: return self.ra_proxy.allocResource(query)
+        try: return self.ce_proxy.allocResource(query)
         except: return None
 
 
     def reserveResource(self, query):
-        try: return self.ra_proxy.reserveResource(query)
+        try: return self.ce_proxy.reserveResource(query)
         except: return None
 
 
     def freeResource(self, query):
-        try: return self.ra_proxy.freeResource(query)
+        try: return self.ce_proxy.freeResource(query)
         except: return None
 
 

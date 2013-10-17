@@ -43,7 +43,7 @@ import time
 import datetime
 import traceback
 import socket
-socket.setdefaulttimeout(4)
+socket.setdefaulttimeout(5)
 import binascii
 import tarfile
 import xmlrpclib
@@ -336,7 +336,6 @@ class CentralEngine(_cptools.XMLRPCController):
         Function called from the Execution Process,
         to get information that is available only here, or are hard to get.
         """
-
         data = self.project.getUserInfo(user, variable)
         if data is None: data = False
         return data
@@ -348,7 +347,6 @@ class CentralEngine(_cptools.XMLRPCController):
         Function called from the Execution Process,
         to set information that is available only here, or are hard to get.
         """
-
         return self.project.setUserInfo(user, key, variable)
 
 
@@ -379,7 +377,6 @@ class CentralEngine(_cptools.XMLRPCController):
         - what the user selected in the Java GUI (release, build, comments, etc)
         - the name of the suite, the test files, etc.
         """
-
         data = self.project.getEpInfo(user, epname).get(variable, False)
         if compress:
             return pickle.dumps(data)
@@ -395,7 +392,6 @@ class CentralEngine(_cptools.XMLRPCController):
         The values can saved in the Database, when commiting.\n
         Eg: the OS, the IP, or other information can be added this way.
         """
-
         return self.project.setEpInfo(user, epname, variable, value)
 
 
@@ -419,7 +415,6 @@ class CentralEngine(_cptools.XMLRPCController):
         Function called from the Execution Process,
         to get information that is available only here, or are hard to get.
         """
-
         data = self.project.getSuiteInfo(user, epname, suite)
         if not data: return False
         return data.get(variable, False)
@@ -430,7 +425,6 @@ class CentralEngine(_cptools.XMLRPCController):
         """
         Get information about a test file: dependencies, runnable, status, etc.
         """
-
         data = self.project.getFileInfo(user, epname, file_id)
         if not data: return False
         return data.get(variable, False)
@@ -444,7 +438,6 @@ class CentralEngine(_cptools.XMLRPCController):
         This change only happens in the memory structure and it is reset every time
         Central Engine is start. If you need to make a persistent change, use setPersistentFile.
         """
-
         return self.project.setFileInfo(user, epname, filename, variable, value)
 
 
@@ -715,24 +708,22 @@ class CentralEngine(_cptools.XMLRPCController):
         # If argument is a valid dict, pass
         elif type(args) == type(dict()):
             if not 'command' in args:
-                return 'CE ERROR: Invalid dictionary for plugin `%s` : %s !' % (plugin, args)
+                return '*ERROR* Invalid dictionary for plugin `%s` : %s !' % (plugin, args)
         else:
-            return 'CE ERROR: Invalid type of argument for plugin `%s` : %s !' % (plugin, type(args))
+            return '*ERROR* Invalid type of argument for plugin `%s` : %s !' % (plugin, type(args))
 
         plugin_p = self.project._buildPlugin(user, plugin)
 
         if not plugin_p:
-            msg = 'CE ERROR: Plugin `{0}` does not exist for user `{1}`!'.format(plugin, user)
+            msg = '*ERROR* Plugin `{}` does not exist for user `{}`!'.format(plugin, user)
             logError(msg)
             return msg
-        # else:
-        #    logDebug('Running plugin:: `{0}` ; user `{1}` ; {2}'.format(plugin, user, args))
 
         try:
             return plugin_p.run(args)
-        except Exception as e:
+        except:
             trace = traceback.format_exc()[34:].strip()
-            logError('CE ERROR: Plugin `{}`, ran with arguments `{}` and returned EXCEPTION: `{}`!'\
+            logError('*ERROR* Plugin `{}`, ran with arguments `{}` and raised Exception: `{}`!'\
                      .format(plugin, args, trace))
             return 'Error on running plugin `{}` - Exception: `{}`!'.format(plugin, e)
 
