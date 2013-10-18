@@ -1657,7 +1657,11 @@ class Project(object):
         var_pointer = self._findGlobalVariable(user, node_path, globs_file)
 
         if not var_pointer:
-            logError('Global Variable: Invalid variable path `{}`, for user `{}`!'.format(node_path, user))
+            node_path = '/'.join(node_path)
+            if globs_file:
+                logError('Global Variable: Invalid variable path `{}` in file `{}`, for user `{}`!'.format(node_path, globs_file, user))
+            else:
+                logError('Global Variable: Invalid variable path `{}`, for user `{}`!'.format(node_path, user))
             return False
 
         return var_pointer
