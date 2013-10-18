@@ -188,6 +188,35 @@ class ExecutionManagerService(rpyc.Service):
 # # #
 
 
+    def exposed_encryptText(self, text):
+        """
+        Encrypt a piece of text, using AES.
+        """
+        if not text: return ''
+        user = self._check_login()
+        if not user: return False
+        return self.project.encryptText(user, text)
+
+
+    def exposed_decryptText(self, text):
+        """
+        Decrypt a piece of text, using AES.
+        """
+        if not text: return ''
+        user = self._check_login()
+        if not user: return False
+        return self.project.decryptText(user, text)
+
+
+    def exposed_usrManager(self, cmd, name='', *args, **kwargs):
+        """
+        Manage users, groups and permissions.
+        """
+        user = self._check_login()
+        if not user: return False
+        return self.project.usersAndGroupsManager(user, cmd, name, args, kwargs)
+
+
     def exposed_resetProject(self):
         """
         Reset user project, to reload all config files
@@ -734,7 +763,7 @@ class ExecutionManagerService(rpyc.Service):
 
         try:
             return plugin_p.run(args)
-        except:
+        except Exception as e:
             trace = traceback.format_exc()[34:].strip()
             logError('*ERROR* Plugin `{}`, ran with arguments `{}` and raised Exception: `{}`!'\
                      .format(plugin, args, trace))
