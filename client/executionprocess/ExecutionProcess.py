@@ -143,6 +143,7 @@ class Logger(object):
         """
         Close the logger.
         """
+        global epName
         if not self.stdout.closed:
             self.stdout.close()
         if not self.logfile.closed:

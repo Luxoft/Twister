@@ -59,7 +59,12 @@ class ExecutionManagerService(rpyc.Service):
     # This dictionary will contain pairs of:
     # - keys of connection ip+ports from remote locations
     # - values of meta info about each connection, like:
-    #   {'checked': True, 'user': '...', 'type': 'client | ep'}
+    #   {
+    #    'hello': 'client | ep | lib',
+    #    'checked': True, 'user': '...',
+    #    'conn': <Remote RPyc Service>,
+    #    'eps': ['...'],
+    #   }
     conns = {}
     conn_lock = thread.allocate_lock()
 
@@ -162,7 +167,7 @@ class ExecutionManagerService(rpyc.Service):
             old_data.update({'checked': resp, 'user': user})
             self.conns[str_addr] = old_data
 
-        print('Connections :: {} //'.format(pformat(self.conns, indent=2, width=100)))
+        # print('Connections :: {} //'.format(pformat(self.conns, indent=2, width=100)))
         return resp
 
 
@@ -220,7 +225,8 @@ class ExecutionManagerService(rpyc.Service):
         """
         user = self._check_login()
         if not user: return False
-        return self.project.getUserInfo(user, 'eps').keys()
+        eps = self.project.getUserInfo(user, 'eps').keys()
+        return list(eps) # Making a copy
 
 
     def exposed_getEpVariable(self, epname, variable):
@@ -405,6 +411,9 @@ class ExecutionManagerService(rpyc.Service):
         # The EP that is required to be started is registered by a client
         # Must find the client that registered it, and use the RPyc connection
         for str_addr, data in self.conns.iteritems():
+            # Skip invalid connections, without log-in
+            if not data.get('user') or not data.get('checked'):
+                continue
             # There might be more clients for a user...
             # And this Addr might be an EP, not a client
             if user == data['user'] and data['checked']:
@@ -445,6 +454,9 @@ class ExecutionManagerService(rpyc.Service):
         # The EP that is required to be stopped is registered by a client
         # Must find the client that registered it, and use the RPyc connection
         for str_addr, data in self.conns.iteritems():
+            # Skip invalid connections, without log-in
+            if not data.get('user') or not data.get('checked'):
+                continue
             # There might be more clients for a user...
             # And this Addr might be an EP, not a client
             if user == data['user'] and data['checked']:
@@ -727,6 +739,15 @@ class ExecutionManagerService(rpyc.Service):
 
 
 # # #   Logs   # # #
+
+
+    def exposed_getLogFile(self, read, fstart, filename):
+        """
+        Used to show the logs.
+        """
+        user = self._check_login()
+        if not user: return False
+        return self.project.getLogFile(user, read, fstart, filename)
 
 
     def exposed_logMessage(self, logType, logMessage):

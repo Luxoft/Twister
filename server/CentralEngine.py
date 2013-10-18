@@ -85,7 +85,19 @@ if __name__ == "__main__":
         'allow_all_attrs': True,
         }
 
-    rpycServer = ThreadPoolServer(ExecutionManagerService, port=8008, protocol_config=config)
+    # Search for a free port in the safe range to start the RPyc server...
+    rpycPort, maxPort = 8008, 8040
+    while rpycPort <= maxPort:
+        try:
+            rpycServer = ThreadPoolServer(ExecutionManagerService, port=rpycPort, protocol_config=config)
+        except:
+            rpycServer = None
+            rpycPort += 1
+        # Server created ?
+        if rpycServer: break
+    if not rpycServer:
+        logCritical('Twister Server: Cannot launch the RPyc server!')
+        exit(1)
 
     # Project manager does everything
     proj = Project()
@@ -102,7 +114,7 @@ if __name__ == "__main__":
     # Inject the project as variable for EE
     rpycServer.service.inject_object('project', proj)
     rpycServer.service.inject_object('cherry', ce)
-
+    # Less spam please !
     rpycServer.logger.setLevel(30)
 
     # start rpyc server
