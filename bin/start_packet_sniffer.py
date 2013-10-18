@@ -75,7 +75,7 @@ if __name__ == "__main__":
 
     from common.configobj import ConfigObj
 
-    from services.PacketSniffer.PacketSniffer import PacketSniffer
+    from services.PacketSniffer.PacketSniffer import Sniffer
 
     # load execution process configuration
     epConfig = ConfigObj(options.twister_path + '/config/epname.ini')
@@ -83,7 +83,7 @@ if __name__ == "__main__":
     epConfig = list(epConfig.itervalues())
 
     # initiate and start sniffer
-    sniffer = PacketSniffer(user=options.user, epConfig=epConfig,
+    sniffer = Sniffer(user=options.user, epConfig=epConfig,
                         OFPort=options.of_port, iface=options.eth_interface)
 
     print 'Packet Sniffer start..'

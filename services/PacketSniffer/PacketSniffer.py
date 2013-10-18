@@ -28,9 +28,9 @@
 
 from binascii import b2a_base64
 
-from xmlrpclib import ServerProxy
 from rpyc import Service as rpycService
-from rpyc.utils.server import ThreadedServer as rpycThreadedServer
+from rpyc import connect as rpycConnect
+from rpyc.utils.helpers import BgServingThread as rpycBgServingThread
 from uuid import uuid4
 from time import sleep
 from copy import deepcopy
@@ -40,7 +40,7 @@ from scapy.all import Automaton, ATMT, TCP, bind_layers, Packet, NoPayload, Raw
 #from PacketSnifferClasses import OpenFlow, CentralEngineObject
 
 from sys import maxsize
-from socket import gethostname, gethostbyname, socket, AF_INET, SOCK_DGRAM, inet_ntoa, create_connection
+from socket import gethostname, gethostbyname, socket, AF_INET, SOCK_DGRAM, inet_ntoa
 from fcntl import ioctl
 from struct import unpack, pack
 from array import array
@@ -73,72 +73,6 @@ def all_interfaces():
 			for i in range(0, outbytes, struct_size)]
 
 
-class PacketSniffer():
-	"""  """
-
-	def __init__(self, user, epConfig, OFPort=None, iface=None):
-		"""  """
-
-		self.rpycThreadedServer = None
-
-		# port range
-		minport, maxport = 4444, 4488
-
-		self.clientPort = 4444
-
-		# find firs free port in range ..
-		while self.clientPort <= maxport:
-			try:
-				self.rpycThreadedServer = rpycThreadedServer(service=PacketSnifferService,
-																port=self.clientPort,
-																protocol_config={
-																	'allow_all_attrs': True,
-																	'allow_pickle': True,
-																	'allow_getattr': True,
-																	'allow_setattr': True,
-																	'allow_delattr': True})
-				self.sniffer = Sniffer(user, epConfig, self.rpycThreadedServer, OFPort, iface)
-				self.rpycThreadedServer.service.sniffer = self.sniffer
-				break
-			except Exception as e:
-				print(e)
-				print('Sniffer warning, the port `{}` is taken!'.format(self.clientPort))
-				self.clientPort += 1
-
-				if self.clientPort > maxport:
-					print('Cound not find any free port in range {} - {} !'.format(minport, maxport))
-					self.rpycThreadedServer = None
-					self.sniffer = None
-					self.clientPort = None
-
-
-	def run(self):
-		"""  """
-
-		if not self.rpycThreadedServer:
-			print('Error: server not started')
-
-		print('Sniffer will start on : `0.0.0.0:{}`.'.format(self.clientPort))
-
-		self.sniffer.runbg()
-		try:
-			self.rpycThreadedServer.start()
-		except (KeyboardInterrupt, SystemExit):
-			pass
-		self.stop()
-
-
-	def stop(self):
-		"""  """
-
-		print('Terminating..')
-
-		self.sniffer.stop()
-		self.rpycThreadedServer.close()
-
-		print('Terminated.')
-
-
 
 
 class Sniffer(Automaton):
@@ -146,16 +80,16 @@ class Sniffer(Automaton):
 	Packet Sniffer Scapy Automaton
 	"""
 
-	def parse_args(self, user, epConfig, rpycConn, OFPort=None, _iface=None):
+	def parse_args(self, user, epConfig, OFPort=None, iface=None):
 		Automaton.parse_args(self)
 
 		self.has_iface = None
-		if _iface:
+		if iface:
 			ifaces = all_interfaces()
-			for __iface in ifaces:
-				if _iface in __iface:
+			for _iface in ifaces:
+				if iface in _iface:
 					self.has_iface = True
-					self.socket_kargs = {'iface': _iface, }
+					self.socket_kargs = {'iface': iface, }
 			if not self.has_iface:
 				self.has_iface = False
 
@@ -175,9 +109,6 @@ class Sniffer(Automaton):
 		self.username = user
 		self.userip = gethostbyname(gethostname())
 		self.userhost = gethostname()
-
-		# rpyc server
-		self.rpycConn = rpycConn
 
 		# CE / EP
 		self.epConfig = epConfig
@@ -243,15 +174,55 @@ class Sniffer(Automaton):
 
 		# Try to ping status from CE!
 		ceObjects = dict()
+		registered = False
 		for ce in ce_list:
 			try:
-				create_connection((ce[0], ce[1]), 2)
-				ceObjects.update([('{ip}:{port}'.format(ip=ce[0], port=ce[1]),
-								ServerProxy('http://{us}:EP@{ip}:{port}/'.format(us=self.username,
-																		ip=ce[0], port=ce[1]))), ])
+				connection = rpycConnect(host=ce[0],
+											port=int(ce[1]),
+											service=PacketSnifferService,
+											config={
+												'allow_all_attrs': True,
+												'allow_pickle': True,
+												'allow_getattr': True,
+												'allow_setattr': True,
+												'allow_delattr': True})
+				rpycBgServingThread(connection)
+				ceObjects.update([('{ip}:{port}'.format(ip=ce[0], port=ce[1]), connection), ])
+
+
+				args = {
+					'command': 'registersniff',
+					'data': int(ce[1])
+				}
+				try:
+					# hello
+					hello = ceObjects['{ip}:{port}'.format(ip=ce[0], port=ce[1])].root.hello('sniffer')
+
+					if not hello:
+						print('PT warning: could not send hello to central engine {}..'.format(ce))
+						continue
+
+					# authenticate
+					authenticated = ceObjects['{ip}:{port}'.format(ip=ce[0], port=ce[1])].root.login(self.username, 'EP')
+
+					if not authenticated:
+						print('PT warning: could not authenticate to central engine {}..'.format(ce))
+						continue
+
+					PacketSnifferService.sniffer = self
+
+					# create user if ep is not running
+					status = ceObjects['{ip}:{port}'.format(ip=ce[0], port=ce[1])].root.getEpStatusAll()
+
+					registered = True
+					print('PT info: registered to central engine {}..'.format(ce))
+				except Exception as e:
+					print 'PT debug: register CE {err}'.format(err=e)
+
 				self.reinitRetries = 0
 			except Exception as e:
 				print 'PT warning: Central Engine is down .... [{0}]'.format(e)
+
 
 		if not ceObjects:
 			if self.reinitRetries < self.reinitMaxRetries:
@@ -262,32 +233,6 @@ class Sniffer(Automaton):
 				self.registerCE(self.ceTraffic)
 			else:
 				raise self.END()
-
-		args = {
-			'command': 'registersniff',
-			'data': self.rpycConn.port
-		}
-
-		registered = False
-		try:
-			for ce in ceObjects:
-				# create user if ep is not running
-				ceObjects[ce].getExecStatusAll(self.username)
-
-				pluginData = ceObjects[ce].runPlugin(self.username, 'PacketSnifferPlugin', args)
-
-				if not isinstance(pluginData, dict):
-					print('PT debug: {}'.format(pluginData))
-
-				if pluginData['status']['success']:
-					registered = True
-					print('registered to central engine {}..'.format(ce))
-				else:
-					print('could not register to central engine {}..'.format(ce))
-					print(pluginData['status']['message'])
-		except Exception as e:
-			print 'PT debug: register CE {err}'.format(err=e)
-			return False
 
 		if not registered:
 			return False
@@ -343,9 +288,6 @@ class Sniffer(Automaton):
 
 		print '|||| BEGIN ||||'
 
-		while not self.rpycConn.active:
-			sleep(0.8)
-
 		response = self.registerCE(self.ceTraffic)
 		if not response:
 			raise self.END()
@@ -388,11 +330,12 @@ class Sniffer(Automaton):
 		}
 		data['packet_head'].update([('id', str(uuid4())), ])
 
-		with self.rpycConn.service.connectionsLock:
-			for conn in self.rpycConn.service.connections:
-				if self.rpycConn.service.connections[conn]:
+		with PacketSnifferService.connectionsLock:
+			for conn in PacketSnifferService.connections:
+				if PacketSnifferService.connections[conn]:
 					try:
-						self.rpycConn.service.connections[conn].pushpkt(data)
+						PacketSnifferService.connections[conn].runPlugin({'command': 'pushpkt',
+																			'data': data})
 					except Exception as e:
 						print('error: {}'.format(e))
 						#pass
@@ -461,9 +404,9 @@ class PacketSnifferService(rpycService):
 			with self.connectionsLock:
 				self.connections.update([('{ip}:{port}'.format(ip=client_addr[0], port=client_addr[1]), None), ])
 
-			print('Connected from `{}`.'.format(client_addr))
+			print('PT debug: Connected from `{}`.'.format(client_addr))
 		except Exception as e:
-			print('Connect error: {er}'.format(er=e))
+			print('PT debug: Connect error: {er}'.format(er=e))
 
 
 	def on_disconnect(self):
@@ -475,12 +418,12 @@ class PacketSnifferService(rpycService):
 			with self.connectionsLock:
 				self.connections.pop('{ip}:{port}'.format(ip=client_addr[0], port=client_addr[1]))
 
-			print('Disconnected from `{ip}:{port}`.'.format(ip=client_addr[0], port=client_addr[1]))
+			print('PT debug: Disconnected from `{ip}:{port}`.'.format(ip=client_addr[0], port=client_addr[1]))
 
 			if self.sniffer:
 				self.sniffer.registerCE([(client_addr[0], client_addr[1])])
 		except Exception as e:
-			print('Disconnect error: {er}'.format(er=e))
+			print('PT debug: Disconnect error: {er}'.format(er=e))
 
 		if not self.connections and self.sniffer:
 			self.sniffer.registerCE(self.sniffer.ceTraffic)
@@ -504,9 +447,9 @@ class PacketSnifferService(rpycService):
 
 			#print(self.connections['{ip}:{port}'.format(ip=client_addr[0], port=client_addr[1])]._conn.root.pushpkt({'test': 1}))
 
-			print('Hello from {}'.format(client_addr))
+			print('PT debug: Hello from {}'.format(client_addr))
 		except Exception as e:
-			print('Hello error: {er}'.format(er=e))
+			print('PT debug: Hello error: {er}'.format(er=e))
 
 
 	def exposed_start(self):

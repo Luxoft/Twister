@@ -58,6 +58,33 @@ from BasePlugin import BasePlugin
 
 
 
+def packet_to_dict(self, packet):
+        """ Recursive function to parse packet and return dict """
+
+        if isinstance(packet, Packet):
+            _packet = packet.fields
+            if not isinstance(packet.payload, NoPayload):
+                _packet['payload'] = packet.payload
+
+            return {packet.name: self.packet_to_dict(_packet)}
+
+        elif isinstance(packet, dict):
+            for k,v in packet.iteritems():
+                packet[k] = self.packet_to_dict(v)
+
+            return packet
+
+        elif isinstance(packet, list):
+            for v in packet:
+                packet[packet.index(v)] = self.packet_to_dict(v)
+
+        else:
+
+            return packet
+
+
+
+
 class Plugin(BasePlugin):
     """
     Packet Sniffer plugin.
@@ -99,7 +126,7 @@ class Plugin(BasePlugin):
                 'setfilters',
             ],
             'argumented': [
-                'query', 'querypkt',
+                'query', 'querypkt', 'pushpkt'
             ]
         }
 
@@ -298,6 +325,65 @@ class Plugin(BasePlugin):
                     response['status']['message'] = 'command data not valid: \
                                                         {err}'.format(err=e)
 
+        # # pushpkt
+        elif args['command'] == 'pushpkt':
+            response['type'] = 'pushpkt reply'
+
+
+            #packet = deepcopy(packet)
+            packet = args['data']
+            packet.update([('packet_source', Ether(packet['packet_source'])), ])
+
+            print('||||||||||||||||||||||||||||||||||')
+            print(self.data['ce'])
+            print('||||||||||||||||||||||||||||||||||')
+            #self.data['ce']
+
+            if (self.connections.has_key(str(self))
+                and self.connections[str(self)] in
+                [packet['packet_head']['source']['port'], packet['packet_head']['destination']['port']]
+                and of_message_parse):
+                try:
+                    _packet = of_message_parse(str(packet['packet_source'].payload.payload.load))
+                    _packet = _packet.show()
+                except Exception as e:
+                    _packet = self.packet_to_dict(packet['packet_source'])
+            else:
+                _packet = self.packet_to_dict(packet['packet_source'])
+
+            packet.update([('packet_dict' , _packet), ])
+            with self.plugin.packetsLock:
+                self.plugin.packets.append(packet)
+
+            if len(self.plugin.packets) >= self.plugin.packetsIndexLimit:
+                del self.plugin.packets[:self.plugin.data['packetsBuffer']]
+
+
+
+
+
+
+            args['data'] = literal_eval(a2b_base64(args['data']))
+            for packet in args['data']:
+                try:
+                    _packet = literal_eval(a2b_base64(packet))
+                    self.packets.append(_packet)
+                except Exception, e:
+                    response['status']['success'] = False
+                    response['status']['message'] = 'command data not valid: \
+                                                        {err}'.format(err=e)
+
+            if len(self.packets) >= self.packetsIndexLimit:
+                del self.packets[:int(self.data['packetsBuffer'])]
+
+
+
+
+
+
+
+
+
         # savepcap
         elif args['command'] == 'savepcap':
             response['type'] = 'savepcap reply'
@@ -369,54 +455,12 @@ class PluginService(rpycService):
             print('push packet error: no plugin')
             return False
 
-        packet = deepcopy(packet)
-        packet.update([('packet_source', Ether(packet['packet_source'])), ])
 
-        if (self.connections.has_key(str(self))
-            and self.connections[str(self)] in
-            [packet['packet_head']['source']['port'], packet['packet_head']['destination']['port']]
-            and of_message_parse):
-            try:
-                _packet = of_message_parse(str(packet['packet_source'].payload.payload.load))
-                _packet = _packet.show()
-            except Exception as e:
-                _packet = self.packet_to_dict(packet['packet_source'])
-        else:
-            _packet = self.packet_to_dict(packet['packet_source'])
-
-        packet.update([('packet_dict' , _packet), ])
-        with self.plugin.packetsLock:
-            self.plugin.packets.append(packet)
-
-        if len(self.plugin.packets) >= self.plugin.packetsIndexLimit:
-            del self.plugin.packets[:self.plugin.data['packetsBuffer']]
 
         return True
 
 
-    def packet_to_dict(self, packet):
-        """ Recursive function to parse packet and return dict """
 
-        if isinstance(packet, Packet):
-            _packet = packet.fields
-            if not isinstance(packet.payload, NoPayload):
-                _packet['payload'] = packet.payload
-
-            return {packet.name: self.packet_to_dict(_packet)}
-
-        elif isinstance(packet, dict):
-            for k,v in packet.iteritems():
-                packet[k] = self.packet_to_dict(v)
-
-            return packet
-
-        elif isinstance(packet, list):
-            for v in packet:
-                packet[packet.index(v)] = self.packet_to_dict(v)
-
-        else:
-
-            return packet
 
 
 
