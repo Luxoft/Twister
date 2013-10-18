@@ -140,7 +140,6 @@ class TwisterClient(object):
         try:
             proxy = rpyc.connect(ce_ip, ce_port, service=TwisterClientService, config=config)
             proxy.root.hello('client')
-            bg = BgServingThread(proxy)
             print('Client Debug: Connected to CE at `{}:{}`...'.format(ce_ip, ce_port))
         except Exception as e:
             if debug:
@@ -150,6 +149,7 @@ class TwisterClient(object):
         # Authenticate on RPyc server
         try:
             check = proxy.root.login(self.userName, 'EP')
+            bg = BgServingThread(proxy)
             print('Client Debug: Authentication successful!\n')
         except Exception as e:
             check = False

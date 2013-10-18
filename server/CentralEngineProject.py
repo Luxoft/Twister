@@ -1273,8 +1273,14 @@ class Project(object):
                     # On Central Engine stop, save to database
                     db_auto_save = self.getUserInfo(user, 'db_auto_save')
                     if db_auto_save and save_to_db:
+                        logDebug('Project: Preparing to save into database...')
                         time.sleep(2) # Wait all the logs
-                        self.saveToDatabase(user)
+                        ret = self.saveToDatabase(user)
+                        if ret:
+                            logDebug('Project: Saving to database was successful!')
+                        else:
+                            logDebug('Project: Could not save to database!')
+                        return ret
 
                     # Find the log process for this User and ask it to Exit
                     conn = self.loggers.get(user, {}).get('conn', None)
@@ -1539,7 +1545,7 @@ class Project(object):
             return False
         if new_status not in testStatus.values():
             logError('Project: Status value `{}` is not in the list of defined statuses: `{}`!'
-                     ''.format(new_status, testStatus.values()) )
+                     ''.format(new_status, sorted(testStatus.values())) )
             return False
 
         data = self.getFileInfo(user, epname, file_id)

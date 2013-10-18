@@ -544,6 +544,8 @@ class ResourceAllocator(_cptools.XMLRPCController):
                 return False
             resources = self.systems
 
+        root_name = ROOT_NAMES[root_id]
+
         # If this is the root resource, update the properties
         if name == '/' and parent == '/':
             if isinstance(props, dict):
@@ -567,7 +569,6 @@ class ResourceAllocator(_cptools.XMLRPCController):
             logDebug('Set {}: Updated ROOT with properties: `{}`.'.format(root_name, props))
             return True
 
-        root_name = ROOT_NAMES[root_id]
         parent_p = _get_res_pointer(resources, parent)
 
         if not parent_p:
