@@ -205,7 +205,7 @@ class Sniffer(Automaton):
 				PacketSnifferService.sniffer = self
 
 				# create user if ep is not running
-				#self.ceObjects['{ip}:{port}'.format(ip=ce[0], port=ce[1])].root.getEpStatusAll()
+				#self.ceObjects['{ip}:{port}'.format(ip=ce[0], port=ce[1])].root.listEPs()
 
 				registered = True
 				self.reinitRetries = 0
@@ -325,9 +325,12 @@ class Sniffer(Automaton):
 			for conn in PacketSnifferService.connections:
 				if PacketSnifferService.connections[conn]:
 					try:
-						PacketSnifferService.connections[conn].runPlugin('PacketSnifferPlugin',
+						response = PacketSnifferService.connections[conn].runPlugin('PacketSnifferPlugin',
 																		{'command': 'pushpkt',
 																			'data': data})
+						if (not isinstance(response, dict) or not response.has_key('status') or
+							not response['status']['success']):
+							print('PT debug: Push packet error: {}'.format(response))
 					except Exception as e:
 						print('PT debug: Push packet error: {}'.format(e))
 						#pass
