@@ -149,7 +149,6 @@ class TwisterClient(object):
         # Authenticate on RPyc server
         try:
             check = proxy.root.login(self.userName, 'EP')
-            bg = BgServingThread(proxy)
             print('Client Debug: Authentication successful!\n')
         except Exception as e:
             check = False
@@ -158,6 +157,7 @@ class TwisterClient(object):
             print('*ERROR* Cannot authenticate on CE path `{}:{}`!'.format(ce_ip, ce_port))
             return None
 
+        bg = BgServingThread(proxy)
         return proxy
 
 #

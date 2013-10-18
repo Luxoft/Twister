@@ -716,11 +716,14 @@ class ExecutionManagerService(rpyc.Service):
         if not user: return False
 
         # If argument is a valid dict, pass
-        if type(args) == type(dict()):
+        if isinstance(args, type({})):
             if not 'command' in args:
                 return '*ERROR* Invalid dictionary for plugin `{}` : {} !'.format(plugin, args)
         else:
-            return '*ERROR* Invalid type of argument for plugin `{}` : {} !'.format(plugin, type(args))
+            try:
+                args = dict(args)
+            except:
+                return '*ERROR* Invalid type of argument for plugin `{}` : {} !'.format(plugin, type(args))
 
         plugin_p = self.project._buildPlugin(user, plugin)
 
