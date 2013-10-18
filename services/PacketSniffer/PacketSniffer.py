@@ -34,7 +34,7 @@ from rpyc.utils.helpers import BgServingThread as rpycBgServingThread
 from uuid import uuid4
 from time import sleep
 from copy import deepcopy
-from thread import start_new_thread, allocate_lock
+from thread import allocate_lock
 from scapy.all import Automaton, ATMT, TCP, bind_layers, Packet, NoPayload, Raw
 
 #from PacketSnifferClasses import OpenFlow, CentralEngineObject
@@ -92,10 +92,9 @@ class Sniffer(Automaton):
 					self.socket_kargs = {'iface': iface, }
 			if not self.has_iface:
 				self.has_iface = False
-
 				print 'PT debug: set iface error: no such device'
 
-		self.PAUSED = True
+		self.PAUSED = False
 		self.OFPort = (OFPort, 6633)[OFPort is None]
 
 		# openflow packet model connect
@@ -111,6 +110,7 @@ class Sniffer(Automaton):
 		self.userhost = gethostname()
 
 		# CE / EP
+		self.ceObjects = dict()
 		self.epConfig = epConfig
 		self.ceTraffic = list(set([(ep['CE_IP'], ep['CE_PORT']) for ep in self.epConfig]))
 		self.uid = uuid4()
@@ -172,11 +172,10 @@ class Sniffer(Automaton):
 
 		print('PT: starting register..')
 
-		# Try to ping status from CE!
-		ceObjects = dict()
 		registered = False
 		for ce in ce_list:
 			try:
+				# Try to connect to CE!
 				connection = rpycConnect(host=ce[0],
 											port=int(ce[1]),
 											service=PacketSnifferService,
@@ -186,45 +185,37 @@ class Sniffer(Automaton):
 												'allow_getattr': True,
 												'allow_setattr': True,
 												'allow_delattr': True})
+
+				# hello
+				hello = connection.root.hello('sniffer')
+
+				if not hello:
+					print('PT warning: Could not send hello to central engine {}..'.format(ce))
+					continue
+
+				# authenticate
+				authenticated = connection.root.login(self.username, 'EP')
+
+				if not authenticated:
+					print('PT warning: Could not authenticate to central engine {}..'.format(ce))
+					continue
+
 				rpycBgServingThread(connection)
-				ceObjects.update([('{ip}:{port}'.format(ip=ce[0], port=ce[1]), connection), ])
+				self.ceObjects.update([('{ip}:{port}'.format(ip=ce[0], port=ce[1]), connection), ])
+				PacketSnifferService.sniffer = self
 
+				# create user if ep is not running
+				#self.ceObjects['{ip}:{port}'.format(ip=ce[0], port=ce[1])].root.getEpStatusAll()
 
-				args = {
-					'command': 'registersniff',
-					'data': int(ce[1])
-				}
-				try:
-					# hello
-					hello = ceObjects['{ip}:{port}'.format(ip=ce[0], port=ce[1])].root.hello('sniffer')
-
-					if not hello:
-						print('PT warning: could not send hello to central engine {}..'.format(ce))
-						continue
-
-					# authenticate
-					authenticated = ceObjects['{ip}:{port}'.format(ip=ce[0], port=ce[1])].root.login(self.username, 'EP')
-
-					if not authenticated:
-						print('PT warning: could not authenticate to central engine {}..'.format(ce))
-						continue
-
-					PacketSnifferService.sniffer = self
-
-					# create user if ep is not running
-					status = ceObjects['{ip}:{port}'.format(ip=ce[0], port=ce[1])].root.getEpStatusAll()
-
-					registered = True
-					print('PT info: registered to central engine {}..'.format(ce))
-				except Exception as e:
-					print 'PT debug: register CE {err}'.format(err=e)
-
+				registered = True
 				self.reinitRetries = 0
+
+				print('PT info: Registered to central engine {}..'.format(ce))
 			except Exception as e:
 				print 'PT warning: Central Engine is down .... [{0}]'.format(e)
 
 
-		if not ceObjects:
+		if not self.ceObjects:
 			if self.reinitRetries < self.reinitMaxRetries:
 				print 'PT debug: no central engines; will retry [{r}] ..'.format(r=self.reinitRetries)
 				self.reinitRetries += 1
@@ -334,10 +325,11 @@ class Sniffer(Automaton):
 			for conn in PacketSnifferService.connections:
 				if PacketSnifferService.connections[conn]:
 					try:
-						PacketSnifferService.connections[conn].runPlugin({'command': 'pushpkt',
+						PacketSnifferService.connections[conn].runPlugin('PacketSnifferPlugin',
+																		{'command': 'pushpkt',
 																			'data': data})
 					except Exception as e:
-						print('error: {}'.format(e))
+						print('PT debug: Push packet error: {}'.format(e))
 						#pass
 
 		raise self.WAITING()
@@ -348,7 +340,7 @@ class Sniffer(Automaton):
 	def END(self):
 		"""  """
 
-		self.rpycConn.close()
+		#self.rpycConn.close()
 
 		print '|||| END ||||'
 
@@ -399,10 +391,10 @@ class PacketSnifferService(rpycService):
 		"""  """
 
 		try:
-			client_addr = self._conn._config['endpoints'][1]
-			#client_addr = self._conn._config['connid'].split(':')
+			#client_addr = self._conn._config['endpoints'][1]
+			client_addr = self._conn._config['connid']
 			with self.connectionsLock:
-				self.connections.update([('{ip}:{port}'.format(ip=client_addr[0], port=client_addr[1]), None), ])
+				self.connections.update([(client_addr, self._conn.root), ])
 
 			print('PT debug: Connected from `{}`.'.format(client_addr))
 		except Exception as e:
@@ -413,43 +405,20 @@ class PacketSnifferService(rpycService):
 		"""  """
 
 		try:
-			client_addr = self._conn._config['endpoints'][1]
-			#client_addr = self._conn._config['connid'].split(':')
+			#client_addr = self._conn._config['endpoints'][1]
+			client_addr = self._conn._config['connid']
 			with self.connectionsLock:
-				self.connections.pop('{ip}:{port}'.format(ip=client_addr[0], port=client_addr[1]))
+				self.connections.pop(client_addr)
 
-			print('PT debug: Disconnected from `{ip}:{port}`.'.format(ip=client_addr[0], port=client_addr[1]))
+			print('PT debug: Disconnected from `{}`.'.format(client_addr))
 
-			if self.sniffer:
-				self.sniffer.registerCE([(client_addr[0], client_addr[1])])
+			#if self.sniffer:
+			#	self.sniffer.registerCE([(client_addr[0], client_addr[1])])
 		except Exception as e:
 			print('PT debug: Disconnect error: {er}'.format(er=e))
 
-		if not self.connections and self.sniffer:
-			self.sniffer.registerCE(self.sniffer.ceTraffic)
-
-
-	def exposed_hello(self, status):
-		"""  """
-
-		try:
-			client_addr = self._conn._config['endpoints'][1]
-			#client_addr = self._conn._config['connid'].split(':')
-			with self.connectionsLock:
-				self.connections.update([
-						('{ip}:{port}'.format(ip=client_addr[0], port=client_addr[1]), self._conn.root), ])
-
-			self.connections['{ip}:{port}'.format(ip=client_addr[0],
-												port=client_addr[1])].set_ofp_port(self.sniffer.OFPort)
-
-			if status == 'running':
-				self.exposed_start()
-
-			#print(self.connections['{ip}:{port}'.format(ip=client_addr[0], port=client_addr[1])]._conn.root.pushpkt({'test': 1}))
-
-			print('PT debug: Hello from {}'.format(client_addr))
-		except Exception as e:
-			print('PT debug: Hello error: {er}'.format(er=e))
+		#if not self.connections and self.sniffer:
+		#	self.sniffer.registerCE(self.sniffer.ceTraffic)
 
 
 	def exposed_start(self):

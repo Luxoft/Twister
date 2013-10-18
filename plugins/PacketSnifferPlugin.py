@@ -134,6 +134,14 @@ class Plugin(BasePlugin):
 
 
     def run(self, args):
+        print('||||||||||||||||||||||||||||||||||')
+        print(self.data['ce'])
+        print('||||||||||||||||||||||||||||||||||')
+
+
+
+
+
         args = {k: v[0] if isinstance(v, list) else v for k,v in args.iteritems()}
 
         # response structure
@@ -334,10 +342,11 @@ class Plugin(BasePlugin):
             packet = args['data']
             packet.update([('packet_source', Ether(packet['packet_source'])), ])
 
-            print('||||||||||||||||||||||||||||||||||')
-            print(self.data['ce'])
-            print('||||||||||||||||||||||||||||||||||')
-            #self.data['ce']
+
+
+
+
+            self.data['ce']
 
             if (self.connections.has_key(str(self))
                 and self.connections[str(self)] in
@@ -406,6 +415,12 @@ class Plugin(BasePlugin):
             response['status']['message'] = 'except'
 
         return response
+
+
+
+
+
+
 
 
 
