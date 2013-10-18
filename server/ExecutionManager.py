@@ -27,7 +27,6 @@
 import os
 import sys
 import json
-import copy
 import thread
 import tarfile
 import traceback
@@ -129,7 +128,7 @@ class ExecutionManagerService(rpyc.Service):
 
     def exposed_echo(self, msg):
         """
-        For testing connection
+        This function is MASSIVELY used by all clients, for testing the connection.
         """
         if msg != 'ping':
             logInfo(':: {}'.format(msg))
@@ -203,7 +202,7 @@ class ExecutionManagerService(rpyc.Service):
         if not user: return False
         data = self.project.getUserInfo(user, variable)
         if data is None: data = False
-        return copy.copy(data)
+        return data
 
 
     def exposed_setUserVariable(self, key, variable):
@@ -232,7 +231,7 @@ class ExecutionManagerService(rpyc.Service):
         if not user: return False
         data = self.project.getEpInfo(user, epname).get(variable, False)
         if data is None: data = False
-        return copy.copy(data)
+        return data
 
 
     def exposed_setEpVariable(self, epname, variable, value):
@@ -245,7 +244,9 @@ class ExecutionManagerService(rpyc.Service):
 
 
     def exposed_listSuites(self, epname):
-        " "
+        """
+        List all suites for 1 EP, in the current project
+        """
         user = self._check_login()
         if not user: return False
         suiteList = [str(k)+':'+v['name'] for k, v in self.project.getEpInfo(user, epname)['suites'].items()]
@@ -377,6 +378,14 @@ class ExecutionManagerService(rpyc.Service):
 
         logDebug('Registered client manager for user\n\t`{}` -> Client from `{}` = {}.'.format(user, str_addr, eps))
         return True
+
+
+    def unregisterEps(self, eps):
+        """
+        Private function to un-register some EPs for a client.
+        The user is identified automatically.
+        """
+        pass
 
 
     @classmethod

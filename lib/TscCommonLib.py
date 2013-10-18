@@ -31,11 +31,10 @@ You can use : getGlobal, setGlobal, getResource, setResource, logMessage.
 '''
 
 import os, sys
-import socket
 import platform
 import marshal
 import rpyc
-import xmlrpclib
+from rpyc import BgServingThread
 
 # This will work, because TWISTER_PATH is appended to sys.path.
 try:
@@ -58,22 +57,42 @@ class TscCommonLib(object):
 
 
     def __init__(self):
+        """
+        Some initialization code.
+        """
+        self.__ce_proxy = None
 
-        # Connect to RPyc server
+
+    @property
+    def ce_proxy(self):
+        """
+        Dinamically connect to the Central Engine.
+        """
+        # Try to reuse the old connection
+        try:
+            self.__ce_proxy.echo('ping')
+            return self.__ce_proxy
+        except:
+            pass
+
+        proxy = None
+
+        # If the old connection is broken, connect to the RPyc server
         try:
             ce_ip, ce_port = self.proxy_path.split(':')
-            self.ce_proxy = rpyc.connect(ce_ip, int(ce_port))
-            self.ce_proxy.root.hello('lib::{}'.format(self.epName))
+            proxy = rpyc.connect(ce_ip, int(ce_port))
+            proxy.root.hello('lib::{}'.format(self.epName))
         except:
             print('*ERROR* Cannot connect to CE path `{}`! Exiting!'.format(self.proxy_path))
             exit(1)
 
         # Authenticate on RPyc server
         try:
-            check = self.ce_proxy.root.login(self.userName, 'EP')
+            proxy.root.login(self.userName, 'EP')
+            bg = BgServingThread(proxy)
+            self.__ce_proxy = proxy.root
+            return self.__ce_proxy
         except:
-            check = False
-        if not check:
             print('*ERROR* Cannot authenticate on CE path `{}`! Exiting!'.format(self.proxy_path))
             exit(1)
 
@@ -82,7 +101,7 @@ class TscCommonLib(object):
         """
         Shortcut function for sending a message in a log to Central Engine.
         """
-        self.ce_proxy.root.logMessage(logType, logMessage)
+        self.ce_proxy.logMessage(logType, logMessage)
 
 
     def getGlobal(self, var):
@@ -92,7 +111,7 @@ class TscCommonLib(object):
         if var in self.global_vars:
             return self.global_vars[var]
         # Else...
-        return self.ce_proxy.root.getGlobalVariable(var)
+        return self.ce_proxy.getGlobalVariable(var)
 
 
     def setGlobal(self, var, value):
@@ -101,7 +120,7 @@ class TscCommonLib(object):
         """
         try:
             marshal.dumps(value)
-            return self.ce_proxy.root.setGlobalVariable(var, value)
+            return self.ce_proxy.setGlobalVariable(var, value)
         except:
             self.global_vars[var] = value
             return True
@@ -112,7 +131,7 @@ class TscCommonLib(object):
         Function to get a config, using the full path to a config file and
         the full path to a config variable in that file.
         """
-        return self.ce_proxy.root.getConfig(cfg_path, var_path)
+        return self.ce_proxy.getConfig(cfg_path, var_path)
 
 
     def countProjectFiles(self):

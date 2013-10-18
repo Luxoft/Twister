@@ -41,8 +41,12 @@ from collections import OrderedDict
 import os
 import sys
 import time
+import copy
+import socket
+import signal
 import shutil
 import binascii
+import platform
 import subprocess
 import traceback
 import tarfile
@@ -54,7 +58,7 @@ TWISTER_PATH = os.getenv('TWISTER_PATH')
 # If running portable, find the path of the script
 if not TWISTER_PATH:
     TWISTER_PATH, _ = os.path.split(__file__)
-# Of the current directory
+# Or the current directory
 if not TWISTER_PATH:
     TWISTER_PATH = os.getcwd()
 # Make absolute path and strip the eventual slash
@@ -102,18 +106,19 @@ class Logger(object):
         """
         Send the last chunk of buffer.
         """
-        self.proxy.logLIVE(epName, binascii.b2a_base64(self.buffer))
-        del self.buffer
+        self.close()
 
     def write(self, text):
         """
         Write in the OUT stream, in the log file and send to CE.
         """
         # Write in the OUTPUT stream
-        self.stdout.write(text)
-        self.stdout.flush()
-        # Write in the file
-        self.logfile.write(text)
+        if not self.stdout.closed:
+            self.stdout.write(text)
+            self.stdout.flush()
+        if not self.logfile.closed:
+            # Write in the file
+            self.logfile.write(text)
         # Send the message to the Central Engine
         self.logLive(text)
 
@@ -138,10 +143,17 @@ class Logger(object):
         """
         Close the logger.
         """
-        self.stdout.close()
-        self.logfile.close()
+        if not self.stdout.closed:
+            self.stdout.close()
+        if not self.logfile.closed:
+            self.logfile.close()
+        if self.buffer:
+            self.proxy.logLIVE(epName, binascii.b2a_base64(self.buffer))
+            self.buffer = ''
 
-#
+
+# # #
+
 
 class TwisterRunner(object):
 
@@ -185,6 +197,19 @@ class TwisterRunner(object):
 
         # Inject the Central Engine proxy in the logger
         logger.proxy = self.proxy.root
+
+        # Inject all known info about this EP
+        ep_host = socket.gethostname()
+        try: ep_ip = socket.gethostbyname(ep_host)
+        except: ep_ip = ''
+        if platform.system().lower() == 'windows':
+            system = platform.machine() +' '+ platform.system() +', '+ platform.release()
+        else:
+            system = platform.machine() +' '+ platform.system() +', '+ ' '.join(platform.linux_distribution())
+        self.proxy.root.setEpVariable(epName, 'twister_ep_os', system)
+        self.proxy.root.setEpVariable(epName, 'twister_ep_hostname', ep_host)
+        self.proxy.root.setEpVariable(epName, 'twister_ep_ip', ep_ip)
+        self.proxy.root.setEpVariable(epName, 'twister_ep_python_revision', '.'.join([str(v) for v in sys.version_info]) )
 
         # The SUT name. Common for all files in this EP.
         self.Sut = self.proxy.root.getEpVariable(self.epName, 'sut')
@@ -316,7 +341,10 @@ class TwisterRunner(object):
         """
         Cycle in all files, run each file, in order.
         """
+        global logger
 
+        # Count the time
+        glob_time = time.time()
         # Shortcut to Central Engine connection
         ce = self.proxy.root
 
@@ -328,7 +356,9 @@ class TwisterRunner(object):
 
         # Download the Suites Manager structure from Central Engine!
         # This is the initial structure, created from the Project.XML file.
-        SuitesManager = ce.getEpVariable(self.epName, 'suites')
+        data = ce.getEpVariable(self.epName, 'suites')
+        SuitesManager = copy.deepcopy(data)
+        del data
 
         # Used by all files
         suite_id    = None
@@ -428,7 +458,10 @@ class TwisterRunner(object):
 
             # When a test file is about to be executed and STOP is received, send status ABORTED
             if ce.getEpStatus(self.epName) == 'stopped':
-                Suicide('ABORTED: Status STOP, while running!', file_id, STATUS_ABORTED, 0.0)
+                ce.setFileStatus(self.epName, file_id, STATUS_ABORTED, 0.0) # File status ABORTED
+                print('~ ABORTED: Status STOP, while running! ~')
+                diff_time = time.time() - glob_time
+                return self.exit(diff_time)
 
             # On pause, freeze cycle and wait for Resume or Stop
             elif ce.getEpStatus(self.epName) == 'paused':
@@ -448,7 +481,11 @@ class TwisterRunner(object):
                     # On stop...
                     elif ce.getEpStatus(self.epName) == 'stopped':
                         # When a test is waiting for resume, but receives STOP, send status NOT EXECUTED
-                        Suicide('NOT EXECUTED: Status STOP, while waiting for resume!', file_id, STATUS_NOT_EXEC, 0.0)
+                        ce.setFileStatus(self.epName, file_id, STATUS_NOT_EXEC, 0.0)
+                        print('~ NOT EXECUTED: Status STOP, while waiting for resume ! ~')
+                        # Exit the cycle
+                        diff_time = time.time() - glob_time
+                        return self.exit(diff_time)
 
 
             # If dependency file is PENDING or WORKING, wait for it to finish; for any other status, go next.
@@ -657,11 +694,40 @@ class TwisterRunner(object):
 
             #---------------------------------------------------------------------------------------
 
-        print('\n===== ===== ===== =====')
+        print('\n==========================')
         print('. . . All tests done . . .')
-        print('===== ===== ===== =====\n')
+        print('==========================\n')
 
-#
+
+        del SuitesManager
+
+        diff_time = time.time() - glob_time
+        return self.exit(diff_time)
+
+
+    def exit(self, timer_f=0.0):
+        """
+        Exit on time, or prematurely.
+        """
+        # Print the final message
+        self.proxy.root.setEpStatus(self.epName, 0, msg='Execution finished in `{:.2f}` seconds.'.format(timer_f))
+        # Flush all messages
+        logger.close()
+
+
+# # #
+
+
+def signal_handler(signal, frame):
+    global logger
+    print('\n~ TIME TO EXIT THE EP! ~\n\n')
+    # Flush all remaining messages
+    logger.close()
+    exit(0)
+
+
+# # #
+
 
 if __name__=='__main__':
 
@@ -685,14 +751,16 @@ if __name__=='__main__':
     logger = Logger(sys.stdout, EP_LOG)
     sys.stdout = logger
 
-    print('~ Start Execution Process ~')
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
+
+    print('~ Start the Execution Process ~')
     print('~ User: {} ; EP: {} ; CE path: {} ~\n'.format(userName, epName, cePath))
 
     runner = TwisterRunner(userName, epName, cePath)
     runner.run()
 
-    del logger
-
     print('\n~ Stop the Execution Process ~\n\n')
+    del logger
 
 # Eof()
