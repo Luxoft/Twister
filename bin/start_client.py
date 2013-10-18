@@ -134,7 +134,7 @@ class TwisterClientService(_cptools.XMLRPCController):
         cfg.read(os.getenv('TWISTER_PATH') + '/config/epname.ini')
 
         # sniffer config
-        if (cfg.has_option('PACKETSNIFFERPLUGIN', 'EP_HOST') and
+        if (cfg.has_option('PACKETSNIFFERPLUGIN', 'ETH_INTERFACE') and
             cfg.get('PACKETSNIFFERPLUGIN', 'ENABLED') == '1'):
             self.snifferEth = cfg.get('PACKETSNIFFERPLUGIN', 'ETH_INTERFACE')
         else:
