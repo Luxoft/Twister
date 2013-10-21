@@ -140,15 +140,30 @@ class ExecutionManagerService(rpyc.Service):
         return 'Echo: {}'.format(msg)
 
 
-    def exposed_hello(self, hello=''):
+    def exposed_hello(self, hello='', extra={}):
         """
         For testing connection and setting a name.
         """
         str_addr = self._get_addr()
+        extra = dict(extra)
+        extra.update({'hello': str(hello)})
+
+        # Delete the invalid extra meta-data
+        if 'conn' in extra:     del extra['conn']
+        if 'user' in extra:     del extra['user']
+        if 'checked' in extra:  del extra['checked']
+        if 'eps' in extra:
+            # If the EPs are already registered by another client, or clients,
+            # must be removed first.
+            self.unregisterEps(extra['eps'])
+            # Only register the VALID eps...
+            self.registerEps(extra['eps'])
+            # and delete the invalid ones.
+            del extra['eps']
 
         with self.conn_lock:
             old_data = self.conns.get(str_addr, {})
-            old_data.update({'hello': str(hello)})
+            old_data.update(extra)
             self.conns[str_addr] = old_data
 
         return True
@@ -372,9 +387,9 @@ class ExecutionManagerService(rpyc.Service):
         return sorted(set(eps))
 
 
-    def exposed_registerEps(self, eps):
+    def registerEps(self, eps):
         """
-        Register all EPs for a client.
+        Private function to register all EPs for a client.
         Only a VALID client will be able to register EPs!
         The user is identified automatically.
         """
@@ -417,10 +432,44 @@ class ExecutionManagerService(rpyc.Service):
 
     def unregisterEps(self, eps):
         """
-        Private function to un-register some EPs for a client.
+        Private, helper function to un-register some EPs for a client.
         The user is identified automatically.
         """
-        pass
+        str_addr = self._get_addr()
+        user = self._check_login()
+        if not user: return False
+
+        if not str_addr:
+            logError('*ERROR* Cannot identify the remote address!')
+            return False
+
+        if not isinstance(eps, type([])):
+            logError('*ERROR* Can only un-register a List of EP names!')
+            return False
+        else:
+            eps = set(eps)
+
+        with self.conn_lock:
+            # Must find the clients that have the EPs needed to be removed!
+            for c_addr, data in self.conns.iteritems():
+                # Skip invalid connections, without log-in
+                if not data.get('user') or not data.get('checked'):
+                    continue
+                # There might be more clients for a user...
+                # And this current Addr might be an EP, not a client
+                if user == data['user']:
+                    # If this connection has registered EPs
+                    if not data.get('eps'): continue
+                    other_eps = set(data.get('eps'))
+                    diff_eps  = other_eps - eps
+                    intersect = other_eps & eps
+                    if intersect:
+                        logDebug('Un-register EP list {} from `{}` and register then on `{}`.'\
+                                 ''.format(sorted(intersect), c_addr, str_addr))
+                    # Delete the EPs that must be deleted
+                    self.conns[c_addr]['eps'] = sorted(diff_eps)
+
+        return True
 
 
     @classmethod
