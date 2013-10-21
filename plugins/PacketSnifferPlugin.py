@@ -195,6 +195,13 @@ class Plugin(BasePlugin):
         elif args['command'] in ['pause', 'resume']:
             response['type'] = 'pause/resume reply'
 
+            if args['command'] == 'resume':
+                with self.data['ce'].rsrv.conn_lock:
+                    for userClient in [c for c in self.data['ce'].rsrv.conns
+                        if self.data['ce'].rsrv.conns[c]['hello'] == 'client' and
+                            self.data['ce'].rsrv.conns[c]['user'] == self.user]:
+                        self.data['ce'].rsrv.conns[userClient]['conn'].root.start_sniffer()
+
             oldStatus = self.status
 
             self.status = ('paused', 'running')[args['command']=='resume']

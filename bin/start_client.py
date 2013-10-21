@@ -93,7 +93,6 @@ class TwisterClient(object):
         self.epNames = {}
         self.proxyDict = {}
         self.proxyLock = thread.allocate_lock()
-        self.snifferEth = ''
         # Kill all sniffers and EPs
         self.killAll()
         # Parse and register EPs
@@ -236,12 +235,15 @@ class TwisterClient(object):
         Use the config from EPNAMES to create a list of EPs, filtered by IP and Host.
         """
         # Sniffer config
+        snifferEth = None
         if (cfg.has_option('PACKETSNIFFERPLUGIN', 'ETH_INTERFACE') and cfg.get('PACKETSNIFFERPLUGIN', 'ENABLED') == '1'):
-            self.snifferEth = cfg.get('PACKETSNIFFERPLUGIN', 'ETH_INTERFACE')
+            snifferEth = cfg.get('PACKETSNIFFERPLUGIN', 'ETH_INTERFACE')
         else:
-            self.snifferEth = 'eth0'
+            snifferEth = 'eth0'
 
-        print('Sniffer eth = `{}`.'.format(self.snifferEth))
+        TwisterClientService.snifferEth = snifferEth
+
+        print('Sniffer eth = `{}`.'.format(snifferEth))
         print('Building the EP list for this machine...')
 
         # This will be a temporary list of valid EP names, filtered by IP/ host
@@ -390,6 +392,7 @@ class TwisterClientService(rpyc.Service):
 
     connections = {}
     config = None
+    snifferEth = None
 
 
     def on_connect(self):
@@ -500,6 +503,40 @@ class TwisterClientService(rpyc.Service):
 
         print('Stopped EP `{}` !'.format(epname))
         return True
+
+
+    def exposed_start_sniffer(self):
+        """ start sniffer """
+
+        # check if already running
+        pipe = subprocess.Popen('ps ax | grep start_packet_sniffer.py',
+                                    shell=True, stdout=subprocess.PIPE).stdout
+        lines = pipe.read().splitlines()
+        del pipe
+        if len(lines) > 2:
+            return False
+
+        snifferEth = ['eth0', self.snifferEth][self.snifferEth is not None]
+
+        # start sniffer
+        scriptPath =  os.path.join(TWISTER_PATH, 'bin/start_packet_sniffer.py')
+        command = ['sudo', 'python', scriptPath, '-u', userName,
+                    '-i', snifferEth, '-t', TWISTER_PATH]
+        subprocess.Popen(command, shell=False)
+
+        return True
+
+
+    def exposed_stop_sniffer(self):
+        """ stop sniffer """
+
+        pipe = subprocess.Popen('ps ax | grep start_packet_sniffer.py', shell=True, stdout=subprocess.PIPE)
+        for line in pipe.stdout.read().splitlines():
+            try:
+                os.kill(int(line.split()[0]), 9)
+            except Exception as e:
+                pass
+        del pipe
 
 
 # # #

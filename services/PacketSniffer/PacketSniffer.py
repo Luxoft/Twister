@@ -94,7 +94,7 @@ class Sniffer(Automaton):
 				self.has_iface = False
 				print 'PT debug: set iface error: no such device'
 
-		self.PAUSED = True
+		self.PAUSED = False
 		self.OFPort = (OFPort, 6633)[OFPort is None]
 
 		# openflow packet model connect
