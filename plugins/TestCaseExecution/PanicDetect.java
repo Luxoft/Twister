@@ -1,6 +1,6 @@
 /*
 File: PanicDetect.java ; This file is part of Twister.
-Version: 2.002
+Version: 2.003
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -79,6 +79,7 @@ public class PanicDetect extends JPanel{
             JsonElement jelement = new JsonParser().parse(result);
             JsonObject main = jelement.getAsJsonObject();
             JsonObject regex = main.getAsJsonObject(RunnerRepository.getUser());
+            if(regex==null)return;
             Iterator <Map.Entry<String,JsonElement>> iter = regex.entrySet().iterator();
             while(iter.hasNext()){
                 Map.Entry <String,JsonElement>n = iter.next();

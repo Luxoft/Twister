@@ -1,6 +1,6 @@
 /*
 File: RunnerRepository.java ; This file is part of Twister.
-Version: 2.0033
+Version: 2.0035
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -102,6 +102,8 @@ import com.twister.plugin.baseplugin.BasePlugin;
 import java.awt.Component;
 import java.awt.Container;
 import javax.swing.JFrame;
+import java.awt.GridBagLayout;
+import java.awt.GridBagConstraints;
 
 /*
  * static class to hold
@@ -114,7 +116,6 @@ public class RunnerRepository {
     private static ArrayList<String> logs;//logs tracked by twister framwork
     public static String[] columnNames;
     public static Window window;//main window displayed if twister is running local
-    //public static ChannelSftp c;//main sftp connection used by Twister
     public static ChannelSftp connection;//main sftp connection used by Twister
     public static Session session;
     public static Hashtable variables ;
@@ -136,9 +137,10 @@ public class RunnerRepository {
                         background,notexecicon,pendingicon,skipicon,stoppedicon,
                         timeouticon,waiticon,workingicon,moduleicon,deviceicon,upicon,
                         addsuitaicon,removeicon,vlcclient,vlcserver,switche,optional,
-                        flootw,rack150,rack151,rack152,switche2,inicon,outicon,baricon;
+                        flootw,rack150,rack151,rack152,switche2,inicon,outicon,baricon,
+                        invalidicon;
     public static boolean run ;//signal that Twister is not closing
-    public static boolean applet,initialized,sftpoccupied; //keeps track if twister is run from applet or localy;;stfpconnection flag
+    public static boolean isapplet,initialized,sftpoccupied; //keeps track if twister is run from applet or localy;;stfpconnection flag
     public static IntroScreen introscreen;    
     private static ArrayList <String []> databaseUserFields ;
     public static int LABEL = 0;    
@@ -151,9 +153,10 @@ public class RunnerRepository {
     private static JsonArray plugins;
     private static String[] lookAndFeels;
     public static Container container;
+    public static Applet applet;
     private static Document pluginsconfig;
-    private static String version = "2.039";
-    private static String builddate = "14.10.2013";
+    private static String version = "2.040";
+    private static String builddate = "16.10.2013";
     public static String logotxt,os,python;
     
     public static void setStarter(Starter starter){
@@ -166,7 +169,7 @@ public class RunnerRepository {
      * host - server for twister location
      * container - applet or null
      */
-    public static void initialize(String applet,String host,Applet container){
+    public static void initialize(String isapplet,String host,Container container,Applet applet){
         RunnerRepository.initialized = false;
         RunnerRepository.run = true;
         RunnerRepository.container = container;
@@ -230,11 +233,15 @@ public class RunnerRepository {
         catch(Exception e){e.printStackTrace();}
         RunnerRepository.host = host;
         System.out.println("Setting sftp server to :"+host);
-        introscreen = new IntroScreen();//display intro screen
+        introscreen = new IntroScreen();//display intro scre
+        container.setLayout(new GridBagLayout());
+        container.add(introscreen,new GridBagConstraints());
+        container.revalidate();
+        container.repaint();
         introscreen.setStatus("Started initialization");
         introscreen.setVisible(true);
-        RunnerRepository.applet = Boolean.parseBoolean(applet);
-        if(RunnerRepository.applet)System.out.println("Twister running from applet");
+        RunnerRepository.isapplet = Boolean.parseBoolean(isapplet);
+        if(RunnerRepository.isapplet)System.out.println("Twister running from applet");
         else System.out.println("Twister running from Main");
         
         
@@ -307,7 +314,7 @@ public class RunnerRepository {
                     REMOTEPLUGINSDIR = "/opt/twister/plugins";
                     System.out.println("Remote Twister plugins instalation path: "+REMOTEPLUGINSDIR);
                 }
-                window = new Window(RunnerRepository.applet,container);
+                window = new Window(RunnerRepository.isapplet,container);
                 parseEmailConfig(RunnerRepository.REMOTEEMAILCONFIGFILE,true);
                 populatePluginsVariables();
             }
@@ -319,9 +326,9 @@ public class RunnerRepository {
                 if(Window.deleteTemp(file))
                     System.out.println(RunnerRepository.temp+bar+"Twister deleted successful");
                 else System.out.println("Could not delete: "+temp+bar+"Twister");
-                introscreen.dispose();
+//                 introscreen.dispose();
                 run = false;
-                if(!RunnerRepository.applet)System.exit(0);}
+                if(!RunnerRepository.isapplet)System.exit(0);}
             }
         catch(Exception e){e.printStackTrace();}
         initialized  = true;
@@ -445,6 +452,7 @@ public class RunnerRepository {
             RunnerRepository.outicon = loadIcon("out.png");
             RunnerRepository.passwordicon = loadIcon("passwordicon.png");
             RunnerRepository.baricon = loadIcon("bar.png");
+            RunnerRepository.invalidicon = loadIcon("invalid.png");
         }
         catch(Exception e){e.printStackTrace();}
     }
@@ -611,7 +619,7 @@ public class RunnerRepository {
             public void run(){
                 System.out.println("Setting UI: "+look);
                 try{UIManager.setLookAndFeel(RunnerRepository.getLooks().get(look).getAsString());
-                    if(applet){SwingUtilities.updateComponentTreeUI(container);}
+                    if(isapplet){SwingUtilities.updateComponentTreeUI(container);}
                     else if(window!=null){SwingUtilities.updateComponentTreeUI(window);}}
                 catch(Exception e){e.printStackTrace();}}});}
                 
@@ -783,8 +791,10 @@ public class RunnerRepository {
             doc.getDocumentElement().normalize();                
             window.mainpanel.p4.getEmails().setCheck(Boolean.parseBoolean(getTagContent(doc, "Enabled", "email config.")));
             String smtppath = getTagContent(doc, "SMTPPath", "email config.");
-            window.mainpanel.p4.getEmails().setIPName(smtppath.split(":")[0]);
-            window.mainpanel.p4.getEmails().setPort(smtppath.split(":")[1]);
+            if(smtppath.split(":").length==2){
+                window.mainpanel.p4.getEmails().setIPName(smtppath.split(":")[0]);
+                window.mainpanel.p4.getEmails().setPort(smtppath.split(":")[1]);
+            }
             window.mainpanel.p4.getEmails().setUser(getTagContent(doc, "SMTPUser", "email config."));
             window.mainpanel.p4.getEmails().setFrom(getTagContent(doc, "From", "email config."));
             window.mainpanel.p4.getEmails().setEmails(getTagContent(doc, "To", "email config."));
@@ -819,7 +829,7 @@ public class RunnerRepository {
                     System.out.println(RunnerRepository.temp+bar+"Twister deleted successful");
                 else System.out.println("Could not delete: "+RunnerRepository.temp+bar+"Twister");
                 run = false;
-                if(!applet)System.exit(0);
+                if(!isapplet)System.exit(0);
             }
                 
                 
@@ -858,13 +868,10 @@ public class RunnerRepository {
                     logs.add(getTagContent(doc,"logSummary", "framework config."));
                     logs.add(getTagContent(doc,"logTest", "framework config."));
                     logs.add(getTagContent(doc,"logCli", "framework config."));}
-//                 HTTPSERVERPORT = getTagContent(doc,"HttpServerPort");
                 CENTRALENGINEPORT = getTagContent(doc,"CentralEnginePort", "framework config.");
-                //RESOURCEALLOCATORPORT = getTagContent(doc,"ResourceAllocatorPort");
                 usersdir = getTagContent(doc,"UsersPath", "framework config.");
                 REMOTEUSERSDIRECTORY = usersdir;
                 XMLREMOTEDIR = USERHOME+"/twister/config/testsuites.xml";
-//                 getTagContent(doc,"MasterXMLTestSuite");
                 XMLDIRECTORY = RunnerRepository.temp+bar+"Twister"+bar+"XML"+
                                         bar+XMLREMOTEDIR.split("/")[XMLREMOTEDIR.split("/").length-1];
                 REMOTELIBRARY = getTagContent(doc,"LibsPath", "framework config.");
@@ -1073,11 +1080,6 @@ public class RunnerRepository {
     public static String getCentralEnginePort(){
         return CENTRALENGINEPORT;}
         
-    /*
-     * ResourceAllocatorPort set by fwmconfig file
-     */ 
-//     public static String getResourceAllocatorPort(){
-//         return RESOURCEALLOCATORPORT;}
         
     /*
      * test suite xml directory from server
@@ -1252,6 +1254,9 @@ public class RunnerRepository {
         
     public static Image getTimeoutIcon(){
         return timeouticon;}
+        
+    public static Image getInvalidIcon(){
+        return invalidicon;}
         
     public static Image getSkippedIcon(){
         return skipicon;}
@@ -1524,14 +1529,6 @@ public class RunnerRepository {
             catch(Exception e){e.printStackTrace();}
         }
         sftpoccupied = true;
-//         try{RunnerRepository.connection.cd(location);}
-//         catch(Exception e){
-//             CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,RunnerRepository.window,
-//                                         "Warning", "Could not upload remote to :"+location+" location");
-//             e.printStackTrace();
-//             sftpoccupied = false;
-//             return false;
-//         }
         try{
             System.out.println(location+"/"+filename);
             RunnerRepository.connection.put(input,location+"/"+filename);

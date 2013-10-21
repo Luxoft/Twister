@@ -2,7 +2,7 @@
 
 # File: start_client.py ; This file is part of Twister.
 
-# version: 2.011
+# version: 2.012
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -73,12 +73,26 @@ def keepalive(service):
     service.registerEPs()
 
     while True:
+        ce_down = list()
         for ce in service.proxyList:
             try:
                 response = service.proxyList[ce].echo('ping')
             except Exception as e:
-                print('EP warning: Central Engine is down ... [{}]'.format(e))
-                service.registerEPs(ce)
+                ce_down.append(ce)
+
+        for ce in ce_down:
+            _proxy = ce.split(':')
+            newProxy = xmlrpclib.ServerProxy('http://{}:EP@{}:{}/'.format(service.username,
+                                                                        _proxy[0], _proxy[1]))
+            service.proxyList.update([(ce, newProxy), ])
+            for currentEP in service.eps:
+                if ('{ip}:{p}'.format(ip=service.eps[currentEP]['ce_ip'],
+                        p=service.eps[currentEP]['ce_port']) == _proxy):
+                    currentEP['proxy'] = newProxy
+
+            sleep(2.8)
+            service.registerEPs(ce)
+
         sleep(0.8)
 
 #
@@ -95,8 +109,8 @@ class TwisterClientService(_cptools.XMLRPCController):
 
         self.snifferEth = None
 
-        self.eps = {}
-        self.proxyList = {}
+        self.eps = dict()
+        self.proxyList = dict()
 
         # Close all sniffer and ep instaces and parse eps
         pipe = subprocess.Popen('ps ax | grep start_packet_sniffer.py', shell=True, stdout=subprocess.PIPE)
@@ -120,7 +134,7 @@ class TwisterClientService(_cptools.XMLRPCController):
         cfg.read(os.getenv('TWISTER_PATH') + '/config/epname.ini')
 
         # sniffer config
-        if (cfg.has_option('PACKETSNIFFERPLUGIN', 'EP_HOST') and
+        if (cfg.has_option('PACKETSNIFFERPLUGIN', 'ETH_INTERFACE') and
             cfg.get('PACKETSNIFFERPLUGIN', 'ENABLED') == '1'):
             self.snifferEth = cfg.get('PACKETSNIFFERPLUGIN', 'ETH_INTERFACE')
         else:
@@ -192,7 +206,7 @@ class TwisterClientService(_cptools.XMLRPCController):
             print('Starting Client Service register...')
 
         # List of Central Engine connections
-        proxyEpsList = {}
+        proxyEpsList = dict()
 
         for currentEP in self.eps:
             _proxy = '{}:{}'.format(self.eps[currentEP]['ce_ip'], self.eps[currentEP]['ce_port'])
@@ -210,6 +224,7 @@ class TwisterClientService(_cptools.XMLRPCController):
 
         # Try to register to Central Engine, forever
         while unregistered:
+            ce_down = list()
             for currentCE in proxyEpsList:
                 try:
                     proxy = self.eps[proxyEpsList[currentCE][0]]['proxy']
@@ -282,12 +297,15 @@ class TwisterClientService(_cptools.XMLRPCController):
                     unregistered = False
 
                 except Exception as e:
-                    self.proxyList.pop(currentCE)
+                    ce_down.append(currentCE)
                     print('Error: {er}'.format(er=e))
 
             if unregistered:
                 print('Error: Central Engine is down... will retry...')
             sleep(2)
+
+        for ce in ce_down:
+            self.proxyList.pop(ce)
 
         print('Client is now registered on CE.\n')
 

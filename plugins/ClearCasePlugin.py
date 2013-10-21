@@ -36,6 +36,7 @@ import os, sys
 import time
 import random
 import socket
+socket.setdefaulttimeout(5)
 import subprocess
 import xmlrpclib
 
@@ -93,6 +94,7 @@ class Plugin(BasePlugin):
         try:
             self.conn = xmlrpclib.ServerProxy('http://127.0.0.1:{}/'.format(port))
             self.conn.hello()
+            print('Connected to CC Srv on `127.0.0.1:{}`.'.format(port))
         except Exception as e:
             print('Cannot connect to CC Srv on `127.0.0.1:{}` - `{}` !'.format(port, e))
             proc.terminate()

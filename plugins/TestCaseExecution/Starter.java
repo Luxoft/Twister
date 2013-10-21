@@ -1,6 +1,6 @@
 /*
 File: Starter.java ; This file is part of Twister.
-Version: 2.006
+Version: 2.007
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -54,7 +54,7 @@ public class Starter implements TwisterPluginInterface{
                 container.removeAll();
                 container.revalidate();
                 container.repaint();
-                RunnerRepository.initialize("true",variables.get("host"),container);
+                RunnerRepository.initialize("true",variables.get("host"),container,container);
                 resizePlugin((int)container.getSize().getWidth(),(int)container.getSize().getHeight());
     }
     
@@ -86,6 +86,11 @@ public class Starter implements TwisterPluginInterface{
         return "";
     }
     
+    /*
+     * terminate method called
+     * when exiting runner interface
+     * all 
+     */
     public void terminate(){
         System.out.println("Stopping TC Runner");
         RunnerRepository.saveMainLayout();

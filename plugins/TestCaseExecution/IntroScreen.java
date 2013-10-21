@@ -1,6 +1,6 @@
 /*
 File: IntroScreen.java ; This file is part of Twister.
-Version: 2.001
+Version: 2.002
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -37,30 +37,36 @@ import javax.swing.JPanel;
  * intro screen with Twister logo
  * and loading status bar
  */
-public class IntroScreen extends JFrame{
+public class IntroScreen extends JPanel{
     private String text = ""; //text used to display initialization status on loading bar
-    int width;
+//     int width;
     private double percent = 0; //percent of status bar set by initialization methods
     /*
      * intro screen initialization
      */
     public IntroScreen(){
-        Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
-        setBounds((int)(screenSize.getWidth()-640)/2,(int)(screenSize.getHeight()-480)/2,640,480);
-        setUndecorated(true);
-        setAlwaysOnTop(true);
-        try{if(AWTUtilities.isTranslucencySupported(AWTUtilities.Translucency.PERPIXEL_TRANSLUCENT))
-                AWTUtilities.setWindowOpaque(this, false);
-            else if(AWTUtilities.isTranslucencySupported(AWTUtilities.Translucency.TRANSLUCENT))
-                AWTUtilities.setWindowOpacity(this, 0.7f);}
-        catch(Exception e){e.printStackTrace();}
+//         Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+        //setBounds((int)(screenSize.getWidth()-640)/2,(int)(screenSize.getHeight()-480)/2,640,480);
+        
+        setMinimumSize(new Dimension(640,480));
+        setMaximumSize(new Dimension(640,480));
+        setPreferredSize(new Dimension(640,480));
+        setSize(new Dimension(640,480));
+//         setUndecorated(true);
+//         setAlwaysOnTop(true);
+//         try{if(AWTUtilities.isTranslucencySupported(AWTUtilities.Translucency.PERPIXEL_TRANSLUCENT))
+//                 AWTUtilities.setWindowOpaque(this, false);
+//             else if(AWTUtilities.isTranslucencySupported(AWTUtilities.Translucency.TRANSLUCENT))
+//                 AWTUtilities.setWindowOpacity(this, 0.7f);}
+//         catch(Exception e){e.printStackTrace();}
     }    
     
     public void paint(Graphics g){
-        Graphics2D g2d = (Graphics2D)g;
-        g2d.setComposite(AlphaComposite.Clear);
-        g2d.fillRect(0, 0, 640, 480);
-        g2d.setComposite(AlphaComposite.SrcOver);
+        //Graphics2D g2d = (Graphics2D)g;
+        //g2d.setComposite(AlphaComposite.Clear);
+        g.setColor(getParent().getBackground());
+        g.fillRect(0, 0, 640, 480);
+        //g2d.setComposite(AlphaComposite.SrcOver);
         g.setColor(Color.GRAY);
         g.fillRoundRect(10, 350, (int)(620*percent), 30, 15, 15);
         g.setColor(Color.BLACK);

@@ -1,6 +1,6 @@
 /*
 File: LibrariesPanel.java ; This file is part of Twister.
-Version: 2.005
+Version: 2.006
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -124,6 +124,7 @@ import java.util.Properties;
 import java.awt.datatransfer.Transferable;
 import java.awt.datatransfer.StringSelection;
 import java.awt.dnd.DragSourceListener;
+import com.jcraft.jsch.SftpException;
 
 public class LibrariesPanel{
 
@@ -154,6 +155,10 @@ public class LibrariesPanel{
             RunnerRepository.introscreen.setStatus("Finished retrieving tc directories");
             RunnerRepository.introscreen.addPercent(0.035);
             RunnerRepository.introscreen.repaint();
+        }catch(SftpException e){
+            if(e.id==ChannelSftp.SSH_FX_NO_SUCH_FILE){
+                System.out.println("Could not get:"+RunnerRepository.getPredefinedSuitesPath());
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -161,17 +166,17 @@ public class LibrariesPanel{
         tree = new JTree(root);
         tree.expandRow(1);
         tree.setTransferHandler(new TransferHandler(){
-        	
-        	protected Transferable createTransferable(JComponent c)
-        	{
-        		return new StringSelection("lib");
-        	}
-        	
-        	public int getSourceActions(JComponent c)
-        	{
-        		return TransferHandler.COPY_OR_MOVE;
-        	}
-        	
+            
+            protected Transferable createTransferable(JComponent c)
+            {
+                return new StringSelection("lib");
+            }
+            
+            public int getSourceActions(JComponent c)
+            {
+                return TransferHandler.COPY_OR_MOVE;
+            }
+            
         });
         
         tree.addMouseListener(new MouseAdapter() {

@@ -1,6 +1,6 @@
 /*
 File: ConfigTree.java ; This file is part of Twister.
-Version: 2.005
+Version: 2.006
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -145,8 +145,14 @@ public class ConfigTree extends JPanel{
         root = new DefaultMutableTreeNode("root", true);
         initializeSftp();
         try{connection.cd(RunnerRepository.getTestConfigPath());
-            getList(root,connection,RunnerRepository.getTestConfigPath());}
-        catch(Exception e){e.printStackTrace();}
+            getList(root,connection,RunnerRepository.getTestConfigPath());
+        }catch(SftpException e){
+            if(e.id==ChannelSftp.SSH_FX_NO_SUCH_FILE){
+                System.out.println("Could not get:"+RunnerRepository.getPredefinedSuitesPath());
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         tree = new JTree(root);
         tree.addTreeSelectionListener(new TreeSelectionListener(){
             public void valueChanged(TreeSelectionEvent ev){
