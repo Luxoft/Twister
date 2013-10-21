@@ -745,14 +745,13 @@ class ExecutionManagerService(rpyc.Service):
         if not user: return False
 
         # If argument is a valid dict, pass
-        if isinstance(args, type({})):
-            if not 'command' in args:
-                return '*ERROR* Invalid dictionary for plugin `{}` : {} !'.format(plugin, args)
-        else:
-            try:
-                args = dict(args)
-            except:
-                return '*ERROR* Invalid type of argument for plugin `{}` : {} !'.format(plugin, type(args))
+        try:
+            args = dict(args)
+        except:
+            return '*ERROR* Invalid type of argument for plugin `{}` : {} !'.format(plugin, type(args))
+
+        if not 'command' in args:
+            return '*ERROR* Invalid dictionary for plugin `{}` : {} !'.format(plugin, args)
 
         plugin_p = self.project._buildPlugin(user, plugin)
 
@@ -829,18 +828,22 @@ class ExecutionManagerService(rpyc.Service):
 
 
     def exposed_setResource(self, name, parent=None, props={}):
-        try: return self.project.ra.setResource(name, parent, props)
-        except: return False
+        user = self._check_login()
+        if not user: return False
+        props = dict(props) ; props.update({'__user': user})
+        return self.project.ra.setResource(name, parent, props)
 
 
     def exposed_renameResource(self, res_query, new_name):
-        try: return self.project.ra.renameResource(res_query, new_name)
-        except: return False
+        user = self._check_login()
+        if not user: return False
+        return self.project.ra.renameResource(res_query, new_name, props={'__user': user})
 
 
     def exposed_deleteResource(self, query):
-        try: return self.project.ra.deleteResource(query)
-        except: return False
+        user = self._check_login()
+        if not user: return False
+        return self.project.ra.deleteResource(query, props={'__user': user})
 
 
     def exposed_getSut(self, query):
@@ -849,18 +852,22 @@ class ExecutionManagerService(rpyc.Service):
 
 
     def exposed_setSut(self, name, parent=None, props={}):
-        try: return self.project.ra.setSut(name, parent, props)
-        except: return False
+        user = self._check_login()
+        if not user: return False
+        props = dict(props) ; props.update({'__user': user})
+        return self.project.ra.setSut(name, parent, props)
 
 
     def exposed_renameSut(self, res_query, new_name):
-        try: return self.project.ra.renameSut(res_query, new_name)
-        except: return False
+        user = self._check_login()
+        if not user: return False
+        return self.project.ra.renameSut(res_query, new_name, props={'__user': user})
 
 
     def exposed_deleteSut(self, query):
-        try: return self.project.ra.deleteSut(query)
-        except: return False
+        user = self._check_login()
+        if not user: return False
+        return self.project.ra.deleteSut(query, props={'__user': user})
 
 
 # Eof()

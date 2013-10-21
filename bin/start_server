@@ -39,7 +39,6 @@ then
     else
         echo Killing Twister Server, PID $pid ...
         kill -9 $pid
-        sleep 2
     fi
     if [ -z "$log" ]
     then

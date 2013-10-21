@@ -28,6 +28,7 @@ def test():
 	print 'Ok.\n'
 
 	if not res_id:
+		print('Could not create TB! {}'.format(res_id))
 		return "FAIL"
 
 	r = getResource('/' + py_res)
