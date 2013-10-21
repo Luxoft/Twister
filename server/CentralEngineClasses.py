@@ -729,7 +729,7 @@ class CentralEngine(_cptools.XMLRPCController):
 
         try:
             return plugin_p.run(args)
-        except:
+        except Exception as e:
             trace = traceback.format_exc()[34:].strip()
             logError('*ERROR* Plugin `{}`, ran with arguments `{}` and raised Exception: `{}`!'\
                      .format(plugin, args, trace))

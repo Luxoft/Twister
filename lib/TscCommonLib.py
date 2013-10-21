@@ -75,12 +75,20 @@ class TscCommonLib(object):
         except:
             pass
 
+        # RPyc config
+        config = {
+            'allow_pickle': True,
+            'allow_getattr': True,
+            'allow_setattr': True,
+            'allow_delattr': True,
+            'allow_all_attrs': True,
+            }
         proxy = None
 
         # If the old connection is broken, connect to the RPyc server
         try:
             ce_ip, ce_port = self.proxy_path.split(':')
-            proxy = rpyc.connect(ce_ip, int(ce_port))
+            proxy = rpyc.connect(ce_ip, int(ce_port), config=config)
             proxy.root.hello('lib::{}'.format(self.epName))
         except:
             print('*ERROR* Cannot connect to CE path `{}`! Exiting!'.format(self.proxy_path))
