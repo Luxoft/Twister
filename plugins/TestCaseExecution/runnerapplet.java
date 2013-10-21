@@ -91,6 +91,7 @@ public class runnerapplet extends Applet{
             RunnerRepository.outicon = loadIcon("out.png");
             RunnerRepository.passwordicon = loadIcon("passwordicon.png");
             RunnerRepository.baricon = loadIcon("bar.png");
+            RunnerRepository.invalid = loadIcon("invalid.png");
             //RunnerRepository.optional = loadIcon("optional.png");
         }
         catch(Exception e){e.printStackTrace();}

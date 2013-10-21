@@ -1,6 +1,6 @@
 /*
 File: Plugins.java ; This file is part of Twister.
-Version: 2.009
+Version: 2.010
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -589,12 +589,6 @@ public class Plugins extends JPanel{
         check.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 pluginClicked(check);}});
-//         boolean plugenabled = false;
-//         if(tname.equals("ClearCase")){
-//             plugenabled = isClearCaseEnabled();
-//         } else {
-//             plugenabled = isPluginEnabled(tname);
-//         }
         if(isPluginEnabled(tname)){
             //wait for MainPanel to be initialized
             new Thread(){
@@ -620,9 +614,6 @@ public class Plugins extends JPanel{
                         } catch(Exception e){}
                     }
                     if(!found){check.doClick();
-                        
-//                     if(main.getComponentZOrder(plugin.getContent())==-1){
-//                         check.doClick();
                     }
                     else check.setSelected(true);}
             }.start();
@@ -840,8 +831,6 @@ public class Plugins extends JPanel{
             size = plugins.size();            
             for(int i=0;i<size;i++){
                 plugin = plugins.get(i).getAsString();
-//                 if(!availableplugin.getName().equals("Twister.jar") &&
-//                     availableplugin.getName().equals(plugin)){
                 if( availableplugin.getName().equals(plugin.substring(0,plugin.indexOf("."))+"_description.txt")||
                     availableplugin.getName().equals(plugin)){
                     found = true;
@@ -876,9 +865,6 @@ public class Plugins extends JPanel{
     public boolean copyPlugin(String filename){
         File file = new File(RunnerRepository.PLUGINSDIRECTORY+RunnerRepository.getBar()+filename);
         InputStream in = null;
-//         InputStreamReader inputStreamReader = null;
-//         BufferedReader bufferedReader = null;  
-//         BufferedWriter writer=null;
         try{
             ch.cd(RunnerRepository.REMOTEPLUGINSDIR);
         }
@@ -918,25 +904,6 @@ public class Plugins extends JPanel{
             e.printStackTrace();
             System.out.println("Error in copying plugin file " +filename+ " localy");
             return false;}}
-                
-//     public void enablePlugin(boolean value, String filename){
-//         Document doc = RunnerRepository.getPluginsConfig();
-//         NodeList list1 = doc.getElementsByTagName("Plugin");
-//         Element item;
-//         Element compare;
-//         for(int i=0;i<list1.getLength();i++){
-//             item = (Element)list1.item(i);
-//             compare = (Element)item.getElementsByTagName("jarfile").item(0);
-//             if(compare.getChildNodes().item(0).getNodeValue().equals(filename)){
-//                 compare = (Element)item.getElementsByTagName("status").item(0);
-//                 //if(value)compare.getChildNodes().item(0).setNodeValue("enabled");
-//                 //else compare.getChildNodes().item(0).setNodeValue("disabled");
-//                 //uploadPluginsFile();
-//                 return;
-//             }
-//         }
-//     }
-                
     /*
      * method to check if plugin with filename
      * is enabled in general plugins config

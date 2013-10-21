@@ -1,6 +1,6 @@
 /*
 File: ClearCase.java ; This file is part of Twister.
-Version: 2.012
+Version: 2.013
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -94,6 +94,11 @@ public class ClearCase extends JPanel{
         initComponents();
     }
     
+    
+    /*
+     * create a ssh connection with server
+     * and modify prompt based on shell type
+     */
     private void initializeSSH(String host, String user, String password){
         try{JSch jsch = new JSch();
             session = jsch.getSession(user, host, 22);
@@ -104,31 +109,7 @@ public class ClearCase extends JPanel{
             channel.connect();
             in = new BufferedReader(new InputStreamReader(channel.getInputStream(),"UTF-8"));
             OutputStream ops = channel.getOutputStream();
-            ps = new PrintStream(ops, false);
-//             String readln="";
-//             while(in.ready()){
-//                 System.out.println("readln:"+in.readLine());
-//             }
-//             while((readln = in.readLine())!=null){
-//                 System.out.println("readln:"+readln);
-//             }
-            
-            
-//             sendCommand("echo $SHELL");
-
-
-//             Thread th = new Thread(){
-//                 public void run(){
-//                     while(true){
-//                         try{System.out.println("Line- "+in.readLine());}
-//                         catch(Exception e){e.printStackTrace();}
-//                     }
-//                 }
-//             };
-//             th.start();
-//             try{Thread.sleep(3000);}
-//             catch (Exception e){e.printStackTrace();}
-//             th.stop();            
+            ps = new PrintStream(ops, false);           
             sendStartCommand("echo $SHELL");
             shell = readFirstOutput(null);
             System.out.println("Shell: "+shell+"---");
@@ -154,24 +135,14 @@ public class ClearCase extends JPanel{
                 }
                 readOutput("set prompt");
             }
-            //System.out.println("shell response: "+readOutput(null));
         }catch(Exception e){
             e.printStackTrace();
         }
     }
-    
-//     public void sendCommand(String command,boolean endstring){
-//         
-//         try{if(endstring){
-//                 command+=" ; echo @_#_";
-//             }
-//             ps.println(command); 
-//             ps.flush();
-//         } catch(Exception e){
-//             e.printStackTrace();
-//         }
-//     }
 
+    /*
+     * send command through ssh to server
+     */
     public void sendCommand(String command){
         try{
             ps.println(command); 
@@ -181,10 +152,12 @@ public class ClearCase extends JPanel{
         }
     }
     
+    /*
+     * this is used at initialization
+     */
     public void sendStartCommand(String command){
         try{
             command+=" ; echo \"@_#_\"";
-            System.out.println("sending command: "+command);
             ps.println(command); 
             ps.flush();
         } catch(Exception e){
@@ -192,6 +165,10 @@ public class ClearCase extends JPanel{
         }
     }
 
+    
+    /*
+     * read first ssh response 
+     */
     public String readFirstOutput(String command){
         try{
             String line = null;
@@ -234,91 +211,11 @@ public class ClearCase extends JPanel{
         }
     }
     
-//     public String readFirstOutput(String command){
-//         try{
-//             String line = null;
-//             StringBuilder responseData = new StringBuilder();
-//             char [] buffer = new char[5];
-//             int read;
-//             while(true) {
-//                 if((read = in.read(buffer,0,5))!=-1){
-//                     responseData.append(buffer, 0, read);
-//                 }
-//                 System.out.println("line: "+responseData.toString());
-//                 if(responseData.indexOf("echo \"@_#_\"")!=-1){
-//                     int index = responseData.indexOf("echo \"@_#_\"")+11;
-//                     String temp = responseData.substring(index);
-//                     responseData.setLength(0);
-//                     responseData.append(temp);
-//                 }
-//                 else if(responseData.indexOf("@_#_")!=-1&&responseData.indexOf("echo")==-1){
-//                         return responseData.toString();
-//                 } 
-//                 if(responseData.indexOf("No such file or directory")!=-1){
-//                     return responseData.toString();
-//                 }
-//                 if(responseData.indexOf("cleartool: command not found")!=-1){
-//                     CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,ClearCase.this,
-//                             "ERROR", "ClearTool not installed!");
-//                     return null;
-//                 }
-//             }
-//         } catch(Exception e){
-//             e.printStackTrace();
-//             return null;
-//         }
-//     }
-
-//     public String readOutput(String command){
-//         try{
-//             String line = null;
-//             StringBuilder responseData = new StringBuilder();
-//             char [] buffer = new char[5];
-//             int read;
-//             while(true) {
-//                 if((read = in.read(buffer,0,5))!=-1){
-//                     responseData.append(buffer, 0, read);
-//                 }
-//                 System.out.println("line: "+responseData.toString());
-// //                 if((!line.equals(prompt)&&line.indexOf(prompt)!=-1) || (command!=null&&line.indexOf(command)!=-1)){
-// //                     responseData.setLength(0);
-// //                 }
-// 
-//                 if(responseData.indexOf("echo \"@_#_\"")!=-1){
-//                     int index = responseData.indexOf("echo \"@_#_\"")+11;
-//                     String temp = responseData.substring(index);
-//                     responseData.setLength(0);
-//                     responseData.append(temp);
-//                 }
-//                 
-//                 if(line.indexOf(prompt)==-1&&!line.equals("")){
-//                     if(command!=null){
-//                         if(line.indexOf(command)==-1){
-//                             responseData.append(line+"\n");
-//                         }
-//                     } else {
-//                         responseData.append(line+"\n");
-//                     }
-//                 }
-//                 else if(line.equals(prompt)){
-//                         return responseData.toString();
-//                 } 
-//                 if(line.indexOf("No such file or directory")!=-1){
-//                     return responseData.toString();
-//                 }
-//                 if(responseData.indexOf("cleartool: command not found")!=-1){
-//                     CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,ClearCase.this,
-//                             "ERROR", "ClearTool not installed!");
-//                     return null;
-//                 }
-//             }
-//             return responseData.toString();
-//         } catch(Exception e){
-//             e.printStackTrace();
-//             return null;
-//         }
-//     }
-
+    /*
+     * used to read responses from ssh
+     * it parses the respons and returns only
+     * the needed response
+     */
     public String readOutput(String command){
         try{
             String line = null;
@@ -361,6 +258,10 @@ public class ClearCase extends JPanel{
         }
     }
     
+    /*
+     * method called when terminating
+     * the ClearCase plugin
+     */
     public void disconnect(){
         try{in.close();}
         catch(Exception e){e.printStackTrace();}
@@ -466,8 +367,6 @@ public class ClearCase extends JPanel{
                 p.add(version);
                 p.add(tversion);
                 
-                
-                
                 JLabel comment = new JLabel("Comment: ");
                 comment.setBounds(10,100,70,25);
                 JTextArea tcomment = new JTextArea();
@@ -482,22 +381,6 @@ public class ClearCase extends JPanel{
                 tcf.setBounds(95,185,235,25);
                 p.add(cf);
                 p.add(tcf);
-                
-//                 JLabel version = new JLabel("Version: ");
-//                 version.setBounds(10,70,70,25);
-//                 JTextField tversion = new JTextField();
-//                 tversion.setBounds(90,70,250,25);
-//                 p.add(version);
-//                 p.add(tversion);
-//                 
-//                 JLabel comment = new JLabel("Comment: ");
-//                 comment.setBounds(10,100,70,25);
-//                 JTextArea tcomment = new JTextArea();
-//                 JScrollPane sp = new JScrollPane(tcomment);
-//                 sp.setBounds(90,100,250,150);
-//                 p.add(comment);
-//                 p.add(sp);
-//                 
                 JCheckBox recursive = new JCheckBox("recursive");
                 recursive.setBounds(10,215,80,25);
                 p.add(recursive);
@@ -689,17 +572,6 @@ public class ClearCase extends JPanel{
                                                         RunnerRepository.window, "Describe",
                                                         null);
                 if(resp == JOptionPane.OK_OPTION){
-//                     final JTextField telement = new JTextField();
-//                     final JTextField tcview = new JTextField();
-//                     final JTextField thlink = new JTextField();
-//                     final JTextField tlbtype = new JTextField();
-//                     final JTextField tvob = new JTextField();
-
-//                         p.add(jlong);
-//                         p.add(jshort);
-//                         p.add(format);
-//                         p.add(tformat);
-
                     StringBuilder sb = new StringBuilder();
                     sb.append("cleartool describe ");
                     if(jlong.isSelected()){
@@ -894,41 +766,13 @@ public class ClearCase extends JPanel{
                     String ucomment = " -c "+tcomment.getText();
                     if(tcomment.equals(""))ucomment = " -nc ";
                     String utype = teltype.getText();
-//                     sendCommand("newgrp neptune");
-//                     try{System.out.println(in.readLine());
-//                         System.out.println(in.readLine());
-//                         System.out.println(in.readLine());
-//                         System.out.println(in.readLine());
-//                     } catch (Exception e){
-//                         e.printStackTrace();
-//                     }
-//                     System.out.println(readOutput());
-//                     sendCommand("cleartool setview bogdan_twister");
-//                     try{System.out.println(in.readLine());
-//                         System.out.println(in.readLine());
-//                         System.out.println(in.readLine());
-//                         System.out.println(in.readLine());
-//                     } catch (Exception e){
-//                         e.printStackTrace();
-//                     }
-                    //System.out.println(readOutput());
                     sendCommand("cleartool mkelem "+ucomment+" -eltype "+utype+" "+uelement);
                     String response = readOutput("cleartool mkelem");
                     System.out.println(response);
                     tviews.setText(response);
                 }
             }});
-        
-//         endview.addActionListener(new ActionListener(){
-//             public void actionPerformed(ActionEvent ev){
-//                 sendCommand("cleartool endview "+view,false);
-//                 readOutput(true);
-//                 lview.setText("");
-//                 vob.setText("");
-//                 view = "";
-//                 root = "";
-//             }
-//         });
+            
         mkview.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 refresh.setEnabled(false);
@@ -1197,47 +1041,12 @@ public class ClearCase extends JPanel{
         );
         
         layout.linkSize(javax.swing.SwingConstants.VERTICAL, new java.awt.Component[] {refresh, tfilter});
-
-//         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(this);
-//         this.setLayout(layout);
-//         layout.setHorizontalGroup(
-//             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-//             .addGroup(layout.createSequentialGroup()
-//                 .addContainerGap()
-//                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-//                     .addGroup(layout.createSequentialGroup()
-//                         .addComponent(cshort)
-//                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-//                         .addComponent(clong))
-//                     .addComponent(listviews, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-//                     .addComponent(setview, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-//                 .addGap(18, 18, 18)
-//                 .addComponent(views)
-//                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-//                 .addComponent(jScrollPane2, javax.swing.GroupLayout.DEFAULT_SIZE, 467, Short.MAX_VALUE)
-//                 .addContainerGap())
-//         );
-//         layout.setVerticalGroup(
-//             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-//             .addGroup(layout.createSequentialGroup()
-//                 .addContainerGap()
-//                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-//                     .addComponent(jScrollPane2)
-//                     .addGroup(layout.createSequentialGroup()
-//                         .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-//                             .addComponent(listviews)
-//                             .addComponent(views))
-//                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-//                         .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-//                             .addComponent(cshort)
-//                             .addComponent(clong))
-//                         .addGap(18, 18, 18)
-//                         .addComponent(setview)
-//                         .addGap(0, 189, Short.MAX_VALUE)))
-//                 .addContainerGap())
-//         );
     }
     
+    /*
+     * displays views and sets view
+     * and vob on ClearCase server
+     */
     public void showViews(String [] views){
         JPanel libraries = new JPanel();
         JLabel jLabel1 = new JLabel();
@@ -1315,15 +1124,6 @@ public class ClearCase extends JPanel{
                 return ;
             }
             view = jList1.getSelectedValue().toString();
-//             sendCommand("cleartool setview "+view,false);
-//             readOutput(true);
-            //sendCommand("cleartool setview "+view);
-//             String prompt = "";
-//             if(shell.indexOf("/bash")!=-1||shell.indexOf("/ksh")!=-1){
-//                 prompt = "export PS1=\"twister_prompt#\"";
-//             }else if(shell.indexOf("/csh")!=-1||shell.indexOf("/tcsh")!=-1){
-//                 prompt = "set prompt=\"twister_prompt#\"";
-//             }
             
             sendCommand("cleartool setview "+view);
             try{String line = in.readLine();
@@ -1357,11 +1157,7 @@ public class ClearCase extends JPanel{
                 }
                 readOutput("set prompt");
             }
-            
-//             readOutput();
             root = jTextField1.getText();
-//             sendCommand("cd  "+jTextField1.getText(),false);
-//             readOutput(true);
             sendCommand("cd  "+jTextField1.getText());
             readOutput("cd  "+jTextField1.getText());
             RunnerRepository.window.mainpanel.p1.cp.refreshStructure();
@@ -1377,22 +1173,20 @@ public class ClearCase extends JPanel{
         }
     }
     
+    /*
+     * used to create ClearCase tc tree, uses
+     * ssh commands and interprets the result
+     */
     public void buildTree(DefaultMutableTreeNode node){
-//         sendCommand("cleartool pwd",true);
-//         String curentdir = readOutput(true);
         sendCommand("cleartool pwd");
         String curentdir = readOutput("cleartool pwd");
-        //curentdir = curentdir.substring(0, curentdir.length()-1);
         curentdir = curentdir.replace("\n", "");   
-        
         DefaultMutableTreeNode child = new DefaultMutableTreeNode(curentdir,true);
         node.add(child);
         Vector<String> folders = new Vector<String>();
         Vector<String> files = new Vector<String>();
         boolean directory = false;
         int firstindex,lastindex;
-//         sendCommand("cleartool ls -l",true);
-//         String [] lines = readOutput(false).split("\n");
         sendCommand("cleartool ls -l");
         String [] lines = readOutput("cleartool ls -l").split("\n");
         for(String line:lines){
@@ -1424,13 +1218,9 @@ public class ClearCase extends JPanel{
             System.out.println("file: "+file);
         }
         for(String folder:folders){
-//             sendCommand("cd  "+curentdir+"/"+folder,false);
-//             readOutput(true);
             sendCommand("cd  "+curentdir+"/"+folder);
             readOutput(null);
             buildTree(child);
-//             sendCommand("cd  "+curentdir,false);
-//             readOutput(true);
             sendCommand("cd  "+curentdir);
             readOutput(null);
         }

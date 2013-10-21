@@ -1,6 +1,6 @@
 /*
 File: Grafic.java ; This file is part of Twister.
-Version: 2.0014
+Version: 2.0015
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -164,7 +164,7 @@ public class Grafic extends JPanel{
                     RunnerRepository.window.mainpanel.p1.suitaDetails.setParent(next);
                     if(userDefNr!=RunnerRepository.window.mainpanel.p1.suitaDetails.getDefsNr()){
                         System.out.println("Warning, suite "+next.getName()+
-                            " has "+userDefNr+" fields while in bd.xml are defined "+
+                            " has "+userDefNr+" fields while in database xml are defined "+
                             RunnerRepository.window.mainpanel.p1.suitaDetails.getDefsNr()+" fields");}
                     try{for(int i=0;i<userDefNr;i++){
                         RunnerRepository.window.mainpanel.p1.suitaDetails.

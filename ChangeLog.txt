@@ -1,3 +1,11 @@
+18th October
+
+- start client and sniffer fix
+- Deleted TscTestBedLib, which is deprecated.
+- added "invalid" status for tc in GUI
+- Cleanup code in GUI
+- added comments to ClearCase related code in GUI 
+
 11th October
 
 - testing results can be saved in database even if an optional suite parameter

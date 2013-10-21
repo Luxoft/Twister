@@ -1,6 +1,6 @@
 /*
 File: ConfigFiles.java ; This file is part of Twister.
-Version: 2.012
+Version: 2.013
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -362,7 +362,7 @@ public class ConfigFiles extends JPanel{
                         String[] children = dir.list();
                         for (int i=0; i<children.length; i++){new File(dir, children[i]).delete();}
                         RunnerRepository.parseConfig();
-                        RunnerRepository.window.mainpanel.getP2().init(RunnerRepository.applet);
+                        RunnerRepository.window.mainpanel.getP2().init(RunnerRepository.isapplet);
                         RunnerRepository.window.mainpanel.p1.ep.refreshStructure();
                         RunnerRepository.window.mainpanel.p1.lp.refreshStructure();
                         RunnerRepository.window.mainpanel.p4.getDBConfig().refresh();
