@@ -101,8 +101,6 @@ class Plugin(BasePlugin):
             ]
         }
 
-        PluginService.plugin = self
-
 
     def packet_to_dict(self, packet):
         """ Recursive function to parse packet and return dict """
@@ -177,16 +175,18 @@ class Plugin(BasePlugin):
                     self.filters = {}
 
                 with self.packetsLock:
-                    self.packets = []
+                    self.packets = list()
                 response['data'] = {'index': 0}
 
                 with self.data['ce'].rsrv.conn_lock:
-                    for sniffer in [c for c in self.data['ce'].rsrv.conns if c['hello'] == 'sniffer']:
+                    for sniffer in [c for c in self.data['ce'].rsrv.conns
+                            if self.data['ce'].rsrv.conns[c]['hello'] == 'sniffer']:
                         try:
-                            sniffer['conns'].root.set_filters(self.filters)
+                            _response = self.data['ce'].rsrv.conns[sniffer]['conn'].root.set_filters(self.filters)
+                            if not _response:
+                                print('set filters error: {}'.format(response))
                         except Exception as e:
                             print('set filters error: {}'.format(e))
-
             except Exception, e:
                 response['status']['success'] = False
                 response['status']['message'] = 'set filters error: {err}'.format(err=e)
@@ -202,9 +202,10 @@ class Plugin(BasePlugin):
             if not oldStatus == self.status:
                 if self.status == 'paused':
                     with self.data['ce'].rsrv.conn_lock:
-                        for sniffer in [c for c in self.data['ce'].rsrv.conns if c['hello'] == 'sniffer']:
+                        for sniffer in [c for c in self.data['ce'].rsrv.conns
+                            if self.data['ce'].rsrv.conns[c]['hello'] == 'sniffer']:
                             try:
-                                _response = sniffer['conn'].root.pause()
+                                _response = self.data['ce'].rsrv.conns[sniffer]['conn'].root.pause()
                                 if not _response:
                                     self.status = oldStatus
                                     response['status']['success'] = False
@@ -212,9 +213,10 @@ class Plugin(BasePlugin):
                                 print('pause / resume error: {}'.format(e))
                 else:
                     with self.data['ce'].rsrv.conn_lock:
-                        for sniffer in [c for c in self.data['ce'].rsrv.conns if c['hello'] == 'sniffer']:
+                        for sniffer in [c for c in self.data['ce'].rsrv.conns
+                            if self.data['ce'].rsrv.conns[c]['hello'] == 'sniffer']:
                             try:
-                                _response = sniffer['conn'].root.resume()
+                                _response = self.data['ce'].rsrv.conns[sniffer]['conn'].root.resume()
                                 if not _response:
                                     self.status = oldStatus
                                     response['status']['success'] = False
@@ -228,9 +230,10 @@ class Plugin(BasePlugin):
             response['type'] = 'restart reply'
 
             with self.data['ce'].rsrv.conn_lock:
-                for sniffer in [c for c in self.data['ce'].rsrv.conns if c['hello'] == 'sniffer']:
+                for sniffer in [c for c in self.data['ce'].rsrv.conns
+                    if self.data['ce'].rsrv.conns[c]['hello'] == 'sniffer']:
                     try:
-                        _response = sniffer['conn'].root.restart()
+                        _response = self.data['ce'].rsrv.conns[sniffer]['conn'].root.restart()
                         if not _response:
                             response['status']['success'] = False
                     except Exception as e:
@@ -310,24 +313,30 @@ class Plugin(BasePlugin):
         elif args['command'] == 'pushpkt':
             response['type'] = 'pushpkt reply'
 
-            packet = deepcopy(args['data'])
-            packet.update([('packet_source', Ether(packet['packet_source'])), ])
+            try:
+                packet = deepcopy(args['data'])
+                packet.update([('packet_source', Ether(packet['packet_source'])), ])
 
-            if of_message_parse:
-                try:
-                    _packet = of_message_parse(str(packet['packet_source'].payload.payload.load))
-                    _packet = _packet.show()
-                except Exception as e:
+                if of_message_parse:
+                    try:
+                        _packet = of_message_parse(str(packet['packet_source'].payload.payload.load))
+                        _packet = _packet.show()
+                    except Exception as e:
+                        _packet = self.packet_to_dict(packet['packet_source'])
+                else:
                     _packet = self.packet_to_dict(packet['packet_source'])
-            else:
-                _packet = self.packet_to_dict(packet['packet_source'])
 
-            packet.update([('packet_dict' , _packet), ])
-            with self.packetsLock:
-                self.packets.append(packet)
+                packet.update([('packet_dict' , _packet), ])
+                with self.packetsLock:
+                    self.packets.append(packet)
 
-            if len(self.packets) >= self.packetsIndexLimit:
-                del self.packets[:int(self.data['packetsBuffer'])]
+                if len(self.packets) >= self.packetsIndexLimit:
+                    del self.packets[:int(self.data['packetsBuffer'])]
+
+                response['status']['success'] = True
+            except Exception as e:
+                response['status']['success'] = False
+                response['status']['message'] = str(e)
 
         # savepcap
         elif args['command'] == 'savepcap':
@@ -359,67 +368,6 @@ class Plugin(BasePlugin):
 
 
 
-
-
-class PluginService(rpycService):
-    """  """
-
-    plugin = None
-    connections = dict()
-
-    def on_connect(self):
-        """  """
-
-        self.connections.update([(str(self) , 6633), ])
-
-        try:
-            client_addr = self._conn._config['endpoints'][1]
-            print('Connected from `{}`.'.format(client_addr))
-        except Exception as e:
-            #print('Connect error: {er}'.format(er=e))
-            pass
-
-
-    def on_disconnect(self):
-        """  """
-
-        self.connections.pop(str(self))
-        self.plugin.sniffers.pop(self.plugin.sniffers.index(self._conn))
-        try:
-            client_addr = self._conn._config['endpoints'][1]
-            print('Disconnected from `{ip}:{port}`.'.format(ip=client_addr[0], port=client_addr[1]))
-        except Exception as e:
-            #print('Disconnect error: {er}'.format(er=e))
-            pass
-
-
-    def exposed_set_ofp_port(self, port):
-        """  """
-
-        self.connections.update([(str(self) , deepcopy(port)), ])
-
-
-    def exposed_pushpkt(self, packet):
-        """  """
-
-        if not self.plugin:
-            print('push packet error: no plugin')
-            return False
-
-
-
-        return True
-
-
-
-
-
-
-
-
-
-
-
 """
 
 #### plugins.xml config ####
@@ -440,3 +388,4 @@ class PluginService(rpycService):
 </Plugin>
 
 """
+
