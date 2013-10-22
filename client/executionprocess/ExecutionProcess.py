@@ -66,10 +66,10 @@ TWISTER_PATH = os.path.abspath(TWISTER_PATH).rstrip('/')
 
 os.environ['TWISTER_PATH'] = TWISTER_PATH
 if not TWISTER_PATH:
-    print('TWISTER_PATH environment variable is not set! Exiting!')
+    print('\nTWISTER_PATH environment variable is not set! Exiting!\n')
     exit(1)
 else:
-    print('\nTWISTER_PATH is set to `{}`.'.format(TWISTER_PATH))
+    print('\nTWISTER_PATH is set to `{}`.\n'.format(TWISTER_PATH))
 sys.path.append(TWISTER_PATH)
 
 from RunnerClasses import *
@@ -146,7 +146,7 @@ class Logger(object):
             self.proxy.logLIVE(epName, binascii.b2a_base64(self.buffer))
             self.buffer = ''
 
-    def flush(self):
+    def close(self, *args, **kw):
         """
         Close the logger.
         """
@@ -182,15 +182,23 @@ class TwisterRunner(object):
             'perl': None,
             'java': None,
         }
+        # RPyc config
+        config = {
+            'allow_pickle': True,
+            'allow_getattr': True,
+            'allow_setattr': True,
+            'allow_delattr': True,
+            'allow_all_attrs': True,
+        }
 
         # Connect to RPyc server
         try:
             ce_ip, ce_port = self.cePath.split(':')
-            self.proxy = rpyc.connect(ce_ip, int(ce_port))
+            self.proxy = rpyc.connect(ce_ip, int(ce_port), config=config)
             self.proxy.root.hello('ep::{}'.format(epName))
             print('EP Debug: Connected to CE at `{}`...'.format(cePath))
-        except:
-            print('*ERROR* Cannot connect to CE path `{}`! Exiting!'.format(cePath))
+        except Exception as e:
+            print('*ERROR* Cannot connect to CE path `{}` : `{}`! Exiting!'.format(cePath, e))
             exit(1)
 
         # Authenticate on RPyc server
@@ -360,7 +368,7 @@ class TwisterRunner(object):
             print('EP Debug: Start to run the tests!')
         else:
             print('EP Debug: EP name `{}` is NOT running! Exiting!'.format(self.epName))
-            return self.exit(0.0)
+            return self.exit(timer_f=0.0)
 
         # Download the Suites Manager structure from Central Engine!
         # This is the initial structure, created from the Project.XML file.
@@ -469,7 +477,7 @@ class TwisterRunner(object):
                 ce.setFileStatus(self.epName, file_id, STATUS_ABORTED, 0.0) # File status ABORTED
                 print('~ ABORTED: Status STOP, while running! ~')
                 diff_time = time.time() - glob_time
-                return self.exit(diff_time)
+                return self.exit(timer_f=diff_time)
 
             # On pause, freeze cycle and wait for Resume or Stop
             elif ce.getEpStatus(self.epName) == 'paused':
@@ -494,7 +502,7 @@ class TwisterRunner(object):
                         print('~ NOT EXECUTED: Status STOP, while waiting for resume ! ~')
                         # Exit the cycle
                         diff_time = time.time() - glob_time
-                        return self.exit(diff_time)
+                        return self.exit(timer_f=diff_time)
 
 
             # If dependency file is PENDING or WORKING, wait for it to finish; for any other status, go next.
@@ -710,18 +718,22 @@ class TwisterRunner(object):
 
         del SuitesManager
 
+        # Print the final message
         diff_time = time.time() - glob_time
-        return self.exit(diff_time)
+        self.proxy.root.setEpStatus(self.epName, 0, msg='Execution finished in `{:.2f}` seconds.'.format(timer_f))
+
+        return self.exit(timer_f=diff_time)
 
 
-    def exit(self, timer_f=0.0):
+    def exit(self, timer_f=0.0, *args, **kw):
         """
         Exit on time, or prematurely.
         """
-        # Print the final message
-        self.proxy.root.setEpStatus(self.epName, 0, msg='Execution finished in `{:.2f}` seconds.'.format(timer_f))
+        print('\n~ Stop the Execution Process ~\n')
         # Flush all messages
         logger.close()
+        # !
+        exit()
 
 
 # # #
@@ -733,6 +745,29 @@ if __name__=='__main__':
         print('*ERROR* EP must start with 3 parameters!')
         print(' usage : python ExecutionProcess.py Ep_Name Host:Port')
         exit(1)
+
+
+    # If this scripts is running Portable from twister/client/executionprocess
+    path = TWISTER_PATH
+    path_exploded = []
+
+    while 1:
+        path, folder = os.path.split(path)
+        if folder:
+            path_exploded.append(folder)
+        else:
+            if path:
+                path_exploded.append(path.rstrip(os.sep))
+            break
+
+    path_exploded.reverse()
+
+    if path_exploded[-1] == 'executionprocess':
+        path_exploded = path_exploded[:-2]
+        path = os.sep.join(path_exploded)
+        print('Portable mode: Appending `{}` to python path.\n'.format(path))
+        sys.path.append(path)
+
 
     userName = sys.argv[1]
     epName   = sys.argv[2]
@@ -753,9 +788,8 @@ if __name__=='__main__':
     print('~ User: {} ; EP: {} ; CE path: {} ~\n'.format(userName, epName, cePath))
 
     runner = TwisterRunner(userName, epName, cePath)
+    signal.signal(signal.SIGINT, runner.exit)
     signal.signal(signal.SIGTERM, runner.exit)
     runner.run()
-
-    print('\n~ Stop the Execution Process ~\n\n')
 
 # Eof()

@@ -324,8 +324,7 @@ class TwisterClient(object):
             epData['ce_ip'] = cfg.get(currentEP, 'CE_IP')
             epData['ce_port'] = cfg.get(currentEP, 'CE_PORT')
 
-            epData['exec_str'] = 'nohup {py} -u {path}/client/executionprocess/ExecutionProcess.py '\
-                   '{user} {ep} "{ip}:{port}" > /dev/null &'.format(
+            epData['exec_str'] = '{py} -u {path}/client/executionprocess/ExecutionProcess.py {user} {ep} {ip}:{port}'.format(
                     py = sys.executable,
                     path = TWISTER_PATH,
                     user = self.userName,
@@ -467,11 +466,12 @@ class TwisterClientService(rpyc.Service):
                   epname, userName, client.epNames[epname]['pid']))
             return False
 
-        print('Executing: `{}`.'.format(client.epNames[epname]['exec_str']))
+        exec_str = client.epNames[epname]['exec_str']
+        print('Executing: `{}`.'.format(exec_str))
 
         try:
-            p = subprocess.Popen(client.epNames[epname]['exec_str'], shell=True, preexec_fn=os.setsid)
-            client.epNames[epname]['pid'] = p
+            tproc = subprocess.Popen(exec_str, shell=True, stdout=subprocess.PIPE, preexec_fn=os.setsid)
+            client.epNames[epname]['pid'] = tproc
         except:
             trace = traceback.format_exc()[34:].strip()
             print('ClientService: Error on Start EP: `{}`.'.format(trace))
@@ -491,15 +491,17 @@ class TwisterClientService(rpyc.Service):
             print('*ERROR* Unknown EP name : `{}` !'.format(epname))
             return False
 
-        if not client.epNames[epname]['pid']:
-            print('Error: EP `{}` is not running !'.format(epname))
+        tproc = client.epNames[epname].get('pid', 0)
+
+        if not tproc:
+            print('Silly boy! EP `{}` is not running!'.format(epname))
             return False
 
         print('Preparing to stop EP `{}`...'.format(epname))
         time.sleep(1) # A small delay
 
         try:
-            os.kill(client.epNames[epname]['pid'].pid, signal.SIGTERM)
+            os.killpg(tproc.pid, signal.SIGTERM)
             client.epNames[epname]['pid'] = None
         except:
             trace = traceback.format_exc()[34:].strip()
