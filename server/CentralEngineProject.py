@@ -1475,9 +1475,20 @@ class Project(object):
             if statuses_changed:
                 logDebug('Set Status: Changed `{}` file statuses from Pending to Not executed.'.format(statuses_changed))
 
+        # Pause or other statuses ?
+        else:
+            # Change status on all active EPs !
+            active_eps = self.parsers[user].getActiveEps()
+            for epname in active_eps:
+                if epname not in self.users[user]['eps']:
+                    continue
+                # Set the NEW EP status
+                self.setEpInfo(user, epname, 'status', new_status)
+
         # Update status for User
         self.setUserInfo(user, 'status', new_status)
-        # All active EPs for this project, refresh
+
+        # All active EPs for this project, refresh again...
         active_eps = self.parsers[user].getActiveEps()
 
         if msg and msg != ',':

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# version: 2.007
+# version: 2.008
 
 # File: ExecutionProcess.py ; This file is part of Twister.
 
@@ -133,7 +133,20 @@ class Logger(object):
                 self.buffer = ''
         self.timer = ctimer
 
-    def close(self):
+    def flush(self):
+        """
+        Flush all messages the logger.
+        """
+        global epName
+        if not self.stdout.closed:
+            self.stdout.flush()
+        if not self.logfile.closed:
+            self.logfile.flush()
+        if self.buffer:
+            self.proxy.logLIVE(epName, binascii.b2a_base64(self.buffer))
+            self.buffer = ''
+
+    def flush(self):
         """
         Close the logger.
         """
@@ -466,6 +479,7 @@ class TwisterRunner(object):
                     # Print pause message
                     if not vPauseMsg:
                         print('Runner: Execution paused. Waiting for RESUME signal.\n')
+                        logger.flush() # Send this message
                         vPauseMsg = True
                     # Wait ...
                     time.sleep(3)
