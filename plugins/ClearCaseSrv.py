@@ -29,6 +29,8 @@ from __future__ import print_function
 import os
 import sys
 import re
+import socket
+socket.setdefaulttimeout(5)
 import xmlrpclib
 
 import cherrypy
