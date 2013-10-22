@@ -92,7 +92,7 @@ class TscCommonLib(object):
             proxy.root.hello('lib::{}'.format(self.epName))
         except:
             print('*ERROR* Cannot connect to CE path `{}`! Exiting!'.format(self.proxy_path))
-            exit(1)
+            raise Exception
 
         # Authenticate on RPyc server
         try:
@@ -102,7 +102,9 @@ class TscCommonLib(object):
             return self.__ce_proxy
         except:
             print('*ERROR* Cannot authenticate on CE path `{}`! Exiting!'.format(self.proxy_path))
-            exit(1)
+            raise Exception
+
+        return proxy
 
 
     def logMsg(self, logType, logMessage):

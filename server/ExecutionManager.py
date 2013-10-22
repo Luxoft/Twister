@@ -142,11 +142,12 @@ class ExecutionManagerService(rpyc.Service):
 
     def exposed_hello(self, hello='', extra={}):
         """
-        For testing connection and setting a name.
+        Used by a Client for setting a name and other props.
         """
         str_addr = self._get_addr()
         extra = dict(extra)
         extra.update({'hello': str(hello)})
+        # logInfo('Hello `{} - {}` !'.format(hello, str_addr))
 
         # Delete the invalid extra meta-data
         if 'conn' in extra:     del extra['conn']

@@ -1,7 +1,7 @@
 
 # File: CentralEngineProject.py ; This file is part of Twister.
 
-# version: 2.043
+# version: 2.044
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -1422,6 +1422,9 @@ class Project(object):
             for epname in active_eps:
                 if epname not in self.users[user]['eps']:
                     continue
+                # Set the NEW EP status
+                self.setEpInfo(user, epname, 'status', new_status)
+                # Send START to EP Manager
                 self.rsrv.exposed_startEP(epname, user)
 
         # If the engine is running, or paused and it received STOP from the user...
@@ -1464,6 +1467,8 @@ class Project(object):
                     if current_status in [STATUS_PENDING, -1]:
                         self.setFileInfo(user, epname, file_id, 'status', STATUS_NOT_EXEC)
                         statuses_changed += 1
+                # Set the NEW EP status
+                self.setEpInfo(user, epname, 'status', new_status)
                 # Send STOP to EP Manager
                 self.rsrv.exposed_stopEP(epname, user)
 
@@ -1472,16 +1477,8 @@ class Project(object):
 
         # Update status for User
         self.setUserInfo(user, 'status', new_status)
-
-        # Update status for all active EPs
+        # All active EPs for this project, refresh
         active_eps = self.parsers[user].getActiveEps()
-        for epname in active_eps:
-            if epname not in self.users[user]['eps']:
-                logError('Set Status: `{}` is not a valid EP Name!'.format(epname))
-                continue
-            self.setEpInfo(user, epname, 'status', new_status)
-
-        reversed = dict((v,k) for k,v in execStatus.iteritems())
 
         if msg and msg != ',':
             logDebug('Status changed for `{} {}` - {}.\n\tMessage: `{}`.'.format(

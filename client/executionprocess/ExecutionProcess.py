@@ -102,12 +102,6 @@ class Logger(object):
         self.stdout = stdout # The OUTPUT stream
         self.logfile = file(filename, 'a')
 
-    def __del__(self):
-        """
-        Send the last chunk of buffer.
-        """
-        self.close()
-
     def write(self, text):
         """
         Write in the OUT stream, in the log file and send to CE.
@@ -353,7 +347,7 @@ class TwisterRunner(object):
             print('EP Debug: Start to run the tests!')
         else:
             print('EP Debug: EP name `{}` is NOT running! Exiting!'.format(self.epName))
-            exit(1)
+            return self.exit(0.0)
 
         # Download the Suites Manager structure from Central Engine!
         # This is the initial structure, created from the Project.XML file.
@@ -719,17 +713,6 @@ class TwisterRunner(object):
 # # #
 
 
-def signal_handler(signal, frame):
-    global logger
-    print('\n~ TIME TO EXIT THE EP! ~\n\n')
-    # Flush all remaining messages
-    logger.close()
-    exit(0)
-
-
-# # #
-
-
 if __name__=='__main__':
 
     if len(sys.argv) < 3:
@@ -752,16 +735,13 @@ if __name__=='__main__':
     logger = Logger(sys.stdout, EP_LOG)
     sys.stdout = logger
 
-    signal.signal(signal.SIGINT, signal_handler)
-    signal.signal(signal.SIGTERM, signal_handler)
-
     print('~ Start the Execution Process ~')
     print('~ User: {} ; EP: {} ; CE path: {} ~\n'.format(userName, epName, cePath))
 
     runner = TwisterRunner(userName, epName, cePath)
+    signal.signal(signal.SIGTERM, runner.exit)
     runner.run()
 
     print('\n~ Stop the Execution Process ~\n\n')
-    del logger
 
 # Eof()

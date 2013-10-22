@@ -2,7 +2,7 @@
 
 # File: start_client.py ; This file is part of Twister.
 
-# version: 1.005
+# version: 1.006
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -123,7 +123,7 @@ class TwisterClient(object):
 
 #
 
-    def _createConn(self, ce_ip, ce_port, debug=True):
+    def _createConn(self, ce_ip, ce_port, epNames=[], debug=True):
         """
         Helper for creating a Central Engine connection, the most basic func.
         """
@@ -138,7 +138,6 @@ class TwisterClient(object):
         # Connect to RPyc server
         try:
             proxy = rpyc.connect(ce_ip, ce_port, service=TwisterClientService, config=config)
-            proxy.root.hello('client')
             print('Client Debug: Connected to CE at `{}:{}`...'.format(ce_ip, ce_port))
         except Exception as e:
             if debug:
@@ -148,9 +147,18 @@ class TwisterClient(object):
         # Authenticate on RPyc server
         try:
             check = proxy.root.login(self.userName, 'EP')
-            print('Client Debug: Authentication successful!\n')
+            print('Client Debug: Authentication successful!')
         except Exception as e:
             check = False
+
+        # Say Hello and Register all EPs on the current Central Engine
+        if epNames:
+            try:
+                proxy.root.hello('client', {'eps': epNames})
+                print('Client Debug: Register EPs successful!\n')
+            except Exception as e:
+                print('Exception:', e)
+                check = False
 
         if not check:
             print('*ERROR* Cannot authenticate on CE path `{}:{}`!'.format(ce_ip, ce_port))
@@ -161,7 +169,7 @@ class TwisterClient(object):
 
 #
 
-    def _createConnLong(self, cePath):
+    def _createConnLong(self, cePath, epNames=[]):
         """
         Create connection to Central Engine, return the connection and
         auto-save it in the Proxy Dict.
@@ -192,7 +200,7 @@ class TwisterClient(object):
         while True:
             if not proxy:
                 # Try creating a new Central Engine connection.
-                proxy = self._createConn(ce_ip, ce_port, err_msg)
+                proxy = self._createConn(ce_ip, ce_port, epNames, err_msg)
             else:
                 break
 
@@ -223,9 +231,7 @@ class TwisterClient(object):
         """
         print('\nWill REGISTER EPs on CE `{}` :: `{}`...\n'.format(cePath, epNames))
         # This operation might take a while!...
-        self._createConnLong(cePath)
-        # Register all this information on the current Central Engine
-        self.proxyDict[cePath].root.registerEps(epNames)
+        self._createConnLong(cePath, epNames)
         print('\nSuccess REGISTER EPs on CE `{}` :: `{}` !\n'.format(cePath, epNames))
 
 #
@@ -472,7 +478,6 @@ class TwisterClientService(rpyc.Service):
             return False
 
         print('EP `{}` for user `{}` launched in background!\n'.format(epname, userName))
-
         return True
 
 
