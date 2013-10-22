@@ -519,10 +519,12 @@ class TwisterClientService(rpyc.Service):
         snifferEth = ['eth0', self.snifferEth][self.snifferEth is not None]
 
         # start sniffer
-        scriptPath =  os.path.join(TWISTER_PATH, 'bin/start_packet_sniffer.py')
-        command = ['sudo', 'python', scriptPath, '-u', userName,
-                    '-i', snifferEth, '-t', TWISTER_PATH]
-        subprocess.Popen(command, shell=False)
+        scriptPath = os.path.join(TWISTER_PATH, 'bin/start_packet_sniffer.py')
+        logPath = os.path.join(TWISTER_PATH, 'sniffer_log.log')
+        command = ['python', '-u', scriptPath, '-u', userName,
+                        '-i', snifferEth, '-t', TWISTER_PATH]
+        with open(logPath, 'wb+') as logFile:
+            subprocess.Popen(command, stdout=logFile, stderr=logFile)
 
         return True
 

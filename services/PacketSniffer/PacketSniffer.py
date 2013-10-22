@@ -186,6 +186,11 @@ class Sniffer(Automaton):
 												'allow_setattr': True,
 												'allow_delattr': True})
 
+				with PacketSnifferService.connectionsLock:
+					if PacketSnifferService.connections.has_key(connection._config['connid']):
+						PacketSnifferService.connections[connection._config['connid']].update([('host',
+																	'{}:{}'.format(ce[0], ce[1])), ])
+
 				# hello
 				hello = connection.root.hello('sniffer')
 
@@ -325,7 +330,7 @@ class Sniffer(Automaton):
 			for conn in PacketSnifferService.connections:
 				if PacketSnifferService.connections[conn]:
 					try:
-						response = PacketSnifferService.connections[conn].runPlugin('PacketSnifferPlugin',
+						response = PacketSnifferService.connections[conn]['root'].runPlugin('PacketSnifferPlugin',
 																		{'command': 'pushpkt',
 																			'data': data})
 						if (not isinstance(response, dict) or not response.has_key('status') or
@@ -397,7 +402,7 @@ class PacketSnifferService(rpycService):
 			#client_addr = self._conn._config['endpoints'][1]
 			client_addr = self._conn._config['connid']
 			with self.connectionsLock:
-				self.connections.update([(client_addr, self._conn.root), ])
+				self.connections.update([(client_addr, {'root': self._conn.root}), ])
 
 			print('PT debug: Connected from `{}`.'.format(client_addr))
 		except Exception as e:
