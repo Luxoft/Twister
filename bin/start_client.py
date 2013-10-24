@@ -324,7 +324,8 @@ class TwisterClient(object):
             epData['ce_ip'] = cfg.get(currentEP, 'CE_IP')
             epData['ce_port'] = cfg.get(currentEP, 'CE_PORT')
 
-            epData['exec_str'] = '{py} -u {path}/client/executionprocess/ExecutionProcess.py {user} {ep} {ip}:{port}'.format(
+            epData['exec_str'] = 'nohup {py} -u {path}/client/executionprocess/ExecutionProcess.py '\
+                    '-u {user} -e {ep} -s {ip}:{port} > "{path}/.twister_cache/{ep}_LIVE.log" &'.format(
                     py = sys.executable,
                     path = TWISTER_PATH,
                     user = self.userName,
@@ -470,7 +471,7 @@ class TwisterClientService(rpyc.Service):
         print('Executing: `{}`.'.format(exec_str))
 
         try:
-            tproc = subprocess.Popen(exec_str, shell=True, stdout=subprocess.PIPE, preexec_fn=os.setsid)
+            tproc = subprocess.Popen(exec_str, shell=True, preexec_fn=os.setsid)
             client.epNames[epname]['pid'] = tproc
         except:
             trace = traceback.format_exc()[34:].strip()
@@ -498,7 +499,7 @@ class TwisterClientService(rpyc.Service):
             return False
 
         print('Preparing to stop EP `{}`...'.format(epname))
-        time.sleep(1) # A small delay
+        time.sleep(0.5) # A small delay
 
         try:
             os.killpg(tproc.pid, signal.SIGTERM)
