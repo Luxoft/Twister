@@ -499,15 +499,22 @@ class TwisterClientService(rpyc.Service):
             return False
 
         print('Preparing to stop EP `{}`...'.format(epname))
-        time.sleep(0.5) # A small delay
 
+        time.sleep(0.5) # A small delay
         try:
             os.killpg(tproc.pid, signal.SIGTERM)
-            client.epNames[epname]['pid'] = None
         except:
             trace = traceback.format_exc()[34:].strip()
             print('ClientService: Error on Stop EP: `{}`.'.format(trace))
             return False
+
+        time.sleep(0.1) # Another small delay
+        try:
+            os.kill(tproc.pid, 9)
+            client.epNames[epname]['pid'] = None
+        except:
+            trace = traceback.format_exc()[34:].strip()
+            print('ClientService: Error on Stop EP: `{}`.'.format(trace))
 
         print('Stopped EP `{}` !'.format(epname))
         return True

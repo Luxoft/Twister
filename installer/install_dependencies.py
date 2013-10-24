@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# version: 2.001
+# version: 2.002
 
 # File: install.py ; This file is part of Twister.
 
@@ -82,6 +82,9 @@ dependencies = [
     'Scapy-real',
     'Paramiko',
     'PyCrypto',
+    'six',
+    'plumbum',
+    'rpyc',
     'pExpect'
 ]
 
@@ -94,18 +97,24 @@ library_names = [
     'scapy',
     'paramiko',
     'Crypto',
+    'six',
+    'plumbum',
+    'rpyc',
     'pexpect'
 ]
 
 # Versions
 library_versions = [
-    '0.7',
+    '0.9',
     '3.2',
     '2.0',
     '1.2',
     '2.1',
     '1.1',
     '2.6',
+    '1.4',
+    '1.3',
+    '3.3',
     '2.2'
 ]
 

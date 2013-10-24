@@ -226,7 +226,7 @@ class CentralEngine(_cptools.XMLRPCController):
         del dbparser
 
         # Decode database password
-        db_password = self.project.decryptText( db_config.get('password') )
+        db_password = self.project.decryptText( user, db_config.get('password') )
         if not db_password:
             errMessage = 'Cannot decrypt the database password!'
             logError(errMessage)
