@@ -495,7 +495,7 @@ class TwisterClientService(rpyc.Service):
         tproc = client.epNames[epname].get('pid', 0)
 
         if not tproc:
-            print('Silly boy! EP `{}` is not running!'.format(epname))
+            print('Silly boy! EP `{}` is not running!\n'.format(epname))
             return False
 
         print('Preparing to stop EP `{}`...'.format(epname))
