@@ -1,6 +1,6 @@
 /*
 File: ControlPanel.java ; This file is part of Twister.
-Version: 2.005
+Version: 2.006
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -396,22 +396,18 @@ public class ControlPanel implements TwisterPluginInterface {
 	
 	private void logout(){
 		maincomp.loadComponent("login");
-		//System.out.println("logout");
 	}
 	
 	private void reports(){
-		//System.out.println("reports");
 		maincomp.loadComponent("reports");
 	}
 	
 	private void testexec(){
-		//System.out.println("testexec");
 		maincomp.loadComponent("runner");
 	}
 	
 	private void um(){
 		maincomp.loadComponent("UserManagement");
-		//System.out.println("um");
 	}
 	
 	public static void main(String [] args){
