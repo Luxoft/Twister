@@ -385,11 +385,14 @@ class CentralEngine(_cptools.XMLRPCController):
         - what the user selected in the Java GUI (release, build, comments, etc)
         - the name of the suite, the test files, etc.
         """
-        data = self.project.getEpInfo(user, epname).get(variable, False)
+        data = self.project.getEpInfo(user, epname)
+        if not data: return False
+        value = data.get(variable, False)
+        if value is None: return False
         if compress:
-            return pickle.dumps(data)
+            return pickle.dumps(value)
         else:
-            return data
+            return value
 
 
     @cherrypy.expose
@@ -418,14 +421,19 @@ class CentralEngine(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
-    def getSuiteVariable(self, user, epname, suite, variable):
+    def getSuiteVariable(self, user, epname, suite, variable, compress=False):
         """
         Function called from the Execution Process,
         to get information that is available only here, or are hard to get.
         """
         data = self.project.getSuiteInfo(user, epname, suite)
         if not data: return False
-        return data.get(variable, False)
+        value = data.get(variable, False)
+        if value is None: return False
+        if compress:
+            return pickle.dumps(value)
+        else:
+            return value
 
 
     @cherrypy.expose
@@ -435,7 +443,9 @@ class CentralEngine(_cptools.XMLRPCController):
         """
         data = self.project.getFileInfo(user, epname, file_id)
         if not data: return False
-        return data.get(variable, False)
+        value = data.get(variable, False)
+        if value is None: return False
+        return value
 
 
     @cherrypy.expose

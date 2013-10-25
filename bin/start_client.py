@@ -1,8 +1,8 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2.7
 
 # File: start_client.py ; This file is part of Twister.
 
-# version: 1.006
+# version: 1.007
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -471,9 +471,10 @@ class TwisterClientService(rpyc.Service):
             print('*ERROR* Unknown EP name : `{}` !'.format(epname))
             return False
 
-        if client.epNames[epname]['pid']:
-            print('Error: Process {} is already started for user {}! (pid={})\n'.format(
-                  epname, userName, client.epNames[epname]['pid']))
+        tproc = client.epNames[epname].get('pid')
+
+        if tproc:
+            print('Error: Process {} is already started for user {}! (proc={})\n'.format(epname, userName, tproc))
             return False
 
         exec_str = client.epNames[epname]['exec_str']
@@ -501,17 +502,19 @@ class TwisterClientService(rpyc.Service):
             print('*ERROR* Unknown EP name : `{}` !'.format(epname))
             return False
 
-        tproc = client.epNames[epname].get('pid', 0)
+        tproc = client.epNames[epname].get('pid')
 
         if not tproc:
             print('Silly boy! EP `{}` is not running!\n'.format(epname))
             return False
 
         print('Preparing to stop EP `{}`...'.format(epname))
+        PID = tproc.pid
 
         time.sleep(0.5) # A small delay
         try:
-            os.killpg(tproc.pid, signal.SIGTERM)
+            os.killpg(PID, signal.SIGTERM)
+            client.epNames[epname]['pid'] = None
         except:
             trace = traceback.format_exc()[34:].strip()
             print('ClientService: Error on Stop EP: `{}`.'.format(trace))
@@ -519,13 +522,14 @@ class TwisterClientService(rpyc.Service):
 
         time.sleep(0.1) # Another small delay
         try:
-            os.kill(tproc.pid, 9)
+            os.kill(PID, 9)
             client.epNames[epname]['pid'] = None
         except:
             trace = traceback.format_exc()[34:].strip()
             print('ClientService: Error on Stop EP: `{}`.'.format(trace))
+            # return False # No need to exit
 
-        print('Stopped EP `{}` !'.format(epname))
+        print('Stopped EP `{}`! (pid={})'.format(epname, PID))
         return True
 
 

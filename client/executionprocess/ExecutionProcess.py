@@ -1,6 +1,6 @@
 #!/usr/bin/env python2.7
 
-# version: 2.010
+# version: 2.011
 
 # File: ExecutionProcess.py ; This file is part of Twister.
 
@@ -47,10 +47,12 @@ import signal
 import shutil
 import binascii
 import platform
-import threading
 import subprocess
 import traceback
 import tarfile
+
+from threading import Thread
+from thread import allocate_lock
 
 import rpyc
 from plumbum import cli
@@ -165,7 +167,7 @@ class Logger(object):
             self.buffer = ''
 
 
-class ThreadedLogger(threading.Thread):
+class ThreadedLogger(Thread):
 
     def __init__(self, filename):
         """
@@ -177,7 +179,8 @@ class ThreadedLogger(threading.Thread):
         self.timer  = 0    # Last time the log was sent to CE
         self.logfile = filename
         self.exiting = False
-        threading.Thread.__init__(self)
+        self.acc_lock = allocate_lock()
+        Thread.__init__(self)
 
     def run(self):
         """
@@ -187,29 +190,31 @@ class ThreadedLogger(threading.Thread):
             print('Invalid LOG file: `{}`!\nThe Central Engine will not see the LIVE log for this EP!\n'.format(self.logfile))
             return False
         while not self.exiting:
-            data = self.tail()
-            self.logLive(data)
+            with self.acc_lock:
+                data = self.tail()
+                self.logLive(data)
             # Wait and retry...
             time.sleep(1)
         # The end
-        data = self.tail()
-        self.logLive(data, force=True)
+        with self.acc_lock:
+            data = self.tail()
+            self.logLive(data, force=True)
 
     def tail(self):
         """
         Tail on a file.
         """
-        f = open(self.logfile, 'rb')
-        # Go at "current position"
-        f.seek(self.read_len, 0)
-        vString = f.read()
-        vLen = len(vString)
+        vString = ''
+        with open(self.logfile, 'rb') as f:
+            # Go at "current position"
+            f.seek(self.read_len, 0)
+            vString = f.read()
+            vLen = len(vString)
         # Fix double new-line
         vString = vString.replace('\r\n', '\n')
         vString = vString.replace('\n\r', '\n')
         # Increment "current position"
         self.read_len += vLen
-        f.close()
         return vString
 
     def logLive(self, text, force=False):
@@ -221,7 +226,7 @@ class ThreadedLogger(threading.Thread):
         ctimer = time.time()
         self.buffer += text
         if self.proxy:
-            if (ctimer - self.timer) > 1.0:
+            if (ctimer - self.timer) > 1.5:
                 self.proxy.logLIVE(epName, binascii.b2a_base64(self.buffer))
                 self.buffer = ''
             elif len(self.buffer) > 256 or force:
@@ -323,9 +328,11 @@ class TwisterRunner(cli.Application):
         if self.logFile:
             self.logger = Logger(sys.stdout, EP_LOG)
             sys.stdout = self.logger
+            print('EP Debug: Created a portable logger.')
         else:
             self.logger = ThreadedLogger(EP_LOG)
             self.logger.start()
+            print('EP Debug: Created a threaded logger.')
 
         # All known runners
         self.runners = {
@@ -508,10 +515,8 @@ class TwisterRunner(cli.Application):
 
         # Count the time
         glob_time = time.time()
-        # Shortcut to Central Engine connection
-        ce = self.proxy
 
-        if ce.getEpStatus(self.epName) == 'running':
+        if self.proxy.getEpStatus(self.epName) == 'running':
             print('EP Debug: Start to run the tests!')
         else:
             print('EP Debug: EP name `{}` is NOT running! Exiting!\n'.format(self.epName))
@@ -519,7 +524,7 @@ class TwisterRunner(cli.Application):
 
         # Download the Suites Manager structure from Central Engine!
         # This is the initial structure, created from the Project.XML file.
-        data = ce.getEpVariable(self.epName, 'suites')
+        data = self.proxy.getEpVariable(self.epName, 'suites')
         SuitesManager = copy.deepcopy(data)
         del data
 
@@ -547,7 +552,7 @@ class TwisterRunner(cli.Application):
 
                 # If this is a top level suite, set current_suite flag in EP Variables
                 if suite_id in SuitesManager:
-                    ce.setEpVariable(self.epName, 'curent_suite', suite_id)
+                    self.proxy.setEpVariable(self.epName, 'curent_suite', suite_id)
 
                 print('\n===== ===== ===== ===== =====')
                 print(' Starting suite `{}`'.format(suite_str))
@@ -613,7 +618,7 @@ class TwisterRunner(cli.Application):
                         print('Running a tear-down file...\n')
                     else:
                         print('EP Debug: Not executed file `{}` because of failed setup file!\n\n'.format(filename))
-                        try: ce.setFileStatus(self.epName, file_id, STATUS_NOT_EXEC, 0.0) # File status ABORTED
+                        try: self.proxy.setFileStatus(self.epName, file_id, STATUS_NOT_EXEC, 0.0) # File status ABORTED
                         except:
                             trace = traceback.format_exc()[34:].strip()
                             print('Exception on change file status `{}`!\n'.format(trace))
@@ -622,14 +627,14 @@ class TwisterRunner(cli.Application):
                 del aborted_ids, current_ids
 
             try:
-                STATUS = ce.getEpStatus(self.epName)
+                STATUS = self.proxy.getEpStatus(self.epName)
             except:
                 print('Cannot connect to the Central Engine! Exiting!\n')
                 return False
 
             # When a test file is about to be executed and STOP is received, send status ABORTED
             if STATUS == 'stopped':
-                try: ce.setFileStatus(self.epName, file_id, STATUS_ABORTED, 0.0) # File status ABORTED
+                try: self.proxy.setFileStatus(self.epName, file_id, STATUS_ABORTED, 0.0) # File status ABORTED
                 except:
                     trace = traceback.format_exc()[34:].strip()
                     print('Exception on change file status `{}`!\n'.format(trace))
@@ -639,31 +644,32 @@ class TwisterRunner(cli.Application):
 
             # On pause, freeze cycle and wait for Resume or Stop
             elif STATUS == 'paused':
-                ce.echo(':: {} is paused!... Must RESUME to continue, or STOP to exit test suite...'.format(self.epName))
+                self.proxy.echo(':: {} is paused!... Must RESUME to continue, or STOP to exit test suite...'.format(self.epName))
                 vPauseMsg = False
+
                 while 1:
                     # Print pause message
                     if not vPauseMsg:
-                        print('Runner: Execution paused. Waiting for RESUME signal.\n')
-                        logger.flush() # Send this message
+                        print('Runner: Execution paused. Waiting for RESUME signal ...\n')
                         vPauseMsg = True
 
                     # Wait ...
-                    time.sleep(3)
+                    time.sleep(2)
+
                     try:
-                        STATUS = ce.getEpStatus(self.epName)
+                        STATUS = self.proxy.getEpStatus(self.epName)
                     except:
-                        print('Cannot connect to the Central Engine! Exiting!\n')
+                        print('~ NOT EXECUTED: Connection lost, while waiting for resume ! ~\n')
                         return False
 
                     # On resume, stop waiting
                     if STATUS == 'running' or STATUS == 'resume':
-                        ce.echo(':: {} is no longer paused !'.format(self.epName))
+                        self.proxy.echo(':: {} is no longer paused !'.format(self.epName))
                         break
                     # On stop...
                     elif STATUS == 'stopped':
                         # When a test is waiting for resume, but receives STOP, send status NOT EXECUTED
-                        try: ce.setFileStatus(self.epName, file_id, STATUS_NOT_EXEC, 0.0)
+                        try: self.proxy.setFileStatus(self.epName, file_id, STATUS_NOT_EXEC, 0.0)
                         except:
                             trace = traceback.format_exc()[34:].strip()
                             print('Exception on change file status `{}`!\n'.format(trace))
@@ -674,13 +680,13 @@ class TwisterRunner(cli.Application):
 
 
             # If dependency file is PENDING or WORKING, wait for it to finish; for any other status, go next.
-            if dependancy and ce.getFileVariable(dependancy, 'status') in [-1, False, STATUS_PENDING, STATUS_WORKING]:
-                dep_suite = ce.getFileVariable(dependancy, 'suite')
-                dep_file = ce.getFileVariable(dependancy, 'file')
+            if dependancy and self.proxy.getFileVariable(dependancy, 'status') in [-1, False, STATUS_PENDING, STATUS_WORKING]:
+                dep_suite = self.proxy.getFileVariable(dependancy, 'suite')
+                dep_file = self.proxy.getFileVariable(dependancy, 'file')
 
                 if dep_file:
-                    ce.echo(':: {} is waiting for file `{}::{}` to finish execution...'.format(self.epName, dep_suite, dep_file))
-                    try: ce.setFileStatus(self.epName, file_id, STATUS_WAITING, 0.0) # Status WAITING
+                    self.proxy.echo(':: {} is waiting for file `{}::{}` to finish execution...'.format(self.epName, dep_suite, dep_file))
+                    try: self.proxy.setFileStatus(self.epName, file_id, STATUS_WAITING, 0.0) # Status WAITING
                     except:
                         trace = traceback.format_exc()[34:].strip()
                         print('Exception on change file status `{}`!\n'.format(trace))
@@ -688,15 +694,15 @@ class TwisterRunner(cli.Application):
                     while 1:
                         time.sleep(3)
                         # Reload info about dependency file
-                        if  ce.getFileVariable(dependancy, 'status') not in [-1, False, STATUS_PENDING, STATUS_WORKING]:
-                            ce.echo(':: {} is not longer waiting for dependency!'.format(self.epName))
+                        if  self.proxy.getFileVariable(dependancy, 'status') not in [-1, False, STATUS_PENDING, STATUS_WORKING]:
+                            self.proxy.echo(':: {} is not longer waiting for dependency!'.format(self.epName))
                             break
 
                 del dep_suite, dep_file
 
 
             # Download file from Central Engine!
-            str_to_execute = ce.downloadFile(self.epName, file_id)
+            str_to_execute = self.proxy.downloadFile(self.epName, file_id)
 
             # If CE sent False, it means the file is empty, does not exist, or it's not runnable.
             if str_to_execute == '':
@@ -704,7 +710,7 @@ class TwisterRunner(cli.Application):
                 if setup_file:
                     abort_suite = suite_id
                     print('*ERROR* Setup file for suite `{}` cannot run! No such file! All suite will be ABORTED!\n\n'.format(suite_name))
-                try: ce.setFileStatus(self.epName, file_id, STATUS_SKIPPED, 0.0) # Status SKIPPED
+                try: self.proxy.setFileStatus(self.epName, file_id, STATUS_SKIPPED, 0.0) # Status SKIPPED
                 except:
                     trace = traceback.format_exc()[34:].strip()
                     print('Exception on change file status `{}`!\n'.format(trace))
@@ -714,7 +720,7 @@ class TwisterRunner(cli.Application):
             elif not str_to_execute:
                 print('EP Debug: File `{}` will be skipped.\n'.format(filename))
                 # Skipped setup files are ok, no need to abort.
-                try: ce.setFileStatus(self.epName, file_id, STATUS_SKIPPED, 0.0) # Status SKIPPED
+                try: self.proxy.setFileStatus(self.epName, file_id, STATUS_SKIPPED, 0.0) # Status SKIPPED
                 except:
                     trace = traceback.format_exc()[34:].strip()
                     print('Exception on change file status `{}`!\n'.format(trace))
@@ -728,7 +734,7 @@ class TwisterRunner(cli.Application):
                 f = open(fpath, 'wb')
                 f.write(str_to_execute.data)
                 f.close() ; del f
-                try: ce.setFileStatus(self.epName, file_id, STATUS_SKIPPED, 0.0) # Status SKIPPED
+                try: self.proxy.setFileStatus(self.epName, file_id, STATUS_SKIPPED, 0.0) # Status SKIPPED
                 except:
                     trace = traceback.format_exc()[34:].strip()
                     print('Exception on change file status `{}`!\n'.format(trace))
@@ -768,7 +774,7 @@ class TwisterRunner(cli.Application):
                 if setup_file:
                     abort_suite = suite_id
                     print('*ERROR* Setup file for suite `{}` cannot run! Unknown extension file! All suite will be ABORTED!\n\n'.format(suite_name))
-                try: ce.setFileStatus(self.epName, file_id, STATUS_NOT_EXEC, 0.0) # Status NOT_EXEC
+                try: self.proxy.setFileStatus(self.epName, file_id, STATUS_NOT_EXEC, 0.0) # Status NOT_EXEC
                 except:
                     trace = traceback.format_exc()[34:].strip()
                     print('Exception on change file status `{}`!\n'.format(trace))
@@ -784,7 +790,7 @@ class TwisterRunner(cli.Application):
 
             # Check the general status again...
             try:
-                if ce.getEpStatus(self.epName) == 'stopped':
+                if self.proxy.getEpStatus(self.epName) == 'stopped':
                     # Exit the cycle
                     diff_time = time.time() - glob_time
                     return self.exit(timer_f=diff_time, stop=False)
@@ -793,7 +799,7 @@ class TwisterRunner(cli.Application):
                 return False
 
             # The file is preparing
-            try: ce.setFileStatus(self.epName, file_id, STATUS_WORKING, 0.0) # Status WORKING
+            try: self.proxy.setFileStatus(self.epName, file_id, STATUS_WORKING, 0.0) # Status WORKING
             except:
                 trace = traceback.format_exc()[34:].strip()
                 print('Exception on change file status `{}`!\n'.format(trace))
@@ -817,7 +823,7 @@ class TwisterRunner(cli.Application):
                 'FILE_NAME' : filename,
                 'PROPERTIES': props,
                 'CONFIG'    : config_files,
-                'PROXY'     : ce
+                'PROXY'     : self.proxy
             }
 
             # Find all functions from commonLib
@@ -838,31 +844,30 @@ class TwisterRunner(cli.Application):
                 print(traceback.format_exc()[34:].strip())
                 print('\n>>> File `{}` execution CRASHED. <<<\n'.format(filename))
 
-                ce.echo('*ERROR* Error executing file `{}`!'.format(filename))
-                try: ce.setFileStatus(self.epName, file_id, STATUS_FAIL, (time.time() - timer_i))
+                self.proxy.echo('*ERROR* Error executing file `{}`!'.format(filename))
+                try: self.proxy.setFileStatus(self.epName, file_id, STATUS_FAIL, (time.time() - timer_i))
                 except:
                     trace = traceback.format_exc()[34:].strip()
                     print('Exception on change file status `{}`!\n'.format(trace))
 
                 # If status is FAIL and the file is not Optional and Exit on test fail is ON, CLOSE the runner
                 if not optional_test and self.exit_on_test_fail:
-                    print('*ERROR* Mandatory file `{}` returned FAIL! Closing the runner!\n\n'.format(filename))
-                    ce.echo('*ERROR* Mandatory file `{}::{}::{}` returned FAIL! Closing the runner!'\
+                    print('*ERROR* Mandatory file `{}` CRASHED! Closing the runner!\n\n'.format(filename))
+                    self.proxy.echo('*ERROR* Mandatory file `{}::{}::{}` CRASHED! Closing the runner!'\
                         ''.format(self.epName, suite_name, filename))
                     print('<<< END filename: `{}:{}` >>>\n'.format(file_id, filename))
                     # Exit the cycle
-                    diff_time = time.time() - glob_time
-                    return self.exit(timer_f=diff_time)
+                    break
 
                 # If status is FAIL, and the file is a setup file, CANCEL all suite
                 if setup_file:
                     abort_suite = suite_id
                     print('*ERROR* Setup file for suite `{}` returned FAIL! All suite will be ABORTED!\n\n'.format(suite_name))
-                    ce.echo('*ERROR* Setup file for `{}::{}` returned FAIL! All suite will be ABORTED!'\
+                    self.proxy.echo('*ERROR* Setup file for `{}::{}` returned FAIL! All suite will be ABORTED!'\
                         ''.format(self.epName, suite_name))
 
                 # Send crash detected = True
-                ce.setFileVariable(self.epName, file_id, 'twister_tc_crash_detected', 1)
+                self.proxy.setFileVariable(self.epName, file_id, 'twister_tc_crash_detected', 1)
                 # Stop counting time. END OF TEST!
                 timer_f = time.time() - timer_i
                 end_time = time.strftime('%Y-%m-%d %H:%M:%S')
@@ -881,43 +886,42 @@ class TwisterRunner(cli.Application):
 
             try:
                 if result==STATUS_PASS or result == 'PASS':
-                    ce.setFileStatus(self.epName, file_id, STATUS_PASS, timer_f) # File status PASS
+                    self.proxy.setFileStatus(self.epName, file_id, STATUS_PASS, timer_f) # File status PASS
                 elif result==STATUS_SKIPPED or result in ['SKIP', 'SKIPPED']:
-                    ce.setFileStatus(self.epName, file_id, STATUS_SKIPPED, timer_f) # File status SKIPPED
+                    self.proxy.setFileStatus(self.epName, file_id, STATUS_SKIPPED, timer_f) # File status SKIPPED
                 elif result==STATUS_ABORTED or result in ['ABORT', 'ABORTED']:
-                    ce.setFileStatus(self.epName, file_id, STATUS_ABORTED, timer_f) # File status ABORTED
+                    self.proxy.setFileStatus(self.epName, file_id, STATUS_ABORTED, timer_f) # File status ABORTED
                 elif result==STATUS_NOT_EXEC or result in ['NOT-EXEC', 'NOT EXEC', 'NOT EXECUTED']:
-                    ce.setFileStatus(self.epName, file_id, STATUS_NOT_EXEC, timer_f) # File status NOT_EXEC
+                    self.proxy.setFileStatus(self.epName, file_id, STATUS_NOT_EXEC, timer_f) # File status NOT_EXEC
                 elif result==STATUS_TIMEOUT or result == 'TIMEOUT':
-                    ce.setFileStatus(self.epName, file_id, STATUS_TIMEOUT, timer_f) # File status TIMEOUT
+                    self.proxy.setFileStatus(self.epName, file_id, STATUS_TIMEOUT, timer_f) # File status TIMEOUT
                 elif result==STATUS_INVALID or result == 'INVALID':
-                    ce.setFileStatus(self.epName, file_id, STATUS_INVALID, timer_f) # File status INVALID
+                    self.proxy.setFileStatus(self.epName, file_id, STATUS_INVALID, timer_f) # File status INVALID
                 else:
                     result = STATUS_FAIL
-                    ce.setFileStatus(self.epName, file_id, STATUS_FAIL, timer_f) # File status FAIL
+                    self.proxy.setFileStatus(self.epName, file_id, STATUS_FAIL, timer_f) # File status FAIL
             except:
                 trace = traceback.format_exc()[34:].strip()
                 print('EXCEPTION on final change file status `{}`!'.format(trace))
 
 
             # If status is not PASS
-            if (result!=STATUS_PASS or result!='PASS'):
+            if (result!=STATUS_PASS and result!='PASS'):
 
                 # If status is FAIL and the file is not Optional and Exit on test fail is ON, CLOSE the runner
                 if not optional_test and self.exit_on_test_fail:
-                    print('*ERROR* Mandatory file `{}` returned FAIL! Closing the runner!\n\n'.format(filename))
-                    ce.echo('*ERROR* Mandatory file `{}::{}::{}` returned FAIL! Closing the runner!'\
+                    print('*ERROR* Mandatory file `{}` did not PASS! Closing the runner!\n\n'.format(filename))
+                    self.proxy.echo('*ERROR* Mandatory file `{}::{}::{}` did not PASS! Closing the runner!'\
                         ''.format(self.epName, suite_name, filename))
                     print('<<< END filename: `{}:{}` >>>\n'.format(file_id, filename))
                     # Exit the cycle
-                    diff_time = time.time() - glob_time
-                    return self.exit(timer_f=diff_time)
+                    break
 
                 if setup_file:
                     # If the file is a setup file, CANCEL all suite
                     abort_suite = suite_id
                     print('*ERROR* Setup file for suite `{}` did not PASS! All suite will be ABORTED!\n\n'.format(suite_name))
-                    ce.echo('*ERROR* Setup file for `{}::{}` returned FAIL! All suite will be ABORTED!'\
+                    self.proxy.echo('*ERROR* Setup file for `{}::{}` returned FAIL! All suite will be ABORTED!'\
                         ''.format(self.epName, suite_name))
 
 

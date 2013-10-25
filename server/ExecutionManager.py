@@ -257,7 +257,7 @@ class ExecutionManagerService(rpyc.Service):
         user = self._check_login()
         if not user: return False
         data = self.project.getUserInfo(user, variable)
-        if data is None: data = False
+        if not data: return False
         return data
 
 
@@ -286,9 +286,9 @@ class ExecutionManagerService(rpyc.Service):
         """
         user = self._check_login()
         if not user: return False
-        data = self.project.getEpInfo(user, epname).get(variable, False)
-        if data is None: data = False
-        return data
+        data = self.project.getEpInfo(user, epname)
+        if not data: return False
+        return data.get(variable, False)
 
 
     def exposed_setEpVariable(self, epname, variable, value):
