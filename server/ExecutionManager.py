@@ -1,7 +1,7 @@
 
 # File: ExecutionManager.py ; This file is part of Twister.
 
-# version: 2.003
+# version: 2.004
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -44,7 +44,7 @@ if TWISTER_PATH not in sys.path:
 from common.constants  import *
 from common.helpers    import *
 from common.tsclogging import *
-from common.xmlparser  import *
+from common.xmlparser  import PluginParser
 
 #
 
@@ -113,6 +113,10 @@ class ExecutionManagerService(rpyc.Service):
         hello = self.conns[str_addr].get('hello', '')
         if hello: hello += ' - '
 
+        # Unregister the eventual EPs for this connection
+        if self.conns[str_addr].get('checked') and self.conns[str_addr].get('user'):
+            self.unregisterEps()
+
         # Delete everything for this address
         try:
             with self.conn_lock:
@@ -154,9 +158,6 @@ class ExecutionManagerService(rpyc.Service):
         if 'user' in extra:     del extra['user']
         if 'checked' in extra:  del extra['checked']
         if 'eps' in extra:
-            # If the EPs are already registered by another client, or clients,
-            # must be removed first.
-            self.unregisterEps(extra['eps'])
             # Only register the VALID eps...
             self.registerEps(extra['eps'])
             # and delete the invalid ones.
@@ -177,6 +178,11 @@ class ExecutionManagerService(rpyc.Service):
         """
         str_addr = self._get_addr()
         resp = self.project.rpyc_check_passwd(user, passwd)
+
+        user_home = userHome(user)
+        if not os.path.exists('{}/twister'.format(user_home)):
+            logError('*ERROR* Cannot find Twister for user `{}`, in path `{}/twister`!'.format(user, user_home))
+            return False
 
         with self.conn_lock:
             old_data = self.conns.get(str_addr, {})
@@ -425,13 +431,33 @@ class ExecutionManagerService(rpyc.Service):
         # On disconnect, this client address will be deleted
         # And the EPs will be automatically un-registered.
         with self.conn_lock:
+
+            # Before register, find the clients that have already registered these EPs!
+            for c_addr, data in self.conns.iteritems():
+                # Skip invalid connections, without log-in
+                if not data.get('user') or not data.get('checked'):
+                    continue
+                # There might be more clients for a user. Must find all of them.
+                if user == data['user']:
+                    # This current Addr might be an EP, not a client
+                    # If this connection has registered EPs
+                    if not data.get('eps'): continue
+                    old_eps   = set(data.get('eps'))
+                    diff_eps  = old_eps - eps
+                    intersect = old_eps & eps
+                    if intersect:
+                        logDebug('Un-register EP list {} from `{}` and register then on `{}`.'\
+                                 ''.format(sorted(intersect), c_addr, str_addr))
+                    # Delete the EPs that must be deleted
+                    self.conns[c_addr]['eps'] = sorted(diff_eps)
+
             self.conns[str_addr]['eps'] = eps
 
-        logDebug('Registered client manager for user\n\t`{}` -> Client from `{}` = {}.'.format(user, str_addr, eps))
+        logDebug('Registered client manager for user `{}`\n\t-> Client from `{}` ++ {}.'.format(user, str_addr, eps))
         return True
 
 
-    def unregisterEps(self, eps):
+    def unregisterEps(self, eps=[]):
         """
         Private, helper function to un-register some EPs for a client.
         The user is identified automatically.
@@ -451,24 +477,11 @@ class ExecutionManagerService(rpyc.Service):
             eps = set(eps)
 
         with self.conn_lock:
-            # Must find the clients that have the EPs needed to be removed!
-            for c_addr, data in self.conns.iteritems():
-                # Skip invalid connections, without log-in
-                if not data.get('user') or not data.get('checked'):
-                    continue
-                # There might be more clients for a user...
-                # And this current Addr might be an EP, not a client
-                if user == data['user']:
-                    # If this connection has registered EPs
-                    if not data.get('eps'): continue
-                    other_eps = set(data.get('eps'))
-                    diff_eps  = other_eps - eps
-                    intersect = other_eps & eps
-                    if intersect:
-                        logDebug('Un-register EP list {} from `{}` and register then on `{}`.'\
-                                 ''.format(sorted(intersect), c_addr, str_addr))
-                    # Delete the EPs that must be deleted
-                    self.conns[c_addr]['eps'] = sorted(diff_eps)
+            data = self.conns[str_addr]
+            ee = data.get('eps') or sorted(eps)
+            if not ee:
+                return True
+            logDebug('Un-registered EPs for user `{}`\n\t-> Client from `{}` -- {} !'.format(user, str_addr, ee))
 
         return True
 
@@ -503,7 +516,7 @@ class ExecutionManagerService(rpyc.Service):
                     break
 
         if not conn:
-            logError('Unknown Execution Process: `{}` !'.format(epname))
+            logError('Unknown Execution Process: `{}`! The project will not run.'.format(epname))
             return False
 
         try:
@@ -546,7 +559,7 @@ class ExecutionManagerService(rpyc.Service):
                     break
 
         if not conn:
-            logError('Unknown Execution Process: `{}` !'.format(epname))
+            logError('Unknown Execution Process: `{}`! The EP will not be stopped.'.format(epname))
             return False
 
         try:

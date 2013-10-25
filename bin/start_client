@@ -2,8 +2,6 @@
 
 # File: start_client ; This file is part of Twister.
 
-export TWISTER_PATH=/home/adr/twister
-
 # version: 2.002
 
 # Copyright (C) 2013 , Luxoft

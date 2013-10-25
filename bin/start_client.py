@@ -141,15 +141,20 @@ class TwisterClient(object):
             print('Client Debug: Connected to CE at `{}:{}`...'.format(ce_ip, ce_port))
         except Exception as e:
             if debug:
-                print('*ERROR* Cannot connect to CE path `{}:{}`! Exception `{}`!'.format(ce_ip, ce_port, e))
+                print('*ERROR* Cannot connect to CE path `{}:{}`! Exception: `{}`!'.format(ce_ip, ce_port, e))
             return None
 
         # Authenticate on RPyc server
         try:
             check = proxy.root.login(self.userName, 'EP')
-            print('Client Debug: Authentication successful!')
+            if check: print('Client Debug: Authentication successful!')
         except Exception as e:
             check = False
+
+        if not check:
+            if debug:
+                print('*ERROR* Cannot authenticate on CE path `{}:{}`!'.format(ce_ip, ce_port))
+            return None
 
         # Say Hello and Register all EPs on the current Central Engine
         if epNames:
@@ -161,7 +166,8 @@ class TwisterClient(object):
                 check = False
 
         if not check:
-            print('*ERROR* Cannot authenticate on CE path `{}:{}`!'.format(ce_ip, ce_port))
+            if debug:
+                print('*ERROR* Cannot send hello on CE path `{}:{}`!'.format(ce_ip, ce_port))
             return None
 
         bg = BgServingThread(proxy)
@@ -201,6 +207,9 @@ class TwisterClient(object):
             if not proxy:
                 # Try creating a new Central Engine connection.
                 proxy = self._createConn(ce_ip, ce_port, epNames, err_msg)
+                if not proxy:
+                    time.sleep(2)
+                    continue
             else:
                 break
 
