@@ -25,7 +25,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-PYTHON_PATH=/usr/bin/env python2.7
+PYTHON_PATH=/usr/bin/python
 
 DAEMON=`echo ~/twister/bin/start_client.py`
 LOG_PATH=`echo ~/twister/client_log.log`
