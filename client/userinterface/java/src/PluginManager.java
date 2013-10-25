@@ -1,6 +1,6 @@
 /*
 File: PluginManager.java ; This file is part of Twister.
-Version: 2.001
+Version: 2.002
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -26,14 +26,16 @@ public class PluginManager implements CommonInterface{
         if(comp.equals("reports")){
             MainRepository.loadReports();
         } else if(comp.equals("login")){
+            if(MainRepository.plugin!=null)MainRepository.plugin.terminate();
+            MainRepository.lot.setTime(10);
+            MainRepository.time=10;
             MainRepository.applet.init();
         } else {
-//             File f = MainRepository.getRemoteFile(comp+".jar");
-//             MainRepository.loadPlugin(f, comp);
             MainRepository.loadPlugin(comp);
         }
     }
     
-    public void downloadJar(String comp){
+    public void downloadJar(String jar){
     }
+    
 }

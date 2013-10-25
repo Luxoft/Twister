@@ -1,6 +1,6 @@
 /*
 File: MainRepository.java ; This file is part of Twister.
-Version: 2.021
+Version: 2.022
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -69,15 +69,15 @@ public class MainRepository {
     private static ChannelSftp connection;
     private static PluginManager pluginmanager;
     public static Applet applet;
-    private static TwisterPluginInterface plugin;
+    public static TwisterPluginInterface plugin;
     private static XmlRpcClient client;
     private static Hashtable<String,String> hash = new Hashtable<String,String>();
-    private static String version = "2.040";
-    private static String builddate = "16.10.2013";
+    private static String version = "2.041";
+    private static String builddate = "22.10.2013";
     public static int time = 10;//seconds
     public static boolean countdown = false;
     public static String logotxt;
-    private static LogOutThread lot = new LogOutThread(MainRepository.time);
+    public static LogOutThread lot = new LogOutThread(MainRepository.time);
     
     public static void initialize(Applet applet, String host,Container container){
         MainRepository.applet = applet;
@@ -169,10 +169,16 @@ public class MainRepository {
     }
     
     public static void login(String user, String password){
+        MainRepository.lot.setTime(0);
+        MainRepository.time=0;
         MainRepository.user = user;
         MainRepository.password = password;
         ceport = getCEPort(user,password);
-        if(ceport==null||ceport.equals(""))return;
+        if(ceport==null||ceport.equals("")){
+            MainRepository.lot.setTime(10);
+            MainRepository.time=10;
+            return;
+        }
         initializeRPC(user,password,ceport);
     }
     
@@ -245,47 +251,8 @@ public class MainRepository {
         return builddate;
     }
     
-    
-    
-//     public static void getInterface(String panel){
-//         if(panel.equals("controlpanel")){
-//             try{
-// //                 File file = getRemoteFile("ControlPanel.jar");
-// //                 loadPlugin(file,"ControlPanel");
-//                 loadPlugin("ControlPanel");
-//             } catch(Exception e){
-//                 e.printStackTrace();
-//             }
-//         }
-//     }
-    
-//     public static void loadPlugin(File file, String pluginname){
     public static void loadPlugin(String pluginname){
         try{
-//             PluginsLoader.addDirToClasspath(file);
-//             Iterator<TwisterPluginInterface> iterator = PluginsLoader.getPlugins();
-//             String name;
-//             while(iterator.hasNext()){
-//                 try{plugin = iterator.next();}
-//                 catch(Exception e){
-//                     System.out.println("Could not instatiate plugin");
-//                     e.printStackTrace();
-//                     continue;}
-//                 name = plugin.getName();
-//                 if(name.equals(pluginname)){
-//                     new Thread(){
-//                         public void run(){
-//                             hash.put("user", user);
-//                             hash.put("password", password);
-//                             hash.put("host",host);
-//                             hash.put("centralengineport", ceport);
-//                             plugin.init(null, null, hash, null,applet);
-//                             plugin.setInterface(pluginmanager);
-//                         }
-//                     }.start();
-//                     return;
-//                 }
-//             }
             if(plugin!=null)plugin.terminate();
             if(pluginname.equals("ControlPanel")){
                 new Thread(){
@@ -386,6 +353,8 @@ public class MainRepository {
             client.setConfig(configuration);
             System.out.println("Client initialized: "+client);
             if(!isCE()){
+                MainRepository.time=10;
+                MainRepository.lot.setTime(10);
                 CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,applet,
                                     "Warning", "CE is not running, please start CE in "+
                                                 "order for Twister Framework to run properly");
@@ -395,6 +364,8 @@ public class MainRepository {
             loadPlugin("ControlPanel");
         }
         catch(Exception e){
+            MainRepository.time=10;
+            MainRepository.lot.setTime(10);
             e.printStackTrace();
             System.out.println("Could not conect to "+
                             MainRepository.host+" :"+port+
@@ -440,7 +411,7 @@ class LogOutThread extends Thread{
                 if(time<=0){
                     if(MainRepository.countdown){
                         System.out.println("Logging out from inactivity thread");
-                        MainRepository.applet.init();
+                        if(MainRepository.applet!=null)MainRepository.applet.init();
                     }
                     time = MainRepository.time;
                 }

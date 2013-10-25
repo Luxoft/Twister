@@ -1,6 +1,6 @@
 /*
 File: applet.java ; This file is part of Twister.
-Version: 2.002
+Version: 2.003
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -35,11 +35,6 @@ public class applet extends Applet{
     public void init(){
         System.setSecurityManager(new MySecurityManager());
         setLayout(null);
-//         try{
-//             getAppletContext().showDocument(new URL("javascript:resize()"));
-//         } catch (Exception e) {
-//             System.err.println("Failed to call JavaScript function appletLoaded()");
-//         }
         MainRepository.background = loadIcon("background.png");
         try {
             URL url = new URL(this.getCodeBase()+"/logo.png");
@@ -47,7 +42,6 @@ public class applet extends Applet{
         } catch (Exception e) {
             e.printStackTrace();
         }
-        
         readLogoTxt();
         MainRepository.initialize(this,getCodeBase().getHost(),this);
     }

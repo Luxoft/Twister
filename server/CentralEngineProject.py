@@ -1509,23 +1509,30 @@ class Project(object):
 
         statuses = {} # Unordered
         final = []    # Ordered
-        eps = self.users[user]['eps']
 
-        if epname:
-            if suite_id:
-                files = eps[epname]['suites'].getFiles(suite_id)
-            else:
-                files = eps[epname]['suites'].getFiles()
-            for file_id in files:
-                s = self.getFileInfo(user, epname, file_id).get('status', -1)
-                statuses[file_id] = str(s)
-        # Default case, no EP and no Suite
-        else:
-            for epname in eps:
-                files = eps[epname]['suites'].getFiles()
+        # Lock the internal resource
+        with self.int_lock:
+            eps = self.users[user]['eps']
+
+            if epname:
+                if suite_id:
+                    files = eps[epname]['suites'].getFiles(suite_id)
+                else:
+                    files = eps[epname]['suites'].getFiles()
                 for file_id in files:
-                    s = self.getFileInfo(user, epname, file_id).get('status', -1)
+                    s = self.getFileInfo(user, epname, file_id)
+                    if s: s = s.get('status', 10)
+                    else: s = 10
                     statuses[file_id] = str(s)
+            # Default case, no EP and no Suite
+            else:
+                for epname in eps:
+                    files = eps[epname]['suites'].getFiles()
+                    for file_id in files:
+                        s = self.getFileInfo(user, epname, file_id)
+                        if s: s = s.get('status', 10)
+                        else: s = 10
+                        statuses[file_id] = str(s)
 
         for tcid in self.test_ids[user]:
             if tcid in statuses:
