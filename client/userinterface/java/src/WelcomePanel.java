@@ -1,6 +1,6 @@
 /*
 File: WelcomePanel.java ; This file is part of Twister.
-Version: 2.002
+Version: 2.003
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -39,7 +39,7 @@ import java.awt.event.KeyAdapter;
 public class WelcomePanel extends JPanel{
     private JPasswordField tf2;
     private JTextField tf1;
-    private JButton login;
+    public JButton login;
     
     public WelcomePanel(){
         JPanel p = new JPanel();
@@ -70,6 +70,7 @@ public class WelcomePanel extends JPanel{
         login = new JButton("Login");
         login.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
+                login.setEnabled(false);
                 MainRepository.login(tf1.getText(),new String(tf2.getPassword()));
             }
         });

@@ -155,8 +155,8 @@ public class RunnerRepository {
     public static Container container;
     public static Applet applet;
     private static Document pluginsconfig;
-    private static String version = "2.041";
-    private static String builddate = "22.10.2013";
+    private static String version = "2.042";
+    private static String builddate = "25.10.2013";
     public static String logotxt,os,python;
     
     public static void setStarter(Starter starter){

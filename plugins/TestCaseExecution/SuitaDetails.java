@@ -1,6 +1,6 @@
 /*
 File: SuitaDetails.java ; This file is part of Twister.
-Version: 2.0014
+Version: 2.0015
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -84,7 +84,7 @@ public class SuitaDetails extends JPanel {
     private JTextField tsuite,ttcname,ttcdelay;
     public JList combo;
     private JLabel ep, tcdelay;
-    private JLabel stats [] = new JLabel[10];
+    private JLabel stats [] = new JLabel[11];
     private String [] globallib;
     private PropPanel prop;
     private ParamPanel param;
@@ -491,7 +491,7 @@ public class SuitaDetails extends JPanel {
     public void initSummary(){
         summary = new JPanel();
         summary.setBackground(Color.WHITE);
-        summary.setPreferredSize(new Dimension(300,200));
+        summary.setPreferredSize(new Dimension(300,220));
         summary.setLayout(null);
         
         JLabel l1 = new JLabel("Total TC:");
@@ -546,12 +546,19 @@ public class SuitaDetails extends JPanel {
         l9.setBounds(10,155,70,25);
         summary.add(l9);
         stats[8] = new JLabel();
-        stats[8].setBounds(118,155,100,25);    
+        stats[8].setBounds(118,155,100,25);  
+        
         JLabel l10 = new JLabel("Waiting:");
         l10.setBounds(10,175,60,25);
         summary.add(l10);
+        stats[10] = new JLabel();
+        stats[10].setBounds(118,175,100,25);
+        
+        JLabel l11 = new JLabel("Invalid:");
+        l11.setBounds(10,195,60,25);
+        summary.add(l11);
         stats[9] = new JLabel();
-        stats[9].setBounds(118,175,100,25);
+        stats[9].setBounds(118,195,100,25);
 
         for(JLabel l:stats){
             if(l!=null)summary.add(l);

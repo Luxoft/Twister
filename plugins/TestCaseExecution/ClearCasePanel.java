@@ -1,6 +1,6 @@
 /*
 File: ClearCasePanel.java ; This file is part of Twister.
-Version: 2.013
+Version: 2.014
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -126,7 +126,13 @@ import java.awt.dnd.DragSourceListener;
 import java.nio.file.Paths;
 import java.nio.file.Files;
 import java.nio.ByteBuffer;
+import java.util.HashMap;
 import javax.swing.GroupLayout;
+import java.io.FileReader;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import com.google.gson.JsonArray;
 
 public class ClearCasePanel{
 
@@ -160,12 +166,10 @@ public class ClearCasePanel{
             {
                 return new StringSelection("clearcase");
             }
-            
             public int getSourceActions(JComponent c)
             {
                 return TransferHandler.COPY_OR_MOVE;
             }
-            
         });
         
         tree.addMouseListener(new MouseAdapter() {
@@ -202,12 +206,15 @@ public class ClearCasePanel{
                             + tree.getSelectionPath().getLastPathComponent()
                                     .toString();
                     System.out.println("thefile: "+thefile);
-                    RunnerRepository.getRPCClient().execute("runPlugin", new Object[] { RunnerRepository.user,"ClearCase","command=setview "+ClearCase.getView() });
-                    String result = RunnerRepository.getRPCClient().execute(
-                            "getTestDescription", new Object[] { thefile })
-                            + "";
-                    Container pan1 = (Container) RunnerRepository.window.mainpanel.p1.splitPane
-                            .getComponent(1);
+                    //RunnerRepository.getRPCClient().execute("runPlugin", new Object[]{RunnerRepository.user,"ClearCase","command=cleartool setview "+ClearCase.getView()});
+//                     String result = RunnerRepository.getRPCClient().execute("getTestDescription", new Object[] { thefile }).toString();
+                    HashMap<String,String>hm = new HashMap<String,String>();
+                    hm.put("command","get_test_description");
+                    hm.put("file_name",thefile);
+                    System.out.println("Command get_test_description for "+thefile);
+                    String result = RunnerRepository.getRPCClient().execute("runPlugin", new Object[]{RunnerRepository.user,"ClearCase",hm}).toString();
+                    System.out.println("Result: "+result);
+                    Container pan1 = (Container) RunnerRepository.window.mainpanel.p1.splitPane.getComponent(1);
                     TCDetails pan2 = (TCDetails) pan1.getComponents()[1];
                     pan2.text.setText(result);
                 } catch (Exception e) {
@@ -271,7 +278,6 @@ public class ClearCasePanel{
             editable = "";
         }
         if ((tree.getSelectionPath()!=null)&&(tree.getSelectionPaths().length == 1)) {
-//             System.out.println(tree.getSelectionPath().getPathCount());
             final String remotefilename ;
             if(tree.getModel().isLeaf(tree.getSelectionPath()
                         .getLastPathComponent())){
@@ -281,8 +287,7 @@ public class ClearCasePanel{
             } else {
                 remotefilename = tree.getSelectionPath().getLastPathComponent().toString();
             }
-            RunnerRepository.window.mainpanel.getP5().sendCommand("cleartool lsco "+remotefilename);
-            String response = RunnerRepository.window.mainpanel.getP5().readOutput("cleartool lsco");
+            String response = RunnerRepository.window.mainpanel.getP5().sendCommand("cleartool lsco "+remotefilename);
             if(response.indexOf("checkout")==-1){
                 item = new JMenuItem("Checkout");
                 p.add(item);
@@ -358,8 +363,7 @@ public class ClearCasePanel{
     }
     
     public void uncheckout(String remotefilename){
-            RunnerRepository.window.mainpanel.getP5().sendCommand("cleartool unco -rm \""+remotefilename+"\"");
-            String response = RunnerRepository.window.mainpanel.getP5().readOutput("cleartool unco");
+            String response = RunnerRepository.window.mainpanel.getP5().sendCommand("cleartool unco -rm \""+remotefilename+"\"");
             if(response.indexOf("Error")!=-1){
                 String[] lines = response.split("\n");
                 StringBuilder sb = new StringBuilder();
@@ -376,7 +380,6 @@ public class ClearCasePanel{
     
     
      public void checkIn(String remotefilename){
-         
          String comment = CustomDialog.showInputDialog(JOptionPane.PLAIN_MESSAGE, JOptionPane.OK_CANCEL_OPTION,
                                                     tree, "Comment", "Please enter comment");
          if(comment!=null){
@@ -385,8 +388,7 @@ public class ClearCasePanel{
             } else {
                 comment = " -c "+" \""+comment+"\" ";
             }
-             RunnerRepository.window.mainpanel.getP5().sendCommand("cleartool ci " +comment+remotefilename);
-             String response = RunnerRepository.window.mainpanel.getP5().readOutput("cleartool ci");
+             String response = RunnerRepository.window.mainpanel.getP5().sendCommand("cleartool ci " +comment+remotefilename);
              if(response.indexOf("Error")!=-1){
                 String[] lines = response.split("\n");
                 StringBuilder sb = new StringBuilder();
@@ -411,8 +413,7 @@ public class ClearCasePanel{
             } else {
                 comment = " -c "+" \""+comment+"\" ";
             }
-            RunnerRepository.window.mainpanel.getP5().sendCommand("cleartool co " +comment+remotefilename);
-            String response = RunnerRepository.window.mainpanel.getP5().readOutput("cleartool co");
+            String response = RunnerRepository.window.mainpanel.getP5().sendCommand("cleartool co " +comment+remotefilename);
             if(response.indexOf("Error")!=-1){
                 String[] lines = response.split("\n");
                 StringBuilder sb = new StringBuilder();
@@ -472,16 +473,57 @@ public class ClearCasePanel{
                 if (ID.equals("Embedded")) {
                     openEmbeddedEditor(editable, remotefilename, localfilename,ctfile,save);
                 } else {
-                    RunnerRepository.window.mainpanel.getP5().sendCommand("cp "+remotefilename+" ~");
-                    RunnerRepository.window.mainpanel.getP5().readOutput(null);
-                    File file2 = copyFileLocaly(editable, localfilename);
-                    RunnerRepository.window.mainpanel.getP5().sendCommand("rm -f ~/"+editable);
-                    RunnerRepository.window.mainpanel.getP5().readOutput(null);
-                    String execute = RunnerRepository.getEditors().get(ID)
-                            .getAsString();
+                    
+                    HashMap<String,String>hm = new HashMap<String,String>();
+                    hm.put("command","get_test_file");
+                    hm.put("file_name",remotefilename);
+                    System.out.println("get_test_file: "+remotefilename);
+                    String respons = RunnerRepository.getRPCClient().execute("runPlugin", new Object[]{RunnerRepository.user,"ClearCase",hm}).toString();
+                    System.out.println(respons);
+                    File file2 = new File(localfilename);
+                    
+                    BufferedWriter writer = new BufferedWriter(new FileWriter(file2));
+                    writer.write(respons);
+                    writer.flush();
+                    writer.close();
+                    
+                    
+                    
+//                     String result = RunnerRepository.getRPCClient().execute("getTestDescription", new Object[] { thefile }).toString();
+//                     
+//                     
+//                     RunnerRepository.window.mainpanel.getP5().sendCommand("cp "+remotefilename+" ~");
+//                     File file2 = copyFileLocaly(editable, localfilename);
+//                     RunnerRepository.window.mainpanel.getP5().sendCommand("rm -f ~/"+editable);
+//                     
+//                     
+//                     
+                    String execute = RunnerRepository.getEditors().get(ID).getAsString();
                     executeCommand(execute,localfilename);
-                    sendFileToServer(file2, editable, ctfile);
+                    
+                    FileReader reader = new FileReader(file2);
+                    char[] c=new char[(int)file2.length()];
+                    reader.read(c);
+                    reader.close();
+                    String content = new String(c);
+                    System.out.println("---"+content+"---");
+                    
+                    hm = new HashMap<String,String>();
+                    hm.put("command","set_test_file");
+                    hm.put("file_name",remotefilename);
+                    hm.put("content",content);
+                    System.out.println("set_test_file: "+remotefilename);
+                    String response = RunnerRepository.getRPCClient().execute("runPlugin", new Object[]{RunnerRepository.user,"ClearCase",hm}).toString();
+                    System.out.println(response);
                     file2.delete();
+//                     
+//                     
+//                     sendFileToServer(file2, editable, ctfile);
+//                     
+//                     
+//                     
+//                     
+//                     file2.delete();
                 }
             }
         } catch (Exception e) {
@@ -557,19 +599,95 @@ public class ClearCasePanel{
         String localfilename = RunnerRepository.temp + RunnerRepository.getBar()
                 + "Twister" + RunnerRepository.getBar()
                 + tree.getSelectionPath().getLastPathComponent();
-        System.out.println("localfilename: "+localfilename);  
-        System.out.println("remotefilename: "+remotefilename);
-        RunnerRepository.window.mainpanel.getP5().sendCommand("cp "+remotefilename+" ~");
-        RunnerRepository.window.mainpanel.getP5().readOutput(null);
-        File file2 = copyFileLocaly(editable, localfilename);
-        RunnerRepository.window.mainpanel.getP5().sendCommand("rm -f ~/"+editable);
-        RunnerRepository.window.mainpanel.getP5().readOutput(null);
+                
+                
+        HashMap<String,String>hm = new HashMap<String,String>();
+        hm.put("command","get_test_file");
+        hm.put("file_name",remotefilename);
+        System.out.println("get_test_file: "+remotefilename);
+        String respons = "";
+        try{respons = RunnerRepository.getRPCClient().execute("runPlugin", new Object[]{RunnerRepository.user,"ClearCase",hm}).toString();}
+        catch(Exception e){
+            System.out.println("Could not get file content: "+remotefilename);
+            e.printStackTrace();
+        }
+        System.out.println(respons);
+        File file2 = new File(localfilename);
+        
+        try{BufferedWriter writer = new BufferedWriter(new FileWriter(file2));
+            writer.write(respons);
+            writer.flush();
+            writer.close();
+        }catch(Exception e){
+            System.out.println("Could not write file: "+file2.getAbsolutePath()+" to local pc");
+            e.printStackTrace();
+        }
+        
+        
+        
+//                     String result = RunnerRepository.getRPCClient().execute("getTestDescription", new Object[] { thefile }).toString();
+//                     
+//                     
+//                     RunnerRepository.window.mainpanel.getP5().sendCommand("cp "+remotefilename+" ~");
+//                     File file2 = copyFileLocaly(editable, localfilename);
+//                     RunnerRepository.window.mainpanel.getP5().sendCommand("rm -f ~/"+editable);
+//                     
+//                     
+//                     
+//         String execute = RunnerRepository.getEditors().get(ID).getAsString();
+//         executeCommand(execute,localfilename);
+//         
+//         FileReader reader = new FileReader(file2);
+//         char[] c=new char[(int)file2.length()];
+//         reader.read(c);
+//         reader.close();
+//         String content = new String(c);
+//         System.out.println("---"+content+"---");
+//         
+//         hm = new HashMap<String,String>();
+//         hm.put("command","set_test_file");
+//         hm.put("file_name",remotefilename);
+//         hm.put("content",content);
+//         String response = RunnerRepository.getRPCClient().execute("runPlugin", new Object[]{RunnerRepository.user,"ClearCase",hm}).toString();
+//         System.out.println(response);
+//         file2.delete();
+                
+//         RunnerRepository.window.mainpanel.getP5().sendCommand("cp "+remotefilename+" ~");
+//         File file2 = copyFileLocaly(editable, localfilename);
+//         RunnerRepository.window.mainpanel.getP5().sendCommand("rm -f ~/"+editable);
         
         if (defaulteditor.equals("Embedded")) {
             openEmbeddedEditor(editable, editable, localfilename, remotefilename,save);
         } else {
-            executeCommand(RunnerRepository.getEditors().get(defaulteditor).toString(),
-                           localfilename);
+            executeCommand(RunnerRepository.getEditors().get(defaulteditor).toString(),localfilename);
+            FileReader reader = null;
+            try{reader = new FileReader(file2);}
+            catch(Exception e){
+                System.out.println("Could not get file: "+file2.getAbsolutePath());
+                e.printStackTrace();
+            }
+            char[] c=new char[(int)file2.length()];
+            try{reader.read(c);
+                reader.close();}
+            catch(Exception e){
+                System.out.println("Could not read file: "+file2.getAbsolutePath());
+                e.printStackTrace();
+            }
+            
+            String content = new String(c);
+            System.out.println("---"+content+"---");
+            hm = new HashMap<String,String>();
+            hm.put("command","set_test_file");
+            hm.put("file_name",remotefilename);
+            hm.put("content",content);
+            System.out.println("set_test_file: "+remotefilename);
+            String response = "";
+            try{response = RunnerRepository.getRPCClient().execute("runPlugin", new Object[]{RunnerRepository.user,"ClearCase",hm}).toString();}
+            catch(Exception e){
+                System.out.println("Could not execute xmlrpc command");
+                e.printStackTrace();
+            }
+            System.out.println(response);
             file2.delete();
         }
     }
@@ -675,9 +793,23 @@ public class ClearCasePanel{
                         out.flush();
                         out.close();
                         filewriter.close();
-                        sendFileToServer(file, remotefile,ctfile);
+//                         sendFileToServer(file, remotefile,ctfile);
+                        FileReader reader = new FileReader(file);
+                        char[] c=new char[(int)file.length()];
+                        reader.read(c);
+                        reader.close();
+                        String content = new String(c);
+                        System.out.println("---"+content+"---");
+                        HashMap hm = new HashMap<String,String>();
+                        hm.put("command","set_test_file");
+                        hm.put("file_name",ctfile);
+                        hm.put("content",content);
+                        System.out.println("set_test_file: "+ctfile);
+                        String response = RunnerRepository.getRPCClient().execute("runPlugin", new Object[]{RunnerRepository.user,"ClearCase",hm}).toString();
+                        System.out.println(response);
+                        file.delete();
                     } catch (Exception e) {
-                        System.out.println("Could not save file localy : "
+                        System.out.println("Could not save file : "
                                 + localfile);
                     }
                 }
@@ -760,7 +892,6 @@ public class ClearCasePanel{
             connection.put(in, remotefile);
             in.close();
             RunnerRepository.window.mainpanel.getP5().sendCommand("cp "+remotefile+" "+ctfile);
-            String response = RunnerRepository.window.mainpanel.getP5().readOutput(null);
             
         } catch (Exception e) {
             e.printStackTrace();
@@ -773,11 +904,29 @@ public class ClearCasePanel{
     public void refreshStructure() {
         try{root.remove(0);}
         catch(Exception e){}
-        RunnerRepository.window.mainpanel.getP5().buildTree(root);
+        HashMap<String, String> hash = new HashMap<String, String>();
+        hash.put("command", "get_path_tree");
+        hash.put("path", RunnerRepository.window.mainpanel.getP5().root);
+        String result = "";
+        System.out.println("get_path_tree: "+RunnerRepository.window.mainpanel.getP5().root);
+        try{result= RunnerRepository.getRPCClient().execute("runPlugin", new Object[]{RunnerRepository.user,
+                                                                     "ClearCase",hash}).toString();
+            System.out.println(result);}
+        catch(Exception e){
+            System.out.println("Could not get tree from CE");
+            e.printStackTrace();
+            return;
+        }
+        JsonObject el = (JsonObject)new JsonParser().parse(result);
+        JsonElement vob = el.get(RunnerRepository.window.mainpanel.getP5().root);
+        DefaultMutableTreeNode child2 = new DefaultMutableTreeNode(RunnerRepository.window.mainpanel.getP5().root,true);
+        root.add(child2);
+        RunnerRepository.window.mainpanel.getP5().buildTree(child2,(JsonObject)vob);
         ((DefaultTreeModel) tree.getModel()).reload();
         tree.expandRow(0);
         selected = null;
         setDragging(false);
+        
     }
 
     public void setEnabledTabs(boolean enable) {

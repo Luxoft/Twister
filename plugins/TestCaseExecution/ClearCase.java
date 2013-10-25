@@ -1,6 +1,6 @@
 /*
 File: ClearCase.java ; This file is part of Twister.
-Version: 2.013
+Version: 2.014
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -64,10 +64,15 @@ import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
+import java.util.HashMap;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import com.google.gson.JsonArray;
+import java.util.Iterator;
+import java.util.Map;
 
 public class ClearCase extends JPanel{
-//     private DataInputStream dataIn;
-//     private DataOutputStream dataOut;
     private BufferedReader in;
     private ChannelShell channel;
     private boolean firstfind = false;
@@ -90,65 +95,76 @@ public class ClearCase extends JPanel{
     
     
     public ClearCase(String host, String user, String password){
-        initializeSSH(host, user, password);
+//         initializeSSH(host, user, password);
         initComponents();
     }
     
     
-    /*
-     * create a ssh connection with server
-     * and modify prompt based on shell type
-     */
-    private void initializeSSH(String host, String user, String password){
-        try{JSch jsch = new JSch();
-            session = jsch.getSession(user, host, 22);
-            session.setPassword(password);
-            session.setConfig("StrictHostKeyChecking", "no");
-            session.connect();
-            channel = (ChannelShell)session.openChannel("shell");
-            channel.connect();
-            in = new BufferedReader(new InputStreamReader(channel.getInputStream(),"UTF-8"));
-            OutputStream ops = channel.getOutputStream();
-            ps = new PrintStream(ops, false);           
-            sendStartCommand("echo $SHELL");
-            shell = readFirstOutput(null);
-            System.out.println("Shell: "+shell+"---");
-            
-            if(shell.indexOf("/bash")!=-1||shell.indexOf("/ksh")!=-1){
-                try{
-                    ps.println("export PS1=\"twister_prompt#\"");
-                    ps.flush();
-                } catch(Exception e){
-                    e.printStackTrace();
-                }
-                if(shell.indexOf("/ksh")!=-1){
-                    readOutput(null);
-                } else {
-                    readOutput("export PS1");
-                }
-            }else if(shell.indexOf("/csh")!=-1||shell.indexOf("/tcsh")!=-1){
-                try{
-                    ps.println("set prompt=\"twister_prompt#\"");
-                    ps.flush();
-                } catch(Exception e){
-                    e.printStackTrace();
-                }
-                readOutput("set prompt");
-            }
-        }catch(Exception e){
-            e.printStackTrace();
-        }
-    }
+//     /*
+//      * create a ssh connection with server
+//      * and modify prompt based on shell type
+//      */
+//     private void initializeSSH(String host, String user, String password){
+//         try{JSch jsch = new JSch();
+//             session = jsch.getSession(user, host, 22);
+//             session.setPassword(password);
+//             session.setConfig("StrictHostKeyChecking", "no");
+//             session.connect();
+//             channel = (ChannelShell)session.openChannel("shell");
+//             channel.connect();
+//             in = new BufferedReader(new InputStreamReader(channel.getInputStream(),"UTF-8"));
+//             OutputStream ops = channel.getOutputStream();
+//             ps = new PrintStream(ops, false);           
+//             sendStartCommand("echo $SHELL");
+//             shell = readFirstOutput(null);
+//             System.out.println("Shell: "+shell+"---");
+//             
+//             if(shell.indexOf("/bash")!=-1||shell.indexOf("/ksh")!=-1){
+//                 try{
+//                     ps.println("export PS1=\"twister_prompt#\"");
+//                     ps.flush();
+//                 } catch(Exception e){
+//                     e.printStackTrace();
+//                 }
+//                 if(shell.indexOf("/ksh")!=-1){
+//                     readOutput(null);
+//                 } else {
+//                     readOutput("export PS1");
+//                 }
+//             }else if(shell.indexOf("/csh")!=-1||shell.indexOf("/tcsh")!=-1){
+//                 try{
+//                     ps.println("set prompt=\"twister_prompt#\"");
+//                     ps.flush();
+//                 } catch(Exception e){
+//                     e.printStackTrace();
+//                 }
+//                 readOutput("set prompt");
+//             }
+//         }catch(Exception e){
+//             e.printStackTrace();
+//         }
+//     }
 
     /*
      * send command through ssh to server
      */
-    public void sendCommand(String command){
+    public String sendCommand(String command){
         try{
-            ps.println(command); 
-            ps.flush();
+            //ps.println(command); 
+            //ps.flush();
+            System.out.println("sending command: "+command);
+            HashMap<String, String> hash = new HashMap<String, String>();
+            hash.put("command", command);
+            String result = RunnerRepository.getRPCClient().execute("runPlugin", new Object[]{RunnerRepository.user,
+                                                                     "ClearCase",hash}).toString();
+            result = result.substring(1,result.length()-1);
+            result = result.replaceAll("\\\\n", "\n");
+            System.out.println("received output: "+result);
+            return result;
         } catch(Exception e){
+            System.out.println("Could not send command: "+command);
             e.printStackTrace();
+            return "";
         }
     }
     
@@ -264,11 +280,13 @@ public class ClearCase extends JPanel{
      */
     public void disconnect(){
         try{in.close();}
-        catch(Exception e){e.printStackTrace();}
+        catch(Exception e){}
         try{ps.close();}
-        catch(Exception e){e.printStackTrace();}
-        channel.disconnect();
-        session.disconnect();
+        catch(Exception e){}
+        try{channel.disconnect();}
+        catch(Exception e){}
+        try{session.disconnect();}
+        catch(Exception e){}
     }
     
     private void initComponents() {
@@ -315,7 +333,7 @@ public class ClearCase extends JPanel{
         refresh.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 String filter = tfilter.getText();
-                
+                String resp = null;
                 String command = "cleartool lsview";
                 if(cshort.isSelected()){
                     command+=" -short";
@@ -323,12 +341,12 @@ public class ClearCase extends JPanel{
                     command+=" -long";
                 }
                 if(filter.equals("")){
-                    sendCommand(command);
+                    resp = sendCommand(command);
                 } else {
-                    sendCommand(command+" | grep "+filter);
+                    resp = sendCommand(command+" | grep "+filter);
                 }
                 
-                tviews.setText(readOutput("cleartool lsview"));
+                tviews.setText(resp);
         }});
         
         mkattr.addActionListener(new ActionListener(){
@@ -426,12 +444,7 @@ public class ClearCase extends JPanel{
                     sb.append(tvalue.getText());
                     sb.append(" ");
                     sb.append(tel.getText());
-                    
-                    System.out.println("command: "+sb.toString());
-                    sendCommand(sb.toString());
-                    String response = readOutput("cleartool mkattr");
-                    System.out.println(response);
-                    tviews.setText(response);
+                    tviews.setText(sendCommand(sb.toString()));
                 }
         }});
         
@@ -599,10 +612,7 @@ public class ClearCase extends JPanel{
                         sb.append(" vob:");
                         sb.append(tvob.getText());
                     }
-                    System.out.println("command: "+sb.toString());
-                    sendCommand(sb.toString());
-                    String response = readOutput("cleartool describe");
-                    System.out.println(response);
+                    String response = sendCommand(sb.toString());
                     tviews.setText(response);
                 }
         }});
@@ -660,9 +670,7 @@ public class ClearCase extends JPanel{
                     if(recursive.isSelected())urecursive = " -recurse ";
                     String uversion="";
                     if(!tversion.getText().equals(""))uversion = " -version "+tversion.getText()+" ";
-                    sendCommand("cleartool mklabel "+urecursive+uversion+ucomment+" "+ulabel+" "+uelement);
-                    String response = readOutput("cleartool mklabel");
-                    System.out.println(response);
+                    String response = sendCommand("cleartool mklabel "+urecursive+uversion+ucomment+" "+ulabel+" "+uelement);
                     tviews.setText(response);
                 }
         }});
@@ -697,9 +705,7 @@ public class ClearCase extends JPanel{
                     String uelement = telement.getText();
                     String ucomment = " -c "+tcomment.getText();
                     if(tcomment.equals(""))ucomment = " -nc ";
-                    sendCommand("cleartool rmelem -f "+ucomment+" "+uelement);
-                    String response = readOutput("cleartool rmelem");
-                    System.out.println(response);
+                    String response = sendCommand("cleartool rmelem -f "+ucomment+" "+uelement);
                     tviews.setText(response);
                 }
             }
@@ -766,9 +772,7 @@ public class ClearCase extends JPanel{
                     String ucomment = " -c "+tcomment.getText();
                     if(tcomment.equals(""))ucomment = " -nc ";
                     String utype = teltype.getText();
-                    sendCommand("cleartool mkelem "+ucomment+" -eltype "+utype+" "+uelement);
-                    String response = readOutput("cleartool mkelem");
-                    System.out.println(response);
+                    String response = sendCommand("cleartool mkelem "+ucomment+" -eltype "+utype+" "+uelement);
                     tviews.setText(response);
                 }
             }});
@@ -854,8 +858,7 @@ public class ClearCase extends JPanel{
                     }
                     sb.append(" "+lview.getText());
                     System.out.println("Sending command: "+sb.toString());
-                    sendCommand(sb.toString());
-                    String response = readOutput("cleartool mkview");
+                    String response = sendCommand(sb.toString());
                     sb.setLength(0);
                     if(response.indexOf("Error")!=-1){
                         String[] lines = response.split("\n");
@@ -881,8 +884,7 @@ public class ClearCase extends JPanel{
                                         "Warning", "Please set view!");
                     return;
                 }
-                sendCommand("cleartool catcs -tag "+view);
-                String content = readOutput("cleartool catcs");
+                String content = sendCommand("cleartool catcs -tag "+view);
                 tviews.setText(content);
             }
         });
@@ -897,8 +899,8 @@ public class ClearCase extends JPanel{
                 } else if(clong.isSelected()){
                     command+=" -long";
                 }
-                sendCommand(command+" | grep "+RunnerRepository.user);
-                tviews.setText(readOutput("cleartool lsview"));
+                String resp = sendCommand(command+" | grep "+RunnerRepository.user);
+                tviews.setText(resp);
                 refresh.setEnabled(true);
                 tfilter.setEnabled(true);
             }
@@ -907,8 +909,7 @@ public class ClearCase extends JPanel{
             public void actionPerformed(ActionEvent ev){
                 refresh.setEnabled(false);
                 tfilter.setEnabled(false);
-                sendCommand("cleartool lsview -short | grep "+RunnerRepository.user);
-                String [] resp = readOutput("cleartool lsview").split("\n");
+                String [] resp = sendCommand("cleartool lsview -short | grep "+RunnerRepository.user).split("\n");
                 showViews(resp);
             }
         });
@@ -1103,13 +1104,12 @@ public class ClearCase extends JPanel{
         refresh.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 String filter = tfilter.getText();
+                String [] resp = null;
                 if(filter.equals("")){
-                    sendCommand("cleartool lsview -short");
+                    resp = sendCommand("cleartool lsview -short").split("\n");
                 } else {
-                    sendCommand("cleartool lsview -short | grep "+filter);
+                    resp = sendCommand("cleartool lsview -short | grep "+filter).split("\n");
                 }
-                
-                String [] resp = readOutput("cleartool lsview").split("\n");
                 jList1.setModel(new DefaultComboBoxModel(resp));
         }});
         
@@ -1126,40 +1126,8 @@ public class ClearCase extends JPanel{
             view = jList1.getSelectedValue().toString();
             
             sendCommand("cleartool setview "+view);
-            try{String line = in.readLine();
-                System.out.println("line: "+line);
-                line = in.readLine();
-                System.out.println("line: "+line);
-                if(line.indexOf("Error")!=-1){
-                    line = in.readLine();
-                    System.out.println("line: "+line);
-                    line = in.readLine();
-                    System.out.println("line: "+line);
-                }
-            } catch (Exception e){
-                e.printStackTrace();
-            }
-            
-            if(shell.indexOf("/bash")!=-1||shell.indexOf("/ksh")!=-1){
-                try{
-                    ps.println("export PS1=\"twister_prompt#\"");
-                    ps.flush();
-                } catch(Exception e){
-                    e.printStackTrace();
-                }
-                readOutput("export PS1");
-            }else if(shell.indexOf("/csh")!=-1||shell.indexOf("/tcsh")!=-1){
-                try{
-                    ps.println("set prompt=\"twister_prompt#\"");
-                    ps.flush();
-                } catch(Exception e){
-                    e.printStackTrace();
-                }
-                readOutput("set prompt");
-            }
             root = jTextField1.getText();
-            sendCommand("cd  "+jTextField1.getText());
-            readOutput("cd  "+jTextField1.getText());
+            //sendCommand("cd  "+jTextField1.getText());
             RunnerRepository.window.mainpanel.p1.cp.refreshStructure();
             lview.setText("View: "+view);
             vob.setText("Vob: "+root);
@@ -1174,60 +1142,97 @@ public class ClearCase extends JPanel{
     }
     
     /*
+     * used to create ClearCase tc tree, calls
+     * ClearCaseplugin and interprets the result
+     */
+    public void buildTree(DefaultMutableTreeNode node,JsonObject element){
+        Iterator iter = element.entrySet().iterator();
+        while(iter.hasNext()){
+            Map.Entry entry = (Map.Entry)iter.next();
+            if(!entry.getKey().equals("")){
+                DefaultMutableTreeNode child2 = new DefaultMutableTreeNode(node+"/"+entry.getKey(),true);
+                node.add(child2);
+                JsonElement el = (JsonElement)entry.getValue();
+                buildTree(child2,(JsonObject)el);
+            }
+        }
+        JsonArray files = element.get("").getAsJsonArray();
+        for(int i=0;i<files.size();i++){
+            DefaultMutableTreeNode child2 = new DefaultMutableTreeNode(files.get(i).getAsString(),false);
+            node.add(child2);
+        }
+//         HashMap<String, String> hash = new HashMap<String, String>();
+//         hash.put("command", "get_path_tree");
+//         hash.put("path", root);
+//         String result = "";
+//         try{result= RunnerRepository.getRPCClient().execute("runPlugin", new Object[]{RunnerRepository.user,
+//                                                                      "ClearCase",hash}).toString();
+//             System.out.println(result);}
+//         catch(Exception e){
+//             System.out.println("Could not biuld tree");
+//             e.printStackTrace();
+//             return;
+//         }
+//         JsonElement el = new JsonParser().parse(result);
+//         JsonObject jobject = el.getAsJsonObject();
+//         for(Object o:jobject.entrySet().toArray()){
+//             System.out.println(o.toString());
+//         }
+    }
+    
+    /*
      * used to create ClearCase tc tree, uses
      * ssh commands and interprets the result
      */
-    public void buildTree(DefaultMutableTreeNode node){
-        sendCommand("cleartool pwd");
-        String curentdir = readOutput("cleartool pwd");
-        curentdir = curentdir.replace("\n", "");   
-        DefaultMutableTreeNode child = new DefaultMutableTreeNode(curentdir,true);
-        node.add(child);
-        Vector<String> folders = new Vector<String>();
-        Vector<String> files = new Vector<String>();
-        boolean directory = false;
-        int firstindex,lastindex;
-        sendCommand("cleartool ls -l");
-        String [] lines = readOutput("cleartool ls -l").split("\n");
-        for(String line:lines){
-            if(line.indexOf("directory")==-1){
-                directory = false;
-            } else {
-                directory = true;
-            }
-            if(line.indexOf("version")==-1)continue;
-            firstindex = line.indexOf("version")+7; 
-            lastindex = line.indexOf("@@"); 
-            line = line.substring(firstindex, lastindex);
-            for(int i=0;i<line.length();i++){
-                if(line.charAt(i)!=' '){
-                    line = line.substring(i);
-                    break;
-                }
-            }
-            if(directory){
-                folders.add(line);
-            } else {
-                files.add(line);
-            }
-        }
-        for(String folder:folders){
-            System.out.println("folder: "+folder);
-        }
-        for(String file:files){
-            System.out.println("file: "+file);
-        }
-        for(String folder:folders){
-            sendCommand("cd  "+curentdir+"/"+folder);
-            readOutput(null);
-            buildTree(child);
-            sendCommand("cd  "+curentdir);
-            readOutput(null);
-        }
-        for(String file:files){
-            DefaultMutableTreeNode child2 = new DefaultMutableTreeNode(file,false);
-            child.add(child2);
-        }
-
-    }
+//     public void buildTree(DefaultMutableTreeNode node){
+//         String curentdir = sendCommand("cleartool pwd");
+//         curentdir = curentdir.replace("\n", "");   
+//         DefaultMutableTreeNode child = new DefaultMutableTreeNode(curentdir,true);
+//         node.add(child);
+//         Vector<String> folders = new Vector<String>();
+//         Vector<String> files = new Vector<String>();
+//         boolean directory = false;
+//         int firstindex,lastindex;
+//         String [] lines = sendCommand("cleartool ls -l").split("\n");
+//         for(String line:lines){
+//             if(line.indexOf("directory")==-1){
+//                 directory = false;
+//             } else {
+//                 directory = true;
+//             }
+//             if(line.indexOf("version")==-1)continue;
+//             firstindex = line.indexOf("version")+7; 
+//             lastindex = line.indexOf("@@"); 
+//             line = line.substring(firstindex, lastindex);
+//             for(int i=0;i<line.length();i++){
+//                 if(line.charAt(i)!=' '){
+//                     line = line.substring(i);
+//                     break;
+//                 }
+//             }
+//             if(directory){
+//                 folders.add(line);
+//             } else {
+//                 files.add(line);
+//             }
+//         }
+//         for(String folder:folders){
+//             System.out.println("folder: "+folder);
+//         }
+//         for(String file:files){
+//             System.out.println("file: "+file);
+//         }
+//         for(String folder:folders){
+//             sendCommand("cd  "+curentdir+"/"+folder);
+// //             readOutput(null);
+//             buildTree(child);
+//             sendCommand("cd  "+curentdir);
+// //             readOutput(null);
+//         }
+//         for(String file:files){
+//             DefaultMutableTreeNode child2 = new DefaultMutableTreeNode(file,false);
+//             child.add(child2);
+//         }
+// 
+//     }
 }

@@ -1,6 +1,6 @@
 /*
 File: ControlPanel.java ; This file is part of Twister.
-Version: 2.006
+Version: 2.007
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -71,7 +71,6 @@ public class ControlPanel implements TwisterPluginInterface {
 	public void init(ArrayList<Item> suite, ArrayList<Item> suitetest,
 			final Hashtable<String, String> variables,
 			final Document pluginsConfig,Applet applet) {
-		//super.init(suite, suitetest, variables, pluginsConfig,applet);
 		System.out.println("Initializing " + getName() + " ... ");	
 		String [] permissions = variables.get("permissions").split(",");
 		Arrays.sort(permissions);
@@ -132,22 +131,13 @@ public class ControlPanel implements TwisterPluginInterface {
 			}
 			
 		};
-		//p.setBackground(Color.GRAY);
 		
 		JPanel pn = new JPanel(){
 			public void paintComponent(Graphics g){
 				super.paintComponent(g);
-				Graphics2D g2d = (Graphics2D)g;
-				//float[] fractions = {0.0f,0.7f,1.0f};
-				//Color[] colors = {new Color(46,138,187),new Color(53,161,199),new Color(43,138,187)};
-				//LinearGradientPaint lgp = new LinearGradientPaint(0, 0, 0, getHeight(), fractions , colors);
-				//g2d.setPaint(lgp);
-				//g2d.fillRect(0, 0, getWidth(),getHeight());
-				
-				g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-				
+				Graphics2D g2d = (Graphics2D)g;				
+				g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);				
 				g2d.setStroke(new BasicStroke(4F)); 
-				
 				if(canrep){
 					g2d.setColor(new Color(10,92,129));
 					g2d.drawRoundRect(250, 115, 160, 220, 25, 25);
@@ -155,11 +145,8 @@ public class ControlPanel implements TwisterPluginInterface {
 					g2d.setColor(new Color(31,112,139));
 					g2d.fillRoundRect(250, 115, 160, 220, 25, 25);
 				}
-				
-				
 				g2d.setColor(new Color(10,92,129));
 				g2d.drawRoundRect(480, 115, 160, 220, 25, 25);
-				
 				g2d.setColor(new Color(31,112,139));
 				g2d.fillRoundRect(480, 115, 160, 220, 25, 25);
 				
@@ -170,9 +157,6 @@ public class ControlPanel implements TwisterPluginInterface {
 					g2d.setColor(new Color(31,112,139));
 					g2d.fillRoundRect(710, 115, 160, 220, 25, 25);
 				}
-				
-				
-				
 			}
 		};
 		pn.setOpaque(false);
@@ -180,8 +164,6 @@ public class ControlPanel implements TwisterPluginInterface {
 		JLabel l = new JLabel(background);
 		l.setBounds(10,100,175,311);
 		pn.add(l);
-		
-		
 		
 		final JLabel lout = new JLabel(logout);
 		lout.setBounds(850,410,92,111);
@@ -235,8 +217,6 @@ public class ControlPanel implements TwisterPluginInterface {
 			});
 		}
 		
-		
-		
 		final JLabel trunner  = new JLabel(runner);
 		trunner.setBounds(480,115,160,220);
 		pn.add(trunner);
@@ -258,13 +238,10 @@ public class ControlPanel implements TwisterPluginInterface {
 				testexec();
 			}
 		});
-
-		
 		
 		l = new JLabel(texec);
 		l.setBounds(490,265,140,60);
 		pn.add(l);
-		
 		
 		if(canum){
 			final JLabel lum = new JLabel(um);
@@ -293,8 +270,6 @@ public class ControlPanel implements TwisterPluginInterface {
 			pn.add(l);
 		}
 		
-		
-		
 		pn.setLayout(null);
 		pn.setPreferredSize(new Dimension(950,550));
 		
@@ -302,28 +277,9 @@ public class ControlPanel implements TwisterPluginInterface {
 		p.setLayout(new GridBagLayout());
 		p.add(pn, new GridBagConstraints());
 		
-//		try{
-//			String [] permissions = variables.get("permissions").split(",");
-//			Arrays.sort(permissions);
-//			if(Arrays.binarySearch(permissions, "CHANGE_USERS")>-1){
-//				JButton usermanagement = new JButton("User Management");
-//				usermanagement.setPreferredSize(new Dimension(150,30));
-//				p.add(usermanagement);
-//				usermanagement.addActionListener(new ActionListener() {
-//					@Override
-//					public void actionPerformed(ActionEvent e) {
-//						maincomp.loadComponent("UserManagement");
-//					}
-//				});
-//			}
-//		} catch(Exception e){
-//			e.printStackTrace();
-//		}
-		
 		
 		JButton reports = new JButton("Reports");
 		reports.setPreferredSize(new Dimension(150,30));
-		//p.add(reports);
 		reports.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
@@ -333,7 +289,6 @@ public class ControlPanel implements TwisterPluginInterface {
 		
 		JButton tcrunner = new JButton("Test Case Execution");
 		tcrunner.setPreferredSize(new Dimension(150,30));
-		//p.add(tcrunner);
 		tcrunner.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
@@ -343,22 +298,15 @@ public class ControlPanel implements TwisterPluginInterface {
 		
 		JButton logout = new JButton("Logout");
 		logout.setPreferredSize(new Dimension(150,30));
-		//p.add(logout);
 		logout.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				maincomp.loadComponent("login");
 			}
 		});
-		
-//		p.setLayout(new FlowLayout());
-//		p.setPreferredSize(new Dimension(200,150));
-//        p.setMaximumSize(new Dimension(200,150));
-//        p.setMinimumSize(new Dimension(200,150));
         try{applet.removeAll();
 			applet.setLayout(new BorderLayout());
 			applet.add(p,BorderLayout.CENTER);
-			//applet.add(p, new GridBagConstraints());
 			applet.revalidate();
 			applet.repaint();
         } catch (Exception e){
@@ -385,7 +333,17 @@ public class ControlPanel implements TwisterPluginInterface {
 
 	@Override
 	public void terminate() {
+		System.out.println("Terminating :"+getName());
 		p = null;
+		maincomp = null;
+		background = null;
+		reports = null;
+		runner = null;
+		reportst = null;
+		texec = null;
+		um = null;
+		tum = null;
+		logout = null;
 	}
 
 	@Override
@@ -432,7 +390,6 @@ public class ControlPanel implements TwisterPluginInterface {
 
 	@Override
 	public void resizePlugin(int arg0, int arg1) {
-		// TODO Auto-generated method stub
 		
 	}	
 }

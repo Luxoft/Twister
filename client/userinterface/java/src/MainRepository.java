@@ -1,6 +1,6 @@
 /*
 File: MainRepository.java ; This file is part of Twister.
-Version: 2.022
+Version: 2.023
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -72,12 +72,13 @@ public class MainRepository {
     public static TwisterPluginInterface plugin;
     private static XmlRpcClient client;
     private static Hashtable<String,String> hash = new Hashtable<String,String>();
-    private static String version = "2.041";
-    private static String builddate = "22.10.2013";
+    private static String version = "2.042";
+    private static String builddate = "25.10.2013";
     public static int time = 10;//seconds
     public static boolean countdown = false;
     public static String logotxt;
     public static LogOutThread lot = new LogOutThread(MainRepository.time);
+    private static WelcomePanel wp;
     
     public static void initialize(Applet applet, String host,Container container){
         MainRepository.applet = applet;
@@ -99,7 +100,7 @@ public class MainRepository {
     }
     
     public static void continueLogin(){
-        WelcomePanel wp = new WelcomePanel();
+        wp = new WelcomePanel();
         pluginmanager = new PluginManager();
         container.removeAll();
         container.setBackground(wp.getBackground());
@@ -175,6 +176,8 @@ public class MainRepository {
         MainRepository.password = password;
         ceport = getCEPort(user,password);
         if(ceport==null||ceport.equals("")){
+            try{MainRepository.wp.login.setEnabled(true);}
+            catch(Exception e){e.printStackTrace();}
             MainRepository.lot.setTime(10);
             MainRepository.time=10;
             return;
@@ -268,7 +271,8 @@ public class MainRepository {
                             int sec = Integer.parseInt(timeout)*60;
                             MainRepository.time = sec;
                             MainRepository.lot.setTime(sec);
-                            
+                            try{MainRepository.wp.login.setEnabled(true);}
+                            catch(Exception e){e.printStackTrace();}
                             Object [] permissions = (Object [])hm.get("roles");
                             StringBuilder sb = new StringBuilder();
                             for(Object ob:permissions){
@@ -355,6 +359,8 @@ public class MainRepository {
             if(!isCE()){
                 MainRepository.time=10;
                 MainRepository.lot.setTime(10);
+                try{MainRepository.wp.login.setEnabled(true);}
+                catch(Exception e){e.printStackTrace();}
                 CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,applet,
                                     "Warning", "CE is not running, please start CE in "+
                                                 "order for Twister Framework to run properly");
@@ -366,6 +372,8 @@ public class MainRepository {
         catch(Exception e){
             MainRepository.time=10;
             MainRepository.lot.setTime(10);
+            try{MainRepository.wp.login.setEnabled(true);}
+            catch(Exception ex){ex.printStackTrace();}
             e.printStackTrace();
             System.out.println("Could not conect to "+
                             MainRepository.host+" :"+port+
