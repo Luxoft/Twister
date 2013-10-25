@@ -503,8 +503,7 @@ class CentralEngine(_cptools.XMLRPCController):
     def queueFile(self, user, suite, fname):
         """
         Queue a file at the end of a suite, during runtime.
-        If there are more suites with the same name, the first one is used.\n
-        This function writes in TestSuites.XML file, so the change is persistent.
+        If there are more suites with the same name, the first one is used.
         """
         return self.project.queueFile(user, suite, fname)
 

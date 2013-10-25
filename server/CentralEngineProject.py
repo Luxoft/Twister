@@ -1773,10 +1773,16 @@ class Project(object):
 
         if fname.startswith('~/'):
             fname = userHome(user) + fname[1:]
+
+        # Fix incomplete file path
         if not os.path.isfile(fname):
-            log = '*ERROR* No such file `{}`!'.format(fname)
-            logError(log)
-            return log
+            tests_path = self.getUserInfo(user, 'tests_path')
+            if not os.path.isfile(tests_path + os.sep + fname):
+                log = '*ERROR* TestCase file: `{}` does not exist!'.format(fname)
+                logError(log)
+                return log
+            else:
+                fname = tests_path + os.sep + fname
 
         # Try create a new file id
         file_id = str( int(max(self.test_ids[user] or [1000])) + 1 )

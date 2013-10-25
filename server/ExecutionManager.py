@@ -250,6 +250,13 @@ class ExecutionManagerService(rpyc.Service):
         return self.project.reset(user)
 
 
+    def exposed_listUsers(self, active=False):
+        """
+        Function called from the CLI, to list the users that are using Twister.
+        """
+        return self.project.listUsers(active)
+
+
     def exposed_getUserVariable(self, variable):
         """
         Send a user variable
@@ -575,6 +582,25 @@ class ExecutionManagerService(rpyc.Service):
 # # #   EP and File statuses   # # #
 
 
+    def exposed_queueFile(self, suite, fname):
+        """
+        Queue a file at the end of a suite, during runtime.
+        If there are more suites with the same name, the first one is used.
+        """
+        user = self._check_login()
+        if not user: return False
+        return self.project.queueFile(user, suite, fname)
+
+
+    def exposed_deQueueFiles(self, data):
+        """
+        Remove a file from the files queue.
+        """
+        user = self._check_login()
+        if not user: return False
+        return self.project.deQueueFiles(user, data)
+
+
     def exposed_getEpStatus(self, epname):
         """
         Return execution status for one EP. (stopped, paused, running, invalid)
@@ -634,11 +660,6 @@ class ExecutionManagerService(rpyc.Service):
         """
         user = self._check_login()
         if not user: return False
-
-        if epname not in self.project.getUserInfo(user, 'eps'):
-            logDebug('*ERROR* Invalid EP name `{}` !'.format(epname))
-            return False
-
         return self.project.getFileStatusAll(user, epname, suite)
 
 
