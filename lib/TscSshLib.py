@@ -27,11 +27,11 @@
 """
 
 
-from time import sleep
+import time
 
-from paramiko import Transport
+import paramiko
 
-__all__ = ['SshManager', 'SshConnection']
+__all__ = ['SshManager', 'SshConnection', 'SshShell']
 
 #
 
@@ -42,17 +42,25 @@ class SshManager(object):
         """ init """
 
         # connections are paramiko.SSHClient instances
-        self.connections = {}
+        self.connections = dict()
 
         # active connection name; is used for all commands as default
         # if no name is specified
         self.activeConnection = None
 
 
-    def open_connection(self, name, host, user=None, password=None, port=22):
+    def open_connection(self, name, host, user=None, password=None, port=22, _type='shell'):
         """ open a new paramiko.Transport instance and add it to manager list """
 
-        if not self.connections.has_key(name):
+        if not _type in ['shell', 'session']:
+            return False
+
+        if not self.connections.has_key(name) and _type == 'shell':
+            connection = SshShell(name, host, port, user, password)
+            self.connections.update([(name, connection), ])
+
+            return True
+        elif not self.connections.has_key(name) and _type == 'session':
             connection = SshConnection(name, host, port, user, password)
             self.connections.update([(name, connection), ])
 
@@ -63,7 +71,7 @@ class SshManager(object):
 
             return False
 
-    def write(self, command, name=None):
+    def write(self, command, result=True, name=None):
         """ write command to ssh connection """
 
         if ((not name and not self.activeConnection) or
@@ -72,9 +80,9 @@ class SshManager(object):
             return False
 
         if name:
-            return self.connections[name].write(command)
+            return self.connections[name].write(command, result)
         elif self.activeConnection:
-            return self.connections[self.activeConnection].write(command)
+            return self.connections[self.activeConnection].write(command, result)
 
         return False
 
@@ -195,14 +203,14 @@ class SshConnection:
         self.nbytes = 4096
 
         try:
-            self.connection =  Transport((self.host, self.port))
+            self.connection = paramiko.Transport((self.host, self.port))
             self.connection.connect(username=self.loginAccount['user'],
                                     password=self.loginAccount['pass'])
             self.connection.set_keepalive(self.timeout)
-            self.session = self.connection.open_channel(kind='session')
+            #self.session = self.connection.open_channel(kind='session')
 
             print('ssh connection created!')
-        except Exception, e:
+        except Exception as e:
             self.__del__()
             print('ssh connection failed: {er}'.format(er=e))
 
@@ -216,7 +224,7 @@ class SshConnection:
                 print 'exit status: ', self.session.recv_exit_status()
         if self.connection:
             self.connection.close()
-        sleep(2)
+        time.sleep(2)
         del(self)
 
 
@@ -233,8 +241,18 @@ class SshConnection:
     def read(self):
         """ read from ssh connection """
 
+        self.session = self.connection.open_channel(kind='session')
+
         if not self.session or not self.session.active:
             return False
+
+        d1 = time.time()
+        while not self.session.recv_ready():
+            time.sleep(2)
+
+            d2 = time.time()
+            if int(d2 - d1) > self.timeout:
+                break
 
         if self.session.recv_stderr_ready():
             print self.session.recv_stderr(self.nbytes)
@@ -242,23 +260,132 @@ class SshConnection:
         if self.session.recv_ready():
             return self.session.recv(self.nbytes)
 
+        if self.session.exit_status_ready():
+            return False
+
         return False
 
 
     def write(self, command, result=True):
         """ write command to ssh connection """
 
+        self.session = self.connection.open_channel(kind='session')
+
         if not self.session or not self.session.active:
             return False
 
         self.session.exec_command(command)
 
-        if self.session.recv_stderr_ready():
-            print self.session.recv_stderr(self.nbytes)
-
         if result:
-            sleep(2)
-            if self.session.recv_ready():
-                return self.session.recv(self.nbytes)
+            return self.read()
 
         return False
+
+
+class SshShell:
+    """ tsc ssh connection """
+
+    def __init__(self, name, host, port=22, user=None, password=None):
+        """ init """
+
+        self.connection = None
+        self.session = None
+        self.host = host
+        self.port = port
+        self.loginAccount = {
+            'user': user,
+            'pass': password
+        }
+        self.name = name
+        self.timeout = 4
+
+        self.nbytes = 4096
+
+        try:
+            self.connection = paramiko.SSHClient()
+            self.connection.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            self.connection.connect(host,
+                                    username=self.loginAccount['user'],
+                                    password=self.loginAccount['pass'])
+            self.session = self.connection.invoke_shell(term='xterm')
+            #self.session = self.connection.invoke_shell()
+            self.session.settimeout(self.timeout)
+
+            print('ssh connection created!')
+        except Exception as e:
+            print('ssh connection failed: {er}'.format(er=e))
+
+
+    def __del__(self):
+        """ delete """
+
+        if self.session:
+            self.session.close()
+            if self.session.exit_status_ready():
+                print 'exit status: ', self.session.recv_exit_status()
+        if self.connection:
+            self.connection.close()
+        time.sleep(2)
+        del(self)
+
+
+    def set_timeout(self, timeout):
+        """ set timeout for operations on ssh connection """
+
+        if isinstance(timeout, int):
+            self.timeout = [0, timeout][timeout > 0]
+            if self.session:
+                self.session.settimeout(self.timeout)
+            return True
+
+        return False
+
+
+    def read(self, timeout=True):
+        """  read from ssh connection """
+
+        if not self.session or not self.session.active:
+            return False
+
+        if self.session.recv_stderr_ready():
+            print self.session.recv_stderr(self.nbytes)
+            return False
+
+        d1 = time.time()
+        while not self.session.recv_ready():
+            time.sleep(2)
+
+            d2 = time.time()
+            if (((int(d2 - d1) > self.timeout) and timeout) or int(d2 - d1) > 1200):
+                break
+
+        if self.session.recv_ready():
+            readBuffer = ''
+            while self.session.recv_ready():
+                resp = self.session.recv(self.nbytes)
+                readBuffer += resp
+                time.sleep(0.4)
+            return readBuffer
+
+        if self.session.exit_status_ready():
+            return False
+
+        return False
+
+
+    def write(self, command, result=True, read_timeout=False):
+        """ write command to ssh connection """
+
+        if not self.session or not self.session.active:
+            return False
+
+        command += '\n'
+        self.session.send(command)
+        #self.session.exec_command(command) ## not working
+
+        if result:
+            time.sleep(0.8)
+            return self.read(read_timeout)
+
+        return False
+
