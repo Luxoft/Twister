@@ -1,7 +1,7 @@
 
 # File: ClearCasePlugin.py ; This file is part of Twister.
 
-# version: 2.004
+# version: 2.005
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -63,8 +63,9 @@ class CC(object):
         """  """
 
         self.cleartoolSsh = SshShell(name='cleartool', host='localhost', user=user, password=password)
-        self.cleartoolSsh.set_timeout(8)
-        self.cleartoolSsh.read()
+        self.cleartoolSsh.set_timeout(2)
+        time.sleep(1)
+        #self.cleartoolSsh.read()
 
 
     def cmd(self, args):
@@ -84,14 +85,37 @@ class CC(object):
             print('Clearcase Plugin Srv: Changing view: `{}`.'.format(args['command']))
 
         response = self.cleartoolSsh.write(args['command'])
-        response = response.splitlines()#('\r\n')
-        response = response[1:len(response)-1]
+
+        response = self.parseSshResponse(args['command'], response)
         response = '\n'.join(response)
 
         if args['command'].startswith('cleartool setview'):
             time.sleep(2)
+            #self.cleartoolSsh.setPrompt()
+            response = ''
 
         return json.dumps(response)
+
+
+    def parseSshResponse(self, cmd, response):
+        """  """
+
+        response = response.splitlines()
+        try:
+            response = response[response.index(cmd)+1:]
+        except Exception as e:
+            for line in response:
+                if line.startswith(cmd[:80]):
+                    response = response[response.index(line)+1:]
+                    break
+
+        try:
+            if response[len(response)-1] == self.cleartoolSsh.prompt:
+                response = response[:len(response)-1]
+        except Exception as e:
+            pass
+
+        return response
 
 
     def getPathTree(self, path):
@@ -117,14 +141,17 @@ class CC(object):
         pwd = self.cleartoolSsh.write('pwd')
         self.cleartoolSsh.write('cd')
         self.cleartoolSsh.write('python -c "import base64; print(base64.b64decode(\'{}\'))"  > pathTree.py'.format(base64.b64encode(treeCommand)))
-        response = self.cleartoolSsh.write('python pathTree.py'.format(treeCommand))
+        command = 'python pathTree.py'.format(treeCommand)
+        response = self.cleartoolSsh.write(command)
         self.cleartoolSsh.write('rm pathTree.py')
         self.cleartoolSsh.write('cd {}'.format(pwd))
 
         try:
-            response = [r for r in response.splitlines() if r][1]
+            response = self.parseSshResponse(command, response)
+            response = [r for r in response if r][0]
             response = eval(response)
         except Exception as e:
+            print('getPathTree error: {} || response: {} '.format(e, response))
             response = ''
 
         return json.dumps(response)
@@ -136,9 +163,13 @@ class CC(object):
         """
 
         try:
-            response = self.cleartoolSsh.write('cat {}'.format(fname))
-            response = response.splitlines()
-            response = response[3:len(response)-1]
+            command = 'cat {}'.format(fname)
+            response = self.cleartoolSsh.write(command)
+
+            response = self.parseSshResponse(command, response)
+
+            # response = response.splitlines()
+            # response = response[3:len(response)-1]
 
             response = '\n'.join(response)
         except Exception as e:
@@ -152,12 +183,12 @@ class CC(object):
         data = data.splitlines()
         data = data[2:len(data)-1][0]
 
-        result = ''
-        if data:
+        result = tags
+        if data and (data.find('@@') != -1):
             data = data.split()[0].split('@@')[1]
             extra_info = '<b>ClearCase Version</b> : {}'.format(data)
 
-            result = tags + '<br>\n' + extra_info
+            result += '<br>\n' + extra_info
 
         return result
 
@@ -168,10 +199,13 @@ class CC(object):
         """
 
         try:
-            response = self.cleartoolSsh.write('cat {}'.format(fname))
+            command = 'cat {}'.format(fname)
+            response = self.cleartoolSsh.write(command)
 
-            response = response.splitlines()
-            response = response[3:len(response)-1]
+            response = self.parseSshResponse(command, response)
+
+            # response = response.splitlines()
+            # response = response[3:len(response)-1]
 
             response = '\n'.join(response)
 
@@ -189,15 +223,17 @@ class CC(object):
         """
 
         try:
-            response = self.cleartoolSsh.write('python -c "import base64; print(base64.b64decode(\'{c}\'))"  > {f}'.format(c=base64.b64encode(content), f=fname))
+            command = 'python -c "import base64; print(base64.b64decode(\'{c}\'))"  > {f}'.format(
+                                                                c=base64.b64encode(content), f=fname)
+            response = self.cleartoolSsh.write(command)
 
-            response = [r for r in response.splitlines() if r]
-            if len(response) > 2:
+            print('set test file:: {}'.format(response))
+
+            if len(response) >= 2:
                 print('error: {}'.format(response))
 
             return True
         except Exception as e:
-            #print('getTestFile error: {}'.format(e))
             return ''
 
 
@@ -217,18 +253,10 @@ class Plugin(BasePlugin):
         self.data = data
         self.conn = CC(self.user, self.data['ce'].getUserInfo(self.user, 'user_passwd'))
 
-        self.clear_case_view = self.data.get('clear_case_view', None)
-        if self.clear_case_view:
-            print('CC Plug-in: Changing ClearCase View to `{}`.'.format(self.clear_case_view))
-
-            self.run({'command': 'cleartool setview {}'.format(self.clear_case_view)})
-        else:
-            print('CC Plug-in onStart: ClearCase View empty `{}`! Your tests will NOT run!'.format(self.clear_case_view))
-
-
     def __del__(self):
         """  """
 
+        print('EXIT PLUGIN')
         del self.user
         del self.data
         del self.conn
@@ -238,14 +266,6 @@ class Plugin(BasePlugin):
         """
         Called for every command
         """
-
-        _clear_case_view = self.data.get('clear_case_view', None)
-        if _clear_case_view and not self.clear_case_view == _clear_case_view:
-            print('CC Plug-in: Changing ClearCase View to `{}`.'.format(_clear_case_view))
-
-            self.clear_case_view = _clear_case_view
-            self.data['clear_case_view'] = _clear_case_view
-            self.run({'command': 'cleartool setview {}'.format(_clear_case_view)})
 
         if args['command'] == 'get_path_tree':
             if not args.has_key('path'):
@@ -280,8 +300,7 @@ class Plugin(BasePlugin):
         """
         Called on project start.
         """
-
-        return
+        """ BOGDAN ???????????????????? """
 
         # No data provided ?
         if not clear_case_view:
@@ -296,7 +315,6 @@ class Plugin(BasePlugin):
 
     def getPathTree(self, path):
         """  """
-        return self.conn.getPathTree(path)
         try:
             return self.conn.getPathTree(path)
         except Exception as e:
@@ -353,3 +371,4 @@ class Plugin(BasePlugin):
 </Plugin>
 
 """
+
