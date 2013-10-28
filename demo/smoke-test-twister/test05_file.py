@@ -59,6 +59,7 @@ def test(PROXY, USER):
 
         msg = 'WILL RESET ALL STATUSES TO [SKIP], FOR `{} - {}` !\n'.format(USER, epname)
         print(msg) ; logMsg('logRunning', msg) ; logMsg('logDebug', msg)
+        time.sleep(1)
 
         r = PROXY.setFileStatusAll(epname, STATUS_SKIPPED)
         # If success, the return must be True
@@ -67,7 +68,7 @@ def test(PROXY, USER):
             return 'Fail'
         print 'Status all SKIPPED:', epname, r
 
-        time.sleep(0.5)
+        time.sleep(2)
         print
 
         msg = 'RESTORING ALL STATUSES FOR `{} - {}` ...\n'.format(USER, epname)
@@ -90,6 +91,7 @@ def test(PROXY, USER):
 
         msg = 'ALL STATUSES RESTORED SUCCESSFULLY.\n'
         print(msg) ; logMsg('logRunning', msg) ; logMsg('logDebug', msg)
+        time.sleep(1)
 
         print 'Status All for {} ?'.format(epname), PROXY.getFileStatusAll(epname)
 

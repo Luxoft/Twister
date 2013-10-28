@@ -334,7 +334,7 @@ class TwisterClient(object):
             epData['ce_port'] = cfg.get(currentEP, 'CE_PORT')
 
             epData['exec_str'] = 'nohup {py} -u {path}/client/executionprocess/ExecutionProcess.py '\
-                    '-u {user} -e {ep} -s {ip}:{port} > "{path}/.twister_cache/{ep}_LIVE.log" &'.format(
+                    '-u {user} -e {ep} -s {ip}:{port} > "{path}/.twister_cache/{ep}_LIVE.log" '.format(
                     py = sys.executable,
                     path = TWISTER_PATH,
                     user = self.userName,
@@ -513,7 +513,7 @@ class TwisterClientService(rpyc.Service):
 
         time.sleep(0.5) # A small delay
         try:
-            os.killpg(PID, signal.SIGTERM)
+            os.killpg(PID, signal.SIGINT)
             client.epNames[epname]['pid'] = None
         except:
             trace = traceback.format_exc()[34:].strip()

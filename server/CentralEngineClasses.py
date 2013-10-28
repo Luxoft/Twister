@@ -182,7 +182,7 @@ class CentralEngine(_cptools.XMLRPCController):
         user_roles = self.project.authenticate(user)
         if not user_roles: return False
         if 'CHANGE_SERVICES' not in user_roles['roles']:
-            logDebug('Privileges ERROR! Username `{user}` cannot use Service Manager!'.format(**cherry_roles))
+            logDebug('Privileges ERROR! Username `{user}` cannot use Service Manager!'.format(**user_roles))
             return False
         return self.project.manager.sendCommand(command, name, args, kwargs)
 

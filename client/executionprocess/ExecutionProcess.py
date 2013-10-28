@@ -357,6 +357,7 @@ class TwisterRunner(cli.Application):
         self.proxy.setEpVariable(self.epName, 'twister_ep_hostname', ep_host)
         self.proxy.setEpVariable(self.epName, 'twister_ep_ip', ep_ip)
         self.proxy.setEpVariable(self.epName, 'twister_ep_python_revision', '.'.join([str(v) for v in sys.version_info]) )
+        self.proxy.setEpVariable(self.epName, 'last_seen_alive', time.strftime('%Y-%m-%d %H:%M:%S'))
 
         # The SUT name. Common for all files in this EP.
         self.Sut = self.proxy.getEpVariable(self.epName, 'sut')
@@ -604,6 +605,9 @@ class TwisterRunner(cli.Application):
 
 
             print('<<< START filename: `{}:{}` >>>\n'.format(file_id, filename))
+
+            # Set Last seen alive flag on this EP
+            self.proxy.setEpVariable(self.epName, 'last_seen_alive', time.strftime('%Y-%m-%d %H:%M:%S'))
 
 
             # If a setup file failed, abort the current suite and all sub-suites,
@@ -975,7 +979,6 @@ if __name__=='__main__':
         sys.path.append(path)
 
 
-    signal.signal(signal.SIGTERM, exit)
     signal.signal(signal.SIGINT, exit)
 
     epName = None # Used by the logger when sending the Live Log

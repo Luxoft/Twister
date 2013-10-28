@@ -216,6 +216,7 @@ class Project(object):
         self.loggers = {}   # User loggers
 
         self.usr_lock = allocate_lock()  # User change lock
+        self.stt_lock = allocate_lock()  # File status lock
         self.int_lock = allocate_lock()  # Internal use lock
         self.glb_lock = allocate_lock()  # Global variables lock
         self.eml_lock = allocate_lock()  # E-mail lock
@@ -1516,8 +1517,8 @@ class Project(object):
         statuses = {} # Unordered
         final = []    # Ordered
 
-        # Lock the internal resource
-        with self.int_lock:
+        # Lock resource
+        with self.stt_lock:
             eps = self.users[user]['eps']
 
             if epname:
@@ -1621,13 +1622,15 @@ class Project(object):
         if not r: return False
         eps = self.users[user]['eps']
 
-        for epcycle in eps:
-            if epname and epcycle != epname:
-                continue
-            files = eps[epcycle]['suites'].getFiles()
-            for file_id in files:
-                # This uses dump, after set file info
-                self.setFileInfo(user, epcycle, file_id, 'status', new_status)
+        # Lock resource
+        with self.stt_lock:
+            for epcycle in eps:
+                if epname and epcycle != epname:
+                    continue
+                files = eps[epcycle]['suites'].getFiles()
+                for file_id in files:
+                    # This uses dump, after set file info
+                    self.setFileInfo(user, epcycle, file_id, 'status', new_status)
 
         return True
 
