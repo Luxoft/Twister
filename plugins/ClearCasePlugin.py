@@ -178,12 +178,15 @@ class CC(object):
 
         li_tags = re.findall('^[ ]*?[#]*?[ ]*?<(?P<tag>\w+)>([ -~\n]+?)</(?P=tag)>', response, re.MULTILINE)
         tags = '<br>\n'.join(['<b>' + title + '</b> : ' + descr.replace('<', '&lt;') for title, descr in li_tags])
+        result = tags
 
         data = self.cleartoolSsh.write('cleartool ls {}'.format(fname))
         data = data.splitlines()
-        data = data[2:len(data)-1][0]
+        if len(data) == 3:
+            data = data[1]
+        else:
+            data = ""
 
-        result = tags
         if data and (data.find('@@') != -1):
             data = data.split()[0].split('@@')[1]
             extra_info = '<b>ClearCase Version</b> : {}'.format(data)

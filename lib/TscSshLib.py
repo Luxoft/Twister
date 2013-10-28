@@ -297,7 +297,7 @@ class SshShell:
             'pass': password
         }
         self.name = name
-        self.timeout = 2
+        self.timeout = 0.2
 
         self.nbytes = 4096
         self.prompt = ''
@@ -308,7 +308,7 @@ class SshShell:
             self.connection.connect(host,
                                     username=self.loginAccount['user'],
                                     password=self.loginAccount['pass'])
-            self.session = self.connection.invoke_shell(term='xterm', width=80, height=24)
+            self.session = self.connection.invoke_shell(term='xterm', width=256, height=24)
             self.session.settimeout(self.timeout)
             self.setPrompt()
 
