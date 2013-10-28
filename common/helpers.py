@@ -1,7 +1,7 @@
 
 # File: helpers.py ; This file is part of Twister.
 
-# version: 2.004
+# version: 2.005
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -64,7 +64,7 @@ def setFileOwner(user, path):
 
     if os.path.isdir(path):
         try:
-            proc = subprocess.Popen(['chown', str(uid)+':'+str(gid), path, '-R'],)
+            proc = subprocess.Popen(['chown', str(uid)+':'+str(gid), path, '-R', '--silent'],)
             proc.wait()
         except:
             logWarning('Cannot change owner! Cannot chown folder `{}:{}` on `{} -R`!'.format(uid, gid, path))

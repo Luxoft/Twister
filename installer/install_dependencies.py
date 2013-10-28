@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# version: 2.002
+# version: 2.003
 
 # File: install.py ; This file is part of Twister.
 
@@ -128,11 +128,11 @@ def install_w_internet(lib_name):
         print('\n~~~ Installing `{}` from System repositories ~~~\n'.format(lib_name))
 
         if platform.dist()[0] == 'SuSE':
-            tcr_proc = subprocess.Popen(['zypper', 'install', '-yl', 'mysql-devel'], cwd=pkg_path)
+            tcr_proc = subprocess.Popen(['zypper', 'install', '-yl', 'mysql-devel'])
         elif platform.dist()[0] in ['fedora', 'centos']:
-            tcr_proc = subprocess.Popen(['yum', '-y', 'install', 'mysql-devel'], cwd=pkg_path)
+            tcr_proc = subprocess.Popen(['yum', '-y', 'install', 'mysql-devel'])
         else:
-            tcr_proc = subprocess.Popen(['apt-get', 'install', 'python-mysqldb', '-y', '--force-yes'], cwd=pkg_path)
+            tcr_proc = subprocess.Popen(['apt-get', 'install', 'python-mysqldb', '-y', '--force-yes'])
 
         try: tcr_proc.wait()
         except: print('Error while installing `Python-MySQL`!')
@@ -144,9 +144,9 @@ def install_w_internet(lib_name):
         print('\n~~~ Installing `{}` from System repositories ~~~\n'.format(lib_name))
 
         if platform.dist()[0] in ['fedora', 'centos']:
-            tcr_proc = subprocess.Popen(['yum', '-y', 'install', 'libxslt-devel', 'libxml2-devel'], cwd=pkg_path)
+            tcr_proc = subprocess.Popen(['yum', '-y', 'install', 'libxslt-devel', 'libxml2-devel'])
         else:
-            tcr_proc = subprocess.Popen(['apt-get', 'install', 'python-lxml', '-y', '--force-yes'], cwd=pkg_path)
+            tcr_proc = subprocess.Popen(['apt-get', 'install', 'python-lxml', '-y', '--force-yes'])
 
         try: tcr_proc.wait()
         except: print('Error while installing `Python LXML`!')
@@ -170,6 +170,40 @@ def install_w_internet(lib_name):
 def install_offline(lib_name):
 
     global library_err
+
+    # MySQL Python requires Python-DEV and must be installed from repositories
+    if INTERNET and lib_name == 'MySQL-python':
+        print('\n~~~ Installing `{}` from System repositories ~~~\n'.format(lib_name))
+
+        if platform.dist()[0] == 'SuSE':
+            tcr_proc = subprocess.Popen(['zypper', 'install', '-yl', 'mysql-devel'])
+        elif platform.dist()[0] in ['fedora', 'centos']:
+            tcr_proc = subprocess.Popen(['yum', '-y', 'install', 'mysql-devel'])
+        else:
+            tcr_proc = subprocess.Popen(['apt-get', 'install', 'python-mysqldb', '-y', '--force-yes'])
+
+        try:
+            tcr_proc.wait()
+            print('\n~~~ Successfully installed `{}` ~~~\n'.format(lib_name))
+            return True
+        except:
+            print('Error while installing `Python-MySQL`!')
+
+    elif INTERNET and lib_name == 'LXML-Python':
+        print('\n~~~ Installing `{}` from System repositories ~~~\n'.format(lib_name))
+
+        if platform.dist()[0] in ['fedora', 'centos']:
+            tcr_proc = subprocess.Popen(['yum', '-y', 'install', 'libxslt-devel', 'libxml2-devel'])
+        else:
+            tcr_proc = subprocess.Popen(['apt-get', 'install', 'python-lxml', '-y', '--force-yes'])
+
+        try:
+            tcr_proc.wait()
+            print('\n~~~ Successfully installed `{}` ~~~\n'.format(lib_name))
+            return True
+        except:
+            print('Error while installing `Python LXML`!')
+
 
     print('\n~~~ Installing `{}` from tar files ~~~'.format(lib_name))
 
