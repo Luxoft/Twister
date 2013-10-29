@@ -115,7 +115,8 @@ class ExecutionManagerService(rpyc.Service):
 
         # Unregister the eventual EPs for this connection
         if self.conns[str_addr].get('checked') and self.conns[str_addr].get('user'):
-            self.unregisterEps()
+            eps = self.conns[str_addr].get('eps')
+            if eps: self.unregisterEps(eps)
 
         # Delete everything for this address
         try:
@@ -239,17 +240,6 @@ class ExecutionManagerService(rpyc.Service):
         return self.project.usersAndGroupsManager(user, cmd, name, args, kwargs)
 
 
-    def exposed_resetProject(self):
-        """
-        Reset user project, to reload all config files
-        """
-        user = self._check_login()
-        if not user: return False
-        twister_cache = userHome(user) + '/twister/.twister_cache'
-        setFileOwner(user, twister_cache)
-        return self.project.reset(user)
-
-
     def exposed_listUsers(self, active=False):
         """
         Function called from the CLI, to list the users that are using Twister.
@@ -275,16 +265,6 @@ class ExecutionManagerService(rpyc.Service):
         user = self._check_login()
         if not user: return False
         return self.project.setUserInfo(user, key, variable)
-
-
-    def exposed_listEPs(self):
-        """
-        All known EPs for a user
-        """
-        user = self._check_login()
-        if not user: return False
-        eps = self.project.getUserInfo(user, 'eps').keys()
-        return list(eps) # Making a copy
 
 
     def exposed_getEpVariable(self, epname, variable):
@@ -381,6 +361,17 @@ class ExecutionManagerService(rpyc.Service):
 # # #   Register / Start / Stop EPs   # # #
 
 
+    def exposed_listEPs(self):
+        """
+        All known EPs for a user.
+        The user is identified automatically.
+        """
+        user = self._check_login()
+        if not user: return False
+        eps = self.project.getUserInfo(user, 'eps').keys()
+        return list(eps) # Making a copy
+
+
     @classmethod
     def exposed_registeredEps(self, user=None):
         """
@@ -419,7 +410,7 @@ class ExecutionManagerService(rpyc.Service):
             logError('*ERROR* Can only register a List of EP names!')
             return False
         else:
-            eps = sorted(set(eps))
+            eps = set(eps)
 
         try:
             # Send a Hello and this IP to the remote proxy Service
@@ -438,6 +429,8 @@ class ExecutionManagerService(rpyc.Service):
         # On disconnect, this client address will be deleted
         # And the EPs will be automatically un-registered.
         with self.conn_lock:
+            for epname in sorted(eps):
+                self.project._registerEp(user, epname)
 
             # Before register, find the clients that have already registered these EPs!
             for c_addr, data in self.conns.iteritems():
@@ -458,7 +451,7 @@ class ExecutionManagerService(rpyc.Service):
                     # Delete the EPs that must be deleted
                     self.conns[c_addr]['eps'] = sorted(diff_eps)
 
-            self.conns[str_addr]['eps'] = eps
+            self.conns[str_addr]['eps'] = sorted(eps)
 
         logDebug('Registered client manager for user `{}`\n\t-> Client from `{}` ++ {}.'.format(user, str_addr, eps))
         return True
@@ -484,6 +477,9 @@ class ExecutionManagerService(rpyc.Service):
             eps = set(eps)
 
         with self.conn_lock:
+            for epname in eps:
+                self.project._unregisterEp(user, epname)
+
             data = self.conns[str_addr]
             ee = data.get('eps') or sorted(eps)
             if not ee:

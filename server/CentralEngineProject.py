@@ -333,41 +333,86 @@ class Project(object):
             return False
 
 
-    def _common_proj_reset(self, user, base_config, files_config):
-
-        # List with all EPs for this User
-        epList = self.parsers[user].epnames
-        if not epList:
-            logCritical('Project ERROR: Cannot load the list of EPs for user `{}` !'.format(user))
+    def _registerEp(self, user, epname):
+        """
+        Add all suites and test files for this EP.
+        """
+        if (not user) or (not epname):
             return False
+
+        with self.usr_lock:
+
+            self.users[user]['eps'][epname] = OrderedDict()
+            self.users[user]['eps'][epname]['status'] = STATUS_STOP
+            # Information about ALL suites for this EP
+            # Some master-suites might have sub-suites, but all sub-suites must run on the same EP
+            suitesInfo = self.parsers[user].getAllSuitesInfo(epname)
+            if suitesInfo:
+                self.users[user]['eps'][epname]['sut'] = suitesInfo.values()[0]['sut']
+                self.users[user]['eps'][epname]['suites'] = suitesInfo
+                suites = suitesInfo.getSuites()
+                files = suitesInfo.getFiles()
+            else:
+                self.users[user]['eps'][epname]['sut'] = ''
+                self.users[user]['eps'][epname]['suites'] = SuitesManager()
+                suites = []
+                files = []
+
+            # Ordered list with all suite IDs, for all EPs
+            self.suite_ids[user].extend(suites)
+            # Ordered list of file IDs, used for Get Status ALL
+            self.test_ids[user].extend(files)
+
+            logDebug('Reload Execution-Process `{}:{}` with `{}` suites and `{}` files.'.format(user, epname, len(suites), len(files)))
+
+        # Save everything.
+        self._dump()
+
+        return True
+
+
+    def _unregisterEp(self, user, epname):
+        """
+        Remove all suites and test files for this EP.
+        """
+        if (not user) or (not epname):
+            return False
+
+        with self.usr_lock:
+
+            suitesInfo = self.users[user]['eps'][epname]['suites']
+            suites = set(suitesInfo.getSuites())
+            files = set(suitesInfo.getFiles())
+            old_suites = set(self.suite_ids[user])
+            old_files = set(self.test_ids[user])
+            self.suite_ids[user] = sorted(old_suites - suites)
+            self.test_ids[user] = sorted(old_files - files)
+
+            logDebug('Un-Registered Execution-Process `{}:{}`.'.format(user, epname))
+            del self.users[user]['eps'][epname]
+
+        # Save everything.
+        self._dump()
+
+        return True
+
+
+    def _common_proj_reset(self, user, base_config, files_config):
 
         # Create EP list
         self.users[user]['eps'] = OrderedDict()
 
+        # Ordered list with all suite IDs, for all EPs
+        self.suite_ids[user] = []
+        # Ordered list of file IDs, used for Get Status ALL
+        self.test_ids[user] = []
+
+        # List with all registered EPs for this User
+        epList = self.rsrv.exposed_registeredEps(user)
+
         # Generate the list of EPs in order
         for epname in epList:
-            self.users[user]['eps'][epname] = OrderedDict()
-            self.users[user]['eps'][epname]['status'] = STATUS_STOP
-            self.users[user]['eps'][epname]['sut']    = ''
-            # Each EP has a SuitesManager, helper class for managing file and suite nodes!
-            self.users[user]['eps'][epname]['suites'] = SuitesManager()
-
-        # Information about ALL project suites
-        # Some master-suites might have sub-suites, but all sub-suites must run on the same EP
-        suitesInfo = self.parsers[user].getAllSuitesInfo()
-
-        # Allocate each master-suite for one EP
-        for s_id, suite in suitesInfo.items():
-            epname = suite['ep']
-            if epname not in self.users[user]['eps']:
-                continue
-            self.users[user]['eps'][epname]['sut'] = suite['sut']
-            self.users[user]['eps'][epname]['suites'][s_id] = suite
-
-        # Ordered list of file IDs, used for Get Status ALL
-        self.test_ids[user] = suitesInfo.getFiles()
-        # Ordered list with all suite IDs, for all EPs
-        self.suite_ids[user] = suitesInfo.getSuites()
+            self._registerEp(user, epname)
 
         # Add framework config info to default user
         self.users[user]['config_path']  = base_config
@@ -387,7 +432,6 @@ class Project(object):
 
         # Global params for user
         self.users[user]['global_params'] = self.parsers[user].getGlobalParams()
-
 
         # Groups and roles for current user
         self.roles = self._parseUsersAndGroups()
@@ -461,7 +505,7 @@ class Project(object):
         return True
 
 
-    def reset(self, user, base_config='', files_config=''):
+    def resetProject(self, user, base_config='', files_config=''):
         """
         Reset user parser, all EPs to STOP, all files to PENDING.
         """
@@ -1367,7 +1411,7 @@ class Project(object):
                 path2 = msg.split(',')[1]
                 if os.path.isfile(path1) and os.path.isfile(path2):
                     logDebug('Using custom XML files: `{}` and `{}`.'.format(path1, path2))
-                    self.reset(user, path1, path2)
+                    self.resetProject(user, path1, path2)
                     msg = ''
 
             # Or if the Msg is a path to an existing file...
@@ -1376,15 +1420,15 @@ class Project(object):
                 # If the file is XML, send it to project reset function
                 if data[0] == '<' and data [-1] == '>':
                     logDebug('Using custom XML file: `{}`...'.format(msg))
-                    self.reset(user, msg)
+                    self.resetProject(user, msg)
                     msg = ''
                 else:
                     logDebug('You are probably trying to use file `{}` as config file, but it\'s not a valid XML!'.format(msg))
-                    self.reset(user)
+                    self.resetProject(user)
                 del data
 
             else:
-                self.reset(user)
+                self.resetProject(user)
 
             self.resetLogs(user)
 

@@ -573,7 +573,7 @@ class CentralEngine(_cptools.XMLRPCController):
         """
         twister_cache = userHome(user) + '/twister/.twister_cache'
         setFileOwner(user, twister_cache)
-        return self.project.reset(user)
+        return self.project.resetProject(user)
 
 
     @cherrypy.expose

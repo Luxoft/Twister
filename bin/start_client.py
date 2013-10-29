@@ -159,6 +159,8 @@ class TwisterClient(object):
         # Say Hello and Register all EPs on the current Central Engine
         if epNames:
             try:
+                # Call the user status to create the User Project
+                proxy.root.getUserVariable('status')
                 proxy.root.hello('client', {'eps': epNames})
                 print('Client Debug: Register EPs successful!\n')
             except Exception as e:
