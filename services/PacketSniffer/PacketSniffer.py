@@ -92,7 +92,7 @@ class Sniffer(Automaton):
 					self.socket_kargs = {'iface': iface, }
 			if not self.has_iface:
 				self.has_iface = False
-				print 'PT debug: set iface error: no such device'
+				print('PT debug: set iface error: no such device')
 
 		self.PAUSED = False
 		self.OFPort = (OFPort, 6633)[OFPort is None]
@@ -217,12 +217,12 @@ class Sniffer(Automaton):
 
 				print('PT info: Registered to central engine {}..'.format(ce))
 			except Exception as e:
-				print 'PT warning: Central Engine is down .... [{0}]'.format(e)
+				print('PT warning: Central Engine is down .... [{0}]'.format(e))
 
 
 		if not self.ceObjects:
 			if self.reinitRetries < self.reinitMaxRetries:
-				print 'PT debug: no central engines; will retry [{r}] ..'.format(r=self.reinitRetries)
+				print('PT debug: no central engines; will retry [{r}] ..'.format(r=self.reinitRetries))
 				self.reinitRetries += 1
 				sleep(2)
 
@@ -253,7 +253,7 @@ class Sniffer(Automaton):
 				source['ip'] = 'None'
 				destination['ip'] = 'None'
 
-				#print 'PT debug: packet head exception (ip): {ex}'.format(ex=e)
+				#print('PT debug: packet head exception (ip): {ex}'.format(ex=e))
 			try:
 				source['port'] = packet.payload.payload.fields['sport']
 				destination['port'] = packet.payload.payload.fields['dport']
@@ -261,12 +261,12 @@ class Sniffer(Automaton):
 				source['port'] = 'None'
 				destination['port'] = 'None'
 
-				#print 'PT debug: packet head exception (port): {ex}'.format(ex=e)
+				#print('PT debug: packet head exception (port): {ex}'.format(ex=e))
 		except Exception as e:
 			source['mac'] = 'None'
 			destination['mac'] = 'None'
 
-			#print 'PT debug: packet head exception (mac): {ex}'.format(ex=e)
+			#print('PT debug: packet head exception (mac): {ex}'.format(ex=e))
 
 		data = {
 			'protocol': packet.payload.payload.name,
@@ -282,7 +282,7 @@ class Sniffer(Automaton):
 	def BEGIN(self):
 		"""  """
 
-		print '|||| BEGIN ||||'
+		print('|||| BEGIN ||||')
 
 		response = self.registerCE(self.ceTraffic)
 		if not response:
@@ -350,7 +350,7 @@ class Sniffer(Automaton):
 
 		#self.rpycConn.close()
 
-		print '|||| END ||||'
+		print('|||| END ||||')
 
 
 	"""
