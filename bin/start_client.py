@@ -1,8 +1,8 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2.7
 
 # File: start_client.py ; This file is part of Twister.
 
-# version: 1.005
+# version: 1.007
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -123,7 +123,7 @@ class TwisterClient(object):
 
 #
 
-    def _createConn(self, ce_ip, ce_port, debug=True):
+    def _createConn(self, ce_ip, ce_port, epNames=[], debug=True):
         """
         Helper for creating a Central Engine connection, the most basic func.
         """
@@ -138,22 +138,36 @@ class TwisterClient(object):
         # Connect to RPyc server
         try:
             proxy = rpyc.connect(ce_ip, ce_port, service=TwisterClientService, config=config)
-            proxy.root.hello('client')
             print('Client Debug: Connected to CE at `{}:{}`...'.format(ce_ip, ce_port))
         except Exception as e:
             if debug:
-                print('*ERROR* Cannot connect to CE path `{}:{}`! Exception `{}`!'.format(ce_ip, ce_port, e))
+                print('*ERROR* Cannot connect to CE path `{}:{}`! Exception: `{}`!'.format(ce_ip, ce_port, e))
             return None
 
         # Authenticate on RPyc server
         try:
             check = proxy.root.login(self.userName, 'EP')
-            print('Client Debug: Authentication successful!\n')
+            if check: print('Client Debug: Authentication successful!')
         except Exception as e:
             check = False
 
         if not check:
-            print('*ERROR* Cannot authenticate on CE path `{}:{}`!'.format(ce_ip, ce_port))
+            if debug:
+                print('*ERROR* Cannot authenticate on CE path `{}:{}`!'.format(ce_ip, ce_port))
+            return None
+
+        # Say Hello and Register all EPs on the current Central Engine
+        if epNames:
+            try:
+                proxy.root.hello('client', {'eps': epNames})
+                print('Client Debug: Register EPs successful!\n')
+            except Exception as e:
+                print('Exception:', e)
+                check = False
+
+        if not check:
+            if debug:
+                print('*ERROR* Cannot send hello on CE path `{}:{}`!'.format(ce_ip, ce_port))
             return None
 
         bg = BgServingThread(proxy)
@@ -161,7 +175,7 @@ class TwisterClient(object):
 
 #
 
-    def _createConnLong(self, cePath):
+    def _createConnLong(self, cePath, epNames=[]):
         """
         Create connection to Central Engine, return the connection and
         auto-save it in the Proxy Dict.
@@ -192,7 +206,10 @@ class TwisterClient(object):
         while True:
             if not proxy:
                 # Try creating a new Central Engine connection.
-                proxy = self._createConn(ce_ip, ce_port, err_msg)
+                proxy = self._createConn(ce_ip, ce_port, epNames, err_msg)
+                if not proxy:
+                    time.sleep(2)
+                    continue
             else:
                 break
 
@@ -223,9 +240,7 @@ class TwisterClient(object):
         """
         print('\nWill REGISTER EPs on CE `{}` :: `{}`...\n'.format(cePath, epNames))
         # This operation might take a while!...
-        self._createConnLong(cePath)
-        # Register all this information on the current Central Engine
-        self.proxyDict[cePath].root.registerEps(epNames)
+        self._createConnLong(cePath, epNames)
         print('\nSuccess REGISTER EPs on CE `{}` :: `{}` !\n'.format(cePath, epNames))
 
 #
@@ -319,7 +334,7 @@ class TwisterClient(object):
             epData['ce_port'] = cfg.get(currentEP, 'CE_PORT')
 
             epData['exec_str'] = 'nohup {py} -u {path}/client/executionprocess/ExecutionProcess.py '\
-                   '{user} {ep} "{ip}:{port}" > /dev/null &'.format(
+                    '-u {user} -e {ep} -s {ip}:{port} > "{path}/.twister_cache/{ep}_LIVE.log" '.format(
                     py = sys.executable,
                     path = TWISTER_PATH,
                     user = self.userName,
@@ -456,23 +471,24 @@ class TwisterClientService(rpyc.Service):
             print('*ERROR* Unknown EP name : `{}` !'.format(epname))
             return False
 
-        if client.epNames[epname]['pid']:
-            print('Error: Process {} is already started for user {}! (pid={})\n'.format(
-                  epname, userName, client.epNames[epname]['pid']))
+        tproc = client.epNames[epname].get('pid')
+
+        if tproc:
+            print('Error: Process {} is already started for user {}! (proc={})\n'.format(epname, userName, tproc))
             return False
 
-        print('Executing: `{}`.'.format(client.epNames[epname]['exec_str']))
+        exec_str = client.epNames[epname]['exec_str']
+        print('Executing: `{}`.'.format(exec_str))
 
         try:
-            p = subprocess.Popen(client.epNames[epname]['exec_str'], shell=True, preexec_fn=os.setsid)
-            client.epNames[epname]['pid'] = p
+            tproc = subprocess.Popen(exec_str, shell=True, preexec_fn=os.setsid)
+            client.epNames[epname]['pid'] = tproc
         except:
             trace = traceback.format_exc()[34:].strip()
             print('ClientService: Error on Start EP: `{}`.'.format(trace))
             return False
 
         print('EP `{}` for user `{}` launched in background!\n'.format(epname, userName))
-
         return True
 
 
@@ -486,22 +502,34 @@ class TwisterClientService(rpyc.Service):
             print('*ERROR* Unknown EP name : `{}` !'.format(epname))
             return False
 
-        if not client.epNames[epname]['pid']:
-            print('Error: EP `{}` is not running !'.format(epname))
+        tproc = client.epNames[epname].get('pid')
+
+        if not tproc:
+            print('Silly boy! EP `{}` is not running!\n'.format(epname))
             return False
 
         print('Preparing to stop EP `{}`...'.format(epname))
-        time.sleep(1) # A small delay
+        PID = tproc.pid
 
+        time.sleep(0.5) # A small delay
         try:
-            os.kill(client.epNames[epname]['pid'].pid, signal.SIGTERM)
+            os.killpg(PID, signal.SIGINT)
             client.epNames[epname]['pid'] = None
         except:
             trace = traceback.format_exc()[34:].strip()
             print('ClientService: Error on Stop EP: `{}`.'.format(trace))
             return False
 
-        print('Stopped EP `{}` !'.format(epname))
+        time.sleep(0.1) # Another small delay
+        try:
+            os.kill(PID, 9)
+            client.epNames[epname]['pid'] = None
+        except:
+            trace = traceback.format_exc()[34:].strip()
+            print('ClientService: Error on Stop EP: `{}`.'.format(trace))
+            # return False # No need to exit
+
+        print('Stopped EP `{}`! (pid={})'.format(epname, PID))
         return True
 
 

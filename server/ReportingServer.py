@@ -121,7 +121,7 @@ class ReportingServer:
         db_config = self.db_parser[usr].db_config
 
         # Decode database password
-        db_password = self.project.decryptText( db_config.get('password') )
+        db_password = self.project.decryptText( usr, db_config.get('password') )
         if not db_password:
             logError('Report Server: Cannot decrypt the database password for user `{}`!'.format(usr))
             db_password = '0'

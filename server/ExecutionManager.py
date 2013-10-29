@@ -1,7 +1,7 @@
 
 # File: ExecutionManager.py ; This file is part of Twister.
 
-# version: 2.003
+# version: 2.004
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -44,7 +44,7 @@ if TWISTER_PATH not in sys.path:
 from common.constants  import *
 from common.helpers    import *
 from common.tsclogging import *
-from common.xmlparser  import *
+from common.xmlparser  import PluginParser
 
 #
 
@@ -113,6 +113,10 @@ class ExecutionManagerService(rpyc.Service):
         hello = self.conns[str_addr].get('hello', '')
         if hello: hello += ' - '
 
+        # Unregister the eventual EPs for this connection
+        if self.conns[str_addr].get('checked') and self.conns[str_addr].get('user'):
+            self.unregisterEps()
+
         # Delete everything for this address
         try:
             with self.conn_lock:
@@ -140,15 +144,28 @@ class ExecutionManagerService(rpyc.Service):
         return 'Echo: {}'.format(msg)
 
 
-    def exposed_hello(self, hello=''):
+    def exposed_hello(self, hello='', extra={}):
         """
-        For testing connection and setting a name.
+        Used by a Client for setting a name and other props.
         """
         str_addr = self._get_addr()
+        extra = dict(extra)
+        extra.update({'hello': str(hello)})
+        # logInfo('Hello `{} - {}` !'.format(hello, str_addr))
+
+        # Delete the invalid extra meta-data
+        if 'conn' in extra:     del extra['conn']
+        if 'user' in extra:     del extra['user']
+        if 'checked' in extra:  del extra['checked']
+        if 'eps' in extra:
+            # Only register the VALID eps...
+            self.registerEps(extra['eps'])
+            # and delete the invalid ones.
+            del extra['eps']
 
         with self.conn_lock:
             old_data = self.conns.get(str_addr, {})
-            old_data.update({'hello': str(hello)})
+            old_data.update(extra)
             self.conns[str_addr] = old_data
 
         return True
@@ -161,6 +178,11 @@ class ExecutionManagerService(rpyc.Service):
         """
         str_addr = self._get_addr()
         resp = self.project.rpyc_check_passwd(user, passwd)
+
+        user_home = userHome(user)
+        if not os.path.exists('{}/twister'.format(user_home)):
+            logError('*ERROR* Cannot find Twister for user `{}`, in path `{}/twister`!'.format(user, user_home))
+            return False
 
         with self.conn_lock:
             old_data = self.conns.get(str_addr, {})
@@ -228,6 +250,13 @@ class ExecutionManagerService(rpyc.Service):
         return self.project.reset(user)
 
 
+    def exposed_listUsers(self, active=False):
+        """
+        Function called from the CLI, to list the users that are using Twister.
+        """
+        return self.project.listUsers(active)
+
+
     def exposed_getUserVariable(self, variable):
         """
         Send a user variable
@@ -235,7 +264,7 @@ class ExecutionManagerService(rpyc.Service):
         user = self._check_login()
         if not user: return False
         data = self.project.getUserInfo(user, variable)
-        if data is None: data = False
+        if not data: return False
         return data
 
 
@@ -264,9 +293,9 @@ class ExecutionManagerService(rpyc.Service):
         """
         user = self._check_login()
         if not user: return False
-        data = self.project.getEpInfo(user, epname).get(variable, False)
-        if data is None: data = False
-        return data
+        data = self.project.getEpInfo(user, epname)
+        if not data: return False
+        return data.get(variable, False)
 
 
     def exposed_setEpVariable(self, epname, variable, value):
@@ -372,9 +401,9 @@ class ExecutionManagerService(rpyc.Service):
         return sorted(set(eps))
 
 
-    def exposed_registerEps(self, eps):
+    def registerEps(self, eps):
         """
-        Register all EPs for a client.
+        Private function to register all EPs for a client.
         Only a VALID client will be able to register EPs!
         The user is identified automatically.
         """
@@ -409,18 +438,59 @@ class ExecutionManagerService(rpyc.Service):
         # On disconnect, this client address will be deleted
         # And the EPs will be automatically un-registered.
         with self.conn_lock:
+
+            # Before register, find the clients that have already registered these EPs!
+            for c_addr, data in self.conns.iteritems():
+                # Skip invalid connections, without log-in
+                if not data.get('user') or not data.get('checked'):
+                    continue
+                # There might be more clients for a user. Must find all of them.
+                if user == data['user']:
+                    # This current Addr might be an EP, not a client
+                    # If this connection has registered EPs
+                    if not data.get('eps'): continue
+                    old_eps   = set(data.get('eps'))
+                    diff_eps  = old_eps - eps
+                    intersect = old_eps & eps
+                    if intersect:
+                        logDebug('Un-register EP list {} from `{}` and register then on `{}`.'\
+                                 ''.format(sorted(intersect), c_addr, str_addr))
+                    # Delete the EPs that must be deleted
+                    self.conns[c_addr]['eps'] = sorted(diff_eps)
+
             self.conns[str_addr]['eps'] = eps
 
-        logDebug('Registered client manager for user\n\t`{}` -> Client from `{}` = {}.'.format(user, str_addr, eps))
+        logDebug('Registered client manager for user `{}`\n\t-> Client from `{}` ++ {}.'.format(user, str_addr, eps))
         return True
 
 
-    def unregisterEps(self, eps):
+    def unregisterEps(self, eps=[]):
         """
-        Private function to un-register some EPs for a client.
+        Private, helper function to un-register some EPs for a client.
         The user is identified automatically.
         """
-        pass
+        str_addr = self._get_addr()
+        user = self._check_login()
+        if not user: return False
+
+        if not str_addr:
+            logError('*ERROR* Cannot identify the remote address!')
+            return False
+
+        if not isinstance(eps, type([])):
+            logError('*ERROR* Can only un-register a List of EP names!')
+            return False
+        else:
+            eps = set(eps)
+
+        with self.conn_lock:
+            data = self.conns[str_addr]
+            ee = data.get('eps') or sorted(eps)
+            if not ee:
+                return True
+            logDebug('Un-registered EPs for user `{}`\n\t-> Client from `{}` -- {} !'.format(user, str_addr, ee))
+
+        return True
 
 
     @classmethod
@@ -453,7 +523,7 @@ class ExecutionManagerService(rpyc.Service):
                     break
 
         if not conn:
-            logError('Unknown Execution Process: `{}` !'.format(epname))
+            logError('Unknown Execution Process: `{}`! The project will not run.'.format(epname))
             return False
 
         try:
@@ -496,7 +566,7 @@ class ExecutionManagerService(rpyc.Service):
                     break
 
         if not conn:
-            logError('Unknown Execution Process: `{}` !'.format(epname))
+            logError('Unknown Execution Process: `{}`! The EP will not be stopped.'.format(epname))
             return False
 
         try:
@@ -510,6 +580,25 @@ class ExecutionManagerService(rpyc.Service):
 
 
 # # #   EP and File statuses   # # #
+
+
+    def exposed_queueFile(self, suite, fname):
+        """
+        Queue a file at the end of a suite, during runtime.
+        If there are more suites with the same name, the first one is used.
+        """
+        user = self._check_login()
+        if not user: return False
+        return self.project.queueFile(user, suite, fname)
+
+
+    def exposed_deQueueFiles(self, data):
+        """
+        Remove a file from the files queue.
+        """
+        user = self._check_login()
+        if not user: return False
+        return self.project.deQueueFiles(user, data)
 
 
     def exposed_getEpStatus(self, epname):
@@ -571,11 +660,6 @@ class ExecutionManagerService(rpyc.Service):
         """
         user = self._check_login()
         if not user: return False
-
-        if epname not in self.project.getUserInfo(user, 'eps'):
-            logDebug('*ERROR* Invalid EP name `{}` !'.format(epname))
-            return False
-
         return self.project.getFileStatusAll(user, epname, suite)
 
 

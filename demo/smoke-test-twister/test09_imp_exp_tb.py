@@ -57,6 +57,12 @@ def check(ra, _xml_file):
     new_res = ra.getResource('/')
     try: del new_res['version']
     except: pass
+    try: del res['meta']
+    except: pass
+    try: del new_res['meta']
+    except: pass
+    try: del res['name']
+    except: pass
     try: del new_res['name']
     except: pass
 
@@ -83,7 +89,8 @@ def test(PROXY, USER):
 
     logMsg('logRunning', 'Starting import...\n')
 
-    _proxy = 'http://{}/ra/'.format(PROXY._ServerProxy__host)
+    ip, port = PROXY.cherryAddr()
+    _proxy = 'http://{}:EP@{}:{}/ra/'.format(USER, ip, port)
     ra = xmlrpclib.ServerProxy(_proxy)
 
     _curr_dir = os.getcwd()

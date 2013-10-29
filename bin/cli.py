@@ -1,6 +1,6 @@
 #!/usr/bin/env python2.7
 
-# version: 2.015
+# version: 2.016
 
 # File: cli.py ; This file is part of Twister.
 
@@ -39,9 +39,9 @@ import os
 import time
 import datetime
 import binascii
-from rpyc.utils.factory import connect as rpycConnect
 import subprocess
 from optparse import OptionParser
+import rpyc
 
 # --------------------------------------------------------------------------------------------------
 #   Functions
@@ -82,16 +82,16 @@ def checkUsers(proxy):
 		print('Active users: None.\n')
 
 
-def checkEps(proxy, user):
+def checkEps(proxy):
 	"""
 	Get the list of EPs for this user, then get the status for each EP.
 	"""
-	eps = proxy.listEPs(user).split(',')
+	eps = proxy.listEPs()
 	now = datetime.datetime.today()
 	print('Your Execution-Processes are:')
 
 	for ep in eps:
-		alive = proxy.getEpVariable(user, ep, 'last_seen_alive')
+		alive = proxy.getEpVariable(ep, 'last_seen_alive')
 		if alive:
 			d = now - datetime.datetime.strptime(alive, '%Y-%m-%d %H:%M:%S')
 			if d.seconds > 10:
@@ -104,17 +104,17 @@ def checkEps(proxy, user):
 
 
 def checkStatus(proxy, user, extra=True):
-	stats = proxy.getFileStatusAll(user).split(',')
+	stats = proxy.getFileStatusAll()
 	if stats == ['']:
 		return False
 
-	all_stat = proxy.getExecStatusAll(user).split('; ')
+	all_stat = proxy.getEpStatusAll()
 	stats = [int(i) for i in stats]
 
 	s_dict = {
-		'status': all_stat[0],
-		'date': all_stat[1],
-		'time': all_stat[2],
+		'status': all_stat,
+		'date': '',
+		'time': '',
 		'texec':  len(stats),
 		'tpend':  stats.count(STATUS_PENDING) + stats.count(-1),
 		'twork':  stats.count(STATUS_WORKING),
@@ -147,7 +147,7 @@ Pass rate: {rate}%
 
 
 def checkDetails(proxy, user, option=None):
-	eps = proxy.listEPs(user).split(',')
+	eps = proxy.listEPs()
 	now = datetime.datetime.today()
 	options = ['running', 'done', 'finished', 'pending', 'all', True]
 	if option not in options:
@@ -163,19 +163,19 @@ def checkDetails(proxy, user, option=None):
 
 	for ep in eps:
 		print('  - on {} :'.format(ep))
-		suites = proxy.listSuites(user, ep).split(',')
+		suites = proxy.listSuites(ep).split(',')
 		for suite in suites:
 			if suite:
 				s_id  = suite.split(':')[0]
 				suite = suite.split(':')[1]
 				print('    - (id {}) {}'.format(s_id, suite))
-				files = proxy.getSuiteFiles(user, ep, s_id)
+				files = proxy.getSuiteFiles(ep, s_id)
 				if not files:
 					print('      - empty')
 				else:
 					for f_id in files:
-						fname = proxy.getFileVariable(user, ep, f_id, 'file')
-						fstat = proxy.getFileVariable(user, ep, f_id, 'status') or STATUS_PENDING
+						fname = proxy.getFileVariable(ep, f_id, 'file')
+						fstat = proxy.getFileVariable(ep, f_id, 'status') or STATUS_PENDING
 						if option == 'running' and fstat != STATUS_WORKING:
 							continue
 						elif (option=='done' or option=='finished') and \
@@ -191,11 +191,11 @@ def checkDetails(proxy, user, option=None):
 	return True
 
 
-def queueTest(proxy, user, suite, fname):
+def queueTest(proxy, suite, fname):
 	"""
 	Queue a file, at the end of a suite.
 	"""
-	r = proxy.queueFile(user, suite, fname)
+	r = proxy.queueFile(suite, fname)
 	if r is True or 'ERROR' not in r:
 		print('Test `{}` was queued in suite `{}`.'.format(fname, suite))
 	else:
@@ -204,17 +204,43 @@ def queueTest(proxy, user, suite, fname):
 	print
 
 
-def deQueueTest(proxy, user, data):
+def deQueueTest(proxy, data):
 	"""
 	Un-Queue a file, from the current project.
 	"""
-	r = proxy.deQueueFiles(user, data)
+	r = proxy.deQueueFiles(data)
 	if r is True or 'ERROR' not in r:
-		print('Test `{}` was removed from the project.'.format(r))
+		print('Tests `{}` removed from the project.'.format(r))
 	else:
 		print(r)
 
 	print
+
+
+def runTest(user, sut, fname):
+	"""
+	Run a test blocking and show the logs.
+	"""
+	global proxy, ra
+	sut = sut.strip('/')
+	r = proxy.delSettingsKey(user, 'project', '//TestSuite')
+	print('Cleanup the old suites...')
+	s = ra.getSut('/'+sut)
+	eps = [e for e in s['meta'].get('_epnames_'+user, '').split(';') if e]
+	r = proxy.setPersistentSuite(user, 'Suite1', {'ep': eps[0], 'sut': sut})
+	print('Created suite: `Suite1` on SUT `{}` and EP `{}`.'.format(sut, eps[0]))
+	r = proxy.setPersistentFile(user, 'Suite1', fname, {})
+	print('Added file: `{}`.'.format(fname))
+	print('Started execution!...')
+	proxy.setExecStatusAll(2)
+	while 1:
+		status = proxy.getExecStatusAll()
+		if status.startswith('stopped'):
+			break
+		time.sleep(1)
+	print('Execution complete.\n')
+	log = proxy.getLogFile(1, 0, eps[0]+'_CLI.log')
+	print(binascii.a2b_base64(log))
 
 
 def string_check(option, opt, value, parser):
@@ -255,32 +281,6 @@ def string_check(option, opt, value, parser):
 		exit(1)
 
 
-def runTest(user, sut, fname):
-	"""
-	Run a test blocking and show the logs.
-	"""
-	global proxy, ra
-	sut = sut.strip('/')
-	r = proxy.delSettingsKey(user, 'project', '//TestSuite')
-	print('Cleanup the old suites...')
-	s = ra.getSut('/'+sut)
-	eps = [e for e in s['meta'].get('_epnames_'+user, '').split(';') if e]
-	r = proxy.setPersistentSuite(user, 'Suite1', {'ep': eps[0], 'sut': sut})
-	print('Created suite: `Suite1` on SUT `{}` and EP `{}`.'.format(sut, eps[0]))
-	r = proxy.setPersistentFile(user, 'Suite1', fname, {})
-	print('Added file: `{}`.'.format(fname))
-	print('Started execution!...')
-	proxy.setExecStatusAll(user, 2)
-	while 1:
-		status = proxy.getExecStatusAll(user)
-		if status.startswith('stopped'):
-			break
-		time.sleep(1)
-	print('Execution complete.\n')
-	log = proxy.getLogFile(user, 1, 0, eps[0]+'_CLI.log')
-	print(binascii.a2b_base64(log))
-
-
 # --------------------------------------------------------------------------------------------------
 #   M a i n
 # --------------------------------------------------------------------------------------------------
@@ -300,9 +300,12 @@ if __name__ == '__main__':
 	# Set the dafault values for None to make sure thay will exist in parser list for any scenario
 	parser.set_defaults(users=None,eps=None,stats=None,details=None,status_details=None)
 
-	# The most important option is the server. By default, it's user:password@127.0.0.1:8000/.
-	parser.add_option("--server",      action="store", default="http://user:password@127.0.0.1:8000/",
-		help="Your user and password @ central engine IP and port (default: http://user:password@127.0.0.1:8000/)")
+	# The most important option is the server.
+	parser.add_option("--server",      action="store", default="127.0.0.1:8008",
+		help="The Central Engine IP : port (default= 127.0.0.1:8008)")
+	# The second important option is the user and password.
+	parser.add_option("--login",      action="store", default="user:password",
+		help="Login on the Central Engine with user : password (default= user:password)")
 
 	parser.add_option('-u', "--users", action="callback", callback=string_check, help="Show active and inactive users.")
 
@@ -326,38 +329,64 @@ if __name__ == '__main__':
 	(options, args) = parser.parse_args()
 
 
-	try:
-		user = os.getenv('USER')
-		if user=='root': user=os.getenv('SUDO_USER')
-	except:
-		print('Cannot guess the user name! Exiting!\n')
-		exit(1)
+	if options.login:
+		try:
+			user, passwd = options.login.split(':')[0], ':'.join(options.login.split(':')[1:])
+		except:
+			print('Cannot split the provided username:password combination! Exiting !\n')
+			exit(1)
+	else:
+		print('Must provide a username:password combination! Exiting !\n')
 
 	# Test if user did install Twister
 	if os.path.isdir(userHome(user) + os.sep + 'twister'):
-		print('\nHello, user `{}`.\n'.format(user))
+		print('\nHello, user `{}`.'.format(user))
 	else:
-		print('Username `{}` must install Twister before using this script !\n'.format(user))
+		print('Username `{}` must install Twister before using this script ! Exiting !\n'.format(user))
 		exit(1)
 
 
-	# Test Central Engine valid IP + PORT
+	if options.server:
+		try:
+			ce_ip, ce_port = options.server.split(':')
+			ce_port = int(ce_port)
+		except:
+			print('Cannot split the CE IP:Port combination `{}` ! Exiting !\n'.format(options.server))
+			exit(1)
+	else:
+		print('Must provide a CE IP:Port combination! Exiting !\n')
+
+
+	# RPyc config
+	config = {
+		'allow_pickle': True,
+		'allow_getattr': True,
+		'allow_setattr': True,
+		'allow_delattr': True,
+		'allow_all_attrs': True,
+		}
+
+	# Connect to RPyc server
 	try:
-		server = options.server.rstrip('/') + '/'
-		proxy = rpycConnect(server)
-		ra = rpycConnect(server + 'ra/')
-		# print('Connection to Central Engine at `{}` is ok.\n'.format(options.server))
-	except:
-		print('The server must be a valid IP and PORT combination ! Exiting !\n')
+		ce = rpyc.connect(ce_ip, ce_port, config=config)
+		ce.root.hello('CLI')
+	except Exception as e:
+		print('*ERROR* Cannot connect to CE path `{}:{}`! Exception: `{}`!\n'.format(ce_ip, ce_port, e))
 		exit(1)
 
-	# Test Central Engine connection
+	# Authenticate on RPyc server
 	try:
-		proxy.echo('ping')
-		# print('Connection to Central Engine at `{}` is ok.\n'.format(options.server))
-	except Exception, e:
-		print('Cannot connect to Central Engine server! Error `{}` ! Exiting!\n'.format(e))
+		check = ce.root.login(user, passwd)
+		if check: print('Authentication successful!\n')
+	except Exception as e:
+		print('*ERROR* Cannot authenticate on CE path `{}:{}`! Exception: `{}`!\n'.format(ce_ip, ce_port, e))
 		exit(1)
+
+	if not check:
+		print('*ERROR* Cannot authenticate on CE path `{}:{}`! Exiting !\n'.format(ce_ip, ce_port))
+		exit(1)
+	else:
+		proxy = ce.root
 
 
 	# Check active and inactive users
@@ -368,7 +397,7 @@ if __name__ == '__main__':
 
 	# Check active and inactive EPs
 	if options.eps:
-		checkEps(proxy, user)
+		checkEps(proxy)
 		exit()
 
 
@@ -392,13 +421,13 @@ if __name__ == '__main__':
 			print('Must queue `suite:file`, for example `Suite1:/home/user/some_file.py` !\n')
 			exit(1)
 		suite, fname = options.queue.split(':')
-		queueTest(proxy, user, suite, fname)
+		queueTest(proxy, suite, fname)
 		exit()
 
 
 	# Un-Queue a file, using the File ID
 	if options.dequeue:
-		deQueueTest(proxy, user, options.dequeue)
+		deQueueTest(proxy, options.dequeue)
 		exit()
 
 

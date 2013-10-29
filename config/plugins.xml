@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <Root>
 	<Plugin>
-		<name>SVN</name>
+		<name>SVNPlugin</name>
 		<jarfile>SVNPlugin.jar</jarfile>
 		<pyfile>SVNPlugin.py</pyfile>
 		<status>enabled</status>
@@ -32,7 +32,7 @@
 	</Plugin>
 
 	<Plugin>
-		<name>GIT</name>
+		<name>GITPlugin</name>
 		<jarfile>GITPlugin.jar</jarfile>
 		<pyfile>GITPlugin.py</pyfile>
 		<status>enabled</status>

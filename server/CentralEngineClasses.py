@@ -182,7 +182,7 @@ class CentralEngine(_cptools.XMLRPCController):
         user_roles = self.project.authenticate(user)
         if not user_roles: return False
         if 'CHANGE_SERVICES' not in user_roles['roles']:
-            logDebug('Privileges ERROR! Username `{user}` cannot use Service Manager!'.format(**cherry_roles))
+            logDebug('Privileges ERROR! Username `{user}` cannot use Service Manager!'.format(**user_roles))
             return False
         return self.project.manager.sendCommand(command, name, args, kwargs)
 
@@ -226,7 +226,7 @@ class CentralEngine(_cptools.XMLRPCController):
         del dbparser
 
         # Decode database password
-        db_password = self.project.decryptText( db_config.get('password') )
+        db_password = self.project.decryptText( user, db_config.get('password') )
         if not db_password:
             errMessage = 'Cannot decrypt the database password!'
             logError(errMessage)
@@ -385,11 +385,14 @@ class CentralEngine(_cptools.XMLRPCController):
         - what the user selected in the Java GUI (release, build, comments, etc)
         - the name of the suite, the test files, etc.
         """
-        data = self.project.getEpInfo(user, epname).get(variable, False)
+        data = self.project.getEpInfo(user, epname)
+        if not data: return False
+        value = data.get(variable, False)
+        if value is None: return False
         if compress:
-            return pickle.dumps(data)
+            return pickle.dumps(value)
         else:
-            return data
+            return value
 
 
     @cherrypy.expose
@@ -418,14 +421,19 @@ class CentralEngine(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
-    def getSuiteVariable(self, user, epname, suite, variable):
+    def getSuiteVariable(self, user, epname, suite, variable, compress=False):
         """
         Function called from the Execution Process,
         to get information that is available only here, or are hard to get.
         """
         data = self.project.getSuiteInfo(user, epname, suite)
         if not data: return False
-        return data.get(variable, False)
+        value = data.get(variable, False)
+        if value is None: return False
+        if compress:
+            return pickle.dumps(value)
+        else:
+            return value
 
 
     @cherrypy.expose
@@ -435,7 +443,9 @@ class CentralEngine(_cptools.XMLRPCController):
         """
         data = self.project.getFileInfo(user, epname, file_id)
         if not data: return False
-        return data.get(variable, False)
+        value = data.get(variable, False)
+        if value is None: return False
+        return value
 
 
     @cherrypy.expose
@@ -493,8 +503,7 @@ class CentralEngine(_cptools.XMLRPCController):
     def queueFile(self, user, suite, fname):
         """
         Queue a file at the end of a suite, during runtime.
-        If there are more suites with the same name, the first one is used.\n
-        This function writes in TestSuites.XML file, so the change is persistent.
+        If there are more suites with the same name, the first one is used.
         """
         return self.project.queueFile(user, suite, fname)
 

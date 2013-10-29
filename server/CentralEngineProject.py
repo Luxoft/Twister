@@ -1,7 +1,7 @@
 
 # File: CentralEngineProject.py ; This file is part of Twister.
 
-# version: 2.043
+# version: 2.046
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -216,6 +216,7 @@ class Project(object):
         self.loggers = {}   # User loggers
 
         self.usr_lock = allocate_lock()  # User change lock
+        self.stt_lock = allocate_lock()  # File status lock
         self.int_lock = allocate_lock()  # Internal use lock
         self.glb_lock = allocate_lock()  # Global variables lock
         self.eml_lock = allocate_lock()  # E-mail lock
@@ -1422,6 +1423,9 @@ class Project(object):
             for epname in active_eps:
                 if epname not in self.users[user]['eps']:
                     continue
+                # Set the NEW EP status
+                self.setEpInfo(user, epname, 'status', new_status)
+                # Send START to EP Manager
                 self.rsrv.exposed_startEP(epname, user)
 
         # If the engine is running, or paused and it received STOP from the user...
@@ -1464,24 +1468,29 @@ class Project(object):
                     if current_status in [STATUS_PENDING, -1]:
                         self.setFileInfo(user, epname, file_id, 'status', STATUS_NOT_EXEC)
                         statuses_changed += 1
+                # Set the NEW EP status
+                self.setEpInfo(user, epname, 'status', new_status)
                 # Send STOP to EP Manager
                 self.rsrv.exposed_stopEP(epname, user)
 
             if statuses_changed:
                 logDebug('Set Status: Changed `{}` file statuses from Pending to Not executed.'.format(statuses_changed))
 
+        # Pause or other statuses ?
+        else:
+            # Change status on all active EPs !
+            active_eps = self.parsers[user].getActiveEps()
+            for epname in active_eps:
+                if epname not in self.users[user]['eps']:
+                    continue
+                # Set the NEW EP status
+                self.setEpInfo(user, epname, 'status', new_status)
+
         # Update status for User
         self.setUserInfo(user, 'status', new_status)
 
-        # Update status for all active EPs
+        # All active EPs for this project, refresh again...
         active_eps = self.parsers[user].getActiveEps()
-        for epname in active_eps:
-            if epname not in self.users[user]['eps']:
-                logError('Set Status: `{}` is not a valid EP Name!'.format(epname))
-                continue
-            self.setEpInfo(user, epname, 'status', new_status)
-
-        reversed = dict((v,k) for k,v in execStatus.iteritems())
 
         if msg and msg != ',':
             logDebug('Status changed for `{} {}` - {}.\n\tMessage: `{}`.'.format(
@@ -1507,23 +1516,30 @@ class Project(object):
 
         statuses = {} # Unordered
         final = []    # Ordered
-        eps = self.users[user]['eps']
 
-        if epname:
-            if suite_id:
-                files = eps[epname]['suites'].getFiles(suite_id)
-            else:
-                files = eps[epname]['suites'].getFiles()
-            for file_id in files:
-                s = self.getFileInfo(user, epname, file_id).get('status', -1)
-                statuses[file_id] = str(s)
-        # Default case, no EP and no Suite
-        else:
-            for epname in eps:
-                files = eps[epname]['suites'].getFiles()
+        # Lock resource
+        with self.stt_lock:
+            eps = self.users[user]['eps']
+
+            if epname:
+                if suite_id:
+                    files = eps[epname]['suites'].getFiles(suite_id)
+                else:
+                    files = eps[epname]['suites'].getFiles()
                 for file_id in files:
-                    s = self.getFileInfo(user, epname, file_id).get('status', -1)
+                    s = self.getFileInfo(user, epname, file_id)
+                    if s: s = s.get('status', 10)
+                    else: s = 10
                     statuses[file_id] = str(s)
+            # Default case, no EP and no Suite
+            else:
+                for epname in eps:
+                    files = eps[epname]['suites'].getFiles()
+                    for file_id in files:
+                        s = self.getFileInfo(user, epname, file_id)
+                        if s: s = s.get('status', 10)
+                        else: s = 10
+                        statuses[file_id] = str(s)
 
         for tcid in self.test_ids[user]:
             if tcid in statuses:
@@ -1606,13 +1622,15 @@ class Project(object):
         if not r: return False
         eps = self.users[user]['eps']
 
-        for epcycle in eps:
-            if epname and epcycle != epname:
-                continue
-            files = eps[epcycle]['suites'].getFiles()
-            for file_id in files:
-                # This uses dump, after set file info
-                self.setFileInfo(user, epcycle, file_id, 'status', new_status)
+        # Lock resource
+        with self.stt_lock:
+            for epcycle in eps:
+                if epname and epcycle != epname:
+                    continue
+                files = eps[epcycle]['suites'].getFiles()
+                for file_id in files:
+                    # This uses dump, after set file info
+                    self.setFileInfo(user, epcycle, file_id, 'status', new_status)
 
         return True
 
@@ -1758,10 +1776,16 @@ class Project(object):
 
         if fname.startswith('~/'):
             fname = userHome(user) + fname[1:]
+
+        # Fix incomplete file path
         if not os.path.isfile(fname):
-            log = '*ERROR* No such file `{}`!'.format(fname)
-            logError(log)
-            return log
+            tests_path = self.getUserInfo(user, 'tests_path')
+            if not os.path.isfile(tests_path + os.sep + fname):
+                log = '*ERROR* TestCase file: `{}` does not exist!'.format(fname)
+                logError(log)
+                return log
+            else:
+                fname = tests_path + os.sep + fname
 
         # Try create a new file id
         file_id = str( int(max(self.test_ids[user] or [1000])) + 1 )
