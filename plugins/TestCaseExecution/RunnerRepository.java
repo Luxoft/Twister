@@ -1,6 +1,6 @@
 /*
 File: RunnerRepository.java ; This file is part of Twister.
-Version: 2.0035
+Version: 2.0037
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -155,9 +155,10 @@ public class RunnerRepository {
     public static Container container;
     public static Applet applet;
     private static Document pluginsconfig;
-    private static String version = "2.040";
-    private static String builddate = "16.10.2013";
+    private static String version = "2.043";
+    private static String builddate = "28.10.2013";
     public static String logotxt,os,python;
+    private static int remotefiletries = 0;
     
     public static void setStarter(Starter starter){
         RunnerRepository.starter = starter;
@@ -173,6 +174,7 @@ public class RunnerRepository {
         RunnerRepository.initialized = false;
         RunnerRepository.run = true;
         RunnerRepository.container = container;
+        RunnerRepository.applet = applet;
         suite = new ArrayList <Item> ();
         suitetest = new ArrayList <Item> ();
         logs = new ArrayList<String>();
@@ -247,7 +249,7 @@ public class RunnerRepository {
         
         try{
             if(userpassword(user,password,host)){
-                ssh(user,password,host);
+//                 ssh(user,password,host);
                 /*
                  * create directory structure
                  * for twister resources localy
@@ -623,21 +625,21 @@ public class RunnerRepository {
                     else if(window!=null){SwingUtilities.updateComponentTreeUI(window);}}
                 catch(Exception e){e.printStackTrace();}}});}
                 
-    private static void ssh(String user, String passwd, String host){
-        try{JSch jsch = new JSch();
-            session = jsch.getSession(user, host, 22);
-            session.setPassword(passwd);
-            session.setConfig("StrictHostKeyChecking", "no");
-            session.connect();
-            Channel channel = session.openChannel("shell");
-            channel.connect();
-            Thread.sleep(1000);
-            channel.disconnect();
-            session.disconnect();
-        }catch(Exception e){
-            e.printStackTrace();
-        }
-    }
+//     private static void ssh(String user, String passwd, String host){
+//         try{JSch jsch = new JSch();
+//             session = jsch.getSession(user, host, 22);
+//             session.setPassword(passwd);
+//             session.setConfig("StrictHostKeyChecking", "no");
+//             session.connect();
+//             Channel channel = session.openChannel("shell");
+//             channel.connect();
+//             Thread.sleep(1000);
+//             channel.disconnect();
+//             session.disconnect();
+//         }catch(Exception e){
+//             e.printStackTrace();
+//         }
+//     }
         
     /*
      * attempt to connect with sftp to server
@@ -645,6 +647,7 @@ public class RunnerRepository {
     public static boolean userpassword(String user,String password, String host){
         boolean passed = false;
             try{
+                System.out.println("Connecting with: "+user+" - "+host);
                 JSch jsch = new JSch();
                 session = jsch.getSession(user, host, 22);
                 session.setPassword(password);
@@ -654,7 +657,9 @@ public class RunnerRepository {
                 session.connect();
                 Channel channel = session.openChannel("sftp");
                 channel.connect();
-                connection = (ChannelSftp)channel;
+                RunnerRepository.connection = (ChannelSftp)channel;
+                try{Thread.sleep(500);}
+                catch(Exception e){e.printStackTrace();}
                 try{USERHOME = connection.pwd();}
                 catch(Exception e){
                     System.out.println("ERROR: Could not retrieve remote user home directory");}
@@ -1492,8 +1497,9 @@ public class RunnerRepository {
     }
     
     public static String getRemoteFileContent(String file){
+        System.out.println("Getting "+file+" attempt no "+RunnerRepository.remotefiletries);
         while(sftpoccupied){
-            try{Thread.sleep(100);}
+            try{Thread.sleep(200);}
             catch(Exception e){e.printStackTrace();}
         }
         sftpoccupied = true;
@@ -1510,10 +1516,39 @@ public class RunnerRepository {
             inputStreamReader.close();
             in.close();
             sftpoccupied = false;
+            if(b.toString().equals("")&&RunnerRepository.remotefiletries<2){
+                try{Thread.sleep(1000);}
+                catch(Exception e){e.printStackTrace();}
+                RunnerRepository.remotefiletries++;
+                return getRemoteFileContent(file);
+            }
+            RunnerRepository.remotefiletries = 0;
             return b.toString();
-        } catch (Exception e){
+//         } catch(IOException ex){
+//             ex.printStackTrace();
+//             connection.disconnect();
+//             userpassword(RunnerRepository.user,RunnerRepository.password, RunnerRepository.host);
+//             sftpoccupied = false;
+//             if(RunnerRepository.remotefiletries<2){
+//                 try{Thread.sleep(1000);}
+//                 catch(Exception ex2){ex2.printStackTrace();}
+//                 RunnerRepository.remotefiletries++;
+//                 return getRemoteFileContent(file);
+//             }
+//             RunnerRepository.remotefiletries = 0;
+//             return null;
+        }catch (Exception e){
             e.printStackTrace();
+            connection.disconnect();
+            userpassword(RunnerRepository.user,RunnerRepository.password, RunnerRepository.host);
             sftpoccupied = false;
+            if(RunnerRepository.remotefiletries<2){
+                try{Thread.sleep(1000);}
+                catch(Exception ex){ex.printStackTrace();}
+                RunnerRepository.remotefiletries++;
+                return getRemoteFileContent(file);
+            }
+            RunnerRepository.remotefiletries = 0;
             return null;
         }
     }
@@ -1604,8 +1639,16 @@ public class RunnerRepository {
         try{v = connection.ls(REMOTEUSERSDIRECTORY);
             size = v.size();}
         catch(Exception e){
-            System.out.println("No suites xml found in: "+REMOTEUSERSDIRECTORY+" directory");
-            size=0;}
+            System.out.println("Second attempt to connect");
+            try{v = connection.ls(REMOTEUSERSDIRECTORY);
+                size = v.size();}
+            catch(Exception ex){
+                ex.printStackTrace();
+                System.out.println("No suites xml found in: "+REMOTEUSERSDIRECTORY+" directory");
+                size=0;
+            }
+            e.printStackTrace();
+        }
         ArrayList<String> files = new ArrayList<String>();
         String name=null;
         

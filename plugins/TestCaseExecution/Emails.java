@@ -1,6 +1,6 @@
 /*
 File: Emails.java ; This file is part of Twister.
-Version: 2.008
+Version: 2.009
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -202,7 +202,7 @@ public class Emails extends JPanel{
                     CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, Emails.this, "Warning", "Warning, password not set");}
                 try{
 //                     saveEmailPath();
-                    File theone = new File(RunnerRepository.temp+RunnerRepository.getBar()+"Twister"+RunnerRepository.getBar()+"Config"+RunnerRepository.getBar()+new File(RunnerRepository.REMOTEEMAILCONFIGFILE).getName());
+                    File theone = new File(RunnerRepository.temp+RunnerRepository.getBar()+"Twister"+RunnerRepository.getBar()+"config"+RunnerRepository.getBar()+new File(RunnerRepository.REMOTEEMAILCONFIGFILE).getName());
                     DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
                     DocumentBuilder db = dbf.newDocumentBuilder();                                        
                     Document doc = db.parse(theone);
@@ -264,7 +264,7 @@ public class Emails extends JPanel{
                     }
                     catch(Exception e){
                         e.printStackTrace();
-                        System.out.println("Could not save in file : "+RunnerRepository.temp+RunnerRepository.getBar()+"Twister"+RunnerRepository.getBar()+"Config"+RunnerRepository.getBar()+RunnerRepository.REMOTEEMAILCONFIGFILE+" and send to "+RunnerRepository.REMOTEEMAILCONFIGPATH);
+                        System.out.println("Could not save in file : "+RunnerRepository.temp+RunnerRepository.getBar()+"Twister"+RunnerRepository.getBar()+"config"+RunnerRepository.getBar()+RunnerRepository.REMOTEEMAILCONFIGFILE+" and send to "+RunnerRepository.REMOTEEMAILCONFIGPATH);
                         saved = false;}}
                 catch(Exception e){
                     e.printStackTrace();

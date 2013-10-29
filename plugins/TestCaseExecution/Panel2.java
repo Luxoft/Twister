@@ -1,6 +1,6 @@
 /*
 File: Panel2.java ; This file is part of Twister.
-Version: 2.0014
+Version: 2.0015
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -442,7 +442,7 @@ public class Panel2 extends JPanel{
             RunnerRepository.window.mainpanel.getP2().sc.g.repaint();}
             
     public void updateSummary(String [] stats){
-        int [] val = new int[10];
+        int [] val = new int[11];
         val[0] = stats.length;
         for(String s:stats){
             if(s.equals("10")||s.equals("-1"))val[1]++;
@@ -452,9 +452,9 @@ public class Panel2 extends JPanel{
             else if(s.equals("4"))val[5]++;
             else if(s.equals("5"))val[6]++;
             else if(s.equals("6"))val[7]++;
-            else if(s.equals("7")||s.equals("8")){
-                val[8]++;}
-            else if(s.equals("9"))val[9]++;
+            else if(s.equals("7"))val[8]++;
+            else if(s.equals("8"))val[9]++;
+            else if(s.equals("9"))val[10]++;
         }
         RunnerRepository.window.mainpanel.p1.suitaDetails.updateStats(val);
     }
@@ -475,8 +475,6 @@ public class Panel2 extends JPanel{
             else if(statuses[index2].equals("6"))item.getSubItem(0).setValue("not executed");
             else if(statuses[index2].equals("7"))item.getSubItem(0).setValue("timeout");
             else if(statuses[index2].equals("8"))item.getSubItem(0).setValue("invalid");
-//             else if(statuses[index2].equals("7")||statuses[index2].equals("8")){
-//                 item.getSubItem(0).setValue("timeout");}
             else if(statuses[index2].equals("9"))item.getSubItem(0).setValue("waiting");
             index2++;
             return index2;}

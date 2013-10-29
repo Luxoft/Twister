@@ -1,3 +1,10 @@
+28th October
+
+- rework for ClearCase plugin to work on 64 bit systems
+- GUI code changes for to handle Invalid return code
+- GUI code changes to implement retry when user files
+  cannot be openned
+
 18th October
 
 - start client and sniffer fix

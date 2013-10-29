@@ -1,6 +1,6 @@
 /*
 File: DatabaseInterface.java ; This file is part of Twister.
-Version: 2.006
+Version: 2.007
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -105,8 +105,8 @@ public class DatabaseInterface extends JPanel {
                 while(!RunnerRepository.initialized){
                     try{Thread.sleep(100);}
                     catch(Exception e){e.printStackTrace();}
-                    refresh();
                 }
+                refresh();
             }
         }.start();
     }
