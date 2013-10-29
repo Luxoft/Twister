@@ -1,7 +1,7 @@
 
 # File: ClearCasePlugin.py ; This file is part of Twister.
 
-# version: 2.005
+# version: 2.006
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -180,12 +180,10 @@ class CC(object):
         tags = '<br>\n'.join(['<b>' + title + '</b> : ' + descr.replace('<', '&lt;') for title, descr in li_tags])
         result = tags
 
-        data = self.cleartoolSsh.write('cleartool ls {}'.format(fname))
-        data = data.splitlines()
-        if len(data) == 3:
-            data = data[1]
-        else:
-            data = ""
+        command = 'cleartool ls {}'.format(fname)
+        data = self.cleartoolSsh.write(command)
+        data = self.parseSshResponse(command,data)
+        data = ''.join(data)
 
         if data and (data.find('@@') != -1):
             data = data.split()[0].split('@@')[1]
@@ -229,8 +227,6 @@ class CC(object):
             command = 'python -c "import base64; print(base64.b64decode(\'{c}\'))"  > {f}'.format(
                                                                 c=base64.b64encode(content), f=fname)
             response = self.cleartoolSsh.write(command)
-
-            print('set test file:: {}'.format(response))
 
             if len(response) >= 2:
                 print('error: {}'.format(response))
@@ -303,7 +299,6 @@ class Plugin(BasePlugin):
         """
         Called on project start.
         """
-        """ BOGDAN ???????????????????? """
 
         # No data provided ?
         if not clear_case_view:
