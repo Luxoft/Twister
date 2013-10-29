@@ -103,23 +103,23 @@ class TwisterClient(object):
 
     def killAll(self):
         """
-        Close all Sniffers and EPs.
+        Close all Sniffers and EPs for this user.
         """
-        pipe = subprocess.Popen('ps ax | grep start_packet_sniffer.py', shell=True, stdout=subprocess.PIPE)
-        for line in pipe.stdout.read().splitlines():
-            try:
-                os.kill(int(line.split()[0]), 9)
-            except Exception as e:
-                pass
-        del pipe
+        global userName
 
-        pipe = subprocess.Popen('ps ax | grep ExecutionProcess.py', shell=True, stdout=subprocess.PIPE)
-        for line in pipe.stdout.read().splitlines():
+        pids = subprocess.check_output('ps ax | grep start_packet_sniffer.py | grep -u {}'.format(userName), shell=True)
+        for line in pids.strip().splitlines():
             try:
                 os.kill(int(line.split()[0]), 9)
-            except Exception as e:
+            except:
                 pass
-        del pipe
+
+        pids = subprocess.check_output('ps ax | grep ExecutionProcess.py | grep -u {}'.format(userName), shell=True)
+        for line in pids.strip().splitlines():
+            try:
+                os.kill(int(line.split()[0]), 9)
+            except:
+                pass
 
 #
 
@@ -505,15 +505,11 @@ class TwisterClientService(rpyc.Service):
             return False
 
         tproc = client.epNames[epname].get('pid')
-
-        if not tproc:
-            print('Silly boy! EP `{}` is not running!\n'.format(epname))
-            return False
+        if not tproc: return False
 
         print('Preparing to stop EP `{}`...'.format(epname))
         PID = tproc.pid
 
-        time.sleep(0.5) # A small delay
         try:
             os.killpg(PID, signal.SIGINT)
             client.epNames[epname]['pid'] = None
@@ -522,16 +518,31 @@ class TwisterClientService(rpyc.Service):
             print('ClientService: Error on Stop EP: `{}`.'.format(trace))
             return False
 
-        time.sleep(0.1) # Another small delay
-        try:
-            os.kill(PID, 9)
-            client.epNames[epname]['pid'] = None
-        except:
-            trace = traceback.format_exc()[34:].strip()
-            print('ClientService: Error on Stop EP: `{}`.'.format(trace))
-            # return False # No need to exit
+        # A small delay, to allow the EP to send the logs from the buffer
+        time.sleep(0.5)
 
-        print('Stopped EP `{}`! (pid={})'.format(epname, PID))
+        while True:
+            ps = subprocess.check_output('ps ax | grep ExecutionProcess.py | grep -u {} | grep -e {}'.format(userName, epname), shell=True)
+            ps = ps.strip().splitlines()[:-2] # Ignore the last 2 lines (the grep and shell=True)
+            # If all the processes are dead, it's ok
+            if not ps: break
+
+            for line in ps:
+                li = line.strip().split()
+                PID = li[0]
+                del li[1:4]
+                print('Killing `{}`'.format(' '.join(li)))
+                try:
+                    os.kill(int(PID), 9)
+                    client.epNames[epname]['pid'] = None
+                except:
+                    trace = traceback.format_exc()[34:].strip()
+                    print('ClientService: Error on Stop EP: `{}`.'.format(trace))
+                    # return False # No need to exit
+
+            time.sleep(0.25) # Another small delay, before checking again
+
+        print('Stopped EP `{}`! (pid = {})\n'.format(epname, PID))
         return True
 
 

@@ -1,7 +1,7 @@
 
 # File: CentralEngineProject.py ; This file is part of Twister.
 
-# version: 2.046
+# version: 2.047
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -340,7 +340,7 @@ class Project(object):
         if (not user) or (not epname):
             return False
 
-        with self.usr_lock:
+        with self.stt_lock:
 
             self.users[user]['eps'][epname] = OrderedDict()
             self.users[user]['eps'][epname]['status'] = STATUS_STOP
@@ -378,7 +378,7 @@ class Project(object):
         if (not user) or (not epname):
             return False
 
-        with self.usr_lock:
+        with self.stt_lock:
 
             suitesInfo = self.users[user]['eps'][epname]['suites']
             suites = set(suitesInfo.getSuites())
@@ -1856,7 +1856,7 @@ class Project(object):
             return log
 
         # This operation must be atomic !
-        with self.usr_lock:
+        with self.stt_lock:
 
             # Add file in the ordered list of file IDs, used for Get Status ALL
             self.test_ids[user].append(file_id)
@@ -1997,7 +1997,7 @@ class Project(object):
                 return log
 
             # This operation must be atomic !
-            with self.usr_lock:
+            with self.stt_lock:
                 # Remove file from the ordered list of file IDs, used for Get Status ALL
                 file_index = self.test_ids[user].index(file_id)
                 self.test_ids[user].pop(file_index)
