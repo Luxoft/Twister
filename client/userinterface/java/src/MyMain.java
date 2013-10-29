@@ -1,6 +1,6 @@
 /*
 File: MyMain.java ; This file is part of Twister.
-Version: 2.002
+Version: 2.003
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -26,6 +26,8 @@ import java.net.URL;
 import java.awt.Image;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import javax.imageio.IIOException;
+import java.io.FileNotFoundException;
 
 public class MyMain{
     private static String bar = System.getProperty("file.separator");//System specific file.separator
@@ -37,10 +39,13 @@ public class MyMain{
         frame.setVisible(true);
         frame.setLayout(null);
         loadResourcesFromLocal();
+        URL url = null;
         try {
-            URL url = new URL("http://tsc-server/twister_gui/logo.png");
+            url = new URL("http://tsc-server/twister_gui/logo.png");
             MainRepository.logo = ImageIO.read(url).getScaledInstance(230, 100, Image.SCALE_FAST);
-        } catch (Exception e) {
+        } catch (IIOException e) {
+            System.out.println("Could not get image: "+url.toExternalForm());
+        } catch (Exception e){
             e.printStackTrace();
         }
         readLogoTxt();
@@ -48,10 +53,10 @@ public class MyMain{
     }
     
     public static void readLogoTxt(){
+        URL logo = null;
         try{
-            URL logo = new URL("http://tsc-server/twister_gui/logo.txt");
-            BufferedReader in = new BufferedReader(
-            new InputStreamReader(logo.openStream()));
+            logo = new URL("http://tsc-server/twister_gui/logo.txt");
+            BufferedReader in = new BufferedReader(new InputStreamReader(logo.openStream()));
             
             StringBuilder sb = new StringBuilder();
             String inputLine;
@@ -61,6 +66,8 @@ public class MyMain{
             }
             in.close();
             MainRepository.logotxt = sb.toString();
+        }catch(FileNotFoundException e){
+            System.out.println("Could not get file: "+logo.toExternalForm());
         } catch(Exception e){
             e.printStackTrace();
         }

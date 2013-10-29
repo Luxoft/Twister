@@ -51,7 +51,6 @@ public class Main{
             e.printStackTrace();
         }
         readLogoTxt();
-        
         PermissionValidator.init("CREATE_PROJECT,CHANGE_PROJECT,DELETE_PROJECT,CHANGE_PLUGINS,"+
                                  "CHANGE_FWM_CFG,CHANGE_GLOBALS,RUN_TESTS,EDIT_TC,"+
                                  "CHANGE_DB_CFG, CHANGE_EML_CFG,CHANGE_SERVICES,CHANGE_SUT");
@@ -64,9 +63,6 @@ public class Main{
                     RunnerRepository.setSize(f.getWidth(), f.getHeight());
                 }}});
         f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        RunnerRepository.user = "user";
-        RunnerRepository.password = "password";
-        RunnerRepository.host = "11.126.32.21";
         RunnerRepository.initialize("false",RunnerRepository.host,f.getContentPane(),null);
     }
 

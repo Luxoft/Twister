@@ -1,6 +1,6 @@
 /*
 File: applet.java ; This file is part of Twister.
-Version: 2.002
+Version: 2.004
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -27,34 +27,35 @@ import javax.swing.ImageIcon;
 import javax.imageio.ImageIO;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import javax.imageio.IIOException;
+import java.io.FileNotFoundException;
 
 public class applet extends Applet{ 
     private static final long serialVersionUID = 1L;
     
     //applet initialization
     public void init(){
+        if(MainRepository.plugin!=null)MainRepository.plugin.terminate();
         System.setSecurityManager(new MySecurityManager());
         setLayout(null);
-//         try{
-//             getAppletContext().showDocument(new URL("javascript:resize()"));
-//         } catch (Exception e) {
-//             System.err.println("Failed to call JavaScript function appletLoaded()");
-//         }
         MainRepository.background = loadIcon("background.png");
+        URL url = null;
         try {
-            URL url = new URL(this.getCodeBase()+"/logo.png");
+            url = new URL(this.getCodeBase()+"/logo.png");
             MainRepository.logo = ImageIO.read(url).getScaledInstance(230, 100, Image.SCALE_FAST);
-        } catch (Exception e) {
+        } catch (IIOException e) {
+            System.out.println("Could not get image: "+url.toExternalForm());
+        } catch (Exception e){
             e.printStackTrace();
         }
-        
         readLogoTxt();
         MainRepository.initialize(this,getCodeBase().getHost(),this);
     }
     
     public void readLogoTxt(){
+        URL logo = null;
         try{
-            URL logo = new URL(this.getCodeBase()+"/logo.txt");
+            logo = new URL(this.getCodeBase()+"/logo.txt");
             BufferedReader in = new BufferedReader(
             new InputStreamReader(logo.openStream()));
             
@@ -66,6 +67,8 @@ public class applet extends Applet{
             }
             in.close();
             MainRepository.logotxt = sb.toString();
+        }catch(FileNotFoundException e){
+            System.out.println("Could not get file: "+logo.toExternalForm());
         } catch(Exception e){
             e.printStackTrace();
         }

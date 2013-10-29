@@ -1,7 +1,7 @@
 
 # File: CentralEngineClasses.py ; This file is part of Twister.
 
-# version: 2.031
+# version: 2.032
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -1064,7 +1064,7 @@ class CentralEngine(_cptools.XMLRPCController):
                     try:
                         descr = plugin_p.getTestDescription(user, filename)
                         cctag = '<b>ClearCase Version</b> :'
-                        if descr:
+                        if descr and (descr.find(cctag) != -1):
                             pos = descr.find(cctag) + len(cctag)
                             rev = descr[pos:].strip()
                             self.project.setFileInfo(user, epname, file_id, 'twister_tc_revision', rev)
