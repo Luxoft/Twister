@@ -2,7 +2,7 @@
 #
 # -*- coding: utf-8 -*-
 #
-# version: 2.002
+# version: 3.000
 #
 # File: PacketSnifferPlugin.py ; This file is part of Twister.
 #

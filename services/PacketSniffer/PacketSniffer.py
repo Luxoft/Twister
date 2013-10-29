@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# version: 2.004
+# version: 3.000
 #
 # -*- coding: utf-8 -*-
 #
@@ -110,13 +110,15 @@ class Sniffer(Automaton):
 		self.userhost = gethostname()
 
 		# CE / EP
-		self.ceObjects = dict()
 		self.epConfig = epConfig
 		self.ceTraffic = list(set([(ep['CE_IP'], ep['CE_PORT']) for ep in self.epConfig]))
 		self.uid = uuid4()
 
 		self.reinitRetries = 0
 		self.reinitMaxRetries = 4
+
+		#
+		PacketSnifferService.sniffer = self
 
 	def master_filter(self, packet):
 		"""  """
@@ -206,11 +208,9 @@ class Sniffer(Automaton):
 					continue
 
 				rpycBgServingThread(connection)
-				self.ceObjects.update([('{ip}:{port}'.format(ip=ce[0], port=ce[1]), connection), ])
-				PacketSnifferService.sniffer = self
 
 				# create user if ep is not running
-				#self.ceObjects['{ip}:{port}'.format(ip=ce[0], port=ce[1])].root.listEPs()
+				#connection.root.listEPs()
 
 				registered = True
 				self.reinitRetries = 0
@@ -220,13 +220,13 @@ class Sniffer(Automaton):
 				print('PT warning: Central Engine is down .... [{0}]'.format(e))
 
 
-		if not self.ceObjects:
+		if not registered:
 			if self.reinitRetries < self.reinitMaxRetries:
 				print('PT debug: no central engines; will retry [{r}] ..'.format(r=self.reinitRetries))
 				self.reinitRetries += 1
 				sleep(2)
 
-				self.registerCE(self.ceTraffic)
+				self.registerCE(ce_list)
 			else:
 				raise self.END()
 
@@ -348,8 +348,6 @@ class Sniffer(Automaton):
 	def END(self):
 		"""  """
 
-		#self.rpycConn.close()
-
 		print('|||| END ||||')
 
 
@@ -399,8 +397,8 @@ class PacketSnifferService(rpycService):
 		"""  """
 
 		try:
-			#client_addr = self._conn._config['endpoints'][1]
 			client_addr = self._conn._config['connid']
+			#client_addr = self._conn._config['endpoints'][1]
 			with self.connectionsLock:
 				self.connections.update([(client_addr, {'root': self._conn.root}), ])
 
@@ -413,20 +411,24 @@ class PacketSnifferService(rpycService):
 		"""  """
 
 		try:
-			#client_addr = self._conn._config['endpoints'][1]
+			client = None
 			client_addr = self._conn._config['connid']
+			#client_addr = self._conn._config['endpoints'][1]
 			with self.connectionsLock:
-				self.connections.pop(client_addr)
+				client = self.connections.pop(client_addr)
 
 			print('PT debug: Disconnected from `{}`.'.format(client_addr))
 
-			#if self.sniffer:
-			#	self.sniffer.registerCE([(client_addr[0], client_addr[1])])
+			sleep(2)
+			if self.sniffer and not self.connections:
+				print('PT debug: no connections.. trying to re-register..')
+				self.sniffer.registerCE(self.sniffer.ceTraffic)
+			elif self.sniffer and client:
+				print('PT debug: {} connection is down.. trying to re-register..'.format(client))
+				client = client['host'].split(':')
+				self.sniffer.registerCE([(client[0], client[1])])
 		except Exception as e:
 			print('PT debug: Disconnect error: {er}'.format(er=e))
-
-		#if not self.connections and self.sniffer:
-		#	self.sniffer.registerCE(self.sniffer.ceTraffic)
 
 
 	def exposed_start(self):
@@ -480,17 +482,17 @@ class PacketSnifferService(rpycService):
 	#	return True
 
 
-	def exposed_restart(self):
-		"""  """
-
-		if not self.sniffer:
-			return False
-
-		self.sniffer.stop()
-		sleep(2)
-		self.sniffer.runbg()
-
-		return True
+	#def exposed_restart(self):
+	#	"""  """
+	#
+	#	if not self.sniffer:
+	#		return False
+	#
+	#	self.sniffer.stop()
+	#	sleep(2)
+	#	self.sniffer.runbg()
+	#
+	#	return True
 
 
 	def exposed_set_filters(self, filters):

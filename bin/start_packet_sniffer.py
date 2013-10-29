@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# version: 2.003
+# version: 3.000
 
 # This file will start Packet Sniffer
 # File: start_packet_sniffer.py ; This file is part of Twister.
