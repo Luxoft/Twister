@@ -63,7 +63,7 @@ if not sys.version.startswith('2.7'):
 class LogServer(rpyc.Service):
 
     def __init__(self, conn):
-        log.debug('Warming up the service...')
+        log.debug('Warming up the Log Service...')
         self._conn = conn
 
 

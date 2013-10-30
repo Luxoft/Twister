@@ -724,7 +724,7 @@ class TwisterRunner(cli.Application):
                 print('File `{}` is not runnable, it will be downloaded, but not executed.\n'.format(filename))
                 fpath = EP_CACHE +os.sep+ os.path.split(filename)[1]
                 f = open(fpath, 'wb')
-                f.write(str_to_execute.data)
+                f.write(str_to_execute)
                 f.close() ; del f
                 try: proxy().setFileStatus(self.epName, file_id, STATUS_SKIPPED, 0.0) # Status SKIPPED
                 except:

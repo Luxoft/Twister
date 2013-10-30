@@ -119,6 +119,7 @@ if __name__ == "__main__":
 
     # start rpyc server
     thread.start_new_thread(rpycServer.start, ())
+    logInfo('RPYC Serving on 0.0.0.0:{}'.format(rpycPort))
 
 
     # CherryPy config

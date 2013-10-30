@@ -921,8 +921,11 @@ class PluginParser:
 
         for module in py_modules:
             name = module.split('::')[0]
+            if not name: continue
             mod  = module.split('::')[1]
             if not mod: continue
+            if not os.path.isfile(mod):
+                continue
             plug = None
             try:
                 # Import the plugin module
@@ -931,15 +934,15 @@ class PluginParser:
                 mm = reload(mm)
                 plug = mm.Plugin
             except Exception, e:
-                logError('PluginParser ERROR: Unhandled exception in plugin file `{0}`! Exception: {1}!'.format(mod, e))
+                logError('PluginParser ERROR: Unhandled exception in plugin file `{}`! Exception: {}!'.format(mod, e))
                 continue
 
             if not plug:
-                logError('PluginParser ERROR: Plugin `%s` cannot be Null!' % plug)
+                logError('PluginParser ERROR: Plugin `{}` cannot be Null!'.format(plug))
                 continue
             # Check plugin parent. Must be Base Plugin.
             if not issubclass(plug, Base):
-                logError('PluginParser ERROR: Plugin `%s` must be inherited from Base Plugin!' % plug)
+                logError('PluginParser ERROR: Plugin `{}` must be inherited from Base Plugin!'.format(plug))
                 continue
 
             # Append plugin classes to plugins list
