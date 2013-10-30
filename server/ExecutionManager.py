@@ -410,7 +410,7 @@ class ExecutionManagerService(rpyc.Service):
             logError('*ERROR* Can only register a List of EP names!')
             return False
         else:
-            eps = set(eps)
+            eps = sorted(set(eps))
 
         try:
             # Send a Hello and this IP to the remote proxy Service
@@ -429,7 +429,7 @@ class ExecutionManagerService(rpyc.Service):
         # On disconnect, this client address will be deleted
         # And the EPs will be automatically un-registered.
         with self.conn_lock:
-            for epname in sorted(eps):
+            for epname in eps:
                 self.project._registerEp(user, epname)
 
             # Before register, find the clients that have already registered these EPs!
@@ -443,15 +443,16 @@ class ExecutionManagerService(rpyc.Service):
                     # If this connection has registered EPs
                     if not data.get('eps'): continue
                     old_eps   = set(data.get('eps'))
-                    diff_eps  = old_eps - eps
-                    intersect = old_eps & eps
+                    new_eps   = set(eps)
+                    diff_eps  = old_eps - new_eps
+                    intersect = old_eps & new_eps
                     if intersect:
                         logDebug('Un-register EP list {} from `{}` and register then on `{}`.'\
                                  ''.format(sorted(intersect), c_addr, str_addr))
                     # Delete the EPs that must be deleted
                     self.conns[c_addr]['eps'] = sorted(diff_eps)
 
-            self.conns[str_addr]['eps'] = sorted(eps)
+            self.conns[str_addr]['eps'] = eps
 
         logDebug('Registered client manager for user `{}`\n\t-> Client from `{}` ++ {}.'.format(user, str_addr, eps))
         return True
@@ -484,8 +485,13 @@ class ExecutionManagerService(rpyc.Service):
             ee = data.get('eps') or sorted(eps)
             if not ee:
                 return True
-            logDebug('Un-registered EPs for user `{}`\n\t-> Client from `{}` -- {} !'.format(user, str_addr, ee))
 
+        remaining = self.exposed_registeredEps(user)
+        if remaining == ee:
+            logDebug('Un-registered all EPs for user `{}`\n\t-> Client from `{}` -- {}.'\
+                    ' No more EPs left for user !'.format(user, str_addr, ee))
+        else:
+            logDebug('Un-registered EPs for user `{}`\n\t-> Client from `{}` -- {} !'.format(user, str_addr, ee))
         return True
 
 

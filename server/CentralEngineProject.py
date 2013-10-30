@@ -410,6 +410,9 @@ class Project(object):
         # List with all registered EPs for this User
         epList = self.rsrv.exposed_registeredEps(user)
 
+        if not epList:
+            logWarning('User `{}` doesn\'t have any registered EPs to run the tests!'.format(user))
+
         # Generate the list of EPs in order
         for epname in epList:
             self._registerEp(user, epname)
@@ -495,8 +498,9 @@ class Project(object):
         else:
             self.parsers[user] = TSCParser(user, base_config, files_config)
 
-        resp = self._common_proj_reset(user, base_config, files_config)
-        if not resp: return False
+        with self.usr_lock:
+            resp = self._common_proj_reset(user, base_config, files_config)
+            if not resp: return False
 
         # Save everything.
         self._dump()
@@ -535,8 +539,9 @@ class Project(object):
         except: pass
         self.parsers[user] = TSCParser(user, base_config, files_config)
 
-        resp = self._common_proj_reset(user, base_config, files_config)
-        if not resp: return False
+        with self.usr_lock:
+            resp = self._common_proj_reset(user, base_config, files_config)
+            if not resp: return False
 
         # Save everything.
         self._dump()
@@ -1461,6 +1466,13 @@ class Project(object):
                     trace = traceback.format_exc()[34:].strip()
                     logWarning('Error on running plugin `{} onStart` - Exception: `{}`!'.format(pname, trace))
             del parser, plugins
+
+            # Before starting the EPs and changing the user status, check if there are any EPs
+            epList = self.rsrv.exposed_registeredEps(user)
+
+            if not epList:
+                logWarning('CANNOT START! User `{}` doesn\'t have any registered EPs to run the tests!'.format(user))
+                return reversed[STATUS_STOP]
 
             # Start all active EPs !
             active_eps = self.parsers[user].getActiveEps()

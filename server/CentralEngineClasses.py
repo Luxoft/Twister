@@ -467,7 +467,6 @@ class CentralEngine(_cptools.XMLRPCController):
         """
         name = data.split(';')[0]
         proj = ';'.join(data.split(';')[1:])
-        logDebug('CE: Started by name `{}`, project `{}`.'.format(name, proj))
         self.project.setUserInfo(user, 'started_by', str(name))
         self.project.setUserInfo(user, 'proj_xml_name', str(proj))
         return 1

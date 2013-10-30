@@ -101,6 +101,23 @@ class TwisterClient(object):
 
 #
 
+    def _kill(self, lines, descr=''):
+        """
+        Helper function.
+        """
+        for line in lines.strip().splitlines():
+            li = line.strip().split()
+            PID = int(li[0])
+            del li[1:4]
+            if li[1] == '/bin/sh' and li[2] == '-c': continue
+            print('Killing Zombie {} `{}`'.format(descr, ' '.join(li)))
+            try:
+                os.kill(PID, 9)
+            except:
+                pass
+
+#
+
     def killAll(self):
         """
         Close all Sniffers and EPs for this user.
@@ -108,22 +125,14 @@ class TwisterClient(object):
         global userName
 
         pids = subprocess.check_output('ps ax | grep start_packet_sniffer.py | grep -u {}'.format(userName), shell=True)
-        for line in pids.strip().splitlines():
-            try:
-                os.kill(int(line.split()[0]), 9)
-            except:
-                pass
+        self._kill(pids, 'Sniffer')
 
         pids = subprocess.check_output('ps ax | grep ExecutionProcess.py | grep -u {}'.format(userName), shell=True)
-        for line in pids.strip().splitlines():
-            try:
-                os.kill(int(line.split()[0]), 9)
-            except:
-                pass
+        self._kill(pids, 'EP')
 
 #
 
-    def _createConn(self, ce_ip, ce_port, epNames=[], debug=True):
+    def _createConn(self, ce_ip, ce_port, epNames=[], debug=False):
         """
         Helper for creating a Central Engine connection, the most basic func.
         """
@@ -162,7 +171,7 @@ class TwisterClient(object):
                 # Call the user status to create the User Project
                 proxy.root.getUserVariable('status')
                 proxy.root.hello('client', {'eps': epNames})
-                print('Client Debug: Register EPs successful!\n')
+                print('Client Debug: Register EPs successful!')
             except Exception as e:
                 print('Exception:', e)
                 check = False
@@ -209,9 +218,6 @@ class TwisterClient(object):
             if not proxy:
                 # Try creating a new Central Engine connection.
                 proxy = self._createConn(ce_ip, ce_port, epNames, err_msg)
-                if not proxy:
-                    time.sleep(2)
-                    continue
             else:
                 break
 
@@ -240,10 +246,12 @@ class TwisterClient(object):
         Register EP Names on Central Engine.
         Used in a thread to try and connect to the required Central Engine.
         """
-        print('\nWill REGISTER EPs on CE `{}` :: `{}`...\n'.format(cePath, epNames))
+        print('\n### Will REGISTER EPs on CE `{}` :: `{}` ###\n'.format(cePath, epNames))
+        # Cleanup all zombie processes
+        self.killAll()
         # This operation might take a while!...
         self._createConnLong(cePath, epNames)
-        print('\nSuccess REGISTER EPs on CE `{}` :: `{}` !\n'.format(cePath, epNames))
+        print('\n### Success REGISTER EPs on CE `{}` :: `{}` ###\n'.format(cePath, epNames))
 
 #
 

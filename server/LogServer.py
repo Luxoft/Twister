@@ -178,10 +178,8 @@ class LogServer(rpyc.Service):
                     err = True
 
         if err:
-            log.warning('Cound not reset all logs!')
             return False
         else:
-            log.debug('Success!')
             return True
 
 
