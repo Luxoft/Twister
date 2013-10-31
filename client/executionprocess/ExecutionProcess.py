@@ -619,7 +619,6 @@ class TwisterRunner(cli.Application):
                     else:
                         print('EP Debug: Not executed file `{}` because of failed setup file!\n\n'.format(filename))
                         proxy().setFileStatus(self.epName, file_id, STATUS_NOT_EXEC, 0.0) # File status ABORTED
-                        print('Exception on change file status `{}`!\n'.format(trace))
                         print('<<< END filename: `{}:{}` >>>\n'.format(file_id, filename))
                         continue
                 del aborted_ids, current_ids

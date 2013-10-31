@@ -124,10 +124,10 @@ class TwisterClient(object):
         """
         global userName
 
-        pids = subprocess.check_output('ps ax | grep start_packet_sniffer.py | grep -u {}'.format(userName), shell=True)
+        pids = subprocess.check_output('ps ax | grep /bin/start_packet_sniffer.py | grep "\-u {}"'.format(userName), shell=True)
         self._kill(pids, 'Sniffer')
 
-        pids = subprocess.check_output('ps ax | grep ExecutionProcess.py | grep -u {}'.format(userName), shell=True)
+        pids = subprocess.check_output('ps ax | grep /executionprocess/ExecutionProcess.py | grep "\-u {}"'.format(userName), shell=True)
         self._kill(pids, 'EP')
 
 #
