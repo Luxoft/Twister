@@ -1,7 +1,7 @@
 
 # File: ClearCasePlugin.py ; This file is part of Twister.
 
-# version: 2.005
+# version: 2.006
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -178,12 +178,13 @@ class CC(object):
 
         li_tags = re.findall('^[ ]*?[#]*?[ ]*?<(?P<tag>\w+)>([ -~\n]+?)</(?P=tag)>', response, re.MULTILINE)
         tags = '<br>\n'.join(['<b>' + title + '</b> : ' + descr.replace('<', '&lt;') for title, descr in li_tags])
-
-        data = self.cleartoolSsh.write('cleartool ls {}'.format(fname))
-        data = data.splitlines()
-        data = data[2:len(data)-1][0]
-
         result = tags
+
+        command = 'cleartool ls {}'.format(fname)
+        data = self.cleartoolSsh.write(command)
+        data = self.parseSshResponse(command,data)
+        data = ''.join(data)
+
         if data and (data.find('@@') != -1):
             data = data.split()[0].split('@@')[1]
             extra_info = '<b>ClearCase Version</b> : {}'.format(data)
@@ -226,8 +227,6 @@ class CC(object):
             command = 'python -c "import base64; print(base64.b64decode(\'{c}\'))"  > {f}'.format(
                                                                 c=base64.b64encode(content), f=fname)
             response = self.cleartoolSsh.write(command)
-
-            print('set test file:: {}'.format(response))
 
             if len(response) >= 2:
                 print('error: {}'.format(response))
@@ -300,7 +299,6 @@ class Plugin(BasePlugin):
         """
         Called on project start.
         """
-        """ BOGDAN ???????????????????? """
 
         # No data provided ?
         if not clear_case_view:

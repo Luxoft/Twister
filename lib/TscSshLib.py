@@ -1,6 +1,6 @@
 # File: TscSshLib.py ; This file is part of Twister.
 
-# version: 2.002
+# version: 2.003
 #
 # Copyright (C) 2012-2013 , Luxoft
 #
@@ -297,7 +297,7 @@ class SshShell:
             'pass': password
         }
         self.name = name
-        self.timeout = 2
+        self.timeout = 0.2
 
         self.nbytes = 4096
         self.prompt = ''
@@ -308,7 +308,7 @@ class SshShell:
             self.connection.connect(host,
                                     username=self.loginAccount['user'],
                                     password=self.loginAccount['pass'])
-            self.session = self.connection.invoke_shell(term='xterm', width=80, height=24)
+            self.session = self.connection.invoke_shell(term='xterm', width=256, height=24)
             self.session.settimeout(self.timeout)
             self.setPrompt()
 
@@ -365,9 +365,9 @@ class SshShell:
         if self.session.recv_ready():
             if prompt_set:
                 # read output untill last line is the one with the prompt
-                try:
-                    last_line = '\n' + self.prompt
-                    while True:
+                last_line = '\n' + self.prompt
+                while True:
+                    try:
                         resp = self.session.recv(self.nbytes)
                         readBuffer += resp
                         # check if it's the prompt line
@@ -376,20 +376,20 @@ class SshShell:
                             #print('CC_LIB Found last line `{}`.'.format(last_line))
                             break;
                         time.sleep(0.5)
-                except Exception as e:
-                    print('CC_LIB: Read bufer timeout; prompt is set to `{}`.'.format(self.prompt))
+                    except Exception as e:
+                        print('CC_LIB: Read retry; prompt is set to `{}`.'.format(self.prompt))
             else:
                 # No prompt is set; just try to read untill timeout;
                 # repeat 5 times
-                try:
-                    iter = 0
-                    while iter < 5:
-                        resp = self.session.recv(1024)
+                iter = 0
+                while iter < 5:
+                    try:
+                        resp = self.session.recv(self.nbytes)
                         readBuffer += resp
-                        time.sleep(1)
-                        iter += 1
-                except Exception as e:
-                    print('CC_LIB: Use default prompt')
+                        time.sleep(0.5)
+                    except Exception as e:
+                        pass
+                    iter += 1
 
             return readBuffer
 
