@@ -490,7 +490,7 @@ class ExecutionManagerService(rpyc.Service):
         remaining = self.exposed_registeredEps(user)
         if remaining == ee:
             logDebug('Un-registered all EPs for user `{}`\n\t-> Client from `{}` -- {}.'\
-                    ' No more EPs left for user !'.format(user, str_addr, ee))
+                    ' No more EPs left for `{}` !'.format(user, str_addr, ee, user))
         else:
             logDebug('Un-registered EPs for user `{}`\n\t-> Client from `{}` -- {} !'.format(user, str_addr, ee))
         return True

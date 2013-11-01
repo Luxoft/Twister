@@ -1,7 +1,7 @@
 
 # File: xmlparser.py ; This file is part of Twister.
 
-# version: 2.013
+# version: 2.014
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -923,8 +923,9 @@ class PluginParser:
             name = module.split('::')[0]
             if not name: continue
             mod  = module.split('::')[1]
-            if not mod: continue
-            if not os.path.isfile(mod):
+            if not mod:
+                continue
+            if not os.path.isfile('{}/plugins/{}.py'.format(TWISTER_PATH, mod)):
                 continue
             plug = None
             try:
