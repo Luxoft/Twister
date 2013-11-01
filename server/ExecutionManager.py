@@ -293,6 +293,7 @@ class ExecutionManagerService(rpyc.Service):
         """
         user = self._check_login()
         if not user: return False
+        if not epname: return False
         suiteList = [str(k)+':'+v['name'] for k, v in self.project.getEpInfo(user, epname)['suites'].items()]
         return ','.join(suiteList)
 
