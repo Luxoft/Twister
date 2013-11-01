@@ -313,13 +313,13 @@ public class ExplorerPanel {
             if(!PermissionValidator.canEditTC()){
                 item.setEnabled(false);
             }
-            item = new JMenuItem("Unit testing");
-            p.add(item);
-            item.addActionListener(new ActionListener() {
-                public void actionPerformed(ActionEvent ev) {
-                    unitTesting(editable);
-                }
-            });
+//             item = new JMenuItem("Unit testing");
+//             p.add(item);
+//             item.addActionListener(new ActionListener() {
+//                 public void actionPerformed(ActionEvent ev) {
+//                     unitTesting(editable);
+//                 }
+//             });
             item = new JMenuItem("Edit with");
             p.add(item);
             item.addActionListener(new ActionListener() {
