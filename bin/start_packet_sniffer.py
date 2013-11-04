@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2.7
 
 # version: 3.000
 
@@ -73,14 +73,20 @@ if __name__ == "__main__":
 
     path.append(options.twister_path)
 
-    from common.configobj import ConfigObj
+    from ConfigParser import SafeConfigParser
 
     from services.PacketSniffer.PacketSniffer import Sniffer
 
     # load execution process configuration
-    epConfig = ConfigObj(options.twister_path + '/config/epname.ini')
-    epConfig.pop('PACKETSNIFFERPLUGIN')
-    epConfig = list(epConfig.itervalues())
+    _epConfig = dict()
+    epConfig = SafeConfigParser()
+    epConfig.read(options.twister_path + '/config/epname.ini')
+    for s in [_s for _s in epConfig.sections() if not _s == 'PACKETSNIFFERPLUGIN'
+                                                    and epConfig.has_option(_s, 'ENABLED')
+                                                    and epConfig.get(_s, 'ENABLED')]:
+        _epConfig.update([(s, {'CE_IP': epConfig.get(s, 'CE_IP'), 'CE_PORT': epConfig.get(s, 'CE_PORT')}), ])
+
+    epConfig = list(_epConfig.itervalues())
 
     # initiate and start sniffer
     sniffer = Sniffer(user=options.user, epConfig=epConfig,
