@@ -1,7 +1,7 @@
 
 # File: CentralEngineProject.py ; This file is part of Twister.
 
-# version: 2.047
+# version: 2.048
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -1347,6 +1347,20 @@ class Project(object):
                             trace = traceback.format_exc()[33:].strip()
                             logWarning('Cannot stop log server `localhost:{}`, for user `{}`! Exception `{}`.'.format(port, user, trace))
 
+                    # Kill all other Log Server processes for this user just to make sure!
+                    pids = subprocess.check_output('ps ax | grep /server/LogServer.py | grep "su {}"'.format(user), shell=True)
+
+                    for line in pids.strip().splitlines():
+                        li = line.strip().split()
+                        PID = int(li[0])
+                        del li[1:4]
+                        if li[1] == '/bin/sh' and li[2] == '-c': continue
+                        print('Killing process LogServer `{}`'.format(' '.join(li)))
+                        try:
+                            os.kill(PID, 9)
+                        except:
+                            pass
+
                     # Execute "onStop" for all plugins!
                     parser = PluginParser(user)
                     plugins = parser.getPlugins()
@@ -2620,21 +2634,6 @@ class Project(object):
             try:
                 conn.root.hello()
                 return conn
-            except:
-                pass
-
-        # If the connection cannot be reused, kill all other Log Server processes for this user
-        # just to make sure!
-        pids = subprocess.check_output('ps ax | grep /server/LogServer.py | grep "su {}"'.format(user), shell=True)
-
-        for line in pids.strip().splitlines():
-            li = line.strip().split()
-            PID = int(li[0])
-            del li[1:4]
-            if li[1] == '/bin/sh' and li[2] == '-c': continue
-            print('Killing process LogServer `{}`'.format(' '.join(li)))
-            try:
-                os.kill(PID, 9)
             except:
                 pass
 
