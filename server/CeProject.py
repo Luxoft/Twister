@@ -1348,7 +1348,7 @@ class Project(object):
                             logWarning('Cannot stop log server `localhost:{}`, for user `{}`! Exception `{}`.'.format(port, user, trace))
 
                     # Kill all other Log Server processes for this user just to make sure!
-                    pids = subprocess.check_output('ps ax | grep /server/LogService.py | grep "su {}"'.format(user), shell=True)
+                    pids = subprocess.check_output('ps aux | grep /server/LogService.py | grep "^{} "'.format(user), shell=True)
 
                     for line in pids.strip().splitlines():
                         li = line.strip().split()
