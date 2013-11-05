@@ -1,7 +1,7 @@
 
-# File: CentralEngineProject.py ; This file is part of Twister.
+# File: CeProject.py ; This file is part of Twister.
 
-# version: 2.048
+# version: 2.049
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -121,10 +121,10 @@ from common.xmlparser  import *
 from common.suitesmanager import *
 from common import iniparser
 
-from ServiceManager   import ServiceManager
-from CentralEngineWebUi import WebInterface
-from ResourceAllocator  import ResourceAllocator
-from ReportingServer  import ReportingServer
+from CeServices  import ServiceManager
+from CeWebUi     import WebInterface
+from CeResources import ResourceAllocator
+from CeReports   import ReportingServer
 
 usrs_and_pwds = {}
 usr_pwds_lock = allocate_lock()
@@ -1348,14 +1348,14 @@ class Project(object):
                             logWarning('Cannot stop log server `localhost:{}`, for user `{}`! Exception `{}`.'.format(port, user, trace))
 
                     # Kill all other Log Server processes for this user just to make sure!
-                    pids = subprocess.check_output('ps ax | grep /server/LogServer.py | grep "su {}"'.format(user), shell=True)
+                    pids = subprocess.check_output('ps ax | grep /server/LogService.py | grep "su {}"'.format(user), shell=True)
 
                     for line in pids.strip().splitlines():
                         li = line.strip().split()
                         PID = int(li[0])
                         del li[1:4]
                         if li[1] == '/bin/sh' and li[2] == '-c': continue
-                        print('Killing process LogServer `{}`'.format(' '.join(li)))
+                        print('Killing process LogService `{}`'.format(' '.join(li)))
                         try:
                             os.kill(PID, 9)
                         except:
@@ -2647,7 +2647,7 @@ class Project(object):
                 free = True
             if free: break
 
-        p_cmd = 'su {} -c "{} -u {}/server/LogServer.py {}"'.format(user, sys.executable, TWISTER_PATH, port)
+        p_cmd = 'su {} -c "{} -u {}/server/LogService.py {}"'.format(user, sys.executable, TWISTER_PATH, port)
         proc = subprocess.Popen(p_cmd, cwd='{}/twister'.format(userHome(user)), shell=True)
         proc.poll()
         time.sleep(0.2)

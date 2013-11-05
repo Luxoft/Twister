@@ -1,5 +1,5 @@
 
-# File: CentralEngineClasses.py ; This file is part of Twister.
+# File: CeXmlRpc.py ; This file is part of Twister.
 
 # version: 2.031
 
@@ -25,8 +25,8 @@
 # limitations under the License.
 
 """
-Central Engine Class
-********************
+Central Engine Xml-RPC
+**********************
 
 All functions from Central Engine are EXPOSED and can be accesed via XML-RPC.\n
 The Central Engine and each EP have a status that can be: start/ stop/ paused.\n
@@ -78,7 +78,7 @@ from common.xmlparser  import *
 # --------------------------------------------------------------------------------------------------
 
 
-class CentralEngine(_cptools.XMLRPCController):
+class CeXmlRpc(_cptools.XMLRPCController):
 
     """
     *This class is the core of all operations.*
@@ -93,7 +93,7 @@ class CentralEngine(_cptools.XMLRPCController):
     def default(self, *vpath, **params):
         user_agent = cherrypy.request.headers['User-Agent'].lower()
         if 'xmlrpc' in user_agent or 'xml rpc' in user_agent:
-            return super(CentralEngine, self).default(*vpath, **params)
+            return super(CeXmlRpc, self).default(*vpath, **params)
         # If the connection is not XML-RPC, redirect to REST
         raise cherrypy.HTTPRedirect('/web/' + '/'.join(vpath))
 

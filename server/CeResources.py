@@ -1,5 +1,5 @@
 
-# File: ResourceAllocator.py ; This file is part of Twister.
+# File: CeResources.py ; This file is part of Twister.
 
 # version: 2.011
 

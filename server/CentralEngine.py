@@ -52,9 +52,9 @@ if TWISTER_PATH not in sys.path:
 
 
 from common.tsclogging import *
-from server.CentralEngineProject import Project
-from server.CentralEngineClasses import CentralEngine
-from server.ExecutionManager     import ExecutionManagerService
+from server.CeProject  import Project
+from server.CeXmlRpc   import CeXmlRpc
+from server.CeRpyc     import CeRpycService
 
 #
 
@@ -89,7 +89,7 @@ if __name__ == "__main__":
     rpycPort, maxPort = 8008, 8040
     while rpycPort <= maxPort:
         try:
-            rpycServer = ThreadPoolServer(ExecutionManagerService, port=rpycPort, protocol_config=config)
+            rpycServer = ThreadPoolServer(CeRpycService, port=rpycPort, protocol_config=config)
         except:
             rpycServer = None
             rpycPort += 1
@@ -103,7 +103,7 @@ if __name__ == "__main__":
     proj = Project()
     proj.rsrv = rpycServer.service
     # CE is the XML-RPC interface
-    ce = CentralEngine(proj)
+    ce = CeXmlRpc(proj)
 
     proj.ip_port = ('127.0.0.1', serverPort)
     ce.web = proj.web

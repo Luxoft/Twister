@@ -29,7 +29,7 @@ PYTHON_PATH=/usr/bin/python
 SERVER_PORT=8000
 
 pid=$(ps ax | grep python | grep CentralEngine.py | awk '{print $1}')
-log=$(pgrep -f LogServer.py)
+log=$(pgrep -f /server/LogService.py)
 
 if [ -n "$TWISTER_PATH" ]
 then

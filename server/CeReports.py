@@ -1,5 +1,5 @@
 
-# File: ReportingServer.py ; This file is part of Twister.
+# File: CeReports.py ; This file is part of Twister.
 
 # version: 2.009
 
@@ -64,7 +64,7 @@ if mako.__version__ < '0.7':
 # --------------------------------------------------------------------------------------------------
 
 
-class ReportingServer:
+class ReportingServer(object):
 
     db_parser = {}
     glob_fields  = {}

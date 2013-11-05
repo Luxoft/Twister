@@ -1,5 +1,5 @@
 
-# File: ExecutionManager.py ; This file is part of Twister.
+# File: CeRpyc.py ; This file is part of Twister.
 
 # version: 2.004
 
@@ -48,7 +48,7 @@ from common.xmlparser  import PluginParser
 
 #
 
-class ExecutionManagerService(rpyc.Service):
+class CeRpycService(rpyc.Service):
 
     """
     Execution Manager class organizes the EP / Suite / Testcase functions.
@@ -502,7 +502,7 @@ class ExecutionManagerService(rpyc.Service):
         Start EP for client.
         This must work from any ExecManager instance.
         """
-        if isinstance(self, ExecutionManagerService):
+        if isinstance(self, CeRpycService):
             user = self._check_login()
         else:
             user = usr
@@ -545,7 +545,7 @@ class ExecutionManagerService(rpyc.Service):
         Stop EP for client.
         This must work from any ExecManager instance.
         """
-        if isinstance(self, ExecutionManagerService):
+        if isinstance(self, CeRpycService):
             user = self._check_login()
         else:
             user = usr

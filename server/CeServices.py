@@ -1,5 +1,5 @@
 
-# File: ServiceManager.py ; This file is part of Twister.
+# File: CeServices.py ; This file is part of Twister.
 
 # version: 2.002
 
@@ -62,7 +62,7 @@ from common import iniparser
 
 #
 
-class ServiceManager():
+class ServiceManager(object):
 
     def __init__(self):
 

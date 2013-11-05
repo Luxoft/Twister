@@ -1,5 +1,5 @@
 
-# File: LogServer.py ; This file is part of Twister.
+# File: LogService.py ; This file is part of Twister.
 
 # version: 2.005
 
@@ -60,7 +60,7 @@ if not sys.version.startswith('2.7'):
 
 #
 
-class LogServer(rpyc.Service):
+class LogService(rpyc.Service):
 
     def __init__(self, conn):
         log.debug('Warming up the Log Service...')
@@ -201,7 +201,7 @@ if __name__ == '__main__':
         log.error('Log Server: Must start with parameter PORT number!')
         exit(1)
 
-    t = ThreadedServer(LogServer, port=int(PORT[0]))
+    t = ThreadedServer(LogService, port=int(PORT[0]))
     t.start()
 
     log.warning('Log Server: Bye bye.')
