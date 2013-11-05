@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python2.7
 
 # File: start_client.py ; This file is part of Twister.
 

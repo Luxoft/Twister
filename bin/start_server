@@ -25,7 +25,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-PYTHON=/usr/bin/python
+PYTHON_PATH=/usr/bin/python
 SERVER_PORT=8000
 
 pid=$(ps ax | grep python | grep CentralEngine.py | awk '{print $1}')
@@ -49,7 +49,7 @@ then
         kill -9 $log
     fi
     echo TWISTER_PATH is set to: "$TWISTER_PATH".
-    nohup $PYTHON -u $TWISTER_PATH/server/CentralEngine.py $SERVER_PORT > $TWISTER_PATH/server_log.log &
+    nohup $PYTHON_PATH -u $TWISTER_PATH/server/CentralEngine.py $SERVER_PORT > $TWISTER_PATH/server_log.log &
     echo "Twister Server is now running in background."
 else
     echo TWISTER_PATH variable enviroment is not defined! Exiting!
