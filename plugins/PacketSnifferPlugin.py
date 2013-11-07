@@ -2,7 +2,7 @@
 #
 # -*- coding: utf-8 -*-
 #
-# version: 3.000
+# version: 3.001
 #
 # File: PacketSnifferPlugin.py ; This file is part of Twister.
 #
@@ -200,11 +200,16 @@ class Plugin(BasePlugin):
             response['type'] = 'pause/resume reply'
 
             if args['command'] == 'resume':
+                #print('start sniffers..')
+                started = False
                 with self.data['ce'].rsrv.conn_lock:
                     for userClient in [c for c in self.data['ce'].rsrv.conns
                         if self.data['ce'].rsrv.conns[c]['hello'] == 'client' and
                             self.data['ce'].rsrv.conns[c]['user'] == self.user]:
-                        self.data['ce'].rsrv.conns[userClient]['conn'].root.start_sniffer()
+                        started = self.data['ce'].rsrv.conns[userClient]['conn'].root.start_sniffer()
+                if started:
+                    print('sniffers started..')
+                    self.status = 'running'
 
             oldStatus = self.status
 
