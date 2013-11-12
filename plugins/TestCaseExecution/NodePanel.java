@@ -1,6 +1,6 @@
 /*
 File: NodePanel.java ; This file is part of Twister.
-Version: 2.003
+Version: 2.004
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -90,20 +90,12 @@ public class NodePanel extends JPanel{
     
     private void initNewParent(){
         if(parent!=null){
-            tname.setEnabled(true);
+            if(PermissionValidator.canEditTB())tname.setEnabled(true);
             tname.setText(parent.getName());
             tid.setText(parent.getID());
             tpath.setText(parent.getPath().getPath());
             if(parent.getParent().getParent()==null){
-//                 populateEPs();
-//                 if(!tep.isEnabled()){
-//                     tep.setEnabled(true);
-//                 }
             } else {
-//                 tep.clearSelection();
-//                 if(tep.isEnabled()){
-//                     tep.setEnabled(false);
-//                 }
             }
         } else {
             tname.setText("");
@@ -146,7 +138,7 @@ public class NodePanel extends JPanel{
         proppanel.setPreferredSize(new Dimension(280, 150));
         proppanel.setLayout(null);
 
-        proppanel.add(add);
+        if(PermissionValidator.canEditTB())proppanel.add(add);
         add.setBounds(310, 5, 90, 23);
 
         jScrollPane2.setViewportView(proppanel);
@@ -381,8 +373,10 @@ public class NodePanel extends JPanel{
                 
                 final JLabel jLabel1 = new JLabel("Name: ");
                 final MyTextField jTextField1 = new MyTextField(keys[i].toString());
+                if(!PermissionValidator.canEditTB())jTextField1.setEnabled(false);
                 JLabel jLabel2 = new JLabel("Value:");
                 final JTextField jTextField2 = new JTextField();
+                if(!PermissionValidator.canEditTB())jTextField2.setEnabled(false);
                 proppanel.add(jLabel1);
                 jLabel1.setBounds(5, i*30+5, 210, 14);
                 proppanel.add(jTextField1);
@@ -461,10 +455,10 @@ public class NodePanel extends JPanel{
                 proppanel.add(jLabel1);
                 proppanel.add(jLabel2);
                 proppanel.add(jTextField2);
-                proppanel.add(remove);
+                if(PermissionValidator.canEditTB())proppanel.add(remove);
             }
             add.setBounds(310, (size*30)+2, 90, 23);
-            proppanel.add(add);
+            if(PermissionValidator.canEditTB())proppanel.add(add);
             proppanel.setPreferredSize(new Dimension(280, (size*30)+30));
         }
         proppanel.repaint();

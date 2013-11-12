@@ -1,3 +1,4 @@
+#!/usr/bin/env python2.7
 
 # File: LogServer.py ; This file is part of Twister.
 
