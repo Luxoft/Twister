@@ -1,7 +1,7 @@
 
 # File: CeRpyc.py ; This file is part of Twister.
 
-# version: 2.004
+# version: 2.005
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -794,15 +794,36 @@ class CeRpycService(rpyc.Service):
 
             filename = data['file']
 
+            # Inject this empty variable just to be sure.
+            self.project.setFileInfo(user, epname, file_id, 'twister_tc_revision', '')
+
+            # Injected ClearCase file ?
+            if 'ClearCase' in self.exposed_listPlugins() and data.get('clearcase'):
+                plugin_p = self.project._buildPlugin(user, 'ClearCase')
+                try:
+                    data = plugin_p.getTestFile(filename)
+                except Exception as e:
+                    trace = traceback.format_exc()[34:].strip()
+                    logError('Error getting ClearCase file `{}` : `{}`!'.format(filename, trace))
+                    return ''
+                try:
+                    descr = plugin_p.getTestDescription(user, filename)
+                    cctag = '<b>ClearCase Version</b> :'
+                    if descr and (descr.find(cctag) != -1):
+                        pos = descr.find(cctag) + len(cctag)
+                        rev = descr[pos:].strip()
+                        self.project.setFileInfo(user, epname, file_id, 'twister_tc_revision', rev)
+                except Exception as e:
+                    pass
+                logDebug('CE: Execution process `{}:{}` requested file `{}`.'.format(user, epname, filename))
+                return data
+
             # Fix ~ $HOME path (from project XML)
             if filename.startswith('~'):
                 filename = userHome(user) + filename[1:]
             # Fix incomplete file path (from project XML)
             if not os.path.isfile(filename):
                 filename = tests_path + os.sep + filename
-
-            # Inject this empty variable just to be sure.
-            self.project.setFileInfo(user, epname, file_id, 'twister_tc_revision', '')
 
         logDebug('CE: Execution process `{}:{}` requested file `{}`.'.format(user, epname, filename))
 

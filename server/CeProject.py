@@ -1060,7 +1060,9 @@ class Project(object):
             else:
                 return {}
 
-        if key:
+        if key == 'user_passwd':
+            return usrs_and_pwds.get(user, '')
+        elif key:
             return self.users[user].get(key)
         else:
             return self.users[user]

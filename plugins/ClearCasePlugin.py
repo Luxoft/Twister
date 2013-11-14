@@ -1,9 +1,9 @@
 
 # File: ClearCasePlugin.py ; This file is part of Twister.
 
-# version: 2.004
+# version: 2.007
 
-# Copyright (C) 2012-2013 , Luxoft
+# Copyright (C) 2012-2014 , Luxoft
 
 # Authors:
 #    Adrian Toader <adtoader@luxoft.com>
@@ -30,21 +30,207 @@
 """
 from __future__ import print_function
 
-from BasePlugin import BasePlugin
 
 import os, sys
+import re
 import time
+import base64
 import random
-import socket
 import subprocess
-import xmlrpclib
+
+try: import simplejson as json
+except: import json
 
 TWISTER_PATH = os.getenv('TWISTER_PATH')
 if not TWISTER_PATH:
-    print('TWISTER_PATH environment variable is not set! Exiting!')
-    exit(1)
+    raise Exception('TWISTER_PATH environment variable is not set! Exiting!')
 
 from common.helpers import userHome
+from lib.TscSshLib import SshShell
+from BasePlugin import BasePlugin
+
+#
+
+class CC(object):
+
+    """ ClearCase helper """
+
+    def __init__(self, user, password):
+
+        if not user: raise Exception('Username is empty! Cannot login!')
+        if not password: raise Exception('Password is empty! Cannot login!')
+
+        self.cleartoolSsh = SshShell(name='cleartool', host='localhost', user=user, password=password)
+        self.cleartoolSsh.set_timeout(2)
+        time.sleep(1)
+        #self.cleartoolSsh.read()
+
+
+    def cmd(self, args):
+        """
+        Send ssh command command..
+        """
+
+        if not isinstance(args, dict):
+            return False
+
+        args = {k: v[0] if isinstance(v, list) else v for k, v in args.iteritems()}
+
+        if not args.has_key('command') or not isinstance(args['command'], str):
+            return False
+
+        if args['command'].startswith('cleartool setview'):
+            print('Clearcase Plugin Srv: Changing view: `{}`.'.format(args['command']))
+
+        response = self.cleartoolSsh.write(args['command'])
+
+        response = self.parseSshResponse(args['command'], response)
+        response = '\n'.join(response)
+
+        if args['command'].startswith('cleartool setview'):
+            time.sleep(2)
+            #self.cleartoolSsh.setPrompt()
+            response = ''
+
+        return json.dumps(response)
+
+
+    def parseSshResponse(self, cmd, response):
+        """  """
+
+        response = response.splitlines()
+        try:
+            response = response[response.index(cmd)+1:]
+        except Exception as e:
+            for line in response:
+                if line.startswith(cmd[:80]):
+                    response = response[response.index(line)+1:]
+                    break
+
+        try:
+            if response[len(response)-1] == self.cleartoolSsh.prompt:
+                response = response[:len(response)-1]
+        except Exception as e:
+            pass
+
+        return response
+
+
+    def getPathTree(self, path):
+        """  """
+
+        if not path:
+            return False
+
+        treeCommand = ('import os\n'\
+                        'rootdir = %s\n'\
+                        'dir = dict()\n'\
+                        'rootdir = rootdir.rstrip(os.sep)\n'\
+                        'start = rootdir.rfind(os.sep) + 1\n'\
+                        'for path, dirs, files in os.walk(rootdir):\n'\
+                        '    folders = path[start:].split(os.sep)\n'\
+                        '    subdir = {\'\': files}\n'\
+                        '    parent = reduce(dict.get, folders[:-1], dir)\n'\
+                        '    parent[folders[-1]] = subdir\n'\
+                        'r = dict()\n'\
+                        'r.update([(rootdir, dir[os.path.basename(rootdir)]), ])\n'\
+                        'print(r)' % repr(path))
+
+        pwd = self.cleartoolSsh.write('pwd')
+        self.cleartoolSsh.write('cd')
+        self.cleartoolSsh.write('python -c "import base64; print(base64.b64decode(\'{}\'))"  > pathTree.py'.format(base64.b64encode(treeCommand)))
+        command = 'python pathTree.py'.format(treeCommand)
+        response = self.cleartoolSsh.write(command)
+        self.cleartoolSsh.write('rm pathTree.py')
+        self.cleartoolSsh.write('cd {}'.format(pwd))
+
+        try:
+            response = self.parseSshResponse(command, response)
+            response = [r for r in response if r][0]
+            response = eval(response)
+        except Exception as e:
+            print('getPathTree error: {} || response: {} '.format(e, response))
+            response = ''
+
+        return json.dumps(response)
+
+
+    def getTestDescription(self, fname):
+        """
+        Returns the title, description and all tags from a test file.
+        """
+
+        try:
+            command = 'cat {}'.format(fname)
+            response = self.cleartoolSsh.write(command)
+
+            response = self.parseSshResponse(command, response)
+
+            # response = response.splitlines()
+            # response = response[3:len(response)-1]
+
+            response = '\n'.join(response)
+        except Exception as e:
+            print('getTestDescription error: {} || response: {} '.format(e, response))
+            return ''
+
+        li_tags = re.findall('^[ ]*?[#]*?[ ]*?<(?P<tag>\w+)>([ -~\n]+?)</(?P=tag)>', response, re.MULTILINE)
+        tags = '<br>\n'.join(['<b>' + title + '</b> : ' + descr.replace('<', '&lt;') for title, descr in li_tags])
+        result = tags
+
+        command = 'cleartool ls {}'.format(fname)
+        data = self.cleartoolSsh.write(command)
+        data = self.parseSshResponse(command,data)
+        data = ''.join(data)
+
+        if data and (data.find('@@') != -1):
+            data = data.split()[0].split('@@')[1]
+            extra_info = '<b>ClearCase Version</b> : {}'.format(data)
+
+            result += '<br>\n' + extra_info
+
+        return result
+
+
+    def getTestFile(self, fname, raw=False):
+        """
+        Send 1 ClearCase file.
+        """
+
+        try:
+            command = 'cat {}'.format(fname)
+            response = self.cleartoolSsh.write(command)
+            response = self.parseSshResponse(command, response)
+
+            # response = response.splitlines()
+            # response = response[3:len(response)-1]
+
+            response = '\n'.join(response)
+
+            if raw:
+                return response
+            return response
+        except Exception as e:
+            print('getTestFile error: {} || response: {} '.format(e, response))
+            return ''
+
+
+    def setTestFile(self, fname, content):
+        """
+        Send 1 ClearCase file.
+        """
+
+        try:
+            command = 'python -c "import base64; print(base64.b64decode(\'{c}\'))"  > {f}'.format(
+                                                                c=base64.b64encode(content), f=fname)
+            response = self.cleartoolSsh.write(command)
+
+            if len(response) >= 2:
+                print('error: {}'.format(response))
+
+            return True
+        except Exception as e:
+            return ''
 
 #
 
@@ -60,66 +246,44 @@ class Plugin(BasePlugin):
         BasePlugin.__init__(self, user, data)
         self.user = user
         self.data = data
-        self.conn = None
+        passwd = self.data['ce'].getUserInfo(self.user, 'user_passwd')
+        self.conn = CC(self.user, passwd)
 
 
     def __del__(self):
-        try: self.conn.cmd({'command': 'exit'})
-        except: pass
+        """  """
+
+        print('EXIT PLUGIN')
         del self.user
         del self.data
         del self.conn
-
-
-    def _connect(self):
-
-        # Searching for a free port in the safe range...
-        while 1:
-            free = False
-            port = random.randrange(59000, 60000)
-            try:
-                socket.create_connection((None, port), 1)
-            except:
-                free = True
-            if free: break
-
-        p_cmd = 'su {} -c "{} -u {}/plugins/ClearCaseSrv.py {}"'.format(self.user, sys.executable, TWISTER_PATH, port)
-        proc = subprocess.Popen(p_cmd, cwd='{}/twister'.format(userHome(self.user)), shell=True)
-        proc.poll()
-
-        time.sleep(0.5)
-        print('CC Srv for user `{}` launched on `127.0.0.1:{}` - PID `{}`.'.format(self.user, port, proc.pid))
-
-        try:
-            self.conn = xmlrpclib.ServerProxy('http://127.0.0.1:{}/'.format(port))
-            self.conn.hello()
-        except Exception as e:
-            print('Cannot connect to CC Srv on `127.0.0.1:{}` - `{}` !'.format(port, e))
-            proc.terminate()
-            self.conn = None
-            del self.data['clear_case_view']
-            return False
-
-        return True
 
 
     def run(self, args):
         """
         Called for every command
         """
-        # Create connection ...
-        if not isinstance(self.conn, xmlrpclib.ServerProxy):
-            resp = self._connect()
-            # Connection failed !
-            if not resp:
+
+        if args['command'] == 'get_path_tree':
+            if not args.has_key('path'):
                 return False
-        try:
-            self.conn.hello()
-        except:
-            resp = self._connect()
-            # Connection failed !
-            if not resp:
+            return self.getPathTree(args['path'])
+
+        elif args['command'] == 'get_test_file':
+            if not args.has_key('file_name'):
                 return False
+            return self.getTestFile(args['file_name'], True)
+
+        elif args['command'] == 'get_test_description':
+            if not args.has_key('file_name'):
+                return False
+            return self.getTestDescription('user', args['file_name'])
+
+        elif args['command'] == 'set_test_file':
+            if not args.has_key('file_name') or not args.has_key('content'):
+                return False
+            return self.setTestFile(args['file_name'], args['content'])
+
         try:
             resp = self.conn.cmd(args)
         except Exception as e:
@@ -133,6 +297,7 @@ class Plugin(BasePlugin):
         """
         Called on project start.
         """
+
         # No data provided ?
         if not clear_case_view:
             print('CC Plug-in onStart: ClearCase View empty `{}`! Your tests will NOT run!'.format(clear_case_view))
@@ -141,33 +306,27 @@ class Plugin(BasePlugin):
         print('CC Plug-in: Changing ClearCase View to `{}`.'.format(clear_case_view))
 
         self.data['clear_case_view'] = clear_case_view
-        self.run( {'command': 'setview {}'.format(clear_case_view)} )
+        self.run( {'command': 'cleartool setview {}'.format(clear_case_view)} )
 
 
-    def onStop(self, *arg, **kwarg):
-        """
-        Called on project stop.
-        """
-        # Test connection ...
-        if not isinstance(self.conn, xmlrpclib.ServerProxy):
-            return True
+    def getPathTree(self, path):
+        """  """
         try:
-            self.conn.hello()
-        except:
-            return True
-        try:
-            resp = self.conn.cmd({'command': 'exit'})
+            return self.conn.getPathTree(path)
         except Exception as e:
-            return True
+            print('getPathTree error: {}'.format(e))
+            return ''
 
 
-    def getTestFile(self, fname):
+    def getTestFile(self, fname, raw=False):
         """
         Send 1 ClearCase file.
         """
+
         try:
-            return self.conn.getTestFile(fname)
+            return self.conn.getTestFile(fname, raw)
         except Exception as e:
+            print('getTestFile error: {}'.format(e))
             return ''
 
 
@@ -175,9 +334,23 @@ class Plugin(BasePlugin):
         """
         Returns the title, description and all tags from a test file.
         """
+
         try:
-            return self.conn.getTestDescription(user, fname)
+            return self.conn.getTestDescription(fname)
         except Exception as e:
+            print('getTestDescription error: {}'.format(e))
+            return ''
+
+
+    def setTestFile(self, fname, content):
+        """
+        Save 1 ClearCase file.
+        """
+
+        try:
+            return self.conn.setTestFile(fname, content)
+        except Exception as e:
+            print('getTestFile error: {}'.format(e))
             return ''
 
 #
@@ -194,3 +367,4 @@ class Plugin(BasePlugin):
 </Plugin>
 
 """
+

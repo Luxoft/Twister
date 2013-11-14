@@ -1,6 +1,6 @@
 # File: TscSshLib.py ; This file is part of Twister.
 
-# version: 2.001
+# version: 2.003
 #
 # Copyright (C) 2012-2013 , Luxoft
 #
@@ -27,11 +27,11 @@
 """
 
 
-from time import sleep
+import time
 
-from paramiko import Transport
+import paramiko
 
-__all__ = ['SshManager', 'SshConnection']
+__all__ = ['SshManager', 'SshConnection', 'SshShell']
 
 #
 
@@ -42,17 +42,25 @@ class SshManager(object):
         """ init """
 
         # connections are paramiko.SSHClient instances
-        self.connections = {}
+        self.connections = dict()
 
         # active connection name; is used for all commands as default
         # if no name is specified
         self.activeConnection = None
 
 
-    def open_connection(self, name, host, user=None, password=None, port=22):
+    def open_connection(self, name, host, user=None, password=None, port=22, _type='shell'):
         """ open a new paramiko.Transport instance and add it to manager list """
 
-        if not self.connections.has_key(name):
+        if not _type in ['shell', 'session']:
+            return False
+
+        if not self.connections.has_key(name) and _type == 'shell':
+            connection = SshShell(name, host, port, user, password)
+            self.connections.update([(name, connection), ])
+
+            return True
+        elif not self.connections.has_key(name) and _type == 'session':
             connection = SshConnection(name, host, port, user, password)
             self.connections.update([(name, connection), ])
 
@@ -63,7 +71,7 @@ class SshManager(object):
 
             return False
 
-    def write(self, command, name=None):
+    def write(self, command, result=True, name=None):
         """ write command to ssh connection """
 
         if ((not name and not self.activeConnection) or
@@ -72,9 +80,9 @@ class SshManager(object):
             return False
 
         if name:
-            return self.connections[name].write(command)
+            return self.connections[name].write(command, result)
         elif self.activeConnection:
-            return self.connections[self.activeConnection].write(command)
+            return self.connections[self.activeConnection].write(command, result)
 
         return False
 
@@ -190,19 +198,19 @@ class SshConnection:
             'pass': password
         }
         self.name = name
-        self.timeout = 4
+        self.timeout = 2
 
         self.nbytes = 4096
 
         try:
-            self.connection =  Transport((self.host, self.port))
+            self.connection = paramiko.Transport((self.host, self.port))
             self.connection.connect(username=self.loginAccount['user'],
                                     password=self.loginAccount['pass'])
             self.connection.set_keepalive(self.timeout)
-            self.session = self.connection.open_channel(kind='session')
+            #self.session = self.connection.open_channel(kind='session')
 
             print('ssh connection created!')
-        except Exception, e:
+        except Exception as e:
             self.__del__()
             print('ssh connection failed: {er}'.format(er=e))
 
@@ -216,7 +224,7 @@ class SshConnection:
                 print 'exit status: ', self.session.recv_exit_status()
         if self.connection:
             self.connection.close()
-        sleep(2)
+        time.sleep(2)
         del(self)
 
 
@@ -233,8 +241,18 @@ class SshConnection:
     def read(self):
         """ read from ssh connection """
 
+        self.session = self.connection.open_channel(kind='session')
+
         if not self.session or not self.session.active:
             return False
+
+        d1 = time.time()
+        while not self.session.recv_ready():
+            time.sleep(2)
+
+            d2 = time.time()
+            if int(d2 - d1) > self.timeout:
+                break
 
         if self.session.recv_stderr_ready():
             print self.session.recv_stderr(self.nbytes)
@@ -242,23 +260,207 @@ class SshConnection:
         if self.session.recv_ready():
             return self.session.recv(self.nbytes)
 
+        if self.session.exit_status_ready():
+            return False
+
         return False
 
 
     def write(self, command, result=True):
         """ write command to ssh connection """
 
+        self.session = self.connection.open_channel(kind='session')
+
         if not self.session or not self.session.active:
             return False
 
         self.session.exec_command(command)
 
-        if self.session.recv_stderr_ready():
-            print self.session.recv_stderr(self.nbytes)
-
         if result:
-            sleep(2)
-            if self.session.recv_ready():
-                return self.session.recv(self.nbytes)
+            return self.read()
 
         return False
+
+
+class SshShell:
+    """ tsc ssh connection """
+
+    def __init__(self, name, host, port=22, user=None, password=None):
+        """ init """
+
+        self.connection = None
+        self.session = None
+        self.host = host
+        self.port = port
+        self.loginAccount = {
+            'user': user,
+            'pass': password
+        }
+        self.name = name
+        self.timeout = 0.2
+
+        self.nbytes = 4096
+        self.prompt = ''
+
+        try:
+            self.connection = paramiko.SSHClient()
+            self.connection.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            self.connection.connect(host,
+                                    username=self.loginAccount['user'],
+                                    password=self.loginAccount['pass'])
+            self.session = self.connection.invoke_shell(term='xterm', width=256, height=24)
+            self.session.settimeout(self.timeout)
+            self.setPrompt()
+
+            print('CC_LIB: ssh connection created!')
+        except Exception as e:
+            print('CC_LIB: ssh connection failed: {er}'.format(er=e))
+
+
+    def __del__(self):
+        """ delete """
+
+        if self.session:
+            self.session.close()
+            if self.session.exit_status_ready():
+                print 'CC_LIB: exit status: ', self.session.recv_exit_status()
+        if self.connection:
+            self.connection.close()
+        time.sleep(2)
+        del(self)
+
+
+    def set_timeout(self, timeout):
+        """ set timeout for operations on ssh connection """
+
+        if isinstance(timeout, int):
+            self.timeout = [0, timeout][timeout > 0]
+            if self.session:
+                self.session.settimeout(self.timeout)
+            return True
+
+        return False
+
+
+    def read(self, timeout=True, prompt_set=True):
+        """  read from ssh connection """
+
+        if not self.session or not self.session.active:
+            return False
+
+        if self.session.recv_stderr_ready():
+            print self.session.recv_stderr(self.nbytes)
+            return False
+
+        readBuffer = ''
+        d1 = time.time()
+        while not self.session.recv_ready():
+            time.sleep(1)
+
+            d2 = time.time()
+            # wait at most 20 minutes
+            if (((int(d2 - d1) > self.timeout) and timeout) or int(d2 - d1) > 1200):
+                break
+
+        if self.session.recv_ready():
+            if prompt_set:
+                # read output untill last line is the one with the prompt
+                last_line = '\n' + self.prompt
+                while True:
+                    try:
+                        resp = self.session.recv(self.nbytes)
+                        readBuffer += resp
+                        # check if it's the prompt line
+                        #print('CC_LIB buffer: `{}`.'.format(readBuffer))
+                        if last_line == readBuffer[-(len(self.prompt)+1):]:
+                            #print('CC_LIB Found last line `{}`.'.format(last_line))
+                            break;
+                        time.sleep(0.5)
+                    except Exception as e:
+                        print('CC_LIB: Read retry; prompt is set to `{}`.'.format(self.prompt))
+            else:
+                # No prompt is set; just try to read untill timeout;
+                # repeat 5 times
+                iter = 0
+                while iter < 5:
+                    try:
+                        resp = self.session.recv(self.nbytes)
+                        readBuffer += resp
+                        time.sleep(0.5)
+                    except Exception as e:
+                        pass
+                    iter += 1
+
+            return readBuffer
+
+        if self.session.exit_status_ready():
+            return False
+
+        return False
+
+
+    def write(self, command, result=True, read_timeout=False):
+        """ write command to ssh connection """
+
+        #print('CC_LIB Got command `{}`.'.format(command))
+        if not self.session or not self.session.active:
+            return False
+
+        command += '\n'
+        self.session.send(command)
+
+        if (command.find('cleartool setview') != -1):
+            """ After a setview command, we need to set back the prompt """
+            self.setPrompt()
+            return ''
+
+        if result:
+            time.sleep(0.8)
+            return self.read(read_timeout)
+
+        return False
+
+    def getShell(self):
+        """ Get the shell for this user to know how to set the prompt """
+        if not self.session or not self.session.active:
+            return False
+
+        tmp_buffer = ""
+        tmp_buffer = self.write('echo $SHELL')
+        """ the SHELL is displayed just before the prompt line """
+        tmp_buffer = tmp_buffer.splitlines()#('\r\n')
+        shell = tmp_buffer[len(tmp_buffer) - 2]
+
+        """ shell line contains the full path; we need only the name """
+        shell = shell.split('/')
+        shell = shell[len(shell)-1]
+
+        return shell
+
+    def setPrompt(self):
+        """ Set prompt to twister_prompt# """
+
+        if not self.session or not self.session.active:
+            return False
+
+        """ we have to do a first read to get the initial prompt """
+        welcome_msg = self.read(True, False)
+        welcome_msg = welcome_msg.splitlines()#('\r\n')
+        """ last line is the prompt """
+        self.prompt = welcome_msg[len(welcome_msg)-1]
+
+        """ get the shell to know how to set the new prompt """
+        shell = self.getShell()
+
+        """ set the new prompt, depending on shell type """
+        if shell == 'tcsh' or shell == 'csh':
+            self.prompt = 'twister_prompt#'
+            self.write('set prompt=\"twister_prompt#\"')
+        elif shell == 'bash' or shell == 'ksh':
+            self.prompt = 'twister_prompt#'
+            self.write('export PS1=\"twister_prompt#\"')
+
+        self.read()
+
+        return True
+

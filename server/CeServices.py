@@ -1,7 +1,7 @@
 
 # File: CeServices.py ; This file is part of Twister.
 
-# version: 2.002
+# version: 2.003
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -169,16 +169,16 @@ class ServiceManager(object):
             tprocess.poll()
 
             if tprocess.returncode is None:
-                logDebug('SM: Service name `{0}` is already running with PID `{1}`.'.format(
+                logDebug('SM: Service name `{}` is already running with PID `{}`.'.format(
                     service['name'], tprocess.pid))
                 return True
 
         del tprocess
 
-        script_path = '{0}/services/{1}/{2}'.format(TWISTER_PATH, service['name'], service['script'])
+        script_path = '{}/services/{}/{}'.format(TWISTER_PATH, service['name'], service['script'])
 
         if service['config']:
-            config_path = '{0}/services/{1}/{2}'.format(TWISTER_PATH, service['name'], service['config'])
+            config_path = '{}/services/{}/{}'.format(TWISTER_PATH, service['name'], service['config'])
         else:
             config_path = ''
 
@@ -198,7 +198,7 @@ class ServiceManager(object):
         env = os.environ
         env.update({'TWISTER_PATH': TWISTER_PATH})
 
-        log_path = '{0}/services/{1}/{2}'.format(TWISTER_PATH, service['name'], service['logfile'])
+        log_path = '{}/services/{}/{}'.format(TWISTER_PATH, service['name'], service['logfile'])
         logs_dir = os.path.split(log_path)[0]
 
         if not os.path.isdir(logs_dir):
@@ -207,11 +207,11 @@ class ServiceManager(object):
 
         with open(log_path, 'wb') as out:
             try:
-                tprocess = subprocess.Popen(['python', '-u', script_path, config_path],
+                tprocess = subprocess.Popen([sys.executable, '-u', script_path, config_path],
                            stdout=out, stderr=out, env=env)
             except Exception, e:
-                error = 'SM: Cannot start service `{0}` with config file `{1}`!\n'\
-                    'Exception: `{2}`!'.format(service['name'], config_path, e)
+                error = 'SM: Cannot start service `{}` with config file `{}`!\n'\
+                    'Exception: `{}`!'.format(service['name'], config_path, e)
                 logError(error)
                 return error
 
@@ -225,20 +225,20 @@ class ServiceManager(object):
 
         rc = self.serviceStatus(service)
         if not rc:
-            logDebug('SM: Service name `{0}` is not running.'.format(service['name']))
+            logDebug('SM: Service name `{}` is not running.'.format(service['name']))
             return False
 
         tprocess = service.get('pid', 0)
 
         if isinstance(tprocess, int):
-            logError('SM: Cannot stop service `{0}`!'.format(service['name']))
+            logError('SM: Cannot stop service `{}`!'.format(service['name']))
 
         try:
             tprocess.terminate()
-            logWarning('SM: Stopped service: `{0}`.'.format(service['name']))
+            logWarning('SM: Stopped service: `{}`.'.format(service['name']))
             return True
         except Exception, e:
-            logError('SM: Cannot stop service: `{0}`, exception `{1}`!'.format(service['name'], e))
+            logError('SM: Cannot stop service: `{}`, exception `{}`!'.format(service['name'], e))
             return False
 
 
@@ -246,20 +246,20 @@ class ServiceManager(object):
 
         rc = self.serviceStatus(service)
         if not rc:
-            logDebug('SM: Service name `{0}` is not running.'.format(service['name']))
+            logDebug('SM: Service name `{}` is not running.'.format(service['name']))
             return False
 
         tprocess = service.get('pid', 0)
 
         if isinstance(tprocess, int):
-            logError('SM: Cannot kill service `{0}`!'.format(service['name']))
+            logError('SM: Cannot kill service `{}`!'.format(service['name']))
 
         try:
             tprocess.kill()
-            logError('SM: Killed service: `{0}`.'.format(service['name']))
+            logError('SM: Killed service: `{}`.'.format(service['name']))
             return True
         except Exception, e:
-            logError('SM: Cannot stop service: `{0}`, exception `{1}`!'.format(service['name'], e))
+            logError('SM: Cannot stop service: `{}`, exception `{}`!'.format(service['name'], e))
             return False
 
 
