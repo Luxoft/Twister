@@ -1,6 +1,6 @@
 #!/usr/bin/env python2.7
 
-# version: 2.008
+# version: 2.009
 
 # File: CentralEngine.py ; This file is part of Twister.
 
@@ -99,6 +99,11 @@ if __name__ == "__main__":
     # CE is the XML-RPC interface
     ce = CeXmlRpc(proj)
 
+    def close():
+        global proj, rpycServer
+        rpycServer.close()
+        del proj.manager
+
     proj.ip_port = ('127.0.0.1', serverPort)
     ce.web = proj.web
     ce.ra  = proj.ra
@@ -111,7 +116,7 @@ if __name__ == "__main__":
     # Less spam please !
     rpycServer.logger.setLevel(30)
 
-    # start rpyc server
+    # Start rpyc server
     thread.start_new_thread(rpycServer.start, ())
     logInfo('RPYC Serving on 0.0.0.0:{}'.format(rpycPort))
 
@@ -137,6 +142,7 @@ if __name__ == "__main__":
         }
 
     # Start !
+    cherrypy.engine.signal_handler.handlers['SIGTERM'] = close
     cherrypy.quickstart(ce, '/', config=conf)
 
 #

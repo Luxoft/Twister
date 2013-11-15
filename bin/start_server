@@ -2,7 +2,7 @@
 
 # File: start_server ; This file is part of Twister.
 
-# version: 2.001
+# version: 2.002
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -38,6 +38,8 @@ then
         echo Twister Server is not running.
     else
         echo Killing Twister Server, PID $pid ...
+        kill -15 $pid
+        sleep 0.1
         kill -9 $pid
     fi
     if [ -z "$log" ]
