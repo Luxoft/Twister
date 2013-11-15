@@ -1,6 +1,6 @@
 #!/usr/bin/env python2.7
 
-# version: 2.007
+# version: 2.008
 
 # File: CentralEngine.py ; This file is part of Twister.
 
@@ -85,18 +85,12 @@ if __name__ == "__main__":
         'allow_all_attrs': True,
         }
 
-    # Search for a free port in the safe range to start the RPyc server...
-    rpycPort, maxPort = 8008, 8040
-    while rpycPort <= maxPort:
-        try:
-            rpycServer = ThreadPoolServer(CeRpycService, port=rpycPort, protocol_config=config)
-        except:
-            rpycServer = None
-            rpycPort += 1
-        # Server created ?
-        if rpycServer: break
-    if not rpycServer:
-        logCritical('Twister Server: Cannot launch the RPyc server!')
+    # Diff RPyc port
+    rpycPort = serverPort + 10
+    try:
+        rpycServer = ThreadPoolServer(CeRpycService, port=rpycPort, protocol_config=config)
+    except:
+        logCritical('Twister Server: Cannot launch the RPyc server on port `{}`!'.format(rpycPort))
         exit(1)
 
     # Project manager does everything

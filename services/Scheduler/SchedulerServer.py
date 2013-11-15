@@ -1,7 +1,7 @@
 
 # File: SchedulerServer.py ; This file is part of Twister.
 
-# version: 2.002
+# version: 2.003
 
 # Copyright (C) 2012 , Luxoft
 
@@ -109,7 +109,6 @@ class SchedulerServer(_cptools.XMLRPCController):
 
         global __config__
         log.debug('Initializing Server on http://{sched_ip}:{sched_port}/ ...'.format(**__config__))
-        self.conn = xmlrpclib.ServerProxy('http://{ce_ip}:{ce_port}/'.format(**__config__))
         self.acc_lock = thread.allocate_lock() # Task change lock
         self.tasks = {}
         self._load(v=True)
@@ -432,7 +431,7 @@ class threadCheckTasks(threading.Thread):
                 log.debug('Disconnected from the Central Engine. Will reconnect...')
                 proxy = None
         else:
-            log.debug('Connect to the Central Engine for the first time.')
+            log.debug('Connect to the Central Engine...')
             proxy = None
 
         proxy = xmlrpclib.ServerProxy('http://{u}:EP@{ce_ip}:{ce_port}/'.format(u=user, **__config__))
@@ -497,7 +496,9 @@ class threadCheckTasks(threading.Thread):
 
                 proxy = self.getConnection(user)
                 # No connection for this user
-                if not isinstance(proxy, xmlrpclib.ServerProxy): continue
+                if not isinstance(proxy, xmlrpclib.ServerProxy):
+                    time.sleep(2)
+                    continue
 
                 proj_dt, proj_type = _fix_date(proj_dt)
                 if not proj_dt: continue
@@ -541,7 +542,7 @@ def load_config():
     global __dir__
     cfg_folder = __dir__ + '/config.ini'
     cfg_dict   =  {'ce_ip': '127.0.0.1', 'ce_port': '8000',
-                   'sched_ip': '0.0.0.0', 'sched_port': '333'}
+                   'sched_ip': '0.0.0.0', 'sched_port': '88'}
     cfg = SafeConfigParser({'ALL': '0.0.0.0'})
     cfg.read(cfg_folder)
 
@@ -573,7 +574,7 @@ if __name__ == '__main__':
     programExit = False
 
 
-    LOGS_PATH = __dir__ + '/logs/'
+    LOGS_PATH = __dir__ + '/Logs/'
     if not os.path.exists(LOGS_PATH):
         os.makedirs(LOGS_PATH)
 
