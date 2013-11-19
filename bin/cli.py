@@ -1,6 +1,6 @@
 #!/usr/bin/env python2.7
 
-# version: 2.016
+# version: 2.017
 
 # File: cli.py ; This file is part of Twister.
 
@@ -113,8 +113,8 @@ def checkStatus(proxy, user, extra=True):
 
 	s_dict = {
 		'status': all_stat,
-		'date': '',
-		'time': '',
+		'date': proxy.getUserVariable('start_time'),
+		'time': proxy.getUserVariable('elapsed_time'),
 		'texec':  len(stats),
 		'tpend':  stats.count(STATUS_PENDING) + stats.count(-1),
 		'twork':  stats.count(STATUS_WORKING),
@@ -232,7 +232,7 @@ def runTest(user, sut, fname):
 	r = proxy.setPersistentFile(user, 'Suite1', fname, {})
 	print('Added file: `{}`.'.format(fname))
 	print('Started execution!...')
-	proxy.setExecStatusAll(2)
+	proxy.setEpStatusAll(2)
 	while 1:
 		status = proxy.getExecStatusAll()
 		if status.startswith('stopped'):
@@ -301,8 +301,8 @@ if __name__ == '__main__':
 	parser.set_defaults(users=None,eps=None,stats=None,details=None,status_details=None)
 
 	# The most important option is the server.
-	parser.add_option("--server",      action="store", default="127.0.0.1:8008",
-		help="The Central Engine IP : port (default= 127.0.0.1:8008)")
+	parser.add_option("--server",      action="store", default="127.0.0.1:8010",
+		help="The Central Engine IP : port (default= 127.0.0.1:8010)")
 	# The second important option is the user and password.
 	parser.add_option("--login",      action="store", default="user:password",
 		help="Login on the Central Engine with user : password (default= user:password)")
@@ -369,7 +369,7 @@ if __name__ == '__main__':
 	# Connect to RPyc server
 	try:
 		ce = rpyc.connect(ce_ip, ce_port, config=config)
-		ce.root.hello('CLI')
+		ce.root.hello('CLI::' + user)
 	except Exception as e:
 		print('*ERROR* Cannot connect to CE path `{}:{}`! Exception: `{}`!\n'.format(ce_ip, ce_port, e))
 		exit(1)
@@ -466,15 +466,15 @@ if __name__ == '__main__':
 
 	if options.set == 'start':
 		print 'Starting...'
-		print proxy.setExecStatusAll(user, 2, options.config + ',' + options.project)
+		print proxy.setEpStatusAll(2, options.config + ',' + options.project)
 
 	elif options.set == 'stop':
 		print 'Stopping...',
-		print proxy.setExecStatusAll(user, 0, options.config + ',' + options.project)
+		print proxy.setEpStatusAll(0, options.config + ',' + options.project)
 
 	elif options.set == 'pause':
 		print 'Sending pause...',
-		print proxy.setExecStatusAll(user, 1, options.config + ',' + options.project)
+		print proxy.setEpStatusAll(1, options.config + ',' + options.project)
 
 	print
 
