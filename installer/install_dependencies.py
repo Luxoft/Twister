@@ -1,6 +1,6 @@
 #!/usr/bin/env python2.7
 
-# version: 2.003
+# version: 2.004
 
 # File: install.py ; This file is part of Twister.
 
@@ -68,6 +68,14 @@ if __dir__: os.chdir(__dir__)
 
 # Python executable. Alternatively, it can be "python2.7".
 PYTHON_EXE = sys.executable
+
+if not PYTHON_EXE:
+    try: PYTHON_EXE = subprocess.check_output('which python2.7', shell=True).strip()
+    except Exception as e: print(e)
+
+if not PYTHON_EXE:
+    print('*ERROR* Cannot find the current python executable in {} !\nExiting!\n'.format(os.getenv('PATH')))
+    exit(1)
 
 # --------------------------------------------------------------------------------------------------
 # Dependencies lists and configs

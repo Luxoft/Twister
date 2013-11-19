@@ -47,9 +47,7 @@ from distutils import dir_util
 __dir__ = os.path.split(__file__)[0]
 if __dir__: os.chdir(__dir__)
 
-# Python executable. Alternatively, it can be "python2.7".
-PYTHON_EXE = sys.executable
-
+# Need the username for NIS machines, where the ROOT cannot access the user documents !
 def userHome(user):
     return subprocess.check_output('echo ~' + user, shell=True).strip()
 
