@@ -340,6 +340,9 @@ class TwisterRunner(cli.Application):
         }
 
         ce = proxy()
+        if not ce:
+            print('Farewell!')
+            exit()
 
         # Inject all known info about this EP
         ep_host = socket.gethostname()
