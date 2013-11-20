@@ -179,7 +179,7 @@ class Sniffer(Automaton):
 			try:
 				# Try to connect to CE!
 				connection = rpycConnect(host=ce[0],
-											port=int(ce[1]),
+											port=int(ce[1]) + 10,
 											service=PacketSnifferService,
 											config={
 												'allow_all_attrs': True,

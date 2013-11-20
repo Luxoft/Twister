@@ -1,6 +1,6 @@
 #!/usr/bin/env python2.7
 
-# version: 2.017
+# version: 2.018
 
 # File: cli.py ; This file is part of Twister.
 
@@ -301,8 +301,8 @@ if __name__ == '__main__':
 	parser.set_defaults(users=None,eps=None,stats=None,details=None,status_details=None)
 
 	# The most important option is the server.
-	parser.add_option("--server",      action="store", default="127.0.0.1:8010",
-		help="The Central Engine IP : port (default= 127.0.0.1:8010)")
+	parser.add_option("--server",      action="store", default="127.0.0.1:8000",
+		help="The Central Engine IP : port (default= 127.0.0.1:8000)")
 	# The second important option is the user and password.
 	parser.add_option("--login",      action="store", default="user:password",
 		help="Login on the Central Engine with user : password (default= user:password)")
@@ -349,7 +349,8 @@ if __name__ == '__main__':
 	if options.server:
 		try:
 			ce_ip, ce_port = options.server.split(':')
-			ce_port = int(ce_port)
+			# Transform XML-RPC port into RPyc Port; RPyc port = XML-RPC port + 10 !
+			ce_port = int(ce_port) + 10
 		except:
 			print('Cannot split the CE IP:Port combination `{}` ! Exiting !\n'.format(options.server))
 			exit(1)

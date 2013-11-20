@@ -1,7 +1,7 @@
 
 # File: CeProject.py ; This file is part of Twister.
 
-# version: 2.050
+# version: 2.051
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -408,7 +408,7 @@ class Project(object):
         self.test_ids[user] = []
 
         # List with all registered EPs for this User
-        epList = self.rsrv.exposed_registeredEps(user)
+        epList = self.rsrv.service.exposed_registeredEps(user)
 
         if not epList:
             logWarning('User `{}` doesn\'t have any registered EPs to run the tests!'.format(user))
@@ -1291,9 +1291,9 @@ class Project(object):
 
         # Send start/ stop command to EP !
         if new_status == STATUS_RUNNING:
-            self.rsrv.exposed_startEP(epname, user)
+            self.rsrv.service.exposed_startEP(epname, user)
         elif new_status == STATUS_STOP:
-            self.rsrv.exposed_stopEP(epname, user)
+            self.rsrv.service.exposed_stopEP(epname, user)
 
         # If all Stations are stopped, the status for current user is also stop!
         # This is important, so that in the Java GUI, the buttons will change to [Play | Stop]
@@ -1484,7 +1484,7 @@ class Project(object):
             del parser, plugins
 
             # Before starting the EPs and changing the user status, check if there are any EPs
-            epList = self.rsrv.exposed_registeredEps(user)
+            epList = self.rsrv.service.exposed_registeredEps(user)
 
             if not epList:
                 logWarning('CANNOT START! User `{}` doesn\'t have any registered EPs to run the tests!'.format(user))
@@ -1498,7 +1498,7 @@ class Project(object):
                 # Set the NEW EP status
                 self.setEpInfo(user, epname, 'status', new_status)
                 # Send START to EP Manager
-                self.rsrv.exposed_startEP(epname, user)
+                self.rsrv.service.exposed_startEP(epname, user)
 
         # If the engine is running, or paused and it received STOP from the user...
         elif (executionStatus == STATUS_RUNNING or executionStatus == STATUS_PAUSED) and new_status == STATUS_STOP:
@@ -1543,7 +1543,7 @@ class Project(object):
                 # Set the NEW EP status
                 self.setEpInfo(user, epname, 'status', new_status)
                 # Send STOP to EP Manager
-                self.rsrv.exposed_stopEP(epname, user)
+                self.rsrv.service.exposed_stopEP(epname, user)
 
             if statuses_changed:
                 logDebug('Set Status: Changed `{}` file statuses from Pending to Not executed.'.format(statuses_changed))

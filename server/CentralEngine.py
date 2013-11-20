@@ -95,7 +95,7 @@ if __name__ == "__main__":
 
     # Project manager does everything
     proj = Project()
-    proj.rsrv = rpycServer.service
+    proj.rsrv = rpycServer
     # CE is the XML-RPC interface
     ce = CeXmlRpc(proj)
 

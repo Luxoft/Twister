@@ -1,7 +1,7 @@
 
 # File: TscCommonLib.py ; This file is part of Twister.
 
-# version: 2.005
+# version: 2.006
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -88,7 +88,9 @@ class TscCommonLib(object):
         # If the old connection is broken, connect to the RPyc server
         try:
             ce_ip, ce_port = self.proxy_path.split(':')
-            proxy = rpyc.connect(ce_ip, int(ce_port), config=config)
+            # Transform XML-RPC port into RPyc Port; RPyc port = XML-RPC port + 10 !
+            ce_port = int(ce_port) + 10
+            proxy = rpyc.connect(ce_ip, , config=config)
             proxy.root.hello('lib::{}'.format(self.epName))
         except:
             print('*ERROR* Cannot connect to CE path `{}`! Exiting!'.format(self.proxy_path))

@@ -1,6 +1,6 @@
 #!/usr/bin/env python2.7
 
-# version: 2.011
+# version: 2.012
 
 # File: ExecutionProcess.py ; This file is part of Twister.
 
@@ -137,7 +137,8 @@ def proxy():
     with proxyLock:
         # If the old connection is broken, connect to the RPyc server
         try:
-            p = rpyc.connect(ce_ip, int(ce_port), config=config)
+            # Transform XML-RPC port into RPyc Port; RPyc port = XML-RPC port + 10 !
+            p = rpyc.connect(ce_ip, int(ce_port) + 10, config=config)
             p.root.hello('ep::{}'.format(epName))
         except:
             print('*ERROR* Cannot connect to CE path `{}`! Exiting!'.format(cePath))

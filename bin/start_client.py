@@ -2,7 +2,7 @@
 
 # File: start_client.py ; This file is part of Twister.
 
-# version: 1.007
+# version: 1.008
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -110,7 +110,7 @@ class TwisterClient(object):
             PID = int(li[0])
             del li[1:4]
             if li[1] == '/bin/sh' and li[2] == '-c': continue
-            print('Killing Zombie {} `{}`'.format(descr, ' '.join(li)))
+            print('Killing ugly zombie {} `{}`'.format(descr, ' '.join(li)))
             try:
                 os.kill(PID, 9)
             except:
@@ -194,6 +194,9 @@ class TwisterClient(object):
         proxy = None
         ce_ip, ce_port = cePath.split(':')
         ce_port = int(ce_port)
+
+        # Transform XML-RPC port into RPyc Port; RPyc port = XML-RPC port + 10 !
+        ce_port += 10
 
         with self.proxyLock:
             # Try to re-use the old Central Engine connection
