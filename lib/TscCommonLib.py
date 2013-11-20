@@ -90,7 +90,7 @@ class TscCommonLib(object):
             ce_ip, ce_port = self.proxy_path.split(':')
             # Transform XML-RPC port into RPyc Port; RPyc port = XML-RPC port + 10 !
             ce_port = int(ce_port) + 10
-            proxy = rpyc.connect(ce_ip, , config=config)
+            proxy = rpyc.connect(ce_ip, ce_port, config=config)
             proxy.root.hello('lib::{}'.format(self.epName))
         except:
             print('*ERROR* Cannot connect to CE path `{}`! Exiting!'.format(self.proxy_path))
