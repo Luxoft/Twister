@@ -1,6 +1,6 @@
 #!/usr/bin/env python2.7
 
-# version: 2.003
+# version: 3.000
 
 # This file will start Packet Sniffer
 # File: start_packet_sniffer.py ; This file is part of Twister.
@@ -45,7 +45,7 @@ if __dir__: chdir(__dir__)
 
 
 
-def __main__():
+if __name__ == "__main__":
     usage = 'Usage: %prog --of_port <port>'
     version = '%prog v1.0'
     parser = OptionParser(usage=usage, version=version)
@@ -73,40 +73,26 @@ def __main__():
 
     path.append(options.twister_path)
 
-    from common.configobj import ConfigObj
+    from ConfigParser import SafeConfigParser
 
-    from services.PacketSniffer.PacketSniffer import PacketSniffer
+    from services.PacketSniffer.PacketSniffer import Sniffer
 
     # load execution process configuration
-    epConfig = ConfigObj(options.twister_path + '/config/epname.ini')
+    _epConfig = dict()
+    epConfig = SafeConfigParser()
+    epConfig.read(options.twister_path + '/config/epname.ini')
+    for s in [_s for _s in epConfig.sections() if not _s == 'PACKETSNIFFERPLUGIN'
+                                                    and epConfig.has_option(_s, 'ENABLED')
+                                                    and epConfig.get(_s, 'ENABLED')]:
+        _epConfig.update([(s, {'CE_IP': epConfig.get(s, 'CE_IP'), 'CE_PORT': epConfig.get(s, 'CE_PORT')}), ])
 
-    snifferConfig = epConfig.pop('PACKETSNIFFERPLUGIN')
-
-    epConfig = list(epConfig.itervalues())
-
-    if not snifferConfig['ENABLED']:
-        print 'Packet Sniffer not enabled. exiting..'
-        exit(0)
-
-    try:
-        snifferIface = snifferConfig['ETH_INTERFACE']
-    except Exception, e:
-        snifferIface = 'eth0'
-
-    if options.eth_interface:
-        snifferIface = options.eth_interface
+    epConfig = list(_epConfig.itervalues())
 
     # initiate and start sniffer
-    sniffer = PacketSniffer(options.user, epConfig,
-                        options.of_port, _iface=snifferIface)
+    sniffer = Sniffer(user=options.user, epConfig=epConfig,
+                        OFPort=options.of_port, iface=options.eth_interface)
 
     print 'Packet Sniffer start..'
 
     sniffer.run()
 
-    return
-
-
-
-
-__main__()

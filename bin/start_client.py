@@ -2,7 +2,7 @@
 
 # File: start_client.py ; This file is part of Twister.
 
-# version: 2.012
+# version: 1.008
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -24,27 +24,32 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-# This file will register ALL Execution Processes that are enabled,
-# from file `twister/config/epname.ini` !
-# To be able to start the packet sniffer, this must run as ROOT.
 
-import os, sys
+"""
+This file will register ALL Execution Processes that are enabled,
+from file `twister/config/epname.ini` !
+To be able to start the Packet Sniffer, this must run as ROOT.
+"""
+from __future__ import print_function
+from __future__ import with_statement
+
+import os
+import sys
+import time
+import signal
 import socket
-socket.setdefaulttimeout(3)
-import cherrypy
-import xmlrpclib
-import subprocess
+socket.setdefaulttimeout(5)
+import thread
 import traceback
+import platform
+import subprocess
+import rpyc
 
-from time import sleep
+from pprint import pprint
 from datetime import datetime
-from cherrypy import _cptools
+from rpyc import BgServingThread
 from ConfigParser import SafeConfigParser
-from json import loads as jsonLoads, dumps as jsonDumps
-from socket import gethostname, gethostbyaddr
-from thread import start_new_thread
 
-#
 
 if not sys.version.startswith('2.7'):
     print('Python version error! The client must run on Python 2.7!')
@@ -52,67 +57,533 @@ if not sys.version.startswith('2.7'):
 
 def userHome(user):
     """ Return user home path for all kind of users """
-    return subprocess.check_output('echo ~' + user, shell=True).strip()
+    if platform.system().lower() == 'windows':
+        return os.getenv('HOME')
+    else:
+        return subprocess.check_output('echo ~' + user, shell=True).strip()
 
 try:
-    username = os.getenv('USER')
-    if username=='root':
-        username = os.getenv('SUDO_USER')
+    userName = os.getenv('USER') or os.getenv('USERNAME')
+    if userName=='root':
+        userName = os.getenv('SUDO_USER') or userName
+    print('\nHello username `{}`!'.format(userName))
 except:
-    print('Cannot guess user name for this Execution Process! Exiting!')
+    userName = ''
+if not userName:
+    print('\nCannot guess user name for the Twister Client! Exiting!\n')
     exit(1)
 
+
 # Twister path environment
-os.environ['TWISTER_PATH'] = userHome(username).rstrip('/') +os.sep+ 'twister/'
+TWISTER_PATH = userHome(userName).rstrip('/') + '/twister'
+os.environ['TWISTER_PATH'] = TWISTER_PATH
+
+
+# # #
+
+
+class TwisterClient(object):
+
+    def __init__(self):
+
+        global userName
+        self.userName = userName
+        self.hostName = socket.gethostname().lower()
+        self.epList = []
+        self.epNames = {}
+        self.proxyDict = {}
+        self.proxyLock = thread.allocate_lock()
+        # Kill all sniffers and EPs
+        self.killAll()
+        # Parse and register EPs
+        self.parseConfiguration()
+        self.registerEPs()
 
 #
 
-def keepalive(service):
-    """  """
-    print('Keep-Alive process started...')
-    service.registerEPs()
-
-    while True:
-        ce_down = list()
-        for ce in service.proxyList:
+    def _kill(self, lines, descr=''):
+        """
+        Helper function.
+        """
+        for line in lines.strip().splitlines():
+            li = line.strip().split()
+            PID = int(li[0])
+            del li[1:4]
+            if li[1] == '/bin/sh' and li[2] == '-c': continue
+            print('Killing ugly zombie {} `{}`'.format(descr, ' '.join(li)))
             try:
-                response = service.proxyList[ce].echo('ping')
-            except Exception as e:
-                ce_down.append(ce)
-
-        for ce in ce_down:
-            _proxy = ce.split(':')
-            newProxy = xmlrpclib.ServerProxy('http://{}:EP@{}:{}/'.format(service.username,
-                                                                        _proxy[0], _proxy[1]))
-            service.proxyList.update([(ce, newProxy), ])
-            for currentEP in service.eps:
-                if ('{ip}:{p}'.format(ip=service.eps[currentEP]['ce_ip'],
-                        p=service.eps[currentEP]['ce_port']) == _proxy):
-                    currentEP['proxy'] = newProxy
-
-            sleep(2.8)
-            service.registerEPs(ce)
-
-        sleep(0.8)
+                os.kill(PID, 9)
+            except:
+                pass
 
 #
 
-class TwisterClientService(_cptools.XMLRPCController):
-    """ Twister Client XML-RPC Service. """
+    def killAll(self):
+        """
+        Close all Sniffers and EPs for this user.
+        """
+        global userName
 
-    def __init__(self, username):
-        """  """
+        pids = subprocess.check_output('ps ax | grep /bin/start_packet_sniffer.py | grep "\-u {}"'.format(userName), shell=True)
+        self._kill(pids, 'Sniffer')
 
-        print('Twister Client Service init..')
-        self.username = username
-        self.hostname = gethostname().lower()
+        pids = subprocess.check_output('ps ax | grep /executionprocess/ExecutionProcess.py | grep "\-u {}"'.format(userName), shell=True)
+        self._kill(pids, 'EP')
 
-        self.snifferEth = None
+#
 
-        self.eps = dict()
-        self.proxyList = dict()
+    def _createConn(self, ce_ip, ce_port, epNames=[], debug=False):
+        """
+        Helper for creating a Central Engine connection, the most basic func.
+        """
+        config = {
+            'allow_pickle': True,
+            'allow_getattr': True,
+            'allow_setattr': True,
+            'allow_delattr': True,
+            'allow_all_attrs': True,
+        }
 
-        # Close all sniffer and ep instaces and parse eps
+        # Connect to RPyc server
+        try:
+            proxy = rpyc.connect(ce_ip, ce_port, service=TwisterClientService, config=config)
+            print('Client Debug: Connected to CE at `{}:{}`...'.format(ce_ip, ce_port))
+        except Exception as e:
+            if debug:
+                print('*ERROR* Cannot connect to CE path `{}:{}`! Exception: `{}`!'.format(ce_ip, ce_port, e))
+            return None
+
+        # Authenticate on RPyc server
+        try:
+            check = proxy.root.login(self.userName, 'EP')
+            if check: print('Client Debug: Authentication successful!')
+        except Exception as e:
+            check = False
+
+        if not check:
+            if debug:
+                print('*ERROR* Cannot authenticate on CE path `{}:{}`!'.format(ce_ip, ce_port))
+            return None
+
+        # Say Hello and Register all EPs on the current Central Engine
+        if epNames:
+            try:
+                # Call the user status to create the User Project
+                proxy.root.getUserVariable('status')
+                proxy.root.hello('client', {'eps': epNames})
+                print('Client Debug: Register EPs successful!')
+            except Exception as e:
+                print('Exception:', e)
+                check = False
+
+        if not check:
+            if debug:
+                print('*ERROR* Cannot send hello on CE path `{}:{}`!'.format(ce_ip, ce_port))
+            return None
+
+        bg = BgServingThread(proxy)
+        return proxy
+
+#
+
+    def _createConnLong(self, cePath, epNames=[]):
+        """
+        Create connection to Central Engine, return the connection and
+        auto-save it in the Proxy Dict.
+        """
+        proxy = None
+        ce_ip, ce_port = cePath.split(':')
+        ce_port = int(ce_port)
+
+        # Transform XML-RPC port into RPyc Port; RPyc port = XML-RPC port + 10 !
+        ce_port += 10
+
+        with self.proxyLock:
+            # Try to re-use the old Central Engine connection
+            proxy = self.proxyDict.get(cePath, None)
+
+            if proxy:
+                # If the hello works, the connection is just fine
+                try:
+                    proxy.root.echo('ping')
+                    print('Connection to Central Engine at `{}` is ok!'.format(cePath))
+                    return True
+                # If the hello doesn't work, it means the connection was lost/ destroyed
+                except:
+                    proxy = None
+
+        err_msg = True
+        last_time = time.time()
+        # When to print the next Warning that this thread is trying to reconnect
+        time_diff = 30
+
+        while True:
+            if not proxy:
+                # Try creating a new Central Engine connection.
+                proxy = self._createConn(ce_ip, ce_port, epNames, err_msg)
+            else:
+                break
+
+            # Save the connection, or the failed result, in a thread safe mode.
+            with self.proxyLock:
+                self.proxyDict[cePath] = proxy
+
+            if not proxy:
+                if err_msg:
+                    print('*ERROR* Cannot connect to Central Engine at `{}`! Will Retry forever and ever...'.format(cePath))
+                    err_msg = False
+                elif time.time() > last_time + time_diff:
+                    print('*ERROR* Still trying to connect to Central Engine at `{}`...'.format(cePath))
+                    last_time = time.time()
+                # Wait a little, before trying to connect again.
+                time.sleep(2)
+            else:
+                break
+
+        return True
+
+#
+
+    def lazyRegister(self, cePath, epNames):
+        """
+        Register EP Names on Central Engine.
+        Used in a thread to try and connect to the required Central Engine.
+        """
+        print('\n### Will REGISTER EPs on CE `{}` :: `{}` ###\n'.format(cePath, epNames))
+        # Cleanup all zombie processes
+        self.killAll()
+        # This operation might take a while!...
+        self._createConnLong(cePath, epNames)
+        print('\n### Success REGISTER EPs on CE `{}` :: `{}` ###\n'.format(cePath, epNames))
+
+#
+
+    def _reloadEps(self, cfg):
+        """
+        Use the config from EPNAMES to create a list of EPs, filtered by IP and Host.
+        """
+        # Sniffer config
+        snifferEth = None
+        if (cfg.has_option('PACKETSNIFFERPLUGIN', 'ETH_INTERFACE') and cfg.get('PACKETSNIFFERPLUGIN', 'ENABLED') == '1'):
+            snifferEth = cfg.get('PACKETSNIFFERPLUGIN', 'ETH_INTERFACE')
+        else:
+            snifferEth = 'eth0'
+
+        TwisterClientService.snifferEth = snifferEth
+
+        print('Sniffer eth = `{}`.'.format(snifferEth))
+        print('Building the EP list for this machine...')
+
+        # This will be a temporary list of valid EP names, filtered by IP/ host
+        self.epList = []
+
+        for ep in cfg.sections():
+            # EP disabled ?
+            if cfg.has_option(ep, 'ENABLED'):
+                if cfg.get(ep, 'ENABLED') in ['0', 'false']:
+                    print('EP `{}` is disabled.'.format(ep))
+                    continue
+            # Invalid EP tag ?
+            if not cfg.has_option(ep, 'CE_IP') or not cfg.has_option(ep, 'CE_PORT'):
+                # print('Section `{}` is not a valid EP.'.format(ep))
+                continue
+            # If this EP does NOT have a HOST filter, it's a valid EP
+            if not cfg.has_option(ep, 'EP_HOST'):
+                print('EP `{}` doesn\'t have a HOST filter, so is valid.'.format(ep))
+                self.epList.append(ep)
+                continue
+            # If the HOST filter is empty, it's a valid EP
+            if not cfg.get(ep, 'EP_HOST'):
+                print('EP `{}` has an empty HOST filter, so is valid.'.format(ep))
+                self.epList.append(ep)
+                continue
+
+            # This is an EP with EP HOST filter!
+            ep_host = cfg.get(ep, 'EP_HOST')
+            # If the host from EPNAMES matches, it's a valid EP
+            if ep_host == self.hostName:
+                print('EP `{}` has a HOST match ({}), so is valid.'.format(ep, ep_host))
+                self.epList.append(ep)
+            try:
+                # If the ip from EPNAMES matches this IP, it's a valid EP
+                if ep_host in socket.gethostbyaddr(self.hostName)[-1]:
+                    print('EP `{}` has an IP match ({}), so is valid.'.format(ep, ep_host))
+                    self.epList.append(ep)
+            except Exception as e:
+                pass
+
+            print('EP `{}` doesn\'t match with required HOST `{}`, so is ignored.'.format(ep, ep_host))
+
+        # Sort and eliminate duplicates
+        self.epList = sorted(set(self.epList))
+
+        print('Found `{}` EPs: {}.\n'.format(len(self.epList), self.epList))
+        return self.epList
+
+#
+
+    def parseConfiguration(self):
+        """
+        Parse the EPNAMES.ini and prepare to launch the Execution Processes.
+        """
+        global TWISTER_PATH
+
+        # The Config Parser instance
+        cfg = SafeConfigParser()
+        cfg.read('{}/config/epname.ini'.format(TWISTER_PATH))
+
+        self._reloadEps(cfg)
+
+        # Generate meta-data for each EP
+        for currentEP in self.epList:
+            # Incomplete EP tag ?
+            if not cfg.has_option(currentEP, 'CE_IP') or not cfg.has_option(currentEP, 'CE_PORT'):
+                continue
+
+            # A lot of meta-data for current EP
+            epData = {}
+            epData['pid']   = None
+            epData['ce_ip'] = cfg.get(currentEP, 'CE_IP')
+            epData['ce_port'] = cfg.get(currentEP, 'CE_PORT')
+
+            epData['exec_str'] = 'nohup {py} -u {path}/client/executionprocess/ExecutionProcess.py '\
+                    '-u {user} -e {ep} -s {ip}:{port} > "{path}/.twister_cache/{ep}_LIVE.log" '.format(
+                    py = sys.executable,
+                    path = TWISTER_PATH,
+                    user = self.userName,
+                    ep = currentEP,
+                    ip = epData['ce_ip'],
+                    port = epData['ce_port']
+                )
+
+            self.epNames[currentEP] = epData
+
+        del cfg
+
+#
+
+    def registerEPs(self, ce_proxy=None):
+        """
+        Register EPs to Central Engines.
+        The function is called on START and on DISCONNECT from a Central Engine.
+        """
+        if ce_proxy:
+            print('Starting Client Service register on `{}`...'.format(ce_proxy))
+        else:
+            print('Starting Client Service register...')
+
+        # print('\n----- Config Data ----')
+        # pprint(self.epNames, indent=2, width=100) # DEBUG !
+        # print('----------------------\n')
+
+        # Central Engine addrs and the EPs that must be registered for each CE
+        epsToRegister = {}
+
+        for currentEP, epData in self.epNames.iteritems():
+            cePath = '{}:{}'.format(epData['ce_ip'], epData['ce_port'])
+            # If Central Engine proxy filter is specified, use it
+            if ce_proxy and ce_proxy != epData['ce_ip']:
+                continue
+
+            epsToRegister[cePath] = [
+                ep for ep in self.epNames
+                if self.epNames[ep]['ce_ip'] == self.epNames[currentEP]['ce_ip'] and
+                self.epNames[ep]['ce_port'] == self.epNames[currentEP]['ce_port']
+              ]
+
+        print('\n------- EPs to register -------')
+        pprint(epsToRegister, indent=2, width=100)
+        print('-------------------------------\n')
+
+        # For each Central Engine address
+        for cePath, epNames in epsToRegister.iteritems():
+            if not epNames: continue
+            thread.start_new_thread( self.lazyRegister, (cePath, epNames) )
+
+        print('Register EPs function finished.\n'\
+              'If not all CE connections are made, they will be created asynchronously.')
+
+#
+
+    def run(self):
+        """
+        Blocked forever and ever.
+        """
+        while 1:
+            time.sleep(1)
+
+
+# # #
+
+
+class TwisterClientService(rpyc.Service):
+
+    connections = {}
+    config = None
+    snifferEth = None
+
+
+    def on_connect(self):
+        """
+        Runs when a connection is created (to init the service).
+        `_conn` is a weakproxy that points to this local service and the remote service.
+        `_conn._config` is a dict containing all the information about the connection.
+        `_conn.root` is the netref to the Central Engine remote service.
+        """
+        connid = self._conn._config['connid']
+        self.connections[connid] = None
+        # print('ClientService: New Client connection: `{}`.'.format(connid))
+
+
+    def on_disconnect(self):
+        """
+        Runs when the connection has already closed (to finalize the service).
+        """
+        global client
+        connid = self._conn._config['connid']
+
+        try:
+            proxy = self.connections.pop(connid)
+            if proxy: client.registerEPs(proxy)
+        except Exception as e:
+            trace = traceback.format_exc()[34:].strip()
+            print('ClientService: Disconnect Error: `{}`!'.format(trace))
+
+
+    def exposed_echo(self, msg):
+        """
+        For testing connection
+        """
+        if msg != 'ping': print(':: {}'.format(msg))
+        return 'Echo: {}'.format(msg)
+
+
+    def exposed_hello(self, proxy):
+        """
+        The first function called.
+        """
+        connid = self._conn._config['connid']
+
+        try:
+            self.connections[connid] = proxy
+            print('ClientService: Hello `{}`!'.format(proxy))
+            return True
+        except Exception as e:
+            trace = traceback.format_exc()[34:].strip()
+            print('ClientService: Error on Hello: `{}`.'.format(trace))
+            return False
+
+
+    def exposed_start_ep(self, epname):
+        """
+        Start 1 EP.
+        """
+        global userName, client
+
+        if epname not in client.epNames:
+            print('*ERROR* Unknown EP name : `{}` !'.format(epname))
+            return False
+
+        tproc = client.epNames[epname].get('pid')
+
+        if tproc:
+            print('Error: Process {} is already started for user {}! (proc={})\n'.format(epname, userName, tproc))
+            return False
+
+        exec_str = client.epNames[epname]['exec_str']
+        print('Executing: `{}`.'.format(exec_str))
+
+        try:
+            tproc = subprocess.Popen(exec_str, shell=True, preexec_fn=os.setsid)
+            client.epNames[epname]['pid'] = tproc
+        except:
+            trace = traceback.format_exc()[34:].strip()
+            print('ClientService: Error on Start EP: `{}`.'.format(trace))
+            return False
+
+        print('EP `{}` for user `{}` launched in background!\n'.format(epname, userName))
+        return True
+
+
+    def exposed_stop_ep(self, epname):
+        """
+        Stop 1 EP.
+        """
+        global userName, client
+
+        if epname not in client.epNames:
+            print('*ERROR* Unknown EP name : `{}` !'.format(epname))
+            return False
+
+        tproc = client.epNames[epname].get('pid')
+        if not tproc: return False
+
+        print('Preparing to stop EP `{}`...'.format(epname))
+        PID = tproc.pid
+
+        try:
+            os.killpg(PID, signal.SIGINT)
+            client.epNames[epname]['pid'] = None
+        except:
+            trace = traceback.format_exc()[34:].strip()
+            print('ClientService: Error on Stop EP: `{}`.'.format(trace))
+            return False
+
+        # A small delay, to allow the EP to send the logs from the buffer
+        time.sleep(0.5)
+
+        while True:
+            ps = subprocess.check_output('ps ax | grep ExecutionProcess.py | grep -u {} | grep -e {}'.format(userName, epname), shell=True)
+            ps = ps.strip().splitlines()[:-2] # Ignore the last 2 lines (the grep and shell=True)
+            # If all the processes are dead, it's ok
+            if not ps: break
+
+            for line in ps:
+                li = line.strip().split()
+                PID = li[0]
+                del li[1:4]
+                print('Killing `{}`'.format(' '.join(li)))
+                try:
+                    os.kill(int(PID), 9)
+                    client.epNames[epname]['pid'] = None
+                except:
+                    trace = traceback.format_exc()[34:].strip()
+                    print('ClientService: Error on Stop EP: `{}`.'.format(trace))
+                    # return False # No need to exit
+
+            time.sleep(0.25) # Another small delay, before checking again
+
+        print('Stopped EP `{}`! (pid = {})\n'.format(epname, PID))
+        return True
+
+
+    def exposed_start_sniffer(self):
+        """ start sniffer """
+
+        # check if already running
+        pipe = subprocess.Popen('ps ax | grep start_packet_sniffer.py',
+                                    shell=True, stdout=subprocess.PIPE).stdout
+        lines = pipe.read().splitlines()
+        del pipe
+        if len(lines) > 2:
+            return False
+
+        snifferEth = ['eth0', self.snifferEth][self.snifferEth is not None]
+
+        # start sniffer
+        scriptPath = os.path.join(TWISTER_PATH, 'bin/start_packet_sniffer.py')
+        logPath = os.path.join(TWISTER_PATH, 'sniffer_log.log')
+        command = ['python', '-u', scriptPath, '-u', userName,
+                        '-i', snifferEth, '-t', TWISTER_PATH]
+        with open(logPath, 'wb+') as logFile:
+            subprocess.Popen(command, stdout=logFile, stderr=logFile)
+
+        return True
+
+
+    def exposed_stop_sniffer(self):
+        """ stop sniffer """
+
         pipe = subprocess.Popen('ps ax | grep start_packet_sniffer.py', shell=True, stdout=subprocess.PIPE)
         for line in pipe.stdout.read().splitlines():
             try:
@@ -121,328 +592,19 @@ class TwisterClientService(_cptools.XMLRPCController):
                 pass
         del pipe
 
-        pipe = subprocess.Popen('ps ax | grep ExecutionProcess.py', shell=True, stdout=subprocess.PIPE)
-        for line in pipe.stdout.read().splitlines():
-            try:
-                os.kill(int(line.split()[0]), 9)
-            except Exception as e:
-                pass
-        del pipe
 
+# # #
 
-        cfg = SafeConfigParser()
-        cfg.read(os.getenv('TWISTER_PATH') + '/config/epname.ini')
-
-        # sniffer config
-        if (cfg.has_option('PACKETSNIFFERPLUGIN', 'ETH_INTERFACE') and
-            cfg.get('PACKETSNIFFERPLUGIN', 'ENABLED') == '1'):
-            self.snifferEth = cfg.get('PACKETSNIFFERPLUGIN', 'ETH_INTERFACE')
-        else:
-            self.snifferEth = 'eth0'
-
-
-        allow_any_host = True
-        for ep in cfg.sections():
-            # check if the config has option EP_HOST and is
-            # not commented out and it coantains an IP address
-            if cfg.has_option(ep, 'EP_HOST'):
-                host_value = (cfg.get(ep, 'EP_HOST'))
-                if host_value:
-                    allow_any_host = False
-
-        # All sections that have an option CE_IP, are EP names
-        eps = []
-
-        for ep in cfg.sections():
-            if cfg.has_option(ep, 'CE_IP') and not allow_any_host:
-                try:
-                    if self.hostname in gethostbyaddr(cfg.get(ep, 'EP_HOST'))[0].lower():
-                        eps.append(ep)
-                except Exception as e:
-                    pass
-            elif cfg.has_option(ep, 'CE_IP') and allow_any_host:
-                eps.append(ep)
-        print('Found `{}` EPs: `{}`.\n'.format(len(eps), ', '.join(eps)))
-
-        if not eps:
-            raise Exception('No EPS found!')
-
-        # Generate list of EPs and connections
-        for currentEP in eps:
-            newEP = {}
-            newEP['ce_ip'] = cfg.get(currentEP, 'CE_IP')
-            newEP['ce_port'] = cfg.get(currentEP, 'CE_PORT')
-            _proxy = '{ip}:{port}'.format(ip=newEP['ce_ip'], port=newEP['ce_port'])
-
-            if self.proxyList.has_key(_proxy):
-                # Re-use Central Engine connection
-                newEP['proxy'] = self.proxyList[_proxy]
-            else:
-                # Create a new Central Engine connection
-                newEP['proxy'] = \
-                    xmlrpclib.ServerProxy('http://{}:EP@{}:{}/'.format(self.username, newEP['ce_ip'], newEP['ce_port']))
-                self.proxyList.update([(_proxy, newEP['proxy']), ])
-
-            newEP['exec_str'] = 'nohup {python} -u {twister_path}/client/executionprocess/ExecutionProcess.py '\
-                '{user} {ep} "{ip}:{port}" {sniff} > "{twister_path}/.twister_cache/{ep}_LIVE.log" &'.format(
-                    python = sys.executable,
-                    twister_path = os.getenv('TWISTER_PATH').rstrip('/'),
-                    user = self.username,
-                    ep = currentEP,
-                    ip = newEP['ce_ip'],
-                    port = newEP['ce_port'],
-                    sniff = self.snifferEth,
-                )
-            newEP['pid'] = None
-            self.eps.update([(currentEP, newEP), ])
-
-
-    def registerEPs(self, ce_proxy=None):
-        """ Register EPs to Central Engines """
-
-        if ce_proxy:
-            print('Starting Client Service register on `{}`...'.format(ce_proxy))
-        else:
-            print('Starting Client Service register...')
-
-        # List of Central Engine connections
-        proxyEpsList = dict()
-
-        for currentEP in self.eps:
-            _proxy = '{}:{}'.format(self.eps[currentEP]['ce_ip'], self.eps[currentEP]['ce_port'])
-            # If Central Engine proxy filter is specified, use it
-            if ce_proxy and ce_proxy != _proxy:
-                continue
-
-            if not proxyEpsList.has_key(_proxy):
-                proxyEpsList[_proxy] = [
-                    ep for ep in self.eps if self.eps[ep]['ce_ip'] == self.eps[currentEP]['ce_ip'] and
-                                             self.eps[ep]['ce_port'] == self.eps[currentEP]['ce_port']
-                    ]
-
-        unregistered = True
-
-        # Try to register to Central Engine, forever
-        while unregistered:
-            ce_down = list()
-            for currentCE in proxyEpsList:
-                try:
-                    proxy = self.eps[proxyEpsList[currentCE][0]]['proxy']
-                    __proxy = proxy._ServerProxy__host.split('@')[1].split(':')
-                except Exception, e:
-                    print('CE proxy error: `{}` on `{}`.'.format(e, __proxy))
-                    continue
-
-                clientKey = ':{port}'.format(port=self.clientPort)
-                try:
-                    userCeClientInfo = proxy.getUserVariable(self.username, 'clients')
-
-                    if not userCeClientInfo:
-                        userCeClientInfo = {}
-                    else:
-                        userCeClientInfo = jsonLoads(userCeClientInfo)
-
-                    while True:
-                        ceStatus = proxy.getExecStatusAll(self.username)
-
-                        if ceStatus.startswith('invalid'):
-                            break
-                        elif ceStatus.startswith('stopped'):
-                            # Reset user project
-                            proxy.resetProject(self.username)
-                            print('User project reset.')
-                            break
-                        else:
-                            print('CE on `{}` is running with status `{}`.'.format(
-                                  proxy._ServerProxy__host.split('@')[1], ceStatus))
-                            print('Waiting to stop ...')
-                        sleep(2)
-
-                    for (prxy, eps) in userCeClientInfo.items():
-                        for ep in eps:
-                            if ep in proxyEpsList[currentCE]:
-                                print('Warning: epname {} already registered. Trying to stop..'.format(ep))
-                                try:
-                                    p = xmlrpclib.ServerProxy('http://{}:{}/twisterclient/'.format(
-                                                            prxy.split(':')[0], prxy.split(':')[1]))
-
-                                    try:
-                                        last_seen_alive = self.eps[ep]['proxy'].getEpVariable(
-                                                            self.username, ep, 'last_seen_alive')
-                                        now_dtime = datetime.today()
-                                        if last_seen_alive:
-                                            diff = now_dtime - datetime.strptime(last_seen_alive,
-                                                                            '%Y-%m-%d %H:%M:%S')
-                                            if diff.seconds <= 2.4:
-                                                proxyEpsList[currentCE].pop(proxyEpsList[currentCE].index(ep))
-                                                print('Warning: epname {} is running. Will not register.'.format(ep))
-                                        else:
-                                            p.stopEP(ep)
-                                            userCeClientInfo[prxy].pop(userCeClientInfo[prxy].index(ep))
-                                            if not userCeClientInfo[prxy]:
-                                                userCeClientInfo.pop(prxy)
-                                            print('Warning: epname {} stoped. Will register.'.format(ep))
-                                    except Exception as e:
-                                        pass
-                                except Exception as e:
-                                    pass
-
-                    if not proxyEpsList[currentCE]:
-                        continue
-
-                    userCeClientInfo.update([(clientKey, proxyEpsList[currentCE]), ])
-                    userCeClientInfo = jsonDumps(userCeClientInfo)
-
-                    proxy.registerClient(self.username, userCeClientInfo)
-                    unregistered = False
-
-                except Exception as e:
-                    ce_down.append(currentCE)
-                    print('Error: {er}'.format(er=e))
-
-            if unregistered:
-                print('Error: Central Engine is down... will retry...')
-            sleep(2)
-
-        for ce in ce_down:
-            self.proxyList.pop(ce)
-
-        print('Client is now registered on CE.\n')
-
-
-    @cherrypy.expose
-    def startEP(self, epname, *args, **kwargs):
-        """  """
-
-        if not epname in self.eps.keys():
-            print('Error: Unknown EP name : `{}` !'.format(epname))
-            return False
-
-        sleep(2.4)
-        try:
-            proxy = self.eps[epname]['proxy']
-            last_seen_alive = proxy.getEpVariable(self.username, epname, 'last_seen_alive')
-        except:
-            print('Error: Cannot connect to Central Engine to check the EP!\n')
-            trace = traceback.format_exc()[34:].strip()
-            print(trace)
-            return False
-
-        now_dtime = datetime.today()
-
-        if last_seen_alive:
-            diff = now_dtime - datetime.strptime(last_seen_alive, '%Y-%m-%d %H:%M:%S')
-            if diff.seconds < 2.5:
-                print('Error: Process {} is already started for user {}! (ping={} sec)\n'.format(
-                       epname, username, diff.seconds))
-                return False
-
-        if self.eps[epname]['pid']:
-            print('Error: Process {} is already started for user {}! (pid={})\n'.format(
-                  epname, username, self.eps[epname]['pid']))
-            return False
-
-        print('Executing: {}'.format(self.eps[epname]['exec_str']))
-        self.eps[epname]['pid'] = subprocess.Popen(
-                                  self.eps[epname]['exec_str'], shell=True, preexec_fn=os.setsid)
-        print('EP `{}` for user `{}` launched in background!\n'.format(epname, self.username))
-
-        return True
-
-
-    @cherrypy.expose
-    def stopEP(self, epname, *args, **kwargs):
-        """  """
-
-        if not epname in self.eps.keys():
-            print('Error: Unknown EP name : `{}` !'.format(epname))
-            return False
-
-        if not self.eps[epname]['pid']:
-            print('Error: EP `{}` is not running !'.format(epname))
-            return False
-
-        sleep(2.4)
-
-        try:
-            os.killpg(self.eps[epname]['pid'].pid, 9)
-            self.eps[epname]['pid'] = None
-        except:
-            trace = traceback.format_exc()[34:].strip()
-            print(trace)
-            return False
-
-        print('Stopping EP `{}` !'.format(epname))
-        return True
-
-
-    @cherrypy.expose
-    def restartEP(self, epname, *args, **kwargs):
-        """  """
-
-        if not epname in self.eps.keys():
-            print('Error: Unknown EP name : `{}` !'.format(epname))
-            return False
-
-        if self.eps[epname]['pid']:
-            try:
-                os.killpg(self.eps[epname]['pid'].pid, 9)
-                self.eps[epname]['pid'] = None
-                print('Killing EP `{}` !'.format(epname))
-            except:
-                trace = traceback.format_exc()[34:].strip()
-                print(trace)
-                return False
-
-        print('Executing: {}'.format(self.eps[epname]['exec_str']))
-        self.eps[epname]['pid'] = subprocess.Popen(
-                                  self.eps[epname]['exec_str'], shell=True, preexec_fn=os.setsid)
-        print('Restarted EP `{}` for user `{}` !\n'.format(epname, self.username))
-
-        return True
-
-#
 
 if __name__ == "__main__":
 
-    # Run client service
-    service = TwisterClientService(username)
+    print('Starting Twister Client...\n')
 
-    # Find firs free port in range ...
-    connectionEstablished = False
-    minport, maxport = 4444, 4488
-    clientPort = minport
+    # This will read everything from epnames and connect to all CEs
+    client = TwisterClient()
+    client.run()
 
-    while clientPort < maxport:
-        try:
-            socket.create_connection(('0.0.0.0', clientPort), 2)
-            print('Client warning, the port `{}` is taken!'.format(clientPort))
-            clientPort += 1
-        except Exception as e:
-            connectionEstablished = True
-            break
-
-    if not connectionEstablished:
-        print('Cound not find any free port in range {} - {} !'.format(minport, maxport))
-        exit(1)
-
-    print('Client will start on : `0.0.0.0:{}`.'.format(clientPort))
-
-    service.clientPort = clientPort
+    print('Stopping Twister Client.')
 
 
-    # Config
-    conf = {'global': {
-            'server.socket_host': '0.0.0.0',
-            'server.socket_port': clientPort,
-            'engine.autoreload.on': False,
-            'log.screen': False
-            }
-        }
-
-    start_new_thread(keepalive, (service, ))
-
-    # Start !
-    cherrypy.quickstart(service, '/twisterclient/', config=conf)
-
-#
+# Eof()

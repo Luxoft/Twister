@@ -1,5 +1,5 @@
 
-# File: ReportingServer.py ; This file is part of Twister.
+# File: CeReports.py ; This file is part of Twister.
 
 # version: 2.009
 
@@ -64,7 +64,7 @@ if mako.__version__ < '0.7':
 # --------------------------------------------------------------------------------------------------
 
 
-class ReportingServer:
+class ReportingServer(object):
 
     db_parser = {}
     glob_fields  = {}
@@ -121,7 +121,7 @@ class ReportingServer:
         db_config = self.db_parser[usr].db_config
 
         # Decode database password
-        db_password = self.project.decryptText( db_config.get('password') )
+        db_password = self.project.decryptText( usr, db_config.get('password') )
         if not db_password:
             logError('Report Server: Cannot decrypt the database password for user `{}`!'.format(usr))
             db_password = '0'

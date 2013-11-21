@@ -1,7 +1,7 @@
 
-# File: CentralEngineProject.py ; This file is part of Twister.
+# File: CeProject.py ; This file is part of Twister.
 
-# version: 2.045
+# version: 2.051
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -87,7 +87,9 @@ import traceback
 import threading
 import MySQLdb
 import paramiko
+
 import cherrypy
+import rpyc
 
 try: import simplejson as json
 except: import json
@@ -119,10 +121,10 @@ from common.xmlparser  import *
 from common.suitesmanager import *
 from common import iniparser
 
-from ServiceManager   import ServiceManager
-from CentralEngineWebUi import WebInterface
-from ResourceAllocator  import ResourceAllocator
-from ReportingServer  import ReportingServer
+from CeServices  import ServiceManager
+from CeWebUi     import WebInterface
+from CeResources import ResourceAllocator
+from CeReports   import ReportingServer
 
 usrs_and_pwds = {}
 usr_pwds_lock = allocate_lock()
@@ -171,7 +173,6 @@ def cache_users():
 
     threading.Timer(60*60, cache_users, ()).start()
 
-#
 
 # --------------------------------------------------------------------------------------------------
 # # # #    C L A S S    P r o j e c t    # # #
@@ -199,6 +200,8 @@ class Project(object):
         ti = time.time()
         logDebug('STARTING TWISTER SERVER {}...'.format(self.srv_ver))
 
+        self.rsrv    = None  # RPyc server pointer
+        self.ip_port = None # Will be injected by the Central Engine CherryPy
         self.manager = ServiceManager()
         self.web   = WebInterface(self)
         self.ra    = ResourceAllocator(self)
@@ -213,6 +216,7 @@ class Project(object):
         self.loggers = {}   # User loggers
 
         self.usr_lock = allocate_lock()  # User change lock
+        self.stt_lock = allocate_lock()  # File status lock
         self.int_lock = allocate_lock()  # Internal use lock
         self.glb_lock = allocate_lock()  # Global variables lock
         self.eml_lock = allocate_lock()  # E-mail lock
@@ -244,7 +248,7 @@ class Project(object):
         with open(self.panicDetectConfigPath, 'rb') as config:
             self.panicDetectRegularExpressions = json.load(config)
 
-        # Start cache users at the beggining... and repeat every hour
+        # Start cache users at the beggining...
         start_new_thread(cache_users, ())
 
         logDebug('SERVER INITIALIZATION TOOK `{:.4f}` SECONDS.'.format(time.time()-ti))
@@ -291,41 +295,127 @@ class Project(object):
             return False
 
 
-    def _common_proj_reset(self, user, base_config, files_config):
+    @staticmethod
+    def rpyc_check_passwd(user, passwd):
+        """
+        This function must be called before ALL RPyc calls,
+        to check the username and password.
+        A user CANNOT use Twister if he doesn't authenticate.
+        """
+        global usrs_and_pwds, usr_pwds_lock
+        rpyc_user = 'rpyc_' + user
 
-        # List with all EPs for this User
-        epList = self.parsers[user].epnames
-        if not epList:
-            logCritical('Project ERROR: Cannot load the list of EPs for user `{}` !'.format(user))
+        if (not user) or (not passwd):
             return False
+
+        with usr_pwds_lock:
+            if usrs_and_pwds.get(rpyc_user) == passwd:
+                usrs_and_pwds[rpyc_user] = passwd
+                return True
+            elif passwd == 'EP':
+                usrs_and_pwds[rpyc_user] = passwd
+                return True
+
+        t = paramiko.Transport(('localhost', 22))
+        t.logger.setLevel(40) # Less spam, please
+        t.start_client()
+
+        # This operation is pretty heavy!!!
+        try:
+            t.auth_password(user, passwd)
+            t.stop_thread()
+            t.close()
+            usrs_and_pwds[rpyc_user] = passwd
+            return True
+        except:
+            t.stop_thread()
+            t.close()
+            return False
+
+
+    def _registerEp(self, user, epname):
+        """
+        Add all suites and test files for this EP.
+        """
+        if (not user) or (not epname):
+            return False
+
+        with self.stt_lock:
+
+            self.users[user]['eps'][epname] = OrderedDict()
+            self.users[user]['eps'][epname]['status'] = STATUS_STOP
+            # Information about ALL suites for this EP
+            # Some master-suites might have sub-suites, but all sub-suites must run on the same EP
+            suitesInfo = self.parsers[user].getAllSuitesInfo(epname)
+            if suitesInfo:
+                self.users[user]['eps'][epname]['sut'] = suitesInfo.values()[0]['sut']
+                self.users[user]['eps'][epname]['suites'] = suitesInfo
+                suites = suitesInfo.getSuites()
+                files = suitesInfo.getFiles()
+            else:
+                self.users[user]['eps'][epname]['sut'] = ''
+                self.users[user]['eps'][epname]['suites'] = SuitesManager()
+                suites = []
+                files = []
+
+            # Ordered list with all suite IDs, for all EPs
+            self.suite_ids[user].extend(suites)
+            # Ordered list of file IDs, used for Get Status ALL
+            self.test_ids[user].extend(files)
+
+            logDebug('Reload Execution-Process `{}:{}` with `{}` suites and `{}` files.'.format(user, epname, len(suites), len(files)))
+
+        # Save everything.
+        self._dump()
+
+        return True
+
+
+    def _unregisterEp(self, user, epname):
+        """
+        Remove all suites and test files for this EP.
+        """
+        if (not user) or (not epname):
+            return False
+
+        with self.stt_lock:
+
+            suitesInfo = self.users[user]['eps'][epname]['suites']
+            suites = set(suitesInfo.getSuites())
+            files = set(suitesInfo.getFiles())
+            old_suites = set(self.suite_ids[user])
+            old_files = set(self.test_ids[user])
+            self.suite_ids[user] = sorted(old_suites - suites)
+            self.test_ids[user] = sorted(old_files - files)
+
+            logDebug('Un-Registered Execution-Process `{}:{}`.'.format(user, epname))
+            del self.users[user]['eps'][epname]
+
+        # Save everything.
+        self._dump()
+
+        return True
+
+
+    def _common_proj_reset(self, user, base_config, files_config):
 
         # Create EP list
         self.users[user]['eps'] = OrderedDict()
 
+        # Ordered list with all suite IDs, for all EPs
+        self.suite_ids[user] = []
+        # Ordered list of file IDs, used for Get Status ALL
+        self.test_ids[user] = []
+
+        # List with all registered EPs for this User
+        epList = self.rsrv.service.exposed_registeredEps(user)
+
+        if not epList:
+            logWarning('User `{}` doesn\'t have any registered EPs to run the tests!'.format(user))
+
         # Generate the list of EPs in order
         for epname in epList:
-            self.users[user]['eps'][epname] = OrderedDict()
-            self.users[user]['eps'][epname]['status'] = STATUS_STOP
-            self.users[user]['eps'][epname]['sut']    = ''
-            # Each EP has a SuitesManager, helper class for managing file and suite nodes!
-            self.users[user]['eps'][epname]['suites'] = SuitesManager()
-
-        # Information about ALL project suites
-        # Some master-suites might have sub-suites, but all sub-suites must run on the same EP
-        suitesInfo = self.parsers[user].getAllSuitesInfo()
-
-        # Allocate each master-suite for one EP
-        for s_id, suite in suitesInfo.items():
-            epname = suite['ep']
-            if epname not in self.users[user]['eps']:
-                continue
-            self.users[user]['eps'][epname]['sut'] = suite['sut']
-            self.users[user]['eps'][epname]['suites'][s_id] = suite
-
-        # Ordered list of file IDs, used for Get Status ALL
-        self.test_ids[user] = suitesInfo.getFiles()
-        # Ordered list with all suite IDs, for all EPs
-        self.suite_ids[user] = suitesInfo.getSuites()
+            self._registerEp(user, epname)
 
         # Add framework config info to default user
         self.users[user]['config_path']  = base_config
@@ -346,28 +436,24 @@ class Project(object):
         # Global params for user
         self.users[user]['global_params'] = self.parsers[user].getGlobalParams()
 
-
         # Groups and roles for current user
         self.roles = self._parseUsersAndGroups()
         if not self.roles: return False
 
-        # The username from CherryPy connection
-        cherry_usr = cherrypy.session.get('username')
-
-        # List of roles for current CherryPy user
-        cherry_roles = self.roles['users'].get(cherry_usr)
+        # List of roles for current user
+        user_roles = self.roles['users'].get(user)
 
         # This user doesn't exist in users and groups
-        if not cherry_roles:
-            logWarning('CherryPy user `{}` cannot be found in users and roles!'.format(cherry_usr))
-            return False
+        if not user_roles:
+            logWarning('User `{}` cannot be found in users and roles!'.format(user))
+            user_roles = {'roles': [], 'groups': []}
         # This user doesn't have any roles in users and groups
-        if not cherry_roles['roles']:
-            logWarning('CherryPy user `{}` doesn\'t have any roles!'.format(cherry_usr))
-            return False
+        if not user_roles['roles']:
+            logWarning('User `{}` doesn\'t have any roles!'.format(user))
+            user_roles = {'roles': [], 'groups': []}
 
-        self.users[user]['user_groups'] = ', '.join(cherry_roles['groups'])
-        self.users[user]['user_roles']  = ', '.join(cherry_roles['roles'])
+        self.users[user]['user_groups'] = ', '.join(user_roles['groups'])
+        self.users[user]['user_roles']  = ', '.join(user_roles['roles'])
 
         return True
 
@@ -412,8 +498,9 @@ class Project(object):
         else:
             self.parsers[user] = TSCParser(user, base_config, files_config)
 
-        resp = self._common_proj_reset(user, base_config, files_config)
-        if not resp: return False
+        with self.usr_lock:
+            resp = self._common_proj_reset(user, base_config, files_config)
+            if not resp: return False
 
         # Save everything.
         self._dump()
@@ -422,7 +509,7 @@ class Project(object):
         return True
 
 
-    def reset(self, user, base_config='', files_config=''):
+    def resetProject(self, user, base_config='', files_config=''):
         """
         Reset user parser, all EPs to STOP, all files to PENDING.
         """
@@ -434,7 +521,7 @@ class Project(object):
             logError('Project ERROR: Config path `{}` does not exist! Using default config!'.format(base_config))
             base_config = False
 
-        r = self.changeUser(user)
+        r = self.authenticate(user)
         if not r: return False
 
         ti = time.clock()
@@ -452,8 +539,9 @@ class Project(object):
         except: pass
         self.parsers[user] = TSCParser(user, base_config, files_config)
 
-        resp = self._common_proj_reset(user, base_config, files_config)
-        if not resp: return False
+        with self.usr_lock:
+            resp = self._common_proj_reset(user, base_config, files_config)
+            if not resp: return False
 
         # Save everything.
         self._dump()
@@ -500,56 +588,6 @@ class Project(object):
         return True
 
 
-    def _checkUser(self):
-        """
-        Check CherryPy user. Used to quick find the roles of the current CherryPy user.
-        """
-        # Reload users and groups
-        self.roles = self._parseUsersAndGroups()
-        if not self.roles: return False
-
-        # The username from CherryPy connection
-        cherry_usr = cherrypy.session.get('username')
-
-        # List of roles for current CherryPy user
-        cherry_roles = self.roles['users'].get(cherry_usr)
-
-        # This user doesn't exist in users and groups
-        if not cherry_roles:
-            # The user doesn't exist ...
-            logWarning('Production Server: Username `{}` doesn\'t have any roles!'.format(cherry_usr))
-            return {'roles': [], 'groups': [], 'user': cherry_usr}
-
-        cherry_roles['user'] = cherry_usr
-        return cherry_roles
-
-
-    def changeUser(self, user):
-        """
-        Switch user hook. This function is used EVERYWHERE.\n
-        This uses a lock, in order to create the user structure only once.
-        If the lock is not present, on CE startup, all running EPs from one user will rush
-        to create the memory structure.
-        """
-
-        with self.usr_lock:
-
-            cherry_roles = self._checkUser()
-            if not cherry_roles:
-                return False
-
-            if not user:
-                return False
-            if user not in self.users:
-                r = self.createUser(user)
-                if not r: return False
-
-            self.users[user]['user_groups'] = ', '.join(cherry_roles['groups'])
-            self.users[user]['user_roles']  = ', '.join(cherry_roles['roles'])
-
-        return True
-
-
     def listUsers(self, active=False):
         """
         Return the cached list of users.
@@ -564,6 +602,48 @@ class Project(object):
         if active:
             users = [u for u in users if u in self.users]
         return users
+
+
+    def authenticate(self, user):
+        """
+        This func uses what it can to identify the current user and check his roles.\n
+        The function is used EVERYWHERE.\n
+        It uses a lock, in order to create the user structure only once.
+        """
+        if not user:
+            return False
+
+        if (user not in usrs_and_pwds) and ('rpyc_' + user not in usrs_and_pwds):
+            logError('Auth: Username `{}` is not authenticated!'.format(user))
+            return False
+
+        if user not in self.users:
+            r = self.createUser(user)
+            if not r: return False
+
+        with self.usr_lock:
+
+            # Reload users and groups
+            self.roles = self._parseUsersAndGroups()
+            if not self.roles: return False
+
+            # List of roles for current CherryPy user
+            user_roles = self.roles['users'].get(user)
+
+            # This user doesn't exist in users and groups
+            if not user_roles:
+                # The user doesn't exist ...
+                logWarning('Production Server: Username `{}` doesn\'t have any roles!'.format(user))
+                user_roles = {'roles': [], 'groups': []}
+
+            # Add the user in the dict
+            user_roles['user'] = user
+
+            # Populate the roles in project structure
+            self.users[user]['user_groups'] = ', '.join(user_roles['groups'])
+            self.users[user]['user_roles']  = ', '.join(user_roles['roles'])
+
+        return user_roles
 
 
     def _dump(self):
@@ -666,7 +746,7 @@ class Project(object):
         return cfg.dict()
 
 
-    def usersAndGroupsManager(self, cmd, name='', *args, **kwargs):
+    def usersAndGroupsManager(self, user, cmd, name='', *args, **kwargs):
         """
         Manage users, groups and permissions.\n
         Commands:
@@ -685,10 +765,8 @@ class Project(object):
             self.roles = self._parseUsersAndGroups()
             if not self.roles: return '*ERROR* : Invalid users and groups file!'
 
-        # The username from CherryPy connection
-        cherry_usr = cherrypy.session.get('username')
         # List of roles for current CherryPy user
-        cherry_all = self.roles['users'].get(cherry_usr)
+        cherry_all = self.roles['users'].get(user)
 
         # This user doesn't exist in users and groups
         if not cherry_all:
@@ -782,8 +860,8 @@ class Project(object):
 
             # Create new section in Users
             cfg['users'][name] = user_before
-            cfg['users'][name]['groups_production']  = user_before.get('groups_production','')
-            cfg['users'][name]['groups_development'] = user_before.get('groups_development','')
+            cfg['users'][name]['groups_production']  = ''
+            cfg['users'][name]['groups_development'] = ''
             cfg['users'][name]['groups_' + srv_type] = usr_group
             cfg['users'][name]['key']    = user_before.get('key', binascii.hexlify(os.urandom(16)))
             cfg['users'][name]['timeout'] = usr_timeout
@@ -860,28 +938,26 @@ class Project(object):
             return '*ERROR* : Unknown command `{}` !'.format(cmd)
 
 
-    def encryptText(self, text):
+    def encryptText(self, user, text):
         """
         Encrypt a piece of text, using AES.\n
         It can use the user key, or the shared key.
         """
-        # Check the username from CherryPy connection
-        cherry_roles = self._checkUser()
-        if not cherry_roles: return False
-        key = cherry_roles.get('key')
+        # Check the username data
+        user_roles = self.authenticate(user)
+        key = user_roles.get('key')
         if not key: return False
         return encrypt(text, key)
 
 
-    def decryptText(self, text):
+    def decryptText(self, user, text):
         """
         Decrypt a piece of text, using AES.\n
         It can use the user key, or the shared key.
         """
-        # Check the username from CherryPy connection
-        cherry_roles = self._checkUser()
-        if not cherry_roles: return False
-        key = cherry_roles.get('key')
+        # Check the username data
+        user_roles = self.authenticate(user)
+        key = user_roles.get('key')
         if not key: return False
         return decrypt(text, key)
 
@@ -919,7 +995,7 @@ class Project(object):
         """
         List all available settings, for 1 config of a user.
         """
-        r = self.changeUser(user)
+        r = self.authenticate(user)
         if not r: return False
         cfg_path = self._getConfigPath(user, config)
         return self.parsers[user].listSettings(cfg_path, x_filter)
@@ -929,7 +1005,7 @@ class Project(object):
         """
         Fetch a value from 1 config of a user.
         """
-        r = self.changeUser(user)
+        r = self.authenticate(user)
         if not r: return False
         cfg_path = self._getConfigPath(user, config)
         return self.parsers[user].getSettingsValue(cfg_path, key)
@@ -939,7 +1015,7 @@ class Project(object):
         """
         Set a value for a key in the config of a user.
         """
-        r = self.changeUser(user)
+        r = self.authenticate(user)
         if not r: return False
         cfg_path = self._getConfigPath(user, config)
         try:
@@ -956,7 +1032,7 @@ class Project(object):
         """
         Del a key from the config of a user.
         """
-        r = self.changeUser(user)
+        r = self.authenticate(user)
         if not r: return False
         cfg_path = self._getConfigPath(user, config)
         try:
@@ -977,9 +1053,7 @@ class Project(object):
         Returns data for the current user, including all EP info.
         If the key is not specified, it can be a huge dictionary.
         """
-        global usrs_and_pwds
-
-        r = self.changeUser(user)
+        r = self.authenticate(user)
         if not r:
             if key:
                 return []
@@ -987,10 +1061,7 @@ class Project(object):
                 return {}
 
         if key == 'user_passwd':
-            cherry_usr = cherrypy.session.get('username')
-            # Return the password only if the connected user is the user that asks the pwd
-            if user == cherry_usr:
-                return usrs_and_pwds.get(user, '')
+            return usrs_and_pwds.get(user, '')
         elif key:
             return self.users[user].get(key)
         else:
@@ -1001,7 +1072,7 @@ class Project(object):
         """
         Create or overwrite a variable with a value, for the current user.
         """
-        r = self.changeUser(user)
+        r = self.authenticate(user)
         if not r: return False
 
         if not key or key == 'eps':
@@ -1017,7 +1088,7 @@ class Project(object):
         """
         Retrieve all info available, about one EP.
         """
-        r = self.changeUser(user)
+        r = self.authenticate(user)
         if not r: return {}
 
         return self.users[user]['eps'].get(epname, {})
@@ -1028,7 +1099,7 @@ class Project(object):
         Return a list with all file IDs associated with one EP.
         The files are found recursive.
         """
-        r = self.changeUser(user)
+        r = self.authenticate(user)
         if not r: return []
 
         if epname not in self.users[user]['eps']:
@@ -1043,7 +1114,7 @@ class Project(object):
         """
         Create or overwrite a variable with a value, for one EP.
         """
-        r = self.changeUser(user)
+        r = self.authenticate(user)
         if not r: return False
 
         if epname not in self.users[user]['eps']:
@@ -1063,7 +1134,7 @@ class Project(object):
         Retrieve all info available, about one suite.
         The files are NOT recursive.
         """
-        r = self.changeUser(user)
+        r = self.authenticate(user)
         if not r: return {}
         eps = self.users[user]['eps']
 
@@ -1085,7 +1156,7 @@ class Project(object):
         """
         Return a list with all file IDs associated with one Suite.
         """
-        r = self.changeUser(user)
+        r = self.authenticate(user)
         if not r: return []
         eps = self.users[user]['eps']
 
@@ -1103,7 +1174,7 @@ class Project(object):
         """
         Create or overwrite a variable with a value, for one Suite.
         """
-        r = self.changeUser(user)
+        r = self.authenticate(user)
         if not r: return False
         eps = self.users[user]['eps']
 
@@ -1134,7 +1205,7 @@ class Project(object):
         Retrieve all info available, about one Test File.\n
         The file ID must be unique!
         """
-        r = self.changeUser(user)
+        r = self.authenticate(user)
         if not r: return {}
         eps = self.users[user]['eps']
 
@@ -1153,7 +1224,7 @@ class Project(object):
         """
         Create or overwrite a variable with a value, for one Test File.
         """
-        r = self.changeUser(user)
+        r = self.authenticate(user)
         if not r: return False
         eps = self.users[user]['eps']
 
@@ -1186,7 +1257,7 @@ class Project(object):
         The `message` parameter can explain why the status has changed.
         """
         # Check the username from CherryPy connection
-        cherry_roles = self._checkUser()
+        cherry_roles = self.authenticate(user)
         if not cherry_roles:
             return False
         if not 'RUN_TESTS' in cherry_roles['roles']:
@@ -1210,19 +1281,19 @@ class Project(object):
 
         if ret:
             if msg:
-                logDebug('Project: Status changed for `{} {}` - {} (from `{}`).\n\tMessage: `{}`.'.format(
-                    user, epname, reversed[new_status], cherrypy.request.headers['Remote-Addr'], msg))
+                logDebug('Project: Status changed for `{} {}` - {}.\n\tMessage: `{}`.'.format(
+                    user, epname, reversed[new_status], msg))
             else:
-                logDebug('Project: Status changed for `{} {}` - {} (from `{}`).'.format(
-                    user, epname, reversed[new_status], cherrypy.request.headers['Remote-Addr']))
+                logDebug('Project: Status changed for `{} {}` - {}.'.format(
+                    user, epname, reversed[new_status]))
         else:
             logError('Project: Cannot change status for `{} {}` !'.format(user, epname))
 
         # Send start/ stop command to EP !
         if new_status == STATUS_RUNNING:
-            self.parent.startEP(user, epname)
+            self.rsrv.service.exposed_startEP(epname, user)
         elif new_status == STATUS_STOP:
-            self.parent.stopEP(user, epname)
+            self.rsrv.service.exposed_stopEP(epname, user)
 
         # If all Stations are stopped, the status for current user is also stop!
         # This is important, so that in the Java GUI, the buttons will change to [Play | Stop]
@@ -1264,17 +1335,33 @@ class Project(object):
                         return ret
 
                     # Find the log process for this User and ask it to Exit
-                    port = self.loggers[user]['port']
-                    sock = self._logConnect(user, port)
+                    conn = self.loggers.get(user, {}).get('conn', None)
+                    if conn:
+                        port = self.loggers.get(user, {}).get('port', None)
+                        try:
+                            conn.root.exit()
+                        except EOFError:
+                            if conn.closed:
+                                logDebug('Terminated log server `localhost:{}`, for user `{}`.'.format(port, user))
+                            else:
+                                logWarning('Error on stopping log server `localhost:{}`, for user `{}`!'.format(port, user))
+                        except Exception as e:
+                            trace = traceback.format_exc()[33:].strip()
+                            logWarning('Cannot stop log server `localhost:{}`, for user `{}`! Exception `{}`.'.format(port, user, trace))
 
-                    if sock:
-                        sock.sendall('EXIT')
-                        resp = sock.recv(1024)
-                        if resp == 'EXIT!':
-                            sock.close()
-                            logDebug('Terminated log server `localhost:{}`, for user `{}`.'.format(port, user))
-                        else:
-                            logWarning('Cannot stop log server `localhost:{}`, for user `{}`! Response `{}`.'.format(port, user, resp))
+                    # Kill all other Log Server processes for this user just to make sure!
+                    pids = subprocess.check_output('ps aux | grep /server/LogService.py | grep "^{} "'.format(user), shell=True)
+
+                    for line in pids.strip().splitlines():
+                        li = line.strip().split()
+                        PID = int(li[0])
+                        del li[1:4]
+                        if li[1] == '/bin/sh' and li[2] == '-c': continue
+                        print('Killing process LogService `{}`'.format(' '.join(li)))
+                        try:
+                            os.kill(PID, 9)
+                        except:
+                            pass
 
                     # Execute "onStop" for all plugins!
                     parser = PluginParser(user)
@@ -1314,7 +1401,7 @@ class Project(object):
         The `message` parameter can explain why the status has changed.
         """
         # Check the username from CherryPy connection
-        cherry_roles = self._checkUser()
+        cherry_roles = self.authenticate(user)
         if not cherry_roles:
             return False
         if not 'RUN_TESTS' in cherry_roles['roles']:
@@ -1327,29 +1414,6 @@ class Project(object):
             return False
 
         reversed = dict((v,k) for k,v in execStatus.iteritems())
-
-        # If this is a Temporary user
-        user_agent = cherrypy.request.headers['User-Agent'].lower()
-        if 'xml rpc' in user_agent and (user+'_old') in self.users:
-            if msg.lower() != 'kill' and new_status != STATUS_STOP:
-                return '*ERROR*! Cannot change status while running temporary!'
-            else:
-                # Update status for User
-                self.setUserInfo(user, 'status', STATUS_STOP)
-
-                # Update status for all active EPs
-                active_eps = self.parsers[user].getActiveEps()
-                for epname in active_eps:
-                    if epname not in self.users[user]['eps']:
-                        logError('Set Status: `{}` is not a valid EP Name!'.format(epname))
-                        continue
-                    self.setEpInfo(user, epname, 'status', STATUS_STOP)
-
-                if msg:
-                    logDebug("Status chang for TEMP `%s %s` -> %s. Message: `%s`.\n" % (user, active_eps, reversed[STATUS_STOP], str(msg)))
-                else:
-                    logDebug("Status chang for TEMP `%s %s` -> %s.\n" % (user, active_eps, reversed[STATUS_STOP]))
-                return reversed[STATUS_STOP]
 
         # Status resume => start running. The logs must not reset on resume
         if new_status == STATUS_RESUME:
@@ -1368,7 +1432,7 @@ class Project(object):
                 path2 = msg.split(',')[1]
                 if os.path.isfile(path1) and os.path.isfile(path2):
                     logDebug('Using custom XML files: `{}` and `{}`.'.format(path1, path2))
-                    self.reset(user, path1, path2)
+                    self.resetProject(user, path1, path2)
                     msg = ''
 
             # Or if the Msg is a path to an existing file...
@@ -1377,15 +1441,15 @@ class Project(object):
                 # If the file is XML, send it to project reset function
                 if data[0] == '<' and data [-1] == '>':
                     logDebug('Using custom XML file: `{}`...'.format(msg))
-                    self.reset(user, msg)
+                    self.resetProject(user, msg)
                     msg = ''
                 else:
                     logDebug('You are probably trying to use file `{}` as config file, but it\'s not a valid XML!'.format(msg))
-                    self.reset(user)
+                    self.resetProject(user)
                 del data
 
             else:
-                self.reset(user)
+                self.resetProject(user)
 
             self.resetLogs(user)
 
@@ -1419,12 +1483,22 @@ class Project(object):
                     logWarning('Error on running plugin `{} onStart` - Exception: `{}`!'.format(pname, trace))
             del parser, plugins
 
+            # Before starting the EPs and changing the user status, check if there are any EPs
+            epList = self.rsrv.service.exposed_registeredEps(user)
+
+            if not epList:
+                logWarning('CANNOT START! User `{}` doesn\'t have any registered EPs to run the tests!'.format(user))
+                return reversed[STATUS_STOP]
+
             # Start all active EPs !
             active_eps = self.parsers[user].getActiveEps()
             for epname in active_eps:
                 if epname not in self.users[user]['eps']:
                     continue
-                self.parent.startEP(user, epname)
+                # Set the NEW EP status
+                self.setEpInfo(user, epname, 'status', new_status)
+                # Send START to EP Manager
+                self.rsrv.service.exposed_startEP(epname, user)
 
         # If the engine is running, or paused and it received STOP from the user...
         elif (executionStatus == STATUS_RUNNING or executionStatus == STATUS_PAUSED) and new_status == STATUS_STOP:
@@ -1466,31 +1540,36 @@ class Project(object):
                     if current_status in [STATUS_PENDING, -1]:
                         self.setFileInfo(user, epname, file_id, 'status', STATUS_NOT_EXEC)
                         statuses_changed += 1
+                # Set the NEW EP status
+                self.setEpInfo(user, epname, 'status', new_status)
                 # Send STOP to EP Manager
-                self.parent.stopEP(user, epname)
+                self.rsrv.service.exposed_stopEP(epname, user)
 
             if statuses_changed:
                 logDebug('Set Status: Changed `{}` file statuses from Pending to Not executed.'.format(statuses_changed))
 
+        # Pause or other statuses ?
+        else:
+            # Change status on all active EPs !
+            active_eps = self.parsers[user].getActiveEps()
+            for epname in active_eps:
+                if epname not in self.users[user]['eps']:
+                    continue
+                # Set the NEW EP status
+                self.setEpInfo(user, epname, 'status', new_status)
+
         # Update status for User
         self.setUserInfo(user, 'status', new_status)
 
-        # Update status for all active EPs
+        # All active EPs for this project, refresh again...
         active_eps = self.parsers[user].getActiveEps()
-        for epname in active_eps:
-            if epname not in self.users[user]['eps']:
-                logError('Set Status: `{}` is not a valid EP Name!'.format(epname))
-                continue
-            self.setEpInfo(user, epname, 'status', new_status)
-
-        reversed = dict((v,k) for k,v in execStatus.iteritems())
 
         if msg and msg != ',':
-            logDebug('Status changed for `{} {}` - {} (from `{}`).\n\tMessage: `{}`.'.format(
-                user, active_eps, reversed[new_status], cherrypy.request.headers['Remote-Addr'], msg))
+            logDebug('Status changed for `{} {}` - {}.\n\tMessage: `{}`.'.format(
+                user, active_eps, reversed[new_status], msg))
         else:
-            logDebug('Status changed for `{} {}` - {} (from `{}`).'.format(
-                user, active_eps, reversed[new_status], cherrypy.request.headers['Remote-Addr']))
+            logDebug('Status changed for `{} {}` - {}.'.format(
+                user, active_eps, reversed[new_status]))
 
         return reversed[new_status]
 
@@ -1500,7 +1579,7 @@ class Project(object):
         Return the status of all files, in order.
         This can be filtered for an EP and a Suite.
         """
-        r = self.changeUser(user)
+        r = self.authenticate(user)
         if not r: return []
 
         if suite_id and not epname:
@@ -1510,8 +1589,8 @@ class Project(object):
         statuses = {} # Unordered
         final = []    # Ordered
 
-        # Lock the internal resource
-        with self.int_lock:
+        # Lock resource
+        with self.stt_lock:
             eps = self.users[user]['eps']
 
             if epname:
@@ -1545,7 +1624,7 @@ class Project(object):
         """
         Set status for one file and write in log summary.
         """
-        r = self.changeUser(user)
+        r = self.authenticate(user)
         if not r: return False
         eps = self.users[user]['eps']
 
@@ -1554,7 +1633,7 @@ class Project(object):
             return False
         if new_status not in testStatus.values():
             logError('Project: Status value `{}` is not in the list of defined statuses: `{}`!'
-                     ''.format(new_status, testStatus.values()) )
+                     ''.format(new_status, sorted(testStatus.values())) )
             return False
 
         data = self.getFileInfo(user, epname, file_id)
@@ -1596,9 +1675,10 @@ class Project(object):
 
             # Get logSummary path from framework config
             logPath = self.getUserInfo(user, 'log_types')['logSummary']
-            resp = self._logServerMsg(user, logPath + ':' + logMessage)
-
-            if not resp:
+            srvr = self._logServer(user)
+            if srvr:
+                srvr.root.write_log(logPath + ':' + logMessage)
+            else:
                 logError('Summary log file `{}` cannot be written! User `{}` won\'t see any '\
                          'statistics!'.format(logPath, user))
 
@@ -1610,17 +1690,19 @@ class Project(object):
         """
         Reset the status of all files, to value: x.
         """
-        r = self.changeUser(user)
+        r = self.authenticate(user)
         if not r: return False
         eps = self.users[user]['eps']
 
-        for epcycle in eps:
-            if epname and epcycle != epname:
-                continue
-            files = eps[epcycle]['suites'].getFiles()
-            for file_id in files:
-                # This uses dump, after set file info
-                self.setFileInfo(user, epcycle, file_id, 'status', new_status)
+        # Lock resource
+        with self.stt_lock:
+            for epcycle in eps:
+                if epname and epcycle != epname:
+                    continue
+                files = eps[epcycle]['suites'].getFiles()
+                for file_id in files:
+                    # This uses dump, after set file info
+                    self.setFileInfo(user, epcycle, file_id, 'status', new_status)
 
         return True
 
@@ -1653,7 +1735,7 @@ class Project(object):
         """
         Sending a global variable, using a path.
         """
-        r = self.changeUser(user)
+        r = self.authenticate(user)
         if not r: return False
 
         try: node_path = [v for v in variable.split('/') if v]
@@ -1679,7 +1761,7 @@ class Project(object):
         Set a global variable path, for a user.\n
         The change is not persistent.
         """
-        r = self.changeUser(user)
+        r = self.authenticate(user)
         if not r: return False
 
         try: node_path = [v for v in variable.split('/') if v]
@@ -1717,7 +1799,7 @@ class Project(object):
         """
         This function writes in TestSuites.XML file.
         """
-        r = self.changeUser(user)
+        r = self.authenticate(user)
         if not r: return False
         cfg_path = self._getConfigPath(user, 'project')
         logDebug('Create Suite: Will create suite `{0}` for user `{1}` project.'.format(suite, user))
@@ -1728,7 +1810,7 @@ class Project(object):
         """
         This function writes in TestSuites.XML file.
         """
-        r = self.changeUser(user)
+        r = self.authenticate(user)
         if not r: return False
         xpath_suite = '/Root/TestSuite[tsName="{0}"]'.format(suite)
         logDebug('Del Suite: Will remove suite `{0}` from user `{1}` project.'.format(suite, user))
@@ -1739,7 +1821,7 @@ class Project(object):
         """
         This function writes in TestSuites.XML file.
         """
-        r = self.changeUser(user)
+        r = self.authenticate(user)
         if not r: return False
         cfg_path = self._getConfigPath(user, 'project')
         logDebug('Create File: Will create file `{0} - {1}` for user `{2}` project.'.format(suite, fname, user))
@@ -1750,7 +1832,7 @@ class Project(object):
         """
         This function writes in TestSuites.XML file.
         """
-        r = self.changeUser(user)
+        r = self.authenticate(user)
         if not r: return False
         xpath_file = '/Root/TestSuite[tsName="{0}"]/TestCase[tcName="{1}"]'.format(suite, fname)
         logDebug('Del File: Will remove file `{0} - {1}` from user `{2}` project.'.format(suite, fname, user))
@@ -1761,15 +1843,21 @@ class Project(object):
         """
         This function temporary adds a file at the end of the given suite, during runtime.
         """
-        r = self.changeUser(user)
+        r = self.authenticate(user)
         if not r: return False
 
         if fname.startswith('~/'):
             fname = userHome(user) + fname[1:]
+
+        # Fix incomplete file path
         if not os.path.isfile(fname):
-            log = '*ERROR* No such file `{}`!'.format(fname)
-            logError(log)
-            return log
+            tests_path = self.getUserInfo(user, 'tests_path')
+            if not os.path.isfile(tests_path + os.sep + fname):
+                log = '*ERROR* TestCase file: `{}` does not exist!'.format(fname)
+                logError(log)
+                return log
+            else:
+                fname = tests_path + os.sep + fname
 
         # Try create a new file id
         file_id = str( int(max(self.test_ids[user] or [1000])) + 1 )
@@ -1796,7 +1884,7 @@ class Project(object):
             return log
 
         # This operation must be atomic !
-        with self.usr_lock:
+        with self.stt_lock:
 
             # Add file in the ordered list of file IDs, used for Get Status ALL
             self.test_ids[user].append(file_id)
@@ -1824,7 +1912,7 @@ class Project(object):
         This function temporary removes the file id from the project, during runtime.
         If the file did already run, the function does nothing!
         """
-        r = self.changeUser(user)
+        r = self.authenticate(user)
         if not r: return False
 
         if not data:
@@ -1937,7 +2025,7 @@ class Project(object):
                 return log
 
             # This operation must be atomic !
-            with self.usr_lock:
+            with self.stt_lock:
                 # Remove file from the ordered list of file IDs, used for Get Status ALL
                 file_index = self.test_ids[user].index(file_id)
                 self.test_ids[user].pop(file_index)
@@ -1951,6 +2039,48 @@ class Project(object):
 # # #
 
 
+    def getLibrariesList(self, user='', all=True):
+        """
+        Returns the list of exposed libraries, from CE libraries folder.\n
+        This list will be used to syncronize the libs on all EP computers.
+        """
+        global TWISTER_PATH
+        libs_path = (TWISTER_PATH + '/lib/').replace('//', '/')
+        user_path = ''
+        if self.getUserInfo(user, 'libs_path'):
+            user_path = self.getUserInfo(user, 'libs_path') + os.sep
+        if user_path == '/':
+            user_path = ''
+
+        glob_libs = [] # Default empty
+        user_libs = []
+
+        # All Python source files from Libraries folder AND all library folders
+        if all:
+            glob_libs = [d for d in os.listdir(libs_path) if \
+                ( os.path.isfile(libs_path + d) and \
+                '__init__.py' not in d and \
+                os.path.splitext(d)[1] in ['.py', '.zip']) or \
+                os.path.isdir(libs_path + d) ]
+
+            if user_path and os.path.isdir(user_path):
+                user_libs = [d for d in os.listdir(user_path) if \
+                        ( os.path.isfile(user_path + d) and \
+                        '__init__.py' not in d and \
+                        os.path.splitext(d)[1] in ['.py', '.zip']) or \
+                        os.path.isdir(user_path + d) ]
+        # All libraries for user
+        else:
+            if user:
+                # If `libraries` is empty, will default to ALL libraries
+                tmp_libs = self.getUserInfo(user, 'libraries') or ''
+                glob_libs = [x.strip() for x in tmp_libs.split(';')] if tmp_libs else []
+                del tmp_libs
+
+        # Return a list with unique names, sorted alphabetically
+        return sorted( set(glob_libs + user_libs) )
+
+
     def sendMail(self, user, force=False):
         """
         Send e-mail function.\n
@@ -1958,7 +2088,7 @@ class Project(object):
         """
         with self.eml_lock:
 
-            r = self.changeUser(user)
+            r = self.authenticate(user)
             if not r: return False
 
             # This is updated every time.
@@ -1970,7 +2100,7 @@ class Project(object):
 
             # Decode e-mail password
             try:
-                SMTPPwd = self.decryptText(eMailConfig['SMTPPwd'])
+                SMTPPwd = self.decryptText(user, eMailConfig['SMTPPwd'])
             except:
                 log = 'SMTP: Password is not set!'
                 logError(log)
@@ -2169,13 +2299,10 @@ class Project(object):
 
             if (not eMailConfig['Enabled']) or (eMailConfig['Enabled'] in ['0', 'false']):
                 e_mail_path = os.path.split(self.users[user]['config_path'])[0] +os.sep+ 'e-mail.htm'
-                try:
-                    open(e_mail_path, 'w').write(msg.as_string())
-                    logDebug('E-mail.htm file written. The message will NOT be sent.')
-                    # Update file ownership
-                    setFileOwner(user, e_mail_path)
-                except:
-                    logDebug('E-mail.htm file cannot be saved! Also, the message will NOT be sent.')
+                open(e_mail_path, 'w').write(msg.as_string())
+                logDebug('E-mail.htm file written. The message will NOT be sent.')
+                # Update file ownership
+                setFileOwner(user, e_mail_path)
                 return True
 
             try:
@@ -2215,7 +2342,7 @@ class Project(object):
         """
         with self.db_lock:
 
-            r = self.changeUser(user)
+            r = self.authenticate(user)
             if not r: return False
 
             # Get the path to DB.XML
@@ -2242,7 +2369,7 @@ class Project(object):
             system = platform.machine() +' '+ platform.system() +', '+ ' '.join(platform.linux_distribution())
 
             # Decode database password
-            db_password = self.decryptText( db_config.get('password') )
+            db_password = self.decryptText(user, db_config.get('password'))
             if not db_password:
                 logError('Database: Cannot decrypt the database password!')
                 return False
@@ -2503,7 +2630,16 @@ class Project(object):
         """
         Launch a log server.
         """
-        # Searching for a free port in the safe range...
+        # Try to re-use the logger server, if available
+        conn = self.loggers.get(user, {}).get('conn', None)
+        if conn:
+            try:
+                conn.root.hello()
+                return conn
+            except:
+                pass
+
+        # If the server is not available, search for a free port in the safe range...
         while 1:
             free = False
             port = random.randrange(60000, 62000)
@@ -2513,89 +2649,21 @@ class Project(object):
                 free = True
             if free: break
 
-        p_cmd = 'su {} -c "{} -u {}/server/LogServer.py {}"'.format(user, sys.executable, TWISTER_PATH, port)
+        p_cmd = 'su {} -c "{} -u {}/server/LogService.py {}"'.format(user, sys.executable, TWISTER_PATH, port)
         proc = subprocess.Popen(p_cmd, cwd='{}/twister'.format(userHome(user)), shell=True)
         proc.poll()
+        time.sleep(0.2)
 
-        time.sleep(0.3)
+        try:
+            conn = rpyc.connect('127.0.0.1', port)
+            conn.root.hello()
+        except:
+            return False
+
         logDebug('Log Server for user `{}` launched on `127.0.0.1:{}` - PID `{}`.'.format(user, port, proc.pid))
+        self.loggers[user] = {'proc': proc, 'conn': conn, 'port': port}
 
-        self.loggers[user] = {'proc': proc, 'port': port}
-
-
-    def _logConnect(self, user, port):
-        """
-        Create a log server connection.
-        """
-        for res in socket.getaddrinfo('127.0.0.1', port, socket.AF_UNSPEC, socket.SOCK_STREAM):
-            af, socktype, proto, canonname, sa = res
-            try:
-                sock = socket.socket(af, socktype, proto)
-            except socket.error as msg:
-                logWarning('Sock create exception: `{}`.'.format(msg))
-                sock = None
-                continue
-            try:
-                sock.connect(sa)
-            except socket.error as msg:
-                logWarning('Sock connect exception: `{}`.'.format(msg))
-                sock.close()
-                sock = None
-                continue
-            break
-        if sock is None:
-            logError('Internal Log Error! Could not connect to Log Server!')
-            return False
-        else:
-            return sock
-
-
-    def _logServerMsg(self, user, msg):
-        """
-        Helper function to access the Log Server.
-        """
-        if user not in self.loggers:
-            self._logServer(user)
-
-        sock = self._logConnect(user, self.loggers[user]['port'])
-
-        if not sock:
-            logError('Creating a new connection...')
-            self._logServer(user)
-            sock = self._logConnect(user, self.loggers[user]['port'])
-            if not sock:
-                return False
-
-        def send(sock, msg):
-            sock.sendall(msg)
-            r = sock.recv(1024)
-            return r
-
-        resp = ''
-
-        if ':' in msg:
-            logFile, logMsg = msg.split(':')[0], ':'.join( msg.split(':')[1:] )
-            lmsg = 2 ** 12
-            lead = len(logFile)
-            ind  = 0
-            while 1:
-                i1 = ind
-                i2 = i1 + lmsg - lead - 1
-                if i2 <= 0: i2 = -1
-                if not logMsg[i1:i2]:
-                    break
-                msg = logFile +':'+ logMsg[i1:i2]
-                resp = send(sock, msg)
-                ind = i2
-        else:
-            resp = send(sock, msg)
-
-        sock.close()
-
-        if resp == 'Ok!':
-            return True
-        else:
-            return False
+        return conn
 
 
     def logMessage(self, user, logType, logMessage):
@@ -2620,8 +2688,11 @@ class Project(object):
             return False
 
         logPath = self.getUserInfo(user, 'log_types')[logType]
-
-        return self._logServerMsg(user, logPath + ':' + logMessage)
+        srvr = self._logServer(user)
+        if srvr:
+            return srvr.root.write_log(logPath + ':' + logMessage)
+        else:
+            return False
 
 
     def logLIVE(self, user, epname, logMessage):
@@ -2667,7 +2738,11 @@ class Project(object):
         if pd:
             self.logMessage(user, 'logRunning', 'PANIC DETECT: Execution stopped.')
 
-        return self._logServerMsg(user, logPath + ':' + log_string)
+        srvr = self._logServer(user)
+        if srvr:
+            return srvr.root.write_log(logPath + ':' + log_string)
+        else:
+            return False
 
 
     def resetLog(self, user, logName):
@@ -2703,10 +2778,16 @@ class Project(object):
             'logPath': logPath,
             })
 
-        ret = self._logServerMsg(user, data)
+        srvr = self._logServer(user)
+        if srvr:
+            ret = srvr.root.reset_log(data)
+        else:
+            return False
         if ret:
             logDebug('Cleaned log `{}`.'.format(logPath))
-        return ret
+            return True
+        else:
+            return False
 
 
     def resetLogs(self, user):
@@ -2730,10 +2811,16 @@ class Project(object):
             'epnames': ','.join( self.getUserInfo(user, 'eps').keys() ),
             })
 
-        ret = self._logServerMsg(user, data)
+        srvr = self._logServer(user)
+        if srvr:
+            ret = srvr.root.reset_logs(data)
+        else:
+            return False
         if ret:
             logDebug('Logs reset.')
-        return ret
+            return True
+        else:
+            return False
 
 
     def findLog(self, user, epname, file_id, file_name):

@@ -1,6 +1,6 @@
-#!/usr/bin/python
+#!/usr/bin/env python2.7
 
-# version: 2.003
+# version: 2.004
 
 # File: install_dev.py ; This file is part of Twister.
 
@@ -269,26 +269,26 @@ for fname in to_link:
         if dpath and ( not os.path.exists(INSTALL_PATH+dpath) ):
             try:
                 dir_util.mkpath(INSTALL_PATH + dpath)
-                print('Created folder structure `%s`.' % (INSTALL_PATH+dpath))
+                print('Created folder structure `{}`.'.format(INSTALL_PATH+dpath))
             except:
-                print('Cannot create folder `%s`!' % (INSTALL_PATH+dpath))
+                print('Cannot create folder `{}`!'.format(INSTALL_PATH+dpath))
 
         if os.path.isdir(fpath):
             try:
                 dir_util.copy_tree(fpath, INSTALL_PATH + dpath)
-                print('Copied dir `%s` to `%s`.' % (fpath, INSTALL_PATH+dpath))
+                print('Copied dir `{}` to `{}`.'.format(fpath, INSTALL_PATH+dpath))
             except:
-                print('Cannot copy dir `%s` to `%s`!' % (fpath, INSTALL_PATH+dpath))
+                print('Cannot copy dir `{}` to `{}`!'.format(fpath, INSTALL_PATH+dpath))
 
         elif os.path.isfile(fpath):
             try:
                 file_util.copy_file(fpath, INSTALL_PATH + dpath)
-                print('Copied file `%s` to `%s`.' % (fpath, INSTALL_PATH+dpath))
+                print('Copied file `{}` to `{}`.'.format(fpath, INSTALL_PATH+dpath))
             except:
-                print('Cannot copy file `%s` to `%s`!' % (fpath, INSTALL_PATH+dpath))
+                print('Cannot copy file `{}` to `{}`!'.format(fpath, INSTALL_PATH+dpath))
 
         else:
-            print('Path `%s` does not exist and will not be copied!' % fpath)
+            print('Path `{}` does not exist and will not be copied!'.format(fpath))
 
     # This is a symbolic link
     else:
@@ -298,32 +298,32 @@ for fname in to_link:
         if sym_name.strip('/') and dpath and ( not os.path.exists(INSTALL_PATH+dpath) ):
             try:
                 dir_util.mkpath(INSTALL_PATH + dpath)
-                print('Created folder structure `%s`.' % (INSTALL_PATH+dpath))
+                print('Created folder structure `{}`.'.format(INSTALL_PATH+dpath))
             except:
-                print('Cannot create folder `%s`!' % (INSTALL_PATH+dpath))
+                print('Cannot create folder `{}`!'.format(INSTALL_PATH+dpath))
 
         if os.path.isdir(fpath):
             try:
                 os.symlink(fpath, INSTALL_PATH + dpath + sym_name)
-                print('Created SYM from dir `%s` to `%s`.' % (fpath, INSTALL_PATH+dpath+sym_name))
+                print('Created SYM from dir `{}` to `{}`.'.format(fpath, INSTALL_PATH+dpath+sym_name))
             except:
-                print('Cannot create SYM from dir `%s` to `%s`!' % (fpath, INSTALL_PATH+dpath+sym_name))
+                print('Cannot create SYM from dir `{}` to `{}`!'.format(fpath, INSTALL_PATH+dpath+sym_name))
 
         elif os.path.isfile(fpath):
             try:
                 os.symlink(fpath, INSTALL_PATH + dpath + sym_name)
-                print('Created SYM from file `%s` to `%s`.' % (fpath, INSTALL_PATH+dpath+sym_name))
+                print('Created SYM from file `{}` to `{}`.'.format(fpath, INSTALL_PATH+dpath+sym_name))
             except:
-                print('Cannot create SYM from file `%s` to `%s`!' % (fpath, INSTALL_PATH+dpath+sym_name))
+                print('Cannot create SYM from file `{}` to `{}`!'.format(fpath, INSTALL_PATH+dpath+sym_name))
 
         else:
-            print('Path `%s` does not exist and will not be copied!' % fpath)
+            print('Path `{}` does not exist and will not be copied!'.format(fpath))
 
 #
 
 # Restore Config folder, if any
 if os.path.exists(cwd_path + 'config'):
-    print('\nMoving `config` folder back (from `{0}` to `{1}`)...'.format(cwd_path+'config', INSTALL_PATH+'config'))
+    print('\nMoving `config` folder back (from `{}` to `{}`)...'.format(cwd_path+'config', INSTALL_PATH+'config'))
     dir_util.copy_tree(cwd_path + 'config', INSTALL_PATH+'config')
     dir_util.remove_tree(cwd_path + 'config')
 
@@ -340,6 +340,10 @@ if TO_INSTALL == 'client':
     try: os.remove(INSTALL_PATH +os.sep+ 'config/resources.json')
     except: pass
     try: os.remove(INSTALL_PATH +os.sep+ 'config/services.ini')
+    except: pass
+    try: os.remove(INSTALL_PATH +os.sep+ 'config/server_init.ini')
+    except: pass
+    try: os.remove(INSTALL_PATH +os.sep+ 'config/users_and_groups.ini')
     except: pass
     # Change owner for install folder...
     tcr_proc = subprocess.Popen(['chown', user_name+':'+user_name, INSTALL_PATH, '-R'],)

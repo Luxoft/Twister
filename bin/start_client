@@ -47,14 +47,14 @@ case "$1" in
   start)
         if [ "$2" != "silent" ]
         then
-            echo -n ">>>>||||  Starting $DESC: "
+            echo -n ">>> ||||  Starting $DESC: "
         fi
 
         if [ -n "$STATUS" ]
         then
             if [ "$2" != "silent" ]
             then
-                echo already running..
+                echo already running...
                 ps -fu $USER | grep python | grep start_client.py
             fi
         else
@@ -63,12 +63,12 @@ case "$1" in
 
         if [ "$2" != "silent" ]
         then
-            echo "$NAME.  ||||<<<<<"
+            echo "$NAME.  |||| <<<"
         fi
         ;;
 
   stop)
-        echo -n ">>>>||||  Stopping $DESC: "
+        echo -n ">>> ||||  Stopping $DESC: "
 
         if [ -n "$EPSTATUS" ]
         then
@@ -80,11 +80,11 @@ case "$1" in
             kill -9 `ps -fu $USER | grep python | grep start_client.py | awk '{print $2}'`
         fi
 
-        echo "$NAME.  ||||<<<<"
+        echo "$NAME.  |||| <<<"
         ;;
 
   restart)
-        echo -n ">>>>||||  Restarting $DESC: "
+        echo -n ">>> ||||  Restarting $DESC: "
 
         if [ -n "$EPSTATUS" ]
         then
@@ -98,11 +98,11 @@ case "$1" in
 
         nohup $PYTHON_PATH -u $DAEMON > $LOG_PATH &
 
-        echo "$NAME.  ||||<<<<"
+        echo "$NAME.  |||| <<<"
         ;;
 
   status)
-        echo -n ">>>>||||  Status $DESC: "
+        echo -n ">>> ||||  Status $DESC: "
         echo -e "\n"
 
         if [ -n "$STATUS" ]
@@ -111,15 +111,15 @@ case "$1" in
             echo -e "\n"
             ps -fu $USER | grep python | grep ExecutionProcess.py
         else
-            echo not running..
+            echo not running...
         fi
 
         echo -e "\n"
-        echo "$NAME.  ||||<<<<"
+        echo "$NAME.  |||| <<<"
         ;;
 
   *)
-        echo ">>>>||||  Usage: "$1" {start|stop|restart|status}  ||||<<<<"
+        echo ">>> ||||  Usage: "$1" {start|stop|restart|status}  |||| <<<"
         exit 1
 
 esac

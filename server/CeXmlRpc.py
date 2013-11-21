@@ -1,7 +1,7 @@
 
-# File: CentralEngineClasses.py ; This file is part of Twister.
+# File: CeXmlRpc.py ; This file is part of Twister.
 
-# version: 2.032
+# version: 2.031
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -25,8 +25,8 @@
 # limitations under the License.
 
 """
-Central Engine Class
-********************
+Central Engine Xml-RPC
+**********************
 
 All functions from Central Engine are EXPOSED and can be accesed via XML-RPC.\n
 The Central Engine and each EP have a status that can be: start/ stop/ paused.\n
@@ -49,6 +49,8 @@ import tarfile
 import xmlrpclib
 import urlparse
 import MySQLdb
+
+from rpyc import connect as rpycConnect
 
 import pickle
 try: import simplejson as json
@@ -76,7 +78,7 @@ from common.xmlparser  import *
 # --------------------------------------------------------------------------------------------------
 
 
-class CentralEngine(_cptools.XMLRPCController):
+class CeXmlRpc(_cptools.XMLRPCController):
 
     """
     *This class is the core of all operations.*
@@ -84,7 +86,6 @@ class CentralEngine(_cptools.XMLRPCController):
 
     def __init__(self, proj):
 
-        proj.parent  = self
         self.project = proj
 
 
@@ -92,7 +93,7 @@ class CentralEngine(_cptools.XMLRPCController):
     def default(self, *vpath, **params):
         user_agent = cherrypy.request.headers['User-Agent'].lower()
         if 'xmlrpc' in user_agent or 'xml rpc' in user_agent:
-            return super(CentralEngine, self).default(*vpath, **params)
+            return super(CeXmlRpc, self).default(*vpath, **params)
         # If the connection is not XML-RPC, redirect to REST
         raise cherrypy.HTTPRedirect('/web/' + '/'.join(vpath))
 
@@ -122,6 +123,14 @@ class CentralEngine(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
+    def getRpycPort(self):
+        '''
+        Returns the Twister RPyc Port.
+        '''
+        return self.project.rsrv.port
+
+
+    @cherrypy.expose
     def getSysInfo(self):
         '''
         Returns some system information.
@@ -144,7 +153,8 @@ class CentralEngine(_cptools.XMLRPCController):
         This function is called from the Java GUI.
         """
         if not text: return ''
-        return self.project.encryptText(text)
+        cherry_user = cherrypy.session.get('username')
+        return self.project.encryptText(cherry_user, text)
 
 
     @cherrypy.expose
@@ -154,7 +164,8 @@ class CentralEngine(_cptools.XMLRPCController):
         This function is called from the Java GUI.
         """
         if not text: return ''
-        return self.project.decryptText(text)
+        cherry_user = cherrypy.session.get('username')
+        return self.project.decryptText(cherry_user, text)
 
 
 # # #
@@ -167,10 +178,11 @@ class CentralEngine(_cptools.XMLRPCController):
         Valid commands are: list, start, stop, status, get config, save config, get log.
         """
         # Check the username from CherryPy connection
-        cherry_roles = self.project._checkUser()
-        if not cherry_roles: return False
-        if 'CHANGE_SERVICES' not in cherry_roles['roles']:
-            logDebug('Privileges ERROR! Username `{user}` cannot use Service Manager!'.format(**cherry_roles))
+        user = cherrypy.session.get('username')
+        user_roles = self.project.authenticate(user)
+        if not user_roles: return False
+        if 'CHANGE_SERVICES' not in user_roles['roles']:
+            logDebug('Privileges ERROR! Username `{user}` cannot use Service Manager!'.format(**user_roles))
             return False
         return self.project.manager.sendCommand(command, name, args, kwargs)
 
@@ -180,7 +192,8 @@ class CentralEngine(_cptools.XMLRPCController):
         """
         Manage users, groups and permissions.
         """
-        return self.project.usersAndGroupsManager(cmd, name, args, kwargs)
+        user = cherrypy.session.get('username')
+        return self.project.usersAndGroupsManager(user, cmd, name, args, kwargs)
 
 
     @cherrypy.expose
@@ -213,7 +226,7 @@ class CentralEngine(_cptools.XMLRPCController):
         del dbparser
 
         # Decode database password
-        db_password = self.project.decryptText( db_config.get('password') )
+        db_password = self.project.decryptText( user, db_config.get('password') )
         if not db_password:
             errMessage = 'Cannot decrypt the database password!'
             logError(errMessage)
@@ -372,7 +385,6 @@ class CentralEngine(_cptools.XMLRPCController):
         - what the user selected in the Java GUI (release, build, comments, etc)
         - the name of the suite, the test files, etc.
         """
-
         data = self.project.getEpInfo(user, epname)
         if not data: return False
         value = data.get(variable, False)
@@ -391,7 +403,6 @@ class CentralEngine(_cptools.XMLRPCController):
         The values can saved in the Database, when commiting.\n
         Eg: the OS, the IP, or other information can be added this way.
         """
-
         return self.project.setEpInfo(user, epname, variable, value)
 
 
@@ -415,7 +426,6 @@ class CentralEngine(_cptools.XMLRPCController):
         Function called from the Execution Process,
         to get information that is available only here, or are hard to get.
         """
-
         data = self.project.getSuiteInfo(user, epname, suite)
         if not data: return False
         value = data.get(variable, False)
@@ -431,7 +441,6 @@ class CentralEngine(_cptools.XMLRPCController):
         """
         Get information about a test file: dependencies, runnable, status, etc.
         """
-
         data = self.project.getFileInfo(user, epname, file_id)
         if not data: return False
         value = data.get(variable, False)
@@ -447,7 +456,6 @@ class CentralEngine(_cptools.XMLRPCController):
         This change only happens in the memory structure and it is reset every time
         Central Engine is start. If you need to make a persistent change, use setPersistentFile.
         """
-
         return self.project.setFileInfo(user, epname, filename, variable, value)
 
 
@@ -459,7 +467,6 @@ class CentralEngine(_cptools.XMLRPCController):
         """
         name = data.split(';')[0]
         proj = ';'.join(data.split(';')[1:])
-        logDebug('CE: Started by name `{}`, project `{}`.'.format(name, proj))
         self.project.setUserInfo(user, 'started_by', str(name))
         self.project.setUserInfo(user, 'proj_xml_name', str(proj))
         return 1
@@ -491,133 +498,11 @@ class CentralEngine(_cptools.XMLRPCController):
         return self.project.getGlobalVariable(user, var_path, cfg_path)
 
 
-# --------------------------------------------------------------------------------------------------
-#           C L I E N T   C O N T R O L
-# --------------------------------------------------------------------------------------------------
-
-
-    def _getClientEpProxy(self, user, epname):
-        """ Helper function. """
-
-        # Check if epname is known and registered
-        userClientsInfo = self.project.getUserInfo(user, 'clients')
-        if not userClientsInfo:
-            return False
-        else:
-            userClientsInfo = json.loads(userClientsInfo)
-
-        userClientsInfoEPs = list()
-        for cl in userClientsInfo:
-            userClientsInfoEPs += userClientsInfo[cl]
-        if not self.searchEP(user, epname) or not epname in userClientsInfoEPs:
-            logError('Error: Unknown EP : `{}`.'.format(epname))
-            return False
-
-        # Get proxy address
-        for cl in userClientsInfo:
-            if epname in userClientsInfo[cl]:
-                return cl
-
-        logError('Error: Unknown proxy for EP : `{}`.'.format(epname))
-        return False
-
-
-    @cherrypy.expose
-    def registerClient(self, user, clients):
-        """ Register client. """
-
-        clients = json.loads(clients)
-        _clients = {}
-
-        for client in clients:
-            if client.split(':')[0]:
-                addr = client.split(':')[0]
-            else:
-                addr = cherrypy.request.headers['Remote-Addr']
-            _clients.update([('{}:{}'.format(addr,
-                                      client.split(':')[1]), clients[client]), ])
-        clients = json.dumps(_clients)
-
-        self.setUserVariable(user, 'clients', clients)
-        logDebug('Registered client manager for user\n\t`{}` -> {}.'.format(user, clients))
-        return True
-
-
-    @cherrypy.expose
-    def startEP(self, user, epname):
-        """ Start EP for client. """
-
-        _proxy = self._getClientEpProxy(user, epname)
-        if not _proxy:
-            logDebug('Cannot start `{}` for user `{}` ! The Client Manager is not started !'.format(epname, user))
-            return False
-
-        proxy = xmlrpclib.ServerProxy('http://{pr}/twisterclient/'.format(pr=_proxy))
-        ip, port = _proxy.split(':')
-
-        try:
-            logDebug('Trying to start `{} {}`.'.format(user, epname))
-            r = proxy.startEP(epname)
-            del proxy
-            return r
-        except Exception as e:
-            trace = traceback.format_exc()[34:].strip()
-            logError('Error: Start EP error: {}'.format(trace))
-            return False
-
-
-    @cherrypy.expose
-    def stopEP(self, user, epname):
-        """ Stop EP for client. """
-
-        _proxy = self._getClientEpProxy(user, epname)
-        if not _proxy:
-            logDebug('Cannot stop `{}` for user `{}` ! The Client Manager is not started !'.format(epname, user))
-            return False
-
-        proxy = xmlrpclib.ServerProxy('http://{pr}/twisterclient/'.format(pr=_proxy))
-        ip, port = _proxy.split(':')
-
-        try:
-            logWarning('Trying to stop `{} {}`.'.format(user, epname))
-            r = proxy.stopEP(epname)
-            del proxy
-            return r
-        except Exception as e:
-            trace = traceback.format_exc()[34:].strip()
-            logError('Error: Stop EP error: {}'.format(trace))
-            return False
-
-
-    @cherrypy.expose
-    def restartEP(self, user, epname):
-        """ Restart EP for client. """
-
-        _proxy = self._getClientEpProxy(user, epname)
-        if not _proxy:
-            logDebug('Cannot restart `{}` for user `{}` ! The Client Manager is not started !'.format(epname, user))
-            return False
-
-        proxy = xmlrpclib.ServerProxy('http://{pr}/twisterclient/'.format(pr=_proxy))
-        ip, port = _proxy.split(':')
-
-        try:
-            logWarning('Trying to restart `{} {}`.'.format(user, epname))
-            r = proxy.restartEP(epname)
-            del proxy
-            return r
-        except Exception as e:
-            trace = traceback.format_exc()[34:].strip()
-            logError('Error: Restart EP error: {}'.format(trace))
-            return False
-
-
     @cherrypy.expose
     def queueFile(self, user, suite, fname):
         """
         Queue a file at the end of a suite, during runtime.
-        If there are more suites with the same name, the first one is used.\n
-        This function writes in TestSuites.XML file, so the change is persistent.
+        If there are more suites with the same name, the first one is used.
         """
         return self.project.queueFile(user, suite, fname)
 
@@ -687,7 +572,7 @@ class CentralEngine(_cptools.XMLRPCController):
         """
         twister_cache = userHome(user) + '/twister/.twister_cache'
         setFileOwner(user, twister_cache)
-        return self.project.reset(user)
+        return self.project.resetProject(user)
 
 
     @cherrypy.expose
@@ -839,24 +724,22 @@ class CentralEngine(_cptools.XMLRPCController):
         # If argument is a valid dict, pass
         elif type(args) == type(dict()):
             if not 'command' in args:
-                return 'CE ERROR: Invalid dictionary for plugin `%s` : %s !' % (plugin, args)
+                return '*ERROR* Invalid dictionary for plugin `%s` : %s !' % (plugin, args)
         else:
-            return 'CE ERROR: Invalid type of argument for plugin `%s` : %s !' % (plugin, type(args))
+            return '*ERROR* Invalid type of argument for plugin `%s` : %s !' % (plugin, type(args))
 
         plugin_p = self.project._buildPlugin(user, plugin)
 
         if not plugin_p:
-            msg = 'CE ERROR: Plugin `{0}` does not exist for user `{1}`!'.format(plugin, user)
+            msg = '*ERROR* Plugin `{}` does not exist for user `{}`!'.format(plugin, user)
             logError(msg)
             return msg
-        # else:
-        #    logDebug('Running plugin:: `{0}` ; user `{1}` ; {2}'.format(plugin, user, args))
 
         try:
             return plugin_p.run(args)
         except Exception as e:
             trace = traceback.format_exc()[34:].strip()
-            logError('CE ERROR: Plugin `{}`, ran with arguments `{}` and returned EXCEPTION: `{}`!'\
+            logError('*ERROR* Plugin `{}`, ran with arguments `{}` and raised Exception: `{}`!'\
                      .format(plugin, args, trace))
             return 'Error on running plugin `{}` - Exception: `{}`!'.format(plugin, e)
 
@@ -914,174 +797,7 @@ class CentralEngine(_cptools.XMLRPCController):
         This list will be used to syncronize the libs on all EP computers.\n
         Called from the Runner and the Java GUI.
         """
-        global TWISTER_PATH
-        libs_path = (TWISTER_PATH + '/lib/').replace('//', '/')
-        user_path = ''
-        if self.project.getUserInfo(user, 'libs_path'):
-            user_path = self.project.getUserInfo(user, 'libs_path') + os.sep
-        if user_path == '/':
-            user_path = ''
-
-        glob_libs = [] # Default empty
-        user_libs = []
-
-        # All Python source files from Libraries folder AND all library folders
-        if all:
-            glob_libs = [d for d in os.listdir(libs_path) if \
-                ( os.path.isfile(libs_path + d) and \
-                '__init__.py' not in d and \
-                os.path.splitext(d)[1] in ['.py', '.zip']) or \
-                os.path.isdir(libs_path + d) ]
-
-            if user_path and os.path.isdir(user_path):
-                user_libs = [d for d in os.listdir(user_path) if \
-                        ( os.path.isfile(user_path + d) and \
-                        '__init__.py' not in d and \
-                        os.path.splitext(d)[1] in ['.py', '.zip']) or \
-                        os.path.isdir(user_path + d) ]
-        # All libraries for user
-        else:
-            if user:
-                # If `libraries` is empty, will default to ALL libraries
-                tmp_libs = self.project.getUserInfo(user, 'libraries') or ''
-                glob_libs = [x.strip() for x in tmp_libs.split(';')] if tmp_libs else []
-                del tmp_libs
-
-        # Return a list with unique names, sorted alphabetically
-        return sorted( set(glob_libs + user_libs) )
-
-
-    @cherrypy.expose
-    def downloadLibrary(self, user, name):
-        """
-        Sends required library to EP, to be syncronized.\n
-        The library can be global for all users, or per user.\n
-        Called from the Runner.
-        """
-        global TWISTER_PATH
-
-        lib_path = (TWISTER_PATH + '/lib/' + name).replace('//', '/')
-        if self.project.getUserInfo(user, 'libs_path'):
-            user_lib = self.project.getUserInfo(user, 'libs_path') + os.sep + name
-        else:
-            user_lib = ''
-
-        # If the requested library is in the second path (user path)
-        if os.path.exists(user_lib):
-            final_path = user_lib
-        # If the requested library is in the main path (global path)
-        elif os.path.exists(lib_path):
-            final_path = lib_path
-        else:
-            logError('ERROR! Library `{}` does not exist!'.format(name))
-            return False
-
-        # Python and Zip files
-        if os.path.isfile(final_path):
-            logDebug('CE: Requested library file: `{}`.'.format(name))
-            with open(final_path, 'rb') as binary:
-                return xmlrpclib.Binary(binary.read())
-
-        # Library folders must be compressed
-        else:
-            logDebug('CE: Requested library folder: `{}`.'.format(name))
-            split_name = os.path.split(final_path)
-            rnd = binascii.hexlify(os.urandom(5))
-            tgz = split_name[1] + '_' + rnd + '.tgz'
-            os.chdir(split_name[0])
-            with tarfile.open(tgz, 'w:gz') as binary:
-                binary.add(name=split_name[1], recursive=True)
-            with open(tgz, 'r') as binary:
-                data = xmlrpclib.Binary(binary.read())
-            os.remove(tgz)
-            return data
-
-
-    @cherrypy.expose
-    def getEpFiles(self, user, epname):
-        """
-        Returns all files that must be run on one EP.\n
-        Called from the Runner.
-        """
-        try: data = self.project.getEpFiles(user, epname)
-        except: data = False
-        return data
-
-
-    @cherrypy.expose
-    def getSuiteFiles(self, user, epname, suite):
-        """
-        Returns all files that must be run on one Suite.\n
-        Called from the Runner.
-        """
-        try: data = self.project.getSuiteFiles(user, epname, suite)
-        except: data = False
-        return data
-
-
-    @cherrypy.expose
-    def getTestFile(self, user, epname, file_id):
-        """
-        Sends requested file to TC, to be executed.\n
-        Called from the Runner.
-        """
-        if not self.searchEP(user, epname):
-            logError('*ERROR* `{}` is not in the list of defined EPs: `{}`!'.format(epname, self.listEPs(user)))
-            return False
-        if not self.project.getEpInfo(user, epname).get('status'):
-            logError('*ERROR* `{}` requested file list, but the EP is closed!'.format(epname))
-            return False
-
-        # All data about the current file ID
-        data = self.project.getFileInfo(user, epname, file_id)
-        if not data:
-            logError('*ERROR* Invalid File ID `{}` !'.format(file_id))
-            return False
-
-        filename = data['file']
-        tests_path = self.project.getUserInfo(user, 'tests_path')
-
-        # Inject this empty variable just to be sure.
-        self.project.setFileInfo(user, epname, file_id, 'twister_tc_revision', '')
-
-        # Fix ~ $HOME path
-        if filename.startswith('~'):
-            filename = userHome(user) + filename[1:]
-
-        # Fix incomplete file path
-        if not os.path.isfile(filename):
-            if not os.path.isfile(tests_path + os.sep + filename):
-
-                # Injected ClearCase file ?
-                if 'ClearCase' in self.listPlugins(user) and data.get('clearcase'):
-                    plugin_p = self.project._buildPlugin(user, 'ClearCase')
-                    try:
-                        data = plugin_p.getTestFile(filename)
-                    except Exception as e:
-                        trace = traceback.format_exc()[34:].strip()
-                        logError('Error getting ClearCase file `{}` : `{}`!'.format(filename, trace))
-                        return ''
-                    try:
-                        descr = plugin_p.getTestDescription(user, filename)
-                        cctag = '<b>ClearCase Version</b> :'
-                        if descr and (descr.find(cctag) != -1):
-                            pos = descr.find(cctag) + len(cctag)
-                            rev = descr[pos:].strip()
-                            self.project.setFileInfo(user, epname, file_id, 'twister_tc_revision', rev)
-                    except Exception as e:
-                        pass
-                    logDebug('CE: Execution process `{}:{}` requested file `{}`.'.format(user, epname, filename))
-                    return data
-
-                logError('*ERROR* TestCase file: `{}` does not exist!'.format(filename))
-                return ''
-            else:
-                filename = tests_path + os.sep + filename
-
-        logDebug('CE: Execution process `{}:{}` requested file `{}`.'.format(user, epname, filename))
-
-        with open(filename, 'rb') as handle:
-            return xmlrpclib.Binary(handle.read())
+        return self.project.getLibrariesList(user, all)
 
 
     @cherrypy.expose
@@ -1095,17 +811,16 @@ class CentralEngine(_cptools.XMLRPCController):
             return getFileTags(fname)
 
         # If the user has roles and the ClearCase plugin is enabled...
-        cherry_roles = self.project._checkUser()
-        if cherry_roles:
-            user = cherry_roles['user']
-            if 'ClearCase' in self.listPlugins(user):
-                plugin_p = self.project._buildPlugin(user, 'ClearCase')
-                try:
-                    return plugin_p.getTestDescription(user, fname)
-                except Exception as e:
-                    trace = traceback.format_exc()[34:].strip()
-                    logError('Error getting description from ClearCase file `{}` : `{}`!'.format(fname, trace))
-                    return ''
+        user = cherrypy.session.get('username')
+        user_roles = self.project.authenticate(user)
+        if user_roles and 'ClearCase' in self.listPlugins(user):
+            plugin_p = self.project._buildPlugin(user, 'ClearCase')
+            try:
+                return plugin_p.getTestDescription(user, fname)
+            except Exception as e:
+                trace = traceback.format_exc()[34:].strip()
+                logError('Error getting description from ClearCase file `{}` : `{}`!'.format(fname, trace))
+                return ''
 
         return ''
 
