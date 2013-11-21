@@ -68,6 +68,7 @@ class Plugin(BasePlugin):
 
         # Normal Git clone operation
         if command == 'clone':
+            print('\n' + '-'*19 + ' start git plugin' + '-'*19)
 
             if overwrite and os.path.exists(dst):
                 print 'GIT Plugin: Deleting folder `{}` ...'.format(dst)
@@ -95,10 +96,11 @@ class Plugin(BasePlugin):
                 return 'Error after calling GIT {cmd}: `{e}`!'.format(cmd=command, e=e)
 
             time.sleep(1)
-            print('-'*40)
+            print('-'*20 + ' end git plugin' + '-'*20)
 
         # Git pull operation
         elif command == 'pull':
+            print('\n' + '-'*19 + ' start git plugin' + '-'*19)
 
             try:
                 os.chdir(dst)
@@ -106,7 +108,7 @@ class Plugin(BasePlugin):
             except:
                 return '*ERROR* Cannot chdir into `{}`! Cannot pull!'.format(dst)
 
-            to_exec = 'git pull -f {branch}'.format(branch=branch)
+            to_exec = 'git pull -f'
             print('GIT Plugin: Exec `{}` .'.format(to_exec.strip()))
 
             try:
@@ -128,7 +130,7 @@ class Plugin(BasePlugin):
                 return 'Error after calling GIT {cmd}: `{e}`!'.format(cmd=command, e=e)
 
             time.sleep(1)
-            print('-'*40)
+            print('-'*20 + ' end git plugin' + '-'*20)
 
         else:
             return '*ERROR* Unknown plugin command `{}`!'.format(command)

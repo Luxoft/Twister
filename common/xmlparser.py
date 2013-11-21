@@ -1,7 +1,7 @@
 
 # File: xmlparser.py ; This file is part of Twister.
 
-# version: 2.013
+# version: 2.014
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -86,12 +86,10 @@ class TSCParser:
 
         self.configTS = None
         self.configHash = None
-        self.epnames = []
         self.project_globals = {}
 
         self.updateConfigTS(files_config)
         self.updateProjectGlobals()
-        self.getEpList()
 
 
     def updateConfigTS(self, files_config=''):
@@ -187,35 +185,6 @@ class TSCParser:
                 self.project_globals[tag_dict['name']] = value
 
         return True
-
-
-    def getEpList(self):
-        """
-        Returns a list with all available EP names.
-        """
-        # Reading the path to Ep Names file, from master config
-        eps_file = self.project_globals['ep_names']
-
-        if not eps_file:
-            logError('Parser: EP Names file is not defined! Please check framework config XML file!')
-            return None
-        if not os.path.isfile(eps_file):
-            logError('Parser: EP Names file `{0}` does not exist! Please check framework config XML file!'.format(eps_file))
-            return None
-
-        # Reset EP list
-        self.epnames = []
-
-        cfg = SafeConfigParser()
-        cfg.read(eps_file)
-        # All sections that have an option CE_IP, are EP names
-        eps = [e for e in cfg.sections() if cfg.has_option(e, 'CE_IP')]
-
-        for epname in eps:
-            epname = epname.strip()
-            self.epnames.append(epname)
-
-        return self.epnames
 
 
     def getActiveEps(self):
@@ -584,22 +553,22 @@ class TSCParser:
 
 # # #
 
-    def _suites_info(self, xml_object, children):
+    def _suites_info(self, xml_object, children, epName):
         """
         Create recursive list of folders and files from Tests path.
         """
-        if not len(xml_object):
+        if (not len(xml_object)) or (not epName):
             return {}
 
         # For each testsuite from current xml object
-        for obj_xpath in xml_object.xpath('TestSuite | TestCase'):
+        for obj_xpath in xml_object.xpath('TestSuite[EpId="{}"] | TestCase'.format(epName)):
             # If XML object is suite
             if obj_xpath.tag == 'TestSuite':
                 d = self.getSuiteInfo(obj_xpath)
                 # Save the suite ID in XML, to be used by the files
                 idTag = etree.SubElement(obj_xpath, 'id')
                 idTag.text = d['id']
-                d['children'] = self._suites_info(obj_xpath, OrderedDict())
+                d['children'] = self._suites_info(obj_xpath, OrderedDict(), epName)
             # If XML object is file, it has not children
             else:
                 d = self.getFileInfo(obj_xpath)
@@ -611,11 +580,11 @@ class TSCParser:
         return children
 
 
-    def getAllSuitesInfo(self):
+    def getAllSuitesInfo(self, epName):
         """
         Shortcut function.
         """
-        return self._suites_info(self.configTS, SuitesManager())
+        return self._suites_info(self.configTS, SuitesManager(), epName)
 
 
     def getSuiteInfo(self, suite_soup):
@@ -952,8 +921,12 @@ class PluginParser:
 
         for module in py_modules:
             name = module.split('::')[0]
+            if not name: continue
             mod  = module.split('::')[1]
-            if not mod: continue
+            if not mod:
+                continue
+            if not os.path.isfile('{}/plugins/{}.py'.format(TWISTER_PATH, mod)):
+                continue
             plug = None
             try:
                 # Import the plugin module
@@ -962,15 +935,15 @@ class PluginParser:
                 mm = reload(mm)
                 plug = mm.Plugin
             except Exception, e:
-                logError('PluginParser ERROR: Unhandled exception in plugin file `{0}`! Exception: {1}!'.format(mod, e))
+                logError('PluginParser ERROR: Unhandled exception in plugin file `{}`! Exception: {}!'.format(mod, e))
                 continue
 
             if not plug:
-                logError('PluginParser ERROR: Plugin `%s` cannot be Null!' % plug)
+                logError('PluginParser ERROR: Plugin `{}` cannot be Null!'.format(plug))
                 continue
             # Check plugin parent. Must be Base Plugin.
             if not issubclass(plug, Base):
-                logError('PluginParser ERROR: Plugin `%s` must be inherited from Base Plugin!' % plug)
+                logError('PluginParser ERROR: Plugin `{}` must be inherited from Base Plugin!'.format(plug))
                 continue
 
             # Append plugin classes to plugins list

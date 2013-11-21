@@ -1,7 +1,7 @@
 
 # File: TscCommonLib.py ; This file is part of Twister.
 
-# version: 2.005
+# version: 2.006
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -31,10 +31,10 @@ You can use : getGlobal, setGlobal, getResource, setResource, logMessage.
 '''
 
 import os, sys
-import pickle
-import socket
 import platform
-import xmlrpclib
+import marshal
+import rpyc
+from rpyc import BgServingThread
 
 # This will work, because TWISTER_PATH is appended to sys.path.
 try:
@@ -57,26 +57,63 @@ class TscCommonLib(object):
 
 
     def __init__(self):
+        """
+        Some initialization code.
+        """
+        self.__ce_proxy = None
 
-        socket_path = self.proxy_path.strip('/').split('@')[1:]
-        if not socket_path:
-            raise Exception('Invalid proxy path `{}`!\n'.format(socket_path))
 
+    @property
+    def ce_proxy(self):
+        """
+        Dinamically connect to the Central Engine.
+        """
+        # Try to reuse the old connection
         try:
-            socket.create_connection(socket_path[0].split(':'), 2)
+            self.__ce_proxy.echo('ping')
+            return self.__ce_proxy
         except:
-            raise Exception('Invalid ip:port `{}`!\n'.format(socket_path[0]))
-        del socket_path
+            pass
 
-        self.ce_proxy = xmlrpclib.ServerProxy(self.proxy_path.rstrip('/') + '/')
-        self.ra_proxy = xmlrpclib.ServerProxy(self.proxy_path.rstrip('/') + '/ra/')
+        # RPyc config
+        config = {
+            'allow_pickle': True,
+            'allow_getattr': True,
+            'allow_setattr': True,
+            'allow_delattr': True,
+            'allow_all_attrs': True,
+            }
+        proxy = None
+
+        # If the old connection is broken, connect to the RPyc server
+        try:
+            ce_ip, ce_port = self.proxy_path.split(':')
+            # Transform XML-RPC port into RPyc Port; RPyc port = XML-RPC port + 10 !
+            ce_port = int(ce_port) + 10
+            proxy = rpyc.connect(ce_ip, ce_port, config=config)
+            proxy.root.hello('lib::{}'.format(self.epName))
+        except:
+            print('*ERROR* Cannot connect to CE path `{}`! Exiting!'.format(self.proxy_path))
+            raise Exception
+
+        # Authenticate on RPyc server
+        try:
+            proxy.root.login(self.userName, 'EP')
+            bg = BgServingThread(proxy)
+            self.__ce_proxy = proxy.root
+            return self.__ce_proxy
+        except:
+            print('*ERROR* Cannot authenticate on CE path `{}`! Exiting!'.format(self.proxy_path))
+            raise Exception
+
+        return proxy
 
 
     def logMsg(self, logType, logMessage):
         """
         Shortcut function for sending a message in a log to Central Engine.
         """
-        self.ce_proxy.logMessage(self.userName, logType, logMessage)
+        self.ce_proxy.logMessage(logType, logMessage)
 
 
     def getGlobal(self, var):
@@ -86,7 +123,7 @@ class TscCommonLib(object):
         if var in self.global_vars:
             return self.global_vars[var]
         # Else...
-        return self.ce_proxy.getGlobalVariable(self.userName, var)
+        return self.ce_proxy.getGlobalVariable(var)
 
 
     def setGlobal(self, var, value):
@@ -95,7 +132,7 @@ class TscCommonLib(object):
         """
         try:
             marshal.dumps(value)
-            return self.ce_proxy.setGlobalVariable(self.userName, var, value)
+            return self.ce_proxy.setGlobalVariable(var, value)
         except:
             self.global_vars[var] = value
             return True
@@ -106,7 +143,7 @@ class TscCommonLib(object):
         Function to get a config, using the full path to a config file and
         the full path to a config variable in that file.
         """
-        return self.ce_proxy.getConfig(self.userName, cfg_path, var_path)
+        return self.ce_proxy.getConfig(cfg_path, var_path)
 
 
     def countProjectFiles(self):
@@ -208,62 +245,62 @@ class TscCommonLib(object):
 
 
     def getResource(self, query):
-        try: return self.ra_proxy.getResource(query)
+        try: return self.ce_proxy.getResource(query)
         except: return None
 
 
     def setResource(self, name, parent=None, props={}):
-        try: return self.ra_proxy.setResource(name, parent, props)
+        try: return self.ce_proxy.setResource(name, parent, props)
         except: return None
 
 
     def renameResource(self, res_query, new_name):
-        try: return self.ra_proxy.renameResource(res_query, new_name)
+        try: return self.ce_proxy.renameResource(res_query, new_name)
         except: return None
 
 
     def deleteResource(self, query):
-        try: return self.ra_proxy.deleteResource(query)
+        try: return self.ce_proxy.deleteResource(query)
         except: return None
 
 
     def getSut(self, query):
-        try: return self.ra_proxy.getSut(query)
+        try: return self.ce_proxy.getSut(query)
         except: return None
 
 
     def setSut(self, name, parent=None, props={}):
-        try: return self.ra_proxy.setSut(name, parent, props)
+        try: return self.ce_proxy.setSut(name, parent, props)
         except: return None
 
 
     def renameSut(self, res_query, new_name):
-        try: return self.ra_proxy.renameSut(res_query, new_name)
+        try: return self.ce_proxy.renameSut(res_query, new_name)
         except: return None
 
 
     def deleteSut(self, query):
-        try: return self.ra_proxy.deleteSut(query)
+        try: return self.ce_proxy.deleteSut(query)
         except: return None
 
 
     def getResourceStatus(self, query):
-        try: return self.ra_proxy.getResourceStatus(query)
+        try: return self.ce_proxy.getResourceStatus(query)
         except: return None
 
 
     def allocResource(self, query):
-        try: return self.ra_proxy.allocResource(query)
+        try: return self.ce_proxy.allocResource(query)
         except: return None
 
 
     def reserveResource(self, query):
-        try: return self.ra_proxy.reserveResource(query)
+        try: return self.ce_proxy.reserveResource(query)
         except: return None
 
 
     def freeResource(self, query):
-        try: return self.ra_proxy.freeResource(query)
+        try: return self.ce_proxy.freeResource(query)
         except: return None
 
 

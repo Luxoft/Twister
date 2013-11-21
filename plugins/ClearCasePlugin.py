@@ -1,7 +1,7 @@
 
 # File: ClearCasePlugin.py ; This file is part of Twister.
 
-# version: 2.006
+# version: 2.007
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -31,36 +31,34 @@
 from __future__ import print_function
 
 
-from BasePlugin import BasePlugin
-
 import os, sys
+import re
 import time
+import base64
 import random
 import subprocess
-
-import re
-import base64
-
-from lib.TscSshLib import SshShell
-from xmlrpclib import Binary as xmlrpclibBinary
 
 try: import simplejson as json
 except: import json
 
 TWISTER_PATH = os.getenv('TWISTER_PATH')
 if not TWISTER_PATH:
-    print('TWISTER_PATH environment variable is not set! Exiting!')
-    exit(1)
+    raise Exception('TWISTER_PATH environment variable is not set! Exiting!')
 
 from common.helpers import userHome
+from lib.TscSshLib import SshShell
+from BasePlugin import BasePlugin
 
 #
 
 class CC(object):
-    """  """
+
+    """ ClearCase helper """
 
     def __init__(self, user, password):
-        """  """
+
+        if not user: raise Exception('Username is empty! Cannot login!')
+        if not password: raise Exception('Password is empty! Cannot login!')
 
         self.cleartoolSsh = SshShell(name='cleartool', host='localhost', user=user, password=password)
         self.cleartoolSsh.set_timeout(2)
@@ -202,7 +200,6 @@ class CC(object):
         try:
             command = 'cat {}'.format(fname)
             response = self.cleartoolSsh.write(command)
-
             response = self.parseSshResponse(command, response)
 
             # response = response.splitlines()
@@ -212,7 +209,7 @@ class CC(object):
 
             if raw:
                 return response
-            return xmlrpclibBinary(response)
+            return response
         except Exception as e:
             print('getTestFile error: {} || response: {} '.format(e, response))
             return ''
@@ -235,8 +232,7 @@ class CC(object):
         except Exception as e:
             return ''
 
-
-
+#
 
 class Plugin(BasePlugin):
 
@@ -250,7 +246,9 @@ class Plugin(BasePlugin):
         BasePlugin.__init__(self, user, data)
         self.user = user
         self.data = data
-        self.conn = CC(self.user, self.data['ce'].getUserInfo(self.user, 'user_passwd'))
+        passwd = self.data['ce'].getUserInfo(self.user, 'user_passwd')
+        self.conn = CC(self.user, passwd)
+
 
     def __del__(self):
         """  """

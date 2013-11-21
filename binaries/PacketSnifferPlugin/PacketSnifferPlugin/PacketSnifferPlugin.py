@@ -2,7 +2,7 @@
 #
 # -*- coding: utf-8 -*-
 #
-# version: 2.002
+# version: 3.000
 #
 # File: PacketSnifferPlugin.py ; This file is part of Twister.
 #
@@ -27,12 +27,6 @@
 #
 
 
-"""
-    PacketSniffer plugin manage the sniffed packets from client
-    and makes them usable for the interface.
-"""
-
-
 from os import getenv, makedirs
 from os.path import exists
 
@@ -43,7 +37,21 @@ from copy import deepcopy
 from time import time
 
 from json import dumps
-from scapy.all import wrpcap, Ether
+from scapy.all import Packet, NoPayload, Ether, wrpcap
+
+from rpyc import Service as rpycService
+from rpyc.utils.factory import connect as rpycConnect
+from rpyc.utils.helpers import BgServingThread as rpycBgServingThread
+
+try:
+    from openflow.of_13.parse import of_message_parse
+except Exception as e:
+    of_message_parse = None
+    #print('WARNING: openflow lib not found')
+
+import cherrypy
+
+from thread import allocate_lock
 
 from BasePlugin import BasePlugin
 
@@ -62,28 +70,22 @@ class Plugin(BasePlugin):
         BasePlugin.__init__(self, user, data)
 
         # history list length, packets buffer size, query buffer size
-        if data.has_key('historyLength'):
-            self.data['historyLength'] = (40000,
-                int(self.data['historyLength']))[int(self.data['historyLength'])>0]
-        else:
-            self.data.update([('historyLength', 40000), ])
-        if data.has_key('packetsBuffer'):
-            self.data['packetsBuffer'] = (400,
-                int(self.data['packetsBuffer']))[int(self.data['packetsBuffer'])>0]
-        else:
-            self.data.update([('packetsBuffer', 400), ])
+        self.data['historyLength'] = (40000,
+            int(self.data['historyLength']))[int(self.data['historyLength'])>0]
+        self.data['packetsBuffer'] = (400,
+            int(self.data['packetsBuffer']))[int(self.data['packetsBuffer'])>0]
 
         # plugin status, packets list, temporary path to save pcap files,
         # packets list index limit, registered sniffers
         self.status = 'paused'
-        self.packets = []
+        self.packets = list()
+        self.packetsLock = allocate_lock()
         self.pcapPath = getenv('TWISTER_PATH') + '/tmp'
         if not exists(self.pcapPath):
             makedirs(self.pcapPath)
         self.packetsIndexLimit = (int(self.data['historyLength'])
                                     - int(self.data['packetsBuffer']))
-        self.filters = {}
-        self.sniffers = {}
+        self.filters = dict()
 
         self.commands = {
             'simple': [
@@ -95,10 +97,34 @@ class Plugin(BasePlugin):
                 'setfilters',
             ],
             'argumented': [
-                'query', 'querypkt', 'pushpkt',
-                'registersniff', 'restarted',
+                'query', 'querypkt', 'pushpkt'
             ]
         }
+
+
+    def packet_to_dict(self, packet):
+        """ Recursive function to parse packet and return dict """
+
+        if isinstance(packet, Packet):
+            _packet = packet.fields
+            if not isinstance(packet.payload, NoPayload):
+                _packet['payload'] = packet.payload
+
+            return {packet.name: self.packet_to_dict(_packet)}
+
+        elif isinstance(packet, dict):
+            for k,v in packet.iteritems():
+                packet[k] = self.packet_to_dict(v)
+
+            return packet
+
+        elif isinstance(packet, list):
+            for v in packet:
+                packet[packet.index(v)] = self.packet_to_dict(v)
+
+        else:
+
+            return packet
 
 
     def run(self, args):
@@ -128,32 +154,12 @@ class Plugin(BasePlugin):
 
         # echo
         elif args['command'] == 'echo':
-            response['type'] = 'echo reply'
-
-            if args.has_key('data'):
-                try:
-                    response['state'] = self.sniffers[args['data']]
-                    response['data'] = {'filters': self.filters}
-                except Exception, e:
-                    response['status']['success'] = False
-                    response['status']['message'] = 'command data not valid: \
-                                                        {err}'.format(err=e)
-            else:
-                response = self.status
-
-        # registersniff
-        elif args['command'] == 'registersniff':
-            response['type'] = 'register sniff reply'
-
-            try:
-                self.sniffers.update([(args['data'], self.status), ])
-            except Exception, e:
-                response['status']['success'] = False
-                response['status']['message'] = 'error: {err}'.format(err=e)
+            #response['type'] = 'echo reply'
+            response = self.status
 
         # get / set filters
         elif args['command'] == 'getfilters':
-            response['type'] = 'getfilters reply'
+            #response['type'] = 'getfilters reply'
 
             response = self.filters
         elif args['command'] == 'setfilters':
@@ -168,51 +174,83 @@ class Plugin(BasePlugin):
                 else:
                     self.filters = {}
 
-                self.packets = []
+                with self.packetsLock:
+                    self.packets = list()
                 response['data'] = {'index': 0}
 
+                with self.data['ce'].rsrv.conn_lock:
+                    for sniffer in [c for c in self.data['ce'].rsrv.conns
+                            if self.data['ce'].rsrv.conns[c]['hello'] == 'sniffer']:
+                        try:
+                            _response = self.data['ce'].rsrv.conns[sniffer]['conn'].root.set_filters(self.filters)
+                            if not _response:
+                                print('set filters error: {}'.format(response))
+                        except Exception as e:
+                            print('set filters error: {}'.format(e))
             except Exception, e:
                 response['status']['success'] = False
-                response['status']['message'] = 'error: {err}'.format(err=e)
+                response['status']['message'] = 'set filters error: {err}'.format(err=e)
 
         # pause / resume
         elif args['command'] in ['pause', 'resume']:
             response['type'] = 'pause/resume reply'
 
+            if args['command'] == 'resume':
+                with self.data['ce'].rsrv.conn_lock:
+                    for userClient in [c for c in self.data['ce'].rsrv.conns
+                        if self.data['ce'].rsrv.conns[c]['hello'] == 'client' and
+                            self.data['ce'].rsrv.conns[c]['user'] == self.user]:
+                        self.data['ce'].rsrv.conns[userClient]['conn'].root.start_sniffer()
+
+            oldStatus = self.status
+
             self.status = ('paused', 'running')[args['command']=='resume']
 
-            response['state'] = self.status
+            if not oldStatus == self.status:
+                if self.status == 'paused':
+                    with self.data['ce'].rsrv.conn_lock:
+                        for sniffer in [c for c in self.data['ce'].rsrv.conns
+                            if self.data['ce'].rsrv.conns[c]['hello'] == 'sniffer']:
+                            try:
+                                _response = self.data['ce'].rsrv.conns[sniffer]['conn'].root.pause()
+                                if not _response:
+                                    self.status = oldStatus
+                                    response['status']['success'] = False
+                            except Exception as e:
+                                print('pause / resume error: {}'.format(e))
+                else:
+                    with self.data['ce'].rsrv.conn_lock:
+                        for sniffer in [c for c in self.data['ce'].rsrv.conns
+                            if self.data['ce'].rsrv.conns[c]['hello'] == 'sniffer']:
+                            try:
+                                _response = self.data['ce'].rsrv.conns[sniffer]['conn'].root.resume()
+                                if not _response:
+                                    self.status = oldStatus
+                                    response['status']['success'] = False
+                            except Exception as e:
+                                print('pasue / resume error: {}'.format(e))
 
-            if self.status == 'paused':
-                for key in self.sniffers.iterkeys():
-                    self.sniffers[key] = 'paused'
-            else:
-                for key in self.sniffers.iterkeys():
-                    self.sniffers[key] = 'running'
+            response['state'] = self.status
 
         # restart
         elif args['command'] == 'restart':
             response['type'] = 'restart reply'
 
-            for key in self.sniffers.iterkeys():
-                    self.sniffers[key] = 'restart'
-
-        # restarted
-        elif args['command'] == 'restarted':
-            response['type'] = 'restarted reply'
-
-            try:
-                self.sniffers[args['data']] = 'running'
-            except Exception, e:
-                response['status']['success'] = False
-                response['status']['message'] = 'command data not valid: \
-                                                    {err}'.format(err=e)
+            with self.data['ce'].rsrv.conn_lock:
+                for sniffer in [c for c in self.data['ce'].rsrv.conns
+                    if self.data['ce'].rsrv.conns[c]['hello'] == 'sniffer']:
+                    try:
+                        _response = self.data['ce'].rsrv.conns[sniffer]['conn'].root.restart()
+                        if not _response:
+                            response['status']['success'] = False
+                    except Exception as e:
+                        print('restart error: {}'.format(e))
 
         # reset
         elif args['command'] == 'reset':
             response['type'] = 'reset reply'
-
-            self.packets = []
+            with self.packetsLock:
+                self.packets = []
 
             response['data'] = {'index': 0}
 
@@ -224,77 +262,88 @@ class Plugin(BasePlugin):
         # query for packet command (you must supply data field
         # in argument dictionary which represents the id of the packet) """
         elif args['command'] in ['query', 'querypkt']:
-            try:
+            with self.packetsLock:
                 try:
-                    packetIndex = int(args['data'])
-                    packet = deepcopy(self.packets[packetIndex])
-                except Exception, e:
-                    packetIndex = None
-                    packet = None
+                    try:
+                        packetIndex = int(args['data'])
+                        packet = deepcopy(self.packets[packetIndex])
+                    except Exception, e:
+                        packetIndex = None
+                        packet = None
 
-                if not packetIndex == 0:
-                    packetID = str(args['data'])
-                    for _packet in self.packets:
-                        if _packet['packet_head']['id'] == packetID:
-                            packetIndex = self.packets.index(_packet) + 1
-                            packet = deepcopy(_packet)
+                    if not packetIndex == 0:
+                        packetID = str(args['data'])
+                        for _packet in self.packets:
+                            if _packet['packet_head']['id'] == packetID:
+                                packetIndex = self.packets.index(_packet) + 1
+                                packet = deepcopy(_packet)
 
 
-                if packetIndex is not None:
-                    if args['command'] == 'query':
-                        response['type'] = 'query reply'
+                    if packetIndex is not None:
+                        if args['command'] == 'query':
+                            response['type'] = 'query reply'
 
-                        queriedPackets = []
-                        packetID = None
-                        for _packet in self.packets[packetIndex:packetIndex \
-                                                    + int(self.data['packetsBuffer'])]:
-                            pk = deepcopy(_packet)
-                            pk.pop('packet')
-                            packetID = pk['packet_head']['id']
-                            queriedPackets.append(dumps(pk, encoding='latin'))
+                            queriedPackets = []
+                            packetID = None
+                            for _packet in self.packets[packetIndex:packetIndex \
+                                                        + int(self.data['packetsBuffer'])]:
+                                pk = deepcopy(_packet)
+                                pk.pop('packet_source')
+                                packetID = pk['packet_head']['id']
+                                queriedPackets.append(dumps(pk, encoding='latin'))
 
-                        response['data'] = {
-                            'id': (args['data'], packetID)[packetID is not None],
-                            'packets': queriedPackets
-                        }
+                            response['data'] = {
+                                'id': (args['data'], packetID)[packetID is not None],
+                                'packets': queriedPackets
+                            }
 
+                        else:
+                            #response['type'] = 'querypkt reply'
+
+                            packet = dumps(packet['packet_dict'], encoding='latin')
+                            response = packet    #response['data'] = packet
                     else:
-                        #response['type'] = 'querypkt reply'
+                        response['status']['success'] = False
+                        if self.packets:
+                            response['status']['message'] = 'packet index unknown'
+                        else:
+                            response['data'] = dict()
+                            response['status']['message'] = 'packets list empty'
 
-                        packet = dumps(packet['packet'], encoding='latin')
-                        response = packet    #response['data'] = packet
-                else:
-                    response['status']['success'] = False
-                    if self.packets:
-                        response['status']['message'] = 'packet index unknown'
-                    else:
-                        response['data'] = dict()
-                        response['status']['message'] = 'packets list empty'
-
-                del packet
-            except Exception, e:
-                response['status']['success'] = False
-                response['status']['message'] = 'command data not valid: \
-                                                    {err}'.format(err=e)
-
-        # # pushpkt
-        # """ push packet command (data is an encoded string representing
-        # a dictionary whre you can find the sniffed packet) """
-        elif args['command'] == 'pushpkt':
-            response['type'] = 'pushpkt reply'
-
-            args['data'] = literal_eval(a2b_base64(args['data']))
-            for packet in args['data']:
-                try:
-                    _packet = literal_eval(a2b_base64(packet))
-                    self.packets.append(_packet)
+                    del packet
                 except Exception, e:
                     response['status']['success'] = False
                     response['status']['message'] = 'command data not valid: \
                                                         {err}'.format(err=e)
 
-            if len(self.packets) >= self.packetsIndexLimit:
-                del self.packets[:int(self.data['packetsBuffer'])]
+        # # pushpkt
+        elif args['command'] == 'pushpkt':
+            response['type'] = 'pushpkt reply'
+
+            try:
+                packet = deepcopy(args['data'])
+                packet.update([('packet_source', Ether(packet['packet_source'])), ])
+
+                if of_message_parse:
+                    try:
+                        _packet = of_message_parse(str(packet['packet_source'].payload.payload.load))
+                        _packet = _packet.show()
+                    except Exception as e:
+                        _packet = self.packet_to_dict(packet['packet_source'])
+                else:
+                    _packet = self.packet_to_dict(packet['packet_source'])
+
+                packet.update([('packet_dict' , _packet), ])
+                with self.packetsLock:
+                    self.packets.append(packet)
+
+                if len(self.packets) >= self.packetsIndexLimit:
+                    del self.packets[:int(self.data['packetsBuffer'])]
+
+                response['status']['success'] = True
+            except Exception as e:
+                response['status']['success'] = False
+                response['status']['message'] = str(e)
 
         # savepcap
         elif args['command'] == 'savepcap':
@@ -306,18 +355,22 @@ class Plugin(BasePlugin):
                                     user=self.user,
                                     epoch_time=str(time()).replace('.', '|'))
 
-                wrpcap(filePath, [Ether(p['packet_str']) for p in self.packets])
+                wrpcap(filePath, [p['packet_source'] for p in self.packets])
 
                 response = filePath
             except Exception, e:
                 response['status']['success'] = False
-                response['status']['message'] = 'error: {err}'.format(err=e)
+                response['status']['message'] = 'savepcap error: {err}'.format(err=e)
 
         else:
             response['status']['success'] = False
             response['status']['message'] = 'except'
 
         return response
+
+
+
+
 
 
 
@@ -342,3 +395,4 @@ class Plugin(BasePlugin):
 </Plugin>
 
 """
+

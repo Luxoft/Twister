@@ -23,7 +23,7 @@ STATUS_WAITING  = 9  # Is waiting for another test
 
 def test(PROXY, USER):
 
-    ep_list = PROXY.listEPs(USER).split(',')
+    ep_list = PROXY.listEPs()
 
     for epname in ep_list:
 
@@ -31,25 +31,23 @@ def test(PROXY, USER):
         time.sleep(0.5)
 
         # This is a list
-        ep_files = PROXY.getEpFiles(USER, epname)
+        ep_files = PROXY.getEpFiles(epname)
 
         for file_id in ep_files:
 
-            print 'File variable ?', PROXY.getFileVariable(USER, epname, file_id, 'xyz')
-            r = PROXY.setFileVariable(USER, epname, file_id, 'xyz', random.randrange(1, 100))
+            print 'File variable ?', PROXY.getFileVariable(epname, file_id, 'xyz')
+            r = PROXY.setFileVariable(epname, file_id, 'xyz', random.randrange(1, 100))
             if not r:
                 print('Failure! Cannot set file variable for `%s`!' % file_id)
                 return 'Fail'
 
             print 'Set variable for `{}`: `{}`'.format(file_id, r)
-            print 'File variable ?', PROXY.getFileVariable(USER, epname, file_id, 'xyz')
+            print 'File variable ?', PROXY.getFileVariable(epname, file_id, 'xyz')
 
 
         # Get all statuses for this EP. It's a string
-        status_before = PROXY.getFileStatusAll(USER, epname)
+        status_before = PROXY.getFileStatusAll(epname)
         if not status_before: continue
-
-        status_before = [int(s) for s in status_before.split(',')]
 
         if len(ep_files) != len(status_before):
             print('This is wrong! There are {} files, but {} statuses!'.format(len(ep_files), len(status_before)))
@@ -61,15 +59,16 @@ def test(PROXY, USER):
 
         msg = 'WILL RESET ALL STATUSES TO [SKIP], FOR `{} - {}` !\n'.format(USER, epname)
         print(msg) ; logMsg('logRunning', msg) ; logMsg('logDebug', msg)
+        time.sleep(1)
 
-        r = PROXY.setFileStatusAll(USER, epname, STATUS_SKIPPED)
+        r = PROXY.setFileStatusAll(epname, STATUS_SKIPPED)
         # If success, the return must be True
         if not r:
             print('Failure! Cannot set file variable for all files!')
             return 'Fail'
         print 'Status all SKIPPED:', epname, r
 
-        time.sleep(0.5)
+        time.sleep(2)
         print
 
         msg = 'RESTORING ALL STATUSES FOR `{} - {}` ...\n'.format(USER, epname)
@@ -82,18 +81,19 @@ def test(PROXY, USER):
             if file_status == -1:
                 file_status = STATUS_PENDING
 
-            r = PROXY.setFileStatus(USER, epname, file_id, file_status)
+            r = PROXY.setFileStatus(epname, file_id, int(file_status))
             # If success, the return must be True
             if r:
                 print('setFileStatus for {} - {} success.'.format(epname, file_id))
             else:
-                print('\nFailure! Cannot setFileStatus for {} - {}!'.format(epname, file_id))
+                print('Failure! Cannot setFileStatus for {} - {}!'.format(epname, file_id))
                 return 'Fail'
 
         msg = 'ALL STATUSES RESTORED SUCCESSFULLY.\n'
         print(msg) ; logMsg('logRunning', msg) ; logMsg('logDebug', msg)
+        time.sleep(1)
 
-        print 'Status All for {} ?'.format(epname), PROXY.getFileStatusAll(USER, epname)
+        print 'Status All for {} ?'.format(epname), PROXY.getFileStatusAll(epname)
 
         print '\n----- -----'
 

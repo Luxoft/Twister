@@ -1,24 +1,233 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <root>
-<folder>
-        <fname>conf1</fname>
-        <fdesc/>
-        <param>
-            <name>p1</name>
-            <value>v1</value>
-            <desc>desc1</desc>
-            <type>string</type>
-        </param>
-        
-    </folder>
-<folder>
-        <fname>conf2</fname>
-        <fdesc/>
-        <param>
-            <name>p2</name>
-            <value>2</value>
-            <desc>desc2</desc>
-            <type>decimal</type>
-        </param>
-    </folder>
+	<!-- Level_1 -->
+	<folder>
+		<fname>Level_A</fname>
+		<param>
+			<name>global1</name>
+			<value>value 1</value>
+			<desc />
+			<type>string</type>
+		</param>
+		<param>
+			<name>global2</name>
+			<value>value 2</value>
+			<desc />
+			<type>string</type>
+		</param>
+		<param>
+			<name>global3</name>
+			<value>value 3</value>
+			<desc />
+			<type>string</type>
+		</param>
+		<!-- Level_2 -->
+		<folder>
+			<fname>Level_2A</fname>
+			<param>
+				<name>global2.1</name>
+				<value>value 2.1</value>
+				<desc />
+				<type>string</type>
+			</param>
+			<param>
+				<name>global2.2</name>
+				<value>value 2.2</value>
+				<desc />
+				<type>string</type>
+			</param>
+			<param>
+				<name>global2.3</name>
+				<value>value 2.3</value>
+				<desc />
+				<type>string</type>
+			</param>
+			<!-- Level_3 -->
+			<folder>
+				<fname>Level_3A</fname>
+				<param>
+					<name>global3.1</name>
+					<value>value 3.1</value>
+					<desc />
+					<type>string</type>
+				</param>
+				<param>
+					<name>global3.2</name>
+					<value>value 3.2</value>
+					<desc />
+					<type>string</type>
+				</param>
+				<param>
+					<name>global3.3</name>
+					<value>value 3.3</value>
+					<desc />
+					<type>string</type>
+				</param>
+				<!-- Level_4.a -->
+				<folder>
+					<fname>Level_4.a</fname>
+					<param>
+						<name>global4a</name>
+						<value>value 1</value>
+						<desc />
+						<type />
+					</param>
+					<param>
+						<name>global4b</name>
+						<value>value 1</value>
+						<desc />
+						<type />
+					</param>
+					<param>
+						<name>global4c</name>
+						<value>value 1</value>
+						<desc />
+						<type />
+					</param>
+					<fdesc />
+				</folder>
+				<!-- Level_4.b -->
+				<folder>
+					<fname>Level_4.b</fname>
+					<param>
+						<name>global4a</name>
+						<value>value 1</value>
+						<desc />
+						<type />
+					</param>
+					<param>
+						<name>global4b</name>
+						<value>value 1</value>
+						<desc />
+						<type />
+					</param>
+					<param>
+						<name>global4c</name>
+						<value>value 1</value>
+						<desc />
+						<type />
+					</param>
+					<fdesc />
+				</folder>
+				<fdesc />
+			</folder>
+			<fdesc />
+		</folder>
+		<fdesc />
+	</folder>
+	<!-- Level_1 -->
+	<folder>
+		<fname>Level_B</fname>
+		<param>
+			<name>global1</name>
+			<value>value 1.b</value>
+			<desc />
+			<type>string</type>
+		</param>
+		<param>
+			<name>global2</name>
+			<value>value 1.b</value>
+			<desc />
+			<type>string</type>
+		</param>
+		<param>
+			<name>global3</name>
+			<value>value 1.b</value>
+			<desc />
+			<type>string</type>
+		</param>
+		<!-- Level_2 -->
+		<folder>
+			<fname>Level_2B</fname>
+			<param>
+				<name>global2.1</name>
+				<value>value 1</value>
+				<desc />
+				<type>string</type>
+			</param>
+			<param>
+				<name>global2.2</name>
+				<value>value 2</value>
+				<desc />
+				<type>string</type>
+			</param>
+			<param>
+				<name>global2.3</name>
+				<value>value 3</value>
+				<desc />
+				<type>string</type>
+			</param>
+			<!-- Level_3 -->
+			<folder>
+				<fname>Level_3B</fname>
+				<param>
+					<name>global3.1</name>
+					<value>value 1</value>
+					<desc />
+					<type />
+				</param>
+				<param>
+					<name>global3.2</name>
+					<value>value 1</value>
+					<desc />
+					<type />
+				</param>
+				<param>
+					<name>global3.3</name>
+					<value>value 1</value>
+					<desc />
+					<type />
+				</param>
+				<!-- Level_4.a -->
+				<folder>
+					<fname>Level_4.a</fname>
+					<param>
+						<name>global4a</name>
+						<value>value 1</value>
+						<desc />
+						<type />
+					</param>
+					<param>
+						<name>global4b</name>
+						<value>value 1</value>
+						<desc />
+						<type />
+					</param>
+					<param>
+						<name>global4c</name>
+						<value>value 1</value>
+						<desc />
+						<type />
+					</param>
+					<fdesc />
+				</folder>
+				<!-- Level_4.b -->
+				<folder>
+					<fname>Level_4.b</fname>
+					<param>
+						<name>global4a</name>
+						<value>value 1</value>
+						<desc />
+						<type />
+					</param>
+					<param>
+						<name>global4b</name>
+						<value>value 1</value>
+						<desc />
+						<type />
+					</param>
+					<param>
+						<name>global4c</name>
+						<value>value 1</value>
+						<desc />
+						<type />
+					</param>
+					<fdesc />
+				</folder>
+				<fdesc />
+			</folder>
+			<fdesc />
+		</folder>
+		<fdesc />
+	</folder>
 </root>
