@@ -978,4 +978,52 @@ class CeRpycService(rpyc.Service):
         return self.project.ra.deleteSut(query, props={'__user': user})
 
 
+    def exposed_isResourceReserved(self, query):
+        user = self._check_login()
+        if not user: return False
+        return self.project.ra.isResourceReserved(query)
+
+
+    def exposed_isSutReserved(self, query):
+        user = self._check_login()
+        if not user: return False
+        return self.project.ra.isSutReserved(query)
+
+
+    def exposed_reserveResource(self, query):
+        user = self._check_login()
+        if not user: return False
+        return self.project.ra.reserveResource(query, props={'__user': user})
+
+
+    def exposed_reserveSut(self, query):
+        user = self._check_login()
+        if not user: return False
+        return self.project.ra.reserveSut(query, props={'__user': user})
+
+
+    def exposed_saveReservedResource(self, query):
+        user = self._check_login()
+        if not user: return False
+        return self.project.ra.saveReservedResource(query, props={'__user': user})
+
+
+    def exposed_saveReservedSut(self, query):
+        user = self._check_login()
+        if not user: return False
+        return self.project.ra.saveReservedSut(query, props={'__user': user})
+
+
+    def exposed_discardReservedResource(self, query):
+        user = self._check_login()
+        if not user: return False
+        return self.project.ra.discardReservedResource(query, props={'__user': user})
+
+
+    def exposed_discardReservedSut(self, query):
+        user = self._check_login()
+        if not user: return False
+        return self.project.ra.discardReservedSut(query, props={'__user': user})
+
+
 # Eof()

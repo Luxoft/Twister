@@ -284,13 +284,13 @@ class TscCommonLib(object):
         except: return None
 
 
-    def getResourceStatus(self, query):
-        try: return self.ce_proxy.getResourceStatus(query)
+    def isResourceReserved(self, query):
+        try: return self.ce_proxy.isResourceReserved(query)
         except: return None
 
 
-    def allocResource(self, query):
-        try: return self.ce_proxy.allocResource(query)
+    def isSutReserved(self, query):
+        try: return self.ce_proxy.isSutReserved(query)
         except: return None
 
 
@@ -299,8 +299,28 @@ class TscCommonLib(object):
         except: return None
 
 
-    def freeResource(self, query):
-        try: return self.ce_proxy.freeResource(query)
+    def reserveSut(self, query):
+        try: return self.ce_proxy.reserveSut(query)
+        except: return None
+
+
+    def saveReservedResource(self, query):
+        try: return self.ce_proxy.saveReservedResource(query)
+        except: return None
+
+
+    def saveReservedSut(self, query):
+        try: return self.ce_proxy.saveReservedSut(query)
+        except: return None
+
+
+    def discardReservedResource(self, query):
+        try: return self.ce_proxy.discardReservedResource(query)
+        except: return None
+
+
+    def discardReservedSut(self, query):
+        try: return self.ce_proxy.discardReservedSut(query)
         except: return None
 
 

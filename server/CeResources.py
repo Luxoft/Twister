@@ -137,6 +137,29 @@ def _get_res_pointer(parent_node, query):
     return resource_p
 
 
+def _get_res_path(parent_node, query):
+    '''
+    Helper function.
+    '''
+    query = str(query)
+
+    # If the query is a path
+    if '/' in query:
+        resource_path = query.split('/')
+    # If the query is an ID
+    else:
+        try:
+            resource_path = _recursive_find_id(parent_node, query, [])['path']
+        except:
+            resource_path = None
+
+    result = None
+    if resource_path:
+        result = [p for p in resource_path if p]
+
+    return result
+
+
 def flattenNodes(parent_node, result):
     # The node is valid ?
     if not parent_node:
@@ -228,6 +251,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
         self.project = project
 
         self.resources = {'version': 0, 'name': '/', 'meta': {}, 'children': {}}
+        self.reservedResources = dict()
         self.systems   = {'version': 0, 'name': '/', 'meta': {}, 'children': {}}
         self.acc_lock = thread.allocate_lock() # Task change lock
         self.ren_lock = thread.allocate_lock() # Rename lock
@@ -235,6 +259,8 @@ class ResourceAllocator(_cptools.XMLRPCController):
         self.res_file = '{}/config/resources.json'.format(TWISTER_PATH)
         self.sut_file = '{}/config/systems.json'.format(TWISTER_PATH)
         self._load(v=True)
+
+
 
 
     @cherrypy.expose
@@ -417,7 +443,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
         Must provide a Resource ID, or a Query.
         The function is used for both Devices and SUTs, by providing the ROOT ID.
         '''
-        self._load(v=False)
+        #self._load(v=False)
 
         # If the root is not provided, use the default root
         if root_id == ROOT_DEVICE:
@@ -537,7 +563,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
         Create or change a resource, using a name, a parent Path or ID and some properties.
         The function is used for both Devices and SUTs, by providing the ROOT ID.
         '''
-        self._load(v=False)
+        #self._load(v=False)
         user_roles = self.userRoles(props)
 
         # If the root is not provided, use the default root
@@ -577,10 +603,18 @@ class ResourceAllocator(_cptools.XMLRPCController):
             logDebug('Set {}: Updated ROOT with properties: `{}`.'.format(root_name, props))
             return True
 
-        parent_p = _get_res_pointer(resources, parent)
+        if parent == '/' or parent == '1': # can alsow be 1
+            parent_p = _get_res_pointer(resources, parent)
+            # if name in parent_p['children']:
+            #     parent_path = _get_res_path(resources, parent)
+            #     if not parent_path:
+            #         parent_path = parent + name
+            #     parent_p = self._getReservedResource(parent, root_id, props=props)
+        else:
+            parent_p = self._getReservedResource(parent, root_id, props=props)
 
         if not parent_p:
-            msg = 'Set {}: Cannot find parent path or ID `{}` !'.format(root_name, parent)
+            msg = 'Set {}: Cannot access parent path or ID `{}` !'.format(root_name, parent)
             logError(msg)
             return '*ERROR* ' + msg
 
@@ -610,22 +644,28 @@ class ResourceAllocator(_cptools.XMLRPCController):
         except: pass
 
         # Make a copy, to compare the changes at the end
-        old_parent = copy.deepcopy(parent_p)
+        #old_parent = copy.deepcopy(parent_p)
 
         # If the resource exists, patch the new properties!
         if name in parent_p['children']:
-            child_p = parent_p['children'][name]
+            if parent == '/' or parent == '1':
+                child_p = self._getReservedResource('/' + name, root_id, props=props)
+            else:
+                child_p = parent_p['children'][name]
+
             child_p['meta'].update(props)
 
-            if old_parent != parent_p:
-                self._save(root_id)
-                logDebug('Updated {} `{}`, id `{}` : `{}`.'.format(root_name, name, child_p['id'], props))
-            else:
-                logDebug('No changes have been made to {} `{}`, id `{}`.'.format(root_name, name, child_p['id']))
+            # if old_parent != parent_p:
+            #     #self._save(root_id)
+            #     logDebug('Updated {} `{}`, id `{}` : `{}`.'.format(root_name, name, child_p['id'], props))
+            # else:
+            #     logDebug('No changes have been made to {} `{}`, id `{}`.'.format(root_name, name, child_p['id']))
             return True
 
         # If the resource is new, create it.
         else:
+            parent_p = _get_res_pointer(resources, parent)
+
             res_id = False
             while not res_id:
                 res_id = hexlify(os.urandom(5))
@@ -654,7 +694,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
         '''
         Rename a resource.
         '''
-        self._load(v=False)
+        #self._load(v=False)
         user_roles = self.userRoles(props)
 
         # If the root is not provided, use the default root
@@ -694,13 +734,19 @@ class ResourceAllocator(_cptools.XMLRPCController):
             meta = ''
 
         # Find the resource pointer.
-        if root_id == ROOT_DEVICE:
-            res_p = self.getResource(res_query)
-        else:
-            res_p = self.getSut(res_query)
+        # if root_id == ROOT_DEVICE:
+        #     res_p = self.getResource(res_query)
+        # else:
+        #     res_p = self.getSut(res_query)
 
+        # if not res_p:
+        #     msg = 'Rename {}: Cannot find resource path or ID `{}` !'.format(root_name, res_query)
+        #     logError(msg)
+        #     return '*ERROR* ' + msg
+
+        res_p = self._getReservedResource(res_query, root_id, props=props)
         if not res_p:
-            msg = 'Rename {}: Cannot find resource path or ID `{}` !'.format(root_name, res_query)
+            msg = 'Rename {}: Cannot access reserved resource, path or ID `{}` !'.format(root_name, res_query)
             logError(msg)
             return '*ERROR* ' + msg
 
@@ -719,10 +765,14 @@ class ResourceAllocator(_cptools.XMLRPCController):
             return True
 
         # Must use the real pointer instead of `resource` pointer in order to update the real data
-        if root_id == ROOT_DEVICE:
-            exec_string = 'self.resources["children"]["{}"]'.format('"]["children"]["'.join(node_path))
+        # if root_id == ROOT_DEVICE:
+        #     exec_string = 'self.resources["children"]["{}"]'.format('"]["children"]["'.join(node_path))
+        # else:
+        #     exec_string = 'self.systems["children"]["{}"]'.format('"]["children"]["'.join(node_path))
+        if node_path[1:]:
+            exec_string = 'res_p'.format('"]["children"]["'.join(node_path[1:]))
         else:
-            exec_string = 'self.systems["children"]["{}"]'.format('"]["children"]["'.join(node_path))
+            exec_string = 'res_p'
 
         with self.ren_lock:
 
@@ -743,18 +793,23 @@ class ResourceAllocator(_cptools.XMLRPCController):
             # If must rename a normal node
             else:
                 # Must use the real pointer instead of `resource` pointer in order to update the real data
-                if root_id == ROOT_DEVICE:
-                    new_string = 'self.resources["children"]["{}"]'.format('"]["children"]["'.join(new_path))
+                # if root_id == ROOT_DEVICE:
+                #     new_string = 'self.resources["children"]["{}"]'.format('"]["children"]["'.join(new_path))
+                # else:
+                #     new_string = 'self.systems["children"]["{}"]'.format('"]["children"]["'.join(new_path))
+                if new_path[1:]:
+                    exec_string = 'res_p'.format('"]["children"]["'.join(new_path[1:]))
+                    exec( new_string + ' = ' + exec_string )
                 else:
-                    new_string = 'self.systems["children"]["{}"]'.format('"]["children"]["'.join(new_path))
+                    res_p['path'] = new_name
 
-                exec( new_string + ' = ' + exec_string )
-                exec( 'del ' + exec_string )
+                #exec( new_string + ' = ' + exec_string )
+                #exec( 'del ' + exec_string )
 
                 logDebug('Renamed {} path `{}` to `{}`.'.format(root_name, '/'.join(node_path), '/'.join(new_path)))
 
             # Write changes.
-            self._save(root_id)
+            #self._save(root_id)
 
         return True
 
@@ -772,7 +827,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
         '''
         Permanently delete a resource.
         '''
-        self._load(v=False)
+        #self._load(v=False)
         user_roles = self.userRoles(props)
 
         # If the root is not provided, use the default root
@@ -800,6 +855,19 @@ class ResourceAllocator(_cptools.XMLRPCController):
             res_query = res_query.split(':')[0]
         else:
             meta = ''
+
+        # Check if is reserved
+        res_path = _get_res_path(resources, res_query)
+        res_pointer = _get_res_pointer(resources, ''.join('/' + res_path[0]))
+        reservedResourceIds = list()
+        for userReservedResourceIds in [self.reservedResources[u].keys() for u in self.reservedResources]:
+            reservedResourceIds += userReservedResourceIds
+        isReserved = [False, True][res_pointer.get('status', RESOURCE_FREE) == RESOURCE_RESERVED and
+                        res_pointer['id'] in reservedResourceIds]
+        if isReserved:
+            msg = 'Del {}: Resource reserved, path or ID `{}` !'.format(root_name, res_query)
+            logError(msg)
+            return '*ERROR* ' + msg
 
         # Find the resource pointer.
         if root_id == ROOT_DEVICE:
@@ -845,6 +913,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
         # Write changes.
         self._save(root_id)
+        self._load(v=False)
 
         return True
 
@@ -857,87 +926,286 @@ class ResourceAllocator(_cptools.XMLRPCController):
         return self.deleteResource(res_query, ROOT_SUT, props)
 
 
+    @cherrypy.expose
+    def isSutReserved(self, res_query):
+        """ returns the user or false """
+
+        return self.isResourceReserved(res_query, ROOT_SUT)
+
+
+    @cherrypy.expose
+    def reserveSut(self, res_query, props={}):
+        '''
+        Reserve a SUT.
+        '''
+        return self.reserveResource(res_query, ROOT_SUT, props)
+
+
+    @cherrypy.expose
+    def saveReservedSut(self, res_query, props={}):
+        '''
+        Save a reserved SUT.
+        '''
+        return self.saveReservedResource(res_query, ROOT_SUT, props)
+
+
+    @cherrypy.expose
+    def discardReservedSut(self, res_query, props={}):
+        '''
+        Discard a reserved SUT.
+        '''
+        return self.discardReservedResource(res_query, ROOT_SUT, props)
+
+
 # # # Allocation and reservation of resources # # #
 
 
-    @cherrypy.expose
-    def getResourceStatus(self, res_query):
+    def _getReservedResource(self, res_query, root_id=ROOT_DEVICE, props={}):
         '''
-        Returns the status of a given resource.
+        Returns the reserved resource.
         '''
-        self._load(v=False)
+        #self._load(v=False)
+
+        if root_id == ROOT_DEVICE:
+            resources = self.resources
+        else:
+            resources = self.systems
+
         # If no resources...
-        if not self.resources['children']:
-            msg = 'Get Resource: There are no resources defined !'
+        if not resources['children']:
+            msg = 'Get reserved resource: There are no resources defined !'
             logError(msg)
-            return '*ERROR* ' + msg
+            return False
 
-        res_p = self.getResource(res_query)
+        if ':' in res_query:
+            res_query = res_query.split(':')[0]
 
-        if not res_p:
-            msg = 'Get Status: Cannot find resource path or ID `{}` !'.format(res_query)
+        res_path = _get_res_path(resources, res_query)
+        res_pointer = _get_res_pointer(resources, ''.join('/' + res_path[0]))
+
+        if not res_pointer:
+            msg = 'Get reserved resource: Cannot find resource path or ID `{}` !'.format(res_query)
             logError(msg)
-            return '*ERROR* ' + msg
+            return False
 
-        return res_p.get('status', RESOURCE_FREE)
+        user_roles = self.userRoles(props)
+        user = user_roles.get('user')
+
+        isReservedForUser = [False, True][res_pointer.get('status', RESOURCE_FREE) == RESOURCE_RESERVED and
+                                res_pointer['id'] in self.reservedResources[user]]
+        if not isReservedForUser:
+            msg = 'Get reserved resource: Cannot find reserved resource path or ID `{}` !'.format(res_query)
+            logError(msg)
+            return False
+
+        self.reservedResources[user][res_pointer['id']]['path'] = '/'.join(self.reservedResources[user][res_pointer['id']].get('path', ''))
+
+        return self.reservedResources[user][res_pointer['id']]
+
+
+    # @cherrypy.expose
+    # def allocResource(self, res_query):
+
+    #     self._load(v=False)
+    #     res_p = _get_res_pointer(self.resources, res_query)
+
+    #     if not res_p:
+    #         msg = 'Alloc Resource: Cannot find resource path or ID `{}` !'.format(res_query)
+    #         logError(msg)
+    #         return '*ERROR* ' + msg
+    #     if res_p.get('status') == RESOURCE_BUSY:
+    #         msg = 'Alloc Resource: Cannot allocate ! The resource is already busy !'
+    #         logError(msg)
+    #         return '*ERROR* ' + msg
+
+    #     res_p['status'] = RESOURCE_BUSY
+    #     # Write changes.
+    #     self._save()
+    #     return RESOURCE_BUSY
 
 
     @cherrypy.expose
-    def allocResource(self, res_query):
+    def isResourceReserved(self, res_query, root_id=ROOT_DEVICE):
+        """ returns the user or false """
 
-        self._load(v=False)
-        res_p = _get_res_pointer(self.resources, res_query)
+        if root_id == ROOT_DEVICE:
+            resources = self.resources
+        else:
+            resources = self.systems
 
-        if not res_p:
-            msg = 'Alloc Resource: Cannot find resource path or ID `{}` !'.format(res_query)
+        # If no resources...
+        if not resources['children']:
+            msg = 'Is resource reserved: There are no resources defined !'
             logError(msg)
-            return '*ERROR* ' + msg
-        if res_p.get('status') == RESOURCE_BUSY:
-            msg = 'Alloc Resource: Cannot allocate ! The resource is already busy !'
-            logError(msg)
-            return '*ERROR* ' + msg
+            return False
 
-        res_p['status'] = RESOURCE_BUSY
-        # Write changes.
-        self._save()
-        return RESOURCE_BUSY
+        if ':' in res_query:
+            res_query = res_query.split(':')[0]
+
+        res_path = _get_res_path(resources, res_query)
+        res_pointer = _get_res_pointer(resources, ''.join('/' + res_path[0]))
+
+        if not res_pointer:
+            msg = 'Is resource reserved: Cannot find resource path or ID `{}` !'.format(res_query)
+            logError(msg)
+            return False
+
+        reservedForUser = [u for u in self.reservedResources if res_pointer['id'] in self.reservedResources[u]]
+        if len(reservedForUser) == 1:
+            reservedForUser = reservedForUser[0]
+        else:
+            #msg = 'Is resource reserved: reserved for `{}` !'.format(reservedForUser)
+            #logError(msg)
+            return False
+
+        if not reservedForUser:
+            msg = 'Is resource reserved: Cannot find reserved resource path or ID `{}` !'.format(res_query)
+            logError(msg)
+            return False
+
+        return reservedForUser
 
 
     @cherrypy.expose
-    def reserveResource(self, res_query):
+    def reserveResource(self, res_query, root_id=ROOT_DEVICE, props={}):
 
-        self._load(v=False)
-        res_p = _get_res_pointer(self.resources, res_query)
+        #self._load(v=False)
+        if root_id == ROOT_DEVICE:
+            resources = self.resources
+        else:
+            resources = self.systems
 
-        if not res_p:
+        # If no resources...
+        if not resources['children']:
+            msg = 'Reserve resource: There are no resources defined !'
+            logError(msg)
+            return False
+
+        if ':' in res_query:
+            res_query = res_query.split(':')[0]
+
+        res_path = _get_res_path(resources, res_query)
+        res_pointer = _get_res_pointer(resources, ''.join('/' + res_path[0]))
+
+        if not res_pointer:
             msg = 'Reserve Resource: Cannot find resource path or ID `{}` !'.format(res_query)
             logError(msg)
-            return '*ERROR* ' + msg
-        if res_p.get('status') == RESOURCE_BUSY:
+            return False
+        if res_pointer.get('status', None) == RESOURCE_BUSY:
             msg = 'Reserve Resource: Cannot allocate ! The resource is already busy !'
             logError(msg)
-            return '*ERROR* ' + msg
+            return False
 
-        res_p['status'] = RESOURCE_RESERVED
+        res_pointer.update([('status', RESOURCE_RESERVED), ])
         # Write changes.
-        self._save()
+        self._save(root_id)
+
+        user_roles = self.userRoles(props)
+        user = user_roles.get('user')
+        if user in self.reservedResources:
+            self.reservedResources[user].update([(res_pointer['id'], copy.deepcopy(res_pointer)), ])
+        else:
+            self.reservedResources.update([(user, {res_pointer['id']: copy.deepcopy(res_pointer)}), ])
+
         return RESOURCE_RESERVED
 
 
     @cherrypy.expose
-    def freeResource(self, res_query):
+    def saveReservedResource(self, res_query, root_id=ROOT_DEVICE, props={}):
 
-        self._load(v=False)
-        res_p = _get_res_pointer(self.resources, res_query)
+        #self._load(v=False)
+        if root_id == ROOT_DEVICE:
+            resources = self.resources
+        else:
+            resources = self.systems
 
-        if not res_p:
+        # If no resources...
+        if not resources['children']:
+            msg = 'Save reserved resource: There are no resources defined !'
+            logError(msg)
+            return False
+
+        if ':' in res_query:
+            res_query = res_query.split(':')[0]
+
+        res_path = _get_res_path(resources, res_query)
+        res_pointer = _get_res_pointer(resources, ''.join('/' + res_path[0]))
+
+        if not res_pointer:
             msg = 'Free Resource: Cannot find resource path or ID `{}` !'.format(res_query)
             logError(msg)
-            return '*ERROR* ' + msg
+            return False
 
-        res_p['status'] = RESOURCE_FREE
-        # Write changes.
-        self._save()
+        user_roles = self.userRoles(props)
+        user = user_roles.get('user')
+
+        try:
+            _res_pointer = self.reservedResources[user].pop(res_pointer['id'])
+            _res_pointer['path'] = _res_pointer['path'].split('/')
+
+            # Check for modifications
+            if res_pointer != _res_pointer:
+                resources['children'].pop(_res_pointer['path'][0])
+                resources['children'].update([(_res_pointer['path'][0], _res_pointer), ])
+                #res_pointer.update(_res_pointer.items())
+                res_pointer.update([('status', RESOURCE_FREE), ])
+
+                # Write changes.
+                self._save(root_id)
+                self._load(v=False)
+
+            if not self.reservedResources[user]:
+                self.reservedResources.pop(user)
+        except Exception as e:
+            msg = 'Free Resource: `{}` !'.format(e)
+            logError(msg)
+            return False
+
+        return RESOURCE_FREE
+
+
+    @cherrypy.expose
+    def discardReservedResource(self, res_query, root_id=ROOT_DEVICE, props={}):
+
+        #self._load(v=False)
+        if root_id == ROOT_DEVICE:
+            resources = self.resources
+        else:
+            resources = self.systems
+
+        # If no resources...
+        if not resources['children']:
+            msg = 'Discard reserved resource: There are no resources defined !'
+            logError(msg)
+            return False
+
+        if ':' in res_query:
+            res_query = res_query.split(':')[0]
+
+        res_path = _get_res_path(resources, res_query)
+        res_pointer = _get_res_pointer(resources, ''.join('/' + res_path[0]))
+
+        if not res_pointer:
+            msg = 'Discard reserved resource: Cannot find resource path or ID `{}` !'.format(res_query)
+            logError(msg)
+            return False
+
+        user_roles = self.userRoles(props)
+        user = user_roles.get('user')
+
+        try:
+            self.reservedResources[user].pop(res_pointer['id'])
+            res_pointer['status'] = RESOURCE_FREE
+            # Write changes.
+            self._save(root_id)
+
+            if not self.reservedResources[user]:
+                self.reservedResources.pop(user)
+        except Exception as e:
+            msg = 'Discard reserved resource: `{}` !'.format(e)
+            logError(msg)
+            return False
+
         return RESOURCE_FREE
 
 #
