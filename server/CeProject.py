@@ -1,7 +1,7 @@
 
 # File: CeProject.py ; This file is part of Twister.
 
-# version: 2.051
+# version: 3.001
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -523,6 +523,10 @@ class Project(object):
 
         r = self.authenticate(user)
         if not r: return False
+
+        if self.users[user]['status'] not in [STATUS_STOP, STATUS_INVALID]:
+            logError('*ERROR* Cannot reset the project while still active! (ex: Running, or Pause)')
+            return False
 
         ti = time.clock()
 
