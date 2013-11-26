@@ -1002,6 +1002,12 @@ class CeRpycService(rpyc.Service):
         return self.project.ra.reserveSut(query, props={'__user': user})
 
 
+    def exposed_saveAndReleaseReservedResource(self, query):
+        user = self._check_login()
+        if not user: return False
+        return self.project.ra.saveAndReleaseReservedResource(query, props={'__user': user})
+
+
     def exposed_saveReservedResource(self, query):
         user = self._check_login()
         if not user: return False
@@ -1012,6 +1018,12 @@ class CeRpycService(rpyc.Service):
         user = self._check_login()
         if not user: return False
         return self.project.ra.saveReservedSut(query, props={'__user': user})
+
+
+    def exposed_saveAndReleaseReservedSut(self, query):
+        user = self._check_login()
+        if not user: return False
+        return self.project.ra.saveAndReleaseReservedSut(query, props={'__user': user})
 
 
     def exposed_discardReservedResource(self, query):

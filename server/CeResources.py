@@ -950,6 +950,14 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
+    def saveAndReleaseReservedSut(self, res_query, props={}):
+        '''
+        Save a reserved SUT.
+        '''
+        return self.saveAndReleaseReservedResource(res_query, ROOT_SUT, props)
+
+
+    @cherrypy.expose
     def discardReservedSut(self, res_query, props={}):
         '''
         Discard a reserved SUT.
@@ -1091,7 +1099,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
             msg = 'Reserve Resource: Cannot find resource path or ID `{}` !'.format(res_query)
             logError(msg)
             return False
-        if res_pointer.get('status', None) == RESOURCE_BUSY:
+        if res_pointer.get('status', None) == RESOURCE_RESERVED:
             msg = 'Reserve Resource: Cannot allocate ! The resource is already busy !'
             logError(msg)
             return False
@@ -1111,7 +1119,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
-    def saveReservedResource(self, res_query, root_id=ROOT_DEVICE, props={}):
+    def saveAndReleaseReservedResource(self, res_query, root_id=ROOT_DEVICE, props={}):
 
         #self._load(v=False)
         if root_id == ROOT_DEVICE:
@@ -1121,7 +1129,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
         # If no resources...
         if not resources['children']:
-            msg = 'Save reserved resource: There are no resources defined !'
+            msg = 'Save and release reserved resource: There are no resources defined !'
             logError(msg)
             return False
 
@@ -1132,7 +1140,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
         res_pointer = _get_res_pointer(resources, ''.join('/' + res_path[0]))
 
         if not res_pointer:
-            msg = 'Free Resource: Cannot find resource path or ID `{}` !'.format(res_query)
+            msg = 'Save and release resource: Cannot find resource path or ID `{}` !'.format(res_query)
             logError(msg)
             return False
 
@@ -1157,11 +1165,65 @@ class ResourceAllocator(_cptools.XMLRPCController):
             if not self.reservedResources[user]:
                 self.reservedResources.pop(user)
         except Exception as e:
-            msg = 'Free Resource: `{}` !'.format(e)
+            msg = 'Save and release resource: `{}` !'.format(e)
             logError(msg)
             return False
 
         return RESOURCE_FREE
+
+
+    @cherrypy.expose
+    def saveReservedResource(self, res_query, root_id=ROOT_DEVICE, props={}):
+
+        #self._load(v=False)
+        if root_id == ROOT_DEVICE:
+            resources = self.resources
+        else:
+            resources = self.systems
+
+        # If no resources...
+        if not resources['children']:
+            msg = 'Save reserved resource: There are no resources defined !'
+            logError(msg)
+            return False
+
+        if ':' in res_query:
+            res_query = res_query.split(':')[0]
+
+        res_path = _get_res_path(resources, res_query)
+        res_pointer = _get_res_pointer(resources, ''.join('/' + res_path[0]))
+
+        if not res_pointer:
+            msg = 'Save reserved resource: Cannot find resource path or ID `{}` !'.format(res_query)
+            logError(msg)
+            return False
+
+        user_roles = self.userRoles(props)
+        user = user_roles.get('user')
+
+        try:
+            _res_pointer = self.reservedResources[user].pop(res_pointer['id'])
+            _res_pointer['path'] = _res_pointer['path'].split('/')
+
+            # Check for modifications
+            if res_pointer != _res_pointer:
+                resources['children'].pop(_res_pointer['path'][0])
+                resources['children'].update([(_res_pointer['path'][0], _res_pointer), ])
+                #res_pointer.update(_res_pointer.items())
+                #res_pointer.update([('status', RESOURCE_FREE), ])
+
+                # Write changes.
+                self._save(root_id)
+                self._load(v=False)
+
+            # if not self.reservedResources[user]:
+            #     self.reservedResources.pop(user)
+        except Exception as e:
+            msg = 'Save reserved resource: `{}` !'.format(e)
+            logError(msg)
+            return False
+
+        return RESOURCE_RESERVED
 
 
     @cherrypy.expose
