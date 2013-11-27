@@ -1,7 +1,7 @@
 
 # File: CeRpyc.py ; This file is part of Twister.
 
-# version: 2.005
+# version: 3.001
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -86,6 +86,50 @@ class CeRpycService(rpyc.Service):
             return self._conn._config['connid']
         except:
             return ''
+
+
+    @classmethod
+    def _findConnection(self, usr=None, addr=[], hello='', epname=''):
+        """
+        Helper function to find the first address for 1 user,
+        that matches the Address, the hello, or the Ep.
+        Possible combinations are: (Addr & Hello), (Hello & Ep).
+        The address will match the IP/ host; ex: ['127.0.0.1', 'localhost'].
+        The hello should be: `client`, `ep`, or `lib`.
+        The EP must be the name of the EP registered by a client;
+        it returns the client, not the EP.
+        """
+        if isinstance(self, CeRpycService):
+            user = self._check_login()
+        else:
+            user = usr
+        if not user: return False
+
+        str_addr = False
+
+        # Cycle all active connections (clients, eps, libs, cli)
+        for str_addr, data in self.conns.iteritems():
+            # Skip invalid connections, without log-in
+            if not data.get('user') or not data.get('checked'):
+                continue
+            # Will find the first connection match for the user
+            if user == data['user'] and data['checked']:
+                # Check (Addr & Hello)
+                if (addr and hello) and str_addr.split(':')[0] in addr:
+                    # If the Hello matches with the filter
+                    if data.get('hello') and data['hello'].split(':') and data['hello'].split(':')[0] == hello:
+                        break
+                # Check (Hello & Ep)
+                elif (hello and epname) and data.get('hello') and data['hello'].split(':') and data['hello'].split(':')[0] == hello:
+                    # If this connection has registered EPs
+                    eps = data.get('eps')
+                    if eps and epname in eps:
+                        break
+                # All filters are null! Return the first conn for this user!
+                elif not addr and not hello and not epname:
+                    break
+
+        return str_addr
 
 
     def on_connect(self):
@@ -364,19 +408,19 @@ class CeRpycService(rpyc.Service):
 
     def exposed_listEPs(self):
         """
-        All known EPs for a user.
+        All known EPs for a user, read from project.
         The user is identified automatically.
         """
         user = self._check_login()
         if not user: return False
         eps = self.project.getUserInfo(user, 'eps').keys()
-        return list(eps) # Making a copy
+        return list(eps) # Best to make a copy
 
 
     @classmethod
     def exposed_registeredEps(self, user=None):
         """
-        Return all registered EPs for a client.
+        Return all registered EPs for all user clients.
         The user MUST be given as a parameter.
         """
         if not user: return False
@@ -508,32 +552,19 @@ class CeRpycService(rpyc.Service):
             user = usr
         if not user: return False
 
-        conn = False
+        addr = self._findConnection(user, hello='client', epname=epname)
 
-        # The EP that is required to be started is registered by a client
-        # Must find the client that registered it, and use the RPyc connection
-        for str_addr, data in self.conns.iteritems():
-            # Skip invalid connections, without log-in
-            if not data.get('user') or not data.get('checked'):
-                continue
-            # There might be more clients for a user...
-            # And this Addr might be an EP, not a client
-            if user == data['user'] and data['checked']:
-                # If this connection has registered EPs
-                eps = data.get('eps')
-                if eps and epname in eps:
-                    conn = data['conn']
-                    break
-
-        if not conn:
+        if not addr:
             logError('Unknown Execution Process: `{}`! The project will not run.'.format(epname))
             return False
 
+        conn = self.conns.get(addr, {}).get('conn')
+
         try:
             result = conn.root.start_ep(epname)
-            logDebug('Starting `{} {}`... {}!'.format(user, epname, result))
+            logDebug('Starting `{}:{}`... {}!'.format(user, epname, result))
             return result
-        except Exception as e:
+        except:
             trace = traceback.format_exc()[34:].strip()
             logError('Error: Start EP error: {}'.format(trace))
             return False
@@ -551,32 +582,19 @@ class CeRpycService(rpyc.Service):
             user = usr
         if not user: return False
 
-        conn = False
+        addr = self._findConnection(user, hello='client', epname=epname)
 
-        # The EP that is required to be stopped is registered by a client
-        # Must find the client that registered it, and use the RPyc connection
-        for str_addr, data in self.conns.iteritems():
-            # Skip invalid connections, without log-in
-            if not data.get('user') or not data.get('checked'):
-                continue
-            # There might be more clients for a user...
-            # And this Addr might be an EP, not a client
-            if user == data['user'] and data['checked']:
-                # If this connection has registered EPs
-                eps = data.get('eps')
-                if eps and epname in eps:
-                    conn = data['conn']
-                    break
-
-        if not conn:
-            logError('Unknown Execution Process: `{}`! The EP will not be stopped.'.format(epname))
+        if not addr:
+            logError('Unknown Execution Process: `{}`! Cannot stop the EP.'.format(epname))
             return False
+
+        conn = self.conns.get(addr, {}).get('conn')
 
         try:
             result = conn.root.stop_ep(epname)
-            logDebug('Stopping `{} {}`... {}!'.format(user, epname, result))
+            logDebug('Stopping `{}:{}`... {}!'.format(user, epname, result))
             return result
-        except Exception as e:
+        except:
             trace = traceback.format_exc()[34:].strip()
             logError('Error: Stop EP error: {}'.format(trace))
             return False

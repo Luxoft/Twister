@@ -1,6 +1,6 @@
 #!/usr/bin/env python2.7
 
-# version: 2.012
+# version: 3.001
 
 # File: ExecutionProcess.py ; This file is part of Twister.
 
@@ -845,10 +845,10 @@ class TwisterRunner(cli.Application):
                     trace = traceback.format_exc()[34:].strip()
                     print('Exception on change file status `{}`!\n'.format(trace))
 
-                # If status is FAIL and the file is not Optional and Exit on test fail is ON, CLOSE the runner
+                # If status is FAIL and the file is not Optional and Exit on test fail is ON, CLOSE the EP
                 if not optional_test and self.exit_on_test_fail:
-                    print('*ERROR* Mandatory file `{}` CRASHED! Closing the runner!\n\n'.format(filename))
-                    proxy().echo('*ERROR* Mandatory file `{}::{}::{}` CRASHED! Closing the runner!'\
+                    print('*ERROR* Mandatory file `{}` CRASHED! Closing the EP!\n\n'.format(filename))
+                    proxy().echo('*ERROR* Mandatory file `{}::{}::{}` CRASHED! Closing the EP!'\
                         ''.format(self.epName, suite_name, filename))
                     print('<<< END filename: `{}:{}` >>>\n'.format(file_id, filename))
                     # Exit the cycle
@@ -903,10 +903,10 @@ class TwisterRunner(cli.Application):
             # If status is not PASS
             if (result!=STATUS_PASS and result!='PASS'):
 
-                # If status is FAIL and the file is not Optional and Exit on test fail is ON, CLOSE the runner
+                # If status is FAIL and the file is not Optional and Exit on test fail is ON, CLOSE the EP
                 if not optional_test and self.exit_on_test_fail:
-                    print('*ERROR* Mandatory file `{}` did not PASS! Closing the runner!\n\n'.format(filename))
-                    proxy().echo('*ERROR* Mandatory file `{}::{}::{}` did not PASS! Closing the runner!'\
+                    print('*ERROR* Mandatory file `{}` did not PASS! Closing the EP!\n\n'.format(filename))
+                    proxy().echo('*ERROR* Mandatory file `{}::{}::{}` did not PASS! Closing the EP!'\
                         ''.format(self.epName, suite_name, filename))
                     print('<<< END filename: `{}:{}` >>>\n'.format(file_id, filename))
                     # Exit the cycle

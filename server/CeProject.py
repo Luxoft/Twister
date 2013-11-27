@@ -1,7 +1,7 @@
 
 # File: CeProject.py ; This file is part of Twister.
 
-# version: 2.051
+# version: 3.001
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -514,15 +514,19 @@ class Project(object):
         Reset user parser, all EPs to STOP, all files to PENDING.
         """
         if not user or user not in self.users:
-            logError('Project ERROR: Invalid user `{}` !'.format(user))
+            logError('*ERROR* Cannot reset! Invalid user `{}`!'.format(user))
             return False
 
         if base_config and not os.path.isfile(base_config):
-            logError('Project ERROR: Config path `{}` does not exist! Using default config!'.format(base_config))
+            logError('*ERROR* Config path `{}` does not exist! Using default config!'.format(base_config))
             base_config = False
 
         r = self.authenticate(user)
         if not r: return False
+
+        if self.users[user].get('status', 8) not in [STATUS_STOP, STATUS_INVALID]:
+            logError('*ERROR* Cannot reset the project while still active! (ex: Running, or Pause)')
+            return False
 
         ti = time.clock()
 
@@ -1250,6 +1254,44 @@ class Project(object):
 # # #
 
 
+    def _find_anonim_ep(self, user, anonim_ep):
+        """
+        Helper function to find a local, free EP to be used as Anonim EP.
+        """
+        # All active EPs. There are NO duplicates.
+        active_eps = self.parsers[user].getActiveEps()
+
+        # There are no Anonim EPs...
+        if anonim_ep not in active_eps:
+            return False
+
+        # Shortcut to the Rpyc Service
+        rpyc_srv = self.rsrv.service
+        local_client = rpyc_srv._findConnection(usr=user, addr=['127.0.0.1', 'localhost'], hello='client')
+
+        if not local_client:
+            logWarning('*ERROR* Cannot find any local Clients to use for Anonim EP! The Anonim EP will not run!')
+            return False
+
+        # The list of local EPs (EPs from THIS machine)
+        local_eps = rpyc_srv.conns.get(local_client, {}).get('eps', [])
+        if not local_eps:
+            logWarning('*ERROR* Cannot find any local EPs to use for Anonim EP! The Anonim EP will not run!')
+            return False
+
+        # Diff EPs = the list of EPs that are local and don't have any tests to run
+        diff_eps = sorted(set(local_eps) - set(active_eps))
+        if not diff_eps:
+            logWarning('*ERROR* Cannot find any free EPs to use for Anonim EP! The Anonim EP will not run!')
+            return False
+
+        # The Anonim EP becomes the first free EP
+        epname = diff_eps[0]
+        logDebug('Found __Anonim__ EP for user `{}:{}` !'.format(user, epname))
+
+        return epname
+
+
     def setExecStatus(self, user, epname, new_status, msg=''):
         """
         Set execution status for one EP. (0, 1, 2, or 3)
@@ -1281,11 +1323,10 @@ class Project(object):
 
         if ret:
             if msg:
-                logDebug('Project: Status changed for `{} {}` - {}.\n\tMessage: `{}`.'.format(
+                logDebug('Status changed for `{} {}` - {}.\n\tMessage: `{}`.'.format(
                     user, epname, reversed[new_status], msg))
             else:
-                logDebug('Project: Status changed for `{} {}` - {}.'.format(
-                    user, epname, reversed[new_status]))
+                logDebug('Status changed for `{} {}` - {}.'.format(user, epname, reversed[new_status]))
         else:
             logError('Project: Cannot change status for `{} {}` !'.format(user, epname))
 
@@ -1409,9 +1450,12 @@ class Project(object):
             return False
 
         if new_status not in execStatus.values():
-            logError('Project: Status value `{}` is not in the list of defined statuses: `{}`!'
+            logError('*ERROR* Status value `{}` is not in the list of defined statuses: `{}`!'
                      ''.format(new_status, execStatus.values()) )
             return False
+
+        # Shortcut to the Rpyc Service
+        rpyc_srv = self.rsrv.service
 
         reversed = dict((v,k) for k,v in execStatus.iteritems())
 
@@ -1424,7 +1468,7 @@ class Project(object):
 
         # Re-initialize the Master XML and Reset all logs on fresh start!
         # This will always happen when the START button is pressed, if CE is stopped
-        if (executionStatus == STATUS_STOP or executionStatus == STATUS_INVALID) and new_status == STATUS_RUNNING:
+        if executionStatus in [STATUS_STOP, STATUS_INVALID] and new_status == STATUS_RUNNING:
 
             # If the Msg contains 2 paths, separated by comma
             if msg and len(msg.split(',')) == 2:
@@ -1478,30 +1522,42 @@ class Project(object):
                         plugin.onStart( self.getUserInfo(user, 'clear_case_view') )
                     else:
                         plugin.onStart()
-                except Exception as e:
+                except:
                     trace = traceback.format_exc()[34:].strip()
                     logWarning('Error on running plugin `{} onStart` - Exception: `{}`!'.format(pname, trace))
             del parser, plugins
 
             # Before starting the EPs and changing the user status, check if there are any EPs
-            epList = self.rsrv.service.exposed_registeredEps(user)
+            epList = rpyc_srv.exposed_registeredEps(user)
 
             if not epList:
                 logWarning('CANNOT START! User `{}` doesn\'t have any registered EPs to run the tests!'.format(user))
                 return reversed[STATUS_STOP]
 
-            # Start all active EPs !
+            # All active EPs ... There are NO duplicates.
             active_eps = self.parsers[user].getActiveEps()
+
+            # Find Anonimous EP in the active EPs
+            anonim_ep = self._find_anonim_ep(user, '__anonymous__')
+
             for epname in active_eps:
-                if epname not in self.users[user]['eps']:
+                if epname == '__anonymous__' and anonim_ep:
+                    self._registerEp(user, epname)
+                    # Rename the Anon EP
+                    with self.stt_lock:
+                        self.users[user]['eps'][anonim_ep] = self.users[user]['eps'][epname]
+                        del self.users[user]['eps'][epname]
+                    # The new name
+                    epname = anonim_ep
+                elif epname not in self.users[user]['eps']:
                     continue
                 # Set the NEW EP status
                 self.setEpInfo(user, epname, 'status', new_status)
                 # Send START to EP Manager
-                self.rsrv.service.exposed_startEP(epname, user)
+                rpyc_srv.exposed_startEP(epname, user)
 
         # If the engine is running, or paused and it received STOP from the user...
-        elif (executionStatus == STATUS_RUNNING or executionStatus == STATUS_PAUSED) and new_status == STATUS_STOP:
+        elif executionStatus in [STATUS_RUNNING, STATUS_PAUSED, STATUS_INVALID] and new_status == STATUS_STOP:
 
             # Execute "Post Script"
             script_post = self.getUserInfo(user, 'script_post')
@@ -1519,7 +1575,7 @@ class Project(object):
                 plugin = self._buildPlugin(user, pname, {'ce_stop': 'manual'})
                 try:
                     plugin.onStop()
-                except Exception as e:
+                except:
                     trace = traceback.format_exc()[34:].strip()
                     logWarning('Error on running plugin `{} onStop` - Exception: `{}`!'.format(pname, trace))
             del parser, plugins
@@ -1543,7 +1599,7 @@ class Project(object):
                 # Set the NEW EP status
                 self.setEpInfo(user, epname, 'status', new_status)
                 # Send STOP to EP Manager
-                self.rsrv.service.exposed_stopEP(epname, user)
+                rpyc_srv.exposed_stopEP(epname, user)
 
             if statuses_changed:
                 logDebug('Set Status: Changed `{}` file statuses from Pending to Not executed.'.format(statuses_changed))
