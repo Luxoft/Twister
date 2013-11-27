@@ -1582,11 +1582,17 @@ class Project(object):
 
             # Cycle all active EPs to: STOP them and to change the PENDING status to NOT_EXEC
             active_eps = self.parsers[user].getActiveEps()
+            # Find Anonimous EP in the active EPs
+            anonim_ep = self._find_anonim_ep(user, '__anonymous__')
+
             eps_pointer = self.users[user]['eps']
             statuses_changed = 0
 
             for epname in active_eps:
-                if epname not in self.users[user]['eps']:
+                if epname == '__anonymous__' and anonim_ep:
+                    # The new name
+                    epname = anonim_ep
+                elif epname not in self.users[user]['eps']:
                     continue
                 # All files, for current EP
                 files = eps_pointer[epname]['suites'].getFiles()
