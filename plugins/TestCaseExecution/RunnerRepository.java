@@ -1,6 +1,6 @@
 /*
 File: RunnerRepository.java ; This file is part of Twister.
-Version: 2.0038
+Version: 2.0039
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -155,8 +155,8 @@ public class RunnerRepository {
     public static Container container;
     public static Applet applet;
     private static Document pluginsconfig;
-    private static String version = "2.045";
-    private static String builddate = "26.11.2013";
+    private static String version = "2.046";
+    private static String builddate = "27.11.2013";
     public static String logotxt,os,python;
     private static int remotefiletries = 0;
     
@@ -1636,7 +1636,8 @@ public class RunnerRepository {
     public static void openProjectFile(){
         int size;
         Vector v=null;
-        try{v = connection.ls(REMOTEUSERSDIRECTORY);
+        try{connection.cd(REMOTEUSERSDIRECTORY);
+            v = connection.ls(".");
             size = v.size();}
         catch(Exception e){
             System.out.println("Second attempt to connect");

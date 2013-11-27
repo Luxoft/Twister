@@ -1,6 +1,6 @@
 /*
 File: Grafic.java ; This file is part of Twister.
-Version: 2.0015
+Version: 2.0016
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -1995,7 +1995,6 @@ public class Grafic extends JPanel{
                 updateLocations(RunnerRepository.getSuita(0));}
             selectedcollection.clear();
             deselectAll();
-            System.out.println("Here");
             RunnerRepository.window.mainpanel.p1.suitaDetails.setGlobalDetails();
             RunnerRepository.window.mainpanel.p1.suitaDetails.clearDefs();
             RunnerRepository.window.mainpanel.p1.suitaDetails.setParent(null);
