@@ -52,9 +52,11 @@ if TWISTER_PATH not in sys.path:
 
 
 from common.tsclogging import *
+from common.tsclogging import setLogLevel
 from server.CeProject  import Project
 from server.CeXmlRpc   import CeXmlRpc
 from server.CeRpyc     import CeRpycService
+from common import iniparser
 
 #
 
@@ -75,6 +77,21 @@ if __name__ == "__main__":
         except:
             logCritical('Twister Server: Must start with parameter PORT number!')
             exit(1)
+
+    # Read verbosity from configuration
+    cfg_path = '{}/config/server_init.ini'.format(TWISTER_PATH)
+    if not os.path.isfile(cfg_path):
+        verbosity = 1
+    else:
+        cfg = iniparser.ConfigObj(cfg_path)
+        verbosity = cfg.get('verbosity', 1)
+        try: verbosity = int(verbosity)
+        except:
+            logError('Twister Server: Invalid verbosity value `{}`! Will default to `1`.'.format(verbosity))
+            verbosity = 1
+        del cfg
+
+    setLogLevel(int(verbosity))
 
     # RPyc config
     config = {
