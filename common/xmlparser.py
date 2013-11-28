@@ -119,7 +119,7 @@ class TSCParser:
             if files_config.startswith('~/'):
                 files_config = userHome(self.user) + files_config[1:]
             if not os.path.isfile(files_config):
-                print('Parser: Test-Suites XML file `{}` does not exist! Please check framework config XML file!'.format(files_config))
+                logError('Parser: Test-Suites XML file `{}` does not exist! Please check framework config XML file!'.format(files_config))
                 self.configTS = None
                 return -1
             else:
@@ -129,14 +129,14 @@ class TSCParser:
             newConfigHash = hashlib.md5(config_ts).hexdigest()
 
         if self.configHash != newConfigHash:
-            print('Parser: Test-Suites XML file changed, rebuilding internal structure...\n')
+            logDebug('Parser: Test-Suites XML file changed, rebuilding internal structure...\n')
             # Use the new hash
             self.configHash = newConfigHash
             # Create XML Soup from the new XML file
             try:
                 self.configTS = etree.fromstring(config_ts)
             except:
-                print('Parser ERROR: Cannot access Test-Suites XML data!')
+                logError('Parser ERROR: Cannot access Test-Suites XML data!')
                 self.configTS = None
                 return -1
 
@@ -148,7 +148,7 @@ class TSCParser:
         Returns the values of many global tags, from FWM and Test-Suites XML.
         """
         if self.configTS is None:
-            print('Parser: Cannot get project globals, because Test-Suites XML is invalid!')
+            logError('Parser: Cannot get project globals, because Test-Suites XML is invalid!')
             return False
 
         # Reset globals
@@ -192,7 +192,7 @@ class TSCParser:
         Returns a list with all EPs that appear in Test-Suites XML.
         """
         if self.configTS is None:
-            print('Parser: Cannot get active EPs, because Test-Suites XML is invalid!')
+            logError('Parser ERROR: Cannot get active EPs, because Test-Suites XML is invalid!')
             return []
 
         activeEPs = []
@@ -212,7 +212,7 @@ class TSCParser:
         High level function for listing all settings from a Twister XML config file.
         """
         if not os.path.isfile(xmlFile):
-            print('Parse settings error! File path `{}` does not exist!'.format(xmlFile))
+            logError('Parse settings error! File path `{}` does not exist!'.format(xmlFile))
             return False
         xmlSoup = etree.parse(xmlFile)
         if xFilter:
@@ -226,7 +226,7 @@ class TSCParser:
         High level function for getting a value from a Twister XML config file.
         """
         if not os.path.isfile(xmlFile):
-            print('Parse settings error! File path `{}` does not exist!'.format(xmlFile))
+            logError('Parse settings error! File path `{}` does not exist!'.format(xmlFile))
             return False
         if not key:
             return False
@@ -246,7 +246,7 @@ class TSCParser:
         High level function for setting a value in a Twister XML config file.
         """
         if not os.path.isfile(xmlFile):
-            print('Parse settings error! File path `{}` does not exist!'.format(xmlFile))
+            logError('Parse settings error! File path `{}` does not exist!'.format(xmlFile))
             return False
         if not key:
             return False
@@ -294,7 +294,7 @@ class TSCParser:
         values are deleted.
         """
         if not os.path.isfile(xmlFile):
-            print('Parse settings error! File path `{}` does not exist!'.format(xmlFile))
+            logError('Parse settings error! File path `{}` does not exist!'.format(xmlFile))
             return False
         # The key must be string
         if not (isinstance(key, str) or isinstance(key, unicode)):
@@ -336,7 +336,7 @@ class TSCParser:
         This function writes in TestSuites.XML file.
         """
         if not os.path.isfile(xmlFile):
-            print('Parse settings error! File path `{}` does not exist!'.format(xmlFile))
+            logError('Parse settings error! File path `{}` does not exist!'.format(xmlFile))
             return False
         if not suite:
             return False
@@ -397,7 +397,7 @@ class TSCParser:
         This function writes in TestSuites.XML file.
         """
         if not os.path.isfile(xmlFile):
-            print('Parse settings error! File path `{}` does not exist!'.format(xmlFile))
+            logError('Parse settings error! File path `{}` does not exist!'.format(xmlFile))
             return False
         if not suite:
             return False
@@ -749,7 +749,7 @@ class DBParser():
         fields = self.xmlDict.xpath('insert_section/field')
 
         if not fields:
-            print('Db Parser: Cannot load the reports fields section!')
+            logWarning('Db Parser: Cannot load the reports fields section!')
             return {}
 
         res = OrderedDict()
@@ -768,7 +768,7 @@ class DBParser():
         """ Used by Central Engine. """
         res =  self.xmlDict.xpath('insert_section/field[@ID="%s"]' % field_id)
         if not res:
-            print('Db Parser: Cannot find field ID `%s`!' % field_id)
+            logWarning('Db Parser: Cannot find field ID `{}`!'.format(field_id))
             return False
 
         query = res[0].get('SQLQuery')
@@ -785,7 +785,7 @@ class DBParser():
         fields = self.xmlDict.xpath('reports_section/field')
 
         if not fields:
-            print('Db Parser: Cannot load the reports fields section!')
+            logWarning('Db Parser: Cannot load the reports fields section!')
             return {}
 
         res = OrderedDict()
@@ -808,7 +808,7 @@ class DBParser():
         reports = self.xmlDict.xpath('reports_section/report')
 
         if not reports:
-            print('Db Parser: Cannot load the database reports section!')
+            logWarning('Db Parser: Cannot load the database reports section!')
             return {}
 
         res = OrderedDict()
@@ -834,7 +834,7 @@ class DBParser():
         redirects = self.xmlDict.xpath('reports_section/redirect')
 
         if not redirects:
-            print('Db Parser: Cannot load the database redirects section!')
+            logWarning('Db Parser: Cannot load the database redirects section!')
             return {}
 
         res = OrderedDict()
