@@ -52,11 +52,12 @@ Information about *Suites*:
 - suite name
 - other info from Test-Suites.XML (eg: release, or build)
 - test bed name
+- SUT name
 - panic detect
 
 Information about *Test Files*:
 
-- file name
+- file ID
 - complete file path
 - test title
 - test description
@@ -66,7 +67,7 @@ Information about *Test Files*:
 - test params
 - test date started and finished
 - test time elapsed
-- test log
+- test CLI log
 
 """
 from __future__ import with_statement
@@ -169,7 +170,7 @@ def cache_users():
             return False
 
     tf = time.time()
-    logDebug('Cache users operation took `{:.2f}` seconds...'.format( (tf-ti) ))
+    logInfo('Cache Users operation took `{:.2f}` seconds...'.format( (tf-ti) ))
 
     threading.Timer(60*60, cache_users, ()).start()
 
@@ -188,6 +189,8 @@ class Project(object):
     - EPs
     - suites
     - test files
+    - logs
+    - plug-ins
     """
 
     def __init__(self):
@@ -197,8 +200,8 @@ class Project(object):
             self.srv_ver = 'version `{}`'.format(self.srv_ver)
         except: self.srv_ver = ''
 
+        logInfo('STARTING TWISTER SERVER {}...'.format(self.srv_ver))
         ti = time.time()
-        logDebug('STARTING TWISTER SERVER {}...'.format(self.srv_ver))
 
         self.rsrv    = None  # RPyc server pointer
         self.ip_port = None # Will be injected by the Central Engine CherryPy
@@ -225,7 +228,7 @@ class Project(object):
         # Read the production/ development option.
         cfg_path = '{}/config/server_init.ini'.format(TWISTER_PATH)
         if not os.path.isfile(cfg_path):
-            logError('Production/ Development ERROR: Cannot find server_init in path `{}`! Will default to `no_type`.'.format(cfg_path))
+            logWarning('Production/ Development ERROR: Cannot find server_init in path `{}`! Will default to `no_type`.'.format(cfg_path))
             self.server_init = {'ce_server_type': 'no_type'}
         else:
             cfg = iniparser.ConfigObj(cfg_path)
@@ -234,11 +237,11 @@ class Project(object):
             self.server_init['ce_server_type'] = self.server_init.get('ce_server_type', 'no_type').lower()
         # Fix server type spelling errors, or invalid types?
         if self.server_init['ce_server_type'] not in ['no_type', 'production', 'development']:
-            logError('Production/ Development ERROR: Reset invalid server type from '\
+            logWarning('Production/ Development ERROR: Reset invalid server type from '\
                 '`{ce_server_type}` to `no_type`!'.format(**self.server_init))
             self.server_init['ce_server_type'] = 'no_type'
 
-        logDebug('Running server type `{ce_server_type}`.'.format(**self.server_init))
+        logInfo('Running server type `{ce_server_type}`.'.format(**self.server_init))
 
         # Panic Detect, load config for current user
         self.panicDetectConfigPath = '{}/config/PanicDetectData.json'.format(TWISTER_PATH)
@@ -251,7 +254,7 @@ class Project(object):
         # Start cache users at the beggining...
         start_new_thread(cache_users, ())
 
-        logDebug('SERVER INITIALIZATION TOOK `{:.4f}` SECONDS.'.format(time.time()-ti))
+        logInfo('SERVER INITIALIZATION TOOK `{:.4f}` SECONDS.'.format(time.time()-ti))
 
 
     @staticmethod
@@ -340,6 +343,8 @@ class Project(object):
         if (not user) or (not epname):
             return False
 
+        logDebug('Start to register Execution-Process `{}:{}`...'.format(user, epname))
+
         with self.stt_lock:
 
             self.users[user]['eps'][epname] = OrderedDict()
@@ -378,6 +383,8 @@ class Project(object):
         if (not user) or (not epname):
             return False
 
+        logDebug('Start to un-register Execution-Process `{}:{}`...'.format(user, epname))
+
         with self.stt_lock:
 
             suitesInfo = self.users[user]['eps'][epname]['suites']
@@ -398,6 +405,8 @@ class Project(object):
 
 
     def _common_proj_reset(self, user, base_config, files_config):
+
+        logDebug('Common Project Reset for `{}` with params:\n\t`{}` & `{}`.'.format(user, base_config, files_config))
 
         # Create EP list
         self.users[user]['eps'] = OrderedDict()
@@ -455,6 +464,8 @@ class Project(object):
         self.users[user]['user_groups'] = ', '.join(user_roles['groups'])
         self.users[user]['user_roles']  = ', '.join(user_roles['roles'])
 
+        logDebug('End of common Project Reset for `{}`.'.format(user))
+
         return True
 
 
@@ -465,6 +476,8 @@ class Project(object):
         """
         if not user:
             return False
+
+        logDebug('Preparing to register user `{}`...'.format(user))
 
         config_data = None
         # If config path is actually XML data
@@ -504,7 +517,7 @@ class Project(object):
 
         # Save everything.
         self._dump()
-        logDebug('Project: Registered user `{}` ...'.format(user))
+        logInfo('Project: Registered user `{}`.'.format(user))
 
         return True
 
@@ -524,6 +537,8 @@ class Project(object):
         r = self.authenticate(user)
         if not r: return False
 
+        logDebug('Preparing to reset project for user `{}`...'.format(user))
+
         if self.users[user].get('status', 8) not in [STATUS_STOP, STATUS_INVALID]:
             logError('*ERROR* Cannot reset the project while still active! (ex: Running, or Pause)')
             return False
@@ -536,7 +551,7 @@ class Project(object):
         if not files_config:
             files_config = self.users[user]['project_path']
 
-        logDebug('Project: Reload configuration for user `{}`, with config files `{}` and `{}`.'
+        logDebug('Project: Reload configuration for user `{}`, with config files:\n\t`{}` & `{}`.'
             ''.format(user, base_config, files_config))
 
         try: del self.parsers[user]
@@ -549,7 +564,7 @@ class Project(object):
 
         # Save everything.
         self._dump()
-        logDebug('Project: Reload user operation took `{:.4f}` seconds.'.format(time.clock()-ti))
+        logInfo('Project: Reload user operation took `{:.4f}` seconds.'.format(time.clock()-ti))
         return True
 
 
@@ -611,7 +626,7 @@ class Project(object):
     def authenticate(self, user):
         """
         This func uses what it can to identify the current user and check his roles.\n
-        The function is used EVERYWHERE.\n
+        The function is used EVERYWHERE !\n
         It uses a lock, in order to create the user structure only once.
         """
         if not user:
@@ -767,14 +782,19 @@ class Project(object):
         # Reload users and groups
         with self.usr_lock:
             self.roles = self._parseUsersAndGroups()
-            if not self.roles: return '*ERROR* : Invalid users and groups file!'
+            if not self.roles:
+                logError('*ERROR* : Cannot call Users & Groups manager! Invalid users and groups file!')
+                return '*ERROR* : Invalid users and groups file!'
+
+        logDebug('Users and Groups command: user `{}`, params: `{}`, `{}`, {}.'.format(
+                 user, cmd, name, *args))
 
         # List of roles for current CherryPy user
         cherry_all = self.roles['users'].get(user)
 
         # This user doesn't exist in users and groups
         if not cherry_all:
-            # *ERROR* : Username is not defined in users & groups !
+            logWarning('*WARN* : Username `{}` is not defined in Users & Groups!'.format(user))
             return {}
 
         # List of roles for current CherryPy user
@@ -1300,14 +1320,15 @@ class Project(object):
         """
         # Check the username from CherryPy connection
         cherry_roles = self.authenticate(user)
-        if not cherry_roles:
-            return False
+        if not cherry_roles: return False
+        logDebug('Preparing to set EP status `{}:{}` to `{}`...'.format(user, epname, new_status))
+
         if not 'RUN_TESTS' in cherry_roles['roles']:
             logDebug('Privileges ERROR! Username `{user}` cannot change EP status!'.format(**cherry_roles))
             return False
 
         if epname not in self.users[user]['eps']:
-            logDebug('Project: Invalid EP name `{}` !'.format(epname))
+            logError('Project: Invalid EP name `{}` !'.format(epname))
             return False
         if new_status not in execStatus.values():
             logError('Project: Status value `{}` is not in the list of defined statuses: `{}`!'
@@ -1329,6 +1350,7 @@ class Project(object):
                 logDebug('Status changed for `{} {}` - {}.'.format(user, epname, reversed[new_status]))
         else:
             logError('Project: Cannot change status for `{} {}` !'.format(user, epname))
+            return False
 
         # Send start/ stop command to EP !
         if new_status == STATUS_RUNNING:
@@ -1345,7 +1367,7 @@ class Project(object):
 
                 self.setUserInfo(user, 'status', STATUS_STOP)
 
-                logDebug('Project: All processes stopped for user `{}`! General status changed to STOP.\n'.format(user))
+                logDebug('Project: All processes stopped for user `{}`! General user status changed to STOP.\n'.format(user))
 
                 # If this run is Not temporary
                 if not (user + '_old' in self.users):
@@ -1443,8 +1465,9 @@ class Project(object):
         """
         # Check the username from CherryPy connection
         cherry_roles = self.authenticate(user)
-        if not cherry_roles:
-            return False
+        if not cherry_roles: return False
+        logDebug('Preparing to set User status `{}` to `{}`...'.format(user, new_status))
+
         if not 'RUN_TESTS' in cherry_roles['roles']:
             logDebug('Privileges ERROR! Username `{user}` cannot change exec status!'.format(**cherry_roles))
             return False
@@ -1475,7 +1498,7 @@ class Project(object):
                 path1 = msg.split(',')[0]
                 path2 = msg.split(',')[1]
                 if os.path.isfile(path1) and os.path.isfile(path2):
-                    logDebug('Using custom XML files: `{}` and `{}`.'.format(path1, path2))
+                    logDebug('Using custom XML files: `{}` & `{}`.'.format(path1, path2))
                     self.resetProject(user, path1, path2)
                     msg = ''
 
@@ -1627,10 +1650,10 @@ class Project(object):
         active_eps = self.parsers[user].getActiveEps()
 
         if msg and msg != ',':
-            logDebug('Status changed for `{} {}` - {}.\n\tMessage: `{}`.'.format(
+            logInfo('Status changed for `{} {}` - {}.\n\tMessage: `{}`.'.format(
                 user, active_eps, reversed[new_status], msg))
         else:
-            logDebug('Status changed for `{} {}` - {}.'.format(
+            logInfo('Status changed for `{} {}` - {}.'.format(
                 user, active_eps, reversed[new_status]))
 
         return reversed[new_status]
@@ -1756,6 +1779,11 @@ class Project(object):
         if not r: return False
         eps = self.users[user]['eps']
 
+        if epname:
+            logDebug('Preparing to reset all file statuses for `{}:{}` to `{}`...'.format(user, epname, new_status))
+        else:
+            logDebug('Preparing to reset all file statuses for `{}` to `{}`...'.format(user, new_status))
+
         # Lock resource
         with self.stt_lock:
             for epcycle in eps:
@@ -1766,6 +1794,10 @@ class Project(object):
                     # This uses dump, after set file info
                     self.setFileInfo(user, epcycle, file_id, 'status', new_status)
 
+        if epname:
+            logInfo('All file statuses for `{}:{}` are reset to `{}`.'.format(user, epname, new_status))
+        else:
+            logInfo('All file statuses for `{}` are reset to `{}`.'.format(user, new_status))
         return True
 
 
@@ -1802,7 +1834,7 @@ class Project(object):
 
         try: node_path = [v for v in variable.split('/') if v]
         except:
-            logError('Global Variable: Invalid variable type `{}`, for user `{}`!'.format(variable, user))
+            logWarning('Global Variable: Invalid variable type `{}`, for user `{}`!'.format(variable, user))
             return False
 
         var_pointer = self._findGlobalVariable(user, node_path, globs_file)
@@ -1810,9 +1842,9 @@ class Project(object):
         if not var_pointer:
             node_path = '/'.join(node_path)
             if globs_file:
-                logError('Global Variable: Invalid variable path `{}` in file `{}`, for user `{}`!'.format(node_path, globs_file, user))
+                logWarning('Global Variable: Invalid variable path `{}` in file `{}`, for user `{}`!'.format(node_path, globs_file, user))
             else:
-                logError('Global Variable: Invalid variable path `{}`, for user `{}`!'.format(node_path, user))
+                logWarning('Global Variable: Invalid variable path `{}`, for user `{}`!'.format(node_path, user))
             return False
 
         return var_pointer
@@ -1828,11 +1860,11 @@ class Project(object):
 
         try: node_path = [v for v in variable.split('/') if v]
         except:
-            logError('Global Variable: Invalid variable type `{0}`, for user `{1}`!'.format(variable, user))
+            logWarning('Global Variable: Invalid variable type `{}`, for user `{}`!'.format(variable, user))
             return False
 
         if (not value) or (not str(value)):
-            logError('Global Variable: Invalid value `{0}`, for global variable `{1}` from user `{2}`!'\
+            logWarning('Global Variable: Invalid value `{}`, for global variable `{}` from user `{}`!'\
                 ''.format(value, variable, user))
             return False
 
@@ -1846,11 +1878,13 @@ class Project(object):
         var_pointer = self._findGlobalVariable(user, node_path[:-1])
 
         if not var_pointer:
-            logError('Global Variable: Invalid variable path `{}`, for user `{}`!'.format(node_path, user))
+            logWarning('Global Variable: Invalid variable path `{}`, for user `{}`!'.format(node_path, user))
             return False
 
         with self.glb_lock:
             var_pointer[node_path[-1]] = value
+
+        logDebug('Global Variable: Set variable `{} = {}`, for user `{}`!'.format(value, variable, user))
         return True
 
 
@@ -1907,6 +1941,8 @@ class Project(object):
         """
         r = self.authenticate(user)
         if not r: return False
+
+        logDebug('Preparing to queue file `{} : {}` for user `{}`...'.format(suite, fname, user))
 
         if fname.startswith('~/'):
             fname = userHome(user) + fname[1:]
@@ -1976,6 +2012,8 @@ class Project(object):
         """
         r = self.authenticate(user)
         if not r: return False
+
+        logDebug('Preparing to queue file data `{}` for user `{}`...'.format(data, user))
 
         if not data:
             log = '*ERROR* Null EP/ Suite/ File data `{}`!'.format(data)

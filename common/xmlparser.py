@@ -896,7 +896,7 @@ class PluginParser:
             for plugin in self.xmlDict.xpath('Plugin'):
 
                 if (not plugin.xpath('name/text()')) or (not plugin.xpath('pyfile')) or (not plugin.xpath('jarfile')):
-                    logError('PluginParser ERROR: Invalid plugin: `%s`!' % str(plugin))
+                    logWarning('PluginParser WARN: Invalid config for plugin: `{}`!'.format(plugin))
                     continue
                 name = plugin.xpath('name')[0].text
 
@@ -936,15 +936,15 @@ class PluginParser:
                 mm = reload(mm)
                 plug = mm.Plugin
             except Exception, e:
-                logError('PluginParser ERROR: Unhandled exception in plugin file `{}`! Exception: {}!'.format(mod, e))
+                logWarning('PluginParser ERROR: Unhandled exception in plugin file `{}`! Exception: {}!'.format(mod, e))
                 continue
 
             if not plug:
-                logError('PluginParser ERROR: Plugin `{}` cannot be Null!'.format(plug))
+                logWarning('PluginParser ERROR: Plugin `{}` cannot be Null!'.format(plug))
                 continue
             # Check plugin parent. Must be Base Plugin.
             if not issubclass(plug, Base):
-                logError('PluginParser ERROR: Plugin `{}` must be inherited from Base Plugin!'.format(plug))
+                logWarning('PluginParser ERROR: Plugin `{}` must be inherited from Base Plugin!'.format(plug))
                 continue
 
             # Append plugin classes to plugins list

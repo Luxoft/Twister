@@ -44,6 +44,7 @@ if TWISTER_PATH not in sys.path:
 from common.constants  import *
 from common.helpers    import *
 from common.tsclogging import *
+from common.tsclogging import setLogLevel
 from common.xmlparser  import PluginParser
 
 #
@@ -67,6 +68,20 @@ class CeRpycService(rpyc.Service):
     #   }
     conns = {}
     conn_lock = thread.allocate_lock()
+
+
+    def exposed_setLogLevel(self, Level):
+        """
+        Dinamically set log level.
+        This doesn't require login.
+        """
+        if Level not in (DEBUG, INFO, WARNING, ERROR, CRITICAL):
+            # This is indeed a PRINT
+            print('*WARNING* Invalid log level `{}`! Will set log level to 3!'.format(Level))
+            Level = 3
+        setLogLevel(Level)
+        print('---[ Set Log Level {} ]---'.format(Level))
+        return True
 
 
     @classmethod
@@ -234,7 +249,7 @@ class CeRpycService(rpyc.Service):
             old_data.update({'checked': resp, 'user': user})
             self.conns[str_addr] = old_data
 
-        # print('Connections :: {} //'.format(pformat(self.conns, indent=2, width=100)))
+        logDebug('User login: `{}`: {}.'.format(user, 'success' if resp else 'failure'))
         return resp
 
 
@@ -457,6 +472,8 @@ class CeRpycService(rpyc.Service):
         else:
             eps = sorted(set(eps))
 
+        logDebug('Begin to register EPs: {} ...'.format(eps))
+
         try:
             # Send a Hello and this IP to the remote proxy Service
             hello = self._conn.root.hello(self.project.ip_port[0])
@@ -522,6 +539,8 @@ class CeRpycService(rpyc.Service):
         else:
             eps = set(eps)
 
+        logDebug('Begin to un-register EPs: {} ...'.format(eps))
+
         with self.conn_lock:
             for epname in eps:
                 self.project._unregisterEp(user, epname)
@@ -562,7 +581,7 @@ class CeRpycService(rpyc.Service):
 
         try:
             result = conn.root.start_ep(epname)
-            logDebug('Starting `{}:{}`... {}!'.format(user, epname, result))
+            logDebug('Starting `{}:{}`..... {} !'.format(user, epname, result))
             return result
         except:
             trace = traceback.format_exc()[34:].strip()
@@ -592,7 +611,7 @@ class CeRpycService(rpyc.Service):
 
         try:
             result = conn.root.stop_ep(epname)
-            logDebug('Stopping `{}:{}`... {}!'.format(user, epname, result))
+            logDebug('Stopping `{}:{}`..... {} !'.format(user, epname, result))
             return result
         except:
             trace = traceback.format_exc()[34:].strip()
@@ -634,7 +653,6 @@ class CeRpycService(rpyc.Service):
             return False
 
         data = self.project.getEpInfo(user, epname)
-
         reversed = dict((v,k) for k,v in execStatus.iteritems())
         return reversed[data.get('status', 8)]
 
@@ -647,7 +665,6 @@ class CeRpycService(rpyc.Service):
         if not user: return False
 
         data = self.project.getUserInfo(user)
-
         reversed = dict((v,k) for k,v in execStatus.iteritems())
         return reversed[data.get('status', 8)]
 
@@ -833,7 +850,7 @@ class CeRpycService(rpyc.Service):
                         self.project.setFileInfo(user, epname, file_id, 'twister_tc_revision', rev)
                 except Exception as e:
                     pass
-                logDebug('CE: Execution process `{}:{}` requested file `{}`.'.format(user, epname, filename))
+                logDebug('CE: Execution process `{}:{}` requested ClearCase file `{}`.'.format(user, epname, filename))
                 return data
 
             # Fix ~ $HOME path (from project XML)
@@ -860,6 +877,7 @@ class CeRpycService(rpyc.Service):
         if not user: return False
         parser = PluginParser(user)
         pluginsList = parser.getPlugins()
+        logDebug('List Plug-ins: user `{}` has: {}.'.format(user, pluginsList))
         return pluginsList.keys()
 
 
