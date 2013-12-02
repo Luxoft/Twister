@@ -265,7 +265,7 @@ class TscCommonLib(object):
 
 
     def getSut(self, query):
-        try: return self.ce_proxy.getSut(query)
+        try: return self.ce_proxy.getSut(query=query)
         except: return None
 
 
@@ -324,13 +324,13 @@ class TscCommonLib(object):
         except: return None
 
 
-    def discardReservedResource(self, query):
-        try: return self.ce_proxy.discardReservedResource(query)
+    def discardAndReleaseReservedResource(self, query):
+        try: return self.ce_proxy.discardAndReleaseReservedResource(query)
         except: return None
 
 
-    def discardReservedSut(self, query):
-        try: return self.ce_proxy.discardReservedSut(query)
+    def discardAndReleaseReservedSut(self, query):
+        try: return self.ce_proxy.discardAndReleaseReservedSut(query)
         except: return None
 
 

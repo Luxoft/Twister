@@ -52,7 +52,7 @@ def test():
 
 	print 'Reserve resource:: ', reserveResource('/' + py_res)
 	print 'Update resource::', setResource(py_res, '/', {'more-info': 'y'})
-	print 'Save reserved resource:: ',  saveReservedResource('/' + py_res)
+	print 'Save reserved resource:: ',  saveAndReleaseReservedResource('/' + py_res)
 
 	r = getResource(res_id)
 	print 'Check status::', r
@@ -70,7 +70,7 @@ def test():
 		print 'Reserve resource:: ', reserveResource('/' + py_res)
 		r = setResource(py_res, '/', {tag: str(i)})
 		print 'Set tag `{}` = `{}` ... {}'.format(tag, i, r)
-		print 'Save reserved resource:: ',  saveReservedResource('/' + py_res)
+		print 'Save reserved resource:: ',  saveAndReleaseReservedResource('/' + py_res)
 		if (not r or (isinstance(r, str) and r.startswith('*ERROR*'))): return "FAIL"
 		print
 
@@ -83,7 +83,7 @@ def test():
 		print 'Reserve resource:: ', reserveResource(path)
 		r = renameResource(path, 'tagx')
 		print 'Rename tag `{}` = `tagx` ... {}'.format(path, r)
-		print 'Save reserved resource:: ',  saveReservedResource(path)
+		print 'Save reserved resource:: ',  saveAndReleaseReservedResource(path)
 		if (not r or (isinstance(r, str) and r.startswith('*ERROR*'))): return "FAIL"
 		print
 
@@ -102,7 +102,7 @@ def test():
 	print 'Delete resource::', r
 	if (r == True or not (isinstance(r, str) and r.startswith('*ERROR*'))): return "FAIL"
 
-	r = discardReservedResource(res_id)
+	r = discardAndReleaseReservedResource(res_id)
 	print 'Discard reserved resource:: ', r
 	if (not r or (isinstance(r, str) and r.startswith('*ERROR*'))): return "FAIL"
 

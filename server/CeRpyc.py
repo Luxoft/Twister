@@ -88,6 +88,50 @@ class CeRpycService(rpyc.Service):
             return ''
 
 
+    @classmethod
+    def _findConnection(self, usr=None, addr=[], hello='', epname=''):
+        """
+        Helper function to find the first address for 1 user,
+        that matches the Address, the hello, or the Ep.
+        Possible combinations are: (Addr & Hello), (Hello & Ep).
+        The address will match the IP/ host; ex: ['127.0.0.1', 'localhost'].
+        The hello should be: `client`, `ep`, or `lib`.
+        The EP must be the name of the EP registered by a client;
+        it returns the client, not the EP.
+        """
+        if isinstance(self, CeRpycService):
+            user = self._check_login()
+        else:
+            user = usr
+        if not user: return False
+
+        str_addr = False
+
+        # Cycle all active connections (clients, eps, libs, cli)
+        for str_addr, data in self.conns.iteritems():
+            # Skip invalid connections, without log-in
+            if not data.get('user') or not data.get('checked'):
+                continue
+            # Will find the first connection match for the user
+            if user == data['user'] and data['checked']:
+                # Check (Addr & Hello)
+                if (addr and hello) and str_addr.split(':')[0] in addr:
+                    # If the Hello matches with the filter
+                    if data.get('hello') and data['hello'].split(':') and data['hello'].split(':')[0] == hello:
+                        break
+                # Check (Hello & Ep)
+                elif (hello and epname) and data.get('hello') and data['hello'].split(':') and data['hello'].split(':')[0] == hello:
+                    # If this connection has registered EPs
+                    eps = data.get('eps')
+                    if eps and epname in eps:
+                        break
+                # All filters are null! Return the first conn for this user!
+                elif not addr and not hello and not epname:
+                    break
+
+        return str_addr
+
+
     def on_connect(self):
         """
         On client connect
@@ -931,7 +975,9 @@ class CeRpycService(rpyc.Service):
 
 
     def exposed_getResource(self, query):
-        try: return self.project.ra.getResource(query)
+        user = self._check_login()
+        if not user: return False
+        try: return self.project.ra.getResource(query=query, props={'__user': user})
         except: return False
 
 
@@ -955,7 +1001,9 @@ class CeRpycService(rpyc.Service):
 
 
     def exposed_getSut(self, query):
-        try: return self.project.ra.getSut(query)
+        user = self._check_login()
+        if not user: return False
+        try: return self.project.ra.getSut(query=query, props={'__user': user})
         except: return False
 
 
@@ -979,14 +1027,14 @@ class CeRpycService(rpyc.Service):
 
 
     def exposed_isResourceReserved(self, query):
-        user = self._check_login()
-        if not user: return False
+        #user = self._check_login()
+        #if not user: return False
         return self.project.ra.isResourceReserved(query)
 
 
     def exposed_isSutReserved(self, query):
-        user = self._check_login()
-        if not user: return False
+        #user = self._check_login()
+        #if not user: return False
         return self.project.ra.isSutReserved(query)
 
 
@@ -1026,16 +1074,16 @@ class CeRpycService(rpyc.Service):
         return self.project.ra.saveAndReleaseReservedSut(query, props={'__user': user})
 
 
-    def exposed_discardReservedResource(self, query):
+    def exposed_discardAndReleaseReservedResource(self, query):
         user = self._check_login()
         if not user: return False
-        return self.project.ra.discardReservedResource(query, props={'__user': user})
+        return self.project.ra.discardAndReleaseReservedResource(query, props={'__user': user})
 
 
-    def exposed_discardReservedSut(self, query):
+    def exposed_discardAndReleaseReservedSut(self, query):
         user = self._check_login()
         if not user: return False
-        return self.project.ra.discardReservedSut(query, props={'__user': user})
+        return self.project.ra.discardAndReleaseReservedSut(query, props={'__user': user})
 
 
 # Eof()

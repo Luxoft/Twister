@@ -1,5 +1,5 @@
 
-# version: 2.012
+# version: 2.013
 
 # Major list of constants.
 
@@ -70,6 +70,7 @@ FWMCONFIG_TAGS = (
 	{'name':'tcfg_path',	'tag':'TestConfigPath',		'default':''},
 	{'name':'archive_logs_path', 'tag':'ArchiveLogsPath', 'default': False},
 	{'name':'archive_logs_path_active', 'tag':'ArchiveLogsPathActive', 'default': ''},
+	{'name':'sut_path', 'tag':'SutPath', 'default': ''},
 )
 
 # Project Config XML Tags :
