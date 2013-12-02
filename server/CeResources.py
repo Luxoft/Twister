@@ -1,7 +1,7 @@
 
 # File: CeResources.py ; This file is part of Twister.
 
-# version: 2.011
+# version: 3.001
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -34,6 +34,7 @@ Its role is to manage nodes that represent test-beds and real devices, or SUTs.
 
 import os
 import sys
+import time
 import ast
 import copy
 import thread
@@ -225,6 +226,9 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
     def __init__(self, project):
 
+        logInfo('Starting Resource Allocator...')
+        ti = time.time()
+
         self.project = project
 
         self.resources = {'version': 0, 'name': '/', 'meta': {}, 'children': {}}
@@ -235,6 +239,8 @@ class ResourceAllocator(_cptools.XMLRPCController):
         self.res_file = '{}/config/resources.json'.format(TWISTER_PATH)
         self.sut_file = '{}/config/systems.json'.format(TWISTER_PATH)
         self._load(v=True)
+
+        logInfo('Resource Allocator initialization took `{:.4f}` sec.'.format(time.time()-ti))
 
 
     @cherrypy.expose
@@ -348,6 +354,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
             logError('Import XML: XML file `{}` does not exist!'.format(xml_file))
             return False
 
+        logDebug('Preparing to import XML file `{}`...'.format(xml_file))
         params_xml = etree.parse(xml_file)
 
         with self.imp_lock:
@@ -365,7 +372,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
         self._save(root_id)
 
         root_name = ROOT_NAMES[root_id]
-        logDebug('All {} are now overwritten! Created `{}` major nodes, with children.'.format(root_name, len(result['children'])))
+        logWarning('All {} are now overwritten! Created `{}` major nodes, with children.'.format(root_name, len(result['children'])))
         return True
 
 
@@ -391,6 +398,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
         f.write(etree.tostring(xml, pretty_print=True))
         f.close()
 
+        logInfo('Exported all resources into XML file `{}`.'.format(xml_file))
         return True
 
 
@@ -439,8 +447,10 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
         if not query:
             msg = 'Get {}: Cannot get a null resource !'.format(root_name)
-            logError(msg)
+            logWarning(msg)
             return '*ERROR* ' + msg
+
+        logDebug('Get {} `{}`.'.format(root_name, query))
 
         query = str(query)
 
@@ -574,7 +584,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
             resources['meta'].update(props)
             # Write changes for Device or SUT
             self._save(root_id)
-            logDebug('Set {}: Updated ROOT with properties: `{}`.'.format(root_name, props))
+            logInfo('Set {}: Updated ROOT with properties: `{}`.'.format(root_name, props))
             return True
 
         parent_p = _get_res_pointer(resources, parent)
@@ -619,9 +629,9 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
             if old_parent != parent_p:
                 self._save(root_id)
-                logDebug('Updated {} `{}`, id `{}` : `{}`.'.format(root_name, name, child_p['id'], props))
+                logInfo('Updated {} `{}`, id `{}` : `{}`.'.format(root_name, name, child_p['id'], props))
             else:
-                logDebug('No changes have been made to {} `{}`, id `{}`.'.format(root_name, name, child_p['id']))
+                logInfo('No changes have been made to {} `{}`, id `{}`.'.format(root_name, name, child_p['id']))
             return True
 
         # If the resource is new, create it.
@@ -637,7 +647,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
             # Write changes for Device or SUT
             self._save(root_id)
-            logDebug('Created {} `{}`, id `{}` : `{}`.'.format(root_name, name, res_id, props))
+            logInfo('Created {} `{}`, id `{}` : `{}`.'.format(root_name, name, res_id, props))
             return res_id
 
 
@@ -670,6 +680,8 @@ class ResourceAllocator(_cptools.XMLRPCController):
             resources = self.systems
 
         root_name = ROOT_NAMES[root_id]
+
+        logDebug('Preparing to rename {} `{}`...'.format(root_name, res_query))
 
         # If no resources...
         if not resources['children']:
@@ -738,7 +750,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
                 exec( '{0}["meta"]["{1}"] = {0}["meta"]["{2}"]'.format(exec_string, new_name, meta) )
                 exec( 'del {}["meta"]["{}"]'.format(exec_string, meta) )
 
-                logDebug('Renamed {0} meta `{1}:{2}` to `{1}:{3}`.'.format(root_name, '/'.join(node_path), meta, new_name))
+                logInfo('Renamed {0} meta `{1}:{2}` to `{1}:{3}`.'.format(root_name, '/'.join(node_path), meta, new_name))
 
             # If must rename a normal node
             else:
@@ -751,7 +763,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
                 exec( new_string + ' = ' + exec_string )
                 exec( 'del ' + exec_string )
 
-                logDebug('Renamed {} path `{}` to `{}`.'.format(root_name, '/'.join(node_path), '/'.join(new_path)))
+                logInfo('Renamed {} path `{}` to `{}`.'.format(root_name, '/'.join(node_path), '/'.join(new_path)))
 
             # Write changes.
             self._save(root_id)
@@ -788,6 +800,8 @@ class ResourceAllocator(_cptools.XMLRPCController):
             resources = self.systems
 
         root_name = ROOT_NAMES[root_id]
+
+        logDebug('Preparing to delete {} `{}`...'.format(root_name, res_query))
 
         # If no resources...
         if not resources['children']:
@@ -836,12 +850,12 @@ class ResourceAllocator(_cptools.XMLRPCController):
                 return '*ERROR* ' + msg
 
             exec( 'del {}["meta"]["{}"]'.format(exec_string, meta) )
-            logDebug('Deleted {} meta `{}:{}`.'.format(root_name, '/'.join(node_path), meta))
+            logInfo('Deleted {} meta `{}:{}`.'.format(root_name, '/'.join(node_path), meta))
 
         # If must delete a normal node
         else:
             exec( 'del ' + exec_string )
-            logDebug('Deleted {} path `{}`.'.format(root_name, '/'.join(node_path)))
+            logInfo('Deleted {} path `{}`.'.format(root_name, '/'.join(node_path)))
 
         # Write changes.
         self._save(root_id)

@@ -80,19 +80,6 @@ class TCRunTcl:
 
         self.tcl = Tkinter.Tcl()
 
-        try: import ce_libs
-        except: pass
-        try: reload(ce_libs)
-        except: pass
-
-        # Find all functions from CE Libs
-        to_inject = [ f for f in dir(ce_libs) if callable(getattr(ce_libs, f)) ]
-
-        # Expose all known function in TCL
-        for f in to_inject:
-            # print('DEBUG: Exposing Python command `{}` into TCL...'.format(f))
-            self.tcl.createcommand( f, getattr(ce_libs, f) )
-
         if os.path.exists(os.getcwd()+'/__recomposed.tcl'):
             # Restore all variables and functions
             self.tcl.evalfile(os.getcwd()+'/__recomposed.tcl')
