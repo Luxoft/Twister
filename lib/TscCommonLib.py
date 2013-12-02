@@ -1,7 +1,7 @@
 
 # File: TscCommonLib.py ; This file is part of Twister.
 
-# version: 2.006
+# version: 3.001
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -31,6 +31,8 @@ You can use : getGlobal, setGlobal, getResource, setResource, logMessage.
 '''
 
 import os, sys
+import copy
+import inspect
 import platform
 import marshal
 import rpyc
@@ -38,9 +40,15 @@ from rpyc import BgServingThread
 
 # This will work, because TWISTER_PATH is appended to sys.path.
 try:
-    from ce_libs import PROXY, USER, EP, SUT
+    from ce_libs import *
 except:
     raise Exception('CommonLib must run from Twister!\n')
+
+TWISTER_PATH = os.getenv('TWISTER_PATH')
+if not TWISTER_PATH:
+    raise Exception('$TWISTER_PATH environment variable is not set!\n')
+
+from common import iniparser
 
 __all__ = ['TscCommonLib']
 
@@ -49,7 +57,8 @@ __all__ = ['TscCommonLib']
 class TscCommonLib(object):
 
     platform_sys = platform.system().lower()
-    proxy_path = PROXY
+    __ce_proxy = None
+    proxy_path = PROXY_ADDR
     userName = USER
     epName   = EP
     sutName  = SUT
@@ -60,7 +69,15 @@ class TscCommonLib(object):
         """
         Some initialization code.
         """
-        self.__ce_proxy = None
+        self.reload_libs()
+
+
+    def reload_libs(self):
+        ce_path = '{}/.twister_cache/{}/ce_libs/ce_libs.py'.format(TWISTER_PATH, self.epName)
+        cfg = iniparser.ConfigObj(ce_path)
+        for n, v in cfg.iteritems():
+            setattr(self, n, v)
+        del cfg
 
 
     @property
@@ -68,6 +85,19 @@ class TscCommonLib(object):
         """
         Dinamically connect to the Central Engine.
         """
+        stack = inspect.stack()
+        # The upper stack is either the EP, or the library that derives this
+        stack_fpath = stack[1][1]
+        stack_fname = os.path.split(stack_fpath)[1]
+
+        # If the upper stack is not ExecutionProcess, the library is derived
+        if stack_fname != 'ExecutionProcess.py':
+            # The EP stack is always the last
+            ep_code = stack[-1][0]
+            # It's impossible to access the globals from the EP any other way
+            return ep_code.f_globals.get('ceProxy')
+        del stack, stack_fpath
+
         # Try to reuse the old connection
         try:
             self.__ce_proxy.echo('ping')
@@ -116,25 +146,27 @@ class TscCommonLib(object):
         self.ce_proxy.logMessage(logType, logMessage)
 
 
-    def getGlobal(self, var):
+    @classmethod
+    def getGlobal(cls, var):
         """
         Function to get variables saved from Test files.
         """
-        if var in self.global_vars:
-            return self.global_vars[var]
+        if var in cls.global_vars:
+            return cls.global_vars[var]
         # Else...
-        return self.ce_proxy.getGlobalVariable(var)
+        return cls.ce_proxy.getGlobalVariable(var)
 
 
-    def setGlobal(self, var, value):
+    @classmethod
+    def setGlobal(cls, var, value):
         """
         Function to keep variables sent from Test files.
         """
         try:
             marshal.dumps(value)
-            return self.ce_proxy.setGlobalVariable(var, value)
+            return cls.ce_proxy.setGlobalVariable(var, value)
         except:
-            self.global_vars[var] = value
+            cls.global_vars[var] = value
             return True
 
 
@@ -150,81 +182,58 @@ class TscCommonLib(object):
         """
         Returns the number of files inside the current project.
         """
-        p = self.ce_proxy.getEpVariable(self.userName, self.epName, 'suites', True)
-        data = pickle.loads(p)
-        files = data.getFiles(recursive=True)
+        data = self.ce_proxy.getEpVariable(self.epName, 'suites')
+        SuitesManager = copy.deepcopy(data)
+        files = SuitesManager.getFiles(recursive=True)
         return len(files)
 
 
-    def currentFileIndex(self, FILE_ID=None):
+    def currentFileIndex(self):
         """
         Returns the index of this file in the project.
+        If the ID is not found, the count will fail.
         """
-        file_id = None
-        if FILE_ID:
-            file_id = FILE_ID
-        else:
-            try: file_id = self.FILE_ID
-            except: pass
-        if not file_id:
+        self.reload_libs()
+        if not self.FILE_ID:
             return -1
 
-        p = self.ce_proxy.getEpVariable(self.userName, self.epName, 'suites', True)
-        data = pickle.loads(p)
-        files = data.getFiles(recursive=True)
-        try: return files.index(file_id)
+        data = self.ce_proxy.getEpVariable(self.epName, 'suites')
+        SuitesManager = copy.deepcopy(data)
+        files = SuitesManager.getFiles(recursive=True)
+        try: return files.index(self.FILE_ID)
         except: return -1
 
 
-    def countSuiteFiles(self, SUITE_ID=None):
+    def countSuiteFiles(self):
         """
         Returns the number of files inside a suite ID.
-        If the suite ID is not provided, the count will try to use `self.SUITE_ID`.
         If the ID is not found, the count will fail.
         """
-        suite_id = None
-        if SUITE_ID:
-            suite_id = SUITE_ID
-        else:
-            try: suite_id = self.SUITE_ID
-            except: pass
-        if not suite_id:
+        self.reload_libs()
+        if not self.SUITE_ID:
             return -1
 
-        p = self.ce_proxy.getSuiteVariable(self.userName, self.epName, suite_id, 'children', True)
-        data = pickle.loads(p)
-        files = data.keys() # First level of files, depth=1
+        data = self.ce_proxy.getSuiteVariable(self.epName, self.SUITE_ID, 'children')
+        SuitesManager = copy.deepcopy(data)
+        files = SuitesManager.keys() # First level of files, depth=1
         return len(files)
 
 
-    def currentFSuiteIndex(self, SUITE_ID=None, FILE_ID=None):
+    def currentFSuiteIndex(self):
         """
-        If the suite ID is not provided, the count will try to use `self.SUITE_ID`.
+        Returns the index of this file, inside this suite.
         If the ID is not found, the count will fail.
-        Same with the file ID.
         """
-        suite_id = None
-        if SUITE_ID:
-            suite_id = SUITE_ID
-        else:
-            try: suite_id = self.SUITE_ID
-            except: pass
-        if not suite_id:
+        self.reload_libs()
+        if not self.SUITE_ID:
+            return -1
+        if not self.FILE_ID:
             return -1
 
-        file_id = None
-        if FILE_ID:
-            file_id = FILE_ID
-        else:
-            try: file_id = self.FILE_ID
-            except: pass
-        if not file_id:
-            return -1
-
-        p = self.ce_proxy.getSuiteVariable(self.userName, self.epName, suite_id, 'children', True)
-        data = pickle.loads(p)
-        files = data.keys() # First level of files, depth=1
-        try: return files.index(file_id)
+        data = self.ce_proxy.getSuiteVariable(self.epName, self.SUITE_ID, 'children')
+        SuitesManager = copy.deepcopy(data)
+        files = SuitesManager.keys() # First level of files, depth=1
+        try: return files.index(self.FILE_ID)
         except: return -1
 
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env python2.7
 
-# version: 2.012
+# version: 3.001
 
 # File: ExecutionProcess.py ; This file is part of Twister.
 
@@ -51,6 +51,7 @@ import subprocess
 import traceback
 import tarfile
 
+from string import Template
 from threading import Thread
 from thread import allocate_lock
 
@@ -82,6 +83,17 @@ proxyLock = allocate_lock() # Lock the connection access
 ceProxy   = None # Used to keep the current Central Engine connection
 userName  = None # Used to check the Central Engine connection
 epName    = None # Used by the logger when sending the Live Log
+
+TMPL_LIB = """
+PROXY_ADDR = "$proxy"
+USER = "$user"
+EP = "$ep"
+SUT = "$sut"
+SUITE_ID = "$suite_id"
+SUITE_NAME = "$suite_name"
+FILE_ID = "$file_id"
+FILE_NAME = "$file_name"
+"""
 
 from RunnerClasses import *
 
@@ -408,6 +420,28 @@ class TwisterRunner(cli.Application):
         return
 
 
+    def makeCeLibs(self, suite_id='', suite_name='', file_id='', file_name=''):
+        """
+        Re-create the ce_libs library file.
+        """
+        global EP_CACHE
+
+        libs_path = '{}/ce_libs'.format(EP_CACHE)
+
+        # Create ce_libs library file
+        __init = open(libs_path + os.sep + 'ce_libs.py', mode='w', buffering=0)
+        tmpl = Template(TMPL_LIB)
+        data = {
+            'proxy': self.cePath, 'user': self.userName, 'ep': self.epName,
+            'sut': self.Sut, 'suite_id': suite_id, 'suite_name': suite_name,
+            'file_id': file_id, 'file_name': file_name,
+        }
+        __init.write(tmpl.substitute(**data))
+        __init.close()
+
+        return True
+
+
     def saveLibraries(self, libs_list=''):
         """
         Downloads all libraries from Central Engine.
@@ -440,18 +474,11 @@ class TwisterRunner(cli.Application):
             try: os.makedirs(libs_path)
             except Exception as e: pass
 
+        # Create the ce_libs file
+        self.makeCeLibs()
+
         all_libs = [] # Normal python files or folders
         zip_libs = [] # Zip libraries
-
-        # Create ce_libs library file
-        __init = open(libs_path + os.sep + 'ce_libs.py', 'w')
-        __init.write('\nimport os, sys\n')
-        __init.write('\nPROXY = "{}"\n'.format(self.cePath))
-        __init.write('USER = "{}"\n'.format(self.userName))
-        __init.write('EP = "{}"\n'.format(self.epName))
-        __init.write('SUT = "{}"\n\n'.format(self.Sut))
-        __init.close()
-        del __init
 
         for lib in libs_list:
             # Null libraries ?
@@ -602,6 +629,9 @@ class TwisterRunner(cli.Application):
                 # Removing all known File properties
                 try: del props[prop]
                 except: pass
+
+            # Re-create the ce_libs file
+            self.makeCeLibs(suite_id, suite_name, file_id, os.path.split(filename)[1])
 
 
             print('<<< START filename: `{}:{}` >>>\n'.format(file_id, filename))
@@ -845,10 +875,10 @@ class TwisterRunner(cli.Application):
                     trace = traceback.format_exc()[34:].strip()
                     print('Exception on change file status `{}`!\n'.format(trace))
 
-                # If status is FAIL and the file is not Optional and Exit on test fail is ON, CLOSE the runner
+                # If status is FAIL and the file is not Optional and Exit on test fail is ON, CLOSE the EP
                 if not optional_test and self.exit_on_test_fail:
-                    print('*ERROR* Mandatory file `{}` CRASHED! Closing the runner!\n\n'.format(filename))
-                    proxy().echo('*ERROR* Mandatory file `{}::{}::{}` CRASHED! Closing the runner!'\
+                    print('*ERROR* Mandatory file `{}` CRASHED! Closing the EP!\n\n'.format(filename))
+                    proxy().echo('*ERROR* Mandatory file `{}::{}::{}` CRASHED! Closing the EP!'\
                         ''.format(self.epName, suite_name, filename))
                     print('<<< END filename: `{}:{}` >>>\n'.format(file_id, filename))
                     # Exit the cycle
@@ -903,10 +933,10 @@ class TwisterRunner(cli.Application):
             # If status is not PASS
             if (result!=STATUS_PASS and result!='PASS'):
 
-                # If status is FAIL and the file is not Optional and Exit on test fail is ON, CLOSE the runner
+                # If status is FAIL and the file is not Optional and Exit on test fail is ON, CLOSE the EP
                 if not optional_test and self.exit_on_test_fail:
-                    print('*ERROR* Mandatory file `{}` did not PASS! Closing the runner!\n\n'.format(filename))
-                    proxy().echo('*ERROR* Mandatory file `{}::{}::{}` did not PASS! Closing the runner!'\
+                    print('*ERROR* Mandatory file `{}` did not PASS! Closing the EP!\n\n'.format(filename))
+                    proxy().echo('*ERROR* Mandatory file `{}::{}::{}` did not PASS! Closing the EP!'\
                         ''.format(self.epName, suite_name, filename))
                     print('<<< END filename: `{}:{}` >>>\n'.format(file_id, filename))
                     # Exit the cycle
