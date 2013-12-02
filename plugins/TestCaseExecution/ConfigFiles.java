@@ -1,6 +1,6 @@
 /*
 File: ConfigFiles.java ; This file is part of Twister.
-Version: 2.013
+Version: 2.014
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -399,6 +399,14 @@ public class ConfigFiles extends JPanel{
                         RunnerRepository.window.mainpanel.p1.edit(false);
                         RunnerRepository.window.mainpanel.p1.sc.g.setUser(null);
                         RunnerRepository.openProjectFile();
+                        String respons = RunnerRepository.getRPCClient().execute("resetProject", new Object[]{RunnerRepository.user}).toString();
+                        if(respons.toLowerCase().equals("false")){
+                            CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE, 
+                                                  ConfigFiles.this, "ERROR", 
+                                                  "CE could not propagate changes. Changes will be available on first start project");
+                        } else {
+                            System.out.println("Changes successfully applied in CE");
+                        }
                     }
                     else{
                         CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, 
