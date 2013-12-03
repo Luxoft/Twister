@@ -1,6 +1,6 @@
 #!/usr/bin/env python2.7
 
-# version: 3.001
+# version: 3.002
 
 # File: ExecutionProcess.py ; This file is part of Twister.
 
@@ -315,6 +315,10 @@ class TwisterRunner(cli.Application):
                help='The Central Engine RPyc IP:Port')
     logFile  = cli.Flag(['-l', '--log'],                 default=False,
                help='Log stdout in a file? Default: DISABLED.')
+
+    def __del__(self):
+        print('Caught Execution Process EXIT !\n')
+        self.exit()
 
 
     def main(self):

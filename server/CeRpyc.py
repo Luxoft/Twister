@@ -1,7 +1,7 @@
 
 # File: CeRpyc.py ; This file is part of Twister.
 
-# version: 3.001
+# version: 3.002
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -26,6 +26,7 @@
 
 import os
 import sys
+import time
 import json
 import thread
 import tarfile
@@ -61,6 +62,7 @@ class CeRpycService(rpyc.Service):
     # - keys of connection ip+ports from remote locations
     # - values of meta info about each connection, like:
     #   {
+    #    'time': 12345...,
     #    'hello': 'client | ep | lib',
     #    'checked': True, 'user': '...',
     #    'conn': <Remote RPyc Service>,
@@ -101,6 +103,48 @@ class CeRpycService(rpyc.Service):
             return self._conn._config['connid']
         except:
             return ''
+
+
+    def on_connect(self):
+        """
+        On client connect
+        """
+        str_addr = self._get_addr()
+
+        # Add this connection in the list of connections,
+        # If this connection CAN be added!
+        try:
+            with self.conn_lock:
+                self.conns[str_addr] = {'conn': self._conn, 'time': time.time()}
+        except Exception as e:
+            logError('EE: Connect error: {}.'.format(e))
+
+        logDebug('EE: Connected from `{}`.'.format(str_addr))
+
+
+    def on_disconnect(self):
+        """
+        On client disconnect
+        """
+        str_addr = self._get_addr()
+        hello = self.conns[str_addr].get('hello', '')
+        stime = self.conns[str_addr].get('time', time.time())
+        if hello: hello += ' - '
+
+        # Unregister the eventual EPs for this connection
+        if self.conns[str_addr].get('checked') and self.conns[str_addr].get('user'):
+            eps = self.conns[str_addr].get('eps')
+            if eps: self.unregisterEps(eps)
+
+        # Delete everything for this address
+        try:
+            with self.conn_lock:
+                del self.conns[str_addr]
+        except Exception as e:
+            logError('EE: Disconnect error: {}.'.format(e))
+
+        logDebug('EE: Disconnected from `{}{}`, after `{:.2f}` seconds.'.format(
+            hello, str_addr, (time.time() - stime)))
 
 
     @classmethod
@@ -145,46 +189,6 @@ class CeRpycService(rpyc.Service):
                     break
 
         return str_addr
-
-
-    def on_connect(self):
-        """
-        On client connect
-        """
-        str_addr = self._get_addr()
-
-        # Add this connection in the list of connections,
-        # If this connection CAN be added!
-        try:
-            with self.conn_lock:
-                self.conns[str_addr] = {'conn': self._conn}
-        except Exception as e:
-            logError('EE: Connect error: {}.'.format(e))
-
-        logDebug('EE: Connected from `{}`.'.format(str_addr))
-
-
-    def on_disconnect(self):
-        """
-        On client disconnect
-        """
-        str_addr = self._get_addr()
-        hello = self.conns[str_addr].get('hello', '')
-        if hello: hello += ' - '
-
-        # Unregister the eventual EPs for this connection
-        if self.conns[str_addr].get('checked') and self.conns[str_addr].get('user'):
-            eps = self.conns[str_addr].get('eps')
-            if eps: self.unregisterEps(eps)
-
-        # Delete everything for this address
-        try:
-            with self.conn_lock:
-                del self.conns[str_addr]
-        except Exception as e:
-            logError('EE: Disconnect error: {}.'.format(e))
-
-        logDebug('EE: Disconnected from `{}{}`.'.format(hello, str_addr))
 
 
     def exposed_cherryAddr(self):
