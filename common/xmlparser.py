@@ -1,7 +1,7 @@
 
 # File: xmlparser.py ; This file is part of Twister.
 
-# version: 3.001
+# version: 3.002
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -551,6 +551,30 @@ class TSCParser:
         if econfig.xpath('Message/text()'):
             res['Message'] = econfig.xpath('Message')[0].text
         return res
+
+
+    def getBindingsConfig(self):
+        """
+        Parse the bindings file that connects Roots from a config file, with SUTs.
+        """
+        cfg_file = '{}/twister/config/bindings.xml'.format(userHome(self.user))
+        bindings = {}
+
+        if not os.path.isfile(cfg_file):
+            logError('Get Bindings: Bindings Config file `{}` does not exist!'.format(cfg_file))
+            return {}
+
+        bind_xml = etree.parse(cfg_file)
+
+        for bind in bind_xml.xpath('//bind'):
+            if not bind.text:
+                continue
+            if not bind.text.strip():
+                continue
+            b = bind.text.strip().split('=')
+            bindings[b[0].strip()] = b[1].strip()
+
+        return bindings
 
 # # #
 
