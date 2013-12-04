@@ -1,7 +1,7 @@
 
 # File: CeProject.py ; This file is part of Twister.
 
-# version: 3.001
+# version: 3.002
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -219,6 +219,7 @@ class Project(object):
         self.loggers = {}   # User loggers
 
         self.usr_lock = allocate_lock()  # User change lock
+        self.epl_lock = allocate_lock()  # EP lock
         self.stt_lock = allocate_lock()  # File status lock
         self.int_lock = allocate_lock()  # Internal use lock
         self.glb_lock = allocate_lock()  # Global variables lock
@@ -345,7 +346,7 @@ class Project(object):
 
         logDebug('Start to register Execution-Process `{}:{}`...'.format(user, epname))
 
-        with self.stt_lock:
+        with self.epl_lock:
 
             self.users[user]['eps'][epname] = OrderedDict()
             self.users[user]['eps'][epname]['status'] = STATUS_STOP
@@ -385,7 +386,7 @@ class Project(object):
 
         logDebug('Start to un-register Execution-Process `{}:{}`...'.format(user, epname))
 
-        with self.stt_lock:
+        with self.epl_lock:
 
             suitesInfo = self.users[user]['eps'][epname]['suites']
             suites = set(suitesInfo.getSuites())
@@ -444,6 +445,9 @@ class Project(object):
 
         # Global params for user
         self.users[user]['global_params'] = self.parsers[user].getGlobalParams()
+
+        # Cfg -> Sut bindings for user
+        self.users[user]['bindings'] = self.parsers[user].getBindingsConfig()
 
         # Groups and roles for current user
         self.roles = self._parseUsersAndGroups()
