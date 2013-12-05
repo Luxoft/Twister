@@ -1,7 +1,7 @@
 
 # File: TscCommonLib.py ; This file is part of Twister.
 
-# version: 3.001
+# version: 3.002
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -69,21 +69,34 @@ class TscCommonLib(object):
         """
         Some initialization code.
         """
-        self.reload_libs()
+        self._reload_libs()
 
 
-    def reload_libs(self):
+    def _reload_libs(self):
         ce_path = '{}/.twister_cache/{}/ce_libs/ce_libs.py'.format(TWISTER_PATH, self.epName)
         cfg = iniparser.ConfigObj(ce_path)
         for n, v in cfg.iteritems():
-            setattr(self, n, v)
+            setattr(self, '_' + n, v)
         del cfg
 
 
     @property
-    def ce_proxy(self):
+    def SUITE_ID(self):
+        self._reload_libs()
+        return self._SUITE_ID
+
+
+    @property
+    def FILE_ID(self):
+        self._reload_libs()
+        return self._FILE_ID
+
+
+    @classmethod
+    def _ce_proxy(cls):
         """
         Dinamically connect to the Central Engine.
+        This is a class method.
         """
         stack = inspect.stack()
         # The upper stack is either the EP, or the library that derives this
@@ -100,8 +113,8 @@ class TscCommonLib(object):
 
         # Try to reuse the old connection
         try:
-            self.__ce_proxy.echo('ping')
-            return self.__ce_proxy
+            cls.__ce_proxy.echo('ping')
+            return cls.__ce_proxy
         except:
             pass
 
@@ -117,26 +130,34 @@ class TscCommonLib(object):
 
         # If the old connection is broken, connect to the RPyc server
         try:
-            ce_ip, ce_port = self.proxy_path.split(':')
+            ce_ip, ce_port = cls.proxy_path.split(':')
             # Transform XML-RPC port into RPyc Port; RPyc port = XML-RPC port + 10 !
             ce_port = int(ce_port) + 10
             proxy = rpyc.connect(ce_ip, ce_port, config=config)
-            proxy.root.hello('lib::{}'.format(self.epName))
+            proxy.root.hello('lib::{}'.format(cls.epName))
         except:
-            print('*ERROR* Cannot connect to CE path `{}`! Exiting!'.format(self.proxy_path))
+            print('*ERROR* Cannot connect to CE path `{}`! Exiting!'.format(cls.proxy_path))
             raise Exception
 
         # Authenticate on RPyc server
         try:
-            proxy.root.login(self.userName, 'EP')
+            proxy.root.login(cls.userName, 'EP')
             bg = BgServingThread(proxy)
-            self.__ce_proxy = proxy.root
-            return self.__ce_proxy
+            cls.__ce_proxy = proxy.root
+            return cls.__ce_proxy
         except:
-            print('*ERROR* Cannot authenticate on CE path `{}`! Exiting!'.format(self.proxy_path))
+            print('*ERROR* Cannot authenticate on CE path `{}`! Exiting!'.format(cls.proxy_path))
             raise Exception
 
         return proxy
+
+
+    @property
+    def ce_proxy(self):
+        """
+        Make this an instance property.
+        """
+        return self._ce_proxy()
 
 
     def logMsg(self, logType, logMessage):
@@ -150,20 +171,24 @@ class TscCommonLib(object):
     def getGlobal(cls, var):
         """
         Function to get variables saved from Test files.
+        The same dictionary must be used, both in Testcase and derived Library.
         """
         if var in cls.global_vars:
             return cls.global_vars[var]
         # Else...
-        return cls.ce_proxy.getGlobalVariable(var)
+        ce = cls._ce_proxy()
+        return ce.getGlobalVariable(var)
 
 
     @classmethod
     def setGlobal(cls, var, value):
         """
         Function to keep variables sent from Test files.
+        The same dictionary must be used, both in Testcase and derived Library.
         """
         try:
             marshal.dumps(value)
+            ce = cls._ce_proxy()
             return cls.ce_proxy.setGlobalVariable(var, value)
         except:
             cls.global_vars[var] = value
@@ -176,6 +201,15 @@ class TscCommonLib(object):
         the full path to a config variable in that file.
         """
         return self.ce_proxy.getConfig(cfg_path, var_path)
+
+
+    def getBinding(self, cfg_root):
+        """
+        Function to get a cfg -> SUT binding.
+        """
+        if not hasattr(self, 'bindings'):
+            self.bindings = self.ce_proxy.getUserVariable('bindings') or {}
+        return self.bindings.get(cfg_root)
 
 
     def countProjectFiles(self):
@@ -193,10 +227,6 @@ class TscCommonLib(object):
         Returns the index of this file in the project.
         If the ID is not found, the count will fail.
         """
-        self.reload_libs()
-        if not self.FILE_ID:
-            return -1
-
         data = self.ce_proxy.getEpVariable(self.epName, 'suites')
         SuitesManager = copy.deepcopy(data)
         files = SuitesManager.getFiles(recursive=True)
@@ -209,10 +239,6 @@ class TscCommonLib(object):
         Returns the number of files inside a suite ID.
         If the ID is not found, the count will fail.
         """
-        self.reload_libs()
-        if not self.SUITE_ID:
-            return -1
-
         data = self.ce_proxy.getSuiteVariable(self.epName, self.SUITE_ID, 'children')
         SuitesManager = copy.deepcopy(data)
         files = SuitesManager.keys() # First level of files, depth=1
@@ -224,12 +250,6 @@ class TscCommonLib(object):
         Returns the index of this file, inside this suite.
         If the ID is not found, the count will fail.
         """
-        self.reload_libs()
-        if not self.SUITE_ID:
-            return -1
-        if not self.FILE_ID:
-            return -1
-
         data = self.ce_proxy.getSuiteVariable(self.epName, self.SUITE_ID, 'children')
         SuitesManager = copy.deepcopy(data)
         files = SuitesManager.keys() # First level of files, depth=1
@@ -253,9 +273,27 @@ class TscCommonLib(object):
         return ret
 
 
-    def getResource(self, query):
-        try: return self.ce_proxy.getResource(query)
-        except: return None
+    def _encodeUnicode(self, input):
+        if isinstance(input, dict):
+            return {self._encodeUnicode(key): self._encodeUnicode(value) for key, value in input.iteritems()}
+        elif isinstance(input, list):
+            return [self._encodeUnicode(elem) for elem in input]
+        elif isinstance(input, unicode):
+            return input.encode('utf-8')
+        else:
+            return input
+
+
+    def getResource(self, query, type=unicode):
+        try:
+            data = self.ce_proxy.getResource(query)
+            if type==str:
+                return self._encodeUnicode(data)
+            else:
+                return data
+        except Exception as e:
+            print('Error on get Resource! `{}`!'.format(e))
+            return None
 
 
     def setResource(self, name, parent=None, props={}):
@@ -273,9 +311,16 @@ class TscCommonLib(object):
         except: return None
 
 
-    def getSut(self, query):
-        try: return self.ce_proxy.getSut(query)
-        except: return None
+    def getSut(self, query, type=unicode):
+        try:
+            data = self.ce_proxy.getSut(query)
+            if type==str:
+                return self._encodeUnicode(data)
+            else:
+                return data
+        except Exception as e:
+            print('Error on get SUT! `{}`!'.format(e))
+            return None
 
 
     def setSut(self, name, parent=None, props={}):

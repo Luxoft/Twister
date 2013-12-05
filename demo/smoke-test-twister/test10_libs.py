@@ -1,11 +1,15 @@
 
 #
-# <ver>version: 3.001</ver>
+# <ver>version: 3.002</ver>
 # <title>Test libraries</title>
 # <description>This suite checks the most basic functionality of Twister.<br>
 # </description>
 #
 
+sid = SUITE_ID
+fid = FILE_ID
+
+# Import * overwrites everything !!
 from ce_libs import *
 from TscCommonLib import *
 
@@ -55,6 +59,14 @@ def test():
 
     print
 
+    assert sid == d.SUITE_ID, 'Invalid suite id `{}` vs `{}`!'.format(d.SUITE_ID, sid)
+    print 'Suite ID matches:', sid
+
+    assert fid == d.FILE_ID, 'Invalid file id `{}` vs `{}`!'.format(d.FILE_ID, fid)
+    print 'Suite ID matches:', fid
+
+    print
+
     assert isinstance(d, TscCommonLib), 'Invalid derivation from Common Lib!'
     print 'Instance from Common Lib?', isinstance(d, TscCommonLib)
 
@@ -75,10 +87,10 @@ def test():
 
     print
 
-    print 'Files in the project:', d.countProjectFiles()
-    print 'File index in the project:', d.currentFileIndex()
-    print 'Files in This suite:', d.countSuiteFiles()
-    print 'File index in the suite:', d.currentFSuiteIndex()
+    print 'Files in the project:', countProjectFiles()
+    print 'File index in the project:', currentFileIndex()
+    print 'Files in This suite:', countSuiteFiles()
+    print 'File index in the suite:', currentFSuiteIndex()
 
     logMsg('logRunning', 'Finished lib test. Everything OK.\n')
 
