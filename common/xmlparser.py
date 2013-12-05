@@ -1,7 +1,7 @@
 
 # File: xmlparser.py ; This file is part of Twister.
 
-# version: 3.002
+# version: 3.003
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -619,6 +619,17 @@ class TSCParser:
         """
         # A suite can be a part of only 1 EP !
         res = OrderedDict()
+
+        # Add properties from FWMCONFIG
+        prop_keys = self.configTS.xpath('/Root/UserDefined/propName')
+        prop_vals = self.configTS.xpath('/Root/UserDefined/propValue')
+        res.update( dict(zip( [k.text for k in prop_keys], [v.text for v in prop_vals] )) )
+
+        # Add property/ value tags from Suite
+        prop_keys = suite_soup.xpath('UserDefined/propName')
+        prop_vals = suite_soup.xpath('UserDefined/propValue')
+        res.update( dict(zip( [k.text for k in prop_keys], [v.text for v in prop_vals] )) )
+
         res['type'] = 'suite'
         self.suite_no += 1
         res['id'] = str(self.suite_no)
@@ -637,10 +648,6 @@ class TSCParser:
                     continue
                 res[tag_dict['name']] = value
 
-        # Add property/ value tags
-        prop_keys = suite_soup.xpath('UserDefined/propName')
-        prop_vals = suite_soup.xpath('UserDefined/propValue')
-        res.update( dict(zip( [k.text for k in prop_keys], [v.text for v in prop_vals] )) ) # Pack Key + Value
         return res
 
 

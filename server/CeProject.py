@@ -2754,7 +2754,8 @@ class Project(object):
             if free: break
 
         p_cmd = 'su {} -c "{} -u {}/server/LogService.py {}"'.format(user, sys.executable, TWISTER_PATH, port)
-        proc = subprocess.Popen(p_cmd, cwd='{}/twister'.format(userHome(user)), shell=True)
+        proc = subprocess.Popen(p_cmd, cwd='{}/twister'.format(userHome(user)), shell=True,
+               stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         proc.poll()
         time.sleep(0.2)
 
