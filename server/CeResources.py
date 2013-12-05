@@ -258,8 +258,8 @@ class ResourceAllocator(_cptools.XMLRPCController):
         self.imp_lock = thread.allocate_lock() # Import lock
         self.res_file = '{}/config/resources.json'.format(TWISTER_PATH)
         self.sut_file = '{}/config/systems.json'.format(TWISTER_PATH)
-        self._load(v=True)
         self._loadedUsers = dict()
+        self._load(v=True)
 
 
 
@@ -290,6 +290,8 @@ class ResourceAllocator(_cptools.XMLRPCController):
                 if v:
                     logError('RA: There are no devices to load! `{}`!'.format(e))
 
+        deviceStatusChanged = False
+        sutStatusChanged = False
         with self.acc_lock:
 
             if not self.resources['children']:
@@ -309,18 +311,14 @@ class ResourceAllocator(_cptools.XMLRPCController):
                 for u in self.reservedResources:
                     for i in self.reservedResources[u]:
                         reservedIds.append(self.reservedResources[u][i])
-                statusChanged = False
                 for r in self.resources['children']:
                     try:
-                        if (self.systems['children'][r]['status'] == 3
-                            and not self.systems['children'][r]['id'] in reservedIds):
-                            self.systems['children'][r]['status'] = 1
-                            statusChanged = True
+                        if (self.resources['children'][r]['status'] == 3
+                            and not self.resources['children'][r]['id'] in reservedIds):
+                            self.resources['children'][r]['status'] = 1
+                            deviceStatusChanged = True
                     except Exception as e:
                         pass
-                if statusChanged:
-                    self._save(props=props)
-                    self._load(v=False, props=props, force=True)
             except Exception as e:
                 if v:
                     logError('RA: There are no devices to load! `{}`!'.format(e))
@@ -328,6 +326,9 @@ class ResourceAllocator(_cptools.XMLRPCController):
                 f = open(self.sut_file, 'r')
                 self.systems = json.load(f)
                 f.close() ; del f
+
+                if v:
+                    logDebug('RA: Systems root loaded successfully.')
 
                 try:
                     sutsPath = '{}/config/sut/'.format(TWISTER_PATH)
@@ -361,24 +362,23 @@ class ResourceAllocator(_cptools.XMLRPCController):
                 for u in self.reservedResources:
                     for i in self.reservedResources[u]:
                         reservedIds.append(self.reservedResources[u][i])
-                statusChanged = False
                 for r in self.systems['children']:
                     try:
                         if (self.systems['children'][r]['status'] == 3
                             and not self.systems['children'][r]['id'] in reservedIds):
                             self.systems['children'][r]['status'] = 1
-                            statusChanged = True
+                            sutStatusChanged = True
                     except Exception as e:
                         pass
-                if statusChanged:
-                    self._save(ROOT_SUT, props)
-                    self._load(v=False, props=props, force=True)
-
                 if v:
                     logDebug('RA: SUTs loaded successfully.')
             except Exception as e:
                 if v:
                     logError('RA: There are no SUTs to load! `{}`!'.format(e))
+        if deviceStatusChanged:
+            self._save(props=props)
+        if sutStatusChanged:
+            self._save(ROOT_SUT, props=props)
         # t1 = time.time()
         # logDebug('|||||||||||||_load time:: ', t1-t0)
         return True
@@ -796,13 +796,22 @@ class ResourceAllocator(_cptools.XMLRPCController):
             else:
                 child_p = parent_p['children'][name]
 
+            if not child_p:
+                return False
+
+            old_child = copy.deepcopy(child_p)
+
             child_p['meta'].update(props)
+
+            if old_child != child_p:
+                self._save(root_id, props)
 
             # if old_parent != parent_p:
             #     #self._save(root_id)
             #     logDebug('Updated {} `{}`, id `{}` : `{}`.'.format(root_name, name, child_p['id'], props))
             # else:
             #     logDebug('No changes have been made to {} `{}`, id `{}`.'.format(root_name, name, child_p['id']))
+
             return True
 
         # If the resource is new, create it.
@@ -895,7 +904,8 @@ class ResourceAllocator(_cptools.XMLRPCController):
             return '*ERROR* ' + msg
 
         # Correct node path
-        node_path = [p for p in res_p['path'].split('/') if p]
+        res_path = _get_res_path(resources, res_query)
+        node_path = [p for p in res_path if p]
         # Renamed node path
         if (not meta and len(node_path) == 1 and root_id == ROOT_SUT and
                     (not new_name.split('.')[-1] == 'user' and not new_name.split('.')[-1] == 'system')):
@@ -917,7 +927,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
         # else:
         #     exec_string = 'self.systems["children"]["{}"]'.format('"]["children"]["'.join(node_path))
         if node_path[1:]:
-            exec_string = 'res_p'.format('"]["children"]["'.join(node_path[1:]))
+            exec_string = 'res_p["children"]["{}"]'.format('"]["children"]["'.join(node_path[1:]))
         else:
             exec_string = 'res_p'
 
@@ -945,8 +955,9 @@ class ResourceAllocator(_cptools.XMLRPCController):
                 # else:
                 #     new_string = 'self.systems["children"]["{}"]'.format('"]["children"]["'.join(new_path))
                 if new_path[1:]:
-                    exec_string = 'res_p'.format('"]["children"]["'.join(new_path[1:]))
+                    new_string = 'res_p["children"]["{}"]'.format('"]["children"]["'.join(new_path[1:]))
                     exec( new_string + ' = ' + exec_string )
+                    exec( 'del ' + exec_string )
                 else:
                     res_p['path'] = new_name
 
@@ -1152,6 +1163,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
         res_path = _get_res_path(resources, res_query)
         res_pointer = _get_res_pointer(resources, ''.join('/' + res_path[0]))
+        res_pointer.update([('path', ''.join('/' + res_path[0])), ])
 
         if not res_pointer:
             msg = 'Get reserved resource: Cannot find resource path or ID `{}` !'.format(res_query)
@@ -1297,7 +1309,11 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
             # Check for modifications
             if res_pointer != _res_pointer:
-                resources['children'].pop(_res_pointer['path'][0])
+                child = None
+                for c in resources['children']:
+                    if resources['children'][c]['id'] == _res_pointer['id']:
+                        child = c
+                resources['children'].pop(child)
                 _res_pointer.update([('status', RESOURCE_FREE), ])
                 resources['children'].update([(_res_pointer['path'][0], _res_pointer), ])
 
@@ -1351,7 +1367,11 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
             # Check for modifications
             if res_pointer != _res_pointer:
-                resources['children'].pop(_res_pointer['path'][0])
+                child = None
+                for c in resources['children']:
+                    if resources['children'][c]['id'] == _res_pointer['id']:
+                        child = c
+                resources['children'].pop(child)
                 resources['children'].update([(_res_pointer['path'][0], _res_pointer), ])
 
                 # Write changes.
