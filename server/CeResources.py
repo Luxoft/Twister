@@ -816,8 +816,9 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
         # If the resource is new, create it.
         else:
-            parent_p = _get_res_pointer(resources, parent)
-
+            parent_p = _get_res_pointer(parent_p, parent)
+            logDebug('|||||parent_p:: ', parent_p)
+            logDebug('|||||reservedResources:: ', self.reservedResources)
             res_id = False
             while not res_id:
                 res_id = hexlify(os.urandom(5))
@@ -1018,15 +1019,20 @@ class ResourceAllocator(_cptools.XMLRPCController):
         # Check if is reserved
         res_path = _get_res_path(resources, res_query)
         res_pointer = _get_res_pointer(resources, ''.join('/' + res_path[0]))
-        reservedResourceIds = list()
-        for userReservedResourceIds in [self.reservedResources[u].keys() for u in self.reservedResources]:
-            reservedResourceIds += userReservedResourceIds
-        isReserved = [False, True][res_pointer.get('status', RESOURCE_FREE) == RESOURCE_RESERVED and
-                        res_pointer['id'] in reservedResourceIds]
-        if isReserved:
-            msg = 'Del {}: Resource reserved, path or ID `{}` !'.format(root_name, res_query)
-            logError(msg)
-            return '*ERROR* ' + msg
+
+        user = user_roles.get('user')
+        isReservedForUser = [False, True][res_pointer.get('status', RESOURCE_FREE) == RESOURCE_RESERVED and
+                                res_pointer['id'] in self.reservedResources[user]]
+        if not isReservedForUser:
+            reservedResourceIds = list()
+            for userReservedResourceIds in [self.reservedResources[u].keys() for u in self.reservedResources]:
+                reservedResourceIds += userReservedResourceIds
+            isReserved = [False, True][res_pointer.get('status', RESOURCE_FREE) == RESOURCE_RESERVED and
+                            res_pointer['id'] in reservedResourceIds]
+            if isReserved:
+                msg = 'Del {}: Resource reserved, path or ID `{}` !'.format(root_name, res_query)
+                logError(msg)
+                return '*ERROR* ' + msg
 
         # Find the resource pointer.
         if root_id == ROOT_DEVICE:
@@ -1081,7 +1087,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
             else:
                 # Get the user rpyc connection connection
                 try:
-                    user = user_roles.get('user')
+                    #user = user_roles.get('user')
                     userConn = self.project.rsrv.service._findConnection(user,
                                                                 ['127.0.0.1', 'localhost'], 'client')
                     userConn = self.project.rsrv.service.conns[userConn]['conn']
@@ -1304,8 +1310,9 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
         try:
             _res_pointer = self.reservedResources[user].pop(res_pointer['id'])
-            if not isinstance(_res_pointer['path'], list):
-                _res_pointer['path'] = _res_pointer['path'].split('/')
+            if _res_pointer.has_key('path'):
+                if not isinstance(_res_pointer['path'], list):
+                    _res_pointer['path'] = _res_pointer['path'].split('/')
 
             # Check for modifications
             if res_pointer != _res_pointer:
@@ -1315,7 +1322,8 @@ class ResourceAllocator(_cptools.XMLRPCController):
                         child = c
                 resources['children'].pop(child)
                 _res_pointer.update([('status', RESOURCE_FREE), ])
-                resources['children'].update([(_res_pointer['path'][0], _res_pointer), ])
+                #resources['children'].update([(_res_pointer['path'][0], _res_pointer), ])
+                resources['children'].update([(res_path[0], _res_pointer), ])
 
                 # Write changes.
                 self._save(root_id, props)
