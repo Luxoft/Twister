@@ -130,6 +130,7 @@ def _get_res_pointer(parent_node, query):
         try:
             resource_path = _recursive_find_id(parent_node, query, [])['path']
             resource_p = _find_pointer(parent_node, resource_path)
+            #resource_p.update('path', resource_path)
             del resource_path
         except:
             resource_p = None
@@ -337,22 +338,21 @@ class ResourceAllocator(_cptools.XMLRPCController):
                         sutName = '.'.join(['.'.join(sutPath.split('.')[:-1]  + ['system'])])
                         with open(os.path.join(sutsPath, sutPath), 'r') as f:
                             self.systems['children'].update([(sutName, json.load(f)), ])
+                except Exception as e:
+                    if v:
+                        logError('_load ERROR:: {}'.format(e))
 
-                    # Get the user rpyc connection connection
-                    try:
-                        user_roles = self.userRoles(props)
-                        user = user_roles.get('user')
-                        self._loadedUsers.update([(user, self.systems), ])
-                        userConn = self.project.rsrv.service._findConnection(user,
-                                                                ['127.0.0.1', 'localhost'], 'client')
-                        userConn = self.project.rsrv.service.conns[userConn]['conn']
-                        userSuts = copy.deepcopy(userConn.root.get_suts())
-                        if userSuts:
-                            self.systems['children'].update(userSuts)
-                    except Exception as e:
-                        if v:
-                            logError('_load ERROR:: {}'.format(e))
-
+                # Get the user rpyc connection connection
+                try:
+                    user_roles = self.userRoles(props)
+                    user = user_roles.get('user')
+                    userConn = self.project.rsrv.service._findConnection(user,
+                                                            ['127.0.0.1', 'localhost'], 'client')
+                    userConn = self.project.rsrv.service.conns[userConn]['conn']
+                    userSuts = copy.deepcopy(userConn.root.get_suts())
+                    if userSuts:
+                        self.systems['children'].update(userSuts)
+                    self._loadedUsers.update([(user, self.systems), ])
                 except Exception as e:
                     if v:
                         logError('_load ERROR:: {}'.format(e))
@@ -783,8 +783,8 @@ class ResourceAllocator(_cptools.XMLRPCController):
         if not 'children' in parent_p:
             parent_p['children'] = {}
 
-        try: del parent_p['path']
-        except: pass
+        # try: del parent_p['path']
+        # except: pass
 
         # Make a copy, to compare the changes at the end
         #old_parent = copy.deepcopy(parent_p)
@@ -816,9 +816,8 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
         # If the resource is new, create it.
         else:
-            parent_p = _get_res_pointer(parent_p, parent)
-            logDebug('|||||parent_p:: ', parent_p)
-            logDebug('|||||reservedResources:: ', self.reservedResources)
+            #parent_p = _get_res_pointer(parent_p, parent)
+
             res_id = False
             while not res_id:
                 res_id = hexlify(os.urandom(5))
@@ -1169,7 +1168,6 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
         res_path = _get_res_path(resources, res_query)
         res_pointer = _get_res_pointer(resources, ''.join('/' + res_path[0]))
-        res_pointer.update([('path', ''.join('/' + res_path[0])), ])
 
         if not res_pointer:
             msg = 'Get reserved resource: Cannot find resource path or ID `{}` !'.format(res_query)
@@ -1321,10 +1319,13 @@ class ResourceAllocator(_cptools.XMLRPCController):
                     if resources['children'][c]['id'] == _res_pointer['id']:
                         child = c
                 resources['children'].pop(child)
-                _res_pointer.update([('status', RESOURCE_FREE), ])
-                #resources['children'].update([(_res_pointer['path'][0], _res_pointer), ])
-                resources['children'].update([(res_path[0], _res_pointer), ])
 
+            _res_pointer.update([('status', RESOURCE_FREE), ])
+            #resources['children'].update([(_res_pointer['path'][0], _res_pointer), ])
+            resources['children'].update([(res_path[0], _res_pointer), ])
+
+            # Check for modifications
+            if res_pointer != _res_pointer:
                 # Write changes.
                 self._save(root_id, props)
 
@@ -1380,8 +1381,11 @@ class ResourceAllocator(_cptools.XMLRPCController):
                     if resources['children'][c]['id'] == _res_pointer['id']:
                         child = c
                 resources['children'].pop(child)
-                resources['children'].update([(_res_pointer['path'][0], _res_pointer), ])
 
+            resources['children'].update([(_res_pointer['path'][0], _res_pointer), ])
+
+            # Check for modifications
+            if res_pointer != _res_pointer:
                 # Write changes.
                 self._save(root_id, props)
         except Exception as e:
