@@ -314,8 +314,18 @@ class TscCommonLib(object):
         except: return None
 
 
+    def saveReservedResourceAs(self, name, query):
+        try: return self.ce_proxy.saveReservedResourceAs(name, query)
+        except: return None
+
+
     def saveReservedSut(self, query):
         try: return self.ce_proxy.saveReservedSut(query)
+        except: return None
+
+
+    def saveReservedSutAs(self, name, query):
+        try: return self.ce_proxy.saveReservedSutAs(name, query)
         except: return None
 
 

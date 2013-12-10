@@ -597,12 +597,6 @@ class TwisterClientService(rpyc.Service):
     def exposed_save_suts(self, sutList):
         """ save sut to file """
 
-        # # Delelte all files in path before save
-        # sutsPath = '{}/config/sut/'.format(TWISTER_PATH)
-        # sutPaths = [p for p in os.listdir(sutsPath) if os.path.isfile(os.path.join(sutsPath, p))]
-        # for sutPath in sutPaths:
-        #     os.remove(os.path.join(sutsPath, sutPath))
-
         # Save sut files
         for (name, sut) in sutList:
             try:
@@ -624,10 +618,14 @@ class TwisterClientService(rpyc.Service):
             if not sutsPath:
                 sutsPath = '{}/config/sut/'.format(TWISTER_PATH)
             sutPaths = [p for p in os.listdir(sutsPath) if os.path.isfile(os.path.join(sutsPath, p))]
+
             for sutPath in sutPaths:
-                sutName = '.'.join(['.'.join(sutPath.split('.')[:-1]  + ['user'])])
-                with open(os.path.join(sutsPath, sutPath), 'r') as f:
-                    suts.append((sutName, json.load(f)))
+                try:
+                    sutName = '.'.join(['.'.join(sutPath.split('.')[:-1]  + ['user'])])
+                    with open(os.path.join(sutsPath, sutPath), 'r') as f:
+                        suts.append((sutName, json.load(f)))
+                except Exception as e:
+                    trace = traceback.format_exc()[34:].strip()
         except Exception as e:
             trace = traceback.format_exc()[34:].strip()
             suts = None
