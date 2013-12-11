@@ -1210,10 +1210,24 @@ class ResourceAllocator(_cptools.XMLRPCController):
             logError(msg)
             return False
 
+        user_roles = self.userRoles(props)
+        user = user_roles.get('user')
+
         if ':' in res_query:
             res_query = res_query.split(':')[0]
 
         res_path = _get_res_path(resources, res_query)
+        if not res_path:
+            if '/' in res_query:
+                res_path = [p for p in res_path.split('/') if p]
+            else:
+                for p in self.reservedResources[user]:
+                    res_path = _get_res_path(self.reservedResources[user][p], res_query)
+
+                    if res_path:
+                        self.reservedResources[user][p]['path'] = res_path
+                        return self.reservedResources[user][p]
+
         res_pointer = _get_res_pointer(resources, ''.join('/' + res_path[0]))
         res_pointer.update([('path', [res_path[0]]), ])
 
@@ -1221,9 +1235,6 @@ class ResourceAllocator(_cptools.XMLRPCController):
             msg = 'Get reserved resource: Cannot find resource path or ID `{}` !'.format(res_query)
             logError(msg)
             return False
-
-        user_roles = self.userRoles(props)
-        user = user_roles.get('user')
 
         isReservedForUser = [False, True][res_pointer.get('status', RESOURCE_FREE) == RESOURCE_RESERVED and
                                 res_pointer['id'] in self.reservedResources[user]]
