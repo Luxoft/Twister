@@ -854,6 +854,14 @@ class ResourceAllocator(_cptools.XMLRPCController):
                 if _recursive_find_id(resources, res_id, []):
                     res_id = False
 
+            if '/' in parent:
+                for c in [p for p in parent.split('/') if p][1:]:
+                    parent_p = parent_p['children'][c]
+            else:
+                resource_path = _recursive_find_id(parent_p, parent, [])['path']
+                for c in resource_path:
+                    parent_p = parent_p['children'][c]
+
             parent_p['children'][name] = {'id': res_id, 'meta': props, 'children': {}}
 
             # Write changes for Device or SUT
@@ -1207,6 +1215,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
         res_path = _get_res_path(resources, res_query)
         res_pointer = _get_res_pointer(resources, ''.join('/' + res_path[0]))
+        res_pointer.update([('path', [res_path[0]]), ])
 
         if not res_pointer:
             msg = 'Get reserved resource: Cannot find resource path or ID `{}` !'.format(res_query)
@@ -1248,6 +1257,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
         res_path = _get_res_path(resources, res_query)
         res_pointer = _get_res_pointer(resources, ''.join('/' + res_path[0]))
+        res_pointer.update([('path', [res_path[0]]), ])
 
         if not res_pointer:
             msg = 'Is resource reserved: Cannot find resource path or ID `{}` !'.format(res_query)
@@ -1291,6 +1301,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
         res_path = _get_res_path(resources, res_query)
         res_pointer = _get_res_pointer(resources, ''.join('/' + res_path[0]))
+        res_pointer.update([('path', [res_path[0]]), ])
 
         if not res_pointer:
             msg = 'Reserve Resource: Cannot find resource path or ID `{}` !'.format(res_query)
@@ -1336,6 +1347,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
         res_path = _get_res_path(resources, res_query)
         res_pointer = _get_res_pointer(resources, ''.join('/' + res_path[0]))
+        res_pointer.update([('path', [res_path[0]]), ])
 
         if not res_pointer:
             msg = 'Save and release resource: Cannot find resource path or ID `{}` !'.format(res_query)
@@ -1347,9 +1359,8 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
         try:
             _res_pointer = self.reservedResources[user].pop(res_pointer['id'])
-            if _res_pointer.has_key('path'):
-                if not isinstance(_res_pointer['path'], list):
-                    _res_pointer['path'] = _res_pointer['path'].split('/')
+            if not isinstance(_res_pointer['path'], list):
+                _res_pointer['path'] = _res_pointer['path'].split('/')
 
             # Check for modifications
             if res_pointer != _res_pointer:
@@ -1415,6 +1426,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
         res_path = _get_res_path(resources, res_query)
         res_pointer = _get_res_pointer(resources, ''.join('/' + res_path[0]))
+        res_pointer.update([('path', [res_path[0]]), ])
 
         if not res_pointer:
             msg = 'Save reserved resource: Cannot find resource path or ID `{}` !'.format(res_query)
@@ -1488,6 +1500,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
         res_path = _get_res_path(resources, res_query)
         res_pointer = _get_res_pointer(resources, ''.join('/' + res_path[0]))
+        res_pointer.update([('path', [res_path[0]]), ])
 
         if not res_pointer:
             msg = 'Save reserved resource as: Cannot find resource path or ID `{}` !'.format(res_query)
@@ -1548,6 +1561,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
         res_path = _get_res_path(resources, res_query)
         res_pointer = _get_res_pointer(resources, ''.join('/' + res_path[0]))
+        res_pointer.update([('path', [res_path[0]]), ])
 
         if not res_pointer:
             msg = 'Discard reserved resource: Cannot find resource path or ID `{}` !'.format(res_query)
