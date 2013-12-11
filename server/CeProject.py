@@ -1,7 +1,7 @@
 
 # File: CeProject.py ; This file is part of Twister.
 
-# version: 3.002
+# version: 3.003
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -1399,7 +1399,6 @@ class Project(object):
                             logDebug('Project: Saving to database was successful!')
                         else:
                             logDebug('Project: Could not save to database!')
-                        return ret
 
                     # Find the log process for this User and ask it to Exit
                     conn = self.loggers.get(user, {}).get('conn', None)
@@ -1437,7 +1436,7 @@ class Project(object):
                         plugin = self._buildPlugin(user, pname,  {'ce_stop': 'automatic'})
                         try:
                             plugin.onStop()
-                        except Exception as e:
+                        except:
                             trace = traceback.format_exc()[33:].strip()
                             logWarning('Error on running plugin `{} onStop` - Exception: `{}`!'.format(pname, trace))
                     del parser, plugins
