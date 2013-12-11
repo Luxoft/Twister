@@ -1,7 +1,7 @@
 
 # File: xmlparser.py ; This file is part of Twister.
 
-# version: 3.003
+# version: 3.004
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -492,9 +492,6 @@ class TSCParser:
         if not logs_path:
             logError('Parser: Logs path is not defined! Please check framework config XML file!')
             return {}
-        if not os.path.isdir(logs_path):
-            logError('Parser: Invalid logs path `{0}`!'.format(logs_path))
-            return ''
 
         logType = self._fixLogType(logType)
         logFile = self.xmlDict.xpath('//{0}/text()'.format(logType))
