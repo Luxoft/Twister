@@ -1,6 +1,6 @@
 #!/usr/bin/env python2.7
 
-# version: 3.002
+# version: 3.003
 
 # File: ExecutionProcess.py ; This file is part of Twister.
 
@@ -562,6 +562,7 @@ class TwisterRunner(cli.Application):
 
         # Used by all files
         suite_id    = None
+        suite_data  = None
         suite_name  = None # Suite name string. This varies for each file.
         suite_files = None # All files from current suite.
         abort_suite = False # Abort suite X, when setup file fails.
@@ -579,6 +580,7 @@ class TwisterRunner(cli.Application):
                     continue
 
                 suite_id   = id
+                suite_data = node
                 suite_name = node['name']
                 suite_str  = suite_id +' - '+ suite_name
 
@@ -628,8 +630,10 @@ class TwisterRunner(cli.Application):
 
             # Extra properties, from the applet
             props = dict(node)
-            for prop in ['type', 'status', 'file', 'suite', 'dependancy', 'Runnable',
-                         'setup_file', 'teardown_file', 'Optional', 'config_files', 'param']:
+            props.update(suite_data)
+            for prop in ['type', 'ep', 'sut', 'name', 'pd', 'libraries', 'children', 'clearcase',
+                        'status', 'file', 'suite', 'dependancy', 'Runnable',
+                        'setup_file', 'teardown_file', 'Optional', 'config_files', 'param']:
                 # Removing all known File properties
                 try: del props[prop]
                 except: pass
