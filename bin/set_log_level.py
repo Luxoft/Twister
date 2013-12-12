@@ -28,12 +28,17 @@
 import sys
 import rpyc
 
-c = rpyc.connect('127.0.0.1', 8010)
+try:
+    c = rpyc.connect('127.0.0.1', 8010)
+except Exception as e:
+    print('\nCannot connect to CE! Exception: `{}`!\n'.format(e))
+    exit(1)
 
 try:
     level = int(sys.argv[1])
 except:
-    print('\nInvalid log level ! Must give an integer between 1-5 !\n')
+    level = c.root.getLogLevel()
+    print('\nThe log level is `{}`.\n'.format(level))
     exit(1)
 
 if level <= 0 or level > 5:
@@ -43,6 +48,6 @@ if level <= 0 or level > 5:
 c.root.setLogLevel( level )
 
 if level == 1:
-	print('\nLog level set to `{}`.\nWARNING! This should only be used for development and debugging!\n'.format(level))
+    print('\nLog level set to `{}`.\nWARNING! This should only be used for development and debugging!\n'.format(level))
 else:
-	print('\nLog level set to `{}`.\n'.format(level))
+    print('\nLog level set to `{}`.\n'.format(level))
