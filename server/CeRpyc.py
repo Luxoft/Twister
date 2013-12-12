@@ -1,7 +1,7 @@
 
 # File: CeRpyc.py ; This file is part of Twister.
 
-# version: 3.002
+# version: 3.003
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -45,7 +45,7 @@ if TWISTER_PATH not in sys.path:
 from common.constants  import *
 from common.helpers    import *
 from common.tsclogging import *
-from common.tsclogging import setLogLevel
+from common.tsclogging import getLogLevel, setLogLevel
 from common.xmlparser  import PluginParser
 
 #
@@ -70,6 +70,13 @@ class CeRpycService(rpyc.Service):
     #   }
     conns = {}
     conn_lock = thread.allocate_lock()
+
+
+    def exposed_getLogLevel(self):
+        """
+        This doesn't require login.
+        """
+        return getLogLevel()
 
 
     def exposed_setLogLevel(self, Level):

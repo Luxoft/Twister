@@ -1,7 +1,7 @@
 
 # File: tsclogging.py ; This file is part of Twister.
 
-# version: 2.001
+# version: 3.001
 
 # Copyright (C) 2012 , Luxoft
 
@@ -69,6 +69,12 @@ WARNING  = 3
 ERROR    = 4
 CRITICAL = 5
 
+
+def getLogLevel():
+    #
+    lvl = cherry_log.getEffectiveLevel()
+    return lvl / 10
+    #
 
 def setLogLevel(Level):
     #
