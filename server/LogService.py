@@ -1,7 +1,7 @@
 
 # File: LogService.py ; This file is part of Twister.
 
-# version: 2.006
+# version: 3.001
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -31,6 +31,7 @@ This process runs in the Twister Client folder.
 
 import os, sys
 import time
+import datetime
 import glob
 import json
 import random
@@ -156,7 +157,7 @@ class LogService(rpyc.Service):
         for log_path in glob.glob(info['logsPath'] + os.sep + '*.log'):
             if info['archiveLogsPath'] and info['archiveLogsActive'] == 'true':
                 archiveLogsPath = info['archiveLogsPath'].rstrip('/')
-                log_time = str(time.time()).split('.')[0]
+                log_time = datetime.datetime.today().strftime('%Y-%m-%d_%H:%M:%S')
                 archPath = '{}/{}.{}'.format(archiveLogsPath, os.path.basename(log_path), log_time)
                 # Create path if it doesn't exist
                 try: os.makedirs(archiveLogsPath)

@@ -1,7 +1,7 @@
 
 # File: CeProject.py ; This file is part of Twister.
 
-# version: 3.003
+# version: 3.004
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -2488,6 +2488,9 @@ class Project(object):
             conn.autocommit = False
             conn.begin()
 
+            # UserScript cache
+            uscript_cache = {}
+
             for epname, ep_info in self.users[user]['eps'].iteritems():
                 SuitesManager = ep_info['suites']
 
@@ -2580,8 +2583,19 @@ class Project(object):
                             # Get Script Path, or null string
                             u_script = subst_data.get(field, '')
 
-                            # Execute script and use result
-                            r = execScript(u_script)
+                            if not u_script:
+                                subst_data[field] = ''
+                                continue
+
+                            if u_script not in uscript_cache:
+                                # Execute script and use result
+                                r = execScript(u_script)
+                                # Save result in cache
+                                uscript_cache[u_script] = r
+                            else:
+                                # Get script result from cache
+                                r = uscript_cache[u_script]
+
                             if r: subst_data[field] = r
                             else: subst_data[field] = ''
 
