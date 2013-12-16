@@ -1,7 +1,7 @@
 
 # File: CeProject.py ; This file is part of Twister.
 
-# version: 3.004
+# version: 3.005
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -223,6 +223,7 @@ class Project(object):
         self.stt_lock = allocate_lock()  # File status lock
         self.int_lock = allocate_lock()  # Internal use lock
         self.glb_lock = allocate_lock()  # Global variables lock
+        self.log_lock = allocate_lock()  # Log access lock
         self.eml_lock = allocate_lock()  # E-mail lock
         self.db_lock  = allocate_lock()  # Database lock
 
@@ -1408,26 +1409,28 @@ class Project(object):
                             conn.root.exit()
                         except EOFError:
                             if conn.closed:
-                                logDebug('Terminated log server `localhost:{}`, for user `{}`.'.format(port, user))
+                                logDebug('Clean shutdown on Log Service `localhost:{}`, for user `{}`.'.format(port, user))
                             else:
-                                logWarning('Error on stopping log server `localhost:{}`, for user `{}`!'.format(port, user))
-                        except Exception as e:
+                                logWarning('Error on clean shutdown on Log Service `localhost:{}`, for user `{}`!'.format(port, user))
+                        except:
                             trace = traceback.format_exc()[33:].strip()
-                            logWarning('Cannot stop log server `localhost:{}`, for user `{}`! Exception `{}`.'.format(port, user, trace))
+                            logWarning('Error on shutdown Log Service `localhost:{}`, for user `{}`! Exception `{}`. Will be forced to exit.'.format(port, user, trace))
 
-                    # Kill all other Log Server processes for this user just to make sure!
+                    # Kill all other Log Service processes for this user just to make sure!
                     pids = subprocess.check_output('ps aux | grep /server/LogService.py | grep "^{} "'.format(user), shell=True)
 
                     for line in pids.strip().splitlines():
                         li = line.strip().split()
-                        PID = int(li[0])
-                        del li[1:4]
-                        if li[1] == '/bin/sh' and li[2] == '-c': continue
-                        print('Killing process LogService `{}`'.format(' '.join(li)))
+                        PID = int(li[1])
+                        del li[2:10]
+                        print('Forced exit on Log Service `{}`!'.format(' '.join(li)))
                         try:
                             os.kill(PID, 9)
                         except:
                             pass
+
+                    with self.log_lock:
+                        del self.loggers[user]
 
                     # Execute "onStop" for all plugins!
                     parser = PluginParser(user)
@@ -2778,8 +2781,10 @@ class Project(object):
         except:
             return False
 
+        with self.log_lock:
+            self.loggers[user] = {'proc': proc, 'conn': conn, 'port': port}
+
         logDebug('Log Server for user `{}` launched on `127.0.0.1:{}` - PID `{}`.'.format(user, port, proc.pid))
-        self.loggers[user] = {'proc': proc, 'conn': conn, 'port': port}
 
         return conn
 
