@@ -46,6 +46,7 @@ from lxml import etree
 from binascii import hexlify
 from cherrypy import _cptools
 from mako.template import Template
+import time
 
 TWISTER_PATH = os.getenv('TWISTER_PATH')
 if not TWISTER_PATH:
@@ -523,8 +524,9 @@ class ResourceAllocator(_cptools.XMLRPCController):
         with self.imp_lock:
             if root_id == ROOT_DEVICE:
                 try:
-                    self.resources = {'version': 0, 'name': '/', 'id': '1', 'meta': {},
-                                        'children': xml_to_res(params_xml, {})}
+                    self.resources = xml_to_res(params_xml, {})
+                    # self.resources = {'version': 0, 'name': '/', 'id': '1', 'meta': {},
+                    #                     'children': xml_to_res(params_xml, {})}
                 except Exception as e:
                     logError('Import XML: Exception `{}`.'.format(e))
                     return False
@@ -532,7 +534,21 @@ class ResourceAllocator(_cptools.XMLRPCController):
                 try:
                     # default save to user path
                     sutName = '.'.join(os.path.basename(xml_file).split('.')[:-1] + ['user'])
-                    self.systems['children'].update([(sutName, xml_to_res(params_xml, {})), ])
+                    if not sutName:
+                        sutName = xml_file
+                    if sutName in self.systems['children']:
+                        sutName = '{}{}'.format(sutName, time.time())
+                    res_id = False
+                    while not res_id:
+                        res_id = hexlify(os.urandom(5))
+                        # If by any chance, this ID already exists, generate another one!
+                        if _recursive_find_id(self.systems, res_id, []):
+                            res_id = False
+                    sutContent = xml_to_res(params_xml, {})
+                    sutContent = sutContent.popitem()[1]
+                    sutContent.update([('id', res_id), ])
+                    sutContent.update([('path', sutName), ])
+                    self.systems['children'].update([(sutName, sutContent), ])
                 except Exception as e:
                     logError('Import XML: Exception `{}`.'.format(e))
                     return False
@@ -587,7 +603,9 @@ class ResourceAllocator(_cptools.XMLRPCController):
         '''
         Export as XML file.
         '''
-        root = self.getResource(query, ROOT_SUT, props=props)
+        res_path = _get_res_path(self.systems, query)
+        res_pointer = _get_res_pointer(self.systems, ''.join('/' + res_path[0]))
+        root = {'version': 0, 'name': '/', 'meta': {}, 'children': {res_path[0]: res_pointer}}
         return self.export_xml(xml_file, None, root, props)
 
 
