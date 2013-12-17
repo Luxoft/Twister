@@ -1,7 +1,7 @@
 
 # File: CeProject.py ; This file is part of Twister.
 
-# version: 3.005
+# version: 3.006
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -1372,7 +1372,7 @@ class Project(object):
 
                 self.setUserInfo(user, 'status', STATUS_STOP)
 
-                logDebug('Project: All processes stopped for user `{}`! General user status changed to STOP.\n'.format(user))
+                logInfo('Project: All processes stopped for user `{}`! General user status changed to STOP.\n'.format(user))
 
                 # If this run is Not temporary
                 if not (user + '_old' in self.users):
@@ -2775,16 +2775,32 @@ class Project(object):
         proc.poll()
         time.sleep(0.2)
 
-        try:
-            conn = rpyc.connect('127.0.0.1', port)
-            conn.root.hello()
-        except:
-            return False
-
+        # Must block here, so more users cannot launch Logs at the same time and lose the PID
         with self.log_lock:
+
+            retries = 10
+            success = False
+
+            while retries > 0:
+                try:
+                    conn = rpyc.connect('127.0.0.1', port)
+                    conn.root.hello()
+                    logDebug('Connected to Log Service for user `{}`.'.format(user))
+                    success = True
+                    break
+                except Exception as e:
+                    logWarning('Cannot connect to Log Service for user `{}` - Exception: `{}`! Retry...'.format(user, e))
+                retries -= 1
+                time.sleep(0.5)
+
+            if not success:
+                logError('Error on starting Log Service for user `{}`!'.format(user))
+                return False
+
+            # Save the process inside the block.  99% of the time, the block is executed instantly!
             self.loggers[user] = {'proc': proc, 'conn': conn, 'port': port}
 
-        logDebug('Log Server for user `{}` launched on `127.0.0.1:{}` - PID `{}`.'.format(user, port, proc.pid))
+        logDebug('Log Service for user `{}` launched on `127.0.0.1:{}` - PID `{}`.'.format(user, port, proc.pid))
 
         return conn
 
