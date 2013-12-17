@@ -533,21 +533,16 @@ class ResourceAllocator(_cptools.XMLRPCController):
             else:
                 try:
                     # default save to user path
-                    sutName = '.'.join(os.path.basename(xml_file).split('.')[:-1] + ['user'])
+                    sutName = os.path.basename(xml_file).split('.')[:-1]
                     if not sutName:
-                        sutName = xml_file
+                        sutName = [os.path.basename(xml_file)]
+                    sutName = '.'.join(sutName + ['user'])
                     if sutName in self.systems['children']:
                         sutName = '{}{}'.format(sutName, time.time())
-                    res_id = False
-                    while not res_id:
-                        res_id = hexlify(os.urandom(5))
-                        # If by any chance, this ID already exists, generate another one!
-                        if _recursive_find_id(self.systems, res_id, []):
-                            res_id = False
                     sutContent = xml_to_res(params_xml, {})
                     sutContent = sutContent.popitem()[1]
-                    sutContent.update([('id', res_id), ])
                     sutContent.update([('path', sutName), ])
+                    sutContent = _recursive_refresh_id(sutContent)
                     self.systems['children'].update([(sutName, sutContent), ])
                 except Exception as e:
                     logError('Import XML: Exception `{}`.'.format(e))
@@ -830,6 +825,14 @@ class ResourceAllocator(_cptools.XMLRPCController):
         if not 'children' in parent_p:
             parent_p['children'] = {}
 
+        if '/' in parent:
+            for c in [p for p in parent.split('/') if p][1:]:
+                parent_p = parent_p['children'][c]
+        else:
+            resource_path = _recursive_find_id(parent_p, parent, [])['path']
+            for c in resource_path:
+                parent_p = parent_p['children'][c]
+
         # try: del parent_p['path']
         # except: pass
 
@@ -871,14 +874,6 @@ class ResourceAllocator(_cptools.XMLRPCController):
                 # If by any chance, this ID already exists, generate another one!
                 if _recursive_find_id(resources, res_id, []):
                     res_id = False
-
-            if '/' in parent:
-                for c in [p for p in parent.split('/') if p][1:]:
-                    parent_p = parent_p['children'][c]
-            else:
-                resource_path = _recursive_find_id(parent_p, parent, [])['path']
-                for c in resource_path:
-                    parent_p = parent_p['children'][c]
 
             parent_p['children'][name] = {'id': res_id, 'meta': props, 'children': {}}
 
