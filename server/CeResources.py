@@ -1067,11 +1067,42 @@ class ResourceAllocator(_cptools.XMLRPCController):
         else:
             meta = ''
 
+        user = user_roles.get('user')
+
         # Check if is reserved
+        try:
+            for res in self.reservedResources[user]:
+                res_path = _get_res_path(self.reservedResources[user][res], res_query)
+                if res_path:
+                    res_pointer = self.reservedResources[user][res]
+                    break
+        except Exception, e:
+            res_path = None
+
+        if res_path:
+            exec_string = 'res_pointer["children"]["{}"]'.format('"]["children"]["'.join(res_path))
+
+            # If must delete a Meta info
+            if meta:
+                exec( 'val = {}["meta"].get("{}")'.format(exec_string, meta) )
+
+                if val is None:
+                    msg = 'Del {}: Cannot find resource meta info `{}` !'.format(root_name, meta)
+                    logError(msg)
+                    return '*ERROR* ' + msg
+
+                exec( 'del {}["meta"]["{}"]'.format(exec_string, meta) )
+                logDebug('Deleted {} meta `{}:{}`.'.format(root_name, '/'.join(res_path), meta))
+
+            # If must delete a normal node
+            else:
+                exec( 'del ' + exec_string )
+                logDebug('Deleted {} path `{}`.'.format(root_name, '/'.join(res_path)))
+
+            return True
+
         res_path = _get_res_path(resources, res_query)
         res_pointer = _get_res_pointer(resources, ''.join('/' + res_path[0]))
-
-        user = user_roles.get('user')
         isReservedForUser = [False, True][res_pointer.get('status', RESOURCE_FREE) == RESOURCE_RESERVED and
                                 res_pointer['id'] in self.reservedResources[user]]
         if not isReservedForUser:
