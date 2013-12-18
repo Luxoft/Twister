@@ -1,7 +1,7 @@
 
 # File: CeProject.py ; This file is part of Twister.
 
-# version: 3.006
+# version: 3.007
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -1417,17 +1417,20 @@ class Project(object):
                             logWarning('Error on shutdown Log Service `localhost:{}`, for user `{}`! Exception `{}`. Will be forced to exit.'.format(port, user, trace))
 
                     # Kill all other Log Service processes for this user just to make sure!
-                    pids = subprocess.check_output('ps aux | grep /server/LogService.py | grep "^{} "'.format(user), shell=True)
+                    try:
+                        pids = subprocess.check_output('ps aux | grep /server/LogService.py | grep "^{} "'.format(user), shell=True)
 
-                    for line in pids.strip().splitlines():
-                        li = line.strip().split()
-                        PID = int(li[1])
-                        del li[2:10]
-                        print('Forced exit on Log Service `{}`!'.format(' '.join(li)))
-                        try:
-                            os.kill(PID, 9)
-                        except:
-                            pass
+                        for line in pids.strip().splitlines():
+                            li = line.strip().split()
+                            PID = int(li[1])
+                            del li[2:10]
+                            logDebug('Forced exit on Log Service `{}`!'.format(' '.join(li)))
+                            try:
+                                os.kill(PID, 9)
+                            except:
+                                pass
+                    except:
+                        logDebug('Clean shutdown on Log Service for user `{}` OK, no need to kill any process.'.format(user))
 
                     with self.log_lock:
                         del self.loggers[user]
@@ -2750,11 +2753,29 @@ class Project(object):
         """
         Launch a log server.
         """
+        logDebug('Preparing to launch the LogService for user `{}`...'.format(user))
+
+        # DEBUG. Show all available LogServices, for current user.
+        try:
+            pids = subprocess.check_output('ps aux | grep /server/LogService.py | grep "^{} "'.format(user), shell=True)
+            pids_li = []
+
+            for line in pids.strip().splitlines():
+                li = line.strip().split()
+                PID = int(li[1])
+                del li[2:10]
+                pids_li.append( ' '.join(li) )
+
+            logDebug('All LogServices for user `{}`::\n\t{}'.format(user, '\n\t'.join(pids_li)))
+        except:
+            logDebug('No LogServices found for user `{}`.'.format(user))
+
         # Try to re-use the logger server, if available
         conn = self.loggers.get(user, {}).get('conn', None)
         if conn:
             try:
                 conn.root.hello()
+                logDebug('Reuse old LogService connection OK.')
                 return conn
             except:
                 pass
@@ -2801,7 +2822,6 @@ class Project(object):
             self.loggers[user] = {'proc': proc, 'conn': conn, 'port': port}
 
         logDebug('Log Service for user `{}` launched on `127.0.0.1:{}` - PID `{}`.'.format(user, port, proc.pid))
-
         return conn
 
 
@@ -2921,11 +2941,13 @@ class Project(object):
         if srvr:
             ret = srvr.root.reset_log(data)
         else:
+            logWarning('Cannot reset log `{}`! Cannot connect to LogService!'.format(logName))
             return False
         if ret:
             logDebug('Cleaned log `{}`.'.format(logPath))
             return True
         else:
+            logWarning('Cannot reset log `{}`! LogService returned error!'.format(logName))
             return False
 
 
@@ -2954,11 +2976,13 @@ class Project(object):
         if srvr:
             ret = srvr.root.reset_logs(data)
         else:
+            logWarning('Cannot reset logs! Cannot connect to LogService!')
             return False
         if ret:
             logDebug('Logs reset.')
             return True
         else:
+            logWarning('Cannot reset logs! LogService returned error!')
             return False
 
 

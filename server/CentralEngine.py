@@ -1,6 +1,6 @@
 #!/usr/bin/env python2.7
 
-# version: 2.009
+# version: 3.001
 
 # File: CentralEngine.py ; This file is part of Twister.
 
@@ -92,6 +92,8 @@ if __name__ == "__main__":
         del cfg
 
     setLogLevel(int(verbosity))
+    cherrypy.log.access_log.propagate = False
+    cherrypy.log.error_log.setLevel(10)
 
     # RPyc config
     config = {
@@ -106,6 +108,7 @@ if __name__ == "__main__":
     rpycPort = serverPort + 10
     try:
         rpycServer = ThreadPoolServer(CeRpycService, port=rpycPort, protocol_config=config)
+        rpycServer.logger.setLevel(30)
     except:
         logCritical('Twister Server: Cannot launch the RPyc server on port `{}`!'.format(rpycPort))
         exit(1)
@@ -130,8 +133,6 @@ if __name__ == "__main__":
     # Inject the project as variable for EE
     rpycServer.service.inject_object('project', proj)
     rpycServer.service.inject_object('cherry', ce)
-    # Less spam please !
-    rpycServer.logger.setLevel(30)
 
     # Start rpyc server
     thread.start_new_thread(rpycServer.start, ())
