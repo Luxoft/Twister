@@ -1,7 +1,7 @@
 
 # File: CeProject.py ; This file is part of Twister.
 
-# version: 3.006
+# version: 3.007
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -2750,11 +2750,13 @@ class Project(object):
         """
         Launch a log server.
         """
+        logDebug('Preparing to launch the LogService...')
         # Try to re-use the logger server, if available
         conn = self.loggers.get(user, {}).get('conn', None)
         if conn:
             try:
                 conn.root.hello()
+                logDebug('Reuse old LogService connection OK.')
                 return conn
             except:
                 pass
@@ -2801,7 +2803,6 @@ class Project(object):
             self.loggers[user] = {'proc': proc, 'conn': conn, 'port': port}
 
         logDebug('Log Service for user `{}` launched on `127.0.0.1:{}` - PID `{}`.'.format(user, port, proc.pid))
-
         return conn
 
 
@@ -2921,11 +2922,13 @@ class Project(object):
         if srvr:
             ret = srvr.root.reset_log(data)
         else:
+            logWarning('Cannot reset log `{}`! Cannot connect to LogService!'.format(logName))
             return False
         if ret:
             logDebug('Cleaned log `{}`.'.format(logPath))
             return True
         else:
+            logWarning('Cannot reset log `{}`! LogService returned error!'.format(logName))
             return False
 
 
@@ -2954,11 +2957,13 @@ class Project(object):
         if srvr:
             ret = srvr.root.reset_logs(data)
         else:
+            logWarning('Cannot reset logs! Cannot connect to LogService!')
             return False
         if ret:
             logDebug('Logs reset.')
             return True
         else:
+            logWarning('Cannot reset logs! LogService returned error!')
             return False
 
 

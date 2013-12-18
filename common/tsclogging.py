@@ -1,7 +1,7 @@
 
 # File: tsclogging.py ; This file is part of Twister.
 
-# version: 3.001
+# version: 3.002
 
 # Copyright (C) 2012 , Luxoft
 
@@ -44,19 +44,24 @@ LOGS_PATH = TWISTER_PATH + '/logs/'
 if not os.path.exists(LOGS_PATH):
     os.makedirs(LOGS_PATH)
 
-# Config cherrypy logging
-cherrypy.log.access_log.propagate = False
-cherrypy.log.error_log.setLevel(log.DEBUG)
+formatter = log.Formatter('%(asctime)s  %(levelname)-8s %(message)s',
+            datefmt='%y-%m-%d %H:%M:%S')
+
+# CherryPy logging
 cherry_log = cherrypy.log.error_log
 
-# Config python logging
+# Config file logging
 dateTag = datetime.datetime.now().strftime("%Y-%b-%d %H-%M-%S")
 LOG_FILE = LOGS_PATH + 'Log %s.txt' % dateTag
-log.basicConfig(level=log.NOTSET, format='%(asctime)s  %(levelname)-8s %(message)s',
-                    datefmt='%y-%m-%d %H:%M:%S', filename=LOG_FILE, filemode='w')
+filehnd = log.FileHandler(LOG_FILE, mode='w')
+filehnd.setLevel(log.NOTSET)
+filehnd.setFormatter(formatter)
+cherry_log.addHandler(filehnd)
 
+# Config console logging
 console = log.StreamHandler()
 console.setLevel(log.NOTSET)
+console.setFormatter(formatter)
 cherry_log.addHandler(console)
 
 
@@ -82,16 +87,9 @@ def setLogLevel(Level):
         cherry_log.error('LOG: Invalid error level `%s`!' % str(Level))
         return
     #
+    global filehnd, console
     cherry_log.setLevel(Level * 10)
-    #
-
-def setLogLevelConsole(Level):
-    #
-    if Level not in (DEBUG, INFO, WARNING, ERROR, CRITICAL):
-        cherry_log.error('LOG: Invalid error level `%s`!' % str(Level))
-        return
-    #
-    global console
+    filehnd.setLevel(Level * 10)
     console.setLevel(Level * 10)
     #
 
