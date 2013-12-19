@@ -732,6 +732,17 @@ class TwisterRunner(cli.Application):
                             break
 
                 del dep_suite, dep_file
+            # try:
+            #     (dependency_id, dependency_status) = dependency.split(':')
+            # except Exception as e:
+            #     (dependency_id, dependency_status) = (dependency.split(':')[0], None)
+            # if dependency_status == proxy().getFileVariable(dependancy, 'status'):
+            #     try:
+            #         proxy().setFileStatus(self.epName, dependency_id, STATUS_SKIPPED, 0.0)
+            #     except:
+            #         trace = traceback.format_exc()[34:].strip()
+            #         print('Exception on dependency change file status `{}`!\n'.format(trace))
+            #     continue
 
 
             # Download file from Central Engine!
