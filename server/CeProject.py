@@ -1,7 +1,7 @@
 
 # File: CeProject.py ; This file is part of Twister.
 
-# version: 3.007
+# version: 3.008
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -2799,7 +2799,7 @@ class Project(object):
         # Must block here, so more users cannot launch Logs at the same time and lose the PID
         with self.log_lock:
 
-            retries = 10
+            retries = 20
             success = False
 
             while retries > 0:
