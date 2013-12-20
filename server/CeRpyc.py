@@ -1,7 +1,7 @@
 
 # File: CeRpyc.py ; This file is part of Twister.
 
-# version: 3.003
+# version: 3.004
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -839,9 +839,6 @@ class CeRpycService(rpyc.Service):
                 return False
 
             filename = data['file']
-
-            # Inject this empty variable just to be sure.
-            self.project.setFileInfo(user, epname, file_id, 'twister_tc_revision', '')
 
             # Injected ClearCase file ?
             if 'ClearCase' in self.exposed_listPlugins() and data.get('clearcase'):

@@ -1,7 +1,7 @@
 
 # File: xmlparser.py ; This file is part of Twister.
 
-# version: 3.004
+# version: 3.005
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -671,6 +671,9 @@ class TSCParser:
                 if not value.strip():
                     continue
                 res[tag_dict['name']] = value
+
+        # Inject this empty variable
+        res['twister_tc_revision'] = '-1'
 
         # Add property/ value tags
         prop_keys = file_soup.xpath('Property/propName')
