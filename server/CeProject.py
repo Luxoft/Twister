@@ -1,7 +1,7 @@
 
 # File: CeProject.py ; This file is part of Twister.
 
-# version: 3.008
+# version: 3.009
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -2203,7 +2203,7 @@ class Project(object):
             # This is updated every time.
             eMailConfig = self.parsers[user].getEmailConfig()
             if not eMailConfig:
-                log = '*ERROR* E-mail configuration not found !'
+                log = '*ERROR* E-mail configuration for user `{}` not found!'.format(user)
                 logWarning(log)
                 return log
 
@@ -2211,17 +2211,17 @@ class Project(object):
             try:
                 SMTPPwd = self.decryptText(user, eMailConfig['SMTPPwd'])
             except:
-                log = 'SMTP: Password is not set!'
+                log = 'SMTP: Password is not set for user `{}`!'.format(user)
                 logError(log)
                 return log
             if not SMTPPwd:
-                log = 'SMTP: Invalid password! Please update your password and try again!'
+                log = 'SMTP: Invalid password for user `{}`! Please update your password and try again!'.format(user)
                 logError(log)
                 return log
             eMailConfig['SMTPPwd'] = SMTPPwd
 
             if force:
-                logDebug('Preparing to send a test e-mail ...')
+                logDebug('Preparing to send a test e-mail for user `{}`...'.format(user))
 
                 try:
                     server = smtplib.SMTP(eMailConfig['SMTPPath'], timeout=2)
@@ -2238,7 +2238,7 @@ class Project(object):
 
                     server.login(eMailConfig['SMTPUser'], eMailConfig['SMTPPwd'])
                 except:
-                    log = 'SMTP: Cannot authenticate to SMTP server! Invalid user or password!'
+                    log = 'SMTP: Cannot authenticate to SMTP server for `{}`! Invalid user `{}` or password!'.format(user, eMailConfig['SMTPUser'])
                     logError(log)
                     return log
 
@@ -2264,7 +2264,7 @@ class Project(object):
 
                     return True
                 except Exception as e:
-                    log = 'SMTP: Cannot send e-mail!'
+                    log = 'SMTP: Cannot send e-mail for user `{}`!'.format(user)
                     logError(log)
                     return log
 
@@ -2274,16 +2274,16 @@ class Project(object):
                 logPath = self.users[user]['log_types']['logSummary']
                 logSummary = open(logPath).read()
             except:
-                log = '*ERROR* Cannot open Summary Log `{}` for reading !'.format(logPath)
+                log = '*ERROR* Cannot open Summary Log `{}` for reading, on user `{}`!'.format(logPath, user)
                 logError(log)
                 return log
 
             if not logSummary:
-                log = '*ERROR* Log Summary is empty! Nothing to send!'
+                log = '*ERROR* Log Summary is empty! Nothing to send for user `{}`!'.format(user)
                 logDebug(log)
                 return log
 
-            logDebug('E-mail: Preparing... Server `{SMTPPath}`, user `{SMTPUser}`, from `{From}`, to `{To}`...'\
+            logInfo('Preparing e-mail... Server `{SMTPPath}`, user `{SMTPUser}`, from `{From}`, to `{To}`...'\
                 ''.format(**eMailConfig))
 
             ce_host = socket.gethostname()
@@ -2345,8 +2345,8 @@ class Project(object):
             tmpl = Template(eMailConfig['Subject'])
             try:
                 eMailConfig['Subject'] = tmpl.substitute(map_info)
-            except Exception, e:
-                log = 'E-mail ERROR! Cannot build e-mail subject! Error: {}!'.format(e)
+            except Exception as e:
+                log = 'E-mail ERROR! Cannot build e-mail subject for user `{}`! Error on {}!'.format(user, e)
                 logError(log)
                 return log
             del tmpl
@@ -2355,8 +2355,8 @@ class Project(object):
             tmpl = Template(eMailConfig['Message'])
             try:
                 eMailConfig['Message'] = tmpl.substitute(map_info)
-            except Exception, e:
-                log = 'E-mail ERROR! Cannot build e-mail message! Error: {}!'.format(e)
+            except Exception as e:
+                log = 'E-mail ERROR! Cannot build e-mail message for user `{}`! Error on {}!'.format(user, e)
                 logError(log)
                 return log
             del tmpl
@@ -2375,7 +2375,7 @@ class Project(object):
             # Body string
             body_path = os.path.split(self.users[user]['config_path'])[0] +os.sep+ 'e-mail-tmpl.htm'
             if not os.path.exists(body_path):
-                log = 'E-mail ERROR! Cannot find e-mail template file `{}`!'.format(body_path)
+                log = 'E-mail ERROR! Cannot find e-mail template file `{}`, for user `{}`!'.format(body_path, user)
                 logError(log)
                 return log
 
@@ -2409,7 +2409,7 @@ class Project(object):
             if (not eMailConfig['Enabled']) or (eMailConfig['Enabled'] in ['0', 'false']):
                 e_mail_path = os.path.split(self.users[user]['config_path'])[0] +os.sep+ 'e-mail.htm'
                 open(e_mail_path, 'w').write(msg.as_string())
-                logDebug('E-mail.htm file written. The message will NOT be sent.')
+                logDebug('E-mail.htm file written, for user `{}`. The message will NOT be sent.'.format(user))
                 # Update file ownership
                 setFileOwner(user, e_mail_path)
                 return True
@@ -2417,7 +2417,7 @@ class Project(object):
             try:
                 server = smtplib.SMTP(eMailConfig['SMTPPath'], timeout=2)
             except:
-                log = 'SMTP: Cannot connect to SMTP server `{}`!'.format(eMailConfig['SMTPPath'])
+                log = 'SMTP: Cannot connect to SMTP server `{}`, for user `{}`!'.format(eMailConfig['SMTPPath'], user)
                 logError(log)
                 return log
 
@@ -2429,17 +2429,17 @@ class Project(object):
 
                 server.login(eMailConfig['SMTPUser'], eMailConfig['SMTPPwd'])
             except:
-                log = 'SMTP: Cannot authenticate to SMTP server! Invalid user or password!'
+                log = 'SMTP: Cannot authenticate to SMTP server for `{}`! Invalid user `{}` or password!'.format(user, eMailConfig['SMTPUser'])
                 logError(log)
                 return log
 
             try:
                 server.sendmail(eMailConfig['From'], eMailConfig['To'], msg.as_string())
-                logDebug('SMTP: E-mail sent successfully!')
+                logDebug('SMTP: E-mail sent successfully for user `{}`!'.format(user))
                 server.quit()
                 return True
             except:
-                log = 'SMTP: Cannot send e-mail!'
+                log = 'SMTP: Cannot send e-mail for user `{}`!'.format(user)
                 logError(log)
                 return log
 
@@ -2480,7 +2480,7 @@ class Project(object):
             # Decode database password
             db_password = self.decryptText(user, db_config.get('password'))
             if not db_password:
-                logError('Database: Cannot decrypt the database password!')
+                logError('Database: Cannot decrypt the database password for user `{}`!'.format(user))
                 return False
 
             try:
@@ -2488,7 +2488,7 @@ class Project(object):
                     user=db_config.get('user'), passwd=db_password)
                 curs = conn.cursor()
             except MySQLdb.Error as e:
-                logError('MySQL Error `{}`: `{}`!'.format(e.args[0], e.args[1]))
+                logError('MySQL Error for user `{}`: `{} - {}`!'.format(user, e.args[0], e.args[1]))
                 return False
 
             conn.autocommit = False
@@ -2614,8 +2614,8 @@ class Project(object):
                             u_query = auto_fields.get(field.replace('@', ''))
 
                             if not u_query:
-                                logError('File: `{0}`, cannot build query! Field `{1}` is not defined in the fields section!'\
-                                    ''.format(subst_data['file'], field))
+                                logError('User `{}`, file `{}`: Cannot build query! Field `{}` is not defined in the fields section!'\
+                                    ''.format(user, subst_data['file'], field))
                                 conn.rollback()
                                 return False
 
@@ -2632,7 +2632,7 @@ class Project(object):
                         try:
                             query = tmpl.substitute(subst_data)
                         except Exception, e:
-                            logError('User `{0}`, file `{1}`: Cannot build query! Error on `{2}`!'\
+                            logError('User `{}`, file `{}`: Cannot build query! Error on `{}`!'\
                                 ''.format(user, subst_data['file'], str(e)))
                             conn.rollback()
                             return False
@@ -2643,9 +2643,9 @@ class Project(object):
                         # Execute MySQL Query!
                         try:
                             curs.execute(query)
-                        except MySQLdb.Error, e:
-                            logError('Error in query ``{}``'.format(query))
-                            logError('MySQL Error {}: {}!'.format(e.args[0], e.args[1]))
+                        except MySQLdb.Error as e:
+                            l = 'Error in query ``{}`` for user `{}`!\n\tMySQL Error {}: {}!'.format(query, user, e.args[0], e.args[1])
+                            logError(l)
                             conn.rollback()
                             return False
 
