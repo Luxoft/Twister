@@ -105,7 +105,7 @@ class CeRpycService(rpyc.Service):
             user = usr
         if not user: return False
 
-        str_addr = False
+        found = False
 
         # Cycle all active connections (clients, eps, libs, cli)
         for str_addr, data in self.conns.iteritems():
@@ -118,18 +118,21 @@ class CeRpycService(rpyc.Service):
                 if (addr and hello) and str_addr.split(':')[0] in addr:
                     # If the Hello matches with the filter
                     if data.get('hello') and data['hello'].split(':') and data['hello'].split(':')[0] == hello:
+                        found = str_addr
                         break
                 # Check (Hello & Ep)
                 elif (hello and epname) and data.get('hello') and data['hello'].split(':') and data['hello'].split(':')[0] == hello:
                     # If this connection has registered EPs
                     eps = data.get('eps')
                     if eps and epname in eps:
+                        found = str_addr
                         break
                 # All filters are null! Return the first conn for this user!
                 elif not addr and not hello and not epname:
+                    found = str_addr
                     break
 
-        return str_addr
+        return found
 
 
     def on_connect(self):

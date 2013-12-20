@@ -376,7 +376,6 @@ class ResourceAllocator(_cptools.XMLRPCController):
                 except Exception as e:
                     if v:
                         logError('_load ERROR:: {}'.format(e))
-
                 # Check status
                 reservedIds = list()
                 for u in self.reservedResources:
@@ -1355,6 +1354,11 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
         if ':' in res_query:
             res_query = res_query.split(':')[0]
+
+        if self.isResourceReserved(res_query, root_id):
+            msg = 'Reserve resource: The resource is reserved !'
+            logError(msg)
+            return False
 
         res_path = _get_res_path(resources, res_query)
         res_pointer = _get_res_pointer(resources, ''.join('/' + res_path[0]))
