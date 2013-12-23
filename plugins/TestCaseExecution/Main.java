@@ -53,7 +53,7 @@ public class Main{
         readLogoTxt();
         PermissionValidator.init("CREATE_PROJECT,CHANGE_PROJECT,DELETE_PROJECT,CHANGE_PLUGINS,"+
                                  "CHANGE_FWM_CFG,CHANGE_GLOBALS,RUN_TESTS,EDIT_TC,"+
-                                 "CHANGE_DB_CFG, CHANGE_EML_CFG,CHANGE_SERVICES,CHANGE_SUT");
+                                 "CHANGE_DB_CFG,CHANGE_EML_CFG,CHANGE_SERVICES,CHANGE_SUT");
         final JFrame f = new JFrame();
         f.setVisible(true);
         f.setBounds(0,0,800,600);
@@ -63,6 +63,9 @@ public class Main{
                     RunnerRepository.setSize(f.getWidth(), f.getHeight());
                 }}});
         f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        RunnerRepository.host = "tsc-server";
+        RunnerRepository.user = "tscguest";
+        RunnerRepository.password = "tscguest";
         RunnerRepository.initialize("false",RunnerRepository.host,f.getContentPane(),null);
     }
 

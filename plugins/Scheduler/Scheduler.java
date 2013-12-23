@@ -1,6 +1,6 @@
 /*
 File: Scheduler.java ; This file is part of Twister.
-Version: 2.002
+Version: 2.003
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -97,7 +97,6 @@ public class Scheduler extends BasePlugin implements TwisterPluginInterface {
 	private static final long serialVersionUID = 1L;  
 	private JPanel p;
 	public XmlRpcClient client;
-	private ChannelSftp c;
 	private JLabel left,right,add,remove,modify,tick;
 	private Calendar calendar ;
 	private Icon left0,left1,right0,right1,add0,add1,
@@ -114,7 +113,7 @@ public class Scheduler extends BasePlugin implements TwisterPluginInterface {
 	 */
 	public static void main(String [] args){
 		try{XmlRpcClientConfigImpl configuration = new XmlRpcClientConfigImpl();
-	    	configuration.setServerURL(new URL("http://11.126.32.14:88/"));
+	    	configuration.setServerURL(new URL("http://tsc-server:88/"));
 	    	XmlRpcClient client = new XmlRpcClient();
 	    	client.setConfig(configuration);
 	    	Scheduler sch = new Scheduler();
@@ -388,20 +387,19 @@ public class Scheduler extends BasePlugin implements TwisterPluginInterface {
 				initialy = arg0.getY();
 			}
 		});
-		
-		
-		try{c.cd(variables.get("remoteusersdir"));
-		}
+		try{c.cd(variables.get("remoteusersdir"));}
         catch(Exception e){
             System.out.println("Could not get to "+
             					variables.get("remoteusersdir")+
-            					"on sftp");}
+            					" on sftp");
+            e.printStackTrace();
+        }
         int size ;
-        try{size= c.ls(variables.get("remoteusersdir")).size();
-        	}
+        try{size= c.ls(variables.get("remoteusersdir")).size();}
         catch(Exception e){
             System.out.println("No suites xml");
-            size=0;}
+            size=0;
+            e.printStackTrace();}
         ArrayList<String> files = new ArrayList<String>();
         String name=null;
         for(int i=0;i<size;i++){
@@ -435,6 +433,7 @@ public class Scheduler extends BasePlugin implements TwisterPluginInterface {
 		final JLabel date = new JLabel();
 		date.setBounds(76, 179, 100, 20);
 		final JDateChooser tdate = new JDateChooser();
+		tdate.setDateFormatString("yyyy-MM-dd");
 		((JTextFieldDateEditor)tdate.getDateEditor()).addPropertyChangeListener(new PropertyChangeListener() {
 			@Override
 			public void propertyChange(PropertyChangeEvent arg0) {
@@ -695,7 +694,6 @@ public class Scheduler extends BasePlugin implements TwisterPluginInterface {
                             JOptionPane.INFORMATION_MESSAGE,
                             JOptionPane.OK_CANCEL_OPTION,Scheduler.this,
                             "Project File",null);
-        
         if(resp==JOptionPane.OK_OPTION){
             String user = combo.getSelectedItem().toString();
             field.setText(variables.get("remoteusersdir")+"/"+user);
@@ -815,27 +813,6 @@ public class Scheduler extends BasePlugin implements TwisterPluginInterface {
 		}
 	}
 	
-//	public void initializeSFTP(){
-//		try{
-//			JSch jsch = new JSch();
-//            String user = variables.get("user");
-//			Session session = jsch.getSession(user, variables.get("host"), 22);
-//			session.setPassword(variables.get("password"));
-//			Properties config = new Properties();
-//            config.put("StrictHostKeyChecking", "no");
-//            session.setConfig(config);
-//            session.connect();
-//            Channel channel = session.openChannel("sftp");
-//            channel.connect();
-//            c = (ChannelSftp)channel;
-//            System.out.println("SFTP successfully initialized");
-//		}
-//		catch(Exception e){
-//			System.out.println("SFTP could not be initialized");
-//			e.printStackTrace();
-//		}
-//	}
-	
 	private void drawDate(Graphics g){
 		StringBuilder sb = new StringBuilder();
 		sb.append(new SimpleDateFormat("MMM").format(calendar.getTime()).toLowerCase());
@@ -860,31 +837,4 @@ public class Scheduler extends BasePlugin implements TwisterPluginInterface {
 		catch(Exception e){System.out.println("Could not conect to "+
                         variables.get("host")+" :88/");}
 	}
-	
-	/*
-     * method to copy plugins configuration file
-     * to server 
-     */
-//    public boolean uploadPluginsFile(){
-//        try{
-//            DOMSource source = new DOMSource(pluginsConfig);
-//            File file = new File(variables.get("pluginslocalgeneralconf"));
-//            Result result = new StreamResult(file);
-//            TransformerFactory transformerFactory = TransformerFactory.newInstance();
-//            Transformer transformer = transformerFactory.newTransformer();
-//            transformer.setOutputProperty(OutputKeys.INDENT, "yes");
-//            transformer.setOutputProperty("{http:xml.apache.org/xslt}indent-amount","4");
-//            transformer.transform(source, result);
-//            c.cd(variables.get("remoteuserhome")+"/twister/config/");
-//            FileInputStream in = new FileInputStream(file);
-//            c.put(in, file.getName());
-//            in.close();
-//            System.out.println("Saved "+file.getName()+" to: "+
-//					variables.get("remoteuserhome")+"/twister/config/");
-//            return true;}
-//        catch(Exception e){
-//            e.printStackTrace();
-//            return false;
-//        }
-//    }
 }

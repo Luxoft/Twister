@@ -1,5 +1,5 @@
 
-# File: CentralEngineWebUi.py ; This file is part of Twister.
+# File: CeWebUi.py ; This file is part of Twister.
 
 # version: 2.007
 
@@ -97,7 +97,7 @@ def prepareLog(log_file, pos=0):
 # --------------------------------------------------------------------------------------------------
 
 
-class WebInterface:
+class WebInterface(object):
 
     def __init__(self, project):
 
@@ -288,7 +288,7 @@ class WebInterface:
 
     @cherrypy.expose
     def resetUser(self, user):
-        self.project.reset(user)
+        self.project.resetProject(user)
         self.project.resetLogs(user)
         raise cherrypy.HTTPRedirect('http://{host}/web/users/{user}'.format(
             host = cherrypy.request.headers['Host'], user = user

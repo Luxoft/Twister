@@ -8,6 +8,8 @@ This makes it easy to build the testing suite, execute it, and accurately monito
 
 [UserGuide](http://www.twistertesting.com/twister-user-guide)
 
+[Plugin_HowToDevelop](http://www.twistertesting.com/twister-plugins-guide)
+
 Please check the [Wiki] (https://github.com/Luxoft/Twister/wiki) page for the feature set.
   
 Luxoft Twister is available under the [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0.html).

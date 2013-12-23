@@ -11,7 +11,7 @@ This function should get a config, using the full path to config file and the fu
 import os
 from pprint import pformat
 
-cfg_path = PROXY.getUserVariable(USER, 'tcfg_path')
+cfg_path = PROXY.getUserVariable('tcfg_path')
 
 # Consider that this EP is running on the same machine with the Central Engine...
 cfg_files = [ (cfg_path +'/'+ p) for p in os.listdir(cfg_path) if os.path.isfile(cfg_path +'/'+ p) ]

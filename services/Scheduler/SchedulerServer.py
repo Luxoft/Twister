@@ -1,18 +1,33 @@
 
 # File: SchedulerServer.py ; This file is part of Twister.
 
-# version: 2.001
+# version: 2.003
 
 # Copyright (C) 2012 , Luxoft
 
 # Authors:
 #    Cristi Constantin <crconstantin@luxoft.com>
 
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at:
+
+# http://www.apache.org/licenses/LICENSE-2.0
+
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import os
 import sys
 import thread
 import threading
+import subprocess
 import urlparse
+import socket
+socket.setdefaulttimeout(3)
 import xmlrpclib
 import logging
 import json
@@ -33,6 +48,12 @@ It's used to schedule the start of Central Engine weekly, daily, or one-time.
 """
 
 # # #
+
+def userHome(user):
+    """
+    Find the home folder for the given user.
+    """
+    return subprocess.check_output('echo ~' + user, shell=True).strip()
 
 
 def _fix_date(date_time):
@@ -88,7 +109,6 @@ class SchedulerServer(_cptools.XMLRPCController):
 
         global __config__
         log.debug('Initializing Server on http://{sched_ip}:{sched_port}/ ...'.format(**__config__))
-        self.conn = xmlrpclib.ServerProxy('http://{ce_ip}:{ce_port}/'.format(**__config__))
         self.acc_lock = thread.allocate_lock() # Task change lock
         self.tasks = {}
         self._load(v=True)
@@ -385,7 +405,6 @@ class SchedulerServer(_cptools.XMLRPCController):
 
 # # #
 
-
 class threadCheckTasks(threading.Thread):
     '''
     Threaded class for checking tasks.
@@ -394,9 +413,43 @@ class threadCheckTasks(threading.Thread):
 
         global __config__
         self.errMsg = True
-        self.cycle = 0
-        self.proxy = xmlrpclib.ServerProxy('http://{ce_ip}:{ce_port}/'.format(**__config__))
+        self.conns = {}
         threading.Thread.__init__(self)
+
+
+    def getConnection(self, user):
+        '''
+        Shortcut function to get or reuse a Central Engine connection.
+        '''
+        proxy = self.conns.get(user)
+        # Try to reuse the old connection
+        if isinstance(proxy, xmlrpclib.ServerProxy):
+            try:
+                proxy.echo('ping')
+                return proxy
+            except:
+                log.debug('Disconnected from the Central Engine. Will reconnect...')
+                proxy = None
+        else:
+            log.debug('Connect to the Central Engine...')
+            proxy = None
+
+        proxy = xmlrpclib.ServerProxy('http://{u}:EP@{ce_ip}:{ce_port}/'.format(u=user, **__config__))
+
+        try:
+            # Try to ping the Central Engine!
+            proxy.echo('ping')
+            if not self.errMsg:
+                log.debug('Successfully connected to Central Engine. Tasks are now enabled.')
+                self.errMsg = True
+        except:
+            if self.errMsg:
+                log.debug('Central Engine is down, cannot run Tasks! Trying to reconnect...')
+                self.errMsg = False
+            proxy = None
+
+        self.conns[user] = proxy
+        return proxy
 
 
     def run(self):
@@ -414,20 +467,6 @@ class threadCheckTasks(threading.Thread):
 
         while not programExit:
 
-            try:
-                # Try to get status from CE!
-                ce_status = self.proxy.echo('ping')
-                if not self.errMsg:
-                    log.debug('Info: Successfully connected to Central Engine. Tasks are now enabled.')
-                    self.errMsg = True
-            except:
-                if self.errMsg:
-                    log.debug('Warning: Central Engine is down, cannot run Tasks! Trying to reconnect...')
-                    self.errMsg = False
-                # Wait and retry...
-                time.sleep(1)
-                continue
-
             Tasks = root.List()
 
             # Date time into standard format
@@ -435,6 +474,7 @@ class threadCheckTasks(threading.Thread):
             pure_time = time.strptime(time.strftime('%H:%M:%S'), '%H:%M:%S')
             week_time = time.strptime(time.strftime('%a %H:%M:%S'), '%a %H:%M:%S')
 
+            # Cycle all known tasks
             for glob_task in Tasks:
 
                 task_id = glob_task.get('key')
@@ -452,6 +492,12 @@ class threadCheckTasks(threading.Thread):
 
                 if not user:
                     log.error('Fatal error in task `{0}`! No user defined!'.format(task_id))
+                    continue
+
+                proxy = self.getConnection(user)
+                # No connection for this user
+                if not isinstance(proxy, xmlrpclib.ServerProxy):
+                    time.sleep(2)
                     continue
 
                 proj_dt, proj_type = _fix_date(proj_dt)
@@ -472,17 +518,17 @@ class threadCheckTasks(threading.Thread):
                       'activation date `{date-time}`, force `{force}`, time limit `{time-limit}`...'.format(**task))
 
                 # If Force is disabled and Central Engine is already running, break
-                if proj_force != '0' and self.proxy.getUserVariable(user, 'status') == 'running':
+                if proj_force != '0' and proxy.getUserVariable(user, 'status') == 'running':
                     log.debug('Central Engine is already running! The task will not force!')
                     continue
                 else:
                     # Kill all processes for this user
-                    self.proxy.setExecStatusAll(user, 0)
+                    proxy.setExecStatusAll(user, 0, 'Force stop from Scheduler!'.format(proj_file))
 
                 time.sleep(1)
 
                 # Start Central Engine !
-                self.proxy.setExecStatusAll(user, 2, ',' + proj_file)
+                proxy.setExecStatusAll(user, 2, '{}/twister/config/fwmconfig.xml,{}'.format(userHome(user), proj_file))
 
             # Wait before next cycle
             time.sleep(1)
@@ -496,7 +542,7 @@ def load_config():
     global __dir__
     cfg_folder = __dir__ + '/config.ini'
     cfg_dict   =  {'ce_ip': '127.0.0.1', 'ce_port': '8000',
-                   'sched_ip': '0.0.0.0', 'sched_port': '333'}
+                   'sched_ip': '0.0.0.0', 'sched_port': '88'}
     cfg = SafeConfigParser({'ALL': '0.0.0.0'})
     cfg.read(cfg_folder)
 
@@ -528,7 +574,7 @@ if __name__ == '__main__':
     programExit = False
 
 
-    LOGS_PATH = __dir__ + '/logs/'
+    LOGS_PATH = __dir__ + '/Logs/'
     if not os.path.exists(LOGS_PATH):
         os.makedirs(LOGS_PATH)
 

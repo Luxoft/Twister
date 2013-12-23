@@ -1,6 +1,6 @@
 /*
 File: TB.java ; This file is part of Twister.
-Version: 2.007
+Version: 2.008
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -124,7 +124,7 @@ public class TB extends JPanel{
         
         add = new JButton("Add TB");
         add.setBounds(0,5,155,20);
-        buttonPanel.add(add);
+        if(PermissionValidator.canEditTB())buttonPanel.add(add);
         add.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 addComp();
@@ -134,7 +134,7 @@ public class TB extends JPanel{
         remove = new JButton("Remove");
         remove.setBounds(160,5,100,20);
         remove.setEnabled(false);
-        buttonPanel.add(remove);
+        if(PermissionValidator.canEditTB())buttonPanel.add(remove);
         remove.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 if(optpan.tname.getText().equals(""))return;
@@ -417,6 +417,7 @@ public class TB extends JPanel{
      * right click
      */
     public void showNodePopUp(final DefaultMutableTreeNode treenode,MouseEvent ev,final Node node){
+        if(!PermissionValidator.canEditTB())return;
         JPopupMenu p = new JPopupMenu();
         JMenuItem item = new JMenuItem("Add Component");
         item.addActionListener(new ActionListener(){

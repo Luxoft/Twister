@@ -1,12 +1,13 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2.7
 
-# version: 2.006
+# version: 3.001
 
 # File: CentralEngine.py ; This file is part of Twister.
 
 # Copyright (C) 2012-2013 , Luxoft
 
 # Authors:
+#    Adrian Toader <adtoader@luxoft.com>
 #    Andrei Costachi <acostachi@luxoft.com>
 #    Andrei Toma <atoma@luxoft.com>
 #    Cristi Constantin <crconstantin@luxoft.com>
@@ -34,7 +35,9 @@ threading._DummyThread._Thread__stop = lambda x: 1
 
 import os
 import sys
+import thread
 import cherrypy
+from rpyc.utils.server import ThreadPoolServer
 
 if not sys.version.startswith('2.7'):
     print('Python version error! Central Engine must run on Python 2.7!')
@@ -49,9 +52,11 @@ if TWISTER_PATH not in sys.path:
 
 
 from common.tsclogging import *
-from server.CentralEngineProject import Project
-from server.CentralEngineClasses import CentralEngine
-from server.ExecutionManager     import ExecutionManager
+from common.tsclogging import setLogLevel
+from server.CeProject  import Project
+from server.CeXmlRpc   import CeXmlRpc
+from server.CeRpyc     import CeRpycService
+from common import iniparser
 
 #
 
@@ -73,18 +78,68 @@ if __name__ == "__main__":
             logCritical('Twister Server: Must start with parameter PORT number!')
             exit(1)
 
+    # Read verbosity from configuration
+    cfg_path = '{}/config/server_init.ini'.format(TWISTER_PATH)
+    if not os.path.isfile(cfg_path):
+        verbosity = 1
+    else:
+        cfg = iniparser.ConfigObj(cfg_path)
+        verbosity = cfg.get('verbosity', 1)
+        try: verbosity = int(verbosity)
+        except:
+            logError('Twister Server: Invalid verbosity value `{}`! Will default to `1`.'.format(verbosity))
+            verbosity = 1
+        del cfg
+
+    setLogLevel(int(verbosity))
+    cherrypy.log.access_log.propagate = False
+    cherrypy.log.error_log.setLevel(10)
+
+    # RPyc config
+    config = {
+        'allow_pickle': True,
+        'allow_getattr': True,
+        'allow_setattr': True,
+        'allow_delattr': True,
+        'allow_all_attrs': True,
+        }
+
+    # Diff RPyc port
+    rpycPort = serverPort + 10
+    try:
+        rpycServer = ThreadPoolServer(CeRpycService, port=rpycPort, protocol_config=config)
+        rpycServer.logger.setLevel(30)
+    except:
+        logCritical('Twister Server: Cannot launch the RPyc server on port `{}`!'.format(rpycPort))
+        exit(1)
+
     # Project manager does everything
     proj = Project()
+    proj.rsrv = rpycServer
     # CE is the XML-RPC interface
-    ce = CentralEngine(proj)
-    # EE Manager is the helper for EPs and Clients
-    ee = ExecutionManager(proj)
+    ce = CeXmlRpc(proj)
 
+    def close():
+        global proj, rpycServer
+        rpycServer.close()
+        del proj.manager
+
+    proj.ip_port = ('127.0.0.1', serverPort)
     ce.web = proj.web
     ce.ra  = proj.ra
     ce.report = proj.report
 
-    # Config
+    # EE Manager is the helper for EPs and Clients
+    # Inject the project as variable for EE
+    rpycServer.service.inject_object('project', proj)
+    rpycServer.service.inject_object('cherry', ce)
+
+    # Start rpyc server
+    thread.start_new_thread(rpycServer.start, ())
+    logInfo('RPYC Serving on 0.0.0.0:{}'.format(rpycPort))
+
+
+    # CherryPy config
     conf = {'global': {
             'server.socket_host': '0.0.0.0',
             'server.socket_port': serverPort,
@@ -105,6 +160,7 @@ if __name__ == "__main__":
         }
 
     # Start !
+    cherrypy.engine.signal_handler.handlers['SIGTERM'] = close
     cherrypy.quickstart(ce, '/', config=conf)
 
 #

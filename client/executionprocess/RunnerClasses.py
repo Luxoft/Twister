@@ -41,7 +41,7 @@ from collections import OrderedDict # For dumping TCL
 
 from ConfigParser import SafeConfigParser
 
-TWISTER_PATH = os.getenv('TWISTER_PATH').rstrip('/')
+TWISTER_PATH = os.getenv('TWISTER_PATH')
 if not TWISTER_PATH:
     print('TWISTER_PATH environment variable is not set! Exiting!')
     exit(1)
@@ -79,19 +79,6 @@ class TCRunTcl:
         self.all_procs_values = 0
 
         self.tcl = Tkinter.Tcl()
-
-        try: import ce_libs
-        except: pass
-        try: reload(ce_libs)
-        except: pass
-
-        # Find all functions from CE Libs
-        to_inject = [ f for f in dir(ce_libs) if callable(getattr(ce_libs, f)) ]
-
-        # Expose all known function in TCL
-        for f in to_inject:
-            # print('DEBUG: Exposing Python command `{}` into TCL...'.format(f))
-            self.tcl.createcommand( f, getattr(ce_libs, f) )
 
         if os.path.exists(os.getcwd()+'/__recomposed.tcl'):
             # Restore all variables and functions
@@ -147,7 +134,7 @@ class TCRunTcl:
         self.tcl.createcommand('reserveResource',   globs['reserveResource'])
         self.tcl.createcommand('freeResource',      globs['freeResource'])
 
-        to_execute = str_to_execute.data
+        to_execute = str_to_execute
         to_execute = '\nset argc %i\n' % len(params) + to_execute
         to_execute = 'set argv {%s}\n' % str(params)[1:-1] + to_execute
 
@@ -256,7 +243,7 @@ sys.argv = %s
 
         f = open(fpath, 'wb')
         f.write(to_execute)
-        f.write(str_to_execute.data)
+        f.write(str_to_execute)
         f.close() ; del f
 
         execfile(fpath, globs_copy)
@@ -287,7 +274,7 @@ class TCRunPerl:
         '''
         #
         _RESULT = None
-        to_execute = str_to_execute.data
+        to_execute = str_to_execute
         #
         f = open('__to_execute.plx', 'wb')
         f.write(to_execute)
@@ -352,7 +339,7 @@ class TCRunJava:
         filePath = os.path.join(filesPath, fileName)
 
         with open(filePath, 'wb+') as f:
-            f.write(str_to_execute.data)
+            f.write(str_to_execute)
 
 
         # compile java test

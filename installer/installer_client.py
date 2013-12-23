@@ -1,6 +1,5 @@
-#!/usr/bin/env python
 
-# version: 2.003
+# version: 2.002
 
 # File: installer.py ; This file is part of Twister.
 
@@ -47,9 +46,6 @@ from distutils import dir_util
 __dir__ = os.path.split(__file__)[0]
 if __dir__: os.chdir(__dir__)
 
-# Python executable. Alternatively, it can be "python2.7".
-PYTHON_EXE = sys.executable
-
 # --------------------------------------------------------------------------------------------------
 # Install  Client ?
 # --------------------------------------------------------------------------------------------------
@@ -90,16 +86,12 @@ if os.path.exists(INSTALL_PATH):
         if os.path.exists(INSTALL_PATH + 'config'):
             if os.getuid() != 0: # Normal user
                 tmp_config = userHome(user_name) + '/.twister'
+                try: os.mkdir(tmp_config)
+                except:
+                    print('Error! Cannot create .twister dir `{}`! The installation cannot continue!\n'.format(tmp_config))
+                    exit(1)
             else: # ROOT user
                 tmp_config = '/tmp/twister_server_config'
-            try: dir_util.remove_tree(tmp_config)
-            except Exception as e: pass
-            try: os.mkdir(tmp_config)
-            except Exception as e: pass
-            if not os.path.isdir(tmp_config):
-                print('Error! Cannot create .twister backup dir `{}`! The installation cannot continue!\n'.format(tmp_config))
-                exit(1)
-
             print('\nBack-up `config` folder (from `{}` to `{}`)...'.format(INSTALL_PATH+'config', tmp_config))
             try:
                 shutil.move(INSTALL_PATH+'config', tmp_config)
@@ -181,8 +173,8 @@ for fname in to_copy:
 
 # Restore CONFIG folder, if any
 if os.path.exists(tmp_config):
-    print('\nMoving `config` folder back (from `{}` to `{}`)...'.format(tmp_config, INSTALL_PATH))
-    dir_util.copy_tree(tmp_config, INSTALL_PATH)
+    print('\nMoving `config` folder back (from `{}` to `{}`)...'.format(tmp_config, INSTALL_PATH+'config'))
+    dir_util.copy_tree(tmp_config, INSTALL_PATH+'config')
     dir_util.remove_tree(tmp_config)
 
 
