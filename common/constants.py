@@ -1,5 +1,5 @@
 
-# version: 2.012
+# version: 2.013
 
 # Major list of constants.
 
@@ -100,5 +100,5 @@ TESTS_TAGS = (
 	{'name':'file',			'tag':'tcName',				'default':''},
 	{'name':'config_files',	'tag':'ConfigFiles',		'default':''},
 	{'name':'dependancy',	'tag':'Dependancy',			'default':''},
-	{'name':'clearcase',	'tag':'ClearCaseView',		'default':''},
+	{'name':'clearcase',	'tag':'ClearCase',			'default':''},
 )

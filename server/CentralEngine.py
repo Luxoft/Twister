@@ -1,6 +1,6 @@
 #!/usr/bin/env python2.7
 
-# version: 2.009
+# version: 3.001
 
 # File: CentralEngine.py ; This file is part of Twister.
 
@@ -52,9 +52,11 @@ if TWISTER_PATH not in sys.path:
 
 
 from common.tsclogging import *
+from common.tsclogging import setLogLevel
 from server.CeProject  import Project
 from server.CeXmlRpc   import CeXmlRpc
 from server.CeRpyc     import CeRpycService
+from common import iniparser
 
 #
 
@@ -76,6 +78,23 @@ if __name__ == "__main__":
             logCritical('Twister Server: Must start with parameter PORT number!')
             exit(1)
 
+    # Read verbosity from configuration
+    cfg_path = '{}/config/server_init.ini'.format(TWISTER_PATH)
+    if not os.path.isfile(cfg_path):
+        verbosity = 1
+    else:
+        cfg = iniparser.ConfigObj(cfg_path)
+        verbosity = cfg.get('verbosity', 1)
+        try: verbosity = int(verbosity)
+        except:
+            logError('Twister Server: Invalid verbosity value `{}`! Will default to `1`.'.format(verbosity))
+            verbosity = 1
+        del cfg
+
+    setLogLevel(int(verbosity))
+    cherrypy.log.access_log.propagate = False
+    cherrypy.log.error_log.setLevel(10)
+
     # RPyc config
     config = {
         'allow_pickle': True,
@@ -89,6 +108,7 @@ if __name__ == "__main__":
     rpycPort = serverPort + 10
     try:
         rpycServer = ThreadPoolServer(CeRpycService, port=rpycPort, protocol_config=config)
+        rpycServer.logger.setLevel(30)
     except:
         logCritical('Twister Server: Cannot launch the RPyc server on port `{}`!'.format(rpycPort))
         exit(1)
@@ -113,8 +133,6 @@ if __name__ == "__main__":
     # Inject the project as variable for EE
     rpycServer.service.inject_object('project', proj)
     rpycServer.service.inject_object('cherry', ce)
-    # Less spam please !
-    rpycServer.logger.setLevel(30)
 
     # Start rpyc server
     thread.start_new_thread(rpycServer.start, ())

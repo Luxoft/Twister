@@ -146,6 +146,7 @@ if err1 and err2:
 # Files to move in Server folder
 to_copy = [
     'bin/cli.py',
+    'bin/set_log_level.py',
     'bin/start_server',
     'doc/',
     'server/',
