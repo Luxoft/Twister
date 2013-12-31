@@ -193,7 +193,7 @@ class WebInterface(object):
 
     @cherrypy.expose
     def json_save_project(self, user, epname):
-        logInfo('CeWebUi:json_save_project user '{}'.'.format(user))
+        logInfo('CeWebUi:json_save_project user `{}`.'.format(user))
         if self.user_agent() == 'x':
             return 0
 
@@ -220,7 +220,7 @@ class WebInterface(object):
 
     @cherrypy.expose
     def json_eps(self, user, epname):
-        logInfo('CeWebUi:json_eps user '{}'.'.format(user))
+        logInfo('CeWebUi:json_eps user `{}`.'.format(user))
         if self.user_agent() == 'x':
             return 0
 
@@ -259,7 +259,7 @@ class WebInterface(object):
 
     @cherrypy.expose
     def json_folders(self, user):
-        logInfo('CeWebUi:json_folders user '{}'.'.format(user))
+        logInfo('CeWebUi:json_folders user `{}`.'.format(user))
         if self.user_agent() == 'x':
             return 0
 
@@ -298,7 +298,7 @@ class WebInterface(object):
 
     @cherrypy.expose
     def resetUser(self, user):
-        logInfo('CeWebUi:resetUser user '{}'.'.format(user))
+        logInfo('CeWebUi:resetUser user `{}`.'.format(user))
         self.project.resetProject(user)
         self.project.resetLogs(user)
         raise cherrypy.HTTPRedirect('http://{host}/web/users/{user}'.format(
@@ -308,7 +308,7 @@ class WebInterface(object):
 
     @cherrypy.expose
     def setUserStatus(self, user, status):
-        logInfo('CeWebUi:setUserStatus user '{}'.'.format(user))
+        logInfo('CeWebUi:setUserStatus user `{}`.'.format(user))
         output = Template(filename=TWISTER_PATH + '/server/template/rest_error.htm')
         try: status = int(status)
         except: return output.render(title='Error!', body='<b>Status value `{0}` is invalid!</b>'.format(status))
@@ -323,7 +323,7 @@ class WebInterface(object):
 
     @cherrypy.expose
     def setEpStatus(self, user, epname, status):
-        logInfo('CeWebUi:setEpStatus user '{}'.'.format(user))
+        logInfo('CeWebUi:setEpStatus user `{}`.'.format(user))
         output = Template(filename=TWISTER_PATH + '/server/template/rest_error.htm')
         try: status = int(status)
         except: return output.render(title='Error!', body='<b>Status value `{0}` is invalid!</b>'.format(status))

@@ -260,7 +260,7 @@ class CeRpycService(rpyc.Service):
         Log in before anything else.
         A user cannot execute commands without logging in first!
         """
-        logInfo('CeRpyc:exposed_login')
+        logInfo('CeRpyc:exposed_login user `{}`.'.format(user))
         str_addr = self._get_addr()
         resp = self.project.rpyc_check_passwd(user, passwd)
 

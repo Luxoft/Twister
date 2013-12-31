@@ -47,7 +47,7 @@ def userHome(user):
     """
     Find the home folder for the given user.
     """
-    logInfo('helpers:userHome user '{}'.'.format(user))
+    logInfo('helpers:userHome user `{}`.'.format(user))
     return subprocess.check_output('echo ~' + user, shell=True).strip()
 
 
@@ -56,7 +56,7 @@ def setFileOwner(user, path):
     Update file ownership for 1 file or folder.\n
     `Chown` function works ONLY in Linux.
     """
-    logInfo('helpers:setFileOwner user '{}'.'.format(user))
+    logInfo('helpers:setFileOwner user `{}`.'.format(user))
     try:
         from pwd import getpwnam
         uid = getpwnam(user)[2]
