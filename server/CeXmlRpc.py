@@ -408,7 +408,7 @@ class CeXmlRpc(_cptools.XMLRPCController):
         - what the user selected in the Java GUI (release, build, comments, etc)
         - the name of the suite, the test files, etc.
         """
-        logInfo('CeXmlRpc:getEpVariable user '{}'.'.format(user))
+        logInfo('CeXmlRpc:getEpVariable user `{}`.'.format(user))
         data = self.project.getEpInfo(user, epname)
         if not data: return False
         value = data.get(variable, False)
