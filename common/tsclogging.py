@@ -1,7 +1,7 @@
 
 # File: tsclogging.py ; This file is part of Twister.
 
-# version: 3.003
+# version: 3.004
 
 # Copyright (C) 2012 , Luxoft
 
@@ -76,12 +76,14 @@ CRITICAL = 5
 
 
 def getLogLevel():
+    logInfo('tsclogging:getLogLevel')
     #
     lvl = cherry_log.getEffectiveLevel()
     return lvl / 10
     #
 
 def setLogLevel(Level):
+    logInfo('tsclogging:setLogLevel')
     #
     if Level not in (DEBUG, INFO, WARNING, ERROR, CRITICAL):
         cherry_log.error('LOG: Invalid error level `%s`!' % str(Level))
@@ -94,6 +96,7 @@ def setLogLevel(Level):
     #
 
 def logMsg(Level, *args):
+    logInfo('tsclogging:logMsg')
     #
     if Level not in (DEBUG, INFO, WARNING, ERROR, CRITICAL):
         cherry_log.error('LOG: Invalid error level `{}`!'.format(Level))
@@ -116,16 +119,21 @@ def logMsg(Level, *args):
     #
 
 def logDebug(*args):
+    logInfo('tsclogging:logDebug')
     logMsg(DEBUG, *args)
 
 def logInfo(*args):
+    logInfo('tsclogging:logInfo')
     logMsg(INFO, *args)
 
 def logWarning(*args):
+    logInfo('tsclogging:logWarning')
     logMsg(WARNING, *args)
 
 def logError(*args):
+    logInfo('tsclogging:logError')
     logMsg(ERROR, *args)
 
 def logCritical(*args):
+    logInfo('tsclogging:logCritical')
     logMsg(CRITICAL, *args)

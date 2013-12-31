@@ -1,7 +1,7 @@
 
 # File: helpers.py ; This file is part of Twister.
 
-# version: 2.005
+# version: 2.007
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -47,6 +47,7 @@ def userHome(user):
     """
     Find the home folder for the given user.
     """
+    logInfo('helpers:userHome user '{}'.'.format(user))
     return subprocess.check_output('echo ~' + user, shell=True).strip()
 
 
@@ -55,6 +56,7 @@ def setFileOwner(user, path):
     Update file ownership for 1 file or folder.\n
     `Chown` function works ONLY in Linux.
     """
+    logInfo('helpers:setFileOwner user '{}'.'.format(user))
     try:
         from pwd import getpwnam
         uid = getpwnam(user)[2]
@@ -84,6 +86,7 @@ def getFileTags(fname):
     """
     Returns the title, description and all tags from a test file.
     """
+    logInfo('helpers:getFileTags')
     try: text = open(fname,'rb').read()
     except: return ''
 
@@ -101,6 +104,7 @@ def dirList(tests_path, path, newdict):
     Create recursive list of folders and files from Tests path.
     The format of a node is: {"data": "name", "attr": {"rel": "folder"}, "children": []}
     """
+    logInfo('helpers:dirList')
     len_path = len(tests_path) + 1
     if os.path.isdir(path):
         dlist = [] # Folders list
@@ -124,6 +128,7 @@ def calcMemory():
     """
     Calculate used memory percentage.
     """
+    logInfo('helpers:calcMemory')
     memLine = subprocess.check_output(['free', '-o']).split('\n')[1]
     memUsed  = int(memLine.split()[2])
     mebBuff  = int(memLine.split()[-2])
@@ -134,6 +139,7 @@ def calcMemory():
 
 def _getCpuData():
     """ Helper function """
+    logInfo('helpers:_getCpuData')
     statLine = open('/proc/stat', 'r').readline()
     timeList = statLine.split(' ')[2:6]
     for i in range(len(timeList)):
@@ -144,6 +150,7 @@ def calcCpu():
     """
     Calculate used CPU percentage.
     """
+    logInfo('helpers:calcCpu')
     x = _getCpuData()
     time.sleep(0.5)
     y = _getCpuData()
@@ -157,6 +164,7 @@ def systemInfo():
     """
     Returns some system information.
     """
+    logInfo('helpers:systemInfo')
     system = platform.machine() +' '+ platform.system() +', '+ ' '.join(platform.linux_distribution())
     python = '.'.join([str(v) for v in sys.version_info])
     return '{}\nPython {}'.format(system.strip(), python)
@@ -166,6 +174,7 @@ def execScript(script_path):
     """
     Execute a user script and return the text printed on the screen.
     """
+    logInfo('helpers:execScript')
     if not os.path.exists(script_path):
         logWarning('Exec script: The path `{}` does not exist!'.format(script_path))
         return False
@@ -187,6 +196,7 @@ def encrypt(bdata, encr_key):
     """
     Encrypt some data.
     """
+    logInfo('helpers:encrypt')
     # Enhance user password with PBKDF2
     pwd = PBKDF2(password=encr_key, salt='^0Twister-Salt9$', dkLen=32, count=100)
     crypt = AES.new(pwd)
@@ -201,6 +211,7 @@ def decrypt(bdata, encr_key):
     """
     Decrypt some data.
     """
+    logInfo('helpers:decrypt')
     # Enhance user password with PBKDF2
     pwd = PBKDF2(password=encr_key, salt='^0Twister-Salt9$', dkLen=32, count=100)
     crypt = AES.new(pwd)

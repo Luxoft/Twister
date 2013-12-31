@@ -1,7 +1,7 @@
 
 # File: CeResources.py ; This file is part of Twister.
 
-# version: 3.001
+# version: 3.002
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -75,6 +75,7 @@ def _recursive_find_id(parent_node, node_id, path=[]):
     Parent Node is a dict of nodes with structure Name: {Id, Meta, Children}.
     Node ID must be a unique ID.
     '''
+    logInfo('CeResources:_recursive_find_id')
     # The node is valid ?
     if not parent_node:
         return False
@@ -106,6 +107,7 @@ def _find_pointer(parent_node, node_path=[]):
     Returns the pointer to a dictionary, following the path.
     The pointer can be used to add meta tags, or add/ delete children.
     '''
+    logInfo('CeResources:_find_pointer')
     for node in node_path:
         if not node:
             continue
@@ -121,6 +123,7 @@ def _get_res_pointer(parent_node, query):
     '''
     Helper function.
     '''
+    logInfo('CeResources:_get_res_pointer')
     query = str(query)
 
     # If the query is a path
@@ -139,6 +142,7 @@ def _get_res_pointer(parent_node, query):
 
 
 def flattenNodes(parent_node, result):
+    logInfo('CeResources:flattenNodes')
     # The node is valid ?
     if not parent_node:
         return False
@@ -156,6 +160,7 @@ def flattenNodes(parent_node, result):
 
 
 def xml_to_res(xml, gparams):
+    logInfo('CeResources:xml_to_res')
     for folder in xml.xpath('folder'):
         # Create empty resource node
         nd = {'meta': {}, 'id': '', 'children': {}}
@@ -174,6 +179,7 @@ def xml_to_res(xml, gparams):
 
 
 def res_to_xml(parent_node, xml):
+    logInfo('CeResources:res_to_xml')
     # The node is valid ?
     if not parent_node:
         return False
@@ -245,6 +251,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
     @cherrypy.expose
     def default(self, *vpath, **params):
+        logInfo('CeResources:default')
         user_agent = cherrypy.request.headers['User-Agent'].lower()
         if 'xmlrpc' in user_agent or 'xml rpc' in user_agent:
             return super(ResourceAllocator, self).default(*vpath, **params)
@@ -255,6 +262,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
 #
 
     def _load(self, v=False):
+        logInfo('CeResources:_load')
 
         with self.acc_lock:
 
@@ -291,6 +299,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
         The save is separate for Devices and SUTs, so the version is not incremented
         for both, before saving.
         '''
+        logInfo('CeResources:_save')
 
         # Write changes, using the Access Lock.
         with self.acc_lock:
@@ -319,6 +328,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
         '''
         Simple echo function, for testing connection.
         '''
+        logInfo('CeResources:echo')
         logDebug('Echo: {}'.format(msg))
         return 'RA reply: {}'.format(msg)
 
@@ -328,6 +338,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
         '''
         Return the structure, list based.
         '''
+        logInfo('CeResources:tree')
         try: root_id = int(root_id)
         except: root_id=ROOT_DEVICE
 
@@ -350,6 +361,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
         Import one XML file.
         WARNING! This erases everything!
         '''
+        logInfo('CeResources:import_xml')
         if not os.path.isfile(xml_file):
             logError('Import XML: XML file `{}` does not exist!'.format(xml_file))
             return False
@@ -381,6 +393,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
         '''
         Export as XML file.
         '''
+        logInfo('CeResources:export_xml')
         try:
             f = open(xml_file, 'w')
         except:
@@ -403,6 +416,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
 
     def userRoles(self, props={}):
+        logInfo('CeResources:userRoles')
         # Check the username from CherryPy connection
         try: user = cherrypy.session.get('username')
         except: user = ''
@@ -425,6 +439,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
         Must provide a Resource ID, or a Query.
         The function is used for both Devices and SUTs, by providing the ROOT ID.
         '''
+        logInfo('CeResources:getResource')
         self._load(v=False)
 
         # If the root is not provided, use the default root
@@ -537,6 +552,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
         Show all the properties, or just 1 property of a SUT.
         Must provide a SUT ID, or a SUT Path.
         '''
+        logInfo('CeResources:getSut')
         return self.getResource(query, ROOT_SUT)
 
 #
@@ -547,6 +563,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
         Create or change a resource, using a name, a parent Path or ID and some properties.
         The function is used for both Devices and SUTs, by providing the ROOT ID.
         '''
+        logInfo('CeResources:setResource')
         self._load(v=False)
         user_roles = self.userRoles(props)
 
@@ -656,6 +673,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
         '''
         Create or change a SUT, using a name, a parent Path or ID and some properties.
         '''
+        logInfo('CeResources:setSut')
         return self.setResource(name, parent, props, ROOT_SUT)
 
 
@@ -664,6 +682,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
         '''
         Rename a resource.
         '''
+        logInfo('CeResources:renameResource')
         self._load(v=False)
         user_roles = self.userRoles(props)
 
@@ -776,6 +795,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
         '''
         Rename a SUT.
         '''
+        logInfo('CeResources:renameSut')
         return self.renameResource(res_query, new_name, ROOT_SUT, props)
 
 
@@ -784,6 +804,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
         '''
         Permanently delete a resource.
         '''
+        logInfo('CeResources:deleteResource')
         self._load(v=False)
         user_roles = self.userRoles(props)
 
@@ -868,6 +889,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
         '''
         Permanently delete a SUT.
         '''
+        logInfo('CeResources:deleteSut')
         return self.deleteResource(res_query, ROOT_SUT, props)
 
 
@@ -879,6 +901,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
         '''
         Returns the status of a given resource.
         '''
+        logInfo('CeResources:getResourceStatus')
         self._load(v=False)
         # If no resources...
         if not self.resources['children']:
@@ -898,6 +921,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
     @cherrypy.expose
     def allocResource(self, res_query):
+        logInfo('CeResources:allocResource')
 
         self._load(v=False)
         res_p = _get_res_pointer(self.resources, res_query)
@@ -919,6 +943,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
     @cherrypy.expose
     def reserveResource(self, res_query):
+        logInfo('CeResources:reserveResource')
 
         self._load(v=False)
         res_p = _get_res_pointer(self.resources, res_query)
@@ -940,6 +965,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
     @cherrypy.expose
     def freeResource(self, res_query):
+        logInfo('CeResources:freeResource')
 
         self._load(v=False)
         res_p = _get_res_pointer(self.resources, res_query)

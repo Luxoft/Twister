@@ -1,7 +1,7 @@
 
 # File: LogService.py ; This file is part of Twister.
 
-# version: 3.001
+# version: 3.002
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -39,6 +39,7 @@ import logging
 
 import rpyc
 from rpyc.utils.server import ThreadedServer
+from common.tsclogging import *
 
 
 log = logging.getLogger(__name__)
@@ -69,21 +70,25 @@ class LogService(rpyc.Service):
 
 
     def on_connect(self):
+        logInfo('LogService:on_connect')
         client_addr = self._conn._config['endpoints'][1]
         log.debug('Connected from `{}`.'.format(client_addr))
 
 
     def on_disconnect(self):
+        logInfo('LogService:on_disconnect')
         client_addr = self._conn._config['endpoints'][1]
         log.debug('Disconnected from `{}`.'.format(client_addr))
 
 
     def exposed_hello(self):
+        logInfo('LogService:exposed_hello')
         return True
 
 
     def exposed_write_log(self, data):
         """ Write a Log Message """
+        logInfo('LogService:exposed_write_log')
         global log
         logFile, logMsg = data.split(':')[0], ':'.join( data.split(':')[1:] )
         logPath = os.path.split(logFile)[0]
@@ -111,6 +116,7 @@ class LogService(rpyc.Service):
 
     def exposed_reset_log(self, data):
         """ Reset 1 Log """
+        logInfo('LogService:exposed_reset_log')
         global log
 
         try:
@@ -143,6 +149,7 @@ class LogService(rpyc.Service):
 
     def exposed_reset_logs(self, data):
         """ Reset all Logs """
+        logInfo('LogService:exposed_reset_logs')
         global log
 
         try:
@@ -202,6 +209,7 @@ class LogService(rpyc.Service):
 
     def exposed_exit(self):
         """ Must Exit """
+        logInfo('LogService:exposed_exit')
         global t, log
         log.warning('Log Server: *sigh* received EXIT signal...')
         t.close()

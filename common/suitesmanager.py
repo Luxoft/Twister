@@ -1,7 +1,7 @@
 
 # File: suitesmanager.py ; This file is part of Twister.
 
-# version: 2.003
+# version: 2.004
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -44,6 +44,7 @@ class SuitesManager(OrderedDict):
     """
 
     def _recursive_find_suites(self, nodes, result=[]):
+        logInfo('suitesmanager:_recursive_find_suites')
         # Nodes are Ordered Dicts
         for id, node in nodes.iteritems():
             if node.get('type', 'file') != 'suite':
@@ -58,12 +59,14 @@ class SuitesManager(OrderedDict):
         """
         Returns a list of suite IDs.
         """
+        logInfo('suitesmanager:getSuites')
         # Must pass a null result as default parameter!
         result = self._recursive_find_suites(self, [])
         return result
 
 
     def _recursive_find_files(self, nodes, result=[]):
+        logInfo('suitesmanager:_recursive_find_files')
         # Nodes are Ordered Dicts
         for id, node in nodes.iteritems():
             # This is a file
@@ -79,6 +82,7 @@ class SuitesManager(OrderedDict):
         """
         Returns a list of file IDs. Can filter for one suite.
         """
+        logInfo('suitesmanager:getFiles')
         if suite_id:
             suite = self.findId(suite_id, self)
             if not suite: return []
@@ -110,6 +114,7 @@ class SuitesManager(OrderedDict):
         Depth iterate through suites and files.
         This is used by the Execution Runner.
         """
+        logInfo('suitesmanager:iterNodes')
         if not nodes:
             nodes = self
         for id, node in nodes.iteritems():
@@ -123,6 +128,7 @@ class SuitesManager(OrderedDict):
         """
         Find a node, using the ID.
         """
+        logInfo('suitesmanager:findId')
         if not nodes:
             nodes = self
         if _found:

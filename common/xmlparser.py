@@ -1,7 +1,7 @@
 
 # File: xmlparser.py ; This file is part of Twister.
 
-# version: 3.005
+# version: 3.006
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -98,6 +98,7 @@ class TSCParser:
         only if the XML file is changed.
         The file number and suite number have to be unique.
         """
+        logInfo('xmlparser:updateConfigTS')
         self.file_no = 1000
         self.suite_no = 100
         self.files_config = ''
@@ -147,6 +148,7 @@ class TSCParser:
         """
         Returns the values of many global tags, from FWM and Test-Suites XML.
         """
+        logInfo('xmlparser:updateProjectGlobals')
         if self.configTS is None:
             logError('Parser: Cannot get project globals, because Test-Suites XML is invalid!')
             return False
@@ -191,6 +193,7 @@ class TSCParser:
         """
         Returns a list with all EPs that appear in Test-Suites XML.
         """
+        logInfo('xmlparser:getActiveEps')
         if self.configTS is None:
             logError('Parser ERROR: Cannot get active EPs, because Test-Suites XML is invalid!')
             return []
@@ -211,6 +214,7 @@ class TSCParser:
         """
         High level function for listing all settings from a Twister XML config file.
         """
+        logInfo('xmlparser:listSettings')
         if not os.path.isfile(xmlFile):
             logError('Parse settings error! File path `{}` does not exist!'.format(xmlFile))
             return False
@@ -225,6 +229,7 @@ class TSCParser:
         """
         High level function for getting a value from a Twister XML config file.
         """
+        logInfo('xmlparser:getSettingsValue')
         if not os.path.isfile(xmlFile):
             logError('Parse settings error! File path `{}` does not exist!'.format(xmlFile))
             return False
@@ -245,6 +250,7 @@ class TSCParser:
         """
         High level function for setting a value in a Twister XML config file.
         """
+        logInfo('xmlparser:setSettingsValue')
         if not os.path.isfile(xmlFile):
             logError('Parse settings error! File path `{}` does not exist!'.format(xmlFile))
             return False
@@ -293,6 +299,7 @@ class TSCParser:
         index-th value is deleted; unless the `index` is -1, in this case, all
         values are deleted.
         """
+        logInfo('xmlparser:delSettingsKey')
         if not os.path.isfile(xmlFile):
             logError('Parse settings error! File path `{}` does not exist!'.format(xmlFile))
             return False
@@ -335,6 +342,7 @@ class TSCParser:
         """
         This function writes in TestSuites.XML file.
         """
+        logInfo('xmlparser:setPersistentSuite')
         if not os.path.isfile(xmlFile):
             logError('Parse settings error! File path `{}` does not exist!'.format(xmlFile))
             return False
@@ -396,6 +404,7 @@ class TSCParser:
         """
         This function writes in TestSuites.XML file.
         """
+        logInfo('xmlparser:setPersistentFile')
         if not os.path.isfile(xmlFile):
             logError('Parse settings error! File path `{}` does not exist!'.format(xmlFile))
             return False
@@ -462,6 +471,7 @@ class TSCParser:
         """
         Helper function to fix log names.
         """
+        logInfo('xmlparser:_fixLogType')
         if logType.lower() == 'logrunning':
             logType = 'logRunning'
         elif logType.lower() == 'logdebug':
@@ -479,6 +489,7 @@ class TSCParser:
         """
         All types of logs exposed from Python to the test cases.
         """
+        logInfo('xmlparser:getLogTypes')
         return [ self._fixLogType(log.tag) for log in self.xmlDict.xpath('LogFiles/*')]
 
 
@@ -487,6 +498,7 @@ class TSCParser:
         Returns the path for one type of log.
         CE will use this path to write the log received from EP.
         """
+        logInfo('xmlparser:getLogFileForType')
         logs_path = self.project_globals['logs_path']
 
         if not logs_path:
@@ -507,6 +519,7 @@ class TSCParser:
         Returns the e-mail configuration.
         After Central Engine stops, an e-mail must be sent to the people interested.
         """
+        logInfo('xmlparser:getEmailConfig')
         if not eml_file:
             eml_file = self.project_globals['eml_config']
 
@@ -554,6 +567,7 @@ class TSCParser:
         """
         Parse the bindings file that connects Roots from a config file, with SUTs.
         """
+        logInfo('xmlparser:getBindingsConfig')
         cfg_file = '{}/twister/config/bindings.xml'.format(userHome(self.user))
         bindings = {}
 
@@ -579,6 +593,7 @@ class TSCParser:
         """
         Create recursive list of folders and files from Tests path.
         """
+        logInfo('xmlparser:_suites_info')
         if (not len(xml_object)) or (not epName):
             return {}
 
@@ -606,6 +621,7 @@ class TSCParser:
         """
         Shortcut function.
         """
+        logInfo('xmlparser:getAllSuitesInfo')
         return self._suites_info(self.configTS, SuitesManager(), epName)
 
 
@@ -614,6 +630,7 @@ class TSCParser:
         Returns a dict with information about 1 Suite from Test-Suites XML.
         The "suite" must be a XML Soup class.
         """
+        logInfo('xmlparser:getSuiteInfo')
         # A suite can be a part of only 1 EP !
         res = OrderedDict()
 
@@ -653,6 +670,7 @@ class TSCParser:
         Returns a dict with information about 1 File from Test-Suites XML.
         The "file" must be a XML class.
         """
+        logInfo('xmlparser:getFileInfo')
         res = OrderedDict()
         res['type'] = 'file'
         self.file_no += 1
@@ -699,6 +717,7 @@ class TSCParser:
         Returns a dictionary containing All global parameters,
         that will be available for all tests.
         """
+        logInfo('xmlparser:getGlobalParams')
         # First check, the parameter
         if not globs_file:
             globs_file = self.project_globals['glob_params']
@@ -742,6 +761,7 @@ class DBParser():
 
 
     def updateConfig(self):
+        logInfo('xmlparser:updateConfig')
 
         config_data = self.config_data
 
@@ -769,6 +789,7 @@ class DBParser():
 
     def getInsertQueries(self):
         """ Used by Central Engine. """
+        logInfo('xmlparser:getInsertQueries')
         return [q.text for q in self.xmlDict.xpath('insert_section/sql_statement')]
 
 
@@ -777,6 +798,7 @@ class DBParser():
         Used by Central Engine.
         Returns a dictionary with field ID : field info.
         """
+        logInfo('xmlparser:getInsertFields')
         fields = self.xmlDict.xpath('insert_section/field')
 
         if not fields:
@@ -797,6 +819,7 @@ class DBParser():
 
     def getQuery(self, field_id):
         """ Used by Central Engine. """
+        logInfo('xmlparser:getQuery')
         res =  self.xmlDict.xpath('insert_section/field[@ID="%s"]' % field_id)
         if not res:
             logWarning('Db Parser: Cannot find field ID `{}`!'.format(field_id))
@@ -811,6 +834,7 @@ class DBParser():
 
     def getReportFields(self):
         """ Used by HTTP Server. """
+        logInfo('xmlparser:getReportFields')
         self.updateConfig()
 
         fields = self.xmlDict.xpath('reports_section/field')
@@ -833,6 +857,7 @@ class DBParser():
 
 
     def getReports(self):
+        logInfo('xmlparser:getReports')
         """ Used by HTTP Server. """
         self.updateConfig()
 
@@ -860,6 +885,7 @@ class DBParser():
 
     def getRedirects(self):
         """ Used by HTTP Server. """
+        logInfo('xmlparser:getRedirects')
         self.updateConfig()
 
         redirects = self.xmlDict.xpath('reports_section/redirect')
@@ -911,6 +937,7 @@ class PluginParser:
 
     def updateConfig(self):
         """ Reload all Plugins Xml info """
+        logInfo('xmlparser:updateConfig')
 
         config_data = open(self.config_data).read()
         newConfigHash = hashlib.md5(config_data).hexdigest()
@@ -944,6 +971,7 @@ class PluginParser:
 
     def getPlugins(self):
         """ Return all plugins info """
+        logInfo('xmlparser:getPlugins')
 
         self.updateConfig()
         Base = BasePlugin.BasePlugin
