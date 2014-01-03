@@ -39,7 +39,7 @@ import subprocess
 from Crypto.Cipher import AES
 from Crypto.Protocol.KDF import PBKDF2
 
-from tsclogging import logDebug, logWarning
+from tsclogging import logDebug, logInfo, logWarning
 
 #
 
