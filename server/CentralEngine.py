@@ -1,6 +1,6 @@
 #!/usr/bin/env python2.7
 
-# version: 3.001
+# version: 3.002
 
 # File: CentralEngine.py ; This file is part of Twister.
 
@@ -80,15 +80,13 @@ if __name__ == "__main__":
 
     # Read verbosity from configuration
     cfg_path = '{}/config/server_init.ini'.format(TWISTER_PATH)
-    if not os.path.isfile(cfg_path):
-        verbosity = 1
-    else:
+    verbosity = 10
+    if os.path.isfile(cfg_path):
         cfg = iniparser.ConfigObj(cfg_path)
-        verbosity = cfg.get('verbosity', 1)
+        verbosity = cfg.get('verbosity', 10)
         try: verbosity = int(verbosity)
         except:
-            logError('Twister Server: Invalid verbosity value `{}`! Will default to `1`.'.format(verbosity))
-            verbosity = 1
+            logError('Twister Server: Invalid verbosity value `{}`! Will default to `10`.'.format(verbosity))
         del cfg
 
     setLogLevel(int(verbosity))

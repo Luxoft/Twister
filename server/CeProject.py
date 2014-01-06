@@ -137,7 +137,6 @@ def cache_users():
     """
     Find all system users that have Twister installer.
     """
-    logInfo('CeProject:cache_users')
     global TWISTER_PATH
     ti = time.time()
     logDebug('Starting to cache users...')
@@ -268,7 +267,7 @@ class Project(object):
         to check the username and password.
         A user CANNOT use Twister if he doesn't authenticate.
         """
-        logInfo('CeProject:check_passwd user `{}`.'.format(user))
+        logFull('CeProject:check_passwd user `{}`.'.format(user))
         global usrs_and_pwds, usr_pwds_lock
         user_passwd = binascii.hexlify(user+':'+passwd)
 
@@ -310,7 +309,7 @@ class Project(object):
         to check the username and password.
         A user CANNOT use Twister if he doesn't authenticate.
         """
-        logInfo('CeProject:rpyc_check_passwd user `{}`.'.format(user))
+        logFull('CeProject:rpyc_check_passwd user `{}`.'.format(user))
         global usrs_and_pwds, usr_pwds_lock
         rpyc_user = 'rpyc_' + user
 
@@ -346,7 +345,7 @@ class Project(object):
         """
         Add all suites and test files for this EP.
         """
-        logInfo('CeProject:_registerEp user `{}`.'.format(user))
+        logFull('CeProject:_registerEp user `{}`.'.format(user))
         if (not user) or (not epname):
             return False
 
@@ -387,7 +386,7 @@ class Project(object):
         """
         Remove all suites and test files for this EP.
         """
-        logInfo('CeProject:_unregisterEp user `{}`.'.format(user))
+        logFull('CeProject:_unregisterEp user `{}`.'.format(user))
         if (not user) or (not epname):
             return False
 
@@ -414,7 +413,6 @@ class Project(object):
 
     def _common_proj_reset(self, user, base_config, files_config):
 
-    	logInfo('CeProject:_common_proj_reset user `{}`.'.format(user))
         logDebug('Common Project Reset for `{}` with params:\n\t`{}` & `{}`.'.format(user, base_config, files_config))
 
         # Create EP list
@@ -486,7 +484,7 @@ class Project(object):
         Create or overwrite one user.\n
         This creates a master XML parser and a list with all user variables.
         """
-        logInfo('CeProject:createUser user `{}`.'.format(user))
+        logFull('CeProject:createUser user `{}`.'.format(user))
         if not user:
             return False
 
@@ -539,7 +537,7 @@ class Project(object):
         """
         Reset user parser, all EPs to STOP, all files to PENDING.
         """
-        logInfo('CeProject:resetProject user `{}`.'.format(user))
+        logFull('CeProject:resetProject user `{}`.'.format(user))
         if not user or user not in self.users:
             logError('*ERROR* Cannot reset! Invalid user `{}`!'.format(user))
             return False
@@ -586,7 +584,7 @@ class Project(object):
         """
         Rename 1 user.
         """
-        logInfo('CeProject:renameUser')
+        logFull('CeProject:renameUser')
         with self.usr_lock:
 
             self.users[new_name] = self.users[name]
@@ -609,7 +607,7 @@ class Project(object):
         """
         Delete 1 user.
         """
-        logInfo('CeProject:deleteUser user `{}`.'.format(user))
+        logFull('CeProject:deleteUser user `{}`.'.format(user))
         with self.usr_lock:
 
             del self.users[user]
@@ -627,7 +625,7 @@ class Project(object):
         """
         Return the cached list of users.
         """
-        logInfo('CeProject:listUsers')
+        logFull('CeProject:listUsers')
         users = []
         with open(TWISTER_PATH + '/config/cached_users.json', 'r') as f:
             try:
@@ -646,7 +644,6 @@ class Project(object):
         The function is used EVERYWHERE !\n
         It uses a lock, in order to create the user structure only once.
         """
-        logInfo('CeProject:authenticate user `{}`.'.format(user))
         if not user:
             return False
 
@@ -688,7 +685,6 @@ class Project(object):
         Internal function. Save all data structure on HDD.\n
         This function must use a lock!
         """
-        logInfo('CeProject:_dump')
         with self.int_lock:
 
             with open(TWISTER_PATH + '/config/project_users.json', 'w') as f:
@@ -703,7 +699,7 @@ class Project(object):
         """
         Parse users and groups and return the values.
         """
-        logInfo('CeProject:_parseUsersAndGroups')
+        logFull('CeProject:_parseUsersAndGroups')
         cfg_path = '{}/config/users_and_groups.ini'.format(TWISTER_PATH)
 
         if not os.path.isfile(cfg_path):
@@ -794,7 +790,7 @@ class Project(object):
         - set user, delete user.
         - set group, delete group.
         """
-        logInfo('CeProject:usersAndGroupsManager user `{}`.'.format(user))
+        logFull('CeProject:usersAndGroupsManager user `{}`.'.format(user))
         cfg_path = '{}/config/users_and_groups.ini'.format(TWISTER_PATH)
         def create_cfg():
             return iniparser.ConfigObj(cfg_path, indent_type='\t',
@@ -988,7 +984,7 @@ class Project(object):
         Encrypt a piece of text, using AES.\n
         It can use the user key, or the shared key.
         """
-        logInfo('CeProject:encryptText user `{}`.'.format(user))
+        logFull('CeProject:encryptText user `{}`.'.format(user))
         # Check the username data
         user_roles = self.authenticate(user)
         key = user_roles.get('key')
@@ -1001,7 +997,7 @@ class Project(object):
         Decrypt a piece of text, using AES.\n
         It can use the user key, or the shared key.
         """
-        logInfo('CeProject:decryptText user `{}`.'.format(user))
+        logFull('CeProject:decryptText user `{}`.'.format(user))
         # Check the username data
         user_roles = self.authenticate(user)
         key = user_roles.get('key')
@@ -1016,7 +1012,7 @@ class Project(object):
         """
         Helper function.
         """
-        logInfo('CeProject:_getConfigPath user `{}`.'.format(user))
+        logFull('CeProject:_getConfigPath user `{}`.'.format(user))
         config = _config.lower()
 
         if config in ['', 'fwmconfig', 'baseconfig']:
@@ -1043,7 +1039,7 @@ class Project(object):
         """
         List all available settings, for 1 config of a user.
         """
-        logInfo('CeProject:listSettings user `{}`.'.format(user))
+        logFull('CeProject:listSettings user `{}`.'.format(user))
         r = self.authenticate(user)
         if not r: return False
         cfg_path = self._getConfigPath(user, config)
@@ -1054,7 +1050,7 @@ class Project(object):
         """
         Fetch a value from 1 config of a user.
         """
-        logInfo('CeProject:getSettingsValue user `{}`.'.format(user))
+        logFull('CeProject:getSettingsValue user `{}`.'.format(user))
         r = self.authenticate(user)
         if not r: return False
         cfg_path = self._getConfigPath(user, config)
@@ -1065,7 +1061,7 @@ class Project(object):
         """
         Set a value for a key in the config of a user.
         """
-        logInfo('CeProject:setSettingsValue user `{}`.'.format(user))
+        logFull('CeProject:setSettingsValue user `{}`.'.format(user))
         r = self.authenticate(user)
         if not r: return False
         cfg_path = self._getConfigPath(user, config)
@@ -1083,7 +1079,7 @@ class Project(object):
         """
         Del a key from the config of a user.
         """
-        logInfo('CeProject:delSettingsKey user `{}`.'.format(user))
+        logFull('CeProject:delSettingsKey user `{}`.'.format(user))
         r = self.authenticate(user)
         if not r: return False
         cfg_path = self._getConfigPath(user, config)
@@ -1105,7 +1101,7 @@ class Project(object):
         Returns data for the current user, including all EP info.
         If the key is not specified, it can be a huge dictionary.
         """
-        logInfo('CeProject:getUserInfo user `{}`.'.format(user))
+        logFull('CeProject:getUserInfo user `{}`.'.format(user))
         r = self.authenticate(user)
         if not r:
             if key:
@@ -1125,7 +1121,7 @@ class Project(object):
         """
         Create or overwrite a variable with a value, for the current user.
         """
-        logInfo('CeProject:setUserInfo user `{}`.'.format(user))
+        logFull('CeProject:setUserInfo user `{}`.'.format(user))
         r = self.authenticate(user)
         if not r: return False
 
@@ -1142,7 +1138,7 @@ class Project(object):
         """
         Retrieve all info available, about one EP.
         """
-        logInfo('CeProject:getEpInfo user `{}`.'.format(user))
+        logFull('CeProject:getEpInfo user `{}`.'.format(user))
         r = self.authenticate(user)
         if not r: return {}
 
@@ -1154,7 +1150,7 @@ class Project(object):
         Return a list with all file IDs associated with one EP.
         The files are found recursive.
         """
-        logInfo('CeProject:getEpFiles user `{}`.'.format(user))
+        logFull('CeProject:getEpFiles user `{}`.'.format(user))
         r = self.authenticate(user)
         if not r: return []
 
@@ -1170,7 +1166,7 @@ class Project(object):
         """
         Create or overwrite a variable with a value, for one EP.
         """
-        logInfo('CeProject:setEpInfo user `{}`.'.format(user))
+        logFull('CeProject:setEpInfo user `{}`.'.format(user))
         r = self.authenticate(user)
         if not r: return False
 
@@ -1191,7 +1187,7 @@ class Project(object):
         Retrieve all info available, about one suite.
         The files are NOT recursive.
         """
-        logInfo('CeProject:getSuiteInfo user `{}`.'.format(user))
+        logFull('CeProject:getSuiteInfo user `{}`.'.format(user))
         r = self.authenticate(user)
         if not r: return {}
         eps = self.users[user]['eps']
@@ -1214,7 +1210,7 @@ class Project(object):
         """
         Return a list with all file IDs associated with one Suite.
         """
-        logInfo('CeProject:getSuiteFiles user `{}`.'.format(user))
+        logFull('CeProject:getSuiteFiles user `{}`.'.format(user))
         r = self.authenticate(user)
         if not r: return []
         eps = self.users[user]['eps']
@@ -1233,7 +1229,7 @@ class Project(object):
         """
         Create or overwrite a variable with a value, for one Suite.
         """
-        logInfo('CeProject:setSuiteInfo user `{}`.'.format(user))
+        logFull('CeProject:setSuiteInfo user `{}`.'.format(user))
         r = self.authenticate(user)
         if not r: return False
         eps = self.users[user]['eps']
@@ -1265,7 +1261,7 @@ class Project(object):
         Retrieve all info available, about one Test File.\n
         The file ID must be unique!
         """
-        logInfo('CeProject:getFileInfo user `{}`.'.format(user))
+        logFull('CeProject:getFileInfo user `{}`.'.format(user))
         r = self.authenticate(user)
         if not r: return {}
         eps = self.users[user]['eps']
@@ -1285,7 +1281,7 @@ class Project(object):
         """
         Create or overwrite a variable with a value, for one Test File.
         """
-        logInfo('CeProject:setFileInfo user `{}`.'.format(user))
+        logFull('CeProject:setFileInfo user `{}`.'.format(user))
         r = self.authenticate(user)
         if not r: return False
         eps = self.users[user]['eps']

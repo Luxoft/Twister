@@ -1,7 +1,7 @@
 
 # File: CeWebUi.py ; This file is part of Twister.
 
-# version: 2.008
+# version: 3.002
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -58,7 +58,6 @@ if mako.__version__ < '0.7':
 #
 
 def prepareLog(log_file, pos=0):
-    logInfo('CeWebUi:prepareLog')
     if not os.path.isfile(log_file):
         return 'File `{}` does not exist!'.format(log_file)
     f = open(log_file, 'rb')
@@ -106,7 +105,6 @@ class WebInterface(object):
 
 
     def user_agent(self):
-        logInfo('CeWebUi:user_agent')
         """
         User agent returns Browser or XML RPC client.
         This function is not exposed.
@@ -122,7 +120,7 @@ class WebInterface(object):
 
     @cherrypy.expose
     def index(self):
-        logInfo('CeWebUi:index')
+        logFull('CeWebUi:index')
         if self.user_agent() == 'x':
             return 0
 
@@ -141,7 +139,7 @@ class WebInterface(object):
 
     @cherrypy.expose
     def users(self, user=''):
-        logInfo('CeWebUi:users')
+        logFull('CeWebUi:users')
         if self.user_agent() == 'x':
             return 0
         if not user:
@@ -166,7 +164,7 @@ class WebInterface(object):
 
     @cherrypy.expose
     def json_stats(self):
-        logInfo('CeWebUi:json_stats')
+        logFull('CeWebUi:json_stats')
         if self.user_agent() == 'x':
             return 0
 
@@ -180,7 +178,7 @@ class WebInterface(object):
 
     @cherrypy.expose
     def json_get_project(self):
-        logInfo('CeWebUi:json_get_project')
+        logFull('CeWebUi:json_get_project')
         if self.user_agent() == 'x':
             return 0
 
@@ -193,7 +191,7 @@ class WebInterface(object):
 
     @cherrypy.expose
     def json_save_project(self, user, epname):
-        logInfo('CeWebUi:json_save_project user `{}`.'.format(user))
+        logFull('CeWebUi:json_save_project user `{}`.'.format(user))
         if self.user_agent() == 'x':
             return 0
 
@@ -220,7 +218,7 @@ class WebInterface(object):
 
     @cherrypy.expose
     def json_eps(self, user, epname):
-        logInfo('CeWebUi:json_eps user `{}`.'.format(user))
+        logFull('CeWebUi:json_eps user `{}`.'.format(user))
         if self.user_agent() == 'x':
             return 0
 
@@ -259,7 +257,7 @@ class WebInterface(object):
 
     @cherrypy.expose
     def json_folders(self, user):
-        logInfo('CeWebUi:json_folders user `{}`.'.format(user))
+        logFull('CeWebUi:json_folders user `{}`.'.format(user))
         if self.user_agent() == 'x':
             return 0
 
@@ -273,7 +271,7 @@ class WebInterface(object):
 
     @cherrypy.expose
     def json_logs(self, user='', log=''):
-        logInfo('CeWebUi:json_logs')
+        logFull('CeWebUi:json_logs')
         if self.user_agent() == 'x':
             return 0
 
@@ -298,7 +296,7 @@ class WebInterface(object):
 
     @cherrypy.expose
     def resetUser(self, user):
-        logInfo('CeWebUi:resetUser user `{}`.'.format(user))
+        logFull('CeWebUi:resetUser user `{}`.'.format(user))
         self.project.resetProject(user)
         self.project.resetLogs(user)
         raise cherrypy.HTTPRedirect('http://{host}/web/users/{user}'.format(
@@ -308,7 +306,7 @@ class WebInterface(object):
 
     @cherrypy.expose
     def setUserStatus(self, user, status):
-        logInfo('CeWebUi:setUserStatus user `{}`.'.format(user))
+        logFull('CeWebUi:setUserStatus user `{}`.'.format(user))
         output = Template(filename=TWISTER_PATH + '/server/template/rest_error.htm')
         try: status = int(status)
         except: return output.render(title='Error!', body='<b>Status value `{0}` is invalid!</b>'.format(status))
@@ -323,7 +321,7 @@ class WebInterface(object):
 
     @cherrypy.expose
     def setEpStatus(self, user, epname, status):
-        logInfo('CeWebUi:setEpStatus user `{}`.'.format(user))
+        logFull('CeWebUi:setEpStatus user `{}`.'.format(user))
         output = Template(filename=TWISTER_PATH + '/server/template/rest_error.htm')
         try: status = int(status)
         except: return output.render(title='Error!', body='<b>Status value `{0}` is invalid!</b>'.format(status))
