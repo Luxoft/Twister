@@ -95,7 +95,7 @@ class ServiceManager(object):
 
 
     def sendCommand(self, command, name='', *args, **kwargs):
-        logInfo('CeServices:sendCommand')
+        logFull('CeServices:sendCommand')
 
         if command==SM_LIST or command==sm_command_map[SM_LIST]:
             return self.listServices()
@@ -139,7 +139,7 @@ class ServiceManager(object):
 
 
     def listServices(self):
-        logInfo('CeServices:listServices')
+        logFull('CeServices:listServices')
         srv = []
         for service in self.twister_services:
             srv.append(service['name'])
@@ -147,7 +147,7 @@ class ServiceManager(object):
 
 
     def serviceStatus(self, service):
-        logInfo('CeServices:serviceStatus')
+        logFull('CeServices:serviceStatus')
         # Values are: -1, 0, or any error code
         # -1 means the app is still running
 
@@ -165,7 +165,7 @@ class ServiceManager(object):
 
 
     def serviceStart(self, service):
-        logInfo('CeServices:serviceStart')
+        logFull('CeServices:serviceStart')
 
         tprocess = service.get('pid', 0)
 
@@ -228,7 +228,7 @@ class ServiceManager(object):
 
 
     def serviceStop(self, service):
-        logInfo('CeServices:serviceStop')
+        logFull('CeServices:serviceStop')
 
         rc = self.serviceStatus(service)
         if not rc:
@@ -259,13 +259,13 @@ class ServiceManager(object):
 
 
     def serviceKill(self, service):
-        logInfo('CeServices:serviceKill')
+        logFull('CeServices:serviceKill')
 
         return self.serviceStop(service)
 
 
     def readConfig(self, service):
-        logInfo('CeServices:readConfig')
+        logFull('CeServices:readConfig')
 
         config_path = '{0}/services/{1}/{2}'.format(TWISTER_PATH, service['name'], service['config'])
 
@@ -280,7 +280,7 @@ class ServiceManager(object):
 
 
     def saveConfig(self, service, data):
-        logInfo('CeServices:saveConfig')
+        logFull('CeServices:saveConfig')
 
         config_path = '{0}/services/{1}/{2}'.format(TWISTER_PATH, service['name'], service['config'])
 
@@ -298,7 +298,7 @@ class ServiceManager(object):
         """
         Called in the Java GUI to show the logs.
         """
-        logInfo('CeServices:getConsoleLog')
+        logFull('CeServices:getConsoleLog')
         if fstart is None:
             return '*ERROR for {0}!* Parameter FSTART is NULL!'.format(service['name'])
 

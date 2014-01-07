@@ -84,7 +84,7 @@ class ReportingServer(object):
         '''
         Read DB Config File for 1 user.
         '''
-        logInfo('CeReports:load_config')
+        logFull('CeReports:load_config')
         if not os.path.isdir(userHome(usr) + '/twister/config'):
             logError('Report Server: Cannot find Twister for user `{}` !'.format(usr))
             return False
@@ -119,7 +119,7 @@ class ReportingServer(object):
         '''
         Reconnect to the database.
         '''
-        logInfo('CeReports:connect_db')
+        logFull('CeReports:connect_db')
         db_config = self.db_parser[usr].db_config
 
         # Decode database password
@@ -137,7 +137,7 @@ class ReportingServer(object):
     # Report link 1
     @cherrypy.expose
     def index(self, usr=''):
-        logInfo('CeReports:index')
+        logFull('CeReports:index')
 
         if not usr:
             users = self.project.listUsers()
@@ -155,26 +155,26 @@ class ReportingServer(object):
     # Report link 2
     @cherrypy.expose
     def home(self, usr=''):
-        logInfo('CeReports:home')
+        logFull('CeReports:home')
         return self.index(usr=usr)
 
     # Report link 3
     @cherrypy.expose
     def report(self, usr=''):
-        logInfo('CeReports:report')
+        logFull('CeReports:report')
         return self.index(usr=usr)
 
     # Report link 4
     @cherrypy.expose
     def reporting(self, usr=''):
-        logInfo('CeReports:reporting')
+        logFull('CeReports:reporting')
         return self.index(usr=usr)
 
 
     # Help link
     @cherrypy.expose
     def help(self, usr=''):
-        logInfo('CeReports:help')
+        logFull('CeReports:help')
         if not usr: return '<br><b>Error! This link should be accessed by passing a username, eg: /help/some_user<b/>'
 
         if not os.path.isdir(userHome(usr) + '/twister/config'):
@@ -188,7 +188,7 @@ class ReportingServer(object):
     # Reporting link
     @cherrypy.expose
     def rep(self, report=None, usr=None, **args):
-        logInfo('CeReports:rep')
+        logFull('CeReports:rep')
 
         if not usr: return '<br><b>Error! This link should be accessed by passing a username, eg: /rep/some_user<b/>'
 
@@ -378,7 +378,7 @@ class ReportingServer(object):
     # JSON link
     @cherrypy.expose
     def json(self, report, usr, **args):
-        logInfo('CeReports:json')
+        logFull('CeReports:json')
 
         if not usr:
             output = {'aaData':[], 'error':'Error! This link should be accessed by passing a username, eg: /json/some_report/some_user'}
@@ -554,14 +554,14 @@ class ReportingServer(object):
     # Error page
     @cherrypy.expose
     def error(self, **args):
-        logInfo('CeReports:error')
+        logFull('CeReports:error')
         output = Template(filename=TWISTER_PATH + '/server/template/rep_error.htm')
         return output.render(title='Error 404', links=[], msg='Sorry, this page does not exist!')
 
     # Error page
     @cherrypy.expose
     def default(self, **args):
-        logInfo('CeReports:default')
+        logFull('CeReports:default')
         output = Template(filename=TWISTER_PATH + '/server/template/rep_error.htm')
         return output.render(title='Error 404', links=[], msg='Sorry, this page does not exist!')
 
