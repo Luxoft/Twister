@@ -784,7 +784,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
             resources['meta'].update(props)
             # Write changes for Device or SUT
-            self._save(root_id, props)
+            #self._save(root_id, props)
             logDebug('Set {}: Updated ROOT with properties: `{}`.'.format(root_name, props))
             return True
 
@@ -801,6 +801,9 @@ class ResourceAllocator(_cptools.XMLRPCController):
             msg = 'Set {}: Cannot access parent path or ID `{}` !'.format(root_name, parent)
             logError(msg)
             return '*ERROR* ' + msg
+
+        if not isinstance(parent_p['path'], list):
+            parent_p['path'] = parent_p['path'].split('/')
 
         if '/' in name:
             logDebug('Set {}: Stripping slash characters from `{}`...'.format(root_name, name))
@@ -852,8 +855,8 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
             child_p['meta'].update(props)
 
-            if old_child != child_p:
-                self._save(root_id, props)
+            #if old_child != child_p:
+            #    self._save(root_id, props)
 
             # if old_parent != parent_p:
             #     #self._save(root_id)
