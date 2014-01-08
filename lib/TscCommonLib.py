@@ -344,4 +344,34 @@ class TscCommonLib(object):
         except: return None
 
 
+    def isResourceLocked(self, query):
+        try: return self.ce_proxy.isResourceLocked(query)
+        except: return None
+
+
+    def isSutLocked(self, query):
+        try: return self.ce_proxy.isSutLocked(query)
+        except: return None
+
+
+    def lockResource(self, query):
+        try: return self.ce_proxy.lockResource(query)
+        except: return None
+
+
+    def lockSut(self, query):
+        try: return self.ce_proxy.lockSut(query)
+        except: return None
+
+
+    def unlockResource(self, query):
+        try: return self.ce_proxy.unlockResource(query)
+        except: return None
+
+
+    def unlockSut(self, query):
+        try: return self.ce_proxy.unlockSut(query)
+        except: return None
+
+
 # Eof()

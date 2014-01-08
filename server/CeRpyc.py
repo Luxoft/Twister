@@ -1101,4 +1101,40 @@ class CeRpycService(rpyc.Service):
         return self.project.ra.discardAndReleaseReservedSut(query, props={'__user': user})
 
 
+    def exposed_isSutLocked(self, query):
+        #user = self._check_login()
+        #if not user: return False
+        return self.project.ra.isSutLocked(query)
+
+
+    def exposed_isResourceLocked(self, query):
+        #user = self._check_login()
+        #if not user: return False
+        return self.project.ra.isResourceLocked(query)
+
+
+    def exposed_lockResource(self, query):
+        user = self._check_login()
+        if not user: return False
+        return self.project.ra.lockResource(query, props={'__user': user})
+
+
+    def exposed_lockSut(self, query):
+        user = self._check_login()
+        if not user: return False
+        return self.project.ra.lockSut(query, props={'__user': user})
+
+
+    def exposed_unlockResource(self, query):
+        user = self._check_login()
+        if not user: return False
+        return self.project.ra.unlockResource(query, props={'__user': user})
+
+
+    def exposed_unlockSut(self, query):
+        user = self._check_login()
+        if not user: return False
+        return self.project.ra.unlockSut(query, props={'__user': user})
+
+
 # Eof()
