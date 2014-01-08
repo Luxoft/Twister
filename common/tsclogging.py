@@ -96,15 +96,28 @@ def getLogLevel():
 
 def setLogLevel(Level):
     #
-    if Level not in LEVELS:
-        cherry_log.error('LOG: Invalid error level `{}`! The value must be in {}!'.format(Level, LEVELS.keys()))
-        return
-    #
+    all_levels = dict(LEVELS)
+    all_levels.update( dict((v,k) for k,v in LEVELS.iteritems()) )
+
+    if Level not in all_levels:
+        print('---[ Invalid Log Level {}! ]---'.format(Level))
+        return False
+
+    # Fix string levels
+    if isinstance(Level, str):
+        Level = all_levels[Level]
+
     global _LVL, filehnd, console
     _LVL = Level
     cherry_log.setLevel(_LVL)
     filehnd.setLevel(_LVL)
     console.setLevel(_LVL)
+
+    if isinstance(Level, str):
+        print('---[ Set Log Level {} ]---'.format(Level))
+    else:
+        print('---[ Set Log Level {} ]---'.format(all_levels[Level]))
+    return True
     #
 
 def logMsg(Level, *args):

@@ -86,16 +86,7 @@ class CeRpycService(rpyc.Service):
         This doesn't require login.
         """
         logFull('CeRpyc:exposed_setLogLevel')
-        global LEVELS
-        lvls = dict((v,k) for k,v in LEVELS.iteritems())
-        if Level not in lvls:
-            # This is indeed a PRINT
-            print('*WARNING* Invalid log level `{}`!'.format(Level))
-            return False
-
-        setLogLevel( lvls[Level] )
-        print('---[ Set Log Level {} ]---'.format(Level))
-        return True
+        return setLogLevel(Level)
 
 
     @classmethod
