@@ -1,6 +1,6 @@
 /*
 File: RunnerRepository.java ; This file is part of Twister.
-Version: 2.0039
+Version: 2.0040
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -129,7 +129,7 @@ public class RunnerRepository {
                          TESTSUITEPATH,
                          LOGSPATH ,XMLREMOTEDIR,REMOTEPLUGINSDIR,
                          REMOTELIBRARY,PREDEFINEDSUITES,
-                         REMOTEUSERSDIRECTORY, REMOTEEPIDDIR, //REMOTEHARDWARECONFIGDIRECTORY,
+                         REMOTEUSERSDIRECTORY,  //REMOTEHARDWARECONFIGDIRECTORY,
                          PLUGINSLOCALGENERALCONF, GLOBALSREMOTEFILE,
                          SECONDARYLOGSPATH,PATHENABLED,TESTCONFIGPATH;
     public static Image passicon,testbedicon,porticon,suitaicon, tcicon, propicon,
@@ -155,8 +155,8 @@ public class RunnerRepository {
     public static Container container;
     public static Applet applet;
     private static Document pluginsconfig;
-    private static String version = "2.047";
-    private static String builddate = "12.12.2013";
+    private static String version = "2.048";
+    private static String builddate = "09.01.2014";
     public static String logotxt,os,python;
     private static int remotefiletries = 0;
     
@@ -380,7 +380,6 @@ public class RunnerRepository {
         variables.put("predefinedsuites",PREDEFINEDSUITES);
         variables.put("logspath",LOGSPATH);
         variables.put("masterxmlremotedir",XMLREMOTEDIR);
-        variables.put("remoteepdir",REMOTEEPIDDIR);
         variables.put("remoteusersdir",REMOTEUSERSDIRECTORY);
         variables.put("remotelibrary",REMOTELIBRARY);
         variables.put("pluginslocalgeneralconf",PLUGINSLOCALGENERALCONF);
@@ -880,7 +879,6 @@ public class RunnerRepository {
                 XMLDIRECTORY = RunnerRepository.temp+bar+"Twister"+bar+"XML"+
                                         bar+XMLREMOTEDIR.split("/")[XMLREMOTEDIR.split("/").length-1];
                 REMOTELIBRARY = getTagContent(doc,"LibsPath", "framework config.");
-                REMOTEEPIDDIR = getTagContent(doc,"EpNames", "framework config.");
                 REMOTEDATABASECONFIGFILE = getTagContent(doc,"DbConfigFile", "framework config.");
                 String [] path = REMOTEDATABASECONFIGFILE.split("/");
                 StringBuffer result = new StringBuffer();
@@ -1065,13 +1063,7 @@ public class RunnerRepository {
      * users directory from temp folder on local pc
      */  
     public static String getUsersDirectory(){
-        return USERSDIRECTORY;}
-        
-    /*
-     * Ep directory from server
-     */ 
-    public static String getRemoteEpIdDir(){
-        return REMOTEEPIDDIR;}        
+        return USERSDIRECTORY;}       
         
     /*
      * Users directory from server
