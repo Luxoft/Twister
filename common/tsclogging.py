@@ -99,11 +99,15 @@ def setLogLevel(Level):
     all_levels = dict(LEVELS)
     all_levels.update( dict((v,k) for k,v in LEVELS.iteritems()) )
 
+    # Fix integer levels
+    try: Level = int(Level)
+    except: pass
+
     if Level not in all_levels:
         print('---[ Invalid Log Level {}! ]---'.format(Level))
         return False
 
-    # Fix string levels
+    # Map string levels
     if isinstance(Level, str):
         Level = all_levels[Level]
 

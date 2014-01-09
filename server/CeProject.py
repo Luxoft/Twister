@@ -349,8 +349,6 @@ class Project(object):
         if (not user) or (not epname):
             return False
 
-        logDebug('Start to register Execution-Process `{}:{}`...'.format(user, epname))
-
         with self.epl_lock:
 
             self.users[user]['eps'][epname] = OrderedDict()
@@ -389,8 +387,6 @@ class Project(object):
         logFull('CeProject:_unregisterEp user `{}`.'.format(user))
         if (not user) or (not epname):
             return False
-
-        logDebug('Start to un-register Execution-Process `{}:{}`...'.format(user, epname))
 
         with self.epl_lock:
 
