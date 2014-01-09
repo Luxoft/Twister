@@ -2,7 +2,7 @@
 
 # File: start_client.py ; This file is part of Twister.
 
-# version: 3.001
+# version: 3.002
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -351,12 +351,19 @@ class TwisterClient(object):
     def parseConfiguration(self):
         """
         Parse the EPNAMES.ini and prepare to launch the Execution Processes.
+        If the file is not found, create a `hostname_auto` EP.
         """
         global TWISTER_PATH
+        epnames = '{}/config/epname.ini'.format(TWISTER_PATH)
+
+        if not os.path.isfile(epnames):
+            # Register the Hostname + Auto
+            self.addEp(self.hostName + '_auto', '127.0.0.1', 8000)
+            return True
 
         # The Config Parser instance
         cfg = SafeConfigParser()
-        cfg.read('{}/config/epname.ini'.format(TWISTER_PATH))
+        cfg.read(epnames)
 
         epList = self._reloadEps(cfg)
 
@@ -365,6 +372,8 @@ class TwisterClient(object):
             # Incomplete EP tag ?
             if not cfg.has_option(currentEP, 'CE_IP') or not cfg.has_option(currentEP, 'CE_PORT'):
                 continue
+            # Register the Hostname + EP name
+            # self.addEp(self.hostName + '_' + currentEP, cfg.get(currentEP, 'CE_IP'), cfg.get(currentEP, 'CE_PORT'))
             self.addEp(currentEP, cfg.get(currentEP, 'CE_IP'), cfg.get(currentEP, 'CE_PORT'))
 
         return True

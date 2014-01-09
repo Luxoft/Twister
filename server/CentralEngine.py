@@ -1,6 +1,6 @@
 #!/usr/bin/env python2.7
 
-# version: 2.009
+# version: 3.002
 
 # File: CentralEngine.py ; This file is part of Twister.
 
@@ -33,10 +33,13 @@ This file starts the Twister Server.
 import threading
 threading._DummyThread._Thread__stop = lambda x: 1
 
+import cherrypy
+cherrypy.log.access_log.propagate = False
+cherrypy.log.error_log.setLevel(10)
+
 import os
 import sys
 import thread
-import cherrypy
 from rpyc.utils.server import ThreadPoolServer
 
 if not sys.version.startswith('2.7'):
@@ -80,18 +83,14 @@ if __name__ == "__main__":
 
     # Read verbosity from configuration
     cfg_path = '{}/config/server_init.ini'.format(TWISTER_PATH)
-    if not os.path.isfile(cfg_path):
-        verbosity = 1
-    else:
+    verbosity = 20
+    if os.path.isfile(cfg_path):
         cfg = iniparser.ConfigObj(cfg_path)
-        verbosity = cfg.get('verbosity', 1)
-        try: verbosity = int(verbosity)
-        except:
-            logError('Twister Server: Invalid verbosity value `{}`! Will default to `1`.'.format(verbosity))
-            verbosity = 1
+        verbosity = cfg.get('verbosity', 20)
         del cfg
 
-    setLogLevel(int(verbosity))
+    r = setLogLevel(verbosity)
+    if not r: logError('Log: The Log level will default to INFO.')
 
     # RPyc config
     config = {
@@ -106,6 +105,7 @@ if __name__ == "__main__":
     rpycPort = serverPort + 10
     try:
         rpycServer = ThreadPoolServer(CeRpycService, port=rpycPort, protocol_config=config)
+        rpycServer.logger.setLevel(30)
     except:
         logCritical('Twister Server: Cannot launch the RPyc server on port `{}`!'.format(rpycPort))
         exit(1)
@@ -130,8 +130,6 @@ if __name__ == "__main__":
     # Inject the project as variable for EE
     rpycServer.service.inject_object('project', proj)
     rpycServer.service.inject_object('cherry', ce)
-    # Less spam please !
-    rpycServer.logger.setLevel(30)
 
     # Start rpyc server
     thread.start_new_thread(rpycServer.start, ())
