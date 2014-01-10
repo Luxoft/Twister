@@ -46,6 +46,9 @@ ROLES = [
 	'CHANGE_SUT',		# Can change the global SUT ? (server + applet)
 	'CHANGE_SERVICES',	# Can start/ stop services ? (server + applet)
 	'CHANGE_USERS',		# Can create, change and delete users ? (server + applet)
+
+	'LOCK_TESTBED',		# Can lock testbed
+	'LOCK_SUT',			# Can lock sut
 ]
 
 # Status translations :

@@ -794,11 +794,12 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
         root_name = ROOT_NAMES[root_id]
 
-        _isResourceLocked = self.isResourceLocked(parent, root_id)
-        if _isResourceLocked:
-            msg = 'Reserve resource: The resource is locked for {} !'.format(_isResourceLocked)
-            logError(msg)
-            return False
+        if not parent == '/' or parent == '1':
+            _isResourceLocked = self.isResourceLocked(parent, root_id)
+            if _isResourceLocked:
+                msg = 'Reserve resource: The resource is locked for {} !'.format(_isResourceLocked)
+                logError(msg)
+                return False
 
         # If this is the root resource, update the properties
         if name == '/' and parent == '/':
@@ -819,7 +820,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
             resources['meta'].update(props)
             # Write changes for Device or SUT
-            #self._save(root_id, props)
+            self._save(root_id, props)
             logDebug('Set {}: Updated ROOT with properties: `{}`.'.format(root_name, props))
             return True
 
