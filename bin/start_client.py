@@ -2,7 +2,7 @@
 
 # File: start_client.py ; This file is part of Twister.
 
-# version: 3.002
+# version: 3.003
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -286,7 +286,7 @@ class TwisterClient(object):
                     continue
             # Invalid EP tag ?
             if not cfg.has_option(ep, 'CE_IP') or not cfg.has_option(ep, 'CE_PORT'):
-                # print('Section `{}` is not a valid EP.'.format(ep))
+                print('Section `{}` is not a valid EP, because it needs CE_IP and CE_PORT.'.format(ep))
                 continue
             # If this EP does NOT have a HOST filter, it's a valid EP
             if not cfg.has_option(ep, 'EP_HOST'):
@@ -350,14 +350,17 @@ class TwisterClient(object):
 
     def parseConfiguration(self):
         """
-        Parse the EPNAMES.ini and prepare to launch the Execution Processes.
-        If the file is not found, create a `hostname_auto` EP.
+        Parse the EPNAMES.ini and prepare to register the Execution Processes.
+        If the file is not found, create a single `hostname_auto` EP on localhost.
+        If the file is found but there are no EPs, create a single `hostname_auto` EP,
+        on AUTO_CE_IP and AUTO_CE_PORT.
         """
         global TWISTER_PATH
         epnames = '{}/config/epname.ini'.format(TWISTER_PATH)
 
         if not os.path.isfile(epnames):
-            # Register the Hostname + Auto
+            # Register the Hostname + Auto. The Central Engine MUST be on localhost:8000
+            print('Cannot find `epname.ini` file! Will register `{}` EP on `localhost:8000`...'.format(self.hostName + '_auto'))
             self.addEp(self.hostName + '_auto', '127.0.0.1', 8000)
             return True
 
@@ -367,14 +370,27 @@ class TwisterClient(object):
 
         epList = self._reloadEps(cfg)
 
+        # Use the auto ?
+        if not epList:
+            if cfg.has_option('AUTO', 'AUTO_CE_IP') and cfg.has_option('AUTO', 'AUTO_CE_PORT'):
+                auto_ip = cfg.get('AUTO', 'AUTO_CE_IP')
+                auto_port = cfg.get('AUTO', 'AUTO_CE_PORT')
+                print('No EPs found, but found [AUTO] section with AUTO_CE_IP and AUTO_CE_PORT.\n'
+                      'Will register `{}` EP on Central Engine `{}:{}`...\n'.format(self.hostName + '_auto', auto_ip, auto_port))
+                self.addEp(self.hostName + '_auto', auto_ip, auto_port)
+                return True
+            else:
+                print('No EPs found and cannot find [AUTO] section with AUTO_CE_IP and AUTO_CE_PORT!\n'
+                      'This client will hang forever...\n')
+                return False
+
         # Generate meta-data for each EP + the Anonymous EP
         for currentEP in epList:
             # Incomplete EP tag ?
             if not cfg.has_option(currentEP, 'CE_IP') or not cfg.has_option(currentEP, 'CE_PORT'):
                 continue
             # Register the Hostname + EP name
-            # self.addEp(self.hostName + '_' + currentEP, cfg.get(currentEP, 'CE_IP'), cfg.get(currentEP, 'CE_PORT'))
-            self.addEp(currentEP, cfg.get(currentEP, 'CE_IP'), cfg.get(currentEP, 'CE_PORT'))
+            self.addEp(self.hostName + '_' + currentEP, cfg.get(currentEP, 'CE_IP'), cfg.get(currentEP, 'CE_PORT'))
 
         return True
 
