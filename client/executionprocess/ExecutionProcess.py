@@ -616,7 +616,7 @@ class TwisterRunner(cli.Application):
             # Is this file a teardown file?
             teardown_file = node.get('teardown_file', False)
             # Test-case dependency, if any
-            dependancy = node.get('dependancy')
+            dependency = node.get('dependency')
             # Is this test file optional?
             optional_test = node.get('Optional')
             # Configuration files?
@@ -712,37 +712,40 @@ class TwisterRunner(cli.Application):
                         return self.exit(timer_f=diff_time, stop=False)
 
 
-            # If dependency file is PENDING or WORKING, wait for it to finish; for any other status, go next.
-            if dependancy and proxy().getFileVariable(dependancy, 'status') in [-1, False, STATUS_PENDING, STATUS_WORKING]:
-                dep_suite = proxy().getFileVariable(dependancy, 'suite')
-                dep_file = proxy().getFileVariable(dependancy, 'file')
+            # # If dependency file is PENDING or WORKING, wait for it to finish; for any other status, go next.
+            # if dependancy and proxy().getFileVariable(dependancy, 'status') in [-1, False, STATUS_PENDING, STATUS_WORKING]:
+            #     dep_suite = proxy().getFileVariable(dependancy, 'suite')
+            #     dep_file = proxy().getFileVariable(dependancy, 'file')
 
-                if dep_file:
-                    proxy().echo(':: {} is waiting for file `{}::{}` to finish execution...'.format(self.epName, dep_suite, dep_file))
-                    try: proxy().setFileStatus(self.epName, file_id, STATUS_WAITING, 0.0) # Status WAITING
+            #     if dep_file:
+            #         proxy().echo(':: {} is waiting for file `{}::{}` to finish execution...'.format(self.epName, dep_suite, dep_file))
+            #         try: proxy().setFileStatus(self.epName, file_id, STATUS_WAITING, 0.0) # Status WAITING
+            #         except:
+            #             trace = traceback.format_exc()[34:].strip()
+            #             print('Exception on change file status `{}`!\n'.format(trace))
+
+            #         while 1:
+            #             time.sleep(3)
+            #             # Reload info about dependency file
+            #             if  proxy().getFileVariable(dependancy, 'status') not in [-1, False, STATUS_PENDING, STATUS_WORKING]:
+            #                 proxy().echo(':: {} is not longer waiting for dependency!'.format(self.epName))
+            #                 break
+
+            #     del dep_suite, dep_file
+            if dependency:
+                try:
+                    (dependency_id, dependency_status) = dependency.split(':')
+                except Exception as e:
+                    (dependency_id, dependency_status) = (dependency.split(':')[0], None)
+                if dependency_status == str(proxy().getFileVariable(self.epName, dependency_id, 'status')):
+                    print('EP Debug: File `{}` will be skipped (dependency).\n'.format(filename))
+                    try:
+                        proxy().setFileStatus(self.epName, file_id, STATUS_SKIPPED, 0.0)
                     except:
                         trace = traceback.format_exc()[34:].strip()
-                        print('Exception on change file status `{}`!\n'.format(trace))
-
-                    while 1:
-                        time.sleep(3)
-                        # Reload info about dependency file
-                        if  proxy().getFileVariable(dependancy, 'status') not in [-1, False, STATUS_PENDING, STATUS_WORKING]:
-                            proxy().echo(':: {} is not longer waiting for dependency!'.format(self.epName))
-                            break
-
-                del dep_suite, dep_file
-            # try:
-            #     (dependency_id, dependency_status) = dependency.split(':')
-            # except Exception as e:
-            #     (dependency_id, dependency_status) = (dependency.split(':')[0], None)
-            # if dependency_status == proxy().getFileVariable(dependancy, 'status'):
-            #     try:
-            #         proxy().setFileStatus(self.epName, dependency_id, STATUS_SKIPPED, 0.0)
-            #     except:
-            #         trace = traceback.format_exc()[34:].strip()
-            #         print('Exception on dependency change file status `{}`!\n'.format(trace))
-            #     continue
+                        print('Exception on dependency change file status `{}`!\n'.format(trace))
+                    print('<<< END filename: `{}:{}` >>>\n'.format(file_id, filename))
+                    continue
 
 
             # Download file from Central Engine!
