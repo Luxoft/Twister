@@ -174,6 +174,46 @@ class CeXmlRpc(_cptools.XMLRPCController):
         return self.project.decryptText(cherry_user, text)
 
 
+    @cherrypy.expose
+    def readFile(self, fpath):
+        """
+        Read a file from user's home folder.
+        This function is called from the Java GUI.
+        """
+        if not os.path.isfile(fpath):
+            logWarning('Read File: Path `{}` is not a file!'.format(fpath))
+            return ''
+        cherry_user = cherrypy.session.get('username')
+        if not fpath.startswith( userHome(cherry_user) ):
+            logWarning('Read File: Path `{}` is not in the users home folder!'.format(fpath))
+            return ''
+        log_string = open(fpath).read()
+        return binascii.b2a_base64(log_string)
+
+
+    @cherrypy.expose
+    def writeFile(self, fpath, fdata):
+        """
+        Write a file in user's home folder.
+        This function is called from the Java GUI.
+        """
+        cherry_user = cherrypy.session.get('username')
+        if not fpath.startswith( userHome(cherry_user) ):
+            logWarning('Write File: Path `{}` is not a file!'.format(fpath))
+            return False
+        try:
+            log_string = binascii.a2b_base64(fdata)
+        except:
+            logWarning('Write File: Invalid base64 data!')
+            return False
+        try:
+            open(fpath, 'w').write(log_string)
+            return True
+        except Exception as e:
+            logWarning('Write File: Cannot write into file `{}`! {}'.format(fpath, e))
+            return False
+
+
 # # #
 
 
@@ -387,6 +427,15 @@ class CeXmlRpc(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
+    def findAnonimEp(self, user):
+        """
+        Find a local, free EP to be used as Anonim EP.
+        """
+        logFull('CeXmlRpc:findAnonimEp user `{}`.'.format(user))
+        return self.project._find_anonim_ep(user)
+
+
+    @cherrypy.expose
     def listEPs(self, user):
         """
         Returns all EPs for current user.
@@ -516,6 +565,41 @@ class CeXmlRpc(_cptools.XMLRPCController):
         """
         logFull('CeXmlRpc:setGlobalVariable user `{}`.'.format(user))
         return self.project.setGlobalVariable(user, var_path, value)
+
+
+    @cherrypy.expose
+    def listConfigs(self, user):
+        """
+        Folders and Files from config folder.
+        """
+
+        def dirList(tests_path, path, newdict):
+            """
+            Create recursive list of folders and files from Tests path.
+            The format of a node is: {"path": "/..." "data": "name", "folder":true|false, "children": []}
+            """
+            len_path = len(tests_path) + 1
+            if os.path.isdir(path):
+                dlist = [] # Folders list
+                flist = [] # Files list
+                for fname in sorted(os.listdir(path), key=str.lower):
+                    short_path = (path + os.sep + fname)[len_path:]
+                    nd = {'path': short_path, 'data': fname, 'children': []}
+                    if os.path.isdir(path + os.sep + fname):
+                        nd['folder'] = True
+                        dlist.append(nd)
+                    else:
+                        flist.append(nd)
+                # Folders first, files second
+                newdict['children'] = dlist + flist
+            for nitem in newdict['children']:
+                # Recursive !
+                dirList(tests_path, tests_path + os.sep + nitem['path'], nitem)
+
+        dirpath = self.project.getUserInfo(user, 'tcfg_path')
+        paths = {'path':'/', 'data':os.path.split(dirpath)[-1], 'folder':True, 'children':[]}
+        dirList(dirpath, dirpath, paths)
+        return paths
 
 
     @cherrypy.expose

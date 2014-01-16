@@ -1,7 +1,7 @@
 
 # File: CeProject.py ; This file is part of Twister.
 
-# version: 3.010
+# version: 3.011
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -1304,42 +1304,40 @@ class Project(object):
 # # #
 
 
-    def _find_anonim_ep(self, user, anonim_ep):
+    def _find_anonim_ep(self, user):
         """
         Helper function to find a local, free EP to be used as Anonim EP.
         """
         logFull('CeProject:_find_anonim_ep user `{}`.'.format(user))
-        # All active EPs. There are NO duplicates.
-        active_eps = self.parsers[user].getActiveEps()
-
-        # There are no Anonim EPs...
-        if anonim_ep not in active_eps:
-            return False
+        epname = None
 
         # Shortcut to the Rpyc Service
         rpyc_srv = self.rsrv.service
         local_client = rpyc_srv._findConnection(usr=user, addr=['127.0.0.1', 'localhost'], hello='client')
 
+        # Cannot find local client conns
         if not local_client:
-            logWarning('*ERROR* Cannot find any local Clients to use for Anonim EP! The Anonim EP will not run!')
+            logWarning('*WARN* Cannot find any local Clients for user `{}` to use for Anonim EP! The Anonim EP will not run!'.format(user))
             return False
 
         # The list of local EPs (EPs from THIS machine)
         local_eps = rpyc_srv.conns.get(local_client, {}).get('eps', [])
         if not local_eps:
-            logWarning('*ERROR* Cannot find any local EPs to use for Anonim EP! The Anonim EP will not run!')
+            logWarning('*WARN* Cannot find any local EPs for user `{}` to use for Anonim EP! The Anonim EP will not run!'.format(user))
             return False
 
-        # Diff EPs = the list of EPs that are local and don't have any tests to run
-        diff_eps = sorted(set(local_eps) - set(active_eps))
-        if not diff_eps:
-            logWarning('*ERROR* Cannot find any free EPs to use for Anonim EP! The Anonim EP will not run!')
+        for ep in local_eps:
+            if self.getEpInfo(user, epname).get('status', STATUS_INVALID) in [STATUS_STOP, STATUS_INVALID]:
+                epname = ep
+                break
+
+        if not epname:
+            logWarning('*WARN* Cannot find free EPs for user `{}` to use for Anonim EP! {}'
+                       ' The Anonim EP will not run!'.format(user, local_eps))
             return False
 
         # The Anonim EP becomes the first free EP
-        epname = diff_eps[0]
         logDebug('Found __Anonim__ EP for user `{}:{}` !'.format(user, epname))
-
         return epname
 
 
@@ -1598,7 +1596,7 @@ class Project(object):
             active_eps = self.parsers[user].getActiveEps()
 
             # Find Anonimous EP in the active EPs
-            anonim_ep = self._find_anonim_ep(user, '__anonymous__')
+            anonim_ep = self._find_anonim_ep(user)
 
             for epname in active_eps:
                 if epname == '__anonymous__' and anonim_ep:
@@ -1643,7 +1641,7 @@ class Project(object):
             # Cycle all active EPs to: STOP them and to change the PENDING status to NOT_EXEC
             active_eps = self.parsers[user].getActiveEps()
             # Find Anonimous EP in the active EPs
-            anonim_ep = self._find_anonim_ep(user, '__anonymous__')
+            anonim_ep = self._find_anonim_ep(user)
 
             eps_pointer = self.users[user]['eps']
             statuses_changed = 0
@@ -2798,7 +2796,7 @@ class Project(object):
         """
         Launch a log server.
         """
-        logDebug('Preparing to launch the LogService for user `{}`...'.format(user))
+        logFull('Preparing to launch the LogService for user `{}`...'.format(user))
 
         # DEBUG. Show all available LogServices, for current user.
         try:
@@ -2820,7 +2818,7 @@ class Project(object):
         if conn:
             try:
                 conn.root.hello()
-                logDebug('Reuse old LogService connection OK.')
+                logDebug('Reuse old LogService connection for user `{}` OK.'.format(user))
                 return conn
             except:
                 pass
