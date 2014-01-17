@@ -1,3 +1,9 @@
+17th January 2014
+
+- changed the mechanism for EP's. Introduced a methog to simplify EP's configuration
+- github issue #104 ; the report directories are collapsable/expandable
+- updated user Guide
+
 28th October
 
 - rework for ClearCase plugin to work on 64 bit systems
@@ -152,7 +158,8 @@
 
 - the passwords are encrypted
 - completed the User Management feature
-- issue #20 ; changed the user logging mechanism to work for NIS users as well
+- enhanced the cli de-queue - issue #37
+- changed the user logging mechanism to work for NIS users as well
 - fix for issue #41 - status of testcase displayed as stopped in GUI and aborted in CLI
 - issue #19 ; issue #16 ;added a twister_demo.sql script in installer/packages; can be
   used to create a demo database;the associated db.xml is updated for this database

@@ -1,6 +1,6 @@
 /*
 File: Panel1.java ; This file is part of Twister.
-Version: 2.0013
+Version: 2.0014
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -756,33 +756,18 @@ public class Panel1 extends JPanel{
                     break;}}
         }
         
-        Node parent = RunnerRepository.window.mainpanel.p4.getTB().getParentNode();
-        boolean found ;
-        DefaultMutableTreeNode root = RunnerRepository.window.mainpanel.p4.getSut().sut.root;
-        int sutsnr = root.getChildCount();
-        for(Item i:RunnerRepository.getSuite()){
-            for(String tb:i.getEpId()){
-                //Iterator iter = parent.getChildren().keySet().iterator();
-                
-//                 Iterator iter = root.children().;
-                found = false;
-                for(int j=0;j<sutsnr;j++){
-                    SUT child = (SUT)((DefaultMutableTreeNode)root.getChildAt(j)).getUserObject();
-                    if(child!=null&&child.getName().equals(tb)){
-                        if(child.getEPs()==null){
-                            break;
-                        }
-                        if(!child.getEPs().equals("")){
-                            found = true;
-                        }
-                        break;
-                    }
-                    if(found)break;
-                }
-                
-                
-//                 while(iter.hasNext()){
-//                     Node child = parent.getChild(iter.next().toString());
+//         Node parent = RunnerRepository.window.mainpanel.p4.getTB().getParentNode();
+//         boolean found ;
+//         DefaultMutableTreeNode root = RunnerRepository.window.mainpanel.p4.getSut().sut.root;
+//         int sutsnr = root.getChildCount();
+//         for(Item i:RunnerRepository.getSuite()){
+//             for(String tb:i.getEpId()){
+//                 //Iterator iter = parent.getChildren().keySet().iterator();
+//                 
+// //                 Iterator iter = root.children().;
+//                 found = false;
+//                 for(int j=0;j<sutsnr;j++){
+//                     SUT child = (SUT)((DefaultMutableTreeNode)root.getChildAt(j)).getUserObject();
 //                     if(child!=null&&child.getName().equals(tb)){
 //                         if(child.getEPs()==null){
 //                             break;
@@ -794,14 +779,29 @@ public class Panel1 extends JPanel{
 //                     }
 //                     if(found)break;
 //                 }
-                if(!found){
-                    CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, RunnerRepository.window,
-                                        "Warning","Please set EP for SUT: "+ tb);
-                    execute = false;
-                    break;
-                }
-            }
-        }
+//                 
+//                 
+// //                 while(iter.hasNext()){
+// //                     Node child = parent.getChild(iter.next().toString());
+// //                     if(child!=null&&child.getName().equals(tb)){
+// //                         if(child.getEPs()==null){
+// //                             break;
+// //                         }
+// //                         if(!child.getEPs().equals("")){
+// //                             found = true;
+// //                         }
+// //                         break;
+// //                     }
+// //                     if(found)break;
+// //                 }
+//                 if(!found){
+//                     CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, RunnerRepository.window,
+//                                         "Warning","Please set EP for SUT: "+ tb);
+//                     execute = false;
+//                     break;
+//                 }
+//             }
+//         }
         
         
         
@@ -826,9 +826,14 @@ public class Panel1 extends JPanel{
                                             RunnerRepository.window, "Warning", 
                                             "Warning, temp file not saved");                    
             }
-            sc.g.printXML(RunnerRepository.getTestXMLDirectory(),true,false,
+            if(!sc.g.printXML(RunnerRepository.getTestXMLDirectory(),true,false,
                           suitaDetails.stopOnFail(),suitaDetails.preStopOnFail(),suitaDetails.saveDB(),
-                          suitaDetails.getDelay(),false,null);
+                          suitaDetails.getDelay(),false,null)){
+                CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE, 
+                                            RunnerRepository.window, "ERROR", 
+                                            "Could not generate XML, please check log!");  
+                return;
+            }
             RunnerRepository.emptyTestRunnerRepository();
             File xml = new File(RunnerRepository.getTestXMLDirectory());
             int size = RunnerRepository.getLogs().size();

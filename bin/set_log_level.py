@@ -2,7 +2,7 @@
 
 # File: set_log_level.py ; This file is part of Twister.
 
-# version: 3.001
+# version: 3.002
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -34,20 +34,22 @@ except Exception as e:
     print('\nCannot connect to CE! Exception: `{}`!\n'.format(e))
     exit(1)
 
+levels = ['FULL', 'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL']
+
 try:
-    level = int(sys.argv[1])
+    level = sys.argv[1]
 except:
     level = c.root.getLogLevel()
     print('\nThe log level is `{}`.\n'.format(level))
     exit(1)
 
-if level <= 0 or level > 5:
-    print('\nInvalid log level `{}` ! Must give an integer between 1-5 !\n'.format(level))
+if level not in levels:
+    print('\nInvalid log level `{}` ! Must give a value from {} !\n'.format(level, levels))
     exit(1)
 
 c.root.setLogLevel( level )
 
-if level == 1:
+if level in ['FULL', 'DEBUG']:
     print('\nLog level set to `{}`.\nWARNING! This should only be used for development and debugging!\n'.format(level))
 else:
     print('\nLog level set to `{}`.\n'.format(level))

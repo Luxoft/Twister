@@ -1,6 +1,6 @@
 /*
 File: Grafic.java ; This file is part of Twister.
-Version: 2.0016
+Version: 2.0017
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -2338,11 +2338,12 @@ public class Grafic extends JPanel{
         //skip = true
         try{if(array==null)array = RunnerRepository.getSuite();
             XMLBuilder xml = new XMLBuilder(array);
-            
-            xml.createXML(skip,stoponfail,prestoponfail,false,
+            if(!xml.createXML(skip,stoponfail,prestoponfail,false,
                           RunnerRepository.window.mainpanel.p1.suitaDetails.getPreScript(),
                           RunnerRepository.window.mainpanel.p1.suitaDetails.getPostScript(),
-                          savedb,delay,RunnerRepository.window.mainpanel.p1.suitaDetails.getGlobalLibs());
+                          savedb,delay,RunnerRepository.window.mainpanel.p1.suitaDetails.getGlobalLibs())){
+                return false;
+            }
             return xml.writeXMLFile(user,local,false,lib);}
         catch(Exception e){
             e.printStackTrace();
@@ -2911,7 +2912,7 @@ public class Grafic extends JPanel{
             }
             
             epidfield = new JList<String>(vecresult);
-			try{epidfield.setSelectedIndex(0);}
+            try{epidfield.setSelectedIndex(0);}
             catch(Exception e){e.printStackTrace();}
             
             

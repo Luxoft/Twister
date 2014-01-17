@@ -1,6 +1,6 @@
 #!/usr/bin/env python2.7
 
-# version: 3.001
+# version: 3.002
 
 # File: CentralEngine.py ; This file is part of Twister.
 
@@ -33,10 +33,13 @@ This file starts the Twister Server.
 import threading
 threading._DummyThread._Thread__stop = lambda x: 1
 
+import cherrypy
+cherrypy.log.access_log.propagate = False
+cherrypy.log.error_log.setLevel(10)
+
 import os
 import sys
 import thread
-import cherrypy
 from rpyc.utils.server import ThreadPoolServer
 
 if not sys.version.startswith('2.7'):
@@ -80,20 +83,14 @@ if __name__ == "__main__":
 
     # Read verbosity from configuration
     cfg_path = '{}/config/server_init.ini'.format(TWISTER_PATH)
-    if not os.path.isfile(cfg_path):
-        verbosity = 1
-    else:
+    verbosity = 20
+    if os.path.isfile(cfg_path):
         cfg = iniparser.ConfigObj(cfg_path)
-        verbosity = cfg.get('verbosity', 1)
-        try: verbosity = int(verbosity)
-        except:
-            logError('Twister Server: Invalid verbosity value `{}`! Will default to `1`.'.format(verbosity))
-            verbosity = 1
+        verbosity = cfg.get('verbosity', 20)
         del cfg
 
-    setLogLevel(int(verbosity))
-    cherrypy.log.access_log.propagate = False
-    cherrypy.log.error_log.setLevel(10)
+    r = setLogLevel(verbosity)
+    if not r: logError('Log: The Log level will default to INFO.')
 
     # RPyc config
     config = {
