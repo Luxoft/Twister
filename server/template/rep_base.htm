@@ -32,23 +32,30 @@
 	%>
 
 		% if ltype == 'link' and folder and folder != was_folder:
-		<!-- Start of folder `${folder}` // before ${was_folder} -->
+			% if was_folder:
+			</ul> <!-- End of folder `${was_folder}` // new `${folder}` -->
+			<%
+			was_folder = False
+			%>
+			% endif
+		<!-- Start of folder `${folder}` // before `${was_folder}` -->
 		<%
 		was_folder = folder
 		%>
-		<li><a><i class="icon-folder-open"></i> ${folder}</a></li>
+		<li class="collaps"><a><i class="icon-folder-open"></i> ${folder}</a></li>
+			<ul class="nav nav-pills nav-stacked" style="margin-bottom:0">
 		% endif
 		% if was_folder and folder != was_folder:
-		<!-- End of folder `${was_folder}` -->
+			</ul> <!-- End of folder `${was_folder}` // old `${folder}` -->
 		<%
 		was_folder = False
 		%>
 		% endif
 
 		% if link == 'Home' and link == title:
-		<li class="active"><a href="/report/home/${usr}"><i class="icon-home"></i> ${link}</a></li>
+		<li class="active"><a href="/report/home/${usr}"><i class="icon-home"></i> ${link}</a></li>\
 		% elif link == 'Help' and link == title:
-		<li class="active"><a href="/report/help/${usr}"><i class="icon-flag"></i> ${link}</a></li>
+		<li class="active"><a href="/report/help/${usr}"><i class="icon-flag"></i> ${link}</a></li>\
 		% elif link == 'Home':
 		<li><a href="/report/home/${usr}"><i class="icon-home"></i> ${link}</a></li>
 		% elif link == 'Help':
@@ -56,7 +63,11 @@
 		% elif ltype == 'redir':
 		<li><a href="/report/rep/${link}/${usr}"><i class="icon-share-alt"></i> ${link}</a></li>
 		% elif link == title:
-		<li class="active"><a href="/report/rep/${link}/${usr}"><i class="icon-asterisk"></i> ${link}</a></li>
+			% if was_folder:
+			<li class="active" style="margin-left:12px"><a href="/report/rep/${link}/${usr}"><i class="icon-asterisk"></i> ${link}</a></li>
+			% else:
+			<li class="active"><a href="/report/rep/${link}/${usr}"><i class="icon-asterisk"></i> ${link}</a></li>
+			% endif
 		% elif ltype == 'link':
 			% if was_folder:
 			<li style="margin-left:12px"><a href="/report/rep/${link}/${usr}"><i class="icon-arrow-right"></i> ${link}</a></li>
@@ -187,6 +198,14 @@
 <!-- Le javascript is placed at the end of the document so the page loads faster -->
 <script type="text/javascript" src="/static/js/jquery.min.js"></script>
 <script type="text/javascript" src="/static/js/bootstrap.min.js"></script>
+<script type="text/javascript">
+$(".collaps").click(function() {
+	$(this).next().find('li').each(function(i) {
+		// console.log( "Hiding: " + $(this).text() );
+		$(this).fadeToggle();
+	});
+});
+</script>
 
 % if report is not UNDEFINED:
 
@@ -204,7 +223,7 @@ var asInitVals = new Array();
 function moreDetails(obj) {
 	$('#detailsModalBody').html( $(obj).next().html() );
 	$('#detailsModal').modal('show');
-}
+};
 
 $(document).ready(function() {
 

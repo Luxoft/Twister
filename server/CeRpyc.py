@@ -108,6 +108,51 @@ class CeRpycService(rpyc.Service):
             return ''
 
 
+    def on_connect(self):
+        """
+        On client connect
+        """
+        logFull('CeRpyc:on_connect')
+        str_addr = self._get_addr()
+
+        # Add this connection in the list of connections,
+        # If this connection CAN be added!
+        try:
+            with self.conn_lock:
+                self.conns[str_addr] = {'conn': self._conn, 'time': time.time()}
+        except Exception as e:
+            logError('EE: Connect error: {}.'.format(e))
+
+        logDebug('EE: Connected from `{}`.'.format(str_addr))
+
+
+    def on_disconnect(self):
+        """
+        On client disconnect
+        """
+        logFull('CeRpyc:on_disconnect')
+        str_addr = self._get_addr()
+
+        hello = self.conns[str_addr].get('hello', '')
+        stime = self.conns[str_addr].get('time', time.time())
+        if hello: hello += ' - '
+
+        # Unregister the eventual EPs for this connection
+        if self.conns[str_addr].get('checked') and self.conns[str_addr].get('user'):
+            eps = self.conns[str_addr].get('eps')
+            if eps: self.unregisterEps(eps)
+
+        # Delete everything for this address
+        try:
+            with self.conn_lock:
+                del self.conns[str_addr]
+        except Exception as e:
+            logError('EE: Disconnect error: {}.'.format(e))
+
+        logDebug('EE: Disconnected from `{}{}`, after `{:.2f}` seconds.'.format(
+            hello, str_addr, (time.time() - stime)))
+
+
     @classmethod
     def _findConnection(self, usr=None, addr=[], hello='', epname=''):
         """
@@ -119,6 +164,7 @@ class CeRpycService(rpyc.Service):
         The EP must be the name of the EP registered by a client;
         it returns the client, not the EP.
         """
+        logFull('CeRpyc:_findConnection')
         if isinstance(self, CeRpycService):
             user = self._check_login()
         else:
@@ -1127,114 +1173,6 @@ class CeRpycService(rpyc.Service):
         user = self._check_login()
         if not user: return False
         return self.project.ra.deleteSut(query, props={'__user': user})
-
-
-    def exposed_isResourceReserved(self, query):
-        #user = self._check_login()
-        #if not user: return False
-        return self.project.ra.isResourceReserved(query)
-
-
-    def exposed_isSutReserved(self, query):
-        #user = self._check_login()
-        #if not user: return False
-        return self.project.ra.isSutReserved(query)
-
-
-    def exposed_reserveResource(self, query):
-        user = self._check_login()
-        if not user: return False
-        return self.project.ra.reserveResource(query, props={'__user': user})
-
-
-    def exposed_reserveSut(self, query):
-        user = self._check_login()
-        if not user: return False
-        return self.project.ra.reserveSut(query, props={'__user': user})
-
-
-    def exposed_saveAndReleaseReservedResource(self, query):
-        user = self._check_login()
-        if not user: return False
-        return self.project.ra.saveAndReleaseReservedResource(query, props={'__user': user})
-
-
-    def exposed_saveReservedResource(self, query):
-        user = self._check_login()
-        if not user: return False
-        return self.project.ra.saveReservedResource(query, props={'__user': user})
-
-
-    def exposed_saveReservedResourceAs(self, name, query):
-        user = self._check_login()
-        if not user: return False
-        return self.project.ra.saveReservedResourceAs(name, query, props={'__user': user})
-
-
-    def exposed_saveReservedSutAs(self, name, query):
-        user = self._check_login()
-        if not user: return False
-        return self.project.ra.saveReservedSutAs(name, query, props={'__user': user})
-
-
-    def exposed_saveReservedSut(self, query):
-        user = self._check_login()
-        if not user: return False
-        return self.project.ra.saveReservedSut(query, props={'__user': user})
-
-
-    def exposed_saveAndReleaseReservedSut(self, query):
-        user = self._check_login()
-        if not user: return False
-        return self.project.ra.saveAndReleaseReservedSut(query, props={'__user': user})
-
-
-    def exposed_discardAndReleaseReservedResource(self, query):
-        user = self._check_login()
-        if not user: return False
-        return self.project.ra.discardAndReleaseReservedResource(query, props={'__user': user})
-
-
-    def exposed_discardAndReleaseReservedSut(self, query):
-        user = self._check_login()
-        if not user: return False
-        return self.project.ra.discardAndReleaseReservedSut(query, props={'__user': user})
-
-
-    def exposed_isSutLocked(self, query):
-        #user = self._check_login()
-        #if not user: return False
-        return self.project.ra.isSutLocked(query)
-
-
-    def exposed_isResourceLocked(self, query):
-        #user = self._check_login()
-        #if not user: return False
-        return self.project.ra.isResourceLocked(query)
-
-
-    def exposed_lockResource(self, query):
-        user = self._check_login()
-        if not user: return False
-        return self.project.ra.lockResource(query, props={'__user': user})
-
-
-    def exposed_lockSut(self, query):
-        user = self._check_login()
-        if not user: return False
-        return self.project.ra.lockSut(query, props={'__user': user})
-
-
-    def exposed_unlockResource(self, query):
-        user = self._check_login()
-        if not user: return False
-        return self.project.ra.unlockResource(query, props={'__user': user})
-
-
-    def exposed_unlockSut(self, query):
-        user = self._check_login()
-        if not user: return False
-        return self.project.ra.unlockSut(query, props={'__user': user})
 
 
 # Eof()

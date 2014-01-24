@@ -1,6 +1,6 @@
 /*
 File: Log.java ; This file is part of Twister.
-Version: 2.003
+Version: 2.004
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -159,7 +159,8 @@ public class Log extends JPanel{
             catch (Exception e){
                 e.printStackTrace();
                 clearScreen();
-                textarea.append("This log has the folowing error: "+e.toString());}}}
+                //textarea.append("This log has the folowing error: "+e.toString());
+				}}}
                 
      /*
      * find previous occurrence of "toFind"

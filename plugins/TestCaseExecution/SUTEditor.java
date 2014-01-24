@@ -428,6 +428,7 @@ public class SUTEditor extends JPanel{
         return false;
     }
     
+
     public void closeSut(){
         if(close.isEnabled()){
             close.doClick();

@@ -116,7 +116,6 @@ public class SuitaDetails extends JPanel {
                 setTCDetails();
             }
         } else {
-            System.out.println(getPreferredSize().getWidth());
             setTitle("Summary");
             scroll.setViewportView(summary);
             revalidate();
@@ -1101,7 +1100,6 @@ class PropPanel extends JPanel{
     
     private void initializeParent(){
         jPanel1.removeAll();
-        System.out.println(parent.getName()+" : "+parent.getSubItemsNr());
         for(Item i:parent.getSubItems()){
             if((!i.getName().equals("Running"))&&(!i.getName().equals("param"))){
                 Prop prop = new Prop(parent,i);

@@ -1,0 +1,6 @@
+<root>
+	<bind>cfg1=sut1</bind>
+	<bind>cfg2=sut2</bind>
+	<bind>cfg3=sut3</bind>
+	<bind />
+</root>

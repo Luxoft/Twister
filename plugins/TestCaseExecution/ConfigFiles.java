@@ -1,6 +1,6 @@
 /*
 File: ConfigFiles.java ; This file is part of Twister.
-Version: 2.014
+Version: 2.015
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -79,7 +79,7 @@ import java.io.BufferedWriter;
 import java.io.FileWriter;
 
 public class ConfigFiles extends JPanel{
-    public static JTextField ttcpath,tMasterXML,tUsers,tepid,
+    public static JTextField ttcpath,tMasterXML,tUsers,
                              tSuites,
                              tlog,trunning,
                              tdebug,tsummary,tinfo,tcli,tdbfile,
@@ -307,7 +307,6 @@ public class ConfigFiles extends JPanel{
             ttcpath.setEnabled(false);
             tMasterXML.setEnabled(false);
             tUsers.setEnabled(false);
-            tepid.setEnabled(false);
             tSuites.setEnabled(false);
             tlog.setEnabled(false);
             trunning.setEnabled(false);
@@ -368,6 +367,14 @@ public class ConfigFiles extends JPanel{
                         String[] children = dir.list();
                         for (int i=0; i<children.length; i++){new File(dir, children[i]).delete();}
                         RunnerRepository.parseConfig();
+                        String respons = RunnerRepository.getRPCClient().execute("resetProject", new Object[]{RunnerRepository.user}).toString();
+                        if(respons.toLowerCase().equals("false")){
+                            CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE, 
+                                                  ConfigFiles.this, "ERROR", 
+                                                  "CE could not propagate changes. Changes will be available on first start project");
+                        } else {
+                            System.out.println("Changes successfully applied in CE");
+                        }
                         RunnerRepository.window.mainpanel.getP2().init(RunnerRepository.isapplet);
                         RunnerRepository.window.mainpanel.p1.ep.refreshStructure();
                         RunnerRepository.window.mainpanel.p1.lp.refreshStructure();
@@ -382,11 +389,11 @@ public class ConfigFiles extends JPanel{
                         libpath.setText(RunnerRepository.REMOTELIBRARY);
                         tMasterXML.setText(RunnerRepository.XMLREMOTEDIR);
                         tUsers.setText(RunnerRepository.REMOTEUSERSDIRECTORY);
-                        tepid.setText(RunnerRepository.REMOTEEPIDDIR);
                         tlog.setText(RunnerRepository.LOGSPATH);
                         tsecondarylog.setText(RunnerRepository.SECONDARYLOGSPATH);
                         sutpath.setText(RunnerRepository.SUTPATH);
                         logsenabled.setSelected(Boolean.parseBoolean(RunnerRepository.PATHENABLED));
+                        testconfigpath.setText(RunnerRepository.TESTCONFIGPATH);
                         if(RunnerRepository.getLogs().size()>0)trunning.setText(RunnerRepository.getLogs().get(0));
                         trunning.setText(RunnerRepository.getLogs().get(0));
                         tdebug.setText(RunnerRepository.getLogs().get(1));
@@ -564,8 +571,6 @@ public class ConfigFiles extends JPanel{
             catch(Exception e){addTag("logCli","",rootElement,blank,document);}
             try{addTag("DbConfigFile",tdbfile.getText(),root,blank,document);}
             catch(Exception e){addTag("DbConfigFile","",root,blank,document);}
-            try{addTag("EpNames",tepid.getText(),root,blank,document);}
-            catch(Exception e){addTag("EpNames","",root,blank,document);}
             try{addTag("EmailConfigFile",temailfile.getText(),root,blank,document);}
             catch(Exception e){addTag("EmailConfigFile","",root,blank,document);}
             try{addTag("GlobalParams",tglobalsfile.getText(),root,blank,document);}

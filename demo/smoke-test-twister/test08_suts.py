@@ -27,33 +27,28 @@ def test():
 	res_id = setSut(py_res, '/', {'meta1': 1, 'meta2': 2})
 	print 'Ok.\n'
 
-	if (not res_id or (isinstance(res_id, str) and res_id.startswith('*ERROR*'))):
+	if not res_id:
 		return "FAIL"
-
-	py_res = '.'.join([py_res, 'user'])
 
 	r = getSut('/' + py_res)
 	print 'Find SUT by name::', r
-	if (not r or (isinstance(r, str) and r.startswith('*ERROR*'))): return "FAIL"
+	if not r: return "FAIL"
 
 	r = getSut(res_id)
 	print 'Find SUT by ID::', r
-	if (not r or (isinstance(r, str) and r.startswith('*ERROR*'))): return "FAIL"
+	if not r: return "FAIL"
 	print
 
 	r = getSut('/{}:meta1'.format(py_res))
 	print 'Meta 1::', r
-	if (not r or (isinstance(r, str) and r.startswith('*ERROR*'))): return "FAIL"
+	if not r: return "FAIL"
 
 	r = getSut('/{}:meta2'.format(py_res))
 	print 'Meta 2::', r
-	if (not r or (isinstance(r, str) and r.startswith('*ERROR*'))): return "FAIL"
+	if not r: return "FAIL"
 	print
 
-	print 'Reserve SUT:: ', reserveSut('/' + py_res)
 	print 'Update SUT::', setSut(py_res, '/', {'more-info': 'y'})
-	print 'Save reserved SUT:: ',  saveAndReleaseReservedSut('/' + py_res)
-
 	r = getSut(res_id)
 	print 'Check status::', r
 	if 'more-info' not in r['meta']: return "FAIL"
@@ -61,49 +56,20 @@ def test():
 
 	for i in range(1, 4):
 		tag = 'tag{}'.format(i)
-
 		r = setSut(py_res, '/', {tag: str(i)})
 		print 'Set tag `{}` = `{}` ... {}'.format(tag, i, r)
-		if (r == True or (isinstance(r, str) and r.startswith('*ERROR*'))): return "FAIL"
-		print
-
-		print 'Reserve SUT:: ', reserveSut('/' + py_res)
-		r = setSut(py_res, '/', {tag: str(i)})
-		print 'Set tag `{}` = `{}` ... {}'.format(tag, i, r)
-		print 'Save reserved SUT:: ',  saveAndReleaseReservedSut('/' + py_res)
-		if (not r or (isinstance(r, str) and r.startswith('*ERROR*'))): return "FAIL"
-		print
+		if not r: return "FAIL"
 
 		path = '/' + py_res + ':' + tag
-
 		r = renameSut(path, 'tagx')
 		print 'Rename tag `{}` = `tagx` ... {}'.format(path, r)
-		print
-
-		print 'Reserve SUT:: ', reserveSut(path)
-		r = renameSut(path, 'tagx')
-		print 'Rename tag `{}` = `tagx` ... {}'.format(path, r)
-		print 'Save reserved SUT:: ',  saveAndReleaseReservedSut(path)
-		if (not r or (isinstance(r, str) and r.startswith('*ERROR*'))): return "FAIL"
+		if not r: return "FAIL"
 
 		path = '/' + py_res + ':tagx'
 		r = deleteSut(path)
 		print 'Delete tag `{}` ... {}'.format(path, r)
 		if not r: return "FAIL"
 		print
-
-	print 'Check status 1::', isSutReserved(res_id)
-	print 'Reserve SUT::', reserveSut(res_id)
-	print 'Check status 2::', isSutReserved(res_id)
-	print
-
-	r = deleteSut(res_id)
-	print 'Delete SUT::', r
-	if (r == True or not (isinstance(r, str) and r.startswith('*ERROR*'))): return "FAIL"
-
-	r = discardAndReleaseReservedSut(res_id)
-	print 'Discard reserved SUT:: ', r
-	if (not r or (isinstance(r, str) and r.startswith('*ERROR*'))): return "FAIL"
 
 	print 'Delete SUT::', deleteSut(res_id)
 	r = getSut(res_id)

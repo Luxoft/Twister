@@ -1,5 +1,5 @@
 
-# version: 2.004
+# version: 2.003
 
 # File: installer.py ; This file is part of Twister.
 
@@ -146,12 +146,12 @@ if err1 and err2:
 # Files to move in Server folder
 to_copy = [
     'bin/cli.py',
+    'bin/set_log_level.py',
     'bin/start_server',
     'doc/',
     'server/',
     'common/',
     'lib/',
-    'config/sut',
     'config/resources.json',
     'config/services.ini',
     'config/users_and_groups.ini',
