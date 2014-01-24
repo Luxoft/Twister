@@ -927,7 +927,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
             parent_p['children'][name] = {'id': res_id, 'meta': props, 'children': {}}
 
             # Write changes for Device or SUT
-            #self._save(root_id, props)
+            self._save(root_id, props)
             logInfo('Created {} `{}`, id `{}` : `{}`.'.format(root_name, name, res_id, props))
             return res_id
 
