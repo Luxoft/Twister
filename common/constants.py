@@ -46,6 +46,8 @@ ROLES = [
 	'CHANGE_SUT',		# Can change the global SUT ? (server + applet)
 	'CHANGE_SERVICES',	# Can start/ stop services ? (server + applet)
 	'CHANGE_USERS',		# Can create, change and delete users ? (server + applet)
+	'LOCK_TESTBED',		# Can lock testbed
+	'LOCK_SUT',			# Can lock sut
 ]
 
 # Status translations :
@@ -70,6 +72,7 @@ FWMCONFIG_TAGS = (
 	{'name':'tcfg_path',	'tag':'TestConfigPath',		'default':''},
 	{'name':'archive_logs_path', 'tag':'ArchiveLogsPath', 'default': False},
 	{'name':'archive_logs_path_active', 'tag':'ArchiveLogsPathActive', 'default': ''},
+	{'name':'sut_path', 'tag':'SutPath', 'default': ''},
 )
 
 # Project Config XML Tags :
