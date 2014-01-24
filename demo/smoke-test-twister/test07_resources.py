@@ -23,33 +23,37 @@ def test():
 	print
 
 	py_res = 'tb_' + hexlify(urandom(4))
-	print 'Create a tb `{}`...'.format(py_res)
+	print 'Create a TB `{}`...'.format(py_res)
 	res_id = setResource(py_res, '/', {'meta1': 1, 'meta2': 2})
-	print 'Ok.\n'
 
-	if not res_id:
+	if (not res_id or (isinstance(res_id, str) and res_id.startswith('*ERROR*'))):
 		print('Could not create TB! {}'.format(res_id))
 		return "FAIL"
+	else:
+		print 'Ok.\n'
 
 	r = getResource('/' + py_res)
 	print 'Find device by name::', r
-	if not r: return "FAIL"
+	if (not r or (isinstance(r, str) and r.startswith('*ERROR*'))): return "FAIL"
 
 	r = getResource(res_id)
 	print 'Find device by ID::', r
-	if not r: return "FAIL"
+	if (not r or (isinstance(r, str) and r.startswith('*ERROR*'))): return "FAIL"
 	print
 
 	r = getResource('/{}:meta1'.format(py_res))
 	print 'Meta 1::', r
-	if not r: return "FAIL"
+	if (not r or (isinstance(r, str) and r.startswith('*ERROR*'))): return "FAIL"
 
 	r = getResource('/{}:meta2'.format(py_res))
 	print 'Meta 2::', r
-	if not r: return "FAIL"
+	if (not r or (isinstance(r, str) and r.startswith('*ERROR*'))): return "FAIL"
 	print
 
+	print 'Reserve resource:: ', reserveResource('/' + py_res)
 	print 'Update resource::', setResource(py_res, '/', {'more-info': 'y'})
+	print 'Save reserved resource:: ',  saveAndReleaseReservedResource('/' + py_res)
+
 	r = getResource(res_id)
 	print 'Check status::', r
 	if 'more-info' not in r['meta']: return "FAIL"
@@ -57,25 +61,50 @@ def test():
 
 	for i in range(1, 4):
 		tag = 'tag{}'.format(i)
+
 		r = setResource(py_res, '/', {tag: str(i)})
 		print 'Set tag `{}` = `{}` ... {}'.format(tag, i, r)
-		if not r: return "FAIL"
+		if (r == True or (isinstance(r, str) and r.startswith('*ERROR*'))): return "FAIL"
+		print
+
+		print 'Reserve resource:: ', reserveResource('/' + py_res)
+		r = setResource(py_res, '/', {tag: str(i)})
+		print 'Set tag `{}` = `{}` ... {}'.format(tag, i, r)
+		print 'Save reserved resource:: ',  saveAndReleaseReservedResource('/' + py_res)
+		if (not r or (isinstance(r, str) and r.startswith('*ERROR*'))): return "FAIL"
+		print
 
 		path = '/' + py_res + ':' + tag
+
 		r = renameResource(path, 'tagx')
 		print 'Rename tag `{}` = `tagx` ... {}'.format(path, r)
-		if not r: return "FAIL"
+		print
+
+		print 'Reserve resource:: ', reserveResource(path)
+		r = renameResource(path, 'tagx')
+		print 'Rename tag `{}` = `tagx` ... {}'.format(path, r)
+		print 'Save reserved resource:: ',  saveAndReleaseReservedResource(path)
+		if (not r or (isinstance(r, str) and r.startswith('*ERROR*'))): return "FAIL"
+		print
 
 		path = '/' + py_res + ':tagx'
 		r = deleteResource(path)
 		print 'Delete tag `{}` ... {}'.format(path, r)
-		if not r: return "FAIL"
+		if (not r or (isinstance(r, str) and r.startswith('*ERROR*'))): return "FAIL"
 		print
 
-	print 'Check status 1::', getResourceStatus(res_id)
+	print 'Check status 1::', isResourceReserved(res_id)
 	print 'Reserve resource::', reserveResource(res_id)
-	print 'Check status 2::', getResourceStatus(res_id)
+	print 'Check status 2::', isResourceReserved(res_id)
 	print
+
+	r = deleteResource(res_id)
+	print 'Delete resource::', r
+	if (r == True or not (isinstance(r, str) and r.startswith('*ERROR*'))): return "FAIL"
+
+	r = discardAndReleaseReservedResource(res_id)
+	print 'Discard reserved resource:: ', r
+	if (not r or (isinstance(r, str) and r.startswith('*ERROR*'))): return "FAIL"
 
 	print 'Delete resource::', deleteResource(res_id)
 	r = getResource(res_id)

@@ -43,6 +43,7 @@ import thread
 import traceback
 import platform
 import subprocess
+import json
 import rpyc
 
 from pprint import pprint
@@ -642,6 +643,57 @@ class TwisterClientService(rpyc.Service):
             except Exception as e:
                 pass
         del pipe
+
+
+    def exposed_save_suts(self, sutList):
+        """ save sut to file """
+
+        # Save sut files
+        for (name, sut) in sutList:
+            try:
+                childPath = '{}/config/sut/{}.json'.format(TWISTER_PATH, name)
+                with open(childPath, 'w') as f:
+                    json.dump(sut, f, indent=4)
+            except Exception as e:
+                pass
+
+        return True
+
+
+    def exposed_get_suts(self):
+        """ get all suts from files """
+
+        suts = list()
+        try:
+            sutsPath = self._conn.root.getUserVariable('sut_path')
+            if not sutsPath:
+                sutsPath = '{}/config/sut/'.format(TWISTER_PATH)
+            sutPaths = [p for p in os.listdir(sutsPath) if os.path.isfile(os.path.join(sutsPath, p))]
+
+            for sutPath in sutPaths:
+                try:
+                    sutName = '.'.join(['.'.join(sutPath.split('.')[:-1]  + ['user'])])
+                    with open(os.path.join(sutsPath, sutPath), 'r') as f:
+                        suts.append((sutName, json.load(f)))
+                except Exception as e:
+                    trace = traceback.format_exc()[34:].strip()
+        except Exception as e:
+            trace = traceback.format_exc()[34:].strip()
+            suts = None
+
+        return suts
+
+
+    def exposed_delete_sut(self, name):
+        """ get all suts from files """
+
+        try:
+            sutsPath = self._conn.root.getUserVariable('sut_path')
+            if not sutsPath:
+                sutsPath = '{}/config/sut/'.format(TWISTER_PATH)
+            os.remove(os.path.join(sutsPath, '.'.join([name, 'json'])))
+        except Exception as e:
+            return False
 
 
 # # #

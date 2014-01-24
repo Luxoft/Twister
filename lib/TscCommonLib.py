@@ -338,13 +338,13 @@ class TscCommonLib(object):
         except: return None
 
 
-    def getResourceStatus(self, query):
-        try: return self.ce_proxy.getResourceStatus(query)
+    def isResourceReserved(self, query):
+        try: return self.ce_proxy.isResourceReserved(query)
         except: return None
 
 
-    def allocResource(self, query):
-        try: return self.ce_proxy.allocResource(query)
+    def isSutReserved(self, query):
+        try: return self.ce_proxy.isSutReserved(query)
         except: return None
 
 
@@ -353,8 +353,78 @@ class TscCommonLib(object):
         except: return None
 
 
-    def freeResource(self, query):
-        try: return self.ce_proxy.freeResource(query)
+    def reserveSut(self, query):
+        try: return self.ce_proxy.reserveSut(query)
+        except: return None
+
+
+    def saveAndReleaseReservedResource(self, query):
+        try: return self.ce_proxy.saveAndReleaseReservedResource(query)
+        except: return None
+
+
+    def saveReservedResource(self, query):
+        try: return self.ce_proxy.saveReservedResource(query)
+        except: return None
+
+
+    def saveReservedResourceAs(self, name, query):
+        try: return self.ce_proxy.saveReservedResourceAs(name, query)
+        except: return None
+
+
+    def saveReservedSut(self, query):
+        try: return self.ce_proxy.saveReservedSut(query)
+        except: return None
+
+
+    def saveReservedSutAs(self, name, query):
+        try: return self.ce_proxy.saveReservedSutAs(name, query)
+        except: return None
+
+
+    def saveAndReleaseReservedSut(self, query):
+        try: return self.ce_proxy.saveAndReleaseReservedSut(query)
+        except: return None
+
+
+    def discardAndReleaseReservedResource(self, query):
+        try: return self.ce_proxy.discardAndReleaseReservedResource(query)
+        except: return None
+
+
+    def discardAndReleaseReservedSut(self, query):
+        try: return self.ce_proxy.discardAndReleaseReservedSut(query)
+        except: return None
+
+
+    def isResourceLocked(self, query):
+        try: return self.ce_proxy.isResourceLocked(query)
+        except: return None
+
+
+    def isSutLocked(self, query):
+        try: return self.ce_proxy.isSutLocked(query)
+        except: return None
+
+
+    def lockResource(self, query):
+        try: return self.ce_proxy.lockResource(query)
+        except: return None
+
+
+    def lockSut(self, query):
+        try: return self.ce_proxy.lockSut(query)
+        except: return None
+
+
+    def unlockResource(self, query):
+        try: return self.ce_proxy.unlockResource(query)
+        except: return None
+
+
+    def unlockSut(self, query):
+        try: return self.ce_proxy.unlockSut(query)
         except: return None
 
 
