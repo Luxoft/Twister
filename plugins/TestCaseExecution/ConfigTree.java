@@ -1,6 +1,6 @@
 /*
 File: ConfigTree.java ; This file is part of Twister.
-Version: 2.006
+Version: 2.007
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -30,7 +30,6 @@ import com.jcraft.jsch.SftpException;
 import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.Session;
 import com.jcraft.jsch.Channel;
-import com.jcraft.jsch.ChannelSftp;
 import java.util.Properties;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -386,6 +385,11 @@ public class ConfigTree extends JPanel{
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+    
+    public void disconnect(){
+        connection.disconnect();
+        session.disconnect();
     }
     
     private void initializeSftp(){

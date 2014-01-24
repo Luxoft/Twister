@@ -1,6 +1,6 @@
 /*
 File: RunnerRepository.java ; This file is part of Twister.
-Version: 2.0038
+Version: 2.0039
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -130,7 +130,7 @@ public class RunnerRepository {
                          LOGSPATH ,XMLREMOTEDIR,REMOTEPLUGINSDIR,
                          REMOTELIBRARY,PREDEFINEDSUITES,
                          REMOTEUSERSDIRECTORY, REMOTEEPIDDIR, //REMOTEHARDWARECONFIGDIRECTORY,
-                         PLUGINSLOCALGENERALCONF, GLOBALSREMOTEFILE,
+                         PLUGINSLOCALGENERALCONF, GLOBALSREMOTEFILE,SUTPATH,
                          SECONDARYLOGSPATH,PATHENABLED,TESTCONFIGPATH;
     public static Image passicon,testbedicon,porticon,suitaicon, tcicon, propicon,
                         failicon, passwordicon, playicon, stopicon, pauseicon,logo,
@@ -155,8 +155,8 @@ public class RunnerRepository {
     public static Container container;
     public static Applet applet;
     private static Document pluginsconfig;
-    private static String version = "2.044";
-    private static String builddate = "06.11.2013";
+    private static String version = "2.045";
+    private static String builddate = "23.01.2014";
     public static String logotxt,os,python;
     private static int remotefiletries = 0;
     
@@ -386,6 +386,7 @@ public class RunnerRepository {
         variables.put("pluginslocalgeneralconf",PLUGINSLOCALGENERALCONF);
         variables.put("remotegeneralpluginsdir",REMOTEPLUGINSDIR);
         variables.put("globalremotefile",GLOBALSREMOTEFILE);
+        variables.put("sutpath",SUTPATH);
     }
         
     /*
@@ -846,8 +847,6 @@ public class RunnerRepository {
                 ConfigFiles.saveXML(true,"");
                 //in = c.get("fwmconfig.xml");
             }
-            
-            
             File file = new File(temp+bar+"Twister"+bar+"config"+bar+"fwmconfig.xml");
             BufferedWriter writer = new BufferedWriter(new FileWriter(file));
             writer.write(content);
@@ -904,6 +903,7 @@ public class RunnerRepository {
                 SECONDARYLOGSPATH = getTagContent(doc,"ArchiveLogsPath", "framework config.");
                 PATHENABLED = getTagContent(doc,"ArchiveLogsPathActive", "framework config.");
                 TESTCONFIGPATH = getTagContent(doc,"TestConfigPath", "framework config.");
+                SUTPATH = getTagContent(doc,"SutPath", "framework config.");
                 GLOBALSREMOTEFILE = getTagContent(doc,"GlobalParams", "framework config.");
             }
             catch(Exception e){e.printStackTrace();}
@@ -1122,6 +1122,12 @@ public class RunnerRepository {
      */
     public static String getTestConfigPath(){
         return TESTCONFIGPATH;}
+        
+    /*
+     * remote sut directory path
+     */
+    public static String getSutPath(){
+        return SUTPATH;}
         
     /*
      * add suite to test suite list

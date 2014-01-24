@@ -1,6 +1,6 @@
 /*
 File: SUT.java ; This file is part of Twister.
-Version: 2.002
+Version: 2.003
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -17,40 +17,42 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import javax.swing.tree.DefaultMutableTreeNode;
 
 public class SUT{
-    private String name, eps;
-    private DefaultMutableTreeNode epsnode;
-
-    public SUT(String name, String eps){
-        this.eps = eps;
-        this.name=name;
-    }
+    private String name;
+    private String reserved;
+    private String root;
+    private String locked = "";
     
-     public DefaultMutableTreeNode getEPNode(){
-        return epsnode;
-    }
-    
-    public void setEPNode(DefaultMutableTreeNode epsnode){
-        this.epsnode = epsnode;
-    }
-    
-   
     public String getEPs(){
-        return eps;
+        return "";
     }
     
-    public void setEPs(String eps){
-        this.eps = eps;
-        if(epsnode!=null){
-            epsnode.setUserObject("EP: "+eps);
-        }
+    public SUT(String name,String root){
+        this.root = root;
+        this.name = name;
+        this.reserved = "";
     }
     
+    public String getRoot(){
+        return this.root;
+    }
+    
+    public String getReserved(){
+        return reserved;
+    }
+    
+    public void setReserved(String reserved){
+        this.reserved = reserved;
+    }
+    
+    public String getLock(){
+        return this.locked;
+    }
+    
+    public void setLock(String locked){
+        this.locked = locked;
+    }
     
     public String getName(){
         return name;
@@ -58,11 +60,15 @@ public class SUT{
     
     public void setName(String name){
         this.name=name;
-    }   
-    
-   
+    }
     
     public String toString(){
-        return this.name;
+        if(!reserved.equals("")){
+            return this.name + " - Reserved by: "+this.reserved;
+        } else if(!locked.equals("")){
+            return this.name + " - Locked by: "+this.locked;
+        } else{
+            return this.name;
+        }
     }
 }

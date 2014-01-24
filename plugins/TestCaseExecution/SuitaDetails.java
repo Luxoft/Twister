@@ -1,6 +1,6 @@
 /*
 File: SuitaDetails.java ; This file is part of Twister.
-Version: 2.0015
+Version: 2.0016
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -784,17 +784,17 @@ public class SuitaDetails extends JPanel {
     //update TB;s names in Suite Options
     //panel when there is a parent selected
     public void setComboTBs(){
-        if(parent==null)return;
-        for(ListSelectionListener l:combo.getListSelectionListeners()){
-            combo.removeListSelectionListener(l);
-        }
-        StringBuilder b = new StringBuilder();
-        DefaultMutableTreeNode root = RunnerRepository.window.mainpanel.p4.getSut().sut.root;
-        int sutsnr = root.getChildCount();
-        for(int i=0;i<sutsnr;i++){
-            b.append(root.getChildAt(i).toString());
-            b.append(";");
-        }
+//         if(parent==null)return;
+//         for(ListSelectionListener l:combo.getListSelectionListeners()){
+//             combo.removeListSelectionListener(l);
+//         }
+//         StringBuilder b = new StringBuilder();
+//         DefaultMutableTreeNode root = RunnerRepository.window.mainpanel.p4.getSut().sut.root;
+//         int sutsnr = root.getChildCount();
+//         for(int i=0;i<sutsnr;i++){
+//             b.append(root.getChildAt(i).toString());
+//             b.append(";");
+//         }
         
         
         
@@ -812,19 +812,24 @@ public class SuitaDetails extends JPanel {
 //                 b.append(";");
 //             }
 //         }
-        String [] vecresult = b.toString().split(";");
+//         String [] vecresult = b.toString().split(";");
+        
+        String [] vecresult =  RunnerRepository.window.mainpanel.p4.getSut().sut.getSutTree().getSutsName();
+        if(vecresult==null)return;
         
         
         combo.setModel(new DefaultComboBoxModel(vecresult));
         
-        String [] strings = parent.getEpId();
-        ArrayList<String> array = new ArrayList<String>(Arrays.asList(vecresult));
-        int [] sel = new int[strings.length];
-        for(int i=0;i<strings.length;i++){
-            sel[i]=array.indexOf(strings[i]);
+        if(parent!=null&&parent.getEpId()!=null){
+            String [] strings = parent.getEpId();
+            ArrayList<String> array = new ArrayList<String>(Arrays.asList(vecresult));
+            int [] sel = new int[strings.length];
+            for(int i=0;i<strings.length;i++){
+                sel[i]=array.indexOf(strings[i]);
+            }
+            combo.setSelectedIndices(sel);
+            combo.addListSelectionListener(new MyListSelectionListener());
         }
-        combo.setSelectedIndices(sel);
-        combo.addListSelectionListener(new MyListSelectionListener());
         
         
     }

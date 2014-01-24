@@ -1,6 +1,6 @@
 /*
 File: NodePanel.java ; This file is part of Twister.
-Version: 2.004
+Version: 2.005
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -68,53 +68,47 @@ public class NodePanel extends JPanel{
         init();
     }
     
-    public void setParent(Node parent,DefaultMutableTreeNode treenode){
+    public void setParent(Node parent,DefaultMutableTreeNode treenode,boolean editable){
         this.parent = parent;
         this.treenode = treenode;
-        if(parent!=null&&treenode!=null){
-            if(!add.isEnabled()){
-                add.setEnabled(true);
-            }
-        } else{
-            if(add.isEnabled()){
-                add.setEnabled(false);
-            }
-        }
-        initNewParent();
-        updateProperties();
+        add.setEnabled(editable);
+//         if(parent!=null&&treenode!=null){
+//             if(!add.isEnabled()){
+//                 add.setEnabled(true);
+//             }
+//         } else{
+//             if(add.isEnabled()){
+//                 add.setEnabled(false);
+//             }
+//         }
+        initNewParent(editable);
+        updateProperties(editable);
     }
     
     public Node getNodeParent(){
         return parent;
     }
     
-    private void initNewParent(){
+    private void initNewParent(boolean editable){
+        tname.setEnabled(editable);
         if(parent!=null){
-            if(PermissionValidator.canEditTB())tname.setEnabled(true);
+//             if(PermissionValidator.canEditTB())tname.setEnabled(true);
             tname.setText(parent.getName());
             tid.setText(parent.getID());
             tpath.setText(parent.getPath().getPath());
-            if(parent.getParent().getParent()==null){
-            } else {
-            }
         } else {
             tname.setText("");
             tid.setText("");
             tpath.setText("");
-//             tep.clearSelection();
-//             tep.setEnabled(false);
-            tname.setEnabled(false);
+//             tname.setEnabled(false);
         }
     }
 
     private void init(){
         JLabel name = new JLabel("Name: ");
         JLabel id = new JLabel("ID: ");
-//         JLabel ep = new JLabel("Run on EP: ");
         JLabel path = new JLabel("Path:");
-//         tep = new JList();
         tname = new JTextField();
-//         tep.setEnabled(false);
         tname.setEnabled(false);
         tid = new JTextField();
         tid.setEditable(false);
@@ -122,7 +116,6 @@ public class NodePanel extends JPanel{
         tpath.setEditable(false);
         JPanel jPanel1 = new JPanel();
         JScrollPane jScrollPane2 = new JScrollPane();
-//         JScrollPane epscroll = new JScrollPane(tep);
         proppanel = new JPanel();
 
         add = new JButton("Add");
@@ -138,7 +131,7 @@ public class NodePanel extends JPanel{
         proppanel.setPreferredSize(new Dimension(280, 150));
         proppanel.setLayout(null);
 
-        if(PermissionValidator.canEditTB())proppanel.add(add);
+//         if(PermissionValidator.canEditTB())proppanel.add(add);
         add.setBounds(310, 5, 90, 23);
 
         jScrollPane2.setViewportView(proppanel);
@@ -153,19 +146,6 @@ public class NodePanel extends JPanel{
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addComponent(jScrollPane2, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
         );
-
-
-//         GroupLayout jPanel1Layout = new GroupLayout(jPanel1);
-//         jPanel1.setLayout(jPanel1Layout);
-//         jPanel1Layout.setHorizontalGroup(
-//             jPanel1Layout.createParallelGroup(GroupLayout.Alignment.LEADING)
-//             .addComponent(jScrollPane2, GroupLayout.PREFERRED_SIZE, 0, Short.MAX_VALUE)
-//         );
-//         jPanel1Layout.setVerticalGroup(
-//             jPanel1Layout.createParallelGroup(GroupLayout.Alignment.LEADING)
-//             .addComponent(jScrollPane2, GroupLayout.Alignment.TRAILING,
-//                           GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-//         );
     
         GroupLayout optpanLayout = new GroupLayout(this);
         this.setLayout(optpanLayout);
@@ -211,62 +191,6 @@ public class NodePanel extends JPanel{
                 .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                 .addContainerGap())
         );
-    
-    
-//     optpanLayout.setHorizontalGroup(
-//         optpanLayout.createParallelGroup(GroupLayout.Alignment.LEADING)
-//         .addGroup(optpanLayout.createSequentialGroup()
-//             .addContainerGap()
-//             .addGroup(optpanLayout.createParallelGroup(GroupLayout.Alignment.LEADING)
-//                 .addGroup(optpanLayout.createSequentialGroup()
-//                     .addGroup(optpanLayout.createParallelGroup(GroupLayout.Alignment.LEADING)
-//                         .addComponent(ep)
-//                         .addComponent(name)
-//                         .addComponent(id)
-//                         .addComponent(path))
-//                     .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-//                     .addGroup(optpanLayout.createParallelGroup(GroupLayout.Alignment.TRAILING, false)
-//                         .addComponent(epscroll, GroupLayout.Alignment.LEADING,
-//                                       GroupLayout.DEFAULT_SIZE, 151, Short.MAX_VALUE)
-//                         .addComponent(tid, GroupLayout.Alignment.LEADING, 
-//                                       GroupLayout.DEFAULT_SIZE, 151, Short.MAX_VALUE)
-//                         .addComponent(tname, GroupLayout.Alignment.LEADING)
-//                         .addComponent(tpath))
-//                     .addGap(0, 105, Short.MAX_VALUE))
-//                 .addComponent(jPanel1, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-//             .addContainerGap())
-//         );
-//         optpanLayout.setVerticalGroup(
-//             optpanLayout.createParallelGroup(GroupLayout.Alignment.LEADING)
-//             .addGroup(optpanLayout.createSequentialGroup()
-//                 .addContainerGap()
-//                 .addGroup(optpanLayout.createParallelGroup(GroupLayout.Alignment.BASELINE)
-//                     .addComponent(ep)
-//                     .addComponent(epscroll, 80, 80, 80))
-//                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-//                 
-//                 .addGroup(optpanLayout.createParallelGroup(GroupLayout.Alignment.BASELINE)
-//                     .addComponent(name)
-//                     .addComponent(tname, GroupLayout.PREFERRED_SIZE, 
-//                                   GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
-//                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-//                 
-//                 .addGroup(optpanLayout.createParallelGroup(GroupLayout.Alignment.BASELINE)
-//                     .addComponent(id)
-//                     .addComponent(tid, GroupLayout.PREFERRED_SIZE, 
-//                                   GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
-//                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-//                 
-//                 .addGroup(optpanLayout.createParallelGroup(GroupLayout.Alignment.BASELINE)
-//                     .addComponent(path)
-//                     .addComponent(tpath, GroupLayout.PREFERRED_SIZE, 
-//                                   GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
-//                 .addGap(18, 18, 18)
-//                 .addComponent(jPanel1, GroupLayout.DEFAULT_SIZE, 
-//                                GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-//                 .addContainerGap())
-//         );
-        
         tname.addFocusListener(new FocusAdapter(){
             public void focusLost(FocusEvent ev){
                 if(tname.getText().equals("")&&parent!=null){
@@ -292,7 +216,7 @@ public class NodePanel extends JPanel{
                             parent.setName(tname.getText());
                             tpath.setText(parent.getPath().getPath());
                             ((DefaultTreeModel)tree.getModel()).nodeChanged(treenode);
-//                             RunnerRepository.window.mainpanel.p1.suitaDetails.setComboTBs();
+                            RunnerRepository.window.mainpanel.p4.getTB().setSavedState(treenode,false);
                         } else {
                             System.out.println("There was an error: "+query);
                             CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,NodePanel.this,
@@ -324,7 +248,8 @@ public class NodePanel extends JPanel{
                             query = client.execute("setResource", new Object[]{name,path,query}).toString();
                             if(query.equals("true")){
                                 parent.addProperty(resp, "");
-                                updateProperties();
+                                updateProperties(true);
+                                RunnerRepository.window.mainpanel.p4.getTB().setSavedState(treenode,false);
                             }
                         } else {
                             CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,NodePanel.this,
@@ -335,7 +260,6 @@ public class NodePanel extends JPanel{
                 }
             }
         });
-//         populateEPs();
     }
     
     /*
@@ -361,7 +285,7 @@ public class NodePanel extends JPanel{
     }
     
     
-    public void updateProperties(){
+    public void updateProperties(boolean editable){
         proppanel.removeAll();
         if(parent!=null){
             int size = parent.getProperties().size();
@@ -373,10 +297,12 @@ public class NodePanel extends JPanel{
                 
                 final JLabel jLabel1 = new JLabel("Name: ");
                 final MyTextField jTextField1 = new MyTextField(keys[i].toString());
-                if(!PermissionValidator.canEditTB())jTextField1.setEnabled(false);
+                jTextField1.setEnabled(editable);
+//                 if(!PermissionValidator.canEditTB())jTextField1.setEnabled(false);
                 JLabel jLabel2 = new JLabel("Value:");
                 final JTextField jTextField2 = new JTextField();
-                if(!PermissionValidator.canEditTB())jTextField2.setEnabled(false);
+                jTextField2.setEnabled(editable);
+//                 if(!PermissionValidator.canEditTB())jTextField2.setEnabled(false);
                 proppanel.add(jLabel1);
                 jLabel1.setBounds(5, i*30+5, 210, 14);
                 proppanel.add(jTextField1);
@@ -403,6 +329,7 @@ public class NodePanel extends JPanel{
                                 if(resp.equals("true")){
                                     parent.addProperty(jTextField1.getText(), parent.getProperties().remove(jTextField1.getOldValue()).toString());
                                     jTextField1.setOldValue(jTextField1.getText());
+                                    RunnerRepository.window.mainpanel.p4.getTB().setSavedState(treenode,false);
                                 } else {
                                     jTextField1.setText(jTextField1.getOldValue());
                                 }
@@ -429,6 +356,7 @@ public class NodePanel extends JPanel{
                         try{String resp = client.execute("setResource", new Object[]{name,path,query}).toString();
                             if(resp.equals("true")){
                                 parent.addProperty(key,value);
+                                RunnerRepository.window.mainpanel.p4.getTB().setSavedState(treenode,false);
                             }
                         }
                         catch(Exception e){e.printStackTrace();}
@@ -445,7 +373,8 @@ public class NodePanel extends JPanel{
                                                                     jTextField1.getText()}).toString();
                             if(s.equals("true")){
                                 parent.getProperties().remove(jTextField1.getText());
-                                updateProperties();
+                                updateProperties(true);
+                                RunnerRepository.window.mainpanel.p4.getTB().setSavedState(treenode,false);
                             }
                         } catch(Exception e){
                             e.printStackTrace();
@@ -455,10 +384,12 @@ public class NodePanel extends JPanel{
                 proppanel.add(jLabel1);
                 proppanel.add(jLabel2);
                 proppanel.add(jTextField2);
-                if(PermissionValidator.canEditTB())proppanel.add(remove);
+                if(editable)proppanel.add(remove);
+//                 if(PermissionValidator.canEditTB())proppanel.add(remove);
             }
             add.setBounds(310, (size*30)+2, 90, 23);
-            if(PermissionValidator.canEditTB())proppanel.add(add);
+            if(editable)proppanel.add(add);
+//             if(PermissionValidator.canEditTB())proppanel.add(add);
             proppanel.setPreferredSize(new Dimension(280, (size*30)+30));
         }
         proppanel.repaint();
@@ -486,38 +417,6 @@ public class NodePanel extends JPanel{
     }
     
     
-//     public void populateEPs(){
-//         try{
-//             StringBuilder b = new StringBuilder();
-//             String st;
-//             for(String s:RunnerRepository.getRemoteFileContent(RunnerRepository.REMOTEEPIDDIR).split("\n")){
-//                 if(s.indexOf("[")!=-1){
-//                     st = s.substring(s.indexOf("[")+1, s.indexOf("]"));
-//                     if(st.toUpperCase().indexOf("PLUGIN")==-1){
-//                         b.append(s.substring(s.indexOf("[")+1, s.indexOf("]"))+";");
-//                     }
-//                 }
-//             }
-//             String [] vecresult = b.toString().split(";");
-//             for(ListSelectionListener l:tep.getListSelectionListeners()){
-//                 tep.removeListSelectionListener(l);
-//             }
-//             tep.setModel(new DefaultComboBoxModel(vecresult));
-//             ArrayList<String> array = new ArrayList<String>(Arrays.asList(vecresult));
-//             if(parent!=null&&parent.getEPs()!=null){
-//                 String [] strings = parent.getEPs().split(";");
-//                 int [] sel = new int[strings.length];
-//                 for(int i=0;i<strings.length;i++){
-//                     sel[i]=array.indexOf(strings[i]);
-//                 }
-//                 tep.setSelectedIndices(sel);
-//             }
-//             
-//             tep.addListSelectionListener(new MyListSelectionListener());
-//         } catch (Exception e){e.printStackTrace();}
-//     }
-    
-    
     class MyListSelectionListener implements ListSelectionListener {
         public void valueChanged(ListSelectionEvent evt) {
             if (!evt.getValueIsAdjusting()&&parent!=null) {
@@ -533,6 +432,7 @@ public class NodePanel extends JPanel{
                 try{String resp = client.execute("setResource", new Object[]{name,path,query}).toString();
                     if(resp.equals("true")){
                         parent.setEPs(sb.toString());
+                        RunnerRepository.window.mainpanel.p4.getTB().setSavedState(treenode,false);
                     }
                 }
                 catch(Exception e){e.printStackTrace();}
