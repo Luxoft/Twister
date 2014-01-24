@@ -265,7 +265,7 @@ class TscCommonLib(object):
 
 
     def getSut(self, query):
-        try: return self.ce_proxy.getSut(query)
+        try: return self.ce_proxy.getSut(query=query)
         except: return None
 
 
@@ -314,8 +314,18 @@ class TscCommonLib(object):
         except: return None
 
 
+    def saveReservedResourceAs(self, name, query):
+        try: return self.ce_proxy.saveReservedResourceAs(name, query)
+        except: return None
+
+
     def saveReservedSut(self, query):
         try: return self.ce_proxy.saveReservedSut(query)
+        except: return None
+
+
+    def saveReservedSutAs(self, name, query):
+        try: return self.ce_proxy.saveReservedSutAs(name, query)
         except: return None
 
 
@@ -324,13 +334,43 @@ class TscCommonLib(object):
         except: return None
 
 
-    def discardReservedResource(self, query):
-        try: return self.ce_proxy.discardReservedResource(query)
+    def discardAndReleaseReservedResource(self, query):
+        try: return self.ce_proxy.discardAndReleaseReservedResource(query)
         except: return None
 
 
-    def discardReservedSut(self, query):
-        try: return self.ce_proxy.discardReservedSut(query)
+    def discardAndReleaseReservedSut(self, query):
+        try: return self.ce_proxy.discardAndReleaseReservedSut(query)
+        except: return None
+
+
+    def isResourceLocked(self, query):
+        try: return self.ce_proxy.isResourceLocked(query)
+        except: return None
+
+
+    def isSutLocked(self, query):
+        try: return self.ce_proxy.isSutLocked(query)
+        except: return None
+
+
+    def lockResource(self, query):
+        try: return self.ce_proxy.lockResource(query)
+        except: return None
+
+
+    def lockSut(self, query):
+        try: return self.ce_proxy.lockSut(query)
+        except: return None
+
+
+    def unlockResource(self, query):
+        try: return self.ce_proxy.unlockResource(query)
+        except: return None
+
+
+    def unlockSut(self, query):
+        try: return self.ce_proxy.unlockSut(query)
         except: return None
 
 

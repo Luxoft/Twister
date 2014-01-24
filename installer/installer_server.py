@@ -1,5 +1,5 @@
 
-# version: 2.003
+# version: 2.004
 
 # File: installer.py ; This file is part of Twister.
 
@@ -151,6 +151,7 @@ to_copy = [
     'server/',
     'common/',
     'lib/',
+    'config/sut',
     'config/resources.json',
     'config/services.ini',
     'config/users_and_groups.ini',
