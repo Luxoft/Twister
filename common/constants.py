@@ -103,6 +103,6 @@ SUITES_TAGS = (
 TESTS_TAGS = (
 	{'name':'file',			'tag':'tcName',				'default':''},
 	{'name':'config_files',	'tag':'ConfigFiles',		'default':''},
-	{'name':'dependency',	'tag':'Dependency',			'default':''},
-	{'name':'clearcase',	'tag':'ClearCase',			'default':''},
+	{'name':'dependancy',	'tag':'Dependancy',			'default':''},
+	{'name':'clearcase',	'tag':'ClearCaseView',		'default':''},
 )

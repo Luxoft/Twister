@@ -2,7 +2,7 @@
 
 # File: start_client.py ; This file is part of Twister.
 
-# version: 3.003
+# version: 1.008
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -275,10 +275,9 @@ class TwisterClient(object):
         print('Sniffer eth = `{}`.'.format(snifferEth))
         print('Building the EP list for this machine...')
 
-        # This will be a temporary list of valid EP names, filtered by Enabled/ IP/ host
-        epList = []
+        # This will be a temporary list of valid EP names, filtered by IP/ host
+        self.epList = []
 
-        # Cycle all EPs
         for ep in cfg.sections():
             # EP disabled ?
             if cfg.has_option(ep, 'ENABLED'):
@@ -287,17 +286,17 @@ class TwisterClient(object):
                     continue
             # Invalid EP tag ?
             if not cfg.has_option(ep, 'CE_IP') or not cfg.has_option(ep, 'CE_PORT'):
-                print('Section `{}` is not a valid EP, because it needs CE_IP and CE_PORT.'.format(ep))
+                # print('Section `{}` is not a valid EP.'.format(ep))
                 continue
             # If this EP does NOT have a HOST filter, it's a valid EP
             if not cfg.has_option(ep, 'EP_HOST'):
                 print('EP `{}` doesn\'t have a HOST filter, so is valid.'.format(ep))
-                epList.append(ep)
+                self.epList.append(ep)
                 continue
             # If the HOST filter is empty, it's a valid EP
             if not cfg.get(ep, 'EP_HOST'):
                 print('EP `{}` has an empty HOST filter, so is valid.'.format(ep))
-                epList.append(ep)
+                self.epList.append(ep)
                 continue
 
             # This is an EP with EP HOST filter!
@@ -305,95 +304,62 @@ class TwisterClient(object):
             # If the host from EPNAMES matches, it's a valid EP
             if ep_host == self.hostName:
                 print('EP `{}` has a HOST match ({}), so is valid.'.format(ep, ep_host))
-                epList.append(ep)
+                self.epList.append(ep)
             try:
                 # If the ip from EPNAMES matches this IP, it's a valid EP
                 if ep_host in socket.gethostbyaddr(self.hostName)[-1]:
                     print('EP `{}` has an IP match ({}), so is valid.'.format(ep, ep_host))
-                    epList.append(ep)
+                    self.epList.append(ep)
             except Exception as e:
                 pass
 
             print('EP `{}` doesn\'t match with required HOST `{}`, so is ignored.'.format(ep, ep_host))
 
         # Sort and eliminate duplicates
-        self.epList = sorted(set(epList))
+        self.epList = sorted(set(self.epList))
 
         print('Found `{}` EPs: {}.\n'.format(len(self.epList), self.epList))
         return self.epList
 
 #
 
-    def addEp(self, epname, ce_ip, ce_port):
-        """
-        Shortcut function to add a new EP in the EP structure.
-        """
-        # A lot of meta-data for current EP
-        epData = {}
-        epData['pid'] = None
-        epData['ce_ip'] = ce_ip
-        epData['ce_port'] = ce_port
-
-        epData['exec_str'] = 'nohup {py} -u {path}/client/executionprocess/ExecutionProcess.py '\
-                '-u {user} -e {ep} -s {ip}:{port} > "{path}/.twister_cache/{ep}_LIVE.log" '.format(
-                py = sys.executable,
-                path = TWISTER_PATH,
-                user = self.userName,
-                ep = epname,
-                ip = epData['ce_ip'],
-                port = epData['ce_port']
-            )
-
-        self.epNames[epname] = epData
-        return True
-
-#
-
     def parseConfiguration(self):
         """
-        Parse the EPNAMES.ini and prepare to register the Execution Processes.
-        If the file is not found, create a single `hostname_auto` EP on localhost.
-        If the file is found but there are no EPs, create a single `hostname_auto` EP,
-        on AUTO_CE_IP and AUTO_CE_PORT.
+        Parse the EPNAMES.ini and prepare to launch the Execution Processes.
         """
         global TWISTER_PATH
-        epnames = '{}/config/epname.ini'.format(TWISTER_PATH)
-
-        if not os.path.isfile(epnames):
-            # Register the Hostname + Auto. The Central Engine MUST be on localhost:8000
-            print('Cannot find `epname.ini` file! Will register `{}` EP on `localhost:8000`...'.format(self.hostName + '_auto'))
-            self.addEp(self.hostName + '_auto', '127.0.0.1', 8000)
-            return True
 
         # The Config Parser instance
         cfg = SafeConfigParser()
-        cfg.read(epnames)
+        cfg.read('{}/config/epname.ini'.format(TWISTER_PATH))
 
-        epList = self._reloadEps(cfg)
+        self._reloadEps(cfg)
 
-        # Use the auto ?
-        if not epList:
-            if cfg.has_option('AUTO', 'AUTO_CE_IP') and cfg.has_option('AUTO', 'AUTO_CE_PORT'):
-                auto_ip = cfg.get('AUTO', 'AUTO_CE_IP')
-                auto_port = cfg.get('AUTO', 'AUTO_CE_PORT')
-                print('No EPs found, but found [AUTO] section with AUTO_CE_IP and AUTO_CE_PORT.\n'
-                      'Will register `{}` EP on Central Engine `{}:{}`...\n'.format(self.hostName + '_auto', auto_ip, auto_port))
-                self.addEp(self.hostName + '_auto', auto_ip, auto_port)
-                return True
-            else:
-                print('No EPs found and cannot find [AUTO] section with AUTO_CE_IP and AUTO_CE_PORT!\n'
-                      'This client will hang forever...\n')
-                return False
-
-        # Generate meta-data for each EP + the Anonymous EP
-        for currentEP in epList:
+        # Generate meta-data for each EP
+        for currentEP in self.epList:
             # Incomplete EP tag ?
             if not cfg.has_option(currentEP, 'CE_IP') or not cfg.has_option(currentEP, 'CE_PORT'):
                 continue
-            # Register the Hostname + EP name
-            self.addEp(self.hostName + '_' + currentEP, cfg.get(currentEP, 'CE_IP'), cfg.get(currentEP, 'CE_PORT'))
 
-        return True
+            # A lot of meta-data for current EP
+            epData = {}
+            epData['pid']   = None
+            epData['ce_ip'] = cfg.get(currentEP, 'CE_IP')
+            epData['ce_port'] = cfg.get(currentEP, 'CE_PORT')
+
+            epData['exec_str'] = 'nohup {py} -u {path}/client/executionprocess/ExecutionProcess.py '\
+                    '-u {user} -e {ep} -s {ip}:{port} > "{path}/.twister_cache/{ep}_LIVE.log" '.format(
+                    py = sys.executable,
+                    path = TWISTER_PATH,
+                    user = self.userName,
+                    ep = currentEP,
+                    ip = epData['ce_ip'],
+                    port = epData['ce_port']
+                )
+
+            self.epNames[currentEP] = epData
+
+        del cfg
 
 #
 
@@ -503,23 +469,9 @@ class TwisterClientService(rpyc.Service):
             self.connections[connid] = proxy
             print('ClientService: Hello `{}`!'.format(proxy))
             return True
-        except:
+        except Exception as e:
             trace = traceback.format_exc()[34:].strip()
             print('ClientService: Error on Hello: `{}`.'.format(trace))
-            return False
-
-
-    def exposed_add_ep(self, epname, ce_ip, ce_port):
-        """
-        Add a new EP in the EP structure.
-        """
-        global client
-        try:
-            client.addEp(self, epname, ce_ip, ce_port)
-            return True
-        except:
-            trace = traceback.format_exc()[34:].strip()
-            print('ClientService: Error on Add EP: `{}`.'.format(trace))
             return False
 
 
@@ -530,7 +482,7 @@ class TwisterClientService(rpyc.Service):
         global userName, client
 
         if epname not in client.epNames:
-            print('*ERROR* Cannot start! Unknown EP name : `{}` !'.format(epname))
+            print('*ERROR* Unknown EP name : `{}` !'.format(epname))
             return False
 
         tproc = client.epNames[epname].get('pid')
@@ -561,7 +513,7 @@ class TwisterClientService(rpyc.Service):
         global userName, client
 
         if epname not in client.epNames:
-            print('*ERROR* Cannot stop! Unknown EP name : `{}` !'.format(epname))
+            print('*ERROR* Unknown EP name : `{}` !'.format(epname))
             return False
 
         tproc = client.epNames[epname].get('pid')
@@ -572,25 +524,20 @@ class TwisterClientService(rpyc.Service):
 
         try:
             os.killpg(PID, signal.SIGINT)
-            time.sleep(0.5)
-            os.killpg(PID, 9)
             client.epNames[epname]['pid'] = None
         except:
             trace = traceback.format_exc()[34:].strip()
             print('ClientService: Error on Stop EP: `{}`.'.format(trace))
             return False
 
-        # Normally, this will Never execute, but kill the stubborn zombies, just in case
-        Tries = 3
-        while Tries > 0:
+        # A small delay, to allow the EP to send the logs from the buffer
+        time.sleep(0.5)
+
+        while True:
             ps = subprocess.check_output('ps ax | grep ExecutionProcess.py | grep -u {} | grep -e {}'.format(userName, epname), shell=True)
             ps = ps.strip().splitlines()[:-2] # Ignore the last 2 lines (the grep and shell=True)
             # If all the processes are dead, it's ok
             if not ps: break
-
-            # Another small delay, before killing the zombie
-            time.sleep(0.25)
-            Tries -= 1
 
             for line in ps:
                 li = line.strip().split()
@@ -604,6 +551,8 @@ class TwisterClientService(rpyc.Service):
                     trace = traceback.format_exc()[34:].strip()
                     print('ClientService: Error on Stop EP: `{}`.'.format(trace))
                     # return False # No need to exit
+
+            time.sleep(0.25) # Another small delay, before checking again
 
         print('Stopped EP `{}`! (pid = {})\n'.format(epname, PID))
         return True

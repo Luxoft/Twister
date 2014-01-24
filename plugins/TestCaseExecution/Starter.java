@@ -1,6 +1,6 @@
 /*
 File: Starter.java ; This file is part of Twister.
-Version: 2.008
+Version: 2.009
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -118,10 +118,11 @@ public class Starter implements TwisterPluginInterface{
         RunnerRepository.window.mainpanel.p4.getPlugins().ch.disconnect();
         RunnerRepository.window.mainpanel.p4.getGlobals().session.disconnect();
         RunnerRepository.window.mainpanel.p4.getGlobals().ch.disconnect();
-        RunnerRepository.window.mainpanel.p4.getTestConfig().tree.session.disconnect();
-        RunnerRepository.window.mainpanel.p4.getTestConfig().tree.connection.disconnect();
-        RunnerRepository.window.mainpanel.p4.getTestConfig().cfgedit.session.disconnect();
-        RunnerRepository.window.mainpanel.p4.getTestConfig().cfgedit.ch.disconnect();
+        RunnerRepository.window.mainpanel.p4.getTestConfig().tree.disconnect();
+        RunnerRepository.window.mainpanel.p4.getTestConfig().cfgedit.disconnect();
+        RunnerRepository.window.mainpanel.p4.getSut().sut.disconnect();
+        RunnerRepository.window.mainpanel.p4.getTB().releaseAllResources();
+        RunnerRepository.window.mainpanel.p4.getSut().sut.getSutTree().releaseAllSuts();
     }
     
     public String getName(){

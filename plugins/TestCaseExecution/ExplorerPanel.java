@@ -1,6 +1,6 @@
 /*
 File: ExplorerPanel.java ; This file is part of Twister.
-Version: 2.008
+Version: 2.007
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -791,9 +791,7 @@ public class ExplorerPanel {
                 vector.add(files.get(i));
             }
             for (int i = 0; i < vector.size(); i++) {
-                String pwd="";
                 try {
-                    pwd = c.pwd();
                     current = c.pwd();
                     c.cd(vector.get(i));
                     getList(child, c,curentdir+"/"+vector.get(i));
@@ -803,7 +801,6 @@ public class ExplorerPanel {
                         child2 = new DefaultMutableTreeNode(vector.get(i));
                         child.add(child2);
                     } else {
-                        System.out.println("cd to: "+pwd+"/"+vector.get(i));
                         e.printStackTrace();
                     }
                 }

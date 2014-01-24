@@ -1,7 +1,7 @@
 
 # File: CeWebUi.py ; This file is part of Twister.
 
-# version: 3.002
+# version: 2.007
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -120,7 +120,6 @@ class WebInterface(object):
 
     @cherrypy.expose
     def index(self):
-        logFull('CeWebUi:index')
         if self.user_agent() == 'x':
             return 0
 
@@ -139,7 +138,6 @@ class WebInterface(object):
 
     @cherrypy.expose
     def users(self, user=''):
-        logFull('CeWebUi:users')
         if self.user_agent() == 'x':
             return 0
         if not user:
@@ -164,7 +162,6 @@ class WebInterface(object):
 
     @cherrypy.expose
     def json_stats(self):
-        logFull('CeWebUi:json_stats')
         if self.user_agent() == 'x':
             return 0
 
@@ -178,7 +175,6 @@ class WebInterface(object):
 
     @cherrypy.expose
     def json_get_project(self):
-        logFull('CeWebUi:json_get_project')
         if self.user_agent() == 'x':
             return 0
 
@@ -191,7 +187,6 @@ class WebInterface(object):
 
     @cherrypy.expose
     def json_save_project(self, user, epname):
-        logFull('CeWebUi:json_save_project user `{}`.'.format(user))
         if self.user_agent() == 'x':
             return 0
 
@@ -218,7 +213,6 @@ class WebInterface(object):
 
     @cherrypy.expose
     def json_eps(self, user, epname):
-        logFull('CeWebUi:json_eps user `{}`.'.format(user))
         if self.user_agent() == 'x':
             return 0
 
@@ -257,7 +251,6 @@ class WebInterface(object):
 
     @cherrypy.expose
     def json_folders(self, user):
-        logFull('CeWebUi:json_folders user `{}`.'.format(user))
         if self.user_agent() == 'x':
             return 0
 
@@ -271,7 +264,6 @@ class WebInterface(object):
 
     @cherrypy.expose
     def json_logs(self, user='', log=''):
-        logFull('CeWebUi:json_logs')
         if self.user_agent() == 'x':
             return 0
 
@@ -296,7 +288,6 @@ class WebInterface(object):
 
     @cherrypy.expose
     def resetUser(self, user):
-        logFull('CeWebUi:resetUser user `{}`.'.format(user))
         self.project.resetProject(user)
         self.project.resetLogs(user)
         raise cherrypy.HTTPRedirect('http://{host}/web/users/{user}'.format(
@@ -306,7 +297,6 @@ class WebInterface(object):
 
     @cherrypy.expose
     def setUserStatus(self, user, status):
-        logFull('CeWebUi:setUserStatus user `{}`.'.format(user))
         output = Template(filename=TWISTER_PATH + '/server/template/rest_error.htm')
         try: status = int(status)
         except: return output.render(title='Error!', body='<b>Status value `{0}` is invalid!</b>'.format(status))
@@ -321,7 +311,6 @@ class WebInterface(object):
 
     @cherrypy.expose
     def setEpStatus(self, user, epname, status):
-        logFull('CeWebUi:setEpStatus user `{}`.'.format(user))
         output = Template(filename=TWISTER_PATH + '/server/template/rest_error.htm')
         try: status = int(status)
         except: return output.render(title='Error!', body='<b>Status value `{0}` is invalid!</b>'.format(status))

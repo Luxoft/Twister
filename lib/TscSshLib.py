@@ -1,12 +1,11 @@
 # File: TscSshLib.py ; This file is part of Twister.
 
-# version: 2.004
+# version: 2.003
 #
 # Copyright (C) 2012-2013 , Luxoft
 #
 # Authors:
 #    Adrian Toader <adtoader@luxoft.com>
-#    Bogdan Popescu <bpopescu@luxoft.com>
 #
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -367,8 +366,7 @@ class SshShell:
             if prompt_set:
                 # read output untill last line is the one with the prompt
                 last_line = '\n' + self.prompt
-                iter = 0
-                while iter < 5:
+                while True:
                     try:
                         resp = self.session.recv(self.nbytes)
                         readBuffer += resp
@@ -379,10 +377,7 @@ class SshShell:
                             break;
                         time.sleep(0.5)
                     except Exception as e:
-                        time.sleep(1)
-                        if iter == 4:
-                            print('CC_LIB: Read retry; prompt is set to `{}`.'.format(self.prompt))
-                    iter += 1
+                        print('CC_LIB: Read retry; prompt is set to `{}`.'.format(self.prompt))
             else:
                 # No prompt is set; just try to read untill timeout;
                 # repeat 5 times
@@ -393,7 +388,7 @@ class SshShell:
                         readBuffer += resp
                         time.sleep(0.5)
                     except Exception as e:
-                        time.sleep(1)
+                        pass
                     iter += 1
 
             return readBuffer
@@ -416,7 +411,6 @@ class SshShell:
 
         if (command.find('cleartool setview') != -1):
             """ After a setview command, we need to set back the prompt """
-            time.sleep(0.5)
             self.setPrompt()
             return ''
 

@@ -1,6 +1,6 @@
 /*
 File: ConfigEditor.java ; This file is part of Twister.
-Version: 2.004
+Version: 2.005
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -1253,6 +1253,11 @@ public class ConfigEditor extends JPanel{
 //             e.printStackTrace();
 //         }
 //     }
+
+     public void disconnect(){
+        ch.disconnect();
+        session.disconnect();
+    }
     
     /*
      * initialize SFTP connection used

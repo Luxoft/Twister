@@ -33,10 +33,15 @@ import java.io.InputStreamReader;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import javax.swing.JFrame;
+import javax.swing.JLabel;
 import javax.swing.JButton;
 import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
-
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+import javax.swing.JOptionPane;
+import com.twister.CustomDialog;
+import java.io.File;
 
 /*
  * main method for starting Twister local
@@ -53,7 +58,7 @@ public class Main{
         readLogoTxt();
         PermissionValidator.init("CREATE_PROJECT,CHANGE_PROJECT,DELETE_PROJECT,CHANGE_PLUGINS,"+
                                  "CHANGE_FWM_CFG,CHANGE_GLOBALS,RUN_TESTS,EDIT_TC,"+
-                                 "CHANGE_DB_CFG,CHANGE_EML_CFG,CHANGE_SERVICES,CHANGE_SUT");
+                                 "CHANGE_DB_CFG,CHANGE_EML_CFG,CHANGE_SERVICES,CHANGE_SUT,CHANGE_TESTBED,LOCK_SUT,LOCK_TESTBED");
         final JFrame f = new JFrame();
         f.setVisible(true);
         f.setBounds(0,0,800,600);
@@ -62,10 +67,44 @@ public class Main{
                 if(RunnerRepository.window!=null){
                     RunnerRepository.setSize(f.getWidth(), f.getHeight());
                 }}});
+                
+        f.addWindowListener(new WindowAdapter(){
+                public void windowClosing(WindowEvent e){
+                    RunnerRepository.saveMainLayout();
+                    RunnerRepository.window.mainpanel.p4.getPlugins().uploadPluginsFile();
+                    int r = (Integer)CustomDialog.showDialog(
+                                new JLabel("Save your Project XML before exiting ?"),
+                                JOptionPane.QUESTION_MESSAGE, 
+                                JOptionPane.OK_CANCEL_OPTION, RunnerRepository.window.mainpanel, "Save", null);
+                    if(r == JOptionPane.OK_OPTION){RunnerRepository.window.mainpanel.saveUserXML();}
+                    if(RunnerRepository.window.deleteTemp(new File(RunnerRepository.temp)))
+                        System.out.println(RunnerRepository.temp+
+                                            System.getProperty("file.separator")+
+                                            "Twister deleted successfull");
+                    else System.out.println("Could not delete: "+RunnerRepository.temp+
+                                            RunnerRepository.getBar()+"Twister");
+                    f.dispose();
+                    RunnerRepository.run = false;
+                    RunnerRepository.session.disconnect();
+                    RunnerRepository.connection.disconnect();        
+                    RunnerRepository.window.mainpanel.p1.ep.session.disconnect();
+                    RunnerRepository.window.mainpanel.p1.ep.connection.disconnect();
+                    RunnerRepository.window.mainpanel.p1.lp.session.disconnect();
+                    RunnerRepository.window.mainpanel.p1.lp.connection.disconnect();
+                    RunnerRepository.window.mainpanel.p4.getPlugins().session.disconnect();
+                    RunnerRepository.window.mainpanel.p4.getPlugins().ch.disconnect();
+                    RunnerRepository.window.mainpanel.p4.getGlobals().session.disconnect();
+                    RunnerRepository.window.mainpanel.p4.getGlobals().ch.disconnect();
+                    RunnerRepository.window.mainpanel.p4.getTestConfig().tree.disconnect();
+                    RunnerRepository.window.mainpanel.p4.getTestConfig().cfgedit.disconnect();
+                    RunnerRepository.window.mainpanel.p4.getSut().sut.disconnect();
+                    RunnerRepository.window.mainpanel.p4.getTB().releaseAllResources();
+                    RunnerRepository.window.mainpanel.p4.getSut().sut.getSutTree().releaseAllSuts();
+                    System.exit(0);}});
         f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        RunnerRepository.host = "11.126.32.20";
-        RunnerRepository.user = "luxoft";
-        RunnerRepository.password = "luxoft";
+        RunnerRepository.host = "tsc-server";
+        RunnerRepository.user = "nisuser";
+        RunnerRepository.password = "nispass";
         RunnerRepository.initialize("false",RunnerRepository.host,f.getContentPane(),null);
     }
 

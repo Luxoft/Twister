@@ -1,6 +1,6 @@
 #!/usr/bin/env python2.7
 
-# version: 3.003
+# version: 2.012
 
 # File: ExecutionProcess.py ; This file is part of Twister.
 
@@ -51,7 +51,6 @@ import subprocess
 import traceback
 import tarfile
 
-from string import Template
 from threading import Thread
 from thread import allocate_lock
 
@@ -83,17 +82,6 @@ proxyLock = allocate_lock() # Lock the connection access
 ceProxy   = None # Used to keep the current Central Engine connection
 userName  = None # Used to check the Central Engine connection
 epName    = None # Used by the logger when sending the Live Log
-
-TMPL_LIB = """
-PROXY_ADDR = "$proxy"
-USER = "$user"
-EP = "$ep"
-SUT = "$sut"
-SUITE_ID = "$suite_id"
-SUITE_NAME = "$suite_name"
-FILE_ID = "$file_id"
-FILE_NAME = "$file_name"
-"""
 
 from RunnerClasses import *
 
@@ -316,10 +304,6 @@ class TwisterRunner(cli.Application):
     logFile  = cli.Flag(['-l', '--log'],                 default=False,
                help='Log stdout in a file? Default: DISABLED.')
 
-    def __del__(self):
-        print('Caught Execution Process EXIT !\n')
-        self.exit()
-
 
     def main(self):
 
@@ -424,28 +408,6 @@ class TwisterRunner(cli.Application):
         return
 
 
-    def makeCeLibs(self, suite_id='', suite_name='', file_id='', file_name=''):
-        """
-        Re-create the ce_libs library file.
-        """
-        global EP_CACHE
-
-        libs_path = '{}/ce_libs'.format(EP_CACHE)
-
-        # Create ce_libs library file
-        __init = open(libs_path + os.sep + 'ce_libs.py', mode='w', buffering=0)
-        tmpl = Template(TMPL_LIB)
-        data = {
-            'proxy': self.cePath, 'user': self.userName, 'ep': self.epName,
-            'sut': self.Sut, 'suite_id': suite_id, 'suite_name': suite_name,
-            'file_id': file_id, 'file_name': file_name,
-        }
-        __init.write(tmpl.substitute(**data))
-        __init.close()
-
-        return True
-
-
     def saveLibraries(self, libs_list=''):
         """
         Downloads all libraries from Central Engine.
@@ -478,11 +440,18 @@ class TwisterRunner(cli.Application):
             try: os.makedirs(libs_path)
             except Exception as e: pass
 
-        # Create the ce_libs file
-        self.makeCeLibs()
-
         all_libs = [] # Normal python files or folders
         zip_libs = [] # Zip libraries
+
+        # Create ce_libs library file
+        __init = open(libs_path + os.sep + 'ce_libs.py', 'w')
+        __init.write('\nimport os, sys\n')
+        __init.write('\nPROXY = "{}"\n'.format(self.cePath))
+        __init.write('USER = "{}"\n'.format(self.userName))
+        __init.write('EP = "{}"\n'.format(self.epName))
+        __init.write('SUT = "{}"\n\n'.format(self.Sut))
+        __init.close()
+        del __init
 
         for lib in libs_list:
             # Null libraries ?
@@ -562,7 +531,6 @@ class TwisterRunner(cli.Application):
 
         # Used by all files
         suite_id    = None
-        suite_data  = None
         suite_name  = None # Suite name string. This varies for each file.
         suite_files = None # All files from current suite.
         abort_suite = False # Abort suite X, when setup file fails.
@@ -580,7 +548,6 @@ class TwisterRunner(cli.Application):
                     continue
 
                 suite_id   = id
-                suite_data = node
                 suite_name = node['name']
                 suite_str  = suite_id +' - '+ suite_name
 
@@ -616,7 +583,7 @@ class TwisterRunner(cli.Application):
             # Is this file a teardown file?
             teardown_file = node.get('teardown_file', False)
             # Test-case dependency, if any
-            dependency = node.get('dependency')
+            dependancy = node.get('dependancy')
             # Is this test file optional?
             optional_test = node.get('Optional')
             # Configuration files?
@@ -630,16 +597,11 @@ class TwisterRunner(cli.Application):
 
             # Extra properties, from the applet
             props = dict(node)
-            props.update(suite_data)
-            for prop in ['type', 'ep', 'sut', 'name', 'pd', 'libraries', 'children', 'clearcase',
-                        'status', 'file', 'suite', 'dependancy', 'Runnable',
-                        'setup_file', 'teardown_file', 'Optional', 'config_files', 'param']:
+            for prop in ['type', 'status', 'file', 'suite', 'dependancy', 'Runnable',
+                         'setup_file', 'teardown_file', 'Optional', 'config_files', 'param']:
                 # Removing all known File properties
                 try: del props[prop]
                 except: pass
-
-            # Re-create the ce_libs file
-            self.makeCeLibs(suite_id, suite_name, file_id, os.path.split(filename)[1])
 
 
             print('<<< START filename: `{}:{}` >>>\n'.format(file_id, filename))
@@ -712,40 +674,26 @@ class TwisterRunner(cli.Application):
                         return self.exit(timer_f=diff_time, stop=False)
 
 
-            # # If dependency file is PENDING or WORKING, wait for it to finish; for any other status, go next.
-            # if dependancy and proxy().getFileVariable(dependancy, 'status') in [-1, False, STATUS_PENDING, STATUS_WORKING]:
-            #     dep_suite = proxy().getFileVariable(dependancy, 'suite')
-            #     dep_file = proxy().getFileVariable(dependancy, 'file')
+            # If dependency file is PENDING or WORKING, wait for it to finish; for any other status, go next.
+            if dependancy and proxy().getFileVariable(dependancy, 'status') in [-1, False, STATUS_PENDING, STATUS_WORKING]:
+                dep_suite = proxy().getFileVariable(dependancy, 'suite')
+                dep_file = proxy().getFileVariable(dependancy, 'file')
 
-            #     if dep_file:
-            #         proxy().echo(':: {} is waiting for file `{}::{}` to finish execution...'.format(self.epName, dep_suite, dep_file))
-            #         try: proxy().setFileStatus(self.epName, file_id, STATUS_WAITING, 0.0) # Status WAITING
-            #         except:
-            #             trace = traceback.format_exc()[34:].strip()
-            #             print('Exception on change file status `{}`!\n'.format(trace))
-
-            #         while 1:
-            #             time.sleep(3)
-            #             # Reload info about dependency file
-            #             if  proxy().getFileVariable(dependancy, 'status') not in [-1, False, STATUS_PENDING, STATUS_WORKING]:
-            #                 proxy().echo(':: {} is not longer waiting for dependency!'.format(self.epName))
-            #                 break
-
-            #     del dep_suite, dep_file
-            if dependency:
-                try:
-                    (dependency_id, dependency_status) = dependency.split(':')
-                except Exception as e:
-                    (dependency_id, dependency_status) = (dependency.split(':')[0], None)
-                if dependency_status == str(proxy().getFileVariable(self.epName, dependency_id, 'status')):
-                    print('EP Debug: File `{}` will be skipped (dependency).\n'.format(filename))
-                    try:
-                        proxy().setFileStatus(self.epName, file_id, STATUS_SKIPPED, 0.0)
+                if dep_file:
+                    proxy().echo(':: {} is waiting for file `{}::{}` to finish execution...'.format(self.epName, dep_suite, dep_file))
+                    try: proxy().setFileStatus(self.epName, file_id, STATUS_WAITING, 0.0) # Status WAITING
                     except:
                         trace = traceback.format_exc()[34:].strip()
-                        print('Exception on dependency change file status `{}`!\n'.format(trace))
-                    print('<<< END filename: `{}:{}` >>>\n'.format(file_id, filename))
-                    continue
+                        print('Exception on change file status `{}`!\n'.format(trace))
+
+                    while 1:
+                        time.sleep(3)
+                        # Reload info about dependency file
+                        if  proxy().getFileVariable(dependancy, 'status') not in [-1, False, STATUS_PENDING, STATUS_WORKING]:
+                            proxy().echo(':: {} is not longer waiting for dependency!'.format(self.epName))
+                            break
+
+                del dep_suite, dep_file
 
 
             # Download file from Central Engine!
@@ -897,10 +845,10 @@ class TwisterRunner(cli.Application):
                     trace = traceback.format_exc()[34:].strip()
                     print('Exception on change file status `{}`!\n'.format(trace))
 
-                # If status is FAIL and the file is not Optional and Exit on test fail is ON, CLOSE the EP
+                # If status is FAIL and the file is not Optional and Exit on test fail is ON, CLOSE the runner
                 if not optional_test and self.exit_on_test_fail:
-                    print('*ERROR* Mandatory file `{}` CRASHED! Closing the EP!\n\n'.format(filename))
-                    proxy().echo('*ERROR* Mandatory file `{}::{}::{}` CRASHED! Closing the EP!'\
+                    print('*ERROR* Mandatory file `{}` CRASHED! Closing the runner!\n\n'.format(filename))
+                    proxy().echo('*ERROR* Mandatory file `{}::{}::{}` CRASHED! Closing the runner!'\
                         ''.format(self.epName, suite_name, filename))
                     print('<<< END filename: `{}:{}` >>>\n'.format(file_id, filename))
                     # Exit the cycle
@@ -955,10 +903,10 @@ class TwisterRunner(cli.Application):
             # If status is not PASS
             if (result!=STATUS_PASS and result!='PASS'):
 
-                # If status is FAIL and the file is not Optional and Exit on test fail is ON, CLOSE the EP
+                # If status is FAIL and the file is not Optional and Exit on test fail is ON, CLOSE the runner
                 if not optional_test and self.exit_on_test_fail:
-                    print('*ERROR* Mandatory file `{}` did not PASS! Closing the EP!\n\n'.format(filename))
-                    proxy().echo('*ERROR* Mandatory file `{}::{}::{}` did not PASS! Closing the EP!'\
+                    print('*ERROR* Mandatory file `{}` did not PASS! Closing the runner!\n\n'.format(filename))
+                    proxy().echo('*ERROR* Mandatory file `{}::{}::{}` did not PASS! Closing the runner!'\
                         ''.format(self.epName, suite_name, filename))
                     print('<<< END filename: `{}:{}` >>>\n'.format(file_id, filename))
                     # Exit the cycle

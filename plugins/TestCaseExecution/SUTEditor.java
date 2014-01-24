@@ -68,29 +68,40 @@ import javax.swing.AbstractAction;
 import java.awt.event.HierarchyListener;
 import java.awt.event.HierarchyEvent;
 import javax.swing.BorderFactory;
+import javax.swing.JSplitPane;
+import com.jcraft.jsch.ChannelSftp;
+import java.util.Vector;
+import com.jcraft.jsch.ChannelSftp.LsEntry;
+import java.util.Collections;
+import com.jcraft.jsch.SftpException;
+import com.jcraft.jsch.JSch;
+import com.jcraft.jsch.Session;
+import com.jcraft.jsch.Channel;
+import java.util.Properties;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import javax.swing.SwingUtilities;
+import java.awt.Color;
 
 public class SUTEditor extends JPanel{
     private JTextField tsutname;
     private JTree tree;
     private XmlRpcClient client;
-    private Node parent;
     public DefaultMutableTreeNode root;
-    private JButton renamesut,remsut,addcomp;
+    private JButton saveas,redcomp,addcomp,save,close,setep;
     private JLabel jusers;
+    public ChannelSftp connection;
+    public Session session;
+    private SutTree suttree;
+    private String rootsut;
+    public DefaultMutableTreeNode sutnode;
+    private boolean lastsaved = true;
     
     public SUTEditor(){
-        addHierarchyListener(new HierarchyListener() {
-            public void hierarchyChanged(HierarchyEvent e) {
-                if ((HierarchyEvent.SHOWING_CHANGED & e.getChangeFlags()) !=0 
-                     && isShowing()) {
-                  setLoggedInUsers(true);
-                } else if ((HierarchyEvent.SHOWING_CHANGED & e.getChangeFlags()) !=0 
-                     && !isShowing()) {
-                  logout();
-                }
-            }
-        });
+        suttree = new SutTree();
+        initializeSftp();
         initializeRPC();
+        
         tree = new JTree();
         tree.addKeyListener(new KeyAdapter(){
             public void keyReleased(KeyEvent ev){
@@ -107,7 +118,7 @@ public class SUTEditor extends JPanel{
             }});
         tree.getSelectionModel().setSelectionMode(TreeSelectionModel.SINGLE_TREE_SELECTION);
         root = new DefaultMutableTreeNode("root");
-//         parent = getTB("/",null);
+        
         DefaultTreeModel treemodel = new DefaultTreeModel(root,true);
         tree.setModel(treemodel);
         tree.setDragEnabled(true);
@@ -117,137 +128,64 @@ public class SUTEditor extends JPanel{
             tree.setTransferHandler(new ImportTreeTransferHandler());
             tree.setDragEnabled(true);
         }
-        
         tree.setCellRenderer(new CustomIconRenderer());
         setLayout(new BorderLayout());
         JScrollPane sp = new JScrollPane(tree);
-        add(sp,BorderLayout.CENTER);
+        final JSplitPane splitpane = new JSplitPane();
+        JPanel bottompanel = new JPanel();
+        
+        bottompanel.setLayout(new BorderLayout());
+        bottompanel.add(sp,BorderLayout.CENTER);
+        
+//         JPanel p1 = new JPanel();
+//         p1.add(bottompanel);
+//         
+//         JPanel p2 = new JPanel();
+//         p2.add(suttree);
+        
+        
+        splitpane.setRightComponent(bottompanel);
+        splitpane.setLeftComponent(suttree);
+        splitpane.setResizeWeight(0.5);
+        
+//         SwingUtilities.invokeLater(new Runnable() {
+//             public void run(){
+//                 splitpane.setDividerLocation(0.5);
+//             }
+//         });
+        
+//         new Thread(){
+//             public void run(){
+//                 try{Thread.sleep(5000);}
+//                 catch(Exception e){e.printStackTrace();}
+//                 splitpane.setDividerLocation(0.5);
+//             }
+//         }.start();
+
+        
+        splitpane.setOrientation(JSplitPane.VERTICAL_SPLIT);
+        add(splitpane,BorderLayout.CENTER);
         JPanel sutopt = new JPanel();
+        JPanel filesoption = new JPanel();
         
-//         JButton setep = new JButton("Set EP's");
-//         setep.addActionListener(new ActionListener(){
-//             public void actionPerformed(ActionEvent ev){
-//                 setEps();
-//             }});
-//         sutopt.add(setep);
-        
-        renamesut = new JButton("Modify");
-        renamesut.setEnabled(false);
-        renamesut.addActionListener(new ActionListener(){
-            public void actionPerformed(ActionEvent ev){
-                TreePath tp = tree.getSelectionPath();
-                DefaultMutableTreeNode treenode = (DefaultMutableTreeNode)tp.getLastPathComponent();
-                Object ob = treenode.getUserObject();
-                JPanel p = new JPanel();
-                p.setLayout(null);
-                JLabel sut = new JLabel("Name: ");
-                sut.setBounds(5,5,80,25);
-                JTextField tsut = new JTextField(treenode.toString());
-                tsut.setBounds(90,5,155,25);
-                p.add(sut);
-                p.add(tsut);
-                p.setPreferredSize(new Dimension(250,200));
-                DefaultMutableTreeNode parent = (DefaultMutableTreeNode)treenode.getParent();
-                JList tep = new JList();
-                SUT s=null;
-                if(ob instanceof Comp){
-                    p.setPreferredSize(new Dimension(250,35));
-                } else {
-                    JLabel ep = new JLabel("Run on EP's: ");
-                    ep.setBounds(5,35,80,25);
-                    
-                    JScrollPane scep = new JScrollPane(tep);
-                    scep.setBounds(90,35,155,150);
-                    p.add(ep);
-                    p.add(scep);
-                    s = (SUT)treenode.getUserObject();
-                    populateEPs(tep,s.getEPs());
-                }
-                
-                int resp = (Integer)CustomDialog.showDialog(p,JOptionPane.PLAIN_MESSAGE, 
-                            JOptionPane.OK_CANCEL_OPTION, SUTEditor.this, "Modify",null);
-                            
-                if(resp == JOptionPane.OK_OPTION&&!tsut.getText().equals("")){
-                    if(checkExistingName(parent, tsut.getText(),treenode)){
-                        CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,SUTEditor.this,"Warning", 
-                                        "This name is already used, please use different name.");
-                        return;
-                    }
-                    try{
-                        String query="true";
-                        if(!treenode.toString().equals(tsut.getText())){
-                            String torename = "";
-                            if(ob instanceof Comp){
-                                torename = ((Comp)ob).getID();
-                            } else {
-                                torename = "/"+treenode.toString();
-                            }
-                            query = client.execute("renameSut", new Object[]{torename,tsut.getText()}).toString();
-                        }
-                        if(query.equals("true")){
-                            if(ob instanceof SUT){
-                                StringBuilder sb = new StringBuilder();
-                                for(int i=0;i<tep.getSelectedValuesList().size();i++){
-                                    sb.append(tep.getSelectedValuesList().get(i).toString());
-                                    sb.append(";");
-                                }
-                                String seleps = "{'_epnames_"+RunnerRepository.user+"':'"+sb.toString()+"'}";
-                                query = client.execute("setSut", new Object[]{"/"+tsut.getText(),"/",seleps}).toString();
-                                if(query.indexOf("ERROR")==-1){
-                                    s.setName(tsut.getText());
-                                    s.setEPs(sb.toString());
-                                    ((DefaultTreeModel)tree.getModel()).nodeChanged(treenode);
-                                    ((DefaultTreeModel)tree.getModel()).nodeChanged(s.getEPNode());
-                                    RunnerRepository.window.mainpanel.p1.suitaDetails.setComboTBs();
-                                } else {
-                                    CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SUTEditor.this,"Error", query);
-                                }
-                            }
-                            else {
-                                ((Comp)ob).setName(tsut.getText()); 
-                            }
-                            ((DefaultTreeModel)tree.getModel()).nodeChanged(treenode);
-                        }else{
-                            CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SUTEditor.this,"Error", query);
-                        }
-                    } catch (Exception e){
-                        e.printStackTrace();
-                    }
-                    
-                    
-                }
-            }
-        });
-        JButton addsut = new JButton("Add SUT");
-        addsut.addActionListener(new ActionListener(){
+        setep = new JButton("Set EP");
+        setep.setEnabled(false);
+        setep.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 JPanel p = new JPanel();
                 p.setLayout(null);
                 p.setPreferredSize(new Dimension(250,200));
-                JLabel sut = new JLabel("SUT name: ");
-                sut.setBounds(5,5,80,25);
-                JTextField tsut = new JTextField();
-                tsut.setBounds(90,5,155,25);
                 JLabel ep = new JLabel("Run on EP's: ");
                 ep.setBounds(5,35,80,25);
                 JList tep = new JList();
                 JScrollPane scep = new JScrollPane(tep);
                 scep.setBounds(90,35,155,150);
-                p.add(sut);
-                p.add(tsut);
                 p.add(ep);
                 p.add(scep);
-                populateEPs(tep,null);
-                
+                suttree.populateEPs(tep,null);
                 int resp = (Integer)CustomDialog.showDialog(p,JOptionPane.PLAIN_MESSAGE, 
-                            JOptionPane.OK_CANCEL_OPTION, SUTEditor.this, "New SUT",null);
-                            
-                if(resp == JOptionPane.OK_OPTION&&!tsut.getText().equals("")){
-                    if(checkExistingName(root, tsut.getText(),null)){
-                        CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,SUTEditor.this,"Warning", 
-                                        "This name is already used, please use different name.");
-                         return;
-                    }
+                            JOptionPane.OK_CANCEL_OPTION, SUTEditor.this, "Select EP",null);
+                if(resp == JOptionPane.OK_OPTION){
                     try{
                         StringBuilder sb = new StringBuilder();
                         for(int i=0;i<tep.getSelectedValuesList().size();i++){
@@ -255,62 +193,55 @@ public class SUTEditor extends JPanel{
                             sb.append(";");
                         }
                         String query = "{'_epnames_"+RunnerRepository.user+"':'"+sb.toString()+"'}";
-                        
-                        
-                        String user = tsut.getText();
-                        String respons = client.execute("setSut", new Object[]{user,"/",query}).toString();
-                        if(respons.indexOf("ERROR")==-1){
-                            DefaultTreeModel model = (DefaultTreeModel)tree.getModel();
-                            SUT s = new SUT(user,sb.toString());
-                            DefaultMutableTreeNode eps = new DefaultMutableTreeNode("EP: "+sb.toString(),false);
-                            s.setEPNode(eps);
-                            
-                            DefaultMutableTreeNode element = new DefaultMutableTreeNode(s);
-                            element.add(eps);
-                            
-                            model.insertNodeInto(element, root, root.getChildCount());
-                            RunnerRepository.window.mainpanel.p1.suitaDetails.setComboTBs();
+                        query = client.execute("setSut", new Object[]{"/"+rootsut,"/",query}).toString();
+                        if(query.indexOf("ERROR")==-1){
+                           ((DefaultMutableTreeNode)root.getFirstChild()).setUserObject("EP:"+sb.toString());
+                           ((DefaultTreeModel)tree.getModel()).nodeChanged(root.getFirstChild());
+                           lastsaved = false;
                         } else {
-                            CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,SUTEditor.this,"Warning", respons);
+                            CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,SUTEditor.this,"Warning", query);
                         }
                     }
                     catch(Exception e){
                         e.printStackTrace();
                     }   
                 }
-            }
-        });
-        
-        
+            }});
         addcomp = new JButton("Add Component");
+        addcomp.setEnabled(false);
         addcomp.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
-                
                 String name = CustomDialog.showInputDialog(JOptionPane.PLAIN_MESSAGE,
                                                     JOptionPane.OK_CANCEL_OPTION, 
                                                     SUTEditor.this, "Name", "Component name: ");
                 if(name!=null&&!name.equals("")){
                     TreePath tp = tree.getSelectionPath();
-                    DefaultMutableTreeNode treenode = (DefaultMutableTreeNode)tp.getLastPathComponent();
-                    int level = treenode.getLevel();
-                    String parent = "";
-                    if(level==1){
-                        parent =  "/"+treenode.getPath()[treenode.getPath().length-1];
+                    DefaultMutableTreeNode treenode;
+                    if(tp==null){
+                        treenode = root;
                     } else {
-                        parent = treenode.getFirstChild().toString().split("ID: ")[1];
+                        treenode = (DefaultMutableTreeNode)tp.getLastPathComponent();
                     }
                     if(checkExistingName(treenode, name, null)){
                         CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,SUTEditor.this,"Warning", 
                                         "This name is already used, please use different name.");
                         return;
                     }
-                    try{String resp = client.execute("setSut", new Object[]{name,parent,null}).toString();
+                    String parent = "";
+                    if(tp==null){
+                        parent = "/"+rootsut;
+                    } else {
+                        parent = treenode.getFirstChild().toString().split("ID: ")[1];
+                    }
+                    try{System.out.println("Sending command: setSut "+name+" "+parent+" null");
+                        String resp = client.execute("setSut", new Object[]{name,parent,null}).toString();
                         if(resp.indexOf("ERROR")==-1){
                             Comp comp = new Comp(name,resp,"");
                             DefaultMutableTreeNode component = new DefaultMutableTreeNode(comp,true);
                             DefaultMutableTreeNode id = new DefaultMutableTreeNode("ID: "+resp,false);
                             component.add(id);
                             ((DefaultTreeModel)tree.getModel()).insertNodeInto(component, treenode, treenode.getChildCount());
+                            lastsaved = false;
                         } else {
                             CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,SUTEditor.this,"Warning", resp);
                         }
@@ -318,56 +249,131 @@ public class SUTEditor extends JPanel{
                         System.out.println("Could not send command to add component to server");
                         e.printStackTrace();
                     }
-                    
-//                     DefaultMutableTreeNode eps = new DefaultMutableTreeNode(resp,true);
-//                     ((DefaultTreeModel)tree.getModel()).insertNodeInto(eps, treenode, treenode.getChildCount());
                 }
             }
         });
         
-        remsut = new JButton("Remove");
-        remsut.setEnabled(false);
-        remsut.addActionListener(new ActionListener(){
+        redcomp = new JButton("Delete Component");
+        redcomp.setEnabled(false);
+        redcomp.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 TreePath tp = tree.getSelectionPath();
                 if(tp==null||tp.getPathCount()==0)return;
                 DefaultMutableTreeNode treenode = (DefaultMutableTreeNode)tp.getLastPathComponent();
                 try{
-                    String torem = "/"+treenode.toString();
+                    String torem = "";// "/"+treenode.toString();
                     Object userobj = treenode.getUserObject();
-                    if(treenode.getLevel()!=1){
-                        
-                        if(userobj instanceof Node){
-                            String parent="";
-                            Comp componnet = ((Comp)((DefaultMutableTreeNode)treenode.getParent()).getUserObject());
-                            torem = componnet.getID()+":_id";
-                        } else if (userobj instanceof Comp) {
-                            torem = ((Comp)userobj).getID();
-                        }
+//                     if(treenode.getLevel()!=1){
+                    if(userobj instanceof Node){
+                        String parent="";
+                        Comp componnet = ((Comp)((DefaultMutableTreeNode)treenode.getParent()).getUserObject());
+                        torem = componnet.getID()+":_id";
+                    } else if (userobj instanceof Comp) {
+                        torem = ((Comp)userobj).getID();
                     }
+//                     }
                     String s = client.execute("deleteSut", new Object[]{torem}).toString();
                     if(s.indexOf("ERROR")==-1){
                         ((DefaultTreeModel)tree.getModel()).removeNodeFromParent(treenode);
-                        selectedSUT(null);
-                        
+                        selectedSUT(null);                        
                         if(!(userobj instanceof Node)&&!(userobj instanceof Comp)){
                             RunnerRepository.window.mainpanel.p1.suitaDetails.setComboTBs();
                         }
+                        lastsaved = false;
                     } else {
-                        CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,SUTEditor.this,"Warning", s);
+                        CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SUTEditor.this,"Error", s);
                     }
                 } catch (Exception e){
                     e.printStackTrace();
                 }
             }
         });
+        
+        save = new JButton("Save");
+        save.setEnabled(false);
+        save.addActionListener(new ActionListener(){
+            public void actionPerformed(ActionEvent ev){
+                try{String resp = client.execute("saveReservedSut", new Object[]{"/"+rootsut}).toString();
+                    System.out.println(resp);
+                    lastsaved = true;
+                }
+                catch(Exception e){e.printStackTrace();}
+            };
+        });
+        
+        saveas = new JButton("Save As");
+        saveas.setEnabled(false);
+        saveas.addActionListener(new ActionListener(){
+            public void actionPerformed(ActionEvent ev){
+                String filename = CustomDialog.showInputDialog(JOptionPane.QUESTION_MESSAGE,
+                                     JOptionPane.OK_CANCEL_OPTION
+                                     ,SUTEditor.this,
+                                     "Sut Name", "Please enter sut name");
+                if(filename!=null&&!filename.equals("NULL")){
+                    try{String resp = client.execute("saveReservedSutAs", new Object[]{filename,"/"+rootsut}).toString();
+                        close.doClick();
+                        SUT s = new SUT(filename,".user");
+                        sutnode = new DefaultMutableTreeNode(s,false);
+                        suttree.addUserNode(sutnode);
+                        if(suttree.reserveSut(s)){
+                            s.setReserved(RunnerRepository.user);
+                            ((DefaultTreeModel)suttree.filestree.getModel()).nodeChanged(sutnode);
+                            getSUT(filename+".user",sutnode,true);
+                        }
+                    } catch (Exception e){
+                        e.printStackTrace();
+                    }
+                }
+                
+            };
+        });
+        close  = new JButton("Close");
+        close.setEnabled(false);
+        close.addActionListener(new ActionListener(){
+            public void actionPerformed(ActionEvent ev){
+                String resp = "";
+                try{
+                    if(lastsaved){
+                        resp = client.execute("discardAndReleaseReservedSut", new Object[]{"/"+rootsut}).toString();
+                    } else {
+                         int r = (Integer)CustomDialog.showDialog(
+                                    new JLabel("Save SUT before releasing ?"),
+                                    JOptionPane.QUESTION_MESSAGE, 
+                                    JOptionPane.OK_CANCEL_OPTION, SUTEditor.this, "Save", null);
+                        if(r == JOptionPane.OK_OPTION){
+                            resp = client.execute("saveAndReleaseReservedSut", new Object[]{"/"+rootsut}).toString();
+                        } else {
+                            resp = client.execute("discardAndReleaseReservedSut", new Object[]{"/"+rootsut}).toString();
+                        }
+                    }
+                    if(!resp.equals("false")){
+                        ((SUT)sutnode.getUserObject()).setReserved("");
+                        ((DefaultTreeModel)suttree.filestree.getModel()).nodeChanged(sutnode);
+                        suttree.treeContextOptions(suttree.filestree.getSelectionPath());
+                    }
+                }
+                catch(Exception e){e.printStackTrace();}
+                rootsut = "";
+                root.removeAllChildren();
+                addcomp.setEnabled(false);
+                close.setEnabled(false);
+                setep.setEnabled(false);
+                save.setEnabled(false);
+                saveas.setEnabled(false);
+                redcomp.setEnabled(false);
+                ((DefaultTreeModel)tree.getModel()).reload();
+                lastsaved = true;
+            };
+        });
         if(PermissionValidator.canChangeSut()){
-            sutopt.add(addsut);
             sutopt.add(addcomp);
-            sutopt.add(renamesut);
-            sutopt.add(remsut);
+            sutopt.add(redcomp);
+            sutopt.add(setep);
+            sutopt.add(save);
+            sutopt.add(saveas);
+            sutopt.add(close);
         }
-        add(sutopt,BorderLayout.SOUTH);        
+        bottompanel.add(sutopt,BorderLayout.SOUTH);     
         tree.addTreeSelectionListener(new TreeSelectionListener(){
             public void valueChanged(TreeSelectionEvent ev){                
                 TreePath newPath = ev.getNewLeadSelectionPath();                 
@@ -380,230 +386,163 @@ public class SUTEditor extends JPanel{
                 }
             }
         });
-        
-        
-        
-        
-        JPanel upperpanel = new JPanel();
-        upperpanel.setLayout(new java.awt.BorderLayout());
-        JPanel activetbusers = new JPanel();
-        activetbusers.setLayout(new BorderLayout());
-        //activetbusers.setLayout(null);
-        jusers = new JLabel("TB Active Users:");
-        jusers.setBorder(BorderFactory.createEmptyBorder(0, 5, 0, 0));
-        JButton refreshtb = new JButton("Refresh Active Users");
-        //refreshtb.setBounds(5,5,100,20);
-        //jusers.setBounds(110,5,400,20);
-        activetbusers.add(refreshtb,BorderLayout.WEST);
-        activetbusers.add(jusers,BorderLayout.CENTER);
-        refreshtb.addActionListener(new ActionListener(){
-            public void actionPerformed(ActionEvent ev){
-                setLoggedInUsers(false);}});
-        JMenuBar menubar = new JMenuBar();
-        JMenu menu = new JMenu("File");
-        menubar.add(menu);
-        add(upperpanel,BorderLayout.NORTH);
-        upperpanel.add(activetbusers,BorderLayout.NORTH);
-        upperpanel.add(menubar,BorderLayout.CENTER);
-        
-//         JMenuBar menubar = new JMenuBar();
-//         JMenu menu = new JMenu("File");
-//         menubar.add(menu);
-//         add(menubar,BorderLayout.NORTH);
-        
-        
-        
-        
-        
-        
-        
-        JMenuItem imp = new JMenuItem("Import from XML");
-        imp.addActionListener(new ActionListener(){
-            public void actionPerformed(ActionEvent ev){
-                Container c;
-                if(RunnerRepository.container!=null)c = RunnerRepository.container.getParent();
-                else c = RunnerRepository.window;
-                final JTextField tf = new JTextField();
-                new MySftpBrowser(RunnerRepository.host,RunnerRepository.user,RunnerRepository.password,tf,c,false).setAction(new AbstractAction(){
-                    public void actionPerformed(ActionEvent ev){
-                        try{
-                            String resp = client.execute("import_xml", new Object[]{tf.getText(),2}).toString();
-                            if(resp.equals("true")){
-                                getSUT();
-                                RunnerRepository.window.mainpanel.p1.suitaDetails.setComboTBs();
-                            } else {
-                                CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SUTEditor.this,"ERROR", "Could not import!");
-                            }
-                        } catch(Exception e){
-                            e.printStackTrace();
-                        }
-                    }
-                });
+        tree.addMouseListener(new MouseAdapter(){
+            public void mouseReleased(MouseEvent ev){
+                int row=tree.getRowForLocation(ev.getX(),ev.getY());  
+                if(row==-1) tree.clearSelection();  
             }});
-        menu.add(imp);
-        JMenuItem exp = new JMenuItem("Export to XML");
-        exp.addActionListener(new ActionListener(){
-            public void actionPerformed(ActionEvent ev){
-                Container c;
-                if(RunnerRepository.container!=null)c = RunnerRepository.container.getParent();
-                else c = RunnerRepository.window;
-                final JTextField tf = new JTextField();
-                try{tf.setText(RunnerRepository.getTestConfigPath());
-                }catch(Exception e){
-                    e.printStackTrace();
-                }
-                AbstractAction action = new AbstractAction(){
-                    public void actionPerformed(ActionEvent ev){
-                        try{
-                            String resp = client.execute("export_xml", new Object[]{tf.getText(),2}).toString();
-                            if(resp.equals("false")){
-                                CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SUTEditor.this,"ERROR", "Could not save");
-                            }
-                            System.out.println(resp);
-                        } catch(Exception e){
-                            e.printStackTrace();
-                        }
-                    }
-                };
-                MySftpBrowser browser = new MySftpBrowser(RunnerRepository.host,RunnerRepository.user,RunnerRepository.password,tf,c,false);
-                browser.setAction(action);
-                browser.setButtonText("Save");
-            }});
-        menu.add(exp);
-        
-        getSUT();
     }
     
-    public void logout(){
-        try{HashMap hash= (HashMap)client.execute("getSut", new Object[]{"/"});
-            HashMap meta = (HashMap)hash.get("meta");
-            String users="";
-            try{users = meta.get("users").toString();
-                users=users.replace(RunnerRepository.user+";", "");
-                client.execute("setSut", new Object[]{"/" , "/" , "{'users': '"+users+"'}"});
-            }
-            catch(Exception e){
-                e.printStackTrace();
-                users = "";
-                client.execute("setSut", new Object[]{"/" , "/" , "{'users': '"+users+"'}"});
-            }
-            System.out.println("users:"+users);
-        } catch(Exception e){
-            e.printStackTrace();
-        }
-        
-    }
-    
-    
-    public void setLoggedInUsers(boolean addusr){
-        try{HashMap hash= (HashMap)client.execute("getSut", new Object[]{"/"});
-            HashMap meta = (HashMap)hash.get("meta");
-            String users="";
-            try{users = meta.get("users").toString();
-                if(addusr){
-                    users+=RunnerRepository.user+";";
-                    client.execute("setSut", new Object[]{"/" , "/" , "{'users': '"+users+"'}"});
-                }
-                
-            }
-            catch(Exception e){
-                e.printStackTrace();
-                users = RunnerRepository.user+";";
-                client.execute("setSut", new Object[]{"/" , "/" , "{'users': '"+users+"'}"});
-            }
-            System.out.println("users:"+users);
-            jusers.setText("SUT Active Users: "+users);
-        } catch(Exception e){
-            e.printStackTrace();
-        }
-    }
+
+
+    /*
+     * checking existing name in structure
+     * name - the name to search for
+     * parent - the parent in which children to search
+     * current - the node to ommit on search
+     */
     
     public boolean checkExistingName(DefaultMutableTreeNode parent, String name, DefaultMutableTreeNode current){
         Enumeration e = parent.children();
         while(e.hasMoreElements()){
             DefaultMutableTreeNode child = (DefaultMutableTreeNode)e.nextElement();
-            if(child!=current&&name.equals(child.toString())){
-                return true;
+            if(child!=current){
+                if(child.getUserObject() instanceof String){
+                    if(name.equals(child.toString())){
+                        return true;
+                    }
+                } else if(child.getUserObject() instanceof SUT){
+                    String childname = ((SUT)child.getUserObject()).getName();
+                    if(name.equals(childname)){
+                        return true;
+                    }
+                } else if(child.getUserObject() instanceof Comp){
+                    String childname = ((Comp)child.getUserObject()).getName();
+                    if(name.equals(childname)){
+                        return true;
+                    }
+                }
             }
+            
         }
         return false;
     }
     
-    public void populateEPs(JList tep, String eps){
-        try{
-            String query = RunnerRepository.getRPCClient().execute("listEPs", new Object[]{RunnerRepository.user}).toString();
-            String [] vecresult = query.split(",");
-            tep.setModel(new DefaultComboBoxModel(vecresult));
-            ArrayList<String> array = new ArrayList<String>(Arrays.asList(vecresult));
-            
-            if(eps!=null){
-                String [] strings = eps.split(";");
-                int [] sel = new int[strings.length];
-                for(int i=0;i<strings.length;i++){
-                    sel[i]=array.indexOf(strings[i]);
-                }
-                tep.setSelectedIndices(sel);
-            }
-            
-        } catch (Exception e){e.printStackTrace();}
-    }
-    
-    private void selectedSUT(DefaultMutableTreeNode newNode){
-        
-        if(newNode!=null){
-            if(newNode.getUserObject()  instanceof SUT || 
-               newNode.getUserObject()  instanceof Comp){
-                renamesut.setEnabled(true);
-            } else {
-                renamesut.setEnabled(false);
-            }
-            if(newNode.getUserObject()  instanceof Node ||
-               newNode.getUserObject()  instanceof Comp ||
-               (newNode.getLevel()<3&&!newNode.isLeaf())){
-                remsut.setEnabled(true);
-            } else{
-                remsut.setEnabled(false); 
-            }
-            if(newNode.getLevel()==1 || newNode.getUserObject()  instanceof Comp){
-                addcomp.setEnabled(true);
-            } else {
-                addcomp.setEnabled(false);
-            }            
-        } else{
-            remsut.setEnabled(false);
-            renamesut.setEnabled(false);
+    public void closeSut(){
+        if(close.isEnabled()){
+            close.doClick();
         }
     }
     
-    public void getSUT(){
+//     public void populateEPs(JList tep, String eps){
+//         try{
+//             StringBuilder b = new StringBuilder();
+//             String st;
+//             for(String s:RunnerRepository.getRemoteFileContent(RunnerRepository.REMOTEEPIDDIR).split("\n")){
+//                 if(s.indexOf("[")!=-1){
+//                     st = s.substring(s.indexOf("[")+1, s.indexOf("]"));
+//                     if(st.toUpperCase().indexOf("PLUGIN")==-1){
+//                         b.append(s.substring(s.indexOf("[")+1, s.indexOf("]"))+";");
+//                     }
+//                 }
+//             }
+//             String [] vecresult = b.toString().split(";");
+//             tep.setModel(new DefaultComboBoxModel(vecresult));
+//             ArrayList<String> array = new ArrayList<String>(Arrays.asList(vecresult));
+//             
+//             if(eps!=null){
+//                 String [] strings = eps.split(";");
+//                 int [] sel = new int[strings.length];
+//                 for(int i=0;i<strings.length;i++){
+//                     sel[i]=array.indexOf(strings[i]);
+//                 }
+//                 tep.setSelectedIndices(sel);
+//             }
+//             
+//         } catch (Exception e){e.printStackTrace();}
+//     }
+    
+    private void selectedSUT(DefaultMutableTreeNode newNode){
+        if(newNode!=null){
+            if(newNode.getUserObject()  instanceof Comp){
+                addcomp.setEnabled(true);
+                redcomp.setEnabled(true);
+//                 saveas.setEnabled(true);
+            } else {
+                addcomp.setEnabled(false);
+                redcomp.setEnabled(false);
+//                 saveas.setEnabled(false);
+            }
+//             if(newNode.getUserObject()  instanceof Node ||
+//                newNode.getUserObject()  instanceof Comp ||
+//                (newNode.getLevel()<3&&!newNode.isLeaf())){
+//                 redcomp.setEnabled(true);
+//             } else{
+//                 redcomp.setEnabled(false); 
+//             }
+//             if(newNode.getLevel()==1 || newNode.getUserObject()  instanceof Comp){
+//                 addcomp.setEnabled(true);
+//             } else {
+//                 addcomp.setEnabled(false);
+//             }            
+        } else{
+            redcomp.setEnabled(false);
+//             saveas.setEnabled(false);
+            addcomp.setEnabled(true);
+        }
+    }
+    
+    public void getSUT(String sutname,DefaultMutableTreeNode sutnode,boolean editable){
         try{HashMap hash= (HashMap)client.execute("getSut", new Object[]{"/"});
             Object[] children = (Object[])hash.get("children");
-            DefaultMutableTreeNode child,epsnode;
+            DefaultMutableTreeNode epsnode;//child
             DefaultTreeModel model = (DefaultTreeModel)tree.getModel();
             root.removeAllChildren();
-            model.reload();
             String name,path,eps;
             Object[] subchildren;
             for(Object o:children){
                 hash= (HashMap)client.execute("getSut", new Object[]{o.toString()});
                 path = hash.get("path").toString();
                 name = path.split("/")[path.split("/").length-1];
+                if(name.indexOf(sutname)==-1)continue;
                 try{eps = ((HashMap)hash.get("meta")).get("_epnames_"+RunnerRepository.user).toString();}
                 catch(Exception e){eps = "";}
-                SUT s = new SUT(name,eps);
+//                 SUT s = new SUT(name);
                 epsnode = new DefaultMutableTreeNode("EP: "+eps,false);
-                s.setEPNode(epsnode);
-                child = new DefaultMutableTreeNode(s);
-                child.add(epsnode);                
+//                 s.setEPNode(epsnode);
+//                 child = new DefaultMutableTreeNode(s);
+                //child.add(epsnode);  
+                root.add(epsnode);
                 subchildren = (Object[])hash.get("children");
                 for(Object ob:subchildren){
                     String childid = ob.toString();
                     HashMap subhash= (HashMap)client.execute("getSut", new Object[]{childid});
                     String id = subhash.get("id").toString();
-                    buildChildren(new Object[]{id},child);
+                    buildChildren(new Object[]{id},root);
                 }
-                model.insertNodeInto(child, root, root.getChildCount());
+                //model.insertNodeInto(child, root, root.getChildCount());
+                
+                break;
             }
+            model.reload();
+            this.rootsut = sutname;
+            this.sutnode = sutnode;
+            if(editable){
+                addcomp.setEnabled(true);
+                save.setEnabled(true);
+                saveas.setEnabled(true);
+                close.setEnabled(true);
+                setep.setEnabled(true);
+                lastsaved = true;
+            } else {
+                addcomp.setEnabled(false);
+                save.setEnabled(false);
+                saveas.setEnabled(false);
+                close.setEnabled(true);
+                setep.setEnabled(false);
+                lastsaved = true;
+            }
+            
         } catch (Exception e){
             e.printStackTrace();
         }
@@ -623,7 +562,8 @@ public class SUTEditor extends JPanel{
                 DefaultMutableTreeNode component = new DefaultMutableTreeNode(comp,true);
                 DefaultMutableTreeNode nodeid = new DefaultMutableTreeNode("ID: "+id,false);
                 component.add(nodeid);
-                ((DefaultTreeModel)tree.getModel()).insertNodeInto(component, treenode, treenode.getChildCount());
+                treenode.add(component);
+                //((DefaultTreeModel)tree.getModel()).insertNodeInto(component, treenode, treenode.getChildCount());
                 if(meta.get("_id")!=null){
                     String referenceid = meta.get("_id").toString();
                     Node child = getTB(referenceid,null);
@@ -649,6 +589,7 @@ public class SUTEditor extends JPanel{
      */
     public Node getTB(String id,Node parent){
         try{
+            System.out.println(id);
             HashMap hash= (HashMap)client.execute("getResource", new Object[]{id});
             String path = hash.get("path").toString();
             String name = path.split("/")[path.split("/").length-1];
@@ -676,12 +617,42 @@ public class SUTEditor extends JPanel{
             }
             return node;
         }catch(Exception e){
-            System.out.println("requested id: "+id);
             try{System.out.println("server respons: "+client.execute("getResource", new Object[]{id}));}
             catch(Exception ex){ex.printStackTrace();}
             e.printStackTrace();
             return null;
         }
+    }
+    
+    public void disconnect(){
+        connection.disconnect();
+        session.disconnect();
+    }
+    
+    private void initializeSftp(){
+        try{
+            JSch jsch = new JSch();
+            session = jsch.getSession(RunnerRepository.user, RunnerRepository.host, 22);
+            session.setPassword(RunnerRepository.password);
+            Properties config = new Properties();
+            config.put("StrictHostKeyChecking", "no");
+            session.setConfig(config);
+            session.connect();
+            Channel channel = session.openChannel("sftp");
+            channel.connect();
+            connection = (ChannelSftp)channel;
+        } catch (Exception e){
+            e.printStackTrace();
+        }
+    }
+    
+    public SutTree getSutTree(){
+        return suttree;
+    }
+    
+    public void setRootSutName(String rootsut){
+        this.rootsut = rootsut;
+        
     }
     
     
@@ -699,7 +670,7 @@ public class SUTEditor extends JPanel{
             configuration.setBasicUserName(RunnerRepository.user);
             client = new XmlRpcClient();
             client.setConfig(configuration);
-            System.out.println("XMLRPC Client for testbed initialized: "+client);}
+            System.out.println("XMLRPC Client for SUTEditor initialized: "+client);}
         catch(Exception e){System.out.println("Could not conect to "+
                             RunnerRepository.host+" :"+RunnerRepository.getCentralEnginePort()+"/ra/"+
                             "for RPC client initialization");}
@@ -793,13 +764,12 @@ public class SUTEditor extends JPanel{
                 DefaultMutableTreeNode parent = (DefaultMutableTreeNode)dest.getLastPathComponent();
                 JTree tree = (JTree)support.getComponent();  
                 DefaultTreeModel model = ((DefaultTreeModel)tree.getModel());  
-                if(parent.getChildCount()>1){
+                if(parent.getChildCount()>1){//removes previously added tb's
                     for(int i=0;i<parent.getChildCount();i++){
                         if(((DefaultMutableTreeNode)parent.getChildAt(i)).getUserObject() instanceof Node){
                             model.removeNodeFromParent((DefaultMutableTreeNode)parent.getChildAt(i));
                         }
                     }
-                    
                 }
                 int index = parent.getChildCount();  
                 for(int i = 0; i < nodes.length; i++){ 
@@ -808,26 +778,34 @@ public class SUTEditor extends JPanel{
                         HashMap <String,String>hm = new <String,String>HashMap();
                         hm.put("_id", nodes[i].getID());
                         String parentid="";
-                        if(((DefaultMutableTreeNode)parent.getParent()).getUserObject() instanceof Comp){
-                            parentid = ((Comp)((DefaultMutableTreeNode)parent.getParent()).getUserObject()).getID();
+                        parentid = ((Comp)(parent.getUserObject())).getName();
+                        String name = "";
+                        if(parent.getLevel()==1){
+                            name = "/"+rootsut;
                         } else {
-                            parentid = "/"+parent.getParent().toString();
+                            name = ((Comp)((DefaultMutableTreeNode)parent.getParent()).getUserObject()).getID();
                         }
-                        String resp = client.execute("setSut", new Object[]{comparent.getName(),parentid,hm}).toString();
-    //                     String resp = client.execute("setSut", new Object[]{nodes[i].getID(),"/"+parent.getPath()[parent.getPath().length-1],null}).toString();
+                        //if(parent.getUserObject() instanceof Comp){
+                        //    parentid = ((Comp)(parent.getUserObject())).getID();
+                        //} else {
+                        //    parentid = ((Comp)((DefaultMutableTreeNode)parent.getParent()).getUserObject()).getID();
+                        //}
+                        //String resp = client.execute("setSut", new Object[]{comparent.getName(),parentid,hm}).toString();
+                        String resp = client.execute("setSut", new Object[]{parentid,name,hm}).toString();
+                        System.out.println(parentid+" - "+name+" - "+hm.toString());
                         if(resp.indexOf("ERROR")==-1){
                             DefaultMutableTreeNode element = createChildren(nodes[i]);
-                            model.insertNodeInto(element, parent, index++);
+                            model.insertNodeInto(element, parent, 1);
                         }
                         else{
                             CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SUTEditor.this,"ERROR", resp);
                         }
-                        
                     } catch (Exception e){
                         e.printStackTrace();
                     }
                     
                 } 
+                lastsaved = false;
                 return true; 
             } catch(Exception e){
                 e.printStackTrace();
