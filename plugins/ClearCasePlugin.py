@@ -232,6 +232,153 @@ class CC(object):
         except Exception as e:
             return ''
 
+
+    def mkview(self, args):
+        """
+        Send mkview command.
+        """
+
+        try:
+            command = 'cleartool mkview'
+            for key in args:
+            	if not key == 'command':
+            		command += ' ' + key + ' ' + args[key]
+
+            response = self.cleartoolSsh.write(command)
+
+            if len(response) >= 2:
+                print('error: {}'.format(response))
+
+            return True
+        except Exception as e:
+            return ''
+
+
+    def lsview(self, args):
+        """
+        Send lsview command.
+        """
+
+        try:
+            command = 'cleartool lsview'
+            for key in args:
+            	if not key == 'command':
+            		command += ' ' + key + ' ' + args[key]
+
+            response = self.cleartoolSsh.write(command)
+
+            if len(response) >= 2:
+                print('error: {}'.format(response))
+
+            return True
+        except Exception as e:
+            return ''
+
+
+    def mkelem(self, args):
+        """
+        Send mkelem command.
+        """
+
+        try:
+            command = 'cleartool mkelem'
+            for key in args:
+            	if not key == 'command':
+            		command += ' ' + key + ' ' + args[key]
+
+            response = self.cleartoolSsh.write(command)
+
+            if len(response) >= 2:
+                print('error: {}'.format(response))
+
+            return True
+        except Exception as e:
+            return ''
+
+
+    def rmelem(self, args):
+        """
+        Send rmelem command.
+        """
+
+        try:
+            command = 'cleartool rmelem'
+            for key in args:
+            	if not key == 'command':
+            		command += ' ' + key + ' ' + args[key]
+
+            response = self.cleartoolSsh.write(command)
+
+            if len(response) >= 2:
+                print('error: {}'.format(response))
+
+            return True
+        except Exception as e:
+            return ''
+
+
+    def mklabel(self, args):
+        """
+        Send mklabel command.
+        """
+
+        try:
+            command = 'cleartool mklabel'
+            for key in args:
+            	if not key == 'command':
+            		command += ' ' + key + ' ' + args[key]
+
+            response = self.cleartoolSsh.write(command)
+
+            if len(response) >= 2:
+                print('error: {}'.format(response))
+
+            return True
+        except Exception as e:
+            return ''
+
+
+    def mkattr(self, args):
+        """
+        Send mkattr command.
+        """
+
+        try:
+            command = 'cleartool mkattr'
+            for key in args:
+            	if not key == 'command':
+            		command += ' ' + key + ' ' + args[key]
+
+            response = self.cleartoolSsh.write(command)
+
+            if len(response) >= 2:
+                print('error: {}'.format(response))
+
+            return True
+        except Exception as e:
+            return ''
+
+
+    def describe(self, args):
+        """
+        Send describe command.
+        """
+
+        try:
+            command = 'cleartool describe'
+            for key in args:
+            	if not key == 'command':
+           	        command += ' ' + key + ' ' + args[key]
+
+            response = self.cleartoolSsh.write(command)
+
+            if len(response) >= 2:
+                print('error: {}'.format(response))
+
+            return True
+        except Exception as e:
+            return ''
+
 #
 
 class Plugin(BasePlugin):
@@ -283,6 +430,27 @@ class Plugin(BasePlugin):
             if not args.has_key('file_name') or not args.has_key('content'):
                 return False
             return self.setTestFile(args['file_name'], args['content'])
+
+        elif args['command'] == 'mkview':
+            return self.conn.mkview(args)
+
+        elif args['command'] == 'lsview':
+            return self.conn.lsview(args)
+
+        elif args['command'] == 'mkelem':
+            return self.conn.mkelem(args)
+
+        elif args['command'] == 'rmelem':
+            return self.conn.rmelem(args)
+
+        elif args['command'] == 'mklabel':
+            return self.conn.mklabel(args)
+
+        elif args['command'] == 'mkattr':
+            return self.conn.mkattr(args)
+
+        elif args['command'] == 'describe':
+            return self.conn.describe(args)
 
         try:
             resp = self.conn.cmd(args)
