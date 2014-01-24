@@ -210,7 +210,7 @@ public class SutTree extends JPanel{
             sut = (SUT)(treenode).getUserObject();
             if(sut.getReserved().equals(RunnerRepository.user)){
                 System.out.println("Releasing sut: "+sut.getName());
-                try{client.execute("discardAndReleaseReservedSut", new Object[]{"/"+sut.getName()+".user"}).toString();}
+                try{client.execute("discardAndReleaseReservedSut", new Object[]{"/"+sut.getName()+".system"}).toString();}
                 catch(Exception e){
                     System.out.println("Could not release sut: "+sut.getName());
                     e.printStackTrace();}
