@@ -1,6 +1,6 @@
 /*
 File: ConfigFiles.java ; This file is part of Twister.
-Version: 2.015
+Version: 2.016
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -98,10 +98,10 @@ public class ConfigFiles extends JPanel{
         paths.setBackground(Color.WHITE);
         //paths.setBorder(BorderFactory.createTitledBorder("Paths"));
         paths.setLayout(null);
-        paths.setPreferredSize(new Dimension(930,1217));
-        paths.setSize(new Dimension(930,1217));
-        paths.setMinimumSize(new Dimension(930,1217));
-        paths.setMaximumSize(new Dimension(930,1217));
+        paths.setPreferredSize(new Dimension(930,1144));
+        paths.setSize(new Dimension(930,1144));
+        paths.setMinimumSize(new Dimension(930,1144));
+        paths.setMaximumSize(new Dimension(930,1144));
         //paths.setBorder(BorderFactory.createBevelBorder(BevelBorder.LOWERED));
         setLayout(null);
         ttcpath = new JTextField();
@@ -131,19 +131,19 @@ public class ConfigFiles extends JPanel{
                 "SUT files path",sutpath,
                 RunnerRepository.SUTPATH,375,true,null);
                 
-        tepid = new JTextField();
-        addPanel("EP name File","Location of the file that contains"+
-        " the Ep name list",
-                tepid,RunnerRepository.REMOTEEPIDDIR,667,true,null);
+//         tepid = new JTextField();
+//         addPanel("EP name File","Location of the file that contains"+
+//         " the Ep name list",
+//                 tepid,RunnerRepository.REMOTEEPIDDIR,667,true,null);
         tlog = new JTextField();
         addPanel("Logs Path","Location of the directory that stores the most recent log files."+
                              " The files are re-used each Run.",
-                tlog,RunnerRepository.LOGSPATH,740,true,null);
+                tlog,RunnerRepository.LOGSPATH,667,true,null);
         tsecondarylog = new JTextField(); 
         
         JPanel p = addPanel("Secondary Logs Path","Location of the directory that archives copies of the most recent log files, with"+
                                                   " original file names appended with <.epoch time>",
-                tsecondarylog,RunnerRepository.SECONDARYLOGSPATH,1003,true,null);
+                tsecondarylog,RunnerRepository.SECONDARYLOGSPATH,930,true,null);
         logsenabled.setSelected(Boolean.parseBoolean(RunnerRepository.PATHENABLED));
         logsenabled.setBackground(Color.WHITE);
         p.add(logsenabled);
@@ -155,7 +155,7 @@ public class ConfigFiles extends JPanel{
         border7.setBorder(BorderFactory.createLineBorder(new Color(150,150,150), 1));
         p7.setBorder(border7);
         p7.setLayout(new BoxLayout(p7, BoxLayout.Y_AXIS));    
-        p7.setBounds(80,813,800,190);
+        p7.setBounds(80,740,800,190);
         paths.add(p7);
         JTextArea log2 = new JTextArea("All the log files that will be monitored");
         log2.setWrapStyleWord(true);
@@ -203,7 +203,7 @@ public class ConfigFiles extends JPanel{
         border8.setBorder(BorderFactory.createLineBorder(new Color(150,150,150), 1));
         p8.setBorder(border8);
         p8.setLayout(null);    
-        p8.setBounds(80,1149,800,50);
+        p8.setBounds(80,1076,800,50);
         if(PermissionValidator.canChangeFWM()){
             paths.add(p8);
         }
@@ -292,7 +292,7 @@ public class ConfigFiles extends JPanel{
                 
         tceport = new JTextField();
         addPanel("Central Engine Port","Central Engine port",
-                tceport,RunnerRepository.getCentralEnginePort(),1076,false,null);                
+                tceport,RunnerRepository.getCentralEnginePort(),1003,false,null);                
 //         traPort = new JTextField();
 //         addPanel("Resource Allocator Port","Resource Allocator Port",
 //                 traPort,RunnerRepository.getResourceAllocatorPort(),808,false,null);                

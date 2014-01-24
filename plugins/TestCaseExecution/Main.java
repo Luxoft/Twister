@@ -103,8 +103,8 @@ public class Main{
                     System.exit(0);}});
         f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         RunnerRepository.host = "tsc-server";
-        RunnerRepository.user = "nisuser";
-        RunnerRepository.password = "nispass";
+        RunnerRepository.user = "tscguest";
+        RunnerRepository.password = "tscguest";
         RunnerRepository.initialize("false",RunnerRepository.host,f.getContentPane(),null);
     }
 
