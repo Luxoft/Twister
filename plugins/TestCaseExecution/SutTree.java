@@ -197,6 +197,19 @@ public class SutTree extends JPanel{
             DefaultMutableTreeNode treenode = (DefaultMutableTreeNode)en.nextElement();
             sut = (SUT)(treenode).getUserObject();
             if(sut.getReserved().equals(RunnerRepository.user)){
+                System.out.println("Releasing sut: "+sut.getName());
+                try{client.execute("discardAndReleaseReservedSut", new Object[]{"/"+sut.getName()+".user"}).toString();}
+                catch(Exception e){
+                    System.out.println("Could not release sut: "+sut.getName());
+                    e.printStackTrace();}
+            }
+        }
+        en = globalroot.children();
+        while(en.hasMoreElements()){
+            DefaultMutableTreeNode treenode = (DefaultMutableTreeNode)en.nextElement();
+            sut = (SUT)(treenode).getUserObject();
+            if(sut.getReserved().equals(RunnerRepository.user)){
+                System.out.println("Releasing sut: "+sut.getName());
                 try{client.execute("discardAndReleaseReservedSut", new Object[]{"/"+sut.getName()+".user"}).toString();}
                 catch(Exception e){
                     System.out.println("Could not release sut: "+sut.getName());
