@@ -1175,4 +1175,88 @@ class CeRpycService(rpyc.Service):
         return self.project.ra.deleteSut(query, props={'__user': user})
 
 
+    def exposed_isResourceReserved(self, query):
+        logFull('CeRpyc:exposed_isResourceReserved')
+        #user = self._check_login()
+        #if not user: return False
+        return self.project.ra.isResourceReserved(query)
+
+
+    def exposed_isSutReserved(self, query):
+        logFull('CeRpyc:exposed_isSutReserved')
+        #user = self._check_login()
+        #if not user: return False
+        return self.project.ra.isSutReserved(query)
+
+
+    def exposed_reserveResource(self, query):
+        logFull('CeRpyc:exposed_reserveResource')
+        user = self._check_login()
+        if not user: return False
+        return self.project.ra.reserveResource(query, props={'__user': user})
+
+
+    def exposed_reserveSut(self, query):
+        logFull('CeRpyc:exposed_reserveSut')
+        user = self._check_login()
+        if not user: return False
+        return self.project.ra.reserveSut(query, props={'__user': user})
+
+
+    def exposed_saveAndReleaseReservedResource(self, query):
+        logFull('CeRpyc:exposed_saveAndReleaseReservedResource')
+        user = self._check_login()
+        if not user: return False
+        return self.project.ra.saveAndReleaseReservedResource(query, props={'__user': user})
+
+
+    def exposed_saveReservedResource(self, query):
+        logFull('CeRpyc:exposed_saveReservedResource')
+        user = self._check_login()
+        if not user: return False
+        return self.project.ra.saveReservedResource(query, props={'__user': user})
+
+
+    def exposed_saveReservedResourceAs(self, name, query):
+        logFull('CeRpyc:exposed_saveReservedResourceAs')
+        user = self._check_login()
+        if not user: return False
+        return self.project.ra.saveReservedResourceAs(name, query, props={'__user': user})
+
+
+    def exposed_saveReservedSutAs(self, name, query):
+        logFull('CeRpyc:exposed_saveReservedSutAs')
+        user = self._check_login()
+        if not user: return False
+        return self.project.ra.saveReservedSutAs(name, query, props={'__user': user})
+
+
+    def exposed_saveReservedSut(self, query):
+        logFull('CeRpyc:exposed_saveReservedSut')
+        user = self._check_login()
+        if not user: return False
+        return self.project.ra.saveReservedSut(query, props={'__user': user})
+
+
+    def exposed_saveAndReleaseReservedSut(self, query):
+        logFull('CeRpyc:exposed_saveAndReleaseReservedSut')
+        user = self._check_login()
+        if not user: return False
+        return self.project.ra.saveAndReleaseReservedSut(query, props={'__user': user})
+
+
+    def exposed_discardAndReleaseReservedResource(self, query):
+        logFull('CeRpyc:exposed_discardAndReleaseReservedResource')
+        user = self._check_login()
+        if not user: return False
+        return self.project.ra.discardAndReleaseReservedResource(query, props={'__user': user})
+
+
+    def exposed_discardAndReleaseReservedSut(self, query):
+        logFull('CeRpyc:exposed_discardAndReleaseReservedSut')
+        user = self._check_login()
+        if not user: return False
+        return self.project.ra.discardAndReleaseReservedSut(query, props={'__user': user})
+
+
 # Eof()
