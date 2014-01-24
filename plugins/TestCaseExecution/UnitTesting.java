@@ -1,6 +1,6 @@
 /*
 File: UnitTesting.java ; This file is part of Twister.
-Version: 2.004
+Version: 2.003
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -226,11 +226,11 @@ public class UnitTesting extends JFrame {
         
 
         StringBuilder b = new StringBuilder();
-        //for(String s:RunnerRepository.getRemoteFileContent(RunnerRepository.REMOTEEPIDDIR).split("\n")){
-        //    if(s.indexOf("[")!=-1){
-        //        b.append(s.substring(s.indexOf("[")+1, s.indexOf("]"))+";");
-        //    }
-        //}
+        for(String s:RunnerRepository.getRemoteFileContent(RunnerRepository.REMOTEEPIDDIR).split("\n")){
+            if(s.indexOf("[")!=-1){
+                b.append(s.substring(s.indexOf("[")+1, s.indexOf("]"))+";");
+            }
+        }
         String [] vecresult = b.toString().split(";");
 
 

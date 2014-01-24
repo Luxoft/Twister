@@ -1,6 +1,6 @@
 /*
 File: Main.java ; This file is part of Twister.
-Version: 2.012
+Version: 2.011
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -63,9 +63,9 @@ public class Main{
                     RunnerRepository.setSize(f.getWidth(), f.getHeight());
                 }}});
         f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        RunnerRepository.host = "11.126.32.20";
-        RunnerRepository.user = "luxoft";
-        RunnerRepository.password = "luxoft";
+        RunnerRepository.host = "tsc-server";
+        RunnerRepository.user = "tscguest";
+        RunnerRepository.password = "tscguest";
         RunnerRepository.initialize("false",RunnerRepository.host,f.getContentPane(),null);
     }
 

@@ -1,7 +1,7 @@
 
 # File: LogService.py ; This file is part of Twister.
 
-# version: 3.001
+# version: 2.005
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -31,7 +31,6 @@ This process runs in the Twister Client folder.
 
 import os, sys
 import time
-import datetime
 import glob
 import json
 import random
@@ -86,23 +85,17 @@ class LogService(rpyc.Service):
         """ Write a Log Message """
         global log
         logFile, logMsg = data.split(':')[0], ':'.join( data.split(':')[1:] )
-        logPath = os.path.split(logFile)[0]
-
-        if not os.path.isdir(logPath):
-            try:
-                os.makedirs(logPath)
-                log.debug('Created logs folder at `{}`.'.format(logPath))
-            except:
-                resp = 'Log folder at `{}` cannot be created!'.format(logPath)
-                log.error(resp)
-                return False
 
         try:
             f = open(logFile, 'a')
-        except Exception as e:
-            resp = 'Exception or writing log file `{}`! `{}`!'.format(logFile, e)
-            log.error(resp)
-            return False
+        except:
+            logFolder = os.path.split(logFile)[0] + '/logs'
+            try:
+                os.makedirs(logFolder)
+            except:
+                resp = 'Log folder `{}` cannot be created!'.format(logFolder)
+                log.error(resp)
+                return False
 
         f.write(logMsg)
         f.close()
@@ -119,24 +112,14 @@ class LogService(rpyc.Service):
             log.error('Cannot parse JSON data!')
             return False
 
-        logFile = info['logPath']
-        logPath = os.path.split(logFile)[0]
-
-        if not os.path.isdir(logPath):
-            try:
-                os.makedirs(logPath)
-                log.debug('Created logs folder at `{}`.'.format(logPath))
-            except:
-                resp = 'Log folder at `{}` cannot be created!'.format(logPath)
-                log.error(resp)
-                return False
+        logPath = info['logPath']
 
         try:
-            open(logFile, 'w').close()
-            log.debug('Cleaned log `{}`.'.format(logFile))
+            open(logPath, 'w').close()
+            log.debug('Cleaned log `{}`.'.format(logPath))
             return True
         except:
-            resp = 'Log folder `{}` cannot be reset!'.format(logFile)
+            resp = 'Log folder `{}` cannot be reset!'.format(logPath)
             log.error(resp)
             return False
 
@@ -157,7 +140,7 @@ class LogService(rpyc.Service):
         for log_path in glob.glob(info['logsPath'] + os.sep + '*.log'):
             if info['archiveLogsPath'] and info['archiveLogsActive'] == 'true':
                 archiveLogsPath = info['archiveLogsPath'].rstrip('/')
-                log_time = datetime.datetime.today().strftime('%Y-%m-%d_%H:%M:%S')
+                log_time = str(time.time()).split('.')[0]
                 archPath = '{}/{}.{}'.format(archiveLogsPath, os.path.basename(log_path), log_time)
                 # Create path if it doesn't exist
                 try: os.makedirs(archiveLogsPath)
@@ -183,7 +166,7 @@ class LogService(rpyc.Service):
                     try:
                         open(logPath, 'w').close()
                     except:
-                        log.error('CLI log file `{}` cannot be re-written!'.format(logPath))
+                        log.error('Log file `{}` cannot be re-written!'.format(logPath))
                         err = True
             # For normal logs
             else:

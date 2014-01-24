@@ -1,6 +1,6 @@
 /*
 File: XMLBuilder.java ; This file is part of Twister.
-Version: 2.011
+Version: 2.010
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -75,7 +75,7 @@ public class XMLBuilder{
                 if(getRunning(item.getSubItem(i)))return true;}
             return false;}}
         
-    public boolean createXML(boolean skip, boolean stoponfail,
+    public void createXML(boolean skip, boolean stoponfail,
                           boolean prestoponfail,
                           boolean temp, String prescript, String postscript,
                           boolean savedb, String delay, String[] globallibs){//skip checks if it is user or test xml
@@ -137,6 +137,7 @@ public class XMLBuilder{
                  sb.setLength(0);
                  Item current = suite.get(i);
                  for(String s:current.getEpId()){
+//                     Iterator iter = parent.getChildren().keySet().iterator();
                     for(int j=0;j<sutsnr;j++){
                         SUT child = (SUT)((DefaultMutableTreeNode)parent.getChildAt(j)).getUserObject();
                         if(child!=null&&child.getName().equals(s)){
@@ -201,15 +202,7 @@ public class XMLBuilder{
             if(suite.get(i).getEpId()!=null&&suite.get(i).getEpId().length>0){
                 if(skip){
                     Element EP = document.createElement("EpId");
-                    String ep = suite.get(i).getEpId()[0];
-                    try{if(ep.equals(""))ep=RunnerRepository.getRPCClient().execute("findAnonimEp", new Object[]{RunnerRepository.user}).toString();}
-                    catch(Exception e){
-                        System.out.println("Could not get EP from CE for:"+suite.get(i).getName());
-                        e.printStackTrace();
-                        return false;
-                    }
-                    if(ep.equalsIgnoreCase("false"))return false;
-                    EP.appendChild(document.createTextNode(ep));
+                    EP.appendChild(document.createTextNode(suite.get(i).getEpId()[0]));
                     rootElement.appendChild(EP);
                     EP = document.createElement("SutName");
                     EP.appendChild(document.createTextNode(suite.get(i).getEpId()[1]));
@@ -303,7 +296,6 @@ public class XMLBuilder{
                 addSubElement(rootElement,suite.get(i).getSubItem(j),skip,temp);            
             }
         }
-        return true;
     }
             
             

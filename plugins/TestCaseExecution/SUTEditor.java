@@ -1,6 +1,6 @@
 /*
 File: SUTEditor.java ; This file is part of Twister.
-Version: 2.007
+Version: 2.006
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -531,8 +531,17 @@ public class SUTEditor extends JPanel{
     
     public void populateEPs(JList tep, String eps){
         try{
-            String query = RunnerRepository.getRPCClient().execute("listEPs", new Object[]{RunnerRepository.user}).toString();
-            String [] vecresult = query.split(",");
+            StringBuilder b = new StringBuilder();
+            String st;
+            for(String s:RunnerRepository.getRemoteFileContent(RunnerRepository.REMOTEEPIDDIR).split("\n")){
+                if(s.indexOf("[")!=-1){
+                    st = s.substring(s.indexOf("[")+1, s.indexOf("]"));
+                    if(st.toUpperCase().indexOf("PLUGIN")==-1){
+                        b.append(s.substring(s.indexOf("[")+1, s.indexOf("]"))+";");
+                    }
+                }
+            }
+            String [] vecresult = b.toString().split(";");
             tep.setModel(new DefaultComboBoxModel(vecresult));
             ArrayList<String> array = new ArrayList<String>(Arrays.asList(vecresult));
             

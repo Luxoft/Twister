@@ -1,7 +1,7 @@
 
 # File: CeXmlRpc.py ; This file is part of Twister.
 
-# version: 2.032
+# version: 2.031
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -118,7 +118,6 @@ class CeXmlRpc(_cptools.XMLRPCController):
         '''
         Returns the Twister Path.
         '''
-        logFull('CeXmlRpc:getTwisterPath')
         global TWISTER_PATH
         return TWISTER_PATH
 
@@ -128,7 +127,6 @@ class CeXmlRpc(_cptools.XMLRPCController):
         '''
         Returns the Twister RPyc Port.
         '''
-        logFull('CeXmlRpc:getRpycPort')
         return self.project.rsrv.port
 
 
@@ -137,7 +135,6 @@ class CeXmlRpc(_cptools.XMLRPCController):
         '''
         Returns some system information.
         '''
-        logFull('CeXmlRpc:getSysInfo')
         return systemInfo()
 
 
@@ -146,7 +143,6 @@ class CeXmlRpc(_cptools.XMLRPCController):
         '''
         Returns the path to Logs files.
         '''
-        logFull('CeXmlRpc:getLogsPath')
         return self.project.getUserInfo(user, 'logs_path')
 
 
@@ -156,7 +152,6 @@ class CeXmlRpc(_cptools.XMLRPCController):
         Encrypt a piece of text, using AES.\n
         This function is called from the Java GUI.
         """
-        logFull('CeXmlRpc:encryptText')
         if not text: return ''
         cherry_user = cherrypy.session.get('username')
         return self.project.encryptText(cherry_user, text)
@@ -168,50 +163,9 @@ class CeXmlRpc(_cptools.XMLRPCController):
         Decrypt a piece of text, using AES.\n
         This function is called from the Java GUI.
         """
-        logFull('CeXmlRpc:decryptText')
         if not text: return ''
         cherry_user = cherrypy.session.get('username')
         return self.project.decryptText(cherry_user, text)
-
-
-    @cherrypy.expose
-    def readFile(self, fpath):
-        """
-        Read a file from user's home folder.
-        This function is called from the Java GUI.
-        """
-        if not os.path.isfile(fpath):
-            logWarning('Read File: Path `{}` is not a file!'.format(fpath))
-            return ''
-        cherry_user = cherrypy.session.get('username')
-        if not fpath.startswith( userHome(cherry_user) ):
-            logWarning('Read File: Path `{}` is not in the users home folder!'.format(fpath))
-            return ''
-        log_string = open(fpath).read()
-        return binascii.b2a_base64(log_string)
-
-
-    @cherrypy.expose
-    def writeFile(self, fpath, fdata):
-        """
-        Write a file in user's home folder.
-        This function is called from the Java GUI.
-        """
-        cherry_user = cherrypy.session.get('username')
-        if not fpath.startswith( userHome(cherry_user) ):
-            logWarning('Write File: Path `{}` is not a file!'.format(fpath))
-            return False
-        try:
-            log_string = binascii.a2b_base64(fdata)
-        except:
-            logWarning('Write File: Invalid base64 data!')
-            return False
-        try:
-            open(fpath, 'w').write(log_string)
-            return True
-        except Exception as e:
-            logWarning('Write File: Cannot write into file `{}`! {}'.format(fpath, e))
-            return False
 
 
 # # #
@@ -223,7 +177,6 @@ class CeXmlRpc(_cptools.XMLRPCController):
         Send commands to Service Manager.\n
         Valid commands are: list, start, stop, status, get config, save config, get log.
         """
-        logFull('CeXmlRpc:serviceManagerCommand')
         # Check the username from CherryPy connection
         user = cherrypy.session.get('username')
         user_roles = self.project.authenticate(user)
@@ -239,7 +192,6 @@ class CeXmlRpc(_cptools.XMLRPCController):
         """
         Manage users, groups and permissions.
         """
-        logFull('CeXmlRpc:usersAndGroupsManager')
         user = cherrypy.session.get('username')
         return self.project.usersAndGroupsManager(user, cmd, name, args, kwargs)
 
@@ -251,7 +203,6 @@ class CeXmlRpc(_cptools.XMLRPCController):
         Returns a string containing the text printed by the script.\n
         This function is called from the Java GUI.
         """
-        logFull('CeXmlRpc:runUserScript')
         return execScript(script_path)
 
 
@@ -261,7 +212,6 @@ class CeXmlRpc(_cptools.XMLRPCController):
         Selects from database.
         This function is called from the Java GUI.
         """
-        logFull('CeXmlRpc:runDBSelect')
         # Get the path to DB.XML
         db_file = self.project.getUserInfo(user, 'db_config')
         if not db_file:
@@ -309,7 +259,6 @@ class CeXmlRpc(_cptools.XMLRPCController):
         Username and password are used for authentication.\n
         This function is called every time the Central Engine stops.
         """
-        logFull('CeXmlRpc:sendMail user `{}`.'.format(user))
         try:
             ret = self.project.sendMail(user, force)
             return ret
@@ -326,7 +275,7 @@ class CeXmlRpc(_cptools.XMLRPCController):
         exactly as the user defined them in Database.XML.\n
         This function is called from the Java GUI.
         """
-        logDebug('CE: Preparing to save into database for user `{}`...'.format(user))
+        logDebug('CE: Preparing to save into database...')
         time.sleep(2) # Wait all the logs
         ret = self.project.saveToDatabase(user)
 
@@ -347,7 +296,6 @@ class CeXmlRpc(_cptools.XMLRPCController):
         """
         List all available settings, for 1 config of a user.
         """
-        logFull('CeXmlRpc:listSettings user `{}`.'.format(user))
         return self.project.listSettings(user, config, x_filter)
 
 
@@ -356,7 +304,6 @@ class CeXmlRpc(_cptools.XMLRPCController):
         """
         Fetch a value from 1 config of a user.
         """
-        logFull('CeXmlRpc:getSettingsValue user `{}`.'.format(user))
         return self.project.getSettingsValue(user, config, key)
 
 
@@ -365,7 +312,6 @@ class CeXmlRpc(_cptools.XMLRPCController):
         """
         Set a value for a key in the config of a user.
         """
-        logFull('CeXmlRpc:setSettingsValue user `{}`.'.format(user))
         return self.project.setSettingsValue(user, config, key, value)
 
 
@@ -374,7 +320,6 @@ class CeXmlRpc(_cptools.XMLRPCController):
         """
         Del a key from the config of a user.
         """
-        logFull('CeXmlRpc:delSettingsKey user `{}`.'.format(user))
         return self.project.delSettingsKey(user, config, key, index)
 
 
@@ -389,7 +334,6 @@ class CeXmlRpc(_cptools.XMLRPCController):
         Function called from the CLI,
         to list the users that are using Twister.
         """
-        logFull('CeXmlRpc:listUsers')
         data = self.project.listUsers(active)
         return data
 
@@ -400,7 +344,6 @@ class CeXmlRpc(_cptools.XMLRPCController):
         Function called from the Execution Process,
         to get information that is available only here, or are hard to get.
         """
-        logFull('CeXmlRpc:getUserVariable user `{}`.'.format(user))
         data = self.project.getUserInfo(user, variable)
         if data is None: data = False
         return data
@@ -412,7 +355,6 @@ class CeXmlRpc(_cptools.XMLRPCController):
         Function called from the Execution Process,
         to set information that is available only here, or are hard to get.
         """
-        logFull('CeXmlRpc:setUserVariable user `{}`.'.format(user))
         return self.project.setUserInfo(user, key, variable)
 
 
@@ -421,18 +363,8 @@ class CeXmlRpc(_cptools.XMLRPCController):
         """
         Search one EP and return True or False.
         """
-        logFull('CeXmlRpc:searchEP user `{}`.'.format(user))
         epDict = self.project.getUserInfo(user, 'eps')
         return epname in epDict
-
-
-    @cherrypy.expose
-    def findAnonimEp(self, user):
-        """
-        Find a local, free EP to be used as Anonim EP.
-        """
-        logFull('CeXmlRpc:findAnonimEp user `{}`.'.format(user))
-        return self.project._find_anonim_ep(user)
 
 
     @cherrypy.expose
@@ -440,7 +372,6 @@ class CeXmlRpc(_cptools.XMLRPCController):
         """
         Returns all EPs for current user.
         """
-        logFull('CeXmlRpc:listEPs user `{}`.'.format(user))
         epList = self.project.getUserInfo(user, 'eps').keys()
         return ','.join(epList)
 
@@ -454,7 +385,6 @@ class CeXmlRpc(_cptools.XMLRPCController):
         - what the user selected in the Java GUI (release, build, comments, etc)
         - the name of the suite, the test files, etc.
         """
-        logFull('CeXmlRpc:getEpVariable user `{}`.'.format(user))
         data = self.project.getEpInfo(user, epname)
         if not data: return False
         value = data.get(variable, False)
@@ -473,7 +403,6 @@ class CeXmlRpc(_cptools.XMLRPCController):
         The values can saved in the Database, when commiting.\n
         Eg: the OS, the IP, or other information can be added this way.
         """
-        logFull('CeXmlRpc:setEpVariable user `{}`.'.format(user))
         return self.project.setEpInfo(user, epname, variable, value)
 
 
@@ -482,7 +411,6 @@ class CeXmlRpc(_cptools.XMLRPCController):
         """
         Returns all Suites for one EP from current user.
         """
-        logFull('CeXmlRpc:listSuites user `{}`.'.format(user))
         if not self.searchEP(user, epname):
             logError('CE ERROR! EP `%s` is not in the list of defined EPs: `%s`!' %\
                      (str(epname), self.listEPs(user)) )
@@ -498,7 +426,6 @@ class CeXmlRpc(_cptools.XMLRPCController):
         Function called from the Execution Process,
         to get information that is available only here, or are hard to get.
         """
-        logFull('CeXmlRpc:getSuiteVariable user `{}`.'.format(user))
         data = self.project.getSuiteInfo(user, epname, suite)
         if not data: return False
         value = data.get(variable, False)
@@ -514,7 +441,6 @@ class CeXmlRpc(_cptools.XMLRPCController):
         """
         Get information about a test file: dependencies, runnable, status, etc.
         """
-        logFull('CeXmlRpc:getFileVariable user `{}`.'.format(user))
         data = self.project.getFileInfo(user, epname, file_id)
         if not data: return False
         value = data.get(variable, False)
@@ -530,7 +456,6 @@ class CeXmlRpc(_cptools.XMLRPCController):
         This change only happens in the memory structure and it is reset every time
         Central Engine is start. If you need to make a persistent change, use setPersistentFile.
         """
-        logFull('CeXmlRpc:setFileVariable user `{}`.'.format(user))
         return self.project.setFileInfo(user, epname, filename, variable, value)
 
 
@@ -540,7 +465,6 @@ class CeXmlRpc(_cptools.XMLRPCController):
         Remember the user that started the Central Engine.\n
         Called from the Java GUI.
         """
-        logFull('CeXmlRpc:setStartedBy user `{}`.'.format(user))
         name = data.split(';')[0]
         proj = ';'.join(data.split(';')[1:])
         self.project.setUserInfo(user, 'started_by', str(name))
@@ -553,7 +477,6 @@ class CeXmlRpc(_cptools.XMLRPCController):
         """
         Send a global variable, using a path to the variable.
         """
-        logFull('CeXmlRpc:getGlobalVariable user `{}`.'.format(user))
         return self.project.getGlobalVariable(user, var_path, False)
 
 
@@ -563,43 +486,7 @@ class CeXmlRpc(_cptools.XMLRPCController):
         Set a global variable path, for a user.\n
         The change is not persistent.
         """
-        logFull('CeXmlRpc:setGlobalVariable user `{}`.'.format(user))
         return self.project.setGlobalVariable(user, var_path, value)
-
-
-    @cherrypy.expose
-    def listConfigs(self, user):
-        """
-        Folders and Files from config folder.
-        """
-
-        def dirList(tests_path, path, newdict):
-            """
-            Create recursive list of folders and files from Tests path.
-            The format of a node is: {"path": "/..." "data": "name", "folder":true|false, "children": []}
-            """
-            len_path = len(tests_path) + 1
-            if os.path.isdir(path):
-                dlist = [] # Folders list
-                flist = [] # Files list
-                for fname in sorted(os.listdir(path), key=str.lower):
-                    short_path = (path + os.sep + fname)[len_path:]
-                    nd = {'path': short_path, 'data': fname, 'children': []}
-                    if os.path.isdir(path + os.sep + fname):
-                        nd['folder'] = True
-                        dlist.append(nd)
-                    else:
-                        flist.append(nd)
-                # Folders first, files second
-                newdict['children'] = dlist + flist
-            for nitem in newdict['children']:
-                # Recursive !
-                dirList(tests_path, tests_path + os.sep + nitem['path'], nitem)
-
-        dirpath = self.project.getUserInfo(user, 'tcfg_path')
-        paths = {'path':'/', 'data':os.path.split(dirpath)[-1], 'folder':True, 'children':[]}
-        dirList(dirpath, dirpath, paths)
-        return paths
 
 
     @cherrypy.expose
@@ -608,7 +495,6 @@ class CeXmlRpc(_cptools.XMLRPCController):
         Send a config file, using the full path to a config file and
         the full path to a config variable in that file.
         """
-        logFull('CeXmlRpc:getConfig user `{}`.'.format(user))
         return self.project.getGlobalVariable(user, var_path, cfg_path)
 
 
@@ -618,7 +504,6 @@ class CeXmlRpc(_cptools.XMLRPCController):
         Queue a file at the end of a suite, during runtime.
         If there are more suites with the same name, the first one is used.
         """
-        logFull('CeXmlRpc:queueFile user `{}`.'.format(user))
         return self.project.queueFile(user, suite, fname)
 
 
@@ -627,7 +512,6 @@ class CeXmlRpc(_cptools.XMLRPCController):
         """
         Remove a file from the files queue.
         """
-        logFull('CeXmlRpc:deQueueFiles user `{}`.'.format(user))
         return self.project.deQueueFiles(user, data)
 
 
@@ -643,7 +527,6 @@ class CeXmlRpc(_cptools.XMLRPCController):
         This function writes in TestSuites.XML file.\n
         The changes will be available at the next START.
         """
-        logFull('CeXmlRpc:setPersistentSuite user `{}`.'.format(user))
         return self.project.setPersistentSuite(user, suite, info, order)
 
 
@@ -654,7 +537,6 @@ class CeXmlRpc(_cptools.XMLRPCController):
         only the first one is deleted.\n
         This function writes in TestSuites.XML file.
         """
-        logFull('CeXmlRpc:delPersistentSuite user `{}`.'.format(user))
         return self.project.delPersistentSuite(user, suite)
 
 
@@ -665,7 +547,6 @@ class CeXmlRpc(_cptools.XMLRPCController):
         This function writes in TestSuites.XML file.\n
         The changes will be available at the next START.
         """
-        logFull('CeXmlRpc:setPersistentFile user `{}`.'.format(user))
         return self.project.setPersistentFile(user, suite, fname, info, order)
 
 
@@ -676,7 +557,6 @@ class CeXmlRpc(_cptools.XMLRPCController):
         with the same name, only the first one is deleted.\n
         This function writes in TestSuites.XML file.
         """
-        logFull('CeXmlRpc:delPersistentFile user `{}`.'.format(user))
         return self.project.delPersistentFile(user, suite, fname)
 
 
@@ -690,7 +570,6 @@ class CeXmlRpc(_cptools.XMLRPCController):
         """
         Reset project for 1 user.
         """
-        logFull('CeXmlRpc:resetProject user `{}`.'.format(user))
         twister_cache = userHome(user) + '/twister/.twister_cache'
         setFileOwner(user, twister_cache)
         return self.project.resetProject(user)
@@ -702,7 +581,6 @@ class CeXmlRpc(_cptools.XMLRPCController):
         Return execution status for one EP. (stopped, paused, running, invalid)\n
         Called from the EP.
         """
-        logFull('CeXmlRpc:getExecStatus user `{}`.'.format(user))
         if not self.searchEP(user, epname):
             logError('CE ERROR! EP `%s` is not in the list of defined EPs: `%s`!' %
                      (str(epname), self.listEPs(user)) )
@@ -723,7 +601,6 @@ class CeXmlRpc(_cptools.XMLRPCController):
         Return execution status for all EPs. (stopped, paused, running, invalid)\n
         Called from the Java GUI.
         """
-        logFull('CeXmlRpc:getExecStatusAll user `{}`.'.format(user))
         # If this is a temporary run, return the statuses of the backup user!
         user_agent = cherrypy.request.headers['User-Agent'].lower()
         if 'xml rpc' in user_agent and (user+'_old') in self.project.users:
@@ -760,7 +637,6 @@ class CeXmlRpc(_cptools.XMLRPCController):
         The `message` parameter can explain why the status has changed.\n
         Called from the EP.
         """
-        logFull('CeXmlRpc:setExecStatus user `{}`.'.format(user))
         return self.project.setExecStatus(user, epname, new_status, msg)
 
 
@@ -772,7 +648,6 @@ class CeXmlRpc(_cptools.XMLRPCController):
         The `message` parameter can explain why the status has changed.
         Called from the applet.
         """
-        logFull('CeXmlRpc:setExecStatusAll user `{}`.'.format(user))
         return self.project.setExecStatusAll(user, new_status, msg)
 
 
@@ -788,7 +663,6 @@ class CeXmlRpc(_cptools.XMLRPCController):
         The status of one file can be obtained with get File Variable.\n
         Called from the Java GUI.
         """
-        logFull('CeXmlRpc:getFileStatusAll user `{}`.'.format(user))
         if epname and not self.searchEP(user, epname):
             logError('CE ERROR! EP `%s` is not in the list of defined EPs: `%s`!' % \
                 (str(epname), self.listEPs(user)) )
@@ -810,7 +684,6 @@ class CeXmlRpc(_cptools.XMLRPCController):
         Set status for one file and write in log summary.\n
         Called from the Runner.
         """
-        logFull('CeXmlRpc:setFileStatus user `{}`.'.format(user))
         return self.project.setFileStatus(user, epname, file_id, new_status, time_elapsed)
 
 
@@ -820,7 +693,6 @@ class CeXmlRpc(_cptools.XMLRPCController):
         Reset file status for all files of one EP.\n
         Called from the Runner.
         """
-        logFull('CeXmlRpc:setFileStatusAll user `{}`.'.format(user))
         return self.project.setFileStatusAll(user, epname, new_status)
 
 
@@ -831,7 +703,6 @@ class CeXmlRpc(_cptools.XMLRPCController):
 
     @cherrypy.expose
     def listPlugins(self, user):
-        logFull('CeXmlRpc:listPlugins user `{}`.'.format(user))
 
         parser = PluginParser(user)
         pluginsList = parser.getPlugins()
@@ -841,7 +712,6 @@ class CeXmlRpc(_cptools.XMLRPCController):
 
     @cherrypy.expose
     def runPlugin(self, user, plugin, args):
-        logFull('CeXmlRpc:runPlugin user `{}`.'.format(user))
 
         # If argument is a string
         if type(args) == type(str()):
@@ -882,7 +752,6 @@ class CeXmlRpc(_cptools.XMLRPCController):
         The temporary run does not affect the normal suites and files.
         The results are Not saved to database and No report is sent on e-mail.
         """
-        logFull('CeXmlRpc:runTemporary user `{}`.'.format(user))
 
         # Cannot run temporary more than once
         if user + '_old' in self.project.users:
@@ -928,7 +797,6 @@ class CeXmlRpc(_cptools.XMLRPCController):
         This list will be used to syncronize the libs on all EP computers.\n
         Called from the Runner and the Java GUI.
         """
-        logFull('CeXmlRpc:getLibrariesList')
         return self.project.getLibrariesList(user, all)
 
 
@@ -938,7 +806,6 @@ class CeXmlRpc(_cptools.XMLRPCController):
         Returns the title, description and all tags from a test file.\n
         Called from the Java GUI.
         """
-        logFull('CeXmlRpc:getTestDescription')
         if os.path.isfile(fname):
             # This function is defined in helpers.
             return getFileTags(fname)
@@ -968,7 +835,6 @@ class CeXmlRpc(_cptools.XMLRPCController):
         """
         Called in the Java GUI to show the logs.
         """
-        logFull('CeXmlRpc:getLogFile user `{}`.'.format(user))
         return self.project.getLogFile(user, read, fstart, filename)
 
 
@@ -979,7 +845,6 @@ class CeXmlRpc(_cptools.XMLRPCController):
         In order for the user to be able to access the logs written by CE, which runs as ROOT,
         CE will start a small process in the name of the user and the process will write the logs.
         """
-        logFull('CeXmlRpc:logMessage user `{}`.'.format(user))
         return self.project.logMessage(user, logType, logMessage)
 
 
@@ -989,7 +854,6 @@ class CeXmlRpc(_cptools.XMLRPCController):
         Writes CLI messages in a big log, so all output can be checked LIVE.\n
         Called from the EP.
         """
-        logFull('CeXmlRpc:logLIVE user `{}`.'.format(user))
         return self.project.logLIVE(user, epname, logMessage)
 
 
@@ -999,7 +863,6 @@ class CeXmlRpc(_cptools.XMLRPCController):
         Resets one log.\n
         Called from the Java GUI.
         """
-        logFull('CeXmlRpc:resetLog user `{}`.'.format(user))
         return self.project.resetLog(user, logName)
 
 
@@ -1009,7 +872,6 @@ class CeXmlRpc(_cptools.XMLRPCController):
         All logs defined in master config are erased.\n
         Called from the Java GUI and every time the project is reset.
         """
-        logFull('CeXmlRpc:resetLogs user `{}`.'.format(user))
         return self.project.resetLogs(user)
 
 
@@ -1018,7 +880,6 @@ class CeXmlRpc(_cptools.XMLRPCController):
         """
         Configure Panic Detect.
         """
-        logFull('CeXmlRpc:panicDetectConfig user `{}`.'.format(user))
         # If argument is a string
         if type(data) == type(str()):
             try:

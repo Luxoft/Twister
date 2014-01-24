@@ -18,6 +18,7 @@ Master config file for Twister.
     <TestConfigPath>$HOME/Documents</TestConfigPath>
     <ArchiveLogsPath>$HOME/twister/logs_archive</ArchiveLogsPath>
     <ArchiveLogsPathActive>false</ArchiveLogsPathActive>
+    <SutPath>$HOME/twister/config/sut</SutPath>
     <LogsPath>$HOME/twister/logs</LogsPath>
     <LogFiles>
         <logRunning>log_running.log</logRunning>

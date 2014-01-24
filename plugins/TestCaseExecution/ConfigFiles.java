@@ -1,6 +1,6 @@
 /*
 File: ConfigFiles.java ; This file is part of Twister.
-Version: 2.015
+Version: 2.013
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -79,7 +79,7 @@ import java.io.BufferedWriter;
 import java.io.FileWriter;
 
 public class ConfigFiles extends JPanel{
-    public static JTextField ttcpath,tMasterXML,tUsers,
+    public static JTextField ttcpath,tMasterXML,tUsers,tepid,
                              tSuites,
                              tlog,trunning,
                              tdebug,tsummary,tinfo,tcli,tdbfile,
@@ -125,16 +125,19 @@ public class ConfigFiles extends JPanel{
                 "Test Configuration path",testconfigpath,
                 RunnerRepository.TESTCONFIGPATH,303,true,null);
                 
-        
+        tepid = new JTextField();
+        addPanel("EP name File","Location of the file that contains"+
+        " the Ep name list",
+                tepid,RunnerRepository.REMOTEEPIDDIR,595,true,null);
         tlog = new JTextField();
         addPanel("Logs Path","Location of the directory that stores the most recent log files."+
                              " The files are re-used each Run.",
-                tlog,RunnerRepository.LOGSPATH,595,true,null);
+                tlog,RunnerRepository.LOGSPATH,667,true,null);
         tsecondarylog = new JTextField(); 
         
         JPanel p = addPanel("Secondary Logs Path","Location of the directory that archives copies of the most recent log files, with"+
                                                   " original file names appended with <.epoch time>",
-                tsecondarylog,RunnerRepository.SECONDARYLOGSPATH,857,true,null);
+                tsecondarylog,RunnerRepository.SECONDARYLOGSPATH,930,true,null);
         logsenabled.setSelected(Boolean.parseBoolean(RunnerRepository.PATHENABLED));
         logsenabled.setBackground(Color.WHITE);
         p.add(logsenabled);
@@ -146,7 +149,7 @@ public class ConfigFiles extends JPanel{
         border7.setBorder(BorderFactory.createLineBorder(new Color(150,150,150), 1));
         p7.setBorder(border7);
         p7.setLayout(new BoxLayout(p7, BoxLayout.Y_AXIS));    
-        p7.setBounds(80,667,800,190);
+        p7.setBounds(80,740,800,190);
         paths.add(p7);
         JTextArea log2 = new JTextArea("All the log files that will be monitored");
         log2.setWrapStyleWord(true);
@@ -194,7 +197,7 @@ public class ConfigFiles extends JPanel{
         border8.setBorder(BorderFactory.createLineBorder(new Color(150,150,150), 1));
         p8.setBorder(border8);
         p8.setLayout(null);    
-        p8.setBounds(80,1003,800,50);
+        p8.setBounds(80,1076,800,50);
         if(PermissionValidator.canChangeFWM()){
             paths.add(p8);
         }
@@ -284,7 +287,7 @@ public class ConfigFiles extends JPanel{
                 
         tceport = new JTextField();
         addPanel("Central Engine Port","Central Engine port",
-                tceport,RunnerRepository.getCentralEnginePort(),930,false,null);                
+                tceport,RunnerRepository.getCentralEnginePort(),1003,false,null);                
 //         traPort = new JTextField();
 //         addPanel("Resource Allocator Port","Resource Allocator Port",
 //                 traPort,RunnerRepository.getResourceAllocatorPort(),808,false,null);                
@@ -299,6 +302,7 @@ public class ConfigFiles extends JPanel{
             ttcpath.setEnabled(false);
             tMasterXML.setEnabled(false);
             tUsers.setEnabled(false);
+            tepid.setEnabled(false);
             tSuites.setEnabled(false);
             tlog.setEnabled(false);
             trunning.setEnabled(false);
@@ -358,14 +362,6 @@ public class ConfigFiles extends JPanel{
                         String[] children = dir.list();
                         for (int i=0; i<children.length; i++){new File(dir, children[i]).delete();}
                         RunnerRepository.parseConfig();
-                        String respons = RunnerRepository.getRPCClient().execute("resetProject", new Object[]{RunnerRepository.user}).toString();
-                        if(respons.toLowerCase().equals("false")){
-                            CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE, 
-                                                  ConfigFiles.this, "ERROR", 
-                                                  "CE could not propagate changes. Changes will be available on first start project");
-                        } else {
-                            System.out.println("Changes successfully applied in CE");
-                        }
                         RunnerRepository.window.mainpanel.getP2().init(RunnerRepository.isapplet);
                         RunnerRepository.window.mainpanel.p1.ep.refreshStructure();
                         RunnerRepository.window.mainpanel.p1.lp.refreshStructure();
@@ -380,10 +376,10 @@ public class ConfigFiles extends JPanel{
                         libpath.setText(RunnerRepository.REMOTELIBRARY);
                         tMasterXML.setText(RunnerRepository.XMLREMOTEDIR);
                         tUsers.setText(RunnerRepository.REMOTEUSERSDIRECTORY);
+                        tepid.setText(RunnerRepository.REMOTEEPIDDIR);
                         tlog.setText(RunnerRepository.LOGSPATH);
                         tsecondarylog.setText(RunnerRepository.SECONDARYLOGSPATH);
                         logsenabled.setSelected(Boolean.parseBoolean(RunnerRepository.PATHENABLED));
-                        testconfigpath.setText(RunnerRepository.TESTCONFIGPATH);
                         if(RunnerRepository.getLogs().size()>0)trunning.setText(RunnerRepository.getLogs().get(0));
                         trunning.setText(RunnerRepository.getLogs().get(0));
                         tdebug.setText(RunnerRepository.getLogs().get(1));
@@ -559,6 +555,8 @@ public class ConfigFiles extends JPanel{
             catch(Exception e){addTag("logCli","",rootElement,blank,document);}
             try{addTag("DbConfigFile",tdbfile.getText(),root,blank,document);}
             catch(Exception e){addTag("DbConfigFile","",root,blank,document);}
+            try{addTag("EpNames",tepid.getText(),root,blank,document);}
+            catch(Exception e){addTag("EpNames","",root,blank,document);}
             try{addTag("EmailConfigFile",temailfile.getText(),root,blank,document);}
             catch(Exception e){addTag("EmailConfigFile","",root,blank,document);}
             try{addTag("GlobalParams",tglobalsfile.getText(),root,blank,document);}

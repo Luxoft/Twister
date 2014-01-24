@@ -1,7 +1,7 @@
 
 # File: CeRpyc.py ; This file is part of Twister.
 
-# version: 3.006
+# version: 2.005
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -26,7 +26,6 @@
 
 import os
 import sys
-import time
 import json
 import thread
 import tarfile
@@ -45,7 +44,6 @@ if TWISTER_PATH not in sys.path:
 from common.constants  import *
 from common.helpers    import *
 from common.tsclogging import *
-from common.tsclogging import getLogLevel, setLogLevel
 from common.xmlparser  import PluginParser
 
 #
@@ -62,7 +60,6 @@ class CeRpycService(rpyc.Service):
     # - keys of connection ip+ports from remote locations
     # - values of meta info about each connection, like:
     #   {
-    #    'time': 12345...,
     #    'hello': 'client | ep | lib',
     #    'checked': True, 'user': '...',
     #    'conn': <Remote RPyc Service>,
@@ -70,23 +67,6 @@ class CeRpycService(rpyc.Service):
     #   }
     conns = {}
     conn_lock = thread.allocate_lock()
-
-
-    def exposed_getLogLevel(self):
-        """
-        This doesn't require login.
-        """
-        logFull('CeRpyc:exposed_getLogLevel')
-        return getLogLevel()
-
-
-    def exposed_setLogLevel(self, Level):
-        """
-        Dinamically set log level.
-        This doesn't require login.
-        """
-        logFull('CeRpyc:exposed_setLogLevel')
-        return setLogLevel(Level)
 
 
     @classmethod
@@ -108,51 +88,6 @@ class CeRpycService(rpyc.Service):
             return ''
 
 
-    def on_connect(self):
-        """
-        On client connect
-        """
-        logFull('CeRpyc:on_connect')
-        str_addr = self._get_addr()
-
-        # Add this connection in the list of connections,
-        # If this connection CAN be added!
-        try:
-            with self.conn_lock:
-                self.conns[str_addr] = {'conn': self._conn, 'time': time.time()}
-        except Exception as e:
-            logError('EE: Connect error: {}.'.format(e))
-
-        logDebug('EE: Connected from `{}`.'.format(str_addr))
-
-
-    def on_disconnect(self):
-        """
-        On client disconnect
-        """
-        logFull('CeRpyc:on_disconnect')
-        str_addr = self._get_addr()
-
-        hello = self.conns[str_addr].get('hello', '')
-        stime = self.conns[str_addr].get('time', time.time())
-        if hello: hello += ' - '
-
-        # Unregister the eventual EPs for this connection
-        if self.conns[str_addr].get('checked') and self.conns[str_addr].get('user'):
-            eps = self.conns[str_addr].get('eps')
-            if eps: self.unregisterEps(eps)
-
-        # Delete everything for this address
-        try:
-            with self.conn_lock:
-                del self.conns[str_addr]
-        except Exception as e:
-            logError('EE: Disconnect error: {}.'.format(e))
-
-        logDebug('EE: Disconnected from `{}{}`, after `{:.2f}` seconds.'.format(
-            hello, str_addr, (time.time() - stime)))
-
-
     @classmethod
     def _findConnection(self, usr=None, addr=[], hello='', epname=''):
         """
@@ -164,7 +99,6 @@ class CeRpycService(rpyc.Service):
         The EP must be the name of the EP registered by a client;
         it returns the client, not the EP.
         """
-        logFull('CeRpyc:_findConnection')
         if isinstance(self, CeRpycService):
             user = self._check_login()
         else:
@@ -201,6 +135,46 @@ class CeRpycService(rpyc.Service):
         return found
 
 
+    def on_connect(self):
+        """
+        On client connect
+        """
+        str_addr = self._get_addr()
+
+        # Add this connection in the list of connections,
+        # If this connection CAN be added!
+        try:
+            with self.conn_lock:
+                self.conns[str_addr] = {'conn': self._conn}
+        except Exception as e:
+            logError('EE: Connect error: {}.'.format(e))
+
+        logDebug('EE: Connected from `{}`.'.format(str_addr))
+
+
+    def on_disconnect(self):
+        """
+        On client disconnect
+        """
+        str_addr = self._get_addr()
+        hello = self.conns[str_addr].get('hello', '')
+        if hello: hello += ' - '
+
+        # Unregister the eventual EPs for this connection
+        if self.conns[str_addr].get('checked') and self.conns[str_addr].get('user'):
+            eps = self.conns[str_addr].get('eps')
+            if eps: self.unregisterEps(eps)
+
+        # Delete everything for this address
+        try:
+            with self.conn_lock:
+                del self.conns[str_addr]
+        except Exception as e:
+            logError('EE: Disconnect error: {}.'.format(e))
+
+        logDebug('EE: Disconnected from `{}{}`.'.format(hello, str_addr))
+
+
     def exposed_cherryAddr(self):
         """
         Returns the CherryPy IP and PORT, for the Central Engine.
@@ -222,7 +196,6 @@ class CeRpycService(rpyc.Service):
         """
         Used by a Client for setting a name and other props.
         """
-        logFull('CeRpyc:exposed_hello')
         str_addr = self._get_addr()
         extra = dict(extra)
         extra.update({'hello': str(hello)})
@@ -251,7 +224,6 @@ class CeRpycService(rpyc.Service):
         Log in before anything else.
         A user cannot execute commands without logging in first!
         """
-        logFull('CeRpyc:exposed_login user `{}`.'.format(user))
         str_addr = self._get_addr()
         resp = self.project.rpyc_check_passwd(user, passwd)
 
@@ -265,7 +237,7 @@ class CeRpycService(rpyc.Service):
             old_data.update({'checked': resp, 'user': user})
             self.conns[str_addr] = old_data
 
-        logDebug('User login: `{}`: {}.'.format(user, 'success' if resp else 'failure'))
+        # print('Connections :: {} //'.format(pformat(self.conns, indent=2, width=100)))
         return resp
 
 
@@ -274,7 +246,6 @@ class CeRpycService(rpyc.Service):
         Auto-detect the user based on the client connection,
         then check user login.
         """
-        logFull('CeRpyc:_check_login')
         str_addr = self._get_addr()
         check = self.conns[str_addr].get('checked')
         user  = self.conns[str_addr].get('user')
@@ -291,7 +262,6 @@ class CeRpycService(rpyc.Service):
         """
         Encrypt a piece of text, using AES.
         """
-        logFull('CeRpyc:exposed_encryptText')
         if not text: return ''
         user = self._check_login()
         if not user: return False
@@ -302,7 +272,6 @@ class CeRpycService(rpyc.Service):
         """
         Decrypt a piece of text, using AES.
         """
-        logFull('CeRpyc:exposed_decryptText')
         if not text: return ''
         user = self._check_login()
         if not user: return False
@@ -313,7 +282,6 @@ class CeRpycService(rpyc.Service):
         """
         Manage users, groups and permissions.
         """
-        logFull('CeRpyc:exposed_usrManager')
         user = self._check_login()
         if not user: return False
         return self.project.usersAndGroupsManager(user, cmd, name, args, kwargs)
@@ -323,7 +291,6 @@ class CeRpycService(rpyc.Service):
         """
         Function called from the CLI, to list the users that are using Twister.
         """
-        logFull('CeRpyc:exposed_listUsers')
         return self.project.listUsers(active)
 
 
@@ -331,7 +298,6 @@ class CeRpycService(rpyc.Service):
         """
         Send a user variable
         """
-        logFull('CeRpyc:exposed_getUserVariable')
         user = self._check_login()
         if not user: return False
         data = self.project.getUserInfo(user, variable)
@@ -343,7 +309,6 @@ class CeRpycService(rpyc.Service):
         """
         Create or overwrite a user variable
         """
-        logFull('CeRpyc:exposed_setUserVariable')
         user = self._check_login()
         if not user: return False
         return self.project.setUserInfo(user, key, variable)
@@ -353,7 +318,6 @@ class CeRpycService(rpyc.Service):
         """
         Send an EP variable
         """
-        logFull('CeRpyc:exposed_getEpVariable')
         user = self._check_login()
         if not user: return False
         data = self.project.getEpInfo(user, epname)
@@ -365,7 +329,6 @@ class CeRpycService(rpyc.Service):
         """
         Create or overwrite an EP variable
         """
-        logFull('CeRpyc:exposed_setEpVariable')
         user = self._check_login()
         if not user: return False
         return self.project.setEpInfo(user, epname, variable, value)
@@ -375,7 +338,6 @@ class CeRpycService(rpyc.Service):
         """
         List all suites for 1 EP, in the current project
         """
-        logFull('CeRpyc:exposed_listSuites')
         user = self._check_login()
         if not user: return False
         if not epname: return False
@@ -387,7 +349,6 @@ class CeRpycService(rpyc.Service):
         """
         Send a Suite variable
         """
-        logFull('CeRpyc:exposed_getSuiteVariable')
         user = self._check_login()
         if not user: return False
         data = self.project.getSuiteInfo(user, epname, suite)
@@ -399,7 +360,6 @@ class CeRpycService(rpyc.Service):
         """
         Send a file variable
         """
-        logFull('CeRpyc:exposed_getFileVariable')
         user = self._check_login()
         if not user: return False
         data = self.project.getFileInfo(user, epname, file_id)
@@ -411,7 +371,6 @@ class CeRpycService(rpyc.Service):
         """
         Create or overwrite a file variable
         """
-        logFull('CeRpyc:exposed_setFileVariable')
         user = self._check_login()
         if not user: return False
         return self.project.setFileInfo(user, epname, filename, variable, value)
@@ -424,7 +383,6 @@ class CeRpycService(rpyc.Service):
         """
         Global variables
         """
-        logFull('CeRpyc:exposed_getGlobalVariable')
         user = self._check_login()
         if not user: return False
         return self.project.getGlobalVariable(user, var_path, False)
@@ -434,7 +392,6 @@ class CeRpycService(rpyc.Service):
         """
         Global variables
         """
-        logFull('CeRpyc:exposed_setGlobalVariable')
         user = self._check_login()
         if not user: return False
         return self.project.setGlobalVariable(user, var_path, value)
@@ -444,7 +401,6 @@ class CeRpycService(rpyc.Service):
         """
         Config files
         """
-        logFull('CeRpyc:exposed_getConfig')
         user = self._check_login()
         if not user: return False
         return self.project.getGlobalVariable(user, var_path, cfg_path)
@@ -455,23 +411,21 @@ class CeRpycService(rpyc.Service):
 
     def exposed_listEPs(self):
         """
-        All known EPs for a user, read from project.
+        All known EPs for a user.
         The user is identified automatically.
         """
-        logFull('CeRpyc:exposed_listEPs')
         user = self._check_login()
         if not user: return False
         eps = self.project.getUserInfo(user, 'eps').keys()
-        return list(eps) # Best to make a copy
+        return list(eps) # Making a copy
 
 
     @classmethod
     def exposed_registeredEps(self, user=None):
         """
-        Return all registered EPs for all user clients.
+        Return all registered EPs for a client.
         The user MUST be given as a parameter.
         """
-        logFull('CeRpyc:exposed_registeredEps')
         if not user: return False
         eps = []
 
@@ -492,7 +446,6 @@ class CeRpycService(rpyc.Service):
         Only a VALID client will be able to register EPs!
         The user is identified automatically.
         """
-        logFull('CeRpyc:registerEps')
         str_addr = self._get_addr()
         user = self._check_login()
         if not user: return False
@@ -506,8 +459,6 @@ class CeRpycService(rpyc.Service):
             return False
         else:
             eps = sorted(set(eps))
-
-        logDebug('Begin to register EPs: {} ...'.format(eps))
 
         try:
             # Send a Hello and this IP to the remote proxy Service
@@ -560,7 +511,6 @@ class CeRpycService(rpyc.Service):
         Private, helper function to un-register some EPs for a client.
         The user is identified automatically.
         """
-        logFull('CeRpyc:unregisterEps')
         str_addr = self._get_addr()
         user = self._check_login()
         if not user: return False
@@ -574,8 +524,6 @@ class CeRpycService(rpyc.Service):
             return False
         else:
             eps = set(eps)
-
-        logDebug('Begin to un-register EPs: {} ...'.format(eps))
 
         with self.conn_lock:
             for epname in eps:
@@ -601,26 +549,38 @@ class CeRpycService(rpyc.Service):
         Start EP for client.
         This must work from any ExecManager instance.
         """
-        logFull('CeRpyc:exposed_startEP')
         if isinstance(self, CeRpycService):
             user = self._check_login()
         else:
             user = usr
         if not user: return False
 
-        addr = self._findConnection(user, hello='client', epname=epname)
+        conn = False
 
-        if not addr:
+        # The EP that is required to be started is registered by a client
+        # Must find the client that registered it, and use the RPyc connection
+        for str_addr, data in self.conns.iteritems():
+            # Skip invalid connections, without log-in
+            if not data.get('user') or not data.get('checked'):
+                continue
+            # There might be more clients for a user...
+            # And this Addr might be an EP, not a client
+            if user == data['user'] and data['checked']:
+                # If this connection has registered EPs
+                eps = data.get('eps')
+                if eps and epname in eps:
+                    conn = data['conn']
+                    break
+
+        if not conn:
             logError('Unknown Execution Process: `{}`! The project will not run.'.format(epname))
             return False
 
-        conn = self.conns.get(addr, {}).get('conn')
-
         try:
             result = conn.root.start_ep(epname)
-            logDebug('Starting `{}:{}`..... {} !'.format(user, epname, result))
+            logDebug('Starting `{} {}`... {}!'.format(user, epname, result))
             return result
-        except:
+        except Exception as e:
             trace = traceback.format_exc()[34:].strip()
             logError('Error: Start EP error: {}'.format(trace))
             return False
@@ -632,26 +592,38 @@ class CeRpycService(rpyc.Service):
         Stop EP for client.
         This must work from any ExecManager instance.
         """
-        logFull('CeRpyc:exposed_stopEP')
         if isinstance(self, CeRpycService):
             user = self._check_login()
         else:
             user = usr
         if not user: return False
 
-        addr = self._findConnection(user, hello='client', epname=epname)
+        conn = False
 
-        if not addr:
-            logError('Unknown Execution Process: `{}`! Cannot stop the EP.'.format(epname))
+        # The EP that is required to be stopped is registered by a client
+        # Must find the client that registered it, and use the RPyc connection
+        for str_addr, data in self.conns.iteritems():
+            # Skip invalid connections, without log-in
+            if not data.get('user') or not data.get('checked'):
+                continue
+            # There might be more clients for a user...
+            # And this Addr might be an EP, not a client
+            if user == data['user'] and data['checked']:
+                # If this connection has registered EPs
+                eps = data.get('eps')
+                if eps and epname in eps:
+                    conn = data['conn']
+                    break
+
+        if not conn:
+            logError('Unknown Execution Process: `{}`! The EP will not be stopped.'.format(epname))
             return False
-
-        conn = self.conns.get(addr, {}).get('conn')
 
         try:
             result = conn.root.stop_ep(epname)
-            logDebug('Stopping `{}:{}`..... {} !'.format(user, epname, result))
+            logDebug('Stopping `{} {}`... {}!'.format(user, epname, result))
             return result
-        except:
+        except Exception as e:
             trace = traceback.format_exc()[34:].strip()
             logError('Error: Stop EP error: {}'.format(trace))
             return False
@@ -665,7 +637,6 @@ class CeRpycService(rpyc.Service):
         Queue a file at the end of a suite, during runtime.
         If there are more suites with the same name, the first one is used.
         """
-        logFull('CeRpyc:exposed_queueFile')
         user = self._check_login()
         if not user: return False
         return self.project.queueFile(user, suite, fname)
@@ -675,7 +646,6 @@ class CeRpycService(rpyc.Service):
         """
         Remove a file from the files queue.
         """
-        logFull('CeRpyc:exposed_deQueueFiles')
         user = self._check_login()
         if not user: return False
         return self.project.deQueueFiles(user, data)
@@ -685,7 +655,6 @@ class CeRpycService(rpyc.Service):
         """
         Return execution status for one EP. (stopped, paused, running, invalid)
         """
-        logFull('CeRpyc:exposed_getEpStatus')
         user = self._check_login()
         if not user: return False
 
@@ -694,6 +663,7 @@ class CeRpycService(rpyc.Service):
             return False
 
         data = self.project.getEpInfo(user, epname)
+
         reversed = dict((v,k) for k,v in execStatus.iteritems())
         return reversed[data.get('status', 8)]
 
@@ -702,11 +672,11 @@ class CeRpycService(rpyc.Service):
         """
         Return execution status for all EPs. (stopped, paused, running, invalid)
         """
-        logFull('CeRpyc:exposed_getEpStatusAll')
         user = self._check_login()
         if not user: return False
 
         data = self.project.getUserInfo(user)
+
         reversed = dict((v,k) for k,v in execStatus.iteritems())
         return reversed[data.get('status', 8)]
 
@@ -717,7 +687,6 @@ class CeRpycService(rpyc.Service):
         Returns a string (stopped, paused, running).
         The `message` parameter can explain why the status has changed.
         """
-        logFull('CeRpyc:exposed_setEpStatus')
         user = self._check_login()
         if not user: return False
         return self.project.setExecStatus(user, epname, new_status, msg)
@@ -729,7 +698,6 @@ class CeRpycService(rpyc.Service):
         Returns a string (stopped, paused, running).
         The `message` parameter can explain why the status has changed.
         """
-        logFull('CeRpyc:exposed_setEpStatusAll')
         user = self._check_login()
         if not user: return False
         return self.project.setExecStatusAll(user, new_status, msg)
@@ -740,7 +708,6 @@ class CeRpycService(rpyc.Service):
         Returns a list with all statuses, for all files, in order.
         The status of one file can be obtained with ce.getFileVariable.
         """
-        logFull('CeRpyc:exposed_getFileStatusAll')
         user = self._check_login()
         if not user: return False
         return self.project.getFileStatusAll(user, epname, suite)
@@ -751,7 +718,6 @@ class CeRpycService(rpyc.Service):
         Set status for one file and write in log summary.
         Called from the Runner.
         """
-        logFull('CeRpyc:exposed_setFileStatus')
         user = self._check_login()
         if not user: return False
         return self.project.setFileStatus(user, epname, file_id, new_status, time_elapsed)
@@ -762,7 +728,6 @@ class CeRpycService(rpyc.Service):
         Reset file status for all files of one EP.
         Called from the Runner.
         """
-        logFull('CeRpyc:exposed_setFileStatusAll')
         user = self._check_login()
         if not user: return False
         return self.project.setFileStatusAll(user, epname, new_status)
@@ -776,7 +741,6 @@ class CeRpycService(rpyc.Service):
         Returns the list of exposed libraries, from CE libraries folder.
         This list will be used to syncronize the libs on all EP computers.
         """
-        logFull('CeRpyc:exposed_listLibraries')
         user = self._check_login()
         if not user: return False
         return self.project.getLibrariesList(user, all)
@@ -787,7 +751,6 @@ class CeRpycService(rpyc.Service):
         Sends required library to the EP, to be syncronized.
         The library can be global for all users, or per user.
         """
-        logFull('CeRpyc:exposed_downloadLibrary')
         user = self._check_login()
         if not user: return False
         global TWISTER_PATH
@@ -833,7 +796,6 @@ class CeRpycService(rpyc.Service):
         """
         Returns all files that must be run on one EP.
         """
-        logFull('CeRpyc:exposed_getEpFiles')
         user = self._check_login()
         if not user: return False
         try: data = self.project.getEpFiles(user, epname)
@@ -845,7 +807,6 @@ class CeRpycService(rpyc.Service):
         """
         Returns all files that must be run on one Suite ID.
         """
-        logFull('CeRpyc:exposed_getSuiteFiles')
         user = self._check_login()
         if not user: return False
         try: data = self.project.getSuiteFiles(user, epname, suite)
@@ -857,7 +818,6 @@ class CeRpycService(rpyc.Service):
         """
         Sends requested file to the EP, to be executed.
         """
-        logFull('CeRpyc:exposed_downloadFile')
         user = self._check_login()
         if not user: return False
 
@@ -881,6 +841,9 @@ class CeRpycService(rpyc.Service):
 
             filename = data['file']
 
+            # Inject this empty variable just to be sure.
+            self.project.setFileInfo(user, epname, file_id, 'twister_tc_revision', '')
+
             # Injected ClearCase file ?
             if 'ClearCase' in self.exposed_listPlugins() and data.get('clearcase'):
                 plugin_p = self.project._buildPlugin(user, 'ClearCase')
@@ -899,7 +862,7 @@ class CeRpycService(rpyc.Service):
                         self.project.setFileInfo(user, epname, file_id, 'twister_tc_revision', rev)
                 except Exception as e:
                     pass
-                logDebug('CE: Execution process `{}:{}` requested ClearCase file `{}`.'.format(user, epname, filename))
+                logDebug('CE: Execution process `{}:{}` requested file `{}`.'.format(user, epname, filename))
                 return data
 
             # Fix ~ $HOME path (from project XML)
@@ -922,12 +885,10 @@ class CeRpycService(rpyc.Service):
         """
         List all user plugins.
         """
-        logFull('CeRpyc:exposed_listPlugins')
         user = self._check_login()
         if not user: return False
         parser = PluginParser(user)
         pluginsList = parser.getPlugins()
-        logDebug('List Plug-ins: user `{}` has: {}.'.format(user, pluginsList))
         return pluginsList.keys()
 
 
@@ -935,7 +896,6 @@ class CeRpycService(rpyc.Service):
         """
         Exposed API for running plug-ins from Execution Processes.
         """
-        logFull('CeRpyc:exposed_runPlugin')
         user = self._check_login()
         if not user: return False
 
@@ -971,7 +931,6 @@ class CeRpycService(rpyc.Service):
         """
         Used to show the logs.
         """
-        logFull('CeRpyc:exposed_getLogFile')
         user = self._check_login()
         if not user: return False
         return self.project.getLogFile(user, read, fstart, filename)
@@ -983,7 +942,6 @@ class CeRpycService(rpyc.Service):
         In order for the user to be able to access the logs written by CE, which runs as ROOT,
         CE will start a small process in the name of the user and the process will write the logs.
         """
-        logFull('CeRpyc:exposed_logMessage')
         user = self._check_login()
         if not user: return False
         return self.project.logMessage(user, logType, logMessage)
@@ -993,7 +951,6 @@ class CeRpycService(rpyc.Service):
         """
         Writes CLI messages in a big log, so all output can be checked LIVE.
         """
-        logFull('CeRpyc:exposed_logLIVE')
         user = self._check_login()
         if not user: return False
         return self.project.logLIVE(user, epname, logMessage)
@@ -1003,7 +960,6 @@ class CeRpycService(rpyc.Service):
         """
         Resets one log.
         """
-        logFull('CeRpyc:exposed_resetLog')
         user = self._check_login()
         if not user: return False
         return self.project.resetLog(user, logName)
@@ -1013,7 +969,6 @@ class CeRpycService(rpyc.Service):
         """
         All logs defined in master config are erased.\n
         """
-        logFull('CeRpyc:exposed_resetLogs')
         user = self._check_login()
         if not user: return False
         return self.project.resetLogs(user)
@@ -1023,13 +978,13 @@ class CeRpycService(rpyc.Service):
 
 
     def exposed_getResource(self, query):
-        logFull('CeRpyc:exposed_getResource')
-        try: return self.project.ra.getResource(query)
+        user = self._check_login()
+        if not user: return False
+        try: return self.project.ra.getResource(query=query, props={'__user': user})
         except: return False
 
 
     def exposed_setResource(self, name, parent=None, props={}):
-        logFull('CeRpyc:exposed_setResource')
         user = self._check_login()
         if not user: return False
         props = dict(props) ; props.update({'__user': user})
@@ -1037,27 +992,25 @@ class CeRpycService(rpyc.Service):
 
 
     def exposed_renameResource(self, res_query, new_name):
-        logFull('CeRpyc:exposed_renameResource')
         user = self._check_login()
         if not user: return False
         return self.project.ra.renameResource(res_query, new_name, props={'__user': user})
 
 
     def exposed_deleteResource(self, query):
-        logFull('CeRpyc:exposed_deleteResource')
         user = self._check_login()
         if not user: return False
         return self.project.ra.deleteResource(query, props={'__user': user})
 
 
     def exposed_getSut(self, query):
-        logFull('CeRpyc:exposed_getSut')
-        try: return self.project.ra.getSut(query)
+        user = self._check_login()
+        if not user: return False
+        try: return self.project.ra.getSut(query=query, props={'__user': user})
         except: return False
 
 
     def exposed_setSut(self, name, parent=None, props={}):
-        logFull('CeRpyc:exposed_setSut')
         user = self._check_login()
         if not user: return False
         props = dict(props) ; props.update({'__user': user})
@@ -1065,17 +1018,123 @@ class CeRpycService(rpyc.Service):
 
 
     def exposed_renameSut(self, res_query, new_name):
-        logFull('CeRpyc:exposed_renameSut')
         user = self._check_login()
         if not user: return False
         return self.project.ra.renameSut(res_query, new_name, props={'__user': user})
 
 
     def exposed_deleteSut(self, query):
-        logFull('CeRpyc:exposed_deleteSut')
         user = self._check_login()
         if not user: return False
         return self.project.ra.deleteSut(query, props={'__user': user})
+
+
+    def exposed_isResourceReserved(self, query):
+        #user = self._check_login()
+        #if not user: return False
+        return self.project.ra.isResourceReserved(query)
+
+
+    def exposed_isSutReserved(self, query):
+        #user = self._check_login()
+        #if not user: return False
+        return self.project.ra.isSutReserved(query)
+
+
+    def exposed_reserveResource(self, query):
+        user = self._check_login()
+        if not user: return False
+        return self.project.ra.reserveResource(query, props={'__user': user})
+
+
+    def exposed_reserveSut(self, query):
+        user = self._check_login()
+        if not user: return False
+        return self.project.ra.reserveSut(query, props={'__user': user})
+
+
+    def exposed_saveAndReleaseReservedResource(self, query):
+        user = self._check_login()
+        if not user: return False
+        return self.project.ra.saveAndReleaseReservedResource(query, props={'__user': user})
+
+
+    def exposed_saveReservedResource(self, query):
+        user = self._check_login()
+        if not user: return False
+        return self.project.ra.saveReservedResource(query, props={'__user': user})
+
+
+    def exposed_saveReservedResourceAs(self, name, query):
+        user = self._check_login()
+        if not user: return False
+        return self.project.ra.saveReservedResourceAs(name, query, props={'__user': user})
+
+
+    def exposed_saveReservedSutAs(self, name, query):
+        user = self._check_login()
+        if not user: return False
+        return self.project.ra.saveReservedSutAs(name, query, props={'__user': user})
+
+
+    def exposed_saveReservedSut(self, query):
+        user = self._check_login()
+        if not user: return False
+        return self.project.ra.saveReservedSut(query, props={'__user': user})
+
+
+    def exposed_saveAndReleaseReservedSut(self, query):
+        user = self._check_login()
+        if not user: return False
+        return self.project.ra.saveAndReleaseReservedSut(query, props={'__user': user})
+
+
+    def exposed_discardAndReleaseReservedResource(self, query):
+        user = self._check_login()
+        if not user: return False
+        return self.project.ra.discardAndReleaseReservedResource(query, props={'__user': user})
+
+
+    def exposed_discardAndReleaseReservedSut(self, query):
+        user = self._check_login()
+        if not user: return False
+        return self.project.ra.discardAndReleaseReservedSut(query, props={'__user': user})
+
+
+    def exposed_isSutLocked(self, query):
+        #user = self._check_login()
+        #if not user: return False
+        return self.project.ra.isSutLocked(query)
+
+
+    def exposed_isResourceLocked(self, query):
+        #user = self._check_login()
+        #if not user: return False
+        return self.project.ra.isResourceLocked(query)
+
+
+    def exposed_lockResource(self, query):
+        user = self._check_login()
+        if not user: return False
+        return self.project.ra.lockResource(query, props={'__user': user})
+
+
+    def exposed_lockSut(self, query):
+        user = self._check_login()
+        if not user: return False
+        return self.project.ra.lockSut(query, props={'__user': user})
+
+
+    def exposed_unlockResource(self, query):
+        user = self._check_login()
+        if not user: return False
+        return self.project.ra.unlockResource(query, props={'__user': user})
+
+
+    def exposed_unlockSut(self, query):
+        user = self._check_login()
+        if not user: return False
+        return self.project.ra.unlockSut(query, props={'__user': user})
 
 
 # Eof()
