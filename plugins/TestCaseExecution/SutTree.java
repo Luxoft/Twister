@@ -516,9 +516,20 @@ public class SutTree extends JPanel{
                     public void actionPerformed(ActionEvent ev){
                         try{
                             SUT sut = (SUT)((DefaultMutableTreeNode)filestree.getSelectionPath().getLastPathComponent()).getUserObject();
-                            String sutname = sut.getName();
-                            System.out.println("export_sut_xml: "+tf.getText()+"/"+sutname+".user");
-                            String resp = client.execute("export_sut_xml", new Object[]{tf.getText(),"/"+sutname+".user"}).toString();
+                            
+                            TreePath tp = filestree.getSelectionPath();
+                            DefaultMutableTreeNode selected = (DefaultMutableTreeNode)tp.getLastPathComponent();
+                            DefaultMutableTreeNode root = (DefaultMutableTreeNode)tp.getPathComponent(1);
+                            String add = "";
+                            if(root.toString().equals("User")){
+                                add = ".user";
+                            } else {
+                                add = ".system";
+                            }
+                            
+                            String sutname = sut.getName()+add;
+                            System.out.println("export_sut_xml: "+tf.getText()+"/"+sutname);
+                            String resp = client.execute("export_sut_xml", new Object[]{tf.getText(),"/"+sutname}).toString();
                             if(resp.equals("false")){
                                 CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SutTree.this,"ERROR", "Could not save");
                             }
