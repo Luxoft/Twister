@@ -489,7 +489,6 @@ class ResourceAllocator(_cptools.XMLRPCController):
                     if not sutsPath:
                         sutsPath = '{}/config/sut/'.format(TWISTER_PATH)
                     childPath = os.path.join(sutsPath, '.'.join(child.split('.')[:-1] + ['json']))
-                    logDebug('||||||||||||', child.split('.')[-1])
                     if child.split('.')[-1] == 'system':
                         try:
                             with open(childPath, 'w') as f:
