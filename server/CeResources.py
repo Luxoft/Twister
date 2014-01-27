@@ -1,7 +1,7 @@
 
 # File: CeResources.py ; This file is part of Twister.
 
-# version: 3.002
+# version: 2.012
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -34,7 +34,6 @@ Its role is to manage nodes that represent test-beds and real devices, or SUTs.
 
 import os
 import sys
-import time
 import ast
 import copy
 import thread
@@ -151,6 +150,7 @@ def _get_res_pointer(parent_node, query):
         try:
             resource_path = _recursive_find_id(parent_node, query, [])['path']
             resource_p = _find_pointer(parent_node, resource_path)
+            #resource_p.update('path', resource_path)
             del resource_path
         except:
             resource_p = None
@@ -269,9 +269,6 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
     def __init__(self, project):
 
-        logInfo('Starting Resource Allocator...')
-        ti = time.time()
-
         self.project = project
 
         self.resources = {'version': 0, 'name': '/', 'meta': {}, 'children': {}}
@@ -286,7 +283,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
         self._loadedUsers = dict()
         self._load(v=True)
 
-        logInfo('Resource Allocator initialization took `{:.4f}` sec.'.format(time.time()-ti))
+
 
 
     @cherrypy.expose
@@ -301,8 +298,8 @@ class ResourceAllocator(_cptools.XMLRPCController):
 #
 
     def _load(self, v=False, props={}, force=False):
-        logFull('CeResources:_load')
-
+        # import time
+        # t0 = time.time()
 
         if not force:
             try:
@@ -367,6 +364,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
                 f = open(self.sut_file, 'r')
                 self.systems = json.load(f)
                 f.close() ; del f
+
                 if v:
                     logDebug('RA: Systems root loaded successfully.')
 
@@ -440,7 +438,6 @@ class ResourceAllocator(_cptools.XMLRPCController):
         The save is separate for Devices and SUTs, so the version is not incremented
         for both, before saving.
         '''
-        logFull('CeResources:_save')
 
         # Write changes, using the Access Lock.
         with self.acc_lock:
@@ -520,7 +517,6 @@ class ResourceAllocator(_cptools.XMLRPCController):
         '''
         Return the structure, list based.
         '''
-        logFull('CeResources:tree')
         self._load(v=False, props=props)
 
         try: root_id = int(root_id)
@@ -551,7 +547,6 @@ class ResourceAllocator(_cptools.XMLRPCController):
             logError('Import XML: XML file `{}` does not exist!'.format(xml_file))
             return False
 
-        logDebug('Preparing to import XML file `{}`...'.format(xml_file))
         params_xml = etree.parse(xml_file)
 
         with self.imp_lock:
@@ -585,7 +580,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
         self._save(root_id, props)
 
         root_name = ROOT_NAMES[root_id]
-        logWarning('All {} are now overwritten! Created `{}` major nodes, with children.'.format(root_name, len(result['children'])))
+        #logDebug('All {} are now overwritten! Created `{}` major nodes, with children.'.format(root_name, len(result['children'])))
         return True
 
 
@@ -602,8 +597,6 @@ class ResourceAllocator(_cptools.XMLRPCController):
             logError('Export XML: XML file `{}` cannot be written!'.format(xml_file))
             return False
 
-        logDebug('Preparing to export into XML file `{}`...'.format(xml_file))
-
         if root_id == ROOT_DEVICE:
             _root = self.resources
         elif root_id == ROOT_SUT:
@@ -617,7 +610,6 @@ class ResourceAllocator(_cptools.XMLRPCController):
         f.write(etree.tostring(xml, pretty_print=True))
         f.close()
 
-        logInfo('Exported all resources into XML file `{}`.'.format(xml_file))
         return True
 
 
@@ -641,10 +633,10 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
 
     def userRoles(self, props={}):
-        logFull('CeResources:userRoles')
         # Check the username from CherryPy connection
         try: user = cherrypy.session.get('username')
         except: user = ''
+
         # Fallback
         if not user:
             user = props.get('__user', '')
@@ -664,7 +656,6 @@ class ResourceAllocator(_cptools.XMLRPCController):
         Must provide a Resource ID, or a Query.
         The function is used for both Devices and SUTs, by providing the ROOT ID.
         '''
-        logFull('CeResources:getResource')
         self._load(v=False, props=props)
 
         # If the root is not provided, use the default root
@@ -687,10 +678,8 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
         if not query:
             msg = 'Get {}: Cannot get a null resource !'.format(root_name)
-            logWarning(msg)
+            logError(msg)
             return '*ERROR* ' + msg
-
-        logDebug('Get {} `{}`.'.format(root_name, query))
 
         query = str(query)
 
@@ -777,8 +766,8 @@ class ResourceAllocator(_cptools.XMLRPCController):
         Show all the properties, or just 1 property of a SUT.
         Must provide a SUT ID, or a SUT Path.
         '''
-        logFull('CeResources:getSut')
         return self.getResource(query, ROOT_SUT, props=props)
+
 #
 
     @cherrypy.expose
@@ -787,8 +776,9 @@ class ResourceAllocator(_cptools.XMLRPCController):
         Create or change a resource, using a name, a parent Path or ID and some properties.
         The function is used for both Devices and SUTs, by providing the ROOT ID.
         '''
-        logFull('CeResources:setResource')
+        logDebug(self.reservedResources)
         self._load(v=False, props=props)
+
         user_roles = self.userRoles(props)
 
         # If the root is not provided, use the default root
@@ -805,7 +795,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
         root_name = ROOT_NAMES[root_id]
 
-        if not parent == '/' or parent == '1':
+        if parent == '/' or parent == '1':
             _isResourceLocked = self.isResourceLocked(parent, root_id)
             if _isResourceLocked:
                 msg = 'Reserve resource: The resource is locked for {} !'.format(_isResourceLocked)
@@ -832,7 +822,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
             resources['meta'].update(props)
             # Write changes for Device or SUT
             self._save(root_id, props)
-            logInfo('Set {}: Updated ROOT with properties: `{}`.'.format(root_name, props))
+            logDebug('Set {}: Updated ROOT with properties: `{}`.'.format(root_name, props))
             return True
 
         if parent == '/' or parent == '1': # can alsow be 1
@@ -898,11 +888,11 @@ class ResourceAllocator(_cptools.XMLRPCController):
             if not child_p:
                 return False
 
-            old_child = copy.deepcopy(child_p)
+            # old_child = copy.deepcopy(child_p)
 
             child_p['meta'].update(props)
 
-            #if old_child != child_p:
+            # if old_child != child_p:
             #    self._save(root_id, props)
 
             # if old_parent != parent_p:
@@ -926,9 +916,11 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
             parent_p['children'][name] = {'id': res_id, 'meta': props, 'children': {}}
 
-            # Write changes for Device or SUT
-            self._save(root_id, props)
-            logInfo('Created {} `{}`, id `{}` : `{}`.'.format(root_name, name, res_id, props))
+
+            if parent == '/' or parent == '1':
+                # Write changes for Device or SUT
+                self._save(root_id, props)
+            logDebug('Created {} `{}`, id `{}` : `{}`.'.format(root_name, name, res_id, props))
             return res_id
 
 
@@ -937,7 +929,6 @@ class ResourceAllocator(_cptools.XMLRPCController):
         '''
         Create or change a SUT, using a name, a parent Path or ID and some properties.
         '''
-        logFull('CeResources:setSut')
         return self.setResource(name, parent, props, ROOT_SUT)
 
 
@@ -946,7 +937,6 @@ class ResourceAllocator(_cptools.XMLRPCController):
         '''
         Rename a resource.
         '''
-        logFull('CeResources:renameResource')
         self._load(v=False, props=props)
 
         user_roles = self.userRoles(props)
@@ -964,8 +954,6 @@ class ResourceAllocator(_cptools.XMLRPCController):
             resources = self.systems
 
         root_name = ROOT_NAMES[root_id]
-
-        logDebug('Preparing to rename {} `{}`...'.format(root_name, res_query))
 
         # If no resources...
         if not resources['children']:
@@ -1054,7 +1042,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
                 exec( '{0}["meta"]["{1}"] = {0}["meta"]["{2}"]'.format(exec_string, new_name, meta) )
                 exec( 'del {}["meta"]["{}"]'.format(exec_string, meta) )
 
-                logInfo('Renamed {0} meta `{1}:{2}` to `{1}:{3}`.'.format(root_name, '/'.join(node_path), meta, new_name))
+                logDebug('Renamed {0} meta `{1}:{2}` to `{1}:{3}`.'.format(root_name, '/'.join(node_path), meta, new_name))
 
             # If must rename a normal node
             else:
@@ -1073,7 +1061,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
                 #exec( new_string + ' = ' + exec_string )
                 #exec( 'del ' + exec_string )
 
-                logInfo('Renamed {} path `{}` to `{}`.'.format(root_name, '/'.join(node_path), '/'.join(new_path)))
+                logDebug('Renamed {} path `{}` to `{}`.'.format(root_name, '/'.join(node_path), '/'.join(new_path)))
 
         # Write changes.
         #self._save(root_id, props)
@@ -1086,7 +1074,6 @@ class ResourceAllocator(_cptools.XMLRPCController):
         '''
         Rename a SUT.
         '''
-        logFull('CeResources:renameSut')
         return self.renameResource(res_query, new_name, props, ROOT_SUT)
 
 
@@ -1095,8 +1082,8 @@ class ResourceAllocator(_cptools.XMLRPCController):
         '''
         Permanently delete a resource.
         '''
-        logFull('CeResources:deleteResource')
         self._load(v=False, props=props)
+
         user_roles = self.userRoles(props)
 
         # If the root is not provided, use the default root
@@ -1112,8 +1099,6 @@ class ResourceAllocator(_cptools.XMLRPCController):
             resources = self.systems
 
         root_name = ROOT_NAMES[root_id]
-
-        logDebug('Preparing to delete {} `{}`...'.format(root_name, res_query))
 
         # If no resources...
         if not resources['children']:
@@ -1217,12 +1202,12 @@ class ResourceAllocator(_cptools.XMLRPCController):
                 return '*ERROR* ' + msg
 
             exec( 'del {}["meta"]["{}"]'.format(exec_string, meta) )
-            logInfo('Deleted {} meta `{}:{}`.'.format(root_name, '/'.join(node_path), meta))
+            logDebug('Deleted {} meta `{}:{}`.'.format(root_name, '/'.join(node_path), meta))
 
         # If must delete a normal node
         else:
             exec( 'del ' + exec_string )
-            logInfo('Deleted {} path `{}`.'.format(root_name, '/'.join(node_path)))
+            logDebug('Deleted {} path `{}`.'.format(root_name, '/'.join(node_path)))
 
         # Write changes.
         self._save(root_id, props)
@@ -1251,7 +1236,6 @@ class ResourceAllocator(_cptools.XMLRPCController):
         '''
         Permanently delete a SUT.
         '''
-        logFull('CeResources:deleteSut')
         return self.deleteResource(res_query, props, ROOT_SUT)
 
 
@@ -1267,7 +1251,6 @@ class ResourceAllocator(_cptools.XMLRPCController):
         '''
         Reserve a SUT.
         '''
-        logFull('CeResources:getResourceStatus')
         return self.reserveResource(res_query, props, ROOT_SUT)
 
 
@@ -1360,7 +1343,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
                     res_path = _get_res_path(self.reservedResources[user][p], res_query)
 
                     if res_path:
-                        self.reservedResources[user][p]['path'] = res_path
+                        #self.reservedResources[user][p]['path'] = res_path
                         return self.reservedResources[user][p]
 
         res_pointer = _get_res_pointer(resources, ''.join('/' + res_path[0]))
@@ -1387,7 +1370,6 @@ class ResourceAllocator(_cptools.XMLRPCController):
     @cherrypy.expose
     def isResourceReserved(self, res_query, root_id=ROOT_DEVICE):
         """ returns the user or false """
-        logFull('CeResources:allocResource')
 
         if root_id == ROOT_DEVICE:
             resources = self.resources
@@ -1433,7 +1415,6 @@ class ResourceAllocator(_cptools.XMLRPCController):
     def reserveResource(self, res_query, props={}, root_id=ROOT_DEVICE):
         """  """
         self._load(v=False, props=props)
-        logFull('CeResources:reserveResource')
 
         if root_id == ROOT_DEVICE:
             resources = self.resources
@@ -1495,7 +1476,6 @@ class ResourceAllocator(_cptools.XMLRPCController):
     def saveAndReleaseReservedResource(self, res_query, props={}, root_id=ROOT_DEVICE):
         """  """
         self._load(v=False, props=props)
-        logFull('CeResources:freeResource')
 
         if root_id == ROOT_DEVICE:
             resources = self.resources
@@ -1776,6 +1756,8 @@ class ResourceAllocator(_cptools.XMLRPCController):
             res_query = res_query.split(':')[0]
 
         res_path = _get_res_path(resources, res_query)
+        if not res_path:
+            return False
         res_pointer = _get_res_pointer(resources, ''.join('/' + res_path[0]))
 
         if not res_pointer:
