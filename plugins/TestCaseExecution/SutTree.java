@@ -1,6 +1,6 @@
 /*
 File: SutTree.java ; This file is part of Twister.
-Version: 2.001
+Version: 2.002
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -74,6 +74,7 @@ public class SutTree extends JPanel{
             public void mouseReleased(MouseEvent ev){
                 TreePath tp = filestree.getPathForLocation(ev.getX(), ev.getY());
                 if(tp!=null){
+                    newfile.setEnabled(true);
                     final DefaultMutableTreeNode treenode = (DefaultMutableTreeNode)tp.getLastPathComponent();                    
                     if(PermissionValidator.canChangeSutLock() && tp!=null && (ev.getButton() == MouseEvent.BUTTON3) && (treenode.getUserObject() instanceof SUT )){
                         final SUT sut = (SUT)treenode.getUserObject();
@@ -120,6 +121,7 @@ public class SutTree extends JPanel{
                         treeContextOptions(tp);
                     }
                 } else {
+                    newfile.setEnabled(false);
                     treeContextOptions(tp);
                 }
                 
@@ -155,6 +157,7 @@ public class SutTree extends JPanel{
             renamefile.setEnabled(false);
             deletefile.setEnabled(false);
             exportxml.setEnabled(false);
+            newfile.setEnabled(false);
         }
         getSUT();
     }
@@ -238,11 +241,26 @@ public class SutTree extends JPanel{
                 p.add(ep);
                 p.add(scep);
                 populateEPs(tep,null);
+                
+                
+                TreePath tp = filestree.getSelectionPath();
+                DefaultMutableTreeNode selected = (DefaultMutableTreeNode)tp.getLastPathComponent();
+                DefaultMutableTreeNode root = (DefaultMutableTreeNode)tp.getPathComponent(1);
+                String add = "";
+                if(root.toString().equals("User")){
+                    add = ".user";
+                } else {
+                    add = ".system";
+                }
                 int resp = (Integer)CustomDialog.showDialog(p,JOptionPane.PLAIN_MESSAGE, 
                             JOptionPane.OK_CANCEL_OPTION, SutTree.this, "New SUT",null);
                             
                 if(resp == JOptionPane.OK_OPTION&&!tsut.getText().equals("")){
-                    if(RunnerRepository.window.mainpanel.p4.getSut().sut.checkExistingName(userroot, tsut.getText(), null)){
+                    if(add.equals(".user")&&RunnerRepository.window.mainpanel.p4.getSut().sut.checkExistingName(userroot, tsut.getText(), null)){
+                        CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,SutTree.this,"Warning", 
+                                        "This name is already used, please use different name.");
+                         return;
+                    } else if(add.equals(".system")&&RunnerRepository.window.mainpanel.p4.getSut().sut.checkExistingName(globalroot, tsut.getText(), null)){
                         CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,SutTree.this,"Warning", 
                                         "This name is already used, please use different name.");
                          return;
@@ -260,18 +278,16 @@ public class SutTree extends JPanel{
                         }
                         String query = "{'_epnames_"+RunnerRepository.user+"':'"+sb.toString()+"'}";
                         String user = tsut.getText();
-                        String respons = client.execute("setSut", new Object[]{user,"/",query}).toString();
+                        String respons = client.execute("setSut", new Object[]{user+add,"/",query}).toString();
                         if(respons.indexOf("ERROR")==-1){
                             DefaultTreeModel model = (DefaultTreeModel)filestree.getModel();
-                            SUT s = new SUT(user,".user");
-//                             SUT s = new SUT(user,sb.toString());
-//                             DefaultMutableTreeNode eps = new DefaultMutableTreeNode("EP: "+sb.toString(),false);
-//                             s.setEPNode(eps);
-                            
+                            SUT s = new SUT(user,add);
                             DefaultMutableTreeNode element = new DefaultMutableTreeNode(s,false);
-//                             element.add(eps);
-                            
-                            model.insertNodeInto(element, userroot, userroot.getChildCount());
+                            if(add.equals(".system")){
+                                model.insertNodeInto(element, globalroot, globalroot.getChildCount());
+                            } else if(add.equals(".user")){
+                                model.insertNodeInto(element, userroot, userroot.getChildCount());
+                            }
                             RunnerRepository.window.mainpanel.p1.suitaDetails.setComboTBs();
                         } else {
                             CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,SutTree.this,"Warning", respons);
@@ -362,33 +378,43 @@ public class SutTree extends JPanel{
                 String reserved = ((SUT)selected.getUserObject()).getReserved();
                 String name= ((SUT)selected.getUserObject()).getName();
                 if(!reserved.equals(RunnerRepository.user)&&!reserved.equals(""))return;
+                String add = "";
                 if(root.toString().equals("User")){
+                    add = ".user";
+                } else {
+                    add = ".system";
+                }
+//                 if(root.toString().equals("User")){
                     if(reserved.equals("")){
                         if(!reserveSut(((SUT)selected.getUserObject()))){
                             return;
                         }
                     }
-                    String torename = "/"+name+".user";
+//                     String torename = "/"+name+".user";
+                    String torename = "/"+name+add;
                     try{
                         String filename = CustomDialog.showInputDialog(JOptionPane.QUESTION_MESSAGE,
                                              JOptionPane.OK_CANCEL_OPTION
                                              ,SutTree.this,
                                              "Sut Name", "Please enter sut name");
                         if(filename!=null&&!filename.equals("NULL")){
-                            if(RunnerRepository.window.mainpanel.p4.getSut().sut.checkExistingName(userroot, filename, null)){
+                            if(add.equals(".user")&&RunnerRepository.window.mainpanel.p4.getSut().sut.checkExistingName(userroot, filename, null)){
+                                CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,SutTree.this,"Warning", 
+                                                "This name is already used, please use different name.");
+                                 return;
+                            } else if(add.equals(".system")&&RunnerRepository.window.mainpanel.p4.getSut().sut.checkExistingName(globalroot, filename, null)){
                                 CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,SutTree.this,"Warning", 
                                                 "This name is already used, please use different name.");
                                  return;
                             }
-                            String query = client.execute("renameSut", new Object[]{torename,filename+".user"}).toString();
+                            String query = client.execute("renameSut", new Object[]{torename,filename+add}).toString();
                             if(query.equals("true")){
                                 ((SUT)selected.getUserObject()).setName(filename);
                                 ((DefaultTreeModel)filestree.getModel()).nodeChanged(selected);
                                 if(reserved.equals("")){//sut was not initialy reserved
-                                    String resp = client.execute("saveAndReleaseReservedSut", new Object[]{filename+".user"}).toString();
-                                    System.out.println(resp);
+                                    String resp = client.execute("saveAndReleaseReservedSut", new Object[]{torename}).toString();
                                 } else {//sut was allready reserved and opened
-                                    RunnerRepository.window.mainpanel.p4.getSut().sut.setRootSutName(filename+".user");
+                                    RunnerRepository.window.mainpanel.p4.getSut().sut.setRootSutName(filename+add);
                                 }
                                 RunnerRepository.window.mainpanel.p1.suitaDetails.setComboTBs();
                             } else {
@@ -401,7 +427,7 @@ public class SutTree extends JPanel{
                         System.out.println("Could not rename sut: "+torename);
                         e.printStackTrace();
                     }
-                }
+//                 }
             }});}
     
     private void setDeleteAction(){
@@ -411,21 +437,27 @@ public class SutTree extends JPanel{
                 if(tp.getPathCount()==0)return;
                 DefaultMutableTreeNode selected = (DefaultMutableTreeNode)tp.getLastPathComponent();
                 DefaultMutableTreeNode root = (DefaultMutableTreeNode)tp.getPathComponent(1);
+                String torem = "";
                 if(root.toString().equals("User")){
-                    String torem = "/"+selected.toString()+".user";
-                    try{String s = client.execute("deleteSut", new Object[]{torem}).toString();
-                        if(s.indexOf("ERROR")==-1){
-                            ((DefaultTreeModel)filestree.getModel()).removeNodeFromParent(selected);
-                            RunnerRepository.window.mainpanel.p1.suitaDetails.setComboTBs();
-                        } else {
-                            CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SutTree.this,"ERROR", "Cannot delete SUT file. "+s);
-                        }
-                    } catch(Exception e){
-                        System.out.println("Could not delete sut: "+torem);
-                        e.printStackTrace();
-                    }
+                    torem = "/"+selected.toString()+".user";                    
+                } else {
+                    torem = "/"+selected.toString()+".system";
                 }
-                
+                try{String s = client.execute("deleteSut", new Object[]{torem}).toString();
+                    if(s.indexOf("ERROR")==-1){
+                        ((DefaultTreeModel)filestree.getModel()).removeNodeFromParent(selected);
+                        RunnerRepository.window.mainpanel.p1.suitaDetails.setComboTBs();
+                        openfile.setEnabled(false);
+                        renamefile.setEnabled(false);   
+                        deletefile.setEnabled(false);
+                        exportxml.setEnabled(false);
+                    } else {
+                        CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SutTree.this,"ERROR", "Cannot delete SUT file. "+s);
+                    }
+                } catch(Exception e){
+                    System.out.println("Could not delete sut: "+torem);
+                    e.printStackTrace();
+                }
             }
         });
     }
