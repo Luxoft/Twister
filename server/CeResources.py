@@ -488,7 +488,8 @@ class ResourceAllocator(_cptools.XMLRPCController):
                     sutsPath = self.project.getUserInfo(user, 'sys_sut_path')
                     if not sutsPath:
                         sutsPath = '{}/config/sut/'.format(TWISTER_PATH)
-                    childPath = os.path.join(sutsPath, '.'.join(child.split('.')[:-1]))
+                    childPath = os.path.join(sutsPath, '.'.join(child.split('.')[:-1] + ['json']))
+                    logDebug('||||||||||||', child.split('.')[-1])
                     if child.split('.')[-1] == 'system':
                         try:
                             with open(childPath, 'w') as f:
@@ -496,7 +497,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
                         except Exception as e:
                             logError('Saving ERROR:: `{}`.'.format(e))
                     else:
-                        userSuts.append(('.'.join(child.split('.')[:-1]), self.systems['children'][child]))
+                        userSuts.append(('.'.join(child.split('.')[:-1] + ['json']), self.systems['children'][child]))
 
                 if userSuts:
                     # Get the user rpyc connection connection
