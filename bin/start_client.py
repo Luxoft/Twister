@@ -651,7 +651,10 @@ class TwisterClientService(rpyc.Service):
         # Save sut files
         for (name, sut) in sutList:
             try:
-                childPath = '{}/config/sut/{}.json'.format(TWISTER_PATH, name)
+                sutsPath = self._conn.root.getUserVariable('sut_path')
+                if not sutsPath:
+                    sutsPath = '{}/config/sut/'.format(TWISTER_PATH)
+                childPath = os.path.join(sutsPath, name)
                 with open(childPath, 'w') as f:
                     json.dump(sut, f, indent=4)
             except Exception as e:

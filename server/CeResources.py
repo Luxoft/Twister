@@ -300,7 +300,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
     def _load(self, v=False, props={}, force=False):
         # import time
         # t0 = time.time()
-
+        logError('testewtttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt||||||||||||||||||||')
         if not force:
             try:
                 user_roles = self.userRoles(props)
@@ -308,7 +308,9 @@ class ResourceAllocator(_cptools.XMLRPCController):
                 if user in self._loadedUsers:
                     self.systems = self._loadedUsers[user]
                     try:
-                        sutsPath = '{}/config/sut/'.format(TWISTER_PATH)
+                        sutsPath = self.project.getUserInfo(user, 'sys_sut_path')
+                        if not sutsPath:
+                            sutsPath = '{}/config/sut/'.format(TWISTER_PATH)
                         sutPaths = [p for p in os.listdir(sutsPath) if os.path.isfile(os.path.join(sutsPath, p))]
                         for sutPath in sutPaths:
                             sutName = '.'.join(['.'.join(sutPath.split('.')[:-1]  + ['system'])])
@@ -369,7 +371,13 @@ class ResourceAllocator(_cptools.XMLRPCController):
                     logDebug('RA: Systems root loaded successfully.')
 
                 try:
-                    sutsPath = '{}/config/sut/'.format(TWISTER_PATH)
+                    user_roles = self.userRoles(props)
+                    user = user_roles.get('user')
+                    sutsPath = self.project.getUserInfo(user, 'sys_sut_path')
+                    logError('|||||||||||sys_sut_path', sutsPath)
+                    if not sutsPath:
+                        sutsPath = '{}/config/sut/'.format(TWISTER_PATH)
+                    logError('|||||||||||sys_sut_path', sutsPath)
                     sutPaths = [p for p in os.listdir(sutsPath) if os.path.isfile(os.path.join(sutsPath, p))]
                     for sutPath in sutPaths:
                         sutName = '.'.join(['.'.join(sutPath.split('.')[:-1]  + ['system'])])
@@ -477,7 +485,13 @@ class ResourceAllocator(_cptools.XMLRPCController):
                 userSuts = list()
                 for child in self.systems['children']:
                     # Check where to save (ce / user)
-                    childPath = '{}/config/sut/{}.json'.format(TWISTER_PATH, '.'.join(child.split('.')[:-1]))
+                    #childPath = '{}/config/sut/{}.json'.format(TWISTER_PATH, '.'.join(child.split('.')[:-1]))
+                    user_roles = self.userRoles(props)
+                    user = user_roles.get('user')
+                    sutsPath = self.project.getUserInfo(user, 'sys_sut_path')
+                    if not sutsPath:
+                        sutsPath = '{}/config/sut/'.format(TWISTER_PATH)
+                    childPath = os.path.join(sutsPath, '.'.join(child.split('.')[:-1]))
                     if child.split('.')[-1] == 'system':
                         with open(childPath, 'w') as f:
                             json.dump(self.systems['children'][child], f, indent=4)
