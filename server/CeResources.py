@@ -490,8 +490,11 @@ class ResourceAllocator(_cptools.XMLRPCController):
                         sutsPath = '{}/config/sut/'.format(TWISTER_PATH)
                     childPath = os.path.join(sutsPath, '.'.join(child.split('.')[:-1]))
                     if child.split('.')[-1] == 'system':
-                        with open(childPath, 'w') as f:
-                            json.dump(self.systems['children'][child], f, indent=4)
+                        try:
+                            with open(childPath, 'w') as f:
+                                json.dump(self.systems['children'][child], f, indent=4)
+                        except Exception as e:
+                            logError('Saving ERROR:: `{}`.'.format(e))
                     else:
                         userSuts.append(('.'.join(child.split('.')[:-1]), self.systems['children'][child]))
 
