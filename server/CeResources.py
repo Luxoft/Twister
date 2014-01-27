@@ -300,7 +300,6 @@ class ResourceAllocator(_cptools.XMLRPCController):
     def _load(self, v=False, props={}, force=False):
         # import time
         # t0 = time.time()
-        logError('testewtttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt||||||||||||||||||||')
         if not force:
             try:
                 user_roles = self.userRoles(props)
@@ -374,10 +373,8 @@ class ResourceAllocator(_cptools.XMLRPCController):
                     user_roles = self.userRoles(props)
                     user = user_roles.get('user')
                     sutsPath = self.project.getUserInfo(user, 'sys_sut_path')
-                    logError('|||||||||||sys_sut_path', sutsPath)
                     if not sutsPath:
                         sutsPath = '{}/config/sut/'.format(TWISTER_PATH)
-                    logError('|||||||||||sys_sut_path', sutsPath)
                     sutPaths = [p for p in os.listdir(sutsPath) if os.path.isfile(os.path.join(sutsPath, p))]
                     for sutPath in sutPaths:
                         sutName = '.'.join(['.'.join(sutPath.split('.')[:-1]  + ['system'])])
