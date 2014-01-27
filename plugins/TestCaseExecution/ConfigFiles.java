@@ -1,6 +1,6 @@
 /*
 File: ConfigFiles.java ; This file is part of Twister.
-Version: 2.016
+Version: 2.017
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -87,7 +87,7 @@ public class ConfigFiles extends JPanel{
                              libpath,tsecondarylog,
                              testconfigpath,
                              tglobalsfile,
-                             sutpath;
+                             sutpath,syssutpath;
     JPanel paths;
     private static JCheckBox logsenabled  = new JCheckBox("Enabled");
     //public JPanel emailpanel;                    
@@ -98,10 +98,10 @@ public class ConfigFiles extends JPanel{
         paths.setBackground(Color.WHITE);
         //paths.setBorder(BorderFactory.createTitledBorder("Paths"));
         paths.setLayout(null);
-        paths.setPreferredSize(new Dimension(930,1144));
-        paths.setSize(new Dimension(930,1144));
-        paths.setMinimumSize(new Dimension(930,1144));
-        paths.setMaximumSize(new Dimension(930,1144));
+        paths.setPreferredSize(new Dimension(930,1217));
+        paths.setSize(new Dimension(930,1217));
+        paths.setMinimumSize(new Dimension(930,1217));
+        paths.setMaximumSize(new Dimension(930,1217));
         //paths.setBorder(BorderFactory.createBevelBorder(BevelBorder.LOWERED));
         setLayout(null);
         ttcpath = new JTextField();
@@ -127,23 +127,23 @@ public class ConfigFiles extends JPanel{
                 RunnerRepository.TESTCONFIGPATH,303,true,null);
                 
         sutpath = new JTextField();
-        addPanel("SUT files path",
-                "SUT files path",sutpath,
+        addPanel("User SUT files path",
+                "User SUT files path",sutpath,
                 RunnerRepository.SUTPATH,375,true,null);
                 
-//         tepid = new JTextField();
-//         addPanel("EP name File","Location of the file that contains"+
-//         " the Ep name list",
-//                 tepid,RunnerRepository.REMOTEEPIDDIR,667,true,null);
+        syssutpath = new JTextField();
+        addPanel("System SUT files path","System SUT files path",
+                syssutpath,RunnerRepository.SYSSUTPATH,448,true,null);
+
         tlog = new JTextField();
         addPanel("Logs Path","Location of the directory that stores the most recent log files."+
                              " The files are re-used each Run.",
-                tlog,RunnerRepository.LOGSPATH,667,true,null);
+                tlog,RunnerRepository.LOGSPATH,740,true,null);
         tsecondarylog = new JTextField(); 
         
         JPanel p = addPanel("Secondary Logs Path","Location of the directory that archives copies of the most recent log files, with"+
                                                   " original file names appended with <.epoch time>",
-                tsecondarylog,RunnerRepository.SECONDARYLOGSPATH,930,true,null);
+                tsecondarylog,RunnerRepository.SECONDARYLOGSPATH,1003,true,null);
         logsenabled.setSelected(Boolean.parseBoolean(RunnerRepository.PATHENABLED));
         logsenabled.setBackground(Color.WHITE);
         p.add(logsenabled);
@@ -155,7 +155,7 @@ public class ConfigFiles extends JPanel{
         border7.setBorder(BorderFactory.createLineBorder(new Color(150,150,150), 1));
         p7.setBorder(border7);
         p7.setLayout(new BoxLayout(p7, BoxLayout.Y_AXIS));    
-        p7.setBounds(80,740,800,190);
+        p7.setBounds(80,813,800,190);
         paths.add(p7);
         JTextArea log2 = new JTextArea("All the log files that will be monitored");
         log2.setWrapStyleWord(true);
@@ -203,7 +203,7 @@ public class ConfigFiles extends JPanel{
         border8.setBorder(BorderFactory.createLineBorder(new Color(150,150,150), 1));
         p8.setBorder(border8);
         p8.setLayout(null);    
-        p8.setBounds(80,1076,800,50);
+        p8.setBounds(80,1149,800,50);
         if(PermissionValidator.canChangeFWM()){
             paths.add(p8);
         }
@@ -276,11 +276,11 @@ public class ConfigFiles extends JPanel{
         tdbfile = new JTextField();
         addPanel("Database XML path","File location for database configuration",    
                 tdbfile,RunnerRepository.REMOTEDATABASECONFIGPATH+RunnerRepository.REMOTEDATABASECONFIGFILE,
-                448,true,null);
+                524,true,null);
         temailfile = new JTextField();
 //         emailpanel = (JPanel)
         addPanel("Email XML path","File location for email configuration",temailfile,
-                RunnerRepository.REMOTEEMAILCONFIGPATH+RunnerRepository.REMOTEEMAILCONFIGFILE,521,true,null).getParent();
+                RunnerRepository.REMOTEEMAILCONFIGPATH+RunnerRepository.REMOTEEMAILCONFIGFILE,595,true,null).getParent();
         //paths.remove(emailpanel);        
 //         emailpanel.setBounds(360,440,350,100);
 //         RunnerRepository.window.mainpanel.p4.getEmails().add(emailpanel);
@@ -288,11 +288,11 @@ public class ConfigFiles extends JPanel{
                
         tglobalsfile = new JTextField();
         addPanel("Globals XML file","File location for globals parameters",tglobalsfile,
-                RunnerRepository.GLOBALSREMOTEFILE,595,true,null);         
+                RunnerRepository.GLOBALSREMOTEFILE,667,true,null);         
                 
         tceport = new JTextField();
         addPanel("Central Engine Port","Central Engine port",
-                tceport,RunnerRepository.getCentralEnginePort(),1003,false,null);                
+                tceport,RunnerRepository.getCentralEnginePort(),1076,false,null);                
 //         traPort = new JTextField();
 //         addPanel("Resource Allocator Port","Resource Allocator Port",
 //                 traPort,RunnerRepository.getResourceAllocatorPort(),808,false,null);                
@@ -321,6 +321,7 @@ public class ConfigFiles extends JPanel{
             tsecondarylog.setEnabled(false);
             testconfigpath.setEnabled(false);
             sutpath.setEnabled(false);
+            syssutpath.setEnabled(false);
             tglobalsfile.setEnabled(false);
             logsenabled.setEnabled(false);
         }
@@ -392,6 +393,7 @@ public class ConfigFiles extends JPanel{
                         tlog.setText(RunnerRepository.LOGSPATH);
                         tsecondarylog.setText(RunnerRepository.SECONDARYLOGSPATH);
                         sutpath.setText(RunnerRepository.SUTPATH);
+                        syssutpath.setText(RunnerRepository.SYSSUTPATH);
                         logsenabled.setSelected(Boolean.parseBoolean(RunnerRepository.PATHENABLED));
                         testconfigpath.setText(RunnerRepository.TESTCONFIGPATH);
                         if(RunnerRepository.getLogs().size()>0)trunning.setText(RunnerRepository.getLogs().get(0));
@@ -536,8 +538,8 @@ public class ConfigFiles extends JPanel{
             rootElement.appendChild(document.createTextNode("config"));
             try{addTag("CentralEnginePort",tceport.getText(),root,blank,document);}
             catch(Exception e){addTag("CentralEnginePort","",root,blank,document);}
-//             try{addTag("ResourceAllocatorPort",traPort.getText(),root,blank,document);}
-//             catch(Exception e){addTag("ResourceAllocatorPort","",root,blank,document);}
+            try{addTag("SysSutPath",syssutpath.getText(),root,blank,document);}
+            catch(Exception e){addTag("SysSutPath","",root,blank,document);}
             try{addTag("SutPath",sutpath.getText(),root,blank,document);}
             catch(Exception e){addTag("SutPath","",root,blank,document);}
             try{addTag("TestCaseSourcePath",ttcpath.getText(),root,blank,document);}
