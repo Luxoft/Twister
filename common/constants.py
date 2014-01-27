@@ -73,6 +73,7 @@ FWMCONFIG_TAGS = (
 	{'name':'archive_logs_path', 'tag':'ArchiveLogsPath', 'default': False},
 	{'name':'archive_logs_path_active', 'tag':'ArchiveLogsPathActive', 'default': ''},
 	{'name':'sut_path', 'tag':'SutPath', 'default': ''},
+	{'name':'sys_sut_path', 'tag':'SysSutPath', 'default': ''},
 )
 
 # Project Config XML Tags :
