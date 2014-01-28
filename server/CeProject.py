@@ -1,7 +1,7 @@
 
 # File: CeProject.py ; This file is part of Twister.
 
-# version: 3.011
+# version: 3.012
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -218,6 +218,7 @@ class Project(object):
         self.suite_ids = {} # IDs shortcut
         self.plugins = {}   # User plugins
         self.loggers = {}   # User loggers
+        self.config_locks = {} # Config locks list
 
         self.usr_lock = allocate_lock()  # User change lock
         self.epl_lock = allocate_lock()  # EP lock
@@ -227,6 +228,7 @@ class Project(object):
         self.log_lock = allocate_lock()  # Log access lock
         self.eml_lock = allocate_lock()  # E-mail lock
         self.db_lock  = allocate_lock()  # Database lock
+        self.cfg_lock = allocate_lock()  # Config access lock
 
         # Read the production/ development option.
         cfg_path = '{}/config/server_init.ini'.format(TWISTER_PATH)
@@ -1927,6 +1929,50 @@ class Project(object):
 
         logDebug('Global Variable: Set variable `{} = {}`, for user `{}`!'.format(value, variable, user))
         return True
+
+
+    def isLockConfig(self, user, fpath):
+        """
+        Complete path from tree - returns True/ False
+        """
+        logFull('CeProject:isLockConfig user `{}`.'.format(user))
+        if user not in self.config_locks:
+            return False
+        return fpath in self.config_locks[user]
+
+
+    def lockConfig(self, user, fpath):
+        """
+        Complete path from tree - returns True/ False
+        """
+        logFull('CeProject:lockConfig user `{}`.'.format(user))
+        if user not in self.config_locks:
+            with self.cfg_lock:
+                self.config_locks[user] = {}
+        # If already locked, return False
+        if fpath in self.config_locks[user]:
+            return False
+        with self.cfg_lock:
+            self.config_locks[user][fpath] = True
+            logDebug('User `{}` is locking config file `{}`.'.format(user, fpath))
+            return True
+
+
+    def unlockConfig(self, user, fpath):
+        """
+        Complete path from tree - returns True/ False
+        """
+        logFull('CeProject:unlockConfig user `{}`.'.format(user))
+        if user not in self.config_locks:
+            with self.cfg_lock:
+                self.config_locks[user] = {}
+        # If not locked, return False
+        if fpath not in self.config_locks[user]:
+            return False
+        with self.cfg_lock:
+            del self.config_locks[user][fpath]
+            logDebug('User `{}` is releasing config file `{}`.'.format(user, fpath))
+            return True
 
 
 # # #

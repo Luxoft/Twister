@@ -1,7 +1,7 @@
 
 # File: CeXmlRpc.py ; This file is part of Twister.
 
-# version: 2.032
+# version: 2.033
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -184,9 +184,8 @@ class CeXmlRpc(_cptools.XMLRPCController):
             logWarning('Read File: Path `{}` is not a file!'.format(fpath))
             return ''
         cherry_user = cherrypy.session.get('username')
-        if not fpath.startswith( userHome(cherry_user) ):
-            logWarning('Read File: Path `{}` is not in the users home folder!'.format(fpath))
-            return ''
+        if fpath[0] == '~':
+            fpath = fpath[1:] + userHome(cherry_user)
         log_string = open(fpath).read()
         return binascii.b2a_base64(log_string)
 
@@ -199,7 +198,7 @@ class CeXmlRpc(_cptools.XMLRPCController):
         """
         cherry_user = cherrypy.session.get('username')
         if not fpath.startswith( userHome(cherry_user) ):
-            logWarning('Write File: Path `{}` is not a file!'.format(fpath))
+            logWarning('Write File: Path `{}` is not in the users home folder!'.format(fpath))
             return False
         try:
             log_string = binascii.a2b_base64(fdata)
@@ -208,6 +207,7 @@ class CeXmlRpc(_cptools.XMLRPCController):
             return False
         try:
             open(fpath, 'w').write(log_string)
+            logDebug('Write File: User `{}` updated config file `{}`.'.format(cherry_user, fpath))
             return True
         except Exception as e:
             logWarning('Write File: Cannot write into file `{}`! {}'.format(fpath, e))
@@ -568,6 +568,25 @@ class CeXmlRpc(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
+    def queueFile(self, user, suite, fname):
+        """
+        Queue a file at the end of a suite, during runtime.
+        If there are more suites with the same name, the first one is used.
+        """
+        logFull('CeXmlRpc:queueFile user `{}`.'.format(user))
+        return self.project.queueFile(user, suite, fname)
+
+
+    @cherrypy.expose
+    def deQueueFiles(self, user, data):
+        """
+        Remove a file from the files queue.
+        """
+        logFull('CeXmlRpc:deQueueFiles user `{}`.'.format(user))
+        return self.project.deQueueFiles(user, data)
+
+
+    @cherrypy.expose
     def listConfigs(self, user):
         """
         Folders and Files from config folder.
@@ -607,28 +626,95 @@ class CeXmlRpc(_cptools.XMLRPCController):
         """
         Send a config file, using the full path to a config file and
         the full path to a config variable in that file.
+        Function used by EPs / tests.
         """
         logFull('CeXmlRpc:getConfig user `{}`.'.format(user))
         return self.project.getGlobalVariable(user, var_path, cfg_path)
 
 
     @cherrypy.expose
-    def queueFile(self, user, suite, fname):
-        """
-        Queue a file at the end of a suite, during runtime.
-        If there are more suites with the same name, the first one is used.
-        """
-        logFull('CeXmlRpc:queueFile user `{}`.'.format(user))
-        return self.project.queueFile(user, suite, fname)
+    def isLockConfig(self, fpath):
+        cherry_user = cherrypy.session.get('username')
+        return self.project.isLockConfig(cherry_user, fpath)
 
 
     @cherrypy.expose
-    def deQueueFiles(self, user, data):
+    def lockConfig(self, fpath):
+        cherry_user = cherrypy.session.get('username')
+        return self.project.lockConfig(cherry_user, fpath)
+
+
+    @cherrypy.expose
+    def unlockConfig(self, fpath):
+        cherry_user = cherrypy.session.get('username')
+        return self.project.unlockConfig(cherry_user, fpath)
+
+
+    @cherrypy.expose
+    def readConfigFile(self, fpath):
         """
-        Remove a file from the files queue.
+        Complete path from tree - returns a base64 string.
         """
-        logFull('CeXmlRpc:deQueueFiles user `{}`.'.format(user))
-        return self.project.deQueueFiles(user, data)
+        cherry_user = cherrypy.session.get('username')
+        dirpath = self.project.getUserInfo(cherry_user, 'tcfg_path')
+        fpath  = '/'.join( [f for f in fpath.lstrip('/').split('/')[1:] if f] )
+        return self.readFile(dirpath + '/' + fpath)
+
+
+    @cherrypy.expose
+    def saveConfigFile(self, fpath, content):
+        """
+        Complete path from tree - returns a True/ False.
+        """
+        if self.isLockConfig(fpath):
+            return False
+        cherry_user = cherrypy.session.get('username')
+        dirpath = self.project.getUserInfo(cherry_user, 'tcfg_path')
+        fpath  = '/'.join( [f for f in fpath.lstrip('/').split('/')[1:] if f] )
+        return self.writeFile(dirpath + '/' + fpath, content)
+
+
+    @cherrypy.expose
+    def deleteConfigFile(self, fpath):
+        """
+        Complete path from tree - returns a True/ False.
+        """
+        if self.isLockConfig(fpath):
+            return False
+        user = cherrypy.session.get('username')
+        dirpath = self.project.getUserInfo(user, 'tcfg_path')
+        fpath  = dirpath + '/' + '/'.join( [f for f in fpath.lstrip('/').split('/')[1:] if f] )
+        if not os.path.isfile(fpath):
+            logWarning('Delete File: Path `{}` is not a file!'.format(fpath))
+            return False
+        if not fpath.startswith( userHome(user) ):
+            logWarning('Delete File: Path `{}` is not in the users home folder!'.format(fpath))
+            return False
+        try:
+            os.remove(fpath)
+            logDebug('User `{}` deleted config file `{}`.'.format(user, fpath))
+            return True
+        except Exception as e:
+            logWarning('Cannot delete file `{}`! Exception: `{}`.'.format(fpath, e))
+            return False
+
+
+    @cherrypy.expose
+    def getBinding(self, user, fpath):
+        """
+        Read a binding between a CFG and a SUT.
+        The result is XML.
+        """
+        return self.project.parsers[user].getBinding(fpath)
+
+
+    @cherrypy.expose
+    def setBinding(self, user, fpath, content):
+        """
+        Write a binding between a CFG and a SUT.
+        Return True/ False.
+        """
+        return self.project.parsers[user].setBinding(fpath, content)
 
 
 # --------------------------------------------------------------------------------------------------

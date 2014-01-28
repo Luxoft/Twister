@@ -1,7 +1,7 @@
 
 # File: xmlparser.py ; This file is part of Twister.
 
-# version: 3.006
+# version: 3.007
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -563,6 +563,66 @@ class TSCParser:
         return res
 
 
+    def getBinding(self, fpath):
+        """
+        Read a binding between a CFG and a SUT.
+        The result is XML.
+        """
+        logFull('xmlparser:getBinding')
+        cfg_file = '{}/twister/config/bindings.xml'.format(userHome(self.user))
+
+        if not os.path.isfile(cfg_file):
+            logError('Get Binding: Bindings Config file `{}` does not exist!'.format(cfg_file))
+            return {}
+
+        bind_xml = etree.parse(cfg_file)
+        found = bind_xml.xpath('/root/binding/name[text()="{}"]/..'.format(fpath))
+
+        if found:
+            xml_string = etree.tostring(found[0])
+            return xml_string.replace('binding>', 'root>')
+        else:
+            logDebug('Get Binding: Cannot find binding name `{}`!'.format(fpath))
+            return ''
+
+
+    def setBinding(self, fpath, content):
+        """
+        Write a binding between a CFG and a SUT.
+        Return True/ False.
+        """
+        logFull('xmlparser:setBinding')
+        cfg_file = '{}/twister/config/bindings.xml'.format(userHome(self.user))
+
+        if not os.path.isfile(cfg_file):
+            logError('Set Binding: Bindings Config file `{}` does not exist!'.format(cfg_file))
+            return {}
+
+        bind_xml = etree.parse(cfg_file)
+        found = bind_xml.xpath('/root/binding/name[text()="{}"]/..'.format(fpath))
+
+        if not found:
+            logWarning('Get Binding: Cannot find binding name `{}`!'.format(fpath))
+            return False
+        else:
+            found = found[0]
+
+        try:
+            replace_xml = etree.XML(content)
+        except:
+            logWarning('Set Binding: Invalid content! Cannot parse!')
+            return False
+
+        found.clear()
+
+        for elem in replace_xml:
+            found.append(elem)
+
+        bind_xml.write(cfg_file)
+        logDebug('Set Binding: Binding `{}` updated in bindings.xml!'.format(fpath))
+        return True
+
+
     def getBindingsConfig(self):
         """
         Parse the bindings file that connects Roots from a config file, with SUTs.
@@ -577,13 +637,20 @@ class TSCParser:
 
         bind_xml = etree.parse(cfg_file)
 
-        for bind in bind_xml.xpath('//bind'):
-            if not bind.text:
+        for binding in bind_xml.xpath('/root/binding'):
+            name = binding.find('name')
+            # Valid names ?
+            if not name:
                 continue
-            if not bind.text.strip():
+            if not name.text.strip():
                 continue
-            b = bind.text.strip().split('=')
-            bindings[b[0].strip()] = b[1].strip()
+            name = name.text.strip()
+            bindings[name] = {}
+            # All binds cfg -> sut
+            for bind in binding.findall('bind'):
+                cfg = bind.get('config')
+                sut = bind.get('sut')
+                bindings[name][cfg] = sut
 
         return bindings
 
