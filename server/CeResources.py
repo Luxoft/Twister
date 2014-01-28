@@ -366,11 +366,11 @@ class ResourceAllocator(_cptools.XMLRPCController):
                 reservedIds = list()
                 for u in self.reservedResources:
                     for i in self.reservedResources[u]:
-                        reservedIds.append(self.reservedResources[u][i])
+                        reservedIds.append(i)
                 lockedIds = list()
                 for u in self.lockedResources:
                     for i in self.lockedResources[u]:
-                        lockedIds.append(self.lockedResources[u][i])
+                        lockedIds.append(i)
                 for r in self.resources['children']:
                     try:
                         if ((self.resources['children'][r]['status'] == 3
@@ -431,11 +431,11 @@ class ResourceAllocator(_cptools.XMLRPCController):
                 reservedIds = list()
                 for u in self.reservedResources:
                     for i in self.reservedResources[u]:
-                        reservedIds.append(self.reservedResources[u][i])
+                        reservedIds.append(i)
                 lockedIds = list()
                 for u in self.lockedResources:
                     for i in self.lockedResources[u]:
-                        lockedIds.append(self.lockedResources[u][i])
+                        lockedIds.append(i)
                 for r in self.systems['children']:
                     try:
                         if ((self.systems['children'][r]['status'] == 3
@@ -845,7 +845,6 @@ class ResourceAllocator(_cptools.XMLRPCController):
         Create or change a resource, using a name, a parent Path or ID and some properties.
         The function is used for both Devices and SUTs, by providing the ROOT ID.
         '''
-        logDebug(self.reservedResources)
         self._load(v=False, props=props)
 
         user_roles = self.userRoles(props)
@@ -1442,6 +1441,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
         isReservedForUser = [False, True][res_pointer.get('status', RESOURCE_FREE) == RESOURCE_RESERVED and
                                 res_pointer['id'] in self.reservedResources[user]]
+
         if not isReservedForUser:
             msg = 'Get reserved resource: Cannot find reserved resource path or ID `{}` !'.format(res_query)
             logError(msg)
@@ -1471,6 +1471,9 @@ class ResourceAllocator(_cptools.XMLRPCController):
             res_query = res_query.split(':')[0]
 
         res_path = _get_res_path(resources, res_query)
+        if not res_path:
+            # return '*ERROR* not found'
+            return False
         res_pointer = _get_res_pointer(resources, ''.join('/' + res_path[0]))
 
         if not res_pointer:
@@ -1484,14 +1487,16 @@ class ResourceAllocator(_cptools.XMLRPCController):
         if len(reservedForUser) == 1:
             reservedForUser = reservedForUser[0]
         else:
-            msg = 'Is resource reserved: reserved for `{}` !'.format(reservedForUser)
-            logError(msg)
-            return '*ERROR* ' + msg
+            # msg = 'Is resource reserved: reserved for `{}` !'.format(reservedForUser)
+            # logError(msg)
+            # return '*ERROR* ' + msg
+            return False
 
         if not reservedForUser:
-            msg = 'Is resource reserved: Cannot find reserved resource path or ID `{}` !'.format(res_query)
-            logError(msg)
-            return '*ERROR* ' + msg
+            # msg = 'Is resource reserved: Cannot find reserved resource path or ID `{}` !'.format(res_query)
+            # logError(msg)
+            # return '*ERROR* ' + msg
+            return False
 
         return reservedForUser
 
@@ -1860,7 +1865,8 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
         res_path = _get_res_path(resources, res_query)
         if not res_path:
-            return '*ERROR* not found'
+            # return '*ERROR* not found'
+            return False
         res_pointer = _get_res_pointer(resources, ''.join('/' + res_path[0]))
 
         if not res_pointer:
@@ -1874,14 +1880,16 @@ class ResourceAllocator(_cptools.XMLRPCController):
         if len(lockedForUser) == 1:
             lockedForUser = lockedForUser[0]
         else:
-            msg = 'Is resource reserved: reserved for `{}` !'.format(reservedForUser)
-            logError(msg)
-            return '*ERROR* ' + msg
+            # msg = 'Is resource reserved: reserved for `{}` !'.format(reservedForUser)
+            # logError(msg)
+            # return '*ERROR* ' + msg
+            return False
 
         if not lockedForUser:
-            msg = 'Is resource locked: Cannot find locked resource path or ID `{}` !'.format(res_query)
-            logError(msg)
-            return '*ERROR* ' + msg
+            # msg = 'Is resource locked: Cannot find locked resource path or ID `{}` !'.format(res_query)
+            # logError(msg)
+            # return '*ERROR* ' + msg
+            return False
 
         return lockedForUser
 
