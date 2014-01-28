@@ -1,6 +1,6 @@
 /*
 File: SUTEditor.java ; This file is part of Twister.
-Version: 2.007
+Version: 2.008
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -199,7 +199,7 @@ public class SUTEditor extends JPanel{
                            ((DefaultTreeModel)tree.getModel()).nodeChanged(root.getFirstChild());
                            lastsaved = false;
                         } else {
-                            CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,SUTEditor.this,"Warning", query);
+                            CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SUTEditor.this,"ERROR", query);
                         }
                     }
                     catch(Exception e){
@@ -243,7 +243,7 @@ public class SUTEditor extends JPanel{
                             ((DefaultTreeModel)tree.getModel()).insertNodeInto(component, treenode, treenode.getChildCount());
                             lastsaved = false;
                         } else {
-                            CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,SUTEditor.this,"Warning", resp);
+                            CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SUTEditor.this,"ERROR", resp);
                         }
                     } catch (Exception e){
                         System.out.println("Could not send command to add component to server");
@@ -294,6 +294,9 @@ public class SUTEditor extends JPanel{
         save.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 try{String resp = client.execute("saveReservedSut", new Object[]{"/"+rootsut}).toString();
+                    if(resp.indexOf("ERROR")!=-1){
+                        CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SUTEditor.this,"ERROR", resp);
+                    }
                     System.out.println(resp);
                     lastsaved = true;
                 }
@@ -311,6 +314,9 @@ public class SUTEditor extends JPanel{
                                      "Sut Name", "Please enter sut name");
                 if(filename!=null&&!filename.equals("NULL")){
                     try{String resp = client.execute("saveReservedSutAs", new Object[]{filename,"/"+rootsut}).toString();
+                        if(resp.indexOf("ERROR")!=-1){
+                            CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SUTEditor.this,"ERROR", resp);
+                        }
                         close.doClick();
                         SUT s = new SUT(filename,".user");
                         sutnode = new DefaultMutableTreeNode(s,false);
@@ -346,10 +352,12 @@ public class SUTEditor extends JPanel{
                             resp = client.execute("discardAndReleaseReservedSut", new Object[]{"/"+rootsut}).toString();
                         }
                     }
-                    if(!resp.equals("false")){
+                    if(!resp.equals("1")){
                         ((SUT)sutnode.getUserObject()).setReserved("");
                         ((DefaultTreeModel)suttree.filestree.getModel()).nodeChanged(sutnode);
                         suttree.treeContextOptions(suttree.filestree.getSelectionPath());
+                    } else {
+                        CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SUTEditor.this,"ERROR", resp);
                     }
                 }
                 catch(Exception e){e.printStackTrace();}

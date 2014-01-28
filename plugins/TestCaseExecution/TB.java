@@ -1,6 +1,6 @@
 /*
 File: TB.java ; This file is part of Twister.
-Version: 2.009
+Version: 2.010
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -173,15 +173,14 @@ public class TB extends JPanel{
                     public void actionPerformed(ActionEvent ev){
                         try{
                             String resp = client.execute("import_xml", new Object[]{tf.getText(),1}).toString();
-                            System.out.println(resp);
-                            if(resp.equals("true")){
+                            if(resp.indexOf("*ERROR*")==-1){
                                 root.removeAllChildren();
                                 parent = getTB("/",null);
                                 DefaultTreeModel model = (DefaultTreeModel)tree.getModel();
                                 buildTree(parent,root);
                                 ((DefaultTreeModel)tree.getModel()).reload();
                             } else {
-                                CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,TB.this,"ERROR", "Could not import!");
+                                CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,TB.this,"ERROR", "Could not import!CE error: "+resp);
                             }
                         } catch(Exception e){
                             e.printStackTrace();
@@ -205,7 +204,7 @@ public class TB extends JPanel{
                     public void actionPerformed(ActionEvent ev){
                         try{
                             String resp = client.execute("export_xml", new Object[]{tf.getText(),1}).toString();
-                            if(resp.equals("false")){
+                            if(resp.indexOf("*ERROR*")!=-1){
                                 CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,TB.this,"ERROR", "Could not save");
                             }
                             System.out.println(resp);
@@ -370,8 +369,15 @@ public class TB extends JPanel{
             node = (Node)treenode.getUserObject();
             node.setReserved(getTBReservdUser(node.getID()));
             try{String resp = client.execute("isResourceLocked", new Object[]{node.getID()}).toString();
-                if(resp.equals("false")) node.setLock("");
-                else node.setLock(resp);
+                if(resp.equals("false")){
+                    node.setLock("");
+                }
+                else if (resp.indexOf("*ERROR*")!=-1){
+                    CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,TB.this,"ERROR", resp);
+                    node.setLock("");
+                } else {
+                    node.setLock(resp);
+                }
             } catch (Exception e){e.printStackTrace();}
             ((DefaultTreeModel)tree.getModel()).nodeChanged(treenode);
         }
@@ -382,26 +388,34 @@ public class TB extends JPanel{
      */
     public String getTBReservdUser(String tbid){
         try{String resp = client.execute("isResourceReserved", new Object[]{tbid}).toString();
-            if(resp.equals("false"))return "";
-            else return resp;
+            if(resp.equals("false")){
+                return "";
+            }
+             else if (resp.indexOf("*ERROR*")!=-1){
+                CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,TB.this,"ERROR", resp);
+                return "";
+            }
+            else{
+                return resp;
+            }
         }
         catch(Exception e){e.printStackTrace();
             return "";
         }
     }
     
-    /*
-     * check if a TB is reserved
-     */
-    public boolean isReserved(String tbid){
-        try{String resp = client.execute("isResourceReserved", new Object[]{tbid}).toString();
-            System.out.println(resp);}
-        catch(Exception e){
-            e.printStackTrace();
-            return false;
-        }
-        return true;
-    }
+//     /*
+//      * check if a TB is reserved
+//      */
+//     public boolean isReserved(String tbid){
+//         try{String resp = client.execute("isResourceReserved", new Object[]{tbid}).toString();
+//             System.out.println(resp);}
+//         catch(Exception e){
+//             e.printStackTrace();
+//             return false;
+//         }
+//         return true;
+//     }
     
     /*
      * check if a TB is reserved
@@ -410,8 +424,12 @@ public class TB extends JPanel{
         try{String resp = client.execute("isResourceReserved", new Object[]{tbid}).toString();
             if(resp.equals(RunnerRepository.user)){
                 return true;
+            } else if (resp.indexOf("*ERROR*")!=-1){
+                CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,TB.this,"ERROR", resp);
+                return false;
+            } else {
+                return false;
             }
-            return false;
         }
         catch(Exception e){
             e.printStackTrace();
@@ -424,9 +442,10 @@ public class TB extends JPanel{
      */
     public boolean reserve(String tbid){
         try{String resp = client.execute("reserveResource", new Object[]{tbid}).toString();
-            if(resp.equals("3")){
+            if(resp.indexOf("*ERROR*")==-1){
                 return true;
             } else {
+                CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,TB.this,"ERROR", resp);
                 return false;
             }
         }
@@ -441,9 +460,10 @@ public class TB extends JPanel{
      */
     public boolean release(String tbid){
         try{String resp = client.execute("discardAndReleaseReservedResource", new Object[]{tbid}).toString();
-            if(resp.equals("1")){
+            if(resp.indexOf("*ERROR*")==-1){
                 return true;
             } else {
+                CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,TB.this,"ERROR", resp);
                 return false;
             }
         }
@@ -458,9 +478,10 @@ public class TB extends JPanel{
      */
     public boolean discardAndRelease(String tbid){
         try{String resp = client.execute("discardAndReleaseReservedResource", new Object[]{tbid}).toString();
-            if(resp.equals("1")){
+            if(resp.indexOf("*ERROR*")==-1){
                 return true;
             } else {
+                CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,TB.this,"ERROR", resp);
                 return false;
             }
         }
@@ -475,11 +496,16 @@ public class TB extends JPanel{
      * latest changes made and release resource
      */
     public boolean saveAndRelease(String tbid){
-        try{String resp = client.execute("saveAndReleaseReservedResource", new Object[]{tbid}).toString();}
+        try{String resp = client.execute("saveAndReleaseReservedResource", new Object[]{tbid}).toString();
+            if(resp.indexOf("*ERROR*")!=-1){
+                CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,TB.this,"ERROR", resp);
+                return false;
+            }
+            return true;
+        }
         catch(Exception e){e.printStackTrace();
             return false;
         }
-        return true;
     }
     
     /*
@@ -487,11 +513,16 @@ public class TB extends JPanel{
      * latest changes made 
      */
     public boolean saveChanges(String tbid){
-        try{String resp = client.execute("saveReservedResource", new Object[]{tbid}).toString();}
+        try{String resp = client.execute("saveReservedResource", new Object[]{tbid}).toString();
+            if(resp.indexOf("*ERROR*")!=-1){
+                CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,TB.this,"ERROR", resp);
+                return false;
+            }
+            return true;
+        }
         catch(Exception e){e.printStackTrace();
             return false;
         }
-        return true;
     }
     
     public void showTBPopUp(final DefaultMutableTreeNode treenode,final Node node, MouseEvent ev){
@@ -566,11 +597,12 @@ public class TB extends JPanel{
             item.addActionListener(new ActionListener(){
                 public void actionPerformed(ActionEvent ev){
                     try{String resp = client.execute("lockResource", new Object[]{node.getID()}).toString();
-                        if(resp.equals("2")){
+                        if(resp.indexOf("*ERROR*")==-1){
                             node.setLock(RunnerRepository.user);
                             ((DefaultTreeModel)tree.getModel()).nodeChanged(treenode);
                             remove.setEnabled(false);
                         } else {
+                            CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,TB.this,"ERROR", resp);
                             System.out.println(node.getName()+" was not locked, CE respons: "+resp);
                         }
                     } catch(Exception e){e.printStackTrace();}
@@ -581,7 +613,7 @@ public class TB extends JPanel{
             item.addActionListener(new ActionListener(){
                 public void actionPerformed(ActionEvent ev){
                     try{String resp = client.execute("unlockResource", new Object[]{node.getID()}).toString();
-                        if(resp.equals("1")){
+                        if(resp.indexOf("*ERROR*")==-1){
                             node.setLock("");
                             ((DefaultTreeModel)tree.getModel()).nodeChanged(treenode);
                             remove.setEnabled(true);
@@ -663,8 +695,7 @@ public class TB extends JPanel{
                 try{
                     Node newnode = new Node(null,resp,resp,parent,null,(byte)0);
                     resp = client.execute("setResource", new Object[]{resp,"/",null}).toString();
-                    System.out.println(resp);
-                    if(resp.indexOf("ERROR")==-1){                        
+                    if(resp.indexOf("*ERROR*")==-1){                        
                         parent.addChild(resp, newnode);
                         newnode.setID(resp);
                         DefaultMutableTreeNode treechild = new DefaultMutableTreeNode(newnode);
@@ -681,13 +712,13 @@ public class TB extends JPanel{
                             ((DefaultTreeModel)tree.getModel()).reload();
                         }
                     } else {
-                        CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,RunnerRepository.window,"Warning", resp);
+                        CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,TB.this,"ERROR", resp);
                     }
                 } catch (Exception e){
                     e.printStackTrace();
                 }
             } else {
-                CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,RunnerRepository.window,"Warning", 
+                CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,TB.this,"Warning", 
                                         "There is a TB with the same name, please use different name.");
             }
         }    
@@ -743,7 +774,7 @@ public class TB extends JPanel{
                 try{
                     Node newnode = new Node(null,parent.getPath().getPath()+"/"+resp,resp,parent,null,(byte)(1));
                     resp = client.execute("setResource", new Object[]{resp,parent.getID(),null}).toString();
-                    if(resp.indexOf("ERROR")==-1){
+                    if(resp.indexOf("*ERROR*")==-1){
                         parent.addChild(resp,newnode);
                         setSavedState(treenode,false);
                         newnode.setID(resp);
@@ -756,13 +787,13 @@ public class TB extends JPanel{
                         DefaultMutableTreeNode temp2 = new DefaultMutableTreeNode(newnode.getPath());
                         ((DefaultTreeModel)tree.getModel()).insertNodeInto(temp2, treechild,treechild.getChildCount());
                     } else {
-                        CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,RunnerRepository.window,"Warning", resp);
+                        CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,TB.this,"Warning", resp);
                     }                
                 } catch (Exception e){
                     e.printStackTrace();
                 }
             } else {
-                CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,RunnerRepository.window,"Warning", 
+                CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,TB.this,"Warning", 
                                     "There is a component with the same name, please use another name.");
             }
         }
@@ -773,7 +804,7 @@ public class TB extends JPanel{
      */
     public boolean removeNode(Node node,DefaultMutableTreeNode treenode){
         try{String s = client.execute("deleteResource", new Object[]{node.getID()}).toString();
-            if(s.equals("true")){
+            if(s.indexOf("*ERROR*")==-1){
                 Node parent = node.getParent();
                 setSavedState(treenode,false);
                 if(parent!=null){
@@ -837,7 +868,13 @@ public class TB extends JPanel{
      * received from server
      */
     public Node getTB(String id,Node parent){
-        try{HashMap hash= (HashMap)client.execute("getResource", new Object[]{id});
+        try{Object ob = client.execute("getResource", new Object[]{id});
+            if(ob.toString().indexOf("*ERROR*")!=-1){
+                CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,TB.this,"ERROR", ob.toString());
+            }
+            HashMap hash= (HashMap)ob;
+            
+//             HashMap hash= (HashMap)client.execute("getResource", new Object[]{id});
             String path = hash.get("path").toString();
             String name = path.split("/")[path.split("/").length-1];
             byte type = 1;
