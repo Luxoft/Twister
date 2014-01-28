@@ -653,7 +653,6 @@ public class SUTEditor extends JPanel{
     
     public void setRootSutName(String rootsut){
         this.rootsut = rootsut;
-        
     }
     
     
