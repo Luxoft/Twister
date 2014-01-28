@@ -658,7 +658,7 @@ class TwisterClientService(rpyc.Service):
                 with open(childPath, 'w') as f:
                     json.dump(sut, f, indent=4)
             except Exception as e:
-                pass
+                return e
 
         return True
 
@@ -671,7 +671,7 @@ class TwisterClientService(rpyc.Service):
             sutsPath = self._conn.root.getUserVariable('sut_path')
             if not sutsPath:
                 sutsPath = '{}/config/sut/'.format(TWISTER_PATH)
-            sutPaths = [p for p in os.listdir(sutsPath) if os.path.isfile(os.path.join(sutsPath, p))]
+            sutPaths = [p for p in os.listdir(sutsPath) if os.path.isfile(os.path.join(sutsPath, p)) and p.split('.')[-1] == 'json']
 
             for sutPath in sutPaths:
                 try:
