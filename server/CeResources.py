@@ -310,12 +310,13 @@ class ResourceAllocator(_cptools.XMLRPCController):
                         userConn = self.project.rsrv.service._findConnection(user,
                                                                 ['127.0.0.1', 'localhost'], 'client')
                         userConn = self.project.rsrv.service.conns[userConn]['conn']
-                        userSuts = copy.deepcopy(userConn.root.get_suts())
+                        userSutsLen = copy.deepcopy(userConn.root.exposed_get_suts_len())
                         loadedLen = 0
                         for c in self._loadedUsers[user]['children']:
                             if c.split('.')[-1] == 'user':
                                 loadedLen += 1
-                        if not len(userSuts) == loadedLen:
+                        if not userSutsLen == loadedLen:
+                            userSuts = copy.deepcopy(userConn.root.get_suts())
                             if userSuts:
                                 self.systems['children'].update(userSuts)
 
@@ -514,6 +515,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
                 del systemsChildren
 
                 userSuts = list()
+                systemSuts = list()
                 for child in self.systems['children']:
                     # Check where to save (ce / user)
                     #childPath = '{}/config/sut/{}.json'.format(TWISTER_PATH, '.'.join(child.split('.')[:-1]))
@@ -524,12 +526,13 @@ class ResourceAllocator(_cptools.XMLRPCController):
                         sutsPath = '{}/config/sut/'.format(TWISTER_PATH)
                     childPath = os.path.join(sutsPath, '.'.join(child.split('.')[:-1] + ['json']))
                     if child.split('.')[-1] == 'system':
-                        try:
-                            with open(childPath, 'w') as f:
-                                json.dump(self.systems['children'][child], f, indent=4)
-                        except Exception as e:
-                            log.append(e)
-                            logError('Saving ERROR:: `{}`.'.format(e))
+                        systemSuts.append((childPath, self.systems['children'][child]))
+                        # try:
+                        #     with open(childPath, 'w') as f:
+                        #         json.dump(self.systems['children'][child], f, indent=4)
+                        # except Exception as e:
+                        #     log.append(e)
+                        #     logError('Saving ERROR:: `{}`.'.format(e))
                     else:
                         userSuts.append(('.'.join(child.split('.')[:-1] + ['json']), self.systems['children'][child]))
 
@@ -548,9 +551,22 @@ class ResourceAllocator(_cptools.XMLRPCController):
                         r = userConn.root.save_suts(userSuts)
                         if not r == True:
                             log.append(r)
+                            logError('||||||client sut save ERROR: ', r)
                     except Exception as e:
                         log.append(e)
                         logError('Saving ERROR:: `{}`.'.format(e))
+
+                if systemSuts and not log:
+                    for sys_sut in systemSuts:
+                        try:
+                            with open(sys_sut[0], 'w') as f:
+                                json.dump(sys_sut[1], f, indent=4)
+                        except Exception as e:
+                            log.append(e)
+                            logError('Saving ERROR:: `{}`.'.format(e))
+                # else:
+                #     self.reservedResources = dict()
+                #     self.lockedResources = dict()
 
         if log:
             return '*ERROR* ' + str(log)
@@ -1553,15 +1569,15 @@ class ResourceAllocator(_cptools.XMLRPCController):
         # Write changes.
         r = self._save(root_id, props)
 
+        if not r == True:
+            return r
+
         user_roles = self.userRoles(props)
         user = user_roles.get('user')
         if user in self.reservedResources:
             self.reservedResources[user].update([(res_pointer['id'], copy.deepcopy(res_pointer)), ])
         else:
             self.reservedResources.update([(user, {res_pointer['id']: copy.deepcopy(res_pointer)}), ])
-
-        if not r == True:
-            return r
 
         return True #RESOURCE_RESERVED
 
@@ -1947,15 +1963,15 @@ class ResourceAllocator(_cptools.XMLRPCController):
         # Write changes.
         r = self._save(root_id, props)
 
+        if not r == True:
+            return r
+
         user_roles = self.userRoles(props)
         user = user_roles.get('user')
         if user in self.lockedResources:
             self.lockedResources[user].update([(res_pointer['id'], copy.deepcopy(res_pointer)), ])
         else:
             self.lockedResources.update([(user, {res_pointer['id']: copy.deepcopy(res_pointer)}), ])
-
-        if not r == True:
-            return r
 
         return True #RESOURCE_BUSY
 
