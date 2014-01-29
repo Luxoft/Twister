@@ -180,12 +180,12 @@ class CeXmlRpc(_cptools.XMLRPCController):
         Read a file from user's home folder.
         This function is called from the Java GUI.
         """
+        cherry_user = cherrypy.session.get('username')
+        if fpath[0] == '~':
+            fpath = userHome(cherry_user) + fpath[1:]
         if not os.path.isfile(fpath):
             logWarning('Read File: Path `{}` is not a file!'.format(fpath))
             return ''
-        cherry_user = cherrypy.session.get('username')
-        if fpath[0] == '~':
-            fpath = fpath[1:] + userHome(cherry_user)
         log_string = open(fpath).read()
         return binascii.b2a_base64(log_string)
 

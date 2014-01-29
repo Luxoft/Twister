@@ -572,8 +572,9 @@ class TSCParser:
         cfg_file = '{}/twister/config/bindings.xml'.format(userHome(self.user))
 
         if not os.path.isfile(cfg_file):
-            logError('Get Binding: Bindings Config file `{}` does not exist!'.format(cfg_file))
-            return {}
+            err = '*ERROR* Bindings Config file `{}` does not exist!'.format(cfg_file)
+            logError(err)
+            return err
 
         bind_xml = etree.parse(cfg_file)
         found = bind_xml.xpath('/root/binding/name[text()="{}"]/..'.format(fpath))
@@ -582,8 +583,8 @@ class TSCParser:
             xml_string = etree.tostring(found[0])
             return xml_string.replace('binding>', 'root>')
         else:
-            logDebug('Get Binding: Cannot find binding name `{}`!'.format(fpath))
-            return ''
+            logWarning('*ERROR* Cannot find binding name `{}`!'.format(fpath))
+            return False
 
 
     def setBinding(self, fpath, content):
@@ -595,25 +596,30 @@ class TSCParser:
         cfg_file = '{}/twister/config/bindings.xml'.format(userHome(self.user))
 
         if not os.path.isfile(cfg_file):
-            logError('Set Binding: Bindings Config file `{}` does not exist!'.format(cfg_file))
-            return {}
+            err = '*ERROR* Bindings Config file `{}` does not exist!'.format(cfg_file)
+            logError(err)
+            return err
 
         bind_xml = etree.parse(cfg_file)
+        # Find the old binding
         found = bind_xml.xpath('/root/binding/name[text()="{}"]/..'.format(fpath))
 
-        if not found:
-            logWarning('Get Binding: Cannot find binding name `{}`!'.format(fpath))
-            return False
-        else:
+        # If found, use it
+        if found:
             found = found[0]
+            found.clear()
+        # Or create it
+        else:
+            found = etree.SubElement(bind_xml.getroot(), 'binding')
+            name  = etree.SubElement(found, 'name')
+            name.text = fpath
 
         try:
             replace_xml = etree.XML(content)
         except:
-            logWarning('Set Binding: Invalid content! Cannot parse!')
-            return False
-
-        found.clear()
+            err = '*ERROR* Invalid XML content! Cannot parse!'
+            logWarning(err)
+            return err
 
         for elem in replace_xml:
             found.append(elem)
