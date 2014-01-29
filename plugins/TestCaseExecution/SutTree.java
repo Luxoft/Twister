@@ -1,6 +1,6 @@
 /*
 File: SutTree.java ; This file is part of Twister.
-Version: 2.002
+Version: 2.004
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -74,6 +74,7 @@ public class SutTree extends JPanel{
             public void mouseReleased(MouseEvent ev){
                 TreePath tp = filestree.getPathForLocation(ev.getX(), ev.getY());
                 if(tp!=null){
+                    importxml.setEnabled(true);
                     newfile.setEnabled(true);
                     final DefaultMutableTreeNode treenode = (DefaultMutableTreeNode)tp.getLastPathComponent();                    
                     if(PermissionValidator.canChangeSutLock() && tp!=null && (ev.getButton() == MouseEvent.BUTTON3) && (treenode.getUserObject() instanceof SUT )){
@@ -84,13 +85,14 @@ public class SutTree extends JPanel{
                         item.addActionListener(new ActionListener(){
                             public void actionPerformed(ActionEvent ev){
                                 try{String resp = client.execute("lockSut", new Object[]{"/"+sut.getName()+sut.getRoot()}).toString();
-                                if(resp.equals("2")){
+                                if(resp.indexOf("*ERROR*")==-1){
                                     sut.setLock(RunnerRepository.user);
                                     ((DefaultTreeModel)filestree.getModel()).nodeChanged(treenode);
                                     openfile.setEnabled(false);
                                     renamefile.setEnabled(false);
                                     deletefile.setEnabled(false);
                                 } else {
+                                    CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SutTree.this,"ERROR", resp);
                                     System.out.println(sut.getName()+" was not locked, CE respons: "+resp);
                                 }
                             } catch(Exception e){e.printStackTrace();}
@@ -101,13 +103,14 @@ public class SutTree extends JPanel{
                         item.addActionListener(new ActionListener(){
                             public void actionPerformed(ActionEvent ev){
                                 try{String resp = client.execute("unlockSut", new Object[]{"/"+sut.getName()+sut.getRoot()}).toString();
-                                    if(resp.equals("1")){
+                                    if(resp.indexOf("*ERROR*")==-1){
                                         sut.setLock("");
                                         ((DefaultTreeModel)filestree.getModel()).nodeChanged(treenode);
                                         openfile.setEnabled(true);
                                         renamefile.setEnabled(true);
                                         deletefile.setEnabled(true);
                                     } else {
+                                        CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SutTree.this,"ERROR", resp);
                                         System.out.println(sut.getName()+" was not unlocked, CE respons: "+resp);  
                                     }
                                 } catch (Exception e){
@@ -121,6 +124,7 @@ public class SutTree extends JPanel{
                         treeContextOptions(tp);
                     }
                 } else {
+                    importxml.setEnabled(false);
                     newfile.setEnabled(false);
                     treeContextOptions(tp);
                 }
@@ -158,6 +162,7 @@ public class SutTree extends JPanel{
             deletefile.setEnabled(false);
             exportxml.setEnabled(false);
             newfile.setEnabled(false);
+            importxml.setEnabled(false);
         }
         getSUT();
     }
@@ -182,6 +187,7 @@ public class SutTree extends JPanel{
                 openfile.setEnabled(false);
                 renamefile.setEnabled(false);
                 deletefile.setEnabled(false);
+                exportxml.setEnabled(false);
             }
         } else {//nothing selected
             filestree.setSelectionPath(null);
@@ -200,8 +206,11 @@ public class SutTree extends JPanel{
             DefaultMutableTreeNode treenode = (DefaultMutableTreeNode)en.nextElement();
             sut = (SUT)(treenode).getUserObject();
             if(sut.getReserved().equals(RunnerRepository.user)){
-                System.out.println("Releasing sut: "+sut.getName());
-                try{client.execute("discardAndReleaseReservedSut", new Object[]{"/"+sut.getName()+".user"}).toString();}
+                try{String resp = client.execute("discardAndReleaseReservedSut", new Object[]{"/"+sut.getName()+".user"}).toString();
+                    if(resp.indexOf("*ERROR*")!=-1){
+                        CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SutTree.this,"ERROR", resp);
+                    }
+                }
                 catch(Exception e){
                     System.out.println("Could not release sut: "+sut.getName());
                     e.printStackTrace();}
@@ -212,8 +221,11 @@ public class SutTree extends JPanel{
             DefaultMutableTreeNode treenode = (DefaultMutableTreeNode)en.nextElement();
             sut = (SUT)(treenode).getUserObject();
             if(sut.getReserved().equals(RunnerRepository.user)){
-                System.out.println("Releasing sut: "+sut.getName());
-                try{client.execute("discardAndReleaseReservedSut", new Object[]{"/"+sut.getName()+".system"}).toString();}
+                try{String resp = client.execute("discardAndReleaseReservedSut", new Object[]{"/"+sut.getName()+".system"}).toString();
+                    if(resp.indexOf("*ERROR*")!=-1){
+                        CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SutTree.this,"ERROR", resp);
+                    }
+                }
                 catch(Exception e){
                     System.out.println("Could not release sut: "+sut.getName());
                     e.printStackTrace();}
@@ -279,7 +291,7 @@ public class SutTree extends JPanel{
                         String query = "{'_epnames_"+RunnerRepository.user+"':'"+sb.toString()+"'}";
                         String user = tsut.getText();
                         String respons = client.execute("setSut", new Object[]{user+add,"/",query}).toString();
-                        if(respons.indexOf("ERROR")==-1){
+                        if(respons.indexOf("*ERROR*")==-1){
                             DefaultTreeModel model = (DefaultTreeModel)filestree.getModel();
                             SUT s = new SUT(user,add);
                             DefaultMutableTreeNode element = new DefaultMutableTreeNode(s,false);
@@ -290,7 +302,7 @@ public class SutTree extends JPanel{
                             }
                             RunnerRepository.window.mainpanel.p1.suitaDetails.setComboTBs();
                         } else {
-                            CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,SutTree.this,"Warning", respons);
+                            CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SutTree.this,"ERROR", respons);
                         }
                     }
                     catch(Exception e){
@@ -355,11 +367,11 @@ public class SutTree extends JPanel{
     
     public boolean reserveSut(SUT sut){
         try{String resp = client.execute("reserveSut", new Object[]{"/"+sut.getName()+sut.getRoot()}).toString();
-            if(resp.equals("3")){
+            if(resp.indexOf("*ERROR*")==-1){
                 return true;
             } else {
                 System.out.println(resp);
-                CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SutTree.this,"Error", "Could not reserve sut");
+                CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SutTree.this,"Error", "Could not reserve sut, CE error: "+resp);
                 return false;
             }
         } catch(Exception e){
@@ -385,11 +397,11 @@ public class SutTree extends JPanel{
                     add = ".system";
                 }
 //                 if(root.toString().equals("User")){
-                    if(reserved.equals("")){
-                        if(!reserveSut(((SUT)selected.getUserObject()))){
-                            return;
-                        }
-                    }
+//                     if(reserved.equals("")){
+//                         if(!reserveSut(((SUT)selected.getUserObject()))){
+//                             return;
+//                         }
+//                     }
 //                     String torename = "/"+name+".user";
                     String torename = "/"+name+add;
                     try{
@@ -407,18 +419,26 @@ public class SutTree extends JPanel{
                                                 "This name is already used, please use different name.");
                                  return;
                             }
+                            if(reserved.equals("")){
+                                if(!reserveSut(((SUT)selected.getUserObject()))){
+                                    return;
+                                }
+                            }
                             String query = client.execute("renameSut", new Object[]{torename,filename+add}).toString();
-                            if(query.equals("true")){
+                            if(query.indexOf("*ERROR*")==-1){
                                 ((SUT)selected.getUserObject()).setName(filename);
                                 ((DefaultTreeModel)filestree.getModel()).nodeChanged(selected);
                                 if(reserved.equals("")){//sut was not initialy reserved
                                     String resp = client.execute("saveAndReleaseReservedSut", new Object[]{torename}).toString();
+                                    if(resp.indexOf("*ERROR*")!=-1){
+                                        CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SutTree.this,"ERROR", "Cannot save and release sut. CE error: "+resp);
+                                    }
                                 } else {//sut was allready reserved and opened
                                     RunnerRepository.window.mainpanel.p4.getSut().sut.setRootSutName(filename+add);
                                 }
                                 RunnerRepository.window.mainpanel.p1.suitaDetails.setComboTBs();
                             } else {
-                                CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,SutTree.this,"Warning", query);
+                                CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SutTree.this,"ERROR", query);
                             }
                         }
                         
@@ -444,7 +464,7 @@ public class SutTree extends JPanel{
                     torem = "/"+selected.toString()+".system";
                 }
                 try{String s = client.execute("deleteSut", new Object[]{torem}).toString();
-                    if(s.indexOf("ERROR")==-1){
+                    if(s.indexOf("*ERROR*")==-1){
                         ((DefaultTreeModel)filestree.getModel()).removeNodeFromParent(selected);
                         RunnerRepository.window.mainpanel.p1.suitaDetails.setComboTBs();
                         openfile.setEnabled(false);
@@ -480,13 +500,22 @@ public class SutTree extends JPanel{
                 new MySftpBrowser(RunnerRepository.host,RunnerRepository.user,RunnerRepository.password,tf,c,false).setAction(new AbstractAction(){
                     public void actionPerformed(ActionEvent ev){
                         try{
-                            String resp = client.execute("import_xml", new Object[]{tf.getText(),2}).toString();
-                            System.out.println("resp: "+resp);
-                            if(resp.equals("true")){
+                            TreePath tp = filestree.getSelectionPath();
+                            DefaultMutableTreeNode selected = (DefaultMutableTreeNode)tp.getLastPathComponent();
+                            DefaultMutableTreeNode root = (DefaultMutableTreeNode)tp.getPathComponent(1);
+                            String type = "";
+                            if(root.toString().equals("User")){
+                                type = "user";
+                            } else {
+                                type = "system";
+                            }
+                            //String resp = client.execute("import_xml", new Object[]{tf.getText(),2}).toString();
+                            String resp = client.execute("import_sut_xml", new Object[]{tf.getText(),type}).toString();
+                            if(resp.indexOf("*ERROR*")==-1){
                                 getSUT();
                                 RunnerRepository.window.mainpanel.p1.suitaDetails.setComboTBs();
                             } else {
-                                CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SutTree.this,"ERROR", "Could not import!");
+                                CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SutTree.this,"ERROR", "Could not import! CE error: "+resp);
                             }
                         } catch(Exception e){
                             e.printStackTrace();
@@ -526,12 +555,11 @@ public class SutTree extends JPanel{
                             } else {
                                 add = ".system";
                             }
-                            
                             String sutname = sut.getName()+add;
                             System.out.println("export_sut_xml: "+tf.getText()+"/"+sutname);
                             String resp = client.execute("export_sut_xml", new Object[]{tf.getText(),"/"+sutname}).toString();
-                            if(resp.equals("false")){
-                                CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SutTree.this,"ERROR", "Could not save");
+                            if(resp.indexOf("*ERROR*")!=-1){
+                                CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SutTree.this,"ERROR", "Could not save, CE error: "+resp);
                             }
                         } catch(Exception e){
                             e.printStackTrace();
@@ -568,12 +596,24 @@ public class SutTree extends JPanel{
     
     public String [] getSutsName(){
         try{
-            HashMap hash= (HashMap)client.execute("getSut", new Object[]{"/"});
+            Object ob = client.execute("getSut", new Object[]{"/"});
+            if(ob.toString().indexOf("*ERROR*")!=-1){
+                CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SutTree.this,"ERROR", ob.toString());
+            }
+            HashMap hash= (HashMap)ob;
+//             HashMap hash= (HashMap)client.execute("getSut", new Object[]{"/"});
             Object[] children = (Object[])hash.get("children");
             String name,path;
             StringBuilder b = new StringBuilder();
             for(Object o:children){
-                hash= (HashMap)client.execute("getSut", new Object[]{o.toString()});
+                
+                ob = client.execute("getSut", new Object[]{o.toString()});
+                if(ob.toString().indexOf("*ERROR*")!=-1){
+                    CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SutTree.this,"ERROR", ob.toString());
+                }
+                //hash= (HashMap)client.execute("getSut", new Object[]{o.toString()});
+                hash = (HashMap)ob;
+//                 hash= (HashMap)client.execute("getSut", new Object[]{o.toString()});
                 path = hash.get("path").toString();
                 name = path.split("/")[path.split("/").length-1];
                 name = name.replace(".user", "");
@@ -590,7 +630,11 @@ public class SutTree extends JPanel{
     }
     
     public void getSUT(){
-        try{HashMap hash= (HashMap)client.execute("getSut", new Object[]{"/"});
+        try{Object ob = client.execute("getSut", new Object[]{"/"});
+            if(ob.toString().indexOf("*ERROR*")!=-1){
+                CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SutTree.this,"ERROR", ob.toString());
+            }
+            HashMap hash= (HashMap)ob;
             Object[] children = (Object[])hash.get("children");
             DefaultMutableTreeNode child;
             userroot.removeAllChildren();
@@ -601,7 +645,12 @@ public class SutTree extends JPanel{
             for(Object o:children){
                 String root = ".system";
                 boolean user = false;
-                hash= (HashMap)client.execute("getSut", new Object[]{o.toString()});
+                ob = client.execute("getSut", new Object[]{o.toString()});
+                if(ob.toString().indexOf("*ERROR*")!=-1){
+                    CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SutTree.this,"ERROR", ob.toString());
+                }
+                //hash= (HashMap)client.execute("getSut", new Object[]{o.toString()});
+                hash = (HashMap)ob;
                 path = hash.get("path").toString();
                 name = path.split("/")[path.split("/").length-1];
                 if(name.indexOf(".user")!=-1){
@@ -612,8 +661,12 @@ public class SutTree extends JPanel{
                 name = name.replace(".system", "");                
                 SUT s = new SUT(name,root);
                 String lock = client.execute("isSutLocked", new Object[]{"/"+name+root}).toString();
-                if(lock.equals("false"))s.setLock("");
-                else s.setLock(lock);
+                if(lock.indexOf("*ERROR*")!=-1){
+                    CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SutTree.this,"ERROR", lock);
+                    s.setLock("");
+                } else if((lock.equalsIgnoreCase("false"))){
+                    s.setLock("");
+                } else {s.setLock(lock);}
                 child = new DefaultMutableTreeNode(s,false);
                 if(user){
                     model.insertNodeInto(child, userroot, userroot.getChildCount());
@@ -649,6 +702,10 @@ public class SutTree extends JPanel{
     public String getSUTReservdUser(String name){
         try{String resp = client.execute("isSutReserved", new Object[]{"/"+name}).toString();
             if(resp.equals("false"))return "";
+            if(resp.indexOf("*ERROR*")!=-1){
+                CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SutTree.this,"ERROR", resp);
+                return "";
+            }
             else return resp;
         }
         catch(Exception e){e.printStackTrace();
