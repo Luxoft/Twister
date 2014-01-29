@@ -962,7 +962,8 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
             # old_child = copy.deepcopy(child_p)
 
-            child_p['meta'].update(props)
+            # child_p['meta'].update(props)
+            child_p['meta'] = props
 
             # if old_child != child_p:
             #    self._save(root_id, props)
@@ -1856,9 +1857,10 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
         # If no resources...
         if not resources['children']:
-            msg = 'Is resource locked: There are no resources defined !'
-            logError(msg)
-            return '*ERROR* ' + msg
+            # msg = 'Is resource locked: There are no resources defined !'
+            # logError(msg)
+            # return '*ERROR* ' + msg
+            return False
 
         if ':' in res_query:
             res_query = res_query.split(':')[0]
