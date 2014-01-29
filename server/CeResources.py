@@ -516,6 +516,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
                 userSuts = list()
                 systemSuts = list()
+                logError('||||save sys', user, self.systems)
                 for child in self.systems['children']:
                     # Check where to save (ce / user)
                     #childPath = '{}/config/sut/{}.json'.format(TWISTER_PATH, '.'.join(child.split('.')[:-1]))
@@ -542,16 +543,12 @@ class ResourceAllocator(_cptools.XMLRPCController):
                         user_roles = self.userRoles(props)
                         user = user_roles.get('user')
 
-                        # update loaded users systems
-                        self._loadedUsers.update([(user, self.systems), ])
-
                         userConn = self.project.rsrv.service._findConnection(user,
                                                                     ['127.0.0.1', 'localhost'], 'client')
                         userConn = self.project.rsrv.service.conns[userConn]['conn']
                         r = userConn.root.save_suts(userSuts)
                         if not r == True:
                             log.append(r)
-                            logError('||||||client sut save ERROR: ', r)
                     except Exception as e:
                         log.append(e)
                         logError('Saving ERROR:: `{}`.'.format(e))
@@ -564,6 +561,10 @@ class ResourceAllocator(_cptools.XMLRPCController):
                         except Exception as e:
                             log.append(e)
                             logError('Saving ERROR:: `{}`.'.format(e))
+
+                    # update loaded users systems
+                    self._loadedUsers.update([(user, self.systems), ])
+
                 # else:
                 #     self.reservedResources = dict()
                 #     self.lockedResources = dict()
@@ -1566,10 +1567,18 @@ class ResourceAllocator(_cptools.XMLRPCController):
             return '*ERROR* ' + msg
 
         res_pointer.update([('status', RESOURCE_RESERVED), ])
+
         # Write changes.
         r = self._save(root_id, props)
 
         if not r == True:
+            res_path = _get_res_path(resources, res_query)
+            res_pointer = _get_res_pointer(resources, ''.join('/' + res_path[0]))
+
+            res_pointer.update([('path', [res_path[0]]), ])
+
+            res_pointer.update([('status', RESOURCE_FREE), ])
+
             return r
 
         user_roles = self.userRoles(props)
@@ -1847,7 +1856,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
             self.reservedResources[user].pop(res_pointer['id'])
             res_pointer['status'] = RESOURCE_FREE
             # Write changes.
-            self._save(root_id, props)
+            r = self._save(root_id, props)
 
             if not self.reservedResources[user]:
                 self.reservedResources.pop(user)
@@ -1964,6 +1973,13 @@ class ResourceAllocator(_cptools.XMLRPCController):
         r = self._save(root_id, props)
 
         if not r == True:
+            res_path = _get_res_path(resources, res_query)
+            res_pointer = _get_res_pointer(resources, ''.join('/' + res_path[0]))
+
+            res_pointer.update([('path', [res_path[0]]), ])
+
+            res_pointer.update([('status', RESOURCE_FREE), ])
+
             return r
 
         user_roles = self.userRoles(props)
@@ -2012,7 +2028,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
             self.lockedResources[user].pop(res_pointer['id'])
             res_pointer['status'] = RESOURCE_FREE
             # Write changes.
-            self._save(root_id, props)
+            r = self._save(root_id, props)
 
             if not self.lockedResources[user]:
                 self.lockedResources.pop(user)

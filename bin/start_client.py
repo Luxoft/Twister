@@ -678,6 +678,12 @@ class TwisterClientService(rpyc.Service):
             if not sutsPath:
                 sutsPath = '{}/config/sut/'.format(TWISTER_PATH)
             sutPaths = [p for p in os.listdir(sutsPath) if os.path.isfile(os.path.join(sutsPath, p)) and p.split('.')[-1] == 'json']
+
+            # testPath = os.path.join(sutsPath, 'test_wirte_file.txt')
+            # openTest = open(testPath, 'w')
+            # openTest.close()
+            # os.remove(testPath)
+
             for sutPath in sutPaths:
                 try:
                     sutName = '.'.join(['.'.join(sutPath.split('.')[:-1]  + ['user'])])
