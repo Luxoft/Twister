@@ -197,21 +197,26 @@ class CeXmlRpc(_cptools.XMLRPCController):
         This function is called from the Java GUI.
         """
         cherry_user = cherrypy.session.get('username')
+        if fpath[0] == '~':
+            fpath = userHome(cherry_user) + fpath[1:]
         if not fpath.startswith( userHome(cherry_user) ):
-            logWarning('Write File: Path `{}` is not in the users home folder!'.format(fpath))
-            return False
+            err = '*ERROR* Path `{}` is not in the users home folder!'.format(fpath)
+            logWarning(err)
+            return err
         try:
             log_string = binascii.a2b_base64(fdata)
         except:
-            logWarning('Write File: Invalid base64 data!')
-            return False
+            err = '*ERROR* Invalid base64 data!'
+            logWarning(err)
+            return err
         try:
             open(fpath, 'w').write(log_string)
             logDebug('Write File: User `{}` updated config file `{}`.'.format(cherry_user, fpath))
             return True
         except Exception as e:
-            logWarning('Write File: Cannot write into file `{}`! {}'.format(fpath, e))
-            return False
+            err = '*ERROR* Cannot write into file `{}`! {}'.format(fpath, e)
+            logWarning(err)
+            return err
 
 
 # # #

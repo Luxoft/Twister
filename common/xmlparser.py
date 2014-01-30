@@ -638,7 +638,7 @@ class TSCParser:
         bindings = {}
 
         if not os.path.isfile(cfg_file):
-            logError('Get Bindings: Bindings Config file `{}` does not exist!'.format(cfg_file))
+            logError('Bindings Config file `{}` does not exist!'.format(cfg_file))
             return {}
 
         bind_xml = etree.parse(cfg_file)
@@ -646,11 +646,11 @@ class TSCParser:
         for binding in bind_xml.xpath('/root/binding'):
             name = binding.find('name')
             # Valid names ?
-            if not name:
-                continue
-            if not name.text.strip():
+            if name is None:
                 continue
             name = name.text.strip()
+            if not name:
+                continue
             bindings[name] = {}
             # All binds cfg -> sut
             for bind in binding.findall('bind'):
@@ -658,6 +658,7 @@ class TSCParser:
                 sut = bind.get('sut')
                 bindings[name][cfg] = sut
 
+        logDebug('Found `{}` bindings for user `{}`.'.format(len(bindings), self.user))
         return bindings
 
 # # #
