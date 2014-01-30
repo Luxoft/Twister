@@ -32,7 +32,13 @@
 	%>
 
 		% if ltype == 'link' and folder and folder != was_folder:
-		<!-- Start of folder `${folder}` // before ${was_folder} -->
+			% if was_folder:
+			</ul> <!-- End of folder `${was_folder}` // new `${folder}` -->
+			<%
+			was_folder = False
+			%>
+			% endif
+		<!-- Start of folder `${folder}` // before `${was_folder}` -->
 		<%
 		was_folder = folder
 		%>
@@ -40,7 +46,7 @@
 			<ul class="nav nav-pills nav-stacked" style="margin-bottom:0">
 		% endif
 		% if was_folder and folder != was_folder:
-			</ul> <!-- End of folder `${was_folder}` -->
+			</ul> <!-- End of folder `${was_folder}` // old `${folder}` -->
 		<%
 		was_folder = False
 		%>

@@ -201,6 +201,99 @@ class CeRpycService(rpyc.Service):
         return found
 
 
+    def on_connect(self):
+        """
+        On client connect
+        """
+        logFull('CeRpyc:on_connect')
+        str_addr = self._get_addr()
+
+        # Add this connection in the list of connections,
+        # If this connection CAN be added!
+        try:
+            with self.conn_lock:
+                self.conns[str_addr] = {'conn': self._conn, 'time': time.time()}
+        except Exception as e:
+            logError('EE: Connect error: {}.'.format(e))
+
+        logDebug('EE: Connected from `{}`.'.format(str_addr))
+
+
+    def on_disconnect(self):
+        """
+        On client disconnect
+        """
+        logFull('CeRpyc:on_disconnect')
+        str_addr = self._get_addr()
+
+        hello = self.conns[str_addr].get('hello', '')
+        stime = self.conns[str_addr].get('time', time.time())
+        if hello: hello += ' - '
+
+        # Unregister the eventual EPs for this connection
+        if self.conns[str_addr].get('checked') and self.conns[str_addr].get('user'):
+            eps = self.conns[str_addr].get('eps')
+            if eps: self.unregisterEps(eps)
+
+        # Delete everything for this address
+        try:
+            with self.conn_lock:
+                del self.conns[str_addr]
+        except Exception as e:
+            logError('EE: Disconnect error: {}.'.format(e))
+
+        logDebug('EE: Disconnected from `{}{}`, after `{:.2f}` seconds.'.format(
+            hello, str_addr, (time.time() - stime)))
+
+
+    @classmethod
+    def _findConnection(self, usr=None, addr=[], hello='', epname=''):
+        """
+        Helper function to find the first address for 1 user,
+        that matches the Address, the hello, or the Ep.
+        Possible combinations are: (Addr & Hello), (Hello & Ep).
+        The address will match the IP/ host; ex: ['127.0.0.1', 'localhost'].
+        The hello should be: `client`, `ep`, or `lib`.
+        The EP must be the name of the EP registered by a client;
+        it returns the client, not the EP.
+        """
+        logFull('CeRpyc:_findConnection')
+        if isinstance(self, CeRpycService):
+            user = self._check_login()
+        else:
+            user = usr
+        if not user: return False
+
+        found = False
+
+        # Cycle all active connections (clients, eps, libs, cli)
+        for str_addr, data in self.conns.iteritems():
+            # Skip invalid connections, without log-in
+            if not data.get('user') or not data.get('checked'):
+                continue
+            # Will find the first connection match for the user
+            if user == data['user'] and data['checked']:
+                # Check (Addr & Hello)
+                if (addr and hello) and str_addr.split(':')[0] in addr:
+                    # If the Hello matches with the filter
+                    if data.get('hello') and data['hello'].split(':') and data['hello'].split(':')[0] == hello:
+                        found = str_addr
+                        break
+                # Check (Hello & Ep)
+                elif (hello and epname) and data.get('hello') and data['hello'].split(':') and data['hello'].split(':')[0] == hello:
+                    # If this connection has registered EPs
+                    eps = data.get('eps')
+                    if eps and epname in eps:
+                        found = str_addr
+                        break
+                # All filters are null! Return the first conn for this user!
+                elif not addr and not hello and not epname:
+                    found = str_addr
+                    break
+
+        return found
+
+
     def exposed_cherryAddr(self):
         """
         Returns the CherryPy IP and PORT, for the Central Engine.
@@ -1024,7 +1117,9 @@ class CeRpycService(rpyc.Service):
 
     def exposed_getResource(self, query):
         logFull('CeRpyc:exposed_getResource')
-        try: return self.project.ra.getResource(query)
+        user = self._check_login()
+        if not user: return False
+        try: return self.project.ra.getResource(query=query, props={'__user': user})
         except: return False
 
 
@@ -1052,7 +1147,9 @@ class CeRpycService(rpyc.Service):
 
     def exposed_getSut(self, query):
         logFull('CeRpyc:exposed_getSut')
-        try: return self.project.ra.getSut(query)
+        user = self._check_login()
+        if not user: return False
+        try: return self.project.ra.getSut(query=query, props={'__user': user})
         except: return False
 
 
@@ -1076,6 +1173,90 @@ class CeRpycService(rpyc.Service):
         user = self._check_login()
         if not user: return False
         return self.project.ra.deleteSut(query, props={'__user': user})
+
+
+    def exposed_isResourceReserved(self, query):
+        logFull('CeRpyc:exposed_isResourceReserved')
+        #user = self._check_login()
+        #if not user: return False
+        return self.project.ra.isResourceReserved(query)
+
+
+    def exposed_isSutReserved(self, query):
+        logFull('CeRpyc:exposed_isSutReserved')
+        #user = self._check_login()
+        #if not user: return False
+        return self.project.ra.isSutReserved(query)
+
+
+    def exposed_reserveResource(self, query):
+        logFull('CeRpyc:exposed_reserveResource')
+        user = self._check_login()
+        if not user: return False
+        return self.project.ra.reserveResource(query, props={'__user': user})
+
+
+    def exposed_reserveSut(self, query):
+        logFull('CeRpyc:exposed_reserveSut')
+        user = self._check_login()
+        if not user: return False
+        return self.project.ra.reserveSut(query, props={'__user': user})
+
+
+    def exposed_saveAndReleaseReservedResource(self, query):
+        logFull('CeRpyc:exposed_saveAndReleaseReservedResource')
+        user = self._check_login()
+        if not user: return False
+        return self.project.ra.saveAndReleaseReservedResource(query, props={'__user': user})
+
+
+    def exposed_saveReservedResource(self, query):
+        logFull('CeRpyc:exposed_saveReservedResource')
+        user = self._check_login()
+        if not user: return False
+        return self.project.ra.saveReservedResource(query, props={'__user': user})
+
+
+    def exposed_saveReservedResourceAs(self, name, query):
+        logFull('CeRpyc:exposed_saveReservedResourceAs')
+        user = self._check_login()
+        if not user: return False
+        return self.project.ra.saveReservedResourceAs(name, query, props={'__user': user})
+
+
+    def exposed_saveReservedSutAs(self, name, query):
+        logFull('CeRpyc:exposed_saveReservedSutAs')
+        user = self._check_login()
+        if not user: return False
+        return self.project.ra.saveReservedSutAs(name, query, props={'__user': user})
+
+
+    def exposed_saveReservedSut(self, query):
+        logFull('CeRpyc:exposed_saveReservedSut')
+        user = self._check_login()
+        if not user: return False
+        return self.project.ra.saveReservedSut(query, props={'__user': user})
+
+
+    def exposed_saveAndReleaseReservedSut(self, query):
+        logFull('CeRpyc:exposed_saveAndReleaseReservedSut')
+        user = self._check_login()
+        if not user: return False
+        return self.project.ra.saveAndReleaseReservedSut(query, props={'__user': user})
+
+
+    def exposed_discardAndReleaseReservedResource(self, query):
+        logFull('CeRpyc:exposed_discardAndReleaseReservedResource')
+        user = self._check_login()
+        if not user: return False
+        return self.project.ra.discardAndReleaseReservedResource(query, props={'__user': user})
+
+
+    def exposed_discardAndReleaseReservedSut(self, query):
+        logFull('CeRpyc:exposed_discardAndReleaseReservedSut')
+        user = self._check_login()
+        if not user: return False
+        return self.project.ra.discardAndReleaseReservedSut(query, props={'__user': user})
 
 
 # Eof()

@@ -1,6 +1,6 @@
 /*
 File: Panel4.java ; This file is part of Twister.
-Version: 2.007
+Version: 2.008
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -141,7 +141,7 @@ public class Panel4 extends JPanel{
         main.setLayout(new BorderLayout());
         main.add(sut,BorderLayout.CENTER);
         sut.tbs.setTree(tb.getTree());
-        sut.sut.getSUT();
+        //sut.sut.getSUT();
         main.repaint();
         main.revalidate();
     }

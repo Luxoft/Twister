@@ -1313,9 +1313,15 @@ class Project(object):
         logFull('CeProject:_find_anonim_ep user `{}`.'.format(user))
         epname = None
 
+        addr = ['127.0.0.1', 'localhost']
+        hostName = socket.gethostname()
+        addr.append(hostName)
+        try: addr.append(socket.gethostbyaddr(hostName)[-1][0])
+        except: pass
+
         # Shortcut to the Rpyc Service
         rpyc_srv = self.rsrv.service
-        local_client = rpyc_srv._findConnection(usr=user, addr=['127.0.0.1', 'localhost'], hello='client')
+        local_client = rpyc_srv._findConnection(usr=user, addr=addr, hello='client')
 
         # Cannot find local client conns
         if not local_client:

@@ -1,3 +1,10 @@
+17th January 2014
+
+- changed the mechanism for EP's. Introduced a methog to simplify EP's configuration
+- github issue #104 ; the report directories are collapsable/expandable
+- the trace level of Twister server can be set on the fly; there are 6 debug levels that can be set
+- updated User Guide
+
 28th October
 
 - rework for ClearCase plugin to work on 64 bit systems
