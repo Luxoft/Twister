@@ -1,7 +1,7 @@
 
 # File: CeXmlRpc.py ; This file is part of Twister.
 
-# version: 2.033
+# version: 2.034
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -184,8 +184,9 @@ class CeXmlRpc(_cptools.XMLRPCController):
         if fpath[0] == '~':
             fpath = userHome(cherry_user) + fpath[1:]
         if not os.path.isfile(fpath):
-            logWarning('Read File: Path `{}` is not a file!'.format(fpath))
-            return ''
+            err = '*ERROR* Path `{}` is not a file!'.format(fpath)
+            logWarning(err)
+            return err
         log_string = open(fpath).read()
         return binascii.b2a_base64(log_string)
 
