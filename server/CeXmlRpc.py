@@ -1,7 +1,7 @@
 
 # File: CeXmlRpc.py ; This file is part of Twister.
 
-# version: 2.034
+# version: 2.035
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -93,7 +93,10 @@ class CeXmlRpc(_cptools.XMLRPCController):
     def default(self, *vpath, **params):
         user_agent = cherrypy.request.headers['User-Agent'].lower()
         if 'xmlrpc' in user_agent or 'xml rpc' in user_agent:
-            return super(CeXmlRpc, self).default(*vpath, **params)
+            resp = super(CeXmlRpc, self).default(*vpath, **params)
+            if resp is None:
+                return False
+            return resp
         # If the connection is not XML-RPC, redirect to REST
         raise cherrypy.HTTPRedirect('/web/' + '/'.join(vpath))
 
@@ -197,25 +200,35 @@ class CeXmlRpc(_cptools.XMLRPCController):
         Write a file in user's home folder.
         This function is called from the Java GUI.
         """
-        cherry_user = cherrypy.session.get('username')
+        user = cherrypy.session.get('username')
         if fpath[0] == '~':
-            fpath = userHome(cherry_user) + fpath[1:]
-        if not fpath.startswith( userHome(cherry_user) ):
-            err = '*ERROR* Path `{}` is not in the users home folder!'.format(fpath)
-            logWarning(err)
-            return err
+            fpath = userHome(user) + fpath[1:]
+
         try:
             log_string = binascii.a2b_base64(fdata)
         except:
             err = '*ERROR* Invalid base64 data!'
             logWarning(err)
             return err
+
+        conn = self.project._find_local_client(user)
+        if not conn:
+            err = '*ERROR* Cannot find any local Clients for user `{}`! Cannot write file!'.format(user)
+            logWarning(err)
+            return err
+
         try:
-            open(fpath, 'w').write(log_string)
-            logDebug('Write File: User `{}` updated config file `{}`.'.format(cherry_user, fpath))
-            return True
-        except Exception as e:
-            err = '*ERROR* Cannot write into file `{}`! {}'.format(fpath, e)
+            result = conn.root.write_file(fpath, log_string)
+            if result:
+                logDebug('User `{}` updated file `{}`.'.format(user, fpath))
+                return True
+            else:
+                err = '*ERROR* Cannot write into file `{}`! Insuficient rights!'.format(fpath)
+                logWarning(err)
+                return err
+        except:
+            trace = traceback.format_exc()[34:].strip()
+            err = '*ERROR* write file error: {}'.format(trace)
             logWarning(err)
             return err
 
@@ -663,7 +676,6 @@ class CeXmlRpc(_cptools.XMLRPCController):
         """
         cherry_user = cherrypy.session.get('username')
         dirpath = self.project.getUserInfo(cherry_user, 'tcfg_path')
-        fpath  = '/'.join( [f for f in fpath.lstrip('/').split('/')[1:] if f] )
         return self.readFile(dirpath + '/' + fpath)
 
 
@@ -672,11 +684,18 @@ class CeXmlRpc(_cptools.XMLRPCController):
         """
         Complete path from tree - returns a True/ False.
         """
-        if self.isLockConfig(fpath):
-            return False
+        user = cherrypy.session.get('username')
+        lock = self.isLockConfig(fpath)
+        if lock and lock != user:
+            err = '*ERROR* Config file `{}` is locked by `{}`! Cannot save!'.format(fpath, lock)
+            logDebug(err)
+            return err
+        if not lock:
+            err = '*ERROR* Cannot save config file `{}`, because it\'s not locked!'.format(fpath)
+            logDebug(err)
+            return err
         cherry_user = cherrypy.session.get('username')
         dirpath = self.project.getUserInfo(cherry_user, 'tcfg_path')
-        fpath  = '/'.join( [f for f in fpath.lstrip('/').split('/')[1:] if f] )
         return self.writeFile(dirpath + '/' + fpath, content)
 
 
@@ -685,24 +704,31 @@ class CeXmlRpc(_cptools.XMLRPCController):
         """
         Complete path from tree - returns a True/ False.
         """
-        if self.isLockConfig(fpath):
-            return False
+        lock = self.isLockConfig(fpath)
+        # Cannot Delete a locked file!
+        if lock:
+            err = '*ERROR* Config file `{}` is locked by `{}`! Cannot delete!'.format(fpath, lock)
+            logDebug(err)
+            return err
         user = cherrypy.session.get('username')
         dirpath = self.project.getUserInfo(user, 'tcfg_path')
-        fpath  = dirpath + '/' + '/'.join( [f for f in fpath.lstrip('/').split('/')[1:] if f] )
+        fpath  = dirpath + '/' + fpath
         if not os.path.isfile(fpath):
-            logWarning('Delete File: Path `{}` is not a file!'.format(fpath))
-            return False
+            err = '*ERROR* Path `{}` is not a file!'.format(fpath)
+            logWarning(err)
+            return err
         if not fpath.startswith( userHome(user) ):
-            logWarning('Delete File: Path `{}` is not in the users home folder!'.format(fpath))
-            return False
+            err = '*ERROR* Path `{}` is not in the users home folder!'.format(fpath)
+            logWarning(err)
+            return err
         try:
             os.remove(fpath)
             logDebug('User `{}` deleted config file `{}`.'.format(user, fpath))
             return True
         except Exception as e:
-            logWarning('Cannot delete file `{}`! Exception: `{}`.'.format(fpath, e))
-            return False
+            err = '*ERROR* Cannot delete file `{}`! Exception: `{}`.'.format(fpath, e)
+            logWarning(err)
+            return err
 
 
     @cherrypy.expose
@@ -711,6 +737,7 @@ class CeXmlRpc(_cptools.XMLRPCController):
         Read a binding between a CFG and a SUT.
         The result is XML.
         """
+        logDebug('User `{}` reads bindings for `{}`.'.format(user, fpath))
         return self.project.parsers[user].getBinding(fpath)
 
 
@@ -720,6 +747,7 @@ class CeXmlRpc(_cptools.XMLRPCController):
         Write a binding between a CFG and a SUT.
         Return True/ False.
         """
+        logDebug('User `{}` writes bindings for `{}`.'.format(user, fpath))
         return self.project.parsers[user].setBinding(fpath, content)
 
 

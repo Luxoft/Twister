@@ -611,8 +611,9 @@ class TSCParser:
         # Or create it
         else:
             found = etree.SubElement(bind_xml.getroot(), 'binding')
-            name  = etree.SubElement(found, 'name')
-            name.text = fpath
+
+        name  = etree.SubElement(found, 'name')
+        name.text = fpath
 
         try:
             replace_xml = etree.XML(content)
@@ -624,7 +625,7 @@ class TSCParser:
         for elem in replace_xml:
             found.append(elem)
 
-        bind_xml.write(cfg_file)
+        bind_xml.write(cfg_file, pretty_print=True)
         logDebug('Set Binding: Binding `{}` updated in bindings.xml!'.format(fpath))
         return True
 
@@ -638,8 +639,9 @@ class TSCParser:
         bindings = {}
 
         if not os.path.isfile(cfg_file):
-            logError('Bindings Config file `{}` does not exist!'.format(cfg_file))
-            return {}
+            err = '*ERROR* Bindings Config file `{}` does not exist!'.format(cfg_file)
+            logError(err)
+            return err
 
         bind_xml = etree.parse(cfg_file)
 
