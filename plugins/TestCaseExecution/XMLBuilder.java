@@ -37,6 +37,8 @@ import java.util.Iterator;
 import javax.swing.JOptionPane;
 import com.twister.CustomDialog;
 import javax.swing.tree.DefaultMutableTreeNode;
+import java.util.HashMap;
+import java.io.StringWriter;
 
 public class XMLBuilder{
     private DocumentBuilderFactory documentBuilderFactory;
@@ -131,24 +133,74 @@ public class XMLBuilder{
              ArrayList <Item> temporary = new <Item> ArrayList();
              String [] EPS;
              
-            DefaultMutableTreeNode parent = RunnerRepository.window.mainpanel.p4.getSut().sut.root;
-            int sutsnr = parent.getChildCount();             
+             
+             
+//              DefaultMutableTreeNode parent = RunnerRepository.window.mainpanel.p4.getSut().sut.root;
+//              int sutsnr = parent.getChildCount();  
+             
              for(int i=0;i<nrsuite;i++){
                  sb.setLength(0);
                  Item current = suite.get(i);
+                 if(current.getEpId().length == 0){
+                     CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE, 
+                                            RunnerRepository.window, "ERROR", 
+                                            "Please set SUT for: "+current.getName());
+                     return false;
+                 }
                  for(String s:current.getEpId()){
-                    for(int j=0;j<sutsnr;j++){
-                        SUT child = (SUT)((DefaultMutableTreeNode)parent.getChildAt(j)).getUserObject();
-                        if(child!=null&&child.getName().equals(s)){
-                            for(String ep:child.getEPs().split(";")){
-                                Item item = current.clone();
-                                String []str = {ep,child.getName()};
-                                item.setEpId(str);
-                                temporary.add(item);
-                            }
+                     
+                     
+//                      ---------------
+                     
+                        DefaultMutableTreeNode noderoot =null;;
+                        String add = "";
+                        if(s.indexOf("(user)")!=-1){
+                            noderoot = RunnerRepository.window.mainpanel.p4.getSut().sut.getSutTree().userroot;
+                            s = s.replace("(user)", "");
+                            add = ".user";
+                        } else if(s.indexOf("(system)")!=-1){
+                            noderoot = RunnerRepository.window.mainpanel.p4.getSut().sut.getSutTree().globalroot;
+                            s = s.replace("(system)", "");
+                            add = ".system";
                         }
-                    }
-                }
+                        int sutsnr = noderoot.getChildCount();
+                        for(int j=0;j<sutsnr;j++){
+                            
+                            if(noderoot.getChildAt(j).toString().split(" - ")[0].equals(s)){
+                                String eps = RunnerRepository.window.mainpanel.p4.getSut().sut.getEpsFromSut("/"+s+add);
+                                for(String ep:eps.split(";")){
+                                    Item item = current.clone();
+                                    String []str = {ep,"/"+s+add};
+                                    item.setEpId(str);
+                                    temporary.add(item);
+                                }
+                            }
+                            
+                        }
+//                      --------------
+                     
+                     
+                     
+                     
+                     
+                     
+                     
+//                      for(int j=0;j<sutsnr;j++){
+//                          SUT child = (SUT)((DefaultMutableTreeNode)parent.getChildAt(j)).getUserObject();
+//                          if(child!=null&&child.getName().equals(s)){
+//                              for(String ep:child.getEPs().split(";")){
+//                                  Item item = current.clone();
+//                                  String []str = {ep,child.getName()};
+//                                  item.setEpId(str);
+//                                  temporary.add(item);
+//                              }
+//                          }
+//                      }
+                     
+                     
+                     
+                     
+                 }
                  
                  
 //                  Node parent = RunnerRepository.window.mainpanel.p4.getTB().getParentNode();
@@ -202,7 +254,12 @@ public class XMLBuilder{
                 if(skip){
                     Element EP = document.createElement("EpId");
                     String ep = suite.get(i).getEpId()[0];
-                    try{if(ep.equals(""))ep=RunnerRepository.getRPCClient().execute("findAnonimEp", new Object[]{RunnerRepository.user}).toString();}
+                    try{
+                        if(ep.equals("")){
+                            System.out.println("Getting ep for "+suite.get(i).getName());
+                            ep=RunnerRepository.getRPCClient().execute("findAnonimEp", new Object[]{RunnerRepository.user}).toString();
+                        }
+                    }
                     catch(Exception e){
                         System.out.println("Could not get EP from CE for:"+suite.get(i).getName());
                         e.printStackTrace();
@@ -229,38 +286,67 @@ public class XMLBuilder{
                     b.setLength(0);
                     
                     
-                    DefaultMutableTreeNode noderoot = RunnerRepository.window.mainpanel.p4.getSut().sut.root;
-                    int sutsnr = noderoot.getChildCount();
+                    
                     
                     for(String s:suite.get(i).getEpId()){
                         
+                        DefaultMutableTreeNode noderoot =null;
+                        //= RunnerRepository.window.mainpanel.p4.getSut().sut.root;
+//                         int sutsnr ;
+                        //= noderoot.getChildCount();
+                        String add = "";
+                        if(s.indexOf("(user)")!=-1){
+                            noderoot = RunnerRepository.window.mainpanel.p4.getSut().sut.getSutTree().userroot;
+                            s = s.replace("(user)", "");
+                            add = ".user";
+                        } else if(s.indexOf("(system)")!=-1){
+                            noderoot = RunnerRepository.window.mainpanel.p4.getSut().sut.getSutTree().globalroot;
+                            s = s.replace("(system)", "");
+                            add = ".system";
+                        }
+                        
+                        
+                        
+                        int sutsnr = noderoot.getChildCount();
                         
                         for(int j=0;j<sutsnr;j++){
-                            SUT child = (SUT)((DefaultMutableTreeNode)noderoot.getChildAt(j)).getUserObject();
-                            if(child!=null&&child.getName().equals(s)){
-                        
-                        
-//                         Iterator iter = parent.getChildren().keySet().iterator();
-//                         while(iter.hasNext()){
-//                             Node child = parent.getChild(iter.next().toString());
-//                             if(child!=null&&child.getName().equals(s)){
-                                
-                                
-                                if(child.getEPs()==null || child.getEPs().equals("")){
-                                    CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, 
-                                                            RunnerRepository.window, "Warning", 
-                                                            "Warning, no ep's found for: "+child.getName());
-                                }
-                                else {
-                                    for(String ep:child.getEPs().split(";")){
-                                        b.append(ep);
-                                        b.append(";");
-                                    }
-                                    b.deleteCharAt(b.length()-1);
-                                }
+                            
+                            if(noderoot.getChildAt(j).toString().split(" - ")[0].equals(s)){
+                                String eps = RunnerRepository.window.mainpanel.p4.getSut().sut.getEpsFromSut("/"+s+add);
+//                                 if(eps.equals("")){}
+//                                 else {
+//                                     eps = eps.substring(0, eps.length()-1);
+//                                 }
+                                b.append(eps);
                             }
                         }
                     }
+                            
+//                             SUT child = (SUT)((DefaultMutableTreeNode)noderoot.getChildAt(j)).getUserObject();
+//                             if(child!=null&&child.getName().equals(s)){
+                        
+                        
+// //                         Iterator iter = parent.getChildren().keySet().iterator();
+// //                         while(iter.hasNext()){
+// //                             Node child = parent.getChild(iter.next().toString());
+// //                             if(child!=null&&child.getName().equals(s)){
+//                                 
+//                                 
+//                                 if(child.getEPs()==null || child.getEPs().equals("")){
+// //                                     CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, 
+// //                                                             RunnerRepository.window, "Warning", 
+// //                                                             "Warning, no ep's found for: "+child.getName());
+//                                 }
+//                                 else {
+//                                     for(String ep:child.getEPs().split(";")){
+//                                         b.append(ep);
+//                                         b.append(";");
+//                                     }
+//                                     b.deleteCharAt(b.length()-1);
+//                                 }
+//                             }
+//                         }
+//                     }
                     
                     
                     
@@ -284,11 +370,16 @@ public class XMLBuilder{
 //                             }
 //                         }
 //                     }
-                    
-                    
+                    if(b.length()>0)b.deleteCharAt(b.length()-1);
                     EP.appendChild(document.createTextNode(b.toString()));
+//                     EP.appendChild(document.createTextNode(eps));
                     rootElement.appendChild(EP);
                 }
+            } else {
+                Element EP = document.createElement("EpId");
+                rootElement.appendChild(EP);
+                EP = document.createElement("SutName");
+                rootElement.appendChild(EP);
             }
             for(int j=0;j<suite.get(i).getUserDefNr();j++){
                 Element userdef = document.createElement("UserDefined");
@@ -578,38 +669,80 @@ public class XMLBuilder{
                     EP = document.createElement("EpId");
                     Node parent = RunnerRepository.window.mainpanel.p4.getTB().getParentNode();
                     b.setLength(0);
-                    DefaultMutableTreeNode noderoot = RunnerRepository.window.mainpanel.p4.getSut().sut.root;
-                    int sutsnr = noderoot.getChildCount();
+                    
+                    
+                    
+//                     DefaultMutableTreeNode noderoot = RunnerRepository.window.mainpanel.p4.getSut().sut.root;
+//                     int sutsnr = noderoot.getChildCount();
+                    DefaultMutableTreeNode noderoot =null;
                     
                     for(String s:item.getEpId()){
+                        
+//                         DefaultMutableTreeNode noderoot =null;
+                        //= RunnerRepository.window.mainpanel.p4.getSut().sut.root;
+//                         int sutsnr ;
+                        //= noderoot.getChildCount();
+                        String add = "";
+                        if(s.indexOf("(user)")!=-1){
+                            noderoot = RunnerRepository.window.mainpanel.p4.getSut().sut.getSutTree().userroot;
+                            s = s.replace("(user)", "");
+                            add = ".user";
+                        } else if(s.indexOf("(system)")!=-1){
+                            noderoot = RunnerRepository.window.mainpanel.p4.getSut().sut.getSutTree().globalroot;
+                            s = s.replace("(system)", "");
+                            add = ".system";
+                        }
+                        
+                        
+                        
+                        int sutsnr = noderoot.getChildCount();
+                        
+                        for(int j=0;j<sutsnr;j++){
+                            if(noderoot.getChildAt(j).toString().split(" - ")[0].equals(s)){
+                                String eps = RunnerRepository.window.mainpanel.p4.getSut().sut.getEpsFromSut("/"+s+add);
+                                b.append(eps);
+                            }
+                        }
+                    }
+                        
+                        EP.appendChild(document.createTextNode(b.toString()));
+                        rootElement2.appendChild(EP);
+                        
+                        
+                        
                         
 //                         Iterator iter = parent.getChildren().keySet().iterator();
 //                         while(iter.hasNext()){
 //                             Node child = parent.getChild(iter.next().toString());
                             
-                         for(int j=0;j<sutsnr;j++){
-                            SUT child = (SUT)((DefaultMutableTreeNode)noderoot.getChildAt(j)).getUserObject();
-                            
-                            
-                            
-                            if(child!=null&&child.getName().equals(s)){
-                                for(String ep:child.getEPs().split(";")){
-                                    b.append(ep);
-                                    b.append(";");
-//                                     Item item = current.clone();
-//                                     String []str = {ep,child.getName()};
-//                                     item.setEpId(str);
-//                                     temporary.add(item);
-                                    
-                        //                                 sb.append(ep);
-                        //                                 sb.append(";"); 
-                                }
-                                b.deleteCharAt(b.length()-1);
-                            }
-                        }
-                    }
-                    EP.appendChild(document.createTextNode(b.toString()));
-                    rootElement2.appendChild(EP);
+//                          for(int j=0;j<sutsnr;j++){
+//                             SUT child = (SUT)((DefaultMutableTreeNode)noderoot.getChildAt(j)).getUserObject();
+//                             
+//                             
+//                             
+//                             if(child!=null&&child.getName().equals(s)){
+//                                 for(String ep:child.getEPs().split(";")){
+//                                     b.append(ep);
+//                                     b.append(";");
+// //                                     Item item = current.clone();
+// //                                     String []str = {ep,child.getName()};
+// //                                     item.setEpId(str);
+// //                                     temporary.add(item);
+//                                     
+//                         //                                 sb.append(ep);
+//                         //                                 sb.append(";"); 
+//                                 }
+//                                 b.deleteCharAt(b.length()-1);
+//                             }
+//                         }
+//                     }
+//                     EP.appendChild(document.createTextNode(b.toString()));
+//                     rootElement2.appendChild(EP);
+                    
+                    
+                    
+                    
+                    
                     
                     
                 }

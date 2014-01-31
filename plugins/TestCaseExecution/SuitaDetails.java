@@ -784,9 +784,9 @@ public class SuitaDetails extends JPanel {
     //panel when there is a parent selected
     public void setComboTBs(){
 //         if(parent==null)return;
-//         for(ListSelectionListener l:combo.getListSelectionListeners()){
-//             combo.removeListSelectionListener(l);
-//         }
+        for(ListSelectionListener l:combo.getListSelectionListeners()){
+            combo.removeListSelectionListener(l);
+        }
 //         StringBuilder b = new StringBuilder();
 //         DefaultMutableTreeNode root = RunnerRepository.window.mainpanel.p4.getSut().sut.root;
 //         int sutsnr = root.getChildCount();
@@ -815,6 +815,11 @@ public class SuitaDetails extends JPanel {
         
         String [] vecresult =  RunnerRepository.window.mainpanel.p4.getSut().sut.getSutTree().getSutsName();
         if(vecresult==null)return;
+        int size = vecresult.length;
+        for(int i=0;i<size;i++){
+            vecresult[i] = vecresult[i].replace(".user", "(user)");
+            vecresult[i] = vecresult[i].replace(".system", "(system)");
+        }
         
         
         combo.setModel(new DefaultComboBoxModel(vecresult));

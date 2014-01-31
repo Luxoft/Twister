@@ -94,7 +94,12 @@ public class XMLReader{
                         fstNmElmntLst = ((Element)node).getElementsByTagName("SutName");
                         fstNmElmnt = (Element)fstNmElmntLst.item(0);
                         fstNm = fstNmElmnt.getChildNodes();
-                        text[0] += fstNm.item(0).getNodeValue();
+                        String sut = fstNm.item(0).getNodeValue();
+                        sut = sut.replace(".system","(system)");
+                        sut = sut.replace(".user","(user)");
+                        sut = sut.substring(1);
+//                         text[0] += fstNm.item(0).getNodeValue();
+                        text[0] += sut;
                     } catch(Exception e){ e.printStackTrace();}
                     theone.setEpId(text);
                 } else{
@@ -385,10 +390,19 @@ public class XMLReader{
                     fstNmElmntLst = fstElmnt.getElementsByTagName("SutName");
                     fstNmElmnt = (Element)fstNmElmntLst.item(0);
                     fstNm = fstNmElmnt.getChildNodes();
-                    text[0] += fstNm.item(0).getNodeValue();
+//                     text[0] += fstNm.item(0).getNodeValue();
+                    
+                    String sut = fstNm.item(0).getNodeValue();
+                    sut = sut.replace(".system","(system)");
+                    sut = sut.replace(".user","(user)");
+                    sut = sut.substring(1);
+//                         text[0] += fstNm.item(0).getNodeValue();
+                    text[0] += sut;
+                    
+                    
+                    
                 } catch(Exception e){ e.printStackTrace();}
                 suitatemp.setEpId(text);
-                
             } else{
 //                 try{                          
 //                     fstNmElmntLst = fstElmnt.getElementsByTagName("EpId");
@@ -411,8 +425,13 @@ public class XMLReader{
     //             suitatemp.setEpId(fstNm.item(0).getNodeValue());
                 try{suitatemp.setEpId(fstNm.item(0).getNodeValue().split(";"));}
                 catch(Exception e){
-                    String [] s = {fstNm.item(0).getNodeValue()};
-                    suitatemp.setEpId(s);}
+                    if(fstNm.item(0)!=null){
+                        String [] s = {fstNm.item(0).getNodeValue()};
+                        suitatemp.setEpId(s);
+                    } else {
+                        suitatemp.setEpId(new String[]{});
+                    }
+                }
             }
             
             
