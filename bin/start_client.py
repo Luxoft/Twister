@@ -44,6 +44,7 @@ import traceback
 import platform
 import subprocess
 import json
+import copy
 import rpyc
 
 from pprint import pprint
@@ -655,8 +656,13 @@ class TwisterClientService(rpyc.Service):
                 if not sutsPath:
                     sutsPath = '{}/config/sut/'.format(TWISTER_PATH)
                 childPath = os.path.join(sutsPath, name)
-                with open(childPath, 'w') as f:
-                    json.dump(sut, f, indent=4)
+                with open(childPath, 'r') as f:
+                    sut = json.loads(json.dumps(copy.deepcopy(sut)))
+                    f_content = json.load(f)
+                    diff = set(o for o in set(sut.keys()).intersection(f_content) if f_content[o] != sut[o])
+                    if diff:
+                        with open(childPath, 'w') as _f:
+                            json.dump(sut, _f, indent=4)
             except Exception as e:
                 return e
 
@@ -673,6 +679,11 @@ class TwisterClientService(rpyc.Service):
                 sutsPath = '{}/config/sut/'.format(TWISTER_PATH)
             sutPaths = [p for p in os.listdir(sutsPath) if os.path.isfile(os.path.join(sutsPath, p)) and p.split('.')[-1] == 'json']
 
+            # testPath = os.path.join(sutsPath, 'test_wirte_file.txt')
+            # openTest = open(testPath, 'w')
+            # openTest.close()
+            # os.remove(testPath)
+
             for sutPath in sutPaths:
                 try:
                     sutName = '.'.join(['.'.join(sutPath.split('.')[:-1]  + ['user'])])
@@ -685,6 +696,23 @@ class TwisterClientService(rpyc.Service):
             suts = None
 
         return suts
+
+
+    def exposed_get_suts_len(self):
+        """ get all suts from files """
+
+        sutsLen = None
+        try:
+            sutsPath = self._conn.root.getUserVariable('sut_path')
+            if not sutsPath:
+                sutsPath = '{}/config/sut/'.format(TWISTER_PATH)
+            sutPaths = [p for p in os.listdir(sutsPath) if os.path.isfile(os.path.join(sutsPath, p)) and p.split('.')[-1] == 'json']
+            sutsLen = len(sutPaths)
+        except Exception as e:
+            trace = traceback.format_exc()[34:].strip()
+            sutsLen = None
+
+        return sutsLen
 
 
     def exposed_delete_sut(self, name):
