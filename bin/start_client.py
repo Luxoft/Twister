@@ -693,12 +693,11 @@ class TwisterClientService(rpyc.Service):
         print('\nSave SUTS {}\n'.format(sutList))
         for (name, sut) in sutList:
             try:
-                print('\n BOG Name {} Sut {}\n'.format(name, sut))
+                print('\n Save SUT Name {} Sut {}\n'.format(name, sut))
                 sutsPath = self._conn.root.getUserVariable('sut_path')
                 if not sutsPath:
                     sutsPath = '{}/config/sut/'.format(TWISTER_PATH)
                 childPath = os.path.join(sutsPath, name)
-                print('BOG: Child path {}'.format(childPath))
                 if os.path.isfile(childPath):
                     with open(childPath, 'r') as f:
                         sut = json.loads(json.dumps(copy.deepcopy(sut)))
@@ -711,7 +710,6 @@ class TwisterClientService(rpyc.Service):
                      with open(childPath, 'w') as _f:
                          json.dump(sut, _f, indent=4)
             except Exception as e:
-                print('BOG: Exceptie {}'.format(e))
                 return e
 
         return True
