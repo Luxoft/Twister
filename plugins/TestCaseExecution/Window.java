@@ -151,7 +151,7 @@ public class Window extends JFrame{
                     RunnerRepository.window.mainpanel.p4.getTestConfig().cfgedit.disconnect();
                     RunnerRepository.window.mainpanel.p4.getSut().sut.disconnect();
                     RunnerRepository.window.mainpanel.p4.getTB().releaseAllResources();
-                    RunnerRepository.window.mainpanel.p4.getSut().sut.getSutTree().releaseAllSuts();
+//                     RunnerRepository.window.mainpanel.p4.getSut().sut.getSutTree().releaseAllSuts();
                     if(!applet)System.exit(0);}});
             addComponentListener(new ComponentAdapter(){
                 public void componentResized(ComponentEvent e){

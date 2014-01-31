@@ -344,9 +344,11 @@ public class TB extends JPanel{
             DefaultMutableTreeNode treenode = (DefaultMutableTreeNode)en.nextElement();
             node = (Node)(treenode).getUserObject();
             if(isReservedByUser(node.getID())){
-                if(release(node.getID())){
-                    setSavedState(treenode,true);
-                }
+//                 if(
+                release(node.getID());
+//                 ){
+                setSavedState(treenode,true);
+//                 }
             }
         }
     }
@@ -459,7 +461,8 @@ public class TB extends JPanel{
      * method used to release TB on server
      */
     public boolean release(String tbid){
-        try{String resp = client.execute("discardAndReleaseReservedResource", new Object[]{tbid}).toString();
+        try{System.out.println("Releasing tb: "+tbid);
+            String resp = client.execute("discardAndReleaseReservedResource", new Object[]{tbid}).toString();
             if(resp.indexOf("*ERROR*")==-1){
                 return true;
             } else {

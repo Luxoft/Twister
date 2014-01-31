@@ -2874,7 +2874,7 @@ public class Grafic extends JPanel{
 //             epidfield = new JList<String>(vecresult);
 
 
-            StringBuilder b = new StringBuilder();
+//             StringBuilder b = new StringBuilder();
 //             Node parentnode = RunnerRepository.window.mainpanel.p4.getTB().getParentNode();
 //             try{parentnode.getChildren();}
 //             catch(Exception e){
@@ -2897,19 +2897,22 @@ public class Grafic extends JPanel{
 //             epidfield = new JList<String>(vecresult);
             
             
-            DefaultMutableTreeNode root = RunnerRepository.window.mainpanel.p4.getSut().sut.root;
-            int sutsnr = root.getChildCount();
-            String [] vecresult = {};
-            if(sutsnr==0){
-                System.out.println("There is no SUT present, please check Test Beds section");
-            } else {
-                for(int i=0;i<sutsnr;i++){
-                    b.append(root.getChildAt(i).toString());
-                    b.append(";");
-                }
-                vecresult = b.toString().split(";");
-                
-            }
+//             DefaultMutableTreeNode root = RunnerRepository.window.mainpanel.p4.getSut().sut.root;
+//             int sutsnr = root.getChildCount();
+//             String [] vecresult = {};
+//             if(sutsnr==0){
+//                 System.out.println("There is no SUT present, please check Test Beds section");
+//             } else {
+//                 for(int i=0;i<sutsnr;i++){
+//                     b.append(root.getChildAt(i).toString());
+//                     b.append(";");
+//                 }
+//                 vecresult = b.toString().split(";");
+//                 
+//             }
+            
+            String [] vecresult =  RunnerRepository.window.mainpanel.p4.getSut().sut.getSutTree().getSutsName();
+            if(vecresult==null)return;
             
             epidfield = new JList<String>(vecresult);
             try{epidfield.setSelectedIndex(0);}
