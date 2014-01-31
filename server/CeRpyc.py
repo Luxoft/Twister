@@ -246,54 +246,6 @@ class CeRpycService(rpyc.Service):
             hello, str_addr, (time.time() - stime)))
 
 
-    @classmethod
-    def _findConnection(self, usr=None, addr=[], hello='', epname=''):
-        """
-        Helper function to find the first address for 1 user,
-        that matches the Address, the hello, or the Ep.
-        Possible combinations are: (Addr & Hello), (Hello & Ep).
-        The address will match the IP/ host; ex: ['127.0.0.1', 'localhost'].
-        The hello should be: `client`, `ep`, or `lib`.
-        The EP must be the name of the EP registered by a client;
-        it returns the client, not the EP.
-        """
-        logFull('CeRpyc:_findConnection')
-        if isinstance(self, CeRpycService):
-            user = self._check_login()
-        else:
-            user = usr
-        if not user: return False
-
-        found = False
-
-        # Cycle all active connections (clients, eps, libs, cli)
-        for str_addr, data in self.conns.iteritems():
-            # Skip invalid connections, without log-in
-            if not data.get('user') or not data.get('checked'):
-                continue
-            # Will find the first connection match for the user
-            if user == data['user'] and data['checked']:
-                # Check (Addr & Hello)
-                if (addr and hello) and str_addr.split(':')[0] in addr:
-                    # If the Hello matches with the filter
-                    if data.get('hello') and data['hello'].split(':') and data['hello'].split(':')[0] == hello:
-                        found = str_addr
-                        break
-                # Check (Hello & Ep)
-                elif (hello and epname) and data.get('hello') and data['hello'].split(':') and data['hello'].split(':')[0] == hello:
-                    # If this connection has registered EPs
-                    eps = data.get('eps')
-                    if eps and epname in eps:
-                        found = str_addr
-                        break
-                # All filters are null! Return the first conn for this user!
-                elif not addr and not hello and not epname:
-                    found = str_addr
-                    break
-
-        return found
-
-
     def exposed_cherryAddr(self):
         """
         Returns the CherryPy IP and PORT, for the Central Engine.

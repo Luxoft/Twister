@@ -2,7 +2,7 @@
 
 # File: start_client.py ; This file is part of Twister.
 
-# version: 3.003
+# version: 3.004
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -35,6 +35,7 @@ from __future__ import with_statement
 
 import os
 import sys
+import shutil
 import time
 import signal
 import socket
@@ -644,6 +645,45 @@ class TwisterClientService(rpyc.Service):
             except Exception as e:
                 pass
         del pipe
+
+
+    def exposed_create_folder(self, folder):
+        """
+        Create a new folder.
+        """
+        try:
+            os.makedirs(folder)
+            print('Created folders `{}`.'.format(folder))
+            return True
+        except Exception as e:
+            print('*ERROR* Cannot create folder `{}`! {}'.format(folder, e))
+            return False
+
+
+    def exposed_delete_folder(self, folder):
+        """
+        Create a user folder.
+        """
+        try:
+            shutil.rmtree(folder)
+            print('Deleted folders `{}`.'.format(folder))
+            return True
+        except Exception as e:
+            print('*ERROR* Cannot delete folder `{}`! {}'.format(folder, e))
+            return False
+
+
+    def exposed_write_file(self, fpath, content):
+        """
+        Write data in a file. OVERWRITE everything!
+        """
+        try:
+            open(fpath, 'w').write(content)
+            print('Written file `{}`.'.format(fpath))
+            return True
+        except Exception as e:
+            print('*ERROR* Cannot write into file `{}`! {}'.format(fpath, e))
+            return False
 
 
     def exposed_save_suts(self, sutList):
