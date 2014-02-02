@@ -1,7 +1,7 @@
 
 # File: CeResources.py ; This file is part of Twister.
 
-# version: 2.013
+# version: 2.014
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -636,6 +636,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
         logDebug('Preparing to import XML file `{}`...'.format(xml_file))
         params_xml = etree.parse(xml_file)
+        sutName = ""
 
         with self.imp_lock:
             if root_id == ROOT_DEVICE:
@@ -667,7 +668,14 @@ class ResourceAllocator(_cptools.XMLRPCController):
                     return'*ERROR* ' + msg
 
         # Write changes for Device or SUT
-        r = self._save(root_id, props)
+        if username:
+            if '/' in sutName:
+                name_to_save = sutName.split('/')[-1]
+                r = self._save(root_id, props, name_to_save, username)
+            else:
+                r = self._save(root_id, props, sutName, username)
+        else:
+            r = self._save(root_id, props)
         if not r == True:
             return r
 
@@ -709,11 +717,13 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
-    def import_sut_xml(self, xml_file, sutType='user', props={}, username = None):
+    def import_sut_xml(self, xml_file, sutType='user', username = None):
         '''
         Import one sut XML file.
         '''
-        return self.import_xml(xml_file, sutType, ROOT_SUT, props)
+        logDebug('CeResources:import_sut_xml {} {} {}'.format(xml_file,sutType,username))
+        props = {}
+        return self.import_xml(xml_file, sutType, ROOT_SUT, props, username)
 
 
     @cherrypy.expose
@@ -1041,7 +1051,8 @@ class ResourceAllocator(_cptools.XMLRPCController):
             if parent == '/' or parent == '1':
                 # Write changes for Device or SUT
                 r = self._save(root_id, props, name, username)
-            logDebug('Created {} `{}`, id `{}` : `{}`.'.format(root_name, name, res_id, props))
+                logDebug('Created {} `{}`, id `{}` : `{}`.'.format(root_name, name, res_id, props))
+
             if not r == True and not r == None:
                 return r
             return res_id
@@ -1349,7 +1360,14 @@ class ResourceAllocator(_cptools.XMLRPCController):
             logDebug('Deleted {} path `{}`.'.format(root_name, '/'.join(node_path)))
 
         # Write changes.
-        r = self._save(root_id, props)
+        if username:
+            if '/' in res_query:
+                name_to_save = res_query.split('/')[-1]
+                r = self._save(root_id, props, name_to_save, username)
+            else:
+                r = self._save(root_id, props, res_query, username)
+        else:
+            r = self._save(root_id, props)
 
         # Delete file
         if not meta and len(node_path) == 1 and root_id == ROOT_SUT:
@@ -1376,11 +1394,12 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
-    def deleteSut(self, res_query, props={}, username = None):
+    def deleteSut(self, res_query, username = None):
         '''
         Permanently delete a SUT.
         '''
         logFull('CeResources:deleteSut')
+        props = {}
         return self.deleteResource(res_query, props, ROOT_SUT, username)
 
 
@@ -1436,12 +1455,13 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
-    def discardAndReleaseReservedSut(self, res_query, props={}, username = None):
+    def discardAndReleaseReservedSut(self, res_query, username = None):
         '''
         Discard a reserved SUT.
         '''
         logFull('CeResources:discardAndReleaseReservedSut')
-        return self.discardAndReleaseReservedResource(res_query, props, ROOT_SUT)
+        props = {}
+        return self.discardAndReleaseReservedResource(res_query, props, ROOT_SUT, username)
 
 
     @cherrypy.expose
@@ -1914,7 +1934,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
-    def discardAndReleaseReservedResource(self, res_query, props={}, root_id=ROOT_DEVICE):
+    def discardAndReleaseReservedResource(self, res_query, props={}, root_id=ROOT_DEVICE, username=None):
         """  """
         logFull('CeResources:discardAndReleaseReservedResource')
         self._load(v=False, props=props)
@@ -1945,12 +1965,21 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
         user_roles = self.userRoles(props)
         user = user_roles.get('user')
+
+        if username and user != username:
+            #Different user; return
+            return
+
         r = None
         try:
             self.reservedResources[user].pop(res_pointer['id'])
             res_pointer['status'] = RESOURCE_FREE
             # Write changes.
-            r = self._save(root_id, props)
+            if '/' in res_query:
+                res_query_for_save = res_query.split('/')[-1]
+                r = self._save(root_id, props, res_query_for_save, username)
+            else:
+                r = self._save(root_id, props)
 
             if not self.reservedResources[user]:
                 self.reservedResources.pop(user)
