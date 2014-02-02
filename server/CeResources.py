@@ -1437,11 +1437,12 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
-    def saveReservedSut(self, res_query, props={}, username = None):
+    def saveReservedSut(self, res_query, username = None):
         '''
         Save a reserved SUT.
         '''
         logFull('CeResources:saveReservedSut')
+        props = {}
         return self.saveReservedResource(res_query, props, ROOT_SUT, username)
 
 
