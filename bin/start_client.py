@@ -2,7 +2,7 @@
 
 # File: start_client.py ; This file is part of Twister.
 
-# version: 3.005
+# version: 3.006
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -699,14 +699,6 @@ class TwisterClientService(rpyc.Service):
                     sutsPath = '{}/config/sut/'.format(TWISTER_PATH)
                 childPath = os.path.join(sutsPath, name)
                 
-#                try:
-#                    f = open(childPath, 'r')
-#                except IOError:
-#                    print('error')
-#                else:
-#                    with f:
-#                        print f.readlines()
-
                 if os.path.isfile(childPath):
                     with open(childPath, 'r') as f:
                         sut = json.loads(json.dumps(copy.deepcopy(sut)))
