@@ -1559,7 +1559,11 @@ class ResourceAllocator(_cptools.XMLRPCController):
             logError(msg)
             return False
 
-        self.reservedResources[user][res_pointer['id']]['path'] = '/'.join(self.reservedResources[user][res_pointer['id']].get('path', ''))
+        join_path = self.reservedResources[user][res_pointer['id']].get('path', '')
+        if isinstance(join_path, str):
+            join_path = [join_path]
+
+        self.reservedResources[user][res_pointer['id']]['path'] = '/'.join(join_path)
 
         return self.reservedResources[user][res_pointer['id']]
 
