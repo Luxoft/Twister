@@ -356,9 +356,9 @@ class ResourceAllocator(_cptools.XMLRPCController):
         sutStatusChanged = False
         with self.acc_lock:
 
-            if not self.resources['children']:
+            if not self.resources.get('children'):
                 self.resources = {'version': 0, 'name': '/', 'meta': {}, 'children': {}}
-            if not self.systems['children']:
+            if not self.systems.get('children'):
                 self.systems = {'version': 0, 'name': '/', 'meta': {}, 'children': {}}
 
             try:
@@ -377,7 +377,9 @@ class ResourceAllocator(_cptools.XMLRPCController):
                 for u in self.lockedResources:
                     for i in self.lockedResources[u]:
                         lockedIds.append(i)
-                for r in self.resources['children']:
+                for r in self.resources.get('children'):
+                    if not self.resources['children'][r].get('status'):
+                        self.resources['children'][r]['status'] = RESOURCE_FREE
                     try:
                         if ((self.resources['children'][r]['status'] == RESOURCE_RESERVED
                             and not self.resources['children'][r]['id'] in reservedIds) or
@@ -442,7 +444,9 @@ class ResourceAllocator(_cptools.XMLRPCController):
                 for u in self.lockedResources:
                     for i in self.lockedResources[u]:
                         lockedIds.append(i)
-                for r in self.systems['children']:
+                for r in self.systems.get('children'):
+                    if not self.systems['children'][r].get('status'):
+                        self.systems['children'][r]['status'] = RESOURCE_FREE
                     try:
                         if ((self.systems['children'][r]['status'] == RESOURCE_RESERVED
                             and not self.systems['children'][r]['id'] in reservedIds) or
@@ -522,10 +526,10 @@ class ResourceAllocator(_cptools.XMLRPCController):
                 userSuts = list()
                 systemSuts = list()
                 #logError('||||save sys', user, self.systems)
-                for child in self.systems['children']:
+                for child in self.systems.get('children'):
                     if resource_name and child != resource_name :
                         continue
-                    
+
                     # Check where to save (ce / user)
                     #childPath = '{}/config/sut/{}.json'.format(TWISTER_PATH, '.'.join(child.split('.')[:-1]))
                     user_roles = self.userRoles(props)
@@ -655,7 +659,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
                     if not sutName:
                         sutName = [os.path.basename(xml_file)]
                     sutName = '.'.join(sutName + [sutType])
-                    if sutName in self.systems['children']:
+                    if sutName in self.systems.get('children'):
                         sutName = '{}{}'.format(sutName, time.time())
                     sutContent = xml_to_res(params_xml, {})
                     sutContent = sutContent.popitem()[1]
@@ -782,7 +786,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
         root_name = ROOT_NAMES[root_id]
 
         # If no resources...
-        if not resources['children']:
+        if not resources.get('children'):
             # Return default structure for root
             if query == '/':
                 return {'path': '', 'meta': resources.get('meta', {}), 'id': '1', 'children': []}
@@ -1023,7 +1027,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
             # child_p['meta'].update(props)
 
             # _epnames_username in meta
-            
+
             #update only the meta for the current username
             if username:
                 meta_key = '_epnames_' + username
@@ -1108,7 +1112,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
         root_name = ROOT_NAMES[root_id]
 
         # If no resources...
-        if not resources['children']:
+        if not resources.get('children'):
             msg = 'Rename {}: There are no resources defined !'.format(root_name)
             logError(msg)
             return '*ERROR* ' + msg
@@ -1263,7 +1267,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
         root_name = ROOT_NAMES[root_id]
 
         # If no resources...
-        if not resources['children']:
+        if not resources.get('children'):
             msg = 'Del {}: There are no resources defined !'.format(root_name)
             logError(msg)
             return '*ERROR* ' + msg
@@ -1517,7 +1521,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
             resources = self.systems
 
         # If no resources...
-        if not resources['children']:
+        if not resources.get('children'):
             msg = 'Get reserved resource: There are no resources defined !'
             logError(msg)
             return False
@@ -1572,7 +1576,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
             resources = self.systems
 
         # If no resources...
-        if not resources['children']:
+        if not resources.get('children'):
             msg = 'Is resource reserved: There are no resources defined !'
             logError(msg)
             return '*ERROR* ' + msg
@@ -1623,7 +1627,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
             resources = self.systems
 
         # If no resources...
-        if not resources['children']:
+        if not resources.get('children'):
             msg = 'Reserve resource: There are no resources defined !'
             logError(msg)
             return '*ERROR* ' + msg
@@ -1701,7 +1705,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
             resources = self.systems
 
         # If no resources...
-        if not resources['children']:
+        if not resources.get('children'):
             msg = 'Save and release reserved resource: There are no resources defined !'
             logError(msg)
             return '*ERROR* ' + msg
@@ -1740,7 +1744,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
             # Check for modifications
             if res_pointer != _res_pointer:
                 child = None
-                for c in resources['children']:
+                for c in resources.get('children'):
                     if resources['children'][c]['id'] == _res_pointer['id']:
                         child = c
                 if not child == _res_pointer['path'][0]:
@@ -1797,7 +1801,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
             resources = self.systems
 
         # If no resources...
-        if not resources['children']:
+        if not resources.get('children'):
             msg = 'Save reserved resource: There are no resources defined !'
             logError(msg)
             return '*ERROR* ' + msg
@@ -1830,7 +1834,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
             if res_pointer != _res_pointer:
                 child = None
                 # Search in all esources for this SUT
-                for c in resources['children']:
+                for c in resources.get('children'):
                     if resources['children'][c]['id'] == _res_pointer['id']:
                         child = c
                 # SUT not found in resources; new one or strange scenario; we
@@ -1884,7 +1888,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
             resources = self.systems
 
         # If no resources...
-        if not resources['children']:
+        if not resources.get('children'):
             msg = 'Save reserved resource as: There are no resources defined !'
             logError(msg)
             return '*ERROR* ' + msg
@@ -1958,7 +1962,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
             resources = self.systems
 
         # If no resources...
-        if not resources['children']:
+        if not resources.get('children'):
             msg = 'Discard reserved resource: There are no resources defined !'
             logError(msg)
             return '*ERROR* ' + msg
@@ -2017,7 +2021,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
             resources = self.systems
 
         # If no resources...
-        if not resources['children']:
+        if not resources.get('children'):
             # msg = 'Is resource locked: There are no resources defined !'
             # logError(msg)
             # return '*ERROR* ' + msg
@@ -2069,7 +2073,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
             resources = self.systems
 
         # If no resources...
-        if not resources['children']:
+        if not resources.get('children'):
             msg = 'Lock resource: There are no resources defined !'
             logError(msg)
             return '*ERROR* ' + msg
@@ -2151,7 +2155,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
             resources = self.systems
 
         # If no resources...
-        if not resources['children']:
+        if not resources.get('children'):
             msg = 'Unlock resource: There are no resources defined !'
             logError(msg)
             return '*ERROR* ' + msg
