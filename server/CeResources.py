@@ -1023,16 +1023,18 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
             # old_child = copy.deepcopy(child_p)
 
-            # child_p['meta'].update(props)
+            logDebug('Set Resource update props:: {}'.format(props))
+
+            child_p['meta'].update(props)
 
             # _epnames_username in meta
 
-            #update only the meta for the current username
-            if username:
-                meta_key = '_epnames_' + username
-                child_p['meta'][meta_key] = props[meta_key]
-            else:
-                child_p['meta'] = props
+            # Update only the meta for the current username
+            # if username:
+            #     meta_key = '_epnames_' + username
+            #     child_p['meta'][meta_key] = props.get(meta_key, "")
+            # else:
+            #     child_p['meta'] = props
 
             # if old_child != child_p:
             #    self._save(root_id, props)
