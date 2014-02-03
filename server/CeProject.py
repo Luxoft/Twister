@@ -218,6 +218,7 @@ class Project(object):
         self.suite_ids = {} # IDs shortcut
         self.plugins = {}   # User plugins
         self.loggers = {}   # User loggers
+        self.config_locks = {} # Config locks list
 
         self.usr_lock = allocate_lock()  # User change lock
         self.epl_lock = allocate_lock()  # EP lock
@@ -227,6 +228,7 @@ class Project(object):
         self.log_lock = allocate_lock()  # Log access lock
         self.eml_lock = allocate_lock()  # E-mail lock
         self.db_lock  = allocate_lock()  # Database lock
+        self.cfg_lock = allocate_lock()  # Config access lock
 
         # Read the production/ development option.
         cfg_path = '{}/config/server_init.ini'.format(TWISTER_PATH)
@@ -1304,6 +1306,27 @@ class Project(object):
 # # #
 
 
+    def _find_local_client(self, user):
+        """
+        Helper function to find a local client connection.
+        """
+        addr = ['127.0.0.1', 'localhost']
+        hostName = socket.gethostname()
+        addr.append(hostName)
+        try: addr.append(socket.gethostbyaddr(hostName)[-1][0])
+        except: pass
+
+        rpyc_srv = self.rsrv.service
+        local_client = rpyc_srv._findConnection(usr=user, addr=addr, hello='client')
+
+        # Cannot find local client conns
+        if not local_client:
+            logWarning('*WARN* Cannot find any local Clients for user `{}`!'.format(user))
+            return False
+
+        return rpyc_srv.conns.get(local_client, {}).get('conn', False)
+
+
     def _find_anonim_ep(self, user):
         """
         Helper function to find a local, free EP to be used as Anonim EP.
@@ -1933,6 +1956,55 @@ class Project(object):
 
         logDebug('Global Variable: Set variable `{} = {}`, for user `{}`!'.format(value, variable, user))
         return True
+
+
+    def isLockConfig(self, user, fpath):
+        """
+        Complete path from tree - returns True/ False
+        """
+        logFull('CeProject:isLockConfig user `{}`.'.format(user))
+        if fpath in self.config_locks:
+            logDebug('Config file `{}` is locked by `{}`.'.format(fpath, user))
+        else:
+            logDebug('Config file `{}` is not locked.'.format(fpath))
+        return self.config_locks.get(fpath, False)
+
+
+    def lockConfig(self, user, fpath):
+        """
+        Complete path from tree - returns True/ False
+        """
+        logFull('CeProject:lockConfig user `{}`.'.format(user))
+        # If already locked, return False
+        if fpath in self.config_locks:
+            err = '*ERROR* Config file `{}` is already locked by `{}`! Cannot lock!'.format(fpath, self.config_locks[fpath])
+            logDebug(err)
+            return err
+        with self.cfg_lock:
+            self.config_locks[fpath] = user
+            logDebug('User `{}` is locking config file `{}`.'.format(user, fpath))
+            return True
+
+
+    def unlockConfig(self, user, fpath):
+        """
+        Complete path from tree - returns True/ False
+        """
+        logFull('CeProject:unlockConfig user `{}`.'.format(user))
+        # If not locked, return False
+        if fpath not in self.config_locks:
+            err = '*ERROR* Config file `{}` is not locked'.format(fpath)
+            logDebug(err)
+            return err
+        # If not locked by this user, return False
+        if self.config_locks[fpath] != user:
+            err = '*ERROR* Config file `{}` is locked by `{}`! Cannot unlock!'.format(fpath, self.config_locks[fpath])
+            logDebug(err)
+            return err
+        with self.cfg_lock:
+            del self.config_locks[fpath]
+            logDebug('User `{}` is releasing config file `{}`.'.format(user, fpath))
+            return True
 
 
 # # #

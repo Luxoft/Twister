@@ -2,7 +2,7 @@
 
 # File: start_client.py ; This file is part of Twister.
 
-# version: 3.003
+# version: 3.006
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -35,6 +35,7 @@ from __future__ import with_statement
 
 import os
 import sys
+import shutil
 import time
 import signal
 import socket
@@ -646,24 +647,73 @@ class TwisterClientService(rpyc.Service):
         del pipe
 
 
+    def exposed_create_folder(self, folder):
+        """
+        Create a new folder.
+        """
+        try:
+            os.makedirs(folder)
+            print('Created folders `{}`.'.format(folder))
+            return True
+        except Exception as e:
+            print('*ERROR* Cannot create folder `{}`! {}'.format(folder, e))
+            return False
+
+
+    def exposed_delete_folder(self, folder):
+        """
+        Create a user folder.
+        """
+        try:
+            shutil.rmtree(folder)
+            print('Deleted folders `{}`.'.format(folder))
+            return True
+        except Exception as e:
+            print('*ERROR* Cannot delete folder `{}`! {}'.format(folder, e))
+            return False
+
+
+    def exposed_write_file(self, fpath, content):
+        """
+        Write data in a file. OVERWRITE everything!
+        """
+        try:
+            open(fpath, 'w').write(content)
+            print('Written file `{}`.'.format(fpath))
+            return True
+        except Exception as e:
+            print('*ERROR* Cannot write into file `{}`! {}'.format(fpath, e))
+            return False
+
+
     def exposed_save_suts(self, sutList):
         """ save sut to file """
 
         # Save sut files
+        print('\nSave SUTS {}\n'.format(sutList))
         for (name, sut) in sutList:
             try:
+                print('\n Save SUT Name {} Sut {}\n'.format(name, sut))
                 sutsPath = self._conn.root.getUserVariable('sut_path')
                 if not sutsPath:
                     sutsPath = '{}/config/sut/'.format(TWISTER_PATH)
                 childPath = os.path.join(sutsPath, name)
-                with open(childPath, 'r') as f:
-                    sut = json.loads(json.dumps(copy.deepcopy(sut)))
-                    f_content = json.load(f)
-                    diff = set(o for o in set(sut.keys()).intersection(f_content) if f_content[o] != sut[o])
-                    if diff:
-                        with open(childPath, 'w') as _f:
-                            json.dump(sut, _f, indent=4)
+                
+                if os.path.isfile(childPath):
+                    with open(childPath, 'r') as f:
+                        sut = json.loads(json.dumps(copy.deepcopy(sut)))
+                        f_content = json.load(f)
+                        diff = set(o for o in set(sut.keys()).intersection(f_content) if f_content[o] != sut[o])
+                        if diff:
+                            with open(childPath, 'w') as _f:
+                                json.dump(sut, _f, indent=4)
+                else:
+                     with open(childPath, 'w') as _f:
+                         json.dump(sut, _f, indent=4)
+            except IOError:
+                return "Cannot save SUT file"
             except Exception as e:
+                print('\nSave SUTS exception {}\n'.format(e))
                 return e
 
         return True
@@ -718,10 +768,12 @@ class TwisterClientService(rpyc.Service):
     def exposed_delete_sut(self, name):
         """ get all suts from files """
 
+        print('Try to delete SUT {}'.format(name))
         try:
             sutsPath = self._conn.root.getUserVariable('sut_path')
             if not sutsPath:
                 sutsPath = '{}/config/sut/'.format(TWISTER_PATH)
+            print('Delete SUT {}'.format(os.path.join(sutsPath, '.'.join([name, 'json']))))
             os.remove(os.path.join(sutsPath, '.'.join([name, 'json'])))
         except Exception as e:
             return False
