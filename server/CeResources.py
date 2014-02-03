@@ -1,7 +1,7 @@
 
 # File: CeResources.py ; This file is part of Twister.
 
-# version: 2.014
+# version: 2.015
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -939,7 +939,6 @@ class ResourceAllocator(_cptools.XMLRPCController):
                 logError(msg)
                 return '*ERROR* ' + msg
 
-            logDebug('BOG: sut props {} for {} meta {}'.format(props, resources, resources['meta']))
             resources['meta'].update(props)
             # Write changes for Device or SUT
             if username:
@@ -1056,7 +1055,6 @@ class ResourceAllocator(_cptools.XMLRPCController):
             parent_p['children'][name] = {'id': res_id, 'meta': props, 'children': {}}
 
 
-            logDebug('BOG2: sut props {} for {} meta {}'.format(props, resources, resources['meta']))
             r = None
             if parent == '/' or parent == '1':
                 # Write changes for Device or SUT
