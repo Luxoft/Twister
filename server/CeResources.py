@@ -939,6 +939,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
                 logError(msg)
                 return '*ERROR* ' + msg
 
+            logDebug('BOG: sut props {} for {} meta {}'.format(props, resources, resources['meta']))
             resources['meta'].update(props)
             # Write changes for Device or SUT
             if username:
@@ -1020,7 +1021,15 @@ class ResourceAllocator(_cptools.XMLRPCController):
             # old_child = copy.deepcopy(child_p)
 
             # child_p['meta'].update(props)
-            child_p['meta'] = props
+
+            # _epnames_username in meta
+            
+            #update only the meta for the current username
+            if username:
+                meta_key = '_epnames_' + username
+                child_p['meta'][meta_key] = props[meta_key]
+            else:
+                child_p['meta'] = props
 
             # if old_child != child_p:
             #    self._save(root_id, props)
@@ -1047,6 +1056,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
             parent_p['children'][name] = {'id': res_id, 'meta': props, 'children': {}}
 
 
+            logDebug('BOG2: sut props {} for {} meta {}'.format(props, resources, resources['meta']))
             r = None
             if parent == '/' or parent == '1':
                 # Write changes for Device or SUT
@@ -1066,6 +1076,8 @@ class ResourceAllocator(_cptools.XMLRPCController):
         logDebug('CeResources:setSut {} {} {} {}'.format(name,parent,props,username))
         if not props:
             props = {}
+        if not parent:
+            parent = '/'
         return self.setResource(name, parent, props, ROOT_SUT, username)
 
 
