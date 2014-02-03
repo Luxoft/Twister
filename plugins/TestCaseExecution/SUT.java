@@ -1,6 +1,6 @@
 /*
 File: SUT.java ; This file is part of Twister.
-Version: 2.003
+Version: 2.004
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -18,11 +18,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import javax.swing.tree.DefaultMutableTreeNode;
+
 public class SUT{
-    private String name;
-    private String reserved;
-    private String root;
+    private String reserved,name,root,id;
     private String locked = "";
+    private DefaultMutableTreeNode epsnode;
     
     public String getEPs(){
         return "";
@@ -46,6 +47,14 @@ public class SUT{
         this.reserved = reserved;
     }
     
+    public String getID(){
+        return this.id;
+    }
+    
+    public void setID(String id){
+        this.id = id;
+    }
+    
     public String getLock(){
         return this.locked;
     }
@@ -60,6 +69,14 @@ public class SUT{
     
     public void setName(String name){
         this.name=name;
+    }
+    
+    public DefaultMutableTreeNode getEPNode(){
+        return epsnode;
+    }
+    
+    public void setEPNode(DefaultMutableTreeNode epsnode){
+        this.epsnode = epsnode;
     }
     
     public String toString(){

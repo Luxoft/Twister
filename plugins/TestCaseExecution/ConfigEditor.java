@@ -17,6 +17,14 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+import javax.swing.DropMode;
+import javax.swing.TransferHandler;
+import javax.swing.JComponent;
+import java.awt.datatransfer.Transferable;
+import java.awt.datatransfer.DataFlavor;
+import java.awt.datatransfer.UnsupportedFlavorException;
+import java.util.HashMap;
+import java.awt.datatransfer.DataFlavor;
 import javax.swing.JTree;
 import javax.swing.JScrollPane;
 import javax.swing.tree.DefaultMutableTreeNode;
@@ -101,6 +109,14 @@ import com.twister.MySftpBrowser;
 import javax.swing.AbstractAction;
 import java.awt.GridBagLayout;
 import java.awt.GridBagConstraints;
+import javax.swing.JSplitPane;
+import javax.swing.SwingUtilities;
+import java.io.Writer;
+import java.io.StringWriter;
+import javax.xml.bind.DatatypeConverter;
+import org.xml.sax.InputSource;
+import java.io.StringReader;
+import java.util.Enumeration;
 
 public class ConfigEditor extends JPanel{
     public ChannelSftp ch ;
@@ -112,7 +128,8 @@ public class ConfigEditor extends JPanel{
     private Document doc;
     private DefaultMutableTreeNode root;
     private boolean finished = true;
-    private JButton addconf,addparam,remove;
+    private JButton addconf,addparam,remove,unbind,save, saveas;
+    public JButton close;
     private JLabel cname;
     private JTextArea tdescription;
     private JTextField tvalue, tname;
@@ -121,9 +138,14 @@ public class ConfigEditor extends JPanel{
     private MyFocusAdapter focusadapter;
     private File currentfile;
     private String remotelocation;
-    private ConfigTree cfgtree;
-    private JMenuItem save,saveas;
+    public ConfigTree cfgtree;
     private JLabel displayname;
+    private JScrollPane jScrollPane1;
+    public JPanel sutpanel;
+    private Document bindingdoc;
+    private boolean editable;
+    private boolean lastsave = true;
+    public SutConfig sutconfig;
     
     public ConfigEditor(){
         initSftp();
@@ -132,17 +154,21 @@ public class ConfigEditor extends JPanel{
     
     public void parseDocument(File file){
         try{this.currentfile = file;
-            displayname.setText("Filename: "+file.getName());
-            save.setEnabled(true);
-            saveas.setEnabled(true);
             DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
             DocumentBuilder db = dbf.newDocumentBuilder();
-            try{doc = db.parse(file); 
-            } catch (Exception e){
+            if(file!=null){
+                displayname.setText("Configuration file: "+file.getName());                
+                try{doc = db.parse(file); 
+                } catch (Exception e){
+                    doc = db.newDocument();
+                    doc.appendChild(doc.createElement("root"));
+                }
+                doc.getDocumentElement().normalize();  
+            } else {
                 doc = db.newDocument();
                 doc.appendChild(doc.createElement("root"));
+                doc.getDocumentElement().normalize();  
             }
-            doc.getDocumentElement().normalize();  
         } catch(Exception e){
             e.printStackTrace();
         }
@@ -195,7 +221,8 @@ public class ConfigEditor extends JPanel{
                             .addComponent(tvalue, GroupLayout.Alignment.TRAILING)
                             .addComponent(ttype, GroupLayout.Alignment.TRAILING, 0, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
                     .addComponent(tdescription, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                .addContainerGap())
+                .addContainerGap()
+                )
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(GroupLayout.Alignment.LEADING)
@@ -216,49 +243,68 @@ public class ConfigEditor extends JPanel{
                 .addComponent(description)
                 .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(tdescription, GroupLayout.DEFAULT_SIZE, 104, Short.MAX_VALUE)
-                .addContainerGap())
+                .addGap(2, 2, 2)
+                //.addContainerGap()
+                )
         );
     }
 
     public void init(){
-        displayname = new JLabel("Filename:");
+        displayname = new JLabel("Configuration file:");
         JMenuBar menubar = new JMenuBar();
         menubar.setLayout(new BorderLayout());
-        menubar.setPreferredSize(new Dimension(500,25));
-        JMenu menu = new JMenu("File");
-        menu.setBounds(0,0,70,25);
-        menubar.add(menu,BorderLayout.WEST);
+        menubar.setPreferredSize(new Dimension(500,18));
+//         JMenu menu = new JMenu("File");
+//         menu.setBounds(0,0,70,25);
+//         menubar.add(menu,BorderLayout.WEST);
         JPanel temp = new JPanel();
-        temp.setLayout(new GridBagLayout());
-        temp.add(displayname,new GridBagConstraints());
-        menubar.add(temp,BorderLayout.CENTER);
-        save = new JMenuItem("Save");
-        save.addActionListener(new ActionListener(){
-            public void actionPerformed(ActionEvent ev){
-                save();
-            }});
-        save.setEnabled(false);
-        menu.add(save);
-        saveas = new JMenuItem("Save As");
-        saveas.addActionListener(new ActionListener(){
-            public void actionPerformed(ActionEvent ev){
-                saveAs();
-            }});
-        saveas.setEnabled(false);
-        menu.add(saveas);
+        temp.setLayout(new BorderLayout());
+        temp.add(displayname,BorderLayout.NORTH);
+        
+        menubar.add(temp,BorderLayout.WEST);
+//         save = new JMenuItem("Save");
+//         save.addActionListener(new ActionListener(){
+//             public void actionPerformed(ActionEvent ev){
+//                 save();
+//             }});
+//         menu.add(save);
+//         saveas = new JMenuItem("Save As");
+//         saveas.addActionListener(new ActionListener(){
+//             public void actionPerformed(ActionEvent ev){
+//                 saveAs();
+//             }});
+//         saveas.setEnabled(false);
+//         menu.add(saveas);
         root = new DefaultMutableTreeNode("root", true);
         tree = new JTree(root);
         tree.setRootVisible(false);
         tree.setCellRenderer(new CustomIconRenderer());
-        panel = new JScrollPane(tree);
-        JPanel buttonPanel = new JPanel();
+        tree.setDropMode(DropMode.ON_OR_INSERT);
+        tree.setDragEnabled(true);
+        tree.setTransferHandler(new ImportTreeTransferHandler());
         
-        addconf = new JButton("Add Config");
+        JPanel cfgpanel = new JPanel();
+        panel = new JScrollPane(tree);  
+        cfgpanel.setLayout(new BorderLayout());
+        cfgpanel.add(panel,BorderLayout.CENTER);
+        
+        
+//         JPanel buttonLayout = new JPanel();
+//         buttonLayout.setLayout(new GridBagLayout());
+//         cfgpanel.add(buttonLayout,BorderLayout.SOUTH);
+        
+        JPanel buttonPanel = new JPanel();  
+//         buttonPanel.setSize(500,35);
+//         buttonPanel.setPreferredSize(new Dimension(500,35));
+//         buttonPanel.setMaximumSize(new Dimension(500,35));
+//         buttonPanel.setMinimumSize(new Dimension(500,35));
+        addconf = new JButton("Add component");
         addconf.setEnabled(false);
-        addparam = new JButton("Add Parameter");
-        remove = new JButton("Remove");
+        addparam = new JButton("Add property");
+        remove = new JButton("Delete");
+        unbind = new JButton("UnBind");
         
-        addconf.setBounds(0,5,120,25);
+//         addconf.setBounds(0,5,130,25);
         buttonPanel.add(addconf);
         addconf.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
@@ -266,7 +312,7 @@ public class ConfigEditor extends JPanel{
             }
         });
         
-        addparam.setBounds(130,5,140,25);
+//         addparam.setBounds(140,5,140,25);
         buttonPanel.add(addparam);
         addparam.setEnabled(false);
         addparam.addActionListener(new ActionListener(){
@@ -274,8 +320,19 @@ public class ConfigEditor extends JPanel{
                 addParam();
             }
         });
+        
+//         unbind.setBounds(395,5,100,25);
+        buttonPanel.add(unbind);
+        unbind.addActionListener(new ActionListener(){
+            public void actionPerformed(ActionEvent ev){
+                ((MyFolder)((DefaultMutableTreeNode)tree.getSelectionPath().getLastPathComponent()).getUserObject()).setSut(null);
+                ((MyFolder)((DefaultMutableTreeNode)tree.getSelectionPath().getLastPathComponent()).getUserObject()).setSutPath (null);
+                ((DefaultTreeModel)tree.getModel()).nodeChanged(((DefaultMutableTreeNode)tree.getSelectionPath().getLastPathComponent()));
+            }
+        });
+        unbind.setEnabled(false);
 
-        remove.setBounds(280,5,100,25);
+//         remove.setBounds(290,5,100,25);
         remove.setEnabled(false);
         buttonPanel.add(remove);
         remove.addActionListener(new ActionListener(){
@@ -283,26 +340,124 @@ public class ConfigEditor extends JPanel{
                 if(acceptRemove())deleteMultiple();
             }
         });
+//         buttonLayout.add(buttonPanel,new GridBagConstraints());
+
+
+        save = new JButton("Save");
+        saveas = new JButton("Save As");
+        close = new JButton("Close");
+//         save.setEnabled(false);
+        saveas.setEnabled(false);
+        close.setEnabled(false);
+        save.addActionListener(new ActionListener(){
+            public void actionPerformed(ActionEvent ev){
+                save();
+            }
+        });
         
+        saveas.addActionListener(new ActionListener(){
+            public void actionPerformed(ActionEvent ev){
+                saveAs();
+            }
+        });
+        
+        close.addActionListener(new ActionListener(){
+            public void actionPerformed(ActionEvent ev){
+                if(editable){
+                    if(!lastsave){
+                        int r = (Integer)CustomDialog.showDialog(
+                                    new JLabel("Save config before closing ?"),
+                                    JOptionPane.QUESTION_MESSAGE, 
+                                    JOptionPane.OK_CANCEL_OPTION, ConfigEditor.this, "Save", null);
+                        if(r == JOptionPane.OK_OPTION){
+                            save.doClick();
+                        }
+                    }
+                    try{String resp = RunnerRepository.getRPCClient().execute("unlockConfig", new Object[]{remotelocation}).toString();
+                        if(resp.indexOf("*ERROR*")!=-1){
+                            CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,ConfigEditor.this,"ERROR", resp);
+                        } else {
+                             cfgtree.relseaseConfig(remotelocation);
+                        }
+                    } catch(Exception e){e.printStackTrace();}
+                    cfgtree.refreshStructure();
+                }
+                reinitialize();
+                saveas.setEnabled(false);
+                close.setEnabled(false);
+                getBinding("default");
+                interpretBinding();
+                lastsave = true;
+            }
+        });
+        
+        buttonPanel.add(save);
+        buttonPanel.add(saveas);
+        buttonPanel.add(close);
+        
+
+
+
+//         JPanel temp2 = new JPanel();
+//         temp2.setLayout(new BorderLayout());
+        //temp2.add(buttonPanel,BorderLayout.WEST);
+//         cfgpanel.add(temp2,BorderLayout.SOUTH);
         initParamDesc();
         this.setLayout(new BorderLayout());
+//         this.add(temp,BorderLayout.NORTH);
         this.add(menubar,BorderLayout.NORTH);
-        this.add(panel,BorderLayout.CENTER);
+        //this.add(panel,BorderLayout.CENTER);
+        
+//         jScrollPane1 = new JScrollPane();
+        
+        sutpanel = new JPanel();
+        sutpanel.setLayout(new BorderLayout());
+//         sutpanel.add(jScrollPane1, BorderLayout.CENTER);
+        sutconfig = new SutConfig();
+        sutpanel.add(sutconfig, BorderLayout.CENTER);
+        JButton refreshsut = new JButton("Refresh");
+        refreshsut.addActionListener(new ActionListener(){
+            public void actionPerformed(ActionEvent ev){
+                sutconfig.getSUT();
+            }
+        });
+        JPanel refreshpanel = new JPanel();
+        refreshpanel.add(refreshsut);
+        sutpanel.add(refreshpanel, BorderLayout.SOUTH);
+        
+//         final JSplitPane sp = new JSplitPane();
+//         sp.setLeftComponent(panel);
+//         sp.setRightComponent(sutpanel);
+//         sp.setOrientation(JSplitPane.HORIZONTAL_SPLIT);
+//         sp.setResizeWeight(0.5);
+//         SwingUtilities.invokeLater(new Runnable() {
+//             public void run() {
+//                 sp.setDividerLocation(0.5);
+//             }
+//         });
+        
+        this.add(cfgpanel,BorderLayout.CENTER);
         this.add(buttonPanel,BorderLayout.SOUTH);
-        this.add(pdesc,BorderLayout.EAST);
-        GroupLayout buttonPanelLayout = new GroupLayout(buttonPanel);
-        buttonPanel.setLayout(buttonPanelLayout);
-        buttonPanelLayout.setHorizontalGroup(
-            buttonPanelLayout.createParallelGroup(GroupLayout.Alignment.LEADING)
-            .addGap(0, 0, Short.MAX_VALUE)
-        );
-        buttonPanelLayout.setVerticalGroup(
-            buttonPanelLayout.createParallelGroup(GroupLayout.Alignment.LEADING)
-            .addGap(0, 35, Short.MAX_VALUE)
-        );
+            
+        JPanel bottompanel = new JPanel();
+        bottompanel.setLayout(new BorderLayout());
+       
+        bottompanel.add(pdesc,BorderLayout.CENTER);
+        this.add(bottompanel,BorderLayout.EAST);
+//         GroupLayout buttonPanelLayout = new GroupLayout(buttonPanel);
+//         buttonPanel.setLayout(buttonPanelLayout);
+//         buttonPanelLayout.setHorizontalGroup(
+//             buttonPanelLayout.createParallelGroup(GroupLayout.Alignment.LEADING)
+//             .addGap(0, 0, Short.MAX_VALUE)
+//         );
+//         buttonPanelLayout.setVerticalGroup(
+//             buttonPanelLayout.createParallelGroup(GroupLayout.Alignment.LEADING)
+//             .addGap(0, 35, Short.MAX_VALUE)
+//         );
         tree.addKeyListener(new KeyAdapter(){
             public void keyReleased(KeyEvent ev){
-                if(ev.getKeyCode()==KeyEvent.VK_DELETE){
+                TreePath tp = tree.getSelectionPath();
+                if(ev.getKeyCode()==KeyEvent.VK_DELETE && (currentfile!=null || (currentfile==null && (tp.getPathCount()>2 && ((DefaultMutableTreeNode)tp.getPathComponent(1)).toString().equals("default_binding"))))){
                     if(acceptRemove())deleteMultiple();
                 }
             }
@@ -310,22 +465,42 @@ public class ConfigEditor extends JPanel{
 
         tree.addMouseListener(new MouseAdapter(){
             public void mouseReleased(MouseEvent ev){
+                if(!editable&&currentfile!=null)return;
                 TreePath tp = tree.getPathForLocation(ev.getX(), ev.getY());
                 if (tp != null){
+                    boolean editable = true;
                     if(ev.getButton() == MouseEvent.BUTTON3){
                         tree.setSelectionPath(tp);
                         if(((DefaultMutableTreeNode)tp.getLastPathComponent()).getUserObject() instanceof MyFolder){
-                            DefaultMutableTreeNode treenode = (DefaultMutableTreeNode)tp.getLastPathComponent();
-                            MyFolder folder = (MyFolder)treenode.getUserObject();
-                            setDescription(folder.getNode(), folder.getDesc(),null,null,(DefaultMutableTreeNode)tp.getLastPathComponent());
-                            showFolderPopUp(treenode,ev,folder);
+                            remove.setEnabled(true);
                             addconf.setEnabled(true);
                             addparam.setEnabled(true);
-                            remove.setEnabled(true);
+                            DefaultMutableTreeNode treenode = (DefaultMutableTreeNode)tp.getLastPathComponent();
+                            MyFolder folder = (MyFolder)treenode.getUserObject();
+                            if(folder.getSut().equals("")){
+                                unbind.setEnabled(false);
+                            } else {
+                                unbind.setEnabled(true);
+                            }
+                            if(currentfile==null){
+                                if(!((DefaultMutableTreeNode)tp.getPathComponent(1)).toString().equals("default_binding")){
+                                    remove.setEnabled(false);
+                                    addconf.setEnabled(false);
+                                    unbind.setEnabled(false);    
+                                    editable = false;
+                                }else if(((DefaultMutableTreeNode)tp.getLastPathComponent()).getLevel()==1){
+                                    editable = false;
+                                    remove.setEnabled(false);
+                                }
+                                addparam.setEnabled(false);
+                            } else {
+                                showFolderPopUp(treenode,ev,folder);
+                            }
+                            setDescription(folder.getNode(), folder.getDesc(),null,null,(DefaultMutableTreeNode)tp.getLastPathComponent(),editable);
                         }else if(((DefaultMutableTreeNode)tp.getLastPathComponent()).getUserObject() instanceof MyParam){
                             DefaultMutableTreeNode treenode = (DefaultMutableTreeNode)tp.getLastPathComponent();
                             MyParam param = (MyParam)treenode.getUserObject();
-                            setDescription(param.getName(),param.getDesc(),param.getType(),param.getValue(),(DefaultMutableTreeNode)tp.getLastPathComponent());
+                            setDescription(param.getName(),param.getDesc(),param.getType(),param.getValue(),(DefaultMutableTreeNode)tp.getLastPathComponent(),true);
                             showParamPopUp(treenode,ev,param);
                             remove.setEnabled(true);
                             addconf.setEnabled(false);
@@ -335,46 +510,379 @@ public class ConfigEditor extends JPanel{
                         if(tree.getSelectionPaths().length==1){
                             tp = tree.getSelectionPath();
                             if(((DefaultMutableTreeNode)tp.getLastPathComponent()).getUserObject() instanceof MyFolder){
-                                MyFolder folder = (MyFolder)((DefaultMutableTreeNode)tp.getLastPathComponent()).getUserObject();
-                                setDescription(folder.getNode(), folder.getDesc(),null,null,(DefaultMutableTreeNode)tp.getLastPathComponent());
                                 remove.setEnabled(true);
                                 addconf.setEnabled(true);
                                 addparam.setEnabled(true);
+                                MyFolder folder = (MyFolder)((DefaultMutableTreeNode)tp.getLastPathComponent()).getUserObject();
+                                if(folder.getSut().equals("")){
+                                    unbind.setEnabled(false);
+                                } else {
+                                    unbind.setEnabled(true);
+                                }
+                                if(currentfile==null){
+                                    if(!((DefaultMutableTreeNode)tp.getPathComponent(1)).toString().equals("default_binding")){
+                                        remove.setEnabled(false);
+                                        addconf.setEnabled(false);
+                                        unbind.setEnabled(false);
+                                        editable = false;
+                                    }else if(((DefaultMutableTreeNode)tp.getLastPathComponent()).getLevel()==1){
+                                        editable = false;
+                                        remove.setEnabled(false);
+                                    }
+                                    addparam.setEnabled(false);
+                                }
+                                setDescription(folder.getNode(), folder.getDesc(),null,null,(DefaultMutableTreeNode)tp.getLastPathComponent(),editable);
                             }else if(((DefaultMutableTreeNode)tp.getLastPathComponent()).getUserObject() instanceof MyParam){
                                 MyParam param = (MyParam)((DefaultMutableTreeNode)tp.getLastPathComponent()).getUserObject();
-                                setDescription(param.getName(),param.getDesc(),param.getType(),param.getValue(),(DefaultMutableTreeNode)tp.getLastPathComponent());
+                                setDescription(param.getName(),param.getDesc(),param.getType(),param.getValue(),(DefaultMutableTreeNode)tp.getLastPathComponent(),true);
                                 remove.setEnabled(true);
                                 addconf.setEnabled(false);
                                 addparam.setEnabled(false);
                             }
                         } else {
-                            setDescription(null,null,null,null,null);
-                            remove.setEnabled(true);
+                            setDescription(null,null,null,null,null,false);
+                            remove.setEnabled(false);
                             addconf.setEnabled(false);
                             addparam.setEnabled(false);
+                            unbind.setEnabled(false); 
                         }
                     }
                 } else {
-                    if(currentfile==null)return;
-                    setDescription(null,null,null,null,null);
+                    setDescription(null,null,null,null,null,false);
                     tree.setSelectionPath(null);
                     remove.setEnabled(false);
-                    addconf.setEnabled(true);
+                    addconf.setEnabled(false);
+                    if(editable&&currentfile!=null)addconf.setEnabled(true);
                     addparam.setEnabled(false);
-                    if(ev.getButton() == MouseEvent.BUTTON3){
-                        showNewFolderPopUp(ev);
+                    unbind.setEnabled(false);
+                    if(currentfile!=null){
+                        if(ev.getButton() == MouseEvent.BUTTON3){
+                            showNewFolderPopUp(ev);
+                        }
                     }
                 }
             }
-        }
-        );
+        });
+        parseDocument(null);
+        getBinding("default");
+        interpretBinding();
     }
+    
+    public void openedConfig(boolean editable){
+        lastsave = true;
+        this.editable = editable;
+        if(editable){
+            save.setEnabled(true);
+            saveas.setEnabled(true);
+        }else {
+            save.setEnabled(false);
+            saveas.setEnabled(false);
+            addconf.setEnabled(false);
+        }
+        
+        close.setEnabled(true);
+    }
+    
+    public void getBinding(String filepath){
+        String response = "";
+        if(filepath.equals("default")){
+            try{
+//                 response = RunnerRepository.getRPCClient().execute("getBinding", new Object[]{RunnerRepository.user,"default_binding"}).toString();
+                response = RunnerRepository.getRPCClient().execute("readFile", new Object[]{"~/twister/config/bindings.xml"}).toString();
+                response = new String(DatatypeConverter.parseBase64Binary(response));
+                save.setEnabled(true);
+//                 content = new String(DatatypeConverter.parseBase64Binary(content));
+//                 response = test.defaultbinding;
+            } catch(Exception e){
+                System.out.println("Could not get bindingfile from CE!");
+                e.printStackTrace();
+            }
+        } else {
+//             response = test.binding;
+//         }
+            try{
+                filepath = filepath.replace(RunnerRepository.TESTCONFIGPATH, "");
+                if(filepath.charAt(0) == '/')filepath = filepath.substring(1);
+                response = RunnerRepository.getRPCClient().execute("getBinding", new Object[]{RunnerRepository.user,filepath}).toString();
+                System.out.println(filepath+" -- "+response);
+                
+            }
+                catch(Exception e){
+                    System.out.println("Could not get binding for:"+filepath+" from CE");
+                    e.printStackTrace();
+                    return;
+                }
+            }
+        try{
+            DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+            DocumentBuilder db = dbf.newDocumentBuilder();
+            if(response!=null&&!response.equals("")&&!response.equalsIgnoreCase("false")&&response.indexOf("*ERROR*")==-1){
+                bindingdoc = db.parse(new InputSource(new StringReader(response)));
+                bindingdoc.getDocumentElement().normalize();
+            } else {                
+                if(response.indexOf("*ERROR*")!=-1){
+                    CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,ConfigEditor.this,"ERROR", response);
+                }
+                bindingdoc = db.newDocument();
+                bindingdoc.appendChild(bindingdoc.createElement("root"));
+            }
+        } catch(Exception e){
+            System.out.println("Could not parse binding: "+response);
+            e.printStackTrace();
+            return;
+        }
+    }
+    
+    public void interpretBinding(){
+        try{
+            if(currentfile==null){//this is default binding
+                displayname.setText("Configuration file: DEFAULT");
+                NodeList bindings = bindingdoc.getElementsByTagName("binding");
+                for(int i=0;i<bindings.getLength();i++){
+                    Element binding = (Element)bindings.item(i);
+                    if(binding.getElementsByTagName("name").getLength()==0)continue;
+                    String filename = binding.getElementsByTagName("name").item(0).getFirstChild().getNodeValue();
+                    Element rootElement = doc.createElement("folder");
+                    doc.getFirstChild().appendChild(rootElement);
+                    Element fname = doc.createElement("fname");
+                    rootElement.appendChild(fname);  
+                    Node node = doc.createTextNode(filename);
+                    fname.appendChild(node);
+                    MyFolder parent = new MyFolder(node);
+                    DefaultMutableTreeNode treenode = new DefaultMutableTreeNode(parent,true);
+                    DefaultMutableTreeNode searchin =  treenode;
+                    ((DefaultTreeModel)tree.getModel()).insertNodeInto(treenode, root,root.getChildCount());
+                    NodeList binds = binding.getElementsByTagName("bind");
+                    int size = binds.getLength();
+                    DefaultMutableTreeNode backup = treenode;
+                    for(int k=0;k<size;k++){
+                        Node bind = binds.item(k);
+                        String sutid = bind.getAttributes().getNamedItem("sut").getNodeValue();
+                        String [] path = bind.getAttributes().getNamedItem("config").getNodeValue().split("/");
+                        DefaultMutableTreeNode found = searchin;
+                        for(int j=0;j<path.length;j++){
+                            found = findInNode(found, path[j]);
+                            if(found!=null){
+                                treenode = found;
+                                continue;
+                            }
+                            rootElement = doc.createElement("folder");
+                            parent.getNode().getParentNode().getParentNode().appendChild(rootElement);
+                            fname = doc.createElement("fname");
+                            rootElement.appendChild(fname);  
+                            node = doc.createTextNode(path[j]);
+                            fname.appendChild(node);
+                            parent = new MyFolder(node);
+                            Element fdesc = doc.createElement("fdesc");
+                            rootElement.appendChild(fdesc);
+                            node = doc.createTextNode("");
+                            fdesc.appendChild(node);
+                            parent.setDesc(node);
+                            DefaultMutableTreeNode temp = new DefaultMutableTreeNode(parent,true);
+                            ((DefaultTreeModel)tree.getModel()).insertNodeInto(temp, treenode,treenode.getChildCount());
+                            treenode = temp;
+                        }
+                        parent.setSut(sutid);
+                        HashMap subhash= (HashMap)sutconfig.client.execute("getSut", new Object[]{sutid,RunnerRepository.user,RunnerRepository.user});
+                        String sutpath = subhash.get("path").toString();
+                        sutpath = sutpath.replace(".system", "(system)");
+                        sutpath = sutpath.replace(".user", "(user)");                        
+                        parent.setSutPath(sutpath);
+                        treenode = backup;
+                    }
+                }
+            } else {
+                NodeList binds = bindingdoc.getElementsByTagName("bind");
+                for(int i=0;i<binds.getLength();i++){
+                    Node bind = binds.item(i);
+                    String sutid = bind.getAttributes().getNamedItem("sut").getNodeValue();
+                    String [] path = bind.getAttributes().getNamedItem("config").getNodeValue().split("/");
+                    
+                    
+                    DefaultMutableTreeNode node = (DefaultMutableTreeNode)tree.getModel().getRoot();
+                    for(String el:path){
+                        if(node==null)break;
+                        node = findInNode(node,el);
+                    }
+                    if(node!=null){
+                        ((MyFolder)node.getUserObject()).setSut(sutid);
+                        HashMap subhash= (HashMap)sutconfig.client.execute("getSut", new Object[]{sutid,RunnerRepository.user,RunnerRepository.user});
+                        String sutpath = subhash.get("path").toString();
+                        sutpath = sutpath.replace(".system", "(system)");
+                        sutpath = sutpath.replace(".user", "(user)"); 
+                        ((MyFolder)node.getUserObject()).setSutPath(sutpath);
+                    }
+                }
+            }
+            ((DefaultTreeModel)tree.getModel()).reload();
+        }catch(Exception e){
+            System.out.println("There is an error in reading bindings: "+bindingdoc.toString());
+            e.printStackTrace();
+        }
+    }
+    
+    public void saveBinding(){
+        try{
+            Node first;
+            if(bindingdoc!=null){
+                first = bindingdoc.getFirstChild();
+                NodeList list = first.getChildNodes();
+                int size = list.getLength();
+                if(first!=null){
+                    for(int i=size-1;i>=0;i--){
+                        first.removeChild(list.item(i));
+                       
+                }
+            } else {
+                DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
+                DocumentBuilder documentBuilder = documentBuilderFactory.newDocumentBuilder();
+                bindingdoc = documentBuilder.newDocument();
+                first = bindingdoc.createElement("root");
+                bindingdoc.appendChild(first);
+            }
+            if(currentfile!=null){
+                Enumeration e = root.preorderEnumeration();
+                while(e.hasMoreElements()){
+                    DefaultMutableTreeNode node = (DefaultMutableTreeNode)e.nextElement();
+                    if(node.getUserObject() instanceof MyFolder){
+                        MyFolder folder = (MyFolder)node.getUserObject();
+                        if(folder.getSut()!=null && !folder.getSut().equals("")){
+                            TreePath tp =  new TreePath(node.getPath());
+                            size = tp.getPathCount();
+                            StringBuilder sb = new StringBuilder();
+                            DefaultMutableTreeNode temp;
+                            for(int i=1;i<size-1;i++){
+                                sb.append(((MyFolder)((DefaultMutableTreeNode)tp.getPathComponent(i)).getUserObject()).getNode().getNodeValue());
+                                sb.append("/");                            
+                            }
+                            sb.append(folder.getNode().getNodeValue());
+                            String path = sb.toString();
+                            String sut = folder.getSut();
+                            Element bind = bindingdoc.createElement("bind");
+                            bind.setAttribute("config", path);
+                            bind.setAttribute("sut", sut);
+                            first.appendChild(bind);
+                        }
+                    }
+                }
+                
+                TransformerFactory transformerFactory = TransformerFactory.newInstance();
+                Transformer transformer = transformerFactory.newTransformer();
+                transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
+                transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+                transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "4");
+                DOMSource source = new DOMSource(bindingdoc);
+                StringWriter writer = new StringWriter();
+                StreamResult result = new StreamResult(writer);
+                transformer.transform(source, result);
+                String binding = writer.toString();
+                String resp = RunnerRepository.getRPCClient().execute("setBinding", new Object[]{RunnerRepository.user,remotelocation,binding}).toString();
+                if(resp.indexOf("*ERROR*")!=-1){
+                    CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,ConfigEditor.this,"ERROR", resp);
+                }
+            } else {
+                if(bindingdoc!=null){
+                    first = bindingdoc.getFirstChild();
+                    list = first.getChildNodes();
+                    size = list.getLength();
+                    if(first!=null){
+                        for(int i=size-1;i>=0;i--){
+                            first.removeChild(list.item(i));
+                        }
+                    }
+                } else {
+                    DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
+                    DocumentBuilder documentBuilder = documentBuilderFactory.newDocumentBuilder();
+                    bindingdoc = documentBuilder.newDocument();
+                    first = bindingdoc.createElement("root");
+                    bindingdoc.appendChild(first);
+                }
+                
+//                 Enumeration e = ((DefaultMutableTreeNode)root.getFirstChild()).preorderEnumeration();
+                Enumeration e = root.preorderEnumeration();
+                Element binding = null;
+                while(e.hasMoreElements()){
+                    DefaultMutableTreeNode node = (DefaultMutableTreeNode)e.nextElement();
+                    if(node.getLevel()==1){
+                        binding = bindingdoc.createElement("binding");
+                        first.appendChild(binding);
+                        Element el = bindingdoc.createElement("name");
+                        binding.appendChild(el);
+                        el.appendChild(bindingdoc.createTextNode(node.toString()));
+                        continue;
+                    }
+                    if(node.getUserObject() instanceof MyFolder){
+                        MyFolder folder = (MyFolder)node.getUserObject();
+                        if(folder.getSut()!=null&&!folder.getSut().equals("")){
+                            TreePath tp =  new TreePath(node.getPath());
+                            size = tp.getPathCount();
+                            StringBuilder sb = new StringBuilder();
+                            DefaultMutableTreeNode temp;
+                            for(int i=2;i<size-1;i++){
+                                sb.append(((MyFolder)((DefaultMutableTreeNode)tp.getPathComponent(i)).getUserObject()).getNode().getNodeValue());
+                                sb.append("/");                            
+                            }
+                            sb.append(folder.getNode().getNodeValue());
+                            String path = sb.toString();
+                            String sut = folder.getSut();
+                            Element bind = bindingdoc.createElement("bind");
+                            bind.setAttribute("config", path);
+                            bind.setAttribute("sut", sut);
+                            binding.appendChild(bind);
+                        }
+                    }
+                }
+                
+                TransformerFactory transformerFactory = TransformerFactory.newInstance();
+                Transformer transformer = transformerFactory.newTransformer();
+                transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
+                transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+                transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "4");
+                DOMSource source = new DOMSource(bindingdoc);
+                StringWriter writer = new StringWriter();
+                StreamResult result = new StreamResult(writer);
+                transformer.transform(source, result);
+                
+                
+                String content =  writer.toString();
+                content = DatatypeConverter.printBase64Binary(content.getBytes());
+                String resp = RunnerRepository.getRPCClient().execute("writeFile", new Object[]{"~/twister/config/bindings.xml",content}).toString();
+                if(resp.indexOf("*ERROR*")!=-1){
+                    CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,ConfigEditor.this,"ERROR", resp);
+                }
+            }
+        }
+    }
+        catch(Exception e){
+            System.out.println("Could not save binding for:"+remotelocation);
+            e.printStackTrace();
+        }
+    }
+    
+    
+    private DefaultMutableTreeNode findInNode(DefaultMutableTreeNode node, String name){
+        if(node==null)return null;
+        int nr = node.getChildCount();
+        for(int i=0;i<nr;i++){
+            if(((DefaultMutableTreeNode)node.getChildAt(i)).getUserObject() instanceof MyParam)continue;
+            if(((MyFolder)((DefaultMutableTreeNode)node.getChildAt(i)).getUserObject()).getNode().getNodeValue().toString().equalsIgnoreCase(name)){
+                return (DefaultMutableTreeNode)node.getChildAt(i);
+            }
+        }
+        return null;
+    }
+    
+    
+    
+//     public void setTree(JTree tree){
+//         jScrollPane1.setViewportView(tree);
+//     }
     
     public void setConfigTree(ConfigTree cfgtree){
         this.cfgtree = cfgtree;
     }
     
-    private void saveAs(){
+    public void saveAs(){
         final JTextField tf = new JTextField();
         try{tf.setText(((DefaultMutableTreeNode)cfgtree.tree.getModel().
                                                 getRoot()).getFirstChild().toString());
@@ -383,50 +891,18 @@ public class ConfigEditor extends JPanel{
         }
         AbstractAction action = new AbstractAction(){
             public void actionPerformed(ActionEvent ev){
-                String txt[]  = tf.getText().split("/");
-                StringBuilder location = new StringBuilder();
-                for(int i=0;i<txt.length-1;i++){
-                    location.append(txt[i]+"/");
-                }
-                String filename = txt[txt.length-1];
-                writeXML(currentfile);
-                try{RunnerRepository.uploadRemoteFile(location.toString(), new FileInputStream(currentfile), filename);}
-                catch(Exception e){
-                    e.printStackTrace();
-                    System.out.println("Could not upload file "+currentfile.getName()+" to "+location+" on server");
-                }
+                remotelocation = tf.getText();
+                writeXML();
+                lastsave = true;
             }
         };
         new MySftpBrowser(RunnerRepository.host,RunnerRepository.user,RunnerRepository.password,tf,this,true).setAction(action);
     }
     
-    private void save(){
-        if(remotelocation==null){
-            final JTextField tf = new JTextField();
-            try{tf.setText(((DefaultMutableTreeNode)cfgtree.tree.getModel().
-                                                getRoot()).getFirstChild().toString());
-            }catch(Exception e){
-                e.printStackTrace();
-            }
-            AbstractAction action = new AbstractAction(){
-                public void actionPerformed(ActionEvent ev){
-                    remotelocation = tf.getText();
-                    if(!remotelocation.equals("")){
-                        save();
-                    } else {
-                        remotelocation = null;
-                    }
-                }
-            };
-            new MySftpBrowser(RunnerRepository.host,RunnerRepository.user,RunnerRepository.password,tf,this,true).setAction(action);
-            return;
-        }
-        writeXML(currentfile);
-        try{RunnerRepository.uploadRemoteFile(remotelocation, new FileInputStream(currentfile), currentfile.getName());}
-        catch(Exception e){
-            e.printStackTrace();
-            System.out.println("Could not upload file "+currentfile.getName()+" to "+remotelocation+" on server");
-        }
+    public void save(){
+        if(editable&&currentfile!=null)writeXML();
+        saveBinding();
+        lastsave = true;
     }
     
     public void setRemoteLocation(String remotelocation){
@@ -465,7 +941,13 @@ public class ConfigEditor extends JPanel{
 
     public void setDescription(final Node name, final Node desc, 
                                final Node type, final Node value,
-                               final DefaultMutableTreeNode treenode){
+                               final DefaultMutableTreeNode treenode, boolean editable){
+                                   
+        tvalue.setEnabled(editable);                 
+        tdescription.setEnabled(editable);
+        ttype.setEnabled(editable); 
+        tname.setEnabled(editable); 
+        
         for(KeyListener k:tvalue.getKeyListeners()){
             tvalue.removeKeyListener(k);
         }
@@ -491,71 +973,71 @@ public class ConfigEditor extends JPanel{
                     docum.setType('a');
                 }
             } catch(Exception e){}
-        }
-        ttype.addItemListener(new ItemListener(){
-            public void itemStateChanged(ItemEvent ev){
-                if(ev.getStateChange()==ItemEvent.SELECTED){
-                    String selected = ttype.getSelectedItem().toString();
-                    docum.setType('a');
-                    tvalue.setText("");
-                    if(selected.equals("decimal")){
-                        try{docum.setType('d');
-                            type.setNodeValue("decimal");
-                        } catch (Exception e){e.printStackTrace();}
-                    } else if (selected.equals("hex")){
-                        try{type.setNodeValue("hex");
-                            docum.setType('h');
-                            tvalue.setText("0x");
-                        } catch (Exception e){e.printStackTrace();}
-                    } else if (selected.equals("octet")){
-                        try{type.setNodeValue("octet");
-                            docum.setType('b');
-                        } catch (Exception e){e.printStackTrace();}
-                    } else {
-                        try{type.setNodeValue("string");
+            if(editable){
+                ttype.addItemListener(new ItemListener(){
+                    public void itemStateChanged(ItemEvent ev){
+                        if(ev.getStateChange()==ItemEvent.SELECTED){
+                            String selected = ttype.getSelectedItem().toString();
                             docum.setType('a');
-                        } catch (Exception e){e.printStackTrace();}
+                            tvalue.setText("");
+                            if(selected.equals("decimal")){
+                                try{docum.setType('d');
+                                    type.setNodeValue("decimal");
+                                } catch (Exception e){e.printStackTrace();}
+                            } else if (selected.equals("hex")){
+                                try{type.setNodeValue("hex");
+                                    docum.setType('h');
+                                    tvalue.setText("0x");
+                                } catch (Exception e){e.printStackTrace();}
+                            } else if (selected.equals("octet")){
+                                try{type.setNodeValue("octet");
+                                    docum.setType('b');
+                                } catch (Exception e){e.printStackTrace();}
+                            } else {
+                                try{type.setNodeValue("string");
+                                    docum.setType('a');
+                                } catch (Exception e){e.printStackTrace();}
+                            }
+                            value.setNodeValue(tvalue.getText());
+                            ((DefaultTreeModel)tree.getModel()).nodeChanged(treenode);
+                        }
                     }
-                    value.setNodeValue(tvalue.getText());
-                    ((DefaultTreeModel)tree.getModel()).nodeChanged(treenode);
-//                     writeXML();
-//                     uploadFile();
-                }
+                });
             }
-        });
+        }
         try{tname.setText(name.getNodeValue());}
         catch(Exception e){tname.setText("");}
         focusadapter.setNode(name);
         focusadapter.setTreeNode(treenode);
-        try{tdescription.setText(desc.getNodeValue());}
-        catch(Exception e){tdescription.setText("");}
         if(value!=null){
             try{tvalue.setText(value.getNodeValue());}
             catch(Exception e){tvalue.setText("");}
-            tvalue.addKeyListener(new KeyAdapter(){
-                public void keyReleased(KeyEvent ev){
-                    value.setNodeValue(tvalue.getText());
-                    ((DefaultTreeModel)tree.getModel()).nodeChanged(treenode);
-//                     writeXML();
-//                     uploadFile();
-                }
-            });
+            if(editable){
+                tvalue.addKeyListener(new KeyAdapter(){
+                    public void keyReleased(KeyEvent ev){
+                        value.setNodeValue(tvalue.getText());
+                        ((DefaultTreeModel)tree.getModel()).nodeChanged(treenode);
+                    }
+                });
+            }
         }else{
             tvalue.setText("");
         }
         if(desc!=null){
-            tdescription.addKeyListener(new KeyAdapter(){
-                public void keyReleased(KeyEvent ev){
-                    String dsc = tdescription.getText();
-                    if(dsc.length()>60){
-                        dsc = dsc.substring(0,60);
-                        tdescription.setText(dsc);
+            try{tdescription.setText(desc.getNodeValue());}
+            catch(Exception e){tdescription.setText("");}
+            if(editable){
+                tdescription.addKeyListener(new KeyAdapter(){
+                    public void keyReleased(KeyEvent ev){
+                        String dsc = tdescription.getText();
+                        if(dsc.length()>60){
+                            dsc = dsc.substring(0,60);
+                            tdescription.setText(dsc);
+                        }
+                        desc.setNodeValue(dsc);
                     }
-                    desc.setNodeValue(dsc);
-//                     writeXML();
-//                     uploadFile();
-                }
-            });
+                });
+            }
         }
     }
     
@@ -564,6 +1046,7 @@ public class ConfigEditor extends JPanel{
         DefaultMutableTreeNode treenode = (DefaultMutableTreeNode)tp.getLastPathComponent();
         MyFolder folder = (MyFolder)treenode.getUserObject();
         appendParam(treenode,folder);
+        lastsave = false;
     }
     
     public void addConf(){
@@ -575,6 +1058,7 @@ public class ConfigEditor extends JPanel{
             MyFolder folder = (MyFolder)treenode.getUserObject();
             appendFolder(treenode,folder);
         }
+        lastsave = false;
     }
     
     public void deleteMultiple(){
@@ -593,12 +1077,13 @@ public class ConfigEditor extends JPanel{
         remove.setEnabled(false);
         addconf.setEnabled(true);
         addparam.setEnabled(false);
-        setDescription(null, null, null, null, null);
+        setDescription(null, null, null, null, null, false);
+        lastsave = false;
     }
 
     public void showNewFolderPopUp(MouseEvent ev){
         JPopupMenu p = new JPopupMenu();
-        JMenuItem item = new JMenuItem("Add Config");
+        JMenuItem item = new JMenuItem("Add Component");
         item.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 addFolder();}});
@@ -651,6 +1136,7 @@ public class ConfigEditor extends JPanel{
                 e.printStackTrace();
             }
         }
+        lastsave = false;
     }
     
     /*
@@ -695,8 +1181,9 @@ public class ConfigEditor extends JPanel{
             remove.setEnabled(false);
             addconf.setEnabled(true);
             addparam.setEnabled(false);
-            setDescription(null, null, null, null, null);
+            setDescription(null, null, null, null, null,false);
         }
+        lastsave = false;
     }
     
     /*
@@ -793,7 +1280,8 @@ public class ConfigEditor extends JPanel{
             ((DefaultTreeModel)tree.getModel()).nodeChanged(treenode);
 //             writeXML();
 //             uploadFile();
-            setDescription(node.getName(),node.getDesc(),node.getType(),node.getValue(),treenode);
+            setDescription(node.getName(),node.getDesc(),node.getType(),node.getValue(),treenode,false);
+            lastsave = true;
         }
     }
 
@@ -899,7 +1387,8 @@ public class ConfigEditor extends JPanel{
             ((DefaultTreeModel)tree.getModel()).nodeChanged(treenode);
 //             writeXML();
 //             uploadFile();
-            setDescription(parent.getNode(),parent.getDesc(),null,null,treenode);
+            setDescription(parent.getNode(),parent.getDesc(),null,null,treenode,false);
+            lastsave = true;
         }
     }
         
@@ -911,14 +1400,8 @@ public class ConfigEditor extends JPanel{
         
         final JTextField name = new JTextField();
         name.addAncestorListener(new AncestorListener() {
-            
-            @Override
             public void ancestorRemoved(AncestorEvent arg0) {}
-            
-            @Override
             public void ancestorMoved(AncestorEvent arg0) {}
-            
-            @Override
             public void ancestorAdded(AncestorEvent arg0) {
                 name.requestFocusInWindow();
             }
@@ -1020,6 +1503,7 @@ public class ConfigEditor extends JPanel{
             
             DefaultMutableTreeNode temp = new DefaultMutableTreeNode(param,true);
             ((DefaultTreeModel)tree.getModel()).insertNodeInto(temp, treenode,0);
+            lastsave = false;
             
 //             writeXML();
 //             uploadFile();
@@ -1071,7 +1555,7 @@ public class ConfigEditor extends JPanel{
             
             DefaultMutableTreeNode temp = new DefaultMutableTreeNode(folder,true);
             ((DefaultTreeModel)tree.getModel()).insertNodeInto(temp, treenode,treenode.getChildCount());
-
+            lastsave = false;
         }
     }
     
@@ -1089,7 +1573,8 @@ public class ConfigEditor extends JPanel{
         remove.setEnabled(false);
         addconf.setEnabled(true);
         addparam.setEnabled(false);
-        setDescription(null, null, null, null, null);
+        setDescription(null, null, null, null, null,true);
+        lastsave = false;
     }
     
 //     public File getGlobalsFile(){
@@ -1115,7 +1600,7 @@ public class ConfigEditor extends JPanel{
         
     public void buildTree(){     
         try{
-            setDescription(null,null,null,null,null);
+            setDescription(null,null,null,null,null,false);
             tree.setSelectionPath(null);
             remove.setEnabled(false);
             addconf.setEnabled(true);
@@ -1196,14 +1681,24 @@ public class ConfigEditor extends JPanel{
         }
     }
     
-    public void writeXML(File file){
-        try{DOMSource source = new DOMSource(doc);                    
-            Result result = new StreamResult(file);
+    public void writeXML(){
+        try{
+            Writer outWriter = new StringWriter();
+            StreamResult result = new StreamResult( outWriter );
+            DOMSource source = new DOMSource(doc);                    
+            //Result result = new StreamResult(file);
             TransformerFactory transformerFactory = TransformerFactory.newInstance();
             Transformer transformer = transformerFactory.newTransformer();
             transformer.setOutputProperty(OutputKeys.INDENT, "yes");
             transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "4");
             transformer.transform(source, result);
+            StringBuffer sb = ((StringWriter)outWriter).getBuffer();
+            String content =  sb.toString();
+            content = DatatypeConverter.printBase64Binary(content.getBytes());
+            String resp = RunnerRepository.getRPCClient().execute("saveConfigFile", new Object[]{remotelocation,content}).toString();
+            if(resp.indexOf("*ERROR*")!=-1){
+                CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,ConfigEditor.this,"ERROR", resp);
+            }
         } catch(Exception e){
             e.printStackTrace();
         }
@@ -1213,13 +1708,13 @@ public class ConfigEditor extends JPanel{
         root.removeAllChildren();
         ((DefaultTreeModel)tree.getModel()).reload();
         currentfile = null;
-        setDescription(null,null,null,null,null);
+        setDescription(null,null,null,null,null,false);
         tree.setSelectionPath(null);
         remove.setEnabled(false);
         addconf.setEnabled(false);
         addparam.setEnabled(false);
-        save.setEnabled(false);
-        saveas.setEnabled(false);
+        displayname.setText("Configuration file:");
+//         saveas.setEnabled(false);
     }
     
     
@@ -1253,7 +1748,7 @@ public class ConfigEditor extends JPanel{
 //             e.printStackTrace();
 //         }
 //     }
-
+    
      public void disconnect(){
         ch.disconnect();
         session.disconnect();
@@ -1280,6 +1775,8 @@ public class ConfigEditor extends JPanel{
             e.printStackTrace();
         }
     }
+    
+    
     class MyFocusAdapter extends FocusAdapter{
         private Node name;
         private DefaultMutableTreeNode treenode;
@@ -1406,5 +1903,188 @@ public class ConfigEditor extends JPanel{
                 throw new NumberFormatException();
             }
         }
+    }
+    
+    class ImportTreeTransferHandler extends TransferHandler {
+        DataFlavor nodesFlavor;  
+        DataFlavor[] flavors = new DataFlavor[1];
+       
+        public ImportTreeTransferHandler() {  
+            try {  
+                String mimeType = DataFlavor.javaJVMLocalObjectMimeType +  
+                                  ";class=\"" +  
+                                  String.class.getName() +  
+                                  "\"";  
+                nodesFlavor = new DataFlavor(mimeType);  
+                flavors[0] = nodesFlavor;  
+            } catch(ClassNotFoundException e) {  
+                System.out.println("ClassNotFound: " + e.getMessage());  
+            }  
+        }  
+       
+        public boolean canImport(TransferHandler.TransferSupport support) {  
+            if(!editable&&currentfile!=null)return false;
+            support.setShowDropLocation(true);
+            if(!support.isDrop()) {  
+                return false;  
+            }  
+            if(!support.isDataFlavorSupported(nodesFlavor)) {  
+                return false;  
+            }
+            JTree.DropLocation dl = (JTree.DropLocation)support.getDropLocation(); 
+            TreePath dest = dl.getPath();  
+            if(dest==null)return false;
+            DefaultMutableTreeNode target = (DefaultMutableTreeNode)dest.getLastPathComponent(); 
+           
+            if(!(target.getUserObject() instanceof MyFolder)){
+                return false;
+            } else {
+                if(currentfile==null){
+                    if(target.getLevel()<2)return false;
+                    DefaultMutableTreeNode parent = (DefaultMutableTreeNode)target.getPath()[0];
+                    int index = parent.getIndex((DefaultMutableTreeNode)target.getPath()[1]);
+                    if(index==0)return true;
+                    return false;
+                }
+                return true;
+            }
+        }
+        
+        public int getSourceActions(JComponent c) {  
+            return COPY;  
+        }  
+       
+        public boolean importData(TransferHandler.TransferSupport support) {
+            try{
+                if(!canImport(support)) {  
+                    return false;  
+                }
+                try {  
+                    Transferable t = support.getTransferable();
+                    String transfer = (String)t.getTransferData(nodesFlavor);
+                    String file = transfer.split(" - ")[0];
+                    String sutpath = transfer.split(" - ")[1];
+                    JTree.DropLocation dl = (JTree.DropLocation)support.getDropLocation();  
+                    TreePath dest = dl.getPath();  
+                    DefaultMutableTreeNode parent = (DefaultMutableTreeNode)dest.getLastPathComponent();
+                    JTree tree = (JTree)support.getComponent();  
+                    DefaultTreeModel model = ((DefaultTreeModel)tree.getModel());
+                    ((MyFolder)parent.getUserObject()).setSut(file);
+                    ((MyFolder)parent.getUserObject()).setSutPath(sutpath);
+                    model.nodeChanged(parent);
+                    lastsave = false;
+                    return true;
+                } catch(UnsupportedFlavorException ufe) {
+                    System.out.println("UnsupportedFlavor: " + ufe.getMessage());
+                } catch(java.io.IOException ioe) {
+                    System.out.println("I/O error: " + ioe.getMessage());
+                }
+                return false;
+                
+//                 Node[] nodes = null;  
+//                 try {  
+//                     Transferable t = support.getTransferable();  
+//                     nodes = (Node[])t.getTransferData(nodesFlavor);  
+//                 } catch(UnsupportedFlavorException ufe) {  
+//                     System.out.println("UnsupportedFlavor: " + ufe.getMessage());  
+//                 } catch(java.io.IOException ioe) {  
+//                     System.out.println("I/O error: " + ioe.getMessage());  
+//                 }
+//                 JTree.DropLocation dl = (JTree.DropLocation)support.getDropLocation();  
+//                 TreePath dest = dl.getPath();  
+//                 DefaultMutableTreeNode parent = (DefaultMutableTreeNode)dest.getLastPathComponent();
+//                 JTree tree = (JTree)support.getComponent();  
+//                 DefaultTreeModel model = ((DefaultTreeModel)tree.getModel());  
+//                 if(parent.getChildCount()>1){
+//                     for(int i=0;i<parent.getChildCount();i++){
+//                         if(((DefaultMutableTreeNode)parent.getChildAt(i)).getUserObject() instanceof Node){
+//                             model.removeNodeFromParent((DefaultMutableTreeNode)parent.getChildAt(i));
+//                         }
+//                     }
+//                 }
+//                 int index = parent.getChildCount();  
+//                 for(int i = 0; i < nodes.length; i++){ 
+//                     try{
+//                         Comp comparent = (Comp)parent.getUserObject();
+//                         HashMap <String,String>hm = new <String,String>HashMap();
+//                         hm.put("_id", nodes[i].getID());
+//                         String parentid="";
+//                         if(((DefaultMutableTreeNode)parent.getParent()).getUserObject() instanceof Comp){
+//                             parentid = ((Comp)((DefaultMutableTreeNode)parent.getParent()).getUserObject()).getID();
+//                         } else {
+//                             parentid = "/"+parent.getParent().toString();
+//                         }
+//                         String resp = client.execute("setSut", new Object[]{comparent.getName(),parentid,hm}).toString();
+//                         if(resp.indexOf("ERROR")==-1){
+//                             DefaultMutableTreeNode element = createChildren(nodes[i]);
+//                             model.insertNodeInto(element, parent, index++);
+//                         }
+//                         else{
+//                             CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SUTEditor.this,"ERROR", resp);
+//                         }
+//                         
+//                     } catch (Exception e){
+//                         e.printStackTrace();
+//                     }
+//                     
+//                 } 
+//                 return true; 
+            } catch(Exception e){
+                e.printStackTrace();
+                return false;
+            }
+//             return true;
+        } 
+        
+//         private DefaultMutableTreeNode createChildren(Node node){
+//             DefaultMutableTreeNode parent = new DefaultMutableTreeNode(node);
+//             
+//             DefaultMutableTreeNode temp = new DefaultMutableTreeNode("ID: "+node.getID(),false);
+//             parent.add(temp);
+//             
+//             temp = new DefaultMutableTreeNode(node.getPath(),false);
+//             parent.add(temp);
+//             
+//             return parent;
+//         }
+       
+        public String toString() {  
+            return getClass().getName();  
+        }  
+       
+//         public class StringTransferable implements Transferable {  
+//             String file;  
+//             DataFlavor nodesFlavor;  
+//             DataFlavor[] flavors = new DataFlavor[1];
+//        
+//             public StringTransferable(String file) {  
+//                 this.file = file;  
+//                 try {  
+//                     String mimeType = DataFlavor.javaJVMLocalObjectMimeType +  
+//                                       ";class=\"" +  
+//                                       String.class.getName() +  
+//                                       "\"";  
+//                     nodesFlavor = new DataFlavor(mimeType);  
+//                     flavors[0] = nodesFlavor;  
+//                 } catch(ClassNotFoundException e) {  
+//                     System.out.println("ClassNotFound: " + e.getMessage());  
+//                 }  
+//              }  
+//        
+//             public Object getTransferData(DataFlavor flavor)  
+//                                      throws UnsupportedFlavorException {  
+//                 if(!isDataFlavorSupported(flavor))  
+//                     throw new UnsupportedFlavorException(flavor);  
+//                 return file;  
+//             }  
+//        
+//             public DataFlavor[] getTransferDataFlavors() {  
+//                 return flavors;  
+//             }  
+//        
+//             public boolean isDataFlavorSupported(DataFlavor flavor) {  
+//                 return nodesFlavor.equals(flavor);  
+//             }  
+//         }  
     }
 }

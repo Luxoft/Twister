@@ -1,6 +1,6 @@
 /*
 File: SUTEditor.java ; This file is part of Twister.
-Version: 2.008
+Version: 2.009
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -97,7 +97,8 @@ public class SUTEditor extends JPanel{
     public DefaultMutableTreeNode sutnode;
     private boolean lastsaved = true;
     private boolean editable;
-    
+    public JScrollPane sp;
+
     public SUTEditor(){
         suttree = new SutTree();
         initializeSftp();
@@ -131,7 +132,7 @@ public class SUTEditor extends JPanel{
         }
         tree.setCellRenderer(new CustomIconRenderer());
         setLayout(new BorderLayout());
-        JScrollPane sp = new JScrollPane(tree);
+        sp = new JScrollPane(tree);
         final JSplitPane splitpane = new JSplitPane();
         JPanel bottompanel = new JPanel();
         
@@ -344,15 +345,30 @@ public class SUTEditor extends JPanel{
                         if(lastsaved){
                             resp = client.execute("discardAndReleaseReservedSut", new Object[]{"/"+rootsut,RunnerRepository.user}).toString();
                         } else {
-                             int r = (Integer)CustomDialog.showDialog(
-                                        new JLabel("Save SUT before releasing ?"),
-                                        JOptionPane.QUESTION_MESSAGE, 
-                                        JOptionPane.OK_CANCEL_OPTION, SUTEditor.this, "Save", null);
-                            if(r == JOptionPane.OK_OPTION){
-                                resp = client.execute("saveAndReleaseReservedSut", new Object[]{"/"+rootsut,RunnerRepository.user}).toString();
+                            
+                            String[] buttons = {"Save","Discard"};
+                            resp = CustomDialog.showButtons(SUTEditor.this, JOptionPane.QUESTION_MESSAGE,
+                                                                    JOptionPane.DEFAULT_OPTION, null,buttons ,
+                                                                    "Save","Save SUT before closing?");
+                            if (!resp.equals("NULL")) {
+                                if(resp.equals("Save")){
+                                    resp = client.execute("saveAndReleaseReservedSut", new Object[]{"/"+rootsut,RunnerRepository.user}).toString();
+                                }
+                                else if(resp.equals("Discard")){
+                                    resp = client.execute("discardAndReleaseReservedSut", new Object[]{"/"+rootsut,RunnerRepository.user}).toString();
+                                }
                             } else {
                                 resp = client.execute("discardAndReleaseReservedSut", new Object[]{"/"+rootsut,RunnerRepository.user}).toString();
                             }
+//                              int r = (Integer)CustomDialog.showDialog(
+//                                         new JLabel("Save SUT before closing ?"),
+//                                         JOptionPane.QUESTION_MESSAGE, 
+//                                         JOptionPane.YES_NO_OPTION, SUTEditor.this, "Save", null);
+//                             if(r == JOptionPane.OK_OPTION){
+//                                 resp = client.execute("saveAndReleaseReservedSut", new Object[]{"/"+rootsut,RunnerRepository.user}).toString();
+//                             } else {
+//                                 resp = client.execute("discardAndReleaseReservedSut", new Object[]{"/"+rootsut,RunnerRepository.user}).toString();
+//                             }
                         }
                         if(resp.indexOf("*ERROR*")==-1){
                             ((SUT)sutnode.getUserObject()).setReserved("");
@@ -440,6 +456,10 @@ public class SUTEditor extends JPanel{
     }
     
 
+    public JTree getTree(){
+        return this.tree;
+    }
+    
     public void closeSut(){
         if(close.isEnabled()){
             close.doClick();
@@ -464,7 +484,7 @@ public class SUTEditor extends JPanel{
     }
     
     public void getSUT(String sutname,DefaultMutableTreeNode sutnode,boolean editable){
-        try{HashMap hash= (HashMap)client.execute("getSut", new Object[]{"/",RunnerRepository.user});
+        try{HashMap hash= (HashMap)client.execute("getSut", new Object[]{"/",RunnerRepository.user,RunnerRepository.user});
             this.editable = editable;
             Object[] children = (Object[])hash.get("children");
             DefaultMutableTreeNode epsnode;//child
@@ -473,7 +493,7 @@ public class SUTEditor extends JPanel{
             String name,path,eps;
             Object[] subchildren;
             for(Object o:children){
-                hash= (HashMap)client.execute("getSut", new Object[]{o.toString(),RunnerRepository.user});
+                hash= (HashMap)client.execute("getSut", new Object[]{o.toString(),RunnerRepository.user,RunnerRepository.user});
                 path = hash.get("path").toString();
                 name = path.split("/")[path.split("/").length-1];
                 if(name.indexOf(sutname)==-1)continue;
@@ -484,7 +504,7 @@ public class SUTEditor extends JPanel{
                 subchildren = (Object[])hash.get("children");
                 for(Object ob:subchildren){
                     String childid = ob.toString();
-                    HashMap subhash= (HashMap)client.execute("getSut", new Object[]{childid,RunnerRepository.user});
+                    HashMap subhash= (HashMap)client.execute("getSut", new Object[]{childid,RunnerRepository.user,RunnerRepository.user});
                     String id = subhash.get("id").toString();
                     buildChildren(new Object[]{id},root);
                 }
@@ -518,7 +538,7 @@ public class SUTEditor extends JPanel{
         String childid, subchildid;
         for(Object o:children){
             try{childid = o.toString();
-                HashMap subhash= (HashMap)client.execute("getSut", new Object[]{childid,RunnerRepository.user});
+                HashMap subhash= (HashMap)client.execute("getSut", new Object[]{childid,RunnerRepository.user,RunnerRepository.user});
                 String subpath = subhash.get("path").toString();
                 String subname = subpath.split("/")[subpath.split("/").length-1];
                 HashMap meta = (HashMap)subhash.get("meta");
@@ -621,7 +641,7 @@ public class SUTEditor extends JPanel{
     public String getEpsFromSut(String sutname){
         String eps = "";
         try{System.out.println("Getting eps for: "+sutname);
-            HashMap hash= (HashMap)client.execute("getSut", new Object[]{sutname,RunnerRepository.user});
+            HashMap hash= (HashMap)client.execute("getSut", new Object[]{sutname,RunnerRepository.user,RunnerRepository.user});
             System.out.println(hash.toString());
             eps = ((HashMap)hash.get("meta")).get("_epnames_"+RunnerRepository.user).toString();}
         catch(Exception e){

@@ -56,6 +56,7 @@ public class SutTree extends JPanel{
     private JButton newfile,openfile,deletefile,
                     refreshlist,importxml,exportxml,renamefile;
     private XmlRpcClient client;
+    public JScrollPane sp2;
     
     public SutTree(){
         initializeRPC();
@@ -84,7 +85,7 @@ public class SutTree extends JPanel{
                         JMenuItem item = new JMenuItem("Lock");
                         item.addActionListener(new ActionListener(){
                             public void actionPerformed(ActionEvent ev){
-                                try{String resp = client.execute("lockSut", new Object[]{"/"+sut.getName()+sut.getRoot(),RunnerRepository.user}).toString();
+                                try{String resp = client.execute("lockSut", new Object[]{"/"+sut.getName()+sut.getRoot(),"",RunnerRepository.user}).toString();
                                 if(resp.indexOf("*ERROR*")==-1){
                                     sut.setLock(RunnerRepository.user);
                                     ((DefaultTreeModel)filestree.getModel()).nodeChanged(treenode);
@@ -102,7 +103,7 @@ public class SutTree extends JPanel{
                         item = new JMenuItem("Unlock");
                         item.addActionListener(new ActionListener(){
                             public void actionPerformed(ActionEvent ev){
-                                try{String resp = client.execute("unlockSut", new Object[]{"/"+sut.getName()+sut.getRoot(),RunnerRepository.user}).toString();
+                                try{String resp = client.execute("unlockSut", new Object[]{"/"+sut.getName()+sut.getRoot(),"",RunnerRepository.user}).toString();
                                     if(resp.indexOf("*ERROR*")==-1){
                                         sut.setLock("");
                                         ((DefaultTreeModel)filestree.getModel()).nodeChanged(treenode);
@@ -131,7 +132,7 @@ public class SutTree extends JPanel{
                 
             }});
         setLayout(new BorderLayout());
-        JScrollPane sp2 = new JScrollPane(filestree);
+        sp2 = new JScrollPane(filestree);
         add(sp2,BorderLayout.CENTER);
         JPanel filesoption = new JPanel();
         add(filesoption,BorderLayout.SOUTH);
@@ -431,7 +432,7 @@ public class SutTree extends JPanel{
                                     return;
                                 }
                             }
-                            String query = client.execute("renameSut", new Object[]{torename,filename+add,RunnerRepository.user}).toString();
+                            String query = client.execute("renameSut", new Object[]{torename,filename+add,"",RunnerRepository.user}).toString();
                             if(query.indexOf("*ERROR*")==-1){
                                 ((SUT)selected.getUserObject()).setName(filename);
                                 ((DefaultTreeModel)filestree.getModel()).nodeChanged(selected);
@@ -602,7 +603,7 @@ public class SutTree extends JPanel{
     
     public String [] getSutsName(){
         try{
-            Object ob = client.execute("getSut", new Object[]{"/",RunnerRepository.user});
+            Object ob = client.execute("getSut", new Object[]{"/",RunnerRepository.user,RunnerRepository.user});
             if(ob.toString().indexOf("*ERROR*")!=-1){
                 CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SutTree.this,"ERROR", ob.toString());
             }
@@ -613,7 +614,7 @@ public class SutTree extends JPanel{
             StringBuilder b = new StringBuilder();
             for(Object o:children){
                 
-                ob = client.execute("getSut", new Object[]{o.toString(),RunnerRepository.user});
+                ob = client.execute("getSut", new Object[]{o.toString(),RunnerRepository.user,RunnerRepository.user});
                 if(ob.toString().indexOf("*ERROR*")!=-1){
                     CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SutTree.this,"ERROR", ob.toString());
                 }
@@ -634,7 +635,7 @@ public class SutTree extends JPanel{
     }
     
     public void getSUT(){
-        try{Object ob = client.execute("getSut", new Object[]{"/",RunnerRepository.user});
+        try{Object ob = client.execute("getSut", new Object[]{"/",RunnerRepository.user,RunnerRepository.user});
             if(ob.toString().indexOf("*ERROR*")!=-1){
                 CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SutTree.this,"ERROR", ob.toString());
             }
@@ -649,7 +650,7 @@ public class SutTree extends JPanel{
             for(Object o:children){
                 String root = ".system";
                 boolean user = false;
-                ob = client.execute("getSut", new Object[]{o.toString(),RunnerRepository.user});
+                ob = client.execute("getSut", new Object[]{o.toString(),RunnerRepository.user,RunnerRepository.user});
                 if(ob.toString().indexOf("*ERROR*")!=-1){
                     CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SutTree.this,"ERROR", ob.toString());
                 }

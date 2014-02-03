@@ -1,6 +1,6 @@
 /*
 File: MyFolder.java ; This file is part of Twister.
-Version: 2.001
+Version: 2.002
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -21,6 +21,8 @@ import org.w3c.dom.Node;
 
 class MyFolder{
     private Node node,desc;
+    private String sut = "";
+    private String sutpath = "";
     
     public MyFolder(Node node){
         this.node = node;
@@ -38,7 +40,26 @@ class MyFolder{
         return desc;
     }
     
+    public void setSut(String sut){
+        this.sut = sut;
+    }
+    
+    public String getSut(){
+        return sut;
+    }
+    
+    public void setSutPath(String sutpath){
+        this.sutpath = sutpath;
+    }
+    
+    public String getSutPath(){
+        return sutpath;
+    }
+    
     public String toString(){
+        if(sutpath!=null&&!sutpath.equals("")){
+            return node.getNodeValue()+" - "+sutpath;
+        }
         return node.getNodeValue();
     }
 }

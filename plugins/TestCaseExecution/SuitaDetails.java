@@ -1,6 +1,6 @@
 /*
 File: SuitaDetails.java ; This file is part of Twister.
-Version: 2.0016
+Version: 2.0017
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -814,11 +814,12 @@ public class SuitaDetails extends JPanel {
 //         String [] vecresult = b.toString().split(";");
         
         String [] vecresult =  RunnerRepository.window.mainpanel.p4.getSut().sut.getSutTree().getSutsName();
-        if(vecresult==null)return;
-        int size = vecresult.length;
-        for(int i=0;i<size;i++){
-            vecresult[i] = vecresult[i].replace(".user", "(user)");
-            vecresult[i] = vecresult[i].replace(".system", "(system)");
+        if(vecresult!=null){
+            int size = vecresult.length;
+            for(int i=0;i<size;i++){
+                vecresult[i] = vecresult[i].replace(".user", "(user)");
+                vecresult[i] = vecresult[i].replace(".system", "(system)");
+            }
         }
         
         

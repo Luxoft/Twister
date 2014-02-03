@@ -1,6 +1,6 @@
 /*
 File: RunnerRepository.java ; This file is part of Twister.
-Version: 2.0041
+Version: 2.0042
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -129,7 +129,7 @@ public class RunnerRepository {
                          TESTSUITEPATH,
                          LOGSPATH ,XMLREMOTEDIR,REMOTEPLUGINSDIR,
                          REMOTELIBRARY,PREDEFINEDSUITES,
-                         REMOTEUSERSDIRECTORY,  //REMOTEHARDWARECONFIGDIRECTORY,
+                         REMOTEUSERSDIRECTORY,BINDINGPATH,  //REMOTEHARDWARECONFIGDIRECTORY,
                          PLUGINSLOCALGENERALCONF, GLOBALSREMOTEFILE,SUTPATH,SYSSUTPATH,
                          SECONDARYLOGSPATH,PATHENABLED,TESTCONFIGPATH;
     public static Image passicon,testbedicon,porticon,suitaicon, tcicon, propicon,
@@ -155,8 +155,8 @@ public class RunnerRepository {
     public static Container container;
     public static Applet applet;
     private static Document pluginsconfig;
-    private static String version = "2.053";
-    private static String builddate = "29.01.2014";
+    private static String version = "2.054";
+    private static String builddate = "03.02.2014";
     public static String logotxt,os,python;
     private static int remotefiletries = 0;
     
@@ -876,6 +876,7 @@ public class RunnerRepository {
                 usersdir = getTagContent(doc,"UsersPath", "framework config.");
                 REMOTEUSERSDIRECTORY = usersdir;
                 XMLREMOTEDIR = USERHOME+"/twister/config/testsuites.xml";
+                BINDINGPATH = USERHOME+"/twister/config/bindings/bindings.xml";
                 XMLDIRECTORY = RunnerRepository.temp+bar+"Twister"+bar+"XML"+
                                         bar+XMLREMOTEDIR.split("/")[XMLREMOTEDIR.split("/").length-1];
                 REMOTELIBRARY = getTagContent(doc,"LibsPath", "framework config.");
@@ -1643,8 +1644,7 @@ public class RunnerRepository {
     public static void openProjectFile(){
         int size;
         Vector v=null;
-        try{connection.cd(REMOTEUSERSDIRECTORY);
-            v = connection.ls(".");
+        try{v = connection.ls(REMOTEUSERSDIRECTORY);
             size = v.size();}
         catch(Exception e){
             System.out.println("Second attempt to connect");

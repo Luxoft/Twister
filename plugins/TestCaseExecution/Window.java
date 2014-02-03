@@ -1,6 +1,6 @@
 /*
 File: Window.java ; This file is part of Twister.
-Version: 2.005
+Version: 2.006
 
 Copyright (C) 2012-2013 , Luxoft
 

@@ -1,6 +1,6 @@
 /*
 File: ConfigFiles.java ; This file is part of Twister.
-Version: 2.017
+Version: 2.018
 
 Copyright (C) 2012-2013 , Luxoft
 
