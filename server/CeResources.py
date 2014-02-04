@@ -1,7 +1,7 @@
 
 # File: CeResources.py ; This file is part of Twister.
 
-# version: 2.015
+# version: 2.016
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -56,6 +56,7 @@ if TWISTER_PATH not in sys.path:
     sys.path.append(TWISTER_PATH)
 
 from common.tsclogging import *
+from common.helpers    import *
 
 RESOURCE_FREE     = 1
 RESOURCE_BUSY     = 2
@@ -768,7 +769,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
 #
 
     @cherrypy.expose
-    def getResource(self, query, root_id=ROOT_DEVICE, flatten=True, props={}, username = None):
+    def getResource(self, query, root_id=ROOT_DEVICE, flatten=True, props={}, username=None):
         '''
         Show all the properties, or just 1 property of a resource.
         Must provide a Resource ID, or a Query.
@@ -789,7 +790,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
         if not resources.get('children'):
             # Return default structure for root
             if query == '/':
-                return {'path': '', 'meta': resources.get('meta', {}), 'id': '1', 'children': []}
+                return {'name': '/', 'path': '', 'meta': resources.get('meta', {}), 'id': '1', 'children': []}
 
             msg = 'Get {}: There are no devices defined !'.format(root_name)
             logError(msg)
@@ -888,7 +889,8 @@ class ResourceAllocator(_cptools.XMLRPCController):
         Must provide a SUT ID, or a SUT Path.
         '''
         logDebug('CeResources: Get SUT for: `{}` `{}`!'.format(query,username))
-        return self.getResource(query, ROOT_SUT, props, username)
+        # query, root_id, flatten, props, username
+        return self.getResource(query, ROOT_SUT, True, props, username)
 
 #
 
@@ -2201,6 +2203,71 @@ class ResourceAllocator(_cptools.XMLRPCController):
             return r
 
         return True #RESOURCE_FREE
+
+
+    @cherrypy.expose
+    def listReservedResources(self):
+        return self.reservedResources
+
+
+    @cherrypy.expose
+    def listLockedResources(self):
+        return self.lockedResources
+
+
+    @cherrypy.expose
+    def listAllSuts(self, user):
+        """
+        Fast list suts.
+        """
+        suts = []
+        result = []
+        usrHome = userHome(user)
+
+        # System SUT path
+        sysSutsPath = self.project.getUserInfo(user, 'sys_sut_path')
+        if not sysSutsPath:
+            sysSutsPath = '{}/config/sut/'.format(TWISTER_PATH)
+
+        # User SUT path
+        usrSutPath = self.project.getUserInfo(user, 'sut_path')
+        if not usrSutPath:
+            usrSutPath = '{}/twister/config/sut/'.format(usrHome)
+
+        if os.path.isdir(sysSutsPath):
+            s = ['{}.system'.format(os.path.splitext(d)[0]) for d in os.listdir(sysSutsPath) if os.path.splitext(d)[1]=='.json']
+            suts.extend(s)
+        if os.path.isdir(usrSutPath):
+            s = ['{}.user'.format(os.path.splitext(d)[0]) for d in os.listdir(usrSutPath) if os.path.splitext(d)[1]=='.json']
+            suts.extend(s)
+
+        def quickFindPath(d, spath):
+            for usr, locks in d.iteritems():
+                for id, data in locks.iteritems():
+                    path = data.get('path', [''])
+                    if isinstance(path, str) or isinstance(path, unicode):
+                        path = [path]
+                    if path == [spath]:
+                        return usr
+            return None
+
+        for s in sorted(suts):
+            ruser = quickFindPath(self.reservedResources, s)
+            luser = quickFindPath(self.lockedResources, s)
+
+            if (not ruser) and (not luser):
+                result.append({'name': s, 'status': 'free'})
+            elif ruser:
+                result.append({'name': s, 'status': 'reserved', 'user': ruser})
+            elif luser:
+                result.append({'name': s, 'status': 'locked', 'user': luser})
+            # Both reserved and locked ?
+            else:
+                result.append({'name': s, 'status': 'reserved', 'user': ruser})
+
+        logDebug('Fast listing SUTs... Found {}.'.format(suts))
+
+        return result
 
 #
 
