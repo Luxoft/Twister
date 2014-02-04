@@ -1,6 +1,6 @@
 /*
 File: ConfigEditor.java ; This file is part of Twister.
-Version: 2.005
+Version: 2.006
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -377,10 +377,10 @@ public class ConfigEditor extends JPanel{
                         if(resp.indexOf("*ERROR*")!=-1){
                             CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,ConfigEditor.this,"ERROR", resp);
                         } else {
-                             cfgtree.relseaseConfig(remotelocation);
+                             cfgtree.releaseConfig(remotelocation);
                         }
                     } catch(Exception e){e.printStackTrace();}
-                    cfgtree.refreshStructure();
+                    //cfgtree.refreshStructure();
                 }
                 reinitialize();
                 saveas.setEnabled(false);
@@ -683,11 +683,7 @@ public class ConfigEditor extends JPanel{
                             treenode = temp;
                         }
                         parent.setSut(sutid);
-                        HashMap subhash= (HashMap)sutconfig.client.execute("getSut", new Object[]{sutid,RunnerRepository.user,RunnerRepository.user});
-                        String sutpath = subhash.get("path").toString();
-                        sutpath = sutpath.replace(".system", "(system)");
-                        sutpath = sutpath.replace(".user", "(user)");                        
-                        parent.setSutPath(sutpath);
+                        parent.setSutPath(getPathForSut(sutid));
                         treenode = backup;
                     }
                 }
@@ -697,8 +693,6 @@ public class ConfigEditor extends JPanel{
                     Node bind = binds.item(i);
                     String sutid = bind.getAttributes().getNamedItem("sut").getNodeValue();
                     String [] path = bind.getAttributes().getNamedItem("config").getNodeValue().split("/");
-                    
-                    
                     DefaultMutableTreeNode node = (DefaultMutableTreeNode)tree.getModel().getRoot();
                     for(String el:path){
                         if(node==null)break;
@@ -706,11 +700,7 @@ public class ConfigEditor extends JPanel{
                     }
                     if(node!=null){
                         ((MyFolder)node.getUserObject()).setSut(sutid);
-                        HashMap subhash= (HashMap)sutconfig.client.execute("getSut", new Object[]{sutid,RunnerRepository.user,RunnerRepository.user});
-                        String sutpath = subhash.get("path").toString();
-                        sutpath = sutpath.replace(".system", "(system)");
-                        sutpath = sutpath.replace(".user", "(user)"); 
-                        ((MyFolder)node.getUserObject()).setSutPath(sutpath);
+                        ((MyFolder)node.getUserObject()).setSutPath(getPathForSut(sutid));
                     }
                 }
             }
@@ -719,6 +709,22 @@ public class ConfigEditor extends JPanel{
             System.out.println("There is an error in reading bindings: "+bindingdoc.toString());
             e.printStackTrace();
         }
+    }
+    
+    private String getPathForSut(String sutid){
+        String sutpath = "";
+        Object ob = null;
+        try{ob = sutconfig.client.execute("getSut", new Object[]{sutid,RunnerRepository.user,RunnerRepository.user});
+            HashMap subhash= (HashMap)ob;
+            sutpath = subhash.get("path").toString();
+            sutpath = sutpath.replace(".system", "(system)");
+            sutpath = sutpath.replace(".user", "(user)");                        
+        }catch(Exception e){
+            sutpath = "Sut not available!";
+            System.out.println("Server response: "+ob.toString());
+            e.printStackTrace();
+        }
+        return sutpath;
     }
     
     public void saveBinding(){

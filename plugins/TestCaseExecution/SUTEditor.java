@@ -1,6 +1,6 @@
 /*
 File: SUTEditor.java ; This file is part of Twister.
-Version: 2.009
+Version: 2.010
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -345,7 +345,6 @@ public class SUTEditor extends JPanel{
                         if(lastsaved){
                             resp = client.execute("discardAndReleaseReservedSut", new Object[]{"/"+rootsut,RunnerRepository.user}).toString();
                         } else {
-                            
                             String[] buttons = {"Save","Discard"};
                             resp = CustomDialog.showButtons(SUTEditor.this, JOptionPane.QUESTION_MESSAGE,
                                                                     JOptionPane.DEFAULT_OPTION, null,buttons ,
@@ -360,25 +359,13 @@ public class SUTEditor extends JPanel{
                             } else {
                                 resp = client.execute("discardAndReleaseReservedSut", new Object[]{"/"+rootsut,RunnerRepository.user}).toString();
                             }
-//                              int r = (Integer)CustomDialog.showDialog(
-//                                         new JLabel("Save SUT before closing ?"),
-//                                         JOptionPane.QUESTION_MESSAGE, 
-//                                         JOptionPane.YES_NO_OPTION, SUTEditor.this, "Save", null);
-//                             if(r == JOptionPane.OK_OPTION){
-//                                 resp = client.execute("saveAndReleaseReservedSut", new Object[]{"/"+rootsut,RunnerRepository.user}).toString();
-//                             } else {
-//                                 resp = client.execute("discardAndReleaseReservedSut", new Object[]{"/"+rootsut,RunnerRepository.user}).toString();
-//                             }
                         }
-                        if(resp.indexOf("*ERROR*")==-1){
-                            ((SUT)sutnode.getUserObject()).setReserved("");
-                            ((DefaultTreeModel)suttree.filestree.getModel()).nodeChanged(sutnode);
-                            suttree.treeContextOptions(suttree.filestree.getSelectionPath());
-                        } else {
+                        if(resp.indexOf("*ERROR*")!=-1){
                             CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SUTEditor.this,"ERROR", resp);
                         }
                     }
                     catch(Exception e){e.printStackTrace();}
+                    suttree.releaseSut(rootsut);
                 }
                 rootsut = "";
                 root.removeAllChildren();

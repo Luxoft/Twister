@@ -1,6 +1,6 @@
 /*
 File: ConfigTree.java ; This file is part of Twister.
-Version: 2.007
+Version: 2.008
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -391,7 +391,7 @@ public class ConfigTree extends JPanel{
         }.start();
     }
     
-    public void relseaseConfig(String remotelocation){
+    public void releaseConfig(String remotelocation){
         String [] path = remotelocation.split("/");
         DefaultMutableTreeNode node = (DefaultMutableTreeNode)root.getFirstChild();
         for(String el:path){
@@ -399,9 +399,10 @@ public class ConfigTree extends JPanel{
             node = findInNode(node,el);
         }
         if(node!=null){
-            System.out.println(node.toString());
+            node.setUserObject(node.toString().split(" - Reserved by ")[0]);
+            ((DefaultTreeModel)tree.getModel()).nodeChanged(node);
         } else {
-            System.out.println("is null");
+            System.out.println("Could not find: "+remotelocation);
         }
     }
     
@@ -462,14 +463,14 @@ public class ConfigTree extends JPanel{
                                     .toString());
                 try{
                     boolean edit = false;
+                    System.out.println("user is:"+user);
                     if(user.equals("")||user.equals(RunnerRepository.user))edit = true;
                     if(edit){
-                        String content = RunnerRepository.getRPCClient().execute("lockConfig", new Object[]{thefile}).toString();
+                        String content = "true";
+                        if(!user.equals(RunnerRepository.user))content = RunnerRepository.getRPCClient().execute("lockConfig", new Object[]{thefile}).toString();
                         if(content.toLowerCase().equals("true")){
-//                             refreshStructure();
                             ((DefaultMutableTreeNode)path[path.length-1]).setUserObject(filename+" - Reserved by "+RunnerRepository.user);
                             ((DefaultTreeModel)tree.getModel()).nodeChanged(((DefaultMutableTreeNode)path[path.length-1]));
-                            
                         } else {
                             if(content.indexOf("*ERROR*")!=-1){
                                 CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,ConfigTree.this,"ERROR", content);

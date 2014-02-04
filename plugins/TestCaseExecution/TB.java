@@ -1,6 +1,6 @@
 /*
 File: TB.java ; This file is part of Twister.
-Version: 2.011
+Version: 2.012
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -75,7 +75,7 @@ public class TB extends JPanel{
     private XmlRpcClient client;
     private Node parent;
     private JTree tree;
-    private DefaultMutableTreeNode root;
+    public DefaultMutableTreeNode root;
     private NodePanel optpan;
     private JButton add, remove;
     private JScrollPane jScrollPane1;
@@ -85,7 +85,7 @@ public class TB extends JPanel{
         initializeRPC();
         initPanel();
         parent = getTB("/",null);
-        refreshTBs();
+        //refreshTBs();
         ((DefaultTreeModel)tree.getModel()).reload();
     }
 
@@ -923,7 +923,7 @@ public class TB extends JPanel{
      * based on host an port of 
      * resource allocator specified in config
      */
-    public void initializeRPC(){
+    private void initializeRPC(){
         try{XmlRpcClientConfigImpl configuration = new XmlRpcClientConfigImpl();
             configuration.setServerURL(new URL("http://"+RunnerRepository.host+
                                         ":"+RunnerRepository.getCentralEnginePort()+"/ra/"));
