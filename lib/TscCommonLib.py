@@ -1,7 +1,7 @@
 
 # File: TscCommonLib.py ; This file is part of Twister.
 
-# version: 3.003
+# version: 3.004
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -210,6 +210,18 @@ class TscCommonLib(object):
         if not hasattr(self, 'bindings'):
             self.bindings = self.ce_proxy.getUserVariable('bindings') or {}
         return self.bindings.get(cfg_root)
+
+
+    def getBind(self, path, cfg_root='default_binding'):
+        """
+        Function to get a cfg -> SUT binding. Take 2.
+        """
+        if not hasattr(self, 'bindings'):
+            self.bindings = self.ce_proxy.getUserVariable('bindings') or {}
+        # Fix cfg root maybe ?
+        if not cfg_root:
+            cfg_root = 'default_binding'
+        return self.bindings.get(cfg_root, {}).get(path, False)
 
 
     def countProjectFiles(self):
