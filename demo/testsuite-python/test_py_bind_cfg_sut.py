@@ -10,8 +10,20 @@ This function should get a config, using the full path to config file and the fu
 
 bindings = PROXY.getUserVariable('bindings')
 
+print 'Bindings found :: {}\n'.format(bindings)
+
 for b in bindings:
 	print 'Binding for `{}` ->'.format(b), getBinding(b), '...'
+
+print '\nConfig files for this testcase :: {}\n'.format(CONFIG)
+
+# This must be binded in the applet, or it will be False
+print getBind('ro1/A', 'c1.xml')
+print getBind('ro1/B', 'c1.xml')
+
+# This must also be binded in the applet
+print getBind('Component_1') # Gets the default
+print getBind('Component_2')
 
 #
 
