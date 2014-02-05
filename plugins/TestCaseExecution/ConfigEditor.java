@@ -1,6 +1,6 @@
 /*
 File: ConfigEditor.java ; This file is part of Twister.
-Version: 2.006
+Version: 2.007
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -418,7 +418,7 @@ public class ConfigEditor extends JPanel{
         JButton refreshsut = new JButton("Refresh");
         refreshsut.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
-                sutconfig.getSUT();
+                sutconfig.getFirstLevel();
             }
         });
         JPanel refreshpanel = new JPanel();
