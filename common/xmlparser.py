@@ -1,7 +1,7 @@
 
 # File: xmlparser.py ; This file is part of Twister.
 
-# version: 3.008
+# version: 3.009
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -630,11 +630,7 @@ class TSCParser:
         xml_data = re.sub('>\s+?<', '><', xml_data)
         bind_xml = etree.XML(xml_data)
 
-        with open(cfg_file, 'w') as f:
-            f.write(etree.tostring(bind_xml, pretty_print=True))
-
-        logDebug('Set Binding: Binding `{}` updated in bindings.xml!'.format(fpath))
-        return True
+        return etree.tostring(bind_xml, pretty_print=True)
 
 
     def getBindingsConfig(self):
