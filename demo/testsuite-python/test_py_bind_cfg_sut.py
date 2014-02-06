@@ -1,5 +1,5 @@
 
-# version: 2.001
+# version: 2.002
 
 """
 <title>Test a cfg -> SUT bindings</title>
@@ -18,12 +18,25 @@ for b in bindings:
 print '\nConfig files for this testcase :: {}\n'.format(CONFIG)
 
 # This must be binded in the applet, or it will be False
-print getBind('ro1/A', 'c1.xml')
-print getBind('ro1/B', 'c1.xml')
+print getBindId('ro1/A', 'c1.xml')
+print getBindName('ro1/A', 'c1.xml')
+
+print getBindId('ro1/B', 'c1.xml')
+print getBindName('ro1/B', 'c1.xml')
+print '\n'
 
 # This must also be binded in the applet
-print getBind('Component_1') # Gets the default
-print getBind('Component_2')
+# Gets the default
+print getBindId('Component_1')
+print getBindName('Component_1')
+
+print getBindId('Component_2')
+print getBindName('Component_2')
+print '\n'
+
+# Also gets the default
+print getBindId('Component_1', 'c1.xml')
+print getBindName('Component_1', 'c1.xml')
 
 #
 
