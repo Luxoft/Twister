@@ -1,7 +1,7 @@
 
 # File: CeResources.py ; This file is part of Twister.
 
-# version: 2.016
+# version: 2.017
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -2141,10 +2141,9 @@ class ResourceAllocator(_cptools.XMLRPCController):
             logDebug('CeResources:lockResource different user {} {}'.format(user, username))
             return False
 
-        if user in self.lockedResources and username and user == username:
-            self.lockedResources[user].update([(res_pointer['id'], copy.deepcopy(res_pointer)), ])
-        else:
-            self.lockedResources.update([(user, {res_pointer['id']: copy.deepcopy(res_pointer)}), ])
+        user_res = self.lockedResources.get(user, {})
+        user_res.update({res_pointer['id']: copy.deepcopy(res_pointer)})
+        self.lockedResources[user] = user_res
 
         return True #RESOURCE_BUSY
 
@@ -2213,6 +2212,43 @@ class ResourceAllocator(_cptools.XMLRPCController):
     @cherrypy.expose
     def listLockedResources(self):
         return self.lockedResources
+
+
+    @cherrypy.expose
+    def listAllResources(self):
+        """
+        Fast list testbeds.
+        """
+        res = ['/'.join(v['path']) for k, v in self.resources.get('children').iteritems()]
+        result = []
+
+        def quickFindPath(d, spath):
+            for usr, locks in d.iteritems():
+                for id, data in locks.iteritems():
+                    path = data.get('path', [''])
+                    if isinstance(path, str) or isinstance(path, unicode):
+                        path = [path]
+                    if path == [spath]:
+                        return usr
+            return None
+
+        for s in sorted(res):
+            ruser = quickFindPath(self.reservedResources, s)
+            luser = quickFindPath(self.lockedResources, s)
+
+            if (not ruser) and (not luser):
+                result.append({'name': s, 'status': 'free'})
+            elif ruser:
+                result.append({'name': s, 'status': 'reserved', 'user': ruser})
+            elif luser:
+                result.append({'name': s, 'status': 'locked', 'user': luser})
+            # Both reserved and locked ?
+            else:
+                result.append({'name': s, 'status': 'reserved', 'user': ruser})
+
+        logDebug('Fast listing Resources... Found {}.'.format(res))
+
+        return result
 
 
     @cherrypy.expose
