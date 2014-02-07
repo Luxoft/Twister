@@ -1,6 +1,6 @@
 /*
 File: ConfigTree.java ; This file is part of Twister.
-Version: 2.009
+Version: 2.010
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -422,9 +422,13 @@ public class ConfigTree extends JPanel{
     
     public void refreshStructure() {
         if(root.getChildCount()>0)root.remove(0);
-        try{HashMap struct = (HashMap)RunnerRepository.getRPCClient().execute("listConfigs", new Object[]{RunnerRepository.user});
+        Object ob = null;
+        try{ob = RunnerRepository.getRPCClient().execute("listConfigs", new Object[]{RunnerRepository.user});
+            HashMap struct = (HashMap)ob;
             getList(root,struct);
         } catch (Exception e) {
+            if(ob.toString().indexOf("*ERROR*")!=-1)CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,ConfigTree.this,"ERROR", ob.toString());
+            System.out.println("Server response: "+ob.toString());
             e.printStackTrace();
         }
         ((DefaultTreeModel) tree.getModel()).reload();
