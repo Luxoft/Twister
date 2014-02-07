@@ -1,6 +1,6 @@
 /*
 File: Node.java ; This file is part of Twister.
-Version: 2.004
+Version: 2.005
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -25,6 +25,7 @@ public class Node{
     private String reserved;
     private String id,name;
     private Path path;
+    private String stringpath;
     private HashMap<String,Node> children = new HashMap<String,Node>();
     private HashMap<String,String> properties = new HashMap<String,String>();
     private Node parent;
@@ -35,6 +36,7 @@ public class Node{
     
 
     public Node(String id, String path, String name, Node parent,String eps, byte type){
+        this.stringpath = path;
         this.reserved = "";
         this.eps = eps;
         this.parent = parent;
@@ -46,6 +48,10 @@ public class Node{
     
     public byte getType(){
         return type;
+    }
+    
+    public String getPathAsString(){
+        return stringpath;
     }
     
     public String getReserved(){

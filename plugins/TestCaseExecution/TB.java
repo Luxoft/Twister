@@ -1,6 +1,6 @@
 /*
 File: TB.java ; This file is part of Twister.
-Version: 2.014
+Version: 2.015
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -142,13 +142,14 @@ public class TB extends JPanel{
                     if(tn.getChildCount()>0&&!tree.isExpanded(new TreePath(tn.getPath())))return;
                     if(((Node)tn.getUserObject()).getReserved().equals(RunnerRepository.user))return;
                     if(tn.getLevel()==1){
-                     new Thread(){
+                        new Thread(){
                             public void run(){    
                                 startProgressBar(ev.getXOnScreen(),ev.getYOnScreen());
                                 DefaultTreeModel model = ((DefaultTreeModel)tree.getModel());
                                 tn.removeAllChildren();
                                 model.reload(tn);
                                 Node node = getTB("/"+((Node)tn.getUserObject()).getName(),null);
+                                node.setLock(((Node)tn.getUserObject()).getLock());
                                 tn.setUserObject(node);
                                 DefaultMutableTreeNode temp = new DefaultMutableTreeNode("ID: "+node.getID());
                                 ((DefaultTreeModel)tree.getModel()).insertNodeInto(temp, tn,0);
@@ -205,7 +206,7 @@ public class TB extends JPanel{
                 new MySftpBrowser(RunnerRepository.host,RunnerRepository.user,RunnerRepository.password,tf,c,false).setAction(new AbstractAction(){
                     public void actionPerformed(ActionEvent ev){
                         try{
-                            String resp = client.execute("import_xml", new Object[]{tf.getText(),1}).toString();
+                            String resp = client.execute("import_xml", new Object[]{tf.getText()}).toString();
                             if(resp.indexOf("*ERROR*")==-1){
                                 root.removeAllChildren();
                                 parent = getTB("/",null);
@@ -236,7 +237,7 @@ public class TB extends JPanel{
                 AbstractAction action = new AbstractAction(){
                     public void actionPerformed(ActionEvent ev){
                         try{
-                            String resp = client.execute("export_xml", new Object[]{tf.getText(),1}).toString();
+                            String resp = client.execute("export_xml", new Object[]{tf.getText()}).toString();
                             if(resp.indexOf("*ERROR*")!=-1){
                                 CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,TB.this,"ERROR", "Could not save");
                             }
@@ -376,8 +377,8 @@ public class TB extends JPanel{
         while(en.hasMoreElements()){
             DefaultMutableTreeNode treenode = (DefaultMutableTreeNode)en.nextElement();
             node = (Node)(treenode).getUserObject();
-            if(isReservedByUser(node.getID())){
-                release(node.getID());
+            if(isReservedByUser("/"+node.getName())){
+                release("/"+node.getName());
                 setSavedState(treenode,true);
             }
         }
@@ -487,23 +488,23 @@ public class TB extends JPanel{
     /*
      * get from server user that reserved tb
      */
-    public String getTBReservdUser(String tbid){
-        try{String resp = client.execute("isResourceReserved", new Object[]{tbid,1}).toString();
-            if(resp.equals("false")){
-                return "";
-            }
-             else if (resp.indexOf("*ERROR*")!=-1){
-                CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,TB.this,"ERROR", resp);
-                return "";
-            }
-            else{
-                return resp;
-            }
-        }
-        catch(Exception e){e.printStackTrace();
-            return "";
-        }
-    }
+//     public String getTBReservdUser(String tbid){
+//         try{String resp = client.execute("isResourceReserved", new Object[]{tbid,1}).toString();
+//             if(resp.equals("false")){
+//                 return "";
+//             }
+//              else if (resp.indexOf("*ERROR*")!=-1){
+//                 CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,TB.this,"ERROR", resp);
+//                 return "";
+//             }
+//             else{
+//                 return resp;
+//             }
+//         }
+//         catch(Exception e){e.printStackTrace();
+//             return "";
+//         }
+//     }
     
 //     /*
 //      * check if a TB is reserved
@@ -561,7 +562,7 @@ public class TB extends JPanel{
      */
     public boolean release(String tbid){
         try{System.out.println("Releasing tb: "+tbid);
-            String resp = client.execute("discardAndReleaseReservedResource", new Object[]{tbid,1}).toString();
+            String resp = client.execute("discardAndReleaseReservedResource", new Object[]{tbid}).toString();
             if(resp.indexOf("*ERROR*")==-1){
                 return true;
             } else {
@@ -579,7 +580,7 @@ public class TB extends JPanel{
      * method used to discard and release TB on server
      */
     public boolean discardAndRelease(String tbid){
-        try{String resp = client.execute("discardAndReleaseReservedResource", new Object[]{tbid,1}).toString();
+        try{String resp = client.execute("discardAndReleaseReservedResource", new Object[]{tbid}).toString();
             if(resp.indexOf("*ERROR*")==-1){
                 return true;
             } else {
@@ -681,13 +682,13 @@ public class TB extends JPanel{
                                 JOptionPane.QUESTION_MESSAGE, 
                                 JOptionPane.OK_CANCEL_OPTION, TB.this, "Save", null);
                     if(r == JOptionPane.OK_OPTION){
-                        success = saveAndRelease(node.getID());
+                        success = saveAndRelease("/"+node.getName());
                         setSavedState(treenode,true);
                         node.setReserved("");
                         ((DefaultTreeModel)tree.getModel()).nodeChanged(treenode);
                         optpan.setParent(node,treenode,false);
                     } else {
-                        success = discardAndRelease(node.getID());
+                        success = discardAndRelease("/"+node.getName());
                         buildFirstLevelTB();
                         optpan.setParent(null,null,false);
                     }
@@ -702,7 +703,7 @@ public class TB extends JPanel{
         item = new JMenuItem("Discard Changes & Release");
         item.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
-                if(discardAndRelease(node.getID())){
+                if(discardAndRelease("/"+node.getName())){
                     setSavedState(treenode,true);
                     node.setReserved("");
                     ((DefaultTreeModel)tree.getModel()).nodeChanged(treenode);
@@ -716,7 +717,7 @@ public class TB extends JPanel{
             item = new JMenuItem("Lock");
             item.addActionListener(new ActionListener(){
                 public void actionPerformed(ActionEvent ev){
-                    try{String resp = client.execute("lockResource", new Object[]{node.getID(),1}).toString();
+                    try{String resp = client.execute("lockResource", new Object[]{"/"+node.getName()}).toString();
                         if(resp.indexOf("*ERROR*")==-1){
                             node.setLock(RunnerRepository.user);
                             ((DefaultTreeModel)tree.getModel()).nodeChanged(treenode);
@@ -732,7 +733,7 @@ public class TB extends JPanel{
             item = new JMenuItem("Unlock");
             item.addActionListener(new ActionListener(){
                 public void actionPerformed(ActionEvent ev){
-                    try{String resp = client.execute("unlockResource", new Object[]{node.getID(),1}).toString();
+                    try{String resp = client.execute("unlockResource", new Object[]{"/"+node.getName()}).toString();
                         if(resp.indexOf("*ERROR*")==-1){
                             node.setLock("");
                             ((DefaultTreeModel)tree.getModel()).nodeChanged(treenode);
@@ -750,7 +751,7 @@ public class TB extends JPanel{
         item = new JMenuItem("Save Changes");
         item.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
-                if(saveChanges(node.getID())){
+                if(saveChanges("/"+node.getName())){
                     setSavedState(treenode,true);
                 }}});
         p.add(item);
@@ -805,12 +806,20 @@ public class TB extends JPanel{
                                                     TB.this, "Name", "TestBed name: ");
         if(resp!=null&&!resp.equals("")){
             boolean goon=true;
-            for(String s:parent.getChildren().keySet()){
-                if(resp.equals(parent.getChildren().get(s).getName())){
+            int size = root.getChildCount();
+            for(int i=0;i<size;i++){
+                if(resp.equals(((Node)((DefaultMutableTreeNode)root.getChildAt(i)).getUserObject()).getName())){
                     goon = false;
-                    break;
+                        break;
                 }
             }
+//             if(parent.getChildren().size()>0){
+//                 for(String s:parent.getChildren().keySet()){
+//                     if(resp.equals(parent.getChildren().get(s).getName())){
+//                         
+//                     }
+//                 }
+//             }
             if(goon){
                 try{
                     Node newnode = new Node(null,resp,resp,parent,null,(byte)0);
@@ -893,7 +902,8 @@ public class TB extends JPanel{
             if(goon){
                 try{
                     Node newnode = new Node(null,parent.getPath().getPath()+"/"+resp,resp,parent,null,(byte)(1));
-                    resp = client.execute("setResource", new Object[]{resp,parent.getID(),null}).toString();
+                    System.out.println(resp+" --- /"+parent.getPath().getPath()+"/"+resp+" --- null");
+                    resp = client.execute("setResource", new Object[]{resp,"/"+parent.getPath().getPath()+"/",null}).toString();
                     if(resp.indexOf("*ERROR*")==-1){
                         parent.addChild(resp,newnode);
                         setSavedState(treenode,false);
@@ -922,7 +932,11 @@ public class TB extends JPanel{
      * removes node and updates fields
      */
     public boolean removeNode(Node node,DefaultMutableTreeNode treenode){
-        try{String s = client.execute("deleteResource", new Object[]{node.getID()}).toString();
+        try{
+            String id = node.getID();
+            if(id==null)id = "/"+node.getPathAsString();
+            System.out.println("Delete: "+id);
+            String s = client.execute("deleteResource", new Object[]{id}).toString();
             if(s.indexOf("*ERROR*")==-1){
                 Node parent = node.getParent();
                 setSavedState(treenode,false);
@@ -988,7 +1002,8 @@ public class TB extends JPanel{
      * received from server
      */
     public Node getTB(String id,Node parent){
-        try{Object ob = client.execute("getResource", new Object[]{id});
+        Object ob = null;
+        try{ob = client.execute("getResource", new Object[]{id});
             if(ob.toString().indexOf("*ERROR*")!=-1){
                 CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,TB.this,"ERROR", ob.toString());
             }
@@ -999,7 +1014,8 @@ public class TB extends JPanel{
             if(parent==null||(parent!=null&&parent.toString().equals(""))){
                 type = 0;
             }
-            Node node = new Node(hash.get("id").toString(),path,name,parent,null,type);
+            if(!id.equals("/"))id = hash.get("id").toString();
+            Node node = new Node(id,path,name,parent,null,type);
             Object[] children = (Object[])hash.get("children");
             for(Object o:children){
                 node.addChild(o.toString(), null);
@@ -1019,9 +1035,7 @@ public class TB extends JPanel{
             }
             return node;
         }catch(Exception e){
-            System.out.println("requested id: "+id);
-            try{System.out.println("server respons: "+client.execute("getResource", new Object[]{id}));}
-            catch(Exception ex){ex.printStackTrace();}
+            System.out.println("requested id: "+id+" server respons: "+ob.toString());
             e.printStackTrace();
             return null;
         }

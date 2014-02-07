@@ -1,6 +1,6 @@
 /*
 File: SutTree.java ; This file is part of Twister.
-Version: 2.006
+Version: 2.007
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -765,7 +765,7 @@ public class SutTree extends JPanel{
         }
         node = findInNode(node,sut);
         if(node!=null){
-            node.setUserObject(node.toString().split(" - Reserved by: ")[0]);
+            ((SUT)node.getUserObject()).setReserved("");
             ((DefaultTreeModel)filestree.getModel()).nodeChanged(node);
         } else {
             System.out.println("Could not find: "+sut);

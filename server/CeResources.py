@@ -1,7 +1,7 @@
 
 # File: CeResources.py ; This file is part of Twister.
 
-# version: 2.017
+# version: 2.018
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -1303,6 +1303,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
             # If must delete a Meta info
             if meta:
+                logDebug('Executing `{}` ...'.format( 'val = {}["meta"].get("{}")'.format(exec_string, meta) ))
                 exec( 'val = {}["meta"].get("{}")'.format(exec_string, meta) )
 
                 if val is None:
@@ -1310,11 +1311,13 @@ class ResourceAllocator(_cptools.XMLRPCController):
                     logError(msg)
                     return '*ERROR* ' + msg
 
+                logDebug('Executing `{}` ...'.format( 'del {}["meta"]["{}"]'.format(exec_string, meta) ))
                 exec( 'del {}["meta"]["{}"]'.format(exec_string, meta) )
                 logDebug('Deleted {} meta `{}:{}`.'.format(root_name, '/'.join(res_path), meta))
 
             # If must delete a normal node
             else:
+                logDebug('Executing `{}` ...'.format( 'del ' + exec_string ))
                 exec( 'del ' + exec_string )
                 logDebug('Deleted {} path `{}`.'.format(root_name, '/'.join(res_path)))
 
@@ -2219,7 +2222,10 @@ class ResourceAllocator(_cptools.XMLRPCController):
         """
         Fast list testbeds.
         """
-        res = ['/'.join(v['path']) for k, v in self.resources.get('children').iteritems()]
+        res = []
+        for k, v in self.resources.get('children').iteritems():
+            path = v.get('path') or _get_res_path(self.resources, v['id']) or []
+            res.append('/'.join(path))
         result = []
 
         def quickFindPath(d, spath):

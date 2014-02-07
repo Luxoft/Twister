@@ -1,6 +1,6 @@
 /*
 File: SUTEditor.java ; This file is part of Twister.
-Version: 2.010
+Version: 2.011
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -559,9 +559,10 @@ public class SUTEditor extends JPanel{
      * received from server
      */
     public Node getTB(String id,Node parent){
+        Object resp = null;
         try{
-            System.out.println(id);
-            HashMap hash= (HashMap)client.execute("getResource", new Object[]{id});
+            resp = client.execute("getResource", new Object[]{id});
+            HashMap hash= (HashMap)resp;
             String path = hash.get("path").toString();
             String name = path.split("/")[path.split("/").length-1];
             byte type = 1;
@@ -588,7 +589,7 @@ public class SUTEditor extends JPanel{
             }
             return node;
         }catch(Exception e){
-            try{System.out.println("server respons: "+client.execute("getResource", new Object[]{id}));}
+            try{System.out.println("server respons: "+resp.toString());}
             catch(Exception ex){ex.printStackTrace();}
             e.printStackTrace();
             return null;
