@@ -1,6 +1,6 @@
 /*
 File: TB.java ; This file is part of Twister.
-Version: 2.013
+Version: 2.014
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -716,7 +716,7 @@ public class TB extends JPanel{
             item = new JMenuItem("Lock");
             item.addActionListener(new ActionListener(){
                 public void actionPerformed(ActionEvent ev){
-                    try{String resp = client.execute("lockResource", new Object[]{node.getID()}).toString();
+                    try{String resp = client.execute("lockResource", new Object[]{node.getID(),1}).toString();
                         if(resp.indexOf("*ERROR*")==-1){
                             node.setLock(RunnerRepository.user);
                             ((DefaultTreeModel)tree.getModel()).nodeChanged(treenode);
@@ -732,7 +732,7 @@ public class TB extends JPanel{
             item = new JMenuItem("Unlock");
             item.addActionListener(new ActionListener(){
                 public void actionPerformed(ActionEvent ev){
-                    try{String resp = client.execute("unlockResource", new Object[]{node.getID()}).toString();
+                    try{String resp = client.execute("unlockResource", new Object[]{node.getID(),1}).toString();
                         if(resp.indexOf("*ERROR*")==-1){
                             node.setLock("");
                             ((DefaultTreeModel)tree.getModel()).nodeChanged(treenode);
