@@ -1,6 +1,6 @@
 /*
 File: XMLBuilder.java ; This file is part of Twister.
-Version: 2.012
+Version: 2.013
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -307,7 +307,8 @@ public class XMLBuilder{
                         
                         
                         
-                        int sutsnr = noderoot.getChildCount();
+                        int sutsnr = 0;
+                        if(noderoot!=null)sutsnr = noderoot.getChildCount();
                         
                         for(int j=0;j<sutsnr;j++){
                             

@@ -1,6 +1,6 @@
 /*
 File: ConfigTree.java ; This file is part of Twister.
-Version: 2.008
+Version: 2.009
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -166,6 +166,7 @@ public class ConfigTree extends JPanel{
                               }
                             }
                         } catch(Exception e){
+                            CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,ConfigTree.this,"ERROR", "Could not write file! Check log.");
                             e.printStackTrace();
                         }
                     }
