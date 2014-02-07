@@ -635,6 +635,14 @@ class CeXmlRpc(_cptools.XMLRPCController):
                 dirList(tests_path, tests_path + os.sep + nitem['path'], nitem)
 
         dirpath = self.project.getUserInfo(user, 'tcfg_path')
+        if not dirpath:
+            err = '*ERROR* Null config path `{}`!'.format(dirpath)
+            logWarning(err)
+            return err
+        if not os.path.isdir(dirpath):
+            err = '*ERROR* Invalid config path `{}`!'.format(dirpath)
+            logWarning(err)
+            return err
         paths = {'path':'/', 'data':os.path.split(dirpath)[-1], 'folder':True, 'children':[]}
         dirList(dirpath, dirpath, paths)
         return paths
