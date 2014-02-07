@@ -1,6 +1,6 @@
 /*
 File: TB.java ; This file is part of Twister.
-Version: 2.012
+Version: 2.014
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -70,6 +70,8 @@ import java.awt.event.HierarchyListener;
 import java.awt.event.HierarchyEvent;
 import javax.swing.DropMode;
 import java.util.Enumeration;
+import javax.swing.JFrame;
+import javax.swing.JProgressBar;
 
 public class TB extends JPanel{
     private XmlRpcClient client;
@@ -80,6 +82,7 @@ public class TB extends JPanel{
     private JButton add, remove;
     private JScrollPane jScrollPane1;
     private JLabel jusers;
+    private JFrame progress;
 
     public TB(){
         initializeRPC();
@@ -131,6 +134,36 @@ public class TB extends JPanel{
                     }
                 }
             }});
+        tree.addMouseListener(new MouseAdapter(){
+            public void mouseReleased(final MouseEvent ev){
+                if(ev.getClickCount()==2){
+                    TreePath tp = tree.getPathForLocation(ev.getX(), ev.getY());
+                    final DefaultMutableTreeNode tn = (DefaultMutableTreeNode)tp.getLastPathComponent();
+                    if(tn.getChildCount()>0&&!tree.isExpanded(new TreePath(tn.getPath())))return;
+                    if(((Node)tn.getUserObject()).getReserved().equals(RunnerRepository.user))return;
+                    if(tn.getLevel()==1){
+                     new Thread(){
+                            public void run(){    
+                                startProgressBar(ev.getXOnScreen(),ev.getYOnScreen());
+                                DefaultTreeModel model = ((DefaultTreeModel)tree.getModel());
+                                tn.removeAllChildren();
+                                model.reload(tn);
+                                Node node = getTB("/"+((Node)tn.getUserObject()).getName(),null);
+                                tn.setUserObject(node);
+                                DefaultMutableTreeNode temp = new DefaultMutableTreeNode("ID: "+node.getID());
+                                ((DefaultTreeModel)tree.getModel()).insertNodeInto(temp, tn,0);
+                                DefaultMutableTreeNode temp2 = new DefaultMutableTreeNode(node.getPath());
+                                ((DefaultTreeModel)tree.getModel()).insertNodeInto(temp2, tn,1);
+                                buildTree(node,tn,false);
+                                model.reload(tn);
+                                tree.expandPath(new TreePath(tn.getPath()));
+                                progress.dispose();
+                            }
+                        }.start();
+                    }
+                }
+            }
+        });
         tree.setTransferHandler(new TreeTransferHandler());  
         tree.setCellRenderer(new CustomIconRenderer());
         optpan = new NodePanel(tree,client);
@@ -153,7 +186,7 @@ public class TB extends JPanel{
         activetbusers.add(refreshtb,BorderLayout.WEST);
         refreshtb.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
-                refreshTBs();
+                buildFirstLevelTB();
             }});
         JMenuBar menubar = new JMenuBar();
         JMenu menu = new JMenu("File");
@@ -177,7 +210,7 @@ public class TB extends JPanel{
                                 root.removeAllChildren();
                                 parent = getTB("/",null);
                                 DefaultTreeModel model = (DefaultTreeModel)tree.getModel();
-                                buildTree(parent,root);
+                                buildTree(parent,root,true);
                                 ((DefaultTreeModel)tree.getModel()).reload();
                             } else {
                                 CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,TB.this,"ERROR", "Could not import!CE error: "+resp);
@@ -344,52 +377,118 @@ public class TB extends JPanel{
             DefaultMutableTreeNode treenode = (DefaultMutableTreeNode)en.nextElement();
             node = (Node)(treenode).getUserObject();
             if(isReservedByUser(node.getID())){
-//                 if(
                 release(node.getID());
-//                 ){
                 setSavedState(treenode,true);
-//                 }
             }
+        }
+    }
+    
+    public void startProgressBar(final int X, final int Y){            
+        progress = new JFrame();
+        progress.setAlwaysOnTop(true);
+        progress.setLocation(X,Y);
+        progress.setUndecorated(true);
+        JProgressBar bar = new JProgressBar();
+        bar.setIndeterminate(true);
+        progress.add(bar);
+        progress.pack();
+        progress.setVisible(true);
+    }
+    
+    public void buildFirstLevelTB(){
+        try{root.removeAllChildren();
+            Object ob = client.execute("listAllResources", new Object[]{});
+            if(ob.toString().indexOf("*ERROR*")!=-1){
+                CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,TB.this,"ERROR", ob.toString());
+            }
+            Object [] array = (Object[])ob;
+            DefaultMutableTreeNode child;
+            root.removeAllChildren();
+            DefaultTreeModel model = (DefaultTreeModel)tree.getModel();
+            String name;
+            HashMap hash;
+            for(Object object:array){
+                hash = (HashMap)object;
+                name = hash.get("name").toString();
+                Node node = new Node(null,"/"+name,name,null,null,(byte)0);
+                String status = hash.get("status").toString();
+                String user = "";
+                if(!status.equals("free")){
+                    user = hash.get("user").toString();
+                    if(status.equals("reserved")){
+                        node.setReserved(user);
+                    }else if(status.equals("locked")){
+                        node.setLock(user);
+                    }
+                }
+                child = new DefaultMutableTreeNode(node);
+                model.insertNodeInto(child, root, root.getChildCount());
+                if(status.equals("reserved")&&user.equals(RunnerRepository.user)){
+                    node = getTB("/"+name,null);
+                    DefaultMutableTreeNode temp = new DefaultMutableTreeNode("ID: "+node.getID());
+                    ((DefaultTreeModel)tree.getModel()).insertNodeInto(temp, child,0);
+                    DefaultMutableTreeNode temp2 = new DefaultMutableTreeNode(node.getPath());
+                    ((DefaultTreeModel)tree.getModel()).insertNodeInto(temp2, child,1);
+                    ((DefaultTreeModel)tree.getModel()).nodeChanged(child);
+                    buildTree(node,child,false);
+                }
+            }
+            model.reload();
+            ((DefaultTreeModel)tree.getModel()).reload();
+        } catch (Exception e){
+            e.printStackTrace();
         }
     }
     
     /*
      * refresh tree from server
      */
-    public void refreshTBs(){
-        root.removeAllChildren();
-        parent = getTB("/",null);
-        buildTree(parent,root);
-        ((DefaultTreeModel)tree.getModel()).reload();
-        optpan.setParent(null,null,false);
-        remove.setEnabled(false);
-        add.setText("Add TB");
-        Enumeration en = root.children();
-        Node node;
-        while(en.hasMoreElements()){
-            DefaultMutableTreeNode treenode = (DefaultMutableTreeNode)en.nextElement();
-            node = (Node)treenode.getUserObject();
-            node.setReserved(getTBReservdUser(node.getID()));
-            try{String resp = client.execute("isResourceLocked", new Object[]{node.getID()}).toString();
-                if(resp.equals("false")){
-                    node.setLock("");
-                }
-                else if (resp.indexOf("*ERROR*")!=-1){
-                    CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,TB.this,"ERROR", resp);
-                    node.setLock("");
-                } else {
-                    node.setLock(resp);
-                }
-            } catch (Exception e){e.printStackTrace();}
-            ((DefaultTreeModel)tree.getModel()).nodeChanged(treenode);
-        }
-    }
+//     public void refreshTBs(){
+        //listAllResources()
+//         root.removeAllChildren();
+//         parent = getTB("/",null);
+//         buildTree(parent,root,true);
+//         ((DefaultTreeModel)tree.getModel()).reload();
+//         optpan.setParent(null,null,false);
+//         remove.setEnabled(false);
+//         add.setText("Add TB");
+//         Enumeration en = root.children();
+//         Node node;
+//         while(en.hasMoreElements()){
+//             DefaultMutableTreeNode treenode = (DefaultMutableTreeNode)en.nextElement();
+//             node = (Node)treenode.getUserObject();
+//             node.setReserved(getTBReservdUser(node.getID()));
+//             if(node.getReserved().equals(RunnerRepository.user)){
+//                 node = getTB(node.getID(),node.getParent());
+//                 node.setReserved(RunnerRepository.user);
+//                 DefaultMutableTreeNode temp = new DefaultMutableTreeNode("ID: "+node.getID());
+//                 ((DefaultTreeModel)tree.getModel()).insertNodeInto(temp, treenode,0);
+//                 DefaultMutableTreeNode temp2 = new DefaultMutableTreeNode(node.getPath());
+//                 ((DefaultTreeModel)tree.getModel()).insertNodeInto(temp2, treenode,1);
+//                 ((DefaultTreeModel)tree.getModel()).nodeChanged(treenode);
+//                 buildTree(node,treenode,false);
+//                 ((DefaultTreeModel)tree.getModel()).reload(treenode);
+//             }
+//             try{String resp = client.execute("isResourceLocked", new Object[]{node.getID()}).toString();
+//                 if(resp.equals("false")){
+//                     node.setLock("");
+//                 }
+//                 else if (resp.indexOf("*ERROR*")!=-1){
+//                     CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,TB.this,"ERROR", resp);
+//                     node.setLock("");
+//                 } else {
+//                     node.setLock(resp);
+//                 }
+//             } catch (Exception e){e.printStackTrace();}
+//             ((DefaultTreeModel)tree.getModel()).nodeChanged(treenode);
+//         }
+//     }
     
     /*
      * get from server user that reserved tb
      */
     public String getTBReservdUser(String tbid){
-        try{String resp = client.execute("isResourceReserved", new Object[]{tbid}).toString();
+        try{String resp = client.execute("isResourceReserved", new Object[]{tbid,1}).toString();
             if(resp.equals("false")){
                 return "";
             }
@@ -423,7 +522,7 @@ public class TB extends JPanel{
      * check if a TB is reserved
      */
     public boolean isReservedByUser(String tbid){
-        try{String resp = client.execute("isResourceReserved", new Object[]{tbid}).toString();
+        try{String resp = client.execute("isResourceReserved", new Object[]{tbid,1}).toString();
             if(resp.equals(RunnerRepository.user)){
                 return true;
             } else if (resp.indexOf("*ERROR*")!=-1){
@@ -462,7 +561,7 @@ public class TB extends JPanel{
      */
     public boolean release(String tbid){
         try{System.out.println("Releasing tb: "+tbid);
-            String resp = client.execute("discardAndReleaseReservedResource", new Object[]{tbid}).toString();
+            String resp = client.execute("discardAndReleaseReservedResource", new Object[]{tbid,1}).toString();
             if(resp.indexOf("*ERROR*")==-1){
                 return true;
             } else {
@@ -480,7 +579,7 @@ public class TB extends JPanel{
      * method used to discard and release TB on server
      */
     public boolean discardAndRelease(String tbid){
-        try{String resp = client.execute("discardAndReleaseReservedResource", new Object[]{tbid}).toString();
+        try{String resp = client.execute("discardAndReleaseReservedResource", new Object[]{tbid,1}).toString();
             if(resp.indexOf("*ERROR*")==-1){
                 return true;
             } else {
@@ -528,20 +627,38 @@ public class TB extends JPanel{
         }
     }
     
-    public void showTBPopUp(final DefaultMutableTreeNode treenode,final Node node, MouseEvent ev){
+    public void showTBPopUp(final DefaultMutableTreeNode treenode,final Node node,final MouseEvent ev){
         if(!PermissionValidator.canEditTB())return;
         String reserved = node.getReserved();
         JPopupMenu p = new JPopupMenu();
         JMenuItem item = new JMenuItem("Reserve");
         item.addActionListener(new ActionListener(){
-            public void actionPerformed(ActionEvent ev){
-                if(reserve(node.getID())){
-                    node.setReserved(RunnerRepository.user);
-                    ((DefaultTreeModel)tree.getModel()).nodeChanged(treenode);
-                    optpan.setParent(node,treenode,true);
-                    remove.setEnabled(true);
-                    add.setEnabled(true);
-                    add.setText("Add Component");
+            public void actionPerformed(ActionEvent evnt){
+                if(reserve("/"+node.getName())){
+                    new Thread(){
+                        public void run(){
+                            DefaultTreeModel model = ((DefaultTreeModel)tree.getModel());
+                            startProgressBar(ev.getXOnScreen(),ev.getYOnScreen());
+                            treenode.removeAllChildren();
+                            model.reload(treenode);
+                            Node finalnode = getTB("/"+node.getName(),null);
+                            finalnode.setReserved(RunnerRepository.user);
+                            DefaultMutableTreeNode temp = new DefaultMutableTreeNode("ID: "+finalnode.getID());
+                            model.insertNodeInto(temp, treenode,0);
+                            DefaultMutableTreeNode temp2 = new DefaultMutableTreeNode(finalnode.getPath());
+                            model.insertNodeInto(temp2, treenode,1);
+                            buildTree(finalnode,treenode,false);
+                            treenode.setUserObject(finalnode);
+//                             model.nodeChanged(treenode);
+                            model.reload(treenode);
+                            optpan.setParent(node,treenode,true);
+                            remove.setEnabled(true);
+                            add.setEnabled(true);
+                            add.setText("Add Component");
+                            tree.expandPath(new TreePath(treenode.getPath()));
+                            progress.dispose();
+                        }
+                    }.start();
                 }
             }});
         p.add(item);
@@ -554,7 +671,7 @@ public class TB extends JPanel{
                 boolean saved = getSavedState(treenode);
                 boolean success = false;
                 if(saved){
-                    success = discardAndRelease(node.getID());
+                    success = discardAndRelease("/"+node.getName());
                     node.setReserved("");
                     ((DefaultTreeModel)tree.getModel()).nodeChanged(treenode);
                     optpan.setParent(node,treenode,false);
@@ -571,7 +688,7 @@ public class TB extends JPanel{
                         optpan.setParent(node,treenode,false);
                     } else {
                         success = discardAndRelease(node.getID());
-                        refreshTBs();
+                        buildFirstLevelTB();
                         optpan.setParent(null,null,false);
                     }
                 }
@@ -599,7 +716,7 @@ public class TB extends JPanel{
             item = new JMenuItem("Lock");
             item.addActionListener(new ActionListener(){
                 public void actionPerformed(ActionEvent ev){
-                    try{String resp = client.execute("lockResource", new Object[]{node.getID()}).toString();
+                    try{String resp = client.execute("lockResource", new Object[]{node.getID(),1}).toString();
                         if(resp.indexOf("*ERROR*")==-1){
                             node.setLock(RunnerRepository.user);
                             ((DefaultTreeModel)tree.getModel()).nodeChanged(treenode);
@@ -615,7 +732,7 @@ public class TB extends JPanel{
             item = new JMenuItem("Unlock");
             item.addActionListener(new ActionListener(){
                 public void actionPerformed(ActionEvent ev){
-                    try{String resp = client.execute("unlockResource", new Object[]{node.getID()}).toString();
+                    try{String resp = client.execute("unlockResource", new Object[]{node.getID(),1}).toString();
                         if(resp.indexOf("*ERROR*")==-1){
                             node.setLock("");
                             ((DefaultTreeModel)tree.getModel()).nodeChanged(treenode);
@@ -706,10 +823,10 @@ public class TB extends JPanel{
                         ((DefaultTreeModel)tree.getModel()).insertNodeInto(treechild, root,root.getChildCount());
                         
                         DefaultMutableTreeNode temp = new DefaultMutableTreeNode("ID: "+newnode.getID());
-                        ((DefaultTreeModel)tree.getModel()).insertNodeInto(temp, treechild,treechild.getChildCount());
+                        ((DefaultTreeModel)tree.getModel()).insertNodeInto(temp, treechild,0);
                         
                         DefaultMutableTreeNode temp2 = new DefaultMutableTreeNode(newnode.getPath());
-                        ((DefaultTreeModel)tree.getModel()).insertNodeInto(temp2, treechild,treechild.getChildCount());
+                        ((DefaultTreeModel)tree.getModel()).insertNodeInto(temp2, treechild,1);
                         
                         if(root.getChildCount()==1){
                             ((DefaultTreeModel)tree.getModel()).reload();
@@ -783,12 +900,11 @@ public class TB extends JPanel{
                         newnode.setID(resp);
                         DefaultMutableTreeNode treechild = new DefaultMutableTreeNode(newnode);
                         ((DefaultTreeModel)tree.getModel()).insertNodeInto(treechild, treenode,treenode.getChildCount());
-                        
                         DefaultMutableTreeNode temp = new DefaultMutableTreeNode("ID: "+newnode.getID());
-                        ((DefaultTreeModel)tree.getModel()).insertNodeInto(temp, treechild,treechild.getChildCount());
+                        ((DefaultTreeModel)tree.getModel()).insertNodeInto(temp, treechild,0);
                         
                         DefaultMutableTreeNode temp2 = new DefaultMutableTreeNode(newnode.getPath());
-                        ((DefaultTreeModel)tree.getModel()).insertNodeInto(temp2, treechild,treechild.getChildCount());
+                        ((DefaultTreeModel)tree.getModel()).insertNodeInto(temp2, treechild,1);
                     } else {
                         CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,TB.this,"Warning", resp);
                     }                
@@ -842,10 +958,9 @@ public class TB extends JPanel{
     
     
     /*
-     * build whole 
-     * structure from scratch
+     * build structure from scratch
      */
-    public void buildTree(Node node, DefaultMutableTreeNode treenode){
+    public void buildTree(Node node, DefaultMutableTreeNode treenode,boolean onlyfirstlevel){
         try{
             Iterator iter = node.getChildren().keySet().iterator();
             while(iter.hasNext()){
@@ -854,11 +969,13 @@ public class TB extends JPanel{
                 node.addChild(childid, child);
                 DefaultMutableTreeNode treechild = new DefaultMutableTreeNode(child);
                 ((DefaultTreeModel)tree.getModel()).insertNodeInto(treechild, treenode,treenode.getChildCount());
-                DefaultMutableTreeNode temp = new DefaultMutableTreeNode("ID: "+child.getID());
-                ((DefaultTreeModel)tree.getModel()).insertNodeInto(temp, treechild,treechild.getChildCount());
-                DefaultMutableTreeNode temp2 = new DefaultMutableTreeNode(child.getPath());
-                ((DefaultTreeModel)tree.getModel()).insertNodeInto(temp2, treechild,treechild.getChildCount());
-                buildTree(child,treechild);
+                if(!onlyfirstlevel){
+                    DefaultMutableTreeNode temp = new DefaultMutableTreeNode("ID: "+child.getID());
+                    ((DefaultTreeModel)tree.getModel()).insertNodeInto(temp, treechild,0);
+                    DefaultMutableTreeNode temp2 = new DefaultMutableTreeNode(child.getPath());
+                    ((DefaultTreeModel)tree.getModel()).insertNodeInto(temp2, treechild,1);
+                    buildTree(child,treechild,onlyfirstlevel);
+                }
             }
         } catch(Exception e){
             e.printStackTrace();
@@ -875,16 +992,14 @@ public class TB extends JPanel{
             if(ob.toString().indexOf("*ERROR*")!=-1){
                 CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,TB.this,"ERROR", ob.toString());
             }
-            HashMap hash= (HashMap)ob;
-            
-//             HashMap hash= (HashMap)client.execute("getResource", new Object[]{id});
+            HashMap hash = (HashMap)ob;
             String path = hash.get("path").toString();
             String name = path.split("/")[path.split("/").length-1];
             byte type = 1;
-            if(parent!=null&&parent.toString().equals("")){
+            if(parent==null||(parent!=null&&parent.toString().equals(""))){
                 type = 0;
             }
-            Node node = new Node(id,path,name,parent,null,type);
+            Node node = new Node(hash.get("id").toString(),path,name,parent,null,type);
             Object[] children = (Object[])hash.get("children");
             for(Object o:children){
                 node.addChild(o.toString(), null);

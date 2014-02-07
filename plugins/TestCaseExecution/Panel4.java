@@ -1,6 +1,6 @@
 /*
 File: Panel4.java ; This file is part of Twister.
-Version: 2.011
+Version: 2.012
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -235,7 +235,8 @@ public class Panel4 extends JPanel{
         if(sut.tbs.getTree()!=null){
             tb.setTree(sut.tbs.getTree());
         }
-        if(tb.root.getChildCount()==0)tb.refreshTBs();
+//         if(tb.root.getChildCount()==0)tb.refreshTBs();
+        if(tb.root.getChildCount()==0)tb.buildFirstLevelTB();
         main.repaint();
         main.revalidate();}
     

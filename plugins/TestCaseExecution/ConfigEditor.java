@@ -1,6 +1,6 @@
 /*
 File: ConfigEditor.java ; This file is part of Twister.
-Version: 2.007
+Version: 2.008
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -145,6 +145,7 @@ public class ConfigEditor extends JPanel{
     private Document bindingdoc;
     private boolean editable;
     private boolean lastsave = true;
+    private boolean bindingsave = true;
     public SutConfig sutconfig;
     
     public ConfigEditor(){
@@ -328,6 +329,7 @@ public class ConfigEditor extends JPanel{
                 ((MyFolder)((DefaultMutableTreeNode)tree.getSelectionPath().getLastPathComponent()).getUserObject()).setSut(null);
                 ((MyFolder)((DefaultMutableTreeNode)tree.getSelectionPath().getLastPathComponent()).getUserObject()).setSutPath (null);
                 ((DefaultTreeModel)tree.getModel()).nodeChanged(((DefaultMutableTreeNode)tree.getSelectionPath().getLastPathComponent()));
+                bindingsave = false;
             }
         });
         unbind.setEnabled(false);
@@ -371,7 +373,11 @@ public class ConfigEditor extends JPanel{
                                     JOptionPane.OK_CANCEL_OPTION, ConfigEditor.this, "Save", null);
                         if(r == JOptionPane.OK_OPTION){
                             save.doClick();
+                        } else {
+                            saveBinding();
                         }
+                    } else {
+                        saveBinding();
                     }
                     try{String resp = RunnerRepository.getRPCClient().execute("unlockConfig", new Object[]{remotelocation}).toString();
                         if(resp.indexOf("*ERROR*")!=-1){
@@ -385,9 +391,11 @@ public class ConfigEditor extends JPanel{
                 reinitialize();
                 saveas.setEnabled(false);
                 close.setEnabled(false);
+                unbind.setEnabled(false);
                 getBinding("default");
                 interpretBinding();
                 lastsave = true;
+                bindingsave = true;
             }
         });
         
@@ -505,6 +513,7 @@ public class ConfigEditor extends JPanel{
                             remove.setEnabled(true);
                             addconf.setEnabled(false);
                             addparam.setEnabled(false);
+                            unbind.setEnabled(false);
                         }
                     } else if(ev.getButton() == MouseEvent.BUTTON1){
                         if(tree.getSelectionPaths().length==1){
@@ -538,6 +547,7 @@ public class ConfigEditor extends JPanel{
                                 remove.setEnabled(true);
                                 addconf.setEnabled(false);
                                 addparam.setEnabled(false);
+                                unbind.setEnabled(false);
                             }
                         } else {
                             setDescription(null,null,null,null,null,false);
@@ -570,6 +580,7 @@ public class ConfigEditor extends JPanel{
     
     public void openedConfig(boolean editable){
         lastsave = true;
+        bindingsave = true;
         this.editable = editable;
         if(editable){
             save.setEnabled(true);
@@ -729,6 +740,7 @@ public class ConfigEditor extends JPanel{
     
     public void saveBinding(){
         try{
+            System.out.println("Writing binding..."+remotelocation);
             Node first;
             if(bindingdoc!=null){
                 first = bindingdoc.getFirstChild();
@@ -899,7 +911,9 @@ public class ConfigEditor extends JPanel{
             public void actionPerformed(ActionEvent ev){
                 remotelocation = tf.getText();
                 writeXML();
+                saveBinding();
                 lastsave = true;
+                bindingsave = true;
             }
         };
         new MySftpBrowser(RunnerRepository.host,RunnerRepository.user,RunnerRepository.password,tf,this,true).setAction(action);
@@ -909,6 +923,7 @@ public class ConfigEditor extends JPanel{
         if(editable&&currentfile!=null)writeXML();
         saveBinding();
         lastsave = true;
+        bindingsave = true;
     }
     
     public void setRemoteLocation(String remotelocation){
@@ -1006,6 +1021,7 @@ public class ConfigEditor extends JPanel{
                             }
                             value.setNodeValue(tvalue.getText());
                             ((DefaultTreeModel)tree.getModel()).nodeChanged(treenode);
+                            lastsave = false;
                         }
                     }
                 });
@@ -1023,6 +1039,7 @@ public class ConfigEditor extends JPanel{
                     public void keyReleased(KeyEvent ev){
                         value.setNodeValue(tvalue.getText());
                         ((DefaultTreeModel)tree.getModel()).nodeChanged(treenode);
+                        lastsave = false;
                     }
                 });
             }
@@ -1041,6 +1058,7 @@ public class ConfigEditor extends JPanel{
                             tdescription.setText(dsc);
                         }
                         desc.setNodeValue(dsc);
+                        lastsave = false;
                     }
                 });
             }
@@ -1151,12 +1169,12 @@ public class ConfigEditor extends JPanel{
      */
     public void showParamPopUp(final DefaultMutableTreeNode treenode,MouseEvent ev,final MyParam node){
         JPopupMenu p = new JPopupMenu();
-        JMenuItem item = new JMenuItem("Change Parameter");
+        JMenuItem item = new JMenuItem("Change property");
         item.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 changeParam(treenode,node);}});
         p.add(item);
-        item = new JMenuItem("Remove Parameter");
+        item = new JMenuItem("Remove property");
         item.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 if(acceptRemove())removeParam(node,treenode,true);}});
@@ -1287,7 +1305,7 @@ public class ConfigEditor extends JPanel{
 //             writeXML();
 //             uploadFile();
             setDescription(node.getName(),node.getDesc(),node.getType(),node.getValue(),treenode,false);
-            lastsave = true;
+            lastsave = false;
         }
     }
 
@@ -1328,22 +1346,22 @@ public class ConfigEditor extends JPanel{
      */
     public void showFolderPopUp(final DefaultMutableTreeNode treenode,MouseEvent ev,final MyFolder node){
         JPopupMenu p = new JPopupMenu();
-        JMenuItem item = new JMenuItem("Rename Config");
-        item.addActionListener(new ActionListener(){
-            public void actionPerformed(ActionEvent ev){
-                renameFolder(treenode,node);}});
-        p.add(item);
-        item = new JMenuItem("Add Config");
+//         JMenuItem item = new JMenuItem("Rename Config");
+//         item.addActionListener(new ActionListener(){
+//             public void actionPerformed(ActionEvent ev){
+//                 renameFolder(treenode,node);}});
+//         p.add(item);
+        JMenuItem item = new JMenuItem("Add component");
         item.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 appendFolder(treenode,node);}});
         p.add(item);
-        item = new JMenuItem("Add Parameter");
+        item = new JMenuItem("Add property");
         item.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 appendParam(treenode,node);}});
         p.add(item);
-        item = new JMenuItem("Remove Config");
+        item = new JMenuItem("Delete");
         item.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 if(acceptRemove())removeFolder(node,treenode,true);}});
@@ -1351,52 +1369,52 @@ public class ConfigEditor extends JPanel{
         p.show(this.tree,ev.getX(),ev.getY());
     }
     
-    public void renameFolder(DefaultMutableTreeNode treenode, MyFolder parent){
-        final JTextField name = new JTextField();  
-        name.addAncestorListener(new AncestorListener() {
-            
-            @Override
-            public void ancestorRemoved(AncestorEvent arg0) {}
-            
-            @Override
-            public void ancestorMoved(AncestorEvent arg0) {}
-            
-            @Override
-            public void ancestorAdded(AncestorEvent arg0) {
-                name.requestFocusInWindow();
-            }
-        });
-        name.setText(parent.toString());
-        JPanel p = getPropPanel(name,null,null);
-        int r = (Integer)CustomDialog.showDialog(p,JOptionPane.PLAIN_MESSAGE, 
-                                                JOptionPane.OK_CANCEL_OPTION, 
-                                                panel, "Config name",null);
-        if(r == JOptionPane.OK_OPTION){
-            if(name.getText().equals("")){
-                CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,this,
-                                                  "Warning", "Name must not be null");
-                return;
-            }
-            
-            //check if name already exists
-            for(int i=0;i<treenode.getParent().getChildCount();i++){
-                Object node = ((DefaultMutableTreeNode)treenode.getParent().getChildAt(i)).getUserObject();
-                if(node.getClass() == MyFolder.class && node!=parent){
-                    if(((MyFolder)node).toString().equals(name.getText())){
-                        CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,this,
-                                                  "Warning", "Name already exists");
-                        return;
-                    }
-                }
-            }
-            parent.getNode().setNodeValue(name.getText());
-            ((DefaultTreeModel)tree.getModel()).nodeChanged(treenode);
-//             writeXML();
-//             uploadFile();
-            setDescription(parent.getNode(),parent.getDesc(),null,null,treenode,false);
-            lastsave = true;
-        }
-    }
+//     public void renameFolder(DefaultMutableTreeNode treenode, MyFolder parent){
+//         final JTextField name = new JTextField();  
+//         name.addAncestorListener(new AncestorListener() {
+//             
+//             @Override
+//             public void ancestorRemoved(AncestorEvent arg0) {}
+//             
+//             @Override
+//             public void ancestorMoved(AncestorEvent arg0) {}
+//             
+//             @Override
+//             public void ancestorAdded(AncestorEvent arg0) {
+//                 name.requestFocusInWindow();
+//             }
+//         });
+//         name.setText(parent.toString());
+//         JPanel p = getPropPanel(name,null,null);
+//         int r = (Integer)CustomDialog.showDialog(p,JOptionPane.PLAIN_MESSAGE, 
+//                                                 JOptionPane.OK_CANCEL_OPTION, 
+//                                                 panel, "Config name",null);
+//         if(r == JOptionPane.OK_OPTION){
+//             if(name.getText().equals("")){
+//                 CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,this,
+//                                                   "Warning", "Name must not be null");
+//                 return;
+//             }
+//             
+//             //check if name already exists
+//             for(int i=0;i<treenode.getParent().getChildCount();i++){
+//                 Object node = ((DefaultMutableTreeNode)treenode.getParent().getChildAt(i)).getUserObject();
+//                 if(node.getClass() == MyFolder.class && node!=parent){
+//                     if(((MyFolder)node).toString().equals(name.getText())){
+//                         CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,this,
+//                                                   "Warning", "Name already exists");
+//                         return;
+//                     }
+//                 }
+//             }
+//             parent.getNode().setNodeValue(name.getText());
+//             ((DefaultTreeModel)tree.getModel()).nodeChanged(treenode);
+// //             writeXML();
+// //             uploadFile();
+//             setDescription(parent.getNode(),parent.getDesc(),null,null,treenode,false);
+//             lastsave = true;
+//         }
+//     }
         
     /*
      * create and append new node 
@@ -1689,6 +1707,7 @@ public class ConfigEditor extends JPanel{
     
     public void writeXML(){
         try{
+            System.out.println("Writing config..."+remotelocation);
             Writer outWriter = new StringWriter();
             StreamResult result = new StreamResult( outWriter );
             DOMSource source = new DOMSource(doc);                    
@@ -1807,6 +1826,7 @@ public class ConfigEditor extends JPanel{
             } else {
                 name.setNodeValue(tname.getText());
                 ((DefaultTreeModel)tree.getModel()).nodeChanged(treenode);
+                lastsave = false;
             }
         }
     }
@@ -1978,7 +1998,7 @@ public class ConfigEditor extends JPanel{
                     ((MyFolder)parent.getUserObject()).setSut(file);
                     ((MyFolder)parent.getUserObject()).setSutPath(sutpath);
                     model.nodeChanged(parent);
-                    lastsave = false;
+                    bindingsave = false;
                     return true;
                 } catch(UnsupportedFlavorException ufe) {
                     System.out.println("UnsupportedFlavor: " + ufe.getMessage());
@@ -1986,73 +2006,11 @@ public class ConfigEditor extends JPanel{
                     System.out.println("I/O error: " + ioe.getMessage());
                 }
                 return false;
-                
-//                 Node[] nodes = null;  
-//                 try {  
-//                     Transferable t = support.getTransferable();  
-//                     nodes = (Node[])t.getTransferData(nodesFlavor);  
-//                 } catch(UnsupportedFlavorException ufe) {  
-//                     System.out.println("UnsupportedFlavor: " + ufe.getMessage());  
-//                 } catch(java.io.IOException ioe) {  
-//                     System.out.println("I/O error: " + ioe.getMessage());  
-//                 }
-//                 JTree.DropLocation dl = (JTree.DropLocation)support.getDropLocation();  
-//                 TreePath dest = dl.getPath();  
-//                 DefaultMutableTreeNode parent = (DefaultMutableTreeNode)dest.getLastPathComponent();
-//                 JTree tree = (JTree)support.getComponent();  
-//                 DefaultTreeModel model = ((DefaultTreeModel)tree.getModel());  
-//                 if(parent.getChildCount()>1){
-//                     for(int i=0;i<parent.getChildCount();i++){
-//                         if(((DefaultMutableTreeNode)parent.getChildAt(i)).getUserObject() instanceof Node){
-//                             model.removeNodeFromParent((DefaultMutableTreeNode)parent.getChildAt(i));
-//                         }
-//                     }
-//                 }
-//                 int index = parent.getChildCount();  
-//                 for(int i = 0; i < nodes.length; i++){ 
-//                     try{
-//                         Comp comparent = (Comp)parent.getUserObject();
-//                         HashMap <String,String>hm = new <String,String>HashMap();
-//                         hm.put("_id", nodes[i].getID());
-//                         String parentid="";
-//                         if(((DefaultMutableTreeNode)parent.getParent()).getUserObject() instanceof Comp){
-//                             parentid = ((Comp)((DefaultMutableTreeNode)parent.getParent()).getUserObject()).getID();
-//                         } else {
-//                             parentid = "/"+parent.getParent().toString();
-//                         }
-//                         String resp = client.execute("setSut", new Object[]{comparent.getName(),parentid,hm}).toString();
-//                         if(resp.indexOf("ERROR")==-1){
-//                             DefaultMutableTreeNode element = createChildren(nodes[i]);
-//                             model.insertNodeInto(element, parent, index++);
-//                         }
-//                         else{
-//                             CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SUTEditor.this,"ERROR", resp);
-//                         }
-//                         
-//                     } catch (Exception e){
-//                         e.printStackTrace();
-//                     }
-//                     
-//                 } 
-//                 return true; 
             } catch(Exception e){
                 e.printStackTrace();
                 return false;
             }
-//             return true;
         } 
-        
-//         private DefaultMutableTreeNode createChildren(Node node){
-//             DefaultMutableTreeNode parent = new DefaultMutableTreeNode(node);
-//             
-//             DefaultMutableTreeNode temp = new DefaultMutableTreeNode("ID: "+node.getID(),false);
-//             parent.add(temp);
-//             
-//             temp = new DefaultMutableTreeNode(node.getPath(),false);
-//             parent.add(temp);
-//             
-//             return parent;
-//         }
        
         public String toString() {  
             return getClass().getName();  

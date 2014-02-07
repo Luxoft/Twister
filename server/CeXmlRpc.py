@@ -747,8 +747,13 @@ class CeXmlRpc(_cptools.XMLRPCController):
         Write a binding between a CFG and a SUT.
         Return True/ False.
         """
-        logDebug('User `{}` writes bindings for `{}`.'.format(user, fpath))
-        return self.project.parsers[user].setBinding(fpath, content)
+        fdata = self.project.parsers[user].setBinding(fpath, content)
+        r = self.writeFile('~/twister/config/bindings.xml', binascii.b2a_base64(fdata))
+        if r:
+            logDebug('User `{}` writes bindings for `{}`.'.format(user, fpath))
+        else:
+            logWarning('User `{}` could not update bindings for `{}`!'.format(user, fpath))
+        return r
 
 
 # --------------------------------------------------------------------------------------------------

@@ -1,6 +1,6 @@
 /*
 File: ConfigFiles.java ; This file is part of Twister.
-Version: 2.018
+Version: 2.019
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -414,7 +414,7 @@ public class ConfigFiles extends JPanel{
                         RunnerRepository.window.mainpanel.p4.getTestConfig().cfgedit.reinitialize();
                         RunnerRepository.window.mainpanel.p1.edit(false);
                         RunnerRepository.window.mainpanel.p1.sc.g.setUser(null);
-                        RunnerRepository.window.mainpanel.p4.getTB().refreshTBs();
+                        RunnerRepository.window.mainpanel.p4.getTB().buildFirstLevelTB();
                         RunnerRepository.window.mainpanel.p4.getSut().sut.getSutTree().getSUT();
                         RunnerRepository.openProjectFile();
                     }
@@ -577,7 +577,9 @@ public class ConfigFiles extends JPanel{
             catch(Exception e){addTag("EmailConfigFile","",root,blank,document);}
             try{addTag("GlobalParams",tglobalsfile.getText(),root,blank,document);}
             catch(Exception e){addTag("GlobalParams","",root,blank,document);}
-            try{addTag("TestConfigPath",testconfigpath.getText(),root,blank,document);}
+            try{String tcp = testconfigpath.getText();
+                if(tcp.charAt(tcp.length()-1)=='/')tcp = tcp.substring(0, tcp.length()-1);
+                addTag("TestConfigPath",tcp,root,blank,document);}
             catch(Exception e){addTag("TestConfigPath","",root,blank,document);}
             String temp;
             if(blank) temp ="fwmconfig";
