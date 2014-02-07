@@ -1,3 +1,10 @@
+07th February 2014
+
+- SUT files are saved independently
+- mechanism to Lock/UnLock Reserve/Release SUTs and TB files
+- added binding mechanism and API
+- updated UserGuide
+
 17th January 2014
 
 - changed the mechanism for EP's. Introduced a methog to simplify EP's configuration
