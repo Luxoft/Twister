@@ -1,6 +1,6 @@
 /*
 File: TB.java ; This file is part of Twister.
-Version: 2.015
+Version: 2.016
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -149,7 +149,10 @@ public class TB extends JPanel{
                                 tn.removeAllChildren();
                                 model.reload(tn);
                                 Node node = getTB("/"+((Node)tn.getUserObject()).getName(),null);
-                                node.setLock(((Node)tn.getUserObject()).getLock());
+//                                 node.setLock(((Node)tn.getUserObject()).getLock());
+//                                 node.setReserved(((Node)tn.getUserObject()).getReserved());
+                                node.setReserved(getTBReservdUser(node.getID()));
+                                node.setLock(getTBLockedUser(node.getID()));                                
                                 tn.setUserObject(node);
                                 DefaultMutableTreeNode temp = new DefaultMutableTreeNode("ID: "+node.getID());
                                 ((DefaultTreeModel)tree.getModel()).insertNodeInto(temp, tn,0);
@@ -484,27 +487,47 @@ public class TB extends JPanel{
 //             ((DefaultTreeModel)tree.getModel()).nodeChanged(treenode);
 //         }
 //     }
+
+    /*
+     * get from server user that reserved tb
+     */
+    private String getTBLockedUser(String tbid){
+        try{String resp = client.execute("isResourceLocked", new Object[]{tbid}).toString();
+            if(resp.equals("false")){
+                return "";
+            }
+            else if (resp.indexOf("*ERROR*")!=-1){
+                CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,TB.this,"ERROR", resp);
+                return "";
+            } else {
+                return resp;
+            }
+        } catch (Exception e){
+            e.printStackTrace();
+            return "";
+        }
+    }
     
     /*
      * get from server user that reserved tb
      */
-//     public String getTBReservdUser(String tbid){
-//         try{String resp = client.execute("isResourceReserved", new Object[]{tbid,1}).toString();
-//             if(resp.equals("false")){
-//                 return "";
-//             }
-//              else if (resp.indexOf("*ERROR*")!=-1){
-//                 CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,TB.this,"ERROR", resp);
-//                 return "";
-//             }
-//             else{
-//                 return resp;
-//             }
-//         }
-//         catch(Exception e){e.printStackTrace();
-//             return "";
-//         }
-//     }
+    private String getTBReservdUser(String tbid){
+        try{String resp = client.execute("isResourceReserved", new Object[]{tbid,1}).toString();
+            if(resp.equals("false")){
+                return "";
+            }
+             else if (resp.indexOf("*ERROR*")!=-1){
+                CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,TB.this,"ERROR", resp);
+                return "";
+            }
+            else{
+                return resp;
+            }
+        }
+        catch(Exception e){e.printStackTrace();
+            return "";
+        }
+    }
     
 //     /*
 //      * check if a TB is reserved
