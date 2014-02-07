@@ -758,9 +758,21 @@ public class SUTEditor extends JPanel{
                 int index = parent.getChildCount();  
                 for(int i = 0; i < nodes.length; i++){ 
                     try{
+                        String id = "";
+                        if(nodes[i].getType()==0){
+                            try{System.out.println("getresource: "+"/"+nodes[i].getName());
+                                HashMap hash = (HashMap)client.execute("getResource", new Object[]{"/"+nodes[i].getName()});
+                                id = hash.get("id").toString();
+                            } catch(Exception e){
+                                e.printStackTrace();
+                                id = "/"+nodes[i].getName();
+                            }
+                        } else {
+                            id = nodes[i].getID();
+                        }
                         Comp comparent = (Comp)parent.getUserObject();
                         HashMap <String,String>hm = new <String,String>HashMap();
-                        hm.put("_id", nodes[i].getID());
+                        hm.put("_id", id);
                         String parentid="";
                         parentid = ((Comp)(parent.getUserObject())).getName();
                         String name = "";
@@ -769,14 +781,9 @@ public class SUTEditor extends JPanel{
                         } else {
                             name = ((Comp)((DefaultMutableTreeNode)parent.getParent()).getUserObject()).getID();
                         }
-                        //if(parent.getUserObject() instanceof Comp){
-                        //    parentid = ((Comp)(parent.getUserObject())).getID();
-                        //} else {
-                        //    parentid = ((Comp)((DefaultMutableTreeNode)parent.getParent()).getUserObject()).getID();
-                        //}
-                        //String resp = client.execute("setSut", new Object[]{comparent.getName(),parentid,hm}).toString();
+                        System.out.println(parentid+" - "+name+" - "+hm.toString()+" - "+RunnerRepository.user);
                         String resp = client.execute("setSut", new Object[]{parentid,name,hm,RunnerRepository.user}).toString();
-                        System.out.println(parentid+" - "+name+" - "+hm.toString());
+                        
                         if(resp.indexOf("ERROR")==-1){
                             DefaultMutableTreeNode element = createChildren(nodes[i]);
                             model.insertNodeInto(element, parent, 1);

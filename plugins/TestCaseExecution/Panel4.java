@@ -140,6 +140,7 @@ public class Panel4 extends JPanel{
         main.removeAll();
         main.setLayout(new BorderLayout());
         main.add(sut,BorderLayout.CENTER);
+        if(tb.root.getChildCount()==0)tb.buildFirstLevelTB();
         sut.tbs.setTree(tb.getTree());
 //         sut.sut.getSutTree().sp2.setViewportView(sut.sut.getSutTree().filestree);
 //         sut.sut.getSUT();
