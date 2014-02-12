@@ -313,9 +313,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
                 if user in self._loadedUsers:
                     # Get the user rpyc connection suts and count
                     try:
-                        userConn = self.project.rsrv.service._findConnection(user,
-                                                                ['127.0.0.1', 'localhost'], 'client')
-                        userConn = self.project.rsrv.service.conns[userConn]['conn']
+                        userConn = self.project._find_local_client(user)
                         userSutsLen = copy.deepcopy(userConn.root.exposed_get_suts_len())
                         loadedLen = 0
                         for c in self._loadedUsers[user]['children']:
@@ -420,9 +418,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
                 try:
                     user_roles = self.userRoles(props)
                     user = user_roles.get('user')
-                    userConn = self.project.rsrv.service._findConnection(user,
-                                                            ['127.0.0.1', 'localhost'], 'client')
-                    userConn = self.project.rsrv.service.conns[userConn]['conn']
+                    userConn = self.project._find_local_client(user)
                     userSuts = copy.deepcopy(userConn.root.get_suts())
                     if userSuts:
                         self.systems['children'].update(userSuts)
@@ -557,19 +553,16 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
                 if userSuts:
                     # Get the user rpyc connection connection
+                    user_roles = self.userRoles(props)
+                    user = user_roles.get('user')
                     try:
-                        user_roles = self.userRoles(props)
-                        user = user_roles.get('user')
-
-                        userConn = self.project.rsrv.service._findConnection(user,
-                                                                    ['127.0.0.1', 'localhost'], 'client')
-                        userConn = self.project.rsrv.service.conns[userConn]['conn']
+                        userConn = self.project._find_local_client(user)
                         r = userConn.root.save_suts(userSuts)
-                        if not r == True:
+                        if r is not True:
                             log.append(r)
                     except Exception as e:
                         log.append(e)
-                        logError('Saving ERROR:: `{}`.'.format(e))
+                        logError('Saving ERROR user:: `{}`.'.format(e))
 
                 if systemSuts and not log:
                     for sys_sut in systemSuts:
@@ -578,7 +571,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
                                 json.dump(sys_sut[1], f, indent=4)
                         except Exception as e:
                             log.append(e)
-                            logError('Saving ERROR:: `{}`.'.format(e))
+                            logError('Saving ERROR system:: `{}`.'.format(e))
 
                     # update loaded users systems
                     self._loadedUsers.update([(user, self.systems), ])
@@ -984,8 +977,8 @@ class ResourceAllocator(_cptools.XMLRPCController):
             logError(msg)
             return '*ERROR* ' + msg
 
-        if not isinstance(parent_p['path'], list):
-            parent_p['path'] = parent_p['path'].split('/')
+        if not isinstance(parent_p.get('path'), list):
+            parent_p['path'] = parent_p.get('path', '').split('/')
 
         if '/' in name:
             logDebug('Set {}: Stripping slash characters from `{}`...'.format(root_name, name))
@@ -1091,7 +1084,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
-    def setSut(self, name, parent = None, props = {}, username = None):
+    def setSut(self, name, parent=None, props={}, username=None):
         '''
         Create or change a SUT, using a name, a parent Path or ID and some properties.
         '''
@@ -1416,10 +1409,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
             else:
                 # Get the user rpyc connection connection
                 try:
-                    #user = user_roles.get('user')
-                    userConn = self.project.rsrv.service._findConnection(user,
-                                                                ['127.0.0.1', 'localhost'], 'client')
-                    userConn = self.project.rsrv.service.conns[userConn]['conn']
+                    userConn = self.project._find_local_client(user)
                     userConn.root.delete_sut('.'.join(node_path[0].split('.')[:-1]))
                 except Exception as e:
                     logError('Saving ERROR:: `{}`.'.format(e))
@@ -1784,10 +1774,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
                     else:
                         # Get the user rpyc connection connection
                         try:
-                            #user = user_roles.get('user')
-                            userConn = self.project.rsrv.service._findConnection(user,
-                                                                        ['127.0.0.1', 'localhost'], 'client')
-                            userConn = self.project.rsrv.service.conns[userConn]['conn']
+                            userConn = self.project._find_local_client(user)
                             userConn.root.delete_sut('.'.join(child.split('.')[:-1]))
                         except Exception as e:
                             logError('Save and release resource ERROR:: `{}`.'.format(e))
@@ -1876,10 +1863,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
                     else:
                         # Get the user rpyc connection connection
                         try:
-                            #user = user_roles.get('user')
-                            userConn = self.project.rsrv.service._findConnection(user,
-                                                                        ['127.0.0.1', 'localhost'], 'client')
-                            userConn = self.project.rsrv.service.conns[userConn]['conn']
+                            userConn = self.project._find_local_client(user)
                             userConn.root.delete_sut('.'.join(child.split('.')[:-1]))
                         except Exception as e:
                             logError('Save resource ERROR:: `{}`.'.format(e))

@@ -1316,15 +1316,14 @@ class Project(object):
         try: addr.append(socket.gethostbyaddr(hostName)[-1][0])
         except: pass
 
-        rpyc_srv = self.rsrv.service
-        local_client = rpyc_srv._findConnection(usr=user, addr=addr, hello='client')
+        local_client = self.rsrv.service._findConnection(usr=user, addr=addr, hello='client')
 
         # Cannot find local client conns
         if not local_client:
             logWarning('*WARN* Cannot find any local Clients for user `{}`!'.format(user))
             return False
 
-        return rpyc_srv.conns.get(local_client, {}).get('conn', False)
+        return self.rsrv.service.conns.get(local_client, {}).get('conn', False)
 
 
     def _find_anonim_ep(self, user):
