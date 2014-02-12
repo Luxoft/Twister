@@ -1,7 +1,7 @@
 
 # File: CeResources.py ; This file is part of Twister.
 
-# version: 2.019
+# version: 2.020
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -304,7 +304,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
     def _load(self, v=False, props={}, force=False):
         # import time
         # t0 = time.time()
-        logFull('CeResources:_load')
+        logFull('CeResources:_load {} {} {}'.format(v,props,force))
 
         if not force:
             try:
@@ -351,8 +351,6 @@ class ResourceAllocator(_cptools.XMLRPCController):
                 if v:
                     logError('RA: There are no devices to load! `{}`!'.format(e))
 
-        deviceStatusChanged = False
-        sutStatusChanged = False
         with self.acc_lock:
 
             if not self.resources.get('children'):
@@ -360,6 +358,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
             if not self.systems.get('children'):
                 self.systems = {'version': 0, 'name': '/', 'meta': {}, 'children': {}}
 
+            # try to load test bed resources file
             try:
                 f = open(self.res_file, 'r')
                 self.resources = json.load(f)
@@ -367,30 +366,10 @@ class ResourceAllocator(_cptools.XMLRPCController):
                 if v:
                     logDebug('RA: Devices loaded successfully.')
 
-                # Check status
-                reservedIds = list()
-                for u in self.reservedResources:
-                    for i in self.reservedResources[u]:
-                        reservedIds.append(i)
-                lockedIds = list()
-                for u in self.lockedResources:
-                    for i in self.lockedResources[u]:
-                        lockedIds.append(i)
-                for r in self.resources.get('children'):
-                    if not self.resources['children'][r].get('status'):
-                        self.resources['children'][r]['status'] = RESOURCE_FREE
-                    try:
-                        if ((self.resources['children'][r]['status'] == RESOURCE_RESERVED
-                            and not self.resources['children'][r]['id'] in reservedIds) or
-                            (self.resources['children'][r]['status'] == RESOURCE_BUSY
-                            and not self.resources['children'][r]['id'] in lockedIds)):
-                            self.resources['children'][r]['status'] = RESOURCE_FREE
-                            deviceStatusChanged = True
-                    except Exception as e:
-                        pass
             except Exception as e:
                 if v:
                     logError('RA: There are no devices to load! `{}`!'.format(e))
+            # try to load SUT file
             try:
                 f = open(self.sut_file, 'r')
                 self.systems = json.load(f)
@@ -432,39 +411,12 @@ class ResourceAllocator(_cptools.XMLRPCController):
                     if v:
                         logError('_load ERROR:: {}'.format(e))
 
-                # Check status
-                reservedIds = list()
-                for u in self.reservedResources:
-                    for i in self.reservedResources[u]:
-                        reservedIds.append(i)
-                lockedIds = list()
-                for u in self.lockedResources:
-                    for i in self.lockedResources[u]:
-                        lockedIds.append(i)
-                for r in self.systems.get('children'):
-                    if not self.systems['children'][r].get('status'):
-                        self.systems['children'][r]['status'] = RESOURCE_FREE
-                    try:
-                        if ((self.systems['children'][r]['status'] == RESOURCE_RESERVED
-                            and not self.systems['children'][r]['id'] in reservedIds) or
-                            (self.systems['children'][r]['status'] == RESOURCE_BUSY
-                            and not self.systems['children'][r]['id'] in lockedIds)):
-                            self.systems['children'][r]['status'] = RESOURCE_FREE
-                            sutStatusChanged = True
-                            self._loadedUsers.update([(user, self.systems), ])
-                    except Exception as e:
-                        pass
                 if v:
                     logDebug('RA: Systems loaded successfully.')
             except Exception as e:
                 if v:
                     logError('RA: There are no SUTs to load! `{}`!'.format(e))
         r = None
-        if deviceStatusChanged:
-            r = self._save(props=props)
-        if sutStatusChanged:
-            r = self._save(ROOT_SUT, props=props)
-
         if not r == True and not r == None:
             logDebug('_load ERROR: {}'.format(r))
         # t1 = time.time()
@@ -478,7 +430,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
         The save is separate for Devices and SUTs, so the version is not incremented
         for both, before saving.
         '''
-        logFull('CeResources:_save')
+        logFull('CeResources:_save {} {} {} {}'.format(root_id,props,resource_name,username))
         log = list()
         # Write changes, using the Access Lock.
         with self.acc_lock:
@@ -893,7 +845,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
         Create or change a resource, using a name, a parent Path or ID and some properties.
         The function is used for both Devices and SUTs, by providing the ROOT ID.
         '''
-        logFull('CeResources:setResource')
+        logFull('CeResources:setResource {} {} {} {} {}'.format(name,parent,props,root_id,username))
         self._load(v=False, props=props)
 
         user_roles = self.userRoles(props)
@@ -921,8 +873,70 @@ class ResourceAllocator(_cptools.XMLRPCController):
                 logError(msg)
                 return '*ERROR* ' + msg
 
-        # If this is the root resource, update the properties
-        if name == '/' and parent == '/':
+        with self.acc_lock:
+            # If this is the root resource, update the properties
+            if name == '/' and parent == '/':
+                if isinstance(props, dict):
+                    pass
+                elif (isinstance(props, str) or isinstance(props, unicode)):
+                    props = props.strip()
+                    try:
+                        props = ast.literal_eval(props)
+                    except Exception as e:
+                        msg = 'Set {}: Cannot parse properties: `{}`, `{}` !'.format(root_name, props, e)
+                        logError(msg)
+                        return '*ERROR* ' + msg
+                else:
+                    msg = 'Set {}: Invalid properties `{}` !'.format(root_name, props)
+                    logError(msg)
+                    return '*ERROR* ' + msg
+
+                epnames_tag = '_epnames_{}'.format(username)
+
+                resources['meta'].update(props)
+
+                # If the epnames tag exists in resources
+                if epnames_tag in resources['meta']:
+                    # And the tag is empty
+                    if not resources['meta'][epnames_tag]:
+                        logDebug('Deleting `{}` tag from resources.'.format(epnames_tag))
+                        del resources['meta'][epnames_tag]
+
+                # Write changes for Device or SUT
+                if username:
+                    if '/' in name:
+                        name_to_save = name.split('/')[-1]
+                        r = self._save(root_id, props, name_to_save, username)
+                    else:
+                        r = self._save(root_id, props, name, username)
+                else:
+                    r = self._save(root_id, props)
+                logInfo('Set {}: Updated ROOT with properties: `{}`.'.format(root_name, props))
+                if not r == True:
+                    return r
+                return True
+
+            if parent == '/' or parent == '1': # can alsow be 1
+                parent_p = _get_res_pointer(resources, parent)
+
+                if (root_id == ROOT_SUT and
+                        (not name.split('.')[-1] == 'user' and not name.split('.')[-1] == 'system')):
+                    name = '.'.join([name, 'user'])
+            else:
+                parent_p = self._getReservedResource(parent, props, root_id)
+
+            if not parent_p:
+                msg = 'Set {}: Cannot access parent path or ID `{}` !'.format(root_name, parent)
+                logError(msg)
+                return '*ERROR* ' + msg
+
+            if not isinstance(parent_p.get('path'), list):
+                parent_p['path'] = parent_p.get('path', '').split('/')
+
+            if '/' in name:
+                logDebug('Set {}: Stripping slash characters from `{}`...'.format(root_name, name))
+                name = name.replace('/', '')
+
             if isinstance(props, dict):
                 pass
             elif (isinstance(props, str) or isinstance(props, unicode)):
@@ -938,149 +952,75 @@ class ResourceAllocator(_cptools.XMLRPCController):
                 logError(msg)
                 return '*ERROR* ' + msg
 
-            epnames_tag = '_epnames_{}'.format(username)
+            if not 'children' in parent_p:
+                parent_p['children'] = {}
 
-            resources['meta'].update(props)
+            if '/' in parent:
+                for c in [p for p in parent.split('/') if p][1:]:
+                    parent_p = parent_p['children'][c]
+            else:
+                resource_path = _recursive_find_id(parent_p, parent, [])['path']
+                for c in resource_path:
+                    parent_p = parent_p['children'][c]
 
-            # If the epnames tag exists in resources
-            if epnames_tag in resources['meta']:
-                # And the tag is empty
-                if not resources['meta'][epnames_tag]:
-                    logDebug('Deleting `{}` tag from resources.'.format(epnames_tag))
-                    del resources['meta'][epnames_tag]
-
-            # Write changes for Device or SUT
-            if username:
-                if '/' in name:
-                    name_to_save = name.split('/')[-1]
-                    r = self._save(root_id, props, name_to_save, username)
+            # If the resource exists, patch the new properties!
+            if name in parent_p['children']:
+                if parent == '/' or parent == '1':
+                    child_p = self._getReservedResource('/' + name, props, root_id)
                 else:
+                    child_p = parent_p['children'][name]
+
+                if not child_p:
+                    return '*ERROR* no found'
+
+                old_child = copy.deepcopy(child_p)
+
+                logDebug('Set Resource update props:: {}'.format(props))
+
+                epnames_tag = '_epnames_{}'.format(username)
+
+                child_p['meta'].update(props)
+
+                # If the epnames tag exists in resources
+                if epnames_tag in child_p['meta']:
+                    # And the tag is empty
+                    if not child_p['meta'][epnames_tag]:
+                        logDebug('Deleting `{}` tag from resources.'.format(epnames_tag))
+                        del child_p['meta'][epnames_tag]
+
+                return True
+
+            # If the resource is new, create it.
+            else:
+                #parent_p = _get_res_pointer(parent_p, parent)
+
+                res_id = False
+                while not res_id:
+                    res_id = hexlify(os.urandom(5))
+                    # If by any chance, this ID already exists, generate another one!
+                    if _recursive_find_id(resources, res_id, []):
+                        res_id = False
+
+                parent_p['children'][name] = {'id': res_id, 'meta': props, 'children': {}}
+
+                epnames_tag = '_epnames_{}'.format(username)
+
+                # If the epnames tag exists in resources
+                if epnames_tag in parent_p['children'][name]['meta']:
+                    # And the tag is empty
+                    if not parent_p['children'][name]['meta'][epnames_tag]:
+                        logDebug('Deleting `{}` tag from new resource.'.format(epnames_tag))
+                        del parent_p['children'][name]['meta'][epnames_tag]
+
+                r = None
+                if parent == '/' or parent == '1':
+                    # Write changes for Device or SUT
                     r = self._save(root_id, props, name, username)
-            else:
-                r = self._save(root_id, props)
-            logInfo('Set {}: Updated ROOT with properties: `{}`.'.format(root_name, props))
-            if not r == True:
-                return r
-            return True
+                    logDebug('Created {} `{}`, id `{}` : `{}`.'.format(root_name, name, res_id, props))
 
-        if parent == '/' or parent == '1': # can alsow be 1
-            parent_p = _get_res_pointer(resources, parent)
-
-            if (root_id == ROOT_SUT and
-                    (not name.split('.')[-1] == 'user' and not name.split('.')[-1] == 'system')):
-                name = '.'.join([name, 'user'])
-        else:
-            parent_p = self._getReservedResource(parent, props, root_id)
-
-        if not parent_p:
-            msg = 'Set {}: Cannot access parent path or ID `{}` !'.format(root_name, parent)
-            logError(msg)
-            return '*ERROR* ' + msg
-
-        if not isinstance(parent_p.get('path'), list):
-            parent_p['path'] = parent_p.get('path', '').split('/')
-
-        if '/' in name:
-            logDebug('Set {}: Stripping slash characters from `{}`...'.format(root_name, name))
-            name = name.replace('/', '')
-
-        if isinstance(props, dict):
-            pass
-        elif (isinstance(props, str) or isinstance(props, unicode)):
-            props = props.strip()
-            try:
-                props = ast.literal_eval(props)
-            except Exception as e:
-                msg = 'Set {}: Cannot parse properties: `{}`, `{}` !'.format(root_name, props, e)
-                logError(msg)
-                return '*ERROR* ' + msg
-        else:
-            msg = 'Set {}: Invalid properties `{}` !'.format(root_name, props)
-            logError(msg)
-            return '*ERROR* ' + msg
-
-        if not 'children' in parent_p:
-            parent_p['children'] = {}
-
-        if '/' in parent:
-            for c in [p for p in parent.split('/') if p][1:]:
-                parent_p = parent_p['children'][c]
-        else:
-            resource_path = _recursive_find_id(parent_p, parent, [])['path']
-            for c in resource_path:
-                parent_p = parent_p['children'][c]
-
-        # try: del parent_p['path']
-        # except: pass
-
-        # Make a copy, to compare the changes at the end
-        #old_parent = copy.deepcopy(parent_p)
-
-        # If the resource exists, patch the new properties!
-        if name in parent_p['children']:
-            if parent == '/' or parent == '1':
-                child_p = self._getReservedResource('/' + name, props, root_id)
-            else:
-                child_p = parent_p['children'][name]
-
-            if not child_p:
-                return '*ERROR* no found'
-
-            old_child = copy.deepcopy(child_p)
-
-            logDebug('Set Resource update props:: {}'.format(props))
-
-            epnames_tag = '_epnames_{}'.format(username)
-
-            child_p['meta'].update(props)
-
-            # If the epnames tag exists in resources
-            if epnames_tag in child_p['meta']:
-                # And the tag is empty
-                if not child_p['meta'][epnames_tag]:
-                    logDebug('Deleting `{}` tag from resources.'.format(epnames_tag))
-                    del child_p['meta'][epnames_tag]
-
-            # # Update only the meta for the current username
-            # if username:
-            #     child_p['meta'][epnames_tag] = props.get(epnames_tag, '')
-            # else:
-            #     child_p['meta'] = props
-
-            # if old_child != child_p:
-            #    self._save(root_id, props)
-
-            # if old_parent != parent_p:
-            #     #self._save(root_id)
-            #     logDebug('Updated {} `{}`, id `{}` : `{}`.'.format(root_name, name, child_p['id'], props))
-            # else:
-            #     logDebug('No changes have been made to {} `{}`, id `{}`.'.format(root_name, name, child_p['id']))
-
-            return True
-
-        # If the resource is new, create it.
-        else:
-            #parent_p = _get_res_pointer(parent_p, parent)
-
-            res_id = False
-            while not res_id:
-                res_id = hexlify(os.urandom(5))
-                # If by any chance, this ID already exists, generate another one!
-                if _recursive_find_id(resources, res_id, []):
-                    res_id = False
-
-            parent_p['children'][name] = {'id': res_id, 'meta': props, 'children': {}}
-
-
-            r = None
-            if parent == '/' or parent == '1':
-                # Write changes for Device or SUT
-                r = self._save(root_id, props, name, username)
-                logDebug('Created {} `{}`, id `{}` : `{}`.'.format(root_name, name, res_id, props))
-
-            if not r == True and not r == None:
-                return r
-            return res_id
+                if not r == True and not r == None:
+                    return r
+                return res_id
 
 
     @cherrypy.expose
@@ -1230,9 +1170,6 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
                 logDebug('Renamed {} path `{}` to `{}`.'.format(root_name, '/'.join(node_path), '/'.join(new_path)))
 
-        # Write changes.
-        #self._save(root_id, props)
-
         return True
 
 
@@ -1256,7 +1193,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
         '''
         Permanently delete a resource.
         '''
-        logFull('CeResources:deleteResource')
+        logDebug('CeResources:deleteResource {} {} {} {}'.format(res_query,props,root_id,username))
         self._load(v=False, props=props)
 
         user_roles = self.userRoles(props)
@@ -1289,9 +1226,17 @@ class ResourceAllocator(_cptools.XMLRPCController):
         else:
             meta = ''
 
+        # Check if resource is locked; if so, it cannot be deleted
         _isResourceLocked = self.isResourceLocked(res_query, root_id)
         if _isResourceLocked:
             msg = 'Reserve resource: The resource is locked for {} !'.format(_isResourceLocked)
+            logError(msg)
+            return '*ERROR* ' + msg
+
+        # Check if resource is reserved; if so, it cannot be deleted
+        _isResourceLocked = self.isResourceReserved(res_query, root_id)
+        if _isResourceLocked:
+            msg = 'Cannot delete: The resource is reserved for {} !'.format(_isResourceLocked)
             logError(msg)
             return '*ERROR* ' + msg
 
@@ -1334,18 +1279,6 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
         res_path = _get_res_path(resources, res_query)
         res_pointer = _get_res_pointer(resources, ''.join('/' + res_path[0]))
-        isReservedForUser = [False, True][res_pointer.get('status', RESOURCE_FREE) == RESOURCE_RESERVED and
-                                res_pointer['id'] in self.reservedResources[user]]
-        if not isReservedForUser:
-            reservedResourceIds = list()
-            for userReservedResourceIds in [self.reservedResources[u].keys() for u in self.reservedResources]:
-                reservedResourceIds += userReservedResourceIds
-            isReserved = [False, True][res_pointer.get('status', RESOURCE_FREE) == RESOURCE_RESERVED and
-                            res_pointer['id'] in reservedResourceIds]
-            if isReserved:
-                msg = 'Del {}: Resource reserved, path or ID `{}` !'.format(root_name, res_query)
-                logError(msg)
-                return '*ERROR* ' + msg
 
         # Find the resource pointer.
         if root_id == ROOT_DEVICE:
@@ -1399,7 +1332,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
         else:
             r = self._save(root_id, props)
 
-        # Delete file
+        # Delete file if it's SUT file
         if not meta and len(node_path) == 1 and root_id == ROOT_SUT:
             if node_path[0].split('.')[-1] == 'system':
                 sutsPath = self.project.getUserInfo(user, 'sys_sut_path')
@@ -1552,7 +1485,6 @@ class ResourceAllocator(_cptools.XMLRPCController):
                     res_path = _get_res_path(self.reservedResources[user][p], res_query)
 
                     if res_path:
-                        #self.reservedResources[user][p]['path'] = res_path
                         return self.reservedResources[user][p]
 
         res_pointer = _get_res_pointer(resources, ''.join('/' + res_path[0]))
@@ -1563,15 +1495,6 @@ class ResourceAllocator(_cptools.XMLRPCController):
             return False
 
         res_pointer.update([('path', [res_path[0]]), ])
-
-        isReservedForUser = [False, True][res_pointer.get('status', RESOURCE_FREE) == RESOURCE_RESERVED and
-                                res_pointer['id'] in self.reservedResources[user]]
-
-        if not isReservedForUser:
-            msg = 'Get reserved resource: Cannot find reserved resource path or ID `{}` !'.format(res_query)
-            logError(msg)
-            return False
-
         join_path = self.reservedResources[user][res_pointer['id']].get('path', '')
         if isinstance(join_path, str):
             join_path = [join_path]
@@ -1613,18 +1536,14 @@ class ResourceAllocator(_cptools.XMLRPCController):
         res_pointer.update([('path', [res_path[0]]), ])
 
         reservedForUser = [u for u in self.reservedResources if res_pointer['id'] in self.reservedResources[u]]
+
+        if not reservedForUser:
+            return False
+
         if len(reservedForUser) == 1:
             reservedForUser = reservedForUser[0]
         else:
-            # msg = 'Is resource reserved: reserved for `{}` !'.format(reservedForUser)
-            # logError(msg)
-            # return '*ERROR* ' + msg
-            return False
-
-        if not reservedForUser:
-            # msg = 'Is resource reserved: Cannot find reserved resource path or ID `{}` !'.format(res_query)
-            # logError(msg)
-            # return '*ERROR* ' + msg
+            logDebug('Wrong length for reservedForUser: {}'.format(len(reservedForUser)))
             return False
 
         return reservedForUser
@@ -1633,7 +1552,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
     @cherrypy.expose
     def reserveResource(self, res_query, props={}, root_id=ROOT_DEVICE, username = None):
         """  """
-        logFull('CeResources:reserveResource')
+        logDebug('CeResources:reserveResource {} {} {} {}'.format(res_query, props, root_id, username))
         self._load(v=False, props=props)
 
         if root_id == ROOT_DEVICE:
@@ -1650,60 +1569,35 @@ class ResourceAllocator(_cptools.XMLRPCController):
         if ':' in res_query:
             res_query = res_query.split(':')[0]
 
-        _isResourceLocked = self.isResourceLocked(res_query, root_id)
-        if _isResourceLocked:
-            msg = 'Reserve resource: The resource is locked for {} !'.format(_isResourceLocked)
-            logError(msg)
-            return '*ERROR* ' + msg
+        with self.acc_lock:
+            _isResourceLocked = self.isResourceLocked(res_query, root_id)
+            if _isResourceLocked:
+                msg = 'Reserve resource: The resource is locked for {} !'.format(_isResourceLocked)
+                logError(msg)
+                return '*ERROR* ' + msg
 
-        _isResourceReserved = self.isResourceReserved(res_query, root_id)
-        if _isResourceReserved:
-            msg = 'Reserve resource: The resource is reserved for {} !'.format(_isResourceReserved)
-            logError(msg)
-            return '*ERROR* ' + msg
+            _isResourceReserved = self.isResourceReserved(res_query, root_id)
+            if _isResourceReserved:
+                msg = 'Reserve resource: The resource is reserved for {} !'.format(_isResourceReserved)
+                logError(msg)
+                return '*ERROR* ' + msg
 
-        res_path = _get_res_path(resources, res_query)
-        res_pointer = _get_res_pointer(resources, ''.join('/' + res_path[0]))
-
-        if not res_pointer:
-            msg = 'Reserve Resource: Cannot find resource path or ID `{}` !'.format(res_query)
-            logError(msg)
-            return '*ERROR* ' + msg
-
-        res_pointer.update([('path', [res_path[0]]), ])
-
-        if (res_pointer.get('status', None) == RESOURCE_BUSY or
-            res_pointer.get('status', None) == RESOURCE_RESERVED):
-            msg = 'Reserve Resource: Cannot allocate ! The resource is already busy !'
-            logError(msg)
-            return '*ERROR* ' + msg
-
-        res_pointer.update([('status', RESOURCE_RESERVED), ])
-
-        # Write changes.
-        if root_id == ROOT_SUT:
-            if '/' in res_query:
-                res_query = res_query.split('/')[-1]
-            r = self._save(root_id, props, res_query, username)
-        else:
-            r = self._save(root_id, props)
-
-        if not r == True:
             res_path = _get_res_path(resources, res_query)
             res_pointer = _get_res_pointer(resources, ''.join('/' + res_path[0]))
 
+            if not res_pointer:
+                msg = 'Reserve Resource: Cannot find resource path or ID `{}` !'.format(res_query)
+                logError(msg)
+                return '*ERROR* ' + msg
+
             res_pointer.update([('path', [res_path[0]]), ])
 
-            res_pointer.update([('status', RESOURCE_FREE), ])
-
-            return r
-
-        user_roles = self.userRoles(props)
-        user = user_roles.get('user')
-        if user in self.reservedResources:
-            self.reservedResources[user].update([(res_pointer['id'], copy.deepcopy(res_pointer)), ])
-        else:
-            self.reservedResources.update([(user, {res_pointer['id']: copy.deepcopy(res_pointer)}), ])
+            user_roles = self.userRoles(props)
+            user = user_roles.get('user')
+            if user in self.reservedResources:
+                self.reservedResources[user].update([(res_pointer['id'], copy.deepcopy(res_pointer)), ])
+            else:
+                self.reservedResources.update([(user, {res_pointer['id']: copy.deepcopy(res_pointer)}), ])
 
         return True #RESOURCE_RESERVED
 
@@ -1711,7 +1605,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
     @cherrypy.expose
     def saveAndReleaseReservedResource(self, res_query, props={}, root_id=ROOT_DEVICE, username = None):
         """  """
-        logFull('CeResources:saveAndReleaseReservedResource')
+        logDebug('CeResources:saveAndReleaseReservedResource')
         self._load(v=False, props=props)
 
         if root_id == ROOT_DEVICE:
@@ -1779,7 +1673,6 @@ class ResourceAllocator(_cptools.XMLRPCController):
                         except Exception as e:
                             logError('Save and release resource ERROR:: `{}`.'.format(e))
 
-            _res_pointer.update([('status', RESOURCE_FREE), ])
             resources['children'].update([(_res_pointer['path'][0], _res_pointer), ])
             #resources['children'].update([(res_path[0], _res_pointer), ])
 
@@ -1941,7 +1834,6 @@ class ResourceAllocator(_cptools.XMLRPCController):
                 if _recursive_find_id(resources, res_id, []):
                     res_id = False
             _res_pointer = _recursive_refresh_id(_res_pointer)
-            _res_pointer.update([('status', RESOURCE_FREE), ])
             _res_pointer.update([('path', [name]), ])
 
             resources['children'].update([(name, _res_pointer), ])
@@ -1962,7 +1854,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
     @cherrypy.expose
     def discardAndReleaseReservedResource(self, res_query, props={}, root_id=ROOT_DEVICE, username=None):
         """  """
-        logFull('CeResources:discardAndReleaseReservedResource')
+        logDebug('CeResources:discardAndReleaseReservedResource')
         self._load(v=False, props=props)
 
         if root_id == ROOT_DEVICE:
@@ -1996,26 +1888,14 @@ class ResourceAllocator(_cptools.XMLRPCController):
             #Different user; return
             return
 
-        r = None
         try:
             self.reservedResources[user].pop(res_pointer['id'])
-            res_pointer['status'] = RESOURCE_FREE
-            # Write changes.
-            if '/' in res_query:
-                res_query_for_save = res_query.split('/')[-1]
-                r = self._save(root_id, props, res_query_for_save, username)
-            else:
-                r = self._save(root_id, props)
-
             if not self.reservedResources[user]:
                 self.reservedResources.pop(user)
         except Exception as e:
             msg = 'Discard reserved resource: `{}` !'.format(e)
             logError(msg)
             return '*ERROR* ' + msg
-
-        if not r == True and not r == None:
-            return r
 
         return True #RESOURCE_FREE
 
@@ -2053,18 +1933,14 @@ class ResourceAllocator(_cptools.XMLRPCController):
         res_pointer.update([('path', [res_path[0]]), ])
 
         lockedForUser = [u for u in self.lockedResources if res_pointer['id'] in self.lockedResources[u]]
+
+        if not lockedForUser:
+            return False
+
         if len(lockedForUser) == 1:
             lockedForUser = lockedForUser[0]
         else:
-            # msg = 'Is resource reserved: reserved for `{}` !'.format(reservedForUser)
-            # logError(msg)
-            # return '*ERROR* ' + msg
-            return False
-
-        if not lockedForUser:
-            # msg = 'Is resource locked: Cannot find locked resource path or ID `{}` !'.format(res_query)
-            # logError(msg)
-            # return '*ERROR* ' + msg
+            logDebug('Wrong length for lockedForUser: {}'.format(len(lockedForUser)))
             return False
 
         return lockedForUser
@@ -2090,63 +1966,40 @@ class ResourceAllocator(_cptools.XMLRPCController):
         if ':' in res_query:
             res_query = res_query.split(':')[0]
 
-        _isResourceReserved = self.isResourceReserved(res_query, root_id)
-        if _isResourceReserved:
-            msg = 'Lock resource: The resource is reserved for {} !'.format(_isResourceReserved)
-            logError(msg)
-            return '*ERROR* ' + msg
+        with self.acc_lock:
+            _isResourceReserved = self.isResourceReserved(res_query, root_id)
+            if _isResourceReserved:
+                msg = 'Lock resource: The resource is reserved for {} !'.format(_isResourceReserved)
+                logError(msg)
+                return '*ERROR* ' + msg
 
-        _isResourceLocked = self.isResourceLocked(res_query, root_id)
-        if _isResourceLocked:
-            msg = 'Lock resource: The resource is locked for {} !'.format(_isResourceLocked)
-            logError(msg)
-            return '*ERROR* ' + msg
+            _isResourceLocked = self.isResourceLocked(res_query, root_id)
+            if _isResourceLocked:
+                msg = 'Lock resource: The resource is locked for {} !'.format(_isResourceLocked)
+                logError(msg)
+                return '*ERROR* ' + msg
 
-        res_path = _get_res_path(resources, res_query)
-        res_pointer = _get_res_pointer(resources, ''.join('/' + res_path[0]))
-
-        if not res_pointer:
-            msg = 'Lock Resource: Cannot find resource path or ID `{}` !'.format(res_query)
-            logError(msg)
-            return '*ERROR* ' + msg
-
-        res_pointer.update([('path', [res_path[0]]), ])
-
-        if (res_pointer.get('status', None) == RESOURCE_BUSY or
-            res_pointer.get('status', None) == RESOURCE_RESERVED):
-            msg = 'Lock Resource: Cannot allocate ! The resource is already busy !'
-            logError(msg)
-            return '*ERROR* ' + msg
-
-        res_pointer.update([('status', RESOURCE_BUSY), ])
-        # Write changes.
-        if '/' in res_query:
-            res_query_for_save = res_query.split('/')[-1]
-            r = self._save(root_id, props, res_query_for_save, username)
-        else:
-            r = self._save(root_id, props)
-
-        if not r == True:
             res_path = _get_res_path(resources, res_query)
             res_pointer = _get_res_pointer(resources, ''.join('/' + res_path[0]))
 
+            if not res_pointer:
+                msg = 'Lock Resource: Cannot find resource path or ID `{}` !'.format(res_query)
+                logError(msg)
+                return '*ERROR* ' + msg
+
             res_pointer.update([('path', [res_path[0]]), ])
 
-            res_pointer.update([('status', RESOURCE_FREE), ])
+            user_roles = self.userRoles(props)
+            user = user_roles.get('user')
 
-            return r
+            # if it's not the same user, don't lock the resource, just return
+            if username and user != username:
+                logDebug('CeResources:lockResource different user {} {}'.format(user, username))
+                return False
 
-        user_roles = self.userRoles(props)
-        user = user_roles.get('user')
-
-        # if it's not the same user, don't lock the resource, just return
-        if username and user != username:
-            logDebug('CeResources:lockResource different user {} {}'.format(user, username))
-            return False
-
-        user_res = self.lockedResources.get(user, {})
-        user_res.update({res_pointer['id']: copy.deepcopy(res_pointer)})
-        self.lockedResources[user] = user_res
+            user_res = self.lockedResources.get(user, {})
+            user_res.update({res_pointer['id']: copy.deepcopy(res_pointer)})
+            self.lockedResources[user] = user_res
 
         return True #RESOURCE_BUSY
 
@@ -2154,7 +2007,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
     @cherrypy.expose
     def unlockResource(self, res_query, props={}, root_id=ROOT_DEVICE, username = None):
         """  """
-        logFull('CeResources:unlockResource')
+        logDebug('CeResources:unlockResource {} {} {} {}'.format(res_query,props,root_id,username))
         self._load(v=False, props=props)
 
         if root_id == ROOT_DEVICE:
@@ -2181,28 +2034,17 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
         res_pointer.update([('path', [res_path[0]]), ])
 
-        user_roles = self.userRoles(props)
-        user = user_roles.get('user')
-        r = None
-        try:
-            self.lockedResources[user].pop(res_pointer['id'])
-            res_pointer['status'] = RESOURCE_FREE
-            # Write changes.
-            if '/' in res_query:
-                res_query_for_save = res_query.split('/')[-1]
-                r = self._save(root_id, props, res_query_for_save, username)
-            else:
-                r = self._save(root_id, props)
-
-            if not self.lockedResources[user]:
-                self.lockedResources.pop(user)
-        except Exception as e:
-            msg = 'Unlock resource: `{}` !'.format(e)
-            logError(msg)
-            return '*ERROR* ' + msg
-
-        if not r == True and not r == None:
-            return r
+        with self.acc_lock:
+            user_roles = self.userRoles(props)
+            user = user_roles.get('user')
+            try:
+                self.lockedResources[user].pop(res_pointer['id'])
+                if not self.lockedResources[user]:
+                    self.lockedResources.pop(user)
+            except Exception as e:
+                msg = 'Unlock resource: `{}` !'.format(e)
+                logError(msg)
+                return '*ERROR* ' + msg
 
         return True #RESOURCE_FREE
 
