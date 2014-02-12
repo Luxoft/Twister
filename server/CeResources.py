@@ -1,7 +1,7 @@
 
 # File: CeResources.py ; This file is part of Twister.
 
-# version: 2.018
+# version: 2.019
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -895,7 +895,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
 #
 
     @cherrypy.expose
-    def setResource(self, name, parent=None, props={}, root_id=ROOT_DEVICE, username = None):
+    def setResource(self, name, parent=None, props={}, root_id=ROOT_DEVICE, username=None):
         '''
         Create or change a resource, using a name, a parent Path or ID and some properties.
         The function is used for both Devices and SUTs, by providing the ROOT ID.
@@ -945,7 +945,17 @@ class ResourceAllocator(_cptools.XMLRPCController):
                 logError(msg)
                 return '*ERROR* ' + msg
 
+            epnames_tag = '_epnames_{}'.format(username)
+
             resources['meta'].update(props)
+
+            # If the epnames tag exists in resources
+            if epnames_tag in resources['meta']:
+                # And the tag is empty
+                if not resources['meta'][epnames_tag]:
+                    logDebug('Deleting `{}` tag from resources.'.format(epnames_tag))
+                    del resources['meta'][epnames_tag]
+
             # Write changes for Device or SUT
             if username:
                 if '/' in name:
@@ -1023,20 +1033,26 @@ class ResourceAllocator(_cptools.XMLRPCController):
             if not child_p:
                 return '*ERROR* no found'
 
-            # old_child = copy.deepcopy(child_p)
+            old_child = copy.deepcopy(child_p)
 
             logDebug('Set Resource update props:: {}'.format(props))
 
+            epnames_tag = '_epnames_{}'.format(username)
+
             child_p['meta'].update(props)
 
-            # _epnames_username in meta
+            # If the epnames tag exists in resources
+            if epnames_tag in child_p['meta']:
+                # And the tag is empty
+                if not child_p['meta'][epnames_tag]:
+                    logDebug('Deleting `{}` tag from resources.'.format(epnames_tag))
+                    del child_p['meta'][epnames_tag]
 
-            # Update only the meta for the current username
-            if username:
-                meta_key = '_epnames_' + username
-                child_p['meta'][meta_key] = props.get(meta_key, "")
-            else:
-                child_p['meta'] = props
+            # # Update only the meta for the current username
+            # if username:
+            #     child_p['meta'][epnames_tag] = props.get(epnames_tag, '')
+            # else:
+            #     child_p['meta'] = props
 
             # if old_child != child_p:
             #    self._save(root_id, props)
