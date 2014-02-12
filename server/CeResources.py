@@ -1,7 +1,7 @@
 
 # File: CeResources.py ; This file is part of Twister.
 
-# version: 2.021
+# version: 2.022
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -283,6 +283,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
         self.ren_lock = thread.allocate_lock() # Rename lock
         self.imp_lock = thread.allocate_lock() # Import lock
         self.save_lock = thread.allocate_lock() # Save lock
+        self.load_lock = thread.allocate_lock() # Save lock
         self.res_file = '{}/config/resources.json'.format(TWISTER_PATH)
         self.sut_file = '{}/config/systems.json'.format(TWISTER_PATH)
         self._loadedUsers = dict()
@@ -352,7 +353,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
                 if v:
                     logError('RA: There are no devices to load! `{}`!'.format(e))
 
-        with self.acc_lock:
+        with self.load_lock:
 
             if not self.resources.get('children'):
                 self.resources = {'version': 0, 'name': '/', 'meta': {}, 'children': {}}
