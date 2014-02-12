@@ -1,7 +1,7 @@
 
 # File: CeResources.py ; This file is part of Twister.
 
-# version: 2.020
+# version: 2.021
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -282,6 +282,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
         self.acc_lock = thread.allocate_lock() # Task change lock
         self.ren_lock = thread.allocate_lock() # Rename lock
         self.imp_lock = thread.allocate_lock() # Import lock
+        self.save_lock = thread.allocate_lock() # Save lock
         self.res_file = '{}/config/resources.json'.format(TWISTER_PATH)
         self.sut_file = '{}/config/systems.json'.format(TWISTER_PATH)
         self._loadedUsers = dict()
@@ -433,7 +434,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
         logFull('CeResources:_save {} {} {} {}'.format(root_id,props,resource_name,username))
         log = list()
         # Write changes, using the Access Lock.
-        with self.acc_lock:
+        with self.save_lock:
 
             if root_id == ROOT_DEVICE:
                 try:
