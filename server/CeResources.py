@@ -1,7 +1,7 @@
 
 # File: CeResources.py ; This file is part of Twister.
 
-# version: 2.022
+# version: 2.023
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -68,6 +68,8 @@ ROOT_SUT    = 2
 ROOT_NAMES = {
     ROOT_DEVICE: 'Device', ROOT_SUT: 'SUT'
 }
+
+constant_dictionary = {'version': 0, 'name': '/', 'meta': {}, 'children': {}}
 
 #
 
@@ -275,17 +277,16 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
         self.project = project
 
-        self.resources = {'version': 0, 'name': '/', 'meta': {}, 'children': {}}
+        self.resources = constant_dictionary
         self.reservedResources = dict()
         self.lockedResources = dict()
-        self.systems   = {'version': 0, 'name': '/', 'meta': {}, 'children': {}}
+        self.systems = constant_dictionary
         self.acc_lock = thread.allocate_lock() # Task change lock
         self.ren_lock = thread.allocate_lock() # Rename lock
         self.imp_lock = thread.allocate_lock() # Import lock
         self.save_lock = thread.allocate_lock() # Save lock
         self.load_lock = thread.allocate_lock() # Save lock
         self.res_file = '{}/config/resources.json'.format(TWISTER_PATH)
-        self.sut_file = '{}/config/systems.json'.format(TWISTER_PATH)
         self._loadedUsers = dict()
         self._load(v=True)
 
@@ -326,9 +327,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
                             if userSuts:
                                 self.systems['children'].update(userSuts)
 
-                                with open(self.sut_file, 'r') as f:
-                                    userSystems = json.load(f)
-
+                                userSystems = constant_dictionary
                                 userSystems['children'].update(userSuts)
                                 self._loadedUsers.update([(user, userSystems), ])
                     except Exception as e:
@@ -356,9 +355,9 @@ class ResourceAllocator(_cptools.XMLRPCController):
         with self.load_lock:
 
             if not self.resources.get('children'):
-                self.resources = {'version': 0, 'name': '/', 'meta': {}, 'children': {}}
+                self.resources = constant_dictionary
             if not self.systems.get('children'):
-                self.systems = {'version': 0, 'name': '/', 'meta': {}, 'children': {}}
+                self.systems = constant_dictionary
 
             # try to load test bed resources file
             try:
@@ -373,9 +372,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
                     logError('RA: There are no devices to load! `{}`!'.format(e))
             # try to load SUT file
             try:
-                f = open(self.sut_file, 'r')
-                self.systems = json.load(f)
-                f.close() ; del f
+                self.systems   = constant_dictionary
 
                 if v:
                     logDebug('RA: Systems root loaded successfully.')
@@ -404,8 +401,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
                     if userSuts:
                         self.systems['children'].update(userSuts)
 
-                    with open(self.sut_file, 'r') as f:
-                        userSystems = json.load(f)
+                    userSystems  = constant_dictionary
                     if userSuts:
                         userSystems['children'].update(userSuts)
                     self._loadedUsers.update([(user, userSystems), ])
@@ -467,9 +463,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
                 systemsChildren = copy.deepcopy(self.systems['children'])
                 self.systems['children'] = dict()
 
-                f = open(self.sut_file, 'w')
-                json.dump(self.systems, f, indent=4)
-                f.close() ; del f
+                self.systems = constant_dictionary
 
                 self.systems['children'] = copy.deepcopy(systemsChildren)
                 del systemsChildren
