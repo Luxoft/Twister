@@ -1,6 +1,6 @@
 /*
 File: ConfigTree.java ; This file is part of Twister.
-Version: 2.010
+Version: 2.011
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -131,6 +131,7 @@ public class ConfigTree extends JPanel{
                         if(content.indexOf("*ERROR*")!=-1){
                             CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,ConfigTree.this,"ERROR", content);
                         }
+                            refreshStructure();
 //                         connection.rm(thefile);
                     }
                     catch(Exception e){System.out.println("Could not delete: "+thefile);
@@ -315,8 +316,7 @@ public class ConfigTree extends JPanel{
                 String str[] = tp[tp.length-1].toString().split("- Reserved by ");
                 if(str.length==2&&str[1].equals(RunnerRepository.user)){
                     sb.append(str[0]);
-                    try{System.out.println("unlocking cfg: "+sb.toString());
-                        RunnerRepository.getRPCClient().execute("unlockConfig", new Object[]{sb.toString()}).toString();}
+                    try{RunnerRepository.getRPCClient().execute("unlockConfig", new Object[]{sb.toString()}).toString();}
                     catch(Exception ex){ex.printStackTrace();}
                 }
             }
@@ -330,7 +330,6 @@ public class ConfigTree extends JPanel{
 
     
     private void removeDirectory(String directory){
-        System.out.println(directory);
         Vector<LsEntry> vector1=null;
         try{vector1 = connection.ls(RunnerRepository.TESTCONFIGPATH+"/"+directory);}
         catch(Exception e){e.printStackTrace();}
@@ -468,7 +467,6 @@ public class ConfigTree extends JPanel{
                                     .toString());
                 try{
                     boolean edit = false;
-                    System.out.println("user is:"+user);
                     if(user.equals("")||user.equals(RunnerRepository.user))edit = true;
                     if(edit){
                         String content = "true";
@@ -484,10 +482,10 @@ public class ConfigTree extends JPanel{
                         }
                     }
                     String content = RunnerRepository.getRPCClient().execute("readConfigFile", new Object[]{thefile}).toString();
-                    content = new String(DatatypeConverter.parseBase64Binary(content));
                     if(content.indexOf("*ERROR*")!=-1){
-                        CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,ConfigTree.this,"ERROR", content);
+                        CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,ConfigTree.this,"ERROR", content);
                     }
+                    content = new String(DatatypeConverter.parseBase64Binary(content));
                     BufferedWriter writer = new BufferedWriter(new FileWriter(file));
                     writer.write(content);
                     writer.close();
@@ -530,7 +528,6 @@ public class ConfigTree extends JPanel{
                 }
                 sb.deleteCharAt(sb.length()-1);
                 String thefile = sb.toString();
-                System.out.println(thefile);
                 try{
                     String content = RunnerRepository.getRPCClient().execute("isLockConfig", new Object[]{thefile}).toString();
                     if(!content.toLowerCase().equals("false")){

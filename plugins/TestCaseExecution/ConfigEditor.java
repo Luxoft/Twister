@@ -1,6 +1,6 @@
 /*
 File: ConfigEditor.java ; This file is part of Twister.
-Version: 2.008
+Version: 2.009
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -156,6 +156,7 @@ public class ConfigEditor extends JPanel{
     public void parseDocument(File file){
         try{this.currentfile = file;
             DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+            dbf.setIgnoringElementContentWhitespace(true);
             DocumentBuilder db = dbf.newDocumentBuilder();
             if(file!=null){
                 displayname.setText("Configuration file: "+file.getName());                
@@ -330,6 +331,8 @@ public class ConfigEditor extends JPanel{
                 ((MyFolder)((DefaultMutableTreeNode)tree.getSelectionPath().getLastPathComponent()).getUserObject()).setSutPath (null);
                 ((DefaultTreeModel)tree.getModel()).nodeChanged(((DefaultMutableTreeNode)tree.getSelectionPath().getLastPathComponent()));
                 bindingsave = false;
+                unbind.setEnabled(false);
+                if(currentfile==null)displayname.setText(" User Binding (need save)");
             }
         });
         unbind.setEnabled(false);
@@ -367,15 +370,29 @@ public class ConfigEditor extends JPanel{
             public void actionPerformed(ActionEvent ev){
                 if(editable){
                     if(!lastsave){
-                        int r = (Integer)CustomDialog.showDialog(
-                                    new JLabel("Save config before closing ?"),
-                                    JOptionPane.QUESTION_MESSAGE, 
-                                    JOptionPane.OK_CANCEL_OPTION, ConfigEditor.this, "Save", null);
-                        if(r == JOptionPane.OK_OPTION){
-                            save.doClick();
+//                         int r = (Integer)CustomDialog.showDialog(
+//                                     new JLabel("Save config before closing ?"),
+//                                     JOptionPane.QUESTION_MESSAGE, 
+//                                     JOptionPane.OK_CANCEL_OPTION, ConfigEditor.this, "Save", null);
+                        String[] buttons = {"Save","Discard"};
+                        String resp = CustomDialog.showButtons(ConfigEditor.this, JOptionPane.QUESTION_MESSAGE,
+                                                                    JOptionPane.DEFAULT_OPTION, null,buttons ,
+                                                                    "Save","Save config before closing ?");
+                        if (!resp.equals("NULL")) {
+                            if(resp.equals("Save")){
+                                save.doClick();
+                            }
+                            else if(resp.equals("Discard")){
+                                saveBinding();
+                            }
                         } else {
                             saveBinding();
-                        }
+                        }     
+//                         if(r == JOptionPane.OK_OPTION){
+//                             save.doClick();
+//                         } else {
+//                             saveBinding();
+//                         }
                     } else {
                         saveBinding();
                     }
@@ -492,6 +509,11 @@ public class ConfigEditor extends JPanel{
                             }
                             if(currentfile==null){
                                 if(!((DefaultMutableTreeNode)tp.getPathComponent(1)).toString().equals("default_binding")){
+                                    if(((DefaultMutableTreeNode)tp.getLastPathComponent()).getLevel()==1){
+                                        remove.setEnabled(true);
+                                    } else {
+                                        remove.setEnabled(false);
+                                    }
                                     remove.setEnabled(false);
                                     addconf.setEnabled(false);
                                     unbind.setEnabled(false);    
@@ -504,11 +526,11 @@ public class ConfigEditor extends JPanel{
                             } else {
                                 showFolderPopUp(treenode,ev,folder);
                             }
-                            setDescription(folder.getNode(), folder.getDesc(),null,null,(DefaultMutableTreeNode)tp.getLastPathComponent(),editable);
+                            setDescription(folder.getNode(), folder.getDesc(),null,null,(DefaultMutableTreeNode)tp.getLastPathComponent(),editable,true);
                         }else if(((DefaultMutableTreeNode)tp.getLastPathComponent()).getUserObject() instanceof MyParam){
                             DefaultMutableTreeNode treenode = (DefaultMutableTreeNode)tp.getLastPathComponent();
                             MyParam param = (MyParam)treenode.getUserObject();
-                            setDescription(param.getName(),param.getDesc(),param.getType(),param.getValue(),(DefaultMutableTreeNode)tp.getLastPathComponent(),true);
+                            setDescription(param.getName(),param.getDesc(),param.getType(),param.getValue(),(DefaultMutableTreeNode)tp.getLastPathComponent(),true,false);
                             showParamPopUp(treenode,ev,param);
                             remove.setEnabled(true);
                             addconf.setEnabled(false);
@@ -523,14 +545,18 @@ public class ConfigEditor extends JPanel{
                                 addconf.setEnabled(true);
                                 addparam.setEnabled(true);
                                 MyFolder folder = (MyFolder)((DefaultMutableTreeNode)tp.getLastPathComponent()).getUserObject();
-                                if(folder.getSut().equals("")){
+                                if(folder.getSut()==null||folder.getSut().equals("")){
                                     unbind.setEnabled(false);
                                 } else {
                                     unbind.setEnabled(true);
                                 }
                                 if(currentfile==null){
                                     if(!((DefaultMutableTreeNode)tp.getPathComponent(1)).toString().equals("default_binding")){
-                                        remove.setEnabled(false);
+                                        if(((DefaultMutableTreeNode)tp.getLastPathComponent()).getLevel()==1){
+                                            remove.setEnabled(true);
+                                        } else {
+                                            remove.setEnabled(false);
+                                        }
                                         addconf.setEnabled(false);
                                         unbind.setEnabled(false);
                                         editable = false;
@@ -540,17 +566,17 @@ public class ConfigEditor extends JPanel{
                                     }
                                     addparam.setEnabled(false);
                                 }
-                                setDescription(folder.getNode(), folder.getDesc(),null,null,(DefaultMutableTreeNode)tp.getLastPathComponent(),editable);
+                                setDescription(folder.getNode(), folder.getDesc(),null,null,(DefaultMutableTreeNode)tp.getLastPathComponent(),editable,true);
                             }else if(((DefaultMutableTreeNode)tp.getLastPathComponent()).getUserObject() instanceof MyParam){
                                 MyParam param = (MyParam)((DefaultMutableTreeNode)tp.getLastPathComponent()).getUserObject();
-                                setDescription(param.getName(),param.getDesc(),param.getType(),param.getValue(),(DefaultMutableTreeNode)tp.getLastPathComponent(),true);
+                                setDescription(param.getName(),param.getDesc(),param.getType(),param.getValue(),(DefaultMutableTreeNode)tp.getLastPathComponent(),true,false);
                                 remove.setEnabled(true);
                                 addconf.setEnabled(false);
                                 addparam.setEnabled(false);
                                 unbind.setEnabled(false);
                             }
                         } else {
-                            setDescription(null,null,null,null,null,false);
+                            setDescription(null,null,null,null,null,false,false);
                             remove.setEnabled(false);
                             addconf.setEnabled(false);
                             addparam.setEnabled(false);
@@ -558,7 +584,7 @@ public class ConfigEditor extends JPanel{
                         }
                     }
                 } else {
-                    setDescription(null,null,null,null,null,false);
+                    setDescription(null,null,null,null,null,false,false);
                     tree.setSelectionPath(null);
                     remove.setEnabled(false);
                     addconf.setEnabled(false);
@@ -615,8 +641,6 @@ public class ConfigEditor extends JPanel{
                 filepath = filepath.replace(RunnerRepository.TESTCONFIGPATH, "");
                 if(filepath.charAt(0) == '/')filepath = filepath.substring(1);
                 response = RunnerRepository.getRPCClient().execute("getBinding", new Object[]{RunnerRepository.user,filepath}).toString();
-                System.out.println(filepath+" -- "+response);
-                
             }
                 catch(Exception e){
                     System.out.println("Could not get binding for:"+filepath+" from CE");
@@ -626,6 +650,7 @@ public class ConfigEditor extends JPanel{
             }
         try{
             DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+            dbf.setIgnoringElementContentWhitespace(true);
             DocumentBuilder db = dbf.newDocumentBuilder();
             if(response!=null&&!response.equals("")&&!response.equalsIgnoreCase("false")&&response.indexOf("*ERROR*")==-1){
                 bindingdoc = db.parse(new InputSource(new StringReader(response)));
@@ -647,7 +672,7 @@ public class ConfigEditor extends JPanel{
     public void interpretBinding(){
         try{
             if(currentfile==null){//this is default binding
-                displayname.setText("Configuration file: DEFAULT");
+                displayname.setText(" User Binding");
                 NodeList bindings = bindingdoc.getElementsByTagName("binding");
                 for(int i=0;i<bindings.getLength();i++){
                     Element binding = (Element)bindings.item(i);
@@ -726,10 +751,15 @@ public class ConfigEditor extends JPanel{
         String sutpath = "";
         Object ob = null;
         try{ob = sutconfig.client.execute("getSut", new Object[]{sutid,RunnerRepository.user,RunnerRepository.user});
-            HashMap subhash= (HashMap)ob;
-            sutpath = subhash.get("path").toString();
-            sutpath = sutpath.replace(".system", "(system)");
-            sutpath = sutpath.replace(".user", "(user)");                        
+            if(ob instanceof HashMap){
+                HashMap subhash= (HashMap)ob;
+                sutpath = subhash.get("path").toString();
+                sutpath = sutpath.replace(".system", "(system)");
+                sutpath = sutpath.replace(".user", "(user)");             
+            } else {
+                sutpath = "Sut not available!";
+                System.out.println("Server response for sutid "+sutid+": "+ob.toString());
+            }      
         }catch(Exception e){
             sutpath = "Sut not available!";
             System.out.println("Server response: "+ob.toString());
@@ -753,6 +783,7 @@ public class ConfigEditor extends JPanel{
                 }
             } else {
                 DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
+                documentBuilderFactory.setIgnoringElementContentWhitespace(true);
                 DocumentBuilder documentBuilder = documentBuilderFactory.newDocumentBuilder();
                 bindingdoc = documentBuilder.newDocument();
                 first = bindingdoc.createElement("root");
@@ -789,6 +820,12 @@ public class ConfigEditor extends JPanel{
                 transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
                 transformer.setOutputProperty(OutputKeys.INDENT, "yes");
                 transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "4");
+                XPath xp = XPathFactory.newInstance().newXPath();
+                NodeList nl = (NodeList) xp.evaluate("//text()[normalize-space(.)='']", bindingdoc, XPathConstants.NODESET);
+                for (int i=0; i < nl.getLength(); ++i) {
+                    Node node = nl.item(i);
+                    node.getParentNode().removeChild(node);
+                }
                 DOMSource source = new DOMSource(bindingdoc);
                 StringWriter writer = new StringWriter();
                 StreamResult result = new StreamResult(writer);
@@ -810,6 +847,7 @@ public class ConfigEditor extends JPanel{
                     }
                 } else {
                     DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
+                    documentBuilderFactory.setIgnoringElementContentWhitespace(true);
                     DocumentBuilder documentBuilder = documentBuilderFactory.newDocumentBuilder();
                     bindingdoc = documentBuilder.newDocument();
                     first = bindingdoc.createElement("root");
@@ -924,6 +962,7 @@ public class ConfigEditor extends JPanel{
         saveBinding();
         lastsave = true;
         bindingsave = true;
+        if(currentfile==null)displayname.setText(" User Binding");
     }
     
     public void setRemoteLocation(String remotelocation){
@@ -940,6 +979,7 @@ public class ConfigEditor extends JPanel{
                                     "Twister"+RunnerRepository.getBar()+"XML"+
                                     RunnerRepository.getBar()+user);
                 DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
+                documentBuilderFactory.setIgnoringElementContentWhitespace(true);
                 DocumentBuilder documentBuilder = documentBuilderFactory.newDocumentBuilder();
                 Document document = documentBuilder.newDocument();
                 TransformerFactory transformerFactory = TransformerFactory.newInstance();
@@ -959,10 +999,10 @@ public class ConfigEditor extends JPanel{
         }
     }
     
-
+    //comp - is a component or property
     public void setDescription(final Node name, final Node desc, 
                                final Node type, final Node value,
-                               final DefaultMutableTreeNode treenode, boolean editable){
+                               final DefaultMutableTreeNode treenode, boolean editable,boolean comp){
                                    
         tvalue.setEnabled(editable);                 
         tdescription.setEnabled(editable);
@@ -1063,6 +1103,10 @@ public class ConfigEditor extends JPanel{
                 });
             }
         }
+        if(comp){
+            tvalue.setEnabled(false);
+            ttype.setEnabled(false);
+        }
     }
     
     public void addParam(){
@@ -1083,6 +1127,7 @@ public class ConfigEditor extends JPanel{
             appendFolder(treenode,folder);
         }
         lastsave = false;
+        //if(currentfile==null)displayname.setText(" User Binding (need save)");
     }
     
     public void deleteMultiple(){
@@ -1099,10 +1144,12 @@ public class ConfigEditor extends JPanel{
             }
         }
         remove.setEnabled(false);
-        addconf.setEnabled(true);
+        if(currentfile!=null)addconf.setEnabled(true);
+        else addconf.setEnabled(false);
         addparam.setEnabled(false);
-        setDescription(null, null, null, null, null, false);
+        setDescription(null, null, null, null, null, false,false);
         lastsave = false;
+        if(currentfile==null)displayname.setText(" User Binding (need save)");
     }
 
     public void showNewFolderPopUp(MouseEvent ev){
@@ -1118,7 +1165,7 @@ public class ConfigEditor extends JPanel{
     public void addFolder(){
         String resp = CustomDialog.showInputDialog(JOptionPane.PLAIN_MESSAGE,
                                                     JOptionPane.OK_CANCEL_OPTION, 
-                                                    panel, "Name", "Config name: ");
+                                                    panel, "Name", "Component name: ");
         if(resp!=null){
             if(resp.equals("")){
                 CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,this,
@@ -1205,7 +1252,7 @@ public class ConfigEditor extends JPanel{
             remove.setEnabled(false);
             addconf.setEnabled(true);
             addparam.setEnabled(false);
-            setDescription(null, null, null, null, null,false);
+            setDescription(null, null, null, null, null,false,false);
         }
         lastsave = false;
     }
@@ -1304,7 +1351,7 @@ public class ConfigEditor extends JPanel{
             ((DefaultTreeModel)tree.getModel()).nodeChanged(treenode);
 //             writeXML();
 //             uploadFile();
-            setDescription(node.getName(),node.getDesc(),node.getType(),node.getValue(),treenode,false);
+            setDescription(node.getName(),node.getDesc(),node.getType(),node.getValue(),treenode,false,false);
             lastsave = false;
         }
     }
@@ -1541,7 +1588,7 @@ public class ConfigEditor extends JPanel{
     public void appendFolder(DefaultMutableTreeNode treenode, MyFolder parent){
         String resp = CustomDialog.showInputDialog(JOptionPane.PLAIN_MESSAGE,
                                                     JOptionPane.OK_CANCEL_OPTION, 
-                                                    panel, "Name", "Config name: ");
+                                                    panel, "Name", "Component name: ");
         //check if name already exists
         if(resp!=null){
             if(resp.equals("")){
@@ -1597,7 +1644,7 @@ public class ConfigEditor extends JPanel{
         remove.setEnabled(false);
         addconf.setEnabled(true);
         addparam.setEnabled(false);
-        setDescription(null, null, null, null, null,true);
+        setDescription(null, null, null, null, null,false,false);
         lastsave = false;
     }
     
@@ -1624,7 +1671,7 @@ public class ConfigEditor extends JPanel{
         
     public void buildTree(){     
         try{
-            setDescription(null,null,null,null,null,false);
+            setDescription(null,null,null,null,null,false,false);
             tree.setSelectionPath(null);
             remove.setEnabled(false);
             addconf.setEnabled(true);
@@ -1708,6 +1755,12 @@ public class ConfigEditor extends JPanel{
     public void writeXML(){
         try{
             System.out.println("Writing config..."+remotelocation);
+            XPath xp = XPathFactory.newInstance().newXPath();
+            NodeList nl = (NodeList) xp.evaluate("//text()[normalize-space(.)='']", doc, XPathConstants.NODESET);
+            for (int i=0; i < nl.getLength(); ++i) {
+                Node node = nl.item(i);
+                node.getParentNode().removeChild(node);
+            }
             Writer outWriter = new StringWriter();
             StreamResult result = new StreamResult( outWriter );
             DOMSource source = new DOMSource(doc);                    
@@ -1718,7 +1771,7 @@ public class ConfigEditor extends JPanel{
             transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "4");
             transformer.transform(source, result);
             StringBuffer sb = ((StringWriter)outWriter).getBuffer();
-            String content =  sb.toString();
+            String content = sb.toString();
             content = DatatypeConverter.printBase64Binary(content.getBytes());
             String resp = RunnerRepository.getRPCClient().execute("saveConfigFile", new Object[]{remotelocation,content}).toString();
             if(resp.indexOf("*ERROR*")!=-1){
@@ -1733,7 +1786,7 @@ public class ConfigEditor extends JPanel{
         root.removeAllChildren();
         ((DefaultTreeModel)tree.getModel()).reload();
         currentfile = null;
-        setDescription(null,null,null,null,null,false);
+        setDescription(null,null,null,null,null,false,false);
         tree.setSelectionPath(null);
         remove.setEnabled(false);
         addconf.setEnabled(false);
@@ -1999,6 +2052,10 @@ public class ConfigEditor extends JPanel{
                     ((MyFolder)parent.getUserObject()).setSutPath(sutpath);
                     model.nodeChanged(parent);
                     bindingsave = false;
+                    if(currentfile==null)displayname.setText(" User Binding (need save)");
+                    if(((DefaultMutableTreeNode)tree.getSelectionPath().getLastPathComponent())==parent){
+                        unbind.setEnabled(true);
+                    }
                     return true;
                 } catch(UnsupportedFlavorException ufe) {
                     System.out.println("UnsupportedFlavor: " + ufe.getMessage());

@@ -1,6 +1,6 @@
 /*
 File: ConfigFiles.java ; This file is part of Twister.
-Version: 2.019
+Version: 2.020
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -274,12 +274,12 @@ public class ConfigFiles extends JPanel{
                     
                     
         tdbfile = new JTextField();
-        addPanel("Database XML path","File location for database configuration",    
+        addPanel("Database XML file","File location for database configuration",    
                 tdbfile,RunnerRepository.REMOTEDATABASECONFIGPATH+RunnerRepository.REMOTEDATABASECONFIGFILE,
-                524,true,null);
+                521,true,null);
         temailfile = new JTextField();
 //         emailpanel = (JPanel)
-        addPanel("Email XML path","File location for email configuration",temailfile,
+        addPanel("Email XML file","File location for email configuration",temailfile,
                 RunnerRepository.REMOTEEMAILCONFIGPATH+RunnerRepository.REMOTEEMAILCONFIGFILE,595,true,null).getParent();
         //paths.remove(emailpanel);        
 //         emailpanel.setBounds(360,440,350,100);

@@ -1,6 +1,6 @@
 /*
 File: TB.java ; This file is part of Twister.
-Version: 2.016
+Version: 2.017
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -139,7 +139,7 @@ public class TB extends JPanel{
                 if(ev.getClickCount()==2){
                     TreePath tp = tree.getPathForLocation(ev.getX(), ev.getY());
                     final DefaultMutableTreeNode tn = (DefaultMutableTreeNode)tp.getLastPathComponent();
-                    if(tn.getChildCount()>0&&!tree.isExpanded(new TreePath(tn.getPath())))return;
+                    if(tn.getChildCount()>0&&!tree.isExpanded(tp))return;
                     if(((Node)tn.getUserObject()).getReserved().equals(RunnerRepository.user))return;
                     if(tn.getLevel()==1){
                         new Thread(){
@@ -149,8 +149,6 @@ public class TB extends JPanel{
                                 tn.removeAllChildren();
                                 model.reload(tn);
                                 Node node = getTB("/"+((Node)tn.getUserObject()).getName(),null);
-//                                 node.setLock(((Node)tn.getUserObject()).getLock());
-//                                 node.setReserved(((Node)tn.getUserObject()).getReserved());
                                 node.setReserved(getTBReservdUser(node.getID()));
                                 node.setLock(getTBLockedUser(node.getID()));                                
                                 tn.setUserObject(node);
@@ -300,6 +298,9 @@ public class TB extends JPanel{
                                     }
                                    if(!node.getReserved().equals(""))add.setEnabled(false);
                                 }
+                                if(!node.getReserved().equals("")){
+                                    remove.setEnabled(false);
+                                }
                                 showTBPopUp(treenode,node,ev);
                             } else {
                                 Object ob = ((DefaultMutableTreeNode)((DefaultTreeModel)tree.getModel()).getPathToRoot(treenode)[1]).getUserObject();
@@ -331,13 +332,15 @@ public class TB extends JPanel{
                                 if(node.getReserved().equals(RunnerRepository.user)){
                                     optpan.setParent(node,treenode,true);
                                     add.setText("Add Component");
-                                    remove.setEnabled(true);
                                     add.setEnabled(true);
                                 } else {
                                     optpan.setParent(node,treenode,false);
                                     if(node.getReserved().equals("")&&node.getLock().equals(""))remove.setEnabled(true);
                                     else remove.setEnabled(false);
                                     if(!node.getReserved().equals(""))add.setEnabled(false);
+                                }
+                                if(!node.getReserved().equals("")){
+                                    remove.setEnabled(false);
                                 }
                             } else {
                                 Object ob = ((DefaultMutableTreeNode)((DefaultTreeModel)tree.getModel()).getPathToRoot(treenode)[1]).getUserObject();
@@ -673,10 +676,9 @@ public class TB extends JPanel{
                             model.insertNodeInto(temp2, treenode,1);
                             buildTree(finalnode,treenode,false);
                             treenode.setUserObject(finalnode);
-//                             model.nodeChanged(treenode);
                             model.reload(treenode);
                             optpan.setParent(node,treenode,true);
-                            remove.setEnabled(true);
+                            remove.setEnabled(false);
                             add.setEnabled(true);
                             add.setText("Add Component");
                             tree.expandPath(new TreePath(treenode.getPath()));

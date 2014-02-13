@@ -1,6 +1,6 @@
 /*
 File: ClearCase.java ; This file is part of Twister.
-Version: 2.015
+Version: 2.016
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -181,111 +181,111 @@ public class ClearCase extends JPanel{
         }
     }
     
-    /*
-     * this is used at initialization
-     */
-    public void sendStartCommand(String command){
-        try{
-            command+=" ; echo \"@_#_\"";
-            ps.println(command); 
-            ps.flush();
-        } catch(Exception e){
-            e.printStackTrace();
-        }
-    }
+//     /*
+//      * this is used at initialization
+//      */
+//     public void sendStartCommand(String command){
+//         try{
+//             command+=" ; echo \"@_#_\"";
+//             ps.println(command); 
+//             ps.flush();
+//         } catch(Exception e){
+//             e.printStackTrace();
+//         }
+//     }
 
     
-    /*
-     * read first ssh response 
-     */
-    public String readFirstOutput(String command){
-        try{
-            String line = null;
-            StringBuilder responseData = new StringBuilder();
-            while((line = in.readLine()) != null) {
-                System.out.println("line: "+line);
-                line = line.replaceAll("[^\\x20-\\x7E]", "");
-                if(line.indexOf("echo \"@_#_\"")!=-1 || (command!=null&&line.indexOf(command)!=-1)){
-                    responseData.setLength(0);
-                    continue;
-                }
-                if(line.indexOf("@_#_")==-1){
-                    if(command!=null){
-                        if(line.indexOf(command)==-1){
-                            responseData.append(line+"\n");
-                        }
-                    } else {
-                        responseData.append(line+"\n");
-                    }
-                }
-                else if(line.indexOf("@_#_")!=-1&&line.indexOf("echo")==-1){
-                        System.out.println("Line: "+in.readLine());
-                        return responseData.toString();
-                } 
-                if(line.indexOf("No such file or directory")!=-1){
-                    System.out.println("Line: "+in.readLine());
-                    return responseData.toString();
-                }
-                if(responseData.indexOf("cleartool: command not found")!=-1){
-                    System.out.println("Line: "+in.readLine());
-                    CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,ClearCase.this,
-                            "ERROR", "ClearTool not installed!");
-                    return null;
-                }
-            }
-            return responseData.toString();
-        } catch(Exception e){
-            e.printStackTrace();
-            return null;
-        }
-    }
+//     /*
+//      * read first ssh response 
+//      */
+//     public String readFirstOutput(String command){
+//         try{
+//             String line = null;
+//             StringBuilder responseData = new StringBuilder();
+//             while((line = in.readLine()) != null) {
+//                 System.out.println("line: "+line);
+//                 line = line.replaceAll("[^\\x20-\\x7E]", "");
+//                 if(line.indexOf("echo \"@_#_\"")!=-1 || (command!=null&&line.indexOf(command)!=-1)){
+//                     responseData.setLength(0);
+//                     continue;
+//                 }
+//                 if(line.indexOf("@_#_")==-1){
+//                     if(command!=null){
+//                         if(line.indexOf(command)==-1){
+//                             responseData.append(line+"\n");
+//                         }
+//                     } else {
+//                         responseData.append(line+"\n");
+//                     }
+//                 }
+//                 else if(line.indexOf("@_#_")!=-1&&line.indexOf("echo")==-1){
+//                         System.out.println("Line: "+in.readLine());
+//                         return responseData.toString();
+//                 } 
+//                 if(line.indexOf("No such file or directory")!=-1){
+//                     System.out.println("Line: "+in.readLine());
+//                     return responseData.toString();
+//                 }
+//                 if(responseData.indexOf("cleartool: command not found")!=-1){
+//                     System.out.println("Line: "+in.readLine());
+//                     CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,ClearCase.this,
+//                             "ERROR", "ClearTool not installed!");
+//                     return null;
+//                 }
+//             }
+//             return responseData.toString();
+//         } catch(Exception e){
+//             e.printStackTrace();
+//             return null;
+//         }
+//     }
     
-    /*
-     * used to read responses from ssh
-     * it parses the respons and returns only
-     * the needed response
-     */
-    public String readOutput(String command){
-        try{
-            String line = null;
-            StringBuilder responseData = new StringBuilder();
-            while((line = in.readLine()) != null) {
-                System.out.println("line: "+line);
-                line = line.replaceAll("[^\\x20-\\x7E]", "");
-                if((!line.equals(prompt)&&line.indexOf(prompt)!=-1) || (command!=null&&line.indexOf(command)!=-1)){
-                    responseData.setLength(0);
-                }
-                if(line.indexOf(prompt)==-1&&!line.equals("")){
-                    if(command!=null){
-                        if(line.indexOf(command)==-1){
-                            responseData.append(line+"\n");
-                        }
-                    } else {
-                        responseData.append(line+"\n");
-                    }
-                }
-                else if(line.equals(prompt)){
-                        return responseData.toString();
-                } 
-                if(line.indexOf("No such file or directory")!=-1){
-                    CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,ClearCase.this,
-                            "ERROR", line);
-                    in.readLine();
-                    return responseData.toString();
-                }
-                if(responseData.indexOf("cleartool: command not found")!=-1){
-                    in.readLine();
-                    CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,ClearCase.this,
-                            "ERROR", "ClearTool not installed!");
-                    return null;
-                }
-            }
-            return responseData.toString();
-        } catch(Exception e){
-            e.printStackTrace();
-            return null;
-        }
-    }
+//     /*
+//      * used to read responses from ssh
+//      * it parses the respons and returns only
+//      * the needed response
+//      */
+//     public String readOutput(String command){
+//         try{
+//             String line = null;
+//             StringBuilder responseData = new StringBuilder();
+//             while((line = in.readLine()) != null) {
+//                 System.out.println("line: "+line);
+//                 line = line.replaceAll("[^\\x20-\\x7E]", "");
+//                 if((!line.equals(prompt)&&line.indexOf(prompt)!=-1) || (command!=null&&line.indexOf(command)!=-1)){
+//                     responseData.setLength(0);
+//                 }
+//                 if(line.indexOf(prompt)==-1&&!line.equals("")){
+//                     if(command!=null){
+//                         if(line.indexOf(command)==-1){
+//                             responseData.append(line+"\n");
+//                         }
+//                     } else {
+//                         responseData.append(line+"\n");
+//                     }
+//                 }
+//                 else if(line.equals(prompt)){
+//                         return responseData.toString();
+//                 } 
+//                 if(line.indexOf("No such file or directory")!=-1){
+//                     CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,ClearCase.this,
+//                             "ERROR", line);
+//                     in.readLine();
+//                     return responseData.toString();
+//                 }
+//                 if(responseData.indexOf("cleartool: command not found")!=-1){
+//                     in.readLine();
+//                     CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,ClearCase.this,
+//                             "ERROR", "ClearTool not installed!");
+//                     return null;
+//                 }
+//             }
+//             return responseData.toString();
+//         } catch(Exception e){
+//             e.printStackTrace();
+//             return null;
+//         }
+//     }
     
     /*
      * method called when terminating
@@ -349,7 +349,7 @@ public class ClearCase extends JPanel{
                     public void run(){
                         String filter = tfilter.getText();
                         String resp = null;
-                        String command = "cleartool lsview";
+                        String command = " cleartool lsview";
                         if(cshort.isSelected()){
                             command+=" -short";
                         } else if(clong.isSelected()){
@@ -489,10 +489,10 @@ public class ClearCase extends JPanel{
                 element.setBounds(10,10,70,25);
                 telement.addFocusListener(new FocusAdapter(){
                     public void focusGained(FocusEvent ev){
-                        tcview.setText("");
-                        thlink.setText("");
-                        tvob.setText("");
-                        tlbtype.setText("");
+//                         tcview.setText("");
+//                         thlink.setText("");
+//                         tvob.setText("");
+//                         tlbtype.setText("");
                     }
                 });
                 telement.setBounds(90,10,250,25);
@@ -504,10 +504,10 @@ public class ClearCase extends JPanel{
                 cview.setBounds(10,40,80,25);
                 tcview.addFocusListener(new FocusAdapter(){
                     public void focusGained(FocusEvent ev){
-                        telement.setText("");
-                        thlink.setText("");
-                        tvob.setText("");
-                        tlbtype.setText("");
+//                         telement.setText("");
+//                         thlink.setText("");
+//                         tvob.setText("");
+//                         tlbtype.setText("");
                     }
                 });
                 tcview.setBounds(90,40,250,25);
@@ -518,10 +518,10 @@ public class ClearCase extends JPanel{
                 hlink.setBounds(10,70,80,25);
                 thlink.addFocusListener(new FocusAdapter(){
                     public void focusGained(FocusEvent ev){
-                        telement.setText("");
-                        tcview.setText("");
-                        tvob.setText("");
-                        tlbtype.setText("");
+//                         telement.setText("");
+//                         tcview.setText("");
+//                         tvob.setText("");
+//                         tlbtype.setText("");
                     }
                 });
                 thlink.setBounds(90,70,250,25);
@@ -532,10 +532,10 @@ public class ClearCase extends JPanel{
                 lbtype.setBounds(10,100,80,25);
                 tlbtype.addFocusListener(new FocusAdapter(){
                     public void focusGained(FocusEvent ev){
-                        telement.setText("");
-                        tcview.setText("");
-                        tvob.setText("");
-                        thlink.setText("");
+//                         telement.setText("");
+//                         tcview.setText("");
+//                         tvob.setText("");
+//                         thlink.setText("");
                     }
                 });
                 tlbtype.setBounds(90,100,250,25);
@@ -546,10 +546,10 @@ public class ClearCase extends JPanel{
                 vob.setBounds(10,130,80,25);
                 tvob.addFocusListener(new FocusAdapter(){
                     public void focusGained(FocusEvent ev){
-                        telement.setText("");
-                        tcview.setText("");
-                        tlbtype.setText("");
-                        thlink.setText("");
+//                         telement.setText("");
+//                         tcview.setText("");
+//                         tlbtype.setText("");
+//                         thlink.setText("");
                     }
                 });
                 tvob.setBounds(90,130,250,25);
@@ -933,7 +933,7 @@ public class ClearCase extends JPanel{
                 new Thread(){
                     public void run(){
                         tfilter.setText(RunnerRepository.user);
-                        String command = "cleartool lsview";
+                        String command = " cleartool lsview";
                         if(cshort.isSelected()){
                             command+=" -short";
                         } else if(clong.isSelected()){
@@ -956,7 +956,7 @@ public class ClearCase extends JPanel{
                         refresh.setEnabled(false);
                         tfilter.setEnabled(false);
                         HashMap<String, String> hash = new HashMap<String, String>();
-                        hash.put("command", "cleartool lsview -short | grep "+RunnerRepository.user);
+                        hash.put("command", " cleartool lsview -short | grep "+RunnerRepository.user);
                         String [] resp = sendCommand(hash,false).split("\n");
                         showViews(resp);
                     }
@@ -973,7 +973,6 @@ public class ClearCase extends JPanel{
                 if(cshort.isSelected()){
                     clong.setSelected(false);
                 }
-                System.out.println("selected");
             }
         });
         clong.addActionListener(new ActionListener(){
@@ -1001,22 +1000,22 @@ public class ClearCase extends JPanel{
                     .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
                         .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                             .addComponent(setview, javax.swing.GroupLayout.PREFERRED_SIZE, 100, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            //.addComponent(mkview, javax.swing.GroupLayout.PREFERRED_SIZE, 119, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            //.addComponent(mkelem, javax.swing.GroupLayout.PREFERRED_SIZE, 119, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            //.addComponent(rmelem, javax.swing.GroupLayout.PREFERRED_SIZE, 119, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            //.addComponent(mklabel, javax.swing.GroupLayout.PREFERRED_SIZE, 119, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            //.addComponent(mkattr, javax.swing.GroupLayout.PREFERRED_SIZE, 119, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(mkview, javax.swing.GroupLayout.PREFERRED_SIZE, 119, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(mkelem, javax.swing.GroupLayout.PREFERRED_SIZE, 119, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(rmelem, javax.swing.GroupLayout.PREFERRED_SIZE, 119, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(mklabel, javax.swing.GroupLayout.PREFERRED_SIZE, 119, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(mkattr, javax.swing.GroupLayout.PREFERRED_SIZE, 119, javax.swing.GroupLayout.PREFERRED_SIZE)
                             .addComponent(showconf, javax.swing.GroupLayout.PREFERRED_SIZE, 140, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            //.addComponent(describe, javax.swing.GroupLayout.PREFERRED_SIZE, 140, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(describe, javax.swing.GroupLayout.PREFERRED_SIZE, 140, javax.swing.GroupLayout.PREFERRED_SIZE)
                             )
                         .addComponent(listviews, javax.swing.GroupLayout.PREFERRED_SIZE, 100, javax.swing.GroupLayout.PREFERRED_SIZE)))
                 .addContainerGap())
         );
 
         jPanel1Layout.linkSize(javax.swing.SwingConstants.HORIZONTAL, new java.awt.Component[] {listviews,setview,
-//             mkview,mkelem,rmelem,mklabel,mkattr,
+            mkview,mkelem,rmelem,mklabel,mkattr,
             showconf
-//             ,describe
+            ,describe
         });
 
         jPanel1Layout.setVerticalGroup(
@@ -1030,19 +1029,19 @@ public class ClearCase extends JPanel{
                 .addGap(7, 7, 7)
                 .addComponent(setview)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-//                 .addComponent(mkview)
-//                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-//                 .addComponent(mkelem)
-//                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-//                 .addComponent(rmelem)
-//                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-//                 .addComponent(mklabel)
-//                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-//                 .addComponent(mkattr)
+                .addComponent(mkview)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(mkelem)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(rmelem)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(mklabel)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(mkattr)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(showconf)
-//                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-//                 .addComponent(describe)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(describe)
                 .addContainerGap(144, Short.MAX_VALUE))
         );
 
@@ -1159,10 +1158,10 @@ public class ClearCase extends JPanel{
                         String [] resp = null;
                         String command = "";
                         if(filter.equals("")){
-                            command = "cleartool lsview -short";
+                            command = " cleartool lsview -short ";
         //                     resp = sendCommand("cleartool lsview -short").split("\n");
                         } else {
-                            command = "cleartool lsview -short | grep "+filter;
+                            command = " cleartool lsview -short | grep "+filter;
         //                     resp = sendCommand("cleartool lsview -short | grep "+filter).split("\n");
                         }
                         HashMap<String, String> hash = new HashMap<String, String>();

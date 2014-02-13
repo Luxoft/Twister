@@ -1,6 +1,6 @@
 /*
-File: SUTEditor.java ; This file is part of Twister.
-Version: 2.011
+File: SutEditor.java ; This file is part of Twister.
+Version: 2.012
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -83,7 +83,7 @@ import java.awt.event.MouseEvent;
 import javax.swing.SwingUtilities;
 import java.awt.Color;
 
-public class SUTEditor extends JPanel{
+public class SutEditor extends JPanel{
     private JTextField tsutname;
     private JTree tree;
     private XmlRpcClient client;
@@ -99,7 +99,7 @@ public class SUTEditor extends JPanel{
     private boolean editable;
     public JScrollPane sp;
 
-    public SUTEditor(){
+    public SutEditor(){
         suttree = new SutTree();
         initializeSftp();
         initializeRPC();
@@ -186,7 +186,7 @@ public class SUTEditor extends JPanel{
                 p.add(scep);
                 suttree.populateEPs(tep,null);
                 int resp = (Integer)CustomDialog.showDialog(p,JOptionPane.PLAIN_MESSAGE, 
-                            JOptionPane.OK_CANCEL_OPTION, SUTEditor.this, "Select EP",null);
+                            JOptionPane.OK_CANCEL_OPTION, SutEditor.this, "Select EP",null);
                 if(resp == JOptionPane.OK_OPTION){
                     try{
                         StringBuilder sb = new StringBuilder();
@@ -201,7 +201,7 @@ public class SUTEditor extends JPanel{
                            ((DefaultTreeModel)tree.getModel()).nodeChanged(root.getFirstChild());
                            lastsaved = false;
                         } else {
-                            CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SUTEditor.this,"ERROR", query);
+                            CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SutEditor.this,"ERROR", query);
                         }
                     }
                     catch(Exception e){
@@ -215,7 +215,7 @@ public class SUTEditor extends JPanel{
             public void actionPerformed(ActionEvent ev){
                 String name = CustomDialog.showInputDialog(JOptionPane.PLAIN_MESSAGE,
                                                     JOptionPane.OK_CANCEL_OPTION, 
-                                                    SUTEditor.this, "Name", "Component name: ");
+                                                    SutEditor.this, "Name", "Component name: ");
                 if(name!=null&&!name.equals("")){
                     TreePath tp = tree.getSelectionPath();
                     DefaultMutableTreeNode treenode;
@@ -225,7 +225,7 @@ public class SUTEditor extends JPanel{
                         treenode = (DefaultMutableTreeNode)tp.getLastPathComponent();
                     }
                     if(checkExistingName(treenode, name, null)){
-                        CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,SUTEditor.this,"Warning", 
+                        CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,SutEditor.this,"Warning", 
                                         "This name is already used, please use different name.");
                         return;
                     }
@@ -245,7 +245,7 @@ public class SUTEditor extends JPanel{
                             ((DefaultTreeModel)tree.getModel()).insertNodeInto(component, treenode, treenode.getChildCount());
                             lastsaved = false;
                         } else {
-                            CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SUTEditor.this,"ERROR", resp);
+                            CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SutEditor.this,"ERROR", resp);
                         }
                     } catch (Exception e){
                         System.out.println("Could not send command to add component to server");
@@ -283,7 +283,7 @@ public class SUTEditor extends JPanel{
                         }
                         lastsaved = false;
                     } else {
-                        CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SUTEditor.this,"Error", s);
+                        CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SutEditor.this,"Error", s);
                     }
                 } catch (Exception e){
                     e.printStackTrace();
@@ -297,7 +297,7 @@ public class SUTEditor extends JPanel{
             public void actionPerformed(ActionEvent ev){
                 try{String resp = client.execute("saveReservedSut", new Object[]{"/"+rootsut,RunnerRepository.user}).toString();
                     if(resp.indexOf("ERROR")!=-1){
-                        CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SUTEditor.this,"ERROR", resp);
+                        CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SutEditor.this,"ERROR", resp);
                     }
                     System.out.println(resp);
                     lastsaved = true;
@@ -312,12 +312,12 @@ public class SUTEditor extends JPanel{
             public void actionPerformed(ActionEvent ev){
                 String filename = CustomDialog.showInputDialog(JOptionPane.QUESTION_MESSAGE,
                                      JOptionPane.OK_CANCEL_OPTION
-                                     ,SUTEditor.this,
+                                     ,SutEditor.this,
                                      "Sut Name", "Please enter sut name");
                 if(filename!=null&&!filename.equals("NULL")){
                     try{String resp = client.execute("saveReservedSutAs", new Object[]{filename,"/"+rootsut,RunnerRepository.user}).toString();
                         if(resp.indexOf("ERROR")!=-1){
-                            CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SUTEditor.this,"ERROR", resp);
+                            CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SutEditor.this,"ERROR", resp);
                         }
                         close.doClick();
                         SUT s = new SUT(filename,".user");
@@ -346,7 +346,7 @@ public class SUTEditor extends JPanel{
                             resp = client.execute("discardAndReleaseReservedSut", new Object[]{"/"+rootsut,RunnerRepository.user}).toString();
                         } else {
                             String[] buttons = {"Save","Discard"};
-                            resp = CustomDialog.showButtons(SUTEditor.this, JOptionPane.QUESTION_MESSAGE,
+                            resp = CustomDialog.showButtons(SutEditor.this, JOptionPane.QUESTION_MESSAGE,
                                                                     JOptionPane.DEFAULT_OPTION, null,buttons ,
                                                                     "Save","Save SUT before closing?");
                             if (!resp.equals("NULL")) {
@@ -361,7 +361,7 @@ public class SUTEditor extends JPanel{
                             }
                         }
                         if(resp.indexOf("*ERROR*")!=-1){
-                            CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SUTEditor.this,"ERROR", resp);
+                            CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SutEditor.this,"ERROR", resp);
                         }
                     }
                     catch(Exception e){e.printStackTrace();}
@@ -628,13 +628,17 @@ public class SUTEditor extends JPanel{
     
     public String getEpsFromSut(String sutname){
         String eps = "";
-        try{System.out.println("Getting eps for: "+sutname);
-            HashMap hash= (HashMap)client.execute("getSut", new Object[]{sutname,RunnerRepository.user,RunnerRepository.user});
-            System.out.println(hash.toString());
-            eps = ((HashMap)hash.get("meta")).get("_epnames_"+RunnerRepository.user).toString();}
+        try{HashMap hash= (HashMap)client.execute("getSut", new Object[]{sutname,RunnerRepository.user,RunnerRepository.user});
+            try{eps = ((HashMap)hash.get("meta")).get("_epnames_"+RunnerRepository.user).toString();}
+            catch(Exception e){
+                System.out.println("Error in getting _epnames_"+RunnerRepository.user+" from meta in: "+hash.toString()+" . Called in SutEditor->getEpsFromSut");
+                eps = "";
+            }
+        }
         catch(Exception e){
+            eps = "";
             e.printStackTrace();
-            eps = "";}
+        }
         return eps;
     }
     
@@ -653,7 +657,7 @@ public class SUTEditor extends JPanel{
             configuration.setBasicUserName(RunnerRepository.user);
             client = new XmlRpcClient();
             client.setConfig(configuration);
-            System.out.println("XMLRPC Client for SUTEditor initialized: "+client);}
+            System.out.println("XMLRPC Client for SutEditor initialized: "+client);}
         catch(Exception e){System.out.println("Could not conect to "+
                             RunnerRepository.host+" :"+RunnerRepository.getCentralEnginePort()+"/ra/"+
                             "for RPC client initialization");}
@@ -789,7 +793,7 @@ public class SUTEditor extends JPanel{
                             model.insertNodeInto(element, parent, 1);
                         }
                         else{
-                            CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SUTEditor.this,"ERROR", resp);
+                            CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SutEditor.this,"ERROR", resp);
                         }
                     } catch (Exception e){
                         e.printStackTrace();

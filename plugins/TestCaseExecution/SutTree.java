@@ -1,6 +1,6 @@
 /*
 File: SutTree.java ; This file is part of Twister.
-Version: 2.007
+Version: 2.008
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -681,7 +681,7 @@ public class SutTree extends JPanel{
 //         }
 //     }
 
-    public String [] getSutFiles(){
+    public String [][] getSutFiles(){
         try{Object ob = client.execute("listAllSuts", new Object[]{RunnerRepository.user});
             if(ob.toString().indexOf("*ERROR*")!=-1){
                 CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SutTree.this,"ERROR", ob.toString());
@@ -690,6 +690,8 @@ public class SutTree extends JPanel{
             String name;
             StringBuilder sb = new StringBuilder();
             HashMap hash;
+            StringBuilder statuses = new StringBuilder();
+            StringBuilder user = new StringBuilder();
             for(Object object:array){
                 hash = (HashMap)object;
                 name = hash.get("name").toString();
@@ -697,8 +699,28 @@ public class SutTree extends JPanel{
                 name = name.replace(".system", "(system)");
                 sb.append(name);
                 sb.append(";");
+                String status = hash.get("status").toString();
+                statuses.append(status);
+                statuses.append(";");
+                if(!status.equals("free")){
+                    user.append(hash.get("user").toString());
+                    user.append(";");
+                }else {
+                    user.append(" ");
+                    user.append(";");
+                }
             }
-            return sb.toString().split(";");
+                            
+            String [] suts = sb.toString().split(";");
+            String [] stats = statuses.toString().split(";");
+            String [] users = user.toString().split(";");
+            String [][] respons = new String[suts.length][3];
+            for(int i=0;i<suts.length;i++){
+                respons[i][0] = suts[i];
+                respons[i][1] = stats[i];
+                respons[i][2] = users[i];
+            }
+            return respons;
         } catch (Exception e){
             e.printStackTrace();
             return null;
@@ -786,22 +808,22 @@ public class SutTree extends JPanel{
     }
     
     
-    /*
-     * get from server user that reserved sut
-     */
-    public String getSUTReservdUser(String name){
-        try{String resp = client.execute("isSutReserved", new Object[]{"/"+name}).toString();
-            if(resp.equals("false"))return "";
-            if(resp.indexOf("*ERROR*")!=-1){
-                CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SutTree.this,"ERROR", resp);
-                return "";
-            }
-            else return resp;
-        }
-        catch(Exception e){e.printStackTrace();
-            return "";
-        }
-    }
+//     /*
+//      * get from server user that reserved sut
+//      */
+//     public String getSUTReservdUser(String name){
+//         try{String resp = client.execute("isSutReserved", new Object[]{"/"+name}).toString();
+//             if(resp.equals("false"))return "";
+//             if(resp.indexOf("*ERROR*")!=-1){
+//                 CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SutTree.this,"ERROR", resp);
+//                 return "";
+//             }
+//             else return resp;
+//         }
+//         catch(Exception e){e.printStackTrace();
+//             return "";
+//         }
+//     }
     
     
     /*

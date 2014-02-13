@@ -1,6 +1,6 @@
 /*
 File: TestBeds.java ; This file is part of Twister.
-Version: 2.001
+Version: 2.002
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -19,12 +19,15 @@ limitations under the License.
 */
 import javax.swing.JTree;
 import javax.swing.JPanel;
+import javax.swing.JButton;
 import javax.swing.JScrollPane;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.TreeSelectionModel;
 import javax.swing.border.BevelBorder;
 import javax.swing.BorderFactory;
 import java.awt.BorderLayout;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 
 public class TestBeds extends JPanel{
     private JScrollPane jScrollPane1;
@@ -34,6 +37,15 @@ public class TestBeds extends JPanel{
         setLayout(new BorderLayout());
         jScrollPane1 = new JScrollPane();
         add(jScrollPane1,BorderLayout.CENTER);
+        JPanel buttons = new JPanel();
+        JButton refresh = new JButton("Refresh");
+        buttons.add(refresh);
+        add(buttons,BorderLayout.SOUTH);
+        refresh.addActionListener(new ActionListener(){
+            public void actionPerformed(ActionEvent ev){
+                RunnerRepository.window.mainpanel.p4.getTB().buildFirstLevelTB();
+            }
+        });
     }
     
     public void setTree(JTree tree){

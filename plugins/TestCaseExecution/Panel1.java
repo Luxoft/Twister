@@ -1,6 +1,6 @@
 /*
 File: Panel1.java ; This file is part of Twister.
-Version: 2.0015
+Version: 2.0016
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -1006,7 +1006,7 @@ public class Panel1 extends JPanel{
         else{
             if(!generate.isEnabled()){
                 generate.setEnabled(status);
-                generate.setToolTipText("Generate XML");}}}
+                generate.setToolTipText("Run suite");}}}
     /*    
      * add new suite file
      */        
