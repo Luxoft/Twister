@@ -1,7 +1,7 @@
 
 # File: CeXmlRpc.py ; This file is part of Twister.
 
-# version: 2.035
+# version: 2.036
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -183,15 +183,34 @@ class CeXmlRpc(_cptools.XMLRPCController):
         Read a file from user's home folder.
         This function is called from the Java GUI.
         """
-        cherry_user = cherrypy.session.get('username')
+        user = cherrypy.session.get('username')
         if fpath[0] == '~':
-            fpath = userHome(cherry_user) + fpath[1:]
-        if not os.path.isfile(fpath):
-            err = '*ERROR* Path `{}` is not a file!'.format(fpath)
-            logWarning(err)
-            return err
-        log_string = open(fpath).read()
-        return binascii.b2a_base64(log_string)
+            fpath = userHome(user) + fpath[1:]
+
+        try:
+            # Trying to read the file directly
+            with open(fpath, 'r') as f:
+                return binascii.b2a_base64(f.read())
+        except:
+            # The file is probably inaccesible. Try via Client
+            conn = self.project._find_local_client(user)
+            if not conn:
+                err = '*ERROR* Cannot find any local Clients for user `{}`! Cannot read file!'.format(user)
+                logWarning(err)
+                return err
+
+            try:
+                resp = conn.root.read_file(fpath)
+                if resp is not True:
+                    logWarning(resp)
+                    return resp
+                else:
+                    return resp
+            except:
+                trace = traceback.format_exc()[34:].strip()
+                err = '*ERROR* read file error: {}'.format(trace)
+                logWarning(err)
+                return err
 
 
     @cherrypy.expose
@@ -218,17 +237,47 @@ class CeXmlRpc(_cptools.XMLRPCController):
             return err
 
         try:
-            result = conn.root.write_file(fpath, log_string)
-            if result:
-                logDebug('User `{}` updated file `{}`.'.format(user, fpath))
-                return True
+            resp = conn.root.write_file(fpath, log_string)
+            if resp is not True:
+                logWarning(resp)
+                return resp
             else:
-                err = '*ERROR* Cannot write into file `{}`! Insuficient rights!'.format(fpath)
-                logWarning(err)
-                return err
+                logDebug('User `{}` has written file `{}`.'.format(user, fpath))
+                return resp
         except:
             trace = traceback.format_exc()[34:].strip()
             err = '*ERROR* write file error: {}'.format(trace)
+            logWarning(err)
+            return err
+
+
+    @cherrypy.expose
+    def deleteFile(self, fpath):
+        """
+        Delete a file in user's home folder.
+        This function is called from the Java GUI.
+        """
+        user = cherrypy.session.get('username')
+        if fpath[0] == '~':
+            fpath = userHome(user) + fpath[1:]
+
+        conn = self.project._find_local_client(user)
+        if not conn:
+            err = '*ERROR* Cannot find any local Clients for user `{}`! Cannot delete file!'.format(user)
+            logWarning(err)
+            return err
+
+        try:
+            resp = conn.root.delete_file(fpath)
+            if resp is not True:
+                logWarning(resp)
+                return resp
+            else:
+                logDebug('User `{}` has deleted file `{}`.'.format(user, fpath))
+                return resp
+        except:
+            trace = traceback.format_exc()[34:].strip()
+            err = '*ERROR* delete file error: {}'.format(trace)
             logWarning(err)
             return err
 
@@ -698,12 +747,12 @@ class CeXmlRpc(_cptools.XMLRPCController):
             err = '*ERROR* Config file `{}` is locked by `{}`! Cannot save!'.format(fpath, lock)
             logDebug(err)
             return err
+        # Cannot save a file that isn't locked!
         if not lock:
             err = '*ERROR* Cannot save config file `{}`, because it\'s not locked!'.format(fpath)
             logDebug(err)
             return err
-        cherry_user = cherrypy.session.get('username')
-        dirpath = self.project.getUserInfo(cherry_user, 'tcfg_path')
+        dirpath = self.project.getUserInfo(user, 'tcfg_path')
         return self.writeFile(dirpath + '/' + fpath, content)
 
 
@@ -712,31 +761,15 @@ class CeXmlRpc(_cptools.XMLRPCController):
         """
         Complete path from tree - returns a True/ False.
         """
+        user = cherrypy.session.get('username')
         lock = self.isLockConfig(fpath)
         # Cannot Delete a locked file!
         if lock:
             err = '*ERROR* Config file `{}` is locked by `{}`! Cannot delete!'.format(fpath, lock)
             logDebug(err)
             return err
-        user = cherrypy.session.get('username')
         dirpath = self.project.getUserInfo(user, 'tcfg_path')
-        fpath  = dirpath + '/' + fpath
-        if not os.path.isfile(fpath):
-            err = '*ERROR* Path `{}` is not a file!'.format(fpath)
-            logWarning(err)
-            return err
-        if not fpath.startswith( userHome(user) ):
-            err = '*ERROR* Path `{}` is not in the users home folder!'.format(fpath)
-            logWarning(err)
-            return err
-        try:
-            os.remove(fpath)
-            logDebug('User `{}` deleted config file `{}`.'.format(user, fpath))
-            return True
-        except Exception as e:
-            err = '*ERROR* Cannot delete file `{}`! Exception: `{}`.'.format(fpath, e)
-            logWarning(err)
-            return err
+        return self.deleteFile(dirpath + '/' + fpath)
 
 
     @cherrypy.expose
