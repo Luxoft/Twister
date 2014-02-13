@@ -2,7 +2,7 @@
 
 # File: start_client.py ; This file is part of Twister.
 
-# version: 3.006
+# version: 3.008
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -404,10 +404,13 @@ class TwisterClient(object):
         Register EPs to Central Engines.
         The function is called on START and on DISCONNECT from a Central Engine.
         """
-        if ce_proxy:
-            print('Starting Client Service register on `{}`...'.format(ce_proxy))
-        else:
-            print('Starting Client Service register...')
+        addr = ['127.0.0.1', 'localhost']
+        hostName = socket.gethostname()
+        addr.append(hostName)
+        try: addr.append(socket.gethostbyaddr(hostName)[-1][0])
+        except: pass
+
+        print('Starting Client Service register on `{}`...'.format(addr))
 
         # print('\n----- Config Data ----')
         # pprint(self.epNames, indent=2, width=100) # DEBUG !
@@ -419,7 +422,7 @@ class TwisterClient(object):
         for currentEP, epData in self.epNames.iteritems():
             cePath = '{}:{}'.format(epData['ce_ip'], epData['ce_port'])
             # If Central Engine proxy filter is specified, use it
-            if ce_proxy and ce_proxy != epData['ce_ip']:
+            if epData['ce_ip'] not in addr:
                 continue
 
             epsToRegister[cePath] = [
@@ -480,8 +483,8 @@ class TwisterClientService(rpyc.Service):
         connid = self._conn._config['connid']
 
         try:
-            proxy = self.connections.pop(connid)
-            if proxy: client.registerEPs(proxy)
+            self.connections.pop(connid)
+            client.registerEPs()
         except Exception as e:
             trace = traceback.format_exc()[34:].strip()
             print('ClientService: Disconnect Error: `{}`!'.format(trace))
@@ -669,8 +672,22 @@ class TwisterClientService(rpyc.Service):
             print('Deleted folders `{}`.'.format(folder))
             return True
         except Exception as e:
-            print('*ERROR* Cannot delete folder `{}`! {}'.format(folder, e))
-            return False
+            err = '*ERROR* Cannot delete folder `{}`! {}'.format(folder, e)
+            print(err)
+            return err
+
+
+    def exposed_read_file(self, fpath):
+        """
+        Read 1 file.
+        """
+        try:
+            with open(fpath, 'r') as f:
+                return f.read()
+        except Exception as e:
+            err = '*ERROR* Cannot read file `{}`! {}'.format(fpath, e)
+            print(err)
+            return err
 
 
     def exposed_write_file(self, fpath, content):
@@ -682,15 +699,30 @@ class TwisterClientService(rpyc.Service):
             print('Written file `{}`.'.format(fpath))
             return True
         except Exception as e:
-            print('*ERROR* Cannot write into file `{}`! {}'.format(fpath, e))
-            return False
+            err = '*ERROR* Cannot write into file `{}`! {}'.format(fpath, e)
+            print(err)
+            return err
+
+
+    def exposed_delete_file(self, fpath):
+        """
+        Delete a file. This is IREVERSIBLE!
+        """
+        try:
+            os.remove(fpath)
+            print('Deleted file `{}`.'.format(fpath))
+            return True
+        except Exception as e:
+            err = '*ERROR* Cannot delete file `{}`! {}'.format(fpath, e)
+            print(err)
+            return err
 
 
     def exposed_save_suts(self, sutList):
         """ save sut to file """
 
         # Save sut files
-        print('\nSave SUTS {}\n'.format(sutList))
+        print('Save SUTS {}\n'.format(sutList))
         for (name, sut) in sutList:
             try:
                 print('\n Save SUT Name {} Sut {}\n'.format(name, sut))
@@ -698,7 +730,7 @@ class TwisterClientService(rpyc.Service):
                 if not sutsPath:
                     sutsPath = '{}/config/sut/'.format(TWISTER_PATH)
                 childPath = os.path.join(sutsPath, name)
-                
+
                 if os.path.isfile(childPath):
                     with open(childPath, 'r') as f:
                         sut = json.loads(json.dumps(copy.deepcopy(sut)))
@@ -729,11 +761,6 @@ class TwisterClientService(rpyc.Service):
                 sutsPath = '{}/config/sut/'.format(TWISTER_PATH)
             sutPaths = [p for p in os.listdir(sutsPath) if os.path.isfile(os.path.join(sutsPath, p)) and p.split('.')[-1] == 'json']
 
-            # testPath = os.path.join(sutsPath, 'test_wirte_file.txt')
-            # openTest = open(testPath, 'w')
-            # openTest.close()
-            # os.remove(testPath)
-
             for sutPath in sutPaths:
                 try:
                     sutName = '.'.join(['.'.join(sutPath.split('.')[:-1]  + ['user'])])
@@ -744,6 +771,8 @@ class TwisterClientService(rpyc.Service):
         except Exception as e:
             trace = traceback.format_exc()[34:].strip()
             suts = None
+
+        print('Found SUTS {}\n'.format(suts))
 
         return suts
 
@@ -761,6 +790,8 @@ class TwisterClientService(rpyc.Service):
         except Exception as e:
             trace = traceback.format_exc()[34:].strip()
             sutsLen = None
+
+        print('Found SUTS nr {}\n'.format(sutsLen))
 
         return sutsLen
 
