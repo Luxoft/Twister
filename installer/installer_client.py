@@ -1,5 +1,5 @@
 
-# version: 2.002
+# version: 2.003
 
 # File: installer.py ; This file is part of Twister.
 
@@ -36,6 +36,7 @@ Twister Client will be installed in the home of your user, in the folder `twiste
 '''
 
 import os, sys
+import binascii
 import shutil
 import subprocess
 from string import Template
@@ -173,8 +174,8 @@ for fname in to_copy:
 
 # Restore CONFIG folder, if any
 if os.path.exists(tmp_config):
-    print('\nMoving `config` folder back (from `{}` to `{}`)...'.format(tmp_config, INSTALL_PATH+'config'))
-    dir_util.copy_tree(tmp_config, INSTALL_PATH+'config')
+    print('\nMoving `config` folder back (from `{}` to `{}`)...'.format(tmp_config, INSTALL_PATH))
+    dir_util.copy_tree(tmp_config, INSTALL_PATH)
     dir_util.remove_tree(tmp_config)
 
 
@@ -225,6 +226,17 @@ os.system('find %s -name "start_packet_sniffer.py" -exec chmod +x {} \;' % INSTA
 fwm = Template( open(INSTALL_PATH + 'config/fwmconfig.xml', 'r').read() )
 open(INSTALL_PATH + 'config/fwmconfig.xml', 'w').write( fwm.substitute(HOME=userHome(user_name)) )
 del fwm
+
+
+# Check user's encr key
+user_key = '{}config/twister.key'.format(INSTALL_PATH)
+if os.path.isfile(user_key) and open(user_key).read():
+    print('User key ok.')
+else:
+    print('Generating user key...')
+    with open(user_key, 'w') as f:
+        f.write(binascii.hexlify(os.urandom(16)))
+    print('User key saved in "config/twister.key". Don\'t change this file!')
 
 
 print('\nTwister installation done!\n')
