@@ -1,7 +1,7 @@
 
 # File: CeProject.py ; This file is part of Twister.
 
-# version: 3.012
+# version: 3.015
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -693,6 +693,39 @@ class Project(object):
 # # #
 
 
+    def readFile(self, user, fpath):
+        """
+        Read a file from user's home folder.
+        """
+        if fpath[0] == '~':
+            fpath = userHome(user) + fpath[1:]
+
+        try:
+            # Trying to read the file directly
+            with open(fpath, 'r') as f:
+                return binascii.b2a_base64(f.read())
+        except:
+            # The file is probably inaccesible. Try via Client
+            conn = self._find_local_client(user)
+            if not conn:
+                err = '*ERROR* Cannot find any local Clients for user `{}`! Cannot read file!'.format(user)
+                logWarning(err)
+                return err
+
+            try:
+                resp = conn.root.read_file(fpath)
+                if resp is not True:
+                    logWarning(resp)
+                    return resp
+                else:
+                    return resp
+            except:
+                trace = traceback.format_exc()[34:].strip()
+                err = '*ERROR* read file error: {}'.format(trace)
+                logWarning(err)
+                return err
+
+
     def _parseUsersAndGroups(self):
         """
         Parse users and groups and return the values.
@@ -775,6 +808,12 @@ class Project(object):
 
             # Fix groups. Must be a list.
             usr_data['groups'] = grps
+
+            # Add user key from user's home
+            usr_data['key'] = self.readFile(usr, '~/twister/config/twister.key')
+            # Fix key in case of error
+            if not usr_data['key'] or '*ERROR*' in usr_data['key']:
+                usr_data['key'] = ''
 
         return cfg.dict()
 
@@ -986,7 +1025,13 @@ class Project(object):
         # Check the username data
         user_roles = self.authenticate(user)
         key = user_roles.get('key')
-        if not key: return False
+        if not key:
+            # Add user key from user's home
+            key = self.readFile(usr, '~/twister/config/twister.key')
+            # Fix key in case of error
+            if not key or '*ERROR*' in key:
+                logWarning('Cannot encrypt! Cannot fetch users key!')
+                return False
         return encrypt(text, key)
 
 
@@ -999,7 +1044,13 @@ class Project(object):
         # Check the username data
         user_roles = self.authenticate(user)
         key = user_roles.get('key')
-        if not key: return False
+        if not key:
+            # Add user key from user's home
+            key = self.readFile(usr, '~/twister/config/twister.key')
+            # Fix key in case of error
+            if not key or '*ERROR*' in key:
+                logWarning('Cannot decrypt! Cannot fetch users key!')
+                return False
         return decrypt(text, key)
 
 

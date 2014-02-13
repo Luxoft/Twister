@@ -181,36 +181,9 @@ class CeXmlRpc(_cptools.XMLRPCController):
     def readFile(self, fpath):
         """
         Read a file from user's home folder.
-        This function is called from the Java GUI.
         """
         user = cherrypy.session.get('username')
-        if fpath[0] == '~':
-            fpath = userHome(user) + fpath[1:]
-
-        try:
-            # Trying to read the file directly
-            with open(fpath, 'r') as f:
-                return binascii.b2a_base64(f.read())
-        except:
-            # The file is probably inaccesible. Try via Client
-            conn = self.project._find_local_client(user)
-            if not conn:
-                err = '*ERROR* Cannot find any local Clients for user `{}`! Cannot read file!'.format(user)
-                logWarning(err)
-                return err
-
-            try:
-                resp = conn.root.read_file(fpath)
-                if resp is not True:
-                    logWarning(resp)
-                    return resp
-                else:
-                    return resp
-            except:
-                trace = traceback.format_exc()[34:].strip()
-                err = '*ERROR* read file error: {}'.format(trace)
-                logWarning(err)
-                return err
+        return self.project.readFile(user, fpath)
 
 
     @cherrypy.expose
