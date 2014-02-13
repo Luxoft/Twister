@@ -1,7 +1,7 @@
 
 # File: CeResources.py ; This file is part of Twister.
 
-# version: 2.023
+# version: 2.024
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -1334,7 +1334,10 @@ class ResourceAllocator(_cptools.XMLRPCController):
                 sutsPath = self.project.getUserInfo(user, 'sys_sut_path')
                 if not sutsPath:
                     sutsPath = '{}/config/sut/'.format(TWISTER_PATH)
-                os.remove(os.path.join([sutsPath, '.'.join(node_path[0].split('.')[:-1] + ['json'])]))
+                file_name = node_path[0].split('.')[:-1][0]
+                file_name += '.json'
+
+                os.remove(sutsPath+file_name)
             else:
                 # Get the user rpyc connection connection
                 try:
