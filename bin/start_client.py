@@ -2,7 +2,7 @@
 
 # File: start_client.py ; This file is part of Twister.
 
-# version: 3.007
+# version: 3.008
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -672,8 +672,22 @@ class TwisterClientService(rpyc.Service):
             print('Deleted folders `{}`.'.format(folder))
             return True
         except Exception as e:
-            print('*ERROR* Cannot delete folder `{}`! {}'.format(folder, e))
-            return False
+            err = '*ERROR* Cannot delete folder `{}`! {}'.format(folder, e)
+            print(err)
+            return err
+
+
+    def exposed_read_file(self, fpath):
+        """
+        Read 1 file.
+        """
+        try:
+            with open(fpath, 'r') as f:
+                return f.read()
+        except Exception as e:
+            err = '*ERROR* Cannot read file `{}`! {}'.format(fpath, e)
+            print(err)
+            return err
 
 
     def exposed_write_file(self, fpath, content):
@@ -685,8 +699,23 @@ class TwisterClientService(rpyc.Service):
             print('Written file `{}`.'.format(fpath))
             return True
         except Exception as e:
-            print('*ERROR* Cannot write into file `{}`! {}'.format(fpath, e))
-            return False
+            err = '*ERROR* Cannot write into file `{}`! {}'.format(fpath, e)
+            print(err)
+            return err
+
+
+    def exposed_delete_file(self, fpath):
+        """
+        Delete a file. This is IREVERSIBLE!
+        """
+        try:
+            os.remove(fpath)
+            print('Deleted file `{}`.'.format(fpath))
+            return True
+        except Exception as e:
+            err = '*ERROR* Cannot delete file `{}`! {}'.format(fpath, e)
+            print(err)
+            return err
 
 
     def exposed_save_suts(self, sutList):
