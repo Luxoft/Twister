@@ -726,10 +726,9 @@ class TwisterClientService(rpyc.Service):
         """ save sut to file """
 
         # Save sut files
-        logPrint('Save SUTS {}'.format(sutList))
         for (name, sut) in sutList:
             try:
-                logPrint('Save SUT Name {} Sut {}'.format(name, sut))
+                logPrint('Save SUT Name {}'.format(name))
                 sutsPath = self._conn.root.getUserVariable('sut_path')
                 if not sutsPath:
                     sutsPath = '{}/config/sut/'.format(TWISTER_PATH)
@@ -794,8 +793,6 @@ class TwisterClientService(rpyc.Service):
         except Exception as e:
             trace = traceback.format_exc()[34:].strip()
             sutsLen = None
-
-        logPrint('Found SUTS nr {}'.format(sutsLen))
 
         return sutsLen
 
