@@ -1,7 +1,7 @@
 
 # File: CeXmlRpc.py ; This file is part of Twister.
 
-# version: 2.036
+# version: 2.037
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -211,7 +211,7 @@ class CeXmlRpc(_cptools.XMLRPCController):
 
         try:
             resp = conn.root.write_file(fpath, log_string)
-            if resp is not True:
+            if '*ERROR*' in resp:
                 logWarning(resp)
                 return resp
             else:
@@ -242,7 +242,7 @@ class CeXmlRpc(_cptools.XMLRPCController):
 
         try:
             resp = conn.root.delete_file(fpath)
-            if resp is not True:
+            if '*ERROR*' in resp:
                 logWarning(resp)
                 return resp
             else:
