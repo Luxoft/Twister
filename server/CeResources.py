@@ -1,7 +1,7 @@
 
 # File: CeResources.py ; This file is part of Twister.
 
-# version: 2.024
+# version: 2.026
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -600,12 +600,22 @@ class ResourceAllocator(_cptools.XMLRPCController):
                     sutName = os.path.basename(xml_file).split('.')[:-1]
                     if not sutName:
                         sutName = [os.path.basename(xml_file)]
-                    sutName = '.'.join(sutName + [sutType])
-                    if sutName in self.systems.get('children'):
-                        sutName = '{}{}'.format(sutName, time.time())
+
+                    # sut name is a list; make it string
+                    sutName = ''.join(sutName)
+                    # if we already have same SUT name, add timestamp to
+                    # differentiate
+                    tmpSutName = sutName + '.' + sutType
+                    if tmpSutName in self.systems.get('children'):
+                        actual_time = time.localtime()
+                        sutName = '{}_{}'.format(sutName, time.strftime('%Y_%m_%d_%H_%M_%S',actual_time))
+
+                    # Add SUT type ( user/system )
+                    sutName = sutName + '.' + sutType
+
                     sutContent = xml_to_res(params_xml, {})
                     sutContent = sutContent.popitem()[1]
-                    sutContent.update([('path', sutName), ])
+                    sutContent.update([('path', sutName.split()), ])
                     sutContent = _recursive_refresh_id(sutContent)
                     self.systems['children'].update([(sutName, sutContent), ])
                 except Exception as e:
@@ -673,14 +683,14 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
-    def export_sut_xml(self, xml_file, query, props={}, username = None):
+    def export_sut_xml(self, xml_file, query, username = None):
         '''
         Export as XML file.
         '''
         res_path = _get_res_path(self.systems, query)
         res_pointer = _get_res_pointer(self.systems, ''.join('/' + res_path[0]))
         root = {'version': 0, 'name': '/', 'meta': {}, 'children': {res_path[0]: res_pointer}}
-        return self.export_xml(xml_file, None, root, props)
+        return self.export_xml(xml_file, None, root, '{}')
 
 
     @cherrypy.expose
@@ -1086,17 +1096,6 @@ class ResourceAllocator(_cptools.XMLRPCController):
             logError(msg)
             return '*ERROR* ' + msg
 
-        # Find the resource pointer.
-        # if root_id == ROOT_DEVICE:
-        #     res_p = self.getResource(res_query)
-        # else:
-        #     res_p = self.getSut(res_query)
-
-        # if not res_p:
-        #     msg = 'Rename {}: Cannot find resource path or ID `{}` !'.format(root_name, res_query)
-        #     logError(msg)
-        #     return '*ERROR* ' + msg
-
         res_p = self._getReservedResource(res_query, props, root_id)
         if not res_p:
             msg = 'Rename {}: Cannot access reserved resource, path or ID `{}` !'.format(root_name, res_query)
@@ -1121,11 +1120,6 @@ class ResourceAllocator(_cptools.XMLRPCController):
             logDebug('No changes have been made to {} `{}`.'.format(root_name, new_name))
             return True
 
-        # Must use the real pointer instead of `resource` pointer in order to update the real data
-        # if root_id == ROOT_DEVICE:
-        #     exec_string = 'self.resources["children"]["{}"]'.format('"]["children"]["'.join(node_path))
-        # else:
-        #     exec_string = 'self.systems["children"]["{}"]'.format('"]["children"]["'.join(node_path))
         if node_path[1:]:
             exec_string = 'res_p["children"]["{}"]'.format('"]["children"]["'.join(node_path[1:]))
         else:
@@ -1149,20 +1143,13 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
             # If must rename a normal node
             else:
-                # Must use the real pointer instead of `resource` pointer in order to update the real data
-                # if root_id == ROOT_DEVICE:
-                #     new_string = 'self.resources["children"]["{}"]'.format('"]["children"]["'.join(new_path))
-                # else:
-                #     new_string = 'self.systems["children"]["{}"]'.format('"]["children"]["'.join(new_path))
                 if new_path[1:]:
                     new_string = 'res_p["children"]["{}"]'.format('"]["children"]["'.join(new_path[1:]))
                     exec( new_string + ' = ' + exec_string )
                     exec( 'del ' + exec_string )
                 else:
-                    res_p['path'] = new_name
-
-                #exec( new_string + ' = ' + exec_string )
-                #exec( 'del ' + exec_string )
+                    #res_p['path'] = new_name
+                    res_p.update([('path', [new_name]), ])
 
                 logDebug('Renamed {} path `{}` to `{}`.'.format(root_name, '/'.join(node_path), '/'.join(new_path)))
 
@@ -1358,8 +1345,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
         Permanently delete a SUT.
         '''
         logFull('CeResources:deleteSut')
-        props = {}
-        return self.deleteResource(res_query, props, ROOT_SUT, username)
+        return self.deleteResource(res_query, '{}', ROOT_SUT, username)
 
 
     @cherrypy.expose
@@ -1371,12 +1357,12 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
-    def reserveSut(self, res_query, props={}, username = None):
+    def reserveSut(self, res_query, username = None):
         '''
         Reserve a SUT.
         '''
         logFull('CeResources:reserveSut')
-        return self.reserveResource(res_query, props, ROOT_SUT, username)
+        return self.reserveResource(res_query, '{}', ROOT_SUT, username)
 
 
     @cherrypy.expose
@@ -1406,12 +1392,12 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
-    def saveAndReleaseReservedSut(self, res_query, props={}, username = None):
+    def saveAndReleaseReservedSut(self, res_query, username = None):
         '''
         Save a reserved SUT.
         '''
         logFull('CeResources:saveAndReleaseReservedSut')
-        return self.saveAndReleaseReservedResource(res_query, props, ROOT_SUT, username)
+        return self.saveAndReleaseReservedResource(res_query, '{}', ROOT_SUT, username)
 
 
     @cherrypy.expose
@@ -1604,7 +1590,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
     @cherrypy.expose
     def saveAndReleaseReservedResource(self, res_query, props={}, root_id=ROOT_DEVICE, username = None):
         """  """
-        logDebug('CeResources:saveAndReleaseReservedResource')
+        logDebug('CeResources:saveAndReleaseReservedResource {} {} {} {}'.format(res_query, props, root_id, username))
         self._load(v=False, props=props)
 
         if root_id == ROOT_DEVICE:
