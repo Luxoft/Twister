@@ -1,7 +1,7 @@
 
 # File: CeResources.py ; This file is part of Twister.
 
-# version: 2.026
+# version: 2.027
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -476,7 +476,6 @@ class ResourceAllocator(_cptools.XMLRPCController):
                         continue
 
                     # Check where to save (ce / user)
-                    #childPath = '{}/config/sut/{}.json'.format(TWISTER_PATH, '.'.join(child.split('.')[:-1]))
                     user_roles = self.userRoles(props)
                     user = user_roles.get('user')
                     logDebug('Trying to save SUT file {} {} {}'.format(child, user, username))
@@ -490,12 +489,6 @@ class ResourceAllocator(_cptools.XMLRPCController):
                     childPath = os.path.join(sutsPath, '.'.join(child.split('.')[:-1] + ['json']))
                     if child.split('.')[-1] == 'system':
                         systemSuts.append((childPath, self.systems['children'][child]))
-                        # try:
-                        #     with open(childPath, 'w') as f:
-                        #         json.dump(self.systems['children'][child], f, indent=4)
-                        # except Exception as e:
-                        #     log.append(e)
-                        #     logError('Saving ERROR:: `{}`.'.format(e))
                     else:
                         userSuts.append(('.'.join(child.split('.')[:-1] + ['json']), self.systems['children'][child]))
 
@@ -1022,7 +1015,12 @@ class ResourceAllocator(_cptools.XMLRPCController):
                 if parent == '/' or parent == '1':
                     # Write changes for Device or SUT
                     r = self._save(root_id, props, name, username)
-                    logDebug('Created {} `{}`, id `{}` : `{}`.'.format(root_name, name, res_id, props))
+                    if isinstance(r,str):
+                         if '*ERROR*' in r:
+                             # do clean up
+                             parent_p['children'].pop(name)
+                    else:
+                        logDebug('Created {} `{}`, id `{}` : `{}` .'.format(root_name, name, res_id, props))
 
                 if not r == True and not r == None:
                     return r
@@ -1157,18 +1155,13 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
-    def renameSut(self, res_query, new_name, props={}, username = None):
+    def renameSut(self, res_query, new_name, username = None):
         '''
         Rename a SUT.
         '''
         logDebug('CeResources:renameSut {} {} {} {}'.format(res_query, new_name, props, username))
 
-        # we need to create the new SUT file first
-        if not props:
-            props = {}
-        self.setResource(new_name, '/', props, ROOT_SUT, username)
-
-        return self.renameResource(res_query, new_name, props, ROOT_SUT)
+        return self.copySutFile(res_query, new_name, username, True)
 
 
     @cherrypy.expose
@@ -2137,6 +2130,126 @@ class ResourceAllocator(_cptools.XMLRPCController):
         logDebug('Fast listing SUTs... Found {}.'.format(suts))
 
         return result
+
+    @cherrypy.expose
+    def copySutFile(self, old_sut, new_sut, user, delete_old=True):
+        """
+        Copy a SUT file in a new one
+        """
+        logDebug('CeResources:copySutFile {} {} {} {}'.format(old_sut,new_sut,user,delete_old))
+
+        # check if old_sut exists
+        foundOldSut = False
+        userSutList = self.listAllSuts(user)
+        if userSutList:
+            for listElem in userSutList:
+                if listElem['name'] == old_sut:
+                    foundOldSut = True;
+                    continue
+        
+        if not foundOldSut:
+            msg = 'SUT file {} doesn\'t exit !'.format(old_sut)
+            logError(msg)
+            return '*ERROR* ' + msg
+
+        # check that the new_sut name doesn't exists
+        if userSutList:
+            for listElem in userSutList:
+                if listElem['name'] == new_sut:
+                    msg = 'New SUT file {} already exits !'.format(new_sut)
+                    logError(msg)
+                    return '*ERROR* ' + msg
+        
+        # make sure the SUT file names start with /
+        if new_sut[0] != '/':
+            new_sut = '/' + new_sut
+        if old_sut[0] != '/':
+            old_sut = '/' + old_sut
+
+        # create a new SUT file and reserve it
+        newSutId = self.setResource(new_sut, '/', '{}', ROOT_SUT, user)
+        if isinstance(newSutId,str):
+            if '*ERROR*' in newSutId:
+                msg = 'New SUT file {} cannot be created!'.format(new_sut)
+                logError(msg)
+                return '*ERROR* ' + msg
+
+        reserve_res = self.reserveResource(new_sut, '{}', ROOT_SUT, user)
+        if  isinstance(reserve_res,str):
+             if '*ERROR*' in reserve_res:
+                 msg = 'New SUT file {} cannot be reserved!'.format(new_sut)
+                 logError(msg)
+                 return '*ERROR* ' + msg
+
+        # method to clean the new SUT if needed
+        def cleanNewSut(new_sut,user):
+            self.reservedResources[user].pop(new_sut)
+            if not self.reservedResources[user]:
+                self.reservedResources.pop(user)
+            self.deleteResource(new_sut, '{}', ROOT_SUT, user)
+
+        # reserve the old SUT file and copy the content into the new SUT file
+        # Check if resource is locked; if so, it cannot be copied
+        _isResourceLocked = self.isResourceLocked(old_sut, ROOT_SUT)
+        if _isResourceLocked:
+            msg = 'Reserve resource: The resource is locked for {} !'.format(_isResourceLocked)
+            logError(msg)
+            cleanNewSut(newSutId,user)
+            return '*ERROR* ' + msg
+
+        # Check if resource is reserved; if so, it cannot be copied
+        _isResourceLocked = self.isResourceReserved(old_sut, ROOT_SUT)
+        if _isResourceLocked:
+            msg = 'Cannot delete: The resource is reserved for {} !'.format(_isResourceLocked)
+            logError(msg)
+            cleanNewSut(newSutId,user)
+            return '*ERROR* ' + msg
+
+        # Try to reserve source SUT file; if error, clean up the new SUT
+        reserve_res = self.reserveResource(old_sut, '{}', ROOT_SUT, user)
+        if  isinstance(reserve_res,str):
+             if '*ERROR*' in reserve_res:
+                 msg = 'Source SUT file {} cannot be reserved!'.format(old_sut)
+                 logError(msg)
+                 cleanNewSut(newSutId,user)
+                 return '*ERROR* ' + msg
+
+        # Everything is ready for copy; just do it 
+        # get the pointer to the old sut and new sut
+        old_res_path = _get_res_path(self.systems, old_sut)
+        old_res_pointer = _get_res_pointer(self.systems, ''.join('/' + old_res_path[0]))
+
+        new_res_path = _get_res_path(self.systems, new_sut)
+        new_res_pointer = _get_res_pointer(self.systems, ''.join('/' + new_res_path[0]))
+
+        #update the meta and children
+        new_res_pointer['meta'].update(old_res_pointer['meta'])
+        new_res_pointer['children'].update(old_res_pointer['children'])
+
+        if '/' in new_sut:
+            new_sut = new_sut.split('/')[-1]
+
+        save_result = self._save(ROOT_SUT, {}, new_sut, user)
+        if isinstance(save_result,str):
+             if '*ERROR*' in save_result:
+                 msg = logDebug('Save SUT file {} ERROR !'.format(new_sut))
+                 logError(msg)
+                 cleanNewSut(newSutId,user)
+                 return '*ERROR* ' + msg
+
+        # release the new SUT
+        self.reservedResources[user].pop(newSutId)
+        if not self.reservedResources[user]:
+            self.reservedResources.pop(user)
+
+        # release the old sut; and delete if needed
+        self.reservedResources[user].pop(old_res_pointer['id'])
+        if not self.reservedResources[user]:
+            self.reservedResources.pop(user)
+        if delete_old is True:
+            self.deleteResource(old_sut, '{}', ROOT_SUT, user)
+
+        return True
 
 #
 
