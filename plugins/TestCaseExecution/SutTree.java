@@ -1,6 +1,6 @@
 /*
 File: SutTree.java ; This file is part of Twister.
-Version: 2.008
+Version: 2.009
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -384,7 +384,7 @@ public class SutTree extends JPanel{
                 } else {
                     add = ".system";
                 }
-                String torename = "/"+name+add;
+                String torename = name+add;
                 try{
                     String filename = CustomDialog.showInputDialog(JOptionPane.QUESTION_MESSAGE,
                                          JOptionPane.OK_CANCEL_OPTION
@@ -400,20 +400,20 @@ public class SutTree extends JPanel{
                                             "This name is already used, please use different name.");
                              return;
                         }
-                        if(reserved.equals("")){
-                            if(!reserveSut(((SUT)selected.getUserObject()))){
-                                return;
-                            }
-                        }
-                        String query = client.execute("renameSut", new Object[]{torename,filename+add,"",RunnerRepository.user}).toString();
+//                         if(reserved.equals("")){
+//                             if(!reserveSut(((SUT)selected.getUserObject()))){
+//                                 return;
+//                             }
+//                         }
+                        String query = client.execute("renameSut", new Object[]{torename,filename+add,RunnerRepository.user}).toString();
                         if(query.indexOf("*ERROR*")==-1){
                             ((SUT)selected.getUserObject()).setName(filename);
                             ((DefaultTreeModel)filestree.getModel()).nodeChanged(selected);
                             if(reserved.equals("")){//sut was not initialy reserved
-                                String resp = client.execute("saveAndReleaseReservedSut", new Object[]{torename,RunnerRepository.user}).toString();
-                                if(resp.indexOf("*ERROR*")!=-1){
-                                    CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SutTree.this,"ERROR", "Cannot save and release sut. CE error: "+resp);
-                                }
+//                                 String resp = client.execute("saveAndReleaseReservedSut", new Object[]{torename,RunnerRepository.user}).toString();
+//                                 if(resp.indexOf("*ERROR*")!=-1){
+//                                     CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SutTree.this,"ERROR", "Cannot save and release sut. CE error: "+resp);
+//                                 }
                             } else {//sut was allready reserved and opened
                                 RunnerRepository.window.mainpanel.p4.getSut().sut.setRootSutName(filename+add);
                             }
