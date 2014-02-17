@@ -714,11 +714,9 @@ class Project(object):
 
             try:
                 resp = conn.root.read_file(fpath)
-                if '*ERROR*' in resp:
+                if resp.startswith('*ERROR*'):
                     logWarning(resp)
-                    return binascii.b2a_base64(resp)
-                else:
-                    return binascii.b2a_base64(resp)
+                return binascii.b2a_base64(resp)
             except:
                 trace = traceback.format_exc()[34:].strip()
                 err = '*ERROR* read file error: {}'.format(trace)

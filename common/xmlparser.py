@@ -712,7 +712,7 @@ class TSCParser:
         # A suite can be a part of only 1 EP !
         res = OrderedDict()
 
-        # Add properties from FWMCONFIG
+        # Add properties from PROJECT
         prop_keys = self.configTS.xpath('/Root/UserDefined/propName')
         prop_vals = self.configTS.xpath('/Root/UserDefined/propValue')
         res.update( dict(zip( [k.text for k in prop_keys], [v.text for v in prop_vals] )) )

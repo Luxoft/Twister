@@ -663,8 +663,9 @@ class TwisterClientService(rpyc.Service):
             logPrint('Created folders `{}`.'.format(folder))
             return True
         except Exception as e:
-            logPrint('*ERROR* Cannot create folder `{}`! {}'.format(folder, e))
-            return False
+            err = '*ERROR* Cannot create folder `{}`! {}'.format(folder, e)
+            logPrint(err)
+            return err
 
 
     def exposed_delete_folder(self, folder):
