@@ -1,7 +1,7 @@
 
 # File: CeProject.py ; This file is part of Twister.
 
-# version: 3.015
+# version: 3.016
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -714,11 +714,11 @@ class Project(object):
 
             try:
                 resp = conn.root.read_file(fpath)
-                if resp is not True:
+                if '*ERROR*' in resp:
                     logWarning(resp)
-                    return resp
+                    return binascii.b2a_base64(resp)
                 else:
-                    return resp
+                    return binascii.b2a_base64(resp)
             except:
                 trace = traceback.format_exc()[34:].strip()
                 err = '*ERROR* read file error: {}'.format(trace)
@@ -810,10 +810,11 @@ class Project(object):
             usr_data['groups'] = grps
 
             # Add user key from user's home
-            usr_data['key'] = self.readFile(usr, '~/twister/config/twister.key')
+            usr_data['key'] = None
+            #usr_data['key'] = self.readFile(usr, '~/twister/config/twister.key')
             # Fix key in case of error
-            if not usr_data['key'] or '*ERROR*' in usr_data['key']:
-                usr_data['key'] = ''
+            #if not usr_data['key'] or '*ERROR*' in usr_data['key']:
+            #    usr_data['key'] = ''
 
         return cfg.dict()
 
@@ -1027,7 +1028,7 @@ class Project(object):
         key = user_roles.get('key')
         if not key:
             # Add user key from user's home
-            key = self.readFile(usr, '~/twister/config/twister.key')
+            key = self.readFile(user, '~/twister/config/twister.key')
             # Fix key in case of error
             if not key or '*ERROR*' in key:
                 logWarning('Cannot encrypt! Cannot fetch users key!')
@@ -1046,7 +1047,7 @@ class Project(object):
         key = user_roles.get('key')
         if not key:
             # Add user key from user's home
-            key = self.readFile(usr, '~/twister/config/twister.key')
+            key = self.readFile(user, '~/twister/config/twister.key')
             # Fix key in case of error
             if not key or '*ERROR*' in key:
                 logWarning('Cannot decrypt! Cannot fetch users key!')
