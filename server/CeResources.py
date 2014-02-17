@@ -1,7 +1,7 @@
 
 # File: CeResources.py ; This file is part of Twister.
 
-# version: 2.027
+# version: 2.028
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -1159,7 +1159,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
         '''
         Rename a SUT.
         '''
-        logDebug('CeResources:renameSut {} {} {} {}'.format(res_query, new_name, props, username))
+        logDebug('CeResources:renameSut {} {} {}'.format(res_query, new_name, username))
 
         return self.copySutFile(res_query, new_name, username, True)
 
