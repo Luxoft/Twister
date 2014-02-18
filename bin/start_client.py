@@ -2,7 +2,7 @@
 
 # File: start_client.py ; This file is part of Twister.
 
-# version: 3.010
+# version: 3.011
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -40,7 +40,8 @@ import time
 import signal
 import socket
 socket.setdefaulttimeout(5)
-import thread
+try: import thread
+except: import _thread as thread
 import traceback
 import platform
 import subprocess
@@ -51,12 +52,9 @@ import datetime
 
 from pprint import pprint
 from rpyc import BgServingThread
-from ConfigParser import SafeConfigParser
+try: from ConfigParser import SafeConfigParser
+except: from configparser import SafeConfigParser
 
-
-if not sys.version.startswith('2.7'):
-    print('Python version error! The client must run on Python 2.7!')
-    exit(1)
 
 def logPrint(msg):
     dateTag = datetime.datetime.now().strftime("%Y-%b-%d %H-%M-%S")
@@ -67,7 +65,7 @@ def userHome(user):
     if platform.system().lower() == 'windows':
         return os.getenv('HOME')
     else:
-        return subprocess.check_output('echo ~' + user, shell=True).strip()
+        return subprocess.check_output('echo ~' + user, shell=True).strip().decode('utf')
 
 try:
     userName = os.getenv('USER') or os.getenv('USERNAME')
@@ -113,7 +111,7 @@ class TwisterClient(object):
         Helper function.
         """
         for line in lines.strip().splitlines():
-            li = line.strip().split()
+            li = line.strip().decode('utf').split()
             PID = int(li[0])
             del li[1:4]
             if li[1] == '/bin/sh' and li[2] == '-c': continue
@@ -338,7 +336,9 @@ class TwisterClient(object):
         epData = {}
         epData['pid'] = None
         epData['ce_ip'] = ce_ip
-        epData['ce_port'] = ce_port
+        if ';' in ce_port:
+            ce_port = ce_port.split(';')[0]
+        epData['ce_port'] = ce_port.strip()
 
         epData['exec_str'] = 'nohup {py} -u {path}/client/executionprocess/ExecutionProcess.py '\
                 '-u {user} -e {ep} -s {ip}:{port} > "{path}/.twister_cache/{ep}_LIVE.log" '.format(
@@ -423,7 +423,7 @@ class TwisterClient(object):
         # Central Engine addrs and the EPs that must be registered for each CE
         epsToRegister = {}
 
-        for currentEP, epData in self.epNames.iteritems():
+        for currentEP, epData in self.epNames.items():
             cePath = '{}:{}'.format(epData['ce_ip'], epData['ce_port'])
             # If Central Engine proxy filter is specified, use it
             if epData['ce_ip'] not in addr:
@@ -440,7 +440,7 @@ class TwisterClient(object):
         logPrint('-------------------------------')
 
         # For each Central Engine address
-        for cePath, epNames in epsToRegister.iteritems():
+        for cePath, epNames in epsToRegister.items():
             if not epNames: continue
             thread.start_new_thread( self.lazyRegister, (cePath, epNames) )
 
