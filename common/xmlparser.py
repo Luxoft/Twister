@@ -890,6 +890,7 @@ class DBParser():
             d['id']    = field.get('ID', '')
             d['type']  = field.get('Type', '')
             d['query'] = field.get('SQLQuery', '')
+            d['level'] = field.get('Level', 'Suite') # Project / Suite
             res[d['id']]  = d
 
         return res

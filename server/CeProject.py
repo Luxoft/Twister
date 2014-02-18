@@ -1,7 +1,7 @@
 
 # File: CeProject.py ; This file is part of Twister.
 
-# version: 3.016
+# version: 3.017
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -2635,8 +2635,6 @@ class Project(object):
             queries = db_parser.getInsertQueries() # List
             fields  = db_parser.getInsertFields()  # Dictionary
             default_subst = {k: '' for k, v in fields.iteritems()}
-            auto_fields  = {k: v['query'] for k, v in fields.iteritems()}
-            user_scripts = [k for k, v in fields.iteritems() if v['type'] == 'UserScript']
             del db_parser
 
             if not queries:
@@ -2663,7 +2661,7 @@ class Project(object):
             conn.begin()
 
             # UserScript cache
-            uscript_cache = {}
+            usr_script_cache = {}
 
             for epname, ep_info in self.users[user]['eps'].iteritems():
                 SuitesManager = ep_info['suites']
@@ -2744,42 +2742,59 @@ class Project(object):
                     for query in queries:
 
                         # All variables of type `UserScript` must be replaced with the script result
-                        try: vars_to_replace = re.findall('(\$.+?)[,\.\'"\s]', query)
-                        except: vars_to_replace = []
+                        try: user_script_fields = re.findall('(\$.+?)[,\.\'"\s]', query)
+                        except: user_script_fields = []
 
-                        for field in vars_to_replace:
+                        for field in user_script_fields:
                             field = field[1:]
 
-                            # If the field is not `UserScript`, ignore it
-                            if field not in user_scripts:
+                            # Invalid field ?
+                            if field not in fields:
                                 continue
+
+                            # If the field is not `UserScript`, ignore it
+                            if fields.get(field, {}).get('type') != 'UserScript':
+                                continue
+
+                            # Field level: Suite or Project
+                            lvl = fields.get(field)['level']
 
                             # Get Script Path, or null string
                             u_script = subst_data.get(field, '')
 
                             if not u_script:
-                                subst_data[field] = ''
+                                query = query.replace('$'+field, '')
                                 continue
 
-                            if u_script not in uscript_cache:
+                            if u_script not in usr_script_cache:
                                 # Execute script and use result
                                 r = execScript(u_script)
                                 # Save result in cache
-                                uscript_cache[u_script] = r
+                                usr_script_cache[u_script] = r
                             else:
                                 # Get script result from cache
-                                r = uscript_cache[u_script]
+                                r = usr_script_cache[u_script]
 
-                            if r: subst_data[field] = r
-                            else: subst_data[field] = ''
+                            # Replace UserScript with with real Script results
+                            query = query.replace('$'+field, r)
 
                         # All variables of type `DbSelect` must be replaced with the SQL result
-                        try: vars_to_replace = re.findall('(@.+?@)', query)
-                        except: vars_to_replace = []
+                        try: auto_insert_fields = re.findall('(@.+?@)', query)
+                        except: auto_insert_fields = []
 
-                        for field in vars_to_replace:
+                        for field in auto_insert_fields:
                             # Delete the @ character
-                            u_query = auto_fields.get(field.replace('@', ''))
+                            field = field[1:-1]
+
+                            # Invalid field ?
+                            if field not in fields:
+                                continue
+
+                            # Get Auto Query, or null string
+                            u_query = fields.get(field, {}).get('query', '')
+
+                            # Field level: Suite or Project
+                            lvl = fields.get(field)['level']
 
                             if not u_query:
                                 logError('User `{}`, file `{}`: Cannot build query! Field `{}` is not defined in the fields section!'\
@@ -2791,7 +2806,7 @@ class Project(object):
                             curs.execute(u_query)
                             q_value = curs.fetchone()[0]
                             # Replace @variables@ with real Database values
-                            query = query.replace(field, str(q_value))
+                            query = query.replace('@'+field+'@', str(q_value))
 
                         # String Template
                         tmpl = Template(query)
@@ -2799,9 +2814,9 @@ class Project(object):
                         # Build complete query
                         try:
                             query = tmpl.substitute(subst_data)
-                        except Exception, e:
+                        except Exception as e:
                             logError('User `{}`, file `{}`: Cannot build query! Error on `{}`!'\
-                                ''.format(user, subst_data['file'], str(e)))
+                                ''.format(user, subst_data['file'], e))
                             conn.rollback()
                             return False
 
@@ -2811,9 +2826,10 @@ class Project(object):
                         # Execute MySQL Query!
                         try:
                             curs.execute(query)
+                            logDebug('Executed query ``{}`` OK.'.format(query.strip()))
                         except MySQLdb.Error as e:
-                            l = 'Error in query ``{}`` for user `{}`!\n\tMySQL Error {}: {}!'.format(query, user, e.args[0], e.args[1])
-                            logError(l)
+                            err = 'Error in query ``{}`` for user `{}`!\n\tMySQL Error {}: {}!'.format(query, user, e.args[0], e.args[1])
+                            logError(err)
                             conn.rollback()
                             return False
 
