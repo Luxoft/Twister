@@ -2,7 +2,7 @@
 
 # File: start_client.py ; This file is part of Twister.
 
-# version: 3.009
+# version: 3.010
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -663,9 +663,8 @@ class TwisterClientService(rpyc.Service):
             logPrint('Created folders `{}`.'.format(folder))
             return True
         except Exception as e:
-            err = '*ERROR* Cannot create folder `{}`! {}'.format(folder, e)
-            logPrint(err)
-            return err
+            logPrint('*ERROR* Cannot create folder `{}`! {}'.format(folder, e))
+            return False
 
 
     def exposed_delete_folder(self, folder):
@@ -726,6 +725,7 @@ class TwisterClientService(rpyc.Service):
     def exposed_save_suts(self, sutList):
         """ save sut to file """
 
+        logPrint('Received save SUTS {}'.format(sutList))
         # Save sut files
         for (name, sut) in sutList:
             try:
@@ -776,7 +776,7 @@ class TwisterClientService(rpyc.Service):
             trace = traceback.format_exc()[34:].strip()
             suts = None
 
-        logPrint('Found SUTS {}'.format(suts))
+        #logPrint('Found SUTS {}'.format(suts))
 
         return suts
 
@@ -811,6 +811,26 @@ class TwisterClientService(rpyc.Service):
         except Exception as e:
             return False
 
+    def exposed_list_all_suts(self):
+        """ get all suts from files """
+
+        logPrint('List all suts')
+        suts = list()
+        try:
+            sutsPath = self._conn.root.getUserVariable('sut_path')
+            if not sutsPath:
+                sutsPath = '{}/config/sut/'.format(TWISTER_PATH)
+            sutPaths = [p for p in os.listdir(sutsPath) if os.path.isfile(os.path.join(sutsPath, p)) and p.split('.')[-1] == 'json']
+
+            for sutPath in sutPaths:
+                sutName = '.'.join(['.'.join(sutPath.split('.')[:-1]  + ['user'])])
+                suts.append(sutName)
+
+        except Exception as e:
+            logPrint('Error getting all suts')
+            suts = None
+
+        return suts
 
 # # #
 
