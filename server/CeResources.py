@@ -1472,8 +1472,14 @@ class ResourceAllocator(_cptools.XMLRPCController):
             logError(msg)
             return False
 
+        if not self.reservedResources.get(user):
+            msg = 'Get reserved resource: Resource `{}` is not reserved !'.format(res_query)
+            logError(msg)
+            return False
+
         res_pointer.update([('path', [res_path[0]]), ])
         join_path = self.reservedResources[user][res_pointer['id']].get('path', '')
+
         if isinstance(join_path, str):
             join_path = [join_path]
 
@@ -2146,7 +2152,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
                 if listElem['name'] == old_sut:
                     foundOldSut = True;
                     continue
-        
+
         if not foundOldSut:
             msg = 'SUT file {} doesn\'t exit !'.format(old_sut)
             logError(msg)
@@ -2159,7 +2165,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
                     msg = 'New SUT file {} already exits !'.format(new_sut)
                     logError(msg)
                     return '*ERROR* ' + msg
-        
+
         # make sure the SUT file names start with /
         if new_sut[0] != '/':
             new_sut = '/' + new_sut
@@ -2214,7 +2220,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
                  cleanNewSut(newSutId,user)
                  return '*ERROR* ' + msg
 
-        # Everything is ready for copy; just do it 
+        # Everything is ready for copy; just do it
         # get the pointer to the old sut and new sut
         old_res_path = _get_res_path(self.systems, old_sut)
         old_res_pointer = _get_res_pointer(self.systems, ''.join('/' + old_res_path[0]))

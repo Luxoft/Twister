@@ -18,8 +18,8 @@ def test():
 
 	error_code = "PASS"
 
-	print 'Query Root...', getResource(1)
-	print 'Query Root...', getResource('/')
+	print 'Query Root (1)...', getResource(1)
+	print 'Query Root (/)...', getResource('/')
 	print
 
 	py_res = 'tb_' + hexlify(urandom(4))
@@ -49,27 +49,39 @@ def test():
 	if not r: return "FAIL"
 	print
 
+	print 'Reserving resource...', PROXY.reserveResource(res_id)
 	print 'Update resource::', setResource(py_res, '/', {'more-info': 'y'})
+	print 'Releasing resource...', PROXY.saveAndReleaseReservedResource(res_id)
+
 	r = getResource(res_id)
 	print 'Check status::', r
 	if 'more-info' not in r['meta']: return "FAIL"
 	print
 
 	for i in range(1, 4):
+
+		print 'Reserving resource...', PROXY.reserveResource(res_id)
 		tag = 'tag{}'.format(i)
 		r = setResource(py_res, '/', {tag: str(i)})
+		print 'Releasing resource...', PROXY.saveAndReleaseReservedResource(res_id)
 		print 'Set tag `{}` = `{}` ... {}'.format(tag, i, r)
-		if not r: return "FAIL"
+		if not r:
+			print 'Could not save tag {}!'.format(tag)
+			return "FAIL"
 
 		path = '/' + py_res + ':' + tag
 		r = renameResource(path, 'tagx')
 		print 'Rename tag `{}` = `tagx` ... {}'.format(path, r)
-		if not r: return "FAIL"
+		if not r:
+			print 'Could not rename tag {}!'.format(tag)
+			return "FAIL"
 
 		path = '/' + py_res + ':tagx'
 		r = deleteResource(path)
 		print 'Delete tag `{}` ... {}'.format(path, r)
-		if not r: return "FAIL"
+		if not r:
+			print 'Could not delete tag {}!'.format(tag)
+			return "FAIL"
 		print
 
 	print 'Check status 1::', getResourceStatus(res_id)
