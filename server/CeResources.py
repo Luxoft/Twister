@@ -1,7 +1,7 @@
 
 # File: CeResources.py ; This file is part of Twister.
 
-# version: 2.029
+# version: 2.030
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -1080,7 +1080,11 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
                 epnames_tag = '_epnames_{}'.format(username)
 
-                child_p['meta'].update(props)
+                if not props.get('_id',False):
+                    # empty meta
+                    child_p['meta'] = {}
+                else:
+                    child_p['meta'].update(props)
 
                 # If the epnames tag exists in resources
                 if epnames_tag in child_p['meta']:
