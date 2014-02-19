@@ -1,7 +1,7 @@
 
 # File: CeResources.py ; This file is part of Twister.
 
-# version: 2.028
+# version: 2.029
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -37,6 +37,7 @@ import sys
 import ast
 import copy
 import thread
+import errno
 
 try: import simplejson as json
 except: import json
@@ -266,6 +267,41 @@ def res_to_xml(parent_node, xml):
 
     return xml
 
+def _recursive_build_comp(parent, old_path, appendList=[]):
+    '''
+    parent - pointer in dictionary
+    old_path - string with the parent component name
+    appendList - list to append the sub-components
+    '''
+    if len(parent) == 0:
+        # there are no sub-components; return empty list
+        return []
+    else:
+        # there are sub-components
+        
+        # loop through all of them
+        for child in parent:
+            new_dict = parent[child]
+            # build path name and add path, meta, id and children
+            new_path = old_path + '/' + child
+            add_dic = dict()
+            add_dic['path'] = new_path
+            add_dic['meta'] = new_dict['meta']
+            add_dic['id'] = new_dict['id']
+
+            if len(new_dict['children']) > 0:
+                # component has children, add them recursively
+                childList = list()
+                _recursive_build_comp(new_dict['children'], new_path, childList)
+                # append the list of sub-components
+                add_dic['children'] = childList
+            else:
+                # no children, just add an empy list
+                add_dic['children'] = []
+
+            appendList.append(add_dic)
+
+        return appendList
 #
 
 class ResourceAllocator(_cptools.XMLRPCController):
@@ -834,7 +870,73 @@ class ResourceAllocator(_cptools.XMLRPCController):
         '''
         logDebug('CeResources: Get SUT for: `{}` `{}`!'.format(query,username))
         # query, root_id, flatten, props, username
-        return self.getResource(query, ROOT_SUT, True, props, username)
+        ret = self.getResource(query, ROOT_SUT, True, props, username)
+        return ret
+
+    @cherrypy.expose
+    def getSutByName(self, query, username):
+        '''
+        Get the contant of one SUT file using it's name
+        Must provide a SUT name.<type> ( type = user/system) and username
+        '''
+        logDebug('CeResources: GetSutByName {} {}'.format(query,username))
+        suts = []
+        usrHome = userHome(username)
+
+        sutPath = None
+        sutType = query.split('.')[-1]
+        if sutType == 'system':
+            # System SUT path
+            sutPath = self.project.getUserInfo(username, 'sys_sut_path')
+            if not sutPath:
+                sutPath = '{}/config/sut/'.format(TWISTER_PATH)
+        else:
+            # User SUT path
+            sutPath = self.project.getUserInfo(username, 'sut_path')
+            if not sutPath:
+                sutPath = '{}/twister/config/sut/'.format(usrHome)
+
+        # if sut path doesn't end with '/' character, we have to add it
+        if sutPath[-1] != '/':
+            sutPath += '/'
+        sutFile = sutPath + query.split('.')[0] + '.json'
+
+        sutContent = False
+        if os.path.isdir(sutPath):
+            try:
+                f = open(sutFile, 'r')
+                sutContent = json.load(f)
+                f.close() ; del f
+            except IOError, e:
+                if e.errno == errno.EACCES:
+                    # permission denied error, try using the client
+                    userConn = False
+                    userConn = self.project._find_local_client(username)
+                    if userConn:
+                        fileContent = False
+                        fileContent = userConn.root.exposed_read_file(sutFile)
+                        if fileContent and not fileContent.startswith('*ERROR*'):
+                            sutContent = json.loads(fileContent)
+
+            if sutContent is False or (isinstance(sutContent, str) and sutContent.startswith('*ERROR*')):
+                return sutContent
+
+            if isinstance(sutContent, dict):
+                # Now we have the SUT content; we need to format it for GUI
+                recursiveList = list()
+                retDict = dict()
+                if sutContent.get('path'):
+                    retDict['path'] = sutContent['path'][0]
+                else:
+                    retDict['path'] = query
+                retDict['meta'] = sutContent['meta']
+                retDict['id'] = sutContent['id']
+                retDict['children'] = _recursive_build_comp(sutContent.get('children'),retDict['path'],recursiveList)
+                return retDict
+
+        # if we get here, we cannot get read access to the SUT directory
+        return '*ERROR* Cannot get access to SUT path'
+
 
 #
 
@@ -2106,8 +2208,19 @@ class ResourceAllocator(_cptools.XMLRPCController):
             s = ['{}.system'.format(os.path.splitext(d)[0]) for d in os.listdir(sysSutsPath) if os.path.splitext(d)[1]=='.json']
             suts.extend(s)
         if os.path.isdir(usrSutPath):
-            s = ['{}.user'.format(os.path.splitext(d)[0]) for d in os.listdir(usrSutPath) if os.path.splitext(d)[1]=='.json']
-            suts.extend(s)
+            try:
+                s = ['{}.user'.format(os.path.splitext(d)[0]) for d in os.listdir(usrSutPath) if os.path.splitext(d)[1]=='.json']
+                suts.extend(s)
+            except OSError, e:
+                if e.errno == errno.EACCES:
+                    # permission denied error, try using the client
+                    userConn = None
+                    userSutsList = ()
+                    userConn = self.project._find_local_client(user)
+                    if userConn:
+                        userSutsList = userConn.root.exposed_list_all_suts()
+                    suts.extend(userSutsList)
+
 
         def quickFindPath(d, spath):
             for usr, locks in d.iteritems():
