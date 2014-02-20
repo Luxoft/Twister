@@ -1,7 +1,7 @@
 
 # File: CeResources.py ; This file is part of Twister.
 
-# version: 2.030
+# version: 2.031
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -969,7 +969,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
         if parent == '/' or parent == '1':
             _isResourceLocked = self.isResourceLocked(parent, root_id)
-            if _isResourceLocked:
+            if _isResourceLocked and _isResourceLocked != username:
                 msg = 'Reserve resource: The resource is locked for {} !'.format(_isResourceLocked)
                 logError(msg)
                 return '*ERROR* ' + msg
@@ -994,7 +994,11 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
                 epnames_tag = '_epnames_{}'.format(username)
 
-                resources['meta'].update(props)
+                if not props.get('_id',False):
+                    # empty meta
+                    resources['meta'] = {}
+                else:
+                    resources['meta'].update(props)
 
                 # If the epnames tag exists in resources
                 if epnames_tag in resources['meta']:
@@ -1076,7 +1080,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
                 old_child = copy.deepcopy(child_p)
 
-                logDebug('Set Resource update props:: {}'.format(props))
+                logDebug('Set Resource update props:: {} for child {}'.format(props,child_p))
 
                 epnames_tag = '_epnames_{}'.format(username)
 
@@ -1155,17 +1159,19 @@ class ResourceAllocator(_cptools.XMLRPCController):
         self._load(v=False, props=props)
 
         user_roles = self.userRoles(props)
+        user = user_roles['user']
+
 
         # If the root is not provided, use the default root
         if root_id == ROOT_DEVICE:
             if 'CHANGE_TESTBED' not in user_roles.get('roles', []):
-                msg = 'Privileges ERROR! Username `{user}` cannot use Rename Resource!'.format(**user_roles)
+                msg = 'Privileges ERROR! Username `{user}` cannot use Rename Resource!'.format(user)
                 logDebug(msg)
                 return '*ERROR* ' + msg
             resources = self.resources
         else:
             if 'CHANGE_SUT' not in user_roles.get('roles', []):
-                msg = 'Privileges ERROR! Username `{user}` cannot use Rename SUT!'.format(**user_roles)
+                msg = 'Privileges ERROR! Username `{user}` cannot use Rename SUT!'.format(user)
                 logDebug(msg)
                 return '*ERROR* ' + msg
             resources = self.systems
@@ -1195,7 +1201,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
             meta = ''
 
         _isResourceLocked = self.isResourceLocked(res_query, root_id)
-        if _isResourceLocked:
+        if _isResourceLocked and _isResourceLocked != user:
             msg = 'Reserve resource: The resource is locked for {} !'.format(_isResourceLocked)
             logError(msg)
             return '*ERROR* ' + msg
@@ -1308,21 +1314,22 @@ class ResourceAllocator(_cptools.XMLRPCController):
         else:
             meta = ''
 
+        user = user_roles.get('user')
+
         # Check if resource is locked; if so, it cannot be deleted
         _isResourceLocked = self.isResourceLocked(res_query, root_id)
-        if _isResourceLocked:
+        if _isResourceLocked and _isResourceLocked != user:
             msg = 'Reserve resource: The resource is locked for {} !'.format(_isResourceLocked)
             logError(msg)
             return '*ERROR* ' + msg
 
         # Check if resource is reserved; if so, it cannot be deleted
         _isResourceLocked = self.isResourceReserved(res_query, root_id)
-        if _isResourceLocked:
+        if _isResourceLocked and _isResourceLocked != user:
             msg = 'Cannot delete: The resource is reserved for {} !'.format(_isResourceLocked)
             logError(msg)
             return '*ERROR* ' + msg
 
-        user = user_roles.get('user')
 
         # Check if is reserved
         try:
@@ -1581,11 +1588,10 @@ class ResourceAllocator(_cptools.XMLRPCController):
         if not self.reservedResources.get(user):
             msg = 'Get reserved resource: Resource `{}` is not reserved !'.format(res_query)
             logError(msg)
-            return False
+            return False    
 
         res_pointer.update([('path', [res_path[0]]), ])
         join_path = self.reservedResources[user][res_pointer['id']].get('path', '')
-
         if isinstance(join_path, str):
             join_path = [join_path]
 
@@ -1659,15 +1665,18 @@ class ResourceAllocator(_cptools.XMLRPCController):
         if ':' in res_query:
             res_query = res_query.split(':')[0]
 
+        user_roles = self.userRoles(props)
+        user = user_roles.get('user')
+
         with self.acc_lock:
             _isResourceLocked = self.isResourceLocked(res_query, root_id)
-            if _isResourceLocked:
+            if _isResourceLocked and _isResourceLocked != user:
                 msg = 'Reserve resource: The resource is locked for {} !'.format(_isResourceLocked)
                 logError(msg)
                 return '*ERROR* ' + msg
 
             _isResourceReserved = self.isResourceReserved(res_query, root_id)
-            if _isResourceReserved:
+            if _isResourceReserved and _isResourceReserved != user:
                 msg = 'Reserve resource: The resource is reserved for {} !'.format(_isResourceReserved)
                 logError(msg)
                 return '*ERROR* ' + msg
@@ -1682,8 +1691,6 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
             res_pointer.update([('path', [res_path[0]]), ])
 
-            user_roles = self.userRoles(props)
-            user = user_roles.get('user')
             if user in self.reservedResources:
                 self.reservedResources[user].update([(res_pointer['id'], copy.deepcopy(res_pointer)), ])
             else:
@@ -2056,15 +2063,18 @@ class ResourceAllocator(_cptools.XMLRPCController):
         if ':' in res_query:
             res_query = res_query.split(':')[0]
 
+        user_roles = self.userRoles(props)
+        user = user_roles.get('user')
+
         with self.acc_lock:
             _isResourceReserved = self.isResourceReserved(res_query, root_id)
-            if _isResourceReserved:
+            if _isResourceReserved and _isResourceReserved != user:
                 msg = 'Lock resource: The resource is reserved for {} !'.format(_isResourceReserved)
                 logError(msg)
                 return '*ERROR* ' + msg
 
             _isResourceLocked = self.isResourceLocked(res_query, root_id)
-            if _isResourceLocked:
+            if _isResourceLocked and _isResourceLocked != user:
                 msg = 'Lock resource: The resource is locked for {} !'.format(_isResourceLocked)
                 logError(msg)
                 return '*ERROR* ' + msg
@@ -2078,9 +2088,6 @@ class ResourceAllocator(_cptools.XMLRPCController):
                 return '*ERROR* ' + msg
 
             res_pointer.update([('path', [res_path[0]]), ])
-
-            user_roles = self.userRoles(props)
-            user = user_roles.get('user')
 
             # if it's not the same user, don't lock the resource, just return
             if username and user != username:
@@ -2269,7 +2276,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
                 if listElem['name'] == old_sut:
                     foundOldSut = True;
                     continue
-
+        
         if not foundOldSut:
             msg = 'SUT file {} doesn\'t exit !'.format(old_sut)
             logError(msg)
@@ -2282,7 +2289,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
                     msg = 'New SUT file {} already exits !'.format(new_sut)
                     logError(msg)
                     return '*ERROR* ' + msg
-
+        
         # make sure the SUT file names start with /
         if new_sut[0] != '/':
             new_sut = '/' + new_sut
@@ -2314,7 +2321,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
         # reserve the old SUT file and copy the content into the new SUT file
         # Check if resource is locked; if so, it cannot be copied
         _isResourceLocked = self.isResourceLocked(old_sut, ROOT_SUT)
-        if _isResourceLocked:
+        if _isResourceLocked and _isResourceLocked != user:
             msg = 'Reserve resource: The resource is locked for {} !'.format(_isResourceLocked)
             logError(msg)
             cleanNewSut(newSutId,user)
@@ -2322,7 +2329,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
         # Check if resource is reserved; if so, it cannot be copied
         _isResourceLocked = self.isResourceReserved(old_sut, ROOT_SUT)
-        if _isResourceLocked:
+        if _isResourceLocked and _isResourceLocked != user:
             msg = 'Cannot delete: The resource is reserved for {} !'.format(_isResourceLocked)
             logError(msg)
             cleanNewSut(newSutId,user)
@@ -2337,7 +2344,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
                  cleanNewSut(newSutId,user)
                  return '*ERROR* ' + msg
 
-        # Everything is ready for copy; just do it
+        # Everything is ready for copy; just do it 
         # get the pointer to the old sut and new sut
         old_res_path = _get_res_path(self.systems, old_sut)
         old_res_pointer = _get_res_pointer(self.systems, ''.join('/' + old_res_path[0]))
