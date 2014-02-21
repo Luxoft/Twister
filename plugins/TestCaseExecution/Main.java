@@ -106,8 +106,8 @@ public class Main{
 //         RunnerRepository.user = "bpopescu";
 //         RunnerRepository.password = "";
         RunnerRepository.host = "11.126.32.9";
-        RunnerRepository.user = "tscguest";
-        RunnerRepository.password = "tscguest";
+        RunnerRepository.user = "nisuser";
+        RunnerRepository.password = "nispass";
         RunnerRepository.initialize("false",RunnerRepository.host,f.getContentPane(),null);
     }
 

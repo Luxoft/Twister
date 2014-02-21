@@ -1,6 +1,6 @@
 /*
 File: SuitaDetails.java ; This file is part of Twister.
-Version: 2.0017
+Version: 2.0018
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -72,9 +72,10 @@ import javax.swing.event.DocumentEvent;
 import javax.swing.tree.DefaultMutableTreeNode;
 
 public class SuitaDetails extends JPanel {
-    private JPanel defsContainer,global, suiteoptions, tcoptions, summary;
+    private JPanel defsContainer,projectDefsContainer,global, suiteoptions, tcoptions, summary;
     private JScrollPane scroll;
     private ArrayList <DefPanel> definitions = new ArrayList <DefPanel>();
+    private ArrayList <DefPanel> projectdefinitions = new ArrayList <DefPanel>();
     private TitledBorder border;    
     private JCheckBox stoponfail, runnable, optional, prerequisites,
                       savedb, panicdetect,teardown,prestoponfail;
@@ -91,10 +92,14 @@ public class SuitaDetails extends JPanel {
     
     
     public void setEnabled(boolean enabled) {
+        for (Component component : projectdefinitions)
+            component.setEnabled(enabled);
         for (Component component : definitions)
             component.setEnabled(enabled);
         for (Component component : defsContainer.getComponents())
             component.setEnabled(enabled);
+        for (Component component : projectDefsContainer.getComponents())
+            component.setEnabled(enabled); 
         for (Component component : global.getComponents())
             component.setEnabled(enabled);
         for (Component component : suiteoptions.getComponents())
@@ -103,13 +108,14 @@ public class SuitaDetails extends JPanel {
             component.setEnabled(enabled);
         combo.setEnabled(enabled);
         defsContainer.setEnabled(enabled);
+        projectDefsContainer.setEnabled(enabled);
         global.setEnabled(enabled);
         suiteoptions.setEnabled(enabled);
         tcoptions.setEnabled(enabled);
         if(enabled){
             if(getItemParent()==null){
                 setTitle("Global options");
-                scroll.setViewportView(global);
+                scroll.setViewportView(projectDefsContainer);
             } else if(getItemParent().getType()==2){
                 setSuiteDetails(getItemParent().getPos().size()==1);
             } else if(getItemParent().getType()==1){
@@ -132,16 +138,16 @@ public class SuitaDetails extends JPanel {
         summary.repaint();
     }
     
-    public SuitaDetails(ArrayList<String []> descriptions) {
-        initComponents(descriptions);}
+    public SuitaDetails(ArrayList<String []> descriptions,ArrayList<String []> projectfields) {
+        initComponents(descriptions,projectfields);}
         
     public void setTitle(String title){
         border.setTitle(title);
         repaint();}
         
-    public void restart(ArrayList<String []> descriptions){
+    public void restart(ArrayList<String []> descriptions,ArrayList<String []> projectfields){
         removeAll();
-        initComponents(descriptions);
+        initComponents(descriptions,projectfields);
         repaint();}
         
     private void initGlobal(){
@@ -270,7 +276,7 @@ public class SuitaDetails extends JPanel {
                         .addComponent(tcdelay)
                         .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
                         .addComponent(ttcdelay, GroupLayout.DEFAULT_SIZE, 160, Short.MAX_VALUE)
-                        .addGap(12, 12, 12)
+                        .addGap(10, 12, 12)
                         .addComponent(globallib))
                     .addGroup(layout.createSequentialGroup()
                         .addGap(10, 10, 10)
@@ -291,7 +297,8 @@ public class SuitaDetails extends JPanel {
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                                 .addComponent(prestoponfail))
                             .addComponent(browse2))))
-                .addContainerGap())
+                .addContainerGap()
+                )
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(GroupLayout.Alignment.LEADING)
@@ -314,7 +321,8 @@ public class SuitaDetails extends JPanel {
                     .addComponent(tpostscript, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(browse2)
                     .addComponent(postscript))
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE)
+                )
         );
 
         layout.linkSize(SwingConstants.VERTICAL,
@@ -447,26 +455,29 @@ public class SuitaDetails extends JPanel {
         this.globallib = globallib;
     }
             
-    private void initComponents(ArrayList<String []> descriptions){
+    private void initComponents(ArrayList<String []> descriptions,ArrayList<String []> projectfields){
         global = new JPanel();
         global.setBackground(Color.WHITE);
         initGlobal();
         initTCOptions();
         initSummary();
         definitions.clear();
+        projectdefinitions.clear();
         border = BorderFactory.createTitledBorder("Global options");
         setBorder(border);
         scroll = new JScrollPane();
-//         setMinimumSize(new Dimension(10,10));
-//         setMaximumSize(new Dimension(1000,1000));
-//         setPreferredSize(new Dimension(100,100));
         defsContainer = new JPanel();
         setLayout(new BorderLayout());
         defsContainer.setBackground(Color.WHITE);
         defsContainer.setBorder(BorderFactory.createEmptyBorder(10, 0, 10, 0));
         defsContainer.setLayout(new BoxLayout(defsContainer, BoxLayout.Y_AXIS));
         defsContainer.add(suiteoptions);
-        scroll.setViewportView(global);
+        projectDefsContainer = new JPanel();
+        projectDefsContainer.setBackground(Color.WHITE);
+        projectDefsContainer.setBorder(BorderFactory.createEmptyBorder(10, 0, 10, 0));
+        projectDefsContainer.setLayout(new BoxLayout(projectDefsContainer, BoxLayout.Y_AXIS));
+        projectDefsContainer.add(global);
+        scroll.setViewportView(projectDefsContainer);
         add(scroll, BorderLayout.CENTER);
         JLabel l = new JLabel("test");            
         FontMetrics metrics = l.getFontMetrics(l.getFont());
@@ -484,6 +495,21 @@ public class SuitaDetails extends JPanel {
                                                                width,i,this);
             definitions.add(define);
             defsContainer.add(define);
+        }
+        width = 0;
+        for(int i=0;i<projectfields.size();i++){
+            if(width<metrics.stringWidth(projectfields.get(i)[RunnerRepository.LABEL])){
+                width = metrics.stringWidth(projectfields.get(i)[RunnerRepository.LABEL]);
+            }
+        }
+        for(int i=0;i<projectfields.size();i++){
+            String button = projectfields.get(i)[RunnerRepository.SELECTED];
+            DefPanel define = new DefPanel(projectfields.get(i)[RunnerRepository.LABEL],
+                                                               button,
+                                                               projectfields.get(i)[RunnerRepository.ID],
+                                                               width,i,this);
+            projectdefinitions.add(define);
+            projectDefsContainer.add(define);
         }
     }
     
@@ -581,9 +607,6 @@ public class SuitaDetails extends JPanel {
         teardown.setBackground(Color.WHITE);
         prop = new PropPanel();
         param = new ParamPanel();
-        
-        
-        
         GroupLayout layout = new GroupLayout(tcoptions);
         tcoptions.setLayout(layout);
         layout.setHorizontalGroup(
@@ -644,6 +667,19 @@ public class SuitaDetails extends JPanel {
                         .addContainerGap())
                 );
     }
+    
+    public void setProjectUserDefined(ArrayList<String[]> userDefined){
+        try{
+            int size = projectdefinitions.size();
+            for(int i=0;i<size;i++){
+                DefPanel def = projectdefinitions.get(i);
+                try{def.setDescription(userDefined.get(i)[1],true);}
+                catch(Exception e){def.setDescription("",true);}
+            }
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+    }
            
     public int getDefsNr(){
         return definitions.size();}
@@ -654,6 +690,26 @@ public class SuitaDetails extends JPanel {
     public void clearDefs(){
         for(int i=0;i<definitions.size();i++){
             definitions.get(i).setDescription("",true);}}
+            
+    public int getProjectDefsNr(){
+        return projectdefinitions.size();}
+        
+    public String [][] getProjectDefs(){
+        int size = projectdefinitions.size();
+        String definitions [][] = new String[size][3];
+        for(int i=0;i<size;i++){
+            DefPanel def = projectdefinitions.get(i);
+            String id = def.getFieldID();
+            String userdefined = def.getUserDefined();
+            definitions[i][0] = id;
+            definitions[i][1] = userdefined;
+            definitions[i][2] = def.getDescription();
+        }
+        return definitions;}
+           
+    public void clearProjectsDefs(){
+        for(int i=0;i<projectdefinitions.size();i++){
+            projectdefinitions.get(i).setDescription("",true);}}
        
     /*
      * set options according to new selected item
@@ -767,7 +823,6 @@ public class SuitaDetails extends JPanel {
             teardown.addActionListener(new ActionListener(){
                 public void actionPerformed(ActionEvent ev){
                     if(teardown.isSelected()){
-                        //getItemParent().setPrerequisite(false);
                         RunnerRepository.window.mainpanel.p1.sc.g.setTeardown(getItemParent());
                     }
                     else{
@@ -783,35 +838,9 @@ public class SuitaDetails extends JPanel {
     //update TB;s names in Suite Options
     //panel when there is a parent selected
     public void setComboTBs(){
-//         if(parent==null)return;
         for(ListSelectionListener l:combo.getListSelectionListeners()){
             combo.removeListSelectionListener(l);
         }
-//         StringBuilder b = new StringBuilder();
-//         DefaultMutableTreeNode root = RunnerRepository.window.mainpanel.p4.getSut().sut.root;
-//         int sutsnr = root.getChildCount();
-//         for(int i=0;i<sutsnr;i++){
-//             b.append(root.getChildAt(i).toString());
-//             b.append(";");
-//         }
-        
-        
-        
-//         StringBuilder b = new StringBuilder();
-        
-//         Node parentnode = RunnerRepository.window.mainpanel.p4.getTB().getParentNode();
-//         HashMap children =  parentnode.getChildren();
-//         if(children!=null&&children.size()!=0){
-//             Set keys = children.keySet();
-//             Iterator iter = keys.iterator();
-//             while(iter.hasNext()){
-//                 String n = iter.next().toString();
-//                 String name = parentnode.getChild(n).getName();
-//                 b.append(name);
-//                 b.append(";");
-//             }
-//         }
-//         String [] vecresult = b.toString().split(";");
         
         String [] vecresult =  RunnerRepository.window.mainpanel.p4.getSut().sut.getSutTree().getSutsName();
         if(vecresult!=null){
@@ -867,7 +896,8 @@ public class SuitaDetails extends JPanel {
     }
 
     public void setGlobalDetails(){
-        scroll.setViewportView(global);
+//         scroll.setViewportView(global);
+        scroll.setViewportView(projectDefsContainer);
         setBorderTitle("Global options");
     }
     
@@ -1184,15 +1214,15 @@ class DefPanel extends JPanel{
         this.container = container;
         this.index = index;
         setBackground(new Color(255, 255, 255));
-        setBorder(BorderFactory.createEmptyBorder(2, 20, 2, 20));
+        setBorder(BorderFactory.createEmptyBorder(2, 10, 2, 10));
         setMaximumSize(new Dimension(32767, 30));
         setMinimumSize(new Dimension(100, 30));
         setPreferredSize(new Dimension(300, 30));
         setLayout(new BoxLayout(this, BoxLayout.LINE_AXIS));
         description = new JLabel(descriptions);
-        description.setPreferredSize(new Dimension(width,20));
-        description.setMinimumSize(new Dimension(width,20));        
-        description.setMaximumSize(new Dimension(width,20));
+        description.setPreferredSize(new Dimension(122,20));
+        description.setMinimumSize(new Dimension(122,20));        
+        description.setMaximumSize(new Dimension(122,20));
         add(description);
         filedsGap = new JPanel();
         filedsGap.setBackground(new Color(255, 255, 255));
@@ -1328,14 +1358,8 @@ class DefPanel extends JPanel{
             component.setEnabled(enabled);}
     
     public void setParentField(String def,boolean updateField){
-//         for (StackTraceElement ste : Thread.currentThread().getStackTrace()) {
-//             System.out.println(ste);
-//         }
-
-
-//         System.out.println(parent.getName()+" "+userDefinition.getText());
         if(updateField)userDefinition.setText(def);
-        parent.setUserDef(index,id,def);}
+        if(parent!=null)parent.setUserDef(index,id,def);}
         
     public String getFieldID(){
         return id;}
@@ -1350,6 +1374,10 @@ class DefPanel extends JPanel{
         
     public String getDescription(){
         return descriptions;}
+     
+    public String getUserDefined(){
+        return userDefinition.getText();
+    }
     
     public void setDescription(String desc, boolean removelistener){
         if(removelistener){

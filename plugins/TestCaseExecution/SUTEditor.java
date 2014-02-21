@@ -1,6 +1,6 @@
 /*
 File: SutEditor.java ; This file is part of Twister.
-Version: 2.012
+Version: 2.013
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -84,7 +84,6 @@ import javax.swing.SwingUtilities;
 import java.awt.Color;
 
 public class SutEditor extends JPanel{
-    private JTextField tsutname;
     private JTree tree;
     private XmlRpcClient client;
     public DefaultMutableTreeNode root;
@@ -265,25 +264,41 @@ public class SutEditor extends JPanel{
                 try{
                     String torem = "";// "/"+treenode.toString();
                     Object userobj = treenode.getUserObject();
-//                     if(treenode.getLevel()!=1){
                     if(userobj instanceof Node){
-                        String parent="";
-                        Comp componnet = ((Comp)((DefaultMutableTreeNode)treenode.getParent()).getUserObject());
-                        torem = componnet.getID()+":_id";
+                        DefaultMutableTreeNode parent = (DefaultMutableTreeNode)treenode.getParent();
+                        Comp comp = (Comp)parent.getUserObject();
+                        //String parentid = comp.getID();
+                        String parentid = comp.getName();
+                        String name="";
+                        if(parent.getLevel()==1){
+                            name = "/"+rootsut;
+                        } else {
+                            name = ((Comp)((DefaultMutableTreeNode)parent.getParent()).getUserObject()).getID();
+                        }
+                        HashMap <String,String>hm = new <String,String>HashMap();
+                        hm.put("_id","");
+                        System.out.println(parentid+" - "+name+" - "+hm.toString()+" - "+RunnerRepository.user);
+                        String resp = client.execute("setSut", new Object[]{parentid,name,hm,RunnerRepository.user}).toString();
+                        if(resp.indexOf("ERROR")==-1){
+                            DefaultTreeModel model = (DefaultTreeModel)tree.getModel();
+                            model.removeNodeFromParent(treenode);
+                        }
+                        else{
+                            CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SutEditor.this,"ERROR", resp);
+                        }
                     } else if (userobj instanceof Comp) {
                         torem = ((Comp)userobj).getID();
-                    }
-//                     }
-                    String s = client.execute("deleteSut", new Object[]{torem,RunnerRepository.user}).toString();
-                    if(s.indexOf("ERROR")==-1){
+                        String s = client.execute("deleteSut", new Object[]{torem,RunnerRepository.user}).toString();
+                        if(s.indexOf("ERROR")==-1){
                         ((DefaultTreeModel)tree.getModel()).removeNodeFromParent(treenode);
                         selectedSUT(null);                        
                         if(!(userobj instanceof Node)&&!(userobj instanceof Comp)){
                             RunnerRepository.window.mainpanel.p1.suitaDetails.setComboTBs();
                         }
-                        lastsaved = false;
-                    } else {
-                        CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SutEditor.this,"Error", s);
+                            lastsaved = false;
+                        } else {
+                            CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SutEditor.this,"Error", s);
+                        }
                     }
                 } catch (Exception e){
                     e.printStackTrace();
@@ -461,7 +476,8 @@ public class SutEditor extends JPanel{
                     redcomp.setEnabled(true);
                 } else {
                     addcomp.setEnabled(false);
-                    redcomp.setEnabled(false);
+                    //redcomp.setEnabled(false);
+                    redcomp.setEnabled(true);
                 }        
             } else{
                 redcomp.setEnabled(false);
@@ -471,32 +487,40 @@ public class SutEditor extends JPanel{
     }
     
     public void getSUT(String sutname,DefaultMutableTreeNode sutnode,boolean editable){
-        try{HashMap hash= (HashMap)client.execute("getSut", new Object[]{"/",RunnerRepository.user,RunnerRepository.user});
+        try{
+//             HashMap hash= (HashMap)client.execute("getSut", new Object[]{"/",RunnerRepository.user,RunnerRepository.user});
+            System.out.println("getting: "+sutname);
+            Object ob = client.execute("getSutByName", new Object[]{sutname,RunnerRepository.user});
+            System.out.println("getting: "+sutname+" respons: "+ob.toString());
+            HashMap hash = (HashMap)ob;
             this.editable = editable;
-            Object[] children = (Object[])hash.get("children");
+//             Object[] children = (Object[])hash.get("children");
             DefaultMutableTreeNode epsnode;//child
             DefaultTreeModel model = (DefaultTreeModel)tree.getModel();
             root.removeAllChildren();
             String name,path,eps;
             Object[] subchildren;
-            for(Object o:children){
-                hash= (HashMap)client.execute("getSut", new Object[]{o.toString(),RunnerRepository.user,RunnerRepository.user});
+//             for(Object o:children){
+//                 hash= (HashMap)client.execute("getSut", new Object[]{o.toString(),RunnerRepository.user,RunnerRepository.user});
+//                 hash= (HashMap)o;
                 path = hash.get("path").toString();
                 name = path.split("/")[path.split("/").length-1];
-                if(name.indexOf(sutname)==-1)continue;
+//                 if(name.indexOf(sutname)==-1)continue;
                 try{eps = ((HashMap)hash.get("meta")).get("_epnames_"+RunnerRepository.user).toString();}
                 catch(Exception e){eps = "";}
                 epsnode = new DefaultMutableTreeNode("EP: "+eps,false);
                 root.add(epsnode);
                 subchildren = (Object[])hash.get("children");
-                for(Object ob:subchildren){
-                    String childid = ob.toString();
-                    HashMap subhash= (HashMap)client.execute("getSut", new Object[]{childid,RunnerRepository.user,RunnerRepository.user});
-                    String id = subhash.get("id").toString();
-                    buildChildren(new Object[]{id},root);
-                }
-                break;
-            }
+                
+                buildChildren(subchildren,root);
+//                 for(Object ob:subchildren){
+// //                     String childid = ob.toString();
+//                     HashMap subhash= (HashMap)client.execute("getSut", new Object[]{childid,RunnerRepository.user,RunnerRepository.user});
+//                     String id = subhash.get("id").toString();
+//                     buildChildren(new Object[]{id},root);
+//                 }
+//                 break;
+//             }
             model.reload();
             this.rootsut = sutname;
             this.sutnode = sutnode;
@@ -524,8 +548,10 @@ public class SutEditor extends JPanel{
     private void buildChildren(Object [] children, DefaultMutableTreeNode treenode){
         String childid, subchildid;
         for(Object o:children){
-            try{childid = o.toString();
-                HashMap subhash= (HashMap)client.execute("getSut", new Object[]{childid,RunnerRepository.user,RunnerRepository.user});
+            try{
+//                 childid = o.toString();
+//                 HashMap subhash= (HashMap)client.execute("getSut", new Object[]{childid,RunnerRepository.user,RunnerRepository.user});
+                HashMap subhash= (HashMap)o;
                 String subpath = subhash.get("path").toString();
                 String subname = subpath.split("/")[subpath.split("/").length-1];
                 HashMap meta = (HashMap)subhash.get("meta");
@@ -589,8 +615,7 @@ public class SutEditor extends JPanel{
             }
             return node;
         }catch(Exception e){
-            try{System.out.println("server respons: "+resp.toString());}
-            catch(Exception ex){ex.printStackTrace();}
+            System.out.println("server respons: "+resp.toString());
             e.printStackTrace();
             return null;
         }
@@ -639,6 +664,7 @@ public class SutEditor extends JPanel{
             eps = "";
             e.printStackTrace();
         }
+        System.out.println(sutname+" has "+eps);
         return eps;
     }
     

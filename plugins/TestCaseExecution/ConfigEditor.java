@@ -1,6 +1,6 @@
 /*
 File: ConfigEditor.java ; This file is part of Twister.
-Version: 2.009
+Version: 2.010
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -508,6 +508,7 @@ public class ConfigEditor extends JPanel{
                                 unbind.setEnabled(true);
                             }
                             if(currentfile==null){
+                                addparam.setEnabled(false);
                                 if(!((DefaultMutableTreeNode)tp.getPathComponent(1)).toString().equals("default_binding")){
                                     if(((DefaultMutableTreeNode)tp.getLastPathComponent()).getLevel()==1){
                                         remove.setEnabled(true);
@@ -521,8 +522,10 @@ public class ConfigEditor extends JPanel{
                                 }else if(((DefaultMutableTreeNode)tp.getLastPathComponent()).getLevel()==1){
                                     editable = false;
                                     remove.setEnabled(false);
-                                }
-                                addparam.setEnabled(false);
+                                } 
+//                                 else {
+//                                     addparam.setEnabled(true);
+//                                 }
                             } else {
                                 showFolderPopUp(treenode,ev,folder);
                             }
@@ -551,6 +554,7 @@ public class ConfigEditor extends JPanel{
                                     unbind.setEnabled(true);
                                 }
                                 if(currentfile==null){
+                                    addparam.setEnabled(false);
                                     if(!((DefaultMutableTreeNode)tp.getPathComponent(1)).toString().equals("default_binding")){
                                         if(((DefaultMutableTreeNode)tp.getLastPathComponent()).getLevel()==1){
                                             remove.setEnabled(true);
@@ -563,8 +567,10 @@ public class ConfigEditor extends JPanel{
                                     }else if(((DefaultMutableTreeNode)tp.getLastPathComponent()).getLevel()==1){
                                         editable = false;
                                         remove.setEnabled(false);
-                                    }
-                                    addparam.setEnabled(false);
+                                    } 
+//                                     else {
+//                                         addparam.setEnabled(true);
+//                                     }
                                 }
                                 setDescription(folder.getNode(), folder.getDesc(),null,null,(DefaultMutableTreeNode)tp.getLastPathComponent(),editable,true);
                             }else if(((DefaultMutableTreeNode)tp.getLastPathComponent()).getUserObject() instanceof MyParam){
@@ -1115,6 +1121,7 @@ public class ConfigEditor extends JPanel{
         MyFolder folder = (MyFolder)treenode.getUserObject();
         appendParam(treenode,folder);
         lastsave = false;
+        if(currentfile==null)displayname.setText(" User Binding (need save)");
     }
     
     public void addConf(){
@@ -1127,7 +1134,7 @@ public class ConfigEditor extends JPanel{
             appendFolder(treenode,folder);
         }
         lastsave = false;
-        //if(currentfile==null)displayname.setText(" User Binding (need save)");
+        if(currentfile==null)displayname.setText(" User Binding (need save)");
     }
     
     public void deleteMultiple(){
