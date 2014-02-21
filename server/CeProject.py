@@ -1,7 +1,7 @@
 
 # File: CeProject.py ; This file is part of Twister.
 
-# version: 3.017
+# version: 3.018
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -2661,7 +2661,8 @@ class Project(object):
             conn.begin()
 
             # UserScript cache
-            usr_script_cache = {}
+            usr_script_cache_s = {} # Suite
+            usr_script_cache_p = {} # Project
 
             for epname, ep_info in self.users[user]['eps'].iteritems():
                 SuitesManager = ep_info['suites']
@@ -2766,14 +2767,28 @@ class Project(object):
                                 query = query.replace('$'+field, '')
                                 continue
 
-                            if u_script not in usr_script_cache:
-                                # Execute script and use result
-                                r = execScript(u_script)
-                                # Save result in cache
-                                usr_script_cache[u_script] = r
+                            # Execute this script based on level
+                            if lvl == 'Project':
+                                if u_script not in usr_script_cache_p:
+                                    # Execute script and use result
+                                    r = execScript(u_script)
+                                    # Save result in cache
+                                    usr_script_cache_p[u_script] = r
+                                else:
+                                    # Get script result from cache
+                                    r = usr_script_cache_p[u_script]
+                            # Execute for every suite
                             else:
-                                # Get script result from cache
-                                r = usr_script_cache[u_script]
+                                if suite_id not in usr_script_cache_s:
+                                    usr_script_cache_s[suite_id] = {}
+                                if u_script not in usr_script_cache_s[suite_id]:
+                                    # Execute script and use result
+                                    r = execScript(u_script)
+                                    # Save result in cache
+                                    usr_script_cache_s[suite_id][u_script] = r
+                                else:
+                                    # Get script result from cache
+                                    r = usr_script_cache_s[suite_id][u_script]
 
                             # Replace UserScript with with real Script results
                             query = query.replace('$'+field, r)
