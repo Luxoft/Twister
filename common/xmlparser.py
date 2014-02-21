@@ -712,7 +712,7 @@ class TSCParser:
         # A suite can be a part of only 1 EP !
         res = OrderedDict()
 
-        # Add properties from FWMCONFIG
+        # Add properties from PROJECT
         prop_keys = self.configTS.xpath('/Root/UserDefined/propName')
         prop_vals = self.configTS.xpath('/Root/UserDefined/propValue')
         res.update( dict(zip( [k.text for k in prop_keys], [v.text for v in prop_vals] )) )
@@ -890,6 +890,7 @@ class DBParser():
             d['id']    = field.get('ID', '')
             d['type']  = field.get('Type', '')
             d['query'] = field.get('SQLQuery', '')
+            d['level'] = field.get('Level', 'Suite') # Project / Suite
             res[d['id']]  = d
 
         return res
