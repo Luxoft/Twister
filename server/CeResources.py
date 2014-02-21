@@ -267,6 +267,7 @@ def res_to_xml(parent_node, xml):
 
     return xml
 
+
 def _recursive_build_comp(parent, old_path, appendList=[]):
     '''
     parent - pointer in dictionary
@@ -302,6 +303,28 @@ def _recursive_build_comp(parent, old_path, appendList=[]):
             appendList.append(add_dic)
 
         return appendList
+
+
+def _recursive_search_string(parent, query_string):
+    '''
+    parent - pointer in dictionary
+    query_string - the string to search
+    '''
+    if len(parent) == 0:
+        # there are no sub-components; return empty list
+        return False
+    else:
+        # check if we got the string
+        if parent['path'] == query_string:
+            return True
+        else:
+            # deep search for every child
+            for child in parent['children']:
+                result =  _recursive_search_string(child,query_string)
+                if result is True:
+                    return True
+    return False
+
 #
 
 class ResourceAllocator(_cptools.XMLRPCController):
