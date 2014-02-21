@@ -1707,6 +1707,7 @@ public class RunnerRepository {
                             "Project File",null);
         
         if(resp==JOptionPane.OK_OPTION){
+            RunnerRepository.window.mainpanel.p1.suitaDetails.clearProjectsDefs();
             String user = combo.getSelectedItem().toString();
             if(user.equals("New File")){
                 user = CustomDialog.showInputDialog(JOptionPane.QUESTION_MESSAGE,
@@ -1750,8 +1751,6 @@ public class RunnerRepository {
                 RunnerRepository.window.mainpanel.p1.sc.g.repaint();
             }
             RunnerRepository.window.mainpanel.p1.sc.g.selectedcollection.clear();
-            System.out.println("Should Clear");
-            RunnerRepository.window.mainpanel.p1.suitaDetails.clearProjectsDefs();
     }
     
     public static String getVersion(){
