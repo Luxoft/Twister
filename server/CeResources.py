@@ -1,7 +1,7 @@
 
 # File: CeResources.py ; This file is part of Twister.
 
-# version: 2.031
+# version: 2.032
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -278,7 +278,7 @@ def _recursive_build_comp(parent, old_path, appendList=[]):
         return []
     else:
         # there are sub-components
-        
+
         # loop through all of them
         for child in parent:
             new_dict = parent[child]
@@ -1588,7 +1588,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
         if not self.reservedResources.get(user):
             msg = 'Get reserved resource: Resource `{}` is not reserved !'.format(res_query)
             logError(msg)
-            return False    
+            return False
 
         res_pointer.update([('path', [res_path[0]]), ])
         join_path = self.reservedResources[user][res_pointer['id']].get('path', '')
@@ -2261,6 +2261,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
         return result
 
+
     @cherrypy.expose
     def copySutFile(self, old_sut, new_sut, user, delete_old=True):
         """
@@ -2276,7 +2277,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
                 if listElem['name'] == old_sut:
                     foundOldSut = True;
                     continue
-        
+
         if not foundOldSut:
             msg = 'SUT file {} doesn\'t exit !'.format(old_sut)
             logError(msg)
@@ -2289,7 +2290,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
                     msg = 'New SUT file {} already exits !'.format(new_sut)
                     logError(msg)
                     return '*ERROR* ' + msg
-        
+
         # make sure the SUT file names start with /
         if new_sut[0] != '/':
             new_sut = '/' + new_sut
@@ -2344,7 +2345,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
                  cleanNewSut(newSutId,user)
                  return '*ERROR* ' + msg
 
-        # Everything is ready for copy; just do it 
+        # Everything is ready for copy; just do it
         # get the pointer to the old sut and new sut
         old_res_path = _get_res_path(self.systems, old_sut)
         old_res_pointer = _get_res_pointer(self.systems, ''.join('/' + old_res_path[0]))
@@ -2380,6 +2381,53 @@ class ResourceAllocator(_cptools.XMLRPCController):
             self.deleteResource(old_sut, '{}', ROOT_SUT, user)
 
         return True
+
+
+    @cherrypy.expose
+    def getReservedResource(self, query):
+        """
+        Return true is the <query> resource is reserved
+        Query examples:
+            - tb3
+            - tb3/C1
+            - sut_1.user
+            - sut_1.user/comp_4
+            - sut_1.user/comp_1/sub_comp_1
+        Function returns True if query is found, else return False
+        """
+        user_roles = self.userRoles()
+        user = user_roles['user']
+
+        userResources = False
+        for child in self.reservedResources:
+            if child == user:
+                userResources = self.reservedResources.get(user)
+
+        if not userResources:
+            return False
+
+        # Every resource id is a key in the userResources dcitionary
+        for id_key in userResources:
+            # get the resource path
+            root_path = userResources[id_key]['path']
+
+            # set new_path where value for this key starts
+            new_path = userResources[id_key]
+
+            # recursevly build a dictionary with all subcomponents of the new_path
+            recursiveList = []
+            retDict = {}
+            retDict['path'] = root_path[0]
+            retDict['meta'] = new_path['meta']
+            retDict['id'] = new_path['id']
+            retDict['children'] = _recursive_build_comp(new_path.get('children'),retDict['path'],recursiveList)
+            # logDebug('\n BOG {}\n'.format(retDict))
+
+            # search the query if the created dictionary
+            if _recursive_search_string(retDict, query):
+                return True
+
+        return False
 
 #
 
