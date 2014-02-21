@@ -1,6 +1,6 @@
 /*
 File: UnitTesting.java ; This file is part of Twister.
-Version: 2.005
+Version: 2.006
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -409,7 +409,7 @@ public class UnitTesting extends JFrame {
             parent.setEpId(selected);
             items.add(parent);
             XMLBuilder xml = new XMLBuilder(items);
-            xml.createXML(false,false,false,true,"","",false,"",null);
+            xml.createXML(false,false,false,true,"","",false,"",null,RunnerRepository.window.mainpanel.p1.suitaDetails.getProjectDefs());
             String dir = RunnerRepository.getXMLRemoteDir();
             String [] path = dir.split("/");
             StringBuffer result2 = new StringBuffer();

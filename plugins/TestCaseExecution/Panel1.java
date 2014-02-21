@@ -1,6 +1,6 @@
 /*
 File: Panel1.java ; This file is part of Twister.
-Version: 2.0016
+Version: 2.0017
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -136,7 +136,7 @@ public class Panel1 extends JPanel{
             public void actionPerformed(ActionEvent ev){
                 showOptionals();}});
         add(showoptionals);
-        suitaDetails = new SuitaDetails(RunnerRepository.getDatabaseUserFields());
+        suitaDetails = new SuitaDetails(RunnerRepository.getDatabaseUserFields(),RunnerRepository.getProjectUserFields());
         generate.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 generate();}});
@@ -412,7 +412,7 @@ public class Panel1 extends JPanel{
                              RunnerRepository.window.mainpanel.p1.suitaDetails.stopOnFail(),
                              RunnerRepository.window.mainpanel.p1.suitaDetails.preStopOnFail(),
                              RunnerRepository.window.mainpanel.p1.suitaDetails.saveDB(),
-                             RunnerRepository.window.mainpanel.p1.suitaDetails.getDelay(),true,null)){
+                             RunnerRepository.window.mainpanel.p1.suitaDetails.getDelay(),true,null,RunnerRepository.window.mainpanel.p1.suitaDetails.getProjectDefs())){
                     CustomDialog.showInfo(JOptionPane.PLAIN_MESSAGE, 
                                             RunnerRepository.window, "Success",
                                             "File successfully saved");
@@ -456,7 +456,7 @@ public class Panel1 extends JPanel{
                              RunnerRepository.window.mainpanel.p1.suitaDetails.stopOnFail(),
                              RunnerRepository.window.mainpanel.p1.suitaDetails.preStopOnFail(),
                              RunnerRepository.window.mainpanel.p1.suitaDetails.saveDB(),
-                             RunnerRepository.window.mainpanel.p1.suitaDetails.getDelay(),false,null))
+                             RunnerRepository.window.mainpanel.p1.suitaDetails.getDelay(),false,null,RunnerRepository.window.mainpanel.p1.suitaDetails.getProjectDefs()))
                     CustomDialog.showInfo(JOptionPane.PLAIN_MESSAGE, 
                                             RunnerRepository.window, "Success",
                                             "File successfully saved");
@@ -476,7 +476,7 @@ public class Panel1 extends JPanel{
                              RunnerRepository.window.mainpanel.p1.suitaDetails.preStopOnFail(),
                              RunnerRepository.window.mainpanel.p1.suitaDetails.saveDB(),
                              RunnerRepository.window.mainpanel.p1.suitaDetails.getDelay(),
-                             false,null))
+                             false,null,RunnerRepository.window.mainpanel.p1.suitaDetails.getProjectDefs()))
                 CustomDialog.showInfo(JOptionPane.PLAIN_MESSAGE, 
                                         RunnerRepository.window, "Success",
                                         "File successfully saved");
@@ -734,11 +734,6 @@ public class Panel1 extends JPanel{
      */
     private void generate(){
         RunnerRepository.window.mainpanel.getP2().setSaveDB(suitaDetails.saveDB());
-//         String result="";//server status
-//         try{result = (String)RunnerRepository.getRPCClient().execute("getExecStatusAll",new Object[]{RunnerRepository.getUser()});}
-//         catch(Exception e){
-//             System.out.println("Could not connect to server");
-//             e.printStackTrace();}
         int defsNr = suitaDetails.getDefsNr();
         boolean execute=true;
         for(int i=0;i<RunnerRepository.getSuiteNr();i++){
@@ -756,52 +751,22 @@ public class Panel1 extends JPanel{
                     break;}}
         }
         
-//         Node parent = RunnerRepository.window.mainpanel.p4.getTB().getParentNode();
-//         boolean found ;
-//         DefaultMutableTreeNode root = RunnerRepository.window.mainpanel.p4.getSut().sut.root;
-//         int sutsnr = root.getChildCount();
-//         for(Item i:RunnerRepository.getSuite()){
-//             for(String tb:i.getEpId()){
-//                 //Iterator iter = parent.getChildren().keySet().iterator();
-//                 
-// //                 Iterator iter = root.children().;
-//                 found = false;
-//                 for(int j=0;j<sutsnr;j++){
-//                     SUT child = (SUT)((DefaultMutableTreeNode)root.getChildAt(j)).getUserObject();
-//                     if(child!=null&&child.getName().equals(tb)){
-//                         if(child.getEPs()==null){
-//                             break;
-//                         }
-//                         if(!child.getEPs().equals("")){
-//                             found = true;
-//                         }
-//                         break;
-//                     }
-//                     if(found)break;
-//                 }
-//                 
-//                 
-// //                 while(iter.hasNext()){
-// //                     Node child = parent.getChild(iter.next().toString());
-// //                     if(child!=null&&child.getName().equals(tb)){
-// //                         if(child.getEPs()==null){
-// //                             break;
-// //                         }
-// //                         if(!child.getEPs().equals("")){
-// //                             found = true;
-// //                         }
-// //                         break;
-// //                     }
-// //                     if(found)break;
-// //                 }
-//                 if(!found){
-//                     CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, RunnerRepository.window,
-//                                         "Warning","Please set EP for SUT: "+ tb);
-//                     execute = false;
-//                     break;
-//                 }
-//             }
-//         }
+        /*
+         * check if mandatory project fields are set
+         */
+        ArrayList<String[]> databaseuserfields = RunnerRepository.getProjectUserFields();
+        String [][] projectdefined =  suitaDetails.getProjectDefs();
+        for(int i=0;i<databaseuserfields.size();i++){
+            if(databaseuserfields.get(i)[RunnerRepository.MANDATORY].equals("true")&&(projectdefined[i][1]==null||projectdefined[i][1].equals(""))){
+                CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, RunnerRepository.window,
+                                        "Warning","Please set project defined field for "+projectdefined[i][2]);
+                execute = false;
+                break;
+            }
+        }
+        
+        
+        
         
         
         
@@ -821,14 +786,14 @@ public class Panel1 extends JPanel{
                                  suitaDetails.stopOnFail(),
                                  suitaDetails.preStopOnFail(),
                                  suitaDetails.saveDB(),
-                                 suitaDetails.getDelay(),false,null)){}
+                                 suitaDetails.getDelay(),false,null,RunnerRepository.window.mainpanel.p1.suitaDetails.getProjectDefs())){}
                 else CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, 
                                             RunnerRepository.window, "Warning", 
                                             "Warning, temp file not saved");                    
             }
             if(!sc.g.printXML(RunnerRepository.getTestXMLDirectory(),true,false,
                           suitaDetails.stopOnFail(),suitaDetails.preStopOnFail(),suitaDetails.saveDB(),
-                          suitaDetails.getDelay(),false,null)){
+                          suitaDetails.getDelay(),false,null,RunnerRepository.window.mainpanel.p1.suitaDetails.getProjectDefs())){
                 CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE, 
                                             RunnerRepository.window, "ERROR", 
                                             "Could not generate XML, please check log!");  
@@ -969,7 +934,7 @@ public class Panel1 extends JPanel{
                 chooser.setDialogTitle("Choose Location");         
                 chooser.setAcceptAllFileFilterUsed(false);    
                 if (chooser.showOpenDialog(Panel1.this) == JFileChooser.APPROVE_OPTION) {
-                    if(sc.g.printXML(chooser.getSelectedFile()+".xml", false,true,false,false,false,"",false,null)){
+                    if(sc.g.printXML(chooser.getSelectedFile()+".xml", false,true,false,false,false,"",false,null,RunnerRepository.window.mainpanel.p1.suitaDetails.getProjectDefs())){
                         CustomDialog.showInfo(JOptionPane.PLAIN_MESSAGE, Panel1.this,
                                                 "Success","File successfully saved ");}
                     else{
@@ -1020,7 +985,7 @@ public class Panel1 extends JPanel{
             RunnerRepository.window.mainpanel.p1.sc.g.setUser(RunnerRepository.getUsersDirectory()+
                                                                 System.getProperty("file.separator")+
                                                                 user+".xml");
-            sc.g.printXML(sc.g.getUser(),false,false,false,false,false,"",false,null);
+            sc.g.printXML(sc.g.getUser(),false,false,false,false,false,"",false,null,RunnerRepository.window.mainpanel.p1.suitaDetails.getProjectDefs());
             sc.g.updateScroll();
             sc.g.repaint();
             suitaDetails.setPreScript("");

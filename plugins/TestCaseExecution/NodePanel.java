@@ -1,6 +1,6 @@
 /*
 File: NodePanel.java ; This file is part of Twister.
-Version: 2.006
+Version: 2.007
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -203,8 +203,11 @@ public class NodePanel extends JPanel{
             }
         });
         
-        tname.addKeyListener(new KeyAdapter(){
-            public void keyReleased(KeyEvent ev){
+        
+        
+        
+        class MyFocusAdapter extends FocusAdapter{
+            public void focusLost(FocusEvent ev){
                 try{
                     if(tname.getText().equals(""))return;
                     if(parent.getName().equals(tname.getText()))return;
@@ -232,7 +235,40 @@ public class NodePanel extends JPanel{
                     e.printStackTrace();
                 }
             }
-        });
+        }
+        
+        tname.addFocusListener(new MyFocusAdapter());
+        
+//         tname.addKeyListener(new KeyAdapter(){
+//             public void keyReleased(KeyEvent ev){
+//                 try{
+//                     if(tname.getText().equals(""))return;
+//                     if(parent.getName().equals(tname.getText()))return;
+//                     if(!checkExistingName(parent, tname.getText())){
+//                         String query = client.execute("renameResource", new Object[]{parent.getID(),
+//                                                                                     tname.getText()}).toString();
+//                         if(query.equals("true")){
+//                             updatePaths(treenode, parent);
+//                             parent.setName(tname.getText());
+//                             tpath.setText(parent.getPath().getPath());
+//                             ((DefaultTreeModel)tree.getModel()).nodeChanged(treenode);
+//                             RunnerRepository.window.mainpanel.p4.getTB().setSavedState(treenode,false);
+//                         } else {
+//                             System.out.println("There was an error: "+query);
+//                             CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,NodePanel.this,
+//                                                   "Warning", query);
+//                         }
+//                     } else {
+//                         tname.setText(parent.getName());
+//                         CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,NodePanel.this,
+//                                               "Warning", "Name already exists!");
+//                     }
+//                 }
+//                 catch(Exception e){
+//                     e.printStackTrace();
+//                 }
+//             }
+//         });
         
         add.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
@@ -404,8 +440,10 @@ public class NodePanel extends JPanel{
                 sb.append(s);
                 sb.append("/");            
             }
-            String s = client.execute("getResource", new Object[]{sb.toString()}).toString();
-            if(s.equals("false")){
+            sb.setLength(sb.length()-1);
+            String s = client.execute("getReservedResource", new Object[]{sb.toString()}).toString();
+            System.out.println("getReservedResource:"+sb.toString()+" respons: "+s);
+            if(s.equalsIgnoreCase("false")||s.equals("*ERROR*")){
                 return false;
             } else {
                 return true;

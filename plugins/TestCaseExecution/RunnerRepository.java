@@ -1,6 +1,6 @@
 /*
 File: RunnerRepository.java ; This file is part of Twister.
-Version: 2.0043
+Version: 2.0044
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -142,7 +142,7 @@ public class RunnerRepository {
     public static boolean run ;//signal that Twister is not closing
     public static boolean isapplet,initialized,sftpoccupied; //keeps track if twister is run from applet or localy;;stfpconnection flag
     public static IntroScreen introscreen;    
-    private static ArrayList <String []> databaseUserFields ;
+    private static ArrayList <String []> databaseUserFields,projectUserFields;
     public static int LABEL = 0;    
     public static int ID = 1;
     public static int SELECTED = 2;
@@ -155,8 +155,8 @@ public class RunnerRepository {
     public static Container container;
     public static Applet applet;
     private static Document pluginsconfig;
-    private static String version = "2.058";
-    private static String builddate = "13.02.2014";
+    private static String version = "2.059";
+    private static String builddate = "21.02.2014";
     public static String logotxt,os,python;
     private static int remotefiletries = 0;
     
@@ -181,6 +181,7 @@ public class RunnerRepository {
         variables = new Hashtable(5,0.5f);
         bar = System.getProperty("file.separator");
         databaseUserFields = new ArrayList<String[]>();
+        projectUserFields = new ArrayList<String[]>();
         
         /*
          * temp folder creation to hold
@@ -680,9 +681,10 @@ public class RunnerRepository {
      */
     public static void resetDBConf(String filename,boolean server){
         databaseUserFields.clear();
+        projectUserFields.clear();
         System.out.println("Reparsing "+filename);
         parseDBConfig(filename,server);
-        window.mainpanel.p1.suitaDetails.restart(databaseUserFields);}
+        window.mainpanel.p1.suitaDetails.restart(databaseUserFields,projectUserFields);}
         
     /*
      * method used to reset Email config
@@ -767,7 +769,10 @@ public class RunnerRepository {
                         System.out.println("Warning, no Mandatory element "+
                                             "in field tag in db.xml at filed nr: "+i);
                         field[3]="";}
-                    databaseUserFields.add(field);}}}
+                    if(tablee.getAttribute("Level")!=null&&tablee.getAttribute("Level").equals("Project")){
+                        projectUserFields.add(field);
+                    } else {
+                        databaseUserFields.add(field);}}}}
         catch(Exception e){
             try{System.out.println("Could not parse batabase XML file: "+dbConf.getCanonicalPath());}
             catch(Exception ex){
@@ -1044,6 +1049,14 @@ public class RunnerRepository {
      */ 
     public static ArrayList<String[]> getDatabaseUserFields(){
         return databaseUserFields;}
+        
+    /*
+     * method to get Project User Fields
+     * set from twister
+     */ 
+    public static ArrayList<String[]> getProjectUserFields(){
+        return projectUserFields;}
+        
       
     /*
      * clear all suite from test suite list
@@ -1694,6 +1707,7 @@ public class RunnerRepository {
                             "Project File",null);
         
         if(resp==JOptionPane.OK_OPTION){
+            RunnerRepository.window.mainpanel.p1.suitaDetails.clearProjectsDefs();
             String user = combo.getSelectedItem().toString();
             if(user.equals("New File")){
                 user = CustomDialog.showInputDialog(JOptionPane.QUESTION_MESSAGE,
@@ -1708,7 +1722,7 @@ public class RunnerRepository {
                     window.mainpanel.p1.sc.g.setUser((new StringBuilder()).append(RunnerRepository.getUsersDirectory()).
                                         append(RunnerRepository.getBar()).append(user).append(".XML").
                                         toString());
-                    window.mainpanel.p1.sc.g.printXML( window.mainpanel.p1.sc.g.getUser(),false,false,false,false,false,"",false,null);
+                    window.mainpanel.p1.sc.g.printXML( window.mainpanel.p1.sc.g.getUser(),false,false,false,false,false,"",false,null,RunnerRepository.window.mainpanel.p1.suitaDetails.getProjectDefs());
                     RunnerRepository.window.mainpanel.p1.suitaDetails.setPreScript("");
                     RunnerRepository.window.mainpanel.p1.suitaDetails.setPostScript("");
                     RunnerRepository.window.mainpanel.p1.suitaDetails.setGlobalLibs(null);

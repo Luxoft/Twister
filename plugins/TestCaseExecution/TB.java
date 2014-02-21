@@ -1,6 +1,6 @@
 /*
 File: TB.java ; This file is part of Twister.
-Version: 2.017
+Version: 2.018
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -412,12 +412,13 @@ public class TB extends JPanel{
             DefaultMutableTreeNode child;
             root.removeAllChildren();
             DefaultTreeModel model = (DefaultTreeModel)tree.getModel();
-            String name;
+            String name,id;
             HashMap hash;
             for(Object object:array){
                 hash = (HashMap)object;
                 name = hash.get("name").toString();
-                Node node = new Node(null,"/"+name,name,null,null,(byte)0);
+                id = hash.get("id").toString();
+                Node node = new Node(id,"/"+name,name,null,null,(byte)0);
                 String status = hash.get("status").toString();
                 String user = "";
                 if(!status.equals("free")){
@@ -702,21 +703,55 @@ public class TB extends JPanel{
                     ((DefaultTreeModel)tree.getModel()).nodeChanged(treenode);
                     optpan.setParent(node,treenode,false);
                 } else {
-                     int r = (Integer)CustomDialog.showDialog(
-                                new JLabel("Save TB before releasing ?"),
-                                JOptionPane.QUESTION_MESSAGE, 
-                                JOptionPane.OK_CANCEL_OPTION, TB.this, "Save", null);
-                    if(r == JOptionPane.OK_OPTION){
-                        success = saveAndRelease("/"+node.getName());
-                        setSavedState(treenode,true);
-                        node.setReserved("");
-                        ((DefaultTreeModel)tree.getModel()).nodeChanged(treenode);
-                        optpan.setParent(node,treenode,false);
+                    
+                    
+                    String[] buttons = {"Save","Discard"};
+                    String resp = CustomDialog.showButtons(TB.this, JOptionPane.QUESTION_MESSAGE,
+                                                            JOptionPane.DEFAULT_OPTION, null,buttons ,
+                                                            "Save","Save TB before releasing?");
+                    
+                    
+//                      int r = (Integer)CustomDialog.showDialog(
+//                                 new JLabel("Save TB before releasing ?"),
+//                                 JOptionPane.QUESTION_MESSAGE, 
+//                                 JOptionPane.OK_CANCEL_OPTION, TB.this, "Save", null);
+                                
+//                     if(r == JOptionPane.OK_OPTION){
+//                         success = saveAndRelease("/"+node.getName());
+//                         setSavedState(treenode,true);
+//                         node.setReserved("");
+//                         ((DefaultTreeModel)tree.getModel()).nodeChanged(treenode);
+//                         optpan.setParent(node,treenode,false);
+//                     } else {
+//                         success = discardAndRelease("/"+node.getName());
+//                         buildFirstLevelTB();
+//                         optpan.setParent(null,null,false);
+//                     }
+                    
+                    
+                    if (!resp.equals("NULL")) {
+                        if(resp.equals("Save")){
+                            success = saveAndRelease("/"+node.getName());
+                            setSavedState(treenode,true);
+                            node.setReserved("");
+                            ((DefaultTreeModel)tree.getModel()).nodeChanged(treenode);
+                            optpan.setParent(node,treenode,false);
+//                             resp = client.execute("saveAndReleaseReservedSut", new Object[]{"/"+rootsut,RunnerRepository.user}).toString();
+                        }
+                        else if(resp.equals("Discard")){
+//                             resp = client.execute("discardAndReleaseReservedSut", new Object[]{"/"+rootsut,RunnerRepository.user}).toString();
+                            success = discardAndRelease("/"+node.getName());
+                            buildFirstLevelTB();
+                            optpan.setParent(null,null,false);
+                        }
                     } else {
+//                         resp = client.execute("discardAndReleaseReservedSut", new Object[]{"/"+rootsut,RunnerRepository.user}).toString();
                         success = discardAndRelease("/"+node.getName());
                         buildFirstLevelTB();
                         optpan.setParent(null,null,false);
                     }
+                    
+                    
                 }
                 if(success){   
                     //remove.setEnabled(false);
@@ -941,7 +976,7 @@ public class TB extends JPanel{
                         DefaultMutableTreeNode temp2 = new DefaultMutableTreeNode(newnode.getPath());
                         ((DefaultTreeModel)tree.getModel()).insertNodeInto(temp2, treechild,1);
                     } else {
-                        CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,TB.this,"Warning", resp);
+                        CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,TB.this,"Error", resp);
                     }                
                 } catch (Exception e){
                     e.printStackTrace();
@@ -974,6 +1009,7 @@ public class TB extends JPanel{
                 add.setText("Add TB");
                 return true;
             }
+            System.out.println("respons: "+s);
             return false;
         }
         catch(Exception e){
