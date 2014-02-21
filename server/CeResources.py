@@ -2187,7 +2187,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
         res = []
         for k, v in self.resources.get('children').iteritems():
             path = v.get('path') or _get_res_path(self.resources, v['id']) or []
-            res.append('/'.join(path))
+            res.append(['/'.join(path), v['id']])
         result = []
 
         def quickFindPath(d, spath):
@@ -2200,19 +2200,19 @@ class ResourceAllocator(_cptools.XMLRPCController):
                         return usr
             return None
 
-        for s in sorted(res):
-            ruser = quickFindPath(self.reservedResources, s)
-            luser = quickFindPath(self.lockedResources, s)
+        for tb, id in sorted(res):
+            ruser = quickFindPath(self.reservedResources, tb)
+            luser = quickFindPath(self.lockedResources, tb)
 
             if (not ruser) and (not luser):
-                result.append({'name': s, 'status': 'free'})
+                result.append({'id': id, 'name': tb, 'status': 'free'})
             elif ruser:
-                result.append({'name': s, 'status': 'reserved', 'user': ruser})
+                result.append({'id': id, 'name': tb, 'status': 'reserved', 'user': ruser})
             elif luser:
-                result.append({'name': s, 'status': 'locked', 'user': luser})
+                result.append({'id': id, 'name': tb, 'status': 'locked', 'user': luser})
             # Both reserved and locked ?
             else:
-                result.append({'name': s, 'status': 'reserved', 'user': ruser})
+                result.append({'id': id, 'name': tb, 'status': 'reserved', 'user': ruser})
 
         logDebug('Fast listing Resources... Found {}.'.format(res))
 
