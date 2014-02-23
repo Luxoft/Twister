@@ -1,6 +1,6 @@
 /*
 File: Panel4.java ; This file is part of Twister.
-Version: 2.007
+Version: 2.012
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -140,8 +140,10 @@ public class Panel4 extends JPanel{
         main.removeAll();
         main.setLayout(new BorderLayout());
         main.add(sut,BorderLayout.CENTER);
+        if(tb.root.getChildCount()==0)tb.buildFirstLevelTB();
         sut.tbs.setTree(tb.getTree());
-        sut.sut.getSUT();
+//         sut.sut.getSutTree().sp2.setViewportView(sut.sut.getSutTree().filestree);
+//         sut.sut.getSUT();
         main.repaint();
         main.revalidate();
     }
@@ -150,6 +152,8 @@ public class Panel4 extends JPanel{
         main.removeAll();
         main.setLayout(new BorderLayout());
         main.add(testconfig,BorderLayout.CENTER);
+//         if(testconfig.cfgedit.sutconfig.root.getChildCount()==0)testconfig.cfgedit.sutconfig.getSUT();
+        if(testconfig.cfgedit.sutconfig.root.getChildCount()==0)testconfig.cfgedit.sutconfig.getFirstLevel();
         main.repaint();
         main.revalidate();
     }
@@ -160,8 +164,6 @@ public class Panel4 extends JPanel{
      */
     public void setAbout(){
         main.removeAll();
-        //main.setLayout(new FlowLayout());
-        //main.add(about);
         main.setLayout(new BorderLayout());
         main.add(about,BorderLayout.CENTER);
         main.repaint();
@@ -234,6 +236,8 @@ public class Panel4 extends JPanel{
         if(sut.tbs.getTree()!=null){
             tb.setTree(sut.tbs.getTree());
         }
+//         if(tb.root.getChildCount()==0)tb.refreshTBs();
+        if(tb.root.getChildCount()==0)tb.buildFirstLevelTB();
         main.repaint();
         main.revalidate();}
     

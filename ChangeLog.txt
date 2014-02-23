@@ -1,3 +1,17 @@
+23rd February 2014
+
+- user key moved from users_ang_groups file in user diretory ($TWISTER/config/twister.key)
+- added support to define fields per project in db.xml
+- code optimization
+- updated UserGuide
+
+07th February 2014
+
+- SUT files are saved independently
+- mechanism to Lock/UnLock Reserve/Release SUTs and TB files
+- added binding mechanism and API
+- updated UserGuide
+
 17th January 2014
 
 - changed the mechanism for EP's. Introduced a methog to simplify EP's configuration

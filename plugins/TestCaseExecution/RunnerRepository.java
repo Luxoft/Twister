@@ -1,6 +1,6 @@
 /*
 File: RunnerRepository.java ; This file is part of Twister.
-Version: 2.0040
+Version: 2.0044
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -129,8 +129,8 @@ public class RunnerRepository {
                          TESTSUITEPATH,
                          LOGSPATH ,XMLREMOTEDIR,REMOTEPLUGINSDIR,
                          REMOTELIBRARY,PREDEFINEDSUITES,
-                         REMOTEUSERSDIRECTORY,  //REMOTEHARDWARECONFIGDIRECTORY,
-                         PLUGINSLOCALGENERALCONF, GLOBALSREMOTEFILE,
+                         REMOTEUSERSDIRECTORY,BINDINGPATH,  //REMOTEHARDWARECONFIGDIRECTORY,
+                         PLUGINSLOCALGENERALCONF, GLOBALSREMOTEFILE,SUTPATH,SYSSUTPATH,
                          SECONDARYLOGSPATH,PATHENABLED,TESTCONFIGPATH;
     public static Image passicon,testbedicon,porticon,suitaicon, tcicon, propicon,
                         failicon, passwordicon, playicon, stopicon, pauseicon,logo,
@@ -142,7 +142,7 @@ public class RunnerRepository {
     public static boolean run ;//signal that Twister is not closing
     public static boolean isapplet,initialized,sftpoccupied; //keeps track if twister is run from applet or localy;;stfpconnection flag
     public static IntroScreen introscreen;    
-    private static ArrayList <String []> databaseUserFields ;
+    private static ArrayList <String []> databaseUserFields,projectUserFields;
     public static int LABEL = 0;    
     public static int ID = 1;
     public static int SELECTED = 2;
@@ -155,8 +155,8 @@ public class RunnerRepository {
     public static Container container;
     public static Applet applet;
     private static Document pluginsconfig;
-    private static String version = "2.049";
-    private static String builddate = "17.01.2014";
+    private static String version = "2.059";
+    private static String builddate = "21.02.2014";
     public static String logotxt,os,python;
     private static int remotefiletries = 0;
     
@@ -181,6 +181,7 @@ public class RunnerRepository {
         variables = new Hashtable(5,0.5f);
         bar = System.getProperty("file.separator");
         databaseUserFields = new ArrayList<String[]>();
+        projectUserFields = new ArrayList<String[]>();
         
         /*
          * temp folder creation to hold
@@ -385,6 +386,8 @@ public class RunnerRepository {
         variables.put("pluginslocalgeneralconf",PLUGINSLOCALGENERALCONF);
         variables.put("remotegeneralpluginsdir",REMOTEPLUGINSDIR);
         variables.put("globalremotefile",GLOBALSREMOTEFILE);
+        variables.put("sutpath",SUTPATH);
+        variables.put("syssutpath",SYSSUTPATH);
     }
         
     /*
@@ -678,9 +681,10 @@ public class RunnerRepository {
      */
     public static void resetDBConf(String filename,boolean server){
         databaseUserFields.clear();
+        projectUserFields.clear();
         System.out.println("Reparsing "+filename);
         parseDBConfig(filename,server);
-        window.mainpanel.p1.suitaDetails.restart(databaseUserFields);}
+        window.mainpanel.p1.suitaDetails.restart(databaseUserFields,projectUserFields);}
         
     /*
      * method used to reset Email config
@@ -765,7 +769,10 @@ public class RunnerRepository {
                         System.out.println("Warning, no Mandatory element "+
                                             "in field tag in db.xml at filed nr: "+i);
                         field[3]="";}
-                    databaseUserFields.add(field);}}}
+                    if(tablee.getAttribute("Level")!=null&&tablee.getAttribute("Level").equals("Project")){
+                        projectUserFields.add(field);
+                    } else {
+                        databaseUserFields.add(field);}}}}
         catch(Exception e){
             try{System.out.println("Could not parse batabase XML file: "+dbConf.getCanonicalPath());}
             catch(Exception ex){
@@ -845,8 +852,6 @@ public class RunnerRepository {
                 ConfigFiles.saveXML(true,"");
                 //in = c.get("fwmconfig.xml");
             }
-            
-            
             File file = new File(temp+bar+"Twister"+bar+"config"+bar+"fwmconfig.xml");
             BufferedWriter writer = new BufferedWriter(new FileWriter(file));
             writer.write(content);
@@ -876,6 +881,7 @@ public class RunnerRepository {
                 usersdir = getTagContent(doc,"UsersPath", "framework config.");
                 REMOTEUSERSDIRECTORY = usersdir;
                 XMLREMOTEDIR = USERHOME+"/twister/config/testsuites.xml";
+                BINDINGPATH = USERHOME+"/twister/config/bindings/bindings.xml";
                 XMLDIRECTORY = RunnerRepository.temp+bar+"Twister"+bar+"XML"+
                                         bar+XMLREMOTEDIR.split("/")[XMLREMOTEDIR.split("/").length-1];
                 REMOTELIBRARY = getTagContent(doc,"LibsPath", "framework config.");
@@ -902,6 +908,8 @@ public class RunnerRepository {
                 SECONDARYLOGSPATH = getTagContent(doc,"ArchiveLogsPath", "framework config.");
                 PATHENABLED = getTagContent(doc,"ArchiveLogsPathActive", "framework config.");
                 TESTCONFIGPATH = getTagContent(doc,"TestConfigPath", "framework config.");
+                SUTPATH = getTagContent(doc,"SutPath", "framework config.");
+                SYSSUTPATH = getTagContent(doc,"SysSutPath", "framework config.");
                 GLOBALSREMOTEFILE = getTagContent(doc,"GlobalParams", "framework config.");
             }
             catch(Exception e){e.printStackTrace();}
@@ -1041,6 +1049,14 @@ public class RunnerRepository {
      */ 
     public static ArrayList<String[]> getDatabaseUserFields(){
         return databaseUserFields;}
+        
+    /*
+     * method to get Project User Fields
+     * set from twister
+     */ 
+    public static ArrayList<String[]> getProjectUserFields(){
+        return projectUserFields;}
+        
       
     /*
      * clear all suite from test suite list
@@ -1114,6 +1130,19 @@ public class RunnerRepository {
      */
     public static String getTestConfigPath(){
         return TESTCONFIGPATH;}
+        
+    /*
+     * remote sut directory path
+     */
+    public static String getSutPath(){
+        return SUTPATH;}
+        
+    /*
+     * remote global sut directory path
+     */
+    public static String getSysSutPath(){
+        return SYSSUTPATH;}
+        
         
     /*
      * add suite to test suite list
@@ -1628,8 +1657,7 @@ public class RunnerRepository {
     public static void openProjectFile(){
         int size;
         Vector v=null;
-        try{connection.cd(REMOTEUSERSDIRECTORY);
-            v = connection.ls(".");
+        try{v = connection.ls(REMOTEUSERSDIRECTORY);
             size = v.size();}
         catch(Exception e){
             System.out.println("Second attempt to connect");
@@ -1679,6 +1707,7 @@ public class RunnerRepository {
                             "Project File",null);
         
         if(resp==JOptionPane.OK_OPTION){
+            RunnerRepository.window.mainpanel.p1.suitaDetails.clearProjectsDefs();
             String user = combo.getSelectedItem().toString();
             if(user.equals("New File")){
                 user = CustomDialog.showInputDialog(JOptionPane.QUESTION_MESSAGE,
@@ -1693,7 +1722,7 @@ public class RunnerRepository {
                     window.mainpanel.p1.sc.g.setUser((new StringBuilder()).append(RunnerRepository.getUsersDirectory()).
                                         append(RunnerRepository.getBar()).append(user).append(".XML").
                                         toString());
-                    window.mainpanel.p1.sc.g.printXML( window.mainpanel.p1.sc.g.getUser(),false,false,false,false,false,"",false,null);
+                    window.mainpanel.p1.sc.g.printXML( window.mainpanel.p1.sc.g.getUser(),false,false,false,false,false,"",false,null,RunnerRepository.window.mainpanel.p1.suitaDetails.getProjectDefs());
                     RunnerRepository.window.mainpanel.p1.suitaDetails.setPreScript("");
                     RunnerRepository.window.mainpanel.p1.suitaDetails.setPostScript("");
                     RunnerRepository.window.mainpanel.p1.suitaDetails.setGlobalLibs(null);

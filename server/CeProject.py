@@ -1,7 +1,7 @@
 
 # File: CeProject.py ; This file is part of Twister.
 
-# version: 3.012
+# version: 3.018
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -218,6 +218,7 @@ class Project(object):
         self.suite_ids = {} # IDs shortcut
         self.plugins = {}   # User plugins
         self.loggers = {}   # User loggers
+        self.config_locks = {} # Config locks list
 
         self.usr_lock = allocate_lock()  # User change lock
         self.epl_lock = allocate_lock()  # EP lock
@@ -227,6 +228,7 @@ class Project(object):
         self.log_lock = allocate_lock()  # Log access lock
         self.eml_lock = allocate_lock()  # E-mail lock
         self.db_lock  = allocate_lock()  # Database lock
+        self.cfg_lock = allocate_lock()  # Config access lock
 
         # Read the production/ development option.
         cfg_path = '{}/config/server_init.ini'.format(TWISTER_PATH)
@@ -691,6 +693,37 @@ class Project(object):
 # # #
 
 
+    def readFile(self, user, fpath):
+        """
+        Read a file from user's home folder.
+        """
+        if fpath[0] == '~':
+            fpath = userHome(user) + fpath[1:]
+
+        try:
+            # Trying to read the file directly
+            with open(fpath, 'r') as f:
+                return binascii.b2a_base64(f.read())
+        except:
+            # The file is probably inaccesible. Try via Client
+            conn = self._find_local_client(user)
+            if not conn:
+                err = '*ERROR* Cannot find any local Clients for user `{}`! Cannot read file!'.format(user)
+                logWarning(err)
+                return err
+
+            try:
+                resp = conn.root.read_file(fpath)
+                if resp.startswith('*ERROR*'):
+                    logWarning(resp)
+                return binascii.b2a_base64(resp)
+            except:
+                trace = traceback.format_exc()[34:].strip()
+                err = '*ERROR* read file error: {}'.format(trace)
+                logWarning(err)
+                return err
+
+
     def _parseUsersAndGroups(self):
         """
         Parse users and groups and return the values.
@@ -773,6 +806,13 @@ class Project(object):
 
             # Fix groups. Must be a list.
             usr_data['groups'] = grps
+
+            # Add user key from user's home
+            usr_data['key'] = None
+            #usr_data['key'] = self.readFile(usr, '~/twister/config/twister.key')
+            # Fix key in case of error
+            #if not usr_data['key'] or '*ERROR*' in usr_data['key']:
+            #    usr_data['key'] = ''
 
         return cfg.dict()
 
@@ -984,7 +1024,13 @@ class Project(object):
         # Check the username data
         user_roles = self.authenticate(user)
         key = user_roles.get('key')
-        if not key: return False
+        if not key:
+            # Add user key from user's home
+            key = self.readFile(user, '~/twister/config/twister.key')
+            # Fix key in case of error
+            if not key or '*ERROR*' in key:
+                logWarning('Cannot encrypt! Cannot fetch users key!')
+                return False
         return encrypt(text, key)
 
 
@@ -997,7 +1043,13 @@ class Project(object):
         # Check the username data
         user_roles = self.authenticate(user)
         key = user_roles.get('key')
-        if not key: return False
+        if not key:
+            # Add user key from user's home
+            key = self.readFile(user, '~/twister/config/twister.key')
+            # Fix key in case of error
+            if not key or '*ERROR*' in key:
+                logWarning('Cannot decrypt! Cannot fetch users key!')
+                return False
         return decrypt(text, key)
 
 
@@ -1302,6 +1354,26 @@ class Project(object):
 
 
 # # #
+
+
+    def _find_local_client(self, user):
+        """
+        Helper function to find a local client connection.
+        """
+        addr = ['127.0.0.1', 'localhost']
+        hostName = socket.gethostname()
+        addr.append(hostName)
+        try: addr.append(socket.gethostbyaddr(hostName)[-1][0])
+        except: pass
+
+        local_client = self.rsrv.service._findConnection(usr=user, addr=addr, hello='client')
+
+        # Cannot find local client conns
+        if not local_client:
+            logWarning('*WARN* Cannot find any local Clients for user `{}`!'.format(user))
+            return False
+
+        return self.rsrv.service.conns.get(local_client, {}).get('conn', False)
 
 
     def _find_anonim_ep(self, user):
@@ -1935,6 +2007,55 @@ class Project(object):
         return True
 
 
+    def isLockConfig(self, user, fpath):
+        """
+        Complete path from tree - returns True/ False
+        """
+        logFull('CeProject:isLockConfig user `{}`.'.format(user))
+        if fpath in self.config_locks:
+            logDebug('Config file `{}` is locked by `{}`.'.format(fpath, user))
+        else:
+            logDebug('Config file `{}` is not locked.'.format(fpath))
+        return self.config_locks.get(fpath, False)
+
+
+    def lockConfig(self, user, fpath):
+        """
+        Complete path from tree - returns True/ False
+        """
+        logFull('CeProject:lockConfig user `{}`.'.format(user))
+        # If already locked, return False
+        if fpath in self.config_locks:
+            err = '*ERROR* Config file `{}` is already locked by `{}`! Cannot lock!'.format(fpath, self.config_locks[fpath])
+            logDebug(err)
+            return err
+        with self.cfg_lock:
+            self.config_locks[fpath] = user
+            logDebug('User `{}` is locking config file `{}`.'.format(user, fpath))
+            return True
+
+
+    def unlockConfig(self, user, fpath):
+        """
+        Complete path from tree - returns True/ False
+        """
+        logFull('CeProject:unlockConfig user `{}`.'.format(user))
+        # If not locked, return False
+        if fpath not in self.config_locks:
+            err = '*ERROR* Config file `{}` is not locked'.format(fpath)
+            logDebug(err)
+            return err
+        # If not locked by this user, return False
+        if self.config_locks[fpath] != user:
+            err = '*ERROR* Config file `{}` is locked by `{}`! Cannot unlock!'.format(fpath, self.config_locks[fpath])
+            logDebug(err)
+            return err
+        with self.cfg_lock:
+            del self.config_locks[fpath]
+            logDebug('User `{}` is releasing config file `{}`.'.format(user, fpath))
+            return True
+
+
 # # #
 
 
@@ -2514,8 +2635,6 @@ class Project(object):
             queries = db_parser.getInsertQueries() # List
             fields  = db_parser.getInsertFields()  # Dictionary
             default_subst = {k: '' for k, v in fields.iteritems()}
-            auto_fields  = {k: v['query'] for k, v in fields.iteritems()}
-            user_scripts = [k for k, v in fields.iteritems() if v['type'] == 'UserScript']
             del db_parser
 
             if not queries:
@@ -2542,7 +2661,8 @@ class Project(object):
             conn.begin()
 
             # UserScript cache
-            uscript_cache = {}
+            usr_script_cache_s = {} # Suite
+            usr_script_cache_p = {} # Project
 
             for epname, ep_info in self.users[user]['eps'].iteritems():
                 SuitesManager = ep_info['suites']
@@ -2623,42 +2743,73 @@ class Project(object):
                     for query in queries:
 
                         # All variables of type `UserScript` must be replaced with the script result
-                        try: vars_to_replace = re.findall('(\$.+?)[,\.\'"\s]', query)
-                        except: vars_to_replace = []
+                        try: user_script_fields = re.findall('(\$.+?)[,\.\'"\s]', query)
+                        except: user_script_fields = []
 
-                        for field in vars_to_replace:
+                        for field in user_script_fields:
                             field = field[1:]
 
-                            # If the field is not `UserScript`, ignore it
-                            if field not in user_scripts:
+                            # Invalid field ?
+                            if field not in fields:
                                 continue
+
+                            # If the field is not `UserScript`, ignore it
+                            if fields.get(field, {}).get('type') != 'UserScript':
+                                continue
+
+                            # Field level: Suite or Project
+                            lvl = fields.get(field)['level']
 
                             # Get Script Path, or null string
                             u_script = subst_data.get(field, '')
 
                             if not u_script:
-                                subst_data[field] = ''
+                                query = query.replace('$'+field, '')
                                 continue
 
-                            if u_script not in uscript_cache:
-                                # Execute script and use result
-                                r = execScript(u_script)
-                                # Save result in cache
-                                uscript_cache[u_script] = r
+                            # Execute this script based on level
+                            if lvl == 'Project':
+                                if u_script not in usr_script_cache_p:
+                                    # Execute script and use result
+                                    r = execScript(u_script)
+                                    # Save result in cache
+                                    usr_script_cache_p[u_script] = r
+                                else:
+                                    # Get script result from cache
+                                    r = usr_script_cache_p[u_script]
+                            # Execute for every suite
                             else:
-                                # Get script result from cache
-                                r = uscript_cache[u_script]
+                                if suite_id not in usr_script_cache_s:
+                                    usr_script_cache_s[suite_id] = {}
+                                if u_script not in usr_script_cache_s[suite_id]:
+                                    # Execute script and use result
+                                    r = execScript(u_script)
+                                    # Save result in cache
+                                    usr_script_cache_s[suite_id][u_script] = r
+                                else:
+                                    # Get script result from cache
+                                    r = usr_script_cache_s[suite_id][u_script]
 
-                            if r: subst_data[field] = r
-                            else: subst_data[field] = ''
+                            # Replace UserScript with with real Script results
+                            query = query.replace('$'+field, r)
 
                         # All variables of type `DbSelect` must be replaced with the SQL result
-                        try: vars_to_replace = re.findall('(@.+?@)', query)
-                        except: vars_to_replace = []
+                        try: auto_insert_fields = re.findall('(@.+?@)', query)
+                        except: auto_insert_fields = []
 
-                        for field in vars_to_replace:
+                        for field in auto_insert_fields:
                             # Delete the @ character
-                            u_query = auto_fields.get(field.replace('@', ''))
+                            field = field[1:-1]
+
+                            # Invalid field ?
+                            if field not in fields:
+                                continue
+
+                            # Get Auto Query, or null string
+                            u_query = fields.get(field, {}).get('query', '')
+
+                            # Field level: Suite or Project
+                            lvl = fields.get(field)['level']
 
                             if not u_query:
                                 logError('User `{}`, file `{}`: Cannot build query! Field `{}` is not defined in the fields section!'\
@@ -2670,7 +2821,7 @@ class Project(object):
                             curs.execute(u_query)
                             q_value = curs.fetchone()[0]
                             # Replace @variables@ with real Database values
-                            query = query.replace(field, str(q_value))
+                            query = query.replace('@'+field+'@', str(q_value))
 
                         # String Template
                         tmpl = Template(query)
@@ -2678,9 +2829,9 @@ class Project(object):
                         # Build complete query
                         try:
                             query = tmpl.substitute(subst_data)
-                        except Exception, e:
+                        except Exception as e:
                             logError('User `{}`, file `{}`: Cannot build query! Error on `{}`!'\
-                                ''.format(user, subst_data['file'], str(e)))
+                                ''.format(user, subst_data['file'], e))
                             conn.rollback()
                             return False
 
@@ -2690,9 +2841,10 @@ class Project(object):
                         # Execute MySQL Query!
                         try:
                             curs.execute(query)
+                            logDebug('Executed query ``{}`` OK.'.format(query.strip()))
                         except MySQLdb.Error as e:
-                            l = 'Error in query ``{}`` for user `{}`!\n\tMySQL Error {}: {}!'.format(query, user, e.args[0], e.args[1])
-                            logError(l)
+                            err = 'Error in query ``{}`` for user `{}`!\n\tMySQL Error {}: {}!'.format(query, user, e.args[0], e.args[1])
+                            logError(err)
                             conn.rollback()
                             return False
 

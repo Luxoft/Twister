@@ -1,6 +1,6 @@
 /*
 File: XMLReader.java ; This file is part of Twister.
-Version: 2.013
+Version: 2.015
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -94,7 +94,12 @@ public class XMLReader{
                         fstNmElmntLst = ((Element)node).getElementsByTagName("SutName");
                         fstNmElmnt = (Element)fstNmElmntLst.item(0);
                         fstNm = fstNmElmnt.getChildNodes();
-                        text[0] += fstNm.item(0).getNodeValue();
+                        String sut = fstNm.item(0).getNodeValue();
+                        sut = sut.replace(".system","(system)");
+                        sut = sut.replace(".user","(user)");
+                        sut = sut.substring(1);
+//                         text[0] += fstNm.item(0).getNodeValue();
+                        text[0] += sut;
                     } catch(Exception e){ e.printStackTrace();}
                     theone.setEpId(text);
                 } else{
@@ -265,6 +270,7 @@ public class XMLReader{
             try{System.out.println(f.getCanonicalPath()+" has no content");}
             catch(Exception e){e.printStackTrace();}}
         int indexsuita = 0;
+        ArrayList<String[]> userDefined = new ArrayList<String[]>();
         for(int m=0;m<childsnr;m++){
             Node fstNode = nodeLst.item(m);
             if(!test&&clear){
@@ -275,7 +281,7 @@ public class XMLReader{
                     else RunnerRepository.window.mainpanel.p1.suitaDetails.setStopOnFail(false);
                     continue;
                 }
-                if(fstNode.getNodeName().equals("PrePostMandatory")){
+                else if(fstNode.getNodeName().equals("PrePostMandatory")){
                     if(fstNode.getChildNodes().item(0).getNodeValue().toString().equals("true")){                    
                         RunnerRepository.window.mainpanel.p1.suitaDetails.setPreStopOnFail(true);
                     }
@@ -302,7 +308,6 @@ public class XMLReader{
                         String script = fstNode.getChildNodes().item(0).getNodeValue().toString();
                         RunnerRepository.window.mainpanel.p1.suitaDetails.setPreScript(script);}
                     catch(Exception e){
-                        //e.printStackTrace();
                         RunnerRepository.window.mainpanel.p1.suitaDetails.setPreScript("");
                     }
                     continue;
@@ -313,8 +318,6 @@ public class XMLReader{
                         ClearCase.setView(view);}
                     catch(Exception e){
                         ClearCase.setView("");
-//                         e.printStackTrace();
-//                         RunnerRepository.window.mainpanel.p1.suitaDetails.setPreScript("");
                     }
                     continue;
                 }
@@ -323,10 +326,6 @@ public class XMLReader{
                     try{script = fstNode.getChildNodes().item(0).getNodeValue().toString();}
                     catch(Exception e){}
                     RunnerRepository.window.mainpanel.p1.suitaDetails.setPostScript(script);
-//                     catch(Exception e){
-//                         e.printStackTrace();
-//                         RunnerRepository.window.mainpanel.p1.suitaDetails.setPostScript("");
-//                     }
                     continue;
                 }
                 else if(fstNode.getNodeName().equals("libraries")){
@@ -336,6 +335,29 @@ public class XMLReader{
                         catch(Exception e){}
                         RunnerRepository.window.mainpanel.p1.suitaDetails.setGlobalLibs(libraries);
                     
+                    continue;
+                } else if(fstNode.getNodeName().equals("UserDefined")){
+                    try{
+                        Element element = (Element)fstNode;                
+                        NodeList propname = element.getElementsByTagName("propName");
+                        Element el1 = (Element)propname.item(0);
+                        fstNm = el1.getChildNodes();
+                        String prop ;
+                        if(fstNm.getLength()>0)prop= fstNm.item(0).getNodeValue();
+                        else prop = "";
+                        
+                        NodeList propvalue = element.getElementsByTagName("propValue");
+                        Element el2 = (Element)propvalue.item(0);
+                        fstNm = el2.getChildNodes();
+                        String val ;
+                        if(fstNm.getLength()>0)val = fstNm.item(0).getNodeValue();
+                        else val = "";
+                        String add [] = {prop,val};
+                        userDefined.add(add);
+                    }
+                    catch(Exception e){
+                        
+                    }
                     continue;
                 }
             }
@@ -385,16 +407,17 @@ public class XMLReader{
                     fstNmElmntLst = fstElmnt.getElementsByTagName("SutName");
                     fstNmElmnt = (Element)fstNmElmntLst.item(0);
                     fstNm = fstNmElmnt.getChildNodes();
-                    text[0] += fstNm.item(0).getNodeValue();
+                    String sut = fstNm.item(0).getNodeValue();
+                    sut = sut.replace(".system","(system)");
+                    sut = sut.replace(".user","(user)");
+                    sut = sut.substring(1);
+                    text[0] += sut;
+                    
+                    
+                    
                 } catch(Exception e){ e.printStackTrace();}
                 suitatemp.setEpId(text);
-                
             } else{
-//                 try{                          
-//                     fstNmElmntLst = fstElmnt.getElementsByTagName("EpId");
-//                     fstNmElmnt = (Element)fstNmElmntLst.item(0);
-//                     fstNm = fstNmElmnt.getChildNodes();
-//                 } catch(Exception e){
                     try{fstNmElmntLst = fstElmnt.getElementsByTagName("SutName");
                         if(fstNmElmntLst.getLength()>0){
                             fstNmElmnt = (Element)fstNmElmntLst.item(0);
@@ -411,8 +434,13 @@ public class XMLReader{
     //             suitatemp.setEpId(fstNm.item(0).getNodeValue());
                 try{suitatemp.setEpId(fstNm.item(0).getNodeValue().split(";"));}
                 catch(Exception e){
-                    String [] s = {fstNm.item(0).getNodeValue()};
-                    suitatemp.setEpId(s);}
+                    if(fstNm.item(0)!=null){
+                        String [] s = {fstNm.item(0).getNodeValue()};
+                        suitatemp.setEpId(s);
+                    } else {
+                        suitatemp.setEpId(new String[]{});
+                    }
+                }
             }
             
             
@@ -470,7 +498,6 @@ public class XMLReader{
             int subchildren = fstElmnt.getChildNodes().getLength();
             int index=0;
             indexsuita++;
-            //if(test)k+=2;
             for( k+=(userdefinitions*2);k<subchildren-1;k++){
                 k++;
                 ArrayList <Integer> temp =(ArrayList <Integer>)indexpos.clone();
@@ -478,15 +505,11 @@ public class XMLReader{
                 manageSubChilderen(suitatemp,fstElmnt.getChildNodes().item(k),
                                     temp,g,test);
                 index++;}
-//             if(!test)RunnerRepository.addSuita(suitatemp);
             if(!test)suite.add(suitatemp);
-            
             else{
-//                 RunnerRepository.addTestSuita(suitatemp);
                 suite.add(suitatemp);
                 
                 String currents = suitatemp.getEpId()[0].split(" : ")[0];
-//                 for(String currents:suiteeps){
                     boolean found = false;
                     for(String s:RunnerRepository.getLogs()){
                         if(s.equals(currents+"_"+RunnerRepository.getLogs().get(4))){                        
@@ -498,28 +521,19 @@ public class XMLReader{
                             RunnerRepository.getLogs().add(currents+"_"+
                                                      RunnerRepository.getLogs().get(4));
                     }
-//                 }
-            
-            
-            
-            
-//             for(String s:RunnerRepository.getLogs()){
-//                 String [] suiteeps = suitatemp.getEpId();
-//                 for(String currents:suiteeps){
-//                     if(s.equals(suitatemp.getEpId()+"_"+RunnerRepository.getLogs().get(4))){                        
-//                         found = true;
-//                         break;
-//                     }
-//                 }
-//                 if(found)break;                
-//             }
-//             if(!found){
-//                 RunnerRepository.getLogs().add(suitatemp.getEpId()+"_"+
-//                                             RunnerRepository.getLogs().get(4));
-//                                         }
-                                    
-                                    
-                                    }}
+                }
+            }
+        int size = RunnerRepository.window.mainpanel.p1.suitaDetails.getProjectDefsNr();
+        if(userDefined.size()!=size){
+            System.out.println("Warning, project has "+userDefined.size()+" fields while in db.xml are defined "+size+" fields");
+        }
+//         for(int i=0;i++;i<size){
+//             RunnerRepository.window.mainpanel.p1.suitaDetails.getPr
+//         }
+        RunnerRepository.window.mainpanel.p1.suitaDetails.setProjectUserDefined(userDefined);
+        for(String [] s:userDefined){
+            System.out.println(s[0]+" - "+s[1]);
+        }
         if(!test){
             if(RunnerRepository.getSuiteNr()>0){
                 while(RunnerRepository.window.mainpanel.p1.sc.g==null){

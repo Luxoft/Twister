@@ -1,6 +1,6 @@
 /*
 File: GraficTest.java ; This file is part of Twister.
-Version: 2.007
+Version: 2.008
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -302,7 +302,8 @@ public class GraficTest extends JPanel{
                           RunnerRepository.window.mainpanel.p1.suitaDetails.getPostScript(),
                           RunnerRepository.window.mainpanel.p1.suitaDetails.saveDB(),
                           RunnerRepository.window.mainpanel.p1.suitaDetails.getDelay(),
-                          RunnerRepository.window.mainpanel.p1.suitaDetails.getGlobalLibs());
+                          RunnerRepository.window.mainpanel.p1.suitaDetails.getGlobalLibs(),
+                          RunnerRepository.window.mainpanel.p1.suitaDetails.getProjectDefs());
             String dir = RunnerRepository.getXMLRemoteDir();
             String [] path = dir.split("/");
             StringBuffer result2 = new StringBuffer();

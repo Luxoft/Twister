@@ -1,7 +1,7 @@
 
 # File: xmlparser.py ; This file is part of Twister.
 
-# version: 3.006
+# version: 3.009
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -563,6 +563,76 @@ class TSCParser:
         return res
 
 
+    def getBinding(self, fpath):
+        """
+        Read a binding between a CFG and a SUT.
+        The result is XML.
+        """
+        logFull('xmlparser:getBinding')
+        cfg_file = '{}/twister/config/bindings.xml'.format(userHome(self.user))
+
+        if not os.path.isfile(cfg_file):
+            err = '*ERROR* Bindings Config file `{}` does not exist!'.format(cfg_file)
+            logError(err)
+            return err
+
+        bind_xml = etree.parse(cfg_file)
+        found = bind_xml.xpath('/root/binding/name[text()="{}"]/..'.format(fpath))
+
+        if found:
+            xml_string = etree.tostring(found[0])
+            return xml_string.replace('binding>', 'root>')
+        else:
+            logWarning('*ERROR* Cannot find binding name `{}`!'.format(fpath))
+            return False
+
+
+    def setBinding(self, fpath, content):
+        """
+        Write a binding between a CFG and a SUT.
+        Return True/ False.
+        """
+        logFull('xmlparser:setBinding')
+        cfg_file = '{}/twister/config/bindings.xml'.format(userHome(self.user))
+
+        if not os.path.isfile(cfg_file):
+            err = '*ERROR* Bindings Config file `{}` does not exist!'.format(cfg_file)
+            logError(err)
+            return err
+
+        bind_xml = etree.parse(cfg_file)
+        # Find the old binding
+        found = bind_xml.xpath('/root/binding/name[text()="{}"]/..'.format(fpath))
+
+        # If found, use it
+        if found:
+            found = found[0]
+            found.clear()
+        # Or create it
+        else:
+            found = etree.SubElement(bind_xml.getroot(), 'binding')
+
+        name  = etree.SubElement(found, 'name')
+        name.text = fpath
+
+        try:
+            replace_xml = etree.XML(content)
+        except:
+            err = '*ERROR* Invalid XML content! Cannot parse!'
+            logWarning(err)
+            return err
+
+        for elem in replace_xml:
+            found.append(elem)
+
+        # Beautify XML ?
+        xml_data = etree.tostring(bind_xml)
+        xml_data = re.sub('>\s+?<', '><', xml_data)
+        bind_xml = etree.XML(xml_data)
+
+        return etree.tostring(bind_xml, pretty_print=True)
+
+
     def getBindingsConfig(self):
         """
         Parse the bindings file that connects Roots from a config file, with SUTs.
@@ -572,19 +642,28 @@ class TSCParser:
         bindings = {}
 
         if not os.path.isfile(cfg_file):
-            logError('Get Bindings: Bindings Config file `{}` does not exist!'.format(cfg_file))
-            return {}
+            err = '*ERROR* Bindings Config file `{}` does not exist!'.format(cfg_file)
+            logError(err)
+            return err
 
         bind_xml = etree.parse(cfg_file)
 
-        for bind in bind_xml.xpath('//bind'):
-            if not bind.text:
+        for binding in bind_xml.xpath('/root/binding'):
+            name = binding.find('name')
+            # Valid names ?
+            if name is None:
                 continue
-            if not bind.text.strip():
+            name = name.text.strip()
+            if not name:
                 continue
-            b = bind.text.strip().split('=')
-            bindings[b[0].strip()] = b[1].strip()
+            bindings[name] = {}
+            # All binds cfg -> sut
+            for bind in binding.findall('bind'):
+                cfg = bind.get('config')
+                sut = bind.get('sut')
+                bindings[name][cfg] = sut
 
+        logDebug('Found `{}` bindings for user `{}`.'.format(len(bindings), self.user))
         return bindings
 
 # # #
@@ -633,7 +712,7 @@ class TSCParser:
         # A suite can be a part of only 1 EP !
         res = OrderedDict()
 
-        # Add properties from FWMCONFIG
+        # Add properties from PROJECT
         prop_keys = self.configTS.xpath('/Root/UserDefined/propName')
         prop_vals = self.configTS.xpath('/Root/UserDefined/propValue')
         res.update( dict(zip( [k.text for k in prop_keys], [v.text for v in prop_vals] )) )
@@ -811,6 +890,7 @@ class DBParser():
             d['id']    = field.get('ID', '')
             d['type']  = field.get('Type', '')
             d['query'] = field.get('SQLQuery', '')
+            d['level'] = field.get('Level', 'Suite') # Project / Suite
             res[d['id']]  = d
 
         return res

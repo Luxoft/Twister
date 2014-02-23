@@ -149,4 +149,4 @@ public class MainPanel extends JTabbedPane{
         
     public void saveUserXML(){
         if(!p1.sc.g.getUser().equals("")){
-            p1.sc.g.printXML(p1.sc.g.getUser(), false,false,false,false,false,"",false,null);}}}
+            p1.sc.g.printXML(p1.sc.g.getUser(), false,false,false,false,false,"",false,null,RunnerRepository.window.mainpanel.p1.suitaDetails.getProjectDefs());}}}

@@ -1,6 +1,6 @@
 /*
 File: Grafic.java ; This file is part of Twister.
-Version: 2.0017
+Version: 2.0019
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -1765,7 +1765,7 @@ public class Grafic extends JPanel{
                          RunnerRepository.window.mainpanel.p1.suitaDetails.stopOnFail(),
                          RunnerRepository.window.mainpanel.p1.suitaDetails.preStopOnFail(),
                          RunnerRepository.window.mainpanel.p1.suitaDetails.saveDB(),
-                         RunnerRepository.window.mainpanel.p1.suitaDetails.getDelay(),true,array)){
+                         RunnerRepository.window.mainpanel.p1.suitaDetails.getDelay(),true,array,RunnerRepository.window.mainpanel.p1.suitaDetails.getProjectDefs())){
                 CustomDialog.showInfo(JOptionPane.PLAIN_MESSAGE, 
                                         RunnerRepository.window, "Success",
                                         "File successfully saved");
@@ -2334,14 +2334,15 @@ public class Grafic extends JPanel{
      */
     public boolean printXML(String user, boolean skip,
                             boolean local, boolean stoponfail,boolean prestoponfail,
-                            boolean savedb, String delay,boolean lib, ArrayList<Item> array){
+                            boolean savedb, String delay,boolean lib, ArrayList<Item> array,String [][] preojdefined){
         //skip = true
         try{if(array==null)array = RunnerRepository.getSuite();
             XMLBuilder xml = new XMLBuilder(array);
             if(!xml.createXML(skip,stoponfail,prestoponfail,false,
                           RunnerRepository.window.mainpanel.p1.suitaDetails.getPreScript(),
                           RunnerRepository.window.mainpanel.p1.suitaDetails.getPostScript(),
-                          savedb,delay,RunnerRepository.window.mainpanel.p1.suitaDetails.getGlobalLibs())){
+                          savedb,delay,RunnerRepository.window.mainpanel.p1.suitaDetails.getGlobalLibs(),
+                          preojdefined)){
                 return false;
             }
             return xml.writeXMLFile(user,local,false,lib);}
@@ -2874,7 +2875,7 @@ public class Grafic extends JPanel{
 //             epidfield = new JList<String>(vecresult);
 
 
-            StringBuilder b = new StringBuilder();
+//             StringBuilder b = new StringBuilder();
 //             Node parentnode = RunnerRepository.window.mainpanel.p4.getTB().getParentNode();
 //             try{parentnode.getChildren();}
 //             catch(Exception e){
@@ -2897,19 +2898,29 @@ public class Grafic extends JPanel{
 //             epidfield = new JList<String>(vecresult);
             
             
-            DefaultMutableTreeNode root = RunnerRepository.window.mainpanel.p4.getSut().sut.root;
-            int sutsnr = root.getChildCount();
-            String [] vecresult = {};
-            if(sutsnr==0){
-                System.out.println("There is no SUT present, please check Test Beds section");
-            } else {
-                for(int i=0;i<sutsnr;i++){
-                    b.append(root.getChildAt(i).toString());
-                    b.append(";");
+//             DefaultMutableTreeNode root = RunnerRepository.window.mainpanel.p4.getSut().sut.root;
+//             int sutsnr = root.getChildCount();
+//             String [] vecresult = {};
+//             if(sutsnr==0){
+//                 System.out.println("There is no SUT present, please check Test Beds section");
+//             } else {
+//                 for(int i=0;i<sutsnr;i++){
+//                     b.append(root.getChildAt(i).toString());
+//                     b.append(";");
+//                 }
+//                 vecresult = b.toString().split(";");
+//                 
+//             }
+            
+            String [] vecresult =  RunnerRepository.window.mainpanel.p4.getSut().sut.getSutTree().getSutsName();
+            if(vecresult!=null){
+                int size = vecresult.length;
+                for(int i=0;i<size;i++){
+                    vecresult[i] = vecresult[i].replace(".user", "(user)");
+                    vecresult[i] = vecresult[i].replace(".system", "(system)");
                 }
-                vecresult = b.toString().split(";");
-                
             }
+            
             
             epidfield = new JList<String>(vecresult);
             try{epidfield.setSelectedIndex(0);}
