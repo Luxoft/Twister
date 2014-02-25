@@ -353,25 +353,18 @@ class Project(object):
 
         with self.epl_lock:
 
-            suitesInfo = self.parsers[user].getAllSuitesInfo(epname)
-            if not suitesInfo:
-                logDebug('Reload Execution-Process `{}:{}` with has no suites info.'.format(user, epname))
-                return False
-
-            files = suitesInfo.getFiles()
-            if not files:
-                logDebug('Reload Execution-Process `{}:{}` with has no files.'.format(user, epname))
-                return False
-
             self.users[user]['eps'][epname] = OrderedDict()
             self.users[user]['eps'][epname]['status'] = STATUS_STOP
+
             # Information about ALL suites for this EP
             # Some master-suites might have sub-suites, but all sub-suites must run on the same EP
+            suitesInfo = self.parsers[user].getAllSuitesInfo(epname)
+
             if suitesInfo:
                 self.users[user]['eps'][epname]['sut'] = suitesInfo.values()[0]['sut']
                 self.users[user]['eps'][epname]['suites'] = suitesInfo
                 suites = suitesInfo.getSuites()
-                files = files
+                files = suitesInfo.getFiles()
             else:
                 self.users[user]['eps'][epname]['sut'] = ''
                 self.users[user]['eps'][epname]['suites'] = SuitesManager()
@@ -3176,6 +3169,7 @@ class Project(object):
         # Archive logs
         archiveLogsPath   = self.getUserInfo(user, 'archive_logs_path')
         archiveLogsActive = self.getUserInfo(user, 'archive_logs_path_active')
+        epnames = [ep for ep, data in self.getUserInfo(user, 'eps').iteritems() if data['suites']]
 
         data = json.dumps({
             'cmd': 'reset',
@@ -3183,7 +3177,7 @@ class Project(object):
             'logTypes': logTypes,
             'archiveLogsActive': archiveLogsActive,
             'archiveLogsPath': archiveLogsPath,
-            'epnames': ','.join( self.getUserInfo(user, 'eps').keys() ),
+            'epnames': ','.join(epnames),
             })
 
         srvr = self._logServer(user)
@@ -3193,7 +3187,7 @@ class Project(object):
             logWarning('Cannot reset logs! Cannot connect to LogService!')
             return False
         if ret:
-            logDebug('Logs reset.')
+            logDebug('Logs reset for {}.'.format(epnames))
             return True
         else:
             logWarning('Cannot reset logs! LogService returned error!')
