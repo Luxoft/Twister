@@ -1,7 +1,7 @@
 
 # File: CeProject.py ; This file is part of Twister.
 
-# version: 3.019
+# version: 3.020
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -130,6 +130,9 @@ from CeReports   import ReportingServer
 
 usrs_and_pwds = {}
 usr_pwds_lock = allocate_lock()
+
+CLEAN_LOGS = 0
+BACKUP_LOGS = 1
 
 #
 
@@ -1428,6 +1431,7 @@ class Project(object):
         The `message` parameter can explain why the status has changed.
         """
         logFull('CeProject:setExecStatus user `{}`.'.format(user))
+
         # Check the username from CherryPy connection
         cherry_roles = self.authenticate(user)
         if not cherry_roles: return False
@@ -1506,6 +1510,9 @@ class Project(object):
                         else:
                             logDebug('Project: Could not save to database!')
 
+                    # call the backup logs before stopping the logger
+                    self.resetLogs(user,BACKUP_LOGS)
+
                     # Find the log process for this User and ask it to Exit
                     conn = self.loggers.get(user, {}).get('conn', None)
                     if conn:
@@ -1578,6 +1585,7 @@ class Project(object):
         The `message` parameter can explain why the status has changed.
         """
         logFull('CeProject:setExecStatusAll user `{}`.'.format(user))
+
         # Check the username from CherryPy connection
         cherry_roles = self.authenticate(user)
         if not cherry_roles: return False
@@ -1744,6 +1752,9 @@ class Project(object):
                 self.setEpInfo(user, epname, 'status', new_status)
                 # Send STOP to EP Manager
                 rpyc_srv.exposed_stopEP(epname, user)
+
+            # backup the logs
+            self.resetLogs(user,BACKUP_LOGS)
 
             if statuses_changed:
                 logDebug('Set Status: Changed `{}` file statuses from Pending to Not executed.'.format(statuses_changed))
@@ -3157,7 +3168,7 @@ class Project(object):
             return False
 
 
-    def resetLogs(self, user):
+    def resetLogs(self, user, operation=CLEAN_LOGS):
         """
         All logs defined in master config are erased.\n
         Called from the Java GUI and every time the project is reset.
@@ -3182,7 +3193,13 @@ class Project(object):
 
         srvr = self._logServer(user)
         if srvr:
-            ret = srvr.root.reset_logs(data)
+            if operation == CLEAN_LOGS:
+                ret = srvr.root.reset_logs(data)
+            else:
+                startTime = self.getUserInfo(user, 'start_time')
+                #replace the whitespace with underline
+                startTime = startTime.replace(' ','_')
+                ret = srvr.root.backup_logs(data, startTime)
         else:
             logWarning('Cannot reset logs! Cannot connect to LogService!')
             return False

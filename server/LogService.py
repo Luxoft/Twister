@@ -1,7 +1,7 @@
 
 # File: LogService.py ; This file is part of Twister.
 
-# version: 3.001
+# version: 3.002
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -154,25 +154,6 @@ class LogService(rpyc.Service):
         log.debug('Cleaning `{}` log files...'.format(len(info['logTypes'])))
         err = False
 
-        for log_path in glob.glob(info['logsPath'] + os.sep + '*.log'):
-            if info['archiveLogsPath'] and info['archiveLogsActive'] == 'true':
-                archiveLogsPath = info['archiveLogsPath'].rstrip('/')
-                log_time = datetime.datetime.today().strftime('%Y-%m-%d_%H:%M:%S')
-                archPath = '{}/{}.{}'.format(archiveLogsPath, os.path.basename(log_path), log_time)
-                # Create path if it doesn't exist
-                try: os.makedirs(archiveLogsPath)
-                except: pass
-                # Move file in archive
-                try:
-                    os.rename(log_path, archPath)
-                    log.debug('Log file `{}` archived in `{}`.'.format(log_path, archPath))
-                except Exception as e:
-                    log.error('Cannot archive log `{}` in `{}`! Exception `{}`!'.format(log_path, archiveLogsPath, e))
-            try:
-                os.remove(log_path)
-            except Exception as e:
-                pass
-
         for logType in info['logTypes']:
             # For CLI
             if logType.lower() == 'logcli':
@@ -207,6 +188,43 @@ class LogService(rpyc.Service):
         t.close()
         # Reply to client.
         return True
+
+    def exposed_backup_logs(self, data, start_time):
+        """ Backup all Logs """
+        global log
+
+        try:
+            info = json.loads(data)
+        except:
+            log.error('Cannot parse JSON data!')
+            return False
+
+        log.debug(' `{}` log files...'.format(len(info['logTypes'])))
+        err = False
+
+        for log_path in glob.glob(info['logsPath'] + os.sep + '*.log'):
+            if info['archiveLogsPath'] and info['archiveLogsActive'] == 'true':
+                archiveLogsPath = info['archiveLogsPath'].rstrip('/')
+                archPath = '{}/{}.{}'.format(archiveLogsPath, os.path.basename(log_path), start_time)
+                # Create path if it doesn't exist
+                try: os.makedirs(archiveLogsPath)
+                except: pass
+                # Move file in archive
+                try:
+                    os.rename(log_path, archPath)
+                    log.debug('Log file `{}` archived in `{}`.'.format(log_path, archPath))
+                except Exception as e:
+                    log.error('Cannot archive log `{}` in `{}`! Exception `{}`!'.format(log_path, archiveLogsPath, e))
+            try:
+                os.remove(log_path)
+            except Exception as e:
+                pass
+
+        if err:
+            return False
+        else:
+            return True
+
 
 #
 
