@@ -1,16 +1,15 @@
 
 # File: CeProject.py ; This file is part of Twister.
 
-# version: 3.020
+# version: 3.021
 
-# Copyright (C) 2012-2013 , Luxoft
+# Copyright (C) 2012-2014 , Luxoft
 
 # Authors:
-#    Adrian Toader <adtoader@luxoft.com>
 #    Andrei Costachi <acostachi@luxoft.com>
-#    Andrei Toma <atoma@luxoft.com>
 #    Cristi Constantin <crconstantin@luxoft.com>
 #    Daniel Cioata <dcioata@luxoft.com>
+#    Mihai Tudoran <mtudoran@luxoft.com>
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -127,6 +126,7 @@ from CeServices  import ServiceManager
 from CeWebUi     import WebInterface
 from CeResources import ResourceAllocator
 from CeReports   import ReportingServer
+from CeFs import LocalFS
 
 usrs_and_pwds = {}
 usr_pwds_lock = allocate_lock()
@@ -213,6 +213,8 @@ class Project(object):
         self.web   = WebInterface(self)
         self.ra    = ResourceAllocator(self)
         self.report = ReportingServer(self)
+
+        self.localFs = LocalFS() # Singleton
 
         # Users, parsers, IDs...
         self.users = {}
@@ -698,37 +700,6 @@ class Project(object):
 # # #
 
 
-    def readFile(self, user, fpath):
-        """
-        Read a file from user's home folder.
-        """
-        if fpath[0] == '~':
-            fpath = userHome(user) + fpath[1:]
-
-        try:
-            # Trying to read the file directly
-            with open(fpath, 'r') as f:
-                return binascii.b2a_base64(f.read())
-        except:
-            # The file is probably inaccesible. Try via Client
-            conn = self._find_local_client(user)
-            if not conn:
-                err = '*ERROR* Cannot find any local Clients for user `{}`! Cannot read file!'.format(user)
-                logWarning(err)
-                return err
-
-            try:
-                resp = conn.root.read_file(fpath)
-                if resp.startswith('*ERROR*'):
-                    logWarning(resp)
-                return binascii.b2a_base64(resp)
-            except:
-                trace = traceback.format_exc()[34:].strip()
-                err = '*ERROR* read file error: {}'.format(trace)
-                logWarning(err)
-                return err
-
-
     def _parseUsersAndGroups(self):
         """
         Parse users and groups and return the values.
@@ -811,13 +782,8 @@ class Project(object):
 
             # Fix groups. Must be a list.
             usr_data['groups'] = grps
-
-            # Add user key from user's home
+            # Create user key tag
             usr_data['key'] = None
-            #usr_data['key'] = self.readFile(usr, '~/twister/config/twister.key')
-            # Fix key in case of error
-            #if not usr_data['key'] or '*ERROR*' in usr_data['key']:
-            #    usr_data['key'] = ''
 
         return cfg.dict()
 
@@ -1031,7 +997,7 @@ class Project(object):
         key = user_roles.get('key')
         if not key:
             # Add user key from user's home
-            key = self.readFile(user, '~/twister/config/twister.key')
+            key = self.localFs.readUserFile(user, '~/twister/config/twister.key')
             # Fix key in case of error
             if not key or '*ERROR*' in key:
                 logWarning('Cannot encrypt! Cannot fetch users key!')
@@ -1050,7 +1016,7 @@ class Project(object):
         key = user_roles.get('key')
         if not key:
             # Add user key from user's home
-            key = self.readFile(user, '~/twister/config/twister.key')
+            key = self.localFs.readUserFile(user, '~/twister/config/twister.key')
             # Fix key in case of error
             if not key or '*ERROR*' in key:
                 logWarning('Cannot decrypt! Cannot fetch users key!')
@@ -1510,8 +1476,8 @@ class Project(object):
                         else:
                             logDebug('Project: Could not save to database!')
 
-                    # call the backup logs before stopping the logger
-                    self.resetLogs(user,BACKUP_LOGS)
+                    # Call the backup logs before stopping the logger
+                    self.resetLogs(user, BACKUP_LOGS)
 
                     # Find the log process for this User and ask it to Exit
                     conn = self.loggers.get(user, {}).get('conn', None)
@@ -1753,8 +1719,8 @@ class Project(object):
                 # Send STOP to EP Manager
                 rpyc_srv.exposed_stopEP(epname, user)
 
-            # backup the logs
-            self.resetLogs(user,BACKUP_LOGS)
+            # Backup the logs
+            self.resetLogs(user, BACKUP_LOGS)
 
             if statuses_changed:
                 logDebug('Set Status: Changed `{}` file statuses from Pending to Not executed.'.format(statuses_changed))

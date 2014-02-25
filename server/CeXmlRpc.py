@@ -3,14 +3,13 @@
 
 # version: 2.038
 
-# Copyright (C) 2012-2013 , Luxoft
+# Copyright (C) 2012-2014 , Luxoft
 
 # Authors:
-#    Adrian Toader <adtoader@luxoft.com>
 #    Andrei Costachi <acostachi@luxoft.com>
-#    Andrei Toma <atoma@luxoft.com>
 #    Cristi Constantin <crconstantin@luxoft.com>
 #    Daniel Cioata <dcioata@luxoft.com>
+#    Mihai Tudoran <mtudoran@luxoft.com>
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -71,6 +70,7 @@ from common.constants  import *
 from common.helpers    import *
 from common.tsclogging import *
 from common.xmlparser  import *
+from CeFs import LocalFS
 
 
 # --------------------------------------------------------------------------------------------------
@@ -87,6 +87,7 @@ class CeXmlRpc(_cptools.XMLRPCController):
     def __init__(self, proj):
 
         self.project = proj
+        self.localFs = LocalFS() # Singleton
 
 
     @cherrypy.expose
@@ -183,7 +184,7 @@ class CeXmlRpc(_cptools.XMLRPCController):
         Read a file from user's home folder.
         """
         user = cherrypy.session.get('username')
-        return self.project.readFile(user, fpath)
+        return self.localFs.readUserFile(user, fpath)
 
 
     @cherrypy.expose
@@ -193,35 +194,7 @@ class CeXmlRpc(_cptools.XMLRPCController):
         This function is called from the Java GUI.
         """
         user = cherrypy.session.get('username')
-        if fpath[0] == '~':
-            fpath = userHome(user) + fpath[1:]
-
-        try:
-            log_string = binascii.a2b_base64(fdata)
-        except:
-            err = '*ERROR* Invalid base64 data!'
-            logWarning(err)
-            return err
-
-        conn = self.project._find_local_client(user)
-        if not conn:
-            err = '*ERROR* Cannot find any local Clients for user `{}`! Cannot write file!'.format(user)
-            logWarning(err)
-            return err
-
-        try:
-            resp = conn.root.write_file(fpath, log_string)
-            if resp is not True:
-                logWarning(resp)
-                return resp
-            else:
-                logDebug('User `{}` has written file `{}`.'.format(user, fpath))
-                return resp
-        except:
-            trace = traceback.format_exc()[34:].strip()
-            err = '*ERROR* write file error: {}'.format(trace)
-            logWarning(err)
-            return err
+        return self.localFs.writeUserFile(user, fpath, fdata)
 
 
     @cherrypy.expose
@@ -231,28 +204,25 @@ class CeXmlRpc(_cptools.XMLRPCController):
         This function is called from the Java GUI.
         """
         user = cherrypy.session.get('username')
-        if fpath[0] == '~':
-            fpath = userHome(user) + fpath[1:]
+        return self.localFs.deleteUserFile(user, fpath)
 
-        conn = self.project._find_local_client(user)
-        if not conn:
-            err = '*ERROR* Cannot find any local Clients for user `{}`! Cannot delete file!'.format(user)
-            logWarning(err)
-            return err
 
-        try:
-            resp = conn.root.delete_file(fpath)
-            if resp is not True:
-                logWarning(resp)
-                return resp
-            else:
-                logDebug('User `{}` has deleted file `{}`.'.format(user, fpath))
-                return resp
-        except:
-            trace = traceback.format_exc()[34:].strip()
-            err = '*ERROR* delete file error: {}'.format(trace)
-            logWarning(err)
-            return err
+    @cherrypy.expose
+    def createFolder(self, fdir):
+        user = cherrypy.session.get('username')
+        return self.localFs.createUserFolder(user, fdir)
+
+
+    @cherrypy.expose
+    def listFiles(self, fdir):
+        user = cherrypy.session.get('username')
+        return self.localFs.listUserFiles(user, fdir)
+
+
+    @cherrypy.expose
+    def deleteFolder(self, fdir):
+        user = cherrypy.session.get('username')
+        return self.localFs.deleteUserFolder(user, fdir)
 
 
 # # #
@@ -632,42 +602,8 @@ class CeXmlRpc(_cptools.XMLRPCController):
         """
         Folders and Files from config folder.
         """
-
-        def dirList(tests_path, path, newdict):
-            """
-            Create recursive list of folders and files from Tests path.
-            The format of a node is: {"path": "/..." "data": "name", "folder":true|false, "children": []}
-            """
-            len_path = len(tests_path) + 1
-            if os.path.isdir(path):
-                dlist = [] # Folders list
-                flist = [] # Files list
-                for fname in sorted(os.listdir(path), key=str.lower):
-                    short_path = (path + os.sep + fname)[len_path:]
-                    nd = {'path': short_path, 'data': fname, 'children': []}
-                    if os.path.isdir(path + os.sep + fname):
-                        nd['folder'] = True
-                        dlist.append(nd)
-                    else:
-                        flist.append(nd)
-                # Folders first, files second
-                newdict['children'] = dlist + flist
-            for nitem in newdict['children']:
-                # Recursive !
-                dirList(tests_path, tests_path + os.sep + nitem['path'], nitem)
-
         dirpath = self.project.getUserInfo(user, 'tcfg_path')
-        if not dirpath:
-            err = '*ERROR* Null config path `{}`!'.format(dirpath)
-            logWarning(err)
-            return err
-        if not os.path.isdir(dirpath):
-            err = '*ERROR* Invalid config path `{}`!'.format(dirpath)
-            logWarning(err)
-            return err
-        paths = {'path':'/', 'data':os.path.split(dirpath)[-1], 'folder':True, 'children':[]}
-        dirList(dirpath, dirpath, paths)
-        return paths
+        return self.localFs.listUserFiles(user, dirpath)
 
 
     @cherrypy.expose
