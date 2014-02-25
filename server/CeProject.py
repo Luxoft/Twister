@@ -1,7 +1,7 @@
 
 # File: CeProject.py ; This file is part of Twister.
 
-# version: 3.018
+# version: 3.019
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -353,16 +353,25 @@ class Project(object):
 
         with self.epl_lock:
 
+            suitesInfo = self.parsers[user].getAllSuitesInfo(epname)
+            if not suitesInfo:
+                logDebug('Reload Execution-Process `{}:{}` with has no suites info.'.format(user, epname))
+                return False
+
+            files = suitesInfo.getFiles()
+            if not files:
+                logDebug('Reload Execution-Process `{}:{}` with has no files.'.format(user, epname))
+                return False
+
             self.users[user]['eps'][epname] = OrderedDict()
             self.users[user]['eps'][epname]['status'] = STATUS_STOP
             # Information about ALL suites for this EP
             # Some master-suites might have sub-suites, but all sub-suites must run on the same EP
-            suitesInfo = self.parsers[user].getAllSuitesInfo(epname)
             if suitesInfo:
                 self.users[user]['eps'][epname]['sut'] = suitesInfo.values()[0]['sut']
                 self.users[user]['eps'][epname]['suites'] = suitesInfo
                 suites = suitesInfo.getSuites()
-                files = suitesInfo.getFiles()
+                files = files
             else:
                 self.users[user]['eps'][epname]['sut'] = ''
                 self.users[user]['eps'][epname]['suites'] = SuitesManager()
