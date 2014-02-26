@@ -131,9 +131,6 @@ from CeFs import LocalFS
 usrs_and_pwds = {}
 usr_pwds_lock = allocate_lock()
 
-CLEAN_LOGS = 0
-BACKUP_LOGS = 1
-
 #
 
 def cache_users():
@@ -222,7 +219,6 @@ class Project(object):
         self.test_ids = {}  # IDs shortcut
         self.suite_ids = {} # IDs shortcut
         self.plugins = {}   # User plugins
-        self.loggers = {}   # User loggers
         self.config_locks = {} # Config locks list
 
         self.usr_lock = allocate_lock()  # User change lock
@@ -1476,43 +1472,6 @@ class Project(object):
                         else:
                             logDebug('Project: Could not save to database!')
 
-                    # Call the backup logs before stopping the logger
-                    self.resetLogs(user, BACKUP_LOGS)
-
-                    # Find the log process for this User and ask it to Exit
-                    conn = self.loggers.get(user, {}).get('conn', None)
-                    if conn:
-                        port = self.loggers.get(user, {}).get('port', None)
-                        try:
-                            conn.root.exit()
-                        except EOFError:
-                            if conn.closed:
-                                logDebug('Clean shutdown on Log Service `localhost:{}`, for user `{}`.'.format(port, user))
-                            else:
-                                logWarning('Error on clean shutdown on Log Service `localhost:{}`, for user `{}`!'.format(port, user))
-                        except:
-                            trace = traceback.format_exc()[33:].strip()
-                            logWarning('Error on shutdown Log Service `localhost:{}`, for user `{}`! Exception `{}`. Will be forced to exit.'.format(port, user, trace))
-
-                    # Kill all other Log Service processes for this user just to make sure!
-                    try:
-                        pids = subprocess.check_output('ps aux | grep /server/LogService.py | grep "^{} "'.format(user), shell=True)
-
-                        for line in pids.strip().splitlines():
-                            li = line.strip().split()
-                            PID = int(li[1])
-                            del li[2:10]
-                            logDebug('Forced exit on Log Service `{}`!'.format(' '.join(li)))
-                            try:
-                                os.kill(PID, 9)
-                            except:
-                                pass
-                    except:
-                        logDebug('Clean shutdown on Log Service for user `{}` OK, no need to kill any process.'.format(user))
-
-                    with self.log_lock:
-                        del self.loggers[user]
-
                     # Execute "onStop" for all plugins!
                     parser = PluginParser(user)
                     plugins = parser.getPlugins()
@@ -1524,6 +1483,9 @@ class Project(object):
                             trace = traceback.format_exc()[33:].strip()
                             logWarning('Error on running plugin `{} onStop` - Exception: `{}`!'.format(pname, trace))
                     del parser, plugins
+
+                    # Call the backup logs
+                    self.backupLogs(user)
 
                     # Cycle all files to change the PENDING status to NOT_EXEC
                     eps_pointer = self.users[user]['eps']
@@ -1692,6 +1654,9 @@ class Project(object):
                     logWarning('Error on running plugin `{} onStop` - Exception: `{}`!'.format(pname, trace))
             del parser, plugins
 
+            # Backup the logs when user pressed STOP
+            self.backupLogs(user)
+
             # Cycle all active EPs to: STOP them and to change the PENDING status to NOT_EXEC
             active_eps = self.parsers[user].getActiveEps()
             # Find Anonimous EP in the active EPs
@@ -1718,9 +1683,6 @@ class Project(object):
                 self.setEpInfo(user, epname, 'status', new_status)
                 # Send STOP to EP Manager
                 rpyc_srv.exposed_stopEP(epname, user)
-
-            # Backup the logs
-            self.resetLogs(user, BACKUP_LOGS)
 
             if statuses_changed:
                 logDebug('Set Status: Changed `{}` file statuses from Pending to Not executed.'.format(statuses_changed))
@@ -1854,12 +1816,10 @@ class Project(object):
 
             # Get logSummary path from framework config
             logPath = self.getUserInfo(user, 'log_types')['logSummary']
-            srvr = self._logServer(user)
-            if srvr:
-                srvr.root.write_log(logPath + ':' + logMessage)
-            else:
-                logError('Summary log file `{}` cannot be written! User `{}` won\'t see any '\
-                         'statistics!'.format(logPath, user))
+            resp = self.localFs.writeUserFile(user, logPath, logMessage, 'a')
+
+            if isinstance(resp, str):
+                logError('Summary log file for `{}` cannot be written! User won\'t see any statistics!'.format(user))
 
         # Return string
         return status_str
@@ -2929,80 +2889,31 @@ class Project(object):
         return binascii.b2a_base64(data)
 
 
-    def _logServer(self, user):
-        """
-        Launch a log server.
-        """
-        logFull('Preparing to launch the LogService for user `{}`...'.format(user))
+    def findLog(self, user, epname, file_id, file_name):
+        '''
+        Parses the log file of one EP and returns the log of one test file.
+        '''
+        logFull('CeProject:findLog user `{}`.'.format(user))
+        logFolder = self.getUserInfo(user, 'logs_path')
+        logTypes  = self.getUserInfo(user, 'log_types')
+        _, logCli = os.path.split( logTypes.get('logCli', 'CLI.log') )
+        # Logs Path + EP Name + CLI Name
+        logPath = logFolder + os.sep + epname +'_'+ logCli
 
-        # DEBUG. Show all available LogServices, for current user.
         try:
-            pids = subprocess.check_output('ps aux | grep /server/LogService.py | grep "^{} "'.format(user), shell=True)
-            pids_li = []
-
-            for line in pids.strip().splitlines():
-                li = line.strip().split()
-                PID = int(li[1])
-                del li[2:10]
-                pids_li.append( ' '.join(li) )
-
-            logFull('All LogServices for user `{}`::\n\t{}'.format(user, '\n\t'.join(pids_li)))
+            data = open(logPath, 'r').read()
         except:
-            logFull('No LogServices found for user `{}`.'.format(user))
+            logError('Find Log: File `{}` cannot be read!'.format(logPath))
+            return '*no log*'
 
-        # Try to re-use the logger server, if available
-        conn = self.loggers.get(user, {}).get('conn', None)
-        if conn:
-            try:
-                conn.root.hello()
-                logDebug('Reuse old LogService connection for user `{}` OK.'.format(user))
-                return conn
-            except:
-                pass
+        fbegin = data.find('<<< START filename: `{}:{}'.format(file_id, file_name))
+        if fbegin == -1:
+            logDebug('Find Log: Cannot find `{}:{}` in log `{}`!'.format(file_id, file_name, logPath))
 
-        # If the server is not available, search for a free port in the safe range...
-        while 1:
-            free = False
-            port = random.randrange(60000, 62000)
-            try:
-                socket.create_connection((None, port), 1)
-            except:
-                free = True
-            if free: break
+        fend = data.find('<<< END filename: `{}:{}'.format(file_id, file_name))
+        fend += len('<<< END filename: `{}:{}` >>>'.format(file_id, file_name))
 
-        p_cmd = 'su {} -c "{} -u {}/server/LogService.py {}"'.format(user, sys.executable, TWISTER_PATH, port)
-        proc = subprocess.Popen(p_cmd, cwd='{}/twister'.format(userHome(user)), shell=True,
-               stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        proc.poll()
-        time.sleep(0.2)
-
-        # Must block here, so more users cannot launch Logs at the same time and lose the PID
-        with self.log_lock:
-
-            retries = 20
-            success = False
-
-            while retries > 0:
-                try:
-                    conn = rpyc.connect('127.0.0.1', port)
-                    conn.root.hello()
-                    logDebug('Connected to Log Service for user `{}`.'.format(user))
-                    success = True
-                    break
-                except Exception as e:
-                    logWarning('Cannot connect to Log Service for user `{}` - Exception: `{}`! Retry...'.format(user, e))
-                retries -= 1
-                time.sleep(0.5)
-
-            if not success:
-                logError('Error on starting Log Service for user `{}`!'.format(user))
-                return False
-
-            # Save the process inside the block.  99% of the time, the block is executed instantly!
-            self.loggers[user] = {'proc': proc, 'conn': conn, 'port': port}
-
-        logDebug('Log Service for user `{}` launched on `127.0.0.1:{}` - PID `{}`.'.format(user, port, proc.pid))
-        return conn
+        return data[fbegin:fend]
 
 
     def logMessage(self, user, logType, logMessage):
@@ -3012,27 +2923,20 @@ class Project(object):
         CE will start a small process in the name of the user and the process will write the logs.
         """
         logFull('CeProject:logMessage user `{}`.'.format(user))
-        if os.getuid():
-            logError('Log Error! Central Engine must run as ROOT in order to start the Log Server!')
-            return False
 
         logType = str(logType)
         logTypes = self.getUserInfo(user, 'log_types')
 
         if logType not in logTypes:
-            logError('Log Error! Log type `{}` is not in the list of defined types: `{}`!'.format(logType, logTypes))
+            logError('Log Error for `{}`! Log type `{}` is not in the list of defined types: `{}`!'.format(user, logType, logTypes))
             return False
 
         if logType == 'logSummary':
-            logWarning('Log Warning! logSummary is reserved and cannot be written into!')
+            logWarning('Log Warning for `{}`! logSummary is reserved and cannot be written into!'.format(user))
             return False
 
         logPath = self.getUserInfo(user, 'log_types')[logType]
-        srvr = self._logServer(user)
-        if srvr:
-            return srvr.root.write_log(logPath + ':' + logMessage)
-        else:
-            return False
+        return self.localFs.writeUserFile(user, logPath, logMessage, 'a')
 
 
     def logLIVE(self, user, epname, logMessage):
@@ -3041,20 +2945,21 @@ class Project(object):
         Called from the EP.
         """
         logFull('CeProject:logLIVE user `{}`.'.format(user))
-        if os.getuid():
-            logError('Log Error! Central Engine must run as ROOT in order to start the Log Server!')
-            return False
 
         logFolder = self.getUserInfo(user, 'logs_path')
 
         if not logFolder:
-            logError('Log Error! Invalid logs folder `{}`!'.format(logFolder))
+            logError('Log Error for `{}`! Invalid logs folder `{}`!'.format(user, logFolder))
+            return False
+
+        if epname not in self.users[user]['eps']:
+            logError('Log Error for `{}`: Invalid EP name `{}` !'.format(user, epname))
             return False
 
         try:
             log_string = binascii.a2b_base64(logMessage)
         except:
-            logError('Live Log Error: Invalid base64 log!')
+            logError('Log Error for `{}`: Invalid base64 log!'.format(user))
             return False
 
         # Execute "onLog" for all plugins
@@ -3065,7 +2970,7 @@ class Project(object):
                 plugin.onLog(epname, log_string)
             except Exception as e:
                 trace = traceback.format_exc()[34:].strip()
-                logWarning('Error on running plugin `{} onStop` - Exception: `{}`!'.format(pname, trace))
+                logWarning('Error on running plugin `{} onStop` for `{}` - Exception: `{}`!'.format(pname, user, trace))
         del plugins
 
         # Calling Panic Detect
@@ -3076,14 +2981,9 @@ class Project(object):
         # Logs Path + EP Name + CLI Name
         logPath = logFolder + os.sep + epname +'_'+ logCli
 
-        if pd:
-            self.logMessage(user, 'logRunning', 'PANIC DETECT: Execution stopped.')
+        if pd: self.logMessage(user, 'logRunning', 'PANIC DETECT: Execution stopped.')
 
-        srvr = self._logServer(user)
-        if srvr:
-            return srvr.root.write_log(logPath + ':' + log_string)
-        else:
-            return False
+        return self.localFs.writeUserFile(user, logPath, log_string, 'a')
 
 
     def resetLog(self, user, logName):
@@ -3112,96 +3012,74 @@ class Project(object):
                     break
 
         if not logPath:
-            logError('Log Error! Log name `{}` cannot be found!'.format(logName))
+            logWarning('Log path `{}`, for `{}` cannot be found!'.format(logName, user))
             return False
 
-        data = json.dumps({
-            'cmd': 'del',
-            'logPath': logPath,
-            })
+        # This will overwrite the file completely
+        ret = self.localFs.writeUserFile(user, logPath, '')
 
-        srvr = self._logServer(user)
-        if srvr:
-            ret = srvr.root.reset_log(data)
+        if ret is True:
+            logDebug('Log `{}` reset for user `{}`.'.format(logPath, user))
         else:
-            logWarning('Cannot reset log `{}`! Cannot connect to LogService!'.format(logName))
-            return False
-        if ret:
-            logDebug('Cleaned log `{}`.'.format(logPath))
-            return True
-        else:
-            logWarning('Cannot reset log `{}`! LogService returned error!'.format(logName))
-            return False
+            logWarning('Could not reset log `{}`, for `{}`! UserService returned: `{}`!'.format(logPath, user, ret))
+
+        return ret
 
 
-    def resetLogs(self, user, operation=CLEAN_LOGS):
+    def backupLogs(self, user):
         """
-        All logs defined in master config are erased.\n
-        Called from the Java GUI and every time the project is reset.
+        All logs defined in master framework config are backed-up.\n
+        Called every time the project is stopped.
+        """
+        logFull('CeProject:backupLogs user `{}`.'.format(user))
+
+        archiveLogsActive = self.getUserInfo(user, 'archive_logs_path_active')
+        archiveLogsPath = self.getUserInfo(user, 'archive_logs_path').rstrip('/')
+        logsPath = self.getUserInfo(user, 'logs_path')
+        start_time = self.getUserInfo(user, 'start_time')
+        success = True
+
+        if archiveLogsPath and (archiveLogsActive == 'true' or archiveLogsActive == True):
+            logDebug('Will backup all logs...')
+            # Create path if it doesn't exist
+            self.localFs.createUserFolder(user, archiveLogsPath)
+            # Find all user log files. Validate first.
+            logs = self.localFs.listUserFiles(user, logsPath)
+            if not (logs and isinstance(logs, dict) and logs.get('children')):
+                logError('Cannot list user logs for `{}`!'.format(user))
+                return False
+
+            # Filter log files
+            logs = [log['data'] for log in logs['children'] if log['data'].endswith('.log')]
+            logDebug('Found `{}` logs to archive: {}.'.format(len(logs), logs))
+
+            for log in logs:
+                archPath = '{}/{}.{}'.format(archiveLogsPath, log, start_time)
+                ret = self.localFs.moveUserFile(user, logsPath + os.sep + log, archPath)
+                if ret == True:
+                    logDebug('Log file `{}` archived in `{}`.'.format(log, archPath))
+                else:
+                    logError('Cannot archive log `{}` in `{}`! Error `{}`!'.format(log, archiveLogsPath, ret))
+                    success = False
+
+        return success
+
+
+    def resetLogs(self, user):
+        """
+        All logs defined in master framework config are erased.\n
+        Called every time the project is reset.
         """
         logFull('CeProject:resetLogs user `{}`.'.format(user))
         logsPath = self.getUserInfo(user, 'logs_path')
-        logTypes = self.getUserInfo(user, 'log_types')
-
-        # Archive logs
-        archiveLogsPath   = self.getUserInfo(user, 'archive_logs_path')
-        archiveLogsActive = self.getUserInfo(user, 'archive_logs_path_active')
-        epnames = [ep for ep, data in self.getUserInfo(user, 'eps').iteritems() if data['suites']]
-
-        data = json.dumps({
-            'cmd': 'reset',
-            'logsPath': logsPath,
-            'logTypes': logTypes,
-            'archiveLogsActive': archiveLogsActive,
-            'archiveLogsPath': archiveLogsPath,
-            'epnames': ','.join(epnames),
-            })
-
-        srvr = self._logServer(user)
-        if srvr:
-            if operation == CLEAN_LOGS:
-                ret = srvr.root.reset_logs(data)
-            else:
-                startTime = self.getUserInfo(user, 'start_time')
-                #replace the whitespace with underline
-                startTime = startTime.replace(' ','_')
-                ret = srvr.root.backup_logs(data, startTime)
-        else:
-            logWarning('Cannot reset logs! Cannot connect to LogService!')
-            return False
-        if ret:
-            logDebug('Logs reset for {}.'.format(epnames))
+        r1 = self.localFs.deleteUserFolder(user, logsPath)
+        r2 = self.localFs.createUserFolder(user, logsPath)
+        if r1 and r2:
+            logDebug('All logs reset for user `{}`.'.format(user))
             return True
         else:
-            logWarning('Cannot reset logs! LogService returned error!')
+            logError('Could not reset logs for `{}`! {} ; {}'.format(user, r1, r2))
             return False
-
-
-    def findLog(self, user, epname, file_id, file_name):
-        '''
-        Parses the log file of one EP and returns the log of one test file.
-        '''
-        logFull('CeProject:findLog user `{}`.'.format(user))
-        logFolder = self.getUserInfo(user, 'logs_path')
-        logTypes  = self.getUserInfo(user, 'log_types')
-        _, logCli = os.path.split( logTypes.get('logCli', 'CLI.log') )
-        # Logs Path + EP Name + CLI Name
-        logPath = logFolder + os.sep + epname +'_'+ logCli
-
-        try:
-            data = open(logPath, 'r').read()
-        except:
-            logError('Find Log: File `{}` cannot be read!'.format(logPath))
-            return '*no log*'
-
-        fbegin = data.find('<<< START filename: `{}:{}'.format(file_id, file_name))
-        if fbegin == -1:
-            logDebug('Find Log: Cannot find `{}:{}` in log `{}`!'.format(file_id, file_name, logPath))
-
-        fend = data.find('<<< END filename: `{}:{}'.format(file_id, file_name))
-        fend += len('<<< END filename: `{}:{}` >>>'.format(file_id, file_name))
-
-        return data[fbegin:fend]
 
 
     def _panicDetectLogParse(self, user, epname, log_string):

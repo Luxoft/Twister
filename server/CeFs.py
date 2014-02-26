@@ -68,29 +68,33 @@ class LocalFS(object):
 
 
     def __init__(self):
-        logDebug('Created Local FS.')
+        if os.getuid():
+            logError('Local FS: Central Engine must run as ROOT in order to start the User Service!')
+        logInfo('Created Local FS.')
 
 
     def _usrService(self, user):
         """
         Launch a user service.
         """
-        logDebug('Preparing to launch/ reuse a User Service for `{}`...'.format(user))
+        if not userHome(user):
+            logError('Local FS: Username `{}` is not valid!'.format(user))
+            return False
 
-        # DEBUG. Show all available User Services, for current user.
-        try:
-            pids = subprocess.check_output('ps aux | grep /server/UserService.py | grep "^{} "'.format(user), shell=True)
-            pids_li = []
+        # # DEBUG. Show all available User Services, for current user.
+        # try:
+        #     pids = subprocess.check_output('ps aux | grep /server/UserService.py | grep "^{} "'.format(user), shell=True)
+        #     pids_li = []
 
-            for line in pids.strip().splitlines():
-                li = line.strip().split()
-                PID = int(li[1])
-                del li[2:10]
-                pids_li.append( ' '.join(li) )
+        #     for line in pids.strip().splitlines():
+        #         li = line.strip().split()
+        #         PID = int(li[1])
+        #         del li[2:10]
+        #         pids_li.append( ' '.join(li) )
 
-            logDebug('Active User Services for `{}`::\n\t{}'.format(user, '\n\t'.join(pids_li)))
-        except:
-            logDebug('No User Services found for `{}`.'.format(user))
+        #     logDebug('Active User Services for `{}`::\n\t{}'.format(user, '\n\t'.join(pids_li)))
+        # except:
+        #     logDebug('No User Services found for `{}`.'.format(user))
 
         # Try to re-use the logger server, if available
         conn = self.services.get(user, {}).get('conn', None)
@@ -102,6 +106,7 @@ class LocalFS(object):
             except:
                 pass
 
+        logDebug('Preparing to launch/ reuse a User Service for `{}`...'.format(user))
         port = None
 
         # If the server is not available, search for a free port in the safe range...
@@ -117,7 +122,6 @@ class LocalFS(object):
                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         proc.poll()
         time.sleep(0.2)
-        logDebug('Launched `{}` !'.format(p_cmd))
 
         config = {
             'allow_pickle': True,
@@ -165,10 +169,26 @@ class LocalFS(object):
             return False
 
 
-    def writeUserFile(self, user, fpath, fdata):
+    def writeUserFile(self, user, fpath, fdata, mode='w'):
         srvr = self._usrService(user)
         if srvr:
-            return srvr.root.write_file(fpath, fdata)
+            return srvr.root.write_file(fpath, fdata, mode)
+        else:
+            return False
+
+
+    def copyUserFile(self, user, fpath, newpath):
+        srvr = self._usrService(user)
+        if srvr:
+            return srvr.root.copy_file(fpath, newpath)
+        else:
+            return False
+
+
+    def moveUserFile(self, user, fpath, newpath):
+        srvr = self._usrService(user)
+        if srvr:
+            return srvr.root.move_file(fpath, newpath)
         else:
             return False
 

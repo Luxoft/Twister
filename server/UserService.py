@@ -112,18 +112,59 @@ class UserService(rpyc.Service):
             return err
 
 
-    def exposed_write_file(self, fpath, fdata):
+    def exposed_write_file(self, fpath, fdata, mode='w'):
         """
-        Write data in a file. OVERWRITE everything!
+        Write data in a file.
+        Overwrite, or append.
         """
         if fpath[0] == '~':
             fpath = userHome() + fpath[1:]
         try:
-            open(fpath, 'w').write(fdata)
-            log.debug('Written file `{}`.'.format(fpath))
+            with open(fpath, mode) as f:
+                f.write(fdata)
+            if mode == 'a':
+                log.debug('Appended `{}` chars in file `{}`.'.format(len(fdata), fpath))
+            else:
+                log.debug('Written `{}` chars in file `{}`.'.format(len(fdata), fpath))
             return True
         except Exception as e:
             err = '*ERROR* Cannot write into file `{}`! {}'.format(fpath, e)
+            log.warning(err)
+            return err
+
+
+    def exposed_copy_file(self, fpath, newpath):
+        """
+        Copy 1 file.
+        """
+        if fpath[0] == '~':
+            fpath = userHome() + fpath[1:]
+        if newpath[0] == '~':
+            newpath = userHome() + newpath[1:]
+        try:
+            shutil.copy2(fpath, newpath)
+            log.debug('Copied file `{}` in `{}`.'.format(fpath, newpath))
+            return True
+        except Exception as e:
+            err = '*ERROR* Cannot copy file `{}`! {}'.format(fpath, e)
+            log.warning(err)
+            return err
+
+
+    def exposed_move_file(self, fpath, newpath):
+        """
+        Move 1 file.
+        """
+        if fpath[0] == '~':
+            fpath = userHome() + fpath[1:]
+        if newpath[0] == '~':
+            newpath = userHome() + newpath[1:]
+        try:
+            shutil.move(fpath, newpath)
+            log.debug('Moved file `{}` in `{}`.'.format(fpath, newpath))
+            return True
+        except Exception as e:
+            err = '*ERROR* Cannot move file `{}`! {}'.format(fpath, e)
             log.warning(err)
             return err
 
@@ -152,7 +193,7 @@ class UserService(rpyc.Service):
             folder = userHome() + folder[1:]
         try:
             os.makedirs(folder)
-            log.debug('Created folders `{}`.'.format(folder))
+            log.debug('Created folder `{}`.'.format(folder))
             return True
         except Exception as e:
             err = '*ERROR* Cannot create folder `{}`! {}'.format(folder, e)
@@ -209,7 +250,7 @@ class UserService(rpyc.Service):
             folder = userHome() + folder[1:]
         try:
             shutil.rmtree(folder)
-            log.debug('Deleted folders `{}`.'.format(folder))
+            log.debug('Deleted folder `{}`.'.format(folder))
             return True
         except Exception as e:
             err = '*ERROR* Cannot delete folder `{}`! {}'.format(folder, e)
