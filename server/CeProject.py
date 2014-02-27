@@ -904,8 +904,8 @@ class Project(object):
 
             # Create new section in Users
             cfg['users'][name] = user_before
-            cfg['users'][name]['groups_production']  = ''
-            cfg['users'][name]['groups_development'] = ''
+            cfg['users'][name]['groups_production']  = user_before.get('groups_production', '')
+            cfg['users'][name]['groups_development'] = user_before.get('groups_development', '')
             cfg['users'][name]['groups_' + srv_type] = usr_group
             cfg['users'][name]['key']    = user_before.get('key', binascii.hexlify(os.urandom(16)))
             cfg['users'][name]['timeout'] = usr_timeout
