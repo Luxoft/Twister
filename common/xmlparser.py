@@ -599,7 +599,8 @@ class TSCParser:
             logError(err)
             return err
 
-        bind_xml = etree.parse(cfg_file)
+        parser = etree.XMLParser(ns_clean=True, remove_blank_text=True)
+        bind_xml = etree.parse(cfg_file, parser)
         # Find the old binding
         found = bind_xml.xpath('/root/binding/name[text()="{}"]/..'.format(fpath))
 
@@ -615,7 +616,7 @@ class TSCParser:
         name.text = fpath
 
         try:
-            replace_xml = etree.XML(content)
+            replace_xml = etree.XML(content, parser)
         except:
             err = '*ERROR* Invalid XML content! Cannot parse!'
             logWarning(err)
@@ -625,10 +626,6 @@ class TSCParser:
             found.append(elem)
 
         # Beautify XML ?
-        xml_data = etree.tostring(bind_xml)
-        xml_data = re.sub('>\s+?<', '><', xml_data)
-        bind_xml = etree.XML(xml_data)
-
         return etree.tostring(bind_xml, pretty_print=True)
 
 
