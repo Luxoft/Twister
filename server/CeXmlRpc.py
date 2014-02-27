@@ -184,7 +184,10 @@ class CeXmlRpc(_cptools.XMLRPCController):
         Read a file from user's home folder.
         """
         user = cherrypy.session.get('username')
-        return self.localFs.readUserFile(user, fpath)
+        resp = self.localFs.readUserFile(user, fpath)
+        if resp.startswith('*ERROR*'):
+            logWarning(resp)
+        return binascii.b2a_base64(resp)
 
 
     @cherrypy.expose
@@ -194,7 +197,10 @@ class CeXmlRpc(_cptools.XMLRPCController):
         This function is called from the Java GUI.
         """
         user = cherrypy.session.get('username')
-        return self.localFs.writeUserFile(user, fpath, fdata)
+        resp = self.localFs.writeUserFile(user, fpath, binascii.a2b_base64(fdata))
+        if resp != True:
+            logWarning(resp)
+        return resp
 
 
     @cherrypy.expose

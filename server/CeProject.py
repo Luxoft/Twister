@@ -3055,7 +3055,7 @@ class Project(object):
 
             for log in logs:
                 archPath = '{}/{}.{}'.format(archiveLogsPath, log, start_time)
-                ret = self.localFs.moveUserFile(user, logsPath + os.sep + log, archPath)
+                ret = self.localFs.copyUserFile(user, logsPath + os.sep + log, archPath)
                 if ret == True:
                     logDebug('Log file `{}` archived in `{}`.'.format(log, archPath))
                 else:
