@@ -2603,6 +2603,10 @@ class Project(object):
             usr_script_cache_s = {} # Suite
             usr_script_cache_p = {} # Project
 
+            # DbSelect cache
+            db_select_cache_s = {} # Suite
+            db_select_cache_p = {} # Project
+
             for epname, ep_info in self.users[user]['eps'].iteritems():
                 SuitesManager = ep_info['suites']
 
@@ -2711,6 +2715,7 @@ class Project(object):
                                 if u_script not in usr_script_cache_p:
                                     # Execute script and use result
                                     r = execScript(u_script)
+                                    logDebug('Database: UserScript for `{}` was executed at LVL `{}`.'.format(user, lvl))
                                     # Save result in cache
                                     usr_script_cache_p[u_script] = r
                                 else:
@@ -2723,6 +2728,7 @@ class Project(object):
                                 if u_script not in usr_script_cache_s[suite_id]:
                                     # Execute script and use result
                                     r = execScript(u_script)
+                                    logDebug('Database: UserScript for `{}` was executed at LVL `{}`.'.format(user, lvl))
                                     # Save result in cache
                                     usr_script_cache_s[suite_id][u_script] = r
                                 else:
@@ -2747,7 +2753,7 @@ class Project(object):
                             # Get Auto Query, or null string
                             u_query = fields.get(field, {}).get('query', '')
 
-                            # Field level: Suite or Project
+                            # Field level: Suite, Project, or Testcase
                             lvl = fields.get(field)['level']
 
                             if not u_query:
@@ -2756,9 +2762,38 @@ class Project(object):
                                 conn.rollback()
                                 return False
 
-                            # Execute User Query
-                            curs.execute(u_query)
-                            q_value = curs.fetchone()[0]
+                            # Execute User Query based on level
+                            if lvl == 'Project':
+                                if u_query not in db_select_cache_p:
+                                    # Execute User Query
+                                    curs.execute(u_query)
+                                    q_value = curs.fetchone()[0]
+                                    logDebug('Database: DbSelect for `{}` was executed at LVL `{}`.'.format(user, lvl))
+                                    # Save result in cache
+                                    db_select_cache_p[u_query] = q_value
+                                else:
+                                    # Get script result from cache
+                                    q_value = db_select_cache_p[u_query]
+                            # Execute for every suite
+                            elif lvl == 'Suite':
+                                if suite_id not in db_select_cache_s:
+                                    db_select_cache_s[suite_id] = {}
+                                if u_query not in db_select_cache_s[suite_id]:
+                                    # Execute User Query
+                                    curs.execute(u_query)
+                                    q_value = curs.fetchone()[0]
+                                    logDebug('Database: DbSelect for `{}` was executed at LVL `{}`.'.format(user, lvl))
+                                    # Save result in cache
+                                    db_select_cache_s[suite_id][u_query] = q_value
+                                else:
+                                    # Get script result from cache
+                                    q_value = db_select_cache_s[suite_id][u_query]
+                            else:
+                                # Execute User Query
+                                curs.execute(u_query)
+                                q_value = curs.fetchone()[0]
+                                logDebug('Database: DbSelect for `{}` was executed at LVL `TestCase`.'.format(user))
+
                             # Replace @variables@ with real Database values
                             query = query.replace('@'+field+'@', str(q_value))
 
@@ -3072,8 +3107,18 @@ class Project(object):
         """
         logFull('CeProject:resetLogs user `{}`.'.format(user))
         logsPath = self.getUserInfo(user, 'logs_path')
+        logTypes = self.getUserInfo(user, 'log_types')
         r1 = self.localFs.deleteUserFolder(user, logsPath)
         r2 = self.localFs.createUserFolder(user, logsPath)
+
+        for logType, logPath in logTypes.iteritems():
+            # This will overwrite the file completely
+            ret = self.localFs.writeUserFile(user, logPath, '')
+            if ret is True:
+                logDebug('Log `{}` reset for user `{}`.'.format(logPath, user))
+            else:
+                logWarning('Could not reset log `{}`, for `{}`! UserService returned: `{}`!'.format(logPath, user, ret))
+
         if r1 and r2:
             logDebug('All logs reset for user `{}`.'.format(user))
             return True

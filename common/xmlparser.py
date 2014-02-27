@@ -1,16 +1,15 @@
 
 # File: xmlparser.py ; This file is part of Twister.
 
-# version: 3.009
+# version: 3.010
 
 # Copyright (C) 2012-2013 , Luxoft
 
 # Authors:
-#    Adrian Toader <adtoader@luxoft.com>
 #    Andrei Costachi <acostachi@luxoft.com>
-#    Andrei Toma <atoma@luxoft.com>
 #    Cristi Constantin <crconstantin@luxoft.com>
 #    Daniel Cioata <dcioata@luxoft.com>
+#    Mihai Tudoran <mtudoran@luxoft.com>
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -890,7 +889,7 @@ class DBParser():
             d['id']    = field.get('ID', '')
             d['type']  = field.get('Type', '')
             d['query'] = field.get('SQLQuery', '')
-            d['level'] = field.get('Level', 'Suite') # Project / Suite
+            d['level'] = field.get('Level', '') # Project / Suite / Testcase
             res[d['id']]  = d
 
         return res

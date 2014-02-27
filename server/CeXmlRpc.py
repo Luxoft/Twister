@@ -295,7 +295,7 @@ class CeXmlRpc(_cptools.XMLRPCController):
         # Decode database password
         db_password = self.project.decryptText( user, db_config.get('password') )
         if not db_password:
-            errMessage = 'Cannot decrypt the database password!'
+            errMessage = 'Cannot decrypt the database password user `{}`!'.format(user)
             logError(errMessage)
             return errMessage
 

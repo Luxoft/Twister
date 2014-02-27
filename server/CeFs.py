@@ -101,7 +101,7 @@ class LocalFS(object):
         if conn:
             try:
                 conn.root.hello()
-                logDebug('Reuse old User Service connection for `{}` OK.'.format(user))
+                logFull('Reuse old User Service connection for `{}` OK.'.format(user))
                 return conn
             except:
                 pass
