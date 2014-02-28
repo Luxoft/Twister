@@ -1,6 +1,6 @@
 /*
 File: ConfigEditor.java ; This file is part of Twister.
-Version: 2.011
+Version: 2.012
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -668,8 +668,10 @@ public class ConfigEditor extends JPanel{
                             for(int l=0;l<path.length;l++){
                                 searchin = findInNode(searchin, path[l]);
                             }
-                            ((MyFolder)searchin.getUserObject()).setSut(sutid);
-                            ((MyFolder)searchin.getUserObject()).setSutPath(getPathForSut(sutid));
+                            if(searchin!=null){
+                                ((MyFolder)searchin.getUserObject()).setSut(sutid);
+                                ((MyFolder)searchin.getUserObject()).setSutPath(getPathForSut(sutid));
+                            }
                         }
                     } else {
                         DefaultMutableTreeNode searchin =  treenode;
