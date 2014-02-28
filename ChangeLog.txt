@@ -1,3 +1,10 @@
+23rd February 2014
+
+- user key moved from users_ang_groups file in user diretory ($TWISTER/config/twister.key)
+- added support to define fields per project in db.xml
+- code optimization
+- updated UserGuide
+
 07th February 2014
 
 - SUT files are saved independently

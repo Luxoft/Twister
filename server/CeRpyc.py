@@ -972,7 +972,7 @@ class CeRpycService(rpyc.Service):
         if not user: return False
         parser = PluginParser(user)
         pluginsList = parser.getPlugins()
-        logDebug('List Plug-ins: user `{}` has: {}.'.format(user, pluginsList))
+        logFull('List Plug-ins: user `{}` has: {}.'.format(user, pluginsList))
         return pluginsList.keys()
 
 

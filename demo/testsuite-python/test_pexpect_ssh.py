@@ -1,5 +1,5 @@
 
-# version: 2.001
+# version: 3.001
 
 import time
 import pexpect
@@ -19,24 +19,30 @@ def test():
 	print '=== Connecting to SSH ==='
 	child = pexpect.spawn('ssh user@localhost')
 
+	try:
+		child.expect('.*continue connecting.*', timeout=3)
+		child.sendline("yes")
+		time.sleep(1)
+	except: pass
+
 	child.expect('.+assword:', timeout=10)
 	child.sendline("password")
 	print child.before[:-4]
 	time.sleep(1)
 
-	child.expect('user@localhost:', timeout=5)
+	child.expect('user@[\w\W]+:', timeout=5)
 	child.sendline("cd twister")
 	print child.before[:-4]
 	print child.after
 	time.sleep(1)
 
-	child.expect('user@localhost:', timeout=5)
+	child.expect('user@[\w\W]+:', timeout=5)
 	child.sendline("ls -la")
 	print child.before[:-4]
 	print child.after
 	time.sleep(1)
 
-	child.expect('user@localhost:', timeout=5)
+	child.expect('user@[\w\W]+:', timeout=5)
 	child.sendline("exit")
 	print child.before[:-4]
 	print child.after

@@ -1,7 +1,7 @@
 
 # File: CeResources.py ; This file is part of Twister.
 
-# version: 2.032
+# version: 2.033
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -267,6 +267,7 @@ def res_to_xml(parent_node, xml):
 
     return xml
 
+
 def _recursive_build_comp(parent, old_path, appendList=[]):
     '''
     parent - pointer in dictionary
@@ -302,6 +303,28 @@ def _recursive_build_comp(parent, old_path, appendList=[]):
             appendList.append(add_dic)
 
         return appendList
+
+
+def _recursive_search_string(parent, query_string):
+    '''
+    parent - pointer in dictionary
+    query_string - the string to search
+    '''
+    if len(parent) == 0:
+        # there are no sub-components; return empty list
+        return False
+    else:
+        # check if we got the string
+        if parent['path'] == query_string:
+            return True
+        else:
+            # deep search for every child
+            for child in parent['children']:
+                result =  _recursive_search_string(child,query_string)
+                if result is True:
+                    return True
+    return False
+
 #
 
 class ResourceAllocator(_cptools.XMLRPCController):
@@ -994,11 +1017,11 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
                 epnames_tag = '_epnames_{}'.format(username)
 
-                if not props.get('_id',False):
-                    # empty meta
-                    resources['meta'] = {}
-                else:
-                    resources['meta'].update(props)
+                resources['meta'].update(props)
+                # if _id key is present in meta and it has no value, we have
+                # to remove it from meta dictionary
+                if '_id' in resources['meta'].keys() and not resources['meta'].get('_id',False):
+                    resources['meta'].pop('_id')
 
                 # If the epnames tag exists in resources
                 if epnames_tag in resources['meta']:
@@ -1084,11 +1107,11 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
                 epnames_tag = '_epnames_{}'.format(username)
 
-                if not props.get('_id',False):
-                    # empty meta
-                    child_p['meta'] = {}
-                else:
-                    child_p['meta'].update(props)
+                child_p['meta'].update(props)
+                # if _id key is present in meta and it has no value, we have
+                # to remove it from meta dictionary
+                if '_id' in child_p['meta'].keys() and not child_p['meta'].get('_id',False):
+                    child_p['meta'].pop('_id')
 
                 # If the epnames tag exists in resources
                 if epnames_tag in child_p['meta']:
@@ -2164,7 +2187,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
         res = []
         for k, v in self.resources.get('children').iteritems():
             path = v.get('path') or _get_res_path(self.resources, v['id']) or []
-            res.append('/'.join(path))
+            res.append(['/'.join(path), v['id']])
         result = []
 
         def quickFindPath(d, spath):
@@ -2177,19 +2200,19 @@ class ResourceAllocator(_cptools.XMLRPCController):
                         return usr
             return None
 
-        for s in sorted(res):
-            ruser = quickFindPath(self.reservedResources, s)
-            luser = quickFindPath(self.lockedResources, s)
+        for tb, id in sorted(res):
+            ruser = quickFindPath(self.reservedResources, tb)
+            luser = quickFindPath(self.lockedResources, tb)
 
             if (not ruser) and (not luser):
-                result.append({'name': s, 'status': 'free'})
+                result.append({'id': id, 'name': tb, 'status': 'free'})
             elif ruser:
-                result.append({'name': s, 'status': 'reserved', 'user': ruser})
+                result.append({'id': id, 'name': tb, 'status': 'reserved', 'user': ruser})
             elif luser:
-                result.append({'name': s, 'status': 'locked', 'user': luser})
+                result.append({'id': id, 'name': tb, 'status': 'locked', 'user': luser})
             # Both reserved and locked ?
             else:
-                result.append({'name': s, 'status': 'reserved', 'user': ruser})
+                result.append({'id': id, 'name': tb, 'status': 'reserved', 'user': ruser})
 
         logDebug('Fast listing Resources... Found {}.'.format(res))
 
