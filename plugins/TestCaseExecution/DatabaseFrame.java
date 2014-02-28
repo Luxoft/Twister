@@ -1,6 +1,6 @@
 /*
 File: DatabaseFrame.java ; This file is part of Twister.
-Version: 2.001
+Version: 2.002
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -134,18 +134,17 @@ public class DatabaseFrame extends JFrame{
         fieldsCombo.removeAllItems();        
         String query = userDefinition.getFieldID(); ;
         try{String result = (String)RunnerRepository.getRPCClient().execute("runDBSelect",new Object[]{RunnerRepository.getUser(),query});
-        System.out.println("Query result:"+result);
-        String [] fields;
-        if(result.indexOf("MySQL Error")!=-1){
-            fields = new String[]{"?"};
-            desc = new String[]{result};}
-        else{
-            fields = result.split(",");
-            desc = new String[fields.length];
-            for(int i=0;i<fields.length;i++){
-                if(fields[i].indexOf("|")!=-1)desc[i] = fields[i].substring(fields[i].indexOf("|"));
-                else desc[i] = "";
-                fields[i] = fields[i].split("\\|")[0];}}
-        fieldsCombo.setModel(new DefaultComboBoxModel(fields));
-        fileddescription.setText(desc[0]);}
+            String [] fields;
+            if(result.indexOf("MySQL Error")!=-1){
+                fields = new String[]{"?"};
+                desc = new String[]{result};}
+            else{
+                fields = result.split(",");
+                desc = new String[fields.length];
+                for(int i=0;i<fields.length;i++){
+                    if(fields[i].indexOf("|")!=-1)desc[i] = fields[i].substring(fields[i].indexOf("|")+1);
+                    else desc[i] = "";
+                    fields[i] = fields[i].split("\\|")[0];}}
+            fieldsCombo.setModel(new DefaultComboBoxModel(fields));
+            fileddescription.setText(desc[0]);}
         catch(Exception e){}}}

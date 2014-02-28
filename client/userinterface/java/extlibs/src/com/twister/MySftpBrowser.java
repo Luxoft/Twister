@@ -1,7 +1,7 @@
 package com.twister;
 /*
 File: MySftpBrowser.java ; This file is part of Twister.
-Version: 2.008
+Version: 2.009
 Copyright (C) 2012 , Luxoft
 
 Authors: Andrei Costachi <acostachi@luxoft.com>
@@ -116,23 +116,6 @@ public class MySftpBrowser extends JFrame {
 		this.onlyfolders = onlyfolders;
 		this.text = text;
 		this.container = container;
-		KeyboardFocusManager manager = KeyboardFocusManager.getCurrentKeyboardFocusManager();
-        manager.addKeyEventDispatcher(new KeyEventDispatcher() {
-			@Override
-			public boolean dispatchKeyEvent(KeyEvent e) {
-	            if (e.getID() == KeyEvent.KEY_PRESSED) {
-	            	if(e.getKeyCode()==KeyEvent.VK_ENTER){
-	            		open.doClick();
-	            		//return false;
-	            	}
-	            	else if(e.getKeyCode()==KeyEvent.VK_ESCAPE){
-	            		cancel.doClick();
-	            		//return true;
-	            	}
-	            }
-	            return false;
-			}
-		});
 		author.setSelected(true);
 		group.setSelected(true);
 		date.setSelected(true);

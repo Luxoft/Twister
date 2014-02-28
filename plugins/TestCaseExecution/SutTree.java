@@ -1,6 +1,6 @@
 /*
 File: SutTree.java ; This file is part of Twister.
-Version: 2.009
+Version: 2.010
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -770,6 +770,8 @@ public class SutTree extends JPanel{
                     model.insertNodeInto(child, globalroot, globalroot.getChildCount());
                 }
                 model.reload();
+                filestree.expandPath(new TreePath(userroot.getPath()));
+                filestree.expandPath(new TreePath(globalroot.getPath()));
             }
         } catch (Exception e){
             e.printStackTrace();

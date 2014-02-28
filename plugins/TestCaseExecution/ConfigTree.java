@@ -1,6 +1,6 @@
 /*
 File: ConfigTree.java ; This file is part of Twister.
-Version: 2.011
+Version: 2.012
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -156,8 +156,12 @@ public class ConfigTree extends JPanel{
                 }
                 AbstractAction action = new AbstractAction(){
                     public void actionPerformed(ActionEvent ev){
-                        try{OutputStream os = connection.put(tf.getText());
-                            os.close();
+                        try{System.out.println("Creating: "+tf.getText());
+                            if(connection.isClosed()||!connection.isConnected()){
+                                System.out.println("Connection is down, could not upload:"+tf.getText());
+                                return;
+                            }
+                            connection.put(tf.getText());
                             refreshStructure();
                             Enumeration enumeration = root.depthFirstEnumeration();
                             while (enumeration.hasMoreElements()) {
@@ -168,6 +172,7 @@ public class ConfigTree extends JPanel{
                             }
                         } catch(Exception e){
                             CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,ConfigTree.this,"ERROR", "Could not write file! Check log.");
+                            System.out.println("Could not upload:"+tf.getText());
                             e.printStackTrace();
                         }
                     }
@@ -212,19 +217,6 @@ public class ConfigTree extends JPanel{
         setLayout(new BorderLayout());
         root = new DefaultMutableTreeNode("root", true);
         initializeSftp();
-//         try{
-            //connection.cd(RunnerRepository.getTestConfigPath());
-            //getList(root,connection,RunnerRepository.getTestConfigPath());
-            
-            //refreshStructure();
-            
-//         }catch(SftpException e){
-//             if(e.id==ChannelSftp.SSH_FX_NO_SUCH_FILE){
-//                 System.out.println("Could not get:"+RunnerRepository.getPredefinedSuitesPath());
-//             }
-//         } catch (Exception e) {
-//             e.printStackTrace();
-//         }
         tree = new JTree(root);
         tree.addTreeSelectionListener(new TreeSelectionListener(){
             public void valueChanged(TreeSelectionEvent ev){
@@ -249,7 +241,6 @@ public class ConfigTree extends JPanel{
         
         DefaultTreeModel treemodel = new DefaultTreeModel(root,true);
         tree.setModel(treemodel);
-        tree.expandRow(1);
         tree.setRootVisible(false);
         tree.addMouseListener(new MouseAdapter() {
             public void mouseReleased(final MouseEvent ev){
@@ -284,7 +275,7 @@ public class ConfigTree extends JPanel{
                 TreeNode[] tp = element.getPath();
                 if(tp.length<2)continue;
                 StringBuilder sb = new StringBuilder();
-                for(int i=2;i<tp.length-1;i++){
+                for(int i=1;i<tp.length-1;i++){
                     sb.append(tp[i].toString());
                     sb.append("/");
                 }
@@ -393,7 +384,7 @@ public class ConfigTree extends JPanel{
     
     public void releaseConfig(String remotelocation){
         String [] path = remotelocation.split("/");
-        DefaultMutableTreeNode node = (DefaultMutableTreeNode)root.getFirstChild();
+        DefaultMutableTreeNode node = root;
         for(String el:path){
             if(node==null)break;
             node = findInNode(node,el);
@@ -420,18 +411,23 @@ public class ConfigTree extends JPanel{
     }
     
     public void refreshStructure() {
-        if(root.getChildCount()>0)root.remove(0);
+        if(root.getChildCount()>0)root.removeAllChildren();
         Object ob = null;
         try{ob = RunnerRepository.getRPCClient().execute("listConfigs", new Object[]{RunnerRepository.user});
             HashMap struct = (HashMap)ob;
-            getList(root,struct);
+            Object [] children = (Object [])struct.get("children");
+            if(children!=null&&children.length>0){
+                for(Object subchild:children){
+                    getList(root,(HashMap)subchild);
+                }
+            }
+            //getList(root,struct);
         } catch (Exception e) {
             if(ob.toString().indexOf("*ERROR*")!=-1)CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,ConfigTree.this,"ERROR", ob.toString());
             System.out.println("Server response: "+ob.toString());
             e.printStackTrace();
         }
         ((DefaultTreeModel) tree.getModel()).reload();
-        tree.expandRow(0);
     }
     
     public void setConfigEditor(ConfigEditor confeditor){
@@ -447,7 +443,7 @@ public class ConfigTree extends JPanel{
                 Object [] path = tree.getSelectionPath().getPath();
                 RunnerRepository.window.mainpanel.p4.getTestConfig().cfgedit.close.doClick();
                 StringBuilder sb = new StringBuilder();
-                for(int i=2;i<path.length-1;i++){
+                for(int i=1;i<path.length-1;i++){
                     sb.append(path[i].toString());
                     sb.append("/");
                 }
@@ -507,22 +503,23 @@ public class ConfigTree extends JPanel{
         }
     }
     
-    public void getList(DefaultMutableTreeNode parent,HashMap currentelem) {
+    private void getList(DefaultMutableTreeNode parent,HashMap currentelem) {
         try{
             Object ob = currentelem.get("folder");
             boolean folder = false;
             if(ob!=null){
                 folder = true;
             }
-            
             DefaultMutableTreeNode child = new DefaultMutableTreeNode(currentelem.get("data").toString(),folder);
             parent.add(child);
-            
-            
             if(!folder){
                 Object [] path = child.getPath();
                 StringBuilder sb = new StringBuilder();
-                for(int i=2;i<path.length;i++){
+//                 for(int i=2;i<path.length;i++){
+//                     sb.append(path[i].toString());
+//                     sb.append("/");
+//                 }
+                for(int i=1;i<path.length;i++){
                     sb.append(path[i].toString());
                     sb.append("/");
                 }
@@ -538,9 +535,6 @@ public class ConfigTree extends JPanel{
                     e.printStackTrace();
                 }
             }
-            
-            
-            
             Object [] children = (Object [])currentelem.get("children");
             if(folder&&children!=null&&children.length>0){
                 for(Object subchild:children){
@@ -551,56 +545,6 @@ public class ConfigTree extends JPanel{
             e.printStackTrace();
         }
     }
-    
-//     public void getList(DefaultMutableTreeNode node, ChannelSftp c, String curentdir) {
-//         try {
-//             DefaultMutableTreeNode child = new DefaultMutableTreeNode(curentdir,true);
-//             Vector<LsEntry> vector1 = c.ls(".");
-//             Vector<String> vector = new Vector<String>();
-//             Vector<String> folders = new Vector<String>();
-//             Vector<String> files = new Vector<String>();
-//             int lssize = vector1.size();
-//             if (lssize >= 2) {
-//                 node.add(child);
-//             }
-//             String current;
-//             for (int i = 0; i < lssize; i++) {
-//                 if (vector1.get(i).getFilename().split("\\.").length == 0){
-//                     continue;
-//                 }
-//                 if(vector1.get(i).getAttrs().isDir()){
-//                     folders.add(vector1.get(i).getFilename());
-//                 } else {
-//                     files.add(vector1.get(i).getFilename());
-//                 }
-//             }
-//             Collections.sort(folders);
-//             Collections.sort(files);
-//             for (int i = 0; i < folders.size(); i++) {
-//                 vector.add(folders.get(i));
-//             }
-//             for (int i = 0; i < files.size(); i++) {
-//                 vector.add(files.get(i));
-//             }
-//             for (int i = 0; i < vector.size(); i++) {
-//                 try {
-//                     current = c.pwd();
-//                     c.cd(vector.get(i));
-//                     getList(child, c,curentdir+"/"+vector.get(i));
-//                     c.cd(current);
-//                 } catch (SftpException e) {
-//                     if (e.id == 4) {
-//                         DefaultMutableTreeNode  child2 = new DefaultMutableTreeNode(vector.get(i),false);
-//                         child.add(child2);
-//                     } else {
-//                         e.printStackTrace();
-//                     }
-//                 }
-//             }
-//         } catch (Exception e) {
-//             e.printStackTrace();
-//         }
-//     }
     
     private void initializeSftp(){
         try{

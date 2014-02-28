@@ -155,8 +155,8 @@ public class RunnerRepository {
     public static Container container;
     public static Applet applet;
     private static Document pluginsconfig;
-    private static String version = "2.059";
-    private static String builddate = "21.02.2014";
+    private static String version = "2.060";
+    private static String builddate = "28.02.2014";
     public static String logotxt,os,python;
     private static int remotefiletries = 0;
     
@@ -1748,9 +1748,9 @@ public class RunnerRepository {
             }}
             if(RunnerRepository.getSuiteNr() > 0){
                 RunnerRepository.window.mainpanel.p1.sc.g.updateLocations(RunnerRepository.getSuita(0));}
-                RunnerRepository.window.mainpanel.p1.sc.g.repaint();
-            }
-            RunnerRepository.window.mainpanel.p1.sc.g.selectedcollection.clear();
+            RunnerRepository.window.mainpanel.p1.sc.g.repaint();
+        }
+        RunnerRepository.window.mainpanel.p1.sc.g.selectedcollection.clear();
     }
     
     public static String getVersion(){
