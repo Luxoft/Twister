@@ -1,17 +1,16 @@
 #!/usr/bin/env python2.7
 
-# version: 2.004
+# version: 3.001
 
 # File: install.py ; This file is part of Twister.
 
-# Copyright (C) 2012-2013 , Luxoft
+# Copyright (C) 2012-2014, Luxoft
 
 # Authors:
-#    Adrian Toader <adtoader@luxoft.com>
 #    Andrei Costachi <acostachi@luxoft.com>
-#    Andrei Toma <atoma@luxoft.com>
 #    Cristi Constantin <crconstantin@luxoft.com>
 #    Daniel Cioata <dcioata@luxoft.com>
+#    Mihai Tudoran <mtudoran@luxoft.com>
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -88,7 +87,7 @@ dependencies = [
     'LXML-Python',
     'MySQL-python',
     'Scapy-real',
-    'Paramiko',
+    'paramiko',
     'PyCrypto',
     'six',
     'plumbum',
@@ -123,7 +122,7 @@ library_versions = [
     '1.4',
     '1.3',
     '3.3',
-    '2.2'
+    '3.1'
 ]
 
 
@@ -213,7 +212,7 @@ def install_offline(lib_name):
             print('Error while installing `Python LXML`!')
 
 
-    print('\n~~~ Installing `{}` from tar files ~~~'.format(lib_name))
+    print('\n~~~ Installing `{}` from tar files ~~~\n'.format(lib_name))
 
     if not p_library:
         print('\n~~~ Cannot find `%s`! You MUST install it manually! ~~~\n' % (lib_name+'*.tar.gz'))
@@ -347,7 +346,9 @@ for i in range(len(dependencies)):
 
     p_library = glob.glob(pkg_path + lib_name + '*gz')
 
-    if INTERNET and not p_library:
+    if p_library:
+        install_offline(lib_name)
+    elif INTERNET:
         install_w_internet(lib_name)
     else:
         install_offline(lib_name)

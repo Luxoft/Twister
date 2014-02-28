@@ -1,16 +1,15 @@
 
 # File: xmlparser.py ; This file is part of Twister.
 
-# version: 3.009
+# version: 3.010
 
 # Copyright (C) 2012-2013 , Luxoft
 
 # Authors:
-#    Adrian Toader <adtoader@luxoft.com>
 #    Andrei Costachi <acostachi@luxoft.com>
-#    Andrei Toma <atoma@luxoft.com>
 #    Cristi Constantin <crconstantin@luxoft.com>
 #    Daniel Cioata <dcioata@luxoft.com>
+#    Mihai Tudoran <mtudoran@luxoft.com>
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -600,7 +599,8 @@ class TSCParser:
             logError(err)
             return err
 
-        bind_xml = etree.parse(cfg_file)
+        parser = etree.XMLParser(ns_clean=True, remove_blank_text=True)
+        bind_xml = etree.parse(cfg_file, parser)
         # Find the old binding
         found = bind_xml.xpath('/root/binding/name[text()="{}"]/..'.format(fpath))
 
@@ -616,7 +616,7 @@ class TSCParser:
         name.text = fpath
 
         try:
-            replace_xml = etree.XML(content)
+            replace_xml = etree.XML(content, parser)
         except:
             err = '*ERROR* Invalid XML content! Cannot parse!'
             logWarning(err)
@@ -626,10 +626,6 @@ class TSCParser:
             found.append(elem)
 
         # Beautify XML ?
-        xml_data = etree.tostring(bind_xml)
-        xml_data = re.sub('>\s+?<', '><', xml_data)
-        bind_xml = etree.XML(xml_data)
-
         return etree.tostring(bind_xml, pretty_print=True)
 
 
@@ -890,7 +886,7 @@ class DBParser():
             d['id']    = field.get('ID', '')
             d['type']  = field.get('Type', '')
             d['query'] = field.get('SQLQuery', '')
-            d['level'] = field.get('Level', 'Suite') # Project / Suite
+            d['level'] = field.get('Level', '') # Project / Suite / Testcase
             res[d['id']]  = d
 
         return res

@@ -427,6 +427,7 @@ public class Panel2 extends JPanel{
                 log.clearlog.setEnabled(false);
                 logs.add(log);
                 tabbed.addTab("server_log",log.container);
+                if(tabbed.getTabCount()>5)tabbed.setSelectedIndex(4);
             }
             catch(Exception e){e.printStackTrace();}}});
         TabsReorder.enableReordering(tabbed);} 

@@ -1,6 +1,6 @@
 /*
 File: UserManagement.java ; This file is part of Twister.
-Version: 2.009
+Version: 2.010
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -123,8 +123,7 @@ public class UserManagement implements TwisterPluginInterface {
 		initializeRPC();
 		populateUsersTable();
 		populateGroupsList();
-		populateGroups();
-
+		populateGroups();		
 		System.out.println("successful");
 	}
 
@@ -188,15 +187,16 @@ public class UserManagement implements TwisterPluginInterface {
 				username = usertable.getValueAt(row, 0).toString();
 			}
 
-			HashMap<String, HashMap> hm = (HashMap<String, HashMap>) client
+			HashMap hm = (HashMap<String, HashMap>) client
 					.execute("usersAndGroupsManager",
 							new Object[] { "list users" });
-			Object[] users = hm.keySet().toArray();
+			Object[] users = (Object[])hm.get("_sorted_users");
+			//Object[] users = hm.keySet().toArray();
 			DefaultTableModel dtm = ((DefaultTableModel) usertable.getModel());
 			dtm.setRowCount(0);
 
 			for (Object ob : users) {
-				Object[] ob2 = (Object[]) hm.get(ob.toString()).get("groups");
+				Object[] ob2 = (Object[]) ((HashMap)hm.get(ob.toString())).get("groups");
 				StringBuilder sb = new StringBuilder();
 				for (Object o : ob2) {
 					sb.append(o.toString() + ",");
@@ -204,7 +204,7 @@ public class UserManagement implements TwisterPluginInterface {
 				if (sb.length() > 0)
 					sb.setLength(sb.length() - 1);
 
-				ob2 = (Object[]) hm.get(ob.toString()).get("roles");
+				ob2 = (Object[]) ((HashMap)hm.get(ob.toString())).get("roles");
 				StringBuilder sb2 = new StringBuilder();
 				for (Object o : ob2) {
 					sb2.append(o.toString() + ",");
@@ -212,7 +212,7 @@ public class UserManagement implements TwisterPluginInterface {
 				if (sb2.length() > 0)
 					sb2.setLength(sb2.length() - 1);
 
-				String timeout = (String) hm.get(ob.toString()).get("timeout")
+				String timeout = (String) ((HashMap)hm.get(ob.toString())).get("timeout")
 						.toString();
 				dtm.addRow(new String[] { ob.toString(), timeout,
 						sb.toString(), sb2.toString() });
@@ -226,6 +226,13 @@ public class UserManagement implements TwisterPluginInterface {
 					}
 				}
 			}
+			usertable.getColumnModel().getColumn(0).setMinWidth(150);
+			usertable.getColumnModel().getColumn(0).setPreferredWidth(150);
+			usertable.getColumnModel().getColumn(1).setMinWidth(100);
+			usertable.getColumnModel().getColumn(1).setPreferredWidth(100);
+			usertable.getColumnModel().getColumn(2).setMinWidth(200);
+			usertable.getColumnModel().getColumn(2).setPreferredWidth(200);
+			usertable.getColumnModel().getColumn(3).setPreferredWidth(2000);
 		} catch (XmlRpcException e) {
 			e.printStackTrace();
 		}
@@ -233,11 +240,11 @@ public class UserManagement implements TwisterPluginInterface {
 
 	public void populateGroupsList() {
 		try {
-			HashMap<String, HashMap> hm = (HashMap<String, HashMap>) client
+			HashMap hm = (HashMap<String, HashMap>) client
 					.execute("usersAndGroupsManager",
 							new Object[] { "list groups" });
-			Object[] groups = hm.keySet().toArray();
-
+			//Object[] groups = hm.keySet().toArray();
+			Object[] groups = (Object[])hm.get("_sorted_groups"); 
 			DefaultListModel listModel = new DefaultListModel();
 			for (Object o : groups) {
 				listModel.addElement(o.toString());
@@ -372,7 +379,7 @@ public class UserManagement implements TwisterPluginInterface {
 				return String.class;
 			}
 		});
-
+		
 		usertable.setDefaultRenderer(String.class, new MultiLineCellRenderer());
 		userscroll.setViewportView(usertable);
 
@@ -829,10 +836,11 @@ public class UserManagement implements TwisterPluginInterface {
 
 	public void populateGroups() {
 		try {
-			HashMap<String, HashMap> hm = (HashMap<String, HashMap>) client
+			HashMap hm = (HashMap<String, HashMap>) client
 					.execute("usersAndGroupsManager",
 							new Object[] { "list groups" });
-			Object[] groups = hm.keySet().toArray();
+			Object[] groups = (Object[])hm.get("_sorted_groups"); 
+			
 			DefaultTableModel dtm = ((DefaultTableModel) groupstable.getModel());
 			dtm.setRowCount(0);
 			StringBuilder sb = new StringBuilder();
@@ -851,6 +859,9 @@ public class UserManagement implements TwisterPluginInterface {
 		} catch (XmlRpcException e) {
 			e.printStackTrace();
 		}
+		groupstable.getColumnModel().getColumn(0).setMinWidth(120);
+		groupstable.getColumnModel().getColumn(0).setPreferredWidth(120);
+		groupstable.getColumnModel().getColumn(1).setPreferredWidth(2000);
 	}
 
 	class MyListSelectionListener implements ListSelectionListener {
