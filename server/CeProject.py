@@ -1,7 +1,7 @@
 
 # File: CeProject.py ; This file is part of Twister.
 
-# version: 3.021
+# version: 3.022
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -859,11 +859,18 @@ class Project(object):
                 # Delete the user key, before sending
                 try: del tmp_users[usr]['key']
                 except: pass
+
+            # build a osrted list of users from tmp_users
+            sorted_users = sorted(tmp_users.keys())
+            tmp_users['_sorted_users'] = sorted_users
             return tmp_users
 
         elif cmd == 'list groups':
             # List all known groups from users and groups config
-            return self.roles['groups']
+            groups = self.roles['groups']
+            sorted_group_list = sorted(groups.keys())
+            groups['_sorted_groups'] = sorted_group_list
+            return groups
 
         elif cmd == 'list roles':
             # List all known roles
