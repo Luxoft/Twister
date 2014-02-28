@@ -197,7 +197,8 @@ class CeXmlRpc(_cptools.XMLRPCController):
         This function is called from the Java GUI.
         """
         user = cherrypy.session.get('username')
-        resp = self.localFs.writeUserFile(user, fpath, binascii.a2b_base64(fdata))
+        fdata = binascii.a2b_base64(fdata)
+        resp = self.localFs.writeUserFile(user, fpath, fdata.replace('\r', ''))
         if resp != True:
             logWarning(resp)
         return resp
