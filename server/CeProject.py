@@ -1,7 +1,7 @@
 
 # File: CeProject.py ; This file is part of Twister.
 
-# version: 3.022
+# version: 3.023
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -1439,6 +1439,8 @@ class Project(object):
         if new_status == STATUS_RUNNING:
             self.rsrv.service.exposed_startEP(epname, user)
         elif new_status == STATUS_STOP:
+            # Call the backup logs
+            self.backupLogs(user)
             self.rsrv.service.exposed_stopEP(epname, user)
 
         # If all Stations are stopped, the status for current user is also stop!
@@ -1490,9 +1492,6 @@ class Project(object):
                             trace = traceback.format_exc()[33:].strip()
                             logWarning('Error on running plugin `{} onStop` - Exception: `{}`!'.format(pname, trace))
                     del parser, plugins
-
-                    # Call the backup logs
-                    self.backupLogs(user)
 
                     # Cycle all files to change the PENDING status to NOT_EXEC
                     eps_pointer = self.users[user]['eps']
