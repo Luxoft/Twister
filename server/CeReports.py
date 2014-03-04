@@ -3,13 +3,13 @@
 
 # version: 2.010
 
-# Copyright (C) 2012-2013 , Luxoft
+# Copyright (C) 2012-2014 , Luxoft
 
 # Authors:
 #    Andrei Costachi <acostachi@luxoft.com>
-#    Andrei Toma <atoma@luxoft.com>
 #    Cristi Constantin <crconstantin@luxoft.com>
 #    Daniel Cioata <dcioata@luxoft.com>
+#    Mihai Tudoran <mtudoran@luxoft.com>
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -98,7 +98,7 @@ class ReportingServer(object):
         # Create database parser IF necessary, or FORCED...
         if force or (usr not in self.db_parser):
 
-            self.db_parser[usr]      = DBParser(db_file)
+            self.db_parser[usr]      = DBParser(usr, db_file)
             self.glob_fields[usr]    = self.db_parser[usr].getReportFields()
             self.glob_reports[usr]   = self.db_parser[usr].getReports()
             self.glob_redirects[usr] = self.db_parser[usr].getRedirects()

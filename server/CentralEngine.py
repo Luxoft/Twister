@@ -4,7 +4,7 @@
 
 # File: CentralEngine.py ; This file is part of Twister.
 
-# Copyright (C) 2012-2013 , Luxoft
+# Copyright (C) 2012-2014 , Luxoft
 
 # Authors:
 #    Andrei Costachi <acostachi@luxoft.com>

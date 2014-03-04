@@ -178,7 +178,7 @@ class TwisterClient(object):
                 proxy.root.hello('client', {'eps': epNames})
                 logPrint('Client Debug: Register EPs successful!')
             except Exception as e:
-                logPrint('Exception:', e)
+                logPrint('Exception: `{}`'.format(e))
                 check = False
 
         if not check:

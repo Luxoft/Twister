@@ -1,7 +1,7 @@
 
 # File: xmlparser.py ; This file is part of Twister.
 
-# version: 3.010
+# version: 3.011
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -45,6 +45,9 @@ from common.tsclogging import *
 from common.suitesmanager import *
 from common.constants import FWMCONFIG_TAGS, PROJECTCONFIG_TAGS
 from common.constants import SUITES_TAGS, TESTS_TAGS
+from CeFs import LocalFS
+
+localFs = LocalFS()
 
 __all__ = ['TSCParser', 'DBParser', 'PluginParser']
 
@@ -68,7 +71,7 @@ class TSCParser:
     def __init__(self, user, base_config='', files_config=''):
 
         if os.path.isfile(base_config):
-            base_config = open(base_config).read()
+            base_config = localFs.readUserFile(user, base_config)
         elif base_config and ( type(base_config)==type('') or type(base_config)==type(u'') ) \
                 and ( base_config[0] == '<' and base_config[-1] == '>' ):
             pass
@@ -123,7 +126,7 @@ class TSCParser:
                 self.configTS = None
                 return -1
             else:
-                config_ts = open(files_config).read()
+                config_ts = localFs.readUserFile(self.user, files_config)
 
             # Hash check the XML file, to see if is changed
             newConfigHash = hashlib.md5(config_ts).hexdigest()
@@ -827,8 +830,9 @@ class DBParser():
     This parser will read DB.xml.
     """
 
-    def __init__(self, config_data):
+    def __init__(self, user, config_data):
 
+        self.user = user
         self.db_config = {}
         self.config_data = config_data
         self.updateConfig()
@@ -840,7 +844,8 @@ class DBParser():
         config_data = self.config_data
 
         if os.path.isfile(config_data):
-            try: self.xmlDict = etree.fromstring(open(config_data).read())
+            data = localFs.readUserFile(self.user, config_data)
+            try: self.xmlDict = etree.fromstring(data)
             except: raise Exception('Db Parser: Invalid DB config file `{}`!'.format(config_data))
         elif config_data and type(config_data)==type('') or type(config_data)==type(u''):
             try: self.xmlDict = etree.fromstring(config_data)
@@ -993,6 +998,7 @@ class PluginParser:
 
     def __init__(self, user):
 
+        self.user = user
         user_home = userHome(user)
 
         if not os.path.exists('{}/twister'.format(user_home)):
@@ -1014,7 +1020,7 @@ class PluginParser:
         """ Reload all Plugins Xml info """
         logFull('xmlparser:updateConfig')
 
-        config_data = open(self.config_data).read()
+        config_data = localFs.readUserFile(self.user, self.config_data)
         newConfigHash = hashlib.md5(config_data).hexdigest()
 
         if self.configHash != newConfigHash:

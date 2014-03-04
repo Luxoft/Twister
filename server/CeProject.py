@@ -2575,7 +2575,7 @@ class Project(object):
 
             # Database parser, fields, queries
             # This is created every time the Save to Database is called
-            db_parser = DBParser(db_file)
+            db_parser = DBParser(user, db_file)
             db_config = db_parser.db_config
             queries = db_parser.getInsertQueries() # List
             fields  = db_parser.getInsertFields()  # Dictionary

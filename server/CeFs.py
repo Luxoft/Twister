@@ -109,29 +109,29 @@ class LocalFS(object):
         logDebug('Preparing to launch/ reuse a User Service for `{}`...'.format(user))
         port = None
 
-        # If the server is not available, search for a free port in the safe range...
-        while 1:
-            port = random.randrange(63000, 65000)
-            try:
-                socket.create_connection((None, port), 1)
-            except:
-                break
-
-        p_cmd = 'su {} -c "{} -u {}/server/UserService.py {}"'.format(user, sys.executable, TWISTER_PATH, port)
-        proc = subprocess.Popen(p_cmd, cwd='{}/twister'.format(userHome(user)), shell=True,
-               stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        proc.poll()
-        time.sleep(0.2)
-
-        config = {
-            'allow_pickle': True,
-            'allow_getattr': True,
-            'allow_setattr': True,
-            'allow_delattr': True
-        }
-
         # Must block here, so more users cannot launch Logs at the same time and lose the PID
         with self.srv_lock:
+
+            # If the server is not available, search for a free port in the safe range...
+            while 1:
+                port = random.randrange(63000, 65000)
+                try:
+                    socket.create_connection((None, port), 1)
+                except:
+                    break
+
+            p_cmd = 'su {} -c "{} -u {}/server/UserService.py {}"'.format(user, sys.executable, TWISTER_PATH, port)
+            proc = subprocess.Popen(p_cmd, cwd='{}/twister'.format(userHome(user)), shell=True,
+                   stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            proc.poll()
+            time.sleep(0.2)
+
+            config = {
+                'allow_pickle': True,
+                'allow_getattr': True,
+                'allow_setattr': True,
+                'allow_delattr': True
+            }
 
             retries = 10
             success = False
