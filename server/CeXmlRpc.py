@@ -70,7 +70,6 @@ from common.constants  import *
 from common.helpers    import *
 from common.tsclogging import *
 from common.xmlparser  import *
-from CeFs import LocalFS
 
 
 # --------------------------------------------------------------------------------------------------
@@ -87,7 +86,6 @@ class CeXmlRpc(_cptools.XMLRPCController):
     def __init__(self, proj):
 
         self.project = proj
-        self.localFs = LocalFS() # Singleton
 
 
     @cherrypy.expose
@@ -184,7 +182,7 @@ class CeXmlRpc(_cptools.XMLRPCController):
         Read a file from user's home folder.
         """
         user = cherrypy.session.get('username')
-        resp = self.localFs.readUserFile(user, fpath)
+        resp = self.project.localFs.readUserFile(user, fpath)
         if resp.startswith('*ERROR*'):
             logWarning(resp)
         return binascii.b2a_base64(resp)
@@ -198,7 +196,7 @@ class CeXmlRpc(_cptools.XMLRPCController):
         """
         user = cherrypy.session.get('username')
         fdata = binascii.a2b_base64(fdata)
-        resp = self.localFs.writeUserFile(user, fpath, fdata.replace('\r', ''))
+        resp = self.project.localFs.writeUserFile(user, fpath, fdata.replace('\r', ''))
         if resp != True:
             logWarning(resp)
         return resp
@@ -211,25 +209,25 @@ class CeXmlRpc(_cptools.XMLRPCController):
         This function is called from the Java GUI.
         """
         user = cherrypy.session.get('username')
-        return self.localFs.deleteUserFile(user, fpath)
+        return self.project.localFs.deleteUserFile(user, fpath)
 
 
     @cherrypy.expose
     def createFolder(self, fdir):
         user = cherrypy.session.get('username')
-        return self.localFs.createUserFolder(user, fdir)
+        return self.project.localFs.createUserFolder(user, fdir)
 
 
     @cherrypy.expose
     def listFiles(self, fdir):
         user = cherrypy.session.get('username')
-        return self.localFs.listUserFiles(user, fdir)
+        return self.project.localFs.listUserFiles(user, fdir)
 
 
     @cherrypy.expose
     def deleteFolder(self, fdir):
         user = cherrypy.session.get('username')
-        return self.localFs.deleteUserFolder(user, fdir)
+        return self.project.localFs.deleteUserFolder(user, fdir)
 
 
 # # #
@@ -610,7 +608,7 @@ class CeXmlRpc(_cptools.XMLRPCController):
         Folders and Files from config folder.
         """
         dirpath = self.project.getUserInfo(user, 'tcfg_path')
-        return self.localFs.listUserFiles(user, dirpath)
+        return self.project.localFs.listUserFiles(user, dirpath)
 
 
     @cherrypy.expose

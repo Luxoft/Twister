@@ -126,7 +126,6 @@ from CeServices  import ServiceManager
 from CeWebUi     import WebInterface
 from CeResources import ResourceAllocator
 from CeReports   import ReportingServer
-from CeFs import LocalFS
 
 usrs_and_pwds = {}
 usr_pwds_lock = allocate_lock()
@@ -204,14 +203,14 @@ class Project(object):
         logInfo('STARTING TWISTER SERVER {}...'.format(self.srv_ver))
         ti = time.time()
 
-        self.rsrv    = None  # RPyc server pointer
+        self.rsrv    = None # RPyc server pointer
         self.ip_port = None # Will be injected by the Central Engine CherryPy
         self.manager = ServiceManager()
         self.web   = WebInterface(self)
         self.ra    = ResourceAllocator(self)
         self.report = ReportingServer(self)
 
-        self.localFs = LocalFS() # Singleton
+        self.localFs = None # local FS pointer
 
         # Users, parsers, IDs...
         self.users = {}

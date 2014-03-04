@@ -1,7 +1,7 @@
 
 # File: xmlparser.py ; This file is part of Twister.
 
-# version: 3.011
+# version: 3.012
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -47,7 +47,10 @@ from common.constants import FWMCONFIG_TAGS, PROJECTCONFIG_TAGS
 from common.constants import SUITES_TAGS, TESTS_TAGS
 from CeFs import LocalFS
 
-localFs = LocalFS()
+parser = etree.XMLParser(ns_clean=True, remove_blank_text=True)
+etree.set_default_parser(parser)
+
+localFs = LocalFS() # Singleton
 
 __all__ = ['TSCParser', 'DBParser', 'PluginParser']
 
@@ -69,6 +72,8 @@ class TSCParser:
     """
 
     def __init__(self, user, base_config='', files_config=''):
+
+        global localFs
 
         if os.path.isfile(base_config):
             base_config = localFs.readUserFile(user, base_config)
@@ -101,6 +106,7 @@ class TSCParser:
         The file number and suite number have to be unique.
         """
         logFull('xmlparser:updateConfigTS')
+        global localFs
         self.file_no = 1000
         self.suite_no = 100
         self.files_config = ''
@@ -602,8 +608,7 @@ class TSCParser:
             logError(err)
             return err
 
-        parser = etree.XMLParser(ns_clean=True, remove_blank_text=True)
-        bind_xml = etree.parse(cfg_file, parser)
+        bind_xml = etree.parse(cfg_file)
         # Find the old binding
         found = bind_xml.xpath('/root/binding/name[text()="{}"]/..'.format(fpath))
 
@@ -619,7 +624,7 @@ class TSCParser:
         name.text = fpath
 
         try:
-            replace_xml = etree.XML(content, parser)
+            replace_xml = etree.fromstring(content, parser)
         except:
             err = '*ERROR* Invalid XML content! Cannot parse!'
             logWarning(err)
@@ -841,6 +846,7 @@ class DBParser():
     def updateConfig(self):
         logFull('xmlparser:updateConfig')
 
+        global localFs
         config_data = self.config_data
 
         if os.path.isfile(config_data):
@@ -1019,6 +1025,8 @@ class PluginParser:
     def updateConfig(self):
         """ Reload all Plugins Xml info """
         logFull('xmlparser:updateConfig')
+
+        global localFs
 
         config_data = localFs.readUserFile(self.user, self.config_data)
         newConfigHash = hashlib.md5(config_data).hexdigest()

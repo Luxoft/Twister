@@ -1,6 +1,6 @@
 #!/usr/bin/env python2.7
 
-# version: 3.002
+# version: 3.003
 
 # File: CentralEngine.py ; This file is part of Twister.
 
@@ -59,6 +59,7 @@ from server.CeProject  import Project
 from server.CeXmlRpc   import CeXmlRpc
 from server.CeRpyc     import CeRpycService
 from common import iniparser
+from CeFs import LocalFS
 
 #
 
@@ -112,6 +113,7 @@ if __name__ == "__main__":
     # Project manager does everything
     proj = Project()
     proj.rsrv = rpycServer
+    proj.localFs = LocalFS(proj)
     # CE is the XML-RPC interface
     ce = CeXmlRpc(proj)
 
