@@ -88,7 +88,6 @@ class LocalFS(object):
             li = line.strip().decode('utf').split()
             PID = int(li[1])
             del li[2:5]
-            logDebug('Found :: {}'.format(' '.join(li)))
             if '/bin/sh' in li: continue
             if '/bin/grep' in li: continue
             logDebug('Killing ugly zombie `{}`.'.format(' '.join(li)))
@@ -126,13 +125,13 @@ class LocalFS(object):
             if conn:
                 try:
                     conn.root.hello()
-                    logDebug('Reuse old User Service connection for `{}` OK.'.format(user))
+                    # logDebug('Reuse old User Service connection for `{}` OK.'.format(user))
                     return conn
                 except Exception as e:
                     logWarning('Cannot connect to User Service for `{}`: `{}`.'.format(user, e))
                     self._kill(user)
             else:
-                logWarning('Launching a User Service for `{}`, the first time...'.format(user))
+                logInfo('Launching a User Service for `{}`, the first time...'.format(user))
 
             port = None
 
@@ -233,10 +232,10 @@ class LocalFS(object):
             return False
 
 
-    def listUserFiles(self, user, fdir):
+    def listUserFiles(self, user, fdir, hidden=True):
         srvr = self._usrService(user)
         if srvr:
-            files = srvr.root.list_files(fdir)
+            files = srvr.root.list_files(fdir, hidden)
             return copy.copy(files)
         else:
             return False

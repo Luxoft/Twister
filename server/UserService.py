@@ -29,7 +29,6 @@ This process runs in the Twister Client folder.
 """
 
 import os, sys
-import time
 import shutil
 import subprocess
 import logging
@@ -58,10 +57,10 @@ if sys.version < '2.7':
 
 try:
     userName = os.getenv('USER') or os.getenv('USERNAME')
-    if userName=='root':
+    if userName == 'root':
         userName = os.getenv('SUDO_USER') or userName
     log.debug('Hello username `{}`!'.format(userName))
-except:
+except Exception:
     userName = ''
 if not userName:
     log.error('Cannot guess user name for the User Service! Exiting!')
@@ -71,7 +70,6 @@ def userHome():
     """
     Find the home folder for a given user.
     """
-    global userName
     return subprocess.check_output('echo ~' + userName, shell=True).strip()
 
 #
@@ -93,7 +91,11 @@ class UserService(rpyc.Service):
         log.debug('Disconnected from `{}`.'.format(client_addr))
 
 
-    def exposed_hello(self):
+    @staticmethod
+    def exposed_hello():
+        """
+        Say hello to server.
+        """
         return True
 
 
@@ -201,7 +203,7 @@ class UserService(rpyc.Service):
             return err
 
 
-    def exposed_list_files(self, folder):
+    def exposed_list_files(self, folder, hidden=True):
         """
         List all files, recursively.
         """
@@ -218,6 +220,9 @@ class UserService(rpyc.Service):
                 dlist = [] # Folders list
                 flist = [] # Files list
                 for fname in sorted(os.listdir(path), key=str.lower):
+                    # Ignore hidden files
+                    if hidden and fname[0] == '.':
+                        continue
                     short_path = (path + os.sep + fname)[len_path:]
                     nd = {'path': short_path, 'data': fname}
                     if os.path.isdir(path + os.sep + fname):
@@ -258,9 +263,9 @@ class UserService(rpyc.Service):
             return err
 
 
-    def exposed_exit(self):
+    @staticmethod
+    def exposed_exit():
         """ Must Exit """
-        global t, log
         log.warning('User Service: *sigh* received EXIT signal...')
         t.close()
         # Reply to client.

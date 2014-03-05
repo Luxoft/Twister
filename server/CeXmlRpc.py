@@ -219,9 +219,9 @@ class CeXmlRpc(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
-    def listFiles(self, fdir):
+    def listFiles(self, fdir, hidden=True):
         user = cherrypy.session.get('username')
-        return self.project.localFs.listUserFiles(user, fdir)
+        return self.project.localFs.listUserFiles(user, fdir, hidden)
 
 
     @cherrypy.expose
