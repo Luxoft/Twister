@@ -177,26 +177,42 @@ class CeXmlRpc(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
-    def readFile(self, fpath):
+    def fileSize(self, fpath):
         """
         Read a file from user's home folder.
         """
         user = cherrypy.session.get('username')
-        resp = self.project.localFs.readUserFile(user, fpath)
+        resp = self.project.localFs.fileSize(user, fpath)
+        if not isinstance(resp, long):
+            logWarning(resp)
+        return resp
+
+
+    @cherrypy.expose
+    def readFile(self, fpath, flag='r'):
+        """
+        Read a file from user's home folder.
+        Flag r/ rb = ascii/ binary.
+        """
+        user = cherrypy.session.get('username')
+        resp = self.project.localFs.readUserFile(user, fpath, flag)
         if resp.startswith('*ERROR*'):
             logWarning(resp)
         return binascii.b2a_base64(resp)
 
 
     @cherrypy.expose
-    def writeFile(self, fpath, fdata):
+    def writeFile(self, fpath, fdata, flag='w'):
         """
         Write a file in user's home folder.
-        This function is called from the Java GUI.
+        Flag w/ wb = ascii/ binary.
         """
         user = cherrypy.session.get('username')
         fdata = binascii.a2b_base64(fdata)
-        resp = self.project.localFs.writeUserFile(user, fpath, fdata.replace('\r', ''))
+        # If this is NOT a binary file, fix the newline
+        if not 'b' in flag:
+            fdata = fdata.replace('\r', '')
+        resp = self.project.localFs.writeUserFile(user, fpath, fdata, flag)
         if resp != True:
             logWarning(resp)
         return resp

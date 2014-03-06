@@ -1,7 +1,7 @@
 
 # File: UserService.py ; This file is part of Twister.
 
-# version: 3.001
+# version: 3.002
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -70,7 +70,7 @@ def userHome():
     """
     Find the home folder for a given user.
     """
-    return subprocess.check_output('echo ~' + userName, shell=True).strip()
+    return subprocess.check_output('echo ~' + userName, shell=True).strip().rstrip('/')
 
 #
 
@@ -99,14 +99,34 @@ class UserService(rpyc.Service):
         return True
 
 
-    def exposed_read_file(self, fpath):
+    @staticmethod
+    def exposed_file_size(fpath):
+        """
+        Get file size for 1 file.
+        """
+        if fpath[0] == '~':
+            fpath = userHome() + fpath[1:]
+        try:
+            return os.stat(fpath).st_size
+        except Exception as e:
+            err = '*ERROR* Cannot find file `{}`! {}'.format(fpath, e)
+            log.warning(err)
+            return err
+
+
+    @staticmethod
+    def exposed_read_file(fpath, flag='r'):
         """
         Read 1 file.
         """
         if fpath[0] == '~':
             fpath = userHome() + fpath[1:]
+        if flag not in ['r', 'rb']:
+            err = '*ERROR* Invalid flag `{}`! Cannot read!'.format(flag)
+            log.warning(err)
+            return err
         try:
-            with open(fpath, 'r') as f:
+            with open(fpath, flag) as f:
                 return f.read()
         except Exception as e:
             err = '*ERROR* Cannot read file `{}`! {}'.format(fpath, e)
@@ -114,20 +134,29 @@ class UserService(rpyc.Service):
             return err
 
 
-    def exposed_write_file(self, fpath, fdata, mode='w'):
+    @staticmethod
+    def exposed_write_file(fpath, fdata, flag='a'):
         """
         Write data in a file.
-        Overwrite, or append.
+        Overwrite or append, ascii or binary.
         """
         if fpath[0] == '~':
             fpath = userHome() + fpath[1:]
+        if flag not in ['w', 'wb', 'a', 'ab']:
+            err = '*ERROR* Invalid flag `{}`! Cannot read!'.format(flag)
+            log.warning(err)
+            return err
         try:
-            with open(fpath, mode) as f:
+            with open(fpath, flag) as f:
                 f.write(fdata)
-            if mode == 'a':
-                log.debug('Appended `{}` chars in file `{}`.'.format(len(fdata), fpath))
+            if flag == 'w':
+                log.debug('Written `{}` chars in ascii file `{}`.'.format(len(fdata), fpath))
+            elif flag == 'wb':
+                log.debug('Written `{}` chars in binary file `{}`.'.format(len(fdata), fpath))
+            elif flag == 'a':
+                log.debug('Appended `{}` chars in ascii file `{}`.'.format(len(fdata), fpath))
             else:
-                log.debug('Written `{}` chars in file `{}`.'.format(len(fdata), fpath))
+                log.debug('Appended `{}` chars in binary file `{}`.'.format(len(fdata), fpath))
             return True
         except Exception as e:
             err = '*ERROR* Cannot write into file `{}`! {}'.format(fpath, e)
@@ -135,7 +164,8 @@ class UserService(rpyc.Service):
             return err
 
 
-    def exposed_copy_file(self, fpath, newpath):
+    @staticmethod
+    def exposed_copy_file(fpath, newpath):
         """
         Copy 1 file.
         """
@@ -153,7 +183,8 @@ class UserService(rpyc.Service):
             return err
 
 
-    def exposed_move_file(self, fpath, newpath):
+    @staticmethod
+    def exposed_move_file(fpath, newpath):
         """
         Move 1 file.
         """
@@ -171,7 +202,8 @@ class UserService(rpyc.Service):
             return err
 
 
-    def exposed_delete_file(self, fpath):
+    @staticmethod
+    def exposed_delete_file(fpath):
         """
         Delete a file. This is IREVERSIBLE!
         """
@@ -187,7 +219,8 @@ class UserService(rpyc.Service):
             return err
 
 
-    def exposed_create_folder(self, folder):
+    @staticmethod
+    def exposed_create_folder(folder):
         """
         Create a new folder.
         """
@@ -203,7 +236,8 @@ class UserService(rpyc.Service):
             return err
 
 
-    def exposed_list_files(self, folder, hidden=True):
+    @staticmethod
+    def exposed_list_files(folder, hidden=True):
         """
         List all files, recursively.
         """
@@ -247,7 +281,8 @@ class UserService(rpyc.Service):
         return paths
 
 
-    def exposed_delete_folder(self, folder):
+    @staticmethod
+    def exposed_delete_folder(folder):
         """
         Create a user folder.
         """

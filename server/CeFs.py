@@ -1,7 +1,7 @@
 
 # File: CeFs.py ; This file is part of Twister.
 
-# version: 3.002
+# version: 3.003
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -184,18 +184,26 @@ class LocalFS(object):
 
     # ----- USER ---------------------------------------------------------------
 
-    def readUserFile(self, user, fpath):
+    def fileSize(self, user, fpath):
         srvr = self._usrService(user)
         if srvr:
-            return srvr.root.read_file(fpath)
+            return srvr.root.file_size(fpath)
         else:
             return False
 
 
-    def writeUserFile(self, user, fpath, fdata, mode='w'):
+    def readUserFile(self, user, fpath, flag='r'):
         srvr = self._usrService(user)
         if srvr:
-            return srvr.root.write_file(fpath, fdata, mode)
+            return srvr.root.read_file(fpath, flag)
+        else:
+            return False
+
+
+    def writeUserFile(self, user, fpath, fdata, flag='w'):
+        srvr = self._usrService(user)
+        if srvr:
+            return srvr.root.write_file(fpath, fdata, flag)
         else:
             return False
 
