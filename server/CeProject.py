@@ -1,7 +1,7 @@
 
 # File: CeProject.py ; This file is part of Twister.
 
-# version: 3.022
+# version: 3.024
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -92,7 +92,7 @@ import cherrypy
 import rpyc
 
 try: import simplejson as json
-except: import json
+except Exception: import json
 
 from collections import OrderedDict
 from thread import allocate_lock
@@ -126,7 +126,6 @@ from CeServices  import ServiceManager
 from CeWebUi     import WebInterface
 from CeResources import ResourceAllocator
 from CeReports   import ReportingServer
-from CeFs import LocalFS
 
 usrs_and_pwds = {}
 usr_pwds_lock = allocate_lock()
@@ -157,7 +156,7 @@ def cache_users():
             home = userHome(user)
             if os.path.isdir(home + '/twister/config'):
                 users.append(user)
-    except:
+    except Exception:
         pass
 
     # Eliminate duplicates
@@ -166,7 +165,7 @@ def cache_users():
     with open(TWISTER_PATH + '/config/cached_users.json', 'w') as f:
         try:
             json.dump(users, f, indent=4)
-        except:
+        except Exception:
             logError('Cache users operation failed! Cannot write in file `{}`!'.format(f))
             return False
 
@@ -199,19 +198,19 @@ class Project(object):
         try:
             self.srv_ver = open(TWISTER_PATH + '/server/version.txt').read().strip()
             self.srv_ver = 'version `{}`'.format(self.srv_ver)
-        except: self.srv_ver = ''
+        except Exception: self.srv_ver = ''
 
         logInfo('STARTING TWISTER SERVER {}...'.format(self.srv_ver))
         ti = time.time()
 
-        self.rsrv    = None  # RPyc server pointer
+        self.rsrv    = None # RPyc server pointer
         self.ip_port = None # Will be injected by the Central Engine CherryPy
         self.manager = ServiceManager()
         self.web   = WebInterface(self)
         self.ra    = ResourceAllocator(self)
         self.report = ReportingServer(self)
 
-        self.localFs = LocalFS() # Singleton
+        self.localFs = None # local FS pointer
 
         # Users, parsers, IDs...
         self.users = {}
@@ -299,7 +298,7 @@ class Project(object):
             cherrypy.session['username'] = user
             cherrypy.session['user_passwd'] = user_passwd
             return True
-        except:
+        except Exception:
             t.stop_thread()
             t.close()
             return False
@@ -338,7 +337,7 @@ class Project(object):
             t.close()
             usrs_and_pwds[rpyc_user] = passwd
             return True
-        except:
+        except Exception:
             t.stop_thread()
             t.close()
             return False
@@ -568,7 +567,7 @@ class Project(object):
             ''.format(user, base_config, files_config))
 
         try: del self.parsers[user]
-        except: pass
+        except Exception: pass
         self.parsers[user] = TSCParser(user, base_config, files_config)
 
         with self.usr_lock:
@@ -631,7 +630,7 @@ class Project(object):
         with open(TWISTER_PATH + '/config/cached_users.json', 'r') as f:
             try:
                 users = json.load(f)
-            except:
+            except Exception:
                 return users
         # Filter active users ?
         if active:
@@ -690,7 +689,7 @@ class Project(object):
 
             with open(TWISTER_PATH + '/config/project_users.json', 'w') as f:
                 try: json.dump(self.users, f, indent=4)
-                except: pass
+                except Exception: pass
 
 
 # # #
@@ -858,7 +857,7 @@ class Project(object):
             for usr in tmp_users:
                 # Delete the user key, before sending
                 try: del tmp_users[usr]['key']
-                except: pass
+                except Exception: pass
 
             # build a osrted list of users from tmp_users
             sorted_users = sorted(tmp_users.keys())
@@ -888,10 +887,10 @@ class Project(object):
                 if d.strip() != '(none)':
                     try:
                         subprocess.check_output('ypmatch {} passwd'.format(name), shell=True)
-                    except:
+                    except Exception:
                         if name not in self.listUsers(nis=False):
                             return '*ERROR* : Invalid system user `{}` !'.format(name)
-            except:
+            except Exception:
                 pass
             try:
                 usr_group = args[0][0]
@@ -1164,7 +1163,7 @@ class Project(object):
         r = self.authenticate(user)
         if not r: return {}
 
-        return self.users[user]['eps'].get(epname, {})
+        return self.users[user].get('eps', {}).get(epname, {})
 
 
     def getEpFiles(self, user, epname):
@@ -1180,8 +1179,11 @@ class Project(object):
             logDebug('Project: Invalid EP name `{}` !'.format(epname))
             return False
 
-        files = self.users[user]['eps'][epname]['suites'].getFiles()
-        return files
+        ep = self.users[user].get('eps', {}).get(epname, {})
+        if 'suites' in ep:
+            return ep['suites'].getFiles()
+        else:
+            return []
 
 
     def setEpInfo(self, user, epname, key, value):
@@ -1338,7 +1340,7 @@ class Project(object):
         hostName = socket.gethostname()
         addr.append(hostName)
         try: addr.append(socket.gethostbyaddr(hostName)[-1][0])
-        except: pass
+        except Exception: pass
 
         local_client = self.rsrv.service._findConnection(usr=user, addr=addr, hello='client')
 
@@ -1361,7 +1363,7 @@ class Project(object):
         hostName = socket.gethostname()
         addr.append(hostName)
         try: addr.append(socket.gethostbyaddr(hostName)[-1][0])
-        except: pass
+        except Exception: pass
 
         # Shortcut to the Rpyc Service
         rpyc_srv = self.rsrv.service
@@ -1439,6 +1441,8 @@ class Project(object):
         if new_status == STATUS_RUNNING:
             self.rsrv.service.exposed_startEP(epname, user)
         elif new_status == STATUS_STOP:
+            # Call the backup logs
+            self.backupLogs(user)
             self.rsrv.service.exposed_stopEP(epname, user)
 
         # If all Stations are stopped, the status for current user is also stop!
@@ -1486,13 +1490,10 @@ class Project(object):
                         plugin = self._buildPlugin(user, pname,  {'ce_stop': 'automatic'})
                         try:
                             plugin.onStop()
-                        except:
+                        except Exception:
                             trace = traceback.format_exc()[33:].strip()
                             logWarning('Error on running plugin `{} onStop` - Exception: `{}`!'.format(pname, trace))
                     del parser, plugins
-
-                    # Call the backup logs
-                    self.backupLogs(user)
 
                     # Cycle all files to change the PENDING status to NOT_EXEC
                     eps_pointer = self.users[user]['eps']
@@ -1603,7 +1604,7 @@ class Project(object):
                         plugin.onStart( self.getUserInfo(user, 'clear_case_view') )
                     else:
                         plugin.onStart()
-                except:
+                except Exception:
                     trace = traceback.format_exc()[34:].strip()
                     logWarning('Error on running plugin `{} onStart` - Exception: `{}`!'.format(pname, trace))
             del parser, plugins
@@ -1656,7 +1657,7 @@ class Project(object):
                 plugin = self._buildPlugin(user, pname, {'ce_stop': 'manual'})
                 try:
                     plugin.onStop()
-                except:
+                except Exception:
                     trace = traceback.format_exc()[34:].strip()
                     logWarning('Error on running plugin `{} onStop` - Exception: `{}`!'.format(pname, trace))
             del parser, plugins
@@ -1730,7 +1731,7 @@ class Project(object):
         if not r: return []
 
         if suite_id and not epname:
-            logError('Project: Must provide both EP and Suite!')
+            logError('Must provide both EP and Suite, user `{}`!'.format(user))
             return []
 
         statuses = {} # Unordered
@@ -1738,7 +1739,10 @@ class Project(object):
 
         # Lock resource
         with self.stt_lock:
-            eps = self.users[user]['eps']
+            eps = self.users[user].get('eps')
+
+            if not eps:
+                return []
 
             if epname:
                 if suite_id:
@@ -1897,7 +1901,7 @@ class Project(object):
         if not r: return False
 
         try: node_path = [v for v in variable.split('/') if v]
-        except:
+        except Exception:
             logWarning('Global Variable: Invalid variable type `{}`, for user `{}`!'.format(variable, user))
             return False
 
@@ -1924,7 +1928,7 @@ class Project(object):
         if not r: return False
 
         try: node_path = [v for v in variable.split('/') if v]
-        except:
+        except Exception:
             logWarning('Global Variable: Invalid variable type `{}`, for user `{}`!'.format(variable, user))
             return False
 
@@ -2322,7 +2326,7 @@ class Project(object):
             # Decode e-mail password
             try:
                 SMTPPwd = self.decryptText(user, eMailConfig['SMTPPwd'])
-            except:
+            except Exception:
                 log = 'SMTP: Password is not set for user `{}`!'.format(user)
                 logError(log)
                 return log
@@ -2337,7 +2341,7 @@ class Project(object):
 
                 try:
                     server = smtplib.SMTP(eMailConfig['SMTPPath'], timeout=2)
-                except:
+                except Exception:
                     log = 'SMTP: Cannot connect to SMTP server `{}`!'.format(eMailConfig['SMTPPath'])
                     logError(log)
                     return log
@@ -2349,7 +2353,7 @@ class Project(object):
                     server.ehlo()
 
                     server.login(eMailConfig['SMTPUser'], eMailConfig['SMTPPwd'])
-                except:
+                except Exception:
                     log = 'SMTP: Cannot authenticate to SMTP server for `{}`! Invalid user `{}` or password!'.format(user, eMailConfig['SMTPUser'])
                     logError(log)
                     return log
@@ -2385,7 +2389,7 @@ class Project(object):
             try:
                 logPath = self.users[user]['log_types']['logSummary']
                 logSummary = open(logPath).read()
-            except:
+            except Exception:
                 log = '*ERROR* Cannot open Summary Log `{}` for reading, on user `{}`!'.format(logPath, user)
                 logError(log)
                 return log
@@ -2400,7 +2404,7 @@ class Project(object):
 
             ce_host = socket.gethostname()
             try: ce_ip = socket.gethostbyname(ce_host)
-            except: ce_ip = ''
+            except Exception: ce_ip = ''
             system = platform.machine() +' '+ platform.system() +', '+ ' '.join(platform.linux_distribution())
 
             # Information that will be mapped into subject or message of the e-mail
@@ -2445,11 +2449,11 @@ class Project(object):
                             map_info[k] = str(suite_data[k])
 
             try: del map_info['name']
-            except: pass
+            except Exception: pass
             try: del map_info['type']
-            except: pass
+            except Exception: pass
             try: del map_info['pd']
-            except: pass
+            except Exception: pass
 
             # print 'E-mail map info::', json.dumps(map_info, indent=4, sort_keys=True)
 
@@ -2528,7 +2532,7 @@ class Project(object):
 
             try:
                 server = smtplib.SMTP(eMailConfig['SMTPPath'], timeout=2)
-            except:
+            except Exception:
                 log = 'SMTP: Cannot connect to SMTP server `{}`, for user `{}`!'.format(eMailConfig['SMTPPath'], user)
                 logError(log)
                 return log
@@ -2540,7 +2544,7 @@ class Project(object):
                 server.ehlo()
 
                 server.login(eMailConfig['SMTPUser'], eMailConfig['SMTPPwd'])
-            except:
+            except Exception:
                 log = 'SMTP: Cannot authenticate to SMTP server for `{}`! Invalid user `{}` or password!'.format(user, eMailConfig['SMTPUser'])
                 logError(log)
                 return log
@@ -2550,7 +2554,7 @@ class Project(object):
                 logDebug('SMTP: E-mail sent successfully for user `{}`!'.format(user))
                 server.quit()
                 return True
-            except:
+            except Exception:
                 log = 'SMTP: Cannot send e-mail for user `{}`!'.format(user)
                 logError(log)
                 return log
@@ -2576,7 +2580,7 @@ class Project(object):
 
             # Database parser, fields, queries
             # This is created every time the Save to Database is called
-            db_parser = DBParser(db_file)
+            db_parser = DBParser(user, db_file)
             db_config = db_parser.db_config
             queries = db_parser.getInsertQueries() # List
             fields  = db_parser.getInsertFields()  # Dictionary
@@ -2638,7 +2642,7 @@ class Project(object):
 
                     ce_host = socket.gethostname()
                     try: ce_ip = socket.gethostbyname(ce_host)
-                    except: ce_ip = ''
+                    except Exception: ce_ip = ''
 
                     # Insert/ fix DB variables
                     subst_data['twister_user']    = user
@@ -2660,13 +2664,13 @@ class Project(object):
                     subst_data['twister_tc_description'] = ''
 
                     try: del subst_data['name']
-                    except: pass
+                    except Exception: pass
                     try: del subst_data['status']
-                    except: pass
+                    except Exception: pass
                     try: del subst_data['type']
-                    except: pass
+                    except Exception: pass
                     try: del subst_data['pd']
-                    except: pass
+                    except Exception: pass
 
                     # Escape all unicodes variables before SQL Statements!
                     subst_data = {k: conn.escape_string(v) if isinstance(v, unicode) else v for k,v in subst_data.iteritems()}
@@ -2676,7 +2680,7 @@ class Project(object):
                         subst_data['twister_tc_log'] = conn.escape_string( subst_data['twister_tc_log'].replace('\n', '<br>\n') )
                         subst_data['twister_tc_log'] = subst_data['twister_tc_log'].replace('<div', '&lt;div')
                         subst_data['twister_tc_log'] = subst_data['twister_tc_log'].replace('</div', '&lt;/div')
-                    except:
+                    except Exception:
                         subst_data['twister_tc_log'] = '*no log*'
 
                     # Setup and Teardown files will not be saved to database!
@@ -2694,7 +2698,7 @@ class Project(object):
 
                         # All variables of type `UserScript` must be replaced with the script result
                         try: user_script_fields = re.findall('(\$.+?)[,\.\'"\s]', query)
-                        except: user_script_fields = []
+                        except Exception: user_script_fields = []
 
                         for field in user_script_fields:
                             field = field[1:]
@@ -2747,7 +2751,7 @@ class Project(object):
 
                         # All variables of type `DbSelect` must be replaced with the SQL result
                         try: auto_insert_fields = re.findall('(@.+?@)', query)
-                        except: auto_insert_fields = []
+                        except Exception: auto_insert_fields = []
 
                         for field in auto_insert_fields:
                             # Delete the @ character
@@ -2866,14 +2870,14 @@ class Project(object):
         data.update(extra_data)
         data['ce'] = self
         try: del data['eps']
-        except: pass
+        except Exception: pass
         try: del data['global_params']
-        except: pass
+        except Exception: pass
         try: del data['status']
-        except: pass
+        except Exception: pass
         # Delete the un-initialized plug class
         try: del data['plugin']
-        except: pass
+        except Exception: pass
 
         # Initialize the plug
         if not plug_ptr:
@@ -2882,7 +2886,7 @@ class Project(object):
         else:
             try:
                 plug_ptr.data.update(data)
-            except:
+            except Exception:
                 plug_ptr.data = data
                 logError('Plug-ins: Warning! Overwriting the `data` attr from plug-in `{}`!'.format(plugin))
             plugin = plug_ptr
@@ -2944,7 +2948,7 @@ class Project(object):
 
         try:
             data = open(logPath, 'r').read()
-        except:
+        except Exception:
             logError('Find Log: File `{}` cannot be read!'.format(logPath))
             return '*no log*'
 
@@ -3000,7 +3004,7 @@ class Project(object):
 
         try:
             log_string = binascii.a2b_base64(logMessage)
-        except:
+        except Exception:
             logError('Log Error for `{}`: Invalid base64 log!'.format(user))
             return False
 

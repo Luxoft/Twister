@@ -1,7 +1,7 @@
 
 # File: CeFs.py ; This file is part of Twister.
 
-# version: 3.001
+# version: 3.003
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -29,6 +29,7 @@ import copy
 import random
 import socket
 import subprocess
+from plumbum import local
 import rpyc
 
 socket.setdefaulttimeout(3)
@@ -63,23 +64,43 @@ class LocalFS(object):
     All local file operations should be done via THIS class.
     This is a singleton.
     """
-    services = {}
-    srv_lock = allocate_lock()
+    _services = {}
+    _srv_lock = allocate_lock()
 
 
-    def __init__(self):
+    def __init__(self, project=None):
         if os.getuid():
             logError('Local FS: Central Engine must run as ROOT in order to start the User Service!')
+        if project:
+            self.project = project
         logInfo('Created Local FS.')
+
+
+    def _kill(self, user):
+
+        ps   = local['ps']
+        grep = local['grep']
+
+        pids = (ps['aux'] | grep['/server/UserService.py'] | grep['^'])()
+
+        # Kill all leftover processes
+        for line in pids.strip().splitlines():
+            li = line.strip().decode('utf').split()
+            PID = int(li[1])
+            del li[2:5]
+            if '/bin/sh' in li: continue
+            if '/bin/grep' in li: continue
+            logDebug('Killing ugly zombie `{}`.'.format(' '.join(li)))
+            try:
+                os.kill(PID, 9)
+            except:
+                pass
 
 
     def _usrService(self, user):
         """
         Launch a user service.
         """
-        if not userHome(user):
-            logError('Local FS: Username `{}` is not valid!'.format(user))
-            return False
 
         # # DEBUG. Show all available User Services, for current user.
         # try:
@@ -96,42 +117,44 @@ class LocalFS(object):
         # except:
         #     logDebug('No User Services found for `{}`.'.format(user))
 
-        # Try to re-use the logger server, if available
-        conn = self.services.get(user, {}).get('conn', None)
-        if conn:
-            try:
-                conn.root.hello()
-                logFull('Reuse old User Service connection for `{}` OK.'.format(user))
-                return conn
-            except:
-                pass
-
-        logDebug('Preparing to launch/ reuse a User Service for `{}`...'.format(user))
-        port = None
-
-        # If the server is not available, search for a free port in the safe range...
-        while 1:
-            port = random.randrange(63000, 65000)
-            try:
-                socket.create_connection((None, port), 1)
-            except:
-                break
-
-        p_cmd = 'su {} -c "{} -u {}/server/UserService.py {}"'.format(user, sys.executable, TWISTER_PATH, port)
-        proc = subprocess.Popen(p_cmd, cwd='{}/twister'.format(userHome(user)), shell=True,
-               stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        proc.poll()
-        time.sleep(0.2)
-
-        config = {
-            'allow_pickle': True,
-            'allow_getattr': True,
-            'allow_setattr': True,
-            'allow_delattr': True
-        }
-
         # Must block here, so more users cannot launch Logs at the same time and lose the PID
-        with self.srv_lock:
+        with self._srv_lock:
+
+            # Try to re-use the logger server, if available
+            conn = self._services.get(user, {}).get('conn', None)
+            if conn:
+                try:
+                    conn.root.hello()
+                    # logDebug('Reuse old User Service connection for `{}` OK.'.format(user))
+                    return conn
+                except Exception as e:
+                    logWarning('Cannot connect to User Service for `{}`: `{}`.'.format(user, e))
+                    self._kill(user)
+            else:
+                logInfo('Launching a User Service for `{}`, the first time...'.format(user))
+
+            port = None
+
+            # If the server is not available, search for a free port in the safe range...
+            while 1:
+                port = random.randrange(63000, 65000)
+                try:
+                    socket.create_connection((None, port), 1)
+                except:
+                    break
+
+            p_cmd = 'su {} -c "{} -u {}/server/UserService.py {}"'.format(user, sys.executable, TWISTER_PATH, port)
+            proc = subprocess.Popen(p_cmd, cwd='{}/twister'.format(userHome(user)), shell=True,
+                   stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            proc.poll()
+            time.sleep(0.2)
+
+            config = {
+                'allow_pickle': True,
+                'allow_getattr': True,
+                'allow_setattr': True,
+                'allow_delattr': True
+            }
 
             retries = 10
             success = False
@@ -153,7 +176,7 @@ class LocalFS(object):
                 return False
 
             # Save the process inside the block.  99% of the time, this block is executed instantly!
-            self.services[user] = {'proc': proc, 'conn': conn, 'port': port}
+            self._services[user] = {'proc': proc, 'conn': conn, 'port': port}
 
         logDebug('User Service for `{}` launched on `127.0.0.1:{}` - PID `{}`.'.format(user, port, proc.pid))
         return conn
@@ -161,18 +184,30 @@ class LocalFS(object):
 
     # ----- USER ---------------------------------------------------------------
 
-    def readUserFile(self, user, fpath):
+    def fileSize(self, user, fpath):
         srvr = self._usrService(user)
         if srvr:
-            return srvr.root.read_file(fpath)
+            return srvr.root.file_size(fpath)
         else:
             return False
 
 
-    def writeUserFile(self, user, fpath, fdata, mode='w'):
+    def readUserFile(self, user, fpath, flag='r'):
         srvr = self._usrService(user)
         if srvr:
-            return srvr.root.write_file(fpath, fdata, mode)
+            return srvr.root.read_file(fpath, flag)
+        else:
+            return False
+
+
+    def writeUserFile(self, user, fpath, fdata, flag='w'):
+        srvr = self._usrService(user)
+        if len(fdata) > 20*1000*1000:
+            err = '*ERROR* File data too long `{}`: {}!'.format(fpath, len(fdata))
+            logWarning(err)
+            return err
+        if srvr:
+            return srvr.root.write_file(fpath, fdata, flag)
         else:
             return False
 
@@ -209,10 +244,10 @@ class LocalFS(object):
             return False
 
 
-    def listUserFiles(self, user, fdir):
+    def listUserFiles(self, user, fdir, hidden=True):
         srvr = self._usrService(user)
         if srvr:
-            files = srvr.root.list_files(fdir)
+            files = srvr.root.list_files(fdir, hidden)
             return copy.copy(files)
         else:
             return False
