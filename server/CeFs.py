@@ -202,6 +202,10 @@ class LocalFS(object):
 
     def writeUserFile(self, user, fpath, fdata, flag='w'):
         srvr = self._usrService(user)
+        if len(fdata) > 20*1000*1000:
+            err = '*ERROR* File data too long `{}`: {}!'.format(fpath, len(fdata))
+            logWarning(err)
+            return err
         if srvr:
             return srvr.root.write_file(fpath, fdata, flag)
         else:

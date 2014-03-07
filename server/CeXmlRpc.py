@@ -120,7 +120,6 @@ class CeXmlRpc(_cptools.XMLRPCController):
         '''
         Returns the Twister Path.
         '''
-        logFull('CeXmlRpc:getTwisterPath')
         global TWISTER_PATH
         return TWISTER_PATH
 
@@ -130,7 +129,6 @@ class CeXmlRpc(_cptools.XMLRPCController):
         '''
         Returns the Twister RPyc Port.
         '''
-        logFull('CeXmlRpc:getRpycPort')
         return self.project.rsrv.port
 
 
@@ -139,8 +137,16 @@ class CeXmlRpc(_cptools.XMLRPCController):
         '''
         Returns some system information.
         '''
-        logFull('CeXmlRpc:getSysInfo')
         return systemInfo()
+
+
+    @cherrypy.expose
+    def getUserHome(self):
+        '''
+        Returns some system information.
+        '''
+        user = cherrypy.session.get('username')
+        return userHome(user)
 
 
     @cherrypy.expose
@@ -148,7 +154,6 @@ class CeXmlRpc(_cptools.XMLRPCController):
         '''
         Returns the path to Logs files.
         '''
-        logFull('CeXmlRpc:getLogsPath')
         return self.project.getUserInfo(user, 'logs_path')
 
 

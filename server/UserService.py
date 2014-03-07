@@ -1,7 +1,7 @@
 
 # File: UserService.py ; This file is part of Twister.
 
-# version: 3.002
+# version: 3.003
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -29,6 +29,7 @@ This process runs in the Twister Client folder.
 """
 
 import os, sys
+import time
 import shutil
 import subprocess
 import logging
@@ -130,7 +131,12 @@ class UserService(rpyc.Service):
         try:
             with open(fpath, flag) as f:
                 log.debug('Reading file `{}`, flag `{}`.'.format(fpath, flag))
-                return f.read()
+                fdata = f.read()
+                if len(fdata) > 20*1000*1000:
+                    err = '*ERROR* File data too long `{}`: {}!'.format(fpath, len(fdata))
+                    logWarning(err)
+                    return err
+                return fdata
         except Exception as e:
             err = '*ERROR* Cannot read file `{}`! {}'.format(fpath, e)
             log.warning(err)
@@ -246,6 +252,10 @@ class UserService(rpyc.Service):
         """
         if folder[0] == '~':
             folder = userHome() + folder[1:]
+        if folder == '/':
+            err = '*ERROR* Cannot list ROOT folder!'
+            log.warning(err)
+            return err
 
         def dirList(base_path, path, new_dict):
             """
@@ -260,9 +270,13 @@ class UserService(rpyc.Service):
                     # Ignore hidden files
                     if hidden and fname[0] == '.':
                         continue
-                    short_path = (path + os.sep + fname)[len_path:]
-                    nd = {'path': short_path, 'data': fname}
-                    if os.path.isdir(path + os.sep + fname):
+                    long_path  = path + os.sep + fname
+                    short_path = (long_path)[len_path:]
+                    fstat = os.stat(long_path)
+                    meta_info = '{}|{}|{}|{}'.format(fstat.st_uid, fstat.st_gid, fstat.st_size,
+                        time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(fstat.st_mtime)))
+                    nd = {'path': short_path, 'data': fname, 'meta': meta_info}
+                    if os.path.isdir(long_path):
                         nd['folder'] = True
                         nd['children'] = []
                         dlist.append(nd)

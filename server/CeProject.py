@@ -1,7 +1,7 @@
 
 # File: CeProject.py ; This file is part of Twister.
 
-# version: 3.023
+# version: 3.024
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -1163,7 +1163,7 @@ class Project(object):
         r = self.authenticate(user)
         if not r: return {}
 
-        return self.users[user]['eps'].get(epname, {})
+        return self.users[user].get('eps', {}).get(epname, {})
 
 
     def getEpFiles(self, user, epname):
@@ -1179,8 +1179,11 @@ class Project(object):
             logDebug('Project: Invalid EP name `{}` !'.format(epname))
             return False
 
-        files = self.users[user]['eps'][epname]['suites'].getFiles()
-        return files
+        ep = self.users[user].get('eps', {}).get(epname, {})
+        if 'suites' in ep:
+            return ep['suites'].getFiles()
+        else:
+            return []
 
 
     def setEpInfo(self, user, epname, key, value):
@@ -1739,7 +1742,6 @@ class Project(object):
             eps = self.users[user].get('eps')
 
             if not eps:
-                logWarning('EPs and Suites are not yet loaded, user `{}`!'.format(user))
                 return []
 
             if epname:
