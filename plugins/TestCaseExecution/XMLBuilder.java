@@ -1,6 +1,6 @@
 /*
 File: XMLBuilder.java ; This file is part of Twister.
-Version: 2.015
+Version: 2.016
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -492,15 +492,15 @@ public class XMLBuilder{
                             result2.append(path[i]);
                             result2.append("/");}}
                     FileInputStream in = new FileInputStream(file);
-                    return RunnerRepository.uploadRemoteFile(result2.toString(), in, file.getName());
+                    return RunnerRepository.uploadRemoteFile(result2.toString(), in, file.getName(),false);
                 }
                 else{
                     if(lib){
                         FileInputStream in = new FileInputStream(file);
-                        return RunnerRepository.uploadRemoteFile(RunnerRepository.getPredefinedSuitesPath(), in, file.getName());
+                        return RunnerRepository.uploadRemoteFile(RunnerRepository.getPredefinedSuitesPath(), in, file.getName(),false);
                     } else {
                         FileInputStream in = new FileInputStream(file);
-                        return RunnerRepository.uploadRemoteFile(RunnerRepository.getRemoteUsersDirectory(), in, file.getName());
+                        return RunnerRepository.uploadRemoteFile(RunnerRepository.getRemoteUsersDirectory(), in, file.getName(),false);
                     }
                 }}
             catch(Exception e){e.printStackTrace();

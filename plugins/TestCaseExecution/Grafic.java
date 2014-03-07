@@ -1,6 +1,6 @@
 /*
 File: Grafic.java ; This file is part of Twister.
-Version: 2.0019
+Version: 2.0020
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -2426,7 +2426,7 @@ public class Grafic extends JPanel{
                             System.out.println("Could not find projects path:"+RunnerRepository.getTestSuitePath()+" in filename:"+name);
                             e.printStackTrace();}
                             
-                            try{String content = RunnerRepository.getRemoteFileContent(RunnerRepository.getPredefinedSuitesPath()+name);             
+                            try{String content = new String(RunnerRepository.getRemoteFileContent(RunnerRepository.getPredefinedSuitesPath()+name,false));             
                                 String [] filename = name.split("/");
                                 File file = new File(RunnerRepository.temp+RunnerRepository.getBar()+"Twister"+
                                                      RunnerRepository.getBar()+"Users"+RunnerRepository.getBar()+   

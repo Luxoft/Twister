@@ -1,6 +1,6 @@
 /*
 File: BasePlugin.java ; This file is part of Twister.
-Version: 2.003
+Version: 2.005
 Copyright (C) 2012 , Luxoft
 
 Authors: Andrei Costachi <acostachi@luxoft.com>
@@ -24,11 +24,14 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileReader;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.Properties;
 
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.xml.bind.DatatypeConverter;
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Result;
 import javax.xml.transform.Transformer;
@@ -36,15 +39,18 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
+import org.apache.xmlrpc.client.XmlRpcClient;
+import org.apache.xmlrpc.client.XmlRpcClientConfigImpl;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 import org.w3c.dom.Node;
 
-import com.jcraft.jsch.Channel;
-import com.jcraft.jsch.ChannelSftp;
-import com.jcraft.jsch.JSch;
-import com.jcraft.jsch.Session;
+import com.twister.CustomDialog;
+//import com.jcraft.jsch.Channel;
+//import com.jcraft.jsch.ChannelSftp;
+//import com.jcraft.jsch.JSch;
+//import com.jcraft.jsch.Session;
 import com.twister.Item;
 import com.twister.plugin.twisterinterface.CommonInterface;
 import com.twister.plugin.twisterinterface.TwisterPluginInterface;
@@ -56,8 +62,9 @@ public class BasePlugin extends JPanel implements TwisterPluginInterface {
 	protected Hashtable<String, String> variables;
 	protected Document pluginsConfig;
 	protected Element rootElement;
-	protected ChannelSftp c;
-	protected Session session;
+	protected XmlRpcClient client;
+	//protected ChannelSftp c;
+	//protected Session session;
 
 	@Override
 	public void init(ArrayList<Item> suite, ArrayList<Item> suitetest,
@@ -66,7 +73,8 @@ public class BasePlugin extends JPanel implements TwisterPluginInterface {
 		this.suitetest = suitetest;
 		this.variables = variables;
 		this.pluginsConfig = pluginsConfig;
-		initializeSFTP();
+		//initializeSFTP();
+		initializeRPC(variables.get("user"), variables.get("host"), variables.get("password"), variables.get("port"));
 		createXMLStructure();
 		setEnabledValue(true);
 		uploadPluginsFile();
@@ -76,10 +84,10 @@ public class BasePlugin extends JPanel implements TwisterPluginInterface {
 	public void terminate() {
 		setEnabledValue(false);
 		uploadPluginsFile();
-		session.disconnect();
-		c.disconnect();
-		c = null;
-		session = null;
+		//session.disconnect();
+		//c.disconnect();
+		//c = null;
+		//session = null;
 		suite = null;
 		suitetest = null;
 		variables = null;
@@ -149,9 +157,20 @@ public class BasePlugin extends JPanel implements TwisterPluginInterface {
             transformer.setOutputProperty(OutputKeys.INDENT, "yes");
             transformer.setOutputProperty("{http:xml.apache.org/xslt}indent-amount","4");
             transformer.transform(source, result);
-            c.cd(variables.get("remoteuserhome")+"/twister/config/");
+            //c.cd(variables.get("remoteuserhome")+"/twister/config/");
             FileInputStream in = new FileInputStream(file);
-            c.put(in, file.getName());
+            //c.put(in, file.getName());
+            StringBuilder builder = new StringBuilder();
+            int ch;
+            while((ch = in.read()) != -1){
+                builder.append((char)ch);
+            }
+            String content = builder.toString();
+            content = DatatypeConverter.printBase64Binary(content.getBytes());
+            String resp = client.execute("writeFile", new Object[]{"~/twister/config/"+file.getName(),content,"w"}).toString();
+            if(resp.indexOf("*ERROR*")!=-1){
+                CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,this,"ERROR", resp);
+            }
             in.close();
             System.out.println("Saved "+file.getName()+" to: "+
 					variables.get("remoteuserhome")+"/twister/config/");
@@ -162,30 +181,47 @@ public class BasePlugin extends JPanel implements TwisterPluginInterface {
         }
     }
     
-    public ChannelSftp getSFTP(){
-    	return c;
+    /*
+     * XmlRpc main connection used by Twister framework
+     */
+    public void initializeRPC(String user, String host, String passwd, String port){
+        try{XmlRpcClientConfigImpl configuration = new XmlRpcClientConfigImpl();
+            configuration.setBasicPassword(passwd);
+            configuration.setBasicUserName(user);
+            configuration.setServerURL(new URL("http://"+user+":"+passwd+"@"+host+
+                                        ":"+port+"/"));
+            client = new XmlRpcClient();
+            client.setConfig(configuration);
+            System.out.println("Client initialized: "+client);}
+        catch(Exception e){System.out.println("Could not conect to "+
+                            host+" :"+port+
+                            "for RPC client initialization");}
     }
     
-    public void initializeSFTP(){
-		try{
-			JSch jsch = new JSch();
-            String user = variables.get("user");
-            session = jsch.getSession(user, variables.get("host"), 22);
-            session.setPassword(variables.get("password"));
-            Properties config = new Properties();
-            config.put("StrictHostKeyChecking", "no");
-            session.setConfig(config);
-            session.connect();
-            Channel channel = session.openChannel("sftp");
-            channel.connect();
-            c = (ChannelSftp)channel;
-            System.out.println("SFTP successfully initialized");
-		}
-		catch(Exception e){
-			System.out.println("SFTP could not be initialized");
-			e.printStackTrace();
-		}
-	}
+    //public ChannelSftp getSFTP(){
+    //	return c;
+    //}
+    
+    //public void initializeSFTP(){
+	//	try{
+	//		JSch jsch = new JSch();
+    //        String user = variables.get("user");
+    //        session = jsch.getSession(user, variables.get("host"), 22);
+    //        session.setPassword(variables.get("password"));
+    //        Properties config = new Properties();
+    //        config.put("StrictHostKeyChecking", "no");
+    //        session.setConfig(config);
+    //        session.connect();
+    //        Channel channel = session.openChannel("sftp");
+    //        channel.connect();
+    //        c = (ChannelSftp)channel;
+    //        System.out.println("SFTP successfully initialized");
+	//	}
+	//	catch(Exception e){
+	//		System.out.println("SFTP could not be initialized");
+	//		e.printStackTrace();
+	//	}
+	//}
 
 	/*
 	 * method to check and create XML structure for this plugin

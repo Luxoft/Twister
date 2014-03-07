@@ -1,6 +1,6 @@
 /*
 File: ConfigFiles.java ; This file is part of Twister.
-Version: 2.020
+Version: 2.021
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -41,7 +41,7 @@ import javax.xml.transform.stream.StreamResult;
 import org.w3c.dom.Comment;
 import javax.swing.JOptionPane;
 import java.util.ArrayList;
-import com.jcraft.jsch.ChannelSftp.LsEntry;
+// import com.jcraft.jsch.ChannelSftp.LsEntry;
 import java.io.InputStream;
 import java.io.FileOutputStream;
 import java.io.ByteArrayOutputStream;
@@ -335,7 +335,7 @@ public class ConfigFiles extends JPanel{
         
     public void loadConfig(String config){
         try{                    
-            String content = RunnerRepository.getRemoteFileContent(RunnerRepository.USERHOME+"/twister/config/"+config);
+            String content = new String(RunnerRepository.getRemoteFileContent(RunnerRepository.USERHOME+"/twister/config/"+config,false));
             File theone = new File(RunnerRepository.temp+RunnerRepository.getBar()+
                                     "Twister"+RunnerRepository.getBar()+"config"+
                                     RunnerRepository.getBar()+config);
@@ -361,7 +361,7 @@ public class ConfigFiles extends JPanel{
                     NodeList fstNm = fstElmnt.getChildNodes();
                     if(fstNm.item(0).getNodeValue().toString().toLowerCase().equals("config")){
                         FileInputStream in = new FileInputStream(theone);
-                        RunnerRepository.uploadRemoteFile(RunnerRepository.USERHOME+"/twister/config/", in, "fwmconfig.xml");
+                        RunnerRepository.uploadRemoteFile(RunnerRepository.USERHOME+"/twister/config/", in, "fwmconfig.xml",false);
                         RunnerRepository.emptyTestRunnerRepository();
                         RunnerRepository.emptyLogs();
                         File dir = new File(RunnerRepository.getUsersDirectory());
@@ -493,7 +493,7 @@ public class ConfigFiles extends JPanel{
                         if(RunnerRepository.container!=null)c = RunnerRepository.container.getParent();
                         else c = RunnerRepository.window;
                         try{
-                            new MySftpBrowser(RunnerRepository.host,RunnerRepository.user,RunnerRepository.password,textfield,c,false);
+                            new MySftpBrowser(RunnerRepository.host,RunnerRepository.user,RunnerRepository.password,RunnerRepository.CENTRALENGINEPORT,textfield,c,false);
                         }catch(Exception e){
                             System.out.println("There was a problem in opening sftp browser!");
                             e.printStackTrace();
@@ -590,7 +590,7 @@ public class ConfigFiles extends JPanel{
             transformer.transform(source, result);
             System.out.println("Saving to: "+RunnerRepository.USERHOME+"/twister/config/");
             FileInputStream in = new FileInputStream(file);
-            RunnerRepository.uploadRemoteFile(RunnerRepository.USERHOME+"/twister/config/", in, file.getName());
+            RunnerRepository.uploadRemoteFile(RunnerRepository.USERHOME+"/twister/config/", in, file.getName(),false);
         }
         catch(ParserConfigurationException e){
             System.out.println("DocumentBuilder cannot be created which"+

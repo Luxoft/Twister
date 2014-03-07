@@ -1,6 +1,6 @@
 /*
 File: Panel1.java ; This file is part of Twister.
-Version: 2.0017
+Version: 2.0018
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -712,7 +712,7 @@ public class Panel1 extends JPanel{
                 }
                 File file = new File(RunnerRepository.temp+RunnerRepository.getBar()+"Twister"+RunnerRepository.getBar()+"Users"+RunnerRepository.getBar()+user);
                 BufferedWriter writer = new BufferedWriter(new FileWriter(file));
-                String content = RunnerRepository.getRemoteFileContent(RunnerRepository.getRemoteUsersDirectory()+"/"+user);
+                String content = new String(RunnerRepository.getRemoteFileContent(RunnerRepository.getRemoteUsersDirectory()+"/"+user,false));
                 writer.write(content);
                 writer.close();
                 RunnerRepository.window.mainpanel.p1.sc.g.parseXML(new File(RunnerRepository.getUsersDirectory()+

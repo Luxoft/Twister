@@ -1,6 +1,6 @@
 /*
 File: ClearCasePanel.java ; This file is part of Twister.
-Version: 2.015
+Version: 2.016
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -47,8 +47,8 @@ import java.awt.dnd.DragSourceDragEvent;
 import java.awt.dnd.DragSourceEvent;
 import java.awt.dnd.DragSourceContext;
 import java.io.IOException;
-import com.jcraft.jsch.ChannelSftp;
-import com.jcraft.jsch.ChannelSftp.LsEntry;
+// import com.jcraft.jsch.ChannelSftp;
+// import com.jcraft.jsch.ChannelSftp.LsEntry;
 import java.util.Vector;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -61,7 +61,7 @@ import org.xml.sax.SAXException;
 import java.io.IOException;
 import java.util.Comparator;
 import java.util.Collections;
-import com.jcraft.jsch.SftpException;
+// import com.jcraft.jsch.SftpException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.io.BufferedReader;
@@ -116,10 +116,10 @@ import java.awt.event.ItemListener;
 import java.awt.event.ItemEvent;
 import com.twister.Item;
 import com.twister.CustomDialog;
-import com.jcraft.jsch.JSch;
-import com.jcraft.jsch.Session;
-import com.jcraft.jsch.Channel;
-import com.jcraft.jsch.ChannelSftp;
+// import com.jcraft.jsch.JSch;
+// import com.jcraft.jsch.Session;
+// import com.jcraft.jsch.Channel;
+// import com.jcraft.jsch.ChannelSftp;
 import java.util.Properties;
 import java.awt.datatransfer.Transferable;
 import java.awt.datatransfer.StringSelection;
@@ -145,8 +145,8 @@ public class ClearCasePanel{
     private TreePath[] selected;
     private DefaultMutableTreeNode child2;
     private JEditTextArea textarea;
-    public static ChannelSftp connection;
-    public static Session session;
+//     public static ChannelSftp connection;
+//     public static Session session;
 
     public ClearCasePanel() {
         RunnerRepository.introscreen.setStatus("Started ClearCasePanel interface initialization");
@@ -184,7 +184,7 @@ public class ClearCasePanel{
         });
         tree.setDragEnabled(true);
         tree.setRootVisible(false);
-        initializeSftp();
+//         initializeSftp();
         RunnerRepository.introscreen.setStatus("Finished Explorer interface initialization");
         RunnerRepository.introscreen.addPercent(0.035);
         RunnerRepository.introscreen.repaint();
@@ -909,31 +909,34 @@ public class ClearCasePanel{
     }
 
     public static File copyFileLocaly(String filename, String localfilename) {
-        InputStream in = null;
+//         InputStream in = null;
         try {
-            filename = connection.getHome()+"/"+filename;
+            filename ="~/"+filename;
             System.out.print("Getting " + filename + " ....");
-            in = connection.get(filename);
+//             in = connection.get(filename);
+            
         } catch (Exception e) {
             System.out.println("Could not get :" + filename);
             e.printStackTrace();
         }
-        InputStreamReader inputStreamReader = new InputStreamReader(in);
-        BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
+//         InputStreamReader inputStreamReader = new InputStreamReader(in);
+//         BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
         BufferedWriter writer = null;
-        String line;
+//         String line;
         File file2 = new File(localfilename);
         try {
             writer = new BufferedWriter(new FileWriter(file2));
-            while ((line = bufferedReader.readLine()) != null) {
-                writer.write(line);
-                writer.newLine();
-            }
+//             while ((line = bufferedReader.readLine()) != null) {
+//                 writer.write(line);
+//                 writer.newLine();
+//             }
+            String content = new String(RunnerRepository.getRemoteFileContent(filename, false));
+            writer.write(content);
             writer.flush();
-            bufferedReader.close();
+//             bufferedReader.close();
             writer.close();
-            inputStreamReader.close();
-            in.close();
+//             inputStreamReader.close();
+//             in.close();
             System.out.println("successfull");
         } catch (Exception e) {
             System.out.println("failed");
@@ -1006,22 +1009,22 @@ public class ClearCasePanel{
         return dragging;
     }
     
-    private void initializeSftp(){
-        try{
-            JSch jsch = new JSch();
-            session = jsch.getSession(RunnerRepository.user, RunnerRepository.host, 22);
-            session.setPassword(RunnerRepository.password);
-            Properties config = new Properties();
-            config.put("StrictHostKeyChecking", "no");
-            session.setConfig(config);
-            session.connect();
-            Channel channel = session.openChannel("sftp");
-            channel.connect();
-            connection = (ChannelSftp)channel;
-        } catch (Exception e){
-            e.printStackTrace();
-        }
-    }
+//     private void initializeSftp(){
+//         try{
+//             JSch jsch = new JSch();
+//             session = jsch.getSession(RunnerRepository.user, RunnerRepository.host, 22);
+//             session.setPassword(RunnerRepository.password);
+//             Properties config = new Properties();
+//             config.put("StrictHostKeyChecking", "no");
+//             session.setConfig(config);
+//             session.connect();
+//             Channel channel = session.openChannel("sftp");
+//             channel.connect();
+//             connection = (ChannelSftp)channel;
+//         } catch (Exception e){
+//             e.printStackTrace();
+//         }
+//     }
 }
 class Compare implements Comparator {
 

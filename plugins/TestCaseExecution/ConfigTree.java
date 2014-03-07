@@ -1,6 +1,6 @@
 /*
 File: ConfigTree.java ; This file is part of Twister.
-Version: 2.012
+Version: 2.013
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -22,15 +22,15 @@ import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.JTree;
 import javax.swing.JScrollPane;
 import java.awt.BorderLayout;
-import com.jcraft.jsch.ChannelSftp;
+// import com.jcraft.jsch.ChannelSftp;
 import java.util.Vector;
-import com.jcraft.jsch.ChannelSftp.LsEntry;
+// import com.jcraft.jsch.ChannelSftp.LsEntry;
 import java.util.Collections;
-import com.jcraft.jsch.SftpException;
-import com.jcraft.jsch.JSch;
-import com.jcraft.jsch.Session;
-import com.jcraft.jsch.Channel;
-import com.jcraft.jsch.ChannelSftp;
+// import com.jcraft.jsch.SftpException;
+// import com.jcraft.jsch.JSch;
+// import com.jcraft.jsch.Session;
+// import com.jcraft.jsch.Channel;
+// import com.jcraft.jsch.ChannelSftp;
 import java.util.Properties;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -60,6 +60,7 @@ import javax.xml.bind.DatatypeConverter;
 import com.twister.CustomDialog;
 import javax.swing.JOptionPane;
 import javax.swing.tree.TreeNode;
+import java.io.FileInputStream;
 
 
 
@@ -67,8 +68,8 @@ public class ConfigTree extends JPanel{
     private ConfigEditor confeditor;
     public JTree tree;
     private DefaultMutableTreeNode root;
-    public ChannelSftp connection;
-    public Session session;
+//     public ChannelSftp connection;
+//     public Session session;
     
     public ConfigTree(){
         JPanel buttons = new JPanel();
@@ -102,43 +103,17 @@ public class ConfigTree extends JPanel{
                 sb.append(filename);
                 String thefile = sb.toString();
                 if(!((DefaultMutableTreeNode)tree.getSelectionPath().getLastPathComponent()).getAllowsChildren()){
-//                     String thefile = tree.getSelectionPath().getParentPath().getLastPathComponent().toString()
-//                                             + "/"
-//                                             + tree.getSelectionPath().getLastPathComponent().toString();
-                    
-                    
                     try{
-                        
-//                         Object [] path = tree.getSelectionPath().getPath();
-//                         StringBuilder sb = new StringBuilder();
-//                         for(int i=1;i<path.length-1;i++){
-//                             sb.append(path[i].toString());
-//                             sb.append("/");
-//                         }
-//                         String user = "";
-//                         String filename = path[path.length-1].toString();
-//                         if(path[path.length-1].toString().indexOf(" - Reserved by ")!=-1){
-//                             String [] temp = path[path.length-1].toString().split(" - Reserved by ");
-//                             filename = temp[0];
-//                             if(temp.length>1)user = temp[1];
-//                         }
-//                         sb.append(filename);
-//                         String thefile = sb.toString();
-                        
-                        
-                        
                         String content = RunnerRepository.getRPCClient().execute("deleteConfigFile", new Object[]{thefile}).toString();
                         if(content.indexOf("*ERROR*")!=-1){
                             CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,ConfigTree.this,"ERROR", content);
                         }
                             refreshStructure();
-//                         connection.rm(thefile);
                     }
                     catch(Exception e){System.out.println("Could not delete: "+thefile);
                                        e.printStackTrace();
                     }
                 } else {
-//                     String thefile = tree.getSelectionPath().getLastPathComponent().toString();
                     try{removeDirectory(thefile);}
                     catch(Exception ex){System.out.println("Could not delete: "+thefile);
                                         ex.printStackTrace();
@@ -157,11 +132,17 @@ public class ConfigTree extends JPanel{
                 AbstractAction action = new AbstractAction(){
                     public void actionPerformed(ActionEvent ev){
                         try{System.out.println("Creating: "+tf.getText());
-                            if(connection.isClosed()||!connection.isConnected()){
-                                System.out.println("Connection is down, could not upload:"+tf.getText());
-                                return;
-                            }
-                            connection.put(tf.getText());
+//                             if(connection.isClosed()||!connection.isConnected()){
+//                                 System.out.println("Connection is down, could not upload:"+tf.getText());
+//                                 return;
+//                             }
+                            String [] file = tf.getText().split("/");
+                            String filename = file[file.length-1];
+                            String location = tf.getText().replace(filename,"");
+                            //File f = new File("temp");
+                            
+                            RunnerRepository.uploadRemoteFile(location, null, filename, false);
+//                             connection.put(tf.getText());
                             refreshStructure();
                             Enumeration enumeration = root.depthFirstEnumeration();
                             while (enumeration.hasMoreElements()) {
@@ -177,7 +158,7 @@ public class ConfigTree extends JPanel{
                         }
                     }
                 };
-                new MySftpBrowser(RunnerRepository.host,RunnerRepository.user,RunnerRepository.password,tf,ConfigTree.this,false).setAction(action);
+                new MySftpBrowser(RunnerRepository.host,RunnerRepository.user,RunnerRepository.password,RunnerRepository.CENTRALENGINEPORT,tf,ConfigTree.this,false).setAction(action);
             }
         });
         ndir.addActionListener(new ActionListener(){
@@ -190,17 +171,17 @@ public class ConfigTree extends JPanel{
                 }
                 AbstractAction action = new AbstractAction(){
                     public void actionPerformed(ActionEvent ev){
-                        try{connection.mkdir(tf.getText());
+                        try{RunnerRepository.createRemoteDir(tf.getText());
+                            //connection.mkdir(tf.getText());
                             refreshStructure();
                         } catch(Exception e){
                             e.printStackTrace();
                         }
                     }
                 };
-                MySftpBrowser browser = new MySftpBrowser(RunnerRepository.host,RunnerRepository.user,RunnerRepository.password,tf,ConfigTree.this,false);
+                MySftpBrowser browser = new MySftpBrowser(RunnerRepository.host,RunnerRepository.user,RunnerRepository.password,RunnerRepository.CENTRALENGINEPORT,tf,ConfigTree.this,false);
                 browser.setAction(action);
                 browser.setFieldName("Directory name:");
-//                 new MySftpBrowser(RunnerRepository.host,RunnerRepository.user,RunnerRepository.password,tf,ConfigTree.this,true).setAction(action);
             }
         });
         
@@ -216,7 +197,7 @@ public class ConfigTree extends JPanel{
         });
         setLayout(new BorderLayout());
         root = new DefaultMutableTreeNode("root", true);
-        initializeSftp();
+//         initializeSftp();
         tree = new JTree(root);
         tree.addTreeSelectionListener(new TreeSelectionListener(){
             public void valueChanged(TreeSelectionEvent ev){
@@ -314,54 +295,61 @@ public class ConfigTree extends JPanel{
         }
     }
     
-    public void disconnect(){
-        connection.disconnect();
-        session.disconnect();
-    }
+//     public void disconnect(){
+//         connection.disconnect();
+//         session.disconnect();
+//     }
 
     
     private void removeDirectory(String directory){
-        Vector<LsEntry> vector1=null;
-        try{vector1 = connection.ls(RunnerRepository.TESTCONFIGPATH+"/"+directory);}
-        catch(Exception e){e.printStackTrace();}
-        Vector<String> vector = new Vector<String>();
-        Vector<String> folders = new Vector<String>();
-        Vector<String> files = new Vector<String>();
-        int lssize = vector1.size();
-        for (int i = 0; i < lssize; i++) {
-            if (vector1.get(i).getFilename().split("\\.").length == 0){
-                continue;
-            }
-            if(vector1.get(i).getAttrs().isDir()){
-                folders.add(directory+"/"+vector1.get(i).getFilename());
-            } else {
-                
-                try{String content = RunnerRepository.getRPCClient().execute("deleteConfigFile", new Object[]{directory+"/"+vector1.get(i).getFilename()}).toString();
-                    if(content.indexOf("*ERROR*")!=-1){
-                        CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,ConfigTree.this,"ERROR", content);
-                        return;
-                    }
-                } catch(Exception e){
-                    CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,ConfigTree.this,"ERROR", "Could not delete file:"+directory+"/"+vector1.get(i).getFilename());
-                    e.printStackTrace();
-                    return;
-                }
-                
-//                 try{connection.rm(directory+"/"+vector1.get(i).getFilename());}
-//                 catch(Exception e){
-//                     System.out.println("Could not delete file: "+directory+"/"+vector1.get(i).getFilename());
+        try{RunnerRepository.deleteRemoteDir(directory);
+            //connection.mkdir(tf.getText());
+            refreshStructure();
+        } catch(Exception e){
+            e.printStackTrace();
+        }
+        
+//         Vector<LsEntry> vector1=null;
+//         try{vector1 = connection.ls(RunnerRepository.TESTCONFIGPATH+"/"+directory);}
+//         catch(Exception e){e.printStackTrace();}
+//         Vector<String> vector = new Vector<String>();
+//         Vector<String> folders = new Vector<String>();
+//         Vector<String> files = new Vector<String>();
+//         int lssize = vector1.size();
+//         for (int i = 0; i < lssize; i++) {
+//             if (vector1.get(i).getFilename().split("\\.").length == 0){
+//                 continue;
+//             }
+//             if(vector1.get(i).getAttrs().isDir()){
+//                 folders.add(directory+"/"+vector1.get(i).getFilename());
+//             } else {
+//                 
+//                 try{String content = RunnerRepository.getRPCClient().execute("deleteConfigFile", new Object[]{directory+"/"+vector1.get(i).getFilename()}).toString();
+//                     if(content.indexOf("*ERROR*")!=-1){
+//                         CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,ConfigTree.this,"ERROR", content);
+//                         return;
+//                     }
+//                 } catch(Exception e){
+//                     CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,ConfigTree.this,"ERROR", "Could not delete file:"+directory+"/"+vector1.get(i).getFilename());
 //                     e.printStackTrace();
+//                     return;
 //                 }
-            }
-        }
-        for(String dir:folders){
-            removeDirectory(dir);
-        }
-        try{connection.rmdir(RunnerRepository.TESTCONFIGPATH+"/"+directory);}
-        catch(Exception e){
-                    System.out.println("Could not delete directory: "+directory);
-                    e.printStackTrace();
-        }
+//                 
+// //                 try{connection.rm(directory+"/"+vector1.get(i).getFilename());}
+// //                 catch(Exception e){
+// //                     System.out.println("Could not delete file: "+directory+"/"+vector1.get(i).getFilename());
+// //                     e.printStackTrace();
+// //                 }
+//             }
+//         }
+//         for(String dir:folders){
+//             removeDirectory(dir);
+//         }
+//         try{connection.rmdir(RunnerRepository.TESTCONFIGPATH+"/"+directory);}
+//         catch(Exception e){
+//                     System.out.println("Could not delete directory: "+directory);
+//                     e.printStackTrace();
+//         }
     }
 
     private void refreshTree(final int X, final int Y) {
@@ -515,10 +503,6 @@ public class ConfigTree extends JPanel{
             if(!folder){
                 Object [] path = child.getPath();
                 StringBuilder sb = new StringBuilder();
-//                 for(int i=2;i<path.length;i++){
-//                     sb.append(path[i].toString());
-//                     sb.append("/");
-//                 }
                 for(int i=1;i<path.length;i++){
                     sb.append(path[i].toString());
                     sb.append("/");
@@ -546,20 +530,20 @@ public class ConfigTree extends JPanel{
         }
     }
     
-    private void initializeSftp(){
-        try{
-            JSch jsch = new JSch();
-            session = jsch.getSession(RunnerRepository.user, RunnerRepository.host, 22);
-            session.setPassword(RunnerRepository.password);
-            Properties config = new Properties();
-            config.put("StrictHostKeyChecking", "no");
-            session.setConfig(config);
-            session.connect();
-            Channel channel = session.openChannel("sftp");
-            channel.connect();
-            connection = (ChannelSftp)channel;
-        } catch (Exception e){
-            e.printStackTrace();
-        }
-    }
+//     private void initializeSftp(){
+//         try{
+//             JSch jsch = new JSch();
+//             session = jsch.getSession(RunnerRepository.user, RunnerRepository.host, 22);
+//             session.setPassword(RunnerRepository.password);
+//             Properties config = new Properties();
+//             config.put("StrictHostKeyChecking", "no");
+//             session.setConfig(config);
+//             session.connect();
+//             Channel channel = session.openChannel("sftp");
+//             channel.connect();
+//             connection = (ChannelSftp)channel;
+//         } catch (Exception e){
+//             e.printStackTrace();
+//         }
+//     }
 }
