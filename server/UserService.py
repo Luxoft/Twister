@@ -107,7 +107,9 @@ class UserService(rpyc.Service):
         if fpath[0] == '~':
             fpath = userHome() + fpath[1:]
         try:
-            return os.stat(fpath).st_size
+            fsize = os.stat(fpath).st_size
+            log.debug('File `{}` is size `{}`.'.format(fpath, fsize))
+            return fsize
         except Exception as e:
             err = '*ERROR* Cannot find file `{}`! {}'.format(fpath, e)
             log.warning(err)
@@ -127,6 +129,7 @@ class UserService(rpyc.Service):
             return err
         try:
             with open(fpath, flag) as f:
+                log.debug('Reading file `{}`, flag `{}`.'.format(fpath, flag))
                 return f.read()
         except Exception as e:
             err = '*ERROR* Cannot read file `{}`! {}'.format(fpath, e)
@@ -278,6 +281,8 @@ class UserService(rpyc.Service):
 
         paths = {'path':'/', 'data':folder, 'folder':True, 'children':[]}
         dirList(folder, folder, paths)
+        clen = len(paths['children'])
+        log.debug('Listing dir `{}`, it has `{}` direct children.'.format(folder, clen))
         return paths
 
 
