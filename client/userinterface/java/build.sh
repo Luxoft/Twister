@@ -3,7 +3,6 @@
 JDK_PATH=/usr/lib/jvm/jdk1.7.0/bin
 EXTLIBS=extlibs/Twister.jar:\
 extlibs/jcalendar-1.4.jar:\
-extlibs/jsch-0.1.44.jar:\
 extlibs/gson-2.2.1.jar:\
 extlibs/ws-commons-util-1.0.2.jar:\
 extlibs/commons-vfs-1.0.jar:\
@@ -34,8 +33,6 @@ echo "Signing jar file commons-logging-1.1.1.jar"
 $JDK_PATH/jarsigner ../extlibs/commons-logging-1.1.1.jar Twister -storepass password
 echo "Signing jar file commons-vfs-1.0.jar"
 $JDK_PATH/jarsigner ../extlibs/commons-vfs-1.0.jar Twister -storepass password
-echo "Signing jar file jsch-0.1.44.jar"
-$JDK_PATH/jarsigner ../extlibs/jsch-0.1.44.jar Twister -storepass password
 echo "Signing jar file jxl.jar"
 $JDK_PATH/jarsigner ../extlibs/jxl.jar Twister -storepass password
 echo "Signing jar file ws-commons-util-1.0.2.jar"

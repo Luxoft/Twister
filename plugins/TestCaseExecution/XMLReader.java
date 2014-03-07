@@ -1,6 +1,6 @@
 /*
 File: XMLReader.java ; This file is part of Twister.
-Version: 2.015
+Version: 2.016
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -146,8 +146,12 @@ public class XMLReader{
                 String f = "";
                 boolean isclearcase = false;
                 if(clearcase.getLength()==0){
-                    f = secNm.item(0).getNodeValue().toString().
-                            split(RunnerRepository.getTestSuitePath())[1];
+                    try{f = secNm.item(0).getNodeValue().toString().
+                            split(RunnerRepository.getTestSuitePath())[1];}
+                    catch(Exception e){
+                        System.out.println("Could not split: "+secNm.item(0).getNodeValue().toString()+" with: "+RunnerRepository.getTestSuitePath()+". Maybe there is a diffenrent suitepath defined in project.");
+                        e.printStackTrace();
+                    }
                     k=2;
                 } else {
                     f = secNm.item(0).getNodeValue().toString();
@@ -527,13 +531,7 @@ public class XMLReader{
         if(userDefined.size()!=size){
             System.out.println("Warning, project has "+userDefined.size()+" fields while in db.xml are defined "+size+" fields");
         }
-//         for(int i=0;i++;i<size){
-//             RunnerRepository.window.mainpanel.p1.suitaDetails.getPr
-//         }
         RunnerRepository.window.mainpanel.p1.suitaDetails.setProjectUserDefined(userDefined);
-        for(String [] s:userDefined){
-            System.out.println(s[0]+" - "+s[1]);
-        }
         if(!test){
             if(RunnerRepository.getSuiteNr()>0){
                 while(RunnerRepository.window.mainpanel.p1.sc.g==null){

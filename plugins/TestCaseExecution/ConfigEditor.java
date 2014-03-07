@@ -1,6 +1,6 @@
 /*
 File: ConfigEditor.java ; This file is part of Twister.
-Version: 2.012
+Version: 2.013
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -924,7 +924,7 @@ public class ConfigEditor extends JPanel{
                 displayname.setText(displayname.getText().replace(" (need save)", ""));
             }
         };
-        new MySftpBrowser(RunnerRepository.host,RunnerRepository.user,RunnerRepository.password,tf,this,true).setAction(action);
+        new MySftpBrowser(RunnerRepository.host,RunnerRepository.user,RunnerRepository.password,RunnerRepository.CENTRALENGINEPORT,tf,this,true).setAction(action);
     }
     
     public void save(){

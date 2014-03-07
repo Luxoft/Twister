@@ -1,6 +1,6 @@
 /*
 File: SutEditor.java ; This file is part of Twister.
-Version: 2.013
+Version: 2.014
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -69,14 +69,14 @@ import java.awt.event.HierarchyListener;
 import java.awt.event.HierarchyEvent;
 import javax.swing.BorderFactory;
 import javax.swing.JSplitPane;
-import com.jcraft.jsch.ChannelSftp;
+// import com.jcraft.jsch.ChannelSftp;
 import java.util.Vector;
-import com.jcraft.jsch.ChannelSftp.LsEntry;
+// import com.jcraft.jsch.ChannelSftp.LsEntry;
 import java.util.Collections;
-import com.jcraft.jsch.SftpException;
-import com.jcraft.jsch.JSch;
-import com.jcraft.jsch.Session;
-import com.jcraft.jsch.Channel;
+// import com.jcraft.jsch.SftpException;
+// import com.jcraft.jsch.JSch;
+// import com.jcraft.jsch.Session;
+// import com.jcraft.jsch.Channel;
 import java.util.Properties;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -89,8 +89,8 @@ public class SutEditor extends JPanel{
     public DefaultMutableTreeNode root;
     private JButton saveas,redcomp,addcomp,save,close,setep;
     private JLabel jusers;
-    public ChannelSftp connection;
-    public Session session;
+//     public ChannelSftp connection;
+//     public Session session;
     private SutTree suttree;
     private String rootsut;
     public DefaultMutableTreeNode sutnode;
@@ -100,7 +100,7 @@ public class SutEditor extends JPanel{
 
     public SutEditor(){
         suttree = new SutTree();
-        initializeSftp();
+//         initializeSftp();
         initializeRPC();
         
         tree = new JTree();
@@ -621,27 +621,27 @@ public class SutEditor extends JPanel{
         }
     }
     
-    public void disconnect(){
-        connection.disconnect();
-        session.disconnect();
-    }
+//     public void disconnect(){
+//         connection.disconnect();
+//         session.disconnect();
+//     }
     
-    private void initializeSftp(){
-        try{
-            JSch jsch = new JSch();
-            session = jsch.getSession(RunnerRepository.user, RunnerRepository.host, 22);
-            session.setPassword(RunnerRepository.password);
-            Properties config = new Properties();
-            config.put("StrictHostKeyChecking", "no");
-            session.setConfig(config);
-            session.connect();
-            Channel channel = session.openChannel("sftp");
-            channel.connect();
-            connection = (ChannelSftp)channel;
-        } catch (Exception e){
-            e.printStackTrace();
-        }
-    }
+//     private void initializeSftp(){
+//         try{
+//             JSch jsch = new JSch();
+//             session = jsch.getSession(RunnerRepository.user, RunnerRepository.host, 22);
+//             session.setPassword(RunnerRepository.password);
+//             Properties config = new Properties();
+//             config.put("StrictHostKeyChecking", "no");
+//             session.setConfig(config);
+//             session.connect();
+//             Channel channel = session.openChannel("sftp");
+//             channel.connect();
+//             connection = (ChannelSftp)channel;
+//         } catch (Exception e){
+//             e.printStackTrace();
+//         }
+//     }
     
     public SutTree getSutTree(){
         return suttree;

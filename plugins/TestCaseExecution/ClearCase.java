@@ -1,6 +1,6 @@
 /*
 File: ClearCase.java ; This file is part of Twister.
-Version: 2.016
+Version: 2.017
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -22,13 +22,13 @@ import javax.swing.JTree;
 import javax.swing.tree.MutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.DefaultMutableTreeNode;
-import com.jcraft.jsch.JSch;
-import com.jcraft.jsch.Session;
-import com.jcraft.jsch.Channel;
-import com.jcraft.jsch.ChannelShell;
-import com.jcraft.jsch.ChannelSftp;
-import com.jcraft.jsch.ChannelSftp.LsEntry;
-import com.jcraft.jsch.JSchException;
+// import com.jcraft.jsch.JSch;
+// import com.jcraft.jsch.Session;
+// import com.jcraft.jsch.Channel;
+// import com.jcraft.jsch.ChannelShell;
+// import com.jcraft.jsch.ChannelSftp;
+// import com.jcraft.jsch.ChannelSftp.LsEntry;
+// import com.jcraft.jsch.JSchException;
 import java.io.InputStream;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
@@ -36,7 +36,7 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
-import com.jcraft.jsch.ChannelExec;
+// import com.jcraft.jsch.ChannelExec;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import javax.swing.JButton;
@@ -77,9 +77,9 @@ import java.awt.EventQueue;
 
 public class ClearCase extends JPanel{
     private BufferedReader in;
-    private ChannelShell channel;
+//     private ChannelShell channel;
     private boolean firstfind = false;
-    private Session session;
+//     private Session session;
     public String root="";
     private static String view="";
     private PrintStream ps;
@@ -291,16 +291,16 @@ public class ClearCase extends JPanel{
      * method called when terminating
      * the ClearCase plugin
      */
-    public void disconnect(){
-        try{in.close();}
-        catch(Exception e){}
-        try{ps.close();}
-        catch(Exception e){}
-        try{channel.disconnect();}
-        catch(Exception e){}
-        try{session.disconnect();}
-        catch(Exception e){}
-    }
+//     public void disconnect(){
+//         try{in.close();}
+//         catch(Exception e){}
+//         try{ps.close();}
+//         catch(Exception e){}
+//         try{channel.disconnect();}
+//         catch(Exception e){}
+//         try{session.disconnect();}
+//         catch(Exception e){}
+//     }
     
     private void initComponents() {
         JPanel jPanel1 = new JPanel();

@@ -1,6 +1,6 @@
 /*
 File: Globals.java ; This file is part of Twister.
-Version: 2.007
+Version: 2.008
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -59,10 +59,10 @@ import javax.swing.JLabel;
 import javax.swing.BoxLayout;
 import java.awt.BorderLayout;
 import java.io.FileInputStream;
-import com.jcraft.jsch.ChannelSftp;
-import com.jcraft.jsch.JSch;
-import com.jcraft.jsch.Session;
-import com.jcraft.jsch.Channel;
+// import com.jcraft.jsch.ChannelSftp;
+// import com.jcraft.jsch.JSch;
+// import com.jcraft.jsch.Session;
+// import com.jcraft.jsch.Channel;
 import java.util.Properties;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
@@ -97,8 +97,8 @@ import java.awt.event.FocusListener;
 import java.awt.Color;
 
 public class Globals {
-    public ChannelSftp ch ;
-    public Session session;
+//     public ChannelSftp ch ;
+//     public Session session;
     public JScrollPane panel;
     public JPanel main, pdesc;
     private JTree tree;
@@ -106,7 +106,7 @@ public class Globals {
     private Document doc;
     private DefaultMutableTreeNode root;
     private File globalsfile;
-    private boolean finished = true;
+//     private boolean finished = true;
     private JButton addconf,addparam,remove;
     private JLabel cname;
     private JTextArea tdescription;
@@ -116,7 +116,7 @@ public class Globals {
     private MyFocusAdapter focusadapter;
     
     public Globals(){
-        initSftp();
+//         initSftp();
         parseDocument();
         init();
         buildTree();
@@ -1018,7 +1018,7 @@ public class Globals {
         File file = new File(RunnerRepository.temp+RunnerRepository.getBar()+
                              "Twister"+RunnerRepository.getBar()+"config"+
                              RunnerRepository.getBar()+"globals.xml");
-        try{String content = RunnerRepository.getRemoteFileContent(RunnerRepository.GLOBALSREMOTEFILE);
+        try{String content = new String((RunnerRepository.getRemoteFileContent(RunnerRepository.GLOBALSREMOTEFILE,false)));
             try{BufferedWriter writer = new BufferedWriter(new FileWriter(file));
                 writer.write(content);
                 writer.close();
@@ -1149,20 +1149,25 @@ public class Globals {
             path.delete(0, 1);
             String location = path.toString();
             FileInputStream in = new FileInputStream(globalsfile);
-            try{
-                while(!finished){
-                    try{Thread.sleep(100);}
-                    catch(Exception e){e.printStackTrace();}
-                }
-                finished = false;
-                ch.cd(location);
-                ch.put(in, filename);
-                in.close();
-                finished = true;}
-            catch(Exception e){
-                e.printStackTrace();
-                finished = true;
-            }
+            RunnerRepository.uploadRemoteFile(location, in, filename, false);
+            
+//             try{
+//                 while(!finished){
+//                     try{Thread.sleep(100);}
+//                     catch(Exception e){e.printStackTrace();}
+//                 }
+//                 finished = false;
+//                 ch.cd(location);
+//                 ch.put(in, filename);
+//                 in.close();
+//                 
+//                 
+//                 
+//                 finished = true;}
+//             catch(Exception e){
+//                 e.printStackTrace();
+//                 finished = true;
+//             }
         } catch (Exception e){
             e.printStackTrace();
         }
@@ -1172,23 +1177,24 @@ public class Globals {
      * initialize SFTP connection used
      * for plugins and configuration files transfer
      */
-    public void initSftp(){
-        try{
-            JSch jsch = new JSch();
-            session = jsch.getSession(RunnerRepository.user, RunnerRepository.host, 22);
-            session.setPassword(RunnerRepository.password);
-            Properties config = new Properties();
-            config.put("StrictHostKeyChecking", "no");
-            session.setConfig(config);
-            session.connect();
-            Channel channel = session.openChannel("sftp");
-            channel.connect();
-            ch = (ChannelSftp)channel;
-        } catch (Exception e){
-            System.out.println("ERROR: Could not initialize SFTP for plugins");
-            e.printStackTrace();
-        }
-    }
+//     public void initSftp(){
+//         try{
+//             JSch jsch = new JSch();
+//             session = jsch.getSession(RunnerRepository.user, RunnerRepository.host, 22);
+//             session.setPassword(RunnerRepository.password);
+//             Properties config = new Properties();
+//             config.put("StrictHostKeyChecking", "no");
+//             session.setConfig(config);
+//             session.connect();
+//             Channel channel = session.openChannel("sftp");
+//             channel.connect();
+//             ch = (ChannelSftp)channel;
+//         } catch (Exception e){
+//             System.out.println("ERROR: Could not initialize SFTP for plugins");
+//             e.printStackTrace();
+//         }
+//     }
+    
     class MyFocusAdapter extends FocusAdapter{
         private Node name;
         private DefaultMutableTreeNode treenode;
