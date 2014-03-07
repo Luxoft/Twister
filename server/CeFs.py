@@ -81,7 +81,10 @@ class LocalFS(object):
         ps   = local['ps']
         grep = local['grep']
 
-        pids = (ps['aux'] | grep['/server/UserService.py'] | grep['^'])()
+        try:
+            pids = (ps['aux'] | grep['/server/UserService.py'] | grep['^' + user])()
+        except Exception:
+            return
 
         # Kill all leftover processes
         for line in pids.strip().splitlines():
