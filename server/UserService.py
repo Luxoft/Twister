@@ -121,7 +121,7 @@ class UserService(rpyc.Service):
 
 
     @staticmethod
-    def exposed_read_file(fpath, flag='r'):
+    def exposed_read_file(fpath, flag='r', fstart=0):
         """
         Read 1 file.
         """
@@ -131,9 +131,15 @@ class UserService(rpyc.Service):
             err = '*ERROR* Invalid flag `{}`! Cannot read!'.format(flag)
             log.warning(err)
             return err
+        if not os.path.isfile(fpath):
+            err = '*ERROR* No such file `{}`!'.format(fpath)
+            log.warning(err)
+            return err
         try:
             with open(fpath, flag) as f:
                 log.debug('Reading file `{}`, flag `{}`.'.format(fpath, flag))
+                if fstart:
+                    f.seek(fstart)
                 fdata = f.read()
                 if len(fdata) > 20*1000*1000:
                     err = '*ERROR* File data too long `{}`: {}!'.format(fpath, len(fdata))

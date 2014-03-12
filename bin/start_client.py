@@ -180,6 +180,7 @@ class TwisterClient(object):
         if epNames:
             try:
                 # Call the user status to create the User Project
+                proxy.ping(data='Hello', timeout=3)
                 proxy.root.getUserVariable('status')
                 proxy.root.hello('client', {'eps': epNames})
                 logPrint('Client Debug: Register EPs successful!')
