@@ -109,8 +109,8 @@ class TSCParser:
 
         try:
             self.xmlDict = etree.fromstring(base_config)
-        except Exception:
-            raise Exception('Parser ERROR: Cannot access XML config data!')
+        except Exception as e:
+            raise Exception('Parser ERROR: Cannot access XML config! `{}`'.format(e))
 
 
         self.configTS = None

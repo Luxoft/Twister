@@ -184,10 +184,15 @@ class CeXmlRpc(_cptools.XMLRPCController):
     @cherrypy.expose
     def fileSize(self, fpath):
         """
-        Read a file from user's home folder.
+        Returns file size.
+        If the file is from TWISTER PATH, use System file size,
+        else get file size from user's home folder.
         """
-        user = cherrypy.session.get('username')
-        resp = self.project.localFs.fileSize(user, fpath)
+        if fpath.startswith(TWISTER_PATH):
+            resp = self.project.localFs.sysFileSize(fpath)
+        else:
+            user = cherrypy.session.get('username')
+            resp = self.project.localFs.fileSize(user, fpath)
         if not isinstance(resp, long):
             logWarning(resp)
         return resp
@@ -196,11 +201,14 @@ class CeXmlRpc(_cptools.XMLRPCController):
     @cherrypy.expose
     def readFile(self, fpath, flag='r'):
         """
-        Read a file from user's home folder.
+        Read a file from TWISTER PATH, or user's home folder.
         Flag r/ rb = ascii/ binary.
         """
-        user = cherrypy.session.get('username')
-        resp = self.project.localFs.readUserFile(user, fpath, flag)
+        if fpath.startswith(TWISTER_PATH):
+            resp = self.project.localFs.readSystemFile(fpath, flag)
+        else:
+            user = cherrypy.session.get('username')
+            resp = self.project.localFs.readUserFile(user, fpath, flag)
         if resp.startswith('*ERROR*'):
             logWarning(resp)
         return binascii.b2a_base64(resp)

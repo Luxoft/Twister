@@ -76,6 +76,8 @@ def userHome():
     """
     return subprocess.check_output('echo ~' + userName, shell=True).strip().rstrip('/')
 
+lastMsg = ''
+
 #
 
 class UserService(rpyc.Service):
@@ -108,11 +110,15 @@ class UserService(rpyc.Service):
         """
         Get file size for 1 file.
         """
+        global lastMsg
         if fpath[0] == '~':
             fpath = userHome() + fpath[1:]
         try:
             fsize = os.stat(fpath).st_size
-            log.debug('File `{}` is size `{}`.'.format(fpath, fsize))
+            msg = 'File `{}` is size `{}`.'.format(fpath, fsize)
+            if msg != lastMsg:
+                log.debug(msg)
+                lastMsg = msg
             return fsize
         except Exception as e:
             err = '*ERROR* Cannot find file `{}`! {}'.format(fpath, e)
@@ -125,6 +131,7 @@ class UserService(rpyc.Service):
         """
         Read 1 file.
         """
+        global lastMsg
         if fpath[0] == '~':
             fpath = userHome() + fpath[1:]
         if flag not in ['r', 'rb']:
@@ -137,7 +144,10 @@ class UserService(rpyc.Service):
             return err
         try:
             with open(fpath, flag) as f:
-                log.debug('Reading file `{}`, flag `{}`.'.format(fpath, flag))
+                msg = 'Reading file `{}`, flag `{}`.'.format(fpath, flag)
+                if msg != lastMsg:
+                    log.debug(msg)
+                    lastMsg = msg
                 if fstart:
                     f.seek(fstart)
                 fdata = f.read()

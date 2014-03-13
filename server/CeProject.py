@@ -2595,6 +2595,16 @@ class Project(object):
 
             system = platform.machine() +' '+ platform.system() +', '+ ' '.join(platform.linux_distribution())
 
+            # Timezone. Read from etc/timezone 1st, etc/sysconfig/clock 2nd, or from Time module
+            try:
+                timezone = open('/etc/timezone').read().strip()
+            except Exception:
+                try:
+                    timezone = subprocess.check_output('cat /etc/sysconfig/clock | grep ^ZONE=', shell=True)
+                    timezone = timezone.strip().replace('"', '').replace('ZONE=', '')
+                except Exception:
+                    timezone = time.strftime('%Z')
+
             # Decode database password
             db_password = self.decryptText(user, db_config.get('password'))
             if not db_password:
@@ -2655,6 +2665,7 @@ class Project(object):
                     subst_data['twister_pf_fname'] = self.users[user].get('proj_xml_name', '')
 
                     subst_data['twister_ce_os']      = system
+                    subst_data['twister_ce_timezone'] = timezone
                     subst_data['twister_ce_hostname'] = ce_host
                     subst_data['twister_ce_ip']      = ce_ip
                     subst_data['twister_ce_python_revision'] = '.'.join([str(v) for v in sys.version_info])
@@ -2913,15 +2924,15 @@ class Project(object):
         fpath = self.getUserInfo(user, 'logs_path')
 
         if not fpath or not os.path.exists(fpath):
-            return '*ERROR for {0}!* Logs path `{1}` is invalid! Using master config `{2}` and suites config `{3}`.'\
+            return '*ERROR for {}!* Logs path `{}` is invalid! Using master config `{}` and suites config `{}`.'\
                 .format(user, fpath, self.getUserInfo(user, 'config_path'), self.getUserInfo(user, 'project_path'))
 
         if filename == 'server_log':
             filename = '{}/{}'.format(TWISTER_PATH, 'server_log.log')
-            fsz = self.localFs.fileSize(user, filename)
+            fsz = self.localFs.sysFileSize(filename)
         else:
             filename = fpath + os.sep + filename
-            fsz = self.localFs.sysFileSize(filename)
+            fsz = self.localFs.fileSize(user, filename)
 
         # If file size returned error
         if isinstance(fsz, str):
@@ -2933,7 +2944,7 @@ class Project(object):
 
         fstart = long(fstart)
 
-        if filename.endswith('/server_log.log'):
+        if filename.startswith(TWISTER_PATH):
             data = self.localFs.readSystemFile(filename, flag='r', fstart=fstart)
         else:
             data = self.localFs.readUserFile(user, filename, flag='r', fstart=fstart)
