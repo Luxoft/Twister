@@ -109,6 +109,7 @@ class UserService(rpyc.Service):
     def exposed_file_size(fpath):
         """
         Get file size for 1 file.
+        Less spam, please.
         """
         global lastMsg
         if fpath[0] == '~':
@@ -130,6 +131,7 @@ class UserService(rpyc.Service):
     def exposed_read_file(fpath, flag='r', fstart=0):
         """
         Read 1 file.
+        Less spam, please.
         """
         global lastMsg
         if fpath[0] == '~':
@@ -167,6 +169,7 @@ class UserService(rpyc.Service):
         """
         Write data in a file.
         Overwrite or append, ascii or binary.
+        Show me the spam.
         """
         if fpath[0] == '~':
             fpath = userHome() + fpath[1:]

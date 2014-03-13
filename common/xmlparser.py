@@ -653,7 +653,7 @@ class TSCParser:
             found.clear()
         # Or create it
         else:
-            found = etree.SubElement(bind_xml.getroot(), 'binding')
+            found = etree.SubElement(bind_xml, 'binding')
 
         name  = etree.SubElement(found, 'name')
         name.text = fpath

@@ -940,11 +940,12 @@ class CeXmlRpc(_cptools.XMLRPCController):
 
     @cherrypy.expose
     def listPlugins(self, user):
+        """
+        List all user plugins.
+        """
         logFull('CeXmlRpc:listPlugins user `{}`.'.format(user))
-
         parser = PluginParser(user)
         pluginsList = parser.getPlugins()
-
         return pluginsList.keys()
 
 
