@@ -1,9 +1,9 @@
 
 # File: xmlparser.py ; This file is part of Twister.
 
-# version: 3.013
+# version: 3.014
 
-# Copyright (C) 2012-2013 , Luxoft
+# Copyright (C) 2012-2014 , Luxoft
 
 # Authors:
 #    Andrei Costachi <acostachi@luxoft.com>
@@ -71,6 +71,17 @@ def parseXML(user, fname):
         logError('Error parsing file `{}`, for user `{}`: `{}`!'.format(fname, user, e))
         return None
 
+def dumpXML(user, fname, tree):
+    """
+    Write 1 XML file via remote client.
+    """
+    data = etree.tostring(tree, pretty_print=True)
+    try:
+        return localFs.writeUserFile(user, fname, data)
+    except Exception as e:
+        logError('Error dumping XML into file `{}`, for user `{}`: `{}`!'.format(fname, user, e))
+        return None
+
 
 class TSCParser:
     """
@@ -98,8 +109,8 @@ class TSCParser:
 
         try:
             self.xmlDict = etree.fromstring(base_config)
-        except Exception:
-            raise Exception('Parser ERROR: Cannot access XML config data!')
+        except Exception as e:
+            raise Exception('Parser ERROR: Cannot access XML config! `{}`'.format(e))
 
 
         self.configTS = None
@@ -311,8 +322,7 @@ class TSCParser:
             node.tail = '\n'
             parent[0].insert(-1, node)
 
-        xmlSoup.write(xmlFile, pretty_print=True)
-        return True
+        return dumpXML(self.user, xmlFile, xmlSoup)
 
 
     def delSettingsKey(self, xmlFile, key, index=0):
@@ -359,8 +369,7 @@ class TSCParser:
             xml_parent = xml_key.getparent()
             xml_parent.remove(xml_key)
 
-        xmlSoup.write(xmlFile, pretty_print=True)
-        return True
+        return dumpXML(self.user, xmlFile, xmlSoup)
 
 
     def setPersistentSuite(self, xmlFile, suite, info={}, order=-1):
@@ -423,8 +432,8 @@ class TSCParser:
 
         # Insert the new suite and save
         xml_root.insert(insert_pos, suite_xml)
-        xmlSoup.write(xmlFile, pretty_print=True)
-        return True
+
+        return dumpXML(self.user, xmlFile, xmlSoup)
 
 
     def setPersistentFile(self, xmlFile, suite, fname, info={}, order=-1):
@@ -491,8 +500,8 @@ class TSCParser:
 
         # Insert the new file and save
         suite_xml.insert(insert_pos, file_xml)
-        xmlSoup.write(xmlFile, pretty_print=True)
-        return True
+
+        return dumpXML(self.user, xmlFile, xmlSoup)
 
 # # #
 
@@ -644,7 +653,7 @@ class TSCParser:
             found.clear()
         # Or create it
         else:
-            found = etree.SubElement(bind_xml.getroot(), 'binding')
+            found = etree.SubElement(bind_xml, 'binding')
 
         name  = etree.SubElement(found, 'name')
         name.text = fpath
@@ -1057,7 +1066,7 @@ class PluginParser:
         """ Reload all Plugins Xml info """
         logFull('xmlparser:updateConfig')
 
-        config_data = localFs.readUserFile(self.user, self.config_data)
+        config_data = localFs.readSystemFile(self.config_data)
         newConfigHash = hashlib.md5(config_data).hexdigest()
 
         if self.configHash != newConfigHash:

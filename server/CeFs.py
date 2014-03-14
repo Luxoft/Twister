@@ -81,7 +81,10 @@ class LocalFS(object):
         ps   = local['ps']
         grep = local['grep']
 
-        pids = (ps['aux'] | grep['/server/UserService.py'] | grep['^'])()
+        try:
+            pids = (ps['aux'] | grep['/server/UserService.py'] | grep['^' + user])()
+        except Exception:
+            return
 
         # Kill all leftover processes
         for line in pids.strip().splitlines():
@@ -124,7 +127,7 @@ class LocalFS(object):
             conn = self._services.get(user, {}).get('conn', None)
             if conn:
                 try:
-                    conn.root.hello()
+                    conn.ping(data='Hello', timeout=2)
                     # logDebug('Reuse old User Service connection for `{}` OK.'.format(user))
                     return conn
                 except Exception as e:
@@ -184,7 +187,13 @@ class LocalFS(object):
 
     # ----- USER ---------------------------------------------------------------
 
+
     def fileSize(self, user, fpath):
+        """
+        Get file size for 1 file. Client access via RPyc.
+        """
+        if not fpath:
+            return False
         srvr = self._usrService(user)
         if srvr:
             return srvr.root.file_size(fpath)
@@ -192,15 +201,25 @@ class LocalFS(object):
             return False
 
 
-    def readUserFile(self, user, fpath, flag='r'):
+    def readUserFile(self, user, fpath, flag='r', fstart=0):
+        """
+        Read 1 file. Client access via RPyc.
+        """
+        if not fpath:
+            return False
         srvr = self._usrService(user)
         if srvr:
-            return srvr.root.read_file(fpath, flag)
+            return srvr.root.read_file(fpath, flag, fstart)
         else:
             return False
 
 
     def writeUserFile(self, user, fpath, fdata, flag='w'):
+        """
+        Read 1 file. Client access via RPyc.
+        """
+        if not fpath:
+            return False
         srvr = self._usrService(user)
         if len(fdata) > 20*1000*1000:
             err = '*ERROR* File data too long `{}`: {}!'.format(fpath, len(fdata))
@@ -213,6 +232,8 @@ class LocalFS(object):
 
 
     def copyUserFile(self, user, fpath, newpath):
+        if not fpath:
+            return False
         srvr = self._usrService(user)
         if srvr:
             return srvr.root.copy_file(fpath, newpath)
@@ -221,6 +242,8 @@ class LocalFS(object):
 
 
     def moveUserFile(self, user, fpath, newpath):
+        if not fpath:
+            return False
         srvr = self._usrService(user)
         if srvr:
             return srvr.root.move_file(fpath, newpath)
@@ -229,6 +252,8 @@ class LocalFS(object):
 
 
     def deleteUserFile(self, user, fpath):
+        if not fpath:
+            return False
         srvr = self._usrService(user)
         if srvr:
             return srvr.root.delete_file(fpath)
@@ -237,6 +262,8 @@ class LocalFS(object):
 
 
     def createUserFolder(self, user, fdir):
+        if not fdir:
+            return False
         srvr = self._usrService(user)
         if srvr:
             return srvr.root.create_folder(fdir)
@@ -245,6 +272,8 @@ class LocalFS(object):
 
 
     def listUserFiles(self, user, fdir, hidden=True):
+        if not fdir:
+            return False
         srvr = self._usrService(user)
         if srvr:
             files = srvr.root.list_files(fdir, hidden)
@@ -254,6 +283,8 @@ class LocalFS(object):
 
 
     def deleteUserFolder(self, user, fdir):
+        if not fdir:
+            return False
         srvr = self._usrService(user)
         if srvr:
             return srvr.root.delete_folder(fdir)
@@ -263,12 +294,84 @@ class LocalFS(object):
 
     # ----- SYSTEM -------------------------------------------------------------
 
-    def readSystemFile(self, fname):
-        pass
+
+    @staticmethod
+    def sysFileSize(fpath):
+        """
+        Get file size for 1 file. ROOT access.
+        """
+        if not fpath:
+            return False
+        try:
+            fsize = os.stat(fpath).st_size
+            # logDebug('File `{}` is size `{}`.'.format(fpath, fsize))
+            return fsize
+        except Exception as e:
+            err = '*ERROR* Cannot find file `{}`! {}'.format(fpath, e)
+            logWarning(err)
+            return err
 
 
-    def writeSystemFile(self, fname):
-        pass
+    @staticmethod
+    def readSystemFile(fpath, flag='r', fstart=0):
+        """
+        Read 1 file. ROOT access.
+        """
+        if not fpath:
+            return False
+        if flag not in ['r', 'rb']:
+            err = '*ERROR* Invalid flag `{}`! Cannot read!'.format(flag)
+            logWarning(err)
+            return err
+        if not os.path.isfile(fpath):
+            err = '*ERROR* No such file `{}`!'.format(fpath)
+            logWarning(err)
+            return err
+        try:
+            with open(fpath, flag) as f:
+                # logDebug('Reading file `{}`, flag `{}`.'.format(fpath, flag))
+                if fstart:
+                    f.seek(fstart)
+                fdata = f.read()
+                if len(fdata) > 20*1000*1000:
+                    err = '*ERROR* File data too long `{}`: {}!'.format(fpath, len(fdata))
+                    logWarning(err)
+                    return err
+                return fdata
+        except Exception as e:
+            err = '*ERROR* Cannot read file `{}`! {}'.format(fpath, e)
+            logWarning(err)
+            return err
+
+
+    @staticmethod
+    def writeSystemFile(fpath, fdata, flag='a'):
+        """
+        Write data in a file. ROOT access.
+        Overwrite or append, ascii or binary.
+        """
+        if not fpath:
+            return False
+        if flag not in ['w', 'wb', 'a', 'ab']:
+            err = '*ERROR* Invalid flag `{}`! Cannot read!'.format(flag)
+            logWarning(err)
+            return err
+        try:
+            with open(fpath, flag) as f:
+                f.write(fdata)
+            # if flag == 'w':
+            #     logDebug('Written `{}` chars in ascii file `{}`.'.format(len(fdata), fpath))
+            # elif flag == 'wb':
+            #     logDebug('Written `{}` chars in binary file `{}`.'.format(len(fdata), fpath))
+            # elif flag == 'a':
+            #     logDebug('Appended `{}` chars in ascii file `{}`.'.format(len(fdata), fpath))
+            # else:
+            #     logDebug('Appended `{}` chars in binary file `{}`.'.format(len(fdata), fpath))
+            return True
+        except Exception as e:
+            err = '*ERROR* Cannot write into file `{}`! {}'.format(fpath, e)
+            logWarning(err)
+            return err
 
 
     def deleteSystemFile(self, fname):

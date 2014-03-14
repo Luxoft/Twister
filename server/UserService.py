@@ -28,7 +28,10 @@ User Service, based on RPyc.
 This process runs in the Twister Client folder.
 """
 
-import os, sys
+import os
+import sys
+import pwd
+import grp
 import time
 import shutil
 import subprocess
@@ -73,6 +76,8 @@ def userHome():
     """
     return subprocess.check_output('echo ~' + userName, shell=True).strip().rstrip('/')
 
+lastMsg = ''
+
 #
 
 class UserService(rpyc.Service):
@@ -104,12 +109,17 @@ class UserService(rpyc.Service):
     def exposed_file_size(fpath):
         """
         Get file size for 1 file.
+        Less spam, please.
         """
+        global lastMsg
         if fpath[0] == '~':
             fpath = userHome() + fpath[1:]
         try:
             fsize = os.stat(fpath).st_size
-            log.debug('File `{}` is size `{}`.'.format(fpath, fsize))
+            msg = 'File `{}` is size `{}`.'.format(fpath, fsize)
+            if msg != lastMsg:
+                log.debug(msg)
+                lastMsg = msg
             return fsize
         except Exception as e:
             err = '*ERROR* Cannot find file `{}`! {}'.format(fpath, e)
@@ -118,19 +128,30 @@ class UserService(rpyc.Service):
 
 
     @staticmethod
-    def exposed_read_file(fpath, flag='r'):
+    def exposed_read_file(fpath, flag='r', fstart=0):
         """
         Read 1 file.
+        Less spam, please.
         """
+        global lastMsg
         if fpath[0] == '~':
             fpath = userHome() + fpath[1:]
         if flag not in ['r', 'rb']:
             err = '*ERROR* Invalid flag `{}`! Cannot read!'.format(flag)
             log.warning(err)
             return err
+        if not os.path.isfile(fpath):
+            err = '*ERROR* No such file `{}`!'.format(fpath)
+            log.warning(err)
+            return err
         try:
             with open(fpath, flag) as f:
-                log.debug('Reading file `{}`, flag `{}`.'.format(fpath, flag))
+                msg = 'Reading file `{}`, flag `{}`.'.format(fpath, flag)
+                if msg != lastMsg:
+                    log.debug(msg)
+                    lastMsg = msg
+                if fstart:
+                    f.seek(fstart)
                 fdata = f.read()
                 if len(fdata) > 20*1000*1000:
                     err = '*ERROR* File data too long `{}`: {}!'.format(fpath, len(fdata))
@@ -148,6 +169,7 @@ class UserService(rpyc.Service):
         """
         Write data in a file.
         Overwrite or append, ascii or binary.
+        Show me the spam.
         """
         if fpath[0] == '~':
             fpath = userHome() + fpath[1:]
@@ -273,7 +295,15 @@ class UserService(rpyc.Service):
                     long_path  = path + os.sep + fname
                     short_path = (long_path)[len_path:]
                     fstat = os.stat(long_path)
-                    meta_info = '{}|{}|{}|{}'.format(fstat.st_uid, fstat.st_gid, fstat.st_size,
+                    try:
+                        uname = pwd.getpwuid(fstat.st_uid).pw_name
+                    except Exception:
+                        uname = fstat.st_uid
+                    try:
+                        gname = grp.getgrgid(fstat.st_gid).gr_name
+                    except Exception:
+                        gname = fstat.st_gid
+                    meta_info = '{}|{}|{}|{}'.format(uname, gname, fstat.st_size,
                         time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(fstat.st_mtime)))
                     nd = {'path': short_path, 'data': fname, 'meta': meta_info}
                     if os.path.isdir(long_path):
@@ -289,7 +319,7 @@ class UserService(rpyc.Service):
                 dirList(base_path, base_path + os.sep + nitem['path'], nitem)
 
         if not os.path.isdir(folder):
-            err = '*ERROR* Invalid config path `{}`!'.format(folder)
+            err = '*ERROR* Folder path `{}`!'.format(folder)
             log.warning(err)
             return err
 

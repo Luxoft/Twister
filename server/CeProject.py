@@ -1,7 +1,7 @@
 
 # File: CeProject.py ; This file is part of Twister.
 
-# version: 3.024
+# version: 3.025
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -249,12 +249,10 @@ class Project(object):
         logInfo('Running server type `{ce_server_type}`.'.format(**self.server_init))
 
         # Panic Detect, load config for current user
-        self.panicDetectConfigPath = '{}/config/PanicDetectData.json'.format(TWISTER_PATH)
-        if not os.path.exists(self.panicDetectConfigPath):
-            with open(self.panicDetectConfigPath, 'wb') as config:
+        self.pdConfigPath = '{}/config/PanicDetectData.json'.format(TWISTER_PATH)
+        if not os.path.isfile(self.pdConfigPath):
+            with open(self.pdConfigPath, 'wb') as config:
                 config.write('{}')
-        with open(self.panicDetectConfigPath, 'rb') as config:
-            self.panicDetectRegularExpressions = json.load(config)
 
         # Start cache users at the beggining...
         start_new_thread(cache_users, ())
@@ -1563,7 +1561,7 @@ class Project(object):
 
             # Or if the Msg is a path to an existing file...
             elif msg and os.path.isfile(msg):
-                data = open(msg).read().strip()
+                data = self.localFs.readUserFile(user, msg)
                 # If the file is XML, send it to project reset function
                 if data[0] == '<' and data [-1] == '>':
                     logDebug('Using custom XML file: `{}`...'.format(msg))
@@ -2386,10 +2384,10 @@ class Project(object):
 
                 return True
 
-            try:
-                logPath = self.users[user]['log_types']['logSummary']
-                logSummary = open(logPath).read()
-            except Exception:
+            logPath = self.users[user]['log_types']['logSummary']
+            logSummary = self.localFs.readUserFile(user, logPath)
+
+            if logSummary.startswith('*ERROR*'):
                 log = '*ERROR* Cannot open Summary Log `{}` for reading, on user `{}`!'.format(logPath, user)
                 logError(log)
                 return log
@@ -2495,7 +2493,13 @@ class Project(object):
                 logError(log)
                 return log
 
-            body_tmpl = Template(open(body_path).read())
+            body_txt = self.localFs.readUserFile(user, body_path)
+            if body_txt.startswith('*ERROR*'):
+                log = 'E-mail ERROR! Cannot build e-mail template for user `{}`! {}'.format(user, body_txt)
+                logError(log)
+                return log
+
+            body_tmpl = Template(body_txt)
             body_dict = {
                 'texec':  len(logSummary.strip().splitlines()),
                 'tpass':  logSummary.count('*PASS*'),
@@ -2524,10 +2528,8 @@ class Project(object):
 
             if (not eMailConfig['Enabled']) or (eMailConfig['Enabled'] in ['0', 'false']):
                 e_mail_path = os.path.split(self.users[user]['config_path'])[0] +os.sep+ 'e-mail.htm'
-                open(e_mail_path, 'w').write(msg.as_string())
+                self.localFs.writeUserFile(user, e_mail_path, msg.as_string())
                 logDebug('E-mail.htm file written, for user `{}`. The message will NOT be sent.'.format(user))
-                # Update file ownership
-                setFileOwner(user, e_mail_path)
                 return True
 
             try:
@@ -2593,6 +2595,16 @@ class Project(object):
 
             system = platform.machine() +' '+ platform.system() +', '+ ' '.join(platform.linux_distribution())
 
+            # Timezone. Read from etc/timezone 1st, etc/sysconfig/clock 2nd, or from Time module
+            try:
+                timezone = open('/etc/timezone').read().strip()
+            except Exception:
+                try:
+                    timezone = subprocess.check_output('cat /etc/sysconfig/clock | grep ^ZONE=', shell=True)
+                    timezone = timezone.strip().replace('"', '').replace('ZONE=', '')
+                except Exception:
+                    timezone = time.strftime('%Z')
+
             # Decode database password
             db_password = self.decryptText(user, db_config.get('password'))
             if not db_password:
@@ -2653,6 +2665,7 @@ class Project(object):
                     subst_data['twister_pf_fname'] = self.users[user].get('proj_xml_name', '')
 
                     subst_data['twister_ce_os']      = system
+                    subst_data['twister_ce_timezone'] = timezone
                     subst_data['twister_ce_hostname'] = ce_host
                     subst_data['twister_ce_ip']      = ce_ip
                     subst_data['twister_ce_python_revision'] = '.'.join([str(v) for v in sys.version_info])
@@ -2911,26 +2924,30 @@ class Project(object):
         fpath = self.getUserInfo(user, 'logs_path')
 
         if not fpath or not os.path.exists(fpath):
-            return '*ERROR for {0}!* Logs path `{1}` is invalid! Using master config `{2}` and suites config `{3}`.'\
+            return '*ERROR for {}!* Logs path `{}` is invalid! Using master config `{}` and suites config `{}`.'\
                 .format(user, fpath, self.getUserInfo(user, 'config_path'), self.getUserInfo(user, 'project_path'))
 
         if filename == 'server_log':
             filename = '{}/{}'.format(TWISTER_PATH, 'server_log.log')
+            fsz = self.localFs.sysFileSize(filename)
         else:
             filename = fpath + os.sep + filename
+            fsz = self.localFs.fileSize(user, filename)
 
-        if not os.path.exists(filename):
-            return '*ERROR for {0}!* File `{1}` does not exist! Using master config `{2}` and suites config `{3}`'.\
+        # If file size returned error
+        if isinstance(fsz, str):
+            return '*ERROR for {}!* File `{}` doesn\'t exist! Using master config `{}` and suites config `{}`'.\
                 format(user, filename, self.getUserInfo(user, 'config_path'), self.getUserInfo(user, 'project_path'))
 
         if not read or read=='0':
-            return os.path.getsize(filename)
+            return fsz
 
         fstart = long(fstart)
-        f = open(filename)
-        f.seek(fstart)
-        data = f.read()
-        f.close()
+
+        if filename.startswith(TWISTER_PATH):
+            data = self.localFs.readSystemFile(filename, flag='r', fstart=fstart)
+        else:
+            data = self.localFs.readUserFile(user, filename, flag='r', fstart=fstart)
 
         return binascii.b2a_base64(data)
 
@@ -2946,10 +2963,10 @@ class Project(object):
         # Logs Path + EP Name + CLI Name
         logPath = logFolder + os.sep + epname +'_'+ logCli
 
-        try:
-            data = open(logPath, 'r').read()
-        except Exception:
-            logError('Find Log: File `{}` cannot be read!'.format(logPath))
+        data = self.localFs.readUserFile(user, logPath)
+
+        if data.startswith('*ERROR*'):
+            logWarning(resp)
             return '*no log*'
 
         fbegin = data.find('<<< START filename: `{}:{}'.format(file_id, file_name))
@@ -3146,7 +3163,10 @@ class Project(object):
         status = False
         self.panicDetectConfig(user, {'command': 'list'})
 
-        if not self.panicDetectRegularExpressions.has_key(user):
+        with open(self.pdConfigPath, 'rb') as config:
+            self.panicDetectRegularExpressions = json.load(config)
+
+        if user not in self.panicDetectRegularExpressions:
             return status
 
         # Verify if for current suite Panic Detect is enabled
@@ -3187,6 +3207,9 @@ class Project(object):
         """
         logFull('CeProject:panicDetectConfig user `{}`.'.format(user))
 
+        with open(self.pdConfigPath, 'rb') as config:
+            self.panicDetectRegularExpressions = json.load(config)
+
         panicDetectCommands = {
             'simple': [
                 'list',
@@ -3196,7 +3219,7 @@ class Project(object):
             ]
         }
 
-        # response structure
+        # Response structure
         response = {
             'status': {
                 'success': True,
@@ -3220,16 +3243,14 @@ class Project(object):
             response['status']['success'] = False
             response['status']['message'] = 'no command data specified'
 
-
-        # list_regular_expresions
+        # List regular_expresions
         elif args['command'] == 'list':
             response['type'] = 'list_regular_expressions reply'
 
             #response['data'] = json.dumps(self.panicDetectRegularExpressions)
             response = json.dumps(self.panicDetectRegularExpressions)
 
-
-        # add_regular_expression
+        # Add regular_expression
         elif args['command'] == 'add':
             response['type'] = 'add_regular_expression reply'
 
@@ -3253,7 +3274,7 @@ class Project(object):
                                                     [(regExpID, regExpData), ])
 
                 with self.int_lock:
-                    config = open(self.panicDetectConfigPath, 'wb')
+                    config = open(self.pdConfigPath, 'wb')
                     json.dump(self.panicDetectRegularExpressions, config)
                     config.close()
 
@@ -3265,8 +3286,7 @@ class Project(object):
                 #response['status']['message'] = '{er}'.format(er=e)
                 response = 'error: {er}'.format(er=e)
 
-
-        # update_regular_expression
+        # Update regular_expression
         elif args['command'] == 'update':
             response['type'] = 'update_regular_expression reply'
 
@@ -3285,7 +3305,7 @@ class Project(object):
                 self.panicDetectRegularExpressions[user].update(
                                                     [(regExpID, regExpData), ])
                 with self.int_lock:
-                    config = open(self.panicDetectConfigPath, 'wb')
+                    config = open(self.pdConfigPath, 'wb')
                     json.dump(self.panicDetectRegularExpressions, config)
                     config.close()
 
@@ -3297,8 +3317,7 @@ class Project(object):
                 #response['status']['message'] = '{er}'.format(er=e)
                 response = 'error: {er}'.format(er=e)
 
-
-        # remove_regular_expression
+        # Remove regular_expression
         elif args['command'] == 'remove':
             response['type'] = 'remove_regular_expression reply'
 
@@ -3308,7 +3327,7 @@ class Project(object):
                 del(regExpData)
 
                 with self.int_lock:
-                    config = open(self.panicDetectConfigPath, 'wb')
+                    config = open(self.pdConfigPath, 'wb')
                     json.dump(self.panicDetectRegularExpressions, config)
                     config.close()
 
