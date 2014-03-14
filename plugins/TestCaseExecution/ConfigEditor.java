@@ -1,6 +1,6 @@
 /*
 File: ConfigEditor.java ; This file is part of Twister.
-Version: 2.013
+Version: 2.014
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -72,7 +72,6 @@ import java.awt.event.KeyEvent;
 import javax.swing.JButton;
 import javax.swing.event.AncestorEvent;
 import javax.swing.event.AncestorListener;
-import java.io.BufferedWriter;
 import java.io.FileWriter;
 import javax.swing.GroupLayout;
 import javax.swing.LayoutStyle;
@@ -120,7 +119,7 @@ public class ConfigEditor extends JPanel{
     private JTree tree;
     private XPath xpath;
     private Document doc, confdoc;
-    private DefaultMutableTreeNode root;
+    public DefaultMutableTreeNode root;
     private boolean finished = true;
     private JButton addconf,addparam,remove,unbind,save, saveas;
     public JButton close;
@@ -298,8 +297,6 @@ public class ConfigEditor extends JPanel{
             }
         });
         unbind.setEnabled(false);
-
-//         remove.setBounds(290,5,100,25);
         remove.setEnabled(false);
         buttonPanel.add(remove);
         remove.addActionListener(new ActionListener(){
@@ -307,13 +304,9 @@ public class ConfigEditor extends JPanel{
                 if(acceptRemove())deleteMultiple();
             }
         });
-//         buttonLayout.add(buttonPanel,new GridBagConstraints());
-
-
         save = new JButton("Save");
         saveas = new JButton("Save As");
         close = new JButton("Close");
-//         save.setEnabled(false);
         saveas.setEnabled(false);
         close.setEnabled(false);
         save.addActionListener(new ActionListener(){
@@ -518,9 +511,9 @@ public class ConfigEditor extends JPanel{
                 }
             }
         });
-        parseDocument(null);
-        getBinding("default");
-        interpretBinding();
+//         parseDocument(null);
+//         getBinding("default");
+//         interpretBinding();
     }
     
     private void writeDefaultConfig(){
@@ -674,7 +667,7 @@ public class ConfigEditor extends JPanel{
                             }
                         }
                     } else {
-                        DefaultMutableTreeNode searchin =  treenode;
+                        DefaultMutableTreeNode searchin = treenode;
                         NodeList binds = binding.getElementsByTagName("bind");
                         int size = binds.getLength();
                         DefaultMutableTreeNode backup = treenode;

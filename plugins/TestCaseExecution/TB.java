@@ -1,6 +1,6 @@
 /*
 File: TB.java ; This file is part of Twister.
-Version: 2.019
+Version: 2.020
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -75,7 +75,7 @@ import javax.swing.JProgressBar;
 
 public class TB extends JPanel{
     private XmlRpcClient client;
-    private Node parent;
+    public Node parent;
     private JTree tree;
     public DefaultMutableTreeNode root;
     private NodePanel optpan;
@@ -87,7 +87,7 @@ public class TB extends JPanel{
     public TB(){
         initializeRPC();
         initPanel();
-        parent = getTB("/",null);
+//         parent = getTB("/",null);
         //refreshTBs();
         ((DefaultTreeModel)tree.getModel()).reload();
     }

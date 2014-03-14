@@ -2,7 +2,7 @@
 File: GITPlugin.java ; This file is part of Twister.
 
 Copyright (C) 2012 , Luxoft
-Version: 2.003
+Version: 2.006
 Authors: Andrei Costachi <acostachi@luxoft.com>
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -23,19 +23,10 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.HashMap;
 import java.util.Hashtable;
-import java.util.Properties;
-import java.util.Vector;
-
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
@@ -47,31 +38,18 @@ import javax.swing.JProgressBar;
 import javax.swing.JScrollPane;
 import javax.swing.JTextField;
 import javax.swing.JTree;
-
-import com.jcraft.jsch.Channel;
-import com.jcraft.jsch.ChannelSftp;
-import com.jcraft.jsch.ChannelSftp.LsEntry;
-import com.jcraft.jsch.JSch;
-import com.jcraft.jsch.Session;
-import com.jcraft.jsch.SftpException;
+import com.twister.CustomDialog;
 import com.twister.Item;
 import com.twister.MySftpBrowser;
 import com.twister.plugin.baseplugin.BasePlugin;
 import com.twister.plugin.twisterinterface.TwisterPluginInterface;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.TreeSelectionModel;
-
 import org.apache.xmlrpc.client.XmlRpcClient;
 import org.apache.xmlrpc.client.XmlRpcClientConfigImpl;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import javax.swing.tree.DefaultTreeModel;
-import javax.xml.transform.OutputKeys;
-import javax.xml.transform.Result;
-import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerFactory;
-import javax.xml.transform.dom.DOMSource;
-import javax.xml.transform.stream.StreamResult;
 
 public class GITPlugin extends BasePlugin implements TwisterPluginInterface {
 	private static final long serialVersionUID = 1L;
@@ -114,7 +92,7 @@ public class GITPlugin extends BasePlugin implements TwisterPluginInterface {
         tbranch = new JTextField();
         snapshot = new JLabel("Snapshot: ");
         tsnapshot = new JTextField();
-        snap = new JButton("Create snaphsot");
+        snap = new JButton("Create snapshot");
         update = new JButton("Update");
         check = new JCheckBox("overwrite");
         browse = new JButton("...");
@@ -195,8 +173,7 @@ public class GITPlugin extends BasePlugin implements TwisterPluginInterface {
 					}
 				}.start();
 			}
-		});
-        
+		});        
         p.setLayout(null);
         username.setBounds(20, 30, 70, 25);
         parola.setBounds(20, 60, 70, 25);
@@ -207,8 +184,7 @@ public class GITPlugin extends BasePlugin implements TwisterPluginInterface {
         p.add(server);
         p.add(branch);
         p.add(snapshot);
-        p.add(username);
-        
+        p.add(username);        
         tsnapshot.setBounds(95, 150, 250, 25);
         tbranch.setBounds(95, 120, 250, 25);
         tserver.setBounds(95, 90, 250, 25);
@@ -219,40 +195,62 @@ public class GITPlugin extends BasePlugin implements TwisterPluginInterface {
         p.add(tserver);
         p.add(tsnapshot);
         p.add(tusername);
-        
         snap.setBounds(20,225, 130, 30);
         update.setBounds(155,225, 100, 30);
         check.setBounds(260,225, 100, 30);
         p.add(snap);
         p.add(update);
         p.add(check);
-        
         browse.setBounds(350, 150, 50, 25);
         browse.addActionListener(new ActionListener() {
-			
 			@Override
 			public void actionPerformed(ActionEvent arg0) {
 				selectSnapshot();
 			}
 		});
-        p.add(browse);        
-        
+        p.add(browse);
         root = new DefaultMutableTreeNode("root", true);
-        if(c!=null){
-        	try{c.cd(tsnapshot.getText());}
-        	catch(Exception e){e.printStackTrace();
-        		try {
-					c.cd(variables.get("remoteuserhome")+
-							"/twister/config/");
-				} catch (SftpException e1) {
-					e1.printStackTrace();
-				}
-        	}
-        	getList(root, c, true);
+        String dir = tsnapshot.getText();
+        Object ob = null;
+        try{ob = client.execute("fileSize", new Object[]{dir});
+            if(ob.toString().indexOf("*ERROR*")!=-1){
+            	dir = variables.get("remoteuserhome")+"/twister/config/";
+                //CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,p,"ERROR", ob.toString());
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            if(ob!=null)System.out.println("Server response: "+ob.toString());
         }
-        else{
-        	System.out.println("SFTP connection not initialized");
+        
+        try{ob = client.execute("listFiles", new Object[]{dir,true});
+            if(ob.toString().indexOf("*ERROR*")!=-1){
+                CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,p,"ERROR", ob.toString());
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            if(ob!=null)System.out.println("Server response: "+ob.toString());
         }
+		HashMap hash = (HashMap)ob;
+        getList(root, hash,dir);
+        
+        
+        
+//        if(c!=null){
+//        	try{c.cd(tsnapshot.getText());}
+//        	catch(Exception e){e.printStackTrace();
+//        		try {
+//					c.cd(variables.get("remoteuserhome")+
+//							"/twister/config/");
+//				} catch (SftpException e1) {
+//					e1.printStackTrace();
+//				}
+//        	}
+//        	getList(root, c, true);
+//        }
+//        else{
+//        	System.out.println("SFTP connection not initialized");
+//        }
+        
         tree = new JTree(root);
 		tree.expandRow(1);
 		tree.setDragEnabled(true);
@@ -297,7 +295,6 @@ public class GITPlugin extends BasePlugin implements TwisterPluginInterface {
 	    tsnapshot = null;
 	    tusername = null;
 		root = null;
-		c = null;
 		child2 = null;
 		tree = null;
 		p = null;
@@ -367,6 +364,7 @@ public class GITPlugin extends BasePlugin implements TwisterPluginInterface {
         	final MySftpBrowser browser = new MySftpBrowser(variables.get("host"),
         													variables.get("user"), 
         													variables.get("password"), 
+        													variables.get("centralengineport"),
         													tsnapshot, p,false);
         	//final MySftpBrowser browser = new MySftpBrowser(c, tsnapshot, p);
         	new Thread(){
@@ -411,9 +409,22 @@ public class GITPlugin extends BasePlugin implements TwisterPluginInterface {
 	}
 	
 	public void refreshStructure(String home) {
-		try {c.cd(home);
+		try {
+			//c.cd(home);
 			root.remove(0);
-			getList(root,c,true);
+			//getList(root,c,true);
+			//getList(root,home,true);
+			Object ob = null;
+	        try{ob = client.execute("listFiles", new Object[]{home,true});
+	            if(ob.toString().indexOf("*ERROR*")!=-1){
+	                CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,p,"ERROR", ob.toString());
+	            }
+	        } catch (Exception e) {
+	            System.out.println("Server response: "+ob.toString());
+	            e.printStackTrace();
+	        }
+			HashMap hash = (HashMap)ob;
+            getList(root, hash,home);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -424,70 +435,95 @@ public class GITPlugin extends BasePlugin implements TwisterPluginInterface {
 	/*
 	 * construct the list for folders representation in jtree
 	 */
-	public void getList(DefaultMutableTreeNode node,
-						ChannelSftp c, boolean addfirst) {
-		try {
-			DefaultMutableTreeNode child = new DefaultMutableTreeNode(c.pwd());
-			Vector<LsEntry> vector1 = c.ls(".");
-			Vector<String> vector = new Vector<String>();
-			Vector<String> folders = new Vector<String>();
-			Vector<String> files = new Vector<String>();
-			int lssize = vector1.size();
-			if(addfirst){
-				node.add(child);
-				addfirst=false;
-			}
-			else{
-				if (lssize > 2) {
-					node.add(child);
-				}
-			}			
-			String current;
-			for (int i = 0; i < lssize; i++) {
-				if (vector1.get(i).getFilename().split("\\.").length == 0) {
-					continue;
-				}
-				try {
-				    current = c.pwd();
-					c.cd(vector1.get(i).getFilename());
-					c.cd(current);
-					folders.add(vector1.get(i).getFilename());
-				} catch (SftpException e) {
-					if (e.id == 4) {
-						files.add(vector1.get(i).getFilename());
-					}
-					else{
-					       e.printStackTrace();
-					   }
-				}
-			}
-			Collections.sort(folders);
-			Collections.sort(files);
-			for (int i = 0; i < folders.size(); i++) {
-				vector.add(folders.get(i));
-			}
-			for (int i = 0; i < files.size(); i++) {
-				vector.add(files.get(i));
-			}
-			for (int i = 0; i < vector.size(); i++) {
-				try {
-				    current = c.pwd();
-					c.cd(vector.get(i));
-					getList(child, c,false);
-					c.cd(current);
-				} catch (SftpException e) {
-					if (e.id == 4) {
-						child2 = new DefaultMutableTreeNode(vector.get(i));
-						child.add(child2);
-					} else {
-						e.printStackTrace();
-					}
-				}
-			}
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-	}
+//	public void getList(DefaultMutableTreeNode node,
+//						ChannelSftp c, boolean addfirst) {
+//		try {
+//			DefaultMutableTreeNode child = new DefaultMutableTreeNode(c.pwd());
+//			Vector<LsEntry> vector1 = c.ls(".");
+//			Vector<String> vector = new Vector<String>();
+//			Vector<String> folders = new Vector<String>();
+//			Vector<String> files = new Vector<String>();
+//			int lssize = vector1.size();
+//			if(addfirst){
+//				node.add(child);
+//				addfirst=false;
+//			}
+//			else{
+//				if (lssize > 2) {
+//					node.add(child);
+//				}
+//			}			
+//			String current;
+//			for (int i = 0; i < lssize; i++) {
+//				if (vector1.get(i).getFilename().split("\\.").length == 0) {
+//					continue;
+//				}
+//				try {
+//				    current = c.pwd();
+//					c.cd(vector1.get(i).getFilename());
+//					c.cd(current);
+//					folders.add(vector1.get(i).getFilename());
+//				} catch (SftpException e) {
+//					if (e.id == 4) {
+//						files.add(vector1.get(i).getFilename());
+//					}
+//					else{
+//					       e.printStackTrace();
+//					   }
+//				}
+//			}
+//			Collections.sort(folders);
+//			Collections.sort(files);
+//			for (int i = 0; i < folders.size(); i++) {
+//				vector.add(folders.get(i));
+//			}
+//			for (int i = 0; i < files.size(); i++) {
+//				vector.add(files.get(i));
+//			}
+//			for (int i = 0; i < vector.size(); i++) {
+//				try {
+//				    current = c.pwd();
+//					c.cd(vector.get(i));
+//					getList(child, c,false);
+//					c.cd(current);
+//				} catch (SftpException e) {
+//					if (e.id == 4) {
+//						child2 = new DefaultMutableTreeNode(vector.get(i));
+//						child.add(child2);
+//					} else {
+//						e.printStackTrace();
+//					}
+//				}
+//			}
+//		} catch (Exception e) {
+//			e.printStackTrace();
+//		}
+//	}
+		
+	
+	/*
+     * construct the list for folders representation in jtree
+     */
+    public void getList(DefaultMutableTreeNode node, HashMap hash, String curentdir) {
+        try {
+            DefaultMutableTreeNode child = new DefaultMutableTreeNode(curentdir);
+            node.add(child);
+            Object [] children = (Object [])hash.get("children");
+            if(children!=null&&children.length>0){
+                for(Object subchild:children){
+                    String name = ((HashMap)subchild).get("data").toString();
+                    if(((HashMap)subchild).get("folder")!=null){//folder
+                        getList(child, (HashMap)subchild ,curentdir+"/"+name);
+                    } else {//file
+                        child2 = new DefaultMutableTreeNode(name);
+                        child.add(child2);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 	
 	/*
 	 * snapshot method triggered by
@@ -497,11 +533,24 @@ public class GITPlugin extends BasePlugin implements TwisterPluginInterface {
 		try {
 			boolean exists = true;
 			String folder = tsnapshot.getText();
-			try{c.cd(folder);}
-			catch(Exception e){
-				e.printStackTrace();
+			
+			Object ob = null;
+			try{ob = client.execute("fileSize", new Object[]{folder});
+            	if(ob.toString().indexOf("*ERROR*")!=-1){
+            		exists = false;
+            	}
+			} catch (Exception e) {
 				exists = false;
+				System.out.println("Server response: "+ob.toString());
+				e.printStackTrace();
 			}
+			
+			
+			//try{c.cd(folder);}
+			//catch(Exception e){
+			//	e.printStackTrace();
+			//	exists = false;
+			//}
 			if(exists){
 				int response = JOptionPane.showConfirmDialog(this, "Warning, "+folder+
 															 " allready exist, continue?","Warning",

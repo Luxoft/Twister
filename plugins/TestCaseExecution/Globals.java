@@ -1,6 +1,6 @@
 /*
 File: Globals.java ; This file is part of Twister.
-Version: 2.008
+Version: 2.009
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -104,7 +104,7 @@ public class Globals {
     private JTree tree;
     private XPath xpath;
     private Document doc;
-    private DefaultMutableTreeNode root;
+    public DefaultMutableTreeNode root;
     private File globalsfile;
 //     private boolean finished = true;
     private JButton addconf,addparam,remove;
@@ -117,9 +117,9 @@ public class Globals {
     
     public Globals(){
 //         initSftp();
-        parseDocument();
+        //parseDocument();
         init();
-        buildTree();
+//         buildTree();
     }
     
     public void refresh(){

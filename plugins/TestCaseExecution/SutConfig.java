@@ -1,6 +1,6 @@
 /*
 File: SutConfig.java ; This file is part of Twister.
-Version: 2.004
+Version: 2.005
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -131,43 +131,6 @@ public class SutConfig extends JPanel{
         progress.setVisible(true);
     }
     
-//     public void getSUT(){
-//         try{HashMap hash= (HashMap)client.execute("getSut", new Object[]{"/",RunnerRepository.user,RunnerRepository.user});
-//             Object[] children = (Object[])hash.get("children");
-//             DefaultMutableTreeNode child,epsnode;
-//             DefaultTreeModel model = (DefaultTreeModel)tree.getModel();
-//             root.removeAllChildren();
-//             String name,path,eps,id;
-//             Object[] subchildren;
-//             for(Object o:children){
-//                 hash= (HashMap)client.execute("getSut", new Object[]{o.toString(),RunnerRepository.user,RunnerRepository.user});
-//                 path = hash.get("path").toString();
-//                 id = hash.get("id").toString();
-//                 name = path.split("/")[path.split("/").length-1];
-//                 try{eps = ((HashMap)hash.get("meta")).get("_epnames_"+RunnerRepository.user).toString();}
-//                 catch(Exception e){eps = "";}
-//                 name = name.replace(".system", "(system)");
-//                 name = name.replace(".user", "(user)");                
-//                 SUT s = new SUT(name,eps);
-//                 s.setID(id);
-//                 epsnode = new DefaultMutableTreeNode("EP: "+eps,false);
-//                 s.setEPNode(epsnode);
-//                 child = new DefaultMutableTreeNode(s);
-//                 child.add(epsnode);                
-//                 subchildren = (Object[])hash.get("children");
-//                 for(Object ob:subchildren){
-//                     String childid = ob.toString();
-//                     HashMap subhash= (HashMap)client.execute("getSut", new Object[]{childid,RunnerRepository.user,RunnerRepository.user});
-//                     id = subhash.get("id").toString();
-//                     buildChildren(new Object[]{id},child);
-//                 }
-//                 model.insertNodeInto(child, root, root.getChildCount());
-//             }
-//         } catch (Exception e){
-//             e.printStackTrace();
-//         }
-//     }
-    
     private void buildChildren(Object [] children, DefaultMutableTreeNode treenode){
         String childid, subchildid;
         for(Object o:children){
@@ -222,7 +185,11 @@ public class SutConfig extends JPanel{
      * received from server
      */
     public Node getTB(String id,Node parent){
-        try{HashMap hash= (HashMap)client.execute("getResource", new Object[]{id});
+        Object ob= null;
+        try{
+            ob =  client.execute("getResource", new Object[]{id});
+            HashMap hash= (HashMap)ob;
+//             HashMap hash= (HashMap)client.execute("getResource", new Object[]{id});
             String path = hash.get("path").toString();
             String name = path.split("/")[path.split("/").length-1];
             byte type = 1;
@@ -250,8 +217,7 @@ public class SutConfig extends JPanel{
             return node;
         }catch(Exception e){
             System.out.println("requested id: "+id);
-            try{System.out.println("server respons: "+client.execute("getResource", new Object[]{id}));}
-            catch(Exception ex){ex.printStackTrace();}
+            System.out.println("server respons: "+ob.toString());
             e.printStackTrace();
             return null;
         }

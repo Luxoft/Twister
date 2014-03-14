@@ -1,6 +1,6 @@
 /*
 File: Panel4.java ; This file is part of Twister.
-Version: 2.012
+Version: 2.013
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -141,6 +141,8 @@ public class Panel4 extends JPanel{
         main.setLayout(new BorderLayout());
         main.add(sut,BorderLayout.CENTER);
         if(tb.root.getChildCount()==0)tb.buildFirstLevelTB();
+//         if(sut.sut.getSutTree().filesroot.getChildAt(0).getChildCount()==0&&
+//             sut.sut.getSutTree().filesroot.getChildAt(1).getChildCount()==0)sut.sut.getSutTree().getSUT();
         sut.tbs.setTree(tb.getTree());
 //         sut.sut.getSutTree().sp2.setViewportView(sut.sut.getSutTree().filestree);
 //         sut.sut.getSUT();
@@ -154,6 +156,11 @@ public class Panel4 extends JPanel{
         main.add(testconfig,BorderLayout.CENTER);
 //         if(testconfig.cfgedit.sutconfig.root.getChildCount()==0)testconfig.cfgedit.sutconfig.getSUT();
         if(testconfig.cfgedit.sutconfig.root.getChildCount()==0)testconfig.cfgedit.sutconfig.getFirstLevel();
+        if(testconfig.cfgedit.root.getChildCount()==0){
+            testconfig.cfgedit.parseDocument(null);
+            testconfig.cfgedit.getBinding("default");
+            testconfig.cfgedit.interpretBinding();
+        }
         main.repaint();
         main.revalidate();
     }
@@ -237,7 +244,10 @@ public class Panel4 extends JPanel{
             tb.setTree(sut.tbs.getTree());
         }
 //         if(tb.root.getChildCount()==0)tb.refreshTBs();
-        if(tb.root.getChildCount()==0)tb.buildFirstLevelTB();
+        if(tb.root.getChildCount()==0){
+            tb.parent = tb.getTB("/",null);
+            tb.buildFirstLevelTB();
+        }
         main.repaint();
         main.revalidate();}
     
@@ -338,9 +348,11 @@ public class Panel4 extends JPanel{
     public void setGlobals(){
         main.removeAll();
         main.setLayout(new BorderLayout());
-//         plugins.setPreferredSize(new Dimension(main.getWidth()-5,
-//                                                main.getHeight()-5));
         main.add(glob.main,BorderLayout.CENTER);
+        if(glob.root.getChildCount()==0){
+            glob.parseDocument();
+            glob.buildTree();
+        }
         main.repaint();
         main.revalidate();}
     

@@ -1,6 +1,6 @@
 /*
 File: ConfigFiles.java ; This file is part of Twister.
-Version: 2.021
+Version: 2.022
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -550,13 +550,10 @@ public class ConfigFiles extends JPanel{
             catch(Exception e){addTag("UsersPath","",root,blank,document);}
             try{addTag("PredefinedSuitesPath",tSuites.getText(),root,blank,document);}
             catch(Exception e){addTag("PredefinedSuitesPath","",root,blank,document);}
-            
-            
             try{addTag("ArchiveLogsPath",tsecondarylog.getText(),root,blank,document);}
             catch(Exception e){addTag("ArchiveLogsPath","",root,blank,document);}
             try{addTag("ArchiveLogsPathActive",logsenabled.isSelected()+"",root,blank,document);}
             catch(Exception e){addTag("ArchiveLogsPath","",root,blank,document);}
-            
             try{addTag("LogsPath",tlog.getText(),root,blank,document);}
             catch(Exception e){addTag("LogsPath","",root,blank,document);}
             rootElement = document.createElement("LogFiles");
@@ -588,7 +585,6 @@ public class ConfigFiles extends JPanel{
                                 "Twister"+RunnerRepository.getBar()+temp+".xml");
             Result result = new StreamResult(file);
             transformer.transform(source, result);
-            System.out.println("Saving to: "+RunnerRepository.USERHOME+"/twister/config/");
             FileInputStream in = new FileInputStream(file);
             RunnerRepository.uploadRemoteFile(RunnerRepository.USERHOME+"/twister/config/", in, file.getName(),false);
         }
@@ -609,7 +605,9 @@ public class ConfigFiles extends JPanel{
         else{
             CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,
                                   RunnerRepository.window.mainpanel.p4.getConfig(),
-                                  "Warning", "File could not be saved ");}}
+                                  "Warning", "File could not be saved ");
+        }
+    }
         
                                   
     public static void addTag(String tagname, String tagcontent ,

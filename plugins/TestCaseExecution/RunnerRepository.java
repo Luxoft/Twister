@@ -1,6 +1,6 @@
 /*
 File: RunnerRepository.java ; This file is part of Twister.
-Version: 2.0045
+Version: 2.0046
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -159,8 +159,8 @@ public class RunnerRepository {
     public static Container container;
     public static Applet applet;
     private static Document pluginsconfig;
-    private static String version = "2.061";
-    private static String builddate = "07.03.2014";
+    private static String version = "2.062";
+    private static String builddate = "14.03.2014";
     public static String logotxt,os,python;
     private static int remotefiletries = 0;
     
@@ -299,14 +299,6 @@ public class RunnerRepository {
                 introscreen.repaint();
                 initializeRPC();
                 
-                
-                
-                
-                
-                
-                
-                
-                
 //                 FileInputStream input = new FileInputStream(new File("GITPlugin.jar"));
 //                 byte imageData[] = new byte[(int) input.available()];
 //                 input.read(imageData);
@@ -335,23 +327,6 @@ public class RunnerRepository {
 //                 out.write(buf);
 //                 out.flush();
 //                 out.close();
-//                 
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
                 USERHOME = "~";
                 REMOTECONFIGDIRECTORY = USERHOME+"/twister/config/";
                 parseConfig();
@@ -890,8 +865,6 @@ public class RunnerRepository {
             BufferedReader bufferedReader = null;
             String line = null;
             String name = null;
-            
-            
             if(RunnerRepository.getRemoteFolderContent(USERHOME+"/twister/config/").length==0){
                 System.out.println("Could not get config folder from:"+USERHOME+"/twister/config/");
                 CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,RunnerRepository.window,
@@ -1564,7 +1537,9 @@ public class RunnerRepository {
     //returns only non hidden files in folder
     public static String [] getRemoteFolderContent(String folder){
         Object ob = null;
-        try{ob = RunnerRepository.getRPCClient().execute("listFiles", new Object[]{folder});
+        try{System.out.println("Getting folder: "+folder+"content");
+            ob = RunnerRepository.getRPCClient().execute("listFiles", new Object[]{folder});
+            System.out.println("Server respons: "+ob.toString());
             if(ob.toString().indexOf("*ERROR*")!=-1){
                 CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,window,"ERROR", ob.toString());
                 return new String[]{};
@@ -1650,7 +1625,7 @@ public class RunnerRepository {
                 return null;
             }
 //             return response;
-            return DatatypeConverter.parseBase64Binary(response);
+           return DatatypeConverter.parseBase64Binary(response);
         }catch (Exception e){
             e.printStackTrace();
             CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,window,"ERROR", "Could not get file: "+file+" from CE!");
@@ -1886,7 +1861,7 @@ public class RunnerRepository {
                                         ":"+RunnerRepository.getCentralEnginePort()+"/"));
             client = new XmlRpcClient();
             client.setConfig(configuration);
-            System.out.println("Client initialized: "+client);}
+            System.out.println("CE client initialized: "+client);}
         catch(Exception e){System.out.println("Could not conect to "+
                             RunnerRepository.host+" :"+RunnerRepository.getCentralEnginePort()+
                             "for RPC client initialization");}

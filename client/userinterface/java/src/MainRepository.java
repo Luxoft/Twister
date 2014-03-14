@@ -1,6 +1,6 @@
 /*
 File: MainRepository.java ; This file is part of Twister.
-Version: 2.027
+Version: 2.028
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -71,6 +71,7 @@ import java.io.InputStreamReader;
 import java.io.BufferedReader;
 import java.io.Writer;
 import java.io.OutputStreamWriter;
+import org.apache.xmlrpc.client.XmlRpcHttpTransportException;
 
 public class MainRepository {
     public static Image background,logo;
@@ -85,8 +86,8 @@ public class MainRepository {
     public static TwisterPluginInterface plugin;
     private static XmlRpcClient client;
     private static Hashtable<String,String> hash = new Hashtable<String,String>();
-    private static String version = "2.061";
-    private static String builddate = "07.03.2014";
+    private static String version = "2.062";
+    private static String builddate = "14.03.2014";
     public static int time = 10;//seconds
     public static boolean countdown = false;
     public static String logotxt;
@@ -238,8 +239,18 @@ public class MainRepository {
     public static boolean isCE(){
         try{client.execute("echo", new Object[]{"test if CE is running"});
             return true;
+        }
+        catch(XmlRpcHttpTransportException e){//check user password credentials
+            if(e.getStatusCode()==401){
+                CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,applet,
+                                    "Warning", "Wrong User/Password!");
+            }
+            return false;
         } catch(Exception e){
             e.printStackTrace();
+            CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,applet,
+                                    "Warning", "CE is not running, please start CE in "+
+                                                "order for Twister Framework to run properly");
             return false;
         }
     }
@@ -476,14 +487,13 @@ public class MainRepository {
                 MainRepository.lot.setTime(10);
                 try{MainRepository.wp.login.setEnabled(true);}
                 catch(Exception e){e.printStackTrace();}
-                CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,applet,
-                                    "Warning", "CE is not running, please start CE in "+
-                                                "order for Twister Framework to run properly");
                 return;
             }
             inifile.addProperty("CEport", "8000");
             writeJSon();
             loadPlugin("ControlPanel");
+//         }catch(XmlRpcHttpTransportException ex){
+//             System.out.println(ex.getStatusCode());
         }
         catch(Exception e){
             MainRepository.time=10;
