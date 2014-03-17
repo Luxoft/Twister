@@ -1,7 +1,7 @@
 
 # File: CeResources.py ; This file is part of Twister.
 
-# version: 2.033
+# version: 2.034
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -1361,11 +1361,25 @@ class ResourceAllocator(_cptools.XMLRPCController):
                 if res_path:
                     res_pointer = self.reservedResources[user][res]
                     break
+
+                # it can be a meta parameter for the TB; we need to check this
+                # case because get_res_path doesn't return correct in this case
+                if res == res_query:
+                    res_pointer = self.reservedResources[user][res]
+                    res_path = [res_pointer.get('path')]
+                    break;
         except Exception, e:
             res_path = None
 
         if res_path:
-            exec_string = 'res_pointer["children"]["{}"]'.format('"]["children"]["'.join(res_path))
+            # resource can be at test bed level or at children of test bed
+            # level; we have to differentiate
+            if res_pointer.get('path') == res_path[0]:
+                # test bed level
+                exec_string = 'res_pointer'
+            else:
+                # child of test bed level
+                exec_string = 'res_pointer["children"]["{}"]'.format('"]["children"]["'.join(res_path))
 
             # If must delete a Meta info
             if meta:
