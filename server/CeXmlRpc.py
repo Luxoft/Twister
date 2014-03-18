@@ -248,9 +248,9 @@ class CeXmlRpc(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
-    def listFiles(self, fdir, hidden=True):
+    def listFiles(self, fdir, hidden=True, recursive=True):
         user = cherrypy.session.get('username')
-        return self.project.localFs.listUserFiles(user, fdir, hidden)
+        return self.project.localFs.listUserFiles(user, fdir, hidden, recursive)
 
 
     @cherrypy.expose
@@ -284,11 +284,35 @@ class CeXmlRpc(_cptools.XMLRPCController):
         # Check the username from CherryPy connection
         user = cherrypy.session.get('username')
         if type == 'clearcase':
-            return []
+            if 'ClearCase' in self.listPlugins(user):
+                # Get all ClearCase data from clearcase XML
+                ccConfigs = ClearCaseParser(user).getConfigs()
+                if not 'tests_path' in ccConfigs:
+                    err = '*ERROR* User `{}` did not activate ClearCase Tests Path!'.format(user)
+                    logWarning(err)
+                    return err
+                tests_data = ccConfigs['tests_path']
+                logDebug('CC tests data: {}'.format(tests_data))
+                # Need to access the raw CC helper
+                try:
+                    from plugins.ClearCasePlugin import CC
+                except Exception:
+                    err = '*ERROR* Cannot import ClearCase CC Helper!'
+                    logWarning(err)
+                    return err
+                # TODO :: FIX PASSWORD
+                conn = CC(user, 'password')
+                conn.cmd({'command': 'cleartool setview {}'.format(tests_data['view'])})
+                data = conn.getPathTree(tests_data['path'])
+                logDebug('CC found files: {}.'.format(data))
+                return data
+            else:
+                err = '*ERROR* User `{}` is trying to list a ClearCase path, but plug-in is not enabled!'.format(user)
+                logWarning(err)
+                return err
         else:
             tests_path = self.project.getUserInfo(user, 'tests_path')
             return self.project.localFs.listUserFiles(user, tests_path)
-        return False
 
 
 # # #

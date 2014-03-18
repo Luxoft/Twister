@@ -49,9 +49,9 @@
 		% endif
 
 		% if link == 'Home' and link == title:
-		<li class="active"><button class="btn btn-link" onClick="window.location='/report/home/${usr}'"><i class="icon-home"></i> ${link}</button></li>\
+		<li class="active"><button class="btn btn-info" onClick="window.location='/report/home/${usr}'"><i class="icon-home"></i> ${link}</button></li>\
 		% elif link == 'Help' and link == title:
-		<li class="active"><button class="btn btn-link" onClick="window.location='/report/help/${usr}'"><i class="icon-flag"></i> ${link}</button></li>\
+		<li class="active"><button class="btn btn-info" onClick="window.location='/report/help/${usr}'"><i class="icon-flag"></i> ${link}</button></li>\
 		% elif link == 'Home':
 		<li><button class="btn btn-link" onClick="window.location='/report/home/${usr}'"><i class="icon-home"></i> ${link}</button></li>
 		% elif link == 'Help':
@@ -60,9 +60,9 @@
 		<li><button class="btn btn-link" onClick="window.location='/report/rep/${link}/${usr}'"><i class="icon-share-alt"></i> ${link}</button></li>
 		% elif link == title:
 			% if was_folder:
-			<li class="active" style="margin-left:12px"><button class="btn btn-link" onClick="window.location='/report/rep/${link}/${usr}'"><i class="icon-asterisk"></i> ${link}</button></li>
+			<li class="active" style="margin-left:12px"><button class="btn btn-info" onClick="window.location='/report/rep/${link}/${usr}'"><i class="icon-asterisk"></i> ${link}</button></li>
 			% else:
-			<li class="active"><button class="btn btn-link" onClick="window.location='/report/rep/${link}/${usr}'"><i class="icon-asterisk"></i> ${link}</button></li>
+			<li class="active"><button class="btn btn-info" onClick="window.location='/report/rep/${link}/${usr}'"><i class="icon-asterisk"></i> ${link}</button></li>
 			% endif
 		% elif ltype == 'link':
 			% if was_folder:

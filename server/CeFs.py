@@ -3,7 +3,7 @@
 
 # version: 3.003
 
-# Copyright (C) 2012-2014 , Luxoft
+# Copyright (C) 2012-2014, Luxoft
 
 # Authors:
 #    Andrei Costachi <acostachi@luxoft.com>
@@ -271,12 +271,12 @@ class LocalFS(object):
             return False
 
 
-    def listUserFiles(self, user, fdir, hidden=True):
+    def listUserFiles(self, user, fdir, hidden=True, recursive=True):
         if not fdir:
             return False
         srvr = self._usrService(user)
         if srvr:
-            files = srvr.root.list_files(fdir, hidden)
+            files = srvr.root.list_files(fdir, hidden, recursive)
             return copy.copy(files)
         else:
             return False
