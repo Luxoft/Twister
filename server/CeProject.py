@@ -2015,7 +2015,7 @@ class Project(object):
         r = self.authenticate(user)
         if not r: return False
         cfg_path = self._getConfigPath(user, 'project')
-        logDebug('Create Suite: Will create suite `{0}` for user `{1}` project.'.format(suite, user))
+        logDebug('Create Suite: Will create suite `{}` for user `{}` project.'.format(suite, user))
         return self.parsers[user].setPersistentSuite(cfg_path, suite, info, order)
 
 
@@ -2026,8 +2026,8 @@ class Project(object):
         logFull('CeProject:delPersistentSuite user `{}`.'.format(user))
         r = self.authenticate(user)
         if not r: return False
-        xpath_suite = '/Root/TestSuite[tsName="{0}"]'.format(suite)
-        logDebug('Del Suite: Will remove suite `{0}` from user `{1}` project.'.format(suite, user))
+        xpath_suite = '/Root/TestSuite[tsName="{}"]'.format(suite)
+        logDebug('Del Suite: Will remove suite `{}` from user `{}` project.'.format(suite, user))
         return self.delSettingsKey(user, 'project', xpath_suite)
 
 

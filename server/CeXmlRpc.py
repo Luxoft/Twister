@@ -263,6 +263,38 @@ class CeXmlRpc(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
+    def listProjects(self, type='project'):
+        """
+        List projects/ predefined projects.
+        """
+        # Check the username from CherryPy connection
+        user = cherrypy.session.get('username')
+        if type == 'predefined':
+            fdir = self.project.getUserInfo(user, 'predefined_path')
+        else:
+            fdir = self.project.getUserInfo(user, 'projects_path')
+        return self.project.localFs.listUserFiles(user, fdir)
+
+
+    @cherrypy.expose
+    def listTestCases(self, type='fs'):
+        """
+        List normal files/ clearcase files.
+        """
+        # Check the username from CherryPy connection
+        user = cherrypy.session.get('username')
+        if type == 'clearcase':
+            return []
+        else:
+            tests_path = self.project.getUserInfo(user, 'tests_path')
+            return self.project.localFs.listUserFiles(user, tests_path)
+        return False
+
+
+# # #
+
+
+    @cherrypy.expose
     def serviceManagerCommand(self, command, name='', *args, **kwargs):
         """
         Send commands to Service Manager.\n
@@ -315,7 +347,7 @@ class CeXmlRpc(_cptools.XMLRPCController):
             return errMessage
 
         # Database parser, fields, queries
-        dbparser = DBParser(db_file)
+        dbparser = DBParser(user, db_file)
         query = dbparser.getQuery(field_id)
         db_config = dbparser.db_config
         del dbparser
@@ -382,45 +414,89 @@ class CeXmlRpc(_cptools.XMLRPCController):
         return ret
 
 
-# --------------------------------------------------------------------------------------------------
-#           S E T T I N G S
-# --------------------------------------------------------------------------------------------------
+# # #   Persistence   # # #
 
 
     @cherrypy.expose
-    def listSettings(self, user, config='', x_filter=''):
+    def listSettings(self, config='', x_filter=''):
         """
         List all available settings, for 1 config of a user.
         """
-        logFull('CeXmlRpc:listSettings user `{}`.'.format(user))
+        user = cherrypy.session.get('username')
         return self.project.listSettings(user, config, x_filter)
 
 
     @cherrypy.expose
-    def getSettingsValue(self, user, config, key):
+    def getSettingsValue(self, config, key):
         """
         Fetch a value from 1 config of a user.
         """
-        logFull('CeXmlRpc:getSettingsValue user `{}`.'.format(user))
+        user = cherrypy.session.get('username')
         return self.project.getSettingsValue(user, config, key)
 
 
     @cherrypy.expose
-    def setSettingsValue(self, user, config, key, value):
+    def setSettingsValue(self, config, key, value):
         """
         Set a value for a key in the config of a user.
         """
-        logFull('CeXmlRpc:setSettingsValue user `{}`.'.format(user))
+        user = cherrypy.session.get('username')
         return self.project.setSettingsValue(user, config, key, value)
 
 
     @cherrypy.expose
-    def delSettingsKey(self, user, config, key, index=0):
+    def delSettingsKey(self, config, key, index=0):
         """
         Del a key from the config of a user.
         """
-        logFull('CeXmlRpc:delSettingsKey user `{}`.'.format(user))
-        return self.project.delSettingsKey(user, config, key, index)
+        user = cherrypy.session.get('username')
+        return self.project.delSettingsKey(config, key, index)
+
+
+    @cherrypy.expose
+    def setPersistentSuite(self, suite, info={}, order=-1):
+        """
+        Create a new suite, using the INFO, at the position specified.\n
+        This function writes in TestSuites.XML file.\n
+        The changes will be available at the next START.
+        """
+        user = cherrypy.session.get('username')
+        return self.project.setPersistentSuite(user, suite, info, order)
+
+
+    @cherrypy.expose
+    def delPersistentSuite(self, suite):
+        """
+        Delete an XML suite, using a name ; if there are more suites with the same name,
+        only the first one is deleted.\n
+        This function writes in TestSuites.XML file.\n
+        The changes will be available at the next START.
+        """
+        user = cherrypy.session.get('username')
+        return self.project.delPersistentSuite(user, suite)
+
+
+    @cherrypy.expose
+    def setPersistentFile(self, suite, fname, info={}, order=-1):
+        """
+        Create a new file in a suite, using the INFO, at the position specified.\n
+        This function writes in TestSuites.XML file.\n
+        The changes will be available at the next START.
+        """
+        user = cherrypy.session.get('username')
+        return self.project.setPersistentFile(user, suite, fname, info, order)
+
+
+    @cherrypy.expose
+    def delPersistentFile(self, suite, fname):
+        """
+        Delete an XML file from a suite, using a name ; if there are more files
+        with the same name, only the first one is deleted.\n
+        This function writes in TestSuites.XML file.\n
+        The changes will be available at the next START.
+        """
+        user = cherrypy.session.get('username')
+        return self.project.delPersistentFile(user, suite, fname)
 
 
 # --------------------------------------------------------------------------------------------------
@@ -738,55 +814,6 @@ class CeXmlRpc(_cptools.XMLRPCController):
         else:
             logWarning('User `{}` could not update bindings for `{}`!'.format(user, fpath))
         return r
-
-
-# --------------------------------------------------------------------------------------------------
-#           C R E A T E   P E R S I S T E N T   S U I T E S
-# --------------------------------------------------------------------------------------------------
-
-
-    @cherrypy.expose
-    def setPersistentSuite(self, user, suite, info={}, order=-1):
-        """
-        Create a new suite, using the INFO, at the position specified.\n
-        This function writes in TestSuites.XML file.\n
-        The changes will be available at the next START.
-        """
-        logFull('CeXmlRpc:setPersistentSuite user `{}`.'.format(user))
-        return self.project.setPersistentSuite(user, suite, info, order)
-
-
-    @cherrypy.expose
-    def delPersistentSuite(self, user, suite):
-        """
-        Delete an XML suite, using a name ; if there are more suites with the same name,
-        only the first one is deleted.\n
-        This function writes in TestSuites.XML file.
-        """
-        logFull('CeXmlRpc:delPersistentSuite user `{}`.'.format(user))
-        return self.project.delPersistentSuite(user, suite)
-
-
-    @cherrypy.expose
-    def setPersistentFile(self, user, suite, fname, info={}, order=-1):
-        """
-        Create a new file in a suite, using the INFO, at the position specified.\n
-        This function writes in TestSuites.XML file.\n
-        The changes will be available at the next START.
-        """
-        logFull('CeXmlRpc:setPersistentFile user `{}`.'.format(user))
-        return self.project.setPersistentFile(user, suite, fname, info, order)
-
-
-    @cherrypy.expose
-    def delPersistentFile(self, user, suite, fname):
-        """
-        Delete an XML file from a suite, using a name ; if there are more files
-        with the same name, only the first one is deleted.\n
-        This function writes in TestSuites.XML file.
-        """
-        logFull('CeXmlRpc:delPersistentFile user `{}`.'.format(user))
-        return self.project.delPersistentFile(user, suite, fname)
 
 
 # --------------------------------------------------------------------------------------------------

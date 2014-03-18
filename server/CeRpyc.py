@@ -461,6 +461,91 @@ class CeRpycService(rpyc.Service):
         return self.project.setFileInfo(user, epname, filename, variable, value)
 
 
+# # #   Persistence   # # #
+
+
+    def exposed_listSettings(self, config='', x_filter=''):
+        """
+        List all available settings, for 1 config of a user.
+        """
+        user = self._check_login()
+        if not user: return False
+        return self.project.listSettings(user, config, x_filter)
+
+
+    def exposed_getSettingsValue(self, config, key):
+        """
+        Fetch a value from 1 config of a user.
+        """
+        user = self._check_login()
+        if not user: return False
+        return self.project.getSettingsValue(user, config, key)
+
+
+    def exposed_setSettingsValue(self, config, key, value):
+        """
+        Set a value for a key in the config of a user.
+        """
+        user = self._check_login()
+        if not user: return False
+        return self.project.setSettingsValue(user, config, key, value)
+
+
+    def exposed_delSettingsKey(self, config, key, index=0):
+        """
+        Del a key from the config of a user.
+        """
+        user = self._check_login()
+        if not user: return False
+        return self.project.delSettingsKey(user, config, key, index)
+
+
+    def exposed_setPersistentSuite(self, suite, info={}, order=-1):
+        """
+        Create a new suite, using the INFO, at the position specified.\n
+        This function writes in TestSuites.XML file.\n
+        The changes will be available at the next START.
+        """
+        user = self._check_login()
+        if not user: return False
+        return self.project.setPersistentSuite(user, suite, info, order)
+
+
+    def exposed_delPersistentSuite(self, suite):
+        """
+        Delete an XML suite, using a name ; if there are more suites with the same name,
+        only the first one is deleted.\n
+        This function writes in TestSuites.XML file.\n
+        The changes will be available at the next START.
+        """
+        user = self._check_login()
+        if not user: return False
+        return self.project.delPersistentSuite(user, suite)
+
+
+    def exposed_setPersistentFile(self, suite, fname, info={}, order=-1):
+        """
+        Create a new file in a suite, using the INFO, at the position specified.\n
+        This function writes in TestSuites.XML file.\n
+        The changes will be available at the next START.
+        """
+        user = self._check_login()
+        if not user: return False
+        return self.project.setPersistentFile(user, suite, fname, info, order)
+
+
+    def exposed_delPersistentFile(self, suite, fname):
+        """
+        Delete an XML file from a suite, using a name ; if there are more files
+        with the same name, only the first one is deleted.\n
+        This function writes in TestSuites.XML file.\n
+        The changes will be available at the next START.
+        """
+        user = self._check_login()
+        if not user: return False
+        return self.project.delPersistentFile(user, suite, fname)
+
+
 # # #   Global Variables and Config Files   # # #
 
 

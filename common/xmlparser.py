@@ -52,12 +52,10 @@ etree.set_default_parser(parser)
 
 localFs = LocalFS() # Singleton
 
-__all__ = ['TSCParser', 'DBParser', 'PluginParser']
+__all__ = ['TSCParser', 'DBParser', 'PluginParser', 'ClearCaseParser']
 
 
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# # #
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # #   Helpers   # # #
 
 
 def parseXML(user, fname):
@@ -81,6 +79,9 @@ def dumpXML(user, fname, tree):
     except Exception as e:
         logError('Error dumping XML into file `{}`, for user `{}`: `{}`!'.format(fname, user, e))
         return None
+
+
+# # #   Main  Parser   # # #
 
 
 class TSCParser:
@@ -391,8 +392,8 @@ class TSCParser:
         xmlSoup = parseXML(self.user, xmlFile)
         if xmlSoup is None:
             return False
-        xml_root = xmlSoup.getroot()
-        suites_index = [xml_root.index(s) for s in xml_root.xpath('/Root/TestSuite')]
+
+        suites_index = [xmlSoup.index(s) for s in xmlSoup.xpath('/Root/TestSuite')]
 
         if order == 0:
             # Add before the first suite
@@ -415,11 +416,11 @@ class TSCParser:
         tsName = etree.SubElement(suite_xml, 'tsName')
         tsName.text = suite
         epName = etree.SubElement(suite_xml, 'EpId')
-        epName.text = info.get('ep', ' ') ; epName.tail = '\n'
+        epName.text = info.get('ep', ' ')
         try: del info['ep']
         except Exception: pass
         sutName = etree.SubElement(suite_xml, 'SutName')
-        sutName.text = info.get('sut', ' ') ; sutName.tail = '\n'
+        sutName.text = info.get('sut', ' ')
         try: del info['sut']
         except Exception: pass
 
@@ -431,7 +432,7 @@ class TSCParser:
             val.text = str(v)
 
         # Insert the new suite and save
-        xml_root.insert(insert_pos, suite_xml)
+        xmlSoup.insert(insert_pos, suite_xml)
 
         return dumpXML(self.user, xmlFile, xmlSoup)
 
@@ -459,9 +460,8 @@ class TSCParser:
         xmlSoup = parseXML(self.user, xmlFile)
         if xmlSoup is None:
             return False
-        xml_root = xmlSoup.getroot()
 
-        suite_xml = xml_root.xpath('/Root/TestSuite[tsName="{0}"]'.format(suite))
+        suite_xml = xmlSoup.xpath('/Root/TestSuite[tsName="{0}"]'.format(suite))
         if not suite_xml: return False
         else: suite_xml = suite_xml[0]
 
@@ -486,17 +486,15 @@ class TSCParser:
 
         # File XML object
         file_xml = etree.Element('TestCase')
-        file_xml.text = '\n' ; file_xml.tail = '\n'
         tcName = etree.SubElement(file_xml, 'tcName')
-        tcName.text = fname ; tcName.tail = '\n'
+        tcName.text = fname
 
         for k, v in info.iteritems():
             tag = etree.SubElement(file_xml, 'Property')
-            tag.text = '\n' ; tag.tail = '\n'
             prop = etree.SubElement(tag, 'propName')
-            prop.text = str(k) ; prop.tail = '\n'
+            prop.text = str(k)
             val  = etree.SubElement(tag, 'propValue')
-            val.text = str(v) ; val.tail = '\n'
+            val.text = str(v)
 
         # Insert the new file and save
         suite_xml.insert(insert_pos, file_xml)
@@ -864,12 +862,10 @@ class TSCParser:
         return gparams
 
 
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# # # Database XML parser
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # #   Database Parser   # # #
 
 
-class DBParser():
+class DBParser(object):
     """
     Requirements: LXML.
     This parser will read DB.xml.
@@ -1031,15 +1027,13 @@ class DBParser():
         return res
 
 
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# # # Plugins XML parser
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # #   Plugins   # # #
 
 
-class PluginParser:
+class PluginParser(object):
     """
     Requirements: LXML.
-    This parser will read Plugins.xml.
+    This parser will read user's Plugins.xml.
     """
 
     def __init__(self, user):
@@ -1047,63 +1041,53 @@ class PluginParser:
         self.user = user
         user_home = userHome(user)
 
-        if not os.path.exists('{}/twister'.format(user_home)):
-            raise Exception('PluginParser ERROR: Cannot find Twister for user `{}`, '\
+        if not os.path.isdir('{}/twister'.format(user_home)):
+            raise Exception('PluginParser: Cannot find Twister for user `{}`, '\
                 'in path `{}/twister`!'.format(user, user_home))
 
         config_data = '{}/twister/config/plugins.xml'.format(user_home)
-        if not os.path.exists(config_data):
-            raise Exception('PluginParser ERROR: Cannot find Plugins for user `{}`, '\
+        if not os.path.isfile(config_data):
+            raise Exception('PluginParser: Cannot find Plugins for user `{}`, '\
                 'in path `{}/twister/config`!'.format(user, user_home))
 
-        self.config_data = config_data
-        self.configHash = None
-        self.p_config = OrderedDict()
-        self.updateConfig()
+        # Read directly from CE
+        xml_data = localFs.readSystemFile(config_data)
+        self.config = OrderedDict()
 
+        try:
+            self.xmlTree = etree.fromstring(xml_data)
+        except Exception:
+            raise Exception('PluginParser: Cannot access plugins XML data!')
 
-    def updateConfig(self):
-        """ Reload all Plugins Xml info """
-        logFull('xmlparser:updateConfig')
+        for plugin in self.xmlTree.xpath('Plugin'):
 
-        config_data = localFs.readSystemFile(self.config_data)
-        newConfigHash = hashlib.md5(config_data).hexdigest()
+            if not (plugin.xpath('name/text()') and plugin.xpath('pyfile') and plugin.xpath('jarfile')):
+                logWarning('PluginParser: Invalid config for plugin: `{}`!'.format(plugin))
+                continue
 
-        if self.configHash != newConfigHash:
-            self.configHash = newConfigHash
+            prop_keys = plugin.xpath('property/propname')
+            prop_vals = plugin.xpath('property/propvalue')
+            res = dict(zip([k.text for k in prop_keys], [v.text for v in prop_vals])) # Pack Name + Value
 
-            try:
-                self.xmlDict = etree.fromstring(config_data)
-            except Exception:
-                logError('PluginParser ERROR: Cannot access plugins XML data!')
-                return False
+            name = plugin.xpath('name')[0].text
 
-            for plugin in self.xmlDict.xpath('Plugin'):
+            self.config[name] = res
 
-                if (not plugin.xpath('name/text()')) or (not plugin.xpath('pyfile')) or (not plugin.xpath('jarfile')):
-                    logWarning('PluginParser WARN: Invalid config for plugin: `{}`!'.format(plugin))
-                    continue
-                name = plugin.xpath('name')[0].text
-
-                prop_keys = plugin.xpath('property/propname')
-                prop_vals = plugin.xpath('property/propvalue')
-                res = dict(zip([k.text for k in prop_keys], [v.text for v in prop_vals])) # Pack Key + Value
-
-                self.p_config[name] = res
-
-                self.p_config[name]['jarfile'] = plugin.xpath('jarfile')[0].text.strip() if plugin.xpath('jarfile/text()') else ''
-                self.p_config[name]['pyfile']  = plugin.xpath('pyfile')[0].text.strip()  if plugin.xpath('pyfile/text()') else ''
-                self.p_config[name]['status']  = plugin.xpath('status')[0].text.strip()  if plugin.xpath('status/text()') else ''
+            self.config[name]['jarfile'] = plugin.xpath('jarfile')[0].text.strip() \
+                                             if plugin.xpath('jarfile/text()') else ''
+            self.config[name]['pyfile']  = plugin.xpath('pyfile')[0].text.strip() \
+                                             if plugin.xpath('pyfile/text()') else ''
+            self.config[name]['status']  = plugin.xpath('status')[0].text.strip() \
+                                             if plugin.xpath('status/text()') else ''
 
 
     def getPlugins(self):
         """ Return all plugins info """
         logFull('xmlparser:getPlugins')
 
-        self.updateConfig()
         Base = BasePlugin.BasePlugin
-        py_modules = [k +'::'+ os.path.splitext(self.p_config[k]['pyfile'])[0]
-                      for k in self.p_config if self.p_config[k]['status'] == 'enabled']
+        py_modules = [k +'::'+ os.path.splitext(self.config[k]['pyfile'])[0]
+                      for k in self.config if self.config[k]['status'] == 'enabled']
         plugins = {}
 
         for module in py_modules:
@@ -1134,11 +1118,64 @@ class PluginParser:
                 continue
 
             # Append plugin classes to plugins list
-            d = self.p_config[name]
+            d = self.config[name]
             d['plugin'] = plug
             plugins[name] = d
 
         return plugins
+
+
+# # #   ClearCase   # # #
+
+
+class ClearCaseParser(object):
+    """
+    Requirements: LXML.
+    This parser will read user's Clearcase.xml.
+    """
+
+    def __init__(self, user):
+
+        self.user = user
+        user_home = userHome(user)
+        self.user_home = user_home
+        self.config = {}
+
+        if not os.path.isdir('{}/twister'.format(user_home)):
+            raise Exception('ClearCaseParser: Cannot find Twister for user `{}`, '\
+                'in path `{}/twister`!'.format(user, user_home))
+
+        config_data = '{}/twister/config/clearcaseconfig.xml'.format(user_home)
+        if not os.path.isfile(config_data):
+            raise Exception('ClearCaseParser: Cannot find Clearcase XML for user `{}`, '\
+                'in path `{}/twister/config`!'.format(user, user_home))
+
+        # Read directly from CE
+        xml_data = localFs.readSystemFile(config_data)
+
+        try:
+            self.xmlTree = etree.fromstring(xml_data)
+        except Exception:
+            raise Exception('ClearCaseParser: Cannot access Clearcase XML data!')
+
+
+    def getConfigs(self):
+        """ Return all ClearCase info. """
+
+        # Parse all known FWMCONFIG tags
+        for tag_dict in FWMCONFIG_TAGS:
+            tag  = tag_dict['tag']
+            name = tag_dict['name']
+            xobj = self.xmlTree.xpath('/Root/' + tag)
+            # If the tag is active, get the View and the Path
+            if len(xobj) >= 1:
+                xobj = xobj[0]
+                if xobj.get('active') == 'true':
+                    path = xobj.get('path')
+                    view = xobj.get('view')
+                    self.config[name] = {'path': path, 'view': view}
+
+        return self.config
 
 
 # Eof()
