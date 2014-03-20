@@ -1,7 +1,7 @@
 
 # File: CeXmlRpc.py ; This file is part of Twister.
 
-# version: 2.038
+# version: 2.039
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -181,43 +181,53 @@ class CeXmlRpc(_cptools.XMLRPCController):
         return self.project.decryptText(cherry_user, text)
 
 
+# # #
+
+
     @cherrypy.expose
-    def fileSize(self, fpath):
+    def findCcXmlTag(self, TagOrView):
+        """
+        Transform 1 ClearCase.XML tag name into a ClearCase view + path.
+        """
+        user = cherrypy.session.get('username')
+        ccConfigs = ClearCaseParser(user).getConfigs(TagOrView)
+        if ccConfigs and 'view' in ccConfigs:
+            return ccConfigs['view'] + ':' + ccConfigs['path']
+        else:
+            return False
+
+
+    @cherrypy.expose
+    def fileSize(self, fpath, type='fs'):
         """
         Returns file size.
         If the file is from TWISTER PATH, use System file size,
         else get file size from user's home folder.
         """
-        if fpath.startswith(TWISTER_PATH):
-            resp = self.project.localFs.sysFileSize(fpath)
-        else:
-            user = cherrypy.session.get('username')
-            resp = self.project.localFs.fileSize(user, fpath)
+        user = cherrypy.session.get('username')
+        resp = self.project.fileSize(user, fpath, type)
         if not isinstance(resp, long):
             logWarning(resp)
         return resp
 
 
     @cherrypy.expose
-    def readFile(self, fpath, flag='r'):
+    def readFile(self, fpath, flag='r', fstart=0, type='fs'):
         """
-        Read a file from TWISTER PATH, or user's home folder.
+        Read a file from TWISTER PATH, user's home folder, or ClearCase.
         Flag r/ rb = ascii/ binary.
         """
-        if fpath.startswith(TWISTER_PATH):
-            resp = self.project.localFs.readSystemFile(fpath, flag)
-        else:
-            user = cherrypy.session.get('username')
-            resp = self.project.localFs.readUserFile(user, fpath, flag)
+        user = cherrypy.session.get('username')
+        resp = self.project.readFile(user, fpath, flag, fstart, type)
         if resp.startswith('*ERROR*'):
             logWarning(resp)
         return binascii.b2a_base64(resp)
 
 
     @cherrypy.expose
-    def writeFile(self, fpath, fdata, flag='w'):
+    def writeFile(self, fpath, fdata, flag='w', type='fs'):
         """
-        Write a file in user's home folder.
+        Write a file in user's home folder, or ClearCase.
         Flag w/ wb = ascii/ binary.
         """
         user = cherrypy.session.get('username')
@@ -225,38 +235,46 @@ class CeXmlRpc(_cptools.XMLRPCController):
         # If this is NOT a binary file, fix the newline
         if not 'b' in flag:
             fdata = fdata.replace('\r', '')
-        resp = self.project.localFs.writeUserFile(user, fpath, fdata, flag)
+        resp = self.project.writeFile(user, fpath, fdata, flag, type)
         if resp != True:
             logWarning(resp)
         return resp
 
 
     @cherrypy.expose
-    def deleteFile(self, fpath):
+    def deleteFile(self, fpath, type='fs'):
         """
-        Delete a file in user's home folder.
-        This function is called from the Java GUI.
+        Delete a file in user's home folder, or ClearCase.
         """
         user = cherrypy.session.get('username')
-        return self.project.localFs.deleteUserFile(user, fpath)
+        return self.project.deleteFile(user, fpath, type)
 
 
     @cherrypy.expose
-    def createFolder(self, fdir):
+    def createFolder(self, fdir, type='fs'):
+        """
+        Create a file in user's home folder, or ClearCase.
+        """
         user = cherrypy.session.get('username')
-        return self.project.localFs.createUserFolder(user, fdir)
+        return self.project.createFolder(user, fdir, type)
 
 
     @cherrypy.expose
-    def listFiles(self, fdir, hidden=True, recursive=True):
+    def listFiles(self, fdir, hidden=True, recursive=True, type='fs'):
+        """
+        List files from user's home folder, or ClearCase.
+        """
         user = cherrypy.session.get('username')
-        return self.project.localFs.listUserFiles(user, fdir, hidden, recursive)
+        return self.project.listFiles(user, fdir, hidden, recursive, type)
 
 
     @cherrypy.expose
-    def deleteFolder(self, fdir):
+    def deleteFolder(self, fdir, type='fs'):
+        """
+        Delete a folder from user's home folder, or ClearCase.
+        """
         user = cherrypy.session.get('username')
-        return self.project.localFs.deleteUserFolder(user, fdir)
+        return self.project.deleteFolder(user, fdir, type)
 
 
 # # #
@@ -266,20 +284,43 @@ class CeXmlRpc(_cptools.XMLRPCController):
     def listProjects(self, type='project'):
         """
         List projects/ predefined projects.
+        Magically return the CC paths, if CC is enabled.
         """
         # Check the username from CherryPy connection
         user = cherrypy.session.get('username')
+
         if type == 'predefined':
-            fdir = self.project.getUserInfo(user, 'predefined_path')
+            # Auto detect if ClearCase Test Config Path is active
+            ccConfig = self.project.getClearCaseConfig(user, 'predefined_path')
+            if ccConfig:
+                view = ccConfig['view']
+                fdir = ccConfig['path']
+                resp = self.project.clearFs.listUserFiles(user +':'+ view, fdir)
+            else:
+                fdir = self.project.getUserInfo(user, 'predefined_path')
+                resp = self.project.localFs.listUserFiles(user, fdir)
+            logDebug('Listed predefined suites: {}.'.format(resp))
+            return resp
+
         else:
-            fdir = self.project.getUserInfo(user, 'projects_path')
-        return self.project.localFs.listUserFiles(user, fdir)
+            # Auto detect if ClearCase Test Config Path is active
+            ccConfig = self.project.getClearCaseConfig(user, 'projects_path')
+            if ccConfig:
+                view = ccConfig['view']
+                fdir = ccConfig['path']
+                resp = self.project.clearFs.listUserFiles(user +':'+ view, fdir)
+            else:
+                fdir = self.project.getUserInfo(user, 'projects_path')
+                resp = self.project.localFs.listUserFiles(user, fdir)
+            logDebug('Listed user projects: {}.'.format(resp))
+            return resp
 
 
     @cherrypy.expose
     def listTestCases(self, type='fs'):
         """
         List normal files/ clearcase files.
+        Need option to switch from normal FS to CC.
         """
         # Check the username from CherryPy connection
         user = cherrypy.session.get('username')
@@ -291,21 +332,10 @@ class CeXmlRpc(_cptools.XMLRPCController):
                     err = '*ERROR* User `{}` did not activate ClearCase Tests Path!'.format(user)
                     logWarning(err)
                     return err
-                tests_data = ccConfigs['tests_path']
-                logDebug('CC tests data: {}'.format(tests_data))
-                # Need to access the raw CC helper
-                try:
-                    from plugins.ClearCasePlugin import CC
-                except Exception:
-                    err = '*ERROR* Cannot import ClearCase CC Helper!'
-                    logWarning(err)
-                    return err
-                # TODO :: FIX PASSWORD
-                conn = CC(user, 'password')
-                conn.cmd({'command': 'cleartool setview {}'.format(tests_data['view'])})
-                data = conn.getPathTree(tests_data['path'])
-                logDebug('CC found files: {}.'.format(data))
-                return data
+                logDebug('CC tests data: {}'.format(ccConfigs['tests_path']))
+                view = ccConfigs['tests_path']['view']
+                path = ccConfigs['tests_path']['path']
+                return self.project.clearFs.listUserFiles(user + ':' + view, path)
             else:
                 err = '*ERROR* User `{}` is trying to list a ClearCase path, but plug-in is not enabled!'.format(user)
                 logWarning(err)
@@ -732,12 +762,21 @@ class CeXmlRpc(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
-    def listConfigs(self, user):
+    def listConfigs(self, user=None):
         """
         Folders and Files from config folder.
         """
-        dirpath = self.project.getUserInfo(user, 'tcfg_path')
-        return self.project.localFs.listUserFiles(user, dirpath)
+        if not user:
+            user = cherrypy.session.get('username')
+        # Auto detect if ClearCase Test Config Path is active
+        ccConfig = self.project.getClearCaseConfig(user, 'tcfg_path')
+        if ccConfig:
+            view = ccConfig['view']
+            path = ccConfig['path']
+            return self.project.clearFs.listUserFiles(user +':'+ view, path)
+        else:
+            dirpath = self.project.getUserInfo(user, 'tcfg_path')
+            return self.project.localFs.listUserFiles(user, dirpath)
 
 
     @cherrypy.expose
@@ -774,9 +813,16 @@ class CeXmlRpc(_cptools.XMLRPCController):
         """
         Complete path from tree - returns a base64 string.
         """
-        cherry_user = cherrypy.session.get('username')
-        dirpath = self.project.getUserInfo(cherry_user, 'tcfg_path')
-        return self.readFile(dirpath + '/' + fpath)
+        user = cherrypy.session.get('username')
+        # Auto detect if ClearCase Test Config Path is active
+        ccConfig = self.project.getClearCaseConfig(user, 'tcfg_path')
+        if ccConfig:
+            view = ccConfig['view']
+            path = ccConfig['path']
+            return self.readFile(path +'/'+ fpath, type='clearcase:' + view)
+        else:
+            dirpath = self.project.getUserInfo(user, 'tcfg_path')
+            return self.readFile(dirpath + '/' + fpath)
 
 
     @cherrypy.expose
@@ -795,8 +841,16 @@ class CeXmlRpc(_cptools.XMLRPCController):
             err = '*ERROR* Cannot save config file `{}`, because it\'s not locked!'.format(fpath)
             logDebug(err)
             return err
-        dirpath = self.project.getUserInfo(user, 'tcfg_path')
-        return self.writeFile(dirpath + '/' + fpath, content)
+
+        # Auto detect if ClearCase Test Config Path is active
+        ccConfig = self.project.getClearCaseConfig(user, 'tcfg_path')
+        if ccConfig:
+            view = ccConfig['view']
+            path = ccConfig['path']
+            return self.writeFile(path +'/'+ fpath, content, 'w', type='clearcase:' + view)
+        else:
+            dirpath = self.project.getUserInfo(user, 'tcfg_path')
+            return self.writeFile(dirpath + '/' + fpath, content)
 
 
     @cherrypy.expose
@@ -811,8 +865,16 @@ class CeXmlRpc(_cptools.XMLRPCController):
             err = '*ERROR* Config file `{}` is locked by `{}`! Cannot delete!'.format(fpath, lock)
             logDebug(err)
             return err
-        dirpath = self.project.getUserInfo(user, 'tcfg_path')
-        return self.deleteFile(dirpath + '/' + fpath)
+
+        # Auto detect if ClearCase Test Config Path is active
+        ccConfig = self.project.getClearCaseConfig(user, 'tcfg_path')
+        if ccConfig:
+            view = ccConfig['view']
+            path = ccConfig['path']
+            return self.deleteFile(path +'/'+ fpath, type='clearcase:' + view)
+        else:
+            dirpath = self.project.getUserInfo(user, 'tcfg_path')
+            return self.deleteFile(dirpath + '/' + fpath)
 
 
     @cherrypy.expose
@@ -1089,7 +1151,8 @@ class CeXmlRpc(_cptools.XMLRPCController):
         This list will be used to syncronize the libs on all EP computers.\n
         Called from the Runner and the Java GUI.
         """
-        logFull('CeXmlRpc:getLibrariesList')
+        if not user:
+            user = cherrypy.session.get('username')
         return self.project.getLibrariesList(user, all)
 
 
@@ -1107,16 +1170,17 @@ class CeXmlRpc(_cptools.XMLRPCController):
         # If the user has roles and the ClearCase plugin is enabled...
         user = cherrypy.session.get('username')
         user_roles = self.project.authenticate(user)
-        if user_roles and 'ClearCase' in self.listPlugins(user):
-            plugin_p = self.project._buildPlugin(user, 'ClearCase')
-            try:
-                return plugin_p.getTestDescription(user, fname)
-            except Exception as e:
-                trace = traceback.format_exc()[34:].strip()
-                logError('Error getting description from ClearCase file `{}` : `{}`!'.format(fname, trace))
-                return ''
 
-        return ''
+        # Auto detect if ClearCase Test Config Path is active
+        ccConfig = self.project.getClearCaseConfig(user, 'tests_path')
+        if user_roles and ccConfig:
+            view = ccConfig['view']
+            text = self.project.readFile(user, fname, type='clearcase:' + view)
+            tags = re.findall('^[ ]*?[#]*?[ ]*?<(?P<tag>\w+)>([ -~\n]+?)</(?P=tag)>', text, re.MULTILINE)
+            return '<br>\n'.join(['<b>' + title + '</b> : ' + descr.replace('<', '&lt;') for title, descr in tags])
+        else:
+            logWarning('Cannot find file `{}`! Null file description!'.format(fname))
+            return ''
 
 
 # --------------------------------------------------------------------------------------------------

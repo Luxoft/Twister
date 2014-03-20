@@ -1,7 +1,7 @@
 
-# File: CeFs.py ; This file is part of Twister.
+# File: CeClearCaseFs.py ; This file is part of Twister.
 
-# version: 3.003
+# version: 3.001
 
 # Copyright (C) 2012-2014, Luxoft
 
@@ -29,6 +29,7 @@ import copy
 import random
 import socket
 import pexpect
+import pxssh
 import subprocess
 from plumbum import local
 import rpyc
@@ -45,13 +46,18 @@ if TWISTER_PATH not in sys.path:
 
 if pexpect.__version__ < '3.1':
     raise Exception('pExpect version `{}` is too low!'
-        ' Local FS will crash!'.format(pexpect.__version__))
+        ' ClearCase FS will crash!'.format(pexpect.__version__))
 
 from common.helpers    import *
 from common.tsclogging import *
 
+# def logDebug(s)   : print s
+# def logInfo(s)    : print s
+# def logWarning(s) : print s
+# def logError(s)   : print s
+
 #
-__all__ = ['LocalFS']
+__all__ = ['ClearCaseFs']
 #
 
 def singleton(cls):
@@ -64,7 +70,7 @@ def singleton(cls):
 
 
 @singleton
-class LocalFS(object):
+class ClearCaseFs(object):
     """
     All local file operations should be done via THIS class.
     This is a singleton.
@@ -75,10 +81,10 @@ class LocalFS(object):
 
     def __init__(self, project=None):
         if os.getuid():
-            logError('Local FS: Central Engine must run as ROOT in order to start the User Service!')
+            logError('ClearCase FS: Central Engine must run as ROOT in order to start the ClearCase Service!')
         if project:
             self.project = project
-        logInfo('Created Local FS.')
+        logInfo('Init ClearCase FS.')
 
 
     def _kill(self, user):
@@ -105,41 +111,46 @@ class LocalFS(object):
                 pass
 
 
-    def _usrService(self, user):
+    def _usrService(self, user_view):
         """
         Launch a user service.
         """
-
-        # # DEBUG. Show all available User Services, for current user.
-        # try:
-        #     pids = subprocess.check_output('ps aux | grep /server/UserService.py | grep "^{} "'.format(user), shell=True)
-        #     pids_li = []
-
-        #     for line in pids.strip().splitlines():
-        #         li = line.strip().split()
-        #         PID = int(li[1])
-        #         del li[2:10]
-        #         pids_li.append( ' '.join(li) )
-
-        #     logDebug('Active User Services for `{}`::\n\t{}'.format(user, '\n\t'.join(pids_li)))
-        # except:
-        #     logDebug('No User Services found for `{}`.'.format(user))
+        user, view = user_view.split(':')
+        passwd = self.project.getUserInfo(user, 'user_passwd')
 
         # Must block here, so more users cannot launch Logs at the same time and lose the PID
         with self._srv_lock:
 
             # Try to re-use the logger server, if available
-            conn = self._services.get(user, {}).get('conn', None)
+            conn = self._services.get(user_view, {}).get('conn', None)
             if conn:
                 try:
                     conn.ping(data='Hello', timeout=2)
-                    # logDebug('Reuse old User Service connection for `{}` OK.'.format(user))
+                    # logDebug('Reuse old ClearCase Service connection for `{}` OK.'.format(user))
                     return conn
                 except Exception as e:
-                    logWarning('Cannot connect to User Service for `{}`: `{}`.'.format(user, e))
-                    self._kill(user)
+                    logWarning('Cannot connect to ClearCase Service for `{}`: `{}`.'.format(user_view, e))
+                    ssh = self._services.get(user_view, {}).get('proc', None)
+                    ssh.close()
             else:
-                logInfo('Launching a User Service for `{}`, the first time...'.format(user))
+                logInfo('Launching a ClearCase Service for `{}`, the first time...'.format(user_view))
+
+            ssh = pxssh.pxssh()
+
+            try:
+                ssh.login('127.0.0.1', user, passwd)
+            except Exception:
+                logWarning('Cannot login user `{}`! Incorrect password!'.format(user))
+                return False
+
+            # Make sure you are in user home
+            ssh.sendline('cd')
+            ssh.prompt()
+
+            # Set cc view only the first time !
+            ssh.sendline('cleartool setview {}'.format(view))
+            ssh.prompt(5)
+            ssh.set_unique_prompt()
 
             port = None
 
@@ -151,11 +162,9 @@ class LocalFS(object):
                 except:
                     break
 
-            p_cmd = 'su {} -c "{} -u {}/server/UserService.py {}"'.format(user, sys.executable, TWISTER_PATH, port)
-            proc = subprocess.Popen(p_cmd, cwd='{}/twister'.format(userHome(user)), shell=True,
-                   stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            proc.poll()
-            time.sleep(0.2)
+            # Launching 1 UserService inside the SSH terminal, with ClearCase View open
+            p_cmd = '{} -u {}/server/UserService.py {} ClearCase'.format(sys.executable, TWISTER_PATH, port)
+            ssh.sendline(p_cmd)
 
             config = {
                 'allow_pickle': True,
@@ -171,22 +180,22 @@ class LocalFS(object):
                 try:
                     conn = rpyc.connect('127.0.0.1', port, config=config)
                     conn.root.hello()
-                    logDebug('Connected to User Service for `{}`.'.format(user))
+                    logDebug('Connected to ClearCase Service for `{}`.'.format(user_view))
                     success = True
                     break
                 except Exception as e:
-                    logWarning('Cannot connect to User Service for `{}` - Exception: `{}`! Retry...'.format(user, e))
+                    logWarning('Cannot connect to ClearCase Service for `{}` - Exception: `{}`! Retry...'.format(user_view, e))
                 retries -= 1
                 time.sleep(0.5)
 
             if not success:
-                logError('Error on starting User Service for `{}`!'.format(user))
+                logError('Error on starting ClearCase Service for `{}`!'.format(user_view))
                 return False
 
-            # Save the process inside the block.  99% of the time, this block is executed instantly!
-            self._services[user] = {'proc': proc, 'conn': conn, 'port': port}
+            # Save the process inside the block.
+            self._services[user_view] = {'proc': ssh, 'conn': conn, 'port': port}
 
-        logDebug('User Service for `{}` launched on `127.0.0.1:{}` - PID `{}`.'.format(user, port, proc.pid))
+        logDebug('ClearCase Service for `{}` launched on `127.0.0.1:{}`.'.format(user_view, port))
         return conn
 
 
@@ -302,111 +311,51 @@ class LocalFS(object):
 
     @staticmethod
     def sysFileSize(fpath):
-        """
-        Get file size for 1 file. ROOT access.
-        """
-        if not fpath:
-            return False
-        try:
-            fsize = os.stat(fpath).st_size
-            # logDebug('File `{}` is size `{}`.'.format(fpath, fsize))
-            return fsize
-        except Exception as e:
-            err = '*ERROR* Cannot find file `{}`! {}'.format(fpath, e)
-            logWarning(err)
-            return err
+        pass
 
 
     @staticmethod
     def readSystemFile(fpath, flag='r', fstart=0):
-        """
-        Read 1 file. ROOT access.
-        """
-        if not fpath:
-            return False
-        if flag not in ['r', 'rb']:
-            err = '*ERROR* Invalid flag `{}`! Cannot read!'.format(flag)
-            logWarning(err)
-            return err
-        if not os.path.isfile(fpath):
-            err = '*ERROR* No such file `{}`!'.format(fpath)
-            logWarning(err)
-            return err
-        try:
-            with open(fpath, flag) as f:
-                # logDebug('Reading file `{}`, flag `{}`.'.format(fpath, flag))
-                if fstart:
-                    f.seek(fstart)
-                fdata = f.read()
-                if len(fdata) > 20*1000*1000:
-                    err = '*ERROR* File data too long `{}`: {}!'.format(fpath, len(fdata))
-                    logWarning(err)
-                    return err
-                return fdata
-        except Exception as e:
-            err = '*ERROR* Cannot read file `{}`! {}'.format(fpath, e)
-            logWarning(err)
-            return err
+        pass
 
 
     @staticmethod
     def writeSystemFile(fpath, fdata, flag='a'):
-        """
-        Write data in a file. ROOT access.
-        Overwrite or append, ascii or binary.
-        """
-        if not fpath:
-            return False
-        if flag not in ['w', 'wb', 'a', 'ab']:
-            err = '*ERROR* Invalid flag `{}`! Cannot read!'.format(flag)
-            logWarning(err)
-            return err
-        try:
-            with open(fpath, flag) as f:
-                f.write(fdata)
-            # if flag == 'w':
-            #     logDebug('Written `{}` chars in ascii file `{}`.'.format(len(fdata), fpath))
-            # elif flag == 'wb':
-            #     logDebug('Written `{}` chars in binary file `{}`.'.format(len(fdata), fpath))
-            # elif flag == 'a':
-            #     logDebug('Appended `{}` chars in ascii file `{}`.'.format(len(fdata), fpath))
-            # else:
-            #     logDebug('Appended `{}` chars in binary file `{}`.'.format(len(fdata), fpath))
-            return True
-        except Exception as e:
-            err = '*ERROR* Cannot write into file `{}`! {}'.format(fpath, e)
-            logWarning(err)
-            return err
-
-
-    def deleteSystemFile(self, fname):
         pass
 
 
-    def createSystemFolder(self, fdir):
+    @staticmethod
+    def deleteSystemFile(fname):
         pass
 
 
-    def listSystemFiles(self, fdir):
+    @staticmethod
+    def createSystemFolder(fdir):
         pass
 
 
-    def deleteSystemFolder(self, fdir):
+    @staticmethod
+    def listSystemFiles(fdir):
+        pass
+
+
+    @staticmethod
+    def deleteSystemFolder(fdir):
         pass
 
 #
 
 if __name__ == '__main__':
 
-    fs1 = LocalFS()
-    fs2 = LocalFS()
+    fs1 = ClearCaseFs()
+    fs1._usrService('user:bogdan_twister')
 
-    assert fs1 == fs2, 'Not equal!'
-    assert fs1 is fs2, 'Not identical!'
+    print fs1.listUserFiles('user:bogdan_twister', '/vob/metronext_DO_5/test_cases')
+    print '---'
+    print fs1.readUserFile('user:bogdan_twister', '/vob/metronext_DO_5/test_cases/python/test_py_printnlogs.py')
+    print '---'
 
-    print(fs1)
-    print(fs2)
-    print('Ok.')
+    fs1._kill('user')
 
 
 # Eof()

@@ -464,6 +464,32 @@ class CeRpycService(rpyc.Service):
 # # #   Persistence   # # #
 
 
+    def exposed_readFile(self, fpath, flag='r', fstart=0, type='fs'):
+        """
+        Read a file from TWISTER PATH, user's home folder, or ClearCase.
+        Flag r/ rb = ascii/ binary.
+        """
+        user = self._check_login()
+        if not user: return False
+        resp = self.project.readFile(user, fpath, flag, fstart, type)
+        if resp.startswith('*ERROR*'):
+            logWarning(resp)
+        return resp
+
+
+    def exposed_writeFile(self, fpath, fdata, flag='w', type='fs'):
+        """
+        Write a file in user's home folder, or ClearCase.
+        Flag w/ wb = ascii/ binary.
+        """
+        user = self._check_login()
+        if not user: return False
+        resp = self.project.writeFile(user, fpath, fdata, flag, type)
+        if resp != True:
+            logWarning(resp)
+        return resp
+
+
     def exposed_listSettings(self, config='', x_filter=''):
         """
         List all available settings, for 1 config of a user.
@@ -1010,26 +1036,24 @@ class CeRpycService(rpyc.Service):
 
             filename = data['file']
 
-            # Injected ClearCase file ?
-            if 'ClearCase' in self.exposed_listPlugins() and data.get('clearcase'):
-                plugin_p = self.project._buildPlugin(user, 'ClearCase')
-                try:
-                    data = plugin_p.getTestFile(filename)
-                except Exception as e:
-                    trace = traceback.format_exc()[34:].strip()
-                    logError('Error getting ClearCase file `{}` : `{}`!'.format(filename, trace))
-                    return ''
-                try:
-                    descr = plugin_p.getTestDescription(user, filename)
-                    cctag = '<b>ClearCase Version</b> :'
-                    if descr and (descr.find(cctag) != -1):
-                        pos = descr.find(cctag) + len(cctag)
-                        rev = descr[pos:].strip()
-                        self.project.setFileInfo(user, epname, file_id, 'twister_tc_revision', rev)
-                except Exception as e:
-                    pass
+            # Auto detect if ClearCase Test Config Path is active
+            ccConfig = self.project.getClearCaseConfig(user, 'tests_path')
+            if ccConfig and data.get('clearcase'):
+                view = ccConfig['view']
+                # Read ClearCase TestCase file
+                text = self.project.readFile(user, filename, type='clearcase:' + view)
+                tags = re.findall('^[ ]*?[#]*?[ ]*?<(?P<tag>\w+)>([ -~\n]+?)</(?P=tag)>', text, re.MULTILINE)
+                # File description
+                descr = '<br>\n'.join(['<b>' + title + '</b> : ' + descr.replace('<', '&lt;') for title, descr in tags])
+                cctag = '<b>ClearCase Version</b> :'
+                if descr and (descr.find(cctag) != -1):
+                    pos = descr.find(cctag) + len(cctag)
+                    rev = descr[pos:].strip()
+                    # Set TC Revision variable
+                    self.project.setFileInfo(user, epname, file_id, 'twister_tc_revision', rev)
                 logDebug('CE: Execution process `{}:{}` requested ClearCase file `{}`.'.format(user, epname, filename))
-                return data
+                return text
+            # End of ClearCase hack !
 
             # Fix ~ $HOME path (from project XML)
             if filename.startswith('~'):
@@ -1040,8 +1064,7 @@ class CeRpycService(rpyc.Service):
 
         logDebug('CE: Execution process `{}:{}` requested file `{}`.'.format(user, epname, filename))
 
-        with open(filename, 'rb') as handle:
-            return handle.read()
+        return self.project.localFs.readUserFile(user, filename, 'rb')
 
 
 # # #   Plugins   # # #

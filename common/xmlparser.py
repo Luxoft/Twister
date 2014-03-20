@@ -1159,13 +1159,19 @@ class ClearCaseParser(object):
             raise Exception('ClearCaseParser: Cannot access Clearcase XML data!')
 
 
-    def getConfigs(self):
+    def getConfigs(self, filter_tag=None):
         """ Return all ClearCase info. """
+        filter_name = False
 
         # Parse all known FWMCONFIG tags
         for tag_dict in FWMCONFIG_TAGS:
             tag  = tag_dict['tag']
             name = tag_dict['name']
+            # Filter ?
+            if filter_tag and filter_tag != tag:
+                continue
+            # Found filter ?
+            filter_name = name
             xobj = self.xmlTree.xpath('/Root/' + tag)
             # If the tag is active, get the View and the Path
             if len(xobj) >= 1:
@@ -1175,7 +1181,10 @@ class ClearCaseParser(object):
                     view = xobj.get('view')
                     self.config[name] = {'path': path, 'view': view}
 
-        return self.config
+        if filter_tag and filter_name:
+            return self.config[filter_name]
+        else:
+            return self.config
 
 
 # Eof()

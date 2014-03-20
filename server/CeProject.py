@@ -211,6 +211,7 @@ class Project(object):
         self.report = ReportingServer(self)
 
         self.localFs = None # local FS pointer
+        self.clearFs = None # ClearCase FS pointer
 
         # Users, parsers, IDs...
         self.users = {}
@@ -1022,6 +1023,146 @@ class Project(object):
                 logWarning('Cannot decrypt! Cannot fetch users key!')
                 return False
         return decrypt(text, key)
+
+
+# # #
+
+
+    @staticmethod
+    def _fixCcXmlTag(user, TagOrView):
+        """
+        Transform 1 ClearCase.XML tag name into a ClearCase view.
+        """
+        ccConfigs = ClearCaseParser(user).getConfigs(TagOrView)
+        if ccConfigs and 'view' in ccConfigs:
+            return ccConfigs['view']
+        else:
+            return TagOrView
+
+
+    @staticmethod
+    def getClearCaseConfig(user, cc_key):
+        """
+        Auto detect if ClearCase Test Config Path is active.
+        """
+        if 'ClearCase' in PluginParser(user).getPlugins():
+            # Get all ClearCase data from clearcase XML
+            ccConfigs = ClearCaseParser(user).getConfigs()
+            # If the key is disabled, or wrong ...
+            if cc_key not in ccConfigs:
+                return False
+            # If the key is OK, return config (view, path)
+            return ccConfigs[cc_key]
+        else:
+            return False
+
+
+    def fileSize(self, user, fpath, type='fs'):
+        """
+        Returns file size.
+        If the file is from TWISTER PATH, use System file size,
+        else get file size from user's home folder.
+        """
+        if fpath.startswith(TWISTER_PATH):
+            return self.localFs.sysFileSize(fpath)
+        else:
+            if type.startswith('clearcase:'):
+                # ClearCase parameter is `clearcase:view`, or `clearcase:XmlTag`
+                view_or_tag = type.split(':')[1]
+                view = self._fixCcXmlTag(user, view_or_tag)
+                # logDebug('File size CC {} : {} : {}.'.format(user, view, fpath))
+                return self.clearFs.fileSize(user +':'+ view, fpath)
+            else:
+                return self.localFs.fileSize(user, fpath)
+
+
+    def readFile(self, user, fpath, flag='r', fstart=0, type='fs'):
+        """
+        Read a file from TWISTER PATH, user's home folder, or ClearCase.
+        Flag r/ rb = ascii/ binary.
+        """
+        if fpath.startswith(TWISTER_PATH):
+            return self.localFs.readSystemFile(fpath, flag, fstart)
+        else:
+            if type.startswith('clearcase:'):
+                # ClearCase parameter is `clearcase:view`, or `clearcase:XmlTag`
+                view_or_tag = type.split(':')[1]
+                view = self._fixCcXmlTag(user, view_or_tag)
+                logDebug('Read CC {} : {} : {}.'.format(user, view, fpath))
+                return self.clearFs.readUserFile(user +':'+ view, fpath, flag, fstart)
+            else:
+                return self.localFs.readUserFile(user, fpath, flag, fstart)
+
+
+    def writeFile(self, user, fpath, fdata, flag='w', type='fs'):
+        """
+        Write a file in user's home folder, or ClearCase.
+        Flag w/ wb = ascii/ binary.
+        """
+        if type.startswith('clearcase:'):
+            # ClearCase parameter is `clearcase:view`, or `clearcase:XmlTag`
+            view_or_tag = type.split(':')[1]
+            view = self._fixCcXmlTag(user, view_or_tag)
+            logDebug('Write CC {} : {} : {}.'.format(user, view, fpath))
+            return self.clearFs.writeUserFile(user +':'+ view, fpath, fdata, flag)
+        else:
+            return self.localFs.writeUserFile(user, fpath, fdata, flag)
+
+
+    def deleteFile(self, user, fpath, type='fs'):
+        """
+        Delete a file in user's home folder, or ClearCase.
+        """
+        if type.startswith('clearcase:'):
+            # ClearCase parameter is `clearcase:view`, or `clearcase:XmlTag`
+            view_or_tag = type.split(':')[1]
+            view = self._fixCcXmlTag(user, view_or_tag)
+            logDebug('Delete CC file {} : {} : {}.'.format(user, view, fpath))
+            return self.clearFs.deleteUserFile(user +':'+ view, fpath)
+        else:
+            return self.localFs.deleteUserFile(user, fpath)
+
+
+    def createFolder(self, user, fdir, type='fs'):
+        """
+        Create a folder in user's home folder, or ClearCase.
+        """
+        if type.startswith('clearcase:'):
+            # ClearCase parameter is `clearcase:view`, or `clearcase:XmlTag`
+            view_or_tag = type.split(':')[1]
+            view = self._fixCcXmlTag(user, view_or_tag)
+            logDebug('Create CC folder {} : {} : {}.'.format(user, view, fdir))
+            return self.clearFs.createUserFolder(user +':'+ view, fdir)
+        else:
+            return self.localFs.createUserFolder(user, fdir)
+
+
+    def listFiles(self, user, fdir, hidden=True, recursive=True, type='fs'):
+        """
+        List files from user's home folder, or ClearCase.
+        """
+        if type.startswith('clearcase:'):
+            # ClearCase parameter is `clearcase:view`, or `clearcase:XmlTag`
+            view_or_tag = type.split(':')[1]
+            view = self._fixCcXmlTag(user, view_or_tag)
+            logDebug('List CC files {} : {} : {}.'.format(user, view, fdir))
+            return self.clearFs.listUserFiles(user +':'+ view, fdir, hidden, recursive)
+        else:
+            return self.localFs.listUserFiles(user, fdir, hidden, recursive)
+
+
+    def deleteFolder(self, fdir, type='fs'):
+        """
+        Delete a folder from user's home folder, or ClearCase.
+        """
+        if type.startswith('clearcase:'):
+            # ClearCase parameter is `clearcase:view`, or `clearcase:XmlTag`
+            view_or_tag = type.split(':')[1]
+            view = self._fixCcXmlTag(user, view_or_tag)
+            logDebug('Delete CC folder {} : {} : {}.'.format(user, view, fdir))
+            return self.clearFs.deleteUserFolder(user +':'+ view, fdir)
+        else:
+            return self.localFs.deleteUserFolder(user, fdir)
 
 
 # # #
@@ -2259,19 +2400,28 @@ class Project(object):
 # # #
 
 
-    def getLibrariesList(self, user='', all=True):
+    def getLibrariesList(self, user, all=True):
         """
         Returns the list of exposed libraries, from CE libraries folder.\n
         This list will be used to syncronize the libs on all EP computers.
         """
         logFull('CeProject:getLibrariesList')
-        global TWISTER_PATH
+
         libs_path = (TWISTER_PATH + '/lib/').replace('//', '/')
         user_path = ''
         if self.getUserInfo(user, 'libs_path'):
             user_path = self.getUserInfo(user, 'libs_path') + os.sep
         if user_path == '/':
             user_path = ''
+
+        # # All files from global lib path
+        # glob_libs_all = self.localFs.listUserFiles(user, libs_path)
+
+        # # All files from user lib path
+        # if user_path and os.path.isdir(user_path):
+        #     user_libs_all = self.localFs.listUserFiles(user, user_path)
+        # else:
+        #     user_libs_all = []
 
         glob_libs = [] # Default empty
         user_libs = []
@@ -2292,11 +2442,9 @@ class Project(object):
                         os.path.isdir(user_path + d) ]
         # All libraries for user
         else:
-            if user:
-                # If `libraries` is empty, will default to ALL libraries
-                tmp_libs = self.getUserInfo(user, 'libraries') or ''
-                glob_libs = [x.strip() for x in tmp_libs.split(';')] if tmp_libs else []
-                del tmp_libs
+            # If `libraries` is empty, will default to ALL libraries
+            tmp_libs = self.getUserInfo(user, 'libraries') or ''
+            glob_libs = [x.strip() for x in tmp_libs.split(';')] if tmp_libs else []
 
         # Return a list with unique names, sorted alphabetically
         return sorted( set(glob_libs + user_libs) )

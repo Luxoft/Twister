@@ -321,7 +321,7 @@ class UserService(rpyc.Service):
                     return None
 
         if not os.path.isdir(folder):
-            err = '*ERROR* Folder path `{}`!'.format(folder)
+            err = '*ERROR* Invalid folder path `{}`!'.format(folder)
             log.warning(err)
             return err
 
