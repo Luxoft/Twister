@@ -1,7 +1,7 @@
 
 # File: xmlparser.py ; This file is part of Twister.
 
-# version: 3.014
+# version: 3.015
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -621,7 +621,7 @@ class TSCParser:
             xml_string = etree.tostring(found[0])
             return xml_string.replace('binding>', 'root>')
         else:
-            logWarning('*ERROR* Cannot find binding name `{}`!'.format(fpath))
+            logWarning('*ERROR* Cannot find binding name `{}` for user {}!'.format(fpath,self.user))
             return False
 
 
