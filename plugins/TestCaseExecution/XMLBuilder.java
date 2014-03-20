@@ -1,6 +1,6 @@
 /*
 File: XMLBuilder.java ; This file is part of Twister.
-Version: 2.016
+Version: 2.017
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -39,6 +39,7 @@ import com.twister.CustomDialog;
 import javax.swing.tree.DefaultMutableTreeNode;
 import java.util.HashMap;
 import java.io.StringWriter;
+import java.util.Scanner;
 
 public class XMLBuilder{
     private DocumentBuilderFactory documentBuilderFactory;
@@ -479,11 +480,11 @@ public class XMLBuilder{
         try{transformer.transform(source, result);}
         catch(Exception e){
             e.printStackTrace();
-            System.out.println("Could not write to file");
+            System.out.println("Could not write to file: "+file.getAbsolutePath());
             return false;}
         if(!local){
             try{
-                if(temp || skip){
+                if(temp || skip){//testsuites.xml
                     String dir = RunnerRepository.getXMLRemoteDir();
                     String [] path = dir.split("/");
                     StringBuffer result2 = new StringBuffer();
@@ -492,15 +493,34 @@ public class XMLBuilder{
                             result2.append(path[i]);
                             result2.append("/");}}
                     FileInputStream in = new FileInputStream(file);
-                    return RunnerRepository.uploadRemoteFile(result2.toString(), in, file.getName(),false);
-                }
-                else{
-                    if(lib){
-                        FileInputStream in = new FileInputStream(file);
-                        return RunnerRepository.uploadRemoteFile(RunnerRepository.getPredefinedSuitesPath(), in, file.getName(),false);
-                    } else {
-                        FileInputStream in = new FileInputStream(file);
-                        return RunnerRepository.uploadRemoteFile(RunnerRepository.getRemoteUsersDirectory(), in, file.getName(),false);
+                    return RunnerRepository.uploadRemoteFile(result2.toString(), in, file.getName(),false,null);
+                }else{
+                    FileInputStream in = new FileInputStream(file);
+                    if(lib){ //predefined suites  
+                        RunnerRepository.savePredefinedProjectFile(file.getName(),new Scanner(file).useDelimiter("\\A").next());
+//                         if(RunnerRepository.window.mainpanel.p4.getPlugins().isClearCaseEnabled()){
+//                             String respons = RunnerRepository.getRPCClient().execute("findCcXmlTag", new Object[]{"PredefinedSuitesPath"}).toString();
+//                             if(respons.indexOf("*ERROR*")!=-1){
+//                                 CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,RunnerRepository.window,"ERROR", respons);
+//                                 return false;
+//                             }
+//                             return RunnerRepository.uploadRemoteFile(respons.split(":")[1], in, file.getName(),false,"PredefinedSuitesPath");
+//                         } else {
+//                             return RunnerRepository.uploadRemoteFile(RunnerRepository.getPredefinedSuitesPath(), in, file.getName(),false,null);
+//                         }
+                    } else {//normal suites
+                        
+                        RunnerRepository.saveProjectFile(file.getName(),new Scanner(file).useDelimiter("\\A").next());
+//                         if(RunnerRepository.window.mainpanel.p4.getPlugins().isClearCaseEnabled()){
+//                             String respons = RunnerRepository.getRPCClient().execute("findCcXmlTag", new Object[]{"UsersPath"}).toString();
+//                             if(respons.indexOf("*ERROR*")!=-1){
+//                                 CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,RunnerRepository.window,"ERROR", respons);
+//                                 return false;
+//                             }
+//                             return RunnerRepository.uploadRemoteFile(respons.split(":")[1], in, file.getName(),false,"UsersPath");
+//                         } else {
+//                             return RunnerRepository.uploadRemoteFile(RunnerRepository.getRemoteUsersDirectory(), in, file.getName(),false,null);   
+//                         }
                     }
                 }}
             catch(Exception e){e.printStackTrace();

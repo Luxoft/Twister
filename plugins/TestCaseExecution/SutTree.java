@@ -1,6 +1,6 @@
 /*
 File: SutTree.java ; This file is part of Twister.
-Version: 2.011
+Version: 2.012
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -400,11 +400,6 @@ public class SutTree extends JPanel{
                                             "This name is already used, please use different name.");
                              return;
                         }
-//                         if(reserved.equals("")){
-//                             if(!reserveSut(((SUT)selected.getUserObject()))){
-//                                 return;
-//                             }
-//                         }
                         String query = client.execute("renameSut", new Object[]{torename,filename+add,RunnerRepository.user}).toString();
                         if(query.indexOf("*ERROR*")==-1){
                             ((SUT)selected.getUserObject()).setName(filename);
@@ -475,6 +470,10 @@ public class SutTree extends JPanel{
                 if(RunnerRepository.container!=null)c = RunnerRepository.container.getParent();
                 else c = RunnerRepository.window;
                 final JTextField tf = new JTextField();
+                try{tf.setText(RunnerRepository.getSutPath());}
+                catch(Exception e){
+                    tf.setText("");
+                }
                 new MySftpBrowser(RunnerRepository.host,RunnerRepository.user,RunnerRepository.password,RunnerRepository.CENTRALENGINEPORT,tf,c,false).setAction(new AbstractAction(){
                     public void actionPerformed(ActionEvent ev){
                         try{TreePath tp = filestree.getSelectionPath();
@@ -510,7 +509,7 @@ public class SutTree extends JPanel{
                 else c = RunnerRepository.window;
                 final JTextField tf = new JTextField();
                 try{
-                    tf.setText(RunnerRepository.getTestConfigPath());
+                    tf.setText(RunnerRepository.getSutPath());
                 }catch(Exception e){
                     e.printStackTrace();
                 }
