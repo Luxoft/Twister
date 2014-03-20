@@ -349,8 +349,14 @@ class Project(object):
         logFull('CeProject:_registerEp user `{}`.'.format(user))
         if (not user) or (not epname):
             return False
+        if user not in self.users:
+            return False
 
         with self.epl_lock:
+
+            # Create EP list
+            if 'eps' not in self.users[user]:
+                self.users[user]['eps'] = OrderedDict()
 
             self.users[user]['eps'][epname] = OrderedDict()
             self.users[user]['eps'][epname]['status'] = STATUS_STOP
@@ -389,6 +395,8 @@ class Project(object):
         """
         logFull('CeProject:_unregisterEp user `{}`.'.format(user))
         if (not user) or (not epname):
+            return False
+        if user not in self.users:
             return False
 
         with self.epl_lock:

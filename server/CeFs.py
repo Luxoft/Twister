@@ -28,7 +28,6 @@ import time
 import copy
 import random
 import socket
-import pexpect
 import subprocess
 from plumbum import local
 import rpyc
@@ -42,10 +41,6 @@ if not TWISTER_PATH:
     exit(1)
 if TWISTER_PATH not in sys.path:
     sys.path.append(TWISTER_PATH)
-
-if pexpect.__version__ < '3.1':
-    raise Exception('pExpect version `{}` is too low!'
-        ' Local FS will crash!'.format(pexpect.__version__))
 
 from common.helpers    import *
 from common.tsclogging import *
@@ -76,8 +71,7 @@ class LocalFS(object):
     def __init__(self, project=None):
         if os.getuid():
             logError('Local FS: Central Engine must run as ROOT in order to start the User Service!')
-        if project:
-            self.project = project
+        self.project = project
         logInfo('Created Local FS.')
 
 
@@ -151,7 +145,7 @@ class LocalFS(object):
                 except:
                     break
 
-            p_cmd = 'su {} -c "{} -u {}/server/UserService.py {}"'.format(user, sys.executable, TWISTER_PATH, port)
+            p_cmd = 'su {} -c "{} -u {}/server/UserService.py {} FS"'.format(user, sys.executable, TWISTER_PATH, port)
             proc = subprocess.Popen(p_cmd, cwd='{}/twister'.format(userHome(user)), shell=True,
                    stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             proc.poll()

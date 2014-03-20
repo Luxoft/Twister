@@ -299,7 +299,6 @@ class CeXmlRpc(_cptools.XMLRPCController):
             else:
                 fdir = self.project.getUserInfo(user, 'predefined_path')
                 resp = self.project.localFs.listUserFiles(user, fdir)
-            logDebug('Listed predefined suites: {}.'.format(resp))
             return resp
 
         else:
@@ -312,8 +311,58 @@ class CeXmlRpc(_cptools.XMLRPCController):
             else:
                 fdir = self.project.getUserInfo(user, 'projects_path')
                 resp = self.project.localFs.listUserFiles(user, fdir)
-            logDebug('Listed user projects: {}.'.format(resp))
             return resp
+
+
+    @cherrypy.expose
+    def readProjectFile(self, fpath):
+        """
+        Read a project file - returns a string.
+        """
+        user = cherrypy.session.get('username')
+        # Auto detect if ClearCase Test Config Path is active
+        ccConfig = self.project.getClearCaseConfig(user, 'projects_path')
+        if ccConfig:
+            view = ccConfig['view']
+            path = ccConfig['path'].rstrip('/')
+            return self.project.clearFs.readUserFile(user +':'+ view, path +'/'+ fpath)
+        else:
+            dpath = self.project.getUserInfo(user, 'projects_path').rstrip('/')
+            return self.project.localFs.readUserFile(user, dpath +'/'+ fpath)
+
+
+    @cherrypy.expose
+    def saveProjectFile(self, fpath, content):
+        """
+        Write a project file - returns a True/ False.
+        """
+        user = cherrypy.session.get('username')
+        # Auto detect if ClearCase Test Config Path is active
+        ccConfig = self.project.getClearCaseConfig(user, 'projects_path')
+        if ccConfig:
+            view = ccConfig['view']
+            path = ccConfig['path'].rstrip('/')
+            return self.project.clearFs.writeUserFile(user +':'+ view, path +'/'+ fpath, content)
+        else:
+            dpath = self.project.getUserInfo(user, 'projects_path').rstrip('/')
+            return self.project.localFs.writeUserFile(user, dpath +'/'+ fpath, content)
+
+
+    @cherrypy.expose
+    def deleteProjectFile(self, fpath):
+        """
+        Delete project file - returns a True/ False.
+        """
+        user = cherrypy.session.get('username')
+        # Auto detect if ClearCase Test Config Path is active
+        ccConfig = self.project.getClearCaseConfig(user, 'projects_path')
+        if ccConfig:
+            view = ccConfig['view']
+            path = ccConfig['path'].rstrip('/')
+            return self.project.clearFs.deleteUserFile(user +':'+ view, path +'/'+ fpath)
+        else:
+            dpath = self.project.getUserInfo(user, 'projects_path').rstrip('/')
+            return self.project.localFs.deleteUserFile(user, dpath +'/'+ fpath)
 
 
     @cherrypy.expose
@@ -811,7 +860,7 @@ class CeXmlRpc(_cptools.XMLRPCController):
     @cherrypy.expose
     def readConfigFile(self, fpath):
         """
-        Complete path from tree - returns a base64 string.
+        Read config file - returns a base64 string.
         """
         user = cherrypy.session.get('username')
         # Auto detect if ClearCase Test Config Path is active
@@ -828,7 +877,7 @@ class CeXmlRpc(_cptools.XMLRPCController):
     @cherrypy.expose
     def saveConfigFile(self, fpath, content):
         """
-        Complete path from tree - returns a True/ False.
+        Save config file - returns a True/ False.
         """
         user = cherrypy.session.get('username')
         lock = self.isLockConfig(fpath)
@@ -856,7 +905,7 @@ class CeXmlRpc(_cptools.XMLRPCController):
     @cherrypy.expose
     def deleteConfigFile(self, fpath):
         """
-        Complete path from tree - returns a True/ False.
+        Delete config file - returns a True/ False.
         """
         user = cherrypy.session.get('username')
         lock = self.isLockConfig(fpath)

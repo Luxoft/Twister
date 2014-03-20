@@ -30,7 +30,6 @@ import random
 import socket
 import pexpect
 import pxssh
-import subprocess
 from plumbum import local
 import rpyc
 
@@ -82,12 +81,12 @@ class ClearCaseFs(object):
     def __init__(self, project=None):
         if os.getuid():
             logError('ClearCase FS: Central Engine must run as ROOT in order to start the ClearCase Service!')
-        if project:
-            self.project = project
+        self.project = project
         logInfo('Init ClearCase FS.')
 
 
-    def _kill(self, user):
+    @staticmethod
+    def _kill(user):
 
         ps   = local['ps']
         grep = local['grep']
@@ -114,9 +113,9 @@ class ClearCaseFs(object):
     def _usrService(self, user_view):
         """
         Launch a user service.
+        Open a ClearCase view first.
         """
         user, view = user_view.split(':')
-        passwd = self.project.getUserInfo(user, 'user_passwd')
 
         # Must block here, so more users cannot launch Logs at the same time and lose the PID
         with self._srv_lock:
@@ -130,12 +129,15 @@ class ClearCaseFs(object):
                     return conn
                 except Exception as e:
                     logWarning('Cannot connect to ClearCase Service for `{}`: `{}`.'.format(user_view, e))
-                    ssh = self._services.get(user_view, {}).get('proc', None)
+                    self._kill(user)
+                    ssh = self._services.get(user_view, {}).get('ssh', None)
                     ssh.close()
             else:
                 logInfo('Launching a ClearCase Service for `{}`, the first time...'.format(user_view))
 
             ssh = pxssh.pxssh()
+
+            passwd = self.project.getUserInfo(user, 'user_passwd')
 
             try:
                 ssh.login('127.0.0.1', user, passwd)
@@ -165,6 +167,7 @@ class ClearCaseFs(object):
             # Launching 1 UserService inside the SSH terminal, with ClearCase View open
             p_cmd = '{} -u {}/server/UserService.py {} ClearCase'.format(sys.executable, TWISTER_PATH, port)
             ssh.sendline(p_cmd)
+            time.sleep(0.2)
 
             config = {
                 'allow_pickle': True,
@@ -193,7 +196,7 @@ class ClearCaseFs(object):
                 return False
 
             # Save the process inside the block.
-            self._services[user_view] = {'proc': ssh, 'conn': conn, 'port': port}
+            self._services[user_view] = {'ssh': ssh, 'conn': conn, 'port': port}
 
         logDebug('ClearCase Service for `{}` launched on `127.0.0.1:{}`.'.format(user_view, port))
         return conn
