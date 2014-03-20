@@ -1,7 +1,7 @@
 
 # File: CeResources.py ; This file is part of Twister.
 
-# version: 2.035
+# version: 2.036
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -786,11 +786,13 @@ class ResourceAllocator(_cptools.XMLRPCController):
         Export as XML file.
         '''
         self._load(v=False, props=props)
+        user_roles = self.userRoles(props)
+        user = user_roles['user']
 
         try:
             f = open(xml_file, 'w')
         except:
-            msg = 'Export XML: XML file `{}` cannot be written!'.format(xml_file)
+            msg = 'Export XML: XML file `{}` cannot be written for user !'.format(xml_file,user)
             logError(msg)
             return '*ERROR* ' + msg
 
@@ -943,6 +945,8 @@ class ResourceAllocator(_cptools.XMLRPCController):
         '''
         logFull('CeResources:getResource')
         self._load(v=False, props=props)
+        user_roles = self.userRoles(props)
+        user = user_roles['user']
 
         # If the root is not provided, use the default root
         if root_id == ROOT_DEVICE:
@@ -963,7 +967,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
             return '*ERROR* ' + msg
 
         if not query:
-            msg = 'Get {}: Cannot get a null resource !'.format(root_name)
+            msg = 'Get {}: Cannot get a null resource for user {}!'.format(root_name,user)
             logError(msg)
             return '*ERROR* ' + msg
 
@@ -2190,7 +2194,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
             if not self.reservedResources[user]:
                 self.reservedResources.pop(user)
         except Exception as e:
-            msg = 'Discard reserved resource: `{}` !'.format(e)
+            msg = 'Discard reserved resource: `{}` for user !'.format(e,user)
             logError(msg)
             return '*ERROR* ' + msg
 
