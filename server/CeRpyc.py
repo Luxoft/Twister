@@ -461,6 +461,117 @@ class CeRpycService(rpyc.Service):
         return self.project.setFileInfo(user, epname, filename, variable, value)
 
 
+# # #   Persistence   # # #
+
+
+    def exposed_readFile(self, fpath, flag='r', fstart=0, type='fs'):
+        """
+        Read a file from TWISTER PATH, user's home folder, or ClearCase.
+        Flag r/ rb = ascii/ binary.
+        """
+        user = self._check_login()
+        if not user: return False
+        resp = self.project.readFile(user, fpath, flag, fstart, type)
+        if resp.startswith('*ERROR*'):
+            logWarning(resp)
+        return resp
+
+
+    def exposed_writeFile(self, fpath, fdata, flag='w', type='fs'):
+        """
+        Write a file in user's home folder, or ClearCase.
+        Flag w/ wb = ascii/ binary.
+        """
+        user = self._check_login()
+        if not user: return False
+        resp = self.project.writeFile(user, fpath, fdata, flag, type)
+        if resp != True:
+            logWarning(resp)
+        return resp
+
+
+    def exposed_listSettings(self, config='', x_filter=''):
+        """
+        List all available settings, for 1 config of a user.
+        """
+        user = self._check_login()
+        if not user: return False
+        return self.project.listSettings(user, config, x_filter)
+
+
+    def exposed_getSettingsValue(self, config, key):
+        """
+        Fetch a value from 1 config of a user.
+        """
+        user = self._check_login()
+        if not user: return False
+        return self.project.getSettingsValue(user, config, key)
+
+
+    def exposed_setSettingsValue(self, config, key, value):
+        """
+        Set a value for a key in the config of a user.
+        """
+        user = self._check_login()
+        if not user: return False
+        return self.project.setSettingsValue(user, config, key, value)
+
+
+    def exposed_delSettingsKey(self, config, key, index=0):
+        """
+        Del a key from the config of a user.
+        """
+        user = self._check_login()
+        if not user: return False
+        return self.project.delSettingsKey(user, config, key, index)
+
+
+    def exposed_setPersistentSuite(self, suite, info={}, order=-1):
+        """
+        Create a new suite, using the INFO, at the position specified.\n
+        This function writes in TestSuites.XML file.\n
+        The changes will be available at the next START.
+        """
+        user = self._check_login()
+        if not user: return False
+        return self.project.setPersistentSuite(user, suite, info, order)
+
+
+    def exposed_delPersistentSuite(self, suite):
+        """
+        Delete an XML suite, using a name ; if there are more suites with the same name,
+        only the first one is deleted.\n
+        This function writes in TestSuites.XML file.\n
+        The changes will be available at the next START.
+        """
+        user = self._check_login()
+        if not user: return False
+        return self.project.delPersistentSuite(user, suite)
+
+
+    def exposed_setPersistentFile(self, suite, fname, info={}, order=-1):
+        """
+        Create a new file in a suite, using the INFO, at the position specified.\n
+        This function writes in TestSuites.XML file.\n
+        The changes will be available at the next START.
+        """
+        user = self._check_login()
+        if not user: return False
+        return self.project.setPersistentFile(user, suite, fname, info, order)
+
+
+    def exposed_delPersistentFile(self, suite, fname):
+        """
+        Delete an XML file from a suite, using a name ; if there are more files
+        with the same name, only the first one is deleted.\n
+        This function writes in TestSuites.XML file.\n
+        The changes will be available at the next START.
+        """
+        user = self._check_login()
+        if not user: return False
+        return self.project.delPersistentFile(user, suite, fname)
+
+
 # # #   Global Variables and Config Files   # # #
 
 
@@ -925,26 +1036,24 @@ class CeRpycService(rpyc.Service):
 
             filename = data['file']
 
-            # Injected ClearCase file ?
-            if 'ClearCase' in self.exposed_listPlugins() and data.get('clearcase'):
-                plugin_p = self.project._buildPlugin(user, 'ClearCase')
-                try:
-                    data = plugin_p.getTestFile(filename)
-                except Exception as e:
-                    trace = traceback.format_exc()[34:].strip()
-                    logError('Error getting ClearCase file `{}` : `{}`!'.format(filename, trace))
-                    return ''
-                try:
-                    descr = plugin_p.getTestDescription(user, filename)
-                    cctag = '<b>ClearCase Version</b> :'
-                    if descr and (descr.find(cctag) != -1):
-                        pos = descr.find(cctag) + len(cctag)
-                        rev = descr[pos:].strip()
-                        self.project.setFileInfo(user, epname, file_id, 'twister_tc_revision', rev)
-                except Exception as e:
-                    pass
+            # Auto detect if ClearCase Test Config Path is active
+            ccConfig = self.project.getClearCaseConfig(user, 'tests_path')
+            if ccConfig and data.get('clearcase'):
+                view = ccConfig['view']
+                # Read ClearCase TestCase file
+                text = self.project.readFile(user, filename, type='clearcase:' + view)
+                tags = re.findall('^[ ]*?[#]*?[ ]*?<(?P<tag>\w+)>([ -~\n]+?)</(?P=tag)>', text, re.MULTILINE)
+                # File description
+                descr = '<br>\n'.join(['<b>' + title + '</b> : ' + descr.replace('<', '&lt;') for title, descr in tags])
+                cctag = '<b>ClearCase Version</b> :'
+                if descr and (descr.find(cctag) != -1):
+                    pos = descr.find(cctag) + len(cctag)
+                    rev = descr[pos:].strip()
+                    # Set TC Revision variable
+                    self.project.setFileInfo(user, epname, file_id, 'twister_tc_revision', rev)
                 logDebug('CE: Execution process `{}:{}` requested ClearCase file `{}`.'.format(user, epname, filename))
-                return data
+                return text
+            # End of ClearCase hack !
 
             # Fix ~ $HOME path (from project XML)
             if filename.startswith('~'):
@@ -955,8 +1064,7 @@ class CeRpycService(rpyc.Service):
 
         logDebug('CE: Execution process `{}:{}` requested file `{}`.'.format(user, epname, filename))
 
-        with open(filename, 'rb') as handle:
-            return handle.read()
+        return self.project.localFs.readUserFile(user, filename, 'rb')
 
 
 # # #   Plugins   # # #

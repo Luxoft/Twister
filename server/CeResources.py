@@ -1,7 +1,7 @@
 
 # File: CeResources.py ; This file is part of Twister.
 
-# version: 2.033
+# version: 2.036
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -202,28 +202,114 @@ def flattenNodes(parent_node, result):
     return result
 
 
-def xml_to_res(xml, gparams):
-    for folder in xml.xpath('folder'):
-        # Create empty resource node
-        nd = {'meta': {}, 'id': '', 'children': {}}
-        # Populate META properties
-        nd['meta'] = {gparam.find('name').text: gparam.find('value').text or '' for gparam in folder.xpath('param')}
-        # If the XML node contains an ID, use it; else, create a random ID
-        if nd['meta'].get('id'):
-            nd['id'] = nd['meta']['id']
-            del nd['meta']['id']
+def xml_to_res(xml, gparams, skip_header = False):
+
+    # this is a recursive method to read the xml and generate a dictionary
+    def recursive_xml_to_res(xml,res_dict):
+        nd = dict()
+        for folder in xml.findall('folder'):
+            tb_path = folder.find('path')
+            if tb_path is not None:
+                nd = {'path':[],'meta': {}, 'id': '', 'children': {}}
+                nd['path'].append(tb_path.text)
+            else:
+                nd = {'meta': {}, 'id': '', 'children': {}}
+
+            # Populate META properties
+            meta = folder.find('meta')
+            if meta is not None:
+                for meta_params in meta.findall('param'):
+                    meta_name = meta_params.find('name')
+                    if meta_name is not None:
+                        meta_value = meta_params.find('value')
+                        if meta_value is not None and meta_value.text is not None:
+                            nd['meta'][meta_name.text] = meta_value.text
+                        else:
+                            nd['meta'][meta_name.text] = ''
+
+            # If the XML node contains an ID, use it; else, create a random ID
+            tb_id = folder.find('id')
+            if tb_id is not None:
+                id_value = tb_id.find('value')
+                if id_value is not None and id_value.text is not None:
+                    nd['id'] = id_value.text
+                else:
+                    nd['id'] = hexlify(os.urandom(5))
+            else:
+                nd['id'] = hexlify(os.urandom(5))
+
+            # Add children for this node
+            res_dict[folder.find('fname').text] = nd
+            recursive_xml_to_res(folder,res_dict[folder.find('fname').text]['children'])
+
+    # we have to get the information at root level(path,meta,id,version) first
+    # version is added only if it exists in xml; the SUT exported files do not
+    # have the version tag
+    if not skip_header:
+        root_dict = {'path':[], 'meta':{}, 'id':'', 'children':{}}
+        tb_path = xml.find('path').text
+        if tb_path:
+            root_dict['path'].append(tb_path)
         else:
-            nd['id'] = hexlify(os.urandom(5))
-        # Add children for this node
-        nd['children'] = xml_to_res(folder, {})
-        gparams[folder.find('fname').text] = nd
+            root_dict['path'].append('')
+        meta = xml.find('meta')
+        for meta_elem in meta:
+           key = meta_elem.find('name').text
+           val = meta_elem.find('value').text
+           if val:
+               root_dict['meta'][key] = val
+           else:
+               root_dict['meta'][key] = ''
+        root_dict['id'] = xml.find('id').text
+        if xml.find('version') is not None and xml.find('version').text is not None:
+            root_dict['version'] = int(xml.find('version').text)
+        #else:
+        #    root_dict['version'] = ''
+
+        gparams = root_dict
+
+    # rest of the xml file can be read recursively
+    recursive_xml_to_res(xml,gparams['children'])
+
     return gparams
 
-
-def res_to_xml(parent_node, xml):
+def res_to_xml(parent_node, xml, skip_header = False):
     # The node is valid ?
     if not parent_node:
         return False
+
+    # if we are at root level, we need to get path, meta, id and version fields
+    if not skip_header:
+        # path is a list with 0 or 1 elements
+        path = etree.SubElement(xml,'path')
+        if parent_node.get('path') is not None and len(parent_node.get('path')) == 1:
+           path.text = parent_node.get('path')[0]
+        else:
+           path.text = ''
+
+        meta = etree.SubElement(xml,'meta')
+        # meta is a dictionary
+        for k, v in parent_node.get('meta').iteritems():
+            tag = etree.SubElement(meta, 'param')
+            prop = etree.SubElement(tag, 'name')
+            prop.text = str(k)
+            val  = etree.SubElement(tag, 'value')
+            if v:
+                val.text = str(v)
+            else:
+                val.text = ''
+            typ  = etree.SubElement(tag, 'type')
+            typ.text = 'string'
+            desc  = etree.SubElement(tag, 'desc')
+
+        tb_id = etree.SubElement(xml,'id')
+        tb_id.text = parent_node.get('id')
+        # add version only if it exists in dictionary; the SUT files don't 
+        # have version
+        if parent_node.get('version') is not None:
+            version = etree.SubElement(xml,'version')
+            version.text = str(parent_node.get('version'))
+
     # This node has children ?
     if not parent_node.get('children'):
         return False
@@ -239,19 +325,15 @@ def res_to_xml(parent_node, xml):
         # Folder fdesc
         fdesc = etree.SubElement(folder, 'fdesc')
 
-        # The ID is special
-        if nd.get('id'):
-            tag = etree.SubElement(folder, 'param')
-            prop = etree.SubElement(tag, 'name')
-            prop.text = 'id'
-            val  = etree.SubElement(tag, 'value')
-            val.text = nd['id']
-            typ  = etree.SubElement(tag, 'type')
-            typ.text = 'string'
-            desc  = etree.SubElement(tag, 'desc')
+        # get the path if exists 
+        if nd.get('path'):
+            path = etree.SubElement(folder, 'path')
+            path.text = nd.get('path')[0]
 
+        # get meta information
+        meta = etree.SubElement(folder,'meta')
         for k, v in nd['meta'].iteritems():
-            tag = etree.SubElement(folder, 'param')
+            tag = etree.SubElement(meta, 'param')
             prop = etree.SubElement(tag, 'name')
             prop.text = str(k)
             val  = etree.SubElement(tag, 'value')
@@ -263,10 +345,18 @@ def res_to_xml(parent_node, xml):
             typ.text = 'string'
             desc  = etree.SubElement(tag, 'desc')
 
-        ch = res_to_xml(nd, folder)
+        # get the id
+        if nd.get('id'):
+            tag = etree.SubElement(folder, 'id')
+            val  = etree.SubElement(tag, 'value')
+            val.text = nd['id']
+            typ  = etree.SubElement(tag, 'type')
+            typ.text = 'string'
+            desc  = etree.SubElement(tag, 'desc')
+
+        ch = res_to_xml(nd, folder, True)
 
     return xml
-
 
 def _recursive_build_comp(parent, old_path, appendList=[]):
     '''
@@ -494,7 +584,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
             if root_id == ROOT_DEVICE:
                 try:
-                    v = self.resources.get('version', 0) + 1
+                    v = self.resources.get('version', 1)
                     logDebug('Saving {} file, version `{}`.'.format(ROOT_NAMES[root_id], v))
                     self.resources['version'] = v
                     f = open(self.res_file, 'w')
@@ -516,7 +606,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
                     if v:
                         logError('Save ERROR: `{}`!'.format(e))
 
-                v = self.systems.get('version', 0) + 1
+                v = self.systems.get('version', 1)
                 self.systems['version'] = v
 
                 systemsChildren = copy.deepcopy(self.systems['children'])
@@ -542,6 +632,16 @@ class ResourceAllocator(_cptools.XMLRPCController):
                         # different user; dont't save it
                         logDebug('SUT file not saved; different users {} vs {}'.format(user,username))
                         continue
+
+                    # check if it's user or system sut
+                    filename = ''
+                    if child.split('.')[1] == 'user':
+                        sutsPath = self.project.getUserInfo(user, 'sut_path')
+                        filename = sutsPath+'/'+child.split('.')[0]+'.json'
+                    else:
+                        sutsPath = self.project.getUserInfo(user,'sys_sut_path')
+                        filename = sutsPath+'/'+child.split('.')[0]+'.json'
+
                     sutsPath = self.project.getUserInfo(user, 'sys_sut_path')
                     if not sutsPath:
                         sutsPath = '{}/config/sut/'.format(TWISTER_PATH)
@@ -551,34 +651,26 @@ class ResourceAllocator(_cptools.XMLRPCController):
                     else:
                         userSuts.append(('.'.join(child.split('.')[:-1] + ['json']), self.systems['children'][child]))
 
-                if userSuts:
-                    # Get the user rpyc connection connection
-                    user_roles = self.userRoles(props)
-                    user = user_roles.get('user')
-                    try:
-                        userConn = self.project._find_local_client(user)
-                        r = userConn.root.save_suts(userSuts)
-                        if r is not True:
-                            log.append(r)
-                    except Exception as e:
-                        log.append(e)
-                        logError('Saving ERROR user:: `{}`.'.format(e))
-
-                if systemSuts and not log:
-                    for sys_sut in systemSuts:
+                    if child.split('.')[1] == 'user':
+                        # Get the user connection
                         try:
-                            with open(sys_sut[0], 'w') as f:
-                                json.dump(sys_sut[1], f, indent=4)
+                            resp = self.project.localFs.writeUserFile(user,filename, json.dumps(self.systems['children'][child], indent=4), 'w')
+                            if resp is not True:
+                                log.append(resp)
                         except Exception as e:
                             log.append(e)
-                            logError('Saving ERROR system:: `{}`.'.format(e))
+                            logError('Saving ERROR user:: `{}`.'.format(e))
+
+                    if child.split('.')[1] == 'system' and not log:
+                        for sys_sut in systemSuts:
+                            try:
+                                resp = self.project.localFs.writeSystemFile(filename, json.dumps(self.systems['children'][child], indent=4), 'w')
+                            except Exception as e:
+                                log.append(e)
+                                logError('Saving ERROR system:: `{}`.'.format(e))
 
                     # update loaded users systems
                     self._loadedUsers.update([(user, self.systems), ])
-
-                # else:
-                #     self.reservedResources = dict()
-                #     self.lockedResources = dict()
 
         if log:
             return '*ERROR* ' + str(log)
@@ -632,7 +724,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
             logError(msg)
             return '*ERROR* ' + msg
 
-        logDebug('Preparing to import XML file `{}`...'.format(xml_file))
+        logDebug('Importing XML file `{}`...'.format(xml_file))
         params_xml = etree.parse(xml_file)
         sutName = ""
 
@@ -640,8 +732,6 @@ class ResourceAllocator(_cptools.XMLRPCController):
             if root_id == ROOT_DEVICE:
                 try:
                     self.resources = xml_to_res(params_xml, {})
-                    # self.resources = {'version': 0, 'name': '/', 'id': '1', 'meta': {},
-                    #                     'children': xml_to_res(params_xml, {})}
                 except Exception as e:
                     msg = 'Import XML: Exception `{}`.'.format(e)
                     logError(msg)
@@ -687,8 +777,6 @@ class ResourceAllocator(_cptools.XMLRPCController):
         if not r == True:
             return r
 
-        #root_name = ROOT_NAMES[root_id]
-        #logDebug('All {} are now overwritten! Created `{}` major nodes, with children.'.format(root_name, len(result['children'])))
         return True
 
 
@@ -698,25 +786,29 @@ class ResourceAllocator(_cptools.XMLRPCController):
         Export as XML file.
         '''
         self._load(v=False, props=props)
+        user_roles = self.userRoles(props)
+        user = user_roles['user']
 
         try:
             f = open(xml_file, 'w')
         except:
-            msg = 'Export XML: XML file `{}` cannot be written!'.format(xml_file)
+            msg = 'Export XML: XML file `{}` cannot be written for user !'.format(xml_file,user)
             logError(msg)
             return '*ERROR* ' + msg
 
-        logDebug('Preparing to export into XML file `{}`...'.format(xml_file))
+        logDebug('Exporting to XML file `{}`...'.format(xml_file))
 
+        skip_header = False
         if root_id == ROOT_DEVICE:
             _root = self.resources
         elif root_id == ROOT_SUT:
             _root = self.systems
+            skip_header = True
         elif root:
             _root = root
 
         xml = etree.Element('root')
-        result = res_to_xml(_root, xml)
+        result = res_to_xml(_root, xml, skip_header)
         f.write('<?xml version="1.0" encoding="UTF-8" standalone="no"?>\n\n')
         f.write(etree.tostring(xml, pretty_print=True))
         f.close()
@@ -730,8 +822,41 @@ class ResourceAllocator(_cptools.XMLRPCController):
         Import one sut XML file.
         '''
         logDebug('CeResources:import_sut_xml {} {} {}'.format(xml_file,sutType,username))
-        props = {}
-        return self.import_xml(xml_file, sutType, ROOT_SUT, props, username)
+
+        logDebug('Importing XML file `{}`...'.format(xml_file))
+        params_xml = etree.parse(xml_file)
+
+        # parse the xml file and build the json format
+        xml_ret = xml_to_res(params_xml, {})
+
+        # build the filename to be saved; xml_file has absolute path; we need
+        # to extract the last string after /, remove extension and add .json
+        sut_file = xml_file.split('/')[-1].split('.')[0]
+        sut_file = sut_file + '.json'
+        
+        sutPath = None
+        if sutType == 'system':
+            # System SUT path
+            sutPath = self.project.getUserInfo(username, 'sys_sut_path')
+            if not sutPath:
+                sutPath = '{}/config/sut/'.format(TWISTER_PATH)
+        else:
+            # User SUT path
+            sutPath = self.project.getUserInfo(username, 'sut_path')
+            if not sutPath:
+                usrHome = userHome(user)
+                sutPath = '{}/twister/config/sut/'.format(usrHome)
+        sut_file = sutPath + '/' + sut_file
+
+        user_roles = self.userRoles({})
+        user = user_roles['user']
+        resp = True
+        if sutType == 'system':
+            resp = self.project.localFs.writeSystemFile(sut_file, json.dumps(xml_ret, indent=4), 'w')
+        else:
+            resp = self.project.localFs.writeUserFile(user,sut_file, json.dumps(xml_ret, indent=4), 'w')
+
+        return resp
 
 
     @cherrypy.expose
@@ -739,10 +864,50 @@ class ResourceAllocator(_cptools.XMLRPCController):
         '''
         Export as XML file.
         '''
-        res_path = _get_res_path(self.systems, query)
-        res_pointer = _get_res_pointer(self.systems, ''.join('/' + res_path[0]))
-        root = {'version': 0, 'name': '/', 'meta': {}, 'children': {res_path[0]: res_pointer}}
-        return self.export_xml(xml_file, None, root, '{}')
+        user_roles = self.userRoles({})
+        user = user_roles['user']
+
+        sutPath = None
+        sutType = query.split('.')[-1]
+        if sutType == 'system':
+            # System SUT path
+            sutPath = self.project.getUserInfo(username, 'sys_sut_path')
+            if not sutPath:
+                sutPath = '{}/config/sut/'.format(TWISTER_PATH)
+        else:
+            # User SUT path
+            sutPath = self.project.getUserInfo(username, 'sut_path')
+            if not sutPath:
+                usrHome = userHome(user)
+                sutPath = '{}/twister/config/sut/'.format(usrHome)
+
+        sut_filename = sutPath + '/' + query.split('/')[1].split('.')[0] + '.json'
+        logInfo('User: {} export SUT file: {} to {} file.'.format(user, sut_filename,xml_file))
+
+        # read the content of the user SUT file and load it in json
+        if sutType == 'system':
+            resp = self.project.localFs.readSystemFile(sut_filename, 'r')
+        else:
+            resp = self.project.localFs.readUserFile(user, sut_filename, 'r')
+        json_resp = json.loads(resp)
+
+        # generate the xml structure
+        xml = etree.Element('root')
+        result = res_to_xml(json_resp, xml)
+
+        # write the xml file
+        xml_header = '<?xml version="1.0" encoding="UTF-8" standalone="no"?>\n\n'
+        resp = self.project.localFs.writeUserFile(user, xml_file, xml_header, 'w')
+        if resp != True:
+            logError(resp)
+            return resp
+
+        resp = self.project.localFs.writeUserFile(user, xml_file, etree.tostring(xml, pretty_print=True), 'w')
+        if resp != True:
+            logError(resp)
+            return resp
+
+        return True
 
 
     @cherrypy.expose
@@ -780,6 +945,8 @@ class ResourceAllocator(_cptools.XMLRPCController):
         '''
         logFull('CeResources:getResource')
         self._load(v=False, props=props)
+        user_roles = self.userRoles(props)
+        user = user_roles['user']
 
         # If the root is not provided, use the default root
         if root_id == ROOT_DEVICE:
@@ -800,7 +967,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
             return '*ERROR* ' + msg
 
         if not query:
-            msg = 'Get {}: Cannot get a null resource !'.format(root_name)
+            msg = 'Get {}: Cannot get a null resource for user {}!'.format(root_name,user)
             logError(msg)
             return '*ERROR* ' + msg
 
@@ -1361,11 +1528,25 @@ class ResourceAllocator(_cptools.XMLRPCController):
                 if res_path:
                     res_pointer = self.reservedResources[user][res]
                     break
+
+                # it can be a meta parameter for the TB; we need to check this
+                # case because get_res_path doesn't return correct in this case
+                if res == res_query:
+                    res_pointer = self.reservedResources[user][res]
+                    res_path = [res_pointer.get('path')]
+                    break;
         except Exception, e:
             res_path = None
 
         if res_path:
-            exec_string = 'res_pointer["children"]["{}"]'.format('"]["children"]["'.join(res_path))
+            # resource can be at test bed level or at children of test bed
+            # level; we have to differentiate
+            if res_pointer.get('path') == res_path[0]:
+                # test bed level
+                exec_string = 'res_pointer'
+            else:
+                # child of test bed level
+                exec_string = 'res_pointer["children"]["{}"]'.format('"]["children"]["'.join(res_path))
 
             # If must delete a Meta info
             if meta:
@@ -1453,7 +1634,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
                 file_name = node_path[0].split('.')[:-1][0]
                 file_name += '.json'
 
-                os.remove(sutsPath+file_name)
+                os.remove(sutsPath+'/'+file_name)
             else:
                 # Get the user rpyc connection connection
                 try:
@@ -2013,7 +2194,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
             if not self.reservedResources[user]:
                 self.reservedResources.pop(user)
         except Exception as e:
-            msg = 'Discard reserved resource: `{}` !'.format(e)
+            msg = 'Discard reserved resource: `{}` for user !'.format(e,user)
             logError(msg)
             return '*ERROR* ' + msg
 
@@ -2444,7 +2625,6 @@ class ResourceAllocator(_cptools.XMLRPCController):
             retDict['meta'] = new_path['meta']
             retDict['id'] = new_path['id']
             retDict['children'] = _recursive_build_comp(new_path.get('children'),retDict['path'],recursiveList)
-            # logDebug('\n BOG {}\n'.format(retDict))
 
             # search the query if the created dictionary
             if _recursive_search_string(retDict, query):

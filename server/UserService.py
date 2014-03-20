@@ -268,16 +268,15 @@ class UserService(rpyc.Service):
 
 
     @staticmethod
-    def exposed_list_files(folder, hidden=True):
+    def exposed_list_files(folder, hidden=True, recursive=True):
         """
         List all files, recursively.
         """
         if folder[0] == '~':
             folder = userHome() + folder[1:]
         if folder == '/':
-            err = '*ERROR* Cannot list ROOT folder!'
-            log.warning(err)
-            return err
+            log.warning('*WARN* Listing folders from system ROOT.')
+            recursive = False
 
         def dirList(base_path, path, new_dict):
             """
@@ -316,10 +315,13 @@ class UserService(rpyc.Service):
                 new_dict['children'] = dlist + flist
             for nitem in new_dict.get('children', []):
                 # Recursive !
-                dirList(base_path, base_path + os.sep + nitem['path'], nitem)
+                if recursive:
+                    dirList(base_path, base_path + os.sep + nitem['path'], nitem)
+                else:
+                    return None
 
         if not os.path.isdir(folder):
-            err = '*ERROR* Folder path `{}`!'.format(folder)
+            err = '*ERROR* Invalid folder path `{}`!'.format(folder)
             log.warning(err)
             return err
 

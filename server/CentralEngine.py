@@ -60,6 +60,7 @@ from server.CeXmlRpc   import CeXmlRpc
 from server.CeRpyc     import CeRpycService
 from common import iniparser
 from CeFs import LocalFS
+from CeClearCaseFs import ClearCaseFs
 
 #
 
@@ -115,6 +116,7 @@ if __name__ == "__main__":
     proj = Project()
     proj.rsrv = rpycServer
     proj.localFs = LocalFS(proj)
+    proj.clearFs = ClearCaseFs(proj)
     # CE is the XML-RPC interface
     ce = CeXmlRpc(proj)
 

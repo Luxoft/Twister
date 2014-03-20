@@ -2,7 +2,7 @@
 
 # File: start_client.py ; This file is part of Twister.
 
-# version: 3.012
+# version: 3.013
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -181,7 +181,9 @@ class TwisterClient(object):
             try:
                 # Call the user status to create the User Project
                 proxy.ping(data='Hello', timeout=3)
-                proxy.root.getUserVariable('status')
+                s = proxy.root.getUserVariable('user_roles')
+                if not s:
+                    raise Exception('Cannot get roles for user `{}`!'.format(self.userName))
                 proxy.root.hello('client', {'eps': epNames})
                 logPrint('Client Debug: Register EPs successful!')
             except Exception as e:
