@@ -1,7 +1,7 @@
 
 # File: CeResources.py ; This file is part of Twister.
 
-# version: 2.036
+# version: 2.037
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -718,13 +718,15 @@ class ResourceAllocator(_cptools.XMLRPCController):
         WARNING! This erases everything!
         '''
         self._load(v=False, props=props)
+        user_roles = self.userRoles(props)
+        user = user_roles['user']
 
         if not os.path.isfile(xml_file):
-            msg = 'Import XML: XML file `{}` does not exist!'.format(xml_file)
+            msg = 'User {} import XML: XML file `{}` does not exist!'.format(user,xml_file)
             logError(msg)
             return '*ERROR* ' + msg
 
-        logDebug('Importing XML file `{}`...'.format(xml_file))
+        logDebug('User {} importing XML file `{}`...'.format(user,xml_file))
         params_xml = etree.parse(xml_file)
         sutName = ""
 
@@ -792,11 +794,11 @@ class ResourceAllocator(_cptools.XMLRPCController):
         try:
             f = open(xml_file, 'w')
         except:
-            msg = 'Export XML: XML file `{}` cannot be written for user !'.format(xml_file,user)
+            msg = 'User {} export XML: XML file `{}` cannot be written !'.format(user,xml_file)
             logError(msg)
             return '*ERROR* ' + msg
 
-        logDebug('Exporting to XML file `{}`...'.format(xml_file))
+        logDebug('User {} exporting to XML file `{}`...'.format(user,xml_file))
 
         skip_header = False
         if root_id == ROOT_DEVICE:
@@ -821,9 +823,9 @@ class ResourceAllocator(_cptools.XMLRPCController):
         '''
         Import one sut XML file.
         '''
-        logDebug('CeResources:import_sut_xml {} {} {}'.format(xml_file,sutType,username))
-
-        logDebug('Importing XML file `{}`...'.format(xml_file))
+        user_roles = self.userRoles({})
+        user = user_roles['user']
+        logDebug('User {} importing XML file `{}`...'.format(user,xml_file))
         params_xml = etree.parse(xml_file)
 
         # parse the xml file and build the json format
@@ -848,8 +850,6 @@ class ResourceAllocator(_cptools.XMLRPCController):
                 sutPath = '{}/twister/config/sut/'.format(usrHome)
         sut_file = sutPath + '/' + sut_file
 
-        user_roles = self.userRoles({})
-        user = user_roles['user']
         resp = True
         if sutType == 'system':
             resp = self.project.localFs.writeSystemFile(sut_file, json.dumps(xml_ret, indent=4), 'w')
