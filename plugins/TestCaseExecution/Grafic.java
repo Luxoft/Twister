@@ -1,6 +1,6 @@
 /*
 File: Grafic.java ; This file is part of Twister.
-Version: 2.0020
+Version: 2.0021
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -1117,10 +1117,10 @@ public class Grafic extends JPanel{
             for(int i=0;i<item.getPos().size();i++){
                 System.out.print(item.getPos().get(i));}
             System.out.println();}
-        if(item.getType()==1){
-            for(int i=0;i<item.getSubItemsNr();i++){
-                printPos(item.getSubItem(i));}}
-        if(item.getType()==2){
+//         if(item.getType()==1){
+//             for(int i=0;i<item.getSubItemsNr();i++){
+//                 printPos(item.getSubItem(i));}}
+        if(item.getType()==1||item.getType()==2){
             for(int i=0;i<item.getSubItemsNr();i++){
                 printPos(item.getSubItem(i));}}}
                 
@@ -2426,7 +2426,7 @@ public class Grafic extends JPanel{
                             System.out.println("Could not find projects path:"+RunnerRepository.getTestSuitePath()+" in filename:"+name);
                             e.printStackTrace();}
                             
-                            try{String content = new String(RunnerRepository.getRemoteFileContent(RunnerRepository.getPredefinedSuitesPath()+name,false));             
+                            try{String content = new String(RunnerRepository.getRemoteFileContent(RunnerRepository.getPredefinedSuitesPath()+name,false,null));             
                                 String [] filename = name.split("/");
                                 File file = new File(RunnerRepository.temp+RunnerRepository.getBar()+"Twister"+
                                                      RunnerRepository.getBar()+"Users"+RunnerRepository.getBar()+   

@@ -1,6 +1,6 @@
 /*
 File: XMLReader.java ; This file is part of Twister.
-Version: 2.016
+Version: 2.017
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -34,12 +34,13 @@ import java.awt.Font;
 import java.util.ArrayList;
 
 public class XMLReader{
-    private DocumentBuilderFactory dbf;
-    private DocumentBuilder db;
+//     private DocumentBuilderFactory dbf;
+//     private DocumentBuilder db;
     private Document doc;
     private Node fstNode,secNode,trdNode;
-    private Element fstElmnt,fstNmElmnt,secElmnt,
+    private Element fstNmElmnt,secElmnt,
                     secNmElmnt,trdElmnt,trdNmElmnt;
+//                     fstElmnt,
     private NodeList fstNmElmntLst,fstNm,fstNmElmntLst2,
                      secNmElmntLst,secNm,secNmElmntLst2,
                      trdNmElmntLst,trdNm,trdNmElmntLst2,trdNm2;
@@ -48,8 +49,9 @@ public class XMLReader{
     private int index = 1001;
     
     public XMLReader (File file){
-        f = file;
-        dbf = DocumentBuilderFactory.newInstance();
+        final File f = file;
+        DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+        DocumentBuilder db = null;
         try{db = dbf.newDocumentBuilder();}
         catch(ParserConfigurationException e){
             System.out.println("Could not create a XML parser configuration");}
@@ -215,12 +217,12 @@ public class XMLReader{
             trdNmElmntLst = ((Element)node).getElementsByTagName("propName");
             trdNmElmnt = (Element)trdNmElmntLst.item(0);
             trdNm = trdNmElmnt.getChildNodes();
-            name = (trdNm.item(0).getNodeValue().toString());
+            name = trdNm.item(0).getNodeValue().toString();
             if(name.equals("Runnable")){
                 trdNmElmntLst2 = ((Element)node).getElementsByTagName("propValue");
                 Element trdNmElmnt2 = (Element)trdNmElmntLst2.item(0);
                 trdNm2 = trdNmElmnt2.getChildNodes();
-                value = (trdNm2.item(0).getNodeValue().toString());
+                value = trdNm2.item(0).getNodeValue().toString();
                 item.setRunnable(Boolean.parseBoolean(value));
                 return;}
             else if(name.equals("teardown_file")){
@@ -295,7 +297,9 @@ public class XMLReader{
                 else if(fstNode.getNodeName().equals("tcdelay")){
                     String delay = "";
                     try{delay = fstNode.getChildNodes().item(0).getNodeValue().toString();}
-                    catch(Exception e){}
+                    catch(Exception e){
+						delay = "";
+					}
                     RunnerRepository.window.mainpanel.p1.suitaDetails.setDelay(delay);
                     
                     continue;
@@ -328,7 +332,7 @@ public class XMLReader{
                 else if(fstNode.getNodeName().equals("ScriptPost")){
                     String script = "";
                     try{script = fstNode.getChildNodes().item(0).getNodeValue().toString();}
-                    catch(Exception e){}
+                    catch(Exception e){script = "";}
                     RunnerRepository.window.mainpanel.p1.suitaDetails.setPostScript(script);
                     continue;
                 }
@@ -336,7 +340,7 @@ public class XMLReader{
                     
                         String [] libraries = {};
                         try{libraries = fstNode.getChildNodes().item(0).getNodeValue().toString().split(";");}
-                        catch(Exception e){}
+                        catch(Exception e){libraries = new String[]{};}
                         RunnerRepository.window.mainpanel.p1.suitaDetails.setGlobalLibs(libraries);
                     
                     continue;
@@ -360,7 +364,7 @@ public class XMLReader{
                         userDefined.add(add);
                     }
                     catch(Exception e){
-                        
+                        System.out.println("There was a problem in reading propName,propValue and add to userDefined");
                     }
                     continue;
                 }
@@ -368,7 +372,7 @@ public class XMLReader{
             if(!fstNode.getNodeName().equals("TestSuite"))continue;            
             ArrayList <Integer> indexpos = new ArrayList <Integer> ();
             indexpos.add(new Integer(indexsuita));            
-            fstElmnt = (Element)fstNode;
+            Element fstElmnt = (Element)fstNode;
             fstNmElmntLst = fstElmnt.getElementsByTagName("tsName");
             fstNmElmnt = (Element)fstNmElmntLst.item(0);
             fstNm = fstNmElmnt.getChildNodes();
@@ -502,7 +506,7 @@ public class XMLReader{
             int subchildren = fstElmnt.getChildNodes().getLength();
             int index=0;
             indexsuita++;
-            for( k+=(userdefinitions*2);k<subchildren-1;k++){
+            for( k+=userdefinitions*2;k<subchildren-1;k++){
                 k++;
                 ArrayList <Integer> temp =(ArrayList <Integer>)indexpos.clone();
                 temp.add(new Integer(index));

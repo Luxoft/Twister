@@ -1,6 +1,6 @@
 /*
 File: ClearCaseConfig.java ; This file is part of Twister.
-Version: 2.001
+Version: 2.002
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -54,65 +54,33 @@ import java.util.ArrayList;
 import javax.swing.JButton;
 import java.awt.event.ItemListener;
 import java.awt.event.ItemEvent;
+import java.util.HashMap;
+import javax.swing.JList;
+import javax.swing.DefaultComboBoxModel;
+import javax.swing.JComboBox;
+import java.awt.Component;
 
 
 public class ClearCaseConfig extends JPanel{
     private JPanel main;
-    private javax.swing.JButton cfgbtn;
-    private JTextField cfgpath;
-    private JTextField cfgview;
-    private JCheckBox cfgactive;
-    private JLabel jLabel1;
-    private JLabel jLabel10;
-    private JLabel jLabel11;
-    private JLabel jLabel12;
-    private JLabel jLabel13;
-    private JLabel jLabel14;
-    private JLabel jLabel15;
-    private JLabel jLabel2;
-    private JLabel jLabel3;
-    private JLabel jLabel4;
-    private JLabel jLabel5;
-    private JLabel jLabel6;
-    private JLabel jLabel7;
-    private JLabel jLabel8;
-    private JLabel jLabel9;
-    private JPanel jPanel1;
-    private JPanel jPanel2;
-    private JPanel jPanel3;
-    private JPanel jPanel4;
-    private JPanel jPanel5;
-    private JPanel jPanel6;
-    private JPanel jPanel7;
-    private javax.swing.JButton libbtn;
-    private JTextField libpath;
-    private JCheckBox libactive;
-    private JTextField libview;
-    private JCheckBox predefactive;
-    private javax.swing.JButton predefbtn;
-    private JTextField predefpath;
-    private JTextField predefview;
-    private JCheckBox projactive;
-    private javax.swing.JButton projbtn;
-    private JTextField projpath;
-    private JTextField projview;
-    private javax.swing.JButton syssutbtn;
-    private JTextField syssutview;
-    private JCheckBox syssutactive;
-    private JTextField syssutpath;
-    private JCheckBox tcactive;
-    private javax.swing.JButton tcbtn;
-    private JTextField tcpath;
-    private JTextField tcview;
-    private javax.swing.JComboBox type;
-    private JCheckBox usrsutactive;
-    private javax.swing.JButton usrsutbtn;
-    private JTextField usrsutpath;
-    private JTextField usrsutview;
-    private javax.swing.JButton save;
+    private JLabel jLabel,jLabel1,jLabel10,jLabel11,jLabel12,
+                   jLabel13,jLabel14,jLabel15,jLabel2,
+                   jLabel3,jLabel4,jLabel5,jLabel6,jLabel7,
+                   jLabel8,jLabel9;
+    private JPanel jPanel1,jPanel2,jPanel3,
+                   jPanel4,jPanel5,jPanel6,jPanel7;
+    private JButton libbtn,predefbtn,usrsutbtn,cfgbtn,
+                    syssutbtn,tcbtn,save,projbtn;
+    private JTextField libpath,predefpath,predefview,
+                       tcpath,tcview,cfgview,cfgpath,projpath,
+                       syssutview,syssutpath,usrsutpath,usrsutview,libview,projview;
+    private JCheckBox syssutactive,tcactive,predefactive,projactive,libactive,usrsutactive,cfgactive;
+    private JComboBox type;
     public ArrayList change;//array to hold items that change based on type
+    private ClearCase cc;
     
-    public ClearCaseConfig(Object[] addtochange){
+    public ClearCaseConfig(Object[] addtochange, ClearCase cc){
+        this.cc = cc;
         initComponents(addtochange);
         interpretConfig((Element)getRemoteConfigContent().getFirstChild());
     }
@@ -121,63 +89,63 @@ public class ClearCaseConfig extends JPanel{
     private void initComponents(Object[] addtochange) {        
         main = new JPanel();
         add(main);
-        jPanel1 = new javax.swing.JPanel();
-        jLabel1 = new javax.swing.JLabel();
-        jLabel2 = new javax.swing.JLabel();
-        projpath = new javax.swing.JTextField();
-        projview = new javax.swing.JTextField();
-        projactive = new javax.swing.JCheckBox();
-        projbtn = new javax.swing.JButton();
-        jLabel3 = new javax.swing.JLabel();
-        type = new javax.swing.JComboBox();
-        jPanel3 = new javax.swing.JPanel();
-        jLabel6 = new javax.swing.JLabel();
-        jLabel7 = new javax.swing.JLabel();
-        predefpath = new javax.swing.JTextField();
-        predefview = new javax.swing.JTextField();
-        predefactive = new javax.swing.JCheckBox();
-        predefbtn = new javax.swing.JButton();
-        jPanel2 = new javax.swing.JPanel();
-        jLabel4 = new javax.swing.JLabel();
-        jLabel5 = new javax.swing.JLabel();
-        libpath = new javax.swing.JTextField();
-        libview = new javax.swing.JTextField();
-        libactive = new javax.swing.JCheckBox();
-        libbtn = new javax.swing.JButton();
-        jPanel4 = new javax.swing.JPanel();
-        jLabel8 = new javax.swing.JLabel();
-        jLabel9 = new javax.swing.JLabel();
-        tcpath = new javax.swing.JTextField();
-        tcview = new javax.swing.JTextField();
-        tcactive = new javax.swing.JCheckBox();
-        tcbtn = new javax.swing.JButton();
-        jPanel5 = new javax.swing.JPanel();
-        jLabel10 = new javax.swing.JLabel();
-        jLabel11 = new javax.swing.JLabel();
-        syssutpath = new javax.swing.JTextField();
-        syssutview = new javax.swing.JTextField();
-        syssutactive = new javax.swing.JCheckBox();
-        syssutbtn = new javax.swing.JButton();
-        jPanel6 = new javax.swing.JPanel();
-        jLabel12 = new javax.swing.JLabel();
-        jLabel13 = new javax.swing.JLabel();
-        cfgpath = new javax.swing.JTextField();
-        cfgview = new javax.swing.JTextField();
-        cfgactive = new javax.swing.JCheckBox();
-        cfgbtn = new javax.swing.JButton();
-        jPanel7 = new javax.swing.JPanel();
-        jLabel14 = new javax.swing.JLabel();
-        jLabel15 = new javax.swing.JLabel();
-        usrsutpath = new javax.swing.JTextField();
-        usrsutview = new javax.swing.JTextField();
-        usrsutactive = new javax.swing.JCheckBox();
-        usrsutbtn = new javax.swing.JButton();
-        save = new javax.swing.JButton();
+        jPanel1 = new JPanel();
+        jLabel1 = new JLabel();
+        jLabel2 = new JLabel();
+        projpath = new JTextField();
+        projview = new JTextField();
+        projactive = new JCheckBox();
+        projbtn = new JButton();
+        jLabel3 = new JLabel();
+        type = new JComboBox();
+        jPanel3 = new JPanel();
+        jLabel6 = new JLabel();
+        jLabel7 = new JLabel();
+        predefpath = new JTextField();
+        predefview = new JTextField();
+        predefactive = new JCheckBox();
+        predefbtn = new JButton();
+        jPanel2 = new JPanel();
+        jLabel4 = new JLabel();
+        jLabel5 = new JLabel();
+        libpath = new JTextField();
+        libview = new JTextField();
+        libactive = new JCheckBox();
+        libbtn = new JButton();
+        jPanel4 = new JPanel();
+        jLabel8 = new JLabel();
+        jLabel9 = new JLabel();
+        tcpath = new JTextField();
+        tcview = new JTextField();
+        tcactive = new JCheckBox();
+        tcbtn = new JButton();
+        jPanel5 = new JPanel();
+        jLabel10 = new JLabel();
+        jLabel11 = new JLabel();
+        syssutpath = new JTextField();
+        syssutview = new JTextField();
+        syssutactive = new JCheckBox();
+        syssutbtn = new JButton();
+        jPanel6 = new JPanel();
+        jLabel12 = new JLabel();
+        jLabel13 = new JLabel();
+        cfgpath = new JTextField();
+        cfgview = new JTextField();
+        cfgactive = new JCheckBox();
+        cfgbtn = new JButton();
+        jPanel7 = new JPanel();
+        jLabel14 = new JLabel();
+        jLabel15 = new JLabel();
+        usrsutpath = new JTextField();
+        usrsutview = new JTextField();
+        usrsutactive = new JCheckBox();
+        usrsutbtn = new JButton();
+        save = new JButton();
         change = new ArrayList();
         for(Object ob:addtochange){
             change.add(ob);
         }
-        jPanel1.setBorder(javax.swing.BorderFactory.createTitledBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(0, 0, 0)), "Projects Path"));
+        jPanel1.setBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(new Color(0, 0, 0)), "Projects Path"));
 
         jLabel1.setText("Path:");
 
@@ -186,58 +154,64 @@ public class ClearCaseConfig extends JPanel{
         projactive.setText("Active:         ");
         projactive.setAlignmentY(0.0F);
         projactive.setBorder(null);
-        projactive.setHorizontalTextPosition(javax.swing.SwingConstants.LEFT);
+        projactive.setHorizontalTextPosition(SwingConstants.LEFT);
 
         projbtn.setText("List Views");
+        projbtn.addActionListener(new ActionListener(){
+            public void actionPerformed(ActionEvent ev){
+                listViews(projview);
+            }
+        });
+        
         change.add(projbtn);
-        javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
+        GroupLayout jPanel1Layout = new GroupLayout(jPanel1);
         jPanel1.setLayout(jPanel1Layout);
         jPanel1Layout.setHorizontalGroup(
-            jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            jPanel1Layout.createParallelGroup(GroupLayout.Alignment.LEADING)
             .addGroup(jPanel1Layout.createSequentialGroup()
-                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                .addGroup(jPanel1Layout.createParallelGroup(GroupLayout.Alignment.LEADING)
                     .addGroup(jPanel1Layout.createSequentialGroup()
                         .addContainerGap()
-                        .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(jPanel1Layout.createParallelGroup(GroupLayout.Alignment.LEADING)
                             .addComponent(jLabel1)
                             .addComponent(jLabel2))
                         .addGap(18, 18, 18)
-                        .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(jPanel1Layout.createParallelGroup(GroupLayout.Alignment.LEADING)
                             .addComponent(projpath)
                             .addGroup(jPanel1Layout.createSequentialGroup()
                                 .addComponent(projview)
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
                                 .addComponent(projbtn))))
                     .addGroup(jPanel1Layout.createSequentialGroup()
                         .addGap(10, 10, 10)
-                        .addComponent(projactive, javax.swing.GroupLayout.PREFERRED_SIZE, 115, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addComponent(projactive, GroupLayout.PREFERRED_SIZE, 115, GroupLayout.PREFERRED_SIZE)
                         .addGap(0, 0, Short.MAX_VALUE)))
                 .addContainerGap())
         );
         jPanel1Layout.setVerticalGroup(
-            jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            jPanel1Layout.createParallelGroup(GroupLayout.Alignment.LEADING)
             .addGroup(jPanel1Layout.createSequentialGroup()
                 .addGap(5, 5, 5)
                 .addComponent(projactive)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(jPanel1Layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
                     .addComponent(jLabel1)
-                    .addComponent(projpath, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addComponent(projpath, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
                 .addGap(3, 3, 3)
-                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                .addGroup(jPanel1Layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
                     .addComponent(jLabel2)
-                    .addComponent(projview, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(projview, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
                     .addComponent(projbtn))
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addContainerGap(GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
 
-        jPanel1Layout.linkSize(javax.swing.SwingConstants.VERTICAL, new java.awt.Component[] {jLabel1, jLabel2, projactive, projbtn, projpath, projview});
+        jPanel1Layout.linkSize(SwingConstants.VERTICAL, new Component[] {jLabel1, jLabel2, projactive, projbtn, projpath, projview});
 
         jLabel3.setText("Type:");
 
         type.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "Base", "UCM" }));
 
-        jPanel3.setBorder(javax.swing.BorderFactory.createTitledBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(0, 0, 0)), "Predefined Suites Path"));
+        jPanel3.setBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(new Color(0, 0, 0)), "Predefined Suites Path"));
 
         jLabel6.setText("Path:");
 
@@ -246,54 +220,59 @@ public class ClearCaseConfig extends JPanel{
         predefactive.setText("Active:         ");
         predefactive.setAlignmentY(0.0F);
         predefactive.setBorder(null);
-        predefactive.setHorizontalTextPosition(javax.swing.SwingConstants.LEFT);
+        predefactive.setHorizontalTextPosition(SwingConstants.LEFT);
 
         predefbtn.setText("List Views");
+        predefbtn.addActionListener(new ActionListener(){
+            public void actionPerformed(ActionEvent ev){
+                listViews(predefview);
+            }
+        });
         change.add(predefbtn);
-        javax.swing.GroupLayout jPanel3Layout = new javax.swing.GroupLayout(jPanel3);
+        GroupLayout jPanel3Layout = new GroupLayout(jPanel3);
         jPanel3.setLayout(jPanel3Layout);
         jPanel3Layout.setHorizontalGroup(
-            jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            jPanel3Layout.createParallelGroup(GroupLayout.Alignment.LEADING)
             .addGroup(jPanel3Layout.createSequentialGroup()
-                .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                .addGroup(jPanel3Layout.createParallelGroup(GroupLayout.Alignment.LEADING)
                     .addGroup(jPanel3Layout.createSequentialGroup()
                         .addContainerGap()
-                        .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(jPanel3Layout.createParallelGroup(GroupLayout.Alignment.LEADING)
                             .addComponent(jLabel6)
                             .addComponent(jLabel7))
                         .addGap(18, 18, 18)
-                        .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(jPanel3Layout.createParallelGroup(GroupLayout.Alignment.LEADING)
                             .addComponent(predefpath)
                             .addGroup(jPanel3Layout.createSequentialGroup()
-                                .addComponent(predefview, javax.swing.GroupLayout.DEFAULT_SIZE, 474, Short.MAX_VALUE)
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(predefview, GroupLayout.DEFAULT_SIZE, 474, Short.MAX_VALUE)
+                                .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
                                 .addComponent(predefbtn))))
                     .addGroup(jPanel3Layout.createSequentialGroup()
                         .addGap(10, 10, 10)
-                        .addComponent(predefactive, javax.swing.GroupLayout.PREFERRED_SIZE, 115, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addComponent(predefactive, GroupLayout.PREFERRED_SIZE, 115, GroupLayout.PREFERRED_SIZE)
                         .addGap(0, 524, Short.MAX_VALUE)))
                 .addContainerGap())
         );
         jPanel3Layout.setVerticalGroup(
-            jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            jPanel3Layout.createParallelGroup(GroupLayout.Alignment.LEADING)
             .addGroup(jPanel3Layout.createSequentialGroup()
                 .addGap(5, 5, 5)
                 .addComponent(predefactive)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(jPanel3Layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
                     .addComponent(jLabel6)
-                    .addComponent(predefpath, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addComponent(predefpath, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
                 .addGap(3, 3, 3)
-                .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                .addGroup(jPanel3Layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
                     .addComponent(jLabel7)
-                    .addComponent(predefview, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(predefview, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
                     .addComponent(predefbtn))
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addContainerGap(GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
 
-        jPanel3Layout.linkSize(javax.swing.SwingConstants.VERTICAL, new java.awt.Component[] {jLabel6, jLabel7, predefactive, predefbtn, predefpath, predefview});
+        jPanel3Layout.linkSize(SwingConstants.VERTICAL, new Component[] {jLabel6, jLabel7, predefactive, predefbtn, predefpath, predefview});
 
-        jPanel2.setBorder(javax.swing.BorderFactory.createTitledBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(0, 0, 0)), "Library Path"));
+        jPanel2.setBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(new Color(0, 0, 0)), "Library Path"));
 
         jLabel4.setText("Path:");
 
@@ -302,54 +281,59 @@ public class ClearCaseConfig extends JPanel{
         libactive.setText("Active:         ");
         libactive.setAlignmentY(0.0F);
         libactive.setBorder(null);
-        libactive.setHorizontalTextPosition(javax.swing.SwingConstants.LEFT);
+        libactive.setHorizontalTextPosition(SwingConstants.LEFT);
 
         libbtn.setText("List Views");
+        libbtn.addActionListener(new ActionListener(){
+            public void actionPerformed(ActionEvent ev){
+                listViews(libview);
+            }
+        });
         change.add(libbtn);
-        javax.swing.GroupLayout jPanel2Layout = new javax.swing.GroupLayout(jPanel2);
+        GroupLayout jPanel2Layout = new GroupLayout(jPanel2);
         jPanel2.setLayout(jPanel2Layout);
         jPanel2Layout.setHorizontalGroup(
-            jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            jPanel2Layout.createParallelGroup(GroupLayout.Alignment.LEADING)
             .addGroup(jPanel2Layout.createSequentialGroup()
-                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                .addGroup(jPanel2Layout.createParallelGroup(GroupLayout.Alignment.LEADING)
                     .addGroup(jPanel2Layout.createSequentialGroup()
                         .addContainerGap()
-                        .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(jPanel2Layout.createParallelGroup(GroupLayout.Alignment.LEADING)
                             .addComponent(jLabel4)
                             .addComponent(jLabel5))
                         .addGap(18, 18, 18)
-                        .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(jPanel2Layout.createParallelGroup(GroupLayout.Alignment.LEADING)
                             .addComponent(libpath)
                             .addGroup(jPanel2Layout.createSequentialGroup()
-                                .addComponent(libview, javax.swing.GroupLayout.DEFAULT_SIZE, 474, Short.MAX_VALUE)
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(libview, GroupLayout.DEFAULT_SIZE, 474, Short.MAX_VALUE)
+                                .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
                                 .addComponent(libbtn))))
                     .addGroup(jPanel2Layout.createSequentialGroup()
                         .addGap(10, 10, 10)
-                        .addComponent(libactive, javax.swing.GroupLayout.PREFERRED_SIZE, 115, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addComponent(libactive, GroupLayout.PREFERRED_SIZE, 115, GroupLayout.PREFERRED_SIZE)
                         .addGap(0, 524, Short.MAX_VALUE)))
                 .addContainerGap())
         );
         jPanel2Layout.setVerticalGroup(
-            jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            jPanel2Layout.createParallelGroup(GroupLayout.Alignment.LEADING)
             .addGroup(jPanel2Layout.createSequentialGroup()
                 .addGap(5, 5, 5)
                 .addComponent(libactive)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(jPanel2Layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
                     .addComponent(jLabel4)
-                    .addComponent(libpath, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addComponent(libpath, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
                 .addGap(3, 3, 3)
-                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                .addGroup(jPanel2Layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
                     .addComponent(jLabel5)
-                    .addComponent(libview, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(libview, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
                     .addComponent(libbtn))
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addContainerGap(GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
 
-        jPanel2Layout.linkSize(javax.swing.SwingConstants.VERTICAL, new java.awt.Component[] {jLabel4, jLabel5, libactive, libbtn, libpath, libview});
+        jPanel2Layout.linkSize(SwingConstants.VERTICAL, new Component[] {jLabel4, jLabel5, libactive, libbtn, libpath, libview});
 
-        jPanel4.setBorder(javax.swing.BorderFactory.createTitledBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(0, 0, 0)), "TestCase Source Path"));
+        jPanel4.setBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(new Color(0, 0, 0)), "TestCase Source Path"));
 
         jLabel8.setText("Path:");
 
@@ -358,54 +342,59 @@ public class ClearCaseConfig extends JPanel{
         tcactive.setText("Active:         ");
         tcactive.setAlignmentY(0.0F);
         tcactive.setBorder(null);
-        tcactive.setHorizontalTextPosition(javax.swing.SwingConstants.LEFT);
+        tcactive.setHorizontalTextPosition(SwingConstants.LEFT);
 
         tcbtn.setText("List Views");
+        tcbtn.addActionListener(new ActionListener(){
+            public void actionPerformed(ActionEvent ev){
+                listViews(tcview);
+            }
+        });
         change.add(tcbtn);
-        javax.swing.GroupLayout jPanel4Layout = new javax.swing.GroupLayout(jPanel4);
+        GroupLayout jPanel4Layout = new GroupLayout(jPanel4);
         jPanel4.setLayout(jPanel4Layout);
         jPanel4Layout.setHorizontalGroup(
-            jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            jPanel4Layout.createParallelGroup(GroupLayout.Alignment.LEADING)
             .addGroup(jPanel4Layout.createSequentialGroup()
-                .addGroup(jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                .addGroup(jPanel4Layout.createParallelGroup(GroupLayout.Alignment.LEADING)
                     .addGroup(jPanel4Layout.createSequentialGroup()
                         .addContainerGap()
-                        .addGroup(jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(jPanel4Layout.createParallelGroup(GroupLayout.Alignment.LEADING)
                             .addComponent(jLabel8)
                             .addComponent(jLabel9))
                         .addGap(18, 18, 18)
-                        .addGroup(jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(jPanel4Layout.createParallelGroup(GroupLayout.Alignment.LEADING)
                             .addComponent(tcpath)
                             .addGroup(jPanel4Layout.createSequentialGroup()
-                                .addComponent(tcview, javax.swing.GroupLayout.DEFAULT_SIZE, 474, Short.MAX_VALUE)
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(tcview, GroupLayout.DEFAULT_SIZE, 474, Short.MAX_VALUE)
+                                .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
                                 .addComponent(tcbtn))))
                     .addGroup(jPanel4Layout.createSequentialGroup()
                         .addGap(10, 10, 10)
-                        .addComponent(tcactive, javax.swing.GroupLayout.PREFERRED_SIZE, 115, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addComponent(tcactive, GroupLayout.PREFERRED_SIZE, 115, GroupLayout.PREFERRED_SIZE)
                         .addGap(0, 524, Short.MAX_VALUE)))
                 .addContainerGap())
         );
         jPanel4Layout.setVerticalGroup(
-            jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            jPanel4Layout.createParallelGroup(GroupLayout.Alignment.LEADING)
             .addGroup(jPanel4Layout.createSequentialGroup()
                 .addGap(5, 5, 5)
                 .addComponent(tcactive)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(jPanel4Layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
                     .addComponent(jLabel8)
-                    .addComponent(tcpath, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addComponent(tcpath, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
                 .addGap(3, 3, 3)
-                .addGroup(jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                .addGroup(jPanel4Layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
                     .addComponent(jLabel9)
-                    .addComponent(tcview, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(tcview, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
                     .addComponent(tcbtn))
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addContainerGap(GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
 
-        jPanel4Layout.linkSize(javax.swing.SwingConstants.VERTICAL, new java.awt.Component[] {jLabel8, jLabel9, tcactive, tcbtn, tcpath, tcview});
+        jPanel4Layout.linkSize(SwingConstants.VERTICAL, new Component[] {jLabel8, jLabel9, tcactive, tcbtn, tcpath, tcview});
 
-        jPanel5.setBorder(javax.swing.BorderFactory.createTitledBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(0, 0, 0)), "System SUT Files Path"));
+        jPanel5.setBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(new Color(0, 0, 0)), "System SUT Files Path"));
 
         jLabel10.setText("Path:");
 
@@ -414,54 +403,59 @@ public class ClearCaseConfig extends JPanel{
         syssutactive.setText("Active:         ");
         syssutactive.setAlignmentY(0.0F);
         syssutactive.setBorder(null);
-        syssutactive.setHorizontalTextPosition(javax.swing.SwingConstants.LEFT);
+        syssutactive.setHorizontalTextPosition(SwingConstants.LEFT);
 
         syssutbtn.setText("List Views");
+        syssutbtn.addActionListener(new ActionListener(){
+            public void actionPerformed(ActionEvent ev){
+                listViews(syssutview);
+            }
+        });
         change.add(syssutbtn);
-        javax.swing.GroupLayout jPanel5Layout = new javax.swing.GroupLayout(jPanel5);
+        GroupLayout jPanel5Layout = new GroupLayout(jPanel5);
         jPanel5.setLayout(jPanel5Layout);
         jPanel5Layout.setHorizontalGroup(
-            jPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            jPanel5Layout.createParallelGroup(GroupLayout.Alignment.LEADING)
             .addGroup(jPanel5Layout.createSequentialGroup()
-                .addGroup(jPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                .addGroup(jPanel5Layout.createParallelGroup(GroupLayout.Alignment.LEADING)
                     .addGroup(jPanel5Layout.createSequentialGroup()
                         .addContainerGap()
-                        .addGroup(jPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(jPanel5Layout.createParallelGroup(GroupLayout.Alignment.LEADING)
                             .addComponent(jLabel10)
                             .addComponent(jLabel11))
                         .addGap(18, 18, 18)
-                        .addGroup(jPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(jPanel5Layout.createParallelGroup(GroupLayout.Alignment.LEADING)
                             .addComponent(syssutpath)
                             .addGroup(jPanel5Layout.createSequentialGroup()
-                                .addComponent(syssutview, javax.swing.GroupLayout.DEFAULT_SIZE, 474, Short.MAX_VALUE)
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(syssutview, GroupLayout.DEFAULT_SIZE, 474, Short.MAX_VALUE)
+                                .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
                                 .addComponent(syssutbtn))))
                     .addGroup(jPanel5Layout.createSequentialGroup()
                         .addGap(10, 10, 10)
-                        .addComponent(syssutactive, javax.swing.GroupLayout.PREFERRED_SIZE, 115, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addComponent(syssutactive, GroupLayout.PREFERRED_SIZE, 115, GroupLayout.PREFERRED_SIZE)
                         .addGap(0, 524, Short.MAX_VALUE)))
                 .addContainerGap())
         );
         jPanel5Layout.setVerticalGroup(
-            jPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            jPanel5Layout.createParallelGroup(GroupLayout.Alignment.LEADING)
             .addGroup(jPanel5Layout.createSequentialGroup()
                 .addGap(5, 5, 5)
                 .addComponent(syssutactive)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(jPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(jPanel5Layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
                     .addComponent(jLabel10)
-                    .addComponent(syssutpath, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addComponent(syssutpath, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
                 .addGap(3, 3, 3)
-                .addGroup(jPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                .addGroup(jPanel5Layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
                     .addComponent(jLabel11)
-                    .addComponent(syssutview, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(syssutview, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
                     .addComponent(syssutbtn))
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addContainerGap(GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
 
-        jPanel5Layout.linkSize(javax.swing.SwingConstants.VERTICAL, new java.awt.Component[] {jLabel10, jLabel11, syssutactive, syssutbtn, syssutpath, syssutview});
+        jPanel5Layout.linkSize(SwingConstants.VERTICAL, new Component[] {jLabel10, jLabel11, syssutactive, syssutbtn, syssutpath, syssutview});
 
-        jPanel6.setBorder(javax.swing.BorderFactory.createTitledBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(0, 0, 0)), "Test Configuration Path"));
+        jPanel6.setBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(new Color(0, 0, 0)), "Test Configuration Path"));
 
         jLabel12.setText("Path:");
 
@@ -470,54 +464,59 @@ public class ClearCaseConfig extends JPanel{
         cfgactive.setText("Active:         ");
         cfgactive.setAlignmentY(0.0F);
         cfgactive.setBorder(null);
-        cfgactive.setHorizontalTextPosition(javax.swing.SwingConstants.LEFT);
+        cfgactive.setHorizontalTextPosition(SwingConstants.LEFT);
 
         cfgbtn.setText("List Views");
+        cfgbtn.addActionListener(new ActionListener(){
+            public void actionPerformed(ActionEvent ev){
+                listViews(cfgview);
+            }
+        });
         change.add(cfgbtn);
-        javax.swing.GroupLayout jPanel6Layout = new javax.swing.GroupLayout(jPanel6);
+        GroupLayout jPanel6Layout = new GroupLayout(jPanel6);
         jPanel6.setLayout(jPanel6Layout);
         jPanel6Layout.setHorizontalGroup(
-            jPanel6Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            jPanel6Layout.createParallelGroup(GroupLayout.Alignment.LEADING)
             .addGroup(jPanel6Layout.createSequentialGroup()
-                .addGroup(jPanel6Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                .addGroup(jPanel6Layout.createParallelGroup(GroupLayout.Alignment.LEADING)
                     .addGroup(jPanel6Layout.createSequentialGroup()
                         .addContainerGap()
-                        .addGroup(jPanel6Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(jPanel6Layout.createParallelGroup(GroupLayout.Alignment.LEADING)
                             .addComponent(jLabel12)
                             .addComponent(jLabel13))
                         .addGap(18, 18, 18)
-                        .addGroup(jPanel6Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(jPanel6Layout.createParallelGroup(GroupLayout.Alignment.LEADING)
                             .addComponent(cfgpath)
                             .addGroup(jPanel6Layout.createSequentialGroup()
-                                .addComponent(cfgview, javax.swing.GroupLayout.DEFAULT_SIZE, 474, Short.MAX_VALUE)
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(cfgview, GroupLayout.DEFAULT_SIZE, 474, Short.MAX_VALUE)
+                                .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
                                 .addComponent(cfgbtn))))
                     .addGroup(jPanel6Layout.createSequentialGroup()
                         .addGap(10, 10, 10)
-                        .addComponent(cfgactive, javax.swing.GroupLayout.PREFERRED_SIZE, 115, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addComponent(cfgactive, GroupLayout.PREFERRED_SIZE, 115, GroupLayout.PREFERRED_SIZE)
                         .addGap(0, 524, Short.MAX_VALUE)))
                 .addContainerGap())
         );
         jPanel6Layout.setVerticalGroup(
-            jPanel6Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            jPanel6Layout.createParallelGroup(GroupLayout.Alignment.LEADING)
             .addGroup(jPanel6Layout.createSequentialGroup()
                 .addGap(5, 5, 5)
                 .addComponent(cfgactive)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(jPanel6Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(jPanel6Layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
                     .addComponent(jLabel12)
-                    .addComponent(cfgpath, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addComponent(cfgpath, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
                 .addGap(3, 3, 3)
-                .addGroup(jPanel6Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                .addGroup(jPanel6Layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
                     .addComponent(jLabel13)
-                    .addComponent(cfgview, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(cfgview, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
                     .addComponent(cfgbtn))
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addContainerGap(GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
 
-        jPanel6Layout.linkSize(javax.swing.SwingConstants.VERTICAL, new java.awt.Component[] {cfgactive, cfgbtn, cfgpath, cfgview, jLabel12, jLabel13});
+        jPanel6Layout.linkSize(SwingConstants.VERTICAL, new Component[] {cfgactive, cfgbtn, cfgpath, cfgview, jLabel12, jLabel13});
 
-        jPanel7.setBorder(javax.swing.BorderFactory.createTitledBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(0, 0, 0)), "User SUT Files Path"));
+        jPanel7.setBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(new Color(0, 0, 0)), "User SUT Files Path"));
 
         jLabel14.setText("Path:");
 
@@ -526,103 +525,108 @@ public class ClearCaseConfig extends JPanel{
         usrsutactive.setText("Active:         ");
         usrsutactive.setAlignmentY(0.0F);
         usrsutactive.setBorder(null);
-        usrsutactive.setHorizontalTextPosition(javax.swing.SwingConstants.LEFT);
+        usrsutactive.setHorizontalTextPosition(SwingConstants.LEFT);
 
         usrsutbtn.setText("List Views");
+        usrsutbtn.addActionListener(new ActionListener(){
+            public void actionPerformed(ActionEvent ev){
+                listViews(usrsutview);
+            }
+        });
         change.add(usrsutbtn);
-        javax.swing.GroupLayout jPanel7Layout = new javax.swing.GroupLayout(jPanel7);
+        GroupLayout jPanel7Layout = new GroupLayout(jPanel7);
         jPanel7.setLayout(jPanel7Layout);
         jPanel7Layout.setHorizontalGroup(
-            jPanel7Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            jPanel7Layout.createParallelGroup(GroupLayout.Alignment.LEADING)
             .addGroup(jPanel7Layout.createSequentialGroup()
-                .addGroup(jPanel7Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                .addGroup(jPanel7Layout.createParallelGroup(GroupLayout.Alignment.LEADING)
                     .addGroup(jPanel7Layout.createSequentialGroup()
                         .addContainerGap()
-                        .addGroup(jPanel7Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(jPanel7Layout.createParallelGroup(GroupLayout.Alignment.LEADING)
                             .addComponent(jLabel14)
                             .addComponent(jLabel15))
                         .addGap(18, 18, 18)
-                        .addGroup(jPanel7Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(jPanel7Layout.createParallelGroup(GroupLayout.Alignment.LEADING)
                             .addComponent(usrsutpath)
                             .addGroup(jPanel7Layout.createSequentialGroup()
-                                .addComponent(usrsutview, javax.swing.GroupLayout.DEFAULT_SIZE, 474, Short.MAX_VALUE)
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(usrsutview, GroupLayout.DEFAULT_SIZE, 474, Short.MAX_VALUE)
+                                .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
                                 .addComponent(usrsutbtn))))
                     .addGroup(jPanel7Layout.createSequentialGroup()
                         .addGap(10, 10, 10)
-                        .addComponent(usrsutactive, javax.swing.GroupLayout.PREFERRED_SIZE, 115, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addComponent(usrsutactive, GroupLayout.PREFERRED_SIZE, 115, GroupLayout.PREFERRED_SIZE)
                         .addGap(0, 524, Short.MAX_VALUE)))
                 .addContainerGap())
         );
         jPanel7Layout.setVerticalGroup(
-            jPanel7Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            jPanel7Layout.createParallelGroup(GroupLayout.Alignment.LEADING)
             .addGroup(jPanel7Layout.createSequentialGroup()
                 .addGap(5, 5, 5)
                 .addComponent(usrsutactive)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(jPanel7Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(jPanel7Layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
                     .addComponent(jLabel14)
-                    .addComponent(usrsutpath, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addComponent(usrsutpath, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
                 .addGap(3, 3, 3)
-                .addGroup(jPanel7Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                .addGroup(jPanel7Layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
                     .addComponent(jLabel15)
-                    .addComponent(usrsutview, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(usrsutview, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
                     .addComponent(usrsutbtn))
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addContainerGap(GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
 
-        jPanel7Layout.linkSize(javax.swing.SwingConstants.VERTICAL, new java.awt.Component[] {jLabel14, jLabel15, usrsutbtn, usrsutactive, usrsutpath, usrsutview});
+        jPanel7Layout.linkSize(SwingConstants.VERTICAL, new Component[] {jLabel14, jLabel15, usrsutbtn, usrsutactive, usrsutpath, usrsutview});
 
         save.setText("Save");
 
-        javax.swing.GroupLayout layout = new javax.swing.GroupLayout(main);
+        GroupLayout layout = new GroupLayout(main);
         main.setLayout(layout);
         layout.setHorizontalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            layout.createParallelGroup(GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
                 .addContainerGap()
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
                     .addGroup(layout.createSequentialGroup()
                         .addComponent(jLabel3)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(type, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(type, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
                         .addGap(0, 0, Short.MAX_VALUE))
-                    .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(jPanel2, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(jPanel3, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(jPanel4, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(jPanel5, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(jPanel6, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(jPanel7, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
+                    .addComponent(jPanel1, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(jPanel2, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(jPanel3, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(jPanel4, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(jPanel5, GroupLayout.Alignment.TRAILING, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(jPanel6, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(jPanel7, GroupLayout.Alignment.TRAILING, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addGroup(GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
                         .addGap(0, 0, Short.MAX_VALUE)
                         .addComponent(save)))
                 .addContainerGap())
         );
         layout.setVerticalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            layout.createParallelGroup(GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
                 .addContainerGap()
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                .addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
                     .addComponent(jLabel3)
-                    .addComponent(type, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jPanel4, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jPanel3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jPanel2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jPanel6, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jPanel7, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jPanel5, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                    .addComponent(type, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
+                .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(jPanel4, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(jPanel1, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(jPanel3, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(jPanel2, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(jPanel6, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(jPanel7, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(jPanel5, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(save)
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addContainerGap(GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
         
         save.addActionListener(new ActionListener(){
@@ -636,7 +640,6 @@ public class ClearCaseConfig extends JPanel{
                if (event.getStateChange() == ItemEvent.SELECTED) {
                   Object item = event.getItem();
                   if(item.toString().equals("Base")){
-                                        System.out.println("Here1");
                       for(Object ob:change){
                           if(ob instanceof JButton){
                               JButton but = (JButton)ob;
@@ -647,7 +650,6 @@ public class ClearCaseConfig extends JPanel{
                           }
                       }
                   } else {
-                  System.out.println("Here2");
                       for(Object ob:change){
                           if(ob instanceof JButton){
                               JButton but = (JButton)ob;
@@ -663,23 +665,27 @@ public class ClearCaseConfig extends JPanel{
         });
     }
     
+    /*
+     * get default config xml from server
+     */
     private Document getRemoteConfigContent(){
         try{
-            String content = new String(RunnerRepository.getRemoteFileContent(RunnerRepository.USERHOME+"/twister/config/clearcaseconfig.xml",false));
+            String content = new String(RunnerRepository.getRemoteFileContent(RunnerRepository.USERHOME+"/twister/config/clearcaseconfig.xml",false,null));
+            File file = new File(RunnerRepository.temp+RunnerRepository.getBar()+"Twister"+RunnerRepository.getBar()+"config"+RunnerRepository.getBar()+"clearcaseconfig.xml");
             if(content==null){
                 CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,main,
-                    "Warning","Could not get clearcaseconfig.xml  from "
+                    "Warning","Could not get clearcaseconfig.xml from "
                     +RunnerRepository.USERHOME+"+/twister/config/ creating a blank one.");
                     saveConfig();
-            } 
-            if(content.indexOf("*ERROR*")!=-1){
+            } else if(content.indexOf("*ERROR*")!=-1){
                 CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,main,"ERROR", content);
                 saveConfig();
+            } else {
+                 BufferedWriter writer = new BufferedWriter(new FileWriter(file));
+                writer.write(content);
+                writer.flush();
+                writer.close();
             }
-            File file = new File(RunnerRepository.temp+RunnerRepository.getBar()+"Twister"+RunnerRepository.getBar()+"config"+RunnerRepository.getBar()+"clearcaseconfig.xml");
-            BufferedWriter writer = new BufferedWriter(new FileWriter(file));
-            writer.write(content);
-            writer.close();
             DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
             DocumentBuilder db = dbf.newDocumentBuilder();
             Document doc = db.parse(file);
@@ -691,6 +697,9 @@ public class ClearCaseConfig extends JPanel{
         } 
     }
     
+    /*
+     * interpret config xml amd assign saved values
+     */
     private void interpretConfig(Element root){
         interpretTag(root.getElementsByTagName("TestCaseSourcePath").item(0),tcactive,tcview,tcpath);
         interpretTag(root.getElementsByTagName("UsersPath").item(0),projactive,projview,projpath);
@@ -713,6 +722,10 @@ public class ClearCaseConfig extends JPanel{
         }
     }
     
+    
+    /*
+     * create and upload config to server
+     */
     private void saveConfig(){
         boolean saved = true;
         try{DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
@@ -747,7 +760,8 @@ public class ClearCaseConfig extends JPanel{
             Result result = new StreamResult(file);
             transformer.transform(source, result);
             FileInputStream in = new FileInputStream(file);
-            RunnerRepository.uploadRemoteFile(RunnerRepository.USERHOME+"/twister/config/", in, "clearcaseconfig.xml",false);
+            RunnerRepository.uploadRemoteFile(RunnerRepository.USERHOME+"/twister/config/", in, "clearcaseconfig.xml",false,null);
+            System.out.println("saveconf:"+file.getAbsolutePath());
         }
         catch(ParserConfigurationException e){
             System.out.println("DocumentBuilder cannot be created which"+
@@ -770,6 +784,9 @@ public class ClearCaseConfig extends JPanel{
         }
     }
     
+    /*
+     * convenient method to interpret tag and assign value to coresponding field
+     */
     private void interpretTag(Node tag, JCheckBox check, JTextField view,JTextField path){
         try{String active = tag.getAttributes().getNamedItem("active").getNodeValue();
             String tview = tag.getAttributes().getNamedItem("view").getNodeValue();
@@ -783,6 +800,9 @@ public class ClearCaseConfig extends JPanel{
         }
     }
     
+    /*
+     * create specifig tag used in config xml
+     */
     private void addTag(String tagname, boolean active, String view, String path,
                               Element root,Document document){
         Element rootElement = document.createElement(tagname);
@@ -792,4 +812,100 @@ public class ClearCaseConfig extends JPanel{
         root.appendChild(rootElement);
     }
     
+    /*
+     * interpret type based on selected value
+     * Base = 0; UCM = 1
+     */
+    public int getType(){
+        if(type.getSelectedItem().toString().equals("Base")){
+            return 0;
+        }
+        return 1;
+    }
+    
+    /*
+     * list views based on clearcase command
+     * and assign selection to field
+     */
+    private void listViews(JTextField tf){
+        HashMap<String, String> hash = new HashMap<String, String>();
+        hash.put("command", " cleartool lsview -short | grep "+RunnerRepository.user);
+        String [] resp = cc.sendCommand(hash,false).split("\n");
+        JPanel libraries = new JPanel();
+        JScrollPane jScrollPane1 = new JScrollPane();
+        final JList jList1 = new JList();
+        JLabel filter = new JLabel("List View Filter:");
+        final JTextField tfilter = new JTextField();
+        tfilter.setText(RunnerRepository.user);
+        JButton refresh = new JButton("Refresh");
+        jScrollPane1.setViewportView(jList1);
+        GroupLayout layout = new GroupLayout(libraries);
+        libraries.setLayout(layout);
+        layout.setHorizontalGroup(
+            layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+            .addGroup(layout.createSequentialGroup()
+                .addContainerGap()
+                .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+                    .addGroup(layout.createSequentialGroup()
+                        .addComponent(filter)
+                        .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(tfilter, GroupLayout.PREFERRED_SIZE, 149, GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(refresh)
+                        .addGap(0, 0, Short.MAX_VALUE))
+                    .addComponent(jScrollPane1))
+                .addContainerGap())
+        );
+        layout.setVerticalGroup(
+            layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+            .addGroup(GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
+                .addContainerGap()
+                .addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+                    .addComponent(filter)
+                    .addComponent(tfilter, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+                    .addComponent(refresh))
+                .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
+                .addComponent(jScrollPane1, GroupLayout.DEFAULT_SIZE, 247, Short.MAX_VALUE)
+                .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
+                .addContainerGap())
+        );
+        
+        layout.linkSize(SwingConstants.VERTICAL, new Component[] {refresh, tfilter});
+        jList1.setModel(new DefaultComboBoxModel(resp));
+        
+        refresh.addActionListener(new ActionListener(){
+            public void actionPerformed(ActionEvent ev){
+                new Thread(){
+                    public void run(){
+                       String filter = tfilter.getText();
+                        String [] resp = null;
+                        String command = "";
+                        if(filter.equals("")){
+                            command = " cleartool lsview -short ";
+                        } else {
+                            command = " cleartool lsview -short | grep "+filter;
+                        }
+                        HashMap<String, String> hash = new HashMap<String, String>();
+                        hash.put("command", command);
+                        resp = cc.sendCommand(hash,false).split("\n");
+                        jList1.setModel(new DefaultComboBoxModel(resp)); 
+                    }
+                }.start();
+        }});
+        
+        int respons = (Integer)CustomDialog.showDialog(libraries,JOptionPane.PLAIN_MESSAGE,
+                                                        JOptionPane.OK_CANCEL_OPTION, 
+                                                        RunnerRepository.window, "Views",
+                                                        null);
+        if(respons == JOptionPane.OK_OPTION){
+            if(jList1.getSelectedIndex()==-1){
+                CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,ClearCaseConfig.this,
+                                        "Error", "Please select one view and input vob location");
+                return ;
+            }
+            String view = jList1.getSelectedValue().toString();
+            tf.setText(view);
+            
+        }
+    }
 }

@@ -1,6 +1,6 @@
 /*
 File: LibrariesPanel.java ; This file is part of Twister.
-Version: 2.007
+Version: 2.008
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -625,39 +625,6 @@ public class LibrariesPanel{
             }
         });
     }
-
-//     public static File copyFileLocaly(String filename, String localfilename) {
-//         InputStream in = null;
-//         System.out.print("Getting " + filename + " ....");
-//         try {
-//             in = connection.get(filename);
-//         } catch (Exception e) {
-//             System.out.println("Could not get :" + filename);
-//             e.printStackTrace();
-//         }
-//         InputStreamReader inputStreamReader = new InputStreamReader(in);
-//         BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
-//         BufferedWriter writer = null;
-//         String line;
-//         File file2 = new File(localfilename);
-//         try {
-//             writer = new BufferedWriter(new FileWriter(file2));
-//             while ((line = bufferedReader.readLine()) != null) {
-//                 writer.write(line);
-//                 writer.newLine();
-//             }
-//             writer.flush();
-//             bufferedReader.close();
-//             writer.close();
-//             inputStreamReader.close();
-//             in.close();
-//             System.out.println("successfull");
-//         } catch (Exception e) {
-//             System.out.println("failed");
-//             e.printStackTrace();
-//         }
-//         return file2;
-//     }
     
     public static File copyFileLocaly(String filename, String localfilename) {
         System.out.print("Getting " + filename + " ....");
@@ -665,7 +632,7 @@ public class LibrariesPanel{
         File file2 = new File(localfilename);
         try {
             writer = new BufferedWriter(new FileWriter(file2));
-             writer.write(new String(RunnerRepository.getRemoteFileContent(filename,false)));
+             writer.write(new String(RunnerRepository.getRemoteFileContent(filename,false,null)));
             writer.flush();
             writer.close();
             System.out.println("successfull");
@@ -676,24 +643,11 @@ public class LibrariesPanel{
         return file2;
     }
 
-//     public static void sendFileToServer(File localfile, String remotefile) {
-//         try {
-//             FileInputStream in = new FileInputStream(localfile);
-//             connection.put(in, remotefile);
-//             in.close();
-//         } catch (Exception e) {
-//             e.printStackTrace();
-//             System.out.println("There was a problem in saving file "
-//                     + localfile.getName() + " on hdd and uploading it to "
-//                     + remotefile);
-//         }
-//     }
-
     public static void sendFileToServer(File localfile, String remotefile) {
         try {
             String path [] = remotefile.split("/");
             FileInputStream in = new FileInputStream(localfile);
-            RunnerRepository.uploadRemoteFile(remotefile.replace("/"+path[path.length-1], ""), in, path[path.length-1],false);
+            RunnerRepository.uploadRemoteFile(remotefile.replace("/"+path[path.length-1], ""), in, path[path.length-1],false,null);
         } catch (Exception e) {
             e.printStackTrace();
             System.out.println("There was a problem in saving file "
@@ -720,8 +674,9 @@ public class LibrariesPanel{
     public void refreshStructure() {
         if(root.getChildCount()>0)root.remove(0);
         try {
-            HashMap hash = RunnerRepository.getRemoteFolderStructure(RunnerRepository.getPredefinedSuitesPath());
-            getList(root, hash,RunnerRepository.getPredefinedSuitesPath());
+//             HashMap hash = RunnerRepository.getRemoteFolderStructure(RunnerRepository.getPredefinedSuitesPath());
+            HashMap hash = RunnerRepository.getPredefinedSuites();
+            getList(root, hash,hash.get("data").toString());
         } catch (Exception e) {
             e.printStackTrace();
         }

@@ -1,6 +1,6 @@
 /*
 File: ConfigFiles.java ; This file is part of Twister.
-Version: 2.022
+Version: 2.023
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -83,7 +83,8 @@ public class ConfigFiles extends JPanel{
                              tSuites,
                              tlog,trunning,
                              tdebug,tsummary,tinfo,tcli,tdbfile,
-                             temailfile,tceport,
+                             temailfile,
+//                              tceport,
                              libpath,tsecondarylog,
                              testconfigpath,
                              tglobalsfile,
@@ -98,10 +99,10 @@ public class ConfigFiles extends JPanel{
         paths.setBackground(Color.WHITE);
         //paths.setBorder(BorderFactory.createTitledBorder("Paths"));
         paths.setLayout(null);
-        paths.setPreferredSize(new Dimension(930,1217));
-        paths.setSize(new Dimension(930,1217));
-        paths.setMinimumSize(new Dimension(930,1217));
-        paths.setMaximumSize(new Dimension(930,1217));
+        paths.setPreferredSize(new Dimension(930,1144));
+        paths.setSize(new Dimension(930,1144));
+        paths.setMinimumSize(new Dimension(930,1144));
+        paths.setMaximumSize(new Dimension(930,1144));
         //paths.setBorder(BorderFactory.createBevelBorder(BevelBorder.LOWERED));
         setLayout(null);
         ttcpath = new JTextField();
@@ -203,7 +204,7 @@ public class ConfigFiles extends JPanel{
         border8.setBorder(BorderFactory.createLineBorder(new Color(150,150,150), 1));
         p8.setBorder(border8);
         p8.setLayout(null);    
-        p8.setBounds(80,1149,800,50);
+        p8.setBounds(80,1076,800,50);
         if(PermissionValidator.canChangeFWM()){
             paths.add(p8);
         }
@@ -237,7 +238,7 @@ public class ConfigFiles extends JPanel{
         loadXML.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){  
                 try{
-                    String [] configs =RunnerRepository.getRemoteFolderContent(RunnerRepository.USERHOME+"/twister/config/");
+                    String [] configs =RunnerRepository.getRemoteFolderContent(RunnerRepository.USERHOME+"/twister/config/",null);
                     JComboBox combo = new JComboBox(configs);
                     int resp = (Integer)CustomDialog.showDialog(combo,JOptionPane.INFORMATION_MESSAGE,
                                                                 JOptionPane.OK_CANCEL_OPTION,
@@ -290,9 +291,9 @@ public class ConfigFiles extends JPanel{
         addPanel("Globals XML file","File location for globals parameters",tglobalsfile,
                 RunnerRepository.GLOBALSREMOTEFILE,667,true,null);         
                 
-        tceport = new JTextField();
-        addPanel("Central Engine Port","Central Engine port",
-                tceport,RunnerRepository.getCentralEnginePort(),1076,false,null);                
+//         tceport = new JTextField();
+//         addPanel("Central Engine Port","Central Engine port",
+//                 tceport,RunnerRepository.getCentralEnginePort(),1076,false,null);                
 //         traPort = new JTextField();
 //         addPanel("Resource Allocator Port","Resource Allocator Port",
 //                 traPort,RunnerRepository.getResourceAllocatorPort(),808,false,null);                
@@ -316,7 +317,7 @@ public class ConfigFiles extends JPanel{
             tcli.setEnabled(false);
             tdbfile.setEnabled(false);
             temailfile.setEnabled(false);
-            tceport.setEnabled(false);
+//             tceport.setEnabled(false);
             libpath.setEnabled(false);
             tsecondarylog.setEnabled(false);
             testconfigpath.setEnabled(false);
@@ -335,7 +336,7 @@ public class ConfigFiles extends JPanel{
         
     public void loadConfig(String config){
         try{                    
-            String content = new String(RunnerRepository.getRemoteFileContent(RunnerRepository.USERHOME+"/twister/config/"+config,false));
+            String content = new String(RunnerRepository.getRemoteFileContent(RunnerRepository.USERHOME+"/twister/config/"+config,false,null));
             File theone = new File(RunnerRepository.temp+RunnerRepository.getBar()+
                                     "Twister"+RunnerRepository.getBar()+"config"+
                                     RunnerRepository.getBar()+config);
@@ -361,7 +362,7 @@ public class ConfigFiles extends JPanel{
                     NodeList fstNm = fstElmnt.getChildNodes();
                     if(fstNm.item(0).getNodeValue().toString().toLowerCase().equals("config")){
                         FileInputStream in = new FileInputStream(theone);
-                        RunnerRepository.uploadRemoteFile(RunnerRepository.USERHOME+"/twister/config/", in, "fwmconfig.xml",false);
+                        RunnerRepository.uploadRemoteFile(RunnerRepository.USERHOME+"/twister/config/", in, "fwmconfig.xml",false,null);
                         RunnerRepository.emptyTestRunnerRepository();
                         RunnerRepository.emptyLogs();
                         File dir = new File(RunnerRepository.getUsersDirectory());
@@ -408,7 +409,7 @@ public class ConfigFiles extends JPanel{
                                             RunnerRepository.REMOTEEMAILCONFIGFILE);
                         tglobalsfile.setText(RunnerRepository.GLOBALSREMOTEFILE);
                         tSuites.setText(RunnerRepository.PREDEFINEDSUITES);
-                        tceport.setText(RunnerRepository.getCentralEnginePort());
+//                         tceport.setText(RunnerRepository.getCentralEnginePort());
                         RunnerRepository.emptySuites();
                         RunnerRepository.window.mainpanel.p4.getTestConfig().tree.refreshStructure();
                         RunnerRepository.window.mainpanel.p4.getTestConfig().cfgedit.reinitialize();
@@ -536,8 +537,8 @@ public class ConfigFiles extends JPanel{
             Element rootElement = document.createElement("FileType");
             root.appendChild(rootElement);
             rootElement.appendChild(document.createTextNode("config"));
-            try{addTag("CentralEnginePort",tceport.getText(),root,blank,document);}
-            catch(Exception e){addTag("CentralEnginePort","",root,blank,document);}
+//             try{addTag("CentralEnginePort",tceport.getText(),root,blank,document);}
+//             catch(Exception e){addTag("CentralEnginePort","",root,blank,document);}
             try{addTag("SysSutPath",syssutpath.getText(),root,blank,document);}
             catch(Exception e){addTag("SysSutPath","",root,blank,document);}
             try{addTag("SutPath",sutpath.getText(),root,blank,document);}
@@ -586,7 +587,7 @@ public class ConfigFiles extends JPanel{
             Result result = new StreamResult(file);
             transformer.transform(source, result);
             FileInputStream in = new FileInputStream(file);
-            RunnerRepository.uploadRemoteFile(RunnerRepository.USERHOME+"/twister/config/", in, file.getName(),false);
+            RunnerRepository.uploadRemoteFile(RunnerRepository.USERHOME+"/twister/config/", in, file.getName(),false,null);
         }
         catch(ParserConfigurationException e){
             System.out.println("DocumentBuilder cannot be created which"+

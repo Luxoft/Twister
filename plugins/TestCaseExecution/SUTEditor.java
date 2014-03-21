@@ -1,6 +1,6 @@
 /*
 File: SutEditor.java ; This file is part of Twister.
-Version: 2.014
+Version: 2.015
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -89,8 +89,6 @@ public class SutEditor extends JPanel{
     public DefaultMutableTreeNode root;
     private JButton saveas,redcomp,addcomp,save,close,setep;
     private JLabel jusers;
-//     public ChannelSftp connection;
-//     public Session session;
     private SutTree suttree;
     private String rootsut;
     public DefaultMutableTreeNode sutnode;
@@ -100,7 +98,6 @@ public class SutEditor extends JPanel{
 
     public SutEditor(){
         suttree = new SutTree();
-//         initializeSftp();
         initializeRPC();
         
         tree = new JTree();
@@ -118,8 +115,7 @@ public class SutEditor extends JPanel{
                 }
             }});
         tree.getSelectionModel().setSelectionMode(TreeSelectionModel.SINGLE_TREE_SELECTION);
-        root = new DefaultMutableTreeNode("root");
-        
+        root = new DefaultMutableTreeNode("root");        
         DefaultTreeModel treemodel = new DefaultTreeModel(root,true);
         tree.setModel(treemodel);
         tree.setDragEnabled(true);
@@ -133,37 +129,12 @@ public class SutEditor extends JPanel{
         setLayout(new BorderLayout());
         sp = new JScrollPane(tree);
         final JSplitPane splitpane = new JSplitPane();
-        JPanel bottompanel = new JPanel();
-        
+        JPanel bottompanel = new JPanel();        
         bottompanel.setLayout(new BorderLayout());
         bottompanel.add(sp,BorderLayout.CENTER);
-        
-//         JPanel p1 = new JPanel();
-//         p1.add(bottompanel);
-//         
-//         JPanel p2 = new JPanel();
-//         p2.add(suttree);
-        
-        
         splitpane.setRightComponent(bottompanel);
         splitpane.setLeftComponent(suttree);
         splitpane.setResizeWeight(0.5);
-        
-//         SwingUtilities.invokeLater(new Runnable() {
-//             public void run(){
-//                 splitpane.setDividerLocation(0.5);
-//             }
-//         });
-        
-//         new Thread(){
-//             public void run(){
-//                 try{Thread.sleep(5000);}
-//                 catch(Exception e){e.printStackTrace();}
-//                 splitpane.setDividerLocation(0.5);
-//             }
-//         }.start();
-
-        
         splitpane.setOrientation(JSplitPane.VERTICAL_SPLIT);
         add(splitpane,BorderLayout.CENTER);
         JPanel sutopt = new JPanel();
@@ -267,7 +238,6 @@ public class SutEditor extends JPanel{
                     if(userobj instanceof Node){
                         DefaultMutableTreeNode parent = (DefaultMutableTreeNode)treenode.getParent();
                         Comp comp = (Comp)parent.getUserObject();
-                        //String parentid = comp.getID();
                         String parentid = comp.getName();
                         String name="";
                         if(parent.getLevel()==1){
@@ -314,7 +284,6 @@ public class SutEditor extends JPanel{
                     if(resp.indexOf("ERROR")!=-1){
                         CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SutEditor.this,"ERROR", resp);
                     }
-                    System.out.println(resp);
                     lastsaved = true;
                 }
                 catch(Exception e){e.printStackTrace();}

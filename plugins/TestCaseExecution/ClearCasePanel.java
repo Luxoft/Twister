@@ -1,6 +1,6 @@
 /*
 File: ClearCasePanel.java ; This file is part of Twister.
-Version: 2.016
+Version: 2.017
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -116,10 +116,6 @@ import java.awt.event.ItemListener;
 import java.awt.event.ItemEvent;
 import com.twister.Item;
 import com.twister.CustomDialog;
-// import com.jcraft.jsch.JSch;
-// import com.jcraft.jsch.Session;
-// import com.jcraft.jsch.Channel;
-// import com.jcraft.jsch.ChannelSftp;
 import java.util.Properties;
 import java.awt.datatransfer.Transferable;
 import java.awt.datatransfer.StringSelection;
@@ -145,8 +141,6 @@ public class ClearCasePanel{
     private TreePath[] selected;
     private DefaultMutableTreeNode child2;
     private JEditTextArea textarea;
-//     public static ChannelSftp connection;
-//     public static Session session;
 
     public ClearCasePanel() {
         RunnerRepository.introscreen.setStatus("Started ClearCasePanel interface initialization");
@@ -184,7 +178,6 @@ public class ClearCasePanel{
         });
         tree.setDragEnabled(true);
         tree.setRootVisible(false);
-//         initializeSftp();
         RunnerRepository.introscreen.setStatus("Finished Explorer interface initialization");
         RunnerRepository.introscreen.addPercent(0.035);
         RunnerRepository.introscreen.repaint();
@@ -196,61 +189,29 @@ public class ClearCasePanel{
     public void treeClickReleased(final MouseEvent ev) {
         if (ev.isPopupTrigger()) {
             String remotefilename ;
-            if(tree.getModel().isLeaf(tree.getSelectionPath()
-                        .getLastPathComponent())){
-                remotefilename = tree.getSelectionPath().getPathComponent(
-                                    tree.getSelectionPath().getPathCount() - 2)
-                                    + "/" + tree.getSelectionPath().getLastPathComponent();
+            if(tree.getSelectionPath() !=null){
+                if(tree.getModel().isLeaf(tree.getSelectionPath()
+                            .getLastPathComponent())){
+                    remotefilename = tree.getSelectionPath().getPathComponent(
+                                        tree.getSelectionPath().getPathCount() - 2)
+                                        + "/" + tree.getSelectionPath().getLastPathComponent();
+                } else {
+                    remotefilename = tree.getSelectionPath().getLastPathComponent().toString();
+                }
+                HashMap<String, String> hash = new HashMap<String, String>();
+                hash.put("command", "cleartool lsco "+remotefilename);
+                String response = RunnerRepository.window.mainpanel.getP5().sendCommand(hash,true);
+                refreshPopup(ev,response,remotefilename);
             } else {
-                remotefilename = tree.getSelectionPath().getLastPathComponent().toString();
+                refreshPopup(ev,null,null);
             }
-            HashMap<String, String> hash = new HashMap<String, String>();
-            hash.put("command", "cleartool lsco "+remotefilename);
-            String response = RunnerRepository.window.mainpanel.getP5().sendCommand(hash,true);
-            refreshPopup(ev,response,remotefilename);
         } 
-//         else {
-//             if ((tree.getSelectionPaths()!=null) &&
-//             (tree.getSelectionPaths().length == 1) &&
-//             (tree.getModel().isLeaf(tree.getSelectionPath()
-//                             .getLastPathComponent()))) {
-//                 try {
-//                     String thefile = tree.getSelectionPath().getParentPath()
-//                             .getLastPathComponent().toString()
-//                             + "/"
-//                             + tree.getSelectionPath().getLastPathComponent()
-//                                     .toString();
-//                     System.out.println("thefile: "+thefile);
-//                     //RunnerRepository.getRPCClient().execute("runPlugin", new Object[]{RunnerRepository.user,"ClearCase","command=cleartool setview "+ClearCase.getView()});
-// //                     String result = RunnerRepository.getRPCClient().execute("getTestDescription", new Object[] { thefile }).toString();
-//                     HashMap<String,String>hm = new HashMap<String,String>();
-//                     hm.put("command","get_test_description");
-//                     hm.put("file_name",thefile);
-//                     System.out.println("Command get_test_description for "+thefile);
-//                     String result = RunnerRepository.window.mainpanel.getP5().sendCommand(hm,false);
-// //                     String result = RunnerRepository.getRPCClient().execute("runPlugin", new Object[]{RunnerRepository.user,"ClearCase",hm}).toString();
-//                     System.out.println("Result: "+result);
-//                     Container pan1 = (Container) RunnerRepository.window.mainpanel.p1.splitPane.getComponent(1);
-//                     TCDetails pan2 = (TCDetails) pan1.getComponents()[1];
-//                     pan2.text.setText(result);
-//                 } catch (Exception e) {
-//                     e.printStackTrace();
-//                 }
-//             }
-//         }
     }
 
     /*
      * executed on tree click
      */
     public void treeClick(final MouseEvent ev) {
-//         if (ev.isPopupTrigger()) {
-//             new Thread(){
-//                 public void run(){
-//                     refreshPopup(ev);
-//                 }
-//             }.start();
-//         } else {
             setDragging(true);
             selected = tree.getSelectionPaths();
             if (selected != null) {
@@ -291,116 +252,120 @@ public class ClearCasePanel{
                 refreshTree(ev.getX(),ev.getY());
             }   
         });
-        item = new JMenuItem("Get TC Description");
-        p.add(item);
-        item.addActionListener(new ActionListener(){
-            public void actionPerformed(ActionEvent ev){
-                new Thread(){
-                    public void run(){
-                        if ((tree.getSelectionPaths()!=null) &&
-                        (tree.getSelectionPaths().length == 1) &&
-                        (tree.getModel().isLeaf(tree.getSelectionPath()
-                                        .getLastPathComponent()))) {
-                            try {
-                                String thefile = tree.getSelectionPath().getParentPath()
-                                        .getLastPathComponent().toString()
-                                        + "/"
-                                        + tree.getSelectionPath().getLastPathComponent()
-                                                .toString();
-                                System.out.println("thefile: "+thefile);
-                                HashMap<String,String>hm = new HashMap<String,String>();
-                                hm.put("command","get_test_description");
-                                hm.put("file_name",thefile);
-                                System.out.println("Command get_test_description for "+thefile);
-                                String result = RunnerRepository.window.mainpanel.getP5().sendCommand(hm,false);
-                                System.out.println("Result: "+result);
-                                Container pan1 = (Container) RunnerRepository.window.mainpanel.p1.splitPane.getComponent(1);
-                                TCDetails pan2 = (TCDetails) pan1.getComponents()[1];
-                                pan2.text.setText(result);
-                            } catch (Exception e) {
-                                e.printStackTrace();
+        if(response!=null&&remotefilename!=null){
+            item = new JMenuItem("Get TC Description");
+            p.add(item);
+            item.addActionListener(new ActionListener(){
+                public void actionPerformed(ActionEvent ev){
+                    new Thread(){
+                        public void run(){
+                            if ((tree.getSelectionPaths()!=null) &&
+                            (tree.getSelectionPaths().length == 1) &&
+                            (tree.getModel().isLeaf(tree.getSelectionPath()
+                                            .getLastPathComponent()))) {
+                                try {
+                                    String thefile = tree.getSelectionPath().getParentPath()
+                                            .getLastPathComponent().toString()
+                                            + "/"
+                                            + tree.getSelectionPath().getLastPathComponent()
+                                                    .toString();
+                                    System.out.println("thefile: "+thefile);
+//                                     HashMap<String,String>hm = new HashMap<String,String>();
+//                                     hm.put("command","get_test_description");
+//                                     hm.put("file_name",thefile);
+//                                     System.out.println("Command get_test_description for "+thefile);
+//                                     String result = RunnerRepository.window.mainpanel.getP5().sendCommand(hm,false);
+                                    String result = RunnerRepository.getRPCClient().execute(
+                                                                                    "getTestDescription", new Object[] { thefile })
+                                                                                    + "";
+                                    System.out.println("Result: "+result);
+                                    Container pan1 = (Container) RunnerRepository.window.mainpanel.p1.splitPane.getComponent(1);
+                                    TCDetails pan2 = (TCDetails) pan1.getComponents()[1];
+                                    pan2.text.setText(result);
+                                } catch (Exception e) {
+                                    e.printStackTrace();
+                                }
                             }
                         }
-                    }
-                }.start();
-            }
-        });
-        final String editable;
-        if (tree.getSelectionPath()!=null) {
-            editable = tree.getSelectionPath().getLastPathComponent() + "";
-        } else {
-            editable = "";
-        }
-        if ((tree.getSelectionPath()!=null)&&(tree.getSelectionPaths().length == 1)) {
-            
-            if(response.indexOf("checkout")==-1){
-                item = new JMenuItem("Checkout");
-                p.add(item);
-                item.addActionListener(new ActionListener() {
-                    public void actionPerformed(ActionEvent ev) {
-                        checkOut(remotefilename);
-                    }
-                });
+                    }.start();
+                }
+            });
+            final String editable;
+            if (tree.getSelectionPath()!=null) {
+                editable = tree.getSelectionPath().getLastPathComponent() + "";
             } else {
-                item = new JMenuItem("Checkin");
-                p.add(item);
-                item.addActionListener(new ActionListener() {
-                    public void actionPerformed(ActionEvent ev) {
-                        checkIn(remotefilename);
-                    }
-                });
-                item = new JMenuItem("UnCheckout");
-                p.add(item);
-                item.addActionListener(new ActionListener() {
-                    public void actionPerformed(ActionEvent ev) {
-                        uncheckout(remotefilename);
-                    }
-                });
+                editable = "";
             }
-            if((tree.getModel().isLeaf(tree.getSelectionPath()
-                        .getLastPathComponent()))
-                && ((editable.indexOf(".tcl") != -1)
-                    || (editable.indexOf(".py") != -1)
-                    || (editable.indexOf(".java") != -1)
-                    || (editable.indexOf(".pl") != -1))){
+            if ((tree.getSelectionPath()!=null)&&(tree.getSelectionPaths().length == 1)) {                
                 if(response.indexOf("checkout")==-1){
-                    item = new JMenuItem("View");
+                    item = new JMenuItem("Checkout");
                     p.add(item);
                     item.addActionListener(new ActionListener() {
                         public void actionPerformed(ActionEvent ev) {
-                            editTC(editable,false);
+                            checkOut(remotefilename);
                         }
                     });
                 } else {
-                    item = new JMenuItem("Edit");
+                    item = new JMenuItem("Checkin");
                     p.add(item);
                     item.addActionListener(new ActionListener() {
                         public void actionPerformed(ActionEvent ev) {
-                            editTC(editable, true);
+                            checkIn(remotefilename);
                         }
                     });
-                    item = new JMenuItem("Edit with");
+                    item = new JMenuItem("UnCheckout");
                     p.add(item);
                     item.addActionListener(new ActionListener() {
-                        public void actionPerformed(ActionEvent evnt) {
-                            editWith(editable,remotefilename,true);
+                        public void actionPerformed(ActionEvent ev) {
+                            uncheckout(remotefilename);
                         }
                     });
-                    item = new JMenuItem("Editors");
-                    p.add(item);
-                    item.addActionListener(new ActionListener() {
-                        public void actionPerformed(ActionEvent evnt) {
-                            try {
-                                new Editors(ev.getLocationOnScreen()).setVisible(true);
-                            } catch (Exception e) {
-                                System.out
-                                        .println("There was an error in opening editors"+
-                                                 " configuration window, please check "+
-                                                 "configuration file");
-                                e.printStackTrace();
+                }
+                if((tree.getModel().isLeaf(tree.getSelectionPath()
+                            .getLastPathComponent()))
+                    && ((editable.indexOf(".tcl") != -1)
+                        || (editable.indexOf(".py") != -1)
+                        || (editable.indexOf(".java") != -1)
+                        || (editable.indexOf(".pl") != -1))){
+                    if(response.indexOf("checkout")==-1){
+                        item = new JMenuItem("View");
+                        p.add(item);
+                        item.addActionListener(new ActionListener() {
+                            public void actionPerformed(ActionEvent ev) {
+                                editTC(editable,false);
                             }
-                        }
-                    });
+                        });
+                    } else {
+                        item = new JMenuItem("Edit");
+                        p.add(item);
+                        item.addActionListener(new ActionListener() {
+                            public void actionPerformed(ActionEvent ev) {
+                                editTC(editable, true);
+                            }
+                        });
+                        item = new JMenuItem("Edit with");
+                        p.add(item);
+                        item.addActionListener(new ActionListener() {
+                            public void actionPerformed(ActionEvent evnt) {
+                                editWith(editable,remotefilename,true);
+                            }
+                        });
+                        item = new JMenuItem("Editors");
+                        p.add(item);
+                        item.addActionListener(new ActionListener() {
+                            public void actionPerformed(ActionEvent evnt) {
+                                try {
+                                    new Editors(ev.getLocationOnScreen()).setVisible(true);
+                                } catch (Exception e) {
+                                    System.out
+                                            .println("There was an error in opening editors"+
+                                                     " configuration window, please check "+
+                                                     "configuration file");
+                                    e.printStackTrace();
+                                }
+                            }
+                        });
+                    }
                 }
             }
         }
@@ -654,18 +619,20 @@ public class ClearCasePanel{
                 + "Twister" + RunnerRepository.getBar()
                 + tree.getSelectionPath().getLastPathComponent();
                 
-                
-        HashMap<String,String>hm = new HashMap<String,String>();
-        hm.put("command","get_test_file");
-        hm.put("file_name",remotefilename);
-        System.out.println("get_test_file: "+remotefilename);
-        String respons = "";
-        try{respons = RunnerRepository.window.mainpanel.getP5().sendCommand(hm,false);}
-//             respons = RunnerRepository.getRPCClient().execute("runPlugin", new Object[]{RunnerRepository.user,"ClearCase",hm}).toString();}
-        catch(Exception e){
-            System.out.println("Could not get file content: "+remotefilename);
-            e.printStackTrace();
-        }
+        String respons = new String(RunnerRepository.getRemoteFileContent(remotefilename, false,"TestConfigPath"));
+//         HashMap<String,String>hm = new HashMap<String,String>();
+//         hm.put("command","get_test_file");
+//         hm.put("file_name",remotefilename);
+//         
+//         
+//         System.out.println("get_test_file: "+remotefilename);
+//         String respons = "";
+//         try{respons = RunnerRepository.window.mainpanel.getP5().sendCommand(hm,false);}
+// //             respons = RunnerRepository.getRPCClient().execute("runPlugin", new Object[]{RunnerRepository.user,"ClearCase",hm}).toString();}
+//         catch(Exception e){
+//             System.out.println("Could not get file content: "+remotefilename);
+//             e.printStackTrace();
+//         }
         System.out.println(respons);
         File file2 = new File(localfilename);
         
@@ -731,7 +698,7 @@ public class ClearCasePanel{
             
             String content = new String(c);
             System.out.println("---"+content+"---");
-            hm = new HashMap<String,String>();
+            HashMap hm = new HashMap<String,String>();
             hm.put("command","set_test_file");
             hm.put("file_name",remotefilename);
             hm.put("content",content);
@@ -930,7 +897,7 @@ public class ClearCasePanel{
 //                 writer.write(line);
 //                 writer.newLine();
 //             }
-            String content = new String(RunnerRepository.getRemoteFileContent(filename, false));
+            String content = new String(RunnerRepository.getRemoteFileContent(filename, false,null));
             writer.write(content);
             writer.flush();
 //             bufferedReader.close();
@@ -964,34 +931,63 @@ public class ClearCasePanel{
 //     }
 
     public void refreshStructure() {
-        try{root.remove(0);}
-        catch(Exception e){}
-        HashMap<String, String> hash = new HashMap<String, String>();
-        hash.put("command", "get_path_tree");
-        hash.put("path", RunnerRepository.window.mainpanel.getP5().root);
-        String result = "";
-        System.out.println("get_path_tree: "+RunnerRepository.window.mainpanel.getP5().root);
+        //try{root.remove(0);}
+        //catch(Exception e){}
+        if(root.getChildCount()>0)root.remove(0);
+//         HashMap<String, String> hash = new HashMap<String, String>();
+//         hash.put("command", "get_path_tree");
+//         hash.put("path", RunnerRepository.window.mainpanel.getP5().root);
+//         String result = "";
+//         System.out.println("get_path_tree: "+RunnerRepository.window.mainpanel.getP5().root);
         try{
-            result = RunnerRepository.window.mainpanel.getP5().sendCommand(hash,false);
+            HashMap hash = RunnerRepository.getServerTCStructure(true);
+            getList(root, hash,hash.get("data").toString());
+            ((DefaultTreeModel)tree.getModel()).reload();
+//             result = RunnerRepository.window.mainpanel.getP5().sendCommand(hash,false);
             
 //             result= RunnerRepository.getRPCClient().execute("runPlugin", new Object[]{RunnerRepository.user,
 //                                                                      "ClearCase",hash}).toString();
-            System.out.println(result);}
+//             System.out.println(result);
+        }
         catch(Exception e){
             System.out.println("Could not get tree from CE");
             e.printStackTrace();
             return;
         }
-        JsonObject el = (JsonObject)new JsonParser().parse(result);
-        JsonElement vob = el.get(RunnerRepository.window.mainpanel.getP5().root);
-        DefaultMutableTreeNode child2 = new DefaultMutableTreeNode(RunnerRepository.window.mainpanel.getP5().root,true);
-        root.add(child2);
-        RunnerRepository.window.mainpanel.getP5().buildTree(child2,(JsonObject)vob);
-        ((DefaultTreeModel) tree.getModel()).reload();
+//         JsonObject el = (JsonObject)new JsonParser().parse(result);
+//         JsonElement vob = el.get(RunnerRepository.window.mainpanel.getP5().root);
+//         DefaultMutableTreeNode child2 = new DefaultMutableTreeNode(RunnerRepository.window.mainpanel.getP5().root,true);
+//         root.add(child2);
+//         RunnerRepository.window.mainpanel.getP5().buildTree(child2,(JsonObject)vob);
+//         ((DefaultTreeModel) tree.getModel()).reload();
         tree.expandRow(0);
         selected = null;
         setDragging(false);
-        
+    }
+    
+    /*
+     * construct the list for folders representation in jtree
+     */
+    public void getList(DefaultMutableTreeNode node, HashMap hash, String curentdir) {
+        try {
+            System.out.println(curentdir);
+            DefaultMutableTreeNode child = new DefaultMutableTreeNode(curentdir);
+            node.add(child);
+            Object [] children = (Object [])hash.get("children");
+            if(children!=null&&children.length>0){
+                for(Object subchild:children){
+                    String name = ((HashMap)subchild).get("data").toString();
+                    if(((HashMap)subchild).get("folder")!=null){//folder
+                        getList(child, (HashMap)subchild ,curentdir+"/"+name);
+                    } else {//file
+                        child2 = new DefaultMutableTreeNode(name,false);
+                        child.add(child2);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     public void setEnabledTabs(boolean enable) {

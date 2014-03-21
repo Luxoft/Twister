@@ -1,6 +1,6 @@
 /*
 File: DatabaseInterface.java ; This file is part of Twister.
-Version: 2.009
+Version: 2.010
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -132,7 +132,7 @@ public class DatabaseInterface extends JPanel {
                                     getBar()+"config"+RunnerRepository.getBar()+
                                     new File(RunnerRepository.REMOTEDATABASECONFIGFILE).getName());
             String content = new String(RunnerRepository.getRemoteFileContent(RunnerRepository.REMOTEDATABASECONFIGPATH+
-                                                             RunnerRepository.REMOTEDATABASECONFIGFILE,false));
+                                                             RunnerRepository.REMOTEDATABASECONFIGFILE,false,null));
             BufferedWriter writer = new BufferedWriter(new FileWriter(theone));
             writer.write(content);
             writer.close();
@@ -723,7 +723,7 @@ public class DatabaseInterface extends JPanel {
             transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "4");
             transformer.transform(source, result);
             FileInputStream in = new FileInputStream(file);
-            RunnerRepository.uploadRemoteFile(RunnerRepository.REMOTEDATABASECONFIGPATH, in, file.getName(),false);
+            RunnerRepository.uploadRemoteFile(RunnerRepository.REMOTEDATABASECONFIGPATH, in, file.getName(),false,null);
             CustomDialog.showInfo(JOptionPane.PLAIN_MESSAGE,RunnerRepository.window,
                                    "Success",
                                    "File successfully generated");

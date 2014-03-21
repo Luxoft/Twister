@@ -1,6 +1,6 @@
 /*
 File: TB.java ; This file is part of Twister.
-Version: 2.020
+Version: 2.021
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -95,10 +95,10 @@ public class TB extends JPanel{
     public void initPanel(){
         setBorder(BorderFactory.createTitledBorder("Test Beds"));
         final JPanel buttonPanel = new JPanel();
-        buttonPanel.setLayout(null);
+        //buttonPanel.setLayout(null);
         
         add = new JButton("Add TB");
-        add.setBounds(0,5,155,20);
+        //add.setBounds(0,5,155,20);
         if(PermissionValidator.canEditTB())buttonPanel.add(add);
         add.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
@@ -107,7 +107,7 @@ public class TB extends JPanel{
         });
         
         remove = new JButton("Remove");
-        remove.setBounds(160,5,100,20);
+        //remove.setBounds(160,5,100,20);
         remove.setEnabled(false);
         if(PermissionValidator.canEditTB())buttonPanel.add(remove);
         remove.addActionListener(new ActionListener(){
@@ -157,6 +157,11 @@ public class TB extends JPanel{
                                 DefaultMutableTreeNode temp2 = new DefaultMutableTreeNode(node.getPath());
                                 ((DefaultTreeModel)tree.getModel()).insertNodeInto(temp2, tn,1);
                                 buildTree(node,tn,false);
+                                boolean edit = false;
+                                if(node.getReserved().equals(RunnerRepository.user)){
+                                    edit = true;
+                                }
+                                optpan.setParent(node,tn,edit);
                                 model.reload(tn);
                                 tree.expandPath(new TreePath(tn.getPath()));
                                 progress.dispose();
@@ -181,29 +186,23 @@ public class TB extends JPanel{
         JPanel upperpanel = new JPanel();
         upperpanel.setLayout(new java.awt.BorderLayout());
         JPanel activetbusers = new JPanel();
-        activetbusers.setLayout(new BorderLayout());
+//         activetbusers.setLayout(new BorderLayout());
         jusers = new JLabel("TB Active Users:");
         jusers.setBorder(BorderFactory.createEmptyBorder(0, 5, 0, 0));
         JButton refreshtb = new JButton("Refresh TBs");
-        activetbusers.add(refreshtb,BorderLayout.WEST);
+//         activetbusers.add(refreshtb,BorderLayout.WEST);
+        activetbusers.add(refreshtb);
         refreshtb.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 buildFirstLevelTB();
-            }});
-        JMenuBar menubar = new JMenuBar();
-        JMenu menu = new JMenu("File");
-        menubar.add(menu);
-        treepanel.add(upperpanel,BorderLayout.NORTH);
-        upperpanel.add(activetbusers,BorderLayout.NORTH);
-        upperpanel.add(menubar,BorderLayout.CENTER);
-
-        JMenuItem imp = new JMenuItem("Import from XML");
-        imp.addActionListener(new ActionListener(){
+        }});
+        JButton importxml = new JButton("Import XML");
+        importxml.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 Container c;
                 if(RunnerRepository.container!=null)c = RunnerRepository.container.getParent();
                 else c = RunnerRepository.window;
-                final JTextField tf = new JTextField();
+                final JTextField tf = new JTextField(RunnerRepository.REMOTECONFIGDIRECTORY);
                 new MySftpBrowser(RunnerRepository.host,RunnerRepository.user,RunnerRepository.password,RunnerRepository.CENTRALENGINEPORT,tf,c,false).setAction(new AbstractAction(){
                     public void actionPerformed(ActionEvent ev){
                         try{
@@ -222,19 +221,15 @@ public class TB extends JPanel{
                         }
                     }
                 });
-            }});
-        menu.add(imp);
-        JMenuItem exp = new JMenuItem("Export to XML");
-        exp.addActionListener(new ActionListener(){
+        }});
+        
+        JButton exportxml = new JButton("Export XML");
+        exportxml.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 Container c;
                 if(RunnerRepository.container!=null)c = RunnerRepository.container.getParent();
                 else c = RunnerRepository.window;
-                final JTextField tf = new JTextField();
-                try{tf.setText(RunnerRepository.getTestConfigPath());
-                }catch(Exception e){
-                    e.printStackTrace();
-                }
+                final JTextField tf = new JTextField(RunnerRepository.REMOTECONFIGDIRECTORY);
                 AbstractAction action = new AbstractAction(){
                     public void actionPerformed(ActionEvent ev){
                         try{
@@ -251,8 +246,73 @@ public class TB extends JPanel{
                 MySftpBrowser browser = new MySftpBrowser(RunnerRepository.host,RunnerRepository.user,RunnerRepository.password,RunnerRepository.CENTRALENGINEPORT,tf,c,false);
                 browser.setAction(action);
                 browser.setButtonText("Save");
-            }});
-        menu.add(exp);
+        }});
+            
+        activetbusers.add(importxml);
+        activetbusers.add(exportxml);
+//         JMenuBar menubar = new JMenuBar();
+//         JMenu menu = new JMenu("File");
+//         menubar.add(menu);
+        treepanel.add(upperpanel,BorderLayout.NORTH);
+        upperpanel.add(activetbusers,BorderLayout.NORTH);
+//         upperpanel.add(menubar,BorderLayout.CENTER);
+
+//         JMenuItem imp = new JMenuItem("Import from XML");
+//         imp.addActionListener(new ActionListener(){
+//             public void actionPerformed(ActionEvent ev){
+//                 Container c;
+//                 if(RunnerRepository.container!=null)c = RunnerRepository.container.getParent();
+//                 else c = RunnerRepository.window;
+//                 final JTextField tf = new JTextField();
+//                 new MySftpBrowser(RunnerRepository.host,RunnerRepository.user,RunnerRepository.password,RunnerRepository.CENTRALENGINEPORT,tf,c,false).setAction(new AbstractAction(){
+//                     public void actionPerformed(ActionEvent ev){
+//                         try{
+//                             String resp = client.execute("import_xml", new Object[]{tf.getText()}).toString();
+//                             if(resp.indexOf("*ERROR*")==-1){
+//                                 root.removeAllChildren();
+//                                 parent = getTB("/",null);
+//                                 DefaultTreeModel model = (DefaultTreeModel)tree.getModel();
+//                                 buildTree(parent,root,true);
+//                                 ((DefaultTreeModel)tree.getModel()).reload();
+//                             } else {
+//                                 CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,TB.this,"ERROR", "Could not import!CE error: "+resp);
+//                             }
+//                         } catch(Exception e){
+//                             e.printStackTrace();
+//                         }
+//                     }
+//                 });
+//             }});
+//         menu.add(imp);
+//         JMenuItem exp = new JMenuItem("Export to XML");
+//         exp.addActionListener(new ActionListener(){
+//             public void actionPerformed(ActionEvent ev){
+//                 Container c;
+//                 if(RunnerRepository.container!=null)c = RunnerRepository.container.getParent();
+//                 else c = RunnerRepository.window;
+//                 final JTextField tf = new JTextField();
+//                 try{tf.setText(RunnerRepository.getTestConfigPath());
+//                 }catch(Exception e){
+//                     e.printStackTrace();
+//                 }
+//                 AbstractAction action = new AbstractAction(){
+//                     public void actionPerformed(ActionEvent ev){
+//                         try{
+//                             String resp = client.execute("export_xml", new Object[]{tf.getText()}).toString();
+//                             if(resp.indexOf("*ERROR*")!=-1){
+//                                 CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,TB.this,"ERROR", "Could not save");
+//                             }
+//                             System.out.println(resp);
+//                         } catch(Exception e){
+//                             e.printStackTrace();
+//                         }
+//                     }
+//                 };
+//                 MySftpBrowser browser = new MySftpBrowser(RunnerRepository.host,RunnerRepository.user,RunnerRepository.password,RunnerRepository.CENTRALENGINEPORT,tf,c,false);
+//                 browser.setAction(action);
+//                 browser.setButtonText("Save");
+//             }});
+//         menu.add(exp);
         GroupLayout layout = new GroupLayout(this);
         this.setLayout(layout);
         layout.setHorizontalGroup(
@@ -678,7 +738,8 @@ public class TB extends JPanel{
                             buildTree(finalnode,treenode,false);
                             treenode.setUserObject(finalnode);
                             model.reload(treenode);
-                            optpan.setParent(node,treenode,true);
+                            //optpan.setParent(node,treenode,true);
+                            optpan.setParent(finalnode,treenode,true);
                             remove.setEnabled(false);
                             add.setEnabled(true);
                             add.setText("Add Component");
@@ -1328,3 +1389,4 @@ class TreeTransferHandler extends TransferHandler {
         }  
     }  
 }
+

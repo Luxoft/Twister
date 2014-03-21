@@ -1,6 +1,6 @@
 /*
 File: Panel1.java ; This file is part of Twister.
-Version: 2.0018
+Version: 2.0019
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -442,8 +442,20 @@ public class Panel1 extends JPanel{
                 }
                 user+=".xml";
                 if(!PermissionValidator.canChangeProject()){
-                    String [] files = RunnerRepository.getRemoteFolderContent(RunnerRepository.getRemoteUsersDirectory());
-                    for(String st:files){
+//                     String [] files = null;
+//                     if(RunnerRepository.window.mainpanel.p4.getPlugins().isClearCaseEnabled()){
+//                         try{String respons = RunnerRepository.getRPCClient().execute("findCcXmlTag", new Object[]{"UsersPath"}).toString();
+//                             if(respons.indexOf("*ERROR*")!=-1){
+//                                 CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,RunnerRepository.window,"ERROR", respons);
+//                                 return ;
+//                             }   
+//                             files = RunnerRepository.getRemoteFolderContent(respons.split(":")[1],"UsersPath");
+//                         } catch(Exception e){e.printStackTrace();}
+//                     } else {
+//                         files = RunnerRepository.getRemoteFolderContent(RunnerRepository.getRemoteUsersDirectory(),null);
+//                     }
+                   
+                    for(String st:RunnerRepository.getProjectsFiles()){
                         if(st.equals(user)){
                             CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, 
                                                 RunnerRepository.window, "Warning",
@@ -712,7 +724,8 @@ public class Panel1 extends JPanel{
                 }
                 File file = new File(RunnerRepository.temp+RunnerRepository.getBar()+"Twister"+RunnerRepository.getBar()+"Users"+RunnerRepository.getBar()+user);
                 BufferedWriter writer = new BufferedWriter(new FileWriter(file));
-                String content = new String(RunnerRepository.getRemoteFileContent(RunnerRepository.getRemoteUsersDirectory()+"/"+user,false));
+//                 String content = new String(RunnerRepository.getRemoteFileContent(RunnerRepository.getRemoteUsersDirectory()+"/"+user,false,null));
+                String content = new String(RunnerRepository.readProjectFile(user));
                 writer.write(content);
                 writer.close();
                 RunnerRepository.window.mainpanel.p1.sc.g.parseXML(new File(RunnerRepository.getUsersDirectory()+
@@ -765,10 +778,20 @@ public class Panel1 extends JPanel{
             }
         }
         
-        
-        
-        
-        
+        /*
+         * chech that there are tc'es to run
+         */
+        boolean found = false;
+        for(Item i:RunnerRepository.getSuite()){
+            if(findRunnableTC(i)){
+                found = true;
+                break;                
+            }
+        }
+        if(!found){
+            CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, RunnerRepository.window,"Warning","No tc found to run");
+            execute = false;
+        }
         
         
         if(execute){
@@ -803,18 +826,32 @@ public class Panel1 extends JPanel{
             File xml = new File(RunnerRepository.getTestXMLDirectory());
             int size = RunnerRepository.getLogs().size();
             for(int i=5;i<size;i++){RunnerRepository.getLogs().remove(5);}
-//             new XMLReader(xml).parseXML(sc.g.getGraphics(), true);
             new XMLReader(xml).parseXML(sc.g.getGraphics(), true,RunnerRepository.getTestSuite(),false);
             setRunning();
         }
     }
     
+    
+    /*
+     * find if there is a tc set to be executed
+     */
+    private boolean findRunnableTC(Item i){
+        if(i.getType()==1&&i.getCheck()){
+            return true;
+        }
+        if(i.getType()==2){
+            for(int j=0;j<i.getSubItemsNr();j++){
+                if(findRunnableTC(i.getSubItem(j))){
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+    
     public void setRunning(){
         final int loc = splitPane3.getDividerLocation();
         splitPane3.setLeftComponent(RunnerRepository.window.mainpanel.getP2().sc.pane);
-//         JScrollPane sp = new JScrollPane();
-//         sp.setPreferredSize(new Dimension(800,600));
-//         splitPane3.setLeftComponent(sc);
         try{
             SwingUtilities.invokeLater(new Runnable(){
                 public void run() {
@@ -837,7 +874,6 @@ public class Panel1 extends JPanel{
         suitaDetails.setEnabled(false);
         tcdetails.logs.doClick();
         repaint();
-        
     }
         
     /*
@@ -852,11 +888,14 @@ public class Panel1 extends JPanel{
                                                             "Delete", null);
         if(r == JOptionPane.OK_OPTION){
             RunnerRepository.emptySuites();
-            try{new File(sc.g.getUser()).delete();
-                if(!RunnerRepository.removeRemoteFile(RunnerRepository.getRemoteUsersDirectory()+"/"+(new File(sc.g.getUser()).getName()))){
-                    System.out.println("Could not delete "+new File(sc.g.getUser()).getName()+
-                                        " from "+RunnerRepository.getRemoteUsersDirectory());
-                }
+            try{RunnerRepository.deleteProjectFile(new File(sc.g.getUser()).getName());
+                new File(sc.g.getUser()).delete();
+//                 boolean executed = false;
+//                 if(RunnerRepository.window.mainpanel.p4.getPlugins().isClearCaseEnabled()){
+//                     executed = RunnerRepository.removeRemoteFile(RunnerRepository.getRemoteUsersDirectory()+"/"+(new File(sc.g.getUser()).getName()),"UsersPath");
+//                 } else {
+//                     executed = RunnerRepository.removeRemoteFile(RunnerRepository.getRemoteUsersDirectory()+"/"+(new File(sc.g.getUser()).getName()),null);
+//                 }
 //                 try{RunnerRepository.c.cd(RunnerRepository.getRemoteUsersDirectory());
 //                     RunnerRepository.c.rm(new File(sc.g.getUser()).getName());}
 //                 catch(Exception e){

@@ -1,6 +1,6 @@
 /*
 File: Plugins.java ; This file is part of Twister.
-Version: 2.011
+Version: 2.012
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -148,7 +148,7 @@ public class Plugins extends JPanel{
 //             ch.cd(RunnerRepository.USERHOME+"/twister/config/");
 //             ch.put(in, file.getName());
 //             in.close();
-            RunnerRepository.uploadRemoteFile(RunnerRepository.USERHOME+"/twister/config/", in, file.getName(),false);
+            RunnerRepository.uploadRemoteFile(RunnerRepository.USERHOME+"/twister/config/", in, file.getName(),false,null);
             finished = true;
             return true;}
         catch(Exception e){
@@ -466,7 +466,7 @@ public class Plugins extends JPanel{
         Iterator iterator = plugins.keySet().iterator();
         String description;
         
-        String [] plugins = RunnerRepository.getRemoteFolderContent(RunnerRepository.REMOTEPLUGINSDIR);
+        String [] plugins = RunnerRepository.getRemoteFolderContent(RunnerRepository.REMOTEPLUGINSDIR,null);
 //         try{ch.cd(RunnerRepository.REMOTEPLUGINSDIR);}
 //         catch(Exception e){
 //             System.out.println("Could not get :"+
@@ -744,7 +744,7 @@ public class Plugins extends JPanel{
             transformer.setOutputProperty("{http:xml.apache.org/xslt}indent-amount","4");
             transformer.transform(source, result);
             FileInputStream in = new FileInputStream(file);
-            RunnerRepository.uploadRemoteFile(RunnerRepository.USERHOME+"/twister/config/", in, file.getName(),false);
+            RunnerRepository.uploadRemoteFile(RunnerRepository.USERHOME+"/twister/config/", in, file.getName(),false,null);
             in.close();
             System.out.println("Saved "+file.getName()+" to: "+
                     RunnerRepository.USERHOME+"/twister/config/");}
@@ -891,7 +891,7 @@ public class Plugins extends JPanel{
             //get jar file
             System.out.print("Getting "+filename+" ....");
 //             in = ch.get(filename);    
-            byte [] buf = RunnerRepository.getRemoteFileContent(RunnerRepository.REMOTEPLUGINSDIR+"/"+filename, true);
+            byte [] buf = RunnerRepository.getRemoteFileContent(RunnerRepository.REMOTEPLUGINSDIR+"/"+filename, true,null);
 //             byte [] buf = new byte[remotefileencoded.length()];
 //             for(int i=0;i<remotefileencoded.length();i++){
 //                 buf[i] = (byte)remotefileencoded.charAt(i);
@@ -914,7 +914,7 @@ public class Plugins extends JPanel{
                 filename = filename.substring(0, filename.indexOf("."))+"_description.txt";
                 System.out.print("Getting "+filename+" ....");
 //                 in = ch.get(filename);    
-                String filecontent = new String(RunnerRepository.getRemoteFileContent(RunnerRepository.REMOTEPLUGINSDIR+"/"+filename, false));
+                String filecontent = new String(RunnerRepository.getRemoteFileContent(RunnerRepository.REMOTEPLUGINSDIR+"/"+filename, false,null));
                 file = new File(RunnerRepository.PLUGINSDIRECTORY+RunnerRepository.getBar()+filename);
                 out=new FileOutputStream(file);
 //                 while((len=in.read(buf))>0)

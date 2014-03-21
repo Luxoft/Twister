@@ -1,6 +1,6 @@
 /*
 File: NodePanel.java ; This file is part of Twister.
-Version: 2.007
+Version: 2.008
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -279,7 +279,12 @@ public class NodePanel extends JPanel{
                     try{
                         if(parent.getPropery(resp)==null){
                             String name = parent.getName();
-                            String path = parent.getParent().getID();                        
+                            String path = "";
+                            if(parent.getParent()!=null){
+                                path = parent.getParent().getID();                        
+                            } else {
+                                path = "/";
+                            }
                             String query = "{'"+resp+"':''}";
                             query = client.execute("setResource", new Object[]{name,path,query}).toString();
                             if(query.equals("true")){
@@ -386,7 +391,12 @@ public class NodePanel extends JPanel{
                     public void keyReleased(KeyEvent ev){
                         String key = jTextField1.getText();
                         String value = jTextField2.getText();
-                        String path = parent.getParent().getID();
+                        String path = "";
+                        if(parent.getParent()!=null){
+                            path = parent.getParent().getID();                        
+                        } else {
+                            path = "/";
+                        }
                         String name = parent.getName();
                         String query = "{'"+key+"':'"+value+"'}";
                         try{String resp = client.execute("setResource", new Object[]{name,path,query}).toString();
@@ -407,8 +417,10 @@ public class NodePanel extends JPanel{
                             if(jTextField1.getText().equals(""))return;
                             String s = client.execute("deleteResource", new Object[]{parent.getID()+":"+
                                                                     jTextField1.getText()}).toString();
+                            System.out.println("deleteResource "+parent.getID()+":"+jTextField1.getText()+" --- "+s);
                             if(s.equals("true")){
                                 parent.getProperties().remove(jTextField1.getText());
+                                System.out.println(parent.getProperties().toString());
                                 updateProperties(true);
                                 RunnerRepository.window.mainpanel.p4.getTB().setSavedState(treenode,false);
                             }
@@ -442,7 +454,6 @@ public class NodePanel extends JPanel{
             }
             sb.setLength(sb.length()-1);
             String s = client.execute("getReservedResource", new Object[]{sb.toString()}).toString();
-            System.out.println("getReservedResource:"+sb.toString()+" respons: "+s);
             if(s.equalsIgnoreCase("false")||s.equals("*ERROR*")){
                 return false;
             } else {
@@ -464,7 +475,12 @@ public class NodePanel extends JPanel{
                     sb.append(list.getSelectedValuesList().get(i).toString());
                     sb.append(";");
                 }
-                String path = parent.getParent().getID();
+                String path = "";
+                if(parent.getParent()!=null){
+                    path = parent.getParent().getID();                        
+                } else {
+                    path = "/";
+                }
                 String name = parent.getName();
                 String query = "{'epnames':'"+sb.toString()+"'}";
                 try{String resp = client.execute("setResource", new Object[]{name,path,query}).toString();

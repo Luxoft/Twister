@@ -1,6 +1,6 @@
 /*
 File: ExplorerPanel.java ; This file is part of Twister.
-Version: 2.010
+Version: 2.011
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -230,6 +230,7 @@ public class ExplorerPanel {
                             + "/"
                             + tree.getSelectionPath().getLastPathComponent()
                                     .toString();
+                    System.out.println("thefile:"+thefile);
                     String result = RunnerRepository.getRPCClient().execute(
                             "getTestDescription", new Object[] { thefile })
                             + "";
@@ -687,7 +688,7 @@ public class ExplorerPanel {
         File file2 = new File(localfilename);
         try {
             writer = new BufferedWriter(new FileWriter(file2));
-            writer.write(new String(RunnerRepository.getRemoteFileContent(filename,false)));
+            writer.write(new String(RunnerRepository.getRemoteFileContent(filename,false,null)));
             writer.flush();
             writer.close();
             System.out.println("successfull");
@@ -704,7 +705,7 @@ public class ExplorerPanel {
             FileInputStream in = new FileInputStream(localfile);
 //             connection.put(in, remotefile);
 //             in.close();
-            RunnerRepository.uploadRemoteFile(remotefile.replace("/"+path[path.length-1], ""), in, path[path.length-1],false);
+            RunnerRepository.uploadRemoteFile(remotefile.replace("/"+path[path.length-1], ""), in, path[path.length-1],false,null);
         } catch (Exception e) {
             e.printStackTrace();
             System.out.println("There was a problem in saving file "
@@ -716,7 +717,8 @@ public class ExplorerPanel {
     public void refreshStructure() {
         if(root.getChildCount()>0)root.remove(0);
         try {
-            HashMap hash = RunnerRepository.getRemoteFolderStructure(RunnerRepository.getTestSuitePath());
+//             HashMap hash = RunnerRepository.getRemoteFolderStructure(RunnerRepository.getTestSuitePath());
+            HashMap hash = RunnerRepository.getServerTCStructure(false);
             getList(root, hash,RunnerRepository.getTestSuitePath());
         } catch (Exception e) {
             e.printStackTrace();
