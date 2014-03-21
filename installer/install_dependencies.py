@@ -1,6 +1,6 @@
 #!/usr/bin/env python2.7
 
-# version: 3.001
+# version: 3.002
 
 # File: install.py ; This file is part of Twister.
 
@@ -335,13 +335,28 @@ for i in range(len(dependencies)):
         ver = None
 
     if not ver:
-        print('Python library `%s` is not installed...' % import_name)
+        print('Python library `{}` is not installed...'.format(import_name))
 
     if ver < lib_version:
-        print('Testing dependency: Library `%s` has version `%s` and it must be `%s` or newer! Will install...' %
-            (import_name, ver, lib_version))
+        print('Testing dependency: Library `{}` has version `{}` and it must be `{}` or newer! '
+            'Will install...'.format(import_name, ver, lib_version))
+
+        if ver:
+            try:
+                lib  = __import__(import_name)
+                if lib.__file__.startswith('/usr/lib/'):
+                    print('\nLibrary `{}` is installed in `{}` and this script cannot remove it!\n'
+                        'You will have to manually uninstall this library!\n'.format(import_name, lib.__file__))
+                    selected = raw_input('Do you want to continue? (yes/no): ')
+                    if selected in ['n', 'no']:
+                        print('\nOk. Uninstall `{}` and run this script again.\nBye bye!\n'.format(import_name))
+                        exit(0)
+            except Exception:
+                pass
+
     else:
-        print('Testing dependency: Imported `%s` version `%s` is OK. No need to re-install.' % (import_name, ver))
+        print('Testing dependency: Imported `{}` version `{}` is OK. '
+            'No need to re-install.'.format(import_name, ver))
         continue
 
     p_library = glob.glob(pkg_path + lib_name + '*gz')
