@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<Root>
+    <TestCaseSourcePath active="false" path="" view=""/>
+    <UsersPath active="false" path="" view=""/>
+    <PredefinedSuitesPath active="false" path="" view=""/>
+    <LibsPath active="false" path="" view=""/>
+    <TestConfigPath active="false" path="" view=""/>
+    <SysSutPath active="false" path="" view=""/>
+    <SutPath active="false" path="" view=""/>
+    <Type type="Base"/>
+</Root>
