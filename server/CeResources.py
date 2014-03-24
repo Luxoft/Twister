@@ -1,7 +1,7 @@
 
 # File: CeResources.py ; This file is part of Twister.
 
-# version: 2.037
+# version: 2.038
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -1313,6 +1313,12 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
                 r = None
                 if parent == '/' or parent == '1':
+                    # if this is a SUT file, we need to add path
+                    if root_id == ROOT_SUT:
+                        sut_path = list()
+                        sut_path.append(name)
+                        parent_p['children'][name]['path'] = sut_path
+
                     # Write changes for Device or SUT
                     r = self._save(root_id, props, name, username)
                     if isinstance(r,str):
