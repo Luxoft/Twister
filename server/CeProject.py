@@ -1,7 +1,7 @@
 
 # File: CeProject.py ; This file is part of Twister.
 
-# version: 3.025
+# version: 3.026
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -2422,15 +2422,6 @@ class Project(object):
         if user_path == '/':
             user_path = ''
 
-        # # All files from global lib path
-        # glob_libs_all = self.localFs.listUserFiles(user, libs_path)
-
-        # # All files from user lib path
-        # if user_path and os.path.isdir(user_path):
-        #     user_libs_all = self.localFs.listUserFiles(user, user_path)
-        # else:
-        #     user_libs_all = []
-
         glob_libs = [] # Default empty
         user_libs = []
 
@@ -2442,12 +2433,22 @@ class Project(object):
                 os.path.splitext(d)[1] in ['.py', '.zip']) or \
                 os.path.isdir(libs_path + d) ]
 
-            if user_path and os.path.isdir(user_path):
-                user_libs = [d for d in os.listdir(user_path) if \
-                        ( os.path.isfile(user_path + d) and \
-                        '__init__.py' not in d and \
-                        os.path.splitext(d)[1] in ['.py', '.zip']) or \
-                        os.path.isdir(user_path + d) ]
+            # Auto detect if ClearCase Test Config Path is active
+            ccConfig = self.getClearCaseConfig(user, 'libs_path')
+            if ccConfig:
+                view = ccConfig['view']
+                path = ccConfig['path']
+                user_libs_all = self.clearFs.listUserFiles(user +':'+ view, path, False, False)
+            else:
+                user_libs_all = self.localFs.listUserFiles(user, user_path, False, False)
+
+            # All .py and .zip files + all folders
+            if isinstance(user_libs_all, dict):
+                user_libs = [ d['data'] for d in user_libs_all.get('children', []) if \
+                    d['data'].endswith('.py') or d['data'].endswith('.zip') or d.get('folder') ]
+            else:
+                logWarning(user_libs_all)
+
         # All libraries for user
         else:
             # If `libraries` is empty, will default to ALL libraries

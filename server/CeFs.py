@@ -1,7 +1,7 @@
 
 # File: CeFs.py ; This file is part of Twister.
 
-# version: 3.003
+# version: 3.004
 
 # Copyright (C) 2012-2014, Luxoft
 
@@ -147,7 +147,7 @@ class LocalFS(object):
 
             p_cmd = 'su {} -c "{} -u {}/server/UserService.py {} FS"'.format(user, sys.executable, TWISTER_PATH, port)
             proc = subprocess.Popen(p_cmd, cwd='{}/twister'.format(userHome(user)), shell=True,
-                   stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                   close_fds=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             proc.poll()
             time.sleep(0.2)
 
@@ -287,6 +287,16 @@ class LocalFS(object):
         srvr = self._usrService(user)
         if srvr:
             return srvr.root.delete_folder(fdir)
+        else:
+            return False
+
+
+    def targzUserFolder(self, user, fdir):
+        if not fdir:
+            return False
+        srvr = self._usrService(user)
+        if srvr:
+            return srvr.root.targz_folder(fdir)
         else:
             return False
 

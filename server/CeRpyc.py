@@ -28,7 +28,6 @@ import sys
 import time
 import json
 import thread
-import tarfile
 import traceback
 import rpyc
 from pprint import pformat
@@ -945,43 +944,84 @@ class CeRpycService(rpyc.Service):
         logFull('CeRpyc:exposed_downloadLibrary')
         user = self._check_login()
         if not user: return False
-        global TWISTER_PATH
 
-        lib_path = (TWISTER_PATH + '/lib/' + name).replace('//', '/')
-        if self.project.getUserInfo(user, 'libs_path'):
-            user_lib = self.project.getUserInfo(user, 'libs_path') + os.sep + name
+        # Global lib path
+        glob_lib_path = (TWISTER_PATH + '/lib/' + name).replace('//', '/')
+
+        def _download_file(fpath):
+            """
+            Just read a file.
+            """
+            import tarfile
+            import cStringIO
+
+            if not os.path.exists(fpath):
+                err = '*ERROR* Invalid path `{}`!'.format(fpath)
+                return err
+
+            root, name = os.path.split(fpath)
+
+            if os.path.isfile(fpath):
+                try:
+                    with open(fpath, 'rb') as f:
+                        logDebug('User `{}` requested global lib file `{}`.'.format(user, name))
+                        return f.read()
+                except Exception as e:
+                    err = '*ERROR* Cannot read file `{}`! {}'.format(fpath, e)
+                    return err
+
+            else:
+                os.chdir(root)
+                io = cStringIO.StringIO()
+                # Write the folder tar.gz into memory
+                with tarfile.open(fileobj=io, mode='w:gz') as binary:
+                    binary.add(name=name, recursive=True)
+                logDebug('User `{}` requested global lib folder `{}`.'.format(user, name))
+                return io.getvalue()
+
+        # Auto detect if ClearCase Test Config Path is active
+        ccConfig = self.project.getClearCaseConfig(user, 'libs_path')
+        if ccConfig:
+            view = ccConfig['view']
+            path = ccConfig['path'].rstrip('/')
+            lib_path = path +'/'+ name
+            sz = self.project.clearFs.fileSize
+            # Folder
+            if sz == 4096:
+                resp = self.project.clearFs.targzUserFolder(user +':'+ view, lib_path)
+                # Read as ROOT
+                if resp.startswith('*ERROR*'):
+                    return _download_file(glob_lib_path)
+                logDebug('User `{}` requested ClearCase lib folder `{}`.'.format(user, name))
+                return resp
+            # File
+            else:
+                resp = self.project.clearFs.readUserFile(user +':'+ view, lib_path)
+                # Read as ROOT
+                if resp.startswith('*ERROR*'):
+                    return _download_file(glob_lib_path)
+                logDebug('User `{}` requested ClearCase lib file `{}`.'.format(user, name))
+                return resp
+
+        # Normal system path
         else:
-            user_lib = ''
-
-        # If the requested library is in the second path (user path)
-        if os.path.exists(user_lib):
-            final_path = user_lib
-        # If the requested library is in the main path (global path)
-        elif os.path.exists(lib_path):
-            final_path = lib_path
-        else:
-            logError('*ERROR* Library `{}` does not exist!'.format(name))
-            return False
-
-        # Python and Zip files
-        if os.path.isfile(final_path):
-            logDebug('CE: Requested library file: `{}`.'.format(name))
-            with open(final_path, 'rb') as binary:
-                return binary.read()
-
-        # Library folders must be compressed
-        else:
-            logDebug('CE: Requested library folder: `{}`.'.format(name))
-            final_dir, final_file = os.path.split(final_path)
-            rnd = binascii.hexlify(os.urandom(5))
-            tgz = final_file + '_' + rnd + '.tgz'
-            os.chdir(final_dir)
-            with tarfile.open(tgz, 'w:gz') as binary:
-                binary.add(name=final_file, recursive=True)
-            with open(tgz, 'r') as binary:
-                data = binary.read()
-            os.remove(tgz)
-            return data
+            lib_path = self.project.getUserInfo(user, 'libs_path').rstrip('/') +'/'+ name
+            # If is file, read the file directly
+            if os.path.isfile(lib_path):
+                resp = self.project.localFs.readUserFile(user, lib_path)
+                # Read as ROOT
+                if resp.startswith('*ERROR*'):
+                    return _download_file(glob_lib_path)
+                logDebug('User `{}` requested local lib file `{}`.'.format(user, name))
+                return resp
+            # If is folder, compress in memory and return the data
+            else:
+                resp = self.project.localFs.targzUserFolder(user, lib_path)
+                # Read as ROOT
+                if resp.startswith('*ERROR*'):
+                    return _download_file(glob_lib_path)
+                logDebug('User `{}` requested local lib folder `{}`.'.format(user, name))
+                return resp
 
 
     def exposed_getEpFiles(self, epname):
@@ -1051,7 +1091,7 @@ class CeRpycService(rpyc.Service):
                     rev = descr[pos:].strip()
                     # Set TC Revision variable
                     self.project.setFileInfo(user, epname, file_id, 'twister_tc_revision', rev)
-                logDebug('CE: Execution process `{}:{}` requested ClearCase file `{}`.'.format(user, epname, filename))
+                logDebug('Execution process `{}:{}` requested ClearCase file `{}`.'.format(user, epname, filename))
                 return text
             # End of ClearCase hack !
 
@@ -1062,7 +1102,7 @@ class CeRpycService(rpyc.Service):
             if not os.path.isfile(filename):
                 filename = tests_path + os.sep + filename
 
-        logDebug('CE: Execution process `{}:{}` requested file `{}`.'.format(user, epname, filename))
+        logDebug('Execution process `{}:{}` requested file `{}`.'.format(user, epname, filename))
 
         return self.project.localFs.readUserFile(user, filename, 'rb')
 

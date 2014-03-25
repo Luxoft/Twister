@@ -1,7 +1,7 @@
 
 # File: UserService.py ; This file is part of Twister.
 
-# version: 3.003
+# version: 3.004
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -36,6 +36,8 @@ import time
 import shutil
 import subprocess
 import logging
+import tarfile
+import cStringIO
 
 import rpyc
 from rpyc.utils.server import ThreadedServer
@@ -347,6 +349,26 @@ class UserService(rpyc.Service):
             err = '*ERROR* Cannot delete folder `{}`! {}'.format(folder, e)
             log.warning(err)
             return err
+
+
+    @staticmethod
+    def exposed_targz_folder(folder):
+        """
+        Compress a folder in memory and return the result.
+        """
+        if folder[0] == '~':
+            folder = userHome() + folder[1:]
+        if not os.path.isdir(folder):
+            err = '*ERROR* Invalid folder path `{}`!'.format(folder)
+            log.warning(err)
+            return err
+        root, name = os.path.split(folder)
+        os.chdir(root)
+        io = cStringIO.StringIO()
+        # Write the folder tar.gz into memory
+        with tarfile.open(fileobj=io, mode='w:gz') as binary:
+            binary.add(name=name, recursive=True)
+        return io.getvalue()
 
 
     @staticmethod
