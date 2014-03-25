@@ -127,16 +127,12 @@ public class ConfigTree extends JPanel{
                             String [] file = tf.getText().split("/");
                             String filename = file[file.length-1];
                             String location = tf.getText().replace(filename,"");                            
-//                             String content = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?></root>";
-//                             content = DatatypeConverter.printBase64Binary(content.getBytes());
-//                             String respons = RunnerRepository.getRPCClient().execute("saveConfigFile", new Object[]{location+"/"+filename,content}).toString();
-//                             if(respons.indexOf("*ERROR*")!=-1){
-//                                 CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,ConfigTree.this,"ERROR", respons);
-//                             }
+                            String content = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n<root>\n</root>\n";
+                            content = DatatypeConverter.printBase64Binary(content.getBytes());
                             if(RunnerRepository.window.mainpanel.p4.getPlugins().isClearCaseEnabled()){
-                                RunnerRepository.uploadRemoteFile(location, null, filename, false,"TestConfigPath");
+                                RunnerRepository.getRPCClient().execute("writeFile", new Object[]{location+"/"+filename,content,"w","clearcase:TestConfigPath"}).toString();
                             } else {
-                                RunnerRepository.uploadRemoteFile(location, null, filename, false,null);
+                                RunnerRepository.getRPCClient().execute("writeFile", new Object[]{location+"/"+filename,content,"w"}).toString();
                             }
                             
                             refreshStructure();
