@@ -1,7 +1,7 @@
 
 # File: CeResources.py ; This file is part of Twister.
 
-# version: 2.040
+# version: 2.041
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -202,7 +202,7 @@ def flattenNodes(parent_node, result):
     return result
 
 
-def xml_to_res(xml, gparams, skip_header = False):
+def xml_to_res(xml, gparams, root_type, skip_header = False):
 
     # this is a recursive method to read the xml and generate a dictionary
     def recursive_xml_to_res(xml,res_dict):
@@ -251,7 +251,8 @@ def xml_to_res(xml, gparams, skip_header = False):
         if tb_path:
             root_dict['path'].append(tb_path)
         else:
-            root_dict['path'].append('')
+            if root_type == ROOT_SUT:
+                root_dict['path'].append('')
         meta = xml.find('meta')
         for meta_elem in meta:
            key = meta_elem.find('name').text
@@ -737,7 +738,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
         with self.imp_lock:
             if root_id == ROOT_DEVICE:
                 try:
-                    self.resources = xml_to_res(params_xml, {})
+                    self.resources = xml_to_res(params_xml, {}, ROOT_DEVICE)
                 except Exception as e:
                     msg = 'User {}: Import XML: Exception `{}`.'.format(self.getUserName(),e)
                     logError(msg)
@@ -761,7 +762,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
                     # Add SUT type ( user/system )
                     sutName = sutName + '.' + sutType
 
-                    sutContent = xml_to_res(params_xml, {})
+                    sutContent = xml_to_res(params_xml, {}, ROOT_SUT)
                     sutContent = sutContent.popitem()[1]
                     sutContent.update([('path', sutName.split()), ])
                     sutContent = _recursive_refresh_id(sutContent)
@@ -833,7 +834,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
         params_xml = etree.parse(xml_file)
 
         # parse the xml file and build the json format
-        xml_ret = xml_to_res(params_xml, {})
+        xml_ret = xml_to_res(params_xml, {}, ROOT_SUT)
 
         # build the filename to be saved; xml_file has absolute path; we need
         # to extract the last string after /, remove extension and add .json
@@ -1318,10 +1319,10 @@ class ResourceAllocator(_cptools.XMLRPCController):
                 r = None
                 if parent == '/' or parent == '1':
                     # if this is a SUT file, we need to add path
-                    if root_id == ROOT_SUT:
-                        sut_path = list()
-                        sut_path.append(name)
-                        parent_p['children'][name]['path'] = sut_path
+                    #if root_id == ROOT_SUT:
+                    sut_path = list()
+                    sut_path.append(name)
+                    parent_p['children'][name]['path'] = sut_path
 
                     # Write changes for Device or SUT
                     r = self._save(root_id, props, name, username)
@@ -1539,11 +1540,12 @@ class ResourceAllocator(_cptools.XMLRPCController):
                     res_pointer = self.reservedResources[user][res]
                     break
 
-                # it can be a meta parameter for the TB; we need to check this
-                # case because get_res_path doesn't return correct in this case
+                # it can be a meta parameter for the TB; we need to
+                # check this case because get_res_path doesn't return
+                # correct in this case
                 if res == res_query:
                     res_pointer = self.reservedResources[user][res]
-                    res_path = [res_pointer.get('path')]
+                    res_path = res_pointer.get('path')
                     break;
         except Exception, e:
             res_path = None
@@ -1551,7 +1553,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
         if res_path:
             # resource can be at test bed level or at children of test bed
             # level; we have to differentiate
-            if res_pointer.get('path') == res_path[0]:
+            if res_pointer.get('path') == res_path:
                 # test bed level
                 exec_string = 'res_pointer'
             else:
@@ -1560,7 +1562,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
             # If must delete a Meta info
             if meta:
-                logDebug('User {}: Executing `{}` ...'.format( 'val = {}["meta"].get("{}")'.format(self.getUserName(),exec_string, meta) ))
+                logDebug('User {}: Executing `{}` ...'.format(self.getUserName(), 'val = {}["meta"].get("{}")'.format(exec_string, meta) ))
                 exec( 'val = {}["meta"].get("{}")'.format(exec_string, meta) )
 
                 if val is None:
@@ -1570,7 +1572,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
                 logDebug('User {}: Executing `{}` ...'.format(self.getUserName(), 'del {}["meta"]["{}"]'.format(exec_string, meta) ))
                 exec( 'del {}["meta"]["{}"]'.format(exec_string, meta) )
-                logDebug('User {}: Deleted {} meta `{}:{}`.'.format(self.getUserName(),root_name, '/'.join(res_path), meta))
+                logDebug('User {}: Deleted {} meta `{}:{}`.'.format(self.getUserName(), root_name, '/'.join(res_path), meta))
 
             # If must delete a normal node
             else:
