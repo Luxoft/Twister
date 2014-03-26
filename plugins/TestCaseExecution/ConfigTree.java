@@ -1,6 +1,6 @@
 /*
 File: ConfigTree.java ; This file is part of Twister.
-Version: 2.014
+Version: 2.015
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -100,7 +100,7 @@ public class ConfigTree extends JPanel{
                         if(content.indexOf("*ERROR*")!=-1){
                             CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,ConfigTree.this,"ERROR", content);
                         }
-                            refreshStructure();
+                        refreshStructure();
                     }
                     catch(Exception e){System.out.println("Could not delete: "+thefile);
                                        e.printStackTrace();
@@ -123,18 +123,14 @@ public class ConfigTree extends JPanel{
                 }
                 AbstractAction action = new AbstractAction(){
                     public void actionPerformed(ActionEvent ev){
-                        try{System.out.println("Creating: "+tf.getText());
-                            String [] file = tf.getText().split("/");
-                            String filename = file[file.length-1];
-                            String location = tf.getText().replace(filename,"");                            
+                        try{System.out.println("Creating: "+tf.getText());                       
                             String content = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n<root>\n</root>\n";
                             content = DatatypeConverter.printBase64Binary(content.getBytes());
                             if(RunnerRepository.window.mainpanel.p4.getPlugins().isClearCaseEnabled()){
-                                RunnerRepository.getRPCClient().execute("writeFile", new Object[]{location+"/"+filename,content,"w","clearcase:TestConfigPath"}).toString();
+                                RunnerRepository.getRPCClient().execute("writeFile", new Object[]{tf.getText(),content,"w","clearcase:TestConfigPath"}).toString();
                             } else {
-                                RunnerRepository.getRPCClient().execute("writeFile", new Object[]{location+"/"+filename,content,"w"}).toString();
+                                RunnerRepository.getRPCClient().execute("writeFile", new Object[]{tf.getText(),content,"w"}).toString();
                             }
-                            
                             refreshStructure();
                             Enumeration enumeration = root.depthFirstEnumeration();
                             while (enumeration.hasMoreElements()) {

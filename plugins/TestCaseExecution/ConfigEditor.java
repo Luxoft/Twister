@@ -1,6 +1,6 @@
 /*
 File: ConfigEditor.java ; This file is part of Twister.
-Version: 2.014
+Version: 2.015
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -335,7 +335,7 @@ public class ConfigEditor extends JPanel{
                             }
                         }
                     }
-                    try{System.out.println(remotelocation);
+                    try{
                         String resp = RunnerRepository.getRPCClient().execute("unlockConfig", new Object[]{remotelocation}).toString();
                         if(resp.indexOf("*ERROR*")!=-1){
                             CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,ConfigEditor.this,"ERROR", resp);
@@ -511,9 +511,6 @@ public class ConfigEditor extends JPanel{
                 }
             }
         });
-//         parseDocument(null);
-//         getBinding("default");
-//         interpretBinding();
     }
     
     private void writeDefaultConfig(){
@@ -1105,9 +1102,7 @@ public class ConfigEditor extends JPanel{
             DefaultMutableTreeNode treenode = (DefaultMutableTreeNode)pth.getLastPathComponent();
             Object myObj = treenode.getUserObject();
             if( myObj instanceof MyFolder){
-                try{
-                    removeFolder((MyFolder)myObj, treenode,false);
-                }
+                try{removeFolder((MyFolder)myObj, treenode,false);}
                 catch(Exception e){e.printStackTrace();}
             } else if(myObj instanceof MyParam){
                 try{removeParam((MyParam)myObj, treenode,false);}
@@ -1567,6 +1562,11 @@ public class ConfigEditor extends JPanel{
      * remove node
      */
     public void removeFolder(MyFolder node,DefaultMutableTreeNode treenode, boolean refresh){
+        if(currentfile==null){//user binding
+            if(treenode.getLevel()==1){//removed a config from defaults bindings
+                bindingsave = false;
+            }
+        }
         ((DefaultTreeModel)tree.getModel()).removeNodeFromParent(treenode);
         Node child = node.getNode().getParentNode().getParentNode();
         child.getParentNode().removeChild(child);
@@ -1579,6 +1579,8 @@ public class ConfigEditor extends JPanel{
         if(!node.getSut().equals("")){
             bindingsave = false;
         }
+        
+        
     }
         
     public void buildTree(){     

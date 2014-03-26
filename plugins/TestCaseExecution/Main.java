@@ -102,6 +102,9 @@ public class Main{
                     RunnerRepository.window.mainpanel.p4.getSut().sut.getSutTree().releaseAllSuts();
                     System.exit(0);}});
         f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        RunnerRepository.host = "11.126.32.9";
+        RunnerRepository.user = "tscguest";
+        RunnerRepository.password = "tscguest";
         RunnerRepository.CENTRALENGINEPORT = "8000";
         RunnerRepository.initialize("false",RunnerRepository.host,f.getContentPane(),null);
     }

@@ -1,6 +1,6 @@
 /*
 File: ClearCaseConfig.java ; This file is part of Twister.
-Version: 2.002
+Version: 2.003
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -68,13 +68,13 @@ public class ClearCaseConfig extends JPanel{
                    jLabel3,jLabel4,jLabel5,jLabel6,jLabel7,
                    jLabel8,jLabel9;
     private JPanel jPanel1,jPanel2,jPanel3,
-                   jPanel4,jPanel5,jPanel6,jPanel7;
+                   jPanel4,jPanel6,jPanel7;
     private JButton libbtn,predefbtn,usrsutbtn,cfgbtn,
-                    syssutbtn,tcbtn,save,projbtn;
+                    tcbtn,save,projbtn;
     private JTextField libpath,predefpath,predefview,
                        tcpath,tcview,cfgview,cfgpath,projpath,
-                       syssutview,syssutpath,usrsutpath,usrsutview,libview,projview;
-    private JCheckBox syssutactive,tcactive,predefactive,projactive,libactive,usrsutactive,cfgactive;
+                       usrsutpath,usrsutview,libview,projview;
+    private JCheckBox tcactive,predefactive,projactive,libactive,usrsutactive,cfgactive;
     private JComboBox type;
     public ArrayList change;//array to hold items that change based on type
     private ClearCase cc;
@@ -119,13 +119,8 @@ public class ClearCaseConfig extends JPanel{
         tcview = new JTextField();
         tcactive = new JCheckBox();
         tcbtn = new JButton();
-        jPanel5 = new JPanel();
         jLabel10 = new JLabel();
         jLabel11 = new JLabel();
-        syssutpath = new JTextField();
-        syssutview = new JTextField();
-        syssutactive = new JCheckBox();
-        syssutbtn = new JButton();
         jPanel6 = new JPanel();
         jLabel12 = new JLabel();
         jLabel13 = new JLabel();
@@ -394,66 +389,10 @@ public class ClearCaseConfig extends JPanel{
 
         jPanel4Layout.linkSize(SwingConstants.VERTICAL, new Component[] {jLabel8, jLabel9, tcactive, tcbtn, tcpath, tcview});
 
-        jPanel5.setBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(new Color(0, 0, 0)), "System SUT Files Path"));
-
         jLabel10.setText("Path:");
 
         jLabel11.setText("View:");
         change.add(jLabel11);
-        syssutactive.setText("Active:         ");
-        syssutactive.setAlignmentY(0.0F);
-        syssutactive.setBorder(null);
-        syssutactive.setHorizontalTextPosition(SwingConstants.LEFT);
-
-        syssutbtn.setText("List Views");
-        syssutbtn.addActionListener(new ActionListener(){
-            public void actionPerformed(ActionEvent ev){
-                listViews(syssutview);
-            }
-        });
-        change.add(syssutbtn);
-        GroupLayout jPanel5Layout = new GroupLayout(jPanel5);
-        jPanel5.setLayout(jPanel5Layout);
-        jPanel5Layout.setHorizontalGroup(
-            jPanel5Layout.createParallelGroup(GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel5Layout.createSequentialGroup()
-                .addGroup(jPanel5Layout.createParallelGroup(GroupLayout.Alignment.LEADING)
-                    .addGroup(jPanel5Layout.createSequentialGroup()
-                        .addContainerGap()
-                        .addGroup(jPanel5Layout.createParallelGroup(GroupLayout.Alignment.LEADING)
-                            .addComponent(jLabel10)
-                            .addComponent(jLabel11))
-                        .addGap(18, 18, 18)
-                        .addGroup(jPanel5Layout.createParallelGroup(GroupLayout.Alignment.LEADING)
-                            .addComponent(syssutpath)
-                            .addGroup(jPanel5Layout.createSequentialGroup()
-                                .addComponent(syssutview, GroupLayout.DEFAULT_SIZE, 474, Short.MAX_VALUE)
-                                .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
-                                .addComponent(syssutbtn))))
-                    .addGroup(jPanel5Layout.createSequentialGroup()
-                        .addGap(10, 10, 10)
-                        .addComponent(syssutactive, GroupLayout.PREFERRED_SIZE, 115, GroupLayout.PREFERRED_SIZE)
-                        .addGap(0, 524, Short.MAX_VALUE)))
-                .addContainerGap())
-        );
-        jPanel5Layout.setVerticalGroup(
-            jPanel5Layout.createParallelGroup(GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel5Layout.createSequentialGroup()
-                .addGap(5, 5, 5)
-                .addComponent(syssutactive)
-                .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(jPanel5Layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
-                    .addComponent(jLabel10)
-                    .addComponent(syssutpath, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
-                .addGap(3, 3, 3)
-                .addGroup(jPanel5Layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
-                    .addComponent(jLabel11)
-                    .addComponent(syssutview, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-                    .addComponent(syssutbtn))
-                .addContainerGap(GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-        );
-
-        jPanel5Layout.linkSize(SwingConstants.VERTICAL, new Component[] {jLabel10, jLabel11, syssutactive, syssutbtn, syssutpath, syssutview});
 
         jPanel6.setBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(new Color(0, 0, 0)), "Test Configuration Path"));
 
@@ -595,7 +534,6 @@ public class ClearCaseConfig extends JPanel{
                     .addComponent(jPanel2, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addComponent(jPanel3, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addComponent(jPanel4, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(jPanel5, GroupLayout.Alignment.TRAILING, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addComponent(jPanel6, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addComponent(jPanel7, GroupLayout.Alignment.TRAILING, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addGroup(GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
@@ -623,8 +561,6 @@ public class ClearCaseConfig extends JPanel{
                 .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(jPanel7, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jPanel5, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(save)
                 .addContainerGap(GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
@@ -643,20 +579,20 @@ public class ClearCaseConfig extends JPanel{
                       for(Object ob:change){
                           if(ob instanceof JButton){
                               JButton but = (JButton)ob;
-                              but.setText(but.getText().replace("Activity","View"));
+                              but.setText(but.getText().replace("Activitie","View"));
                           }else{
                               JLabel lab = (JLabel)ob;
-                              lab.setText(lab.getText().replace("Activity","View"));
+                              lab.setText(lab.getText().replace("Activitie","View"));
                           }
                       }
                   } else {
                       for(Object ob:change){
                           if(ob instanceof JButton){
                               JButton but = (JButton)ob;
-                              but.setText(but.getText().replace("View","Activity"));
+                              but.setText(but.getText().replace("View","Activitie"));
                           }else{
                               JLabel lab = (JLabel)ob;
-                              lab.setText(lab.getText().replace("View","Activity"));
+                              lab.setText(lab.getText().replace("View","Activitie"));
                           }
                       }
                   }
@@ -706,7 +642,6 @@ public class ClearCaseConfig extends JPanel{
         interpretTag(root.getElementsByTagName("PredefinedSuitesPath").item(0),predefactive,predefview,predefpath);
         interpretTag(root.getElementsByTagName("LibsPath").item(0),libactive,libview,libpath);
         interpretTag(root.getElementsByTagName("TestConfigPath").item(0),cfgactive,cfgview,cfgpath);
-        interpretTag(root.getElementsByTagName("SysSutPath").item(0),syssutactive,syssutview,syssutpath);
         interpretTag(root.getElementsByTagName("SutPath").item(0),usrsutactive,usrsutview,usrsutpath);
         try{String ttype = root.getElementsByTagName("Type").item(0).getAttributes().getNamedItem("type").getNodeValue();
             int size = type.getItemCount();
@@ -747,9 +682,7 @@ public class ClearCaseConfig extends JPanel{
             try{addTag("LibsPath",libactive.isSelected(), libview.getText(),libpath.getText(),root,document);}
             catch(Exception e){addTag("LibsPath",false,"","",root,document);}
             try{addTag("TestConfigPath",cfgactive.isSelected(), cfgview.getText(),cfgpath.getText(),root,document);}
-            catch(Exception e){addTag("TestConfigPath",false,"","",root,document);} 
-            try{addTag("SysSutPath",syssutactive.isSelected(), syssutview.getText(),syssutpath.getText(),root,document);}
-            catch(Exception e){addTag("SysSutPath",false,"","",root,document);} 
+            catch(Exception e){addTag("TestConfigPath",false,"","",root,document);}
             try{addTag("SutPath",usrsutactive.isSelected(), usrsutview.getText(),usrsutpath.getText(),root,document);}
             catch(Exception e){addTag("SutPath",false,"","",root,document);}
             Element rootElement = document.createElement("Type");
