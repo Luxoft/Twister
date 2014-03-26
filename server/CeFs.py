@@ -1,7 +1,7 @@
 
 # File: CeFs.py ; This file is part of Twister.
 
-# version: 3.004
+# version: 3.005
 
 # Copyright (C) 2012-2014, Luxoft
 
@@ -92,7 +92,7 @@ class LocalFS(object):
             del li[2:5]
             if '/bin/sh' in li: continue
             if '/bin/grep' in li: continue
-            logDebug('Killing ugly zombie `{}`.'.format(' '.join(li)))
+            logDebug('User {}: Killing ugly zombie `{}`.'.format(user,' '.join(li)))
             try:
                 os.kill(PID, 9)
             except:
@@ -221,7 +221,7 @@ class LocalFS(object):
             return False
         srvr = self._usrService(user)
         if len(fdata) > 20*1000*1000:
-            err = '*ERROR* File data too long `{}`: {}!'.format(fpath, len(fdata))
+            err = '*ERROR* File data too long `{}`: {}; User {}!'.format(fpath, len(fdata),user)
             logWarning(err)
             return err
         if srvr:
