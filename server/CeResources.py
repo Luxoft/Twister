@@ -1,7 +1,7 @@
 
 # File: CeResources.py ; This file is part of Twister.
 
-# version: 2.041
+# version: 2.042
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -1450,7 +1450,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
                 exec( '{0}["meta"]["{1}"] = {0}["meta"]["{2}"]'.format(exec_string, new_name, meta) )
                 exec( 'del {}["meta"]["{}"]'.format(exec_string, meta) )
 
-                logDebug('User {}: Renamed {0} meta `{1}:{2}` to `{1}:{3}`.'.format(self.getUserName(),root_name, '/'.join(node_path), meta, new_name))
+                logDebug('User {0}: Renamed {1} meta `{2}:{3}` to `{2}:{4}`.'.format(self.getUserName(),root_name, '/'.join(node_path), meta, new_name))
 
             # If must rename a normal node
             else:
