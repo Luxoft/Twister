@@ -1,7 +1,7 @@
 
 # File: xmlparser.py ; This file is part of Twister.
 
-# version: 3.015
+# version: 3.016
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -150,7 +150,7 @@ class TSCParser:
             if files_config.startswith('~/'):
                 files_config = userHome(self.user) + files_config[1:]
             if not os.path.isfile(files_config):
-                logError('Parser: Test-Suites XML file `{}` does not exist! Please check framework config XML file!'.format(files_config))
+                logError('User {}: Parser: Test-Suites XML file `{}` does not exist! Please check framework config XML file!'.format(self.user,files_config))
                 self.configTS = None
                 return -1
             else:
@@ -160,14 +160,14 @@ class TSCParser:
             newConfigHash = hashlib.md5(config_ts).hexdigest()
 
         if self.configHash != newConfigHash:
-            logDebug('Parser: Test-Suites XML file changed, rebuilding internal structure...\n')
+            logDebug('User {}: Parser: Test-Suites XML file changed, rebuilding internal structure...\n'.format(self.user))
             # Use the new hash
             self.configHash = newConfigHash
             # Create XML Soup from the new XML file
             try:
                 self.configTS = etree.fromstring(config_ts)
             except Exception:
-                logError('Parser ERROR: Cannot access Test-Suites XML data!')
+                logError('User {}: Parser ERROR: Cannot access Test-Suites XML data!'.format(self.user))
                 self.configTS = None
                 return -1
 
@@ -180,7 +180,7 @@ class TSCParser:
         """
         logFull('xmlparser:updateProjectGlobals')
         if self.configTS is None:
-            logError('Parser: Cannot get project globals, because Test-Suites XML is invalid!')
+            logError('User {}: Parser: Cannot get project globals, because Test-Suites XML is invalid!'.format(self.user))
             return False
 
         # Reset globals
@@ -225,7 +225,7 @@ class TSCParser:
         """
         logFull('xmlparser:getActiveEps')
         if self.configTS is None:
-            logError('Parser ERROR: Cannot get active EPs, because Test-Suites XML is invalid!')
+            logError('User {}: Parser ERROR: Cannot get active EPs, because Test-Suites XML is invalid!'.format(self.user))
             return []
 
         activeEPs = []
@@ -246,7 +246,7 @@ class TSCParser:
         """
         logFull('xmlparser:listSettings')
         if not os.path.isfile(xmlFile):
-            logError('Parse settings error! File path `{}` does not exist!'.format(xmlFile))
+            logError('User {}: Parse settings error! File path `{}` does not exist!'.format(self.user,xmlFile))
             return False
         xmlSoup = parseXML(self.user, xmlFile)
         if xmlSoup is None:
@@ -263,7 +263,7 @@ class TSCParser:
         """
         logFull('xmlparser:getSettingsValue')
         if not os.path.isfile(xmlFile):
-            logError('Parse settings error! File path `{}` does not exist!'.format(xmlFile))
+            logError('User {}: Parse settings error! File path `{}` does not exist!'.format(self.user,xmlFile))
             return False
         if not key:
             return False
@@ -285,7 +285,7 @@ class TSCParser:
         """
         logFull('xmlparser:setSettingsValue')
         if not os.path.isfile(xmlFile):
-            logError('Parse settings error! File path `{}` does not exist!'.format(xmlFile))
+            logError('User {}: Parse settings error! File path `{}` does not exist!'.format(self.user,xmlFile))
             return False
         if not key:
             return False
@@ -335,7 +335,7 @@ class TSCParser:
         """
         logFull('xmlparser:delSettingsKey')
         if not os.path.isfile(xmlFile):
-            logError('Parse settings error! File path `{}` does not exist!'.format(xmlFile))
+            logError('User {}: Parse settings error! File path `{}` does not exist!'.format(self.user,xmlFile))
             return False
         # The key must be string
         if not (isinstance(key, str) or isinstance(key, unicode)):
@@ -379,7 +379,7 @@ class TSCParser:
         """
         logFull('xmlparser:setPersistentSuite')
         if not os.path.isfile(xmlFile):
-            logError('Parse settings error! File path `{}` does not exist!'.format(xmlFile))
+            logError('User {}: Parse settings error! File path `{}` does not exist!'.format(self.user,xmlFile))
             return False
         if not suite:
             return False
@@ -443,7 +443,7 @@ class TSCParser:
         """
         logFull('xmlparser:setPersistentFile')
         if not os.path.isfile(xmlFile):
-            logError('Parse settings error! File path `{}` does not exist!'.format(xmlFile))
+            logError('User {}: Parse settings error! File path `{}` does not exist!'.format(self.user,xmlFile))
             return False
         if not suite:
             return False
@@ -538,7 +538,7 @@ class TSCParser:
         logs_path = self.project_globals['logs_path']
 
         if not logs_path:
-            logError('Parser: Logs path is not defined! Please check framework config XML file!')
+            logError('User {}: Parser: Logs path is not defined! Please check framework config XML file!'.format(self.user))
             return {}
 
         logType = self._fixLogType(logType)
@@ -560,7 +560,7 @@ class TSCParser:
             eml_file = self.project_globals['eml_config']
 
         if not os.path.isfile(eml_file):
-            logError('Parser: E-mail Config file `{}` does not exist!'.format(eml_file))
+            logError('User {}: Parser: E-mail Config file `{}` does not exist!'.format(self.user,eml_file))
             return {}
 
         econfig = parseXML(self.user, eml_file)
@@ -659,7 +659,7 @@ class TSCParser:
         try:
             replace_xml = etree.fromstring(content, parser)
         except Exception:
-            err = '*ERROR* Invalid XML content! Cannot parse!'
+            err = '*ERROR* Invalid XML content! Cannot parse! User {}'.format(self.user)
             logWarning(err)
             return err
 
@@ -841,10 +841,10 @@ class TSCParser:
             globs_file = self.project_globals['glob_params']
         # Second check, the user config file
         if not globs_file:
-            logError('Get Globals: Globals Config file is not defined! Please check framework config XML file!')
+            logError('User {}: Get Globals: Globals Config file is not defined! Please check framework config XML file!'.format(self.user))
             return {}
         if not os.path.isfile(globs_file):
-            logError('Get Globals: Globals Config file `{}` does not exist!'.format(globs_file))
+            logError('User {}: Get Globals: Globals Config file `{}` does not exist!'.format(self.user,globs_file))
             return {}
 
         params_xml = parseXML(self.user, globs_file)
@@ -923,7 +923,7 @@ class DBParser(object):
         fields = self.xmlDict.xpath('insert_section/field')
 
         if not fields:
-            logWarning('Db Parser: Cannot load the reports fields section!')
+            logWarning('User {}: Db Parser: Cannot load the reports fields section!'.format(self.user))
             return {}
 
         res = OrderedDict()
@@ -944,7 +944,7 @@ class DBParser(object):
         logFull('xmlparser:getQuery')
         res =  self.xmlDict.xpath('insert_section/field[@ID="%s"]' % field_id)
         if not res:
-            logWarning('Db Parser: Cannot find field ID `{}`!'.format(field_id))
+            logWarning('User {}: Db Parser: Cannot find field ID `{}`!'.format(self.user,field_id))
             return False
 
         query = res[0].get('SQLQuery')
@@ -962,7 +962,7 @@ class DBParser(object):
         fields = self.xmlDict.xpath('reports_section/field')
 
         if not fields:
-            logWarning('Db Parser: Cannot load the reports fields section!')
+            logWarning('User {}: Db Parser: Cannot load the reports fields section!'.format(self.user))
             return {}
 
         res = OrderedDict()
@@ -986,7 +986,7 @@ class DBParser(object):
         reports = self.xmlDict.xpath('reports_section/report')
 
         if not reports:
-            logWarning('Db Parser: Cannot load the database reports section!')
+            logWarning('User {}: Db Parser: Cannot load the database reports section!'.format(self.user))
             return {}
 
         res = OrderedDict()
@@ -1013,7 +1013,7 @@ class DBParser(object):
         redirects = self.xmlDict.xpath('reports_section/redirect')
 
         if not redirects:
-            logWarning('Db Parser: Cannot load the database redirects section!')
+            logWarning('User {}: Db Parser: Cannot load the database redirects section!'.format(self.user))
             return {}
 
         res = OrderedDict()
@@ -1062,7 +1062,7 @@ class PluginParser(object):
         for plugin in self.xmlTree.xpath('Plugin'):
 
             if not (plugin.xpath('name/text()') and plugin.xpath('pyfile') and plugin.xpath('jarfile')):
-                logWarning('PluginParser: Invalid config for plugin: `{}`!'.format(plugin))
+                logWarning('User {}: PluginParser: Invalid config for plugin: `{}`!'.format(self.user,plugin))
                 continue
 
             prop_keys = plugin.xpath('property/propname')
@@ -1106,15 +1106,15 @@ class PluginParser(object):
                 mm = reload(mm)
                 plug = mm.Plugin
             except Exception, e:
-                logWarning('PluginParser ERROR: Unhandled exception in plugin file `{}`! Exception: {}!'.format(mod, e))
+                logWarning('User {}: PluginParser ERROR: Unhandled exception in plugin file `{}`! Exception: {}!'.format(self.user,mod, e))
                 continue
 
             if not plug:
-                logWarning('PluginParser ERROR: Plugin `{}` cannot be Null!'.format(plug))
+                logWarning('User {}: PluginParser ERROR: Plugin `{}` cannot be Null!'.format(self.user,plug))
                 continue
             # Check plugin parent. Must be Base Plugin.
             if not issubclass(plug, Base):
-                logWarning('PluginParser ERROR: Plugin `{}` must be inherited from Base Plugin!'.format(plug))
+                logWarning('User {}: PluginParser ERROR: Plugin `{}` must be inherited from Base Plugin!'.format(self.user,plug))
                 continue
 
             # Append plugin classes to plugins list

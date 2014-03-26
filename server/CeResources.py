@@ -1,7 +1,7 @@
 
 # File: CeResources.py ; This file is part of Twister.
 
-# version: 2.039
+# version: 2.040
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -1189,8 +1189,8 @@ class ResourceAllocator(_cptools.XMLRPCController):
                 epnames_tag = '_epnames_{}'.format(username)
 
                 resources['meta'].update(props)
-                # if _id key is present in meta and it has no value, we have
-                # to remove it from meta dictionary
+                # if _id key is present in meta and it has no value,
+                #we have to remove it from meta dictionary
                 if '_id' in resources['meta'].keys() and not resources['meta'].get('_id',False):
                     resources['meta'].pop('_id')
 
@@ -2165,7 +2165,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
     @cherrypy.expose
     def discardAndReleaseReservedResource(self, res_query, props={}, root_id=ROOT_DEVICE, username=None):
         """  """
-        logDebug('User {}: CeResources:discardAndReleaseReservedResource'.format(self.getUserName())
+        logDebug('User {}: CeResources:discardAndReleaseReservedResource'.format(self.getUserName()))
         self._load(v=False, props=props)
 
         if root_id == ROOT_DEVICE:
