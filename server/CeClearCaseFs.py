@@ -134,7 +134,7 @@ class ClearCaseFs(object):
             else:
                 logInfo('Launching a ClearCase Service for `{}`, the first time...'.format(user_view))
 
-            proc = pexpect.spawn(['bash'], timeout=0.75, maxread=2048)
+            proc = pexpect.spawn(['bash'], timeout=2, maxread=2048)
 
             def pread():
                 while 1:
@@ -166,7 +166,7 @@ class ClearCaseFs(object):
             # Launching 1 UserService inside the SSH terminal, with ClearCase View open
             p_cmd = '{} -u {}/server/UserService.py {} ClearCase & '.format(sys.executable, TWISTER_PATH, port)
             proc.sendline(p_cmd)
-            time.sleep(0.25)
+            time.sleep(2)
 
             # Empty line after proc start
             proc.sendline('')
