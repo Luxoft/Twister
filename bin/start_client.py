@@ -2,7 +2,7 @@
 
 # File: start_client.py ; This file is part of Twister.
 
-# version: 3.013
+# version: 3.014
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -349,9 +349,13 @@ class TwisterClient(object):
         epData = {}
         epData['pid'] = None
         epData['ce_ip'] = ce_ip
-        if ';' in ce_port:
-            ce_port = ce_port.split(';')[0]
-        epData['ce_port'] = ce_port.strip()
+        # set the ce_port; it can be an int or a string so we have to check
+        if isinstance(ce_port, int):
+            epData['ce_port'] = ce_port
+        else:
+            if ';' in ce_port:
+                ce_port = ce_port.split(';')[0]
+            epData['ce_port'] = ce_port.strip()
 
         epData['exec_str'] = 'nohup {py} -u {path}/client/executionprocess/ExecutionProcess.py '\
                 '-u {user} -e {ep} -s {ip}:{port} > "{path}/.twister_cache/{ep}_LIVE.log" '.format(

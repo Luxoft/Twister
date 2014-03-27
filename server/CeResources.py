@@ -1,7 +1,7 @@
 
 # File: CeResources.py ; This file is part of Twister.
 
-# version: 2.041
+# version: 2.043
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -1094,24 +1094,32 @@ class ResourceAllocator(_cptools.XMLRPCController):
         # if sut path doesn't end with '/' character, we have to add it
         if sutPath[-1] != '/':
             sutPath += '/'
-        sutFile = sutPath + query.split('.')[0] + '.json'
+        fileName = query.split('.')[0] + '.json'
+        sutFile = sutPath + fileName
 
         sutContent = False
         if os.path.isdir(sutPath):
-            try:
-                f = open(sutFile, 'r')
-                sutContent = json.load(f)
-                f.close() ; del f
-            except IOError, e:
-                if e.errno == errno.EACCES:
-                    # permission denied error, try using the client
-                    userConn = False
-                    userConn = self.project._find_local_client(username)
-                    if userConn:
-                        fileContent = False
-                        fileContent = userConn.root.exposed_read_file(sutFile)
-                        if fileContent and not fileContent.startswith('*ERROR*'):
-                            sutContent = json.loads(fileContent)
+            if sutType == 'system':
+                # system SUT file
+                try:
+                    f = open(sutFile, 'r')
+                    sutContent = json.load(f)
+                    f.close() ; del f
+                except Exception as e:
+                    return '*ERROR* Cannot get access to SUT path for user {} Exception {}'.format(self.getUserName(),e)
+            else:
+                # user SUT file; we have to check if the cleacase plugin
+                # is activated; if so, use it to read the SUT file; else
+                # use the UserService to read it
+                ccConfig = self.project.getClearCaseConfig(self.getUserName(), 'sut_path')
+                if ccConfig:
+                    view = ccConfig['view']
+                    path = ccConfig['path']
+                    resp = self.project.clearFs.readUserFile(self.getUserName() +':'+ view, path +'/'+ fileName)
+                    sutContent = json.loads(resp)
+                else:
+                    resp = self.project.localFs.readUserFile(self.getUserName(), sutPath + fileName)
+                    sutContent = json.loads(resp)
 
             if sutContent is False or (isinstance(sutContent, str) and sutContent.startswith('*ERROR*')):
                 return sutContent
@@ -1130,7 +1138,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
                 return retDict
 
         # if we get here, we cannot get read access to the SUT directory
-        return '*ERROR* Cannot get access to SUT path'
+        return '*ERROR* Cannot get access to SUT path for user {}'.format(self.getUserName())
 
 
 #
@@ -1450,7 +1458,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
                 exec( '{0}["meta"]["{1}"] = {0}["meta"]["{2}"]'.format(exec_string, new_name, meta) )
                 exec( 'del {}["meta"]["{}"]'.format(exec_string, meta) )
 
-                logDebug('User {}: Renamed {0} meta `{1}:{2}` to `{1}:{3}`.'.format(self.getUserName(),root_name, '/'.join(node_path), meta, new_name))
+                logDebug('User {0}: Renamed {1} meta `{2}:{3}` to `{2}:{4}`.'.format(self.getUserName(),root_name, '/'.join(node_path), meta, new_name))
 
             # If must rename a normal node
             else:
@@ -2428,23 +2436,30 @@ class ResourceAllocator(_cptools.XMLRPCController):
         if not usrSutPath:
             usrSutPath = '{}/twister/config/sut/'.format(usrHome)
 
+        # first, get all system SUT files
         if os.path.isdir(sysSutsPath):
             s = ['{}.system'.format(os.path.splitext(d)[0]) for d in os.listdir(sysSutsPath) if os.path.splitext(d)[1]=='.json']
+            logDebug('BOG SYSTEM \n{}'.format(s))
             suts.extend(s)
-        if os.path.isdir(usrSutPath):
-            try:
-                s = ['{}.user'.format(os.path.splitext(d)[0]) for d in os.listdir(usrSutPath) if os.path.splitext(d)[1]=='.json']
-                suts.extend(s)
-            except OSError, e:
-                if e.errno == errno.EACCES:
-                    # permission denied error, try using the client
-                    userConn = None
-                    userSutsList = ()
-                    userConn = self.project._find_local_client(user)
-                    if userConn:
-                        userSutsList = userConn.root.exposed_list_all_suts()
-                    suts.extend(userSutsList)
 
+        # get user SUT file; we have to check if the cleacase plugin
+        # is activated; if so, use it to read the SUT files from view;
+        # else use the UserService to read it
+        ccConfig = self.project.getClearCaseConfig(user, 'sut_path')
+        if ccConfig:
+            path = ccConfig['path']
+            resp = self.project.clearFs.readUserFile(user, path, False, False)
+            for file in resp['children']:
+                fileName = file['path']
+                if len(fileName.split('.')) == 2 and fileName.split('.')[1] == 'json':
+                    suts.append(fileName.split('.')[0]+'.user')
+        else:
+            if os.path.isdir(usrSutPath):
+                resp = self.project.localFs.listUserFiles(user, usrSutPath, False, False)
+                for file in resp['children']:
+                    fileName = file.get('path')
+                    if fileName and len(fileName.split('.')) == 2 and fileName.split('.')[1] == 'json':
+                         suts.append(fileName.split('.')[0]+'.user')
 
         def quickFindPath(d, spath):
             for usr, locks in d.iteritems():
