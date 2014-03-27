@@ -1,7 +1,7 @@
 
 # File: CeResources.py ; This file is part of Twister.
 
-# version: 2.044
+# version: 2.045
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -690,6 +690,9 @@ class ResourceAllocator(_cptools.XMLRPCController):
         if '/' in res_query:
             res_query = res_query.split('/')[1]
 
+        if not self.reservedResources.get(self.getUserName()):
+            return None,None
+
         for reserved_res in self.reservedResources[self.getUserName()]:
             reserved_res_p = self.reservedResources[self.getUserName()][reserved_res]
             if reserved_res_p['path'][0] == res_query:
@@ -1320,8 +1323,13 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
                 return True
 
-            # If the resource is new, create it.
+            elif self._get_reserved_res_pointer(name) != (None,None):
+                # resource was just created and reserved
+                res_path,res_pointer = self._get_reserved_res_pointer(name)
+                res_pointer['meta'] = props
+                return True
             else:
+                # resource is new, create it.
                 #parent_p = _get_res_pointer(parent_p, parent)
 
                 res_id = False
@@ -1388,7 +1396,6 @@ class ResourceAllocator(_cptools.XMLRPCController):
         user_roles = self.userRoles(props)
         user = user_roles['user']
 
-
         # If the root is not provided, use the default root
         if root_id == ROOT_DEVICE:
             if 'CHANGE_TESTBED' not in user_roles.get('roles', []):
@@ -1433,11 +1440,6 @@ class ResourceAllocator(_cptools.XMLRPCController):
             logError(msg)
             return '*ERROR* ' + msg
 
-        # check if the resource is in the reserved list
-        #res_path,res_pointer = self._get_reserved_res_pointer(res_query)
-        #if res_pointer:
-            #logDebug('BOG GIGI {} {}'.format(res_path,res_pointer))
-
         res_p = self._getReservedResource(res_query, props, root_id)
         if not res_p:
             msg = 'User {}: Rename {}: Cannot access reserved resource, path or ID `{}` !'.format(self.getUserName(),root_name, res_query)
@@ -1468,7 +1470,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
             exec_string = 'res_p'
 
         with self.ren_lock:
-
+            
             # If must rename a Meta info
             if meta:
                 exec( 'val = {}["meta"].get("{}")'.format(exec_string, meta) )
@@ -1482,7 +1484,6 @@ class ResourceAllocator(_cptools.XMLRPCController):
                 exec( 'del {}["meta"]["{}"]'.format(exec_string, meta) )
 
                 logDebug('User {0}: Renamed {1} meta `{2}:{3}` to `{2}:{4}`.'.format(self.getUserName(),root_name, '/'.join(node_path), meta, new_name))
-
             # If must rename a normal node
             else:
                 if new_path[1:]:
@@ -1839,12 +1840,12 @@ class ResourceAllocator(_cptools.XMLRPCController):
             logError(msg)
             return False
 
-        res_pointer.update([('path', [res_path[0]]), ])
+        res_pointer.update([('path', res_path), ])
         join_path = self.reservedResources[user][res_pointer['id']].get('path', '')
         if isinstance(join_path, str):
             join_path = [join_path]
 
-        self.reservedResources[user][res_pointer['id']]['path'] = '/'.join(join_path)
+        self.reservedResources[user][res_pointer['id']]['path'] = ['/'.join(join_path)]
 
         return self.reservedResources[user][res_pointer['id']]
 
