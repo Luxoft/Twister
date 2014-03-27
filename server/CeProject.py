@@ -1884,6 +1884,10 @@ class Project(object):
         statuses = {} # Unordered
         final = []    # Ordered
 
+        # There are no EPs registered yet !
+        if user not in self.test_ids:
+            return final
+
         # Lock resource
         with self.stt_lock:
             eps = self.users[user].get('eps')
@@ -1904,6 +1908,8 @@ class Project(object):
             # Default case, no EP and no Suite
             else:
                 for epname in eps:
+                    if not 'suites' in eps[epname]:
+                        continue
                     files = eps[epname]['suites'].getFiles()
                     for file_id in files:
                         s = self.getFileInfo(user, epname, file_id)

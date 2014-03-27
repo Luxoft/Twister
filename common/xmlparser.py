@@ -693,6 +693,7 @@ class TSCParser:
         # If found, delete it
         if found:
             bind_xml.remove(found[0])
+            logDebug('Removed binding `{}`, for user `{}`.'.format(fpath, self.user))
         else:
             err = '*WARN* Invalid binding `{}`, user `{}`! Cannot unbind!'.format(fpath, self.user)
             # logDebug(err)
