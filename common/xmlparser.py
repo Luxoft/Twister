@@ -1214,7 +1214,7 @@ class ClearCaseParser(object):
                     self.config[name] = {'path': path, 'view': view}
 
         if filter_tag and filter_name:
-            return self.config[filter_name]
+            return self.config.get(filter_name, {})
         else:
             return self.config
 

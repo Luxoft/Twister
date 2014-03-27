@@ -129,27 +129,29 @@ class ClearCaseFs(object):
                 except Exception as e:
                     logWarning('Cannot connect to ClearCase Service for `{}`: `{}`.'.format(user_view, e))
                     self._kill(user)
-                    ssh = self._services.get(user_view, {}).get('ssh', None)
-                    ssh.terminate()
+                    proc = self._services.get(user_view, {}).get('proc', None)
+                    proc.terminate()
             else:
                 logInfo('Launching a ClearCase Service for `{}`, the first time...'.format(user_view))
 
-            ssh = pexpect.spawn(['bash'], timeout=0.75, maxread=2048)
+            proc = pexpect.spawn(['bash'], timeout=0.75, maxread=2048)
 
             def pread():
                 while 1:
                     try: proc.readline().strip()
                     except: break
 
-            ssh.sendline('su {}'.format(user))
-            ssh.sendline('cd ~')
-
-            # Set cc view only the first time !
-            ssh.sendline('cleartool setview {}'.format(view))
+            proc.sendline('su {}'.format(user))
             pread()
-
+            # User's home folder
+            proc.sendline('cd ~')
+            pread()
+            # Set cc view only the first time !
+            proc.sendline('cleartool setview {}'.format(view))
+            pread()
             # Empty line after set view
-            ssh.sendline('')
+            proc.sendline('')
+            pread()
 
             port = None
 
@@ -163,11 +165,11 @@ class ClearCaseFs(object):
 
             # Launching 1 UserService inside the SSH terminal, with ClearCase View open
             p_cmd = '{} -u {}/server/UserService.py {} ClearCase & '.format(sys.executable, TWISTER_PATH, port)
-            ssh.sendline(p_cmd)
+            proc.sendline(p_cmd)
             time.sleep(0.25)
 
             # Empty line after proc start
-            ssh.sendline('')
+            proc.sendline('')
             pread()
 
             config = {
@@ -197,7 +199,7 @@ class ClearCaseFs(object):
                 return False
 
             # Save the process inside the block.
-            self._services[user_view] = {'ssh': ssh, 'conn': conn, 'port': port}
+            self._services[user_view] = {'proc': proc, 'conn': conn, 'port': port}
 
         logDebug('ClearCase Service for `{}` launched on `127.0.0.1:{}`.'.format(user_view, port))
         return conn
@@ -324,11 +326,11 @@ class ClearCaseFs(object):
 
 
     def systemCommand(self, user_view, cmd):
-        ssh = self._services.get(user_view, {}).get('ssh')
-        if ssh:
-            ssh.sendline(cmd)
+        proc = self._services.get(user_view, {}).get('proc')
+        if proc:
+            proc.sendline(cmd)
             while 1:
-                try: print ssh.readline().strip()
+                try: print proc.readline().strip()
                 except: break
             return True
         else:

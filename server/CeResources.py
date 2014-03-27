@@ -305,7 +305,7 @@ def res_to_xml(parent_node, xml, skip_header = False):
 
         tb_id = etree.SubElement(xml,'id')
         tb_id.text = parent_node.get('id')
-        # add version only if it exists in dictionary; the SUT files don't 
+        # add version only if it exists in dictionary; the SUT files don't
         # have version
         if parent_node.get('version') is not None:
             version = etree.SubElement(xml,'version')
@@ -326,7 +326,7 @@ def res_to_xml(parent_node, xml, skip_header = False):
         # Folder fdesc
         fdesc = etree.SubElement(folder, 'fdesc')
 
-        # get the path if exists 
+        # get the path if exists
         if nd.get('path'):
             path = etree.SubElement(folder, 'path')
             path.text = nd.get('path')[0]
@@ -840,7 +840,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
         # to extract the last string after /, remove extension and add .json
         sut_file = xml_file.split('/')[-1].split('.')[0]
         sut_file = sut_file + '.json'
-        
+
         sutPath = None
         if sutType == 'system':
             # System SUT path
@@ -2447,19 +2447,24 @@ class ResourceAllocator(_cptools.XMLRPCController):
         # else use the UserService to read it
         ccConfig = self.project.getClearCaseConfig(user, 'sut_path')
         if ccConfig:
+            view = ccConfig['view']
             path = ccConfig['path']
-            resp = self.project.clearFs.readUserFile(user, path, False, False)
+            resp = self.project.clearFs.listUserFiles(user +':'+ view, path, False, False)
+            if isinstance(resp, str):
+                logWarning(resp)
             for file in resp['children']:
-                fileName = file['path']
-                if len(fileName.split('.')) == 2 and fileName.split('.')[1] == 'json':
-                    suts.append(fileName.split('.')[0]+'.user')
+                fileName, fileExt = os.path.splitext(file['path'])
+                if fileExt and fileExt == '.json':
+                    suts.append(fileName + '.user')
         else:
             if os.path.isdir(usrSutPath):
                 resp = self.project.localFs.listUserFiles(user, usrSutPath, False, False)
+                if isinstance(resp, str):
+                    logWarning(resp)
                 for file in resp['children']:
-                    fileName = file.get('path')
-                    if fileName and len(fileName.split('.')) == 2 and fileName.split('.')[1] == 'json':
-                         suts.append(fileName.split('.')[0]+'.user')
+                    fileName, fileExt = os.path.splitext(file['path'])
+                    if fileExt and fileExt == '.json':
+                        suts.append(fileName + '.user')
 
         def quickFindPath(d, spath):
             for usr, locks in d.iteritems():
