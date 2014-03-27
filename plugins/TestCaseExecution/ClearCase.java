@@ -452,7 +452,7 @@ public class ClearCase extends JPanel{
                 if(resp == JOptionPane.OK_OPTION){
                     StringBuilder sb = new StringBuilder();
                     if(conf.getType()!=BASE){ 
-                        sb.append("cleartool describe –cact");
+                        sb.append("cleartool describe -cact");
                     }else {
                         sb.append("cleartool describe ");
                         if(jlong.isSelected()){
