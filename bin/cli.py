@@ -1,6 +1,6 @@
 #!/usr/bin/env python2.7
 
-# version: 2.019
+# version: 2.020
 
 # File: cli.py ; This file is part of Twister.
 
@@ -40,6 +40,7 @@ import time
 import datetime
 import binascii
 import subprocess
+import signal
 from optparse import OptionParser
 import rpyc
 
@@ -216,11 +217,20 @@ def deQueueTest(proxy, data):
 	print
 
 
+
+
 def runTest(user, sut, fname):
 	"""
 	Run a test blocking and show the logs.
 	"""
 	global proxy
+
+	def stopEp(*arg, **kw):
+		print('\nWill exit and stop the EP !')
+		return proxy.setEpStatusAll(0)
+	# Capture signal
+	signal.signal(signal.SIGINT, stopEp)
+
 	r = False
 	sut = sut.strip('/')
 	r = proxy.delSettingsKey('project', '//TestSuite', -1)

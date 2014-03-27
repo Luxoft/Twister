@@ -1,7 +1,7 @@
 
 # File: CeClearCaseFs.py ; This file is part of Twister.
 
-# version: 3.002
+# version: 3.003
 
 # Copyright (C) 2012-2014, Luxoft
 
@@ -29,7 +29,6 @@ import copy
 import random
 import socket
 import pexpect
-import pxssh
 from plumbum import local
 import rpyc
 
@@ -130,29 +129,29 @@ class ClearCaseFs(object):
                 except Exception as e:
                     logWarning('Cannot connect to ClearCase Service for `{}`: `{}`.'.format(user_view, e))
                     self._kill(user)
-                    ssh = self._services.get(user_view, {}).get('ssh', None)
-                    ssh.close()
+                    proc = self._services.get(user_view, {}).get('proc', None)
+                    proc.terminate()
             else:
                 logInfo('Launching a ClearCase Service for `{}`, the first time...'.format(user_view))
 
-            ssh = pxssh.pxssh()
+            proc = pexpect.spawn(['bash'], timeout=0.75, maxread=2048)
 
-            passwd = self.project.getUserInfo(user, 'user_passwd')
+            def pread():
+                while 1:
+                    try: proc.readline().strip()
+                    except: break
 
-            try:
-                ssh.login('127.0.0.1', user, passwd)
-            except Exception:
-                logWarning('Cannot login user `{}`! Incorrect password!'.format(user))
-                return False
-
-            # Make sure you are in user home
-            ssh.sendline('cd')
-            ssh.prompt()
-
+            proc.sendline('su {}'.format(user))
+            pread()
+            # User's home folder
+            proc.sendline('cd ~')
+            pread()
             # Set cc view only the first time !
-            ssh.sendline('cleartool setview {}'.format(view))
-            ssh.prompt(5)
-            ssh.set_unique_prompt()
+            proc.sendline('cleartool setview {}'.format(view))
+            pread()
+            # Empty line after set view
+            proc.sendline('')
+            pread()
 
             port = None
 
@@ -165,9 +164,13 @@ class ClearCaseFs(object):
                     break
 
             # Launching 1 UserService inside the SSH terminal, with ClearCase View open
-            p_cmd = '{} -u {}/server/UserService.py {} ClearCase'.format(sys.executable, TWISTER_PATH, port)
-            ssh.sendline(p_cmd)
-            time.sleep(0.2)
+            p_cmd = '{} -u {}/server/UserService.py {} ClearCase & '.format(sys.executable, TWISTER_PATH, port)
+            proc.sendline(p_cmd)
+            time.sleep(0.25)
+
+            # Empty line after proc start
+            proc.sendline('')
+            pread()
 
             config = {
                 'allow_pickle': True,
@@ -196,7 +199,7 @@ class ClearCaseFs(object):
                 return False
 
             # Save the process inside the block.
-            self._services[user_view] = {'ssh': ssh, 'conn': conn, 'port': port}
+            self._services[user_view] = {'proc': proc, 'conn': conn, 'port': port}
 
         logDebug('ClearCase Service for `{}` launched on `127.0.0.1:{}`.'.format(user_view, port))
         return conn
@@ -319,6 +322,21 @@ class ClearCaseFs(object):
             return False
 
 
+    # ----- COMMAND-------------------------------------------------------------
+
+
+    def systemCommand(self, user_view, cmd):
+        proc = self._services.get(user_view, {}).get('proc')
+        if proc:
+            proc.sendline(cmd)
+            while 1:
+                try: print proc.readline().strip()
+                except: break
+            return True
+        else:
+            return False
+
+
     # ----- SYSTEM -------------------------------------------------------------
 
 
@@ -367,6 +385,8 @@ if __name__ == '__main__':
     print '---'
     print fs1.readUserFile('user:bogdan_twister', '/vob/metronext_DO_5/test_cases/python/test_py_printnlogs.py')
     print '---'
+
+    print fs1.systemCommand('user:bogdan_twister', 'ls -la')
 
     fs1._kill('user')
 

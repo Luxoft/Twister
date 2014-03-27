@@ -1,7 +1,7 @@
 
 # File: CeResources.py ; This file is part of Twister.
 
-# version: 2.040
+# version: 2.043
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -202,7 +202,7 @@ def flattenNodes(parent_node, result):
     return result
 
 
-def xml_to_res(xml, gparams, skip_header = False):
+def xml_to_res(xml, gparams, root_type, skip_header = False):
 
     # this is a recursive method to read the xml and generate a dictionary
     def recursive_xml_to_res(xml,res_dict):
@@ -251,7 +251,8 @@ def xml_to_res(xml, gparams, skip_header = False):
         if tb_path:
             root_dict['path'].append(tb_path)
         else:
-            root_dict['path'].append('')
+            if root_type == ROOT_SUT:
+                root_dict['path'].append('')
         meta = xml.find('meta')
         for meta_elem in meta:
            key = meta_elem.find('name').text
@@ -304,7 +305,7 @@ def res_to_xml(parent_node, xml, skip_header = False):
 
         tb_id = etree.SubElement(xml,'id')
         tb_id.text = parent_node.get('id')
-        # add version only if it exists in dictionary; the SUT files don't 
+        # add version only if it exists in dictionary; the SUT files don't
         # have version
         if parent_node.get('version') is not None:
             version = etree.SubElement(xml,'version')
@@ -325,7 +326,7 @@ def res_to_xml(parent_node, xml, skip_header = False):
         # Folder fdesc
         fdesc = etree.SubElement(folder, 'fdesc')
 
-        # get the path if exists 
+        # get the path if exists
         if nd.get('path'):
             path = etree.SubElement(folder, 'path')
             path.text = nd.get('path')[0]
@@ -737,7 +738,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
         with self.imp_lock:
             if root_id == ROOT_DEVICE:
                 try:
-                    self.resources = xml_to_res(params_xml, {})
+                    self.resources = xml_to_res(params_xml, {}, ROOT_DEVICE)
                 except Exception as e:
                     msg = 'User {}: Import XML: Exception `{}`.'.format(self.getUserName(),e)
                     logError(msg)
@@ -761,7 +762,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
                     # Add SUT type ( user/system )
                     sutName = sutName + '.' + sutType
 
-                    sutContent = xml_to_res(params_xml, {})
+                    sutContent = xml_to_res(params_xml, {}, ROOT_SUT)
                     sutContent = sutContent.popitem()[1]
                     sutContent.update([('path', sutName.split()), ])
                     sutContent = _recursive_refresh_id(sutContent)
@@ -833,13 +834,13 @@ class ResourceAllocator(_cptools.XMLRPCController):
         params_xml = etree.parse(xml_file)
 
         # parse the xml file and build the json format
-        xml_ret = xml_to_res(params_xml, {})
+        xml_ret = xml_to_res(params_xml, {}, ROOT_SUT)
 
         # build the filename to be saved; xml_file has absolute path; we need
         # to extract the last string after /, remove extension and add .json
         sut_file = xml_file.split('/')[-1].split('.')[0]
         sut_file = sut_file + '.json'
-        
+
         sutPath = None
         if sutType == 'system':
             # System SUT path
@@ -1093,24 +1094,32 @@ class ResourceAllocator(_cptools.XMLRPCController):
         # if sut path doesn't end with '/' character, we have to add it
         if sutPath[-1] != '/':
             sutPath += '/'
-        sutFile = sutPath + query.split('.')[0] + '.json'
+        fileName = query.split('.')[0] + '.json'
+        sutFile = sutPath + fileName
 
         sutContent = False
         if os.path.isdir(sutPath):
-            try:
-                f = open(sutFile, 'r')
-                sutContent = json.load(f)
-                f.close() ; del f
-            except IOError, e:
-                if e.errno == errno.EACCES:
-                    # permission denied error, try using the client
-                    userConn = False
-                    userConn = self.project._find_local_client(username)
-                    if userConn:
-                        fileContent = False
-                        fileContent = userConn.root.exposed_read_file(sutFile)
-                        if fileContent and not fileContent.startswith('*ERROR*'):
-                            sutContent = json.loads(fileContent)
+            if sutType == 'system':
+                # system SUT file
+                try:
+                    f = open(sutFile, 'r')
+                    sutContent = json.load(f)
+                    f.close() ; del f
+                except Exception as e:
+                    return '*ERROR* Cannot get access to SUT path for user {} Exception {}'.format(self.getUserName(),e)
+            else:
+                # user SUT file; we have to check if the cleacase plugin
+                # is activated; if so, use it to read the SUT file; else
+                # use the UserService to read it
+                ccConfig = self.project.getClearCaseConfig(self.getUserName(), 'sut_path')
+                if ccConfig:
+                    view = ccConfig['view']
+                    path = ccConfig['path']
+                    resp = self.project.clearFs.readUserFile(self.getUserName() +':'+ view, path +'/'+ fileName)
+                    sutContent = json.loads(resp)
+                else:
+                    resp = self.project.localFs.readUserFile(self.getUserName(), sutPath + fileName)
+                    sutContent = json.loads(resp)
 
             if sutContent is False or (isinstance(sutContent, str) and sutContent.startswith('*ERROR*')):
                 return sutContent
@@ -1129,7 +1138,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
                 return retDict
 
         # if we get here, we cannot get read access to the SUT directory
-        return '*ERROR* Cannot get access to SUT path'
+        return '*ERROR* Cannot get access to SUT path for user {}'.format(self.getUserName())
 
 
 #
@@ -1318,10 +1327,10 @@ class ResourceAllocator(_cptools.XMLRPCController):
                 r = None
                 if parent == '/' or parent == '1':
                     # if this is a SUT file, we need to add path
-                    if root_id == ROOT_SUT:
-                        sut_path = list()
-                        sut_path.append(name)
-                        parent_p['children'][name]['path'] = sut_path
+                    #if root_id == ROOT_SUT:
+                    sut_path = list()
+                    sut_path.append(name)
+                    parent_p['children'][name]['path'] = sut_path
 
                     # Write changes for Device or SUT
                     r = self._save(root_id, props, name, username)
@@ -1449,7 +1458,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
                 exec( '{0}["meta"]["{1}"] = {0}["meta"]["{2}"]'.format(exec_string, new_name, meta) )
                 exec( 'del {}["meta"]["{}"]'.format(exec_string, meta) )
 
-                logDebug('User {}: Renamed {0} meta `{1}:{2}` to `{1}:{3}`.'.format(self.getUserName(),root_name, '/'.join(node_path), meta, new_name))
+                logDebug('User {0}: Renamed {1} meta `{2}:{3}` to `{2}:{4}`.'.format(self.getUserName(),root_name, '/'.join(node_path), meta, new_name))
 
             # If must rename a normal node
             else:
@@ -1539,11 +1548,12 @@ class ResourceAllocator(_cptools.XMLRPCController):
                     res_pointer = self.reservedResources[user][res]
                     break
 
-                # it can be a meta parameter for the TB; we need to check this
-                # case because get_res_path doesn't return correct in this case
+                # it can be a meta parameter for the TB; we need to
+                # check this case because get_res_path doesn't return
+                # correct in this case
                 if res == res_query:
                     res_pointer = self.reservedResources[user][res]
-                    res_path = [res_pointer.get('path')]
+                    res_path = res_pointer.get('path')
                     break;
         except Exception, e:
             res_path = None
@@ -1551,7 +1561,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
         if res_path:
             # resource can be at test bed level or at children of test bed
             # level; we have to differentiate
-            if res_pointer.get('path') == res_path[0]:
+            if res_pointer.get('path') == res_path:
                 # test bed level
                 exec_string = 'res_pointer'
             else:
@@ -1560,7 +1570,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
             # If must delete a Meta info
             if meta:
-                logDebug('User {}: Executing `{}` ...'.format( 'val = {}["meta"].get("{}")'.format(self.getUserName(),exec_string, meta) ))
+                logDebug('User {}: Executing `{}` ...'.format(self.getUserName(), 'val = {}["meta"].get("{}")'.format(exec_string, meta) ))
                 exec( 'val = {}["meta"].get("{}")'.format(exec_string, meta) )
 
                 if val is None:
@@ -1570,7 +1580,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
                 logDebug('User {}: Executing `{}` ...'.format(self.getUserName(), 'del {}["meta"]["{}"]'.format(exec_string, meta) ))
                 exec( 'del {}["meta"]["{}"]'.format(exec_string, meta) )
-                logDebug('User {}: Deleted {} meta `{}:{}`.'.format(self.getUserName(),root_name, '/'.join(res_path), meta))
+                logDebug('User {}: Deleted {} meta `{}:{}`.'.format(self.getUserName(), root_name, '/'.join(res_path), meta))
 
             # If must delete a normal node
             else:
@@ -2426,23 +2436,35 @@ class ResourceAllocator(_cptools.XMLRPCController):
         if not usrSutPath:
             usrSutPath = '{}/twister/config/sut/'.format(usrHome)
 
+        # first, get all system SUT files
         if os.path.isdir(sysSutsPath):
             s = ['{}.system'.format(os.path.splitext(d)[0]) for d in os.listdir(sysSutsPath) if os.path.splitext(d)[1]=='.json']
+            logDebug('BOG SYSTEM \n{}'.format(s))
             suts.extend(s)
-        if os.path.isdir(usrSutPath):
-            try:
-                s = ['{}.user'.format(os.path.splitext(d)[0]) for d in os.listdir(usrSutPath) if os.path.splitext(d)[1]=='.json']
-                suts.extend(s)
-            except OSError, e:
-                if e.errno == errno.EACCES:
-                    # permission denied error, try using the client
-                    userConn = None
-                    userSutsList = ()
-                    userConn = self.project._find_local_client(user)
-                    if userConn:
-                        userSutsList = userConn.root.exposed_list_all_suts()
-                    suts.extend(userSutsList)
 
+        # get user SUT file; we have to check if the cleacase plugin
+        # is activated; if so, use it to read the SUT files from view;
+        # else use the UserService to read it
+        ccConfig = self.project.getClearCaseConfig(user, 'sut_path')
+        if ccConfig:
+            view = ccConfig['view']
+            path = ccConfig['path']
+            resp = self.project.clearFs.listUserFiles(user +':'+ view, path, False, False)
+            if isinstance(resp, str):
+                logWarning(resp)
+            for file in resp['children']:
+                fileName, fileExt = os.path.splitext(file['path'])
+                if fileExt and fileExt == '.json':
+                    suts.append(fileName + '.user')
+        else:
+            if os.path.isdir(usrSutPath):
+                resp = self.project.localFs.listUserFiles(user, usrSutPath, False, False)
+                if isinstance(resp, str):
+                    logWarning(resp)
+                for file in resp['children']:
+                    fileName, fileExt = os.path.splitext(file['path'])
+                    if fileExt and fileExt == '.json':
+                        suts.append(fileName + '.user')
 
         def quickFindPath(d, spath):
             for usr, locks in d.iteritems():

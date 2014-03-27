@@ -1,7 +1,7 @@
 
 # File: CeFs.py ; This file is part of Twister.
 
-# version: 3.004
+# version: 3.005
 
 # Copyright (C) 2012-2014, Luxoft
 
@@ -28,7 +28,7 @@ import time
 import copy
 import random
 import socket
-import subprocess
+import pexpect
 from plumbum import local
 import rpyc
 
@@ -48,6 +48,7 @@ from common.tsclogging import *
 #
 __all__ = ['LocalFS']
 #
+
 
 def singleton(cls):
     instances = {}
@@ -92,7 +93,7 @@ class LocalFS(object):
             del li[2:5]
             if '/bin/sh' in li: continue
             if '/bin/grep' in li: continue
-            logDebug('Killing ugly zombie `{}`.'.format(' '.join(li)))
+            logDebug('User {}: Killing ugly zombie `{}`.'.format(user,' '.join(li)))
             try:
                 os.kill(PID, 9)
             except:
@@ -103,21 +104,6 @@ class LocalFS(object):
         """
         Launch a user service.
         """
-
-        # # DEBUG. Show all available User Services, for current user.
-        # try:
-        #     pids = subprocess.check_output('ps aux | grep /server/UserService.py | grep "^{} "'.format(user), shell=True)
-        #     pids_li = []
-
-        #     for line in pids.strip().splitlines():
-        #         li = line.strip().split()
-        #         PID = int(li[1])
-        #         del li[2:10]
-        #         pids_li.append( ' '.join(li) )
-
-        #     logDebug('Active User Services for `{}`::\n\t{}'.format(user, '\n\t'.join(pids_li)))
-        # except:
-        #     logDebug('No User Services found for `{}`.'.format(user))
 
         # Must block here, so more users cannot launch Logs at the same time and lose the PID
         with self._srv_lock:
@@ -132,8 +118,21 @@ class LocalFS(object):
                 except Exception as e:
                     logWarning('Cannot connect to User Service for `{}`: `{}`.'.format(user, e))
                     self._kill(user)
+                    proc = self._services.get(user, {}).get('proc', None)
+                    proc.terminate()
             else:
                 logInfo('Launching a User Service for `{}`, the first time...'.format(user))
+
+            proc = pexpect.spawn(['bash'], timeout=0.75, maxread=2048)
+
+            def pread():
+                while 1:
+                    try: proc.readline().strip()
+                    except: break
+
+            proc.sendline('su {}'.format(user))
+            proc.sendline('cd ~')
+            pread()
 
             port = None
 
@@ -145,11 +144,14 @@ class LocalFS(object):
                 except:
                     break
 
-            p_cmd = 'su {} -c "{} -u {}/server/UserService.py {} FS"'.format(user, sys.executable, TWISTER_PATH, port)
-            proc = subprocess.Popen(p_cmd, cwd='{}/twister'.format(userHome(user)), shell=True,
-                   close_fds=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            proc.poll()
-            time.sleep(0.2)
+            # Launching 1 UserService inside the SSH terminal
+            p_cmd = '{} -u {}/server/UserService.py {} FS & '.format(sys.executable, TWISTER_PATH, port)
+            proc.sendline(p_cmd)
+            time.sleep(0.25)
+
+            # Empty line after proc start
+            proc.sendline('')
+            pread()
 
             config = {
                 'allow_pickle': True,
@@ -221,7 +223,7 @@ class LocalFS(object):
             return False
         srvr = self._usrService(user)
         if len(fdata) > 20*1000*1000:
-            err = '*ERROR* File data too long `{}`: {}!'.format(fpath, len(fdata))
+            err = '*ERROR* File data too long `{}`: {}; User {}!'.format(fpath, len(fdata),user)
             logWarning(err)
             return err
         if srvr:

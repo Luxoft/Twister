@@ -1,7 +1,7 @@
 
 # File: CeXmlRpc.py ; This file is part of Twister.
 
-# version: 2.039
+# version: 2.040
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -915,15 +915,59 @@ class CeXmlRpc(_cptools.XMLRPCController):
             logDebug(err)
             return err
 
+        # Unbind the config file, if it was binded
+        self.project.parsers[user].delBinding(fpath)
+
         # Auto detect if ClearCase Test Config Path is active
         ccConfig = self.project.getClearCaseConfig(user, 'tcfg_path')
         if ccConfig:
             view = ccConfig['view']
             path = ccConfig['path']
-            return self.deleteFile(path +'/'+ fpath, type='clearcase:' + view)
+            return self.project.clearFs.deleteUserFile(user +':'+ view, path +'/'+ fpath)
         else:
             dirpath = self.project.getUserInfo(user, 'tcfg_path')
-            return self.deleteFile(dirpath + '/' + fpath)
+            return self.project.localFs.deleteUserFile(user, dirpath +'/'+ fpath)
+
+
+    @cherrypy.expose
+    def deleteConfigFolder(self, fpath):
+        """
+        Delete config file - returns a True/ False.
+        """
+        user = cherrypy.session.get('username')
+        fpath = fpath.rstrip('/')
+        fpath += '/'
+
+        def flattenFiles(parent_node, result):
+            # The node is valid ?
+            if not parent_node:
+                return []
+            # This node has children ?
+            if not parent_node.get('children'):
+                return []
+
+            for node in parent_node['children']:
+                name = node['path']
+                if not node.get('folder') and name.startswith(fpath):
+                    result.append(name)
+                flattenFiles(node, result)
+            return result
+
+        cfgs = self.listConfigs()
+
+        for fdir in flattenFiles(cfgs, []):
+            # Unbind the config file, if it was binded
+            self.project.parsers[user].delBinding(fdir)
+
+        # Auto detect if ClearCase Test Config Path is active
+        ccConfig = self.project.getClearCaseConfig(user, 'tcfg_path')
+        if ccConfig:
+            view = ccConfig['view']
+            path = ccConfig['path']
+            return self.project.clearFs.deleteUserFolder(user +':'+ view, path +'/'+ fpath)
+        else:
+            dirpath = self.project.getUserInfo(user, 'tcfg_path')
+            return self.project.localFs.deleteUserFolder(user, dirpath +'/'+ fpath)
 
 
     @cherrypy.expose
@@ -949,6 +993,16 @@ class CeXmlRpc(_cptools.XMLRPCController):
         else:
             logWarning('User `{}` could not update bindings for `{}`!'.format(user, fpath))
         return r
+
+
+    @cherrypy.expose
+    def delBinding(self, user, fpath):
+        """
+        Delete a binding from bindings.xml.
+        Return True/ False.
+        """
+        logDebug('User `{}` deletes bindings for `{}`.'.format(user, fpath))
+        return self.project.parsers[user].delBinding(fpath)
 
 
 # --------------------------------------------------------------------------------------------------

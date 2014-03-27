@@ -1,7 +1,7 @@
 
 # File: xmlparser.py ; This file is part of Twister.
 
-# version: 3.016
+# version: 3.017
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -659,7 +659,7 @@ class TSCParser:
         try:
             replace_xml = etree.fromstring(content, parser)
         except Exception:
-            err = '*ERROR* Invalid XML content! Cannot parse! User {}'.format(self.user)
+            err = '*ERROR* Invalid XML content, user {}! Cannot parse!'.format(self.user)
             logWarning(err)
             return err
 
@@ -668,6 +668,38 @@ class TSCParser:
 
         # Beautify XML ?
         return etree.tostring(bind_xml, pretty_print=True)
+
+
+    def delBinding(self, fpath):
+        """
+        Delete a binding between a CFG and a SUT.
+        Return True/ False.
+        """
+        logFull('xmlparser:delBinding')
+        cfg_file = '{}/twister/config/bindings.xml'.format(userHome(self.user))
+
+        if not os.path.isfile(cfg_file):
+            err = '*ERROR* Bindings Config file `{}`, for user `{}` does not exist!'.format(cfg_file, self.user)
+            logError(err)
+            return err
+
+        bind_xml = parseXML(self.user, cfg_file)
+        if bind_xml is None:
+            err = '*ERROR* Config file `{}`, for user `{}` cannot be parsed!'.format(cfg_file, self.user)
+            return err
+        # Find the binding
+        found = bind_xml.xpath('/root/binding/name[text()="{}"]/..'.format(fpath))
+
+        # If found, delete it
+        if found:
+            bind_xml.remove(found[0])
+            logDebug('Removed binding `{}`, for user `{}`.'.format(fpath, self.user))
+        else:
+            err = '*WARN* Invalid binding `{}`, user `{}`! Cannot unbind!'.format(fpath, self.user)
+            # logDebug(err)
+            return False
+
+        return dumpXML(self.user, cfg_file, bind_xml)
 
 
     def getBindingsConfig(self):
@@ -1182,7 +1214,7 @@ class ClearCaseParser(object):
                     self.config[name] = {'path': path, 'view': view}
 
         if filter_tag and filter_name:
-            return self.config[filter_name]
+            return self.config.get(filter_name, {})
         else:
             return self.config
 
