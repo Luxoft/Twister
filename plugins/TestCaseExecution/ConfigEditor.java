@@ -1,6 +1,6 @@
 /*
 File: ConfigEditor.java ; This file is part of Twister.
-Version: 2.015
+Version: 2.016
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -129,7 +129,7 @@ public class ConfigEditor extends JPanel{
     private JComboBox ttype;
     private IntegerRangeDocument docum;
     private MyFocusAdapter focusadapter;
-    private File currentfile;
+    public File currentfile;
     private String remotelocation;
     public ConfigTree cfgtree;
     private JLabel displayname;
@@ -344,19 +344,9 @@ public class ConfigEditor extends JPanel{
                         }
                     } catch(Exception e){e.printStackTrace();}
                 }
-                reinitialize();
-                saveas.setEnabled(false);
-                close.setEnabled(false);
-                unbind.setEnabled(false);
-                getBinding("default");
-                interpretBinding();
-                lastsave = true;
-                bindingsave = true;
-                displayname.setText(displayname.getText().replace(" (need save)", ""));
-                remotelocation = null;
+                openDefault();
             }
         });
-        
         buttonPanel.add(save);
         buttonPanel.add(saveas);
         buttonPanel.add(close);
@@ -511,6 +501,20 @@ public class ConfigEditor extends JPanel{
                 }
             }
         });
+    }
+    
+    //open default binding
+    public void openDefault(){
+        reinitialize();
+        saveas.setEnabled(false);
+        close.setEnabled(false);
+        unbind.setEnabled(false);
+        getBinding("default");
+        interpretBinding();
+        lastsave = true;
+        bindingsave = true;
+        displayname.setText(displayname.getText().replace(" (need save)", ""));
+        remotelocation = null;
     }
     
     private void writeDefaultConfig(){

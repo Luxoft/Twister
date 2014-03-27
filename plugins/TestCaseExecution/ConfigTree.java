@@ -1,6 +1,6 @@
 /*
 File: ConfigTree.java ; This file is part of Twister.
-Version: 2.015
+Version: 2.016
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -101,6 +101,9 @@ public class ConfigTree extends JPanel{
                             CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,ConfigTree.this,"ERROR", content);
                         }
                         refreshStructure();
+                        if(confeditor.currentfile==null){ //if default conf opened reinitializa
+                            confeditor.openDefault();
+                        }
                     }
                     catch(Exception e){System.out.println("Could not delete: "+thefile);
                                        e.printStackTrace();
@@ -292,17 +295,20 @@ public class ConfigTree extends JPanel{
     
     private void removeDirectory(String directory){
         try{
-            if(RunnerRepository.window.mainpanel.p4.getPlugins().isClearCaseEnabled()){
-                String respons = RunnerRepository.getRPCClient().execute("findCcXmlTag", new Object[]{"TestConfigPath"}).toString();
-                if(respons.indexOf("*ERROR*")!=-1){
-                    CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,ConfigTree.this,"ERROR", respons);
-                    return;
+            try{
+                String content = RunnerRepository.getRPCClient().execute("deleteConfigFolder", new Object[]{directory}).toString();
+                if(content.indexOf("*ERROR*")!=-1){
+                    CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,ConfigTree.this,"ERROR", content);
                 }
-                RunnerRepository.deleteRemoteDir(respons.split(":")[1]+"/"+directory,"TestConfigPath");
-            } else {
-                RunnerRepository.deleteRemoteDir(RunnerRepository.getTestConfigPath()+"/"+directory,null);
+                refreshStructure();
+                if(confeditor.currentfile==null){ //if default conf opened reinitializa
+                    confeditor.openDefault();
+                }
             }
-            refreshStructure();
+            catch(Exception e){
+                System.out.println("Could not delete: "+directory);
+                e.printStackTrace();
+            }
         } catch(Exception e){
             e.printStackTrace();
         }

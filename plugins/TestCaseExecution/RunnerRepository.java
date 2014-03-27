@@ -1,6 +1,6 @@
 /*
 File: RunnerRepository.java ; This file is part of Twister.
-Version: 2.0047
+Version: 2.0048
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -151,8 +151,8 @@ public class RunnerRepository {
     public static Container container;
     public static Applet applet;
     private static Document pluginsconfig;
-    private static String version = "3.001";
-    private static String builddate = "26.03.2014";
+    private static String version = "3.002";
+    private static String builddate = "27.03.2014";
     public static String logotxt,os,python;
     private static int remotefiletries = 0;
     
@@ -460,7 +460,6 @@ public class RunnerRepository {
     }
     
     public static void setSize(int width, int height){
-        System.out.println("RunnerRepository setSize");
         RunnerRepository.window.mainpanel.setSize(width-20,height-20);
         RunnerRepository.window.mainpanel.p1.splitPane.setSize(width-52,height-120);
         RunnerRepository.window.mainpanel.setSize(width-28,height-40);

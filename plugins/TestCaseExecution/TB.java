@@ -1,6 +1,6 @@
 /*
 File: TB.java ; This file is part of Twister.
-Version: 2.022
+Version: 2.023
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -87,8 +87,6 @@ public class TB extends JPanel{
     public TB(){
         initializeRPC();
         initPanel();
-//         parent = getTB("/",null);
-        //refreshTBs();
         ((DefaultTreeModel)tree.getModel()).reload();
     }
 
@@ -104,7 +102,6 @@ public class TB extends JPanel{
         });
         
         remove = new JButton("Remove");
-        //remove.setBounds(160,5,100,20);
         remove.setEnabled(false);
         if(PermissionValidator.canEditTB())buttonPanel.add(remove);
         remove.addActionListener(new ActionListener(){
@@ -146,8 +143,8 @@ public class TB extends JPanel{
                                 tn.removeAllChildren();
                                 model.reload(tn);
                                 Node node = getTB("/"+((Node)tn.getUserObject()).getName(),null);
-                                node.setReserved(getTBReservdUser(node.getID()));
-                                node.setLock(getTBLockedUser(node.getID()));                                
+                                node.setReserved(getTBReservdUser("/"+node.getName()));
+                                node.setLock(getTBLockedUser("/"+node.getName()));                                
                                 tn.setUserObject(node);
                                 DefaultMutableTreeNode temp = new DefaultMutableTreeNode("ID: "+node.getID());
                                 ((DefaultTreeModel)tree.getModel()).insertNodeInto(temp, tn,0);
@@ -245,69 +242,8 @@ public class TB extends JPanel{
             
         activetbusers.add(importxml);
         activetbusers.add(exportxml);
-//         JMenuBar menubar = new JMenuBar();
-//         JMenu menu = new JMenu("File");
-//         menubar.add(menu);
         treepanel.add(upperpanel,BorderLayout.NORTH);
         upperpanel.add(activetbusers,BorderLayout.NORTH);
-//         upperpanel.add(menubar,BorderLayout.CENTER);
-
-//         JMenuItem imp = new JMenuItem("Import from XML");
-//         imp.addActionListener(new ActionListener(){
-//             public void actionPerformed(ActionEvent ev){
-//                 Container c;
-//                 if(RunnerRepository.container!=null)c = RunnerRepository.container.getParent();
-//                 else c = RunnerRepository.window;
-//                 final JTextField tf = new JTextField();
-//                 new MySftpBrowser(RunnerRepository.host,RunnerRepository.user,RunnerRepository.password,RunnerRepository.CENTRALENGINEPORT,tf,c,false).setAction(new AbstractAction(){
-//                     public void actionPerformed(ActionEvent ev){
-//                         try{
-//                             String resp = client.execute("import_xml", new Object[]{tf.getText()}).toString();
-//                             if(resp.indexOf("*ERROR*")==-1){
-//                                 root.removeAllChildren();
-//                                 parent = getTB("/",null);
-//                                 DefaultTreeModel model = (DefaultTreeModel)tree.getModel();
-//                                 buildTree(parent,root,true);
-//                                 ((DefaultTreeModel)tree.getModel()).reload();
-//                             } else {
-//                                 CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,TB.this,"ERROR", "Could not import!CE error: "+resp);
-//                             }
-//                         } catch(Exception e){
-//                             e.printStackTrace();
-//                         }
-//                     }
-//                 });
-//             }});
-//         menu.add(imp);
-//         JMenuItem exp = new JMenuItem("Export to XML");
-//         exp.addActionListener(new ActionListener(){
-//             public void actionPerformed(ActionEvent ev){
-//                 Container c;
-//                 if(RunnerRepository.container!=null)c = RunnerRepository.container.getParent();
-//                 else c = RunnerRepository.window;
-//                 final JTextField tf = new JTextField();
-//                 try{tf.setText(RunnerRepository.getTestConfigPath());
-//                 }catch(Exception e){
-//                     e.printStackTrace();
-//                 }
-//                 AbstractAction action = new AbstractAction(){
-//                     public void actionPerformed(ActionEvent ev){
-//                         try{
-//                             String resp = client.execute("export_xml", new Object[]{tf.getText()}).toString();
-//                             if(resp.indexOf("*ERROR*")!=-1){
-//                                 CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,TB.this,"ERROR", "Could not save");
-//                             }
-//                             System.out.println(resp);
-//                         } catch(Exception e){
-//                             e.printStackTrace();
-//                         }
-//                     }
-//                 };
-//                 MySftpBrowser browser = new MySftpBrowser(RunnerRepository.host,RunnerRepository.user,RunnerRepository.password,RunnerRepository.CENTRALENGINEPORT,tf,c,false);
-//                 browser.setAction(action);
-//                 browser.setButtonText("Save");
-//             }});
-//         menu.add(exp);
         GroupLayout layout = new GroupLayout(this);
         this.setLayout(layout);
         layout.setHorizontalGroup(
@@ -316,7 +252,7 @@ public class TB extends JPanel{
                 .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
                     .addComponent(buttonPanel, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addComponent(treepanel, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                .addComponent(optpan, GroupLayout.PREFERRED_SIZE, 450, GroupLayout.PREFERRED_SIZE)));
+                .addComponent(optpan, GroupLayout.PREFERRED_SIZE, 550, GroupLayout.PREFERRED_SIZE)));
         layout.setVerticalGroup(
             layout.createParallelGroup(GroupLayout.Alignment.LEADING)
             .addGroup(GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
@@ -503,51 +439,6 @@ public class TB extends JPanel{
             e.printStackTrace();
         }
     }
-    
-    /*
-     * refresh tree from server
-     */
-//     public void refreshTBs(){
-        //listAllResources()
-//         root.removeAllChildren();
-//         parent = getTB("/",null);
-//         buildTree(parent,root,true);
-//         ((DefaultTreeModel)tree.getModel()).reload();
-//         optpan.setParent(null,null,false);
-//         remove.setEnabled(false);
-//         add.setText("Add TB");
-//         Enumeration en = root.children();
-//         Node node;
-//         while(en.hasMoreElements()){
-//             DefaultMutableTreeNode treenode = (DefaultMutableTreeNode)en.nextElement();
-//             node = (Node)treenode.getUserObject();
-//             node.setReserved(getTBReservdUser(node.getID()));
-//             if(node.getReserved().equals(RunnerRepository.user)){
-//                 node = getTB(node.getID(),node.getParent());
-//                 node.setReserved(RunnerRepository.user);
-//                 DefaultMutableTreeNode temp = new DefaultMutableTreeNode("ID: "+node.getID());
-//                 ((DefaultTreeModel)tree.getModel()).insertNodeInto(temp, treenode,0);
-//                 DefaultMutableTreeNode temp2 = new DefaultMutableTreeNode(node.getPath());
-//                 ((DefaultTreeModel)tree.getModel()).insertNodeInto(temp2, treenode,1);
-//                 ((DefaultTreeModel)tree.getModel()).nodeChanged(treenode);
-//                 buildTree(node,treenode,false);
-//                 ((DefaultTreeModel)tree.getModel()).reload(treenode);
-//             }
-//             try{String resp = client.execute("isResourceLocked", new Object[]{node.getID()}).toString();
-//                 if(resp.equals("false")){
-//                     node.setLock("");
-//                 }
-//                 else if (resp.indexOf("*ERROR*")!=-1){
-//                     CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,TB.this,"ERROR", resp);
-//                     node.setLock("");
-//                 } else {
-//                     node.setLock(resp);
-//                 }
-//             } catch (Exception e){e.printStackTrace();}
-//             ((DefaultTreeModel)tree.getModel()).nodeChanged(treenode);
-//         }
-//     }
-
     /*
      * get from server user that reserved tb
      */
@@ -589,19 +480,6 @@ public class TB extends JPanel{
         }
     }
     
-//     /*
-//      * check if a TB is reserved
-//      */
-//     public boolean isReserved(String tbid){
-//         try{String resp = client.execute("isResourceReserved", new Object[]{tbid}).toString();
-//             System.out.println(resp);}
-//         catch(Exception e){
-//             e.printStackTrace();
-//             return false;
-//         }
-//         return true;
-//     }
-    
     /*
      * check if a TB is reserved
      */
@@ -640,24 +518,7 @@ public class TB extends JPanel{
         }
     }
     
-//     /*
-//      * method used to release TB on server
-//      */
-//     public boolean release(String tbid){
-//         try{System.out.println("Releasing tb: "+tbid);
-//             String resp = client.execute("discardAndReleaseReservedResource", new Object[]{tbid}).toString();
-//             if(resp.indexOf("*ERROR*")==-1){
-//                 return true;
-//             } else {
-//                 CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,TB.this,"ERROR", resp);
-//                 return false;
-//             }
-//         }
-//         catch(Exception e){
-//             e.printStackTrace();
-//             return false;
-//         }
-//     }
+
     
      /*
      * method used to discard and release TB on server
@@ -759,8 +620,6 @@ public class TB extends JPanel{
                     ((DefaultTreeModel)tree.getModel()).nodeChanged(treenode);
                     optpan.setParent(node,treenode,false);
                 } else {
-                    
-                    
                     String[] buttons = {"Save","Discard"};
                     String resp = CustomDialog.showButtons(TB.this, JOptionPane.QUESTION_MESSAGE,
                                                             JOptionPane.DEFAULT_OPTION, null,buttons ,
@@ -808,6 +667,9 @@ public class TB extends JPanel{
                 }.start();
             }});
         p.add(item);
+        if(getSavedState(treenode)){
+            item.setEnabled(false);
+        }
         if(!reserved.equals(RunnerRepository.user))item.setEnabled(false);
         if(PermissionValidator.canChangeTBLock()&&reserved.equals("")){
             item = new JMenuItem("Lock");
@@ -851,6 +713,9 @@ public class TB extends JPanel{
                     setSavedState(treenode,true);
                 }}});
         p.add(item);
+        if(getSavedState(treenode)){
+            item.setEnabled(false);
+        }
         if(!reserved.equals(RunnerRepository.user))item.setEnabled(false);
         p.show(this.tree,ev.getX(),ev.getY());
     }
@@ -1013,9 +878,7 @@ public class TB extends JPanel{
      */
     public boolean removeNode(Node node,DefaultMutableTreeNode treenode){
         try{
-            String id = node.getID();
-            if(id==null)id = "/"+node.getPathAsString();
-            System.out.println("Delete: "+id);
+            String id = "/"+node.getName();
             String s = client.execute("deleteResource", new Object[]{id}).toString();
             if(s.indexOf("*ERROR*")==-1){
                 Node parent = node.getParent();
@@ -1029,7 +892,6 @@ public class TB extends JPanel{
                 add.setText("Add TB");
                 return true;
             }
-            System.out.println("respons: "+s);
             return false;
         }
         catch(Exception e){
@@ -1164,73 +1026,8 @@ class TreeTransferHandler extends TransferHandler {
         } catch(ClassNotFoundException e) {  
             System.out.println("ClassNotFound: " + e.getMessage());  
         }  
-    }  
-   
-//     public boolean canImport(TransferHandler.TransferSupport support) {  
-//         if(!support.isDrop()) {  
-//             return false;  
-//         }  
-//         support.setShowDropLocation(true);  
-//         if(!support.isDataFlavorSupported(nodesFlavor)) {  
-//             return false;  
-//         }  
-//         // Do not allow a drop on the drag source selections.  
-//         JTree.DropLocation dl =  
-//                 (JTree.DropLocation)support.getDropLocation();  
-//         JTree tree = (JTree)support.getComponent();  
-//         int dropRow = tree.getRowForPath(dl.getPath());  
-//         int[] selRows = tree.getSelectionRows();  
-//         for(int i = 0; i < selRows.length; i++) {  
-//             if(selRows[i] == dropRow) {  
-//                 return false;  
-//             }  
-//         }  
-//         // Do not allow MOVE-action drops if a non-leaf node is  
-//         // selected unless all of its children are also selected.  
-// //             int action = support.getDropAction();  
-// //             if(action == MOVE) {  
-// //                 return haveCompleteNode(tree);  
-// //             }  
-//         // Do not allow a non-leaf node to be copied to a level  
-//         // which is less than its source level.  
-//         TreePath dest = dl.getPath();  
-//         DefaultMutableTreeNode target =  
-//             (DefaultMutableTreeNode)dest.getLastPathComponent();  
-//         TreePath path = tree.getPathForRow(selRows[0]);  
-//         DefaultMutableTreeNode firstNode =  
-//             (DefaultMutableTreeNode)path.getLastPathComponent();  
-//         if(firstNode.getChildCount() > 0 &&  
-//                target.getLevel() < firstNode.getLevel()) {  
-//             return false;  
-//         }  
-//         return true;  
-//     }  
-   
-//     private boolean haveCompleteNode(JTree tree) {  
-//         int[] selRows = tree.getSelectionRows();  
-//         TreePath path = tree.getPathForRow(selRows[0]);  
-//         DefaultMutableTreeNode first =  
-//             (DefaultMutableTreeNode)path.getLastPathComponent();  
-//         int childCount = first.getChildCount();  
-//         // first has children and no children are selected.  
-//         if(childCount > 0 && selRows.length == 1)  
-//             return false;  
-//         // first may have children.  
-//         for(int i = 1; i < selRows.length; i++) {  
-//             path = tree.getPathForRow(selRows[i]);  
-//             DefaultMutableTreeNode next =  
-//                 (DefaultMutableTreeNode)path.getLastPathComponent();  
-//             if(first.isNodeChild(next)) {  
-//                 // Found a child of first.  
-//                 if(childCount > selRows.length-1) {  
-//                     // Not all children of first are selected.  
-//                     return false;  
-//                 }  
-//             }  
-//         }  
-//         return true;  
-//     }  
-   
+    }
+    
     protected Transferable createTransferable(JComponent c) {  
         JTree tree = (JTree)c;  
         TreePath[] paths = tree.getSelectionPaths();  
@@ -1238,13 +1035,10 @@ class TreeTransferHandler extends TransferHandler {
             // Make up a node array of copies for transfer and  
             // another for/of the nodes that will be removed in  
             // exportDone after a successful drop.  
-            List<Node> copies =  new ArrayList<Node>();  
-//             List<DefaultMutableTreeNode> toRemove =  
-//                 new ArrayList<DefaultMutableTreeNode>();  
+            List<Node> copies =  new ArrayList<Node>();   
             DefaultMutableTreeNode node =  (DefaultMutableTreeNode)paths[0].getLastPathComponent();  
             Node copy = copy((Node)node.getUserObject());
             copies.add(copy);  
-//             toRemove.add(node);  
             for(int i = 1; i < paths.length; i++) {  
                 DefaultMutableTreeNode next =  
                     (DefaultMutableTreeNode)paths[i].getLastPathComponent();  
@@ -1252,11 +1046,8 @@ class TreeTransferHandler extends TransferHandler {
                 if(next.getLevel() < node.getLevel()) {  
                     break;  
                 } else if(next.getLevel() > node.getLevel()) {  // child node  
-//                     copy.add(copy((Node)next.getUserObject()));  
-                    // node already contains child  
                 } else {                                        // sibling  
                     copies.add(copy((Node)next.getUserObject()));  
-//                     toRemove.add(next);  
                 }  
             }  
             Node[] nodes =  copies.toArray(new Node[copies.size()]);
@@ -1270,55 +1061,9 @@ class TreeTransferHandler extends TransferHandler {
         return node.clone();  
     }  
    
-//     protected void exportDone(JComponent source, Transferable data, int action) {  
-//         if((action & MOVE) == MOVE) {  
-//             JTree tree = (JTree)source;  
-//             DefaultTreeModel model = (DefaultTreeModel)tree.getModel();  
-//             // Remove nodes saved in nodesToRemove in createTransferable.  
-//             for(int i = 0; i < nodesToRemove.length; i++) {  
-//                 model.removeNodeFromParent(nodesToRemove[i]);  
-//             }  
-//         }  
-//     }  
-   
     public int getSourceActions(JComponent c) {  
         return MOVE;  
     }  
-   
-//     public boolean importData(TransferHandler.TransferSupport support) {  
-//         if(!canImport(support)) {  
-//             return false;  
-//         }  
-//         // Extract transfer data.  
-//         DefaultMutableTreeNode[] nodes = null;  
-//         try {  
-//             Transferable t = support.getTransferable();  
-//             nodes = (DefaultMutableTreeNode[])t.getTransferData(nodesFlavor);  
-//         } catch(UnsupportedFlavorException ufe) {  
-//             System.out.println("UnsupportedFlavor: " + ufe.getMessage());  
-//         } catch(java.io.IOException ioe) {  
-//             System.out.println("I/O error: " + ioe.getMessage());  
-//         }  
-//         // Get drop location info.  
-//         JTree.DropLocation dl =  
-//                 (JTree.DropLocation)support.getDropLocation();  
-//         int childIndex = dl.getChildIndex();  
-//         TreePath dest = dl.getPath();  
-//         DefaultMutableTreeNode parent =  
-//             (DefaultMutableTreeNode)dest.getLastPathComponent();  
-//         JTree tree = (JTree)support.getComponent();  
-//         DefaultTreeModel model = (DefaultTreeModel)tree.getModel();  
-//         // Configure for drop mode.  
-//         int index = childIndex;    // DropMode.INSERT  
-//         if(childIndex == -1) {     // DropMode.ON  
-//             index = parent.getChildCount();  
-//         }  
-//         // Add data to model.  
-//         for(int i = 0; i < nodes.length; i++) {  
-//             model.insertNodeInto(nodes[i], parent, index++);  
-//         }  
-//         return true;  
-//     }  
    
     public String toString() {  
         return getClass().getName();  

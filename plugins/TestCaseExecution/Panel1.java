@@ -1,6 +1,6 @@
 /*
 File: Panel1.java ; This file is part of Twister.
-Version: 2.0019
+Version: 2.0020
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -746,6 +746,17 @@ public class Panel1 extends JPanel{
      * generate master suites XML
      */
     private void generate(){
+        //check CE has clients started
+        try{
+            String resp = RunnerRepository.getRPCClient().execute("findAnonimEp", new Object[]{RunnerRepository.user}).toString();
+            if(resp=="false"){
+                CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, RunnerRepository.window,
+                                        "Warning","There are no clients started, please start client to run tests.");
+                return;
+            }
+        } catch (Exception e){
+            e.printStackTrace();
+        }
         RunnerRepository.window.mainpanel.getP2().setSaveDB(suitaDetails.saveDB());
         int defsNr = suitaDetails.getDefsNr();
         boolean execute=true;
@@ -777,7 +788,6 @@ public class Panel1 extends JPanel{
                 break;
             }
         }
-        
         /*
          * chech that there are tc'es to run
          */
@@ -792,8 +802,6 @@ public class Panel1 extends JPanel{
             CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, RunnerRepository.window,"Warning","No tc found to run");
             execute = false;
         }
-        
-        
         if(execute){
             String [] s = sc.g.getUser().split("\\\\");
             if(s.length>0){

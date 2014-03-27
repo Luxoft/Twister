@@ -1,6 +1,6 @@
 /*
 File: applet.java ; This file is part of Twister.
-Version: 2.004
+Version: 2.005
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -98,13 +98,9 @@ public class applet extends Applet{
      */
     public void setSize(int width, int height){
         super.setSize(width,height);
-//         System.out.println("applet resizing to: "+width+" - "+height);
-//         validate();
-//         MainRepository.resize(width,height);
     }
     
     public void resize(int width, int height){
-        System.out.println("applet resizing : "+width+" - "+height);
         validate();
         MainRepository.resize(width,height);
     }

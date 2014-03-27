@@ -1,4 +1,10 @@
+cd ../../../plugins/TestCaseExecution
+CALL build.bat
+cd ../../../client/userinterface/java/
+copy "..\..\..\plugins\TestCaseExecution\target\runner.jar" "extlibs\runner.jar"
+
 SET EXTLIBS="extlibs/Twister.jar;extlibs/gson-2.2.1.jar;extlibs/ws-commons-util-1.0.2.jar;extlibs/commons-vfs-1.0.jar;extlibs/jgoodies-looks-2.5.1.jar;extlibs/jgoodies-common-1.3.1.jar;extlibs/VFSJFileChooser-0.0.3.jar;extlibs/jxl.jar;extlibs/ws-commons-util-1.0.2.jar;extlibs/xmlrpc-client-3.1.3.jar;extlibs/xmlrpc-common-3.1.3.jar;extlibs/UserManagement.jar;extlibs/ControlPanel.jar;extlibs/runner.jar"
+
 
 javac.exe -deprecation -d classes -source 1.6 -target 1.6 -cp %EXTLIBS% src/*.java
 

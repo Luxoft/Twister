@@ -1,6 +1,6 @@
 /*
 File: ClearCase.java ; This file is part of Twister.
-Version: 2.019
+Version: 2.020
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -80,6 +80,9 @@ public class ClearCase extends JPanel{
     private String prompt = "twister_prompt#";
     private String shell;
     private JPanel clearcasecmd;
+    private int BASE = 0;
+    private ClearCaseConfig conf;
+    
     
     public static void setView(String view){
         ClearCase.view = view;
@@ -133,7 +136,7 @@ public class ClearCase extends JPanel{
         add(tabs, BorderLayout.CENTER);
         JButton listviews = new JButton("List Views");
         JButton setview = new JButton("Set View");
-        final ClearCaseConfig conf = new ClearCaseConfig(new Object[]{listviews,setview},this);
+        conf = new ClearCaseConfig(new Object[]{listviews,setview},this);
         clearcasecmd = new JPanel();
         tabs.addTab("Control", clearcasecmd);
         tabs.addTab("Configuration", new JScrollPane(conf));
@@ -181,12 +184,19 @@ public class ClearCase extends JPanel{
                     public void run(){
                         String filter = tfilter.getText();
                         String resp = null;
-                        String command = " cleartool lsview";
-                        if(cshort.isSelected()){
-                            command+=" -short";
-                        } else if(clong.isSelected()){
-                            command+=" -long";
+                        String command = "";
+                        if(conf.getType()!=BASE){
+                            command = " cleartool lsactivity";
+                        } else {
+                            command = " cleartool lsview";
+                            if(cshort.isSelected()){
+                                command+=" -short";
+                            } else if(clong.isSelected()){
+                                command+=" -long";
+                            }
+                            
                         }
+                        
                         if(!filter.equals("")){
                             command+=" | grep "+filter;
                         }
@@ -441,32 +451,37 @@ public class ClearCase extends JPanel{
                                                         null);
                 if(resp == JOptionPane.OK_OPTION){
                     StringBuilder sb = new StringBuilder();
-                    sb.append("cleartool describe ");
-                    if(jlong.isSelected()){
-                        sb.append(" -long ");
-                    } else if (jshort.isSelected()){
-                        sb.append(" -short ");
-                    } else if(format.isSelected()){
-                        sb.append(" -format \"");
-                        sb.append(tformat.getText());
-                        sb.append("\" ");
+                    if(conf.getType()!=BASE){ 
+                        sb.append("cleartool describe –cact");
+                    }else {
+                        sb.append("cleartool describe ");
+                        if(jlong.isSelected()){
+                            sb.append(" -long ");
+                        } else if (jshort.isSelected()){
+                            sb.append(" -short ");
+                        } else if(format.isSelected()){
+                            sb.append(" -format \"");
+                            sb.append(tformat.getText());
+                            sb.append("\" ");
+                        }
+                        if(!telement.getText().equals("")){
+                            sb.append(telement.getText());
+                        } else if(!tcview.getText().equals("")){
+                            sb.append(" -cview ");
+                            sb.append(tcview.getText());
+                        }else if(!thlink.getText().equals("")){
+                            sb.append(" hlink:");
+                            sb.append(thlink.getText());
+                        }else if(!tlbtype.getText().equals("")){
+                            sb.append(" lbtype:");
+                            sb.append(tlbtype.getText());
+                        }else if(!tvob.getText().equals("")){
+                            sb.append(" vob:");
+                            sb.append(tvob.getText());
+                        }
                     }
                     
-                    if(!telement.getText().equals("")){
-                        sb.append(telement.getText());
-                    } else if(!tcview.getText().equals("")){
-                        sb.append(" -cview ");
-                        sb.append(tcview.getText());
-                    }else if(!thlink.getText().equals("")){
-                        sb.append(" hlink:");
-                        sb.append(thlink.getText());
-                    }else if(!tlbtype.getText().equals("")){
-                        sb.append(" lbtype:");
-                        sb.append(tlbtype.getText());
-                    }else if(!tvob.getText().equals("")){
-                        sb.append(" vob:");
-                        sb.append(tvob.getText());
-                    }
+                    
                     HashMap<String, String> hash = new HashMap<String, String>();
                     hash.put("command", sb.toString());
                     String response = sendCommand(hash,false);
@@ -762,16 +777,22 @@ public class ClearCase extends JPanel{
 
         listviews.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
-                if(conf.getType()==0){
+                
                     new Thread(){
                         public void run(){
                             tfilter.setText(RunnerRepository.user);
-                            String command = " cleartool lsview";
-                            if(cshort.isSelected()){
-                                command+=" -short";
-                            } else if(clong.isSelected()){
-                                command+=" -long";
+                            String command = "";
+                            if(conf.getType()!=BASE){
+                                command = " cleartool lsactivity";
+                            } else {
+                                command = " cleartool lsview";
+                                if(cshort.isSelected()){
+                                    command+=" -short";
+                                } else if(clong.isSelected()){
+                                    command+=" -long";
+                                }
                             }
+                            
                             HashMap<String, String> hash = new HashMap<String, String>();
                             hash.put("command", command+" | grep "+RunnerRepository.user);
                             String resp = sendCommand(hash,false);
@@ -780,27 +801,27 @@ public class ClearCase extends JPanel{
                             tfilter.setEnabled(true);
                         }
                     }.start();
-                } else {
-                    
-                }
+                
             }
         });
         setview.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
-                if(conf.getType()==0){
+                
                     new Thread(){
                         public void run(){
                             refresh.setEnabled(false);
                             tfilter.setEnabled(false);
                             HashMap<String, String> hash = new HashMap<String, String>();
-                            hash.put("command", " cleartool lsview -short | grep "+RunnerRepository.user);
+                            if(conf.getType()==BASE){
+                                hash.put("command", " cleartool lsview -short | grep "+RunnerRepository.user);
+                            } else {
+                                hash.put("command", " cleartool lsactivity | grep "+RunnerRepository.user);
+                            }
                             String [] resp = sendCommand(hash,false).split("\n");
                             showViews(resp);
                         }
                     }.start();
-                } else {
-                    
-                }
+                
             }
         });
         views.setText("Views:");
@@ -996,10 +1017,16 @@ public class ClearCase extends JPanel{
                        String filter = tfilter.getText();
                         String [] resp = null;
                         String command = "";
-                        if(filter.equals("")){
-                            command = " cleartool lsview -short ";
+                        if(conf.getType()!=BASE){
+                                command = " cleartool lsactivity";
+                            if(!filter.equals("")){
+                                command = " cleartool lsactivity | grep "+filter;
+                            }
                         } else {
-                            command = " cleartool lsview -short | grep "+filter;
+                            command = " cleartool lsview -short ";
+                            if(!filter.equals("")){
+                                command = " cleartool lsview -short | grep "+filter;
+                            }
                         }
                         HashMap<String, String> hash = new HashMap<String, String>();
                         hash.put("command", command);
@@ -1021,7 +1048,12 @@ public class ClearCase extends JPanel{
             }
             view = jList1.getSelectedValue().toString();
             HashMap<String, String> hash = new HashMap<String, String>();
-            hash.put("command", "cleartool setview "+view);
+            if(conf.getType()!=BASE){
+                hash.put("command", "cleartool setactivity "+view);
+            } else {
+                hash.put("command", "cleartool setview "+view);
+            }
+            
             sendCommand(hash,false);
             root = jTextField1.getText();
             RunnerRepository.window.mainpanel.p1.cp.refreshStructure();
