@@ -2923,6 +2923,7 @@ class Project(object):
                                     r = usr_script_cache_s[suite_id][u_script]
 
                             # Replace UserScript with with real Script results
+                            if not r: r = ''
                             query = query.replace('$'+field, r)
 
                         # All variables of type `DbSelect` must be replaced with the SQL result

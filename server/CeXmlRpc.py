@@ -1,7 +1,7 @@
 
 # File: CeXmlRpc.py ; This file is part of Twister.
 
-# version: 2.040
+# version: 2.041
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -38,6 +38,7 @@ from __future__ import with_statement
 
 import os
 import sys
+import re
 import time
 import datetime
 import traceback
@@ -1280,7 +1281,14 @@ class CeXmlRpc(_cptools.XMLRPCController):
             view = ccConfig['view']
             text = self.project.readFile(user, fname, type='clearcase:' + view)
             tags = re.findall('^[ ]*?[#]*?[ ]*?<(?P<tag>\w+)>([ -~\n]+?)</(?P=tag)>', text, re.MULTILINE)
-            return '<br>\n'.join(['<b>' + title + '</b> : ' + descr.replace('<', '&lt;') for title, descr in tags])
+            result = '<br>\n'.join(['<b>' + title + '</b> : ' + descr.replace('<', '&lt;') for title, descr in tags])
+            # Hack `cleartool ls` data
+            data = self.project.clearFs.systemCommand(user +':'+ view, 'cleartool ls {}'.format(fname))
+            if data:
+                cctag = re.search('@@(.+?)\s', data)
+                if cctag:
+                    result += '<br>\n' + '<b>ClearCase Version</b> : {}'.format(cctag.group(1))
+            return result
         else:
             logWarning('Cannot find file `{}`! Null file description!'.format(fname))
             return ''

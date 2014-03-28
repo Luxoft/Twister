@@ -1,7 +1,7 @@
 
 # File: UserService.py ; This file is part of Twister.
 
-# version: 3.004
+# version: 3.005
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -45,11 +45,18 @@ from rpyc.utils.server import ThreadedServer
 
 log = logging.getLogger(__name__)
 
+TYPE = sys.argv[2:3]
+
+if TYPE == ['ClearCase']:
+    log_file = 'clear_srv.log'
+else:
+    log_file = 'usr_srv.log'
+
 logging.basicConfig(
     level=logging.NOTSET,
     format='%(asctime)s  %(levelname)-8s %(message)s',
     datefmt='%y-%m-%d %H:%M:%S',
-    filename='usr_srv.log',
+    filename=log_file,
     filemode='w')
 
 console = logging.StreamHandler()
@@ -85,18 +92,18 @@ lastMsg = ''
 class UserService(rpyc.Service):
 
     def __init__(self, conn):
-        log.debug('Warming up the User Service...')
+        log.debug('Warming up the User Service ({})...'.format(TYPE))
         self._conn = conn
 
 
     def on_connect(self):
         client_addr = self._conn._config['endpoints'][1]
-        log.debug('Connected from `{}`.'.format(client_addr))
+        log.debug('User Service: Connected from endpoint `{}`.'.format(client_addr))
 
 
     def on_disconnect(self):
         client_addr = self._conn._config['endpoints'][1]
-        log.debug('Disconnected from `{}`.'.format(client_addr))
+        log.debug('User Service: Disconnected from endpoint `{}`.'.format(client_addr))
 
 
     @staticmethod

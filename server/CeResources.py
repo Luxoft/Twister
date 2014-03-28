@@ -1,7 +1,7 @@
 
 # File: CeResources.py ; This file is part of Twister.
 
-# version: 2.043
+# version: 2.045
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -161,7 +161,6 @@ def _get_res_pointer(parent_node, query):
 
     return resource_p
 
-
 def _get_res_path(parent_node, query):
     '''
     Helper function.
@@ -305,8 +304,8 @@ def res_to_xml(parent_node, xml, skip_header = False):
 
         tb_id = etree.SubElement(xml,'id')
         tb_id.text = parent_node.get('id')
-        # add version only if it exists in dictionary; the SUT files don't
-        # have version
+        # add version only if it exists in dictionary; the SUT
+        # files don't have version
         if parent_node.get('version') is not None:
             version = etree.SubElement(xml,'version')
             version.text = str(parent_node.get('version'))
@@ -682,6 +681,28 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
         return True
 
+    def _get_reserved_res_pointer(self, res_query):
+        # the res_pointer not found; this might happen if the
+        # resource was renamed; if so, the new name should be in
+        # reservedResources; get the ID from there and search again
+        res_pointer = None
+
+        if '/' in res_query:
+            res_query = res_query.split('/')[1]
+
+        if not self.reservedResources.get(self.getUserName()):
+            return None,None
+
+        for reserved_res in self.reservedResources[self.getUserName()]:
+            reserved_res_p = self.reservedResources[self.getUserName()][reserved_res]
+            if reserved_res_p['path'][0] == res_query:
+                query_id = reserved_res_p['id']
+                res_path = _get_res_path(self.resources, query_id)
+                res_pointer = _get_res_pointer(self.resources, ''.join('/' + res_path[0]))
+                return (res_path,res_pointer)
+
+        return None,None
+
 
     @cherrypy.expose
     def echo(self, msg):
@@ -840,7 +861,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
         # to extract the last string after /, remove extension and add .json
         sut_file = xml_file.split('/')[-1].split('.')[0]
         sut_file = sut_file + '.json'
-
+        
         sutPath = None
         if sutType == 'system':
             # System SUT path
@@ -1302,8 +1323,13 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
                 return True
 
-            # If the resource is new, create it.
+            elif self._get_reserved_res_pointer(name) != (None,None):
+                # resource was just created and reserved
+                res_path,res_pointer = self._get_reserved_res_pointer(name)
+                res_pointer['meta'] = props
+                return True
             else:
+                # resource is new, create it.
                 #parent_p = _get_res_pointer(parent_p, parent)
 
                 res_id = False
@@ -1369,7 +1395,6 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
         user_roles = self.userRoles(props)
         user = user_roles['user']
-
 
         # If the root is not provided, use the default root
         if root_id == ROOT_DEVICE:
@@ -1445,7 +1470,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
             exec_string = 'res_p'
 
         with self.ren_lock:
-
+            
             # If must rename a Meta info
             if meta:
                 exec( 'val = {}["meta"].get("{}")'.format(exec_string, meta) )
@@ -1459,7 +1484,6 @@ class ResourceAllocator(_cptools.XMLRPCController):
                 exec( 'del {}["meta"]["{}"]'.format(exec_string, meta) )
 
                 logDebug('User {0}: Renamed {1} meta `{2}:{3}` to `{2}:{4}`.'.format(self.getUserName(),root_name, '/'.join(node_path), meta, new_name))
-
             # If must rename a normal node
             else:
                 if new_path[1:]:
@@ -1803,6 +1827,8 @@ class ResourceAllocator(_cptools.XMLRPCController):
                         return self.reservedResources[user][p]
 
         res_pointer = _get_res_pointer(resources, ''.join('/' + res_path[0]))
+        if not res_pointer:
+            res_path,res_pointer = self._get_reserved_res_pointer(res_query)
 
         if not res_pointer:
             msg = 'User {}: Get reserved resource: Cannot find resource path or ID `{}` !'.format(self.getUserName(),res_query)
@@ -1814,12 +1840,12 @@ class ResourceAllocator(_cptools.XMLRPCController):
             logError(msg)
             return False
 
-        res_pointer.update([('path', [res_path[0]]), ])
+        res_pointer.update([('path', res_path), ])
         join_path = self.reservedResources[user][res_pointer['id']].get('path', '')
         if isinstance(join_path, str):
             join_path = [join_path]
 
-        self.reservedResources[user][res_pointer['id']]['path'] = '/'.join(join_path)
+        self.reservedResources[user][res_pointer['id']]['path'] = ['/'.join(join_path)]
 
         return self.reservedResources[user][res_pointer['id']]
 
@@ -1945,6 +1971,11 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
         res_path = _get_res_path(resources, res_query)
         res_pointer = _get_res_pointer(resources, ''.join('/' + res_path[0]))
+        # the res_pointer not found; this might happen if the
+        # resource was renamed; if so, the new name should be in 
+        # reservedResources; get the ID from there and search again
+        if not res_pointer:
+            res_path,res_pointer = self._get_reserved_res_pointer(res_query)
 
         if '/' in res_query:
             res_query = res_query.split('/')[-1]
@@ -2018,7 +2049,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
     @cherrypy.expose
     def saveReservedResource(self, res_query, props={}, root_id=ROOT_DEVICE, username = None):
         """  """
-        logFull('CeResources:saveReservedResource')
+        logFull('CeResources:saveReservedResource {}'.format(res_query))
         self._load(v=False, props=props)
 
         if root_id == ROOT_DEVICE:
@@ -2037,9 +2068,11 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
         res_path = _get_res_path(resources, res_query)
         res_pointer = _get_res_pointer(resources, ''.join('/' + res_path[0]))
-
-        if '/' in res_query:
-            res_query = res_query.split('/')[-1]
+        # the res_pointer not found; this might happen if the
+        # resource was renamed; if so, the new name should be in 
+        # reservedResources; get the ID from there and search again
+        if not res_pointer:
+            res_path,res_pointer = self._get_reserved_res_pointer(res_query)
 
         if not res_pointer:
             msg = 'User {}: Save reserved resource: Cannot find resource path or ID `{}` !'.format(self.getUserName(),res_query)
@@ -2102,7 +2135,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
     @cherrypy.expose
     def saveReservedResourceAs(self, name, res_query, props={}, root_id=ROOT_DEVICE, username = None):
         """  """
-        logFull('CeResources:saveReservedResourceAs')
+        logFull('CeResources:saveReservedResourceAs {} {}'.format(name,res_query))
         self._load(v=False, props=props)
 
         if root_id == ROOT_DEVICE:
@@ -2195,6 +2228,12 @@ class ResourceAllocator(_cptools.XMLRPCController):
         res_path = _get_res_path(resources, res_query)
         res_pointer = _get_res_pointer(resources, ''.join('/' + res_path[0]))
 
+        # the res_pointer not found; this might happen if the
+        # resource was renamed; if so, the new name should be in
+        # reservedResources; get the ID from there and search again
+        if not res_pointer:
+            res_path,res_pointer = self._get_reserved_res_pointer(res_query)
+
         if not res_pointer:
             msg = 'User {}: Discard reserved resource: Cannot find resource path or ID `{}` !'.format(self.getUserName(),res_query)
             logError(msg)
@@ -2242,6 +2281,12 @@ class ResourceAllocator(_cptools.XMLRPCController):
             # return '*ERROR* not found'
             return False
         res_pointer = _get_res_pointer(resources, ''.join('/' + res_path[0]))
+
+        # the res_pointer not found; this might happen if the
+        # resource was renamed; if so, the new name should be in
+        # reservedResources; get the ID from there and search again
+        if not res_pointer:
+            res_path,res_pointer = self._get_reserved_res_pointer(res_query)
 
         if not res_pointer:
             msg = 'User {}: Is resource locked: Cannot find resource path or ID `{}` !'.format(self.getUserName(),res_query)
@@ -2439,7 +2484,6 @@ class ResourceAllocator(_cptools.XMLRPCController):
         # first, get all system SUT files
         if os.path.isdir(sysSutsPath):
             s = ['{}.system'.format(os.path.splitext(d)[0]) for d in os.listdir(sysSutsPath) if os.path.splitext(d)[1]=='.json']
-            logDebug('BOG SYSTEM \n{}'.format(s))
             suts.extend(s)
 
         # get user SUT file; we have to check if the cleacase plugin
