@@ -1,6 +1,6 @@
 /*
 File: NodePanel.java ; This file is part of Twister.
-Version: 2.009
+Version: 2.010
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -180,29 +180,43 @@ public class NodePanel extends JPanel{
         
         update.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
-                 try{
-                    if(tname.getText().equals(""))return;
-                    if(parent.getName().equals(tname.getText()))return;
-                    if(!checkExistingName(parent, tname.getText())){
-                        String query = client.execute("renameResource", new Object[]{parent.getID(),
-                                                                                    tname.getText()}).toString();
-                        if(query.equals("true")){
-                            updatePaths(treenode, parent);
-                            parent.setName(tname.getText());
-                            tpath.setText(parent.getPath().getPath());
-                            ((DefaultTreeModel)tree.getModel()).nodeChanged(treenode);
-                            RunnerRepository.window.mainpanel.p4.getTB().setSavedState(treenode,false);
-                            update.setEnabled(false);
-                        } else {
-                            System.out.println("There was an error: "+query);
-                            CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,NodePanel.this,
-                                                  "Warning", query);
+                if(tname.getText().equals(""))return;
+                if(parent.getName().equals(tname.getText()))return;
+                try{
+                    String [] buttons = {"Continue","Cancel"};
+                    String resp = CustomDialog.showButtons(NodePanel.this, JOptionPane.QUESTION_MESSAGE,
+                                                            JOptionPane.DEFAULT_OPTION, null,buttons ,
+                                                            "Confirmation","The TB changes will be saved; do you want to continue ?");
+                    if (!resp.equals("NULL")) {
+                        if(resp.equals("Continue")){
+                            if(!checkExistingName(parent, tname.getText())){
+                                String query = client.execute("renameResource", new Object[]{parent.getID(),
+                                                                                            tname.getText()}).toString();
+                                if(query.equals("true")){
+                                    updatePaths(treenode, parent);
+                                    parent.setName(tname.getText());
+                                    tpath.setText(parent.getPath().getPath());
+                                    ((DefaultTreeModel)tree.getModel()).nodeChanged(treenode);
+                                    RunnerRepository.window.mainpanel.p4.getTB().setSavedState(treenode,false);
+                                    update.setEnabled(false);
+                                    if(RunnerRepository.window.mainpanel.p4.getTB().saveChanges("/"+parent.getName())){
+                                        RunnerRepository.window.mainpanel.p4.getTB().setSavedState(treenode,true);
+                                    }
+                                } else {
+                                    System.out.println("There was an error: "+query);
+                                    CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,NodePanel.this,
+                                                          "Warning", query);
+                                }
+                            } else {
+                                tname.setText(parent.getName());
+                                CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,NodePanel.this,
+                                                      "Warning", "Name already exists!");
+                            }
+                            return;
                         }
-                    } else {
-                        tname.setText(parent.getName());
-                        CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,NodePanel.this,
-                                              "Warning", "Name already exists!");
                     }
+                    tname.setText(parent.getName());
+                    update.setEnabled(false);
                 }
                 catch(Exception e){
                     e.printStackTrace();

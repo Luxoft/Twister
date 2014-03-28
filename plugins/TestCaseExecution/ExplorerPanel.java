@@ -1,6 +1,6 @@
 /*
 File: ExplorerPanel.java ; This file is part of Twister.
-Version: 2.011
+Version: 2.012
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -142,37 +142,32 @@ public class ExplorerPanel {
     private TreePath[] selected;
     private DefaultMutableTreeNode child2;
     private JEditTextArea textarea;
-//     public static ChannelSftp connection;
-//     public static Session session;
     public DragSource ds;
     
     public ExplorerPanel(boolean applet) {
         RunnerRepository.introscreen.setStatus("Started Explorer interface initialization");
         RunnerRepository.introscreen.addPercent(0.035);
         RunnerRepository.introscreen.repaint();
-//         initializeSftp();
         
         root = new DefaultMutableTreeNode("root", true);
         DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
         tree = new JTree(root);
+        tree.setModel(new DefaultTreeModel(root,true));
         tree.setDragEnabled(true);
         tree.setTransferHandler(new TransferHandler(){
             protected Transferable createTransferable(JComponent c){
                 return new StringSelection("tc");
             }
-//          
             public int getSourceActions(JComponent c){
                 return TransferHandler.COPY_OR_MOVE;
             }
             
         });
         try {
-//             connection.cd(RunnerRepository.getTestSuitePath());
             RunnerRepository.introscreen.setStatus("Started retrieving tc directories");
             RunnerRepository.introscreen.addPercent(0.035);
             RunnerRepository.introscreen.repaint();
             refreshStructure();
-            //getList(root, connection,RunnerRepository.getTestSuitePath());
             RunnerRepository.introscreen.setStatus("Finished retrieving tc directories");
             RunnerRepository.introscreen.addPercent(0.035);
             RunnerRepository.introscreen.repaint();
@@ -188,26 +183,7 @@ public class ExplorerPanel {
             }
         });
         tree.setRootVisible(false);
-        tree.expandRow(0);
-        
-        
-        
-        
-//         ds = new DragSource();
-//         ds.getDefaultDragSource().
-//         ds.getDefaultDragSource();
-//         ds.createDefaultDragGestureRecognizer(tree,
-//                 DnDConstants.ACTION_COPY_OR_MOVE, new TreeDragGestureListener());
-//         tree.setDragEnabled(true);
-        
-//         TransferHandler t = new TransferHandler(){
-//             public Transferable createTransferable(JComponent c){
-//                 return new StringSelection("ExplorerPanel");
-//             }
-//         };
-//         tree.setTransferHandler(t);
-        
-        
+        tree.expandRow(0);        
         RunnerRepository.introscreen.setStatus("Finished Explorer interface initialization");                
         RunnerRepository.introscreen.addPercent(0.035);
         RunnerRepository.introscreen.repaint();
@@ -703,8 +679,6 @@ public class ExplorerPanel {
         try {
             String path [] = remotefile.split("/");
             FileInputStream in = new FileInputStream(localfile);
-//             connection.put(in, remotefile);
-//             in.close();
             RunnerRepository.uploadRemoteFile(remotefile.replace("/"+path[path.length-1], ""), in, path[path.length-1],false,null);
         } catch (Exception e) {
             e.printStackTrace();
@@ -715,11 +689,12 @@ public class ExplorerPanel {
     }
 
     public void refreshStructure() {
-        if(root.getChildCount()>0)root.remove(0);
-        try {
-//             HashMap hash = RunnerRepository.getRemoteFolderStructure(RunnerRepository.getTestSuitePath());
-            HashMap hash = RunnerRepository.getServerTCStructure(false);
-            getList(root, hash,RunnerRepository.getTestSuitePath());
+        try {HashMap hash = RunnerRepository.getServerTCStructure(false);
+            DefaultMutableTreeNode child = getList(hash,RunnerRepository.getTestSuitePath());
+            if(child!=null){
+                if(root.getChildCount()>0)root.remove(0);
+                root.add(child);
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -744,167 +719,42 @@ public class ExplorerPanel {
     public boolean getDragging() {
         return dragging;
     }
-
-    /*
-     * construct the list for folders representation in jtree
-     */
-//     public void getList(DefaultMutableTreeNode node, ChannelSftp c, String curentdir) {
-//         try {
-//             DefaultMutableTreeNode child = new DefaultMutableTreeNode(curentdir);
-//             Vector<LsEntry> vector1 = c.ls(".");
-//             Vector<String> vector = new Vector<String>();
-//             Vector<String> folders = new Vector<String>();
-//             Vector<String> files = new Vector<String>();
-//             int lssize = vector1.size();
-//             if (lssize > 2) {
-//                 node.add(child);
-//             }
-//             String current;
-//             for (int i = 0; i < lssize; i++) {
-//                 if (vector1.get(i).getFilename().split("\\.").length == 0){
-//                     continue;
-//                 }
-//                 
-//                 if(vector1.get(i).getAttrs().isDir()){
-//                     folders.add(vector1.get(i).getFilename());
-//                 } else {
-//                     files.add(vector1.get(i).getFilename());
-//                 }
-//             }
-//             Collections.sort(folders);
-//             Collections.sort(files);
-//             for (int i = 0; i < folders.size(); i++) {
-//                 vector.add(folders.get(i));
-//             }
-//             for (int i = 0; i < files.size(); i++) {
-//                 vector.add(files.get(i));
-//             }
-//             for (int i = 0; i < vector.size(); i++) {
-//                 try {
-//                     current = c.pwd();
-//                     c.cd(vector.get(i));
-//                     getList(child, c,curentdir+"/"+vector.get(i));
-//                     c.cd(current);
-//                 } catch (SftpException e) {
-//                     if (e.id == 4) {
-//                         child2 = new DefaultMutableTreeNode(vector.get(i));
-//                         child.add(child2);
-//                     } else {
-//                         e.printStackTrace();
-//                     }
-//                 }
-//                 
-//             }
-//         } catch (Exception e) {
-//             e.printStackTrace();
-//         }
-//     }
-    
     
     /*
      * construct the list for folders representation in jtree
      */
-    public void getList(DefaultMutableTreeNode node, HashMap hash, String curentdir) {
-        try {
-            DefaultMutableTreeNode child = new DefaultMutableTreeNode(curentdir);
-            node.add(child);
+    public DefaultMutableTreeNode getList(HashMap hash, String curentdir){
+        try{DefaultMutableTreeNode child = new DefaultMutableTreeNode(curentdir,true);
             Object [] children = (Object [])hash.get("children");
             if(children!=null&&children.length>0){
                 for(Object subchild:children){
                     String name = ((HashMap)subchild).get("data").toString();
                     if(((HashMap)subchild).get("folder")!=null){//folder
-                        getList(child, (HashMap)subchild ,curentdir+"/"+name);
-                    } else {//file
-                        child2 = new DefaultMutableTreeNode(name);
+                        child2 = getList((HashMap)subchild ,curentdir+"/"+name);
+                        if(child2!=null){
+                            child.add(child2);
+                        }
+                    }else{//file
+                        child2 = new DefaultMutableTreeNode(name,false);
                         child.add(child2);
                     }
                 }
             }
+            return child;
         } catch (Exception e) {
             e.printStackTrace();
         }
+        return null;
     }
-    
-//     private void initializeSftp(){
-//         try{
-//             JSch jsch = new JSch();
-//             session = jsch.getSession(RunnerRepository.user, RunnerRepository.host, 22);
-//             session.setPassword(RunnerRepository.password);
-//             Properties config = new Properties();
-//             config.put("StrictHostKeyChecking", "no");
-//             session.setConfig(config);
-//             session.connect();
-//             Channel channel = session.openChannel("sftp");
-//             channel.connect();
-//             connection = (ChannelSftp)channel;
-//         } catch (Exception e){
-//             e.printStackTrace();
-//         }
-//     }
     
     class Compare implements Comparator {
 
-    public int compare(Object emp1, Object emp2) {
-        return ((TreePath) emp1)
-                .getLastPathComponent()
-                .toString()
-                .compareToIgnoreCase(
-                        ((TreePath) emp2).getLastPathComponent().toString());
+        public int compare(Object emp1, Object emp2) {
+            return ((TreePath) emp1)
+                    .getLastPathComponent()
+                    .toString()
+                    .compareToIgnoreCase(
+                            ((TreePath) emp2).getLastPathComponent().toString());
         }
     }
-    
-//     class TreeDragGestureListener implements DragGestureListener {
-//         public void dragGestureRecognized(DragGestureEvent dragGestureEvent) {
-//             StringSelection str = new StringSelection("str");
-//             dragGestureEvent.startDrag(DragSource.DefaultCopyNoDrop, str);
-//             System.out.println("Gesture recognized");
-//         }
-//     }
-    
-//     class MyTree extends JTree implements DragGestureListener, DragSourceListener{
-//         private DragSource dragSource;
-//         
-//         public MyTree(DefaultMutableTreeNode node){
-//             super(node);
-//             //setDragEnabled(true);
-//             dragSource = new DragSource();
-//             dragSource.createDefaultDragGestureRecognizer(this, DnDConstants.ACTION_COPY_OR_MOVE, this);
-//             getSelectionModel().setSelectionMode(TreeSelectionModel.CONTIGUOUS_TREE_SELECTION);
-//             
-//         }
-//         
-//         public void dragGestureRecognized(DragGestureEvent evt) {
-//             if (evt.getDragAction()==DnDConstants.ACTION_MOVE){
-//                 Transferable transferable = new StringSelection("tc");
-//                 try{      
-//                     evt.startDrag(DragSource.DefaultCopyDrop, transferable);
-// //                     dragSource.startDrag(evt, DragSource.DefaultCopyDrop, transferable, this);
-//                 } catch(Exception e){
-//                     e.printStackTrace();
-//                 }
-//             }
-//             
-//             
-//             
-//         }
-//         
-//         public void dragEnter(DragSourceDragEvent evt) {
-//         }
-//         
-//         public void dragOver(DragSourceDragEvent evt) {
-//         }
-//         
-//         public void dragExit(DragSourceEvent evt) {
-//         }
-//         
-//         public void dropActionChanged(DragSourceDragEvent evt) {
-//         }
-//         
-//         public void dragDropEnd(DragSourceDropEvent evt) {
-//         }
-//         
-//     }
-    
-    
 }
-

@@ -1,6 +1,6 @@
 /*
 File: LibrariesPanel.java ; This file is part of Twister.
-Version: 2.008
+Version: 2.009
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -148,6 +148,7 @@ public class LibrariesPanel{
         root = new DefaultMutableTreeNode("root", true);
         DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
         tree = new JTree(root);
+        tree.setModel(new DefaultTreeModel(root,true));
         tree.setTransferHandler(new TransferHandler(){
             
             protected Transferable createTransferable(JComponent c)
@@ -657,12 +658,10 @@ public class LibrariesPanel{
     }
 
 //     public void refreshStructure() {
-//         try{root.remove(0);}
-//         catch(Exception e){e.printStackTrace();}
-//         try {
-//             connection.cd(RunnerRepository.getPredefinedSuitesPath());
-//             getList(root, connection, RunnerRepository.getPredefinedSuitesPath());
-//         } catch (Exception e) {
+//         if(root.getChildCount()>0)root.remove(0);
+//         try{HashMap hash = RunnerRepository.getPredefinedSuites();
+//             getList(root, hash,hash.get("data").toString());
+//         }catch (Exception e){
 //             e.printStackTrace();
 //         }
 //         ((DefaultTreeModel) tree.getModel()).reload();
@@ -670,17 +669,17 @@ public class LibrariesPanel{
 //         selected = null;
 //         setDragging(false);
 //     }
-
-    public void refreshStructure() {
-        if(root.getChildCount()>0)root.remove(0);
-        try {
-//             HashMap hash = RunnerRepository.getRemoteFolderStructure(RunnerRepository.getPredefinedSuitesPath());
-            HashMap hash = RunnerRepository.getPredefinedSuites();
-            getList(root, hash,hash.get("data").toString());
-        } catch (Exception e) {
+    
+    public void refreshStructure(){
+        try{HashMap hash = RunnerRepository.getPredefinedSuites();
+            DefaultMutableTreeNode child = getList(hash,hash.get("data").toString());
+            if(child!=null){
+                if(root.getChildCount()>0)root.remove(0);
+                root.add(child);
+            }
+        }catch(Exception e){
             e.printStackTrace();
         }
-        
         ((DefaultTreeModel) tree.getModel()).reload();
         tree.expandRow(0);
         selected = null;
@@ -702,109 +701,54 @@ public class LibrariesPanel{
         return dragging;
     }
     
-    /*
-     * construct the list for folders representation in jtree
-     */
-    public void getList(DefaultMutableTreeNode node, HashMap hash, String curentdir) {
-        try {
-            DefaultMutableTreeNode child = new DefaultMutableTreeNode(curentdir);
-            node.add(child);
-            Object [] children = (Object [])hash.get("children");
-            if(children!=null&&children.length>0){
-                for(Object subchild:children){
-                    String name = ((HashMap)subchild).get("data").toString();
-                    if(((HashMap)subchild).get("folder")!=null){//folder
-                        getList(child, (HashMap)subchild ,curentdir+"/"+name);
-                    } else {//file
-                        child2 = new DefaultMutableTreeNode(name);
-                        child.add(child2);
-                    }
-                }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
 //     /*
 //      * construct the list for folders representation in jtree
 //      */
-//     public void getList(DefaultMutableTreeNode node, ChannelSftp c, String curentdir) {
+//     public void getList(DefaultMutableTreeNode node, HashMap hash, String curentdir) {
 //         try {
 //             DefaultMutableTreeNode child = new DefaultMutableTreeNode(curentdir);
-//             Vector<LsEntry> vector1 = c.ls(".");
-//             Vector<String> vector = new Vector<String>();
-//             Vector<String> folders = new Vector<String>();
-//             Vector<String> files = new Vector<String>();
-//             int lssize = vector1.size();
-//             if (lssize > 2) {
-//                 node.add(child);
-//             }
-//             String current;
-//             for (int i = 0; i < lssize; i++) {
-//                 if (vector1.get(i).getFilename().split("\\.").length == 0){
-//                     continue;
-//                 }
-//                 
-//                 if(vector1.get(i).getAttrs().isDir()){
-//                     folders.add(vector1.get(i).getFilename());
-//                 } else {
-//                     files.add(vector1.get(i).getFilename());
-//                 }
-//             }
-//             Collections.sort(folders);
-//             Collections.sort(files);
-//             for (int i = 0; i < folders.size(); i++) {
-//                 vector.add(folders.get(i));
-//             }
-//             for (int i = 0; i < files.size(); i++) {
-//                 vector.add(files.get(i));
-//             }
-//             for (int i = 0; i < vector.size(); i++) {
-//                 try {
-//                     current = c.pwd();
-//                     c.cd(vector.get(i));
-//                     getList(child, c,curentdir+"/"+vector.get(i));
-//                     c.cd(current);
-//                 } catch (SftpException e) {
-//                     if (e.id == 4) {
-//                         child2 = new DefaultMutableTreeNode(vector.get(i));
+//             node.add(child);
+//             Object [] children = (Object [])hash.get("children");
+//             if(children!=null&&children.length>0){
+//                 for(Object subchild:children){
+//                     String name = ((HashMap)subchild).get("data").toString();
+//                     if(((HashMap)subchild).get("folder")!=null){//folder
+//                         getList(child, (HashMap)subchild ,curentdir+"/"+name);
+//                     } else {//file
+//                         child2 = new DefaultMutableTreeNode(name);
 //                         child.add(child2);
-//                     } else {
-//                         e.printStackTrace();
 //                     }
 //                 }
-//                 
 //             }
 //         } catch (Exception e) {
 //             e.printStackTrace();
 //         }
 //     }
     
-//     private void initializeSftp(){
-//         try{
-//             JSch jsch = new JSch();
-//             session = jsch.getSession(RunnerRepository.user, RunnerRepository.host, 22);
-//             session.setPassword(RunnerRepository.password);
-//             Properties config = new Properties();
-//             config.put("StrictHostKeyChecking", "no");
-//             session.setConfig(config);
-//             session.connect();
-//             Channel channel = session.openChannel("sftp");
-//             channel.connect();
-//             connection = (ChannelSftp)channel;
-//         } catch (Exception e){
-//             e.printStackTrace();
-//         }
-//     }
+    /*
+     * construct the list for folders representation in jtree
+     */
+    public DefaultMutableTreeNode getList(HashMap hash, String curentdir){
+        try{DefaultMutableTreeNode child = new DefaultMutableTreeNode(curentdir,true);
+            Object [] children = (Object [])hash.get("children");
+            if(children!=null&&children.length>0){
+                for(Object subchild:children){
+                    String name = ((HashMap)subchild).get("data").toString();
+                    if(((HashMap)subchild).get("folder")!=null){//folder
+                        child2 = getList((HashMap)subchild ,curentdir+"/"+name);
+                        if(child2!=null){
+                            child.add(child2);
+                        }
+                    }else{//file
+                        child2 = new DefaultMutableTreeNode(name,false);
+                        child.add(child2);
+                    }
+                }
+            }
+            return child;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
 }
-// class Compare implements Comparator {
-// 
-//     public int compare(Object emp1, Object emp2) {
-//         return ((TreePath) emp1)
-//                 .getLastPathComponent()
-//                 .toString()
-//                 .compareToIgnoreCase(
-//                         ((TreePath) emp2).getLastPathComponent().toString());
-//     }
-// }

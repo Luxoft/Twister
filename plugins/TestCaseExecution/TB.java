@@ -1,6 +1,6 @@
 /*
 File: TB.java ; This file is part of Twister.
-Version: 2.023
+Version: 2.024
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -422,9 +422,17 @@ public class TB extends JPanel{
                     }
                 }
                 child = new DefaultMutableTreeNode(node);
-                model.insertNodeInto(child, root, root.getChildCount());
                 if(status.equals("reserved")&&user.equals(RunnerRepository.user)){
                     node = getTB("/"+name,null);
+                    if(!status.equals("free")){
+                        user = hash.get("user").toString();
+                        if(status.equals("reserved")){
+                            node.setReserved(user);
+                        }else if(status.equals("locked")){
+                            node.setLock(user);
+                        }
+                    }
+                    child = new DefaultMutableTreeNode(node);
                     DefaultMutableTreeNode temp = new DefaultMutableTreeNode("ID: "+node.getID());
                     ((DefaultTreeModel)tree.getModel()).insertNodeInto(temp, child,0);
                     DefaultMutableTreeNode temp2 = new DefaultMutableTreeNode(node.getPath());
@@ -432,9 +440,10 @@ public class TB extends JPanel{
                     ((DefaultTreeModel)tree.getModel()).nodeChanged(child);
                     buildTree(node,child,false);
                 }
+                model.insertNodeInto(child, root, root.getChildCount());
             }
+            optpan.setParent(null,null,false);
             model.reload();
-            ((DefaultTreeModel)tree.getModel()).reload();
         } catch (Exception e){
             e.printStackTrace();
         }

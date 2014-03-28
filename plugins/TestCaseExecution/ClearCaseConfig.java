@@ -1,6 +1,6 @@
 /*
 File: ClearCaseConfig.java ; This file is part of Twister.
-Version: 2.003
+Version: 2.004
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -579,20 +579,24 @@ public class ClearCaseConfig extends JPanel{
                       for(Object ob:change){
                           if(ob instanceof JButton){
                               JButton but = (JButton)ob;
-                              but.setText(but.getText().replace("Activitie","View"));
+                              but.setText(but.getText().replace("Activities","Views"));
+                              but.setText(but.getText().replace("Activity","View"));
                           }else{
                               JLabel lab = (JLabel)ob;
-                              lab.setText(lab.getText().replace("Activitie","View"));
+                              lab.setText(lab.getText().replace("Activities","Views"));
+                              lab.setText(lab.getText().replace("Activity","View"));
                           }
                       }
                   } else {
                       for(Object ob:change){
                           if(ob instanceof JButton){
                               JButton but = (JButton)ob;
-                              but.setText(but.getText().replace("View","Activitie"));
+                              but.setText(but.getText().replace("Views","Activities"));
+                              but.setText(but.getText().replace("View","Activity"));
                           }else{
                               JLabel lab = (JLabel)ob;
-                              lab.setText(lab.getText().replace("View","Activitie"));
+                              lab.setText(lab.getText().replace("Views","Activities"));
+                              lab.setText(lab.getText().replace("View","Activity"));
                           }
                       }
                   }

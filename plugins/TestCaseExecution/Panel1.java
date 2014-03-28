@@ -1,6 +1,6 @@
 /*
 File: Panel1.java ; This file is part of Twister.
-Version: 2.0020
+Version: 2.0021
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -750,8 +750,8 @@ public class Panel1 extends JPanel{
         try{
             String resp = RunnerRepository.getRPCClient().execute("findAnonimEp", new Object[]{RunnerRepository.user}).toString();
             if(resp=="false"){
-                CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, RunnerRepository.window,
-                                        "Warning","There are no clients started, please start client to run tests.");
+                CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE, RunnerRepository.window,
+                                        "ERROR","There are no clients started, please start client to run tests.");
                 return;
             }
         } catch (Exception e){
@@ -798,6 +798,32 @@ public class Panel1 extends JPanel{
                 break;                
             }
         }
+        /*
+         * check that SUT set on suites exist
+         */
+        String [] vecresult =  RunnerRepository.window.mainpanel.p4.getSut().sut.getSutTree().getSutsName();
+        if(vecresult!=null){
+            int size = vecresult.length;
+            for(int i=0;i<size;i++){
+                vecresult[i] = vecresult[i].replace(".user", "(user)");
+                vecresult[i] = vecresult[i].replace(".system", "(system)");
+            }
+            for(Item i:RunnerRepository.getSuite()){
+                found = false;
+                for(String item:i.getEpId()){
+                    for(String sut:vecresult){
+                        if(item.equals(sut)){
+                            found = true;
+                        }
+                    }
+                    if(!found){
+                        CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE, RunnerRepository.window,"Error","SUT file"+item+" cannot be read");
+                        return;
+                    }
+                }
+            }
+        }
+        
         if(!found){
             CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, RunnerRepository.window,"Warning","No tc found to run");
             execute = false;

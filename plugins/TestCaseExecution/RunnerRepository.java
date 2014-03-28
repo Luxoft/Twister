@@ -1,6 +1,6 @@
 /*
 File: RunnerRepository.java ; This file is part of Twister.
-Version: 2.0048
+Version: 2.0049
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -151,8 +151,8 @@ public class RunnerRepository {
     public static Container container;
     public static Applet applet;
     private static Document pluginsconfig;
-    private static String version = "3.002";
-    private static String builddate = "27.03.2014";
+    private static String version = "3.003";
+    private static String builddate = "28.03.2014";
     public static String logotxt,os,python;
     private static int remotefiletries = 0;
     
@@ -460,27 +460,25 @@ public class RunnerRepository {
     }
     
     public static void setSize(int width, int height){
-        RunnerRepository.window.mainpanel.setSize(width-20,height-20);
-        RunnerRepository.window.mainpanel.p1.splitPane.setSize(width-52,height-120);
-        RunnerRepository.window.mainpanel.setSize(width-28,height-40);
-        RunnerRepository.window.mainpanel.p4.getScroll().setSize(width-310,height-155);
-        RunnerRepository.window.mainpanel.p4.getScroll().setPreferredSize(new Dimension(width-310,height-155));
-        RunnerRepository.window.mainpanel.p4.getMain().setSize(width-300,height-130);
-        RunnerRepository.window.mainpanel.p4.getTB().setPreferredSize(
-            new Dimension(width-300,height-150));
-        try{RunnerRepository.window.appletpanel.setSize(width-20,height-20);}
-        catch(Exception e){}
-        RunnerRepository.window.mainpanel.p4.getPlugins().setPreferredSize(
-            new Dimension(width-300,height-150));
-        RunnerRepository.window.mainpanel.p4.getPlugins().horizontalsplit.setPreferredSize(
-            new Dimension(width-305,height-155));
-        RunnerRepository.window.logout.setLocation(width-130, 3);
-        RunnerRepository.window.controlpanel.setLocation(width-285, 3);
-        if(container!=null){
-            container.validate();
-            container.repaint();
+        if(RunnerRepository.window!=null && RunnerRepository.window.mainpanel!=null){
+            RunnerRepository.window.mainpanel.setSize(width-20,height-20);
+            RunnerRepository.window.mainpanel.p1.splitPane.setSize(width-52,height-120);
+            RunnerRepository.window.mainpanel.setSize(width-28,height-40);
+            RunnerRepository.window.mainpanel.p4.getScroll().setSize(width-310,height-155);
+            RunnerRepository.window.mainpanel.p4.getScroll().setPreferredSize(new Dimension(width-310,height-155));
+            RunnerRepository.window.mainpanel.p4.getMain().setSize(width-300,height-130);
+            RunnerRepository.window.mainpanel.p4.getTB().setPreferredSize(new Dimension(width-300,height-150));
+            try{RunnerRepository.window.appletpanel.setSize(width-20,height-20);}
+            catch(Exception e){}
+            RunnerRepository.window.mainpanel.p4.getPlugins().setPreferredSize(new Dimension(width-300,height-150));
+            RunnerRepository.window.mainpanel.p4.getPlugins().horizontalsplit.setPreferredSize(new Dimension(width-305,height-155));
+            RunnerRepository.window.logout.setLocation(width-130,3);
+            RunnerRepository.window.controlpanel.setLocation(width-285,3);
+            if(container!=null){
+                container.validate();
+                container.repaint();
+            }
         }
-        
     }
     
     /*
@@ -1592,8 +1590,7 @@ public class RunnerRepository {
             }
             return (HashMap)ob;
         } catch (Exception e) {
-            if(ob.toString().indexOf("*ERROR*")!=-1)CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,window,"ERROR", ob.toString());
-            System.out.println("Server response: "+ob.toString());
+            if(ob!=null)System.out.println("Server response: "+ob.toString());
             e.printStackTrace();
             return null;
         }
@@ -1616,8 +1613,7 @@ public class RunnerRepository {
             }
             return (HashMap)ob;
         } catch (Exception e) {
-            if(ob.toString().indexOf("*ERROR*")!=-1)CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,window,"ERROR", ob.toString());
-            System.out.println("Server response: "+ob.toString());
+            if(ob!=null)System.out.println("Server response: "+ob.toString());
             e.printStackTrace();
             return null;
         }
@@ -1641,7 +1637,6 @@ public class RunnerRepository {
     }
     
     public static byte[] getRemoteFileContent(String file, boolean binary, String tag){
-        System.out.println("Getting "+file+" from CE with tag: "+tag+"-");
         try{
             String write = "r";
             if(binary)write = "rb";
@@ -1828,7 +1823,6 @@ public class RunnerRepository {
             }
         }
         JComboBox combo = new JComboBox(users);
-        
         int resp = (Integer)CustomDialog.showDialog(combo,
                             JOptionPane.INFORMATION_MESSAGE,
                             JOptionPane.OK_CANCEL_OPTION,window,
@@ -1845,11 +1839,11 @@ public class RunnerRepository {
                     RunnerRepository.emptySuites();
                     RunnerRepository.window.mainpanel.p1.sc.g.getSelectedCollection().clear();
                     (new XMLBuilder(RunnerRepository.getSuite())).writeXMLFile((new StringBuilder()).
-                                        append(RunnerRepository.getUsersDirectory()).append(RunnerRepository.
-                                        getBar()).append(user).append(".XML").toString(),false,false,false);
+                                                                                append(RunnerRepository.getUsersDirectory()).append(RunnerRepository.
+                                                                                getBar()).append(user).append(".xml").toString(),false,false,false);
                     window.mainpanel.p1.sc.g.setUser((new StringBuilder()).append(RunnerRepository.getUsersDirectory()).
-                                        append(RunnerRepository.getBar()).append(user).append(".XML").
-                                        toString());
+                                                        append(RunnerRepository.getBar()).append(user).append(".xml").
+                                                        toString());
                     window.mainpanel.p1.sc.g.printXML( window.mainpanel.p1.sc.g.getUser(),false,false,false,false,false,"",false,null,RunnerRepository.window.mainpanel.p1.suitaDetails.getProjectDefs());
                     RunnerRepository.window.mainpanel.p1.suitaDetails.setPreScript("");
                     RunnerRepository.window.mainpanel.p1.suitaDetails.setPostScript("");
@@ -1861,7 +1855,6 @@ public class RunnerRepository {
             else{
                 try{
                     String content = readProjectFile(user);
-                    //String content = new String(RunnerRepository.getRemoteFileContent(REMOTEUSERSDIRECTORY+"/"+user,false,null));                    
                     File file = new File(temp+bar+"Twister"+bar+"Users"+bar+user);
                     BufferedWriter writer = new BufferedWriter(new FileWriter(file));
                     writer.write(content);
