@@ -126,11 +126,17 @@ class LocalFS(object):
                 logInfo('Launching a User Service for `{}`, the first time...'.format(user))
 
             proc = pexpect.spawn(['bash'], timeout=0.75, maxread=2048)
+            plog = []
 
             def pread():
                 while 1:
-                    try: proc.readline().strip()
-                    except: break
+                    try:
+                        line = proc.readline().strip()
+                        if not line:
+                            continue
+                        plog.append(line)
+                    except:
+                        break
 
             proc.sendline('su {}'.format(user))
             proc.sendline('cd ~/twister')

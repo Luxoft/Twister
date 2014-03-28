@@ -136,12 +136,18 @@ class ClearCaseFs(object):
             else:
                 logInfo('Launching a ClearCase Service for `{}`, the first time...'.format(user_view))
 
-            proc = pexpect.spawn(['bash'], timeout=2, maxread=2048)
+            proc = pexpect.spawn(['bash'], timeout=2.5, maxread=2048)
+            plog = []
 
             def pread():
                 while 1:
-                    try: proc.readline().strip()
-                    except: break
+                    try:
+                        line = proc.readline().strip()
+                        if not line:
+                            continue
+                        plog.append(line)
+                    except:
+                        break
 
             proc.sendline('su {}'.format(user))
             pread()
@@ -150,7 +156,7 @@ class ClearCaseFs(object):
             pread()
             # Set cc view only the first time !
             proc.sendline('cleartool setview {}'.format(view))
-            time.sleep(1)
+            time.sleep(2)
             pread()
             # Empty line after set view
             proc.sendline('')
@@ -170,10 +176,13 @@ class ClearCaseFs(object):
             p_cmd = '{} -u {}/server/UserService.py {} ClearCase & '.format(sys.executable, TWISTER_PATH, port)
             proc.sendline(p_cmd)
             time.sleep(1)
+            pread()
 
             # Empty line after proc start
             proc.sendline('')
             pread()
+
+            logDebug('ClearCase startup log \n:: -------\n{}\n:: -------'.format( '\n'.join(plog) ))
 
             config = {
                 'allow_pickle': True,

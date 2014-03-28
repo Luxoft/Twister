@@ -92,18 +92,18 @@ lastMsg = ''
 class UserService(rpyc.Service):
 
     def __init__(self, conn):
-        log.debug('Warming up the User Service...')
+        log.debug('Warming up the User Service ({})...'.format(TYPE))
         self._conn = conn
 
 
     def on_connect(self):
         client_addr = self._conn._config['endpoints'][1]
-        log.debug('Connected from `{}`.'.format(client_addr))
+        log.debug('User Service: Connected from endpoint `{}`.'.format(client_addr))
 
 
     def on_disconnect(self):
         client_addr = self._conn._config['endpoints'][1]
-        log.debug('Disconnected from `{}`.'.format(client_addr))
+        log.debug('User Service: Disconnected from endpoint `{}`.'.format(client_addr))
 
 
     @staticmethod

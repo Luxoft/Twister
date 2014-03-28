@@ -184,15 +184,15 @@ class TwisterClient(object):
                 s = proxy.root.getUserVariable('user_roles')
                 if not s:
                     raise Exception('Cannot get roles for user `{}`!'.format(self.userName))
-                proxy.root.hello('client', {'eps': epNames})
-                logPrint('Client Debug: Register EPs successful!')
+                # Fire up the User Service
+                proxy.root.readFile('~/twister/config/fwmconfig.xml')
             except Exception as e:
                 logPrint('Exception: `{}`'.format(e))
                 check = False
 
             try:
-                # Fire up the User Service
-                proxy.root.readFile('~/twister/config/fwmconfig.xml')
+                proxy.root.hello('client', {'eps': epNames})
+                logPrint('Client Debug: Register EPs successful!')
             except Exception as e:
                 logPrint('Exception: `{}`'.format(e))
                 check = False
