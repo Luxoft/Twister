@@ -82,7 +82,7 @@ class LocalFS(object):
         grep = local['grep']
 
         try:
-            pids = (ps['aux'] | grep['/server/UserService.py'] | grep['^' + user])()
+            pids = (ps['aux'] | grep['/server/UserService.py'] | grep['^' + user] | grep['FS'])()
         except Exception:
             return
 
@@ -119,7 +119,9 @@ class LocalFS(object):
                     logWarning('Cannot connect to User Service for `{}`: `{}`.'.format(user, e))
                     self._kill(user)
                     proc = self._services.get(user, {}).get('proc', None)
+                    PID = proc.pid
                     proc.terminate()
+                    logInfo('Terminated User Service `{}` for user `{}`.'.format(PID, user))
             else:
                 logInfo('Launching a User Service for `{}`, the first time...'.format(user))
 
@@ -131,7 +133,7 @@ class LocalFS(object):
                     except: break
 
             proc.sendline('su {}'.format(user))
-            proc.sendline('cd ~')
+            proc.sendline('cd ~/twister')
             pread()
 
             port = None

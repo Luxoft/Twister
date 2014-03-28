@@ -1,7 +1,7 @@
 
 # File: CeClearCaseFs.py ; This file is part of Twister.
 
-# version: 3.003
+# version: 3.004
 
 # Copyright (C) 2012-2014, Luxoft
 
@@ -91,7 +91,7 @@ class ClearCaseFs(object):
         grep = local['grep']
 
         try:
-            pids = (ps['aux'] | grep['/server/UserService.py'] | grep['^' + user])()
+            pids = (ps['aux'] | grep['/server/UserService.py'] | grep['^' + user] | grep['ClearCase'])()
         except Exception:
             return
 
@@ -130,7 +130,9 @@ class ClearCaseFs(object):
                     logWarning('Cannot connect to ClearCase Service for `{}`: `{}`.'.format(user_view, e))
                     self._kill(user)
                     proc = self._services.get(user_view, {}).get('proc', None)
+                    PID = proc.pid
                     proc.terminate()
+                    logInfo('Terminated CC User Service `{}` for user `{}`.'.format(PID, user))
             else:
                 logInfo('Launching a ClearCase Service for `{}`, the first time...'.format(user_view))
 
@@ -144,10 +146,11 @@ class ClearCaseFs(object):
             proc.sendline('su {}'.format(user))
             pread()
             # User's home folder
-            proc.sendline('cd ~')
+            proc.sendline('cd ~/twister')
             pread()
             # Set cc view only the first time !
             proc.sendline('cleartool setview {}'.format(view))
+            time.sleep(1)
             pread()
             # Empty line after set view
             proc.sendline('')
@@ -166,7 +169,7 @@ class ClearCaseFs(object):
             # Launching 1 UserService inside the SSH terminal, with ClearCase View open
             p_cmd = '{} -u {}/server/UserService.py {} ClearCase & '.format(sys.executable, TWISTER_PATH, port)
             proc.sendline(p_cmd)
-            time.sleep(2)
+            time.sleep(1)
 
             # Empty line after proc start
             proc.sendline('')

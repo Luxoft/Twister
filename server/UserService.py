@@ -1,7 +1,7 @@
 
 # File: UserService.py ; This file is part of Twister.
 
-# version: 3.004
+# version: 3.005
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -45,11 +45,18 @@ from rpyc.utils.server import ThreadedServer
 
 log = logging.getLogger(__name__)
 
+TYPE = sys.argv[2:3]
+
+if TYPE == ['ClearCase']:
+    log_file = 'clear_srv.log'
+else:
+    log_file = 'usr_srv.log'
+
 logging.basicConfig(
     level=logging.NOTSET,
     format='%(asctime)s  %(levelname)-8s %(message)s',
     datefmt='%y-%m-%d %H:%M:%S',
-    filename='usr_srv.log',
+    filename=log_file,
     filemode='w')
 
 console = logging.StreamHandler()
