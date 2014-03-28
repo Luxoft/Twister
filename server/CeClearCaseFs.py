@@ -1,7 +1,7 @@
 
 # File: CeClearCaseFs.py ; This file is part of Twister.
 
-# version: 3.004
+# version: 3.005
 
 # Copyright (C) 2012-2014, Luxoft
 
@@ -340,11 +340,28 @@ class ClearCaseFs(object):
     def systemCommand(self, user_view, cmd):
         proc = self._services.get(user_view, {}).get('proc')
         if proc:
-            proc.sendline(cmd)
+            # Empty buffer
             while 1:
-                try: print proc.readline().strip()
-                except: break
-            return True
+                try:
+                    line = proc.readline().strip()
+                    if not line:
+                        continue
+                    plog.append(line)
+                except:
+                    break
+            # Send command
+            proc.sendline(cmd)
+            plog = []
+            # Catch buffer
+            while 1:
+                try:
+                    line = proc.readline().strip()
+                    if not line:
+                        continue
+                    plog.append(line)
+                except:
+                    break
+            return '\n'.join(plog)
         else:
             return False
 
