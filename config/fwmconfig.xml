@@ -7,7 +7,7 @@ Master config file for Twister.
     <CentralEnginePort>8000</CentralEnginePort>
     <HttpServerPort>8080</HttpServerPort>
     <TestCaseSourcePath>$HOME/twister/demo</TestCaseSourcePath>
-    <UsersPath>$HOME/twister/config/users</UsersPath>
+    <UsersPath>$HOME/twister/config/projects</UsersPath>
     <GlobalParams>$HOME/twister/config/globals.xml</GlobalParams>
     <DbConfigFile>$HOME/twister/config/db.xml</DbConfigFile>
     <EpNames>$HOME/twister/config/epname.ini</EpNames>
