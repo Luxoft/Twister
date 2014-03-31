@@ -1,6 +1,6 @@
 /*
 File: ExplorerPanel.java ; This file is part of Twister.
-Version: 2.012
+Version: 2.013
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -193,7 +193,7 @@ public class ExplorerPanel {
      * executed on tree released click
      */
     public void treeClickReleased(MouseEvent ev) {
-        if (ev.isPopupTrigger()) {
+        if (ev.getButton()==MouseEvent.BUTTON3) {
             refreshPopup(ev);
         } else {
             if ((tree.getSelectionPaths()!=null) &&
@@ -225,7 +225,7 @@ public class ExplorerPanel {
      * executed on tree click
      */
     public void treeClick(MouseEvent ev) {
-        if (ev.isPopupTrigger()) {
+        if (ev.getButton()==MouseEvent.BUTTON3) {
             refreshPopup(ev);
         } else {
             setDragging(true);

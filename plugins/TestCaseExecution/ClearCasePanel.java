@@ -1,6 +1,6 @@
 /*
 File: ClearCasePanel.java ; This file is part of Twister.
-Version: 2.018
+Version: 2.019
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -187,7 +187,7 @@ public class ClearCasePanel{
      * executed on tree released click
      */
     public void treeClickReleased(final MouseEvent ev) {
-        if(ev.isPopupTrigger()) {
+        if(ev.getButton()==MouseEvent.BUTTON3) {
             String remotefilename ;
             if(tree.getSelectionPath() !=null){
                 if(tree.getModel().isLeaf(tree.getSelectionPath()
