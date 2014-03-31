@@ -1,7 +1,7 @@
 
 # File: CeFs.py ; This file is part of Twister.
 
-# version: 3.005
+# version: 3.006
 
 # Copyright (C) 2012-2014, Luxoft
 
@@ -28,7 +28,7 @@ import time
 import copy
 import random
 import socket
-import pexpect
+import subprocess
 from plumbum import local
 import rpyc
 
@@ -105,6 +105,21 @@ class LocalFS(object):
         Launch a user service.
         """
 
+        # # DEBUG. Show all available User Services, for current user.
+        # try:
+        #     pids = subprocess.check_output('ps aux | grep /server/UserService.py | grep "^{} "'.format(user), shell=True)
+        #     pids_li = []
+
+        #     for line in pids.strip().splitlines():
+        #         li = line.strip().split()
+        #         PID = int(li[1])
+        #         del li[2:10]
+        #         pids_li.append( ' '.join(li) )
+
+        #     logDebug('Active User Services for `{}`::\n\t{}'.format(user, '\n\t'.join(pids_li)))
+        # except:
+        #     logDebug('No User Services found for `{}`.'.format(user))
+
         # Must block here, so more users cannot launch Logs at the same time and lose the PID
         with self._srv_lock:
 
@@ -118,29 +133,8 @@ class LocalFS(object):
                 except Exception as e:
                     logWarning('Cannot connect to User Service for `{}`: `{}`.'.format(user, e))
                     self._kill(user)
-                    proc = self._services.get(user, {}).get('proc', None)
-                    PID = proc.pid
-                    proc.terminate()
-                    logInfo('Terminated User Service `{}` for user `{}`.'.format(PID, user))
             else:
                 logInfo('Launching a User Service for `{}`, the first time...'.format(user))
-
-            proc = pexpect.spawn(['bash'], timeout=0.75, maxread=2048)
-            plog = []
-
-            def pread():
-                while 1:
-                    try:
-                        line = proc.readline().strip()
-                        if not line:
-                            continue
-                        plog.append(line)
-                    except:
-                        break
-
-            proc.sendline('su {}'.format(user))
-            proc.sendline('cd ~/twister')
-            pread()
 
             port = None
 
@@ -152,14 +146,11 @@ class LocalFS(object):
                 except:
                     break
 
-            # Launching 1 UserService inside the SSH terminal
-            p_cmd = '{} -u {}/server/UserService.py {} FS & '.format(sys.executable, TWISTER_PATH, port)
-            proc.sendline(p_cmd)
-            time.sleep(0.25)
-
-            # Empty line after proc start
-            proc.sendline('')
-            pread()
+            p_cmd = 'su {} -c "{} -u {}/server/UserService.py {} FS"'.format(user, sys.executable, TWISTER_PATH, port)
+            proc = subprocess.Popen(p_cmd, cwd='{}/twister'.format(userHome(user)), shell=True,
+                   close_fds=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            proc.poll()
+            time.sleep(0.2)
 
             config = {
                 'allow_pickle': True,
