@@ -1,7 +1,7 @@
 
 # File: CeFs.py ; This file is part of Twister.
 
-# version: 3.006
+# version: 3.007
 
 # Copyright (C) 2012-2014, Luxoft
 
@@ -105,21 +105,6 @@ class LocalFS(object):
         Launch a user service.
         """
 
-        # # DEBUG. Show all available User Services, for current user.
-        # try:
-        #     pids = subprocess.check_output('ps aux | grep /server/UserService.py | grep "^{} "'.format(user), shell=True)
-        #     pids_li = []
-
-        #     for line in pids.strip().splitlines():
-        #         li = line.strip().split()
-        #         PID = int(li[1])
-        #         del li[2:10]
-        #         pids_li.append( ' '.join(li) )
-
-        #     logDebug('Active User Services for `{}`::\n\t{}'.format(user, '\n\t'.join(pids_li)))
-        # except:
-        #     logDebug('No User Services found for `{}`.'.format(user))
-
         # Must block here, so more users cannot launch Logs at the same time and lose the PID
         with self._srv_lock:
 
@@ -127,7 +112,7 @@ class LocalFS(object):
             conn = self._services.get(user, {}).get('conn', None)
             if conn:
                 try:
-                    conn.ping(data='Hello', timeout=2)
+                    conn.ping(data='Hello', timeout=5.0)
                     # logDebug('Reuse old User Service connection for `{}` OK.'.format(user))
                     return conn
                 except Exception as e:
@@ -150,7 +135,7 @@ class LocalFS(object):
             proc = subprocess.Popen(p_cmd, cwd='{}/twister'.format(userHome(user)), shell=True,
                    close_fds=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             proc.poll()
-            time.sleep(0.2)
+            time.sleep(5.0)
 
             config = {
                 'allow_pickle': True,
@@ -159,20 +144,28 @@ class LocalFS(object):
                 'allow_delattr': True
             }
 
-            retries = 10
+            retry = 10
+            delay = 0.5
             success = False
 
-            while retries > 0:
+            while retry > 0:
+                if success:
+                    break
+
                 try:
-                    conn = rpyc.connect('127.0.0.1', port, config=config)
+                    stream = rpyc.SocketStream.connect('127.0.0.1', port, timeout=5.0)
+                    conn = rpyc.connect_stream(stream, config=config)
                     conn.root.hello()
                     logDebug('Connected to User Service for `{}`.'.format(user))
                     success = True
                     break
                 except Exception as e:
-                    logWarning('Cannot connect to User Service for `{}` - Exception: `{}`! Retry...'.format(user, e))
-                retries -= 1
-                time.sleep(0.5)
+                    logWarning('Cannot connect to User Service for `{}` - Exception: `{}`! '
+                            'Wait {}s...'.format(user, e, delay))
+
+                time.sleep(delay)
+                retry -= 1
+                delay += 0.75
 
             if not success:
                 logError('Error on starting User Service for `{}`!'.format(user))

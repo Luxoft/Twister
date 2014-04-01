@@ -471,7 +471,7 @@ class CeRpycService(rpyc.Service):
         user = self._check_login()
         if not user: return False
         resp = self.project.readFile(user, fpath, flag, fstart, type)
-        if resp.startswith('*ERROR*'):
+        if resp and resp.startswith('*ERROR*'):
             logWarning(resp)
         return resp
 
