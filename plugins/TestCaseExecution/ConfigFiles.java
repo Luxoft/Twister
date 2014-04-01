@@ -1,6 +1,6 @@
 /*
 File: ConfigFiles.java ; This file is part of Twister.
-Version: 2.023
+Version: 2.024
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -362,7 +362,7 @@ public class ConfigFiles extends JPanel{
                     NodeList fstNm = fstElmnt.getChildNodes();
                     if(fstNm.item(0).getNodeValue().toString().toLowerCase().equals("config")){
                         FileInputStream in = new FileInputStream(theone);
-                        RunnerRepository.uploadRemoteFile(RunnerRepository.USERHOME+"/twister/config/", in, "fwmconfig.xml",false,null);
+                        RunnerRepository.uploadRemoteFile(RunnerRepository.USERHOME+"/twister/config/", in,null, "fwmconfig.xml",false,null);
                         RunnerRepository.emptyTestRunnerRepository();
                         RunnerRepository.emptyLogs();
                         File dir = new File(RunnerRepository.getUsersDirectory());
@@ -587,7 +587,7 @@ public class ConfigFiles extends JPanel{
             Result result = new StreamResult(file);
             transformer.transform(source, result);
             FileInputStream in = new FileInputStream(file);
-            RunnerRepository.uploadRemoteFile(RunnerRepository.USERHOME+"/twister/config/", in, file.getName(),false,null);
+            RunnerRepository.uploadRemoteFile(RunnerRepository.USERHOME+"/twister/config/", in,null, file.getName(),false,null);
         }
         catch(ParserConfigurationException e){
             System.out.println("DocumentBuilder cannot be created which"+

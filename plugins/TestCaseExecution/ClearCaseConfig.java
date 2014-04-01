@@ -1,6 +1,6 @@
 /*
 File: ClearCaseConfig.java ; This file is part of Twister.
-Version: 2.004
+Version: 2.005
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -697,7 +697,7 @@ public class ClearCaseConfig extends JPanel{
             Result result = new StreamResult(file);
             transformer.transform(source, result);
             FileInputStream in = new FileInputStream(file);
-            RunnerRepository.uploadRemoteFile(RunnerRepository.USERHOME+"/twister/config/", in, "clearcaseconfig.xml",false,null);
+            RunnerRepository.uploadRemoteFile(RunnerRepository.USERHOME+"/twister/config/", in,null, "clearcaseconfig.xml",false,null);
             System.out.println("saveconf:"+file.getAbsolutePath());
         }
         catch(ParserConfigurationException e){

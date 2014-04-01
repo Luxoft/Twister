@@ -1,6 +1,6 @@
 /*
 File: XMLBuilder.java ; This file is part of Twister.
-Version: 2.017
+Version: 2.018
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -493,34 +493,13 @@ public class XMLBuilder{
                             result2.append(path[i]);
                             result2.append("/");}}
                     FileInputStream in = new FileInputStream(file);
-                    return RunnerRepository.uploadRemoteFile(result2.toString(), in, file.getName(),false,null);
+                    return RunnerRepository.uploadRemoteFile(result2.toString(), in,null, file.getName(),false,null);
                 }else{
                     FileInputStream in = new FileInputStream(file);
                     if(lib){ //predefined suites  
-                        RunnerRepository.savePredefinedProjectFile(file.getName(),new Scanner(file).useDelimiter("\\A").next());
-//                         if(RunnerRepository.window.mainpanel.p4.getPlugins().isClearCaseEnabled()){
-//                             String respons = RunnerRepository.getRPCClient().execute("findCcXmlTag", new Object[]{"PredefinedSuitesPath"}).toString();
-//                             if(respons.indexOf("*ERROR*")!=-1){
-//                                 CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,RunnerRepository.window,"ERROR", respons);
-//                                 return false;
-//                             }
-//                             return RunnerRepository.uploadRemoteFile(respons.split(":")[1], in, file.getName(),false,"PredefinedSuitesPath");
-//                         } else {
-//                             return RunnerRepository.uploadRemoteFile(RunnerRepository.getPredefinedSuitesPath(), in, file.getName(),false,null);
-//                         }
-                    } else {//normal suites
-                        
+                        return RunnerRepository.savePredefinedProjectFile(file.getName(),new Scanner(file).useDelimiter("\\A").next());
+                    } else {//normal suites                        
                         RunnerRepository.saveProjectFile(file.getName(),new Scanner(file).useDelimiter("\\A").next());
-//                         if(RunnerRepository.window.mainpanel.p4.getPlugins().isClearCaseEnabled()){
-//                             String respons = RunnerRepository.getRPCClient().execute("findCcXmlTag", new Object[]{"UsersPath"}).toString();
-//                             if(respons.indexOf("*ERROR*")!=-1){
-//                                 CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,RunnerRepository.window,"ERROR", respons);
-//                                 return false;
-//                             }
-//                             return RunnerRepository.uploadRemoteFile(respons.split(":")[1], in, file.getName(),false,"UsersPath");
-//                         } else {
-//                             return RunnerRepository.uploadRemoteFile(RunnerRepository.getRemoteUsersDirectory(), in, file.getName(),false,null);   
-//                         }
                     }
                 }}
             catch(Exception e){e.printStackTrace();

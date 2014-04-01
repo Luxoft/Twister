@@ -1,6 +1,6 @@
 /*
 File: LibrariesPanel.java ; This file is part of Twister.
-Version: 2.010
+Version: 2.011
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -136,14 +136,11 @@ public class LibrariesPanel{
     private TreePath[] selected;
     private DefaultMutableTreeNode child2;
     private JEditTextArea textarea;
-//     public static ChannelSftp connection;
-//     public static Session session;
 
     public LibrariesPanel() {
         RunnerRepository.introscreen.setStatus("Started Libraries interface initialization");
         RunnerRepository.introscreen.addPercent(0.035);
         RunnerRepository.introscreen.repaint();
-//         initializeSftp();
         
         root = new DefaultMutableTreeNode("root", true);
         DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
@@ -163,12 +160,10 @@ public class LibrariesPanel{
             
         });
         try {
-//             connection.cd(RunnerRepository.getPredefinedSuitesPath());
             RunnerRepository.introscreen.setStatus("Started retrieving tc directories");
             RunnerRepository.introscreen.addPercent(0.035);
             RunnerRepository.introscreen.repaint();
             refreshStructure();
-//             getList(root, connection,RunnerRepository.getPredefinedSuitesPath());
             RunnerRepository.introscreen.setStatus("Finished retrieving tc directories");
             RunnerRepository.introscreen.addPercent(0.035);
             RunnerRepository.introscreen.repaint();
@@ -198,28 +193,6 @@ public class LibrariesPanel{
     public void treeClickReleased(MouseEvent ev) {
         if (ev.getButton()==MouseEvent.BUTTON3) {
             refreshPopup(ev);
-        } else {
-            if ((tree.getSelectionPaths()!=null) &&
-            (tree.getSelectionPaths().length == 1) &&
-            (tree.getModel().isLeaf(tree.getSelectionPath()
-                            .getLastPathComponent()))) {
-                try {
-                    String thefile = tree.getSelectionPath().getParentPath()
-                            .getLastPathComponent().toString()
-                            + "/"
-                            + tree.getSelectionPath().getLastPathComponent()
-                                    .toString();
-                    String result = RunnerRepository.getRPCClient().execute(
-                            "getTestDescription", new Object[] { thefile })
-                            + "";
-                    Container pan1 = (Container) RunnerRepository.window.mainpanel.p1.splitPane
-                            .getComponent(1);
-                    TCDetails pan2 = (TCDetails) pan1.getComponents()[1];
-                    pan2.text.setText(result);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
         }
     }
 
@@ -245,11 +218,11 @@ public class LibrariesPanel{
             }
         }
     }
+    
 
     /*
      * returns the selected paths
      */
-
     public TreePath[] getSelected() {
         Arrays.sort(selected, new Compare());
         List<TreePath> listOfPaths = Arrays.asList(selected);
@@ -648,7 +621,7 @@ public class LibrariesPanel{
         try {
             String path [] = remotefile.split("/");
             FileInputStream in = new FileInputStream(localfile);
-            RunnerRepository.uploadRemoteFile(remotefile.replace("/"+path[path.length-1], ""), in, path[path.length-1],false,null);
+            RunnerRepository.uploadRemoteFile(remotefile.replace("/"+path[path.length-1], ""), in,null, path[path.length-1],false,null);
         } catch (Exception e) {
             e.printStackTrace();
             System.out.println("There was a problem in saving file "
@@ -656,19 +629,6 @@ public class LibrariesPanel{
                     + remotefile);
         }
     }
-
-//     public void refreshStructure() {
-//         if(root.getChildCount()>0)root.remove(0);
-//         try{HashMap hash = RunnerRepository.getPredefinedSuites();
-//             getList(root, hash,hash.get("data").toString());
-//         }catch (Exception e){
-//             e.printStackTrace();
-//         }
-//         ((DefaultTreeModel) tree.getModel()).reload();
-//         tree.expandRow(0);
-//         selected = null;
-//         setDragging(false);
-//     }
     
     public void refreshStructure(){
         try{HashMap hash = RunnerRepository.getPredefinedSuites();

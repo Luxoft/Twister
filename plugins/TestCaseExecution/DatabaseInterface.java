@@ -1,6 +1,6 @@
 /*
 File: DatabaseInterface.java ; This file is part of Twister.
-Version: 2.010
+Version: 2.011
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -654,63 +654,7 @@ public class DatabaseInterface extends JPanel {
                     e.printStackTrace();
                 }
             }
-            
             password.setNodeValue(p);
-            
-//             subem.appendChild(document.createTextNode(p));
-            
-            
-//             em.appendChild(subem);
-//             root.appendChild(em);
-//             em = document.createElement("insert_section");
-//             root.appendChild(em);
-            
-//             for(Component c:mainfieldpanel.getComponents()){
-//                 if(c.getClass()==FieldPanel.class){
-//                     subem = document.createElement("field");
-//                     subem.setAttribute("ID", ((FieldPanel)c).tid.getText());
-//                     subem.setAttribute("FieldName", ((FieldPanel)c).tfieldname.getText());
-//                     subem.setAttribute("FromTable", ((FieldPanel)c).tfromtable.getText());
-//                     subem.setAttribute("Label", ((FieldPanel)c).tlabel.getText());
-//                     subem.setAttribute("Mandatory", ((FieldPanel)c).mandatory.isSelected()+"");
-//                     subem.setAttribute("SQLQuery", ((FieldPanel)c).tquery.getText());
-//                     subem.setAttribute("Type", ((FieldPanel)c).fctype.getSelectedItem().toString());
-//                     subem.setAttribute("GUIDefined", ((FieldPanel)c).guidef.isSelected()+"");
-//                     em.appendChild(subem);
-//                 }
-//             }
-            
-//             for(Component c:maininsertpanel.getComponents()){
-//                 if(c.getClass()==InsertPanel.class){
-//                     subem = document.createElement("sql_statement");
-//                     subem.appendChild(document.createTextNode(((InsertPanel)c).tsqlstatement.getText()));
-//                     em.appendChild(subem);
-//                 }
-//             }
-//             em = document.createElement("reports_section");
-//             for(Component c:mainreportspanel.getComponents()){
-//                 if(c.getClass()==ReportFieldPanel.class){
-//                     subem = document.createElement("field");
-//                     subem.setAttribute("ID", ((ReportFieldPanel)c).tid3.getText());
-//                     subem.setAttribute("Label", ((ReportFieldPanel)c).tlabel1.getText());
-//                     subem.setAttribute("SQLQuery", ((ReportFieldPanel)c).tquery1.getText());
-//                     subem.setAttribute("Type", ((ReportFieldPanel)c).fctype5.getSelectedItem().toString());
-//                     em.appendChild(subem);
-//                 }else if(c.getClass()==ReportReport.class){
-//                     subem = document.createElement("report");
-//                     subem.setAttribute("ID", ((ReportReport)c).tid4.getText());
-//                     subem.setAttribute("SQLQuery", ((ReportReport)c).tquery3.getText());
-//                     subem.setAttribute("SQLTotal", ((ReportReport)c).tquery4.getText());
-//                     subem.setAttribute("Type", ((ReportReport)c).fctype3.getSelectedItem().toString());
-//                     em.appendChild(subem);
-//                 }else if(c.getClass()==ReportRedirect.class){
-//                     subem = document.createElement("redirect");
-//                     subem.setAttribute("ID", ((ReportRedirect)c).tquery5.getText());
-//                     subem.setAttribute("Path", ((ReportRedirect)c).tquery6.getText());
-//                     em.appendChild(subem);
-//                 }
-//             }
-//             root.appendChild(em);
             File file = new File(RunnerRepository.temp+RunnerRepository.getBar()+"Twister"+RunnerRepository.
                                   getBar()+"config"+RunnerRepository.getBar()+
                                   new File(RunnerRepository.REMOTEDATABASECONFIGFILE).getName());
@@ -723,7 +667,7 @@ public class DatabaseInterface extends JPanel {
             transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "4");
             transformer.transform(source, result);
             FileInputStream in = new FileInputStream(file);
-            RunnerRepository.uploadRemoteFile(RunnerRepository.REMOTEDATABASECONFIGPATH, in, file.getName(),false,null);
+            RunnerRepository.uploadRemoteFile(RunnerRepository.REMOTEDATABASECONFIGPATH, in,null, file.getName(),false,null);
             CustomDialog.showInfo(JOptionPane.PLAIN_MESSAGE,RunnerRepository.window,
                                    "Success",
                                    "File successfully generated");

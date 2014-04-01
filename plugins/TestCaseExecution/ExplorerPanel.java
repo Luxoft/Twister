@@ -1,6 +1,6 @@
 /*
 File: ExplorerPanel.java ; This file is part of Twister.
-Version: 2.013
+Version: 2.014
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -195,7 +195,8 @@ public class ExplorerPanel {
     public void treeClickReleased(MouseEvent ev) {
         if (ev.getButton()==MouseEvent.BUTTON3) {
             refreshPopup(ev);
-        } else {
+        } 
+        else {
             if ((tree.getSelectionPaths()!=null) &&
             (tree.getSelectionPaths().length == 1) &&
             (tree.getModel().isLeaf(tree.getSelectionPath()
@@ -206,7 +207,6 @@ public class ExplorerPanel {
                             + "/"
                             + tree.getSelectionPath().getLastPathComponent()
                                     .toString();
-                    System.out.println("thefile:"+thefile);
                     String result = RunnerRepository.getRPCClient().execute(
                             "getTestDescription", new Object[] { thefile })
                             + "";
@@ -679,7 +679,7 @@ public class ExplorerPanel {
         try {
             String path [] = remotefile.split("/");
             FileInputStream in = new FileInputStream(localfile);
-            RunnerRepository.uploadRemoteFile(remotefile.replace("/"+path[path.length-1], ""), in, path[path.length-1],false,null);
+            RunnerRepository.uploadRemoteFile(remotefile.replace("/"+path[path.length-1], ""), in,null, path[path.length-1],false,null);
         } catch (Exception e) {
             e.printStackTrace();
             System.out.println("There was a problem in saving file "
