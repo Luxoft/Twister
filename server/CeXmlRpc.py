@@ -1,7 +1,7 @@
 
 # File: CeXmlRpc.py ; This file is part of Twister.
 
-# version: 2.041
+# version: 2.042
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -219,6 +219,7 @@ class CeXmlRpc(_cptools.XMLRPCController):
         Flag r/ rb = ascii/ binary.
         """
         user = cherrypy.session.get('username')
+        logDebug('GUI readFile {} {} {} {}'.format(user, fpath, fstart, type))
         resp = self.project.readFile(user, fpath, flag, fstart, type)
         if resp.startswith('*ERROR*'):
             logWarning(resp)
@@ -322,6 +323,7 @@ class CeXmlRpc(_cptools.XMLRPCController):
         """
         user = cherrypy.session.get('username')
         # Auto detect if ClearCase Test Config Path is active
+        logDebug('GUI readProjectFile {} {}'.format(user, fpath))
         ccConfig = self.project.getClearCaseConfig(user, 'projects_path')
         if ccConfig:
             view = ccConfig['view']
@@ -864,6 +866,7 @@ class CeXmlRpc(_cptools.XMLRPCController):
         Read config file - returns a base64 string.
         """
         user = cherrypy.session.get('username')
+        logDebug('GUI readConfigFile {} {} {} {}'.format(user, fpath))
         # Auto detect if ClearCase Test Config Path is active
         ccConfig = self.project.getClearCaseConfig(user, 'tcfg_path')
         if ccConfig:

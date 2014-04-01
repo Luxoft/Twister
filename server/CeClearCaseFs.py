@@ -1,7 +1,7 @@
 
 # File: CeClearCaseFs.py ; This file is part of Twister.
 
-# version: 3.006
+# version: 3.007
 
 # Copyright (C) 2012-2014, Luxoft
 
@@ -242,12 +242,14 @@ class ClearCaseFs(object):
         """
         Read 1 file. Client access via RPyc.
         """
+        logDebug('Read {} {} {}'.format(user,fpath,fstart))
         if not fpath:
             return False
         srvr = self._usrService(user)
         if srvr:
             return srvr.root.read_file(fpath, flag, fstart)
         else:
+            logError('Cannot read {} {} {}'.format(user,fpath,fstart))
             return False
 
 

@@ -1,7 +1,7 @@
 
 # File: CeRpyc.py ; This file is part of Twister.
 
-# version: 3.006
+# version: 3.007
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -629,6 +629,7 @@ class CeRpycService(rpyc.Service):
         if not user: return False
         eps = []
 
+        logDebug('Registered connections {}\n'.format(self.conns))
         for str_addr, data in self.conns.iteritems():
             # There might be more clients for a user...
             # And this Addr might be an EP, not a client

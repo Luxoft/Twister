@@ -1,7 +1,7 @@
 
 # File: CeProject.py ; This file is part of Twister.
 
-# version: 3.026
+# version: 3.027
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -1089,6 +1089,7 @@ class Project(object):
         Read a file from TWISTER PATH, user's home folder, or ClearCase.
         Flag r/ rb = ascii/ binary.
         """
+        logDebug('CE readFile {} {} {} {}'.format(user,fpath,fstart,type))
         if fpath.startswith(TWISTER_PATH):
             return self.localFs.readSystemFile(fpath, flag, fstart)
         else:
