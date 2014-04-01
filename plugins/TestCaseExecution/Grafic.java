@@ -1,6 +1,6 @@
 /*
 File: Grafic.java ; This file is part of Twister.
-Version: 2.0021
+Version: 2.0022
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -1757,7 +1757,7 @@ public class Grafic extends JPanel{
     public void exportSuiteToPredefined(Item suite){
         String user = CustomDialog.showInputDialog(JOptionPane.QUESTION_MESSAGE,
                                                 JOptionPane.OK_CANCEL_OPTION, RunnerRepository.window,
-                                                "File Name", "Please enter suite file name");
+                                                "File Name","Please enter suite file name");
         if(user!=null&&!user.equals("")){
             ArrayList<Item>array = new ArrayList<Item>();
             array.add(suite);
@@ -1765,7 +1765,8 @@ public class Grafic extends JPanel{
                          RunnerRepository.window.mainpanel.p1.suitaDetails.stopOnFail(),
                          RunnerRepository.window.mainpanel.p1.suitaDetails.preStopOnFail(),
                          RunnerRepository.window.mainpanel.p1.suitaDetails.saveDB(),
-                         RunnerRepository.window.mainpanel.p1.suitaDetails.getDelay(),true,array,RunnerRepository.window.mainpanel.p1.suitaDetails.getProjectDefs())){
+                         RunnerRepository.window.mainpanel.p1.suitaDetails.getDelay(),
+                         true,array,RunnerRepository.window.mainpanel.p1.suitaDetails.getProjectDefs())){
                 CustomDialog.showInfo(JOptionPane.PLAIN_MESSAGE, 
                                         RunnerRepository.window, "Success",
                                         "File successfully saved");

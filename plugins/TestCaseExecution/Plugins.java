@@ -1,6 +1,6 @@
 /*
 File: Plugins.java ; This file is part of Twister.
-Version: 2.012
+Version: 2.013
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -148,7 +148,7 @@ public class Plugins extends JPanel{
 //             ch.cd(RunnerRepository.USERHOME+"/twister/config/");
 //             ch.put(in, file.getName());
 //             in.close();
-            RunnerRepository.uploadRemoteFile(RunnerRepository.USERHOME+"/twister/config/", in, file.getName(),false,null);
+            RunnerRepository.uploadRemoteFile(RunnerRepository.USERHOME+"/twister/config/", in,null, file.getName(),false,null);
             finished = true;
             return true;}
         catch(Exception e){
@@ -744,7 +744,7 @@ public class Plugins extends JPanel{
             transformer.setOutputProperty("{http:xml.apache.org/xslt}indent-amount","4");
             transformer.transform(source, result);
             FileInputStream in = new FileInputStream(file);
-            RunnerRepository.uploadRemoteFile(RunnerRepository.USERHOME+"/twister/config/", in, file.getName(),false,null);
+            RunnerRepository.uploadRemoteFile(RunnerRepository.USERHOME+"/twister/config/", in,null, file.getName(),false,null);
             in.close();
             System.out.println("Saved "+file.getName()+" to: "+
                     RunnerRepository.USERHOME+"/twister/config/");}

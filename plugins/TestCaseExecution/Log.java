@@ -1,6 +1,6 @@
 /*
 File: Log.java ; This file is part of Twister.
-Version: 2.005
+Version: 2.006
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -112,16 +112,6 @@ public class Log extends JPanel{
         JPanel l = new JPanel();
         l.setPreferredSize(new Dimension(40,25));
         findpanel.add(l);
-        
-//         JLabel logsize = new JLabel("Log size: ");
-//         findpanel.add(logsize);
-//         JTextField tlogsize = new JTextField();
-//         tlogsize.setPreferredSize(new Dimension(80,25));
-//         findpanel.add(tlogsize);
-//         
-//         JCheckBox unlimited = new JCheckBox("Unlimited");
-//         findpanel.add(unlimited);
-        
         container.add(scroll,BorderLayout.CENTER);
         container.add(findpanel,BorderLayout.PAGE_END);
         textarea.setEditable(false);
@@ -145,7 +135,12 @@ public class Log extends JPanel{
                         result = RunnerRepository.getRPCClient().execute("getLogFile",
                                                                     new Object[]{RunnerRepository.getUser(),
                                                                                     "0","0",log}).toString();
-                        response = Long.parseLong(result);}
+                        if(result.indexOf("*ERROR*")!=-1){
+                            CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,container,"ERROR", result);
+                            continue;
+                        }
+                        response = Long.parseLong(result);
+                    }
                     if(response>length){
                         result = RunnerRepository.getRPCClient().execute("getLogFile",
                                                                     new Object[]{RunnerRepository.getUser(),
@@ -158,9 +153,7 @@ public class Log extends JPanel{
             }
             catch (Exception e){
                 e.printStackTrace();
-                clearScreen();
-                //textarea.append("This log has the folowing error: "+e.toString());
-				}}}
+                clearScreen();}}}
                 
      /*
      * find previous occurrence of "toFind"

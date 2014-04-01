@@ -1,6 +1,6 @@
 /*
 File: Emails.java ; This file is part of Twister.
-Version: 2.011
+Version: 2.012
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -260,7 +260,7 @@ public class Emails extends JPanel{
                         transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "4");                        
                         transformer.transform(source, result);  
                         FileInputStream input = new FileInputStream(theone);
-                        saved = RunnerRepository.uploadRemoteFile(RunnerRepository.REMOTEEMAILCONFIGPATH,input,theone.getName(),false,null);
+                        saved = RunnerRepository.uploadRemoteFile(RunnerRepository.REMOTEEMAILCONFIGPATH,input,null,theone.getName(),false,null);
                     }
                     catch(Exception e){
                         e.printStackTrace();

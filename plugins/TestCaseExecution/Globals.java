@@ -1,6 +1,6 @@
 /*
 File: Globals.java ; This file is part of Twister.
-Version: 2.010
+Version: 2.011
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -1151,51 +1151,11 @@ public class Globals {
             path.delete(0, 1);
             String location = path.toString();
             FileInputStream in = new FileInputStream(globalsfile);
-            RunnerRepository.uploadRemoteFile(location, in, filename, false,null);
-            
-//             try{
-//                 while(!finished){
-//                     try{Thread.sleep(100);}
-//                     catch(Exception e){e.printStackTrace();}
-//                 }
-//                 finished = false;
-//                 ch.cd(location);
-//                 ch.put(in, filename);
-//                 in.close();
-//                 
-//                 
-//                 
-//                 finished = true;}
-//             catch(Exception e){
-//                 e.printStackTrace();
-//                 finished = true;
-//             }
+            RunnerRepository.uploadRemoteFile(location, in,null, filename, false,null);
         } catch (Exception e){
             e.printStackTrace();
         }
     }
-    
-    /*
-     * initialize SFTP connection used
-     * for plugins and configuration files transfer
-     */
-//     public void initSftp(){
-//         try{
-//             JSch jsch = new JSch();
-//             session = jsch.getSession(RunnerRepository.user, RunnerRepository.host, 22);
-//             session.setPassword(RunnerRepository.password);
-//             Properties config = new Properties();
-//             config.put("StrictHostKeyChecking", "no");
-//             session.setConfig(config);
-//             session.connect();
-//             Channel channel = session.openChannel("sftp");
-//             channel.connect();
-//             ch = (ChannelSftp)channel;
-//         } catch (Exception e){
-//             System.out.println("ERROR: Could not initialize SFTP for plugins");
-//             e.printStackTrace();
-//         }
-//     }
     
     class MyFocusAdapter extends FocusAdapter{
         private Node name;

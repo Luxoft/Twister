@@ -1,6 +1,6 @@
 /*
 File: RunnerRepository.java ; This file is part of Twister.
-Version: 2.0049
+Version: 2.0050
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -151,8 +151,8 @@ public class RunnerRepository {
     public static Container container;
     public static Applet applet;
     private static Document pluginsconfig;
-    private static String version = "3.004";
-    private static String builddate = "31.03.2014";
+    private static String version = "3.005";
+    private static String builddate = "01.04.2014";
     public static String logotxt,os,python;
     private static int remotefiletries = 0;
     
@@ -409,7 +409,7 @@ public class RunnerRepository {
             Result result = new StreamResult(file);
             transformer.transform(source, result);
             FileInputStream in = new FileInputStream(file);
-            uploadRemoteFile(RunnerRepository.USERHOME+"/twister/config/",in,file.getName(),false,null);
+            uploadRemoteFile(RunnerRepository.USERHOME+"/twister/config/",in,null,file.getName(),false,null);
         }
         catch(Exception e){
             System.out.println("There was a problem in generating Plugins general config");
@@ -1522,19 +1522,15 @@ public class RunnerRepository {
     /*
      * save project file from CE
      */
-    public static String savePredefinedProjectFile(String file,String content){
-        System.out.println("Saving "+file+" with CE");
+    public static boolean savePredefinedProjectFile(String file,String content){
+        System.out.println("Saving "+getPredefinedSuitesPath()+"/"+file+" with CE");
         try{
-            String response = RunnerRepository.getRPCClient().execute("savePredefinedProjectFile", new Object[]{file,content}).toString();
-            if(response.indexOf("*ERROR*")!=-1){
-                CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,window,"ERROR", response);
-                return null;
-            }
-           return response;
+           return uploadRemoteFile(getPredefinedSuitesPath(),null, content,file, false,null);
+           
         }catch (Exception e){
             e.printStackTrace();
             CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,window,"ERROR", "Could not save file: "+file+" with CE!");
-            return null;
+            return false;
         }
     }
     
@@ -1673,7 +1669,7 @@ public class RunnerRepository {
         }
     }
     
-    public static boolean uploadRemoteFile(String location,FileInputStream input,String filename, boolean binary,String tag){//binary or text file
+    public static boolean uploadRemoteFile(String location,FileInputStream input, String content, String filename, boolean binary,String tag){//binary or text file
         if(location==null || location.equals("")){
             CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,RunnerRepository.window,
                                     "Warning", "No location provided to upload the file");
@@ -1681,23 +1677,27 @@ public class RunnerRepository {
         }
         try{
             System.out.println("writing: "+location+"/"+filename+" with CE");
-            String content = "";
-            if(binary){//write binary data
-                byte imageData[] = new byte[(int) input.available()];
-                input.read(imageData);
-                input.close();
-                content = DatatypeConverter.printBase64Binary(imageData);
-            } else {
-                if(input!=null){
-                    StringBuilder builder = new StringBuilder();
-                    int ch;
-                    while((ch = input.read()) != -1){
-                        builder.append((char)ch);
-                    }
+            if(input!=null){//received input not string content
+                content = "";
+                if(binary){//write binary data
+                    byte imageData[] = new byte[(int) input.available()];
+                    input.read(imageData);
                     input.close();
-                    content = builder.toString();
-                    content = DatatypeConverter.printBase64Binary(content.getBytes());
+                    content = DatatypeConverter.printBase64Binary(imageData);
+                } else {
+                    if(input!=null){
+                        StringBuilder builder = new StringBuilder();
+                        int ch;
+                        while((ch = input.read()) != -1){
+                            builder.append((char)ch);
+                        }
+                        input.close();
+                        content = builder.toString();
+                        content = DatatypeConverter.printBase64Binary(content.getBytes());
+                    }
                 }
+            } else {//received String content, cannot be binary
+                content = DatatypeConverter.printBase64Binary(content.getBytes());
             }
             String write = "w";
             if(binary)write = "wb";
