@@ -1,6 +1,6 @@
 /*
 File: Panel2.java ; This file is part of Twister.
-Version: 2.0015
+Version: 2.0016
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -301,6 +301,10 @@ public class Panel2 extends JPanel{
                 RunnerRepository.window.mainpanel.getP2().sc.g.repaint();    
                 status = (String)RunnerRepository.getRPCClient().execute("setExecStatusAll",
                                                                     new Object[]{RunnerRepository.getUser(),2});
+                if(status.indexOf("*ERROR*")!=-1){
+                    CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,tabbed,"ERROR", status);
+                    return;
+                }
                 String [] path = RunnerRepository.window.mainpanel.p1.sc.g.getUser().split("\\\\");
                 String file = path[path.length-1];
                 RunnerRepository.getRPCClient().execute("setStartedBy",

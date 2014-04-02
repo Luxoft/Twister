@@ -1,6 +1,6 @@
 /*
 File: Panel1.java ; This file is part of Twister.
-Version: 2.0021
+Version: 2.0022
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -788,6 +788,7 @@ public class Panel1 extends JPanel{
                 break;
             }
         }
+        
         /*
          * chech that there are tc'es to run
          */
@@ -798,6 +799,12 @@ public class Panel1 extends JPanel{
                 break;                
             }
         }
+        if(!found){
+            CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, RunnerRepository.window,"Warning","Please add test cases to your suite");
+            execute = false;
+            return;
+        }
+        
         /*
          * check that SUT set on suites exist
          */
@@ -824,10 +831,6 @@ public class Panel1 extends JPanel{
             }
         }
         
-        if(!found){
-            CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, RunnerRepository.window,"Warning","No tc found to run");
-            execute = false;
-        }
         if(execute){
             String [] s = sc.g.getUser().split("\\\\");
             if(s.length>0){
