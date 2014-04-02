@@ -690,9 +690,6 @@ public class Panel1 extends JPanel{
     public void edit(boolean openlast){
         final int loc = splitPane3.getDividerLocation();
         splitPane3.setLeftComponent(sc.pane);
-//         JScrollPane sp = new JScrollPane();
-//         sp.setPreferredSize(new Dimension(800,600));
-//         splitPane3.setLeftComponent(sp);
         try{
             SwingUtilities.invokeLater(new Runnable(){
                 public void run() {
@@ -720,11 +717,10 @@ public class Panel1 extends JPanel{
                 if(RunnerRepository.window.mainpanel.p1.sc.g.getUser()==null&&
                    RunnerRepository.window.mainpanel.p1.sc.g.getUser().equals("")){
                       RunnerRepository.window.mainpanel.p1.sc.g.setUser(RunnerRepository.getUsersDirectory()+
-                                                                    RunnerRepository.getBar()+user);
+                                                                        RunnerRepository.getBar()+user);
                 }
                 File file = new File(RunnerRepository.temp+RunnerRepository.getBar()+"Twister"+RunnerRepository.getBar()+"Users"+RunnerRepository.getBar()+user);
                 BufferedWriter writer = new BufferedWriter(new FileWriter(file));
-//                 String content = new String(RunnerRepository.getRemoteFileContent(RunnerRepository.getRemoteUsersDirectory()+"/"+user,false,null));
                 String content = new String(RunnerRepository.readProjectFile(user));
                 writer.write(content);
                 writer.close();
@@ -907,9 +903,9 @@ public class Panel1 extends JPanel{
         add(RunnerRepository.window.mainpanel.getP2().play);
         add(RunnerRepository.window.mainpanel.getP2().stop);        
         add(RunnerRepository.window.mainpanel.getP2().cestatus);
-        RunnerRepository.window.mainpanel.getP2().play.doClick();
         suitaDetails.setEnabled(false);
         tcdetails.logs.doClick();
+        RunnerRepository.window.mainpanel.getP2().play.doClick();
         repaint();
     }
         
@@ -927,56 +923,8 @@ public class Panel1 extends JPanel{
             RunnerRepository.emptySuites();
             try{RunnerRepository.deleteProjectFile(new File(sc.g.getUser()).getName());
                 new File(sc.g.getUser()).delete();
-//                 boolean executed = false;
-//                 if(RunnerRepository.window.mainpanel.p4.getPlugins().isClearCaseEnabled()){
-//                     executed = RunnerRepository.removeRemoteFile(RunnerRepository.getRemoteUsersDirectory()+"/"+(new File(sc.g.getUser()).getName()),"UsersPath");
-//                 } else {
-//                     executed = RunnerRepository.removeRemoteFile(RunnerRepository.getRemoteUsersDirectory()+"/"+(new File(sc.g.getUser()).getName()),null);
-//                 }
-//                 try{RunnerRepository.c.cd(RunnerRepository.getRemoteUsersDirectory());
-//                     RunnerRepository.c.rm(new File(sc.g.getUser()).getName());}
-//                 catch(Exception e){
-//                     System.out.println("Could not delete "+new File(sc.g.getUser()).getName()+
-//                                         " from "+RunnerRepository.getRemoteUsersDirectory());
-//                     e.printStackTrace();}
             }
-            catch(Exception e){e.printStackTrace();}
-//             File usersdirectory = new File(RunnerRepository.getUsersDirectory());
-//             String users[] = new String[usersdirectory.list().length + 1];
-//             System.arraycopy(usersdirectory.list(), 0, users, 0, usersdirectory.list().length);
-//             users[users.length - 1] = "New File";
-//             JComboBox combo = new JComboBox(users);
-//             int resp = (Integer)CustomDialog.showDialog(combo,JOptionPane.INFORMATION_MESSAGE,
-//                                                         JOptionPane.OK_CANCEL_OPTION,Panel1.this,
-//                                                         "File Name",null);
-//             if(resp==JOptionPane.OK_OPTION){
-//                 String user = combo.getSelectedItem().toString();
-//                 if(user.equals("New File")){
-//                     user = CustomDialog.showInputDialog(JOptionPane.QUESTION_MESSAGE, JOptionPane.OK_CANCEL_OPTION,
-//                                                         Panel1.this, "File Name", "Please enter file name");
-//                     if(!user.equals("NULL")){
-//                         RunnerRepository.emptySuites();
-//                         sc.g.getSelectedCollection().clear();
-//                         (new XMLBuilder(RunnerRepository.getSuite())).writeXMLFile((new StringBuilder()).
-//                                                                append(RunnerRepository.getUsersDirectory()).
-//                                                                append(System.getProperty("file.separator"))
-//                                                                .append(user).append(".xml").toString(),false,false,false);
-//                         sc.g.setUser((new StringBuilder()).append(RunnerRepository.getUsersDirectory()).
-//                                                                     append(System.getProperty("file.separator")).
-//                                                                     append(user).append(".xml").toString());
-//                         sc.g.printXML(sc.g.getUser(),false,false,false,false,"",false,null);}}
-//                 else if(user != null){
-//                     sc.g.setUser((new StringBuilder()).append(RunnerRepository.getUsersDirectory()).
-//                                                                 append(System.getProperty("file.separator")).
-//                                                                 append(user).toString());
-//                     sc.g.parseXML(new File((new StringBuilder()).append(RunnerRepository.getUsersDirectory()).
-//                                                                 append(System.getProperty("file.separator")).
-//                                                                 append(user).toString()));}}
-//             else RunnerRepository.window.mainpanel.p1.sc.g.setUser("");
-//             if(RunnerRepository.getSuiteNr() > 0)RunnerRepository.window.mainpanel.p1.sc.g.updateLocations(RunnerRepository.getSuita(0));
-//             RunnerRepository.window.mainpanel.p1.sc.g.repaint();
-//             RunnerRepository.window.mainpanel.p1.sc.g.repaint();
-        }
+            catch(Exception e){e.printStackTrace();}}
             RunnerRepository.openProjectFile();
         
         

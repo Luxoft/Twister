@@ -1,6 +1,6 @@
 /*
 File: Panel2.java ; This file is part of Twister.
-Version: 2.0016
+Version: 2.0017
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -303,6 +303,7 @@ public class Panel2 extends JPanel{
                                                                     new Object[]{RunnerRepository.getUser(),2});
                 if(status.indexOf("*ERROR*")!=-1){
                     CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,tabbed,"ERROR", status);
+                    RunnerRepository.window.mainpanel.p1.edit(true);
                     return;
                 }
                 String [] path = RunnerRepository.window.mainpanel.p1.sc.g.getUser().split("\\\\");
