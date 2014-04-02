@@ -1,7 +1,7 @@
 
 # File: CeProject.py ; This file is part of Twister.
 
-# version: 3.026
+# version: 3.031
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -1576,13 +1576,20 @@ class Project(object):
 
         if ret:
             if msg:
-                logDebug('Status changed for `{} {}` - {}.\n\tMessage: `{}`.'.format(
+                logDebug('Status changed for EP `{} {}` - {}.\n\tMessage: `{}`.'.format(
                     user, epname, reversed[new_status], msg))
             else:
-                logDebug('Status changed for `{} {}` - {}.'.format(user, epname, reversed[new_status]))
+                logDebug('Status changed for EP `{} {}` - {}.'.format(user, epname, reversed[new_status]))
         else:
-            logError('Project: Cannot change status for `{} {}` !'.format(user, epname))
+            logError('Project: Cannot change status for EP `{} {}` !'.format(user, epname))
             return False
+
+        # All active EPs for this project...
+        project_eps = self.parsers[user].getActiveEps()
+        # All REAL, registered EPs
+        real_eps = self.rsrv.service.exposed_registeredEps(user)
+        # The project real EPs
+        intersect_eps = sorted(set(real_eps) & set(project_eps))
 
         # Send start/ stop command to EP !
         if new_status == STATUS_RUNNING:
@@ -1594,7 +1601,7 @@ class Project(object):
 
         # If all Stations are stopped, the status for current user is also stop!
         # This is important, so that in the Java GUI, the buttons will change to [Play | Stop]
-        if not sum([self.getEpInfo(user, ep).get('status', 8) for ep in self.parsers[user].getActiveEps()]):
+        if not sum([self.getEpInfo(user, ep).get('status', 8) for ep in intersect_eps]):
 
             # If User status was not Stop
             if self.getUserInfo(user, 'status'):
@@ -1656,7 +1663,8 @@ class Project(object):
                             statuses_changed += 1
 
                     if statuses_changed:
-                        logDebug('Changed `{}` file statuses from Pending to Not executed.'.format(statuses_changed))
+                        logDebug('User `{}` changed `{}` file statuses from '
+                            '"Pending" to "Not executed".'.format(user, statuses_changed))
 
         return reversed[new_status]
 
@@ -1694,6 +1702,9 @@ class Project(object):
 
         # Return the current status, or 8 = INVALID
         executionStatus = self.getUserInfo(user, 'status') or 8
+
+        # All REAL, registered EPs
+        real_eps = rpyc_srv.exposed_registeredEps(user)
 
         # Re-initialize the Master XML and Reset all logs on fresh start!
         # This will always happen when the START button is pressed, if CE is stopped
@@ -1756,20 +1767,27 @@ class Project(object):
                     logWarning('Error on running plugin `{} onStart` - Exception: `{}`!'.format(pname, trace))
             del parser, plugins
 
-            # Before starting the EPs and changing the user status, check if there are any EPs
-            epList = rpyc_srv.exposed_registeredEps(user)
+            if not real_eps:
+                msg = '*ERROR* User `{}` doesn\'t have any '\
+                    'registered EPs to run the project!'.format(user)
+                logError(msg)
+                return msg
 
-            if not epList:
-                logWarning('CANNOT START! User `{}` doesn\'t have any registered EPs to run the tests!'.format(user))
-                return reversed[STATUS_STOP]
+            # All project EPs ... There are NO duplicates.
+            project_eps = self.parsers[user].getActiveEps()
 
-            # All active EPs ... There are NO duplicates.
-            active_eps = self.parsers[user].getActiveEps()
+            intersect_eps = sorted(set(real_eps) & set(project_eps))
+
+            if not intersect_eps:
+                msg = '*ERROR* User `{}` project doesn\'t have real EPs to run the tests! '\
+                    'Invalid EP list: {}.'.format(user, project_eps)
+                logError(msg)
+                return msg
 
             # Find Anonimous EP in the active EPs
             anonim_ep = self._find_anonim_ep(user)
 
-            for epname in active_eps:
+            for epname in project_eps:
                 if epname == '__anonymous__' and anonim_ep:
                     self._registerEp(user, epname)
                     # Rename the Anon EP
@@ -1778,7 +1796,7 @@ class Project(object):
                         del self.users[user]['eps'][epname]
                     # The new name
                     epname = anonim_ep
-                elif epname not in self.users[user]['eps']:
+                elif epname not in real_eps:
                     continue
                 # Set the NEW EP status
                 self.setEpInfo(user, epname, 'status', new_status)
@@ -1812,19 +1830,19 @@ class Project(object):
             # Backup the logs when user pressed STOP
             self.backupLogs(user)
 
-            # Cycle all active EPs to: STOP them and to change the PENDING status to NOT_EXEC
-            active_eps = self.parsers[user].getActiveEps()
+            # Cycle all project EPs to: STOP them and to change the PENDING status to NOT_EXEC
+            project_eps = self.parsers[user].getActiveEps()
             # Find Anonimous EP in the active EPs
             anonim_ep = self._find_anonim_ep(user)
 
             eps_pointer = self.users[user]['eps']
             statuses_changed = 0
 
-            for epname in active_eps:
+            for epname in project_eps:
                 if epname == '__anonymous__' and anonim_ep:
                     # The new name
                     epname = anonim_ep
-                elif epname not in self.users[user]['eps']:
+                elif epname not in real_eps:
                     continue
                 # All files, for current EP
                 files = eps_pointer[epname]['suites'].getFiles()
@@ -1840,30 +1858,37 @@ class Project(object):
                 rpyc_srv.exposed_stopEP(epname, user)
 
             if statuses_changed:
-                logDebug('Set Status: Changed `{}` file statuses from Pending to Not executed.'.format(statuses_changed))
+                logDebug('User `{}` changed `{}` file statuses from '
+                    '"Pending" to "Not executed".'.format(user, statuses_changed))
 
         # Pause or other statuses ?
         else:
-            # Change status on all active EPs !
-            active_eps = self.parsers[user].getActiveEps()
-            for epname in active_eps:
-                if epname not in self.users[user]['eps']:
+            # Change status on all project and real EPs !
+            project_eps = self.parsers[user].getActiveEps()
+            for epname in project_eps:
+                if epname not in real_eps:
                     continue
                 # Set the NEW EP status
                 self.setEpInfo(user, epname, 'status', new_status)
 
+        # All active EPs for this project, refresh after all settings...
+        project_eps = self.parsers[user].getActiveEps()
+
+        differ_eps = sorted(set(project_eps) - set(real_eps))
+        intersect_eps = sorted(set(real_eps) & set(project_eps))
+
+        if differ_eps:
+            logWarning('WARNING! User `{}` has invalid EPs: {} !!'.format(user, differ_eps))
+
         # Update status for User
         self.setUserInfo(user, 'status', new_status)
 
-        # All active EPs for this project, refresh again...
-        active_eps = self.parsers[user].getActiveEps()
-
         if msg and msg != ',':
             logInfo('Status changed for `{} {}` - {}.\n\tMessage: `{}`.'.format(
-                user, active_eps, reversed[new_status], msg))
+                user, intersect_eps, reversed[new_status], msg))
         else:
             logInfo('Status changed for `{} {}` - {}.'.format(
-                user, active_eps, reversed[new_status]))
+                user, intersect_eps, reversed[new_status]))
 
         return reversed[new_status]
 
@@ -3081,15 +3106,15 @@ class Project(object):
         """
         logFull('CeProject:getLogFile user `{}`.'.format(user))
         if fstart is None:
-            return '*ERROR for {}!* Parameter FSTART is NULL!'.format(user)
+            return '*ERROR* Parameter FSTART is NULL, user {}!'.format(user)
         if not filename:
-            return '*ERROR for {}!* Parameter FILENAME is NULL!'.format(user)
+            return '*ERROR* Parameter FILENAME is NULL, user {}!'.format(user)
 
         fpath = self.getUserInfo(user, 'logs_path')
 
         if not fpath or not os.path.exists(fpath):
-            return '*ERROR for {}!* Logs path `{}` is invalid! Using master config `{}` and suites config `{}`.'\
-                .format(user, fpath, self.getUserInfo(user, 'config_path'), self.getUserInfo(user, 'project_path'))
+            return '*ERROR* Logs path `{}` is invalid for user {}! Using master config `{}` and suites config `{}`.'\
+                .format(fpath, user, self.getUserInfo(user, 'config_path'), self.getUserInfo(user, 'project_path'))
 
         if filename == 'server_log':
             filename = '{}/{}'.format(TWISTER_PATH, 'server_log.log')
@@ -3100,8 +3125,8 @@ class Project(object):
 
         # If file size returned error
         if isinstance(fsz, str):
-            return '*ERROR for {}!* File `{}` doesn\'t exist! Using master config `{}` and suites config `{}`'.\
-                format(user, filename, self.getUserInfo(user, 'config_path'), self.getUserInfo(user, 'project_path'))
+            return '*ERROR* File `{}` doesn\'t exist, user {}! Using master config `{}` and suites config `{}`'.\
+                format(filename, user, self.getUserInfo(user, 'config_path'), self.getUserInfo(user, 'project_path'))
 
         if not read or read=='0':
             return fsz

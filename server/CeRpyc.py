@@ -1,7 +1,7 @@
 
 # File: CeRpyc.py ; This file is part of Twister.
 
-# version: 3.006
+# version: 3.007
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -471,7 +471,7 @@ class CeRpycService(rpyc.Service):
         user = self._check_login()
         if not user: return False
         resp = self.project.readFile(user, fpath, flag, fstart, type)
-        if resp.startswith('*ERROR*'):
+        if resp and resp.startswith('*ERROR*'):
             logWarning(resp)
         return resp
 

@@ -455,10 +455,6 @@ class TwisterClient(object):
 
         for currentEP, epData in self.epNames.items():
             cePath = '{}:{}'.format(epData['ce_ip'], epData['ce_port'])
-            # If Central Engine proxy filter is specified, use it
-            if epData['ce_ip'] not in addr:
-                continue
-
             epsToRegister[cePath] = [
                 ep for ep in self.epNames
                 if self.epNames[ep]['ce_ip'] == self.epNames[currentEP]['ce_ip'] and

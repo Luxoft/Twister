@@ -1,7 +1,7 @@
 
 # File: CeClearCaseFs.py ; This file is part of Twister.
 
-# version: 3.005
+# version: 3.007
 
 # Copyright (C) 2012-2014, Luxoft
 
@@ -123,7 +123,7 @@ class ClearCaseFs(object):
             conn = self._services.get(user_view, {}).get('conn', None)
             if conn:
                 try:
-                    conn.ping(data='Hello', timeout=2)
+                    conn.ping(data='Hello', timeout=5.0)
                     # logDebug('Reuse old ClearCase Service connection for `{}` OK.'.format(user))
                     return conn
                 except Exception as e:
@@ -137,6 +137,7 @@ class ClearCaseFs(object):
                 logInfo('Launching a ClearCase Service for `{}`, the first time...'.format(user_view))
 
             proc = pexpect.spawn(['bash'], timeout=2.5, maxread=2048)
+            time.sleep(2.0)
             plog = []
 
             def pread():
@@ -150,13 +151,14 @@ class ClearCaseFs(object):
                         break
 
             proc.sendline('su {}'.format(user))
+            time.sleep(2.0)
             pread()
             # User's home folder
             proc.sendline('cd ~/twister')
             pread()
             # Set cc view only the first time !
             proc.sendline('cleartool setview {}'.format(view))
-            time.sleep(2)
+            time.sleep(2.0)
             pread()
             # Empty line after set view
             proc.sendline('')
@@ -175,7 +177,7 @@ class ClearCaseFs(object):
             # Launching 1 UserService inside the SSH terminal, with ClearCase View open
             p_cmd = '{} -u {}/server/UserService.py {} ClearCase & '.format(sys.executable, TWISTER_PATH, port)
             proc.sendline(p_cmd)
-            time.sleep(1)
+            time.sleep(2.0)
             pread()
 
             # Empty line after proc start
@@ -191,20 +193,23 @@ class ClearCaseFs(object):
                 'allow_delattr': True
             }
 
-            retries = 10
+            retry = 10
+            delay = 0.5
             success = False
 
-            while retries > 0:
+            while retry > 0:
                 try:
-                    conn = rpyc.connect('127.0.0.1', port, config=config)
+                    stream = rpyc.SocketStream.connect('127.0.0.1', port, timeout=5.0)
+                    conn = rpyc.connect_stream(stream, config=config)
                     conn.root.hello()
                     logDebug('Connected to ClearCase Service for `{}`.'.format(user_view))
                     success = True
                     break
                 except Exception as e:
                     logWarning('Cannot connect to ClearCase Service for `{}` - Exception: `{}`! Retry...'.format(user_view, e))
-                retries -= 1
-                time.sleep(0.5)
+                time.sleep(delay)
+                retry -= 1
+                delay += 0.75
 
             if not success:
                 logError('Error on starting ClearCase Service for `{}`!'.format(user_view))
@@ -237,12 +242,14 @@ class ClearCaseFs(object):
         """
         Read 1 file. Client access via RPyc.
         """
+        logDebug('Read {} {} {}'.format(user,fpath,fstart))
         if not fpath:
             return False
         srvr = self._usrService(user)
         if srvr:
             return srvr.root.read_file(fpath, flag, fstart)
         else:
+            logError('Cannot read {} {} {}'.format(user,fpath,fstart))
             return False
 
 

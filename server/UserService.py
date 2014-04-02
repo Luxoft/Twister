@@ -403,7 +403,7 @@ if __name__ == '__main__':
         'allow_delattr': True
     }
 
-    t = ThreadedServer(UserService, port=int(PORT[0]), protocol_config=config)
+    t = ThreadedServer(UserService, port=int(PORT[0]), protocol_config=config, listener_timeout=1)
     t.start()
 
     log.warning('User Service: Bye bye.')
