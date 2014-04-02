@@ -1,7 +1,7 @@
 
 # File: CeFs.py ; This file is part of Twister.
 
-# version: 3.008
+# version: 3.009
 
 # Copyright (C) 2012-2014, Luxoft
 
@@ -135,7 +135,7 @@ class LocalFS(object):
             proc = subprocess.Popen(p_cmd, cwd='{}/twister'.format(userHome(user)), shell=True,
                    close_fds=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             proc.poll()
-            time.sleep(5.0)
+            time.sleep(1.0)
 
             config = {
                 'allow_pickle': True,
@@ -144,7 +144,7 @@ class LocalFS(object):
                 'allow_delattr': True
             }
 
-            retry = 10
+            retry = 25
             delay = 0.5
             success = False
 
@@ -162,6 +162,7 @@ class LocalFS(object):
                 except Exception as e:
                     logWarning('Cannot connect to User Service for `{}` - Exception: `{}`! '
                             'Wait {}s...'.format(user, e, delay))
+                    self._kill(user)
 
                 time.sleep(delay)
                 retry -= 1
@@ -189,23 +190,29 @@ class LocalFS(object):
             return False
         srvr = self._usrService(user)
         if srvr:
-            return srvr.root.file_size(fpath)
+            try:
+                return srvr.root.file_size(fpath)
+            except Exception:
+                return -1
         else:
-            return False
+            return -1
 
 
     def readUserFile(self, user, fpath, flag='r', fstart=0):
         """
         Read 1 file. Client access via RPyc.
         """
-        logDebug('Read {} {} {}'.format(user,fpath,fstart))
         if not fpath:
             return False
         srvr = self._usrService(user)
         if srvr:
-            return srvr.root.read_file(fpath, flag, fstart)
+            try:
+                return srvr.root.read_file(fpath, flag, fstart)
+            except Exception as e:
+                err = '*ERROR* Cannot read file `{}`! {}'.format(fpath, e)
+                logWarning(err)
+                return err
         else:
-            logError('Read {} {} {}'.format(user,fpath,fstart))
             return False
 
 
@@ -221,7 +228,12 @@ class LocalFS(object):
             logWarning(err)
             return err
         if srvr:
-            return srvr.root.write_file(fpath, fdata, flag)
+            try:
+                return srvr.root.write_file(fpath, fdata, flag)
+            except Exception as e:
+                err = '*ERROR* Cannot write into file `{}`! {}'.format(fpath, e)
+                logWarning(err)
+                return err
         else:
             return False
 

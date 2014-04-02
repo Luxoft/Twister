@@ -219,7 +219,7 @@ class CeXmlRpc(_cptools.XMLRPCController):
         Flag r/ rb = ascii/ binary.
         """
         user = cherrypy.session.get('username')
-        logDebug('GUI readFile {} {} {} {}'.format(user, fpath, fstart, type))
+        logDebug('GUI ReadFile: user {}; flag {}; path {}; start {}; {}'.format(user, flag, fpath, fstart, type))
         resp = self.project.readFile(user, fpath, flag, fstart, type)
         if resp.startswith('*ERROR*'):
             logWarning(resp)
@@ -233,6 +233,7 @@ class CeXmlRpc(_cptools.XMLRPCController):
         Flag w/ wb = ascii/ binary.
         """
         user = cherrypy.session.get('username')
+        logDebug('GUI WriteFile: user {}; path {}; flag {}; {}'.format(user, fpath, flag, type))
         fdata = binascii.a2b_base64(fdata)
         # If this is NOT a binary file, fix the newline
         if not 'b' in flag:
