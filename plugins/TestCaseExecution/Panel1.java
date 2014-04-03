@@ -1,6 +1,6 @@
 /*
 File: Panel1.java ; This file is part of Twister.
-Version: 2.0022
+Version: 2.0023
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -240,7 +240,6 @@ public class Panel1 extends JPanel{
         JMenu filemenu = new JMenu("File");
         filemenu.setBounds(10,0,40,20);
         item = new JMenuItem("New project file");
-//         JMenuItem newuser = new JMenuItem("New project file");
         item.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 addSuiteFile();}});
@@ -248,14 +247,12 @@ public class Panel1 extends JPanel{
         if(!PermissionValidator.canCreateProject()){
             item.setEnabled(false);
         }
-//         JMenuItem changeuser = new JMenuItem("Open project file");
         item = new JMenuItem("Open project file");
         item.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 RunnerRepository.openProjectFile();
             }});
         filemenu.add(item);
-//         JMenuItem saveuser = new JMenuItem("Save project file");
         item = new JMenuItem("Save project file");
         item.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent ev){
@@ -264,8 +261,6 @@ public class Panel1 extends JPanel{
         if(!PermissionValidator.canChangeProject()){
             item.setEnabled(false);
         }
-        
-//         JMenuItem saveuseras = new JMenuItem("Save project as");
         item = new JMenuItem("Save project as");
         item.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent ev){
@@ -282,7 +277,6 @@ public class Panel1 extends JPanel{
         if(!PermissionValidator.canCreateProject()){
             item.setEnabled(false);
         }
-//         JMenuItem deleteuser = new JMenuItem("Delete project file");
         item = new JMenuItem("Delete project file");
         item.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent ev){
@@ -291,13 +285,11 @@ public class Panel1 extends JPanel{
         if(!PermissionValidator.canDeleteProject()){
             item.setEnabled(false);
         }
-//         JMenuItem openlocalXML = new JMenuItem("Open from local");
         item = new JMenuItem("Open from local");
         item.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent ev){
                 openLocalFile();}});
         filemenu.add(item);
-//         JMenuItem savelocalXML = new JMenuItem("Save to local");
         item = new JMenuItem("Save to local");
         item.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent ev){
@@ -312,13 +304,10 @@ public class Panel1 extends JPanel{
         sc = new ScrollGrafic(10, 32, tdtl, user, applet);
         ep = new ExplorerPanel(applet);
         lp = new LibrariesPanel();
-        //cp = new ClearCasePanel();
-        //ep = new ExplorerPanel(470, 32, tdtl, applet, RunnerRepository.c);
         setLayout(null); 
         tabs = new JTabbedPane();
         tabs.add("Test Case", new JScrollPane(ep.tree));
         tabs.add("Predefined Suites", new JScrollPane(lp.tree));
-        //tabs.add("ClearCase Tests", new JScrollPane(cp.tree));
         splitPane2 = new JSplitPane(JSplitPane.VERTICAL_SPLIT,
                                                 tabs,
                                                 tcdetails);
@@ -334,8 +323,6 @@ public class Panel1 extends JPanel{
         }           
         splitPane3 = new JSplitPane(JSplitPane.VERTICAL_SPLIT,
                                                 sc.pane,suitaDetails);
-//         splitPane3 = new JSplitPane(JSplitPane.VERTICAL_SPLIT,
-//                                                 new JScrollPane(),suitaDetails);
         try{
             SwingUtilities.invokeLater(new Runnable() {
                 public void run() {
@@ -350,7 +337,6 @@ public class Panel1 extends JPanel{
                                     splitPane3,splitPane2);
         Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
         splitPane.setBounds(10,45,(int)screenSize.getWidth()-80,600);
-        
         try{
             SwingUtilities.invokeLater(new Runnable() {
                 public void run() {
@@ -442,19 +428,6 @@ public class Panel1 extends JPanel{
                 }
                 user+=".xml";
                 if(!PermissionValidator.canChangeProject()){
-//                     String [] files = null;
-//                     if(RunnerRepository.window.mainpanel.p4.getPlugins().isClearCaseEnabled()){
-//                         try{String respons = RunnerRepository.getRPCClient().execute("findCcXmlTag", new Object[]{"UsersPath"}).toString();
-//                             if(respons.indexOf("*ERROR*")!=-1){
-//                                 CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,RunnerRepository.window,"ERROR", respons);
-//                                 return ;
-//                             }   
-//                             files = RunnerRepository.getRemoteFolderContent(respons.split(":")[1],"UsersPath");
-//                         } catch(Exception e){e.printStackTrace();}
-//                     } else {
-//                         files = RunnerRepository.getRemoteFolderContent(RunnerRepository.getRemoteUsersDirectory(),null);
-//                     }
-                   
                     for(String st:RunnerRepository.getProjectsFiles()){
                         if(st.equals(user)){
                             CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, 
@@ -728,8 +701,7 @@ public class Panel1 extends JPanel{
                                                                               RunnerRepository.getBar()+user));
             } catch (Exception e){
                 e.printStackTrace();
-            }
-            
+            }            
         }
         if(RunnerRepository.getSuiteNr() > 0){
             RunnerRepository.window.mainpanel.p1.sc.g.updateLocations(RunnerRepository.getSuita(0));}
@@ -756,10 +728,10 @@ public class Panel1 extends JPanel{
         RunnerRepository.window.mainpanel.getP2().setSaveDB(suitaDetails.saveDB());
         int defsNr = suitaDetails.getDefsNr();
         boolean execute=true;
+         /*
+          * check if mandatory fields are set
+          */
         for(int i=0;i<RunnerRepository.getSuiteNr();i++){
-            /*
-             * check if mandatory fields are set
-             */
             for(int j=0;j<defsNr;j++){
                 if( RunnerRepository.getDatabaseUserFields().get(j)[RunnerRepository.MANDATORY].equals("true") &&
                 (RunnerRepository.getSuita(i).getUserDefNr()-1<j||RunnerRepository.getSuita(i).getUserDef(j)[1].length()==0)){
@@ -768,7 +740,7 @@ public class Panel1 extends JPanel{
                                             RunnerRepository.getDatabaseUserFields().get(j)[RunnerRepository.LABEL]+
                                             " for: "+RunnerRepository.getSuita(i).getName());
                     execute = false;
-                    break;}}
+                    return;}}
         }
         
         /*
@@ -781,24 +753,32 @@ public class Panel1 extends JPanel{
                 CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, RunnerRepository.window,
                                         "Warning","Please set project defined field for "+projectdefined[i][2]);
                 execute = false;
-                break;
+                return;
             }
         }
         
         /*
          * chech that there are tc'es to run
          */
-        boolean found = false;
         for(Item i:RunnerRepository.getSuite()){
-            if(findRunnableTC(i)){
-                found = true;
-                break;                
+            if(!findRunnableTC(i)){
+                CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, RunnerRepository.window,"Warning","Please add test cases to your suite");
+                execute = false;
+                return;
             }
         }
-        if(!found){
-            CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, RunnerRepository.window,"Warning","Please add test cases to your suite");
-            execute = false;
-            return;
+        
+        /*
+         * check tc/suite for names
+         */
+        Item temp = null;
+        for(Item i:RunnerRepository.getSuite()){
+            temp = RunnerRepository.hasEmptyName(i);
+            if(temp!=null){
+                CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE, RunnerRepository.window,"ERROR","There is an item with an empty name, please set name!");
+                execute = false;
+                return;
+            }
         }
         
         /*
@@ -812,7 +792,7 @@ public class Panel1 extends JPanel{
                 vecresult[i] = vecresult[i].replace(".system", "(system)");
             }
             for(Item i:RunnerRepository.getSuite()){
-                found = false;
+                boolean found = false;
                 for(String item:i.getEpId()){
                     for(String sut:vecresult){
                         if(item.equals(sut)){
@@ -863,6 +843,8 @@ public class Panel1 extends JPanel{
             setRunning();
         }
     }
+    
+    
     
     
     /*

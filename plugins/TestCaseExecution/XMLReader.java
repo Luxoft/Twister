@@ -1,6 +1,6 @@
 /*
 File: XMLReader.java ; This file is part of Twister.
-Version: 2.017
+Version: 2.018
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -377,11 +377,14 @@ public class XMLReader{
             fstNmElmnt = (Element)fstNmElmntLst.item(0);
             fstNm = fstNmElmnt.getChildNodes();
             FontMetrics metrics = g.getFontMetrics(new Font("TimesRoman", 1, 13));
-            int width = metrics.stringWidth(fstNm.item(0).getNodeValue().toString());
+            String name = "";
+            try{name = fstNm.item(0).getNodeValue().toString();}
+            catch(Exception e){System.out.println("There is a suite with no name in project");}
+            int width = metrics.stringWidth(name);
             Item suitatemp;
-            if(!test)suitatemp= new Item(fstNm.item(0).getNodeValue(),
+            if(!test)suitatemp= new Item(name,
                                          2,-1,10, width+50,25,indexpos);
-            else suitatemp=  new Item(fstNm.item(0).getNodeValue(),
+            else suitatemp=  new Item(name,
                                       2,-1,10, width+120,25,indexpos);
             int k=6;
                                       
@@ -425,21 +428,18 @@ public class XMLReader{
                     
                 } catch(Exception e){ e.printStackTrace();}
                 suitatemp.setEpId(text);
-            } else{
-                    try{fstNmElmntLst = fstElmnt.getElementsByTagName("SutName");
-                        if(fstNmElmntLst.getLength()>0){
-                            fstNmElmnt = (Element)fstNmElmntLst.item(0);
-                            fstNm = fstNmElmnt.getChildNodes();
-                        } else {
-                            System.out.println("There is an element that has no EpId or SutName!!!");
-                        }
-                    } catch (Exception ex){
-                        
-                        ex.printStackTrace();
+            } else{                
+                try{fstNmElmntLst = fstElmnt.getElementsByTagName("SutName");
+                    if(fstNmElmntLst.getLength()>0){
+                        fstNmElmnt = (Element)fstNmElmntLst.item(0);
+                        fstNm = fstNmElmnt.getChildNodes();
+                    } else {
+                        System.out.println("There is an element that has no EpId or SutName!!!");
                     }
-//                 }
-                
-    //             suitatemp.setEpId(fstNm.item(0).getNodeValue());
+                } catch (Exception ex){
+                    
+                    ex.printStackTrace();
+                }
                 try{suitatemp.setEpId(fstNm.item(0).getNodeValue().split(";"));}
                 catch(Exception e){
                     if(fstNm.item(0)!=null){
@@ -450,10 +450,6 @@ public class XMLReader{
                     }
                 }
             }
-            
-            
-            
-            
             
             //temp solution for CE
             int items = fstElmnt.getChildNodes().getLength();

@@ -1,6 +1,6 @@
 /*
 File: Grafic.java ; This file is part of Twister.
-Version: 2.0022
+Version: 2.0023
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -81,6 +81,8 @@ import java.io.BufferedWriter;
 import java.io.FileWriter;
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.tree.DefaultMutableTreeNode;
+import javax.swing.GroupLayout;
+import javax.swing.LayoutStyle;
 
 public class Grafic extends JPanel{
     private static final long serialVersionUID = 1L;
@@ -1361,25 +1363,6 @@ public class Grafic extends JPanel{
                 else{
                     (new AddSuiteFrame(Grafic.this, null,0)).setLocation((int)ev.getLocationOnScreen().getX()-50,
                                                                     (int)ev.getLocationOnScreen().getY()-50);}}});//add suite
-/*         item = new JMenuItem("Open XML");
-         p.add(item);
-         item.addActionListener(new ActionListener(){
-             public void actionPerformed(ActionEvent ev){
-                 JFileChooser chooser = new JFileChooser(); 
-                 chooser.setFileFilter(new XMLFilter());
-                 chooser.setCurrentDirectory(new java.io.File("."));
-                 chooser.setDialogTitle("Select XML File"); 
-                 if (chooser.showOpenDialog(RunnerRepository.window) == JFileChooser.APPROVE_OPTION) {                    
-                     RunnerRepository.emptyRunnerRepository();
-                     setUser(RunnerRepository.getUsersDirectory()+RunnerRepository.getBar()+chooser.getSelectedFile().getName());
-                     parseXML(chooser.getSelectedFile());
-                     if(RunnerRepository.getSuiteNr() > 0)updateLocations(RunnerRepository.getSuita(0));
-                     repaint();}}});// de deschis local un xml                
-         item = new JMenuItem("Save suite XML");
-         p.add(item);        
-         item.addActionListener(new ActionListener(){
-             public void actionPerformed(ActionEvent ev){
-                 if(!user.equals(""))printXML(user,false);}});*/
         p.show(this,ev.getX(),ev.getY());}
         
     /*
@@ -1398,17 +1381,6 @@ public class Grafic extends JPanel{
             item.addActionListener(new ActionListener(){
                 public void actionPerformed(ActionEvent ev){
                     removeSelected();
-//                     int index = prop.getPos().get(prop.getPos().size()-1);
-//                     if(getTcParent(prop,false).getSubItemsNr()-1>index){
-//                         for(int i=index+1;i<getTcParent(prop,false).getSubItemsNr();i++){
-//                             Item temporaryprop = getTcParent(prop,false).getSubItem(i);
-//                             temporaryprop.updatePos(prop.getPos().size()-1,
-//                                                     temporaryprop.getPos().get(prop.getPos().size()-1)-1);}}
-//                     getTcParent(prop,false).getSubItems().remove(prop);
-//                     selectedcollection.clear();
-//                     updateLocations(getTcParent(prop,false));
-//                     repaint();
-                
                 }});
             p.show(this,ev.getX(),ev.getY());}}
     
@@ -2790,7 +2762,12 @@ public class Grafic extends JPanel{
         JList <String>epidfield;
         JComponent mainwindow;
         
-        public void okAction(Item suita,int pos){            
+        public void okAction(Item suita,int pos){     
+            if(namefield.getText().equals("")){//don't allow empty names
+                CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, Grafic.this,
+                                        "Error", "SUT name must not be empty!");
+                    return;
+            }
             FontMetrics metrics = getGraphics().getFontMetrics(new Font("TimesRoman", Font.BOLD, 14));                
             int width = metrics.stringWidth(namefield.getText());
             if(suita!=null){  
@@ -2831,88 +2808,10 @@ public class Grafic extends JPanel{
             Grafic.this.repaint();}
         
         public AddSuiteFrame(final JComponent mainwindow,final Item suita,final int pos){
-            addWindowFocusListener(new WindowFocusListener(){
-                public void windowLostFocus(WindowEvent ev){
-                    toFront();}
-                    public void windowGainedFocus(WindowEvent ev){}});
-            setAlwaysOnTop(true);
-            setLayout(null);
-            setResizable(false);
-            setBounds(400,300,200,170);   
-            JLabel name = new JLabel("Suite Name:");
-            name.setBounds(5,5,80,20);
-            name.setFont(new Font("TimesRoman", Font.PLAIN, 14));
-            JLabel EPId = new JLabel("SUT name:");
-            EPId.setBounds(5,30,80,20);
-            EPId.setFont(new Font("TimesRoman", Font.PLAIN, 14));
-            namefield = new JTextField(30);
-            namefield.setBounds(90,2,100,25);        
-            
-            
-            
-//             File f = new File(RunnerRepository.temp+System.getProperty("file.separator")+
-//                                 "Twister"+System.getProperty("file.separator")+"Epname.txt");
-//             String line = null;                             
-//             InputStream in = null;
-//             try{String dir = RunnerRepository.getRemoteEpIdDir();
-//                 String [] path = dir.split("/");
-//                 StringBuffer result = new StringBuffer();
-//                 if (path.length > 0) {
-//                     for (int i=0; i<path.length-1; i++){
-//                         result.append(path[i]);
-//                         result.append("/");}}
-//                 RunnerRepository.c.cd(result.toString());
-//                 in = RunnerRepository.c.get(path[path.length-1]);}
-//             catch(Exception e){e.printStackTrace();};
-//             InputStreamReader inputStreamReader = new InputStreamReader(in);
-//             BufferedReader bufferedReader = new BufferedReader(inputStreamReader);  
-//             StringBuffer b=new StringBuffer("");
-//             try{while ((line=bufferedReader.readLine())!= null){b.append(line+";");}
-//                 bufferedReader.close();
-//                 inputStreamReader.close();
-//                 in.close();}
-//             catch(Exception e){e.printStackTrace();}        
-//             String  [] vecresult = b.toString().split(";");
-//             epidfield = new JList<String>(vecresult);
-
-
-//             StringBuilder b = new StringBuilder();
-//             Node parentnode = RunnerRepository.window.mainpanel.p4.getTB().getParentNode();
-//             try{parentnode.getChildren();}
-//             catch(Exception e){
-//                 e.printStackTrace();
-//                 System.out.println("There is no SUT present, please check Test Beds section");}
-//             HashMap children =  parentnode.getChildren();
-//             if(children!=null&&children.size()!=0){
-//                 Set keys = children.keySet();
-//                 Iterator iter = keys.iterator();
-//                 while(iter.hasNext()){
-//                     String n = iter.next().toString();
-//                     String tempname = parentnode.getChild(n).getName();
-//                     b.append(tempname);
-//                     b.append(";");
-//                 }
-//             }
-//             
-//             String result = b.toString();
-//             String [] vecresult = result.split(";");
-//             epidfield = new JList<String>(vecresult);
-            
-            
-//             DefaultMutableTreeNode root = RunnerRepository.window.mainpanel.p4.getSut().sut.root;
-//             int sutsnr = root.getChildCount();
-//             String [] vecresult = {};
-//             if(sutsnr==0){
-//                 System.out.println("There is no SUT present, please check Test Beds section");
-//             } else {
-//                 for(int i=0;i<sutsnr;i++){
-//                     b.append(root.getChildAt(i).toString());
-//                     b.append(";");
-//                 }
-//                 vecresult = b.toString().split(";");
-//                 
-//             }
-            
+            JLabel name = new JLabel();
+            JLabel EPId = new JLabel();
+            namefield = new JTextField();
+            JScrollPane jScrollPane1 = new JScrollPane();
             String [] vecresult =  RunnerRepository.window.mainpanel.p4.getSut().sut.getSutTree().getSutsName();
             if(vecresult!=null){
                 int size = vecresult.length;
@@ -2921,25 +2820,57 @@ public class Grafic extends JPanel{
                     vecresult[i] = vecresult[i].replace(".system", "(system)");
                 }
             }
-            
-            
             epidfield = new JList<String>(vecresult);
             try{epidfield.setSelectedIndex(0);}
             catch(Exception e){e.printStackTrace();}
-            
-            
-            
-            
-            add(name);
-            add(namefield);
-            add(EPId);
-            JScrollPane sc = new JScrollPane(epidfield);
-            sc.setBounds(90,30,100,90);
-            add(sc);   
+            ok = new JButton();    
+            name.setText("Suite Name:");    
+            EPId.setText("SUT Name:");    
+            jScrollPane1.setViewportView(epidfield);    
+            ok.setText("OK");  
+            JPanel main  = new JPanel();
+            GroupLayout layout = new GroupLayout(main);
+            main.setLayout(layout);
+            layout.setHorizontalGroup(
+                layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+                .addGroup(layout.createSequentialGroup()
+                    .addContainerGap()
+                    .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+                        .addGroup(layout.createSequentialGroup()
+                            .addComponent(name)
+                            .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+                            .addComponent(namefield))
+                        .addGroup(layout.createSequentialGroup()
+                            .addComponent(EPId)
+                            .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
+                            .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 375, Short.MAX_VALUE))
+                        .addGroup(GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
+                            .addGap(0, 0, Short.MAX_VALUE)
+                            .addComponent(ok, GroupLayout.PREFERRED_SIZE, 80, GroupLayout.PREFERRED_SIZE)))
+                    .addContainerGap())
+            );
+            layout.setVerticalGroup(
+                layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+                .addGroup(layout.createSequentialGroup()
+                    .addContainerGap()
+                    .addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+                        .addComponent(name)
+                        .addComponent(namefield, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
+                    .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+                    .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+                        .addComponent(EPId)
+                        .addComponent(jScrollPane1, GroupLayout.DEFAULT_SIZE, 260, Short.MAX_VALUE))
+                    .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+                    .addComponent(ok)
+                    .addContainerGap())
+            );
+            add(main);
+            addWindowFocusListener(new WindowFocusListener(){
+                public void windowLostFocus(WindowEvent ev){
+                    toFront();}
+                    public void windowGainedFocus(WindowEvent ev){}});
+            setAlwaysOnTop(true);
             Grafic.this.setCanRequestFocus(false);
-            setVisible(true);
-            ok = new JButton("OK");
-            ok.setBounds(130,120,60,20);
             ok.addActionListener(new ActionListener(){
                 public void actionPerformed(ActionEvent ev){
                     okAction(suita,pos);}});
@@ -2954,10 +2885,11 @@ public class Grafic extends JPanel{
             InputMap keyMap = new ComponentInputMap(ok);
             keyMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), "action");            
             ActionMap actionMap = new ActionMapUIResource();
-            actionMap.put("action", actionListener);            
+            actionMap.put("action", actionListener);
             SwingUtilities.replaceUIActionMap(ok, actionMap);
             SwingUtilities.replaceUIInputMap(ok, JComponent.WHEN_IN_FOCUSED_WINDOW, keyMap);            
-            add(ok);
+            setBounds(400,300,300,400);
+            setVisible(true);
             namefield.requestFocus();
         }}
             

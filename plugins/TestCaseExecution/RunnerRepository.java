@@ -1,6 +1,6 @@
 /*
 File: RunnerRepository.java ; This file is part of Twister.
-Version: 2.0050
+Version: 2.0051
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -151,8 +151,8 @@ public class RunnerRepository {
     public static Container container;
     public static Applet applet;
     private static Document pluginsconfig;
-    private static String version = "3.006";
-    private static String builddate = "02.04.2014";
+    private static String version = "3.007";
+    private static String builddate = "03.04.2014";
     public static String logotxt,os,python;
     private static int remotefiletries = 0;
     
@@ -1914,6 +1914,24 @@ public class RunnerRepository {
         catch(Exception e){System.out.println("Could not conect to "+
                             RunnerRepository.host+" :"+RunnerRepository.getCentralEnginePort()+
                             "for RPC client initialization");}
+    }
+    
+    /*
+     * find in Item i element with no name
+     */
+    public static Item hasEmptyName(Item i){
+        if(i.getName().equals("")){
+            return i;
+        }
+        if(i.getType()==2){
+            for(int j=0;j<i.getSubItemsNr();j++){
+                Item k = hasEmptyName(i.getSubItem(j));
+                if(k!=null){
+                    return k;
+                }
+            }
+        }
+        return null;
     }
         
     /*

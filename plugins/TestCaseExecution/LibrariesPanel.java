@@ -1,6 +1,6 @@
 /*
 File: LibrariesPanel.java ; This file is part of Twister.
-Version: 2.011
+Version: 2.012
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -46,8 +46,6 @@ import java.awt.dnd.DragSourceDragEvent;
 import java.awt.dnd.DragSourceEvent;
 import java.awt.dnd.DragSourceContext;
 import java.io.IOException;
-// import com.jcraft.jsch.ChannelSftp;
-// import com.jcraft.jsch.ChannelSftp.LsEntry;
 import java.util.Vector;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -60,7 +58,6 @@ import org.xml.sax.SAXException;
 import java.io.IOException;
 import java.util.Comparator;
 import java.util.Collections;
-// import com.jcraft.jsch.SftpException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.io.BufferedReader;
@@ -116,15 +113,10 @@ import java.awt.event.ItemListener;
 import java.awt.event.ItemEvent;
 import com.twister.Item;
 import com.twister.CustomDialog;
-// import com.jcraft.jsch.JSch;
-// import com.jcraft.jsch.Session;
-// import com.jcraft.jsch.Channel;
-// import com.jcraft.jsch.ChannelSftp;
 import java.util.Properties;
 import java.awt.datatransfer.Transferable;
 import java.awt.datatransfer.StringSelection;
 import java.awt.dnd.DragSourceListener;
-// import com.jcraft.jsch.SftpException;
 import java.util.HashMap;
 
 public class LibrariesPanel{
@@ -240,7 +232,7 @@ public class LibrariesPanel{
         p.add(item);
         item.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent evnt) {
-                refreshTree(ev.getX(),ev.getY());
+                refreshTree(ev.getXOnScreen(),ev.getYOnScreen());
             }   
         });
         final String editable;
