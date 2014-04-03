@@ -1,7 +1,7 @@
 
 # File: CeXmlRpc.py ; This file is part of Twister.
 
-# version: 2.042
+# version: 2.043
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -867,7 +867,7 @@ class CeXmlRpc(_cptools.XMLRPCController):
         Read config file - returns a base64 string.
         """
         user = cherrypy.session.get('username')
-        logDebug('GUI readConfigFile {} {} {} {}'.format(user, fpath))
+        logDebug('GUI readConfigFile {} {}'.format(user, fpath))
         # Auto detect if ClearCase Test Config Path is active
         ccConfig = self.project.getClearCaseConfig(user, 'tcfg_path')
         if ccConfig:
