@@ -1,7 +1,7 @@
 
 # File: CeFs.py ; This file is part of Twister.
 
-# version: 3.009
+# version: 3.010
 
 # Copyright (C) 2012-2014, Luxoft
 
@@ -131,7 +131,7 @@ class LocalFS(object):
                 except:
                     break
 
-            p_cmd = 'su {} -c "{} -u {}/server/UserService.py {} FS"'.format(user, sys.executable, TWISTER_PATH, port)
+            p_cmd = 'su - {} -c "{} -u {}/server/UserService.py {} FS"'.format(user, sys.executable, TWISTER_PATH, port)
             proc = subprocess.Popen(p_cmd, cwd='{}/twister'.format(userHome(user)), shell=True,
                    close_fds=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             proc.poll()
