@@ -1,7 +1,7 @@
 
 # File: CeClearCaseFs.py ; This file is part of Twister.
 
-# version: 3.008
+# version: 3.009
 
 # Copyright (C) 2012-2014, Luxoft
 
@@ -150,7 +150,7 @@ class ClearCaseFs(object):
                     except:
                         break
 
-            proc.sendline('su - {}'.format(user))
+            proc.sendline('su {}'.format(user))
             time.sleep(2.0)
             pread()
             # User's home folder
