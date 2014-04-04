@@ -1,7 +1,7 @@
 
 # File: CeRpyc.py ; This file is part of Twister.
 
-# version: 3.007
+# version: 3.008
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -632,7 +632,7 @@ class CeRpycService(rpyc.Service):
         for str_addr, data in self.conns.iteritems():
             # There might be more clients for a user...
             # And this Addr might be an EP, not a client
-            if user == data['user'] and data['checked']:
+            if user is not None and user == data['user'] and data['checked']:
                 # If this connection has registered EPs, append them
                 e = data.get('eps')
                 if e: eps.extend(e)

@@ -1,7 +1,7 @@
 
 # File: CeResources.py ; This file is part of Twister.
 
-# version: 2.045
+# version: 2.046
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -485,7 +485,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
                                 self._loadedUsers.update([(user, userSystems), ])
                     except Exception as e:
                         if v:
-                            logError('_load ERROR:: {}'.format(e))
+                            logError('_load ERROR:: {} for user {}'.format(e,self.getUserName()))
 
                     self.systems = self._loadedUsers[user]
                     try:
@@ -499,11 +499,11 @@ class ResourceAllocator(_cptools.XMLRPCController):
                                 self.systems['children'].update([(sutName, json.load(f)), ])
                     except Exception as e:
                         if v:
-                            logError('_load ERROR:: {}'.format(e))
+                            logError('_load ERROR:: {} for user {}'.format(e,self.getUserName()))
                     return True
             except Exception as e:
                 if v:
-                    logError('RA: There are no devices to load! `{}`!'.format(e))
+                    logError('RA: There are no devices to load for user {} ! `{}`!'.format(self.getUserName(),e))
 
         with self.load_lock:
 
@@ -518,17 +518,17 @@ class ResourceAllocator(_cptools.XMLRPCController):
                 self.resources = json.load(f)
                 f.close() ; del f
                 if v:
-                    logDebug('RA: Devices loaded successfully.')
+                    logDebug('RA: Devices loaded successfully for user {}.'.format(self.getUserName()))
 
             except Exception as e:
                 if v:
-                    logError('RA: There are no devices to load! `{}`!'.format(e))
+                    logError('RA: There are no devices to load for user {}! `{}`!'.format(self.getUserName(),e))
             # try to load SUT file
             try:
                 self.systems   = constant_dictionary
 
                 if v:
-                    logDebug('RA: Systems root loaded successfully.')
+                    logDebug('RA: Systems root loaded successfully for user {}.'.format(self.getUserName()))
 
                 try:
                     user_roles = self.userRoles(props)
@@ -543,7 +543,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
                             self.systems['children'].update([(sutName, json.load(f)), ])
                 except Exception as e:
                     if v:
-                        logError('_load ERROR:: {}'.format(e))
+                        logError('_load ERROR:: {} for user {}'.format(e,self.getUserName()))
 
                 # Get the user rpyc connection connection
                 try:
@@ -560,16 +560,16 @@ class ResourceAllocator(_cptools.XMLRPCController):
                     self._loadedUsers.update([(user, userSystems), ])
                 except Exception as e:
                     if v:
-                        logError('_load ERROR:: {}'.format(e))
+                        logError('_load ERROR:: {} for user {}'.format(e,self.getUserName()))
 
                 if v:
-                    logDebug('RA: Systems loaded successfully.')
+                    logDebug('RA: Systems loaded successfully for user {}.'.format(self.getUserName()))
             except Exception as e:
                 if v:
-                    logError('RA: There are no SUTs to load! `{}`!'.format(e))
+                    logError('RA: There are no SUTs to load for user {} ! `{}`!'.format(self.getUserName(),e))
         r = None
         if not r == True and not r == None:
-            logDebug('_load ERROR: {}'.format(r))
+            logDebug('_load ERROR: {} for user {}'.format(r,self.getUserName()))
         # t1 = time.time()
         # logDebug('|||||||||||||_load time:: ', t1-t0)
         return True

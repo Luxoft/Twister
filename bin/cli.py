@@ -1,6 +1,6 @@
 #!/usr/bin/env python2.7
 
-# version: 2.020
+# version: 2.021
 
 # File: cli.py ; This file is part of Twister.
 
@@ -112,6 +112,11 @@ def checkStatus(proxy, extra=True):
 	all_stat = proxy.getEpStatusAll()
 	stats = [int(i) for i in stats]
 
+        if len(stats) > 0:
+            round_rate = round( (float(stats.count(STATUS_PASS)) / len(stats)* 100), 2)
+        else:
+            round_rate = 0
+
 	s_dict = {
 		'status': all_stat,
 		'date': proxy.getUserVariable('start_time'),
@@ -123,7 +128,7 @@ def checkStatus(proxy, extra=True):
 		'tfail':  stats.count(STATUS_FAIL),
 		'tabort': stats.count(STATUS_ABORTED),
 		'tnexec': stats.count(STATUS_NOT_EXEC),
-		'rate'  : round( (float(stats.count(STATUS_PASS)) / len(stats)* 100), 2),
+		'rate'  : round_rate,
 	}
 	s_dict['tother'] = len(stats) -s_dict['tpend'] -s_dict['twork'] -s_dict['tpass'] -s_dict['tfail'] -s_dict['tabort'] -s_dict['tnexec']
 

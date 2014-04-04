@@ -1,7 +1,7 @@
 
 # File: CeFs.py ; This file is part of Twister.
 
-# version: 3.009
+# version: 3.012
 
 # Copyright (C) 2012-2014, Luxoft
 
@@ -116,7 +116,7 @@ class LocalFS(object):
                     # logDebug('Reuse old User Service connection for `{}` OK.'.format(user))
                     return conn
                 except Exception as e:
-                    logWarning('Cannot connect to User Service for `{}`: `{}`.'.format(user, e))
+                    logWarning('Cannot reuse User Service for `{}`: `{}`.'.format(user, e))
                     self._kill(user)
             else:
                 logInfo('Launching a User Service for `{}`, the first time...'.format(user))
@@ -144,7 +144,7 @@ class LocalFS(object):
                 'allow_delattr': True
             }
 
-            retry = 25
+            retry = 10
             delay = 0.5
             success = False
 
@@ -162,7 +162,6 @@ class LocalFS(object):
                 except Exception as e:
                     logWarning('Cannot connect to User Service for `{}` - Exception: `{}`! '
                             'Wait {}s...'.format(user, e, delay))
-                    self._kill(user)
 
                 time.sleep(delay)
                 retry -= 1

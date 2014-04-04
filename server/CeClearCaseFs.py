@@ -1,7 +1,7 @@
 
 # File: CeClearCaseFs.py ; This file is part of Twister.
 
-# version: 3.007
+# version: 3.009
 
 # Copyright (C) 2012-2014, Luxoft
 
