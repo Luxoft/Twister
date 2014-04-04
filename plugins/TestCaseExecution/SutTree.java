@@ -1,6 +1,6 @@
 /*
 File: SutTree.java ; This file is part of Twister.
-Version: 2.013
+Version: 2.014
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -39,6 +39,7 @@ import com.twister.CustomDialog;
 import com.twister.MySftpBrowser;
 import java.net.URL;
 import javax.swing.DefaultComboBoxModel;
+import javax.swing.DefaultListModel;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -353,8 +354,7 @@ public class SutTree extends JPanel{
     }
     
     public boolean reserveSut(SUT sut){
-        try{System.out.println("Executing: "+"/"+sut.getName()+sut.getRoot());
-            String resp = client.execute("reserveSut", new Object[]{"/"+sut.getName()+sut.getRoot(),RunnerRepository.user}).toString();
+        try{String resp = client.execute("reserveSut", new Object[]{"/"+sut.getName()+sut.getRoot(),RunnerRepository.user}).toString();
             if(resp.indexOf("*ERROR*")==-1){
                 return true;
             } else {
@@ -548,6 +548,13 @@ public class SutTree extends JPanel{
             String query = RunnerRepository.getRPCClient().execute("listEPs", new Object[]{RunnerRepository.user}).toString();
             String [] vecresult = query.split(",");
             tep.setModel(new DefaultComboBoxModel(vecresult));
+            DefaultListModel dlm = new DefaultListModel();
+            for(String ep:vecresult){
+                dlm.addElement(ep);
+            }
+            tep.setModel(dlm);
+            //tep.setModel(new DefaultComboBoxModel(vecresult));
+            //tep.setModel(new DefaultListModel(vecresult));
             ArrayList<String> array = new ArrayList<String>(Arrays.asList(vecresult));
             if(eps!=null){
                 String [] strings = eps.split(";");

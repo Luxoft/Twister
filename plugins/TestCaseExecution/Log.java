@@ -1,6 +1,6 @@
 /*
 File: Log.java ; This file is part of Twister.
-Version: 2.007
+Version: 2.008
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -136,7 +136,7 @@ public class Log extends JPanel{
                                                                     new Object[]{RunnerRepository.getUser(),
                                                                                     "0","0",log}).toString();
                         if(result.indexOf("*ERROR*")!=-1){
-                            System.out.println("CE ERROR: "+result);
+                            //System.out.println("CE ERROR: "+result);
                             continue;
                         }
                         response = Long.parseLong(result);

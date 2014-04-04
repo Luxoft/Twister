@@ -1,6 +1,6 @@
 /*
 File: MainRepository.java ; This file is part of Twister.
-Version: 2.030
+Version: 2.031
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -30,10 +30,6 @@ import java.net.URL;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import org.w3c.dom.Document;
-// import com.jcraft.jsch.JSch;
-// import com.jcraft.jsch.Session;
-// import com.jcraft.jsch.Channel;
-// import com.jcraft.jsch.ChannelSftp;
 import java.util.Properties;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
@@ -80,14 +76,13 @@ public class MainRepository {
     public static Container container;
     public static String bar = System.getProperty("file.separator");//System specific file.separator
     public static String temp;
-//     private static ChannelSftp connection;
     private static PluginManager pluginmanager;
     public static Applet applet;
     public static TwisterPluginInterface plugin;
     private static XmlRpcClient client;
     private static Hashtable<String,String> hash = new Hashtable<String,String>();
-    private static String version = "3.007";
-    private static String builddate = "03.04.2014";
+    private static String version = "3.008";
+    private static String builddate = "04.04.2014";
     public static int time = 10;//seconds
     public static boolean countdown = false;
     public static String logotxt;
@@ -311,61 +306,6 @@ public class MainRepository {
         initializeRPC(user,password,ceport);
     }
     
-//     private static String getCEPort(String user, String password){
-//         try{DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-//             DocumentBuilder db = dbf.newDocumentBuilder();
-//             JSch jsch = new JSch();
-//             Session session = jsch.getSession(user, host, 22);
-//             session.setPassword(password);
-//             Properties config = new Properties();
-//             config.put("StrictHostKeyChecking", "no");
-//             session.setConfig(config);
-//             session.setTimeout(10000);
-//             try{session.connect();}
-//             catch(Exception e){
-//                 e.printStackTrace();
-//                 CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,applet,
-//                                     "Warning", "Could not connect to server");
-//                 return null;
-//             }
-//             Channel channel = session.openChannel("sftp");
-//             channel.connect();
-//             connection = (ChannelSftp)channel;
-//             Document doc = null;;
-//             try{ 
-//                 doc = db.parse(connection.get(connection.getHome()+"/twister/config/fwmconfig.xml"));
-//             } catch(Exception e){
-//                 CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,container,
-//                                             "Error", "Could not get "+connection.getHome()+"/twister/config/fwmconfig.xml.\n "+
-//                                              "! Client has not been installed, please install latest Client package.");
-//                 return "";
-//             }
-//             doc.getDocumentElement().normalize();
-//             String tag = "CentralEnginePort";
-//             NodeList nodeLst = doc.getElementsByTagName(tag);
-//             if(nodeLst.getLength()==0){
-//                 System.out.println("tag "+tag+" not found in "+doc.getDocumentURI());
-//                 CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,container,
-//                                             "Warning", tag+" tag not found in framework config");
-//                 return "";
-//             }
-//             Node fstNode = nodeLst.item(0);
-//             Element fstElmnt = (Element)fstNode;
-//             NodeList fstNm = fstElmnt.getChildNodes();
-//             String temp;
-//             try{temp = fstNm.item(0).getNodeValue().toString();}
-//             catch(Exception e){
-//                 System.out.println(tag+" empty");
-//                 CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,MainRepository.container,
-//                                             "Warning", tag+" tag is empty in framework config");
-//                 temp = "";}
-//             return temp;
-//         } catch(Exception e){
-//             e.printStackTrace();
-//         }
-//         return "";
-//     }
-    
     public static void loadReports(){
         try{applet.getAppletContext().showDocument(new URL("http://"+user+":"+password+"@"+host+":"+
                                                     ceport+"/report/index/"+user), "_blank");}
@@ -452,24 +392,6 @@ public class MainRepository {
         }
     }
     
-//     public static File getRemoteFile(final String remotefile){
-//         try{
-//             InputStream in = connection.get("/opt/twister/appletcomps/"+remotefile);
-//             File file = new File(temp+bar+"components/"+remotefile);
-//             OutputStream out=new FileOutputStream(file);
-//             byte buf[]=new byte[100];
-//             int len;
-//             while((len=in.read(buf))>0)
-//                 out.write(buf,0,len);
-//             out.close();
-//             in.close();
-//             return file;
-//         } catch (Exception e){
-//             e.printStackTrace();
-//             return null;
-//         }
-//     }
-    
     /*
      * XmlRpc main connection used by Twister framework
      */
@@ -492,8 +414,6 @@ public class MainRepository {
             inifile.addProperty("CEport", "8000");
             writeJSon();
             loadPlugin("ControlPanel");
-//         }catch(XmlRpcHttpTransportException ex){
-//             System.out.println(ex.getStatusCode());
         }
         catch(Exception e){
             MainRepository.time=10;
