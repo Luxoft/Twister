@@ -1,7 +1,7 @@
 
 # File: CeFs.py ; This file is part of Twister.
 
-# version: 3.011
+# version: 3.012
 
 # Copyright (C) 2012-2014, Luxoft
 
@@ -144,7 +144,7 @@ class LocalFS(object):
                 'allow_delattr': True
             }
 
-            retry = 25
+            retry = 10
             delay = 0.5
             success = False
 
