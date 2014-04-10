@@ -81,8 +81,8 @@ public class MainRepository {
     public static TwisterPluginInterface plugin;
     private static XmlRpcClient client;
     private static Hashtable<String,String> hash = new Hashtable<String,String>();
-    private static String version = "3.008";
-    private static String builddate = "04.04.2014";
+    private static String version = "3.011";
+    private static String builddate = "10.04.2014";
     public static int time = 10;//seconds
     public static boolean countdown = false;
     public static String logotxt;
@@ -294,7 +294,6 @@ public class MainRepository {
         MainRepository.time=0;
         MainRepository.user = user;
         MainRepository.password = password;
-        //ceport = getCEPort(user,password);
         MainRepository.ceport = ceport;
         if(ceport==null||ceport.equals("")){
             try{MainRepository.wp.login.setEnabled(true);}

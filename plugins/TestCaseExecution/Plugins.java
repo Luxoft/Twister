@@ -41,7 +41,6 @@ import java.awt.event.ActionListener;
 import java.awt.Font;
 import java.util.ArrayList;
 import java.util.Vector;
-// import com.jcraft.jsch.ChannelSftp.LsEntry;
 import javax.swing.JFrame;
 import java.io.File;
 import java.io.InputStream;
@@ -62,10 +61,6 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import java.net.URLClassLoader;
-// import com.jcraft.jsch.JSch;
-// import com.jcraft.jsch.Session;
-// import com.jcraft.jsch.Channel;
-// import com.jcraft.jsch.ChannelSftp;
 import java.util.Properties;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.Result;
@@ -86,14 +81,11 @@ public class Plugins extends JPanel{
     private JScrollPane pluginsscroll;
     private JPanel plugintable, titleborder, downloadtable, localtable, remotetable2;
     public JSplitPane horizontalsplit, verticalsplit;
-//     public ChannelSftp ch;
-//     public Session session;
     private boolean clearcase = false;
     private boolean finished = true;
 
     public Plugins(){
         clearcase = isClearCaseEnabled();
-//         initSftp();
         copyPreConfiguredPlugins();
         RunnerPluginsLoader.setClassPath();
         getPlugins();
@@ -101,28 +93,6 @@ public class Plugins extends JPanel{
         loadRemotePluginList();
         
     }
-    
-//     /*
-//      * initialize SFTP connection used
-//      * for plugins and configuration files transfer
-//      */
-//     public void initSftp(){
-//         try{
-//             JSch jsch = new JSch();
-//             session = jsch.getSession(RunnerRepository.user, RunnerRepository.host, 22);
-//             session.setPassword(RunnerRepository.password);
-//             Properties config = new Properties();
-//             config.put("StrictHostKeyChecking", "no");
-//             session.setConfig(config);
-//             session.connect();
-//             Channel channel = session.openChannel("sftp");
-//             channel.connect();
-//             ch = (ChannelSftp)channel;
-//         } catch (Exception e){
-//             System.out.println("ERROR: Could not initialize SFTP for plugins");
-//             e.printStackTrace();
-//         }
-//     }
     
     /*
      * method to copy plugins configuration file
@@ -145,9 +115,6 @@ public class Plugins extends JPanel{
             transformer.transform(source, result);
             System.out.println("Saving "+file.getName()+" to: "+RunnerRepository.USERHOME+"/twister/config/");
             FileInputStream in = new FileInputStream(file);
-//             ch.cd(RunnerRepository.USERHOME+"/twister/config/");
-//             ch.put(in, file.getName());
-//             in.close();
             RunnerRepository.uploadRemoteFile(RunnerRepository.USERHOME+"/twister/config/", in,null, file.getName(),false,null);
             finished = true;
             return true;}
@@ -277,14 +244,7 @@ public class Plugins extends JPanel{
                     if(file.equals(pluginfile)){
                         File myfile = new File(RunnerRepository.PLUGINSDIRECTORY+
                                             RunnerRepository.getBar()+pluginfile);
-//                         try{ch.cd(RunnerRepository.REMOTEPLUGINSDIR);}
-//                         catch(Exception e){
-//                             System.out.println("Could not get :"+
-//                                                 RunnerRepository.REMOTEPLUGINSDIR+
-//                                                 " as remote plugins dir");
-//                         }
                         try{
-//                             long remotesize = ch.lstat(pluginfile).getSize();
                             long remotesize = RunnerRepository.getRemoteFileSize(RunnerRepository.REMOTEPLUGINSDIR+"/"+pluginfile);
                             long localsize = myfile.length();
                             System.out.println("remote size: "+remotesize+" lcoalsize: "+localsize+" for plugin "+RunnerRepository.REMOTEPLUGINSDIR+"/"+pluginfile);
@@ -467,38 +427,16 @@ public class Plugins extends JPanel{
         String description;
         
         String [] plugins = RunnerRepository.getRemoteFolderContent(RunnerRepository.REMOTEPLUGINSDIR,null);
-//         try{ch.cd(RunnerRepository.REMOTEPLUGINSDIR);}
-//         catch(Exception e){
-//             System.out.println("Could not get :"+
-//                 RunnerRepository.REMOTEPLUGINSDIR);
-//             e.printStackTrace();}
         int size;
         try{size= plugins.length;}
         catch(Exception e){
             System.out.println("No plugins");
             size=0;}
-//         try{size= ch.ls(".").size();}
-//         catch(Exception e){
-//             System.out.println("No plugins");
-//             size=0;}
-//         Vector<LsEntry> plugins = null;
-//         try{plugins = ch.ls(".");}
-//         catch(Exception e){
-//             System.out.println("Error in getting plugins "+
-//                 "from Plugins remote directory");
-//             e.printStackTrace();}
         if(size>0){
             for(String name:plugins){
                 list.add(name);
             }
         }
-//         if(plugins!=null){
-//             String name;
-//             for(int i=0;i<size;i++){                
-//                 name = plugins.get(i).getFilename();
-//                     if(name.split("\\.").length==0||
-//                         name.equals("TwisterPluginInterface.jar"))continue;
-//                     list.add(name);}}
         return list;}
             
     /*
@@ -767,14 +705,11 @@ public class Plugins extends JPanel{
                 mp.p5 = new ClearCase(RunnerRepository.host,RunnerRepository.user,RunnerRepository.password);
                 mp.p1.cp = new ClearCasePanel();
                 mp.add(mp.p5, "ClearCase");
-                //RunnerRepository.window.mainpanel.add(RunnerRepository.window.mainpanel.getP5(), "ClearCase");
                 mp.p1.tabs.add("ClearCase Tests", new JScrollPane(mp.p1.cp.tree));
-//                 RunnerRepository.window.mainpanel.p1.tabs.add("ClearCase Tests", new JScrollPane(RunnerRepository.window.mainpanel.p1.cp.tree));
             } else {  
                 MainPanel mp = RunnerRepository.window.mainpanel;
                 mp.remove(mp.p5);
                 RunnerRepository.window.mainpanel.p1.tabs.remove(2);
-//                 mp.p5.disconnect();
                 mp.p5 = null;
                 mp.p1.cp = null;
             }
@@ -880,49 +815,24 @@ public class Plugins extends JPanel{
      */
     public boolean copyPlugin(String filename){
         File file = new File(RunnerRepository.PLUGINSDIRECTORY+RunnerRepository.getBar()+filename);
-//         InputStream in = null;
-//         try{
-//             ch.cd(RunnerRepository.REMOTEPLUGINSDIR);
-//         }
-//         catch(Exception e){
-//             System.out.println("Could not get :"+RunnerRepository.REMOTEPLUGINSDIR+" as remote plugins dir");
-//             return false;}
         try{
             //get jar file
             System.out.print("Getting "+filename+" ....");
-//             in = ch.get(filename);    
             byte [] buf = RunnerRepository.getRemoteFileContent(RunnerRepository.REMOTEPLUGINSDIR+"/"+filename, true,null);
-//             byte [] buf = new byte[remotefileencoded.length()];
-//             for(int i=0;i<remotefileencoded.length();i++){
-//                 buf[i] = (byte)remotefileencoded.charAt(i);
-//             }
-//             byte [] buf = remotefileencoded.getBytes();
-//             file = new File(RunnerRepository.PLUGINSDIRECTORY+RunnerRepository.getBar()+filename);
             OutputStream out=new FileOutputStream(file);
-//             byte buf[]=new byte[100];
-//             int len;
-//             while((len=in.read(buf))>0)
-//                out.write(buf,0,len);
             out.write(buf);
             out.flush();
             out.close();
-//             in.close();
             System.out.println("successfull");
-            
-            //get plugin description file
             try{
                 filename = filename.substring(0, filename.indexOf("."))+"_description.txt";
                 System.out.print("Getting "+filename+" ....");
-//                 in = ch.get(filename);    
                 String filecontent = new String(RunnerRepository.getRemoteFileContent(RunnerRepository.REMOTEPLUGINSDIR+"/"+filename, false,null));
                 file = new File(RunnerRepository.PLUGINSDIRECTORY+RunnerRepository.getBar()+filename);
                 out=new FileOutputStream(file);
-//                 while((len=in.read(buf))>0)
-//                     out.write(buf,0,len);
                 out.write(filecontent.getBytes());
                 out.flush();
                 out.close();
-//                 in.close();
                 System.out.println("successfull");
             } catch(Exception e){e.printStackTrace();}    
             

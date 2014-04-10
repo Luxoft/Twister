@@ -1,6 +1,6 @@
 /*
 File: SutEditor.java ; This file is part of Twister.
-Version: 2.016
+Version: 2.017
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -206,7 +206,7 @@ public class SutEditor extends JPanel{
                     } else {
                         treenode = (DefaultMutableTreeNode)tp.getLastPathComponent();
                     }
-                    if(checkExistingName(treenode, name, null)){
+                    if(checkExistingName(treenode, name, null)!=null){
                         CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,SutEditor.this,"Warning", 
                                         "This name is already used, please use different name.");
                         return;
@@ -311,14 +311,46 @@ public class SutEditor extends JPanel{
                                      ,SutEditor.this,
                                      "Sut Name", "Please enter sut name");
                 if(filename!=null&&!filename.equals("NULL")){
+                    SUT s = null;
+                    boolean overwrite = false;
+                    sutnode = checkExistingName(suttree.userroot, filename, null);
+                    if(sutnode!=null){
+                        int r = (Integer)CustomDialog.showDialog(new JLabel("This name is already used, overwrite?"),
+                                                                JOptionPane.WARNING_MESSAGE, 
+                                                                JOptionPane.OK_CANCEL_OPTION, SutEditor.this, "Save", null);
+                        if(r != JOptionPane.OK_OPTION){return;}
+                        overwrite = true;
+                    }
+                    
                     try{String resp = client.execute("saveReservedSutAs", new Object[]{filename,"/"+rootsut,RunnerRepository.user}).toString();
                         if(resp.indexOf("ERROR")!=-1){
                             CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SutEditor.this,"ERROR", resp);
+                            return;
                         }
-                        close.doClick();
-                        SUT s = new SUT(filename,".user");
-                        sutnode = new DefaultMutableTreeNode(s,false);
-                        suttree.addUserNode(sutnode);
+                        
+                        //close sut without CE side
+                        if(editable){
+                            suttree.releaseSut(rootsut);
+                        }
+                        rootsut = "";
+                        root.removeAllChildren();
+                        addcomp.setEnabled(false);
+                        close.setEnabled(false);
+                        setep.setEnabled(false);
+                        save.setEnabled(false);
+                        saveas.setEnabled(false);
+                        redcomp.setEnabled(false);
+                        ((DefaultTreeModel)tree.getModel()).reload();
+                        lastsaved = true;
+                        
+//                         close.doClick();
+                        if(!overwrite){
+                            s = new SUT(filename,".user");
+                            sutnode = new DefaultMutableTreeNode(s,false);
+                            suttree.addUserNode(sutnode);
+                        } else {
+                            s = (SUT)sutnode.getUserObject();
+                        }
                         if(suttree.reserveSut(s)){
                             s.setReserved(RunnerRepository.user);
                             ((DefaultTreeModel)suttree.filestree.getModel()).nodeChanged(sutnode);
@@ -410,30 +442,30 @@ public class SutEditor extends JPanel{
      * current - the node to ommit on search
      */
     
-    public boolean checkExistingName(DefaultMutableTreeNode parent, String name, DefaultMutableTreeNode current){
+    public DefaultMutableTreeNode checkExistingName(DefaultMutableTreeNode parent, String name, DefaultMutableTreeNode current){
         Enumeration e = parent.children();
         while(e.hasMoreElements()){
             DefaultMutableTreeNode child = (DefaultMutableTreeNode)e.nextElement();
             if(child!=current){
                 if(child.getUserObject() instanceof String){
-                    if(name.equals(child.toString())){
-                        return true;
+                    if(name.equals(child.toString())){  
+                        return child;
                     }
                 } else if(child.getUserObject() instanceof SUT){
                     String childname = ((SUT)child.getUserObject()).getName();
-                    if(name.equals(childname)){
-                        return true;
+                    if(name.equals(childname)){ 
+                        return child;
                     }
                 } else if(child.getUserObject() instanceof Comp){
                     String childname = ((Comp)child.getUserObject()).getName();
-                    if(name.equals(childname)){
-                        return true;
+                    if(name.equals(childname)){ 
+                        return child;
                     }
                 }
             }
             
         }
-        return false;
+        return null;
     }
 
     public JTree getTree(){
@@ -522,6 +554,7 @@ public class SutEditor extends JPanel{
                 if(meta.get("_id")!=null){
                     String referenceid = meta.get("_id").toString();
                     Node child = getTB(referenceid,null);
+                    if(child==null)continue;
                     DefaultMutableTreeNode treechild = new DefaultMutableTreeNode(child);
                     DefaultMutableTreeNode temp = new DefaultMutableTreeNode("ID: "+child.getID(),false);
                     treechild.add(temp);
@@ -546,6 +579,10 @@ public class SutEditor extends JPanel{
         Object resp = null;
         try{
             resp = client.execute("getResource", new Object[]{id});
+            if(!(resp instanceof HashMap)){
+                System.out.println("CE respons for getResource("+id+"):"+resp.toString()+"SutEditor->getTB");
+                return null;
+            }
             HashMap hash= (HashMap)resp;
             String path = hash.get("path").toString();
             String name = path.split("/")[path.split("/").length-1];
@@ -600,7 +637,6 @@ public class SutEditor extends JPanel{
             eps = "";
             e.printStackTrace();
         }
-        System.out.println(sutname+" has "+eps);
         return eps;
     }
     

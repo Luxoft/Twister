@@ -1,6 +1,6 @@
 /*
 File: Panel1.java ; This file is part of Twister.
-Version: 2.0023
+Version: 2.0024
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -394,7 +394,8 @@ public class Panel1 extends JPanel{
                                                     "File Name", "Please enter suite file name");
             
             if(user!=null&&!user.equals("")){
-                if(sc.g.printXML(user+".xml", false,false,
+                if(sc.g.printXML(RunnerRepository.temp+RunnerRepository.getBar()+"Twister"+RunnerRepository.getBar()+"Users"+RunnerRepository.getBar()+user+".xml",
+                             false,false,
                              RunnerRepository.window.mainpanel.p1.suitaDetails.stopOnFail(),
                              RunnerRepository.window.mainpanel.p1.suitaDetails.preStopOnFail(),
                              RunnerRepository.window.mainpanel.p1.suitaDetails.saveDB(),
@@ -437,7 +438,8 @@ public class Panel1 extends JPanel{
                         }
                     }
                 }
-                if(sc.g.printXML(user, false,false,
+                if(sc.g.printXML(RunnerRepository.temp+RunnerRepository.getBar()+"Twister"+RunnerRepository.getBar()+"Users"+RunnerRepository.getBar()+user
+                             ,false,false,
                              RunnerRepository.window.mainpanel.p1.suitaDetails.stopOnFail(),
                              RunnerRepository.window.mainpanel.p1.suitaDetails.preStopOnFail(),
                              RunnerRepository.window.mainpanel.p1.suitaDetails.saveDB(),

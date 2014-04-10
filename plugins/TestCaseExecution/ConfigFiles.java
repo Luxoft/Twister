@@ -41,7 +41,6 @@ import javax.xml.transform.stream.StreamResult;
 import org.w3c.dom.Comment;
 import javax.swing.JOptionPane;
 import java.util.ArrayList;
-// import com.jcraft.jsch.ChannelSftp.LsEntry;
 import java.io.InputStream;
 import java.io.FileOutputStream;
 import java.io.ByteArrayOutputStream;
@@ -91,19 +90,15 @@ public class ConfigFiles extends JPanel{
                              sutpath,syssutpath;
     JPanel paths;
     private static JCheckBox logsenabled  = new JCheckBox("Enabled");
-    //public JPanel emailpanel;                    
     
     public ConfigFiles(Dimension screensize){  
-//         initializeFileBrowser();
         paths = new JPanel();
         paths.setBackground(Color.WHITE);
-        //paths.setBorder(BorderFactory.createTitledBorder("Paths"));
         paths.setLayout(null);
         paths.setPreferredSize(new Dimension(930,1144));
         paths.setSize(new Dimension(930,1144));
         paths.setMinimumSize(new Dimension(930,1144));
         paths.setMaximumSize(new Dimension(930,1144));
-        //paths.setBorder(BorderFactory.createBevelBorder(BevelBorder.LOWERED));
         setLayout(null);
         ttcpath = new JTextField();
         addPanel("TestCase Source Path",
@@ -217,9 +212,6 @@ public class ConfigFiles extends JPanel{
                 loadConfig("fwmconfig.xml");
             }});
         p8.add(save);
-//         if(!PermissionValidator.canChangeFWM()){
-//             save.setEnabled(false);
-//         }
         JButton saveas = new JButton("Save as");
         saveas.setBounds(570,20,90,20);
         saveas.addActionListener(new ActionListener(){
@@ -266,9 +258,6 @@ public class ConfigFiles extends JPanel{
                 catch(Exception e){e.printStackTrace();}}});
         loadXML.setBounds(670,20,120,20);
         p8.add(loadXML);
-//         if(!PermissionValidator.canChangeFWM()){
-//             loadXML.setEnabled(false);
-//         }
         
                     
                     
@@ -279,31 +268,11 @@ public class ConfigFiles extends JPanel{
                 tdbfile,RunnerRepository.REMOTEDATABASECONFIGPATH+RunnerRepository.REMOTEDATABASECONFIGFILE,
                 521,true,null);
         temailfile = new JTextField();
-//         emailpanel = (JPanel)
         addPanel("Email XML file","File location for email configuration",temailfile,
                 RunnerRepository.REMOTEEMAILCONFIGPATH+RunnerRepository.REMOTEEMAILCONFIGFILE,595,true,null).getParent();
-        //paths.remove(emailpanel);        
-//         emailpanel.setBounds(360,440,350,100);
-//         RunnerRepository.window.mainpanel.p4.getEmails().add(emailpanel);
-        
-               
         tglobalsfile = new JTextField();
         addPanel("Globals XML file","File location for globals parameters",tglobalsfile,
-                RunnerRepository.GLOBALSREMOTEFILE,667,true,null);         
-                
-//         tceport = new JTextField();
-//         addPanel("Central Engine Port","Central Engine port",
-//                 tceport,RunnerRepository.getCentralEnginePort(),1076,false,null);                
-//         traPort = new JTextField();
-//         addPanel("Resource Allocator Port","Resource Allocator Port",
-//                 traPort,RunnerRepository.getResourceAllocatorPort(),808,false,null);                
-//         thttpPort = new JTextField();
-//         addPanel("HTTP Server Port","HTTP Server Port",thttpPort,
-//                 RunnerRepository.getHTTPServerPort(),740,false,null);
-        
-        //paths.add(loadXML);
-        
-        
+                RunnerRepository.GLOBALSREMOTEFILE,667,true,null);
         if(!PermissionValidator.canChangeFWM()){
             ttcpath.setEnabled(false);
             tMasterXML.setEnabled(false);
@@ -317,7 +286,6 @@ public class ConfigFiles extends JPanel{
             tcli.setEnabled(false);
             tdbfile.setEnabled(false);
             temailfile.setEnabled(false);
-//             tceport.setEnabled(false);
             libpath.setEnabled(false);
             tsecondarylog.setEnabled(false);
             testconfigpath.setEnabled(false);
@@ -326,7 +294,6 @@ public class ConfigFiles extends JPanel{
             tglobalsfile.setEnabled(false);
             logsenabled.setEnabled(false);
         }
-        
     }
         
     public void setEnabledTabs(boolean enable){
@@ -409,7 +376,6 @@ public class ConfigFiles extends JPanel{
                                             RunnerRepository.REMOTEEMAILCONFIGFILE);
                         tglobalsfile.setText(RunnerRepository.GLOBALSREMOTEFILE);
                         tSuites.setText(RunnerRepository.PREDEFINEDSUITES);
-//                         tceport.setText(RunnerRepository.getCentralEnginePort());
                         RunnerRepository.emptySuites();
                         RunnerRepository.window.mainpanel.p4.getTestConfig().tree.refreshStructure();
                         RunnerRepository.window.mainpanel.p4.getTestConfig().cfgedit.reinitialize();
@@ -490,7 +456,6 @@ public class ConfigFiles extends JPanel{
                 b.addActionListener(new AbstractAction(){
                     public void actionPerformed(ActionEvent ev){ 
                         Container c;
-                        
                         if(RunnerRepository.container!=null)c = RunnerRepository.container.getParent();
                         else c = RunnerRepository.window;
                         try{
@@ -537,8 +502,6 @@ public class ConfigFiles extends JPanel{
             Element rootElement = document.createElement("FileType");
             root.appendChild(rootElement);
             rootElement.appendChild(document.createTextNode("config"));
-//             try{addTag("CentralEnginePort",tceport.getText(),root,blank,document);}
-//             catch(Exception e){addTag("CentralEnginePort","",root,blank,document);}
             try{addTag("SysSutPath",syssutpath.getText(),root,blank,document);}
             catch(Exception e){addTag("SysSutPath","",root,blank,document);}
             try{addTag("SutPath",sutpath.getText(),root,blank,document);}

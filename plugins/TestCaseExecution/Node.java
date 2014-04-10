@@ -30,7 +30,7 @@ public class Node{
     private HashMap<String,String> properties = new HashMap<String,String>();
     private Node parent;
     private String eps;
-    private byte type;//0 -tb;1module
+    private byte type;//0 -tb;1 module
     private boolean lastsaved = true;//tracks changes
     private String locked = "";
     

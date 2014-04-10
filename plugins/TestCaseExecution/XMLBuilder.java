@@ -330,9 +330,7 @@ public class XMLBuilder{
                     em3.appendChild(document.createTextNode(RunnerRepository.getTestSuitePath()+
                                         item.getFileLocation()));
                 }
-                
             }
-            
             tc.appendChild(em3);
             if(item.isClearcase()){
                 em3 = document.createElement("ClearCase");
@@ -476,8 +474,7 @@ public class XMLBuilder{
             for(int i=0;i<item.getSubItemsNr();i++){
                 addSubElement(rootElement2,item.getSubItem(i),skip,temp);
                 
-            }}}
-                    
+            }}}     
     public void printXML(){        
         StreamResult result =  new StreamResult(System.out);
         try{transformer.transform(source, result);}
