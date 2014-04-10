@@ -1,6 +1,6 @@
 #!/usr/bin/env python2.7
 
-# version: 3.004
+# version: 3.005
 
 # File: ExecutionProcess.py ; This file is part of Twister.
 
@@ -299,6 +299,10 @@ class ThreadedLogger(Thread):
         """
         This will force the thread to exit.
         """
+        # last read to make sure all CLI.log is captured
+        data = self.tail()
+        self.logLive(data, force=True)
+
         self.exiting = True
 
 

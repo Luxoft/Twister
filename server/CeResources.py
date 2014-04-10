@@ -1,7 +1,7 @@
 
 # File: CeResources.py ; This file is part of Twister.
 
-# version: 2.046
+# version: 2.047
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -610,6 +610,9 @@ class ResourceAllocator(_cptools.XMLRPCController):
                     if v:
                         logError('User {}: Save ERROR: `{}`!'.format(self.getUserName(),e))
 
+                if resource_name[0] == '/':
+                    resource_name = resource_name.split('/')[-1]
+
                 v = self.systems.get('version', 1)
                 self.systems['version'] = v
 
@@ -675,6 +678,10 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
                     # update loaded users systems
                     self._loadedUsers.update([(user, self.systems), ])
+
+                    # targeted resource is saved now; do not continue with
+                    # the rest of resources
+                    break
 
         if log:
             return '*ERROR* ' + str(log)
@@ -1698,8 +1705,26 @@ class ResourceAllocator(_cptools.XMLRPCController):
         '''
         Permanently delete a SUT.
         '''
-        logFull('CeResources:deleteSut')
-        return self.deleteResource(res_query, '{}', ROOT_SUT, username)
+        logFull('CeResources:deleteSut {}'.format(res_query))
+
+        # SUT file can be user or system file
+        if res_query.split('.')[-1] == 'system':
+            sutsPath = self.project.getUserInfo(self.getUserName(), 'sys_sut_path')
+            if not sutsPath:
+                sutsPath = '{}/config/sut/'.format(TWISTER_PATH)
+            try:
+                os.remove(sutsPath + res_query.split('.')[0] + '.json')
+                return True
+            except Exception as e:
+                msg = 'User {}: Cannot delete SUT file: `{}` !'.format(self.getUserName(),res_query.split('.')[0] + '.json')
+                logError(msg)
+                return '*ERROR* ' + msg
+            return True
+        else:
+            usrSutPath = self.project.getUserInfo(self.getUserName(), 'sut_path')
+            if not usrSutPath:
+                usrSutPath = '{}/twister/config/sut/'.format(usrHome)
+            return self.project.localFs.deleteUserFile(self.getUserName(), usrSutPath + res_query.split('.')[0] + '.json')
 
 
     @cherrypy.expose
@@ -1726,13 +1751,56 @@ class ResourceAllocator(_cptools.XMLRPCController):
         '''
         logDebug('CeResources:saveReservedSutAs {} {} {}'.format(name,res_query,username))
 
-        # we need to create the SUT file first
-        props = {}
-        #p_key = '_epnames_' + username
-        #parent = {p_key:''}
-        self.setResource(name, '/', props, ROOT_SUT, username)
+        # we need to create the SUT file if it doesn't exists
+        target_name = '/'+name+'.user'
+        ret_resource = self.getResource(target_name,ROOT_SUT,False)
+        if isinstance(ret_resource,str):
+            if '*ERROR*' in ret_resource:
+                # the targeted SUT doesn't exists, create it and get it's
+                # structure
+                self.setResource(target_name, '/', '{}', ROOT_SUT)
+                ret_resource = self.getResource(target_name,ROOT_SUT,False)
+                # this should NOT happen, if so, something is very bad
+                if isinstance(ret_resource,str):
+                    if '*ERROR*' in ret_resource:
+                        msg = 'User {}: SUT file {} cannot be saved!'.format(self.getUserName(),name + '.json')
+                        logError(msg)
+                        return '*ERROR* ' + msg
 
-        return self.saveReservedResourceAs(name, res_query, props, ROOT_SUT, username)
+        # reserve the target SUT
+        self.reserveResource(target_name, '{}', ROOT_SUT)
+
+        # search for original SUT in reserved resources and
+        # get the children and meta sections to copy into the new SUT
+        if '/' in res_query:
+            res_query = res_query.split('/')[-1]
+        orig_children = dict()
+        orig_meta = dict()
+        for reserved_res in self.reservedResources[self.getUserName()]:
+            reserved_res_p = self.reservedResources[self.getUserName()][reserved_res]
+            if reserved_res_p['path'][0] == res_query:
+                # found the original SUT; get the children
+                orig_children = reserved_res_p['children']
+                orig_meta = reserved_res_p['meta']
+                break
+
+        # search for target SUT in reserved resources and
+        # overwrite the children and meta sections with values
+        # from original SUT
+        if '/' in target_name:
+            target_name = target_name.split('/')[-1]
+        for reserved_res in self.reservedResources[self.getUserName()]:
+            reserved_res_p = self.reservedResources[self.getUserName()][reserved_res]
+            if reserved_res_p['path'][0] == target_name:
+                # found the original SUT; write the children
+                reserved_res_p['children'] = orig_children
+                reserved_res_p['meta'] = orig_meta
+                break
+
+        # we need to realease & discard the original SUT and to save & release
+        # the targeted SUT
+        self.discardAndReleaseReservedResource('/'+res_query, '{}', ROOT_SUT,self.getUserName())
+        return self.saveReservedResource('/'+target_name, '{}', ROOT_SUT, self.getUserName())
 
 
     @cherrypy.expose
