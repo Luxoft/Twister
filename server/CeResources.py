@@ -1,7 +1,7 @@
 
 # File: CeResources.py ; This file is part of Twister.
 
-# version: 2.033
+# version: 2.047
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -161,7 +161,6 @@ def _get_res_pointer(parent_node, query):
 
     return resource_p
 
-
 def _get_res_path(parent_node, query):
     '''
     Helper function.
@@ -202,28 +201,115 @@ def flattenNodes(parent_node, result):
     return result
 
 
-def xml_to_res(xml, gparams):
-    for folder in xml.xpath('folder'):
-        # Create empty resource node
-        nd = {'meta': {}, 'id': '', 'children': {}}
-        # Populate META properties
-        nd['meta'] = {gparam.find('name').text: gparam.find('value').text or '' for gparam in folder.xpath('param')}
-        # If the XML node contains an ID, use it; else, create a random ID
-        if nd['meta'].get('id'):
-            nd['id'] = nd['meta']['id']
-            del nd['meta']['id']
+def xml_to_res(xml, gparams, root_type, skip_header = False):
+
+    # this is a recursive method to read the xml and generate a dictionary
+    def recursive_xml_to_res(xml,res_dict):
+        nd = dict()
+        for folder in xml.findall('folder'):
+            tb_path = folder.find('path')
+            if tb_path is not None:
+                nd = {'path':[],'meta': {}, 'id': '', 'children': {}}
+                nd['path'].append(tb_path.text)
+            else:
+                nd = {'meta': {}, 'id': '', 'children': {}}
+
+            # Populate META properties
+            meta = folder.find('meta')
+            if meta is not None:
+                for meta_params in meta.findall('param'):
+                    meta_name = meta_params.find('name')
+                    if meta_name is not None:
+                        meta_value = meta_params.find('value')
+                        if meta_value is not None and meta_value.text is not None:
+                            nd['meta'][meta_name.text] = meta_value.text
+                        else:
+                            nd['meta'][meta_name.text] = ''
+
+            # If the XML node contains an ID, use it; else, create a random ID
+            tb_id = folder.find('id')
+            if tb_id is not None:
+                id_value = tb_id.find('value')
+                if id_value is not None and id_value.text is not None:
+                    nd['id'] = id_value.text
+                else:
+                    nd['id'] = hexlify(os.urandom(5))
+            else:
+                nd['id'] = hexlify(os.urandom(5))
+
+            # Add children for this node
+            res_dict[folder.find('fname').text] = nd
+            recursive_xml_to_res(folder,res_dict[folder.find('fname').text]['children'])
+
+    # we have to get the information at root level(path,meta,id,version) first
+    # version is added only if it exists in xml; the SUT exported files do not
+    # have the version tag
+    if not skip_header:
+        root_dict = {'path':[], 'meta':{}, 'id':'', 'children':{}}
+        tb_path = xml.find('path').text
+        if tb_path:
+            root_dict['path'].append(tb_path)
         else:
-            nd['id'] = hexlify(os.urandom(5))
-        # Add children for this node
-        nd['children'] = xml_to_res(folder, {})
-        gparams[folder.find('fname').text] = nd
+            if root_type == ROOT_SUT:
+                root_dict['path'].append('')
+        meta = xml.find('meta')
+        for meta_elem in meta:
+           key = meta_elem.find('name').text
+           val = meta_elem.find('value').text
+           if val:
+               root_dict['meta'][key] = val
+           else:
+               root_dict['meta'][key] = ''
+        root_dict['id'] = xml.find('id').text
+        if xml.find('version') is not None and xml.find('version').text is not None:
+            root_dict['version'] = int(xml.find('version').text)
+        #else:
+        #    root_dict['version'] = ''
+
+        gparams = root_dict
+
+    # rest of the xml file can be read recursively
+    recursive_xml_to_res(xml,gparams['children'])
+
     return gparams
 
-
-def res_to_xml(parent_node, xml):
+def res_to_xml(parent_node, xml, skip_header = False):
     # The node is valid ?
     if not parent_node:
         return False
+
+    # if we are at root level, we need to get path, meta, id and version fields
+    if not skip_header:
+        # path is a list with 0 or 1 elements
+        path = etree.SubElement(xml,'path')
+        if parent_node.get('path') is not None and len(parent_node.get('path')) == 1:
+           path.text = parent_node.get('path')[0]
+        else:
+           path.text = ''
+
+        meta = etree.SubElement(xml,'meta')
+        # meta is a dictionary
+        for k, v in parent_node.get('meta').iteritems():
+            tag = etree.SubElement(meta, 'param')
+            prop = etree.SubElement(tag, 'name')
+            prop.text = str(k)
+            val  = etree.SubElement(tag, 'value')
+            if v:
+                val.text = str(v)
+            else:
+                val.text = ''
+            typ  = etree.SubElement(tag, 'type')
+            typ.text = 'string'
+            desc  = etree.SubElement(tag, 'desc')
+
+        tb_id = etree.SubElement(xml,'id')
+        tb_id.text = parent_node.get('id')
+        # add version only if it exists in dictionary; the SUT
+        # files don't have version
+        if parent_node.get('version') is not None:
+            version = etree.SubElement(xml,'version')
+            version.text = str(parent_node.get('version'))
+
     # This node has children ?
     if not parent_node.get('children'):
         return False
@@ -239,19 +325,15 @@ def res_to_xml(parent_node, xml):
         # Folder fdesc
         fdesc = etree.SubElement(folder, 'fdesc')
 
-        # The ID is special
-        if nd.get('id'):
-            tag = etree.SubElement(folder, 'param')
-            prop = etree.SubElement(tag, 'name')
-            prop.text = 'id'
-            val  = etree.SubElement(tag, 'value')
-            val.text = nd['id']
-            typ  = etree.SubElement(tag, 'type')
-            typ.text = 'string'
-            desc  = etree.SubElement(tag, 'desc')
+        # get the path if exists
+        if nd.get('path'):
+            path = etree.SubElement(folder, 'path')
+            path.text = nd.get('path')[0]
 
+        # get meta information
+        meta = etree.SubElement(folder,'meta')
         for k, v in nd['meta'].iteritems():
-            tag = etree.SubElement(folder, 'param')
+            tag = etree.SubElement(meta, 'param')
             prop = etree.SubElement(tag, 'name')
             prop.text = str(k)
             val  = etree.SubElement(tag, 'value')
@@ -263,10 +345,18 @@ def res_to_xml(parent_node, xml):
             typ.text = 'string'
             desc  = etree.SubElement(tag, 'desc')
 
-        ch = res_to_xml(nd, folder)
+        # get the id
+        if nd.get('id'):
+            tag = etree.SubElement(folder, 'id')
+            val  = etree.SubElement(tag, 'value')
+            val.text = nd['id']
+            typ  = etree.SubElement(tag, 'type')
+            typ.text = 'string'
+            desc  = etree.SubElement(tag, 'desc')
+
+        ch = res_to_xml(nd, folder, True)
 
     return xml
-
 
 def _recursive_build_comp(parent, old_path, appendList=[]):
     '''
@@ -362,6 +452,10 @@ class ResourceAllocator(_cptools.XMLRPCController):
         return output.render()
 
 #
+    def getUserName(self):
+        user_roles = self.userRoles({})
+        user = user_roles.get('user')
+        return user
 
     def _load(self, v=False, props={}, force=False):
         # import time
@@ -391,7 +485,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
                                 self._loadedUsers.update([(user, userSystems), ])
                     except Exception as e:
                         if v:
-                            logError('_load ERROR:: {}'.format(e))
+                            logError('_load ERROR:: {} for user {}'.format(e,self.getUserName()))
 
                     self.systems = self._loadedUsers[user]
                     try:
@@ -405,11 +499,11 @@ class ResourceAllocator(_cptools.XMLRPCController):
                                 self.systems['children'].update([(sutName, json.load(f)), ])
                     except Exception as e:
                         if v:
-                            logError('_load ERROR:: {}'.format(e))
+                            logError('_load ERROR:: {} for user {}'.format(e,self.getUserName()))
                     return True
             except Exception as e:
                 if v:
-                    logError('RA: There are no devices to load! `{}`!'.format(e))
+                    logError('RA: There are no devices to load for user {} ! `{}`!'.format(self.getUserName(),e))
 
         with self.load_lock:
 
@@ -424,17 +518,17 @@ class ResourceAllocator(_cptools.XMLRPCController):
                 self.resources = json.load(f)
                 f.close() ; del f
                 if v:
-                    logDebug('RA: Devices loaded successfully.')
+                    logDebug('RA: Devices loaded successfully for user {}.'.format(self.getUserName()))
 
             except Exception as e:
                 if v:
-                    logError('RA: There are no devices to load! `{}`!'.format(e))
+                    logError('RA: There are no devices to load for user {}! `{}`!'.format(self.getUserName(),e))
             # try to load SUT file
             try:
                 self.systems   = constant_dictionary
 
                 if v:
-                    logDebug('RA: Systems root loaded successfully.')
+                    logDebug('RA: Systems root loaded successfully for user {}.'.format(self.getUserName()))
 
                 try:
                     user_roles = self.userRoles(props)
@@ -449,7 +543,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
                             self.systems['children'].update([(sutName, json.load(f)), ])
                 except Exception as e:
                     if v:
-                        logError('_load ERROR:: {}'.format(e))
+                        logError('_load ERROR:: {} for user {}'.format(e,self.getUserName()))
 
                 # Get the user rpyc connection connection
                 try:
@@ -466,16 +560,16 @@ class ResourceAllocator(_cptools.XMLRPCController):
                     self._loadedUsers.update([(user, userSystems), ])
                 except Exception as e:
                     if v:
-                        logError('_load ERROR:: {}'.format(e))
+                        logError('_load ERROR:: {} for user {}'.format(e,self.getUserName()))
 
                 if v:
-                    logDebug('RA: Systems loaded successfully.')
+                    logDebug('RA: Systems loaded successfully for user {}.'.format(self.getUserName()))
             except Exception as e:
                 if v:
-                    logError('RA: There are no SUTs to load! `{}`!'.format(e))
+                    logError('RA: There are no SUTs to load for user {} ! `{}`!'.format(self.getUserName(),e))
         r = None
         if not r == True and not r == None:
-            logDebug('_load ERROR: {}'.format(r))
+            logDebug('_load ERROR: {} for user {}'.format(r,self.getUserName()))
         # t1 = time.time()
         # logDebug('|||||||||||||_load time:: ', t1-t0)
         return True
@@ -494,8 +588,8 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
             if root_id == ROOT_DEVICE:
                 try:
-                    v = self.resources.get('version', 0) + 1
-                    logDebug('Saving {} file, version `{}`.'.format(ROOT_NAMES[root_id], v))
+                    v = self.resources.get('version', 1)
+                    logDebug('User {}: Saving {} file, version `{}`.'.format(self.getUserName(),ROOT_NAMES[root_id], v))
                     self.resources['version'] = v
                     f = open(self.res_file, 'w')
                     json.dump(self.resources, f, indent=4)
@@ -503,7 +597,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
                 except Exception as e:
                     log.append(e)
                     if v:
-                        logError('Save ERROR: `{}`!'.format(e))
+                        logError('User {}: Save ERROR: `{}`!'.format(self.getUserName(),e))
 
             else:
                 try:
@@ -514,9 +608,12 @@ class ResourceAllocator(_cptools.XMLRPCController):
                 except Exception as e:
                     log.append(e)
                     if v:
-                        logError('Save ERROR: `{}`!'.format(e))
+                        logError('User {}: Save ERROR: `{}`!'.format(self.getUserName(),e))
 
-                v = self.systems.get('version', 0) + 1
+                if resource_name[0] == '/':
+                    resource_name = resource_name.split('/')[-1]
+
+                v = self.systems.get('version', 1)
                 self.systems['version'] = v
 
                 systemsChildren = copy.deepcopy(self.systems['children'])
@@ -537,11 +634,21 @@ class ResourceAllocator(_cptools.XMLRPCController):
                     # Check where to save (ce / user)
                     user_roles = self.userRoles(props)
                     user = user_roles.get('user')
-                    logDebug('Trying to save SUT file {} {} {}'.format(child, user, username))
+                    logDebug('User {}: Trying to save SUT file {}'.format(self.getUserName(), child))
                     if username and user != username:
                         # different user; dont't save it
                         logDebug('SUT file not saved; different users {} vs {}'.format(user,username))
                         continue
+
+                    # check if it's user or system sut
+                    filename = ''
+                    if child.split('.')[1] == 'user':
+                        sutsPath = self.project.getUserInfo(user, 'sut_path')
+                        filename = sutsPath+'/'+child.split('.')[0]+'.json'
+                    else:
+                        sutsPath = self.project.getUserInfo(user,'sys_sut_path')
+                        filename = sutsPath+'/'+child.split('.')[0]+'.json'
+
                     sutsPath = self.project.getUserInfo(user, 'sys_sut_path')
                     if not sutsPath:
                         sutsPath = '{}/config/sut/'.format(TWISTER_PATH)
@@ -551,39 +658,57 @@ class ResourceAllocator(_cptools.XMLRPCController):
                     else:
                         userSuts.append(('.'.join(child.split('.')[:-1] + ['json']), self.systems['children'][child]))
 
-                if userSuts:
-                    # Get the user rpyc connection connection
-                    user_roles = self.userRoles(props)
-                    user = user_roles.get('user')
-                    try:
-                        userConn = self.project._find_local_client(user)
-                        r = userConn.root.save_suts(userSuts)
-                        if r is not True:
-                            log.append(r)
-                    except Exception as e:
-                        log.append(e)
-                        logError('Saving ERROR user:: `{}`.'.format(e))
-
-                if systemSuts and not log:
-                    for sys_sut in systemSuts:
+                    if child.split('.')[1] == 'user':
+                        # Get the user connection
                         try:
-                            with open(sys_sut[0], 'w') as f:
-                                json.dump(sys_sut[1], f, indent=4)
+                            resp = self.project.localFs.writeUserFile(user,filename, json.dumps(self.systems['children'][child], indent=4), 'w')
+                            if resp is not True:
+                                log.append(resp)
                         except Exception as e:
                             log.append(e)
-                            logError('Saving ERROR system:: `{}`.'.format(e))
+                            logError('User {}: Saving ERROR user:: `{}`.'.format(self.getUserName(),e))
+
+                    if child.split('.')[1] == 'system' and not log:
+                        for sys_sut in systemSuts:
+                            try:
+                                resp = self.project.localFs.writeSystemFile(filename, json.dumps(self.systems['children'][child], indent=4), 'w')
+                            except Exception as e:
+                                log.append(e)
+                                logError('User {}: Saving ERROR system:: `{}`.'.format(self.getUserName(),e))
 
                     # update loaded users systems
                     self._loadedUsers.update([(user, self.systems), ])
 
-                # else:
-                #     self.reservedResources = dict()
-                #     self.lockedResources = dict()
+                    # targeted resource is saved now; do not continue with
+                    # the rest of resources
+                    break
 
         if log:
             return '*ERROR* ' + str(log)
 
         return True
+
+    def _get_reserved_res_pointer(self, res_query):
+        # the res_pointer not found; this might happen if the
+        # resource was renamed; if so, the new name should be in
+        # reservedResources; get the ID from there and search again
+        res_pointer = None
+
+        if '/' in res_query:
+            res_query = res_query.split('/')[1]
+
+        if not self.reservedResources.get(self.getUserName()):
+            return None,None
+
+        for reserved_res in self.reservedResources[self.getUserName()]:
+            reserved_res_p = self.reservedResources[self.getUserName()][reserved_res]
+            if reserved_res_p['path'][0] == res_query:
+                query_id = reserved_res_p['id']
+                res_path = _get_res_path(self.resources, query_id)
+                res_pointer = _get_res_pointer(self.resources, ''.join('/' + res_path[0]))
+                return (res_path,res_pointer)
+
+        return None,None
 
 
     @cherrypy.expose
@@ -591,7 +716,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
         '''
         Simple echo function, for testing connection.
         '''
-        logDebug('Echo: {}'.format(msg))
+        logDebug('User {}: Echo: {}'.format(self.getUserName(),msg))
         return 'RA reply: {}'.format(msg)
 
 
@@ -626,24 +751,24 @@ class ResourceAllocator(_cptools.XMLRPCController):
         WARNING! This erases everything!
         '''
         self._load(v=False, props=props)
+        user_roles = self.userRoles(props)
+        user = user_roles['user']
 
         if not os.path.isfile(xml_file):
-            msg = 'Import XML: XML file `{}` does not exist!'.format(xml_file)
+            msg = 'User {} import XML: XML file `{}` does not exist!'.format(user,xml_file)
             logError(msg)
             return '*ERROR* ' + msg
 
-        logDebug('Preparing to import XML file `{}`...'.format(xml_file))
+        logDebug('User {}: importing XML file `{}`...'.format(user,xml_file))
         params_xml = etree.parse(xml_file)
         sutName = ""
 
         with self.imp_lock:
             if root_id == ROOT_DEVICE:
                 try:
-                    self.resources = xml_to_res(params_xml, {})
-                    # self.resources = {'version': 0, 'name': '/', 'id': '1', 'meta': {},
-                    #                     'children': xml_to_res(params_xml, {})}
+                    self.resources = xml_to_res(params_xml, {}, ROOT_DEVICE)
                 except Exception as e:
-                    msg = 'Import XML: Exception `{}`.'.format(e)
+                    msg = 'User {}: Import XML: Exception `{}`.'.format(self.getUserName(),e)
                     logError(msg)
                     return '*ERROR* ' + msg
             else:
@@ -665,13 +790,13 @@ class ResourceAllocator(_cptools.XMLRPCController):
                     # Add SUT type ( user/system )
                     sutName = sutName + '.' + sutType
 
-                    sutContent = xml_to_res(params_xml, {})
+                    sutContent = xml_to_res(params_xml, {}, ROOT_SUT)
                     sutContent = sutContent.popitem()[1]
                     sutContent.update([('path', sutName.split()), ])
                     sutContent = _recursive_refresh_id(sutContent)
                     self.systems['children'].update([(sutName, sutContent), ])
                 except Exception as e:
-                    msg = 'Import XML: Exception `{}`.'.format(e)
+                    msg = 'User {}: Import XML: Exception `{}`.'.format(self.getUserName(),e)
                     logError(msg)
                     return'*ERROR* ' + msg
 
@@ -687,8 +812,6 @@ class ResourceAllocator(_cptools.XMLRPCController):
         if not r == True:
             return r
 
-        #root_name = ROOT_NAMES[root_id]
-        #logDebug('All {} are now overwritten! Created `{}` major nodes, with children.'.format(root_name, len(result['children'])))
         return True
 
 
@@ -698,25 +821,29 @@ class ResourceAllocator(_cptools.XMLRPCController):
         Export as XML file.
         '''
         self._load(v=False, props=props)
+        user_roles = self.userRoles(props)
+        user = user_roles['user']
 
         try:
             f = open(xml_file, 'w')
         except:
-            msg = 'Export XML: XML file `{}` cannot be written!'.format(xml_file)
+            msg = 'User {}: export XML: XML file `{}` cannot be written !'.format(user,xml_file)
             logError(msg)
             return '*ERROR* ' + msg
 
-        logDebug('Preparing to export into XML file `{}`...'.format(xml_file))
+        logDebug('User {}: exporting to XML file `{}`...'.format(user,xml_file))
 
+        skip_header = False
         if root_id == ROOT_DEVICE:
             _root = self.resources
         elif root_id == ROOT_SUT:
             _root = self.systems
+            skip_header = True
         elif root:
             _root = root
 
         xml = etree.Element('root')
-        result = res_to_xml(_root, xml)
+        result = res_to_xml(_root, xml, skip_header)
         f.write('<?xml version="1.0" encoding="UTF-8" standalone="no"?>\n\n')
         f.write(etree.tostring(xml, pretty_print=True))
         f.close()
@@ -729,9 +856,40 @@ class ResourceAllocator(_cptools.XMLRPCController):
         '''
         Import one sut XML file.
         '''
-        logDebug('CeResources:import_sut_xml {} {} {}'.format(xml_file,sutType,username))
-        props = {}
-        return self.import_xml(xml_file, sutType, ROOT_SUT, props, username)
+        user_roles = self.userRoles({})
+        user = user_roles['user']
+        logDebug('User {}: importing XML file `{}`...'.format(user,xml_file))
+        params_xml = etree.parse(xml_file)
+
+        # parse the xml file and build the json format
+        xml_ret = xml_to_res(params_xml, {}, ROOT_SUT)
+
+        # build the filename to be saved; xml_file has absolute path; we need
+        # to extract the last string after /, remove extension and add .json
+        sut_file = xml_file.split('/')[-1].split('.')[0]
+        sut_file = sut_file + '.json'
+        
+        sutPath = None
+        if sutType == 'system':
+            # System SUT path
+            sutPath = self.project.getUserInfo(username, 'sys_sut_path')
+            if not sutPath:
+                sutPath = '{}/config/sut/'.format(TWISTER_PATH)
+        else:
+            # User SUT path
+            sutPath = self.project.getUserInfo(username, 'sut_path')
+            if not sutPath:
+                usrHome = userHome(user)
+                sutPath = '{}/twister/config/sut/'.format(usrHome)
+        sut_file = sutPath + '/' + sut_file
+
+        resp = True
+        if sutType == 'system':
+            resp = self.project.localFs.writeSystemFile(sut_file, json.dumps(xml_ret, indent=4), 'w')
+        else:
+            resp = self.project.localFs.writeUserFile(user,sut_file, json.dumps(xml_ret, indent=4), 'w')
+
+        return resp
 
 
     @cherrypy.expose
@@ -739,10 +897,50 @@ class ResourceAllocator(_cptools.XMLRPCController):
         '''
         Export as XML file.
         '''
-        res_path = _get_res_path(self.systems, query)
-        res_pointer = _get_res_pointer(self.systems, ''.join('/' + res_path[0]))
-        root = {'version': 0, 'name': '/', 'meta': {}, 'children': {res_path[0]: res_pointer}}
-        return self.export_xml(xml_file, None, root, '{}')
+        user_roles = self.userRoles({})
+        user = user_roles['user']
+
+        sutPath = None
+        sutType = query.split('.')[-1]
+        if sutType == 'system':
+            # System SUT path
+            sutPath = self.project.getUserInfo(username, 'sys_sut_path')
+            if not sutPath:
+                sutPath = '{}/config/sut/'.format(TWISTER_PATH)
+        else:
+            # User SUT path
+            sutPath = self.project.getUserInfo(username, 'sut_path')
+            if not sutPath:
+                usrHome = userHome(user)
+                sutPath = '{}/twister/config/sut/'.format(usrHome)
+
+        sut_filename = sutPath + '/' + query.split('/')[1].split('.')[0] + '.json'
+        logInfo('User {}: export SUT file: {} to {} file.'.format(user, sut_filename,xml_file))
+
+        # read the content of the user SUT file and load it in json
+        if sutType == 'system':
+            resp = self.project.localFs.readSystemFile(sut_filename, 'r')
+        else:
+            resp = self.project.localFs.readUserFile(user, sut_filename, 'r')
+        json_resp = json.loads(resp)
+
+        # generate the xml structure
+        xml = etree.Element('root')
+        result = res_to_xml(json_resp, xml)
+
+        # write the xml file
+        xml_header = '<?xml version="1.0" encoding="UTF-8" standalone="no"?>\n\n'
+        resp = self.project.localFs.writeUserFile(user, xml_file, xml_header, 'w')
+        if resp != True:
+            logError(resp)
+            return resp
+
+        resp = self.project.localFs.writeUserFile(user, xml_file, etree.tostring(xml, pretty_print=True), 'w')
+        if resp != True:
+            logError(resp)
+            return resp
+
+        return True
 
 
     @cherrypy.expose
@@ -780,6 +978,8 @@ class ResourceAllocator(_cptools.XMLRPCController):
         '''
         logFull('CeResources:getResource')
         self._load(v=False, props=props)
+        user_roles = self.userRoles(props)
+        user = user_roles['user']
 
         # If the root is not provided, use the default root
         if root_id == ROOT_DEVICE:
@@ -795,22 +995,22 @@ class ResourceAllocator(_cptools.XMLRPCController):
             if query == '/':
                 return {'name': '/', 'path': '', 'meta': resources.get('meta', {}), 'id': '1', 'children': []}
 
-            msg = 'Get {}: There are no devices defined !'.format(root_name)
+            msg = 'User {}: Get {}: There are no devices defined !'.format(self.getUserName(),root_name)
             logError(msg)
             return '*ERROR* ' + msg
 
         if not query:
-            msg = 'Get {}: Cannot get a null resource !'.format(root_name)
+            msg = 'User {}: Get {}: Cannot get a null resource !'.format(user,root_name)
             logError(msg)
             return '*ERROR* ' + msg
 
-        logDebug('Get {} `{}`.'.format(root_name, query))
+        logDebug('User {}: Get {} `{}`.'.format(self.getUserName(), root_name, query))
 
         query = str(query)
 
         # If the query asks for a specific Meta Tag
         if query.count(':') > 1:
-            msg = 'Get {}: Invalid query ! Cannot access more than 1 meta info !'.format(root_name)
+            msg = 'User {}: Get {}: Invalid query ! Cannot access more than 1 meta info !'.format(self.getUserName(),root_name)
             logError(msg)
             return '*ERROR* ' + msg
 
@@ -891,7 +1091,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
         Show all the properties, or just 1 property of a SUT.
         Must provide a SUT ID, or a SUT Path.
         '''
-        logDebug('CeResources: Get SUT for: `{}` `{}`!'.format(query,username))
+        logDebug('CeResources: Get SUT for: `{}` `{}`!'.format(query,self.getUserName()))
         # query, root_id, flatten, props, username
         ret = self.getResource(query, ROOT_SUT, True, props, username)
         return ret
@@ -902,7 +1102,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
         Get the contant of one SUT file using it's name
         Must provide a SUT name.<type> ( type = user/system) and username
         '''
-        logDebug('CeResources: GetSutByName {} {}'.format(query,username))
+        logDebug('CeResources: GetSutByName {} {}'.format(query,self.getUserName(),))
         suts = []
         usrHome = userHome(username)
 
@@ -922,24 +1122,32 @@ class ResourceAllocator(_cptools.XMLRPCController):
         # if sut path doesn't end with '/' character, we have to add it
         if sutPath[-1] != '/':
             sutPath += '/'
-        sutFile = sutPath + query.split('.')[0] + '.json'
+        fileName = query.split('.')[0] + '.json'
+        sutFile = sutPath + fileName
 
         sutContent = False
         if os.path.isdir(sutPath):
-            try:
-                f = open(sutFile, 'r')
-                sutContent = json.load(f)
-                f.close() ; del f
-            except IOError, e:
-                if e.errno == errno.EACCES:
-                    # permission denied error, try using the client
-                    userConn = False
-                    userConn = self.project._find_local_client(username)
-                    if userConn:
-                        fileContent = False
-                        fileContent = userConn.root.exposed_read_file(sutFile)
-                        if fileContent and not fileContent.startswith('*ERROR*'):
-                            sutContent = json.loads(fileContent)
+            if sutType == 'system':
+                # system SUT file
+                try:
+                    f = open(sutFile, 'r')
+                    sutContent = json.load(f)
+                    f.close() ; del f
+                except Exception as e:
+                    return '*ERROR* Cannot get access to SUT path for user {} Exception {}'.format(self.getUserName(),e)
+            else:
+                # user SUT file; we have to check if the cleacase plugin
+                # is activated; if so, use it to read the SUT file; else
+                # use the UserService to read it
+                ccConfig = self.project.getClearCaseConfig(self.getUserName(), 'sut_path')
+                if ccConfig:
+                    view = ccConfig['view']
+                    path = ccConfig['path']
+                    resp = self.project.clearFs.readUserFile(self.getUserName() +':'+ view, path +'/'+ fileName)
+                    sutContent = json.loads(resp)
+                else:
+                    resp = self.project.localFs.readUserFile(self.getUserName(), sutPath + fileName)
+                    sutContent = json.loads(resp)
 
             if sutContent is False or (isinstance(sutContent, str) and sutContent.startswith('*ERROR*')):
                 return sutContent
@@ -958,7 +1166,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
                 return retDict
 
         # if we get here, we cannot get read access to the SUT directory
-        return '*ERROR* Cannot get access to SUT path'
+        return '*ERROR* Cannot get access to SUT path for user {}'.format(self.getUserName())
 
 
 #
@@ -993,7 +1201,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
         if parent == '/' or parent == '1':
             _isResourceLocked = self.isResourceLocked(parent, root_id)
             if _isResourceLocked and _isResourceLocked != username:
-                msg = 'Reserve resource: The resource is locked for {} !'.format(_isResourceLocked)
+                msg = 'User {}: Reserve resource: The resource is locked for {} !'.format(self.getUserName(),_isResourceLocked)
                 logError(msg)
                 return '*ERROR* ' + msg
 
@@ -1007,19 +1215,19 @@ class ResourceAllocator(_cptools.XMLRPCController):
                     try:
                         props = ast.literal_eval(props)
                     except Exception as e:
-                        msg = 'Set {}: Cannot parse properties: `{}`, `{}` !'.format(root_name, props, e)
+                        msg = 'User {}: Set {}: Cannot parse properties: `{}`, `{}` !'.format(self.getUserName(),root_name, props, e)
                         logError(msg)
                         return '*ERROR* ' + msg
                 else:
-                    msg = 'Set {}: Invalid properties `{}` !'.format(root_name, props)
+                    msg = 'User {}: Set {}: Invalid properties `{}` !'.format(self.getUserName(),root_name, props)
                     logError(msg)
                     return '*ERROR* ' + msg
 
                 epnames_tag = '_epnames_{}'.format(username)
 
                 resources['meta'].update(props)
-                # if _id key is present in meta and it has no value, we have
-                # to remove it from meta dictionary
+                # if _id key is present in meta and it has no value,
+                #we have to remove it from meta dictionary
                 if '_id' in resources['meta'].keys() and not resources['meta'].get('_id',False):
                     resources['meta'].pop('_id')
 
@@ -1027,7 +1235,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
                 if epnames_tag in resources['meta']:
                     # And the tag is empty
                     if not resources['meta'][epnames_tag]:
-                        logDebug('Deleting `{}` tag from resources.'.format(epnames_tag))
+                        logDebug('User {}: Deleting `{}` tag from resources.'.format(self.getUserName(),epnames_tag))
                         del resources['meta'][epnames_tag]
 
                 # Write changes for Device or SUT
@@ -1039,7 +1247,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
                         r = self._save(root_id, props, name, username)
                 else:
                     r = self._save(root_id, props)
-                logInfo('Set {}: Updated ROOT with properties: `{}`.'.format(root_name, props))
+                logInfo('User {}: Set {}: Updated ROOT with properties: `{}`.'.format(self.getUserName(),root_name, props))
                 if not r == True:
                     return r
                 return True
@@ -1054,7 +1262,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
                 parent_p = self._getReservedResource(parent, props, root_id)
 
             if not parent_p:
-                msg = 'Set {}: Cannot access parent path or ID `{}` !'.format(root_name, parent)
+                msg = 'User {}: Set {}: Cannot access parent path or ID `{}` !'.format(self.getUserName(),root_name, parent)
                 logError(msg)
                 return '*ERROR* ' + msg
 
@@ -1062,7 +1270,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
                 parent_p['path'] = parent_p.get('path', '').split('/')
 
             if '/' in name:
-                logDebug('Set {}: Stripping slash characters from `{}`...'.format(root_name, name))
+                logDebug('User {}: Set {}: Stripping slash characters from `{}`...'.format(self.getUserName(),root_name, name))
                 name = name.replace('/', '')
 
             if isinstance(props, dict):
@@ -1072,11 +1280,11 @@ class ResourceAllocator(_cptools.XMLRPCController):
                 try:
                     props = ast.literal_eval(props)
                 except Exception as e:
-                    msg = 'Set {}: Cannot parse properties: `{}`, `{}` !'.format(root_name, props, e)
+                    msg = 'User {}: Set {}: Cannot parse properties: `{}`, `{}` !'.format(self.getUserName(),root_name, props, e)
                     logError(msg)
                     return '*ERROR* ' + msg
             else:
-                msg = 'Set {}: Invalid properties `{}` !'.format(root_name, props)
+                msg = 'User {}: Set {}: Invalid properties `{}` !'.format(self.getUserName(),root_name, props)
                 logError(msg)
                 return '*ERROR* ' + msg
 
@@ -1103,7 +1311,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
                 old_child = copy.deepcopy(child_p)
 
-                logDebug('Set Resource update props:: {} for child {}'.format(props,child_p))
+                logDebug('User {}: Set Resource update props:: {} for child {}'.format(self.getUserName(),props,child_p))
 
                 epnames_tag = '_epnames_{}'.format(username)
 
@@ -1117,13 +1325,18 @@ class ResourceAllocator(_cptools.XMLRPCController):
                 if epnames_tag in child_p['meta']:
                     # And the tag is empty
                     if not child_p['meta'][epnames_tag]:
-                        logDebug('Deleting `{}` tag from resources.'.format(epnames_tag))
+                        logDebug('User {}: Deleting `{}` tag from resources.'.format(self.getUserName(),epnames_tag))
                         del child_p['meta'][epnames_tag]
 
                 return True
 
-            # If the resource is new, create it.
+            elif self._get_reserved_res_pointer(name) != (None,None):
+                # resource was just created and reserved
+                res_path,res_pointer = self._get_reserved_res_pointer(name)
+                res_pointer['meta'] = props
+                return True
             else:
+                # resource is new, create it.
                 #parent_p = _get_res_pointer(parent_p, parent)
 
                 res_id = False
@@ -1141,11 +1354,17 @@ class ResourceAllocator(_cptools.XMLRPCController):
                 if epnames_tag in parent_p['children'][name]['meta']:
                     # And the tag is empty
                     if not parent_p['children'][name]['meta'][epnames_tag]:
-                        logDebug('Deleting `{}` tag from new resource.'.format(epnames_tag))
+                        logDebug('User {}: Deleting `{}` tag from new resource.'.format(self.getUserName(),epnames_tag))
                         del parent_p['children'][name]['meta'][epnames_tag]
 
                 r = None
                 if parent == '/' or parent == '1':
+                    # if this is a SUT file, we need to add path
+                    #if root_id == ROOT_SUT:
+                    sut_path = list()
+                    sut_path.append(name)
+                    parent_p['children'][name]['path'] = sut_path
+
                     # Write changes for Device or SUT
                     r = self._save(root_id, props, name, username)
                     if isinstance(r,str):
@@ -1153,7 +1372,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
                              # do clean up
                              parent_p['children'].pop(name)
                     else:
-                        logDebug('Created {} `{}`, id `{}` : `{}` .'.format(root_name, name, res_id, props))
+                        logDebug('User {}: Created {} `{}`, id `{}` : `{}` .'.format(self.getUserName(),root_name, name, res_id, props))
 
                 if not r == True and not r == None:
                     return r
@@ -1184,7 +1403,6 @@ class ResourceAllocator(_cptools.XMLRPCController):
         user_roles = self.userRoles(props)
         user = user_roles['user']
 
-
         # If the root is not provided, use the default root
         if root_id == ROOT_DEVICE:
             if 'CHANGE_TESTBED' not in user_roles.get('roles', []):
@@ -1203,17 +1421,17 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
         # If no resources...
         if not resources.get('children'):
-            msg = 'Rename {}: There are no resources defined !'.format(root_name)
+            msg = 'User {}: Rename {}: There are no resources defined !'.format(self.getUserName(),root_name)
             logError(msg)
             return '*ERROR* ' + msg
 
         if '/' in new_name:
-            msg = 'Rename {}: New resource name cannot contain `/` !'.format(root_name)
+            msg = 'User {}: Rename {}: New resource name cannot contain `/` !'.format(self.getUserName(),root_name)
             logError(msg)
             return '*ERROR* ' + msg
 
         if ':' in new_name:
-            msg = 'Rename {}: New resource name cannot contain `:` !'.format(root_name)
+            msg = 'User {}: Rename {}: New resource name cannot contain `:` !'.format(self.getUserName(),root_name)
             logError(msg)
             return '*ERROR* ' + msg
 
@@ -1225,13 +1443,13 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
         _isResourceLocked = self.isResourceLocked(res_query, root_id)
         if _isResourceLocked and _isResourceLocked != user:
-            msg = 'Reserve resource: The resource is locked for {} !'.format(_isResourceLocked)
+            msg = 'User {}: Reserve resource: The resource is locked for {} !'.format(self.getUserName(),_isResourceLocked)
             logError(msg)
             return '*ERROR* ' + msg
 
         res_p = self._getReservedResource(res_query, props, root_id)
         if not res_p:
-            msg = 'Rename {}: Cannot access reserved resource, path or ID `{}` !'.format(root_name, res_query)
+            msg = 'User {}: Rename {}: Cannot access reserved resource, path or ID `{}` !'.format(self.getUserName(),root_name, res_query)
             logError(msg)
             return '*ERROR* ' + msg
 
@@ -1245,12 +1463,12 @@ class ResourceAllocator(_cptools.XMLRPCController):
         new_path = list(node_path) ; new_path[-1] = new_name
 
         if not node_path:
-            msg = 'Rename {}: Cannot find resource node path `{}` !'.format(root_name, node_path)
+            msg = 'User {}: Rename {}: Cannot find resource node path `{}` !'.format(self.getUserName(),root_name, node_path)
             logError(msg)
             return '*ERROR* ' + msg
 
         if node_path == new_path:
-            logDebug('No changes have been made to {} `{}`.'.format(root_name, new_name))
+            logDebug('User {}: No changes have been made to {} `{}`.'.format(self.getUserName(),root_name, new_name))
             return True
 
         if node_path[1:]:
@@ -1259,21 +1477,20 @@ class ResourceAllocator(_cptools.XMLRPCController):
             exec_string = 'res_p'
 
         with self.ren_lock:
-
+            
             # If must rename a Meta info
             if meta:
                 exec( 'val = {}["meta"].get("{}")'.format(exec_string, meta) )
 
                 if val is None:
-                    msg = 'Rename {}: Cannot find resource meta info `{}` !'.format(root_name, meta)
+                    msg = 'User {}: Rename {}: Cannot find resource meta info `{}` !'.format(self.getUserName(),root_name, meta)
                     logError(msg)
                     return '*ERROR* ' + msg
 
                 exec( '{0}["meta"]["{1}"] = {0}["meta"]["{2}"]'.format(exec_string, new_name, meta) )
                 exec( 'del {}["meta"]["{}"]'.format(exec_string, meta) )
 
-                logDebug('Renamed {0} meta `{1}:{2}` to `{1}:{3}`.'.format(root_name, '/'.join(node_path), meta, new_name))
-
+                logDebug('User {0}: Renamed {1} meta `{2}:{3}` to `{2}:{4}`.'.format(self.getUserName(),root_name, '/'.join(node_path), meta, new_name))
             # If must rename a normal node
             else:
                 if new_path[1:]:
@@ -1284,7 +1501,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
                     #res_p['path'] = new_name
                     res_p.update([('path', [new_name]), ])
 
-                logDebug('Renamed {} path `{}` to `{}`.'.format(root_name, '/'.join(node_path), '/'.join(new_path)))
+                logDebug('User {}: Renamed {} path `{}` to `{}`.'.format(self.getUserName(),root_name, '/'.join(node_path), '/'.join(new_path)))
 
         return True
 
@@ -1327,7 +1544,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
         # If no resources...
         if not resources.get('children'):
-            msg = 'Del {}: There are no resources defined !'.format(root_name)
+            msg = 'User {}: Del {}: There are no resources defined !'.format(self.getUserName(),root_name)
             logError(msg)
             return '*ERROR* ' + msg
 
@@ -1342,14 +1559,14 @@ class ResourceAllocator(_cptools.XMLRPCController):
         # Check if resource is locked; if so, it cannot be deleted
         _isResourceLocked = self.isResourceLocked(res_query, root_id)
         if _isResourceLocked and _isResourceLocked != user:
-            msg = 'Reserve resource: The resource is locked for {} !'.format(_isResourceLocked)
+            msg = 'User {}: Reserve resource: The resource is locked for {} !'.format(self.getUserName(),_isResourceLocked)
             logError(msg)
             return '*ERROR* ' + msg
 
         # Check if resource is reserved; if so, it cannot be deleted
         _isResourceLocked = self.isResourceReserved(res_query, root_id)
         if _isResourceLocked and _isResourceLocked != user:
-            msg = 'Cannot delete: The resource is reserved for {} !'.format(_isResourceLocked)
+            msg = 'User {}: Cannot delete: The resource is reserved for {} !'.format(self.getUserName(),_isResourceLocked)
             logError(msg)
             return '*ERROR* ' + msg
 
@@ -1361,31 +1578,46 @@ class ResourceAllocator(_cptools.XMLRPCController):
                 if res_path:
                     res_pointer = self.reservedResources[user][res]
                     break
+
+                # it can be a meta parameter for the TB; we need to
+                # check this case because get_res_path doesn't return
+                # correct in this case
+                if res == res_query:
+                    res_pointer = self.reservedResources[user][res]
+                    res_path = res_pointer.get('path')
+                    break;
         except Exception, e:
             res_path = None
 
         if res_path:
-            exec_string = 'res_pointer["children"]["{}"]'.format('"]["children"]["'.join(res_path))
+            # resource can be at test bed level or at children of test bed
+            # level; we have to differentiate
+            if res_pointer.get('path') == res_path:
+                # test bed level
+                exec_string = 'res_pointer'
+            else:
+                # child of test bed level
+                exec_string = 'res_pointer["children"]["{}"]'.format('"]["children"]["'.join(res_path))
 
             # If must delete a Meta info
             if meta:
-                logDebug('Executing `{}` ...'.format( 'val = {}["meta"].get("{}")'.format(exec_string, meta) ))
+                logDebug('User {}: Executing `{}` ...'.format(self.getUserName(), 'val = {}["meta"].get("{}")'.format(exec_string, meta) ))
                 exec( 'val = {}["meta"].get("{}")'.format(exec_string, meta) )
 
                 if val is None:
-                    msg = 'Del {}: Cannot find resource meta info `{}` !'.format(root_name, meta)
+                    msg = 'User {}: Del {}: Cannot find resource meta info `{}` !'.format(self.getUserName(),root_name, meta)
                     logError(msg)
                     return '*ERROR* ' + msg
 
-                logDebug('Executing `{}` ...'.format( 'del {}["meta"]["{}"]'.format(exec_string, meta) ))
+                logDebug('User {}: Executing `{}` ...'.format(self.getUserName(), 'del {}["meta"]["{}"]'.format(exec_string, meta) ))
                 exec( 'del {}["meta"]["{}"]'.format(exec_string, meta) )
-                logDebug('Deleted {} meta `{}:{}`.'.format(root_name, '/'.join(res_path), meta))
+                logDebug('User {}: Deleted {} meta `{}:{}`.'.format(self.getUserName(), root_name, '/'.join(res_path), meta))
 
             # If must delete a normal node
             else:
-                logDebug('Executing `{}` ...'.format( 'del ' + exec_string ))
+                logDebug('User {}: Executing `{}` ...'.format(self.getUserName(), 'del ' + exec_string ))
                 exec( 'del ' + exec_string )
-                logDebug('Deleted {} path `{}`.'.format(root_name, '/'.join(res_path)))
+                logDebug('User {}: Deleted {} path `{}`.'.format(self.getUserName(),root_name, '/'.join(res_path)))
 
             return True
 
@@ -1399,7 +1631,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
             res_p = self.getSut(res_query, props=props)
 
         if not res_p:
-            msg = 'Del {}: Cannot find resource path or ID `{}` !'.format(root_name, res_query)
+            msg = 'User {}: Del {}: Cannot find resource path or ID `{}` !'.format(self.getUserName(),root_name, res_query)
             logError(msg)
             return '*ERROR* ' + msg
 
@@ -1407,7 +1639,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
         node_path = [p for p in res_p['path'].split('/') if p]
 
         if not node_path:
-            msg = 'Del {}: Cannot find resource node path `{}` !'.format(root_name, node_path)
+            msg = 'User {}: Del {}: Cannot find resource node path `{}` !'.format(self.getUserName(),root_name, node_path)
             logError(msg)
             return '*ERROR* ' + msg
 
@@ -1422,17 +1654,17 @@ class ResourceAllocator(_cptools.XMLRPCController):
             exec( 'val = {}["meta"].get("{}")'.format(exec_string, meta) )
 
             if val is None:
-                msg = 'Del {}: Cannot find resource meta info `{}` !'.format(root_name, meta)
+                msg = 'User {}: Del {}: Cannot find resource meta info `{}` !'.format(self.getUserName(),root_name, meta)
                 logError(msg)
                 return '*ERROR* ' + msg
 
             exec( 'del {}["meta"]["{}"]'.format(exec_string, meta) )
-            logDebug('Deleted {} meta `{}:{}`.'.format(root_name, '/'.join(node_path), meta))
+            logDebug('User {}: Deleted {} meta `{}:{}`.'.format(self.getUserName(),root_name, '/'.join(node_path), meta))
 
         # If must delete a normal node
         else:
             exec( 'del ' + exec_string )
-            logDebug('Deleted {} path `{}`.'.format(root_name, '/'.join(node_path)))
+            logDebug('User {}: Deleted {} path `{}`.'.format(self.getUserName(),root_name, '/'.join(node_path)))
 
         # Write changes.
         if username:
@@ -1453,14 +1685,14 @@ class ResourceAllocator(_cptools.XMLRPCController):
                 file_name = node_path[0].split('.')[:-1][0]
                 file_name += '.json'
 
-                os.remove(sutsPath+file_name)
+                os.remove(sutsPath+'/'+file_name)
             else:
                 # Get the user rpyc connection connection
                 try:
                     userConn = self.project._find_local_client(user)
                     userConn.root.delete_sut('.'.join(node_path[0].split('.')[:-1]))
                 except Exception as e:
-                    logError('Saving ERROR:: `{}`.'.format(e))
+                    logError('User {}: Saving ERROR:: `{}`.'.format(self.getUserName(),e))
 
         if not r == True:
             return r
@@ -1473,8 +1705,26 @@ class ResourceAllocator(_cptools.XMLRPCController):
         '''
         Permanently delete a SUT.
         '''
-        logFull('CeResources:deleteSut')
-        return self.deleteResource(res_query, '{}', ROOT_SUT, username)
+        logFull('CeResources:deleteSut {}'.format(res_query))
+
+        # SUT file can be user or system file
+        if res_query.split('.')[-1] == 'system':
+            sutsPath = self.project.getUserInfo(self.getUserName(), 'sys_sut_path')
+            if not sutsPath:
+                sutsPath = '{}/config/sut/'.format(TWISTER_PATH)
+            try:
+                os.remove(sutsPath + res_query.split('.')[0] + '.json')
+                return True
+            except Exception as e:
+                msg = 'User {}: Cannot delete SUT file: `{}` !'.format(self.getUserName(),res_query.split('.')[0] + '.json')
+                logError(msg)
+                return '*ERROR* ' + msg
+            return True
+        else:
+            usrSutPath = self.project.getUserInfo(self.getUserName(), 'sut_path')
+            if not usrSutPath:
+                usrSutPath = '{}/twister/config/sut/'.format(usrHome)
+            return self.project.localFs.deleteUserFile(self.getUserName(), usrSutPath + res_query.split('.')[0] + '.json')
 
 
     @cherrypy.expose
@@ -1501,13 +1751,56 @@ class ResourceAllocator(_cptools.XMLRPCController):
         '''
         logDebug('CeResources:saveReservedSutAs {} {} {}'.format(name,res_query,username))
 
-        # we need to create the SUT file first
-        props = {}
-        #p_key = '_epnames_' + username
-        #parent = {p_key:''}
-        self.setResource(name, '/', props, ROOT_SUT, username)
+        # we need to create the SUT file if it doesn't exists
+        target_name = '/'+name+'.user'
+        ret_resource = self.getResource(target_name,ROOT_SUT,False)
+        if isinstance(ret_resource,str):
+            if '*ERROR*' in ret_resource:
+                # the targeted SUT doesn't exists, create it and get it's
+                # structure
+                self.setResource(target_name, '/', '{}', ROOT_SUT)
+                ret_resource = self.getResource(target_name,ROOT_SUT,False)
+                # this should NOT happen, if so, something is very bad
+                if isinstance(ret_resource,str):
+                    if '*ERROR*' in ret_resource:
+                        msg = 'User {}: SUT file {} cannot be saved!'.format(self.getUserName(),name + '.json')
+                        logError(msg)
+                        return '*ERROR* ' + msg
 
-        return self.saveReservedResourceAs(name, res_query, props, ROOT_SUT, username)
+        # reserve the target SUT
+        self.reserveResource(target_name, '{}', ROOT_SUT)
+
+        # search for original SUT in reserved resources and
+        # get the children and meta sections to copy into the new SUT
+        if '/' in res_query:
+            res_query = res_query.split('/')[-1]
+        orig_children = dict()
+        orig_meta = dict()
+        for reserved_res in self.reservedResources[self.getUserName()]:
+            reserved_res_p = self.reservedResources[self.getUserName()][reserved_res]
+            if reserved_res_p['path'][0] == res_query:
+                # found the original SUT; get the children
+                orig_children = reserved_res_p['children']
+                orig_meta = reserved_res_p['meta']
+                break
+
+        # search for target SUT in reserved resources and
+        # overwrite the children and meta sections with values
+        # from original SUT
+        if '/' in target_name:
+            target_name = target_name.split('/')[-1]
+        for reserved_res in self.reservedResources[self.getUserName()]:
+            reserved_res_p = self.reservedResources[self.getUserName()][reserved_res]
+            if reserved_res_p['path'][0] == target_name:
+                # found the original SUT; write the children
+                reserved_res_p['children'] = orig_children
+                reserved_res_p['meta'] = orig_meta
+                break
+
+        # we need to realease & discard the original SUT and to save & release
+        # the targeted SUT
+        self.discardAndReleaseReservedResource('/'+res_query, '{}', ROOT_SUT,self.getUserName())
+        return self.saveReservedResource('/'+target_name, '{}', ROOT_SUT, self.getUserName())
 
 
     @cherrypy.expose
@@ -1580,7 +1873,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
         # If no resources...
         if not resources.get('children'):
-            msg = 'Get reserved resource: There are no resources defined !'
+            msg = 'User {}: Get reserved resource: There are no resources defined !'.format(self.getUserName())
             logError(msg)
             return False
 
@@ -1602,23 +1895,25 @@ class ResourceAllocator(_cptools.XMLRPCController):
                         return self.reservedResources[user][p]
 
         res_pointer = _get_res_pointer(resources, ''.join('/' + res_path[0]))
+        if not res_pointer:
+            res_path,res_pointer = self._get_reserved_res_pointer(res_query)
 
         if not res_pointer:
-            msg = 'Get reserved resource: Cannot find resource path or ID `{}` !'.format(res_query)
+            msg = 'User {}: Get reserved resource: Cannot find resource path or ID `{}` !'.format(self.getUserName(),res_query)
             logError(msg)
             return False
 
         if not self.reservedResources.get(user):
-            msg = 'Get reserved resource: Resource `{}` is not reserved !'.format(res_query)
+            msg = 'User {}: Get reserved resource: Resource `{}` is not reserved !'.format(self.getUserName(),res_query)
             logError(msg)
             return False
 
-        res_pointer.update([('path', [res_path[0]]), ])
+        res_pointer.update([('path', res_path), ])
         join_path = self.reservedResources[user][res_pointer['id']].get('path', '')
         if isinstance(join_path, str):
             join_path = [join_path]
 
-        self.reservedResources[user][res_pointer['id']]['path'] = '/'.join(join_path)
+        self.reservedResources[user][res_pointer['id']]['path'] = ['/'.join(join_path)]
 
         return self.reservedResources[user][res_pointer['id']]
 
@@ -1634,7 +1929,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
         # If no resources...
         if not resources.get('children'):
-            msg = 'Is resource reserved: There are no resources defined !'
+            msg = 'User {}: Is resource reserved: There are no resources defined !'.format(self.getUserName())
             logError(msg)
             return '*ERROR* ' + msg
 
@@ -1648,7 +1943,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
         res_pointer = _get_res_pointer(resources, ''.join('/' + res_path[0]))
 
         if not res_pointer:
-            msg = 'Is resource reserved: Cannot find resource path or ID `{}` !'.format(res_query)
+            msg = 'User {}: Is resource reserved: Cannot find resource path or ID `{}` !'.format(self.getUserName(),res_query)
             logError(msg)
             return '*ERROR* ' + msg
 
@@ -1681,7 +1976,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
         # If no resources...
         if not resources.get('children'):
-            msg = 'Reserve resource: There are no resources defined !'
+            msg = 'User {}: Reserve resource: There are no resources defined !'.format(self.getUserName())
             logError(msg)
             return '*ERROR* ' + msg
 
@@ -1694,13 +1989,13 @@ class ResourceAllocator(_cptools.XMLRPCController):
         with self.acc_lock:
             _isResourceLocked = self.isResourceLocked(res_query, root_id)
             if _isResourceLocked and _isResourceLocked != user:
-                msg = 'Reserve resource: The resource is locked for {} !'.format(_isResourceLocked)
+                msg = 'User {}: Reserve resource: The resource is locked for {} !'.format(self.getUserName(),_isResourceLocked)
                 logError(msg)
                 return '*ERROR* ' + msg
 
             _isResourceReserved = self.isResourceReserved(res_query, root_id)
             if _isResourceReserved and _isResourceReserved != user:
-                msg = 'Reserve resource: The resource is reserved for {} !'.format(_isResourceReserved)
+                msg = 'User {}: Reserve resource: The resource is reserved for {} !'.format(self.getUserName(),_isResourceReserved)
                 logError(msg)
                 return '*ERROR* ' + msg
 
@@ -1708,7 +2003,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
             res_pointer = _get_res_pointer(resources, ''.join('/' + res_path[0]))
 
             if not res_pointer:
-                msg = 'Reserve Resource: Cannot find resource path or ID `{}` !'.format(res_query)
+                msg = 'User {}: Reserve Resource: Cannot find resource path or ID `{}` !'.format(self.getUserName(),res_query)
                 logError(msg)
                 return '*ERROR* ' + msg
 
@@ -1735,7 +2030,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
         # If no resources...
         if not resources.get('children'):
-            msg = 'Save and release reserved resource: There are no resources defined !'
+            msg = 'User {}: Save and release reserved resource: There are no resources defined !'.format(self.getUserName())
             logError(msg)
             return '*ERROR* ' + msg
 
@@ -1744,12 +2039,17 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
         res_path = _get_res_path(resources, res_query)
         res_pointer = _get_res_pointer(resources, ''.join('/' + res_path[0]))
+        # the res_pointer not found; this might happen if the
+        # resource was renamed; if so, the new name should be in 
+        # reservedResources; get the ID from there and search again
+        if not res_pointer:
+            res_path,res_pointer = self._get_reserved_res_pointer(res_query)
 
         if '/' in res_query:
             res_query = res_query.split('/')[-1]
 
         if not res_pointer:
-            msg = 'Save and release resource: Cannot find resource path or ID `{}` !'.format(res_query)
+            msg = 'User {}: Save and release resource: Cannot find resource path or ID `{}` !'.format(self.getUserName(),res_query)
             logError(msg)
             return '*ERROR* ' + msg
 
@@ -1760,7 +2060,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
         #if not the same user, we have an error
         if username and user != username:
-            msg = 'Save reserved resource: Cannot find resource path or ID `{}` for user {} !'.format(res_query, user)
+            msg = 'User {}: Save reserved resource: Cannot find resource path or ID `{}`!'.format(user, res_query)
             logError(msg)
             return '*ERROR* ' + msg
 
@@ -1791,7 +2091,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
                             userConn = self.project._find_local_client(user)
                             userConn.root.delete_sut('.'.join(child.split('.')[:-1]))
                         except Exception as e:
-                            logError('Save and release resource ERROR:: `{}`.'.format(e))
+                            logError('User {}: Save and release resource ERROR:: `{}`.'.format(self.getUserName(),e))
 
             resources['children'].update([(_res_pointer['path'][0], _res_pointer), ])
             #resources['children'].update([(res_path[0], _res_pointer), ])
@@ -1804,7 +2104,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
             if not self.reservedResources[user]:
                 self.reservedResources.pop(user)
         except Exception as e:
-            msg = 'Save and release resource: `{}` !'.format(e)
+            msg = 'User {}: Save and release resource: `{}` !'.format(self.getUserName(),e)
             logError(msg)
             return '*ERROR* ' + msg
 
@@ -1817,7 +2117,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
     @cherrypy.expose
     def saveReservedResource(self, res_query, props={}, root_id=ROOT_DEVICE, username = None):
         """  """
-        logFull('CeResources:saveReservedResource')
+        logFull('CeResources:saveReservedResource {}'.format(res_query))
         self._load(v=False, props=props)
 
         if root_id == ROOT_DEVICE:
@@ -1827,7 +2127,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
         # If no resources...
         if not resources.get('children'):
-            msg = 'Save reserved resource: There are no resources defined !'
+            msg = 'User {}: Save reserved resource: There are no resources defined !'.format(self.getUserName())
             logError(msg)
             return '*ERROR* ' + msg
 
@@ -1836,12 +2136,14 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
         res_path = _get_res_path(resources, res_query)
         res_pointer = _get_res_pointer(resources, ''.join('/' + res_path[0]))
-
-        if '/' in res_query:
-            res_query = res_query.split('/')[-1]
+        # the res_pointer not found; this might happen if the
+        # resource was renamed; if so, the new name should be in 
+        # reservedResources; get the ID from there and search again
+        if not res_pointer:
+            res_path,res_pointer = self._get_reserved_res_pointer(res_query)
 
         if not res_pointer:
-            msg = 'Save reserved resource: Cannot find resource path or ID `{}` !'.format(res_query)
+            msg = 'User {}: Save reserved resource: Cannot find resource path or ID `{}` !'.format(self.getUserName(),res_query)
             logError(msg)
             return '*ERROR* ' + msg
 
@@ -1879,7 +2181,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
                             userConn = self.project._find_local_client(user)
                             userConn.root.delete_sut('.'.join(child.split('.')[:-1]))
                         except Exception as e:
-                            logError('Save resource ERROR:: `{}`.'.format(e))
+                            logError('User {}: Save resource ERROR:: `{}`.'.format(self.getUserName(),e))
 
             resources['children'].update([(_res_pointer['path'][0], _res_pointer), ])
 
@@ -1888,7 +2190,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
                 # Write changes.
                 self._save(root_id, props, res_query,username)
         except Exception as e:
-            msg = 'Save reserved resource: `{}` !'.format(e)
+            msg = 'User {}: Save reserved resource: `{}` !'.format(self.getUserName(),e)
             logError(msg)
             return '*ERROR* ' + msg
 
@@ -1901,7 +2203,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
     @cherrypy.expose
     def saveReservedResourceAs(self, name, res_query, props={}, root_id=ROOT_DEVICE, username = None):
         """  """
-        logFull('CeResources:saveReservedResourceAs')
+        logFull('CeResources:saveReservedResourceAs {} {}'.format(name,res_query))
         self._load(v=False, props=props)
 
         if root_id == ROOT_DEVICE:
@@ -1911,7 +2213,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
         # If no resources...
         if not resources.get('children'):
-            msg = 'Save reserved resource as: There are no resources defined !'
+            msg = 'User {}: Save reserved resource as: There are no resources defined !'.format(self.getUserName())
             logError(msg)
             return '*ERROR* ' + msg
 
@@ -1925,7 +2227,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
             res_query = res_query.split('/')[-1]
 
         if not res_pointer:
-            msg = 'Save reserved resource as: Cannot find resource path or ID `{}` !'.format(res_query)
+            msg = 'User {}: Save reserved resource as: Cannot find resource path or ID `{}` !'.format(self.getUserName(),res_query)
             logError(msg)
             return '*ERROR* ' + msg
 
@@ -1936,7 +2238,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
         #if not the same user, we have an error
         if username and user != username:
-            msg = 'Save reserved resource as: Cannot find resource path or ID `{}` for user {} !'.format(res_query, user)
+            msg = 'User {}: Save reserved resource as: Cannot find resource path or ID `{}`!'.format(user, res_query)
             logError(msg)
             return '*ERROR* ' + msg
 
@@ -1964,7 +2266,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
                 return r
             return res_id
         except Exception as e:
-            msg = 'Save reserved resource as: `{}` !'.format(e)
+            msg = 'User {}: Save reserved resource as: `{}` !'.format(self.getUserName(),e)
             logError(msg)
             return '*ERROR* ' + msg
 
@@ -1974,7 +2276,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
     @cherrypy.expose
     def discardAndReleaseReservedResource(self, res_query, props={}, root_id=ROOT_DEVICE, username=None):
         """  """
-        logDebug('CeResources:discardAndReleaseReservedResource')
+        logDebug('User {}: CeResources:discardAndReleaseReservedResource'.format(self.getUserName()))
         self._load(v=False, props=props)
 
         if root_id == ROOT_DEVICE:
@@ -1984,7 +2286,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
         # If no resources...
         if not resources.get('children'):
-            msg = 'Discard reserved resource: There are no resources defined !'
+            msg = 'User {}: Discard reserved resource: There are no resources defined !'.format(self.getUserName())
             logError(msg)
             return '*ERROR* ' + msg
 
@@ -1994,8 +2296,14 @@ class ResourceAllocator(_cptools.XMLRPCController):
         res_path = _get_res_path(resources, res_query)
         res_pointer = _get_res_pointer(resources, ''.join('/' + res_path[0]))
 
+        # the res_pointer not found; this might happen if the
+        # resource was renamed; if so, the new name should be in
+        # reservedResources; get the ID from there and search again
         if not res_pointer:
-            msg = 'Discard reserved resource: Cannot find resource path or ID `{}` !'.format(res_query)
+            res_path,res_pointer = self._get_reserved_res_pointer(res_query)
+
+        if not res_pointer:
+            msg = 'User {}: Discard reserved resource: Cannot find resource path or ID `{}` !'.format(self.getUserName(),res_query)
             logError(msg)
             return '*ERROR* ' + msg
 
@@ -2013,7 +2321,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
             if not self.reservedResources[user]:
                 self.reservedResources.pop(user)
         except Exception as e:
-            msg = 'Discard reserved resource: `{}` !'.format(e)
+            msg = 'Discard reserved resource: `{}` for user !'.format(e,user)
             logError(msg)
             return '*ERROR* ' + msg
 
@@ -2031,9 +2339,6 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
         # If no resources...
         if not resources.get('children'):
-            # msg = 'Is resource locked: There are no resources defined !'
-            # logError(msg)
-            # return '*ERROR* ' + msg
             return False
 
         if ':' in res_query:
@@ -2045,8 +2350,14 @@ class ResourceAllocator(_cptools.XMLRPCController):
             return False
         res_pointer = _get_res_pointer(resources, ''.join('/' + res_path[0]))
 
+        # the res_pointer not found; this might happen if the
+        # resource was renamed; if so, the new name should be in
+        # reservedResources; get the ID from there and search again
         if not res_pointer:
-            msg = 'Is resource locked: Cannot find resource path or ID `{}` !'.format(res_query)
+            res_path,res_pointer = self._get_reserved_res_pointer(res_query)
+
+        if not res_pointer:
+            msg = 'User {}: Is resource locked: Cannot find resource path or ID `{}` !'.format(self.getUserName(),res_query)
             logError(msg)
             return '*ERROR* ' + msg
 
@@ -2079,7 +2390,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
         # If no resources...
         if not resources.get('children'):
-            msg = 'Lock resource: There are no resources defined !'
+            msg = 'User {}: Lock resource: There are no resources defined !'.format(self.getUserName())
             logError(msg)
             return '*ERROR* ' + msg
 
@@ -2092,13 +2403,13 @@ class ResourceAllocator(_cptools.XMLRPCController):
         with self.acc_lock:
             _isResourceReserved = self.isResourceReserved(res_query, root_id)
             if _isResourceReserved and _isResourceReserved != user:
-                msg = 'Lock resource: The resource is reserved for {} !'.format(_isResourceReserved)
+                msg = 'User {}: Lock resource: The resource is reserved for {} !'.format(self.getUserName(),_isResourceReserved)
                 logError(msg)
                 return '*ERROR* ' + msg
 
             _isResourceLocked = self.isResourceLocked(res_query, root_id)
             if _isResourceLocked and _isResourceLocked != user:
-                msg = 'Lock resource: The resource is locked for {} !'.format(_isResourceLocked)
+                msg = 'User {}: Lock resource: The resource is locked for {} !'.format(self.getUserName(),_isResourceLocked)
                 logError(msg)
                 return '*ERROR* ' + msg
 
@@ -2106,7 +2417,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
             res_pointer = _get_res_pointer(resources, ''.join('/' + res_path[0]))
 
             if not res_pointer:
-                msg = 'Lock Resource: Cannot find resource path or ID `{}` !'.format(res_query)
+                msg = 'User {}: Lock Resource: Cannot find resource path or ID `{}` !'.format(self.getUserName(),res_query)
                 logError(msg)
                 return '*ERROR* ' + msg
 
@@ -2137,7 +2448,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
         # If no resources...
         if not resources.get('children'):
-            msg = 'Unlock resource: There are no resources defined !'
+            msg = 'User {}: Unlock resource: There are no resources defined !'.format(self.getUserName())
             logError(msg)
             return '*ERROR* ' + msg
 
@@ -2148,7 +2459,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
         res_pointer = _get_res_pointer(resources, ''.join('/' + res_path[0]))
 
         if not res_pointer:
-            msg = 'Unlock resource: Cannot find resource path or ID `{}` !'.format(res_query)
+            msg = 'User {}: Unlock resource: Cannot find resource path or ID `{}` !'.format(self.getUserName(),res_query)
             logError(msg)
             return '*ERROR* ' + msg
 
@@ -2162,7 +2473,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
                 if not self.lockedResources[user]:
                     self.lockedResources.pop(user)
             except Exception as e:
-                msg = 'Unlock resource: `{}` !'.format(e)
+                msg = 'User {}: Unlock resource: `{}` !'.format(self.getUserName(),e)
                 logError(msg)
                 return '*ERROR* ' + msg
 
@@ -2214,7 +2525,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
             else:
                 result.append({'id': id, 'name': tb, 'status': 'reserved', 'user': ruser})
 
-        logDebug('Fast listing Resources... Found {}.'.format(res))
+        logDebug('User {}: Fast listing Resources... Found {}.'.format(self.getUserName(),res))
 
         return result
 
@@ -2238,23 +2549,34 @@ class ResourceAllocator(_cptools.XMLRPCController):
         if not usrSutPath:
             usrSutPath = '{}/twister/config/sut/'.format(usrHome)
 
+        # first, get all system SUT files
         if os.path.isdir(sysSutsPath):
             s = ['{}.system'.format(os.path.splitext(d)[0]) for d in os.listdir(sysSutsPath) if os.path.splitext(d)[1]=='.json']
             suts.extend(s)
-        if os.path.isdir(usrSutPath):
-            try:
-                s = ['{}.user'.format(os.path.splitext(d)[0]) for d in os.listdir(usrSutPath) if os.path.splitext(d)[1]=='.json']
-                suts.extend(s)
-            except OSError, e:
-                if e.errno == errno.EACCES:
-                    # permission denied error, try using the client
-                    userConn = None
-                    userSutsList = ()
-                    userConn = self.project._find_local_client(user)
-                    if userConn:
-                        userSutsList = userConn.root.exposed_list_all_suts()
-                    suts.extend(userSutsList)
 
+        # get user SUT file; we have to check if the cleacase plugin
+        # is activated; if so, use it to read the SUT files from view;
+        # else use the UserService to read it
+        ccConfig = self.project.getClearCaseConfig(user, 'sut_path')
+        if ccConfig:
+            view = ccConfig['view']
+            path = ccConfig['path']
+            resp = self.project.clearFs.listUserFiles(user +':'+ view, path, False, False)
+            if isinstance(resp, str):
+                logWarning(resp)
+            for file in resp['children']:
+                fileName, fileExt = os.path.splitext(file['path'])
+                if fileExt and fileExt == '.json':
+                    suts.append(fileName + '.user')
+        else:
+            if os.path.isdir(usrSutPath):
+                resp = self.project.localFs.listUserFiles(user, usrSutPath, False, False)
+                if isinstance(resp, str):
+                    logWarning(resp)
+                for file in resp['children']:
+                    fileName, fileExt = os.path.splitext(file['path'])
+                    if fileExt and fileExt == '.json':
+                        suts.append(fileName + '.user')
 
         def quickFindPath(d, spath):
             for usr, locks in d.iteritems():
@@ -2280,7 +2602,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
             else:
                 result.append({'name': s, 'status': 'reserved', 'user': ruser})
 
-        logDebug('Fast listing SUTs... Found {}.'.format(suts))
+        logDebug('User {}: Fast listing SUTs... Found {}.'.format(self.getUserName(),suts))
 
         return result
 
@@ -2302,7 +2624,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
                     continue
 
         if not foundOldSut:
-            msg = 'SUT file {} doesn\'t exit !'.format(old_sut)
+            msg = 'User {}: SUT file {} doesn\'t exit !'.format(self.getUserName(),old_sut)
             logError(msg)
             return '*ERROR* ' + msg
 
@@ -2310,7 +2632,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
         if userSutList:
             for listElem in userSutList:
                 if listElem['name'] == new_sut:
-                    msg = 'New SUT file {} already exits !'.format(new_sut)
+                    msg = 'User {}: New SUT file {} already exits !'.format(self.getUserName(),new_sut)
                     logError(msg)
                     return '*ERROR* ' + msg
 
@@ -2324,14 +2646,14 @@ class ResourceAllocator(_cptools.XMLRPCController):
         newSutId = self.setResource(new_sut, '/', '{}', ROOT_SUT, user)
         if isinstance(newSutId,str):
             if '*ERROR*' in newSutId:
-                msg = 'New SUT file {} cannot be created!'.format(new_sut)
+                msg = 'User {}: New SUT file {} cannot be created!'.format(self.getUserName(),new_sut)
                 logError(msg)
                 return '*ERROR* ' + msg
 
         reserve_res = self.reserveResource(new_sut, '{}', ROOT_SUT, user)
         if  isinstance(reserve_res,str):
              if '*ERROR*' in reserve_res:
-                 msg = 'New SUT file {} cannot be reserved!'.format(new_sut)
+                 msg = 'User {}: New SUT file {} cannot be reserved!'.format(self.getUserName(),new_sut)
                  logError(msg)
                  return '*ERROR* ' + msg
 
@@ -2346,7 +2668,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
         # Check if resource is locked; if so, it cannot be copied
         _isResourceLocked = self.isResourceLocked(old_sut, ROOT_SUT)
         if _isResourceLocked and _isResourceLocked != user:
-            msg = 'Reserve resource: The resource is locked for {} !'.format(_isResourceLocked)
+            msg = 'User {}: Reserve resource: The resource is locked for {} !'.format(self.getUserName(),_isResourceLocked)
             logError(msg)
             cleanNewSut(newSutId,user)
             return '*ERROR* ' + msg
@@ -2354,7 +2676,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
         # Check if resource is reserved; if so, it cannot be copied
         _isResourceLocked = self.isResourceReserved(old_sut, ROOT_SUT)
         if _isResourceLocked and _isResourceLocked != user:
-            msg = 'Cannot delete: The resource is reserved for {} !'.format(_isResourceLocked)
+            msg = 'User {}: Cannot delete: The resource is reserved for {} !'.format(self.getUserName(),_isResourceLocked)
             logError(msg)
             cleanNewSut(newSutId,user)
             return '*ERROR* ' + msg
@@ -2363,7 +2685,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
         reserve_res = self.reserveResource(old_sut, '{}', ROOT_SUT, user)
         if  isinstance(reserve_res,str):
              if '*ERROR*' in reserve_res:
-                 msg = 'Source SUT file {} cannot be reserved!'.format(old_sut)
+                 msg = 'User {}: Source SUT file {} cannot be reserved!'.format(self.getUserName(),old_sut)
                  logError(msg)
                  cleanNewSut(newSutId,user)
                  return '*ERROR* ' + msg
@@ -2386,7 +2708,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
         save_result = self._save(ROOT_SUT, {}, new_sut, user)
         if isinstance(save_result,str):
              if '*ERROR*' in save_result:
-                 msg = logDebug('Save SUT file {} ERROR !'.format(new_sut))
+                 msg = logDebug('User {}: Save SUT file {} ERROR !'.format(self.getUserName(),new_sut))
                  logError(msg)
                  cleanNewSut(newSutId,user)
                  return '*ERROR* ' + msg
@@ -2444,7 +2766,6 @@ class ResourceAllocator(_cptools.XMLRPCController):
             retDict['meta'] = new_path['meta']
             retDict['id'] = new_path['id']
             retDict['children'] = _recursive_build_comp(new_path.get('children'),retDict['path'],recursiveList)
-            # logDebug('\n BOG {}\n'.format(retDict))
 
             # search the query if the created dictionary
             if _recursive_search_string(retDict, query):

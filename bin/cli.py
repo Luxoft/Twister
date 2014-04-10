@@ -1,16 +1,16 @@
 #!/usr/bin/env python2.7
 
-# version: 2.018
+# version: 2.021
 
 # File: cli.py ; This file is part of Twister.
 
-# Copyright (C) 2012-2013 , Luxoft
+# Copyright (C) 2012-2014, Luxoft
 
 # Authors:
-#  Andrei Costachi <acostachi@luxoft.com>
-#  Andrei Toma <atoma@luxoft.com>
-#  Cristian Constantin <crconstantin@luxoft.com>
-#  Daniel Cioata <dcioata@luxoft.com>
+#    Andrei Costachi <acostachi@luxoft.com>
+#    Cristi Constantin <crconstantin@luxoft.com>
+#    Daniel Cioata <dcioata@luxoft.com>
+#    Mihai Tudoran <mtudoran@luxoft.com>
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -40,6 +40,7 @@ import time
 import datetime
 import binascii
 import subprocess
+import signal
 from optparse import OptionParser
 import rpyc
 
@@ -62,7 +63,7 @@ STATUS_SKIPPED:'skip', STATUS_ABORTED:'aborted', STATUS_NOT_EXEC:'notexec', STAT
 STATUS_INVALID:'null', STATUS_WAITING:'waiting'}
 
 
-def userHome(user):
+def userHome():
 	"""
 	Find the home folder for the given user.
 	"""
@@ -103,13 +104,18 @@ def checkEps(proxy):
 	print
 
 
-def checkStatus(proxy, user, extra=True):
+def checkStatus(proxy, extra=True):
 	stats = proxy.getFileStatusAll()
 	if stats == ['']:
 		return False
 
 	all_stat = proxy.getEpStatusAll()
 	stats = [int(i) for i in stats]
+
+        if len(stats) > 0:
+            round_rate = round( (float(stats.count(STATUS_PASS)) / len(stats)* 100), 2)
+        else:
+            round_rate = 0
 
 	s_dict = {
 		'status': all_stat,
@@ -122,7 +128,7 @@ def checkStatus(proxy, user, extra=True):
 		'tfail':  stats.count(STATUS_FAIL),
 		'tabort': stats.count(STATUS_ABORTED),
 		'tnexec': stats.count(STATUS_NOT_EXEC),
-		'rate'  : round( (float(stats.count(STATUS_PASS)) / len(stats)* 100), 2),
+		'rate'  : round_rate,
 	}
 	s_dict['tother'] = len(stats) -s_dict['tpend'] -s_dict['twork'] -s_dict['tpass'] -s_dict['tfail'] -s_dict['tabort'] -s_dict['tnexec']
 
@@ -148,14 +154,13 @@ Pass rate: {rate}%
 
 def checkDetails(proxy, user, option=None):
 	eps = proxy.listEPs()
-	now = datetime.datetime.today()
 	options = ['running', 'done', 'finished', 'pending', 'all', True]
 	if option not in options:
 		print('Invalid option for stats `{}`. Valid options are: {}.\n'.format(option, options))
 		option = 'all'
 
 	# Data started and Time elapsed
-	if not checkStatus(proxy, user, False):
+	if not checkStatus(proxy, False):
 		print 'No statistics available.\n'
 		return False
 
@@ -217,24 +222,38 @@ def deQueueTest(proxy, data):
 	print
 
 
+
+
 def runTest(user, sut, fname):
 	"""
 	Run a test blocking and show the logs.
 	"""
-	global proxy, ra
+	global proxy
+
+	def stopEp(*arg, **kw):
+		print('\nWill exit and stop the EP !')
+		return proxy.setEpStatusAll(0)
+	# Capture signal
+	signal.signal(signal.SIGINT, stopEp)
+
+	r = False
 	sut = sut.strip('/')
-	r = proxy.delSettingsKey(user, 'project', '//TestSuite')
+	r = proxy.delSettingsKey('project', '//TestSuite', -1)
 	print('Cleanup the old suites...')
-	s = ra.getSut('/'+sut)
+	s = proxy.getSut('/{}'.format(sut))
+	print('Suts found: {}'.format(s))
 	eps = [e for e in s['meta'].get('_epnames_'+user, '').split(';') if e]
-	r = proxy.setPersistentSuite(user, 'Suite1', {'ep': eps[0], 'sut': sut})
+	if not eps:
+		print('Cannot find EPs on SUT `{}`, for user `{}`! Exiting!\n'.format(sut, user))
+		return False
+	r = proxy.setPersistentSuite('Suite1', {'ep': eps[0], 'sut': sut})
 	print('Created suite: `Suite1` on SUT `{}` and EP `{}`.'.format(sut, eps[0]))
-	r = proxy.setPersistentFile(user, 'Suite1', fname, {})
+	r = proxy.setPersistentFile('Suite1', fname, {})
 	print('Added file: `{}`.'.format(fname))
 	print('Started execution!...')
 	proxy.setEpStatusAll(2)
 	while 1:
-		status = proxy.getExecStatusAll()
+		status = proxy.getEpStatusAll()
 		if status.startswith('stopped'):
 			break
 		time.sleep(1)
@@ -269,9 +288,9 @@ def string_check(option, opt, value, parser):
 			param_list = parser._get_args(None)
 			try:
 				option = param_list[param_list.index(alternate_string)+1]
-			except:
+			except Exception:
 				option = None
-			if option in ['all','finished','pending','running']:
+			if option in ['all', 'finished', 'pending', 'running']:
 				parser.values.status_details = option
 			else:
 				parser.values.status_details = None
@@ -298,7 +317,7 @@ if __name__ == '__main__':
 	parser = OptionParser(usage=usage, version=version)
 
 	# Set the dafault values for None to make sure thay will exist in parser list for any scenario
-	parser.set_defaults(users=None,eps=None,stats=None,details=None,status_details=None)
+	parser.set_defaults(users=None, eps=None, stats=None, details=None, status_details=None)
 
 	# The most important option is the server.
 	parser.add_option("--server",      action="store", default="127.0.0.1:8000",
@@ -332,14 +351,14 @@ if __name__ == '__main__':
 	if options.login:
 		try:
 			user, passwd = options.login.split(':')[0], ':'.join(options.login.split(':')[1:])
-		except:
+		except Exception:
 			print('Cannot split the provided username:password combination! Exiting !\n')
 			exit(1)
 	else:
 		print('Must provide a username:password combination! Exiting !\n')
 
 	# Test if user did install Twister
-	if os.path.isdir(userHome(user) + os.sep + 'twister'):
+	if os.path.isdir(userHome() + os.sep + 'twister'):
 		print('\nHello, user `{}`.'.format(user))
 	else:
 		print('Username `{}` must install Twister before using this script ! Exiting !\n'.format(user))
@@ -351,7 +370,7 @@ if __name__ == '__main__':
 			ce_ip, ce_port = options.server.split(':')
 			# Transform XML-RPC port into RPyc Port; RPyc port = XML-RPC port + 10 !
 			ce_port = int(ce_port) + 10
-		except:
+		except Exception:
 			print('Cannot split the CE IP:Port combination `{}` ! Exiting !\n'.format(options.server))
 			exit(1)
 	else:
@@ -404,7 +423,7 @@ if __name__ == '__main__':
 
 	# Check stats
 	if options.stats:
-		if not checkStatus(proxy, user):
+		if not checkStatus(proxy):
 			print 'Stats not available.\n'
 		exit()
 

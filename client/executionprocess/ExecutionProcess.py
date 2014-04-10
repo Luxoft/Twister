@@ -1,6 +1,6 @@
 #!/usr/bin/env python2.7
 
-# version: 3.003
+# version: 3.005
 
 # File: ExecutionProcess.py ; This file is part of Twister.
 
@@ -299,6 +299,10 @@ class ThreadedLogger(Thread):
         """
         This will force the thread to exit.
         """
+        # last read to make sure all CLI.log is captured
+        data = self.tail()
+        self.logLive(data, force=True)
+
         self.exiting = True
 
 
@@ -620,7 +624,7 @@ class TwisterRunner(cli.Application):
             # Is this test file optional?
             optional_test = node.get('Optional')
             # Configuration files?
-            config_files = [c for c in node.get('config_files').split(';') if c]
+            config_files = [c.strip() for c in node.get('config_files').split(';') if c]
             # Get args
             args = node.get('param')
             if args:

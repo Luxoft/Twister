@@ -1,6 +1,6 @@
 /*
 File: LibrariesPanel.java ; This file is part of Twister.
-Version: 2.006
+Version: 2.012
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -46,8 +46,6 @@ import java.awt.dnd.DragSourceDragEvent;
 import java.awt.dnd.DragSourceEvent;
 import java.awt.dnd.DragSourceContext;
 import java.io.IOException;
-import com.jcraft.jsch.ChannelSftp;
-import com.jcraft.jsch.ChannelSftp.LsEntry;
 import java.util.Vector;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -60,7 +58,6 @@ import org.xml.sax.SAXException;
 import java.io.IOException;
 import java.util.Comparator;
 import java.util.Collections;
-import com.jcraft.jsch.SftpException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.io.BufferedReader;
@@ -116,15 +113,11 @@ import java.awt.event.ItemListener;
 import java.awt.event.ItemEvent;
 import com.twister.Item;
 import com.twister.CustomDialog;
-import com.jcraft.jsch.JSch;
-import com.jcraft.jsch.Session;
-import com.jcraft.jsch.Channel;
-import com.jcraft.jsch.ChannelSftp;
 import java.util.Properties;
 import java.awt.datatransfer.Transferable;
 import java.awt.datatransfer.StringSelection;
 import java.awt.dnd.DragSourceListener;
-import com.jcraft.jsch.SftpException;
+import java.util.HashMap;
 
 public class LibrariesPanel{
 
@@ -135,36 +128,16 @@ public class LibrariesPanel{
     private TreePath[] selected;
     private DefaultMutableTreeNode child2;
     private JEditTextArea textarea;
-    public static ChannelSftp connection;
-    public static Session session;
 
     public LibrariesPanel() {
         RunnerRepository.introscreen.setStatus("Started Libraries interface initialization");
         RunnerRepository.introscreen.addPercent(0.035);
         RunnerRepository.introscreen.repaint();
-        initializeSftp();
         
         root = new DefaultMutableTreeNode("root", true);
         DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-        try {
-            connection.cd(RunnerRepository.getPredefinedSuitesPath());
-            RunnerRepository.introscreen.setStatus("Started retrieving tc directories");
-            RunnerRepository.introscreen.addPercent(0.035);
-            RunnerRepository.introscreen.repaint();
-            getList(root, connection,RunnerRepository.getPredefinedSuitesPath());
-            RunnerRepository.introscreen.setStatus("Finished retrieving tc directories");
-            RunnerRepository.introscreen.addPercent(0.035);
-            RunnerRepository.introscreen.repaint();
-        }catch(SftpException e){
-            if(e.id==ChannelSftp.SSH_FX_NO_SUCH_FILE){
-                System.out.println("Could not get:"+RunnerRepository.getPredefinedSuitesPath());
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        
         tree = new JTree(root);
-        tree.expandRow(1);
+        tree.setModel(new DefaultTreeModel(root,true));
         tree.setTransferHandler(new TransferHandler(){
             
             protected Transferable createTransferable(JComponent c)
@@ -178,6 +151,17 @@ public class LibrariesPanel{
             }
             
         });
+        try {
+            RunnerRepository.introscreen.setStatus("Started retrieving tc directories");
+            RunnerRepository.introscreen.addPercent(0.035);
+            RunnerRepository.introscreen.repaint();
+            refreshStructure();
+            RunnerRepository.introscreen.setStatus("Finished retrieving tc directories");
+            RunnerRepository.introscreen.addPercent(0.035);
+            RunnerRepository.introscreen.repaint();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         
         tree.addMouseListener(new MouseAdapter() {
             public void mousePressed(MouseEvent ev) {
@@ -187,8 +171,9 @@ public class LibrariesPanel{
                 treeClickReleased(ev);
             }
         });
-         tree.setDragEnabled(true);
+        tree.setDragEnabled(true);
         tree.setRootVisible(false);
+        tree.expandRow(0);
         RunnerRepository.introscreen.setStatus("Finished Explorer interface initialization");
         RunnerRepository.introscreen.addPercent(0.035);
         RunnerRepository.introscreen.repaint();
@@ -198,30 +183,8 @@ public class LibrariesPanel{
      * executed on tree released click
      */
     public void treeClickReleased(MouseEvent ev) {
-        if (ev.isPopupTrigger()) {
+        if (ev.getButton()==MouseEvent.BUTTON3) {
             refreshPopup(ev);
-        } else {
-            if ((tree.getSelectionPaths()!=null) &&
-            (tree.getSelectionPaths().length == 1) &&
-            (tree.getModel().isLeaf(tree.getSelectionPath()
-                            .getLastPathComponent()))) {
-                try {
-                    String thefile = tree.getSelectionPath().getParentPath()
-                            .getLastPathComponent().toString()
-                            + "/"
-                            + tree.getSelectionPath().getLastPathComponent()
-                                    .toString();
-                    String result = RunnerRepository.getRPCClient().execute(
-                            "getTestDescription", new Object[] { thefile })
-                            + "";
-                    Container pan1 = (Container) RunnerRepository.window.mainpanel.p1.splitPane
-                            .getComponent(1);
-                    TCDetails pan2 = (TCDetails) pan1.getComponents()[1];
-                    pan2.text.setText(result);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
         }
     }
 
@@ -229,7 +192,7 @@ public class LibrariesPanel{
      * executed on tree click
      */
     public void treeClick(MouseEvent ev) {
-        if (ev.isPopupTrigger()) {
+        if (ev.getButton()==MouseEvent.BUTTON3) {
             refreshPopup(ev);
         } else {
             setDragging(true);
@@ -247,11 +210,11 @@ public class LibrariesPanel{
             }
         }
     }
+    
 
     /*
      * returns the selected paths
      */
-
     public TreePath[] getSelected() {
         Arrays.sort(selected, new Compare());
         List<TreePath> listOfPaths = Arrays.asList(selected);
@@ -269,7 +232,7 @@ public class LibrariesPanel{
         p.add(item);
         item.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent evnt) {
-                refreshTree(ev.getX(),ev.getY());
+                refreshTree(ev.getXOnScreen(),ev.getYOnScreen());
             }   
         });
         final String editable;
@@ -628,32 +591,16 @@ public class LibrariesPanel{
             }
         });
     }
-
+    
     public static File copyFileLocaly(String filename, String localfilename) {
-        InputStream in = null;
         System.out.print("Getting " + filename + " ....");
-        try {
-            in = connection.get(filename);
-        } catch (Exception e) {
-            System.out.println("Could not get :" + filename);
-            e.printStackTrace();
-        }
-        InputStreamReader inputStreamReader = new InputStreamReader(in);
-        BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
         BufferedWriter writer = null;
-        String line;
         File file2 = new File(localfilename);
         try {
             writer = new BufferedWriter(new FileWriter(file2));
-            while ((line = bufferedReader.readLine()) != null) {
-                writer.write(line);
-                writer.newLine();
-            }
+             writer.write(new String(RunnerRepository.getRemoteFileContent(filename,false,null)));
             writer.flush();
-            bufferedReader.close();
             writer.close();
-            inputStreamReader.close();
-            in.close();
             System.out.println("successfull");
         } catch (Exception e) {
             System.out.println("failed");
@@ -664,9 +611,9 @@ public class LibrariesPanel{
 
     public static void sendFileToServer(File localfile, String remotefile) {
         try {
+            String path [] = remotefile.split("/");
             FileInputStream in = new FileInputStream(localfile);
-            connection.put(in, remotefile);
-            in.close();
+            RunnerRepository.uploadRemoteFile(remotefile.replace("/"+path[path.length-1], ""), in,null, path[path.length-1],false,null);
         } catch (Exception e) {
             e.printStackTrace();
             System.out.println("There was a problem in saving file "
@@ -674,14 +621,17 @@ public class LibrariesPanel{
                     + remotefile);
         }
     }
-
-    public void refreshStructure() {
-        try{root.remove(0);}
-        catch(Exception e){e.printStackTrace();}
-        try {
-            connection.cd(RunnerRepository.getPredefinedSuitesPath());
-            getList(root, connection, RunnerRepository.getPredefinedSuitesPath());
-        } catch (Exception e) {
+    
+    public void refreshStructure(){
+        try{if(root.getChildCount()>0)root.remove(0);
+            HashMap hash = RunnerRepository.getPredefinedSuites();
+            if(hash!=null){
+                DefaultMutableTreeNode child = getList(hash,hash.get("data").toString());
+                if(child!=null){
+                    root.add(child);
+                }
+            }
+        }catch(Exception e){
             e.printStackTrace();
         }
         ((DefaultTreeModel) tree.getModel()).reload();
@@ -704,86 +654,55 @@ public class LibrariesPanel{
     public boolean getDragging() {
         return dragging;
     }
-
+    
+//     /*
+//      * construct the list for folders representation in jtree
+//      */
+//     public void getList(DefaultMutableTreeNode node, HashMap hash, String curentdir) {
+//         try {
+//             DefaultMutableTreeNode child = new DefaultMutableTreeNode(curentdir);
+//             node.add(child);
+//             Object [] children = (Object [])hash.get("children");
+//             if(children!=null&&children.length>0){
+//                 for(Object subchild:children){
+//                     String name = ((HashMap)subchild).get("data").toString();
+//                     if(((HashMap)subchild).get("folder")!=null){//folder
+//                         getList(child, (HashMap)subchild ,curentdir+"/"+name);
+//                     } else {//file
+//                         child2 = new DefaultMutableTreeNode(name);
+//                         child.add(child2);
+//                     }
+//                 }
+//             }
+//         } catch (Exception e) {
+//             e.printStackTrace();
+//         }
+//     }
+    
     /*
      * construct the list for folders representation in jtree
      */
-    public void getList(DefaultMutableTreeNode node, ChannelSftp c, String curentdir) {
-        try {
-            DefaultMutableTreeNode child = new DefaultMutableTreeNode(curentdir);
-            Vector<LsEntry> vector1 = c.ls(".");
-            Vector<String> vector = new Vector<String>();
-            Vector<String> folders = new Vector<String>();
-            Vector<String> files = new Vector<String>();
-            int lssize = vector1.size();
-            if (lssize > 2) {
-                node.add(child);
-            }
-            String current;
-            for (int i = 0; i < lssize; i++) {
-                if (vector1.get(i).getFilename().split("\\.").length == 0){
-                    continue;
-                }
-                
-                if(vector1.get(i).getAttrs().isDir()){
-                    folders.add(vector1.get(i).getFilename());
-                } else {
-                    files.add(vector1.get(i).getFilename());
-                }
-            }
-            Collections.sort(folders);
-            Collections.sort(files);
-            for (int i = 0; i < folders.size(); i++) {
-                vector.add(folders.get(i));
-            }
-            for (int i = 0; i < files.size(); i++) {
-                vector.add(files.get(i));
-            }
-            for (int i = 0; i < vector.size(); i++) {
-                try {
-                    current = c.pwd();
-                    c.cd(vector.get(i));
-                    getList(child, c,curentdir+"/"+vector.get(i));
-                    c.cd(current);
-                } catch (SftpException e) {
-                    if (e.id == 4) {
-                        child2 = new DefaultMutableTreeNode(vector.get(i));
+    public DefaultMutableTreeNode getList(HashMap hash, String curentdir){
+        try{DefaultMutableTreeNode child = new DefaultMutableTreeNode(curentdir,true);
+            Object [] children = (Object [])hash.get("children");
+            if(children!=null&&children.length>0){
+                for(Object subchild:children){
+                    String name = ((HashMap)subchild).get("data").toString();
+                    if(((HashMap)subchild).get("folder")!=null){//folder
+                        child2 = getList((HashMap)subchild ,curentdir+"/"+name);
+                        if(child2!=null){
+                            child.add(child2);
+                        }
+                    }else{//file
+                        child2 = new DefaultMutableTreeNode(name,false);
                         child.add(child2);
-                    } else {
-                        e.printStackTrace();
                     }
                 }
-                
             }
+            return child;
         } catch (Exception e) {
             e.printStackTrace();
         }
-    }
-    
-    private void initializeSftp(){
-        try{
-            JSch jsch = new JSch();
-            session = jsch.getSession(RunnerRepository.user, RunnerRepository.host, 22);
-            session.setPassword(RunnerRepository.password);
-            Properties config = new Properties();
-            config.put("StrictHostKeyChecking", "no");
-            session.setConfig(config);
-            session.connect();
-            Channel channel = session.openChannel("sftp");
-            channel.connect();
-            connection = (ChannelSftp)channel;
-        } catch (Exception e){
-            e.printStackTrace();
-        }
+        return null;
     }
 }
-// class Compare implements Comparator {
-// 
-//     public int compare(Object emp1, Object emp2) {
-//         return ((TreePath) emp1)
-//                 .getLastPathComponent()
-//                 .toString()
-//                 .compareToIgnoreCase(
-//                         ((TreePath) emp2).getLastPathComponent().toString());
-//     }
-// }

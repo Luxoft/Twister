@@ -1,6 +1,6 @@
 /*
 File: XMLReader.java ; This file is part of Twister.
-Version: 2.015
+Version: 2.018
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -34,12 +34,13 @@ import java.awt.Font;
 import java.util.ArrayList;
 
 public class XMLReader{
-    private DocumentBuilderFactory dbf;
-    private DocumentBuilder db;
+//     private DocumentBuilderFactory dbf;
+//     private DocumentBuilder db;
     private Document doc;
     private Node fstNode,secNode,trdNode;
-    private Element fstElmnt,fstNmElmnt,secElmnt,
+    private Element fstNmElmnt,secElmnt,
                     secNmElmnt,trdElmnt,trdNmElmnt;
+//                     fstElmnt,
     private NodeList fstNmElmntLst,fstNm,fstNmElmntLst2,
                      secNmElmntLst,secNm,secNmElmntLst2,
                      trdNmElmntLst,trdNm,trdNmElmntLst2,trdNm2;
@@ -48,8 +49,9 @@ public class XMLReader{
     private int index = 1001;
     
     public XMLReader (File file){
-        f = file;
-        dbf = DocumentBuilderFactory.newInstance();
+        final File f = file;
+        DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+        DocumentBuilder db = null;
         try{db = dbf.newDocumentBuilder();}
         catch(ParserConfigurationException e){
             System.out.println("Could not create a XML parser configuration");}
@@ -146,8 +148,12 @@ public class XMLReader{
                 String f = "";
                 boolean isclearcase = false;
                 if(clearcase.getLength()==0){
-                    f = secNm.item(0).getNodeValue().toString().
-                            split(RunnerRepository.getTestSuitePath())[1];
+                    try{f = secNm.item(0).getNodeValue().toString().
+                            split(RunnerRepository.getTestSuitePath())[1];}
+                    catch(Exception e){
+                        System.out.println("Could not split: "+secNm.item(0).getNodeValue().toString()+" with: "+RunnerRepository.getTestSuitePath()+". Maybe there is a diffenrent suitepath defined in project.");
+                        e.printStackTrace();
+                    }
                     k=2;
                 } else {
                     f = secNm.item(0).getNodeValue().toString();
@@ -211,12 +217,12 @@ public class XMLReader{
             trdNmElmntLst = ((Element)node).getElementsByTagName("propName");
             trdNmElmnt = (Element)trdNmElmntLst.item(0);
             trdNm = trdNmElmnt.getChildNodes();
-            name = (trdNm.item(0).getNodeValue().toString());
+            name = trdNm.item(0).getNodeValue().toString();
             if(name.equals("Runnable")){
                 trdNmElmntLst2 = ((Element)node).getElementsByTagName("propValue");
                 Element trdNmElmnt2 = (Element)trdNmElmntLst2.item(0);
                 trdNm2 = trdNmElmnt2.getChildNodes();
-                value = (trdNm2.item(0).getNodeValue().toString());
+                value = trdNm2.item(0).getNodeValue().toString();
                 item.setRunnable(Boolean.parseBoolean(value));
                 return;}
             else if(name.equals("teardown_file")){
@@ -291,7 +297,9 @@ public class XMLReader{
                 else if(fstNode.getNodeName().equals("tcdelay")){
                     String delay = "";
                     try{delay = fstNode.getChildNodes().item(0).getNodeValue().toString();}
-                    catch(Exception e){}
+                    catch(Exception e){
+						delay = "";
+					}
                     RunnerRepository.window.mainpanel.p1.suitaDetails.setDelay(delay);
                     
                     continue;
@@ -324,7 +332,7 @@ public class XMLReader{
                 else if(fstNode.getNodeName().equals("ScriptPost")){
                     String script = "";
                     try{script = fstNode.getChildNodes().item(0).getNodeValue().toString();}
-                    catch(Exception e){}
+                    catch(Exception e){script = "";}
                     RunnerRepository.window.mainpanel.p1.suitaDetails.setPostScript(script);
                     continue;
                 }
@@ -332,7 +340,7 @@ public class XMLReader{
                     
                         String [] libraries = {};
                         try{libraries = fstNode.getChildNodes().item(0).getNodeValue().toString().split(";");}
-                        catch(Exception e){}
+                        catch(Exception e){libraries = new String[]{};}
                         RunnerRepository.window.mainpanel.p1.suitaDetails.setGlobalLibs(libraries);
                     
                     continue;
@@ -356,7 +364,7 @@ public class XMLReader{
                         userDefined.add(add);
                     }
                     catch(Exception e){
-                        
+                        System.out.println("There was a problem in reading propName,propValue and add to userDefined");
                     }
                     continue;
                 }
@@ -364,16 +372,19 @@ public class XMLReader{
             if(!fstNode.getNodeName().equals("TestSuite"))continue;            
             ArrayList <Integer> indexpos = new ArrayList <Integer> ();
             indexpos.add(new Integer(indexsuita));            
-            fstElmnt = (Element)fstNode;
+            Element fstElmnt = (Element)fstNode;
             fstNmElmntLst = fstElmnt.getElementsByTagName("tsName");
             fstNmElmnt = (Element)fstNmElmntLst.item(0);
             fstNm = fstNmElmnt.getChildNodes();
             FontMetrics metrics = g.getFontMetrics(new Font("TimesRoman", 1, 13));
-            int width = metrics.stringWidth(fstNm.item(0).getNodeValue().toString());
+            String name = "";
+            try{name = fstNm.item(0).getNodeValue().toString();}
+            catch(Exception e){System.out.println("There is a suite with no name in project");}
+            int width = metrics.stringWidth(name);
             Item suitatemp;
-            if(!test)suitatemp= new Item(fstNm.item(0).getNodeValue(),
+            if(!test)suitatemp= new Item(name,
                                          2,-1,10, width+50,25,indexpos);
-            else suitatemp=  new Item(fstNm.item(0).getNodeValue(),
+            else suitatemp=  new Item(name,
                                       2,-1,10, width+120,25,indexpos);
             int k=6;
                                       
@@ -417,21 +428,18 @@ public class XMLReader{
                     
                 } catch(Exception e){ e.printStackTrace();}
                 suitatemp.setEpId(text);
-            } else{
-                    try{fstNmElmntLst = fstElmnt.getElementsByTagName("SutName");
-                        if(fstNmElmntLst.getLength()>0){
-                            fstNmElmnt = (Element)fstNmElmntLst.item(0);
-                            fstNm = fstNmElmnt.getChildNodes();
-                        } else {
-                            System.out.println("There is an element that has no EpId or SutName!!!");
-                        }
-                    } catch (Exception ex){
-                        
-                        ex.printStackTrace();
+            } else{                
+                try{fstNmElmntLst = fstElmnt.getElementsByTagName("SutName");
+                    if(fstNmElmntLst.getLength()>0){
+                        fstNmElmnt = (Element)fstNmElmntLst.item(0);
+                        fstNm = fstNmElmnt.getChildNodes();
+                    } else {
+                        System.out.println("There is an element that has no EpId or SutName!!!");
                     }
-//                 }
-                
-    //             suitatemp.setEpId(fstNm.item(0).getNodeValue());
+                } catch (Exception ex){
+                    
+                    ex.printStackTrace();
+                }
                 try{suitatemp.setEpId(fstNm.item(0).getNodeValue().split(";"));}
                 catch(Exception e){
                     if(fstNm.item(0)!=null){
@@ -442,10 +450,6 @@ public class XMLReader{
                     }
                 }
             }
-            
-            
-            
-            
             
             //temp solution for CE
             int items = fstElmnt.getChildNodes().getLength();
@@ -498,7 +502,7 @@ public class XMLReader{
             int subchildren = fstElmnt.getChildNodes().getLength();
             int index=0;
             indexsuita++;
-            for( k+=(userdefinitions*2);k<subchildren-1;k++){
+            for( k+=userdefinitions*2;k<subchildren-1;k++){
                 k++;
                 ArrayList <Integer> temp =(ArrayList <Integer>)indexpos.clone();
                 temp.add(new Integer(index));
@@ -527,13 +531,7 @@ public class XMLReader{
         if(userDefined.size()!=size){
             System.out.println("Warning, project has "+userDefined.size()+" fields while in db.xml are defined "+size+" fields");
         }
-//         for(int i=0;i++;i<size){
-//             RunnerRepository.window.mainpanel.p1.suitaDetails.getPr
-//         }
         RunnerRepository.window.mainpanel.p1.suitaDetails.setProjectUserDefined(userDefined);
-        for(String [] s:userDefined){
-            System.out.println(s[0]+" - "+s[1]);
-        }
         if(!test){
             if(RunnerRepository.getSuiteNr()>0){
                 while(RunnerRepository.window.mainpanel.p1.sc.g==null){

@@ -31,9 +31,5 @@ public class ScrollGraficTest extends JPanel{
     public ScrollGraficTest(int x, int y,boolean applet){
         g = new GraficTest(0,0,applet);
         pane = new JScrollPane(g);
-//         pane.setMinimumSize(new Dimension(10,10));
-//         pane.setPreferredSize(new Dimension(100,100));
-//         pane.setMaximumSize(new Dimension(1000,1000));
         pane.getVerticalScrollBar().setUnitIncrement(16);
-//         add(pane);
     }}

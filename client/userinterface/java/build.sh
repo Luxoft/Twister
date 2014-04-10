@@ -1,21 +1,30 @@
 #!/bin/bash
 
-JDK_PATH=/usr/lib/jvm/jdk1.7.0/bin
-EXTLIBS=extlibs/Twister.jar:\
-extlibs/jcalendar-1.4.jar:\
-extlibs/jsch-0.1.44.jar:\
-extlibs/gson-2.2.1.jar:\
-extlibs/ws-commons-util-1.0.2.jar:\
-extlibs/commons-vfs-1.0.jar:\
-extlibs/jgoodies-looks-2.5.1.jar:\
-extlibs/jgoodies-common-1.3.1.jar:\
-extlibs/jxl.jar:\
-extlibs/runner.jar:\
-extlibs/ControlPanel.jar:\
-extlibs/UserManagement.jar:\
-extlibs/ws-commons-util-1.0.2.jar:\
-extlibs/xmlrpc-client-3.1.3.jar:\
-extlibs/xmlrpc-common-3.1.3.jar
+JDK_PATH=/usr/lib/jvm/jdk1.7.0_09/bin/
+CURRENT_PWD=`pwd`
+EXTLIBS=$CURRENT_PWD/extlibs/Twister.jar:\
+$CURRENT_PWD/extlibs/jcalendar-1.4.jar:\
+$CURRENT_PWD/extlibs/gson-2.2.1.jar:\
+$CURRENT_PWD/extlibs/ws-commons-util-1.0.2.jar:\
+$CURRENT_PWD/extlibs/commons-vfs-1.0.jar:\
+$CURRENT_PWD/extlibs/jgoodies-looks-2.5.1.jar:\
+$CURRENT_PWD/extlibs/jgoodies-common-1.3.1.jar:\
+$CURRENT_PWD/extlibs/jxl.jar:\
+$CURRENT_PWD/extlibs/runner.jar:\
+$CURRENT_PWD/extlibs/ControlPanel.jar:\
+$CURRENT_PWD/extlibs/UserManagement.jar:\
+$CURRENT_PWD/extlibs/ws-commons-util-1.0.2.jar:\
+$CURRENT_PWD/extlibs/xmlrpc-client-3.1.3.jar:\
+$CURRENT_PWD/extlibs/xmlrpc-common-3.1.3.jar
+
+# need to build runner.jar first from 
+cd ../../../plugins/TestCaseExecution/
+rm target/runner.jar
+$JDK_PATH/javac  -deprecation -d classes -source 1.6 -target 1.6  -cp $EXTLIBS  *.java
+cd classes
+$JDK_PATH/jar  cfm ../target/runner.jar ../manifestaddition.txt Icons *.class
+cp ../target/runner.jar $CURRENT_PWD/extlibs
+cd $CURRENT_PWD
 
 # Compile sources
 $JDK_PATH/javac  -deprecation -d classes -source 1.6 -target 1.6  -cp $EXTLIBS  src/*.java
@@ -34,8 +43,6 @@ echo "Signing jar file commons-logging-1.1.1.jar"
 $JDK_PATH/jarsigner ../extlibs/commons-logging-1.1.1.jar Twister -storepass password
 echo "Signing jar file commons-vfs-1.0.jar"
 $JDK_PATH/jarsigner ../extlibs/commons-vfs-1.0.jar Twister -storepass password
-echo "Signing jar file jsch-0.1.44.jar"
-$JDK_PATH/jarsigner ../extlibs/jsch-0.1.44.jar Twister -storepass password
 echo "Signing jar file jxl.jar"
 $JDK_PATH/jarsigner ../extlibs/jxl.jar Twister -storepass password
 echo "Signing jar file ws-commons-util-1.0.2.jar"

@@ -1,6 +1,6 @@
 /*
 File: JenkinsPlugin.java ; This file is part of Twister.
-Version: 2.004
+Version: 2.005
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -23,12 +23,9 @@ import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.io.File;
-import java.io.FileInputStream;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Hashtable;
-import java.util.Properties;
 
 import javax.swing.JButton;
 import javax.swing.JLabel;
@@ -36,11 +33,6 @@ import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
-
-import com.jcraft.jsch.Channel;
-import com.jcraft.jsch.ChannelSftp;
-import com.jcraft.jsch.JSch;
-import com.jcraft.jsch.Session;
 import com.twister.Item;
 import com.twister.MySftpBrowser;
 import com.twister.plugin.baseplugin.BasePlugin;
@@ -50,18 +42,11 @@ import org.apache.xmlrpc.client.XmlRpcClientConfigImpl;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 
-import javax.xml.transform.OutputKeys;
-import javax.xml.transform.Result;
-import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerFactory;
-import javax.xml.transform.dom.DOMSource;
-import javax.xml.transform.stream.StreamResult;
-
 public class JenkinsPlugin extends BasePlugin implements TwisterPluginInterface {
 	private static final long serialVersionUID = 1L;    
 	private JPanel p;
 	private XmlRpcClient client;
-	private ChannelSftp c;
+	//private ChannelSftp c;
 	private Node script, project;
 	private JTextField tscript,tproject; 
 
@@ -115,7 +100,7 @@ public class JenkinsPlugin extends BasePlugin implements TwisterPluginInterface 
         bscript.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent arg0) {
-				MySftpBrowser browser = new MySftpBrowser(variables.get("host"), variables.get("user"), variables.get("password"), tscript, p,false);
+				MySftpBrowser browser = new MySftpBrowser(variables.get("host"), variables.get("user"), variables.get("password"), variables.get("centralengineport"),tscript, p,false);
 			}
 		});
         
@@ -151,7 +136,7 @@ public class JenkinsPlugin extends BasePlugin implements TwisterPluginInterface 
         bproject.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent arg0) {
-				MySftpBrowser browser = new MySftpBrowser(variables.get("host"), variables.get("user"), variables.get("password"), tproject, p,false);
+				MySftpBrowser browser = new MySftpBrowser(variables.get("host"), variables.get("user"), variables.get("password"),variables.get("centralengineport"), tproject, p,false);
 			}
 		});
         p.add(panel);
@@ -172,7 +157,6 @@ public class JenkinsPlugin extends BasePlugin implements TwisterPluginInterface 
 	@Override
 	public void terminate() {
 		super.terminate();
-		c = null;
 		p = null;
 	}
 

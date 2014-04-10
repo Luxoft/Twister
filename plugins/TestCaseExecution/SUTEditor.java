@@ -1,6 +1,6 @@
 /*
 File: SutEditor.java ; This file is part of Twister.
-Version: 2.013
+Version: 2.017
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -69,19 +69,14 @@ import java.awt.event.HierarchyListener;
 import java.awt.event.HierarchyEvent;
 import javax.swing.BorderFactory;
 import javax.swing.JSplitPane;
-import com.jcraft.jsch.ChannelSftp;
 import java.util.Vector;
-import com.jcraft.jsch.ChannelSftp.LsEntry;
 import java.util.Collections;
-import com.jcraft.jsch.SftpException;
-import com.jcraft.jsch.JSch;
-import com.jcraft.jsch.Session;
-import com.jcraft.jsch.Channel;
 import java.util.Properties;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import javax.swing.SwingUtilities;
 import java.awt.Color;
+import javax.swing.DefaultListModel;
 
 public class SutEditor extends JPanel{
     private JTree tree;
@@ -89,8 +84,6 @@ public class SutEditor extends JPanel{
     public DefaultMutableTreeNode root;
     private JButton saveas,redcomp,addcomp,save,close,setep;
     private JLabel jusers;
-    public ChannelSftp connection;
-    public Session session;
     private SutTree suttree;
     private String rootsut;
     public DefaultMutableTreeNode sutnode;
@@ -100,7 +93,6 @@ public class SutEditor extends JPanel{
 
     public SutEditor(){
         suttree = new SutTree();
-        initializeSftp();
         initializeRPC();
         
         tree = new JTree();
@@ -109,17 +101,16 @@ public class SutEditor extends JPanel{
                 if(ev.getKeyCode()==KeyEvent.VK_C && ev.isControlDown()){
                     if(tree.getSelectionPath()==null){return;}
                     String s = tree.getSelectionPath().getLastPathComponent().toString();
-                    s = s.replace("EP: ","");
-                    s = s.replace("ID: ","");
-                    s = s.replace("Path: ","");
+                    s = s.replace("EP:","");
+                    s = s.replace("ID:","");
+                    s = s.replace("Path:","");
                     StringSelection selection = new StringSelection(s);
                     Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
                     clipboard.setContents(selection, selection);
                 }
             }});
         tree.getSelectionModel().setSelectionMode(TreeSelectionModel.SINGLE_TREE_SELECTION);
-        root = new DefaultMutableTreeNode("root");
-        
+        root = new DefaultMutableTreeNode("root");        
         DefaultTreeModel treemodel = new DefaultTreeModel(root,true);
         tree.setModel(treemodel);
         tree.setDragEnabled(true);
@@ -133,37 +124,12 @@ public class SutEditor extends JPanel{
         setLayout(new BorderLayout());
         sp = new JScrollPane(tree);
         final JSplitPane splitpane = new JSplitPane();
-        JPanel bottompanel = new JPanel();
-        
+        JPanel bottompanel = new JPanel();        
         bottompanel.setLayout(new BorderLayout());
         bottompanel.add(sp,BorderLayout.CENTER);
-        
-//         JPanel p1 = new JPanel();
-//         p1.add(bottompanel);
-//         
-//         JPanel p2 = new JPanel();
-//         p2.add(suttree);
-        
-        
         splitpane.setRightComponent(bottompanel);
         splitpane.setLeftComponent(suttree);
         splitpane.setResizeWeight(0.5);
-        
-//         SwingUtilities.invokeLater(new Runnable() {
-//             public void run(){
-//                 splitpane.setDividerLocation(0.5);
-//             }
-//         });
-        
-//         new Thread(){
-//             public void run(){
-//                 try{Thread.sleep(5000);}
-//                 catch(Exception e){e.printStackTrace();}
-//                 splitpane.setDividerLocation(0.5);
-//             }
-//         }.start();
-
-        
         splitpane.setOrientation(JSplitPane.VERTICAL_SPLIT);
         add(splitpane,BorderLayout.CENTER);
         JPanel sutopt = new JPanel();
@@ -176,14 +142,31 @@ public class SutEditor extends JPanel{
                 JPanel p = new JPanel();
                 p.setLayout(null);
                 p.setPreferredSize(new Dimension(250,200));
-                JLabel ep = new JLabel("Run on EP's: ");
-                ep.setBounds(5,35,80,25);
+                JLabel epl = new JLabel("Run on EP's: ");
+                epl.setBounds(5,35,80,25);
                 JList tep = new JList();
                 JScrollPane scep = new JScrollPane(tep);
                 scep.setBounds(90,35,155,150);
-                p.add(ep);
+                p.add(epl);
                 p.add(scep);
                 suttree.populateEPs(tep,null);
+                String []  eps = ((DefaultMutableTreeNode)root.getFirstChild()).getUserObject().toString().replace("EP:", "").split(";");
+                Object [] ob = ((DefaultListModel)tep.getModel()).toArray();
+                int size = ob.length;
+                ArrayList array = new ArrayList();
+                for(String ep:eps){
+                    for(int i=0;i<size;i++){
+                        if(ob[i].toString().equals(ep)){
+                            array.add(i);
+                        }
+                    }
+                }
+                int [] indices = new int[array.size()];
+                for(int i = 0;i<array.size();i++){
+                    indices[i] = (Integer)array.get(i);
+                }
+                tep.setSelectedIndices(indices);
+                
                 int resp = (Integer)CustomDialog.showDialog(p,JOptionPane.PLAIN_MESSAGE, 
                             JOptionPane.OK_CANCEL_OPTION, SutEditor.this, "Select EP",null);
                 if(resp == JOptionPane.OK_OPTION){
@@ -223,7 +206,7 @@ public class SutEditor extends JPanel{
                     } else {
                         treenode = (DefaultMutableTreeNode)tp.getLastPathComponent();
                     }
-                    if(checkExistingName(treenode, name, null)){
+                    if(checkExistingName(treenode, name, null)!=null){
                         CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,SutEditor.this,"Warning", 
                                         "This name is already used, please use different name.");
                         return;
@@ -267,7 +250,6 @@ public class SutEditor extends JPanel{
                     if(userobj instanceof Node){
                         DefaultMutableTreeNode parent = (DefaultMutableTreeNode)treenode.getParent();
                         Comp comp = (Comp)parent.getUserObject();
-                        //String parentid = comp.getID();
                         String parentid = comp.getName();
                         String name="";
                         if(parent.getLevel()==1){
@@ -314,7 +296,6 @@ public class SutEditor extends JPanel{
                     if(resp.indexOf("ERROR")!=-1){
                         CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SutEditor.this,"ERROR", resp);
                     }
-                    System.out.println(resp);
                     lastsaved = true;
                 }
                 catch(Exception e){e.printStackTrace();}
@@ -330,14 +311,46 @@ public class SutEditor extends JPanel{
                                      ,SutEditor.this,
                                      "Sut Name", "Please enter sut name");
                 if(filename!=null&&!filename.equals("NULL")){
+                    SUT s = null;
+                    boolean overwrite = false;
+                    sutnode = checkExistingName(suttree.userroot, filename, null);
+                    if(sutnode!=null){
+                        int r = (Integer)CustomDialog.showDialog(new JLabel("This name is already used, overwrite?"),
+                                                                JOptionPane.WARNING_MESSAGE, 
+                                                                JOptionPane.OK_CANCEL_OPTION, SutEditor.this, "Save", null);
+                        if(r != JOptionPane.OK_OPTION){return;}
+                        overwrite = true;
+                    }
+                    
                     try{String resp = client.execute("saveReservedSutAs", new Object[]{filename,"/"+rootsut,RunnerRepository.user}).toString();
                         if(resp.indexOf("ERROR")!=-1){
                             CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SutEditor.this,"ERROR", resp);
+                            return;
                         }
-                        close.doClick();
-                        SUT s = new SUT(filename,".user");
-                        sutnode = new DefaultMutableTreeNode(s,false);
-                        suttree.addUserNode(sutnode);
+                        
+                        //close sut without CE side
+                        if(editable){
+                            suttree.releaseSut(rootsut);
+                        }
+                        rootsut = "";
+                        root.removeAllChildren();
+                        addcomp.setEnabled(false);
+                        close.setEnabled(false);
+                        setep.setEnabled(false);
+                        save.setEnabled(false);
+                        saveas.setEnabled(false);
+                        redcomp.setEnabled(false);
+                        ((DefaultTreeModel)tree.getModel()).reload();
+                        lastsaved = true;
+                        
+//                         close.doClick();
+                        if(!overwrite){
+                            s = new SUT(filename,".user");
+                            sutnode = new DefaultMutableTreeNode(s,false);
+                            suttree.addUserNode(sutnode);
+                        } else {
+                            s = (SUT)sutnode.getUserObject();
+                        }
                         if(suttree.reserveSut(s)){
                             s.setReserved(RunnerRepository.user);
                             ((DefaultTreeModel)suttree.filestree.getModel()).nodeChanged(sutnode);
@@ -421,8 +434,6 @@ public class SutEditor extends JPanel{
                 if(row==-1) tree.clearSelection();  
             }});
     }
-    
-
 
     /*
      * checking existing name in structure
@@ -431,32 +442,31 @@ public class SutEditor extends JPanel{
      * current - the node to ommit on search
      */
     
-    public boolean checkExistingName(DefaultMutableTreeNode parent, String name, DefaultMutableTreeNode current){
+    public DefaultMutableTreeNode checkExistingName(DefaultMutableTreeNode parent, String name, DefaultMutableTreeNode current){
         Enumeration e = parent.children();
         while(e.hasMoreElements()){
             DefaultMutableTreeNode child = (DefaultMutableTreeNode)e.nextElement();
             if(child!=current){
                 if(child.getUserObject() instanceof String){
-                    if(name.equals(child.toString())){
-                        return true;
+                    if(name.equals(child.toString())){  
+                        return child;
                     }
                 } else if(child.getUserObject() instanceof SUT){
                     String childname = ((SUT)child.getUserObject()).getName();
-                    if(name.equals(childname)){
-                        return true;
+                    if(name.equals(childname)){ 
+                        return child;
                     }
                 } else if(child.getUserObject() instanceof Comp){
                     String childname = ((Comp)child.getUserObject()).getName();
-                    if(name.equals(childname)){
-                        return true;
+                    if(name.equals(childname)){ 
+                        return child;
                     }
                 }
             }
             
         }
-        return false;
+        return null;
     }
-    
 
     public JTree getTree(){
         return this.tree;
@@ -476,7 +486,6 @@ public class SutEditor extends JPanel{
                     redcomp.setEnabled(true);
                 } else {
                     addcomp.setEnabled(false);
-                    //redcomp.setEnabled(false);
                     redcomp.setEnabled(true);
                 }        
             } else{
@@ -488,39 +497,22 @@ public class SutEditor extends JPanel{
     
     public void getSUT(String sutname,DefaultMutableTreeNode sutnode,boolean editable){
         try{
-//             HashMap hash= (HashMap)client.execute("getSut", new Object[]{"/",RunnerRepository.user,RunnerRepository.user});
-            System.out.println("getting: "+sutname);
             Object ob = client.execute("getSutByName", new Object[]{sutname,RunnerRepository.user});
-            System.out.println("getting: "+sutname+" respons: "+ob.toString());
             HashMap hash = (HashMap)ob;
             this.editable = editable;
-//             Object[] children = (Object[])hash.get("children");
             DefaultMutableTreeNode epsnode;//child
             DefaultTreeModel model = (DefaultTreeModel)tree.getModel();
             root.removeAllChildren();
             String name,path,eps;
             Object[] subchildren;
-//             for(Object o:children){
-//                 hash= (HashMap)client.execute("getSut", new Object[]{o.toString(),RunnerRepository.user,RunnerRepository.user});
-//                 hash= (HashMap)o;
                 path = hash.get("path").toString();
                 name = path.split("/")[path.split("/").length-1];
-//                 if(name.indexOf(sutname)==-1)continue;
                 try{eps = ((HashMap)hash.get("meta")).get("_epnames_"+RunnerRepository.user).toString();}
                 catch(Exception e){eps = "";}
-                epsnode = new DefaultMutableTreeNode("EP: "+eps,false);
+                epsnode = new DefaultMutableTreeNode("EP:"+eps,false);
                 root.add(epsnode);
                 subchildren = (Object[])hash.get("children");
-                
                 buildChildren(subchildren,root);
-//                 for(Object ob:subchildren){
-// //                     String childid = ob.toString();
-//                     HashMap subhash= (HashMap)client.execute("getSut", new Object[]{childid,RunnerRepository.user,RunnerRepository.user});
-//                     String id = subhash.get("id").toString();
-//                     buildChildren(new Object[]{id},root);
-//                 }
-//                 break;
-//             }
             model.reload();
             this.rootsut = sutname;
             this.sutnode = sutnode;
@@ -549,8 +541,6 @@ public class SutEditor extends JPanel{
         String childid, subchildid;
         for(Object o:children){
             try{
-//                 childid = o.toString();
-//                 HashMap subhash= (HashMap)client.execute("getSut", new Object[]{childid,RunnerRepository.user,RunnerRepository.user});
                 HashMap subhash= (HashMap)o;
                 String subpath = subhash.get("path").toString();
                 String subname = subpath.split("/")[subpath.split("/").length-1];
@@ -564,6 +554,7 @@ public class SutEditor extends JPanel{
                 if(meta.get("_id")!=null){
                     String referenceid = meta.get("_id").toString();
                     Node child = getTB(referenceid,null);
+                    if(child==null)continue;
                     DefaultMutableTreeNode treechild = new DefaultMutableTreeNode(child);
                     DefaultMutableTreeNode temp = new DefaultMutableTreeNode("ID: "+child.getID(),false);
                     treechild.add(temp);
@@ -588,6 +579,10 @@ public class SutEditor extends JPanel{
         Object resp = null;
         try{
             resp = client.execute("getResource", new Object[]{id});
+            if(!(resp instanceof HashMap)){
+                System.out.println("CE respons for getResource("+id+"):"+resp.toString()+"SutEditor->getTB");
+                return null;
+            }
             HashMap hash= (HashMap)resp;
             String path = hash.get("path").toString();
             String name = path.split("/")[path.split("/").length-1];
@@ -621,28 +616,6 @@ public class SutEditor extends JPanel{
         }
     }
     
-    public void disconnect(){
-        connection.disconnect();
-        session.disconnect();
-    }
-    
-    private void initializeSftp(){
-        try{
-            JSch jsch = new JSch();
-            session = jsch.getSession(RunnerRepository.user, RunnerRepository.host, 22);
-            session.setPassword(RunnerRepository.password);
-            Properties config = new Properties();
-            config.put("StrictHostKeyChecking", "no");
-            session.setConfig(config);
-            session.connect();
-            Channel channel = session.openChannel("sftp");
-            channel.connect();
-            connection = (ChannelSftp)channel;
-        } catch (Exception e){
-            e.printStackTrace();
-        }
-    }
-    
     public SutTree getSutTree(){
         return suttree;
     }
@@ -656,7 +629,7 @@ public class SutEditor extends JPanel{
         try{HashMap hash= (HashMap)client.execute("getSut", new Object[]{sutname,RunnerRepository.user,RunnerRepository.user});
             try{eps = ((HashMap)hash.get("meta")).get("_epnames_"+RunnerRepository.user).toString();}
             catch(Exception e){
-                System.out.println("Error in getting _epnames_"+RunnerRepository.user+" from meta in: "+hash.toString()+" . Called in SutEditor->getEpsFromSut");
+                //System.out.println("Error in getting _epnames_"+RunnerRepository.user+" from meta in: "+hash.toString()+" . Called in SutEditor->getEpsFromSut");
                 eps = "";
             }
         }
@@ -664,10 +637,8 @@ public class SutEditor extends JPanel{
             eps = "";
             e.printStackTrace();
         }
-        System.out.println(sutname+" has "+eps);
         return eps;
     }
-    
     
     /*
      * initialize RPC connection
@@ -720,14 +691,10 @@ public class SutEditor extends JPanel{
             JTree.DropLocation dl = (JTree.DropLocation)support.getDropLocation(); 
             TreePath dest = dl.getPath();  
             DefaultMutableTreeNode target = (DefaultMutableTreeNode)dest.getLastPathComponent(); 
-//             if(target.getLevel()!=1){
-//                 return false;
-//             }
             if(!(target.getUserObject() instanceof Comp)){
                 return false;
             }
             Node[] nodes = null; 
-            //check if node is allready inserted
             try{Transferable t = support.getTransferable();  
                 nodes = (Node[])t.getTransferData(nodesFlavor);
                 Enumeration e;
@@ -835,26 +802,11 @@ public class SutEditor extends JPanel{
         } 
         
         private DefaultMutableTreeNode createChildren(Node node){
-            DefaultMutableTreeNode parent = new DefaultMutableTreeNode(node);
-            
+            DefaultMutableTreeNode parent = new DefaultMutableTreeNode(node);            
             DefaultMutableTreeNode temp = new DefaultMutableTreeNode("ID: "+node.getID(),false);
-            parent.add(temp);
-            
+            parent.add(temp);            
             temp = new DefaultMutableTreeNode(node.getPath(),false);
-            parent.add(temp);
-            
-            
-//             Object [] objects = node.getChildren().values().toArray();
-//             try{
-//                 for(Object ob:objects){
-//                     Node n = (Node)ob;
-//                     DefaultMutableTreeNode child = createChildren(n);
-//                     parent.add(child);
-//                 }
-//             } catch (Exception e){
-//                 e.printStackTrace();
-//             }
-            
+            parent.add(temp);            
             return parent;
         }
        

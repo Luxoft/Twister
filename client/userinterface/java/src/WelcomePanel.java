@@ -1,6 +1,6 @@
 /*
 File: WelcomePanel.java ; This file is part of Twister.
-Version: 2.003
+Version: 2.004
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -38,13 +38,14 @@ import java.awt.event.KeyAdapter;
 
 public class WelcomePanel extends JPanel{
     private JPasswordField tf2;
-    private JTextField tf1;
+    private JTextField tf1,tf3;
     public JButton login;
     
     public WelcomePanel(){
         JPanel p = new JPanel();
         tf1 = new JTextField();
         tf2 = new JPasswordField();
+        tf3 = new JTextField(MainRepository.ceport);
         tf2.addKeyListener(new KeyAdapter(){
             public void keyReleased(KeyEvent ev){
                 if(ev.getKeyCode()==KeyEvent.VK_ENTER){
@@ -57,31 +58,42 @@ public class WelcomePanel extends JPanel{
         JLabel jLabel3 = new JLabel();
         JPanel jPanel2 = new JPanel();
         JLabel jLabel4 = new JLabel();
+        JLabel jLabel5 = new JLabel();
+        JPanel jPanel6 = new JPanel();
         jPanel1.setLayout(new BorderLayout());
         jLabel3.setText("User: ");
         jPanel1.add(jLabel3, BorderLayout.CENTER);
         p.add(jPanel1);
         p.add(tf1);
+        
         jPanel2.setLayout(new BorderLayout());
         jLabel4.setText("Password: ");
         jPanel2.add(jLabel4, BorderLayout.CENTER);
         p.add(jPanel2);
         p.add(tf2);
+        
+        
+        jPanel6.setLayout(new BorderLayout());
+        jLabel5.setText("CE port: ");
+        jPanel6.add(jLabel5, BorderLayout.CENTER);
+        p.add(jPanel6);
+        p.add(tf3);
+        
         login = new JButton("Login");
         login.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 login.setEnabled(false);
-                MainRepository.login(tf1.getText(),new String(tf2.getPassword()));
+                MainRepository.login(tf1.getText(),new String(tf2.getPassword()),tf3.getText());
             }
         });
         p.add(Box.createRigidArea(new Dimension(0,5)));
         p.add(login);
-        p.setBounds(210, 120, 200, 110);
+        p.setBounds(210, 120, 200, 150);
         setLayout(null);
         add(p);
-        setPreferredSize(new Dimension(420,280));
-        setMaximumSize(new Dimension(420,280));
-        setMinimumSize(new Dimension(420,280));
+        setPreferredSize(new Dimension(420,320));
+        setMaximumSize(new Dimension(420,320));
+        setMinimumSize(new Dimension(420,320));
     }
     
     public void paint(Graphics g){

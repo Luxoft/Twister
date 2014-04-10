@@ -1,0 +1,14 @@
+<Root>
+    <stoponfail>false</stoponfail>
+    <UserDefined>
+        <propName>TC_ID</propName>
+        <propValue/>
+    </UserDefined>
+    <PrePostMandatory>false</PrePostMandatory>
+    <ScriptPre/>
+    <ClearCaseView/>
+    <libraries/>
+    <ScriptPost/>
+    <dbautosave>false</dbautosave>
+    <tcdelay/>
+</Root>

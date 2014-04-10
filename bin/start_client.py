@@ -2,7 +2,7 @@
 
 # File: start_client.py ; This file is part of Twister.
 
-# version: 3.011
+# version: 3.015
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -40,8 +40,10 @@ import time
 import signal
 import socket
 socket.setdefaulttimeout(5)
-try: import thread
-except: import _thread as thread
+try:
+    import thread
+except Exception:
+    import _thread as thread
 import traceback
 import platform
 import subprocess
@@ -50,15 +52,18 @@ import copy
 import rpyc
 import datetime
 
-from pprint import pprint
+from pprint import pformat
 from rpyc import BgServingThread
-try: from ConfigParser import SafeConfigParser
-except: from configparser import SafeConfigParser
+try:
+    from ConfigParser import SafeConfigParser
+except Exception:
+    from configparser import SafeConfigParser
 
 
 def logPrint(msg):
+    """ Prints message + date-time stamp """
     dateTag = datetime.datetime.now().strftime("%Y-%b-%d %H-%M-%S")
-    print('{} {}'.format(dateTag,msg))
+    print('{}\t{}'.format(dateTag, msg))
 
 def userHome(user):
     """ Return user home path for all kind of users """
@@ -69,10 +74,10 @@ def userHome(user):
 
 try:
     userName = os.getenv('USER') or os.getenv('USERNAME')
-    if userName=='root':
+    if userName == 'root':
         userName = os.getenv('SUDO_USER') or userName
     logPrint('Hello username `{}`!'.format(userName))
-except:
+except Exception:
     userName = ''
 if not userName:
     logPrint('Cannot guess user name for the Twister Client! Exiting!')
@@ -91,7 +96,6 @@ class TwisterClient(object):
 
     def __init__(self):
 
-        global userName
         self.userName = userName
         self.hostName = socket.gethostname().lower()
         self.epList = []
@@ -111,14 +115,15 @@ class TwisterClient(object):
         Helper function.
         """
         for line in lines.strip().splitlines():
-            li = line.strip().decode('utf').split()
-            PID = int(li[0])
-            del li[1:4]
-            if li[1] == '/bin/sh' and li[2] == '-c': continue
-            logPrint('Killing ugly zombie {} `{}`'.format(descr, ' '.join(li)))
+            line = line.strip().decode('utf').split()
+            pid = int(line[0])
+            del line[1:4]
+            if '/bin/sh' in line and '-c' in line:
+                continue
+            logPrint('Killing ugly zombie {} `{}`'.format(descr, ' '.join(line)))
             try:
-                os.kill(PID, 9)
-            except:
+                os.kill(pid, 9)
+            except Exception:
                 pass
 
 #
@@ -127,17 +132,17 @@ class TwisterClient(object):
         """
         Close all Sniffers and EPs for this user.
         """
-        global userName
-
-        pids = subprocess.check_output('ps ax | grep /bin/start_packet_sniffer.py | grep "\-u {}"'.format(userName), shell=True)
+        pids = subprocess.check_output('ps ax | grep /bin/start_packet_sniffer.py '
+            ' | grep "\\-u {}" '.format(userName), shell=True)
         self._kill(pids, 'Sniffer')
 
-        pids = subprocess.check_output('ps ax | grep /executionprocess/ExecutionProcess.py | grep "\-u {}"'.format(userName), shell=True)
+        pids = subprocess.check_output('ps ax | grep /executionprocess/ExecutionProcess.py '
+            ' | grep "\\-u {}"'.format(userName), shell=True)
         self._kill(pids, 'EP')
 
 #
 
-    def _createConn(self, ce_ip, ce_port, epNames=[], debug=False):
+    def _createConn(self, ce_ip, ce_port, epNames, debug=False):
         """
         Helper for creating a Central Engine connection, the most basic func.
         """
@@ -155,7 +160,8 @@ class TwisterClient(object):
             logPrint('Client Debug: Connected to CE at `{}:{}`...'.format(ce_ip, ce_port))
         except Exception as e:
             if debug:
-                logPrint('*ERROR* Cannot connect to CE path `{}:{}`! Exception: `{}`!'.format(ce_ip, ce_port, e))
+                logPrint('*ERROR* Cannot connect to CE path `{}:{}`! '\
+                    'Exception: `{}`!'.format(ce_ip, ce_port, e))
             return None
 
         # Authenticate on RPyc server
@@ -173,12 +179,22 @@ class TwisterClient(object):
         # Say Hello and Register all EPs on the current Central Engine
         if epNames:
             try:
+                proxy.ping(data='Hello', timeout=3)
                 # Call the user status to create the User Project
-                proxy.root.getUserVariable('status')
+                s = proxy.root.getUserVariable('user_roles')
+                if not s:
+                    raise Exception('Cannot get roles for user `{}`!'.format(self.userName))
+                # Fire up the User Service
+                proxy.root.readFile('~/twister/config/fwmconfig.xml')
+            except Exception as e:
+                logPrint('Exception: `{}`'.format(e))
+                check = False
+
+            try:
                 proxy.root.hello('client', {'eps': epNames})
                 logPrint('Client Debug: Register EPs successful!')
             except Exception as e:
-                logPrint('Exception:', e)
+                logPrint('Exception: `{}`'.format(e))
                 check = False
 
         if not check:
@@ -186,12 +202,12 @@ class TwisterClient(object):
                 logPrint('*ERROR* Cannot send hello on CE path `{}:{}`!'.format(ce_ip, ce_port))
             return None
 
-        bg = BgServingThread(proxy)
+        BgServingThread(proxy)
         return proxy
 
 #
 
-    def _createConnLong(self, cePath, epNames=[]):
+    def _createConnLong(self, cePath, epNames):
         """
         Create connection to Central Engine, return the connection and
         auto-save it in the Proxy Dict.
@@ -214,7 +230,7 @@ class TwisterClient(object):
                     logPrint('Connection to Central Engine at `{}` is ok!'.format(cePath))
                     return True
                 # If the hello doesn't work, it means the connection was lost/ destroyed
-                except:
+                except Exception:
                     proxy = None
 
         err_msg = True
@@ -235,7 +251,8 @@ class TwisterClient(object):
 
             if not proxy:
                 if err_msg:
-                    logPrint('*ERROR* Cannot connect to Central Engine at `{}`! Will Retry forever and ever...'.format(cePath))
+                    logPrint('*ERROR* Cannot connect to Central Engine at `{}`! '\
+                        'Will Retry forever and ever...'.format(cePath))
                     err_msg = False
                 elif time.time() > last_time + time_diff:
                     logPrint('*ERROR* Still trying to connect to Central Engine at `{}`...'.format(cePath))
@@ -269,7 +286,8 @@ class TwisterClient(object):
         """
         # Sniffer config
         snifferEth = None
-        if (cfg.has_option('PACKETSNIFFERPLUGIN', 'ETH_INTERFACE') and cfg.get('PACKETSNIFFERPLUGIN', 'ENABLED') == '1'):
+        if (cfg.has_option('PACKETSNIFFERPLUGIN', 'ETH_INTERFACE') and
+            cfg.get('PACKETSNIFFERPLUGIN', 'ENABLED') == '1'):
             snifferEth = cfg.get('PACKETSNIFFERPLUGIN', 'ETH_INTERFACE')
         else:
             snifferEth = 'eth0'
@@ -291,7 +309,8 @@ class TwisterClient(object):
                     continue
             # Invalid EP tag ?
             if not cfg.has_option(ep, 'CE_IP') or not cfg.has_option(ep, 'CE_PORT'):
-                logPrint('Section `{}` is not a valid EP, because it needs CE_IP and CE_PORT.'.format(ep))
+                logPrint('Section `{}` is not a valid EP, because it needs '\
+                    'CE_IP and CE_PORT.'.format(ep))
                 continue
             # If this EP does NOT have a HOST filter, it's a valid EP
             if not cfg.has_option(ep, 'EP_HOST'):
@@ -318,7 +337,8 @@ class TwisterClient(object):
             except Exception as e:
                 pass
 
-            logPrint('EP `{}` doesn\'t match with required HOST `{}`, so is ignored.'.format(ep, ep_host))
+            logPrint('EP `{}` doesn\'t match with required HOST `{}`, '\
+                'so is ignored.'.format(ep, ep_host))
 
         # Sort and eliminate duplicates
         self.epList = sorted(set(epList))
@@ -336,9 +356,13 @@ class TwisterClient(object):
         epData = {}
         epData['pid'] = None
         epData['ce_ip'] = ce_ip
-        if ';' in ce_port:
-            ce_port = ce_port.split(';')[0]
-        epData['ce_port'] = ce_port.strip()
+        # set the ce_port; it can be an int or a string so we have to check
+        if isinstance(ce_port, int):
+            epData['ce_port'] = ce_port
+        else:
+            if ';' in ce_port:
+                ce_port = ce_port.split(';')[0]
+            epData['ce_port'] = ce_port.strip()
 
         epData['exec_str'] = 'nohup {py} -u {path}/client/executionprocess/ExecutionProcess.py '\
                 '-u {user} -e {ep} -s {ip}:{port} > "{path}/.twister_cache/{ep}_LIVE.log" '.format(
@@ -362,12 +386,13 @@ class TwisterClient(object):
         If the file is found but there are no EPs, create a single `hostname_auto` EP,
         on AUTO_CE_IP and AUTO_CE_PORT.
         """
-        global TWISTER_PATH
+        # EPs file
         epnames = '{}/config/epname.ini'.format(TWISTER_PATH)
 
         if not os.path.isfile(epnames):
             # Register the Hostname + Auto. The Central Engine MUST be on localhost:8000
-            logPrint('Cannot find `epname.ini` file! Will register `{}` EP on `localhost:8000`...'.format(self.hostName + '_auto'))
+            logPrint('Cannot find `epname.ini` file! Will register `{}` EP on '\
+                ' `localhost:8000`...'.format(self.hostName + '_auto'))
             self.addEp(self.hostName + '_auto', '127.0.0.1', 8000)
             return True
 
@@ -383,12 +408,13 @@ class TwisterClient(object):
                 auto_ip = cfg.get('AUTO', 'AUTO_CE_IP')
                 auto_port = cfg.get('AUTO', 'AUTO_CE_PORT')
                 logPrint('No EPs found, but found [AUTO] section with AUTO_CE_IP and AUTO_CE_PORT.'
-                      'Will register `{}` EP on Central Engine `{}:{}`...'.format(self.hostName + '_auto', auto_ip, auto_port))
+                      '\n\tWill register `{}` EP on Central Engine `{}:{}`...'.format(
+                        self.hostName + '_auto', auto_ip, auto_port))
                 self.addEp(self.hostName + '_auto', auto_ip, auto_port)
                 return True
             else:
                 logPrint('No EPs found and cannot find [AUTO] section with AUTO_CE_IP and AUTO_CE_PORT!'
-                      'This client will hang forever...')
+                      '\n\tThis client will hang forever...')
                 return False
 
         # Generate meta-data for each EP + the Anonymous EP
@@ -397,13 +423,15 @@ class TwisterClient(object):
             if not cfg.has_option(currentEP, 'CE_IP') or not cfg.has_option(currentEP, 'CE_PORT'):
                 continue
             # Register the Hostname + EP name
-            self.addEp(self.hostName + '_' + currentEP, cfg.get(currentEP, 'CE_IP'), cfg.get(currentEP, 'CE_PORT'))
+            self.addEp(self.hostName + '_' + currentEP,
+                    cfg.get(currentEP, 'CE_IP'),
+                    cfg.get(currentEP, 'CE_PORT'))
 
         return True
 
 #
 
-    def registerEPs(self, ce_proxy=None):
+    def registerEPs(self):
         """
         Register EPs to Central Engines.
         The function is called on START and on DISCONNECT from a Central Engine.
@@ -411,13 +439,15 @@ class TwisterClient(object):
         addr = ['127.0.0.1', 'localhost']
         hostName = socket.gethostname()
         addr.append(hostName)
-        try: addr.append(socket.gethostbyaddr(hostName)[-1][0])
-        except: pass
+        try:
+            addr.append(socket.gethostbyaddr(hostName)[-1][0])
+        except Exception:
+            pass
 
         logPrint('Starting Client Service register on `{}`...'.format(addr))
 
         # print('\n----- Config Data ----')
-        # pprint(self.epNames, indent=2, width=100) # DEBUG !
+        # pformat(self.epNames, indent=2, width=100) # DEBUG !
         # print('----------------------\n')
 
         # Central Engine addrs and the EPs that must be registered for each CE
@@ -425,10 +455,6 @@ class TwisterClient(object):
 
         for currentEP, epData in self.epNames.items():
             cePath = '{}:{}'.format(epData['ce_ip'], epData['ce_port'])
-            # If Central Engine proxy filter is specified, use it
-            if epData['ce_ip'] not in addr:
-                continue
-
             epsToRegister[cePath] = [
                 ep for ep in self.epNames
                 if self.epNames[ep]['ce_ip'] == self.epNames[currentEP]['ce_ip'] and
@@ -436,16 +462,17 @@ class TwisterClient(object):
               ]
 
         logPrint('------- EPs to register -------')
-        pprint(epsToRegister, indent=2, width=100)
+        logPrint(pformat(epsToRegister, indent=2, width=100))
         logPrint('-------------------------------')
 
         # For each Central Engine address
         for cePath, epNames in epsToRegister.items():
-            if not epNames: continue
+            if not epNames:
+                continue
             thread.start_new_thread( self.lazyRegister, (cePath, epNames) )
 
         logPrint('Register EPs function finished.'\
-              'If not all CE connections are made, they will be created asynchronously.\n')
+              '\n\tIf not all CE connections are made, they will be created asynchronously.\n')
 
 #
 
@@ -512,7 +539,7 @@ class TwisterClientService(rpyc.Service):
             self.connections[connid] = proxy
             logPrint('ClientService: Hello `{}`!'.format(proxy))
             return True
-        except:
+        except Exception:
             trace = traceback.format_exc()[34:].strip()
             logPrint('ClientService: Error on Hello: `{}`.'.format(trace))
             return False
@@ -526,7 +553,7 @@ class TwisterClientService(rpyc.Service):
         try:
             client.addEp(self, epname, ce_ip, ce_port)
             return True
-        except:
+        except Exception:
             trace = traceback.format_exc()[34:].strip()
             logPrint('ClientService: Error on Add EP: `{}`.'.format(trace))
             return False
@@ -536,7 +563,7 @@ class TwisterClientService(rpyc.Service):
         """
         Start 1 EP.
         """
-        global userName, client
+        global client
 
         if epname not in client.epNames:
             logPrint('*ERROR* Cannot start! Unknown EP name : `{}` !'.format(epname))
@@ -554,7 +581,7 @@ class TwisterClientService(rpyc.Service):
         try:
             tproc = subprocess.Popen(exec_str, shell=True, preexec_fn=os.setsid)
             client.epNames[epname]['pid'] = tproc
-        except:
+        except Exception:
             trace = traceback.format_exc()[34:].strip()
             logPrint('ClientService: Error on Start EP: `{}`.'.format(trace))
             return False
@@ -567,7 +594,7 @@ class TwisterClientService(rpyc.Service):
         """
         Stop 1 EP.
         """
-        global userName, client
+        global client
 
         if epname not in client.epNames:
             logPrint('*ERROR* Cannot stop! Unknown EP name : `{}` !'.format(epname))
@@ -584,7 +611,7 @@ class TwisterClientService(rpyc.Service):
             time.sleep(0.5)
             os.killpg(PID, 9)
             client.epNames[epname]['pid'] = None
-        except:
+        except Exception:
             trace = traceback.format_exc()[34:].strip()
             logPrint('ClientService: Error on Stop EP: `{}`.'.format(trace))
             return False
@@ -592,7 +619,8 @@ class TwisterClientService(rpyc.Service):
         # Normally, this will Never execute, but kill the stubborn zombies, just in case
         Tries = 3
         while Tries > 0:
-            ps = subprocess.check_output('ps ax | grep ExecutionProcess.py | grep -u {} | grep -e {}'.format(userName, epname), shell=True)
+            ps = subprocess.check_output('ps ax | grep ExecutionProcess.py | grep -u {} '\
+                ' | grep -e {}'.format(userName, epname), shell=True)
             ps = ps.strip().splitlines()[:-2] # Ignore the last 2 lines (the grep and shell=True)
             # If all the processes are dead, it's ok
             if not ps: break
@@ -609,7 +637,7 @@ class TwisterClientService(rpyc.Service):
                 try:
                     os.kill(int(PID), 9)
                     client.epNames[epname]['pid'] = None
-                except:
+                except Exception:
                     trace = traceback.format_exc()[34:].strip()
                     logPrint('ClientService: Error on Stop EP: `{}`.'.format(trace))
                     # return False # No need to exit
@@ -623,9 +651,10 @@ class TwisterClientService(rpyc.Service):
 
         # check if already running
         pipe = subprocess.Popen('ps ax | grep start_packet_sniffer.py',
-                                    shell=True, stdout=subprocess.PIPE).stdout
+                                shell=True, stdout=subprocess.PIPE).stdout
         lines = pipe.read().splitlines()
         del pipe
+
         if len(lines) > 2:
             return False
 
@@ -645,7 +674,8 @@ class TwisterClientService(rpyc.Service):
     def exposed_stop_sniffer(self):
         """ stop sniffer """
 
-        pipe = subprocess.Popen('ps ax | grep start_packet_sniffer.py', shell=True, stdout=subprocess.PIPE)
+        pipe = subprocess.Popen('ps ax | grep start_packet_sniffer.py',
+                                shell=True, stdout=subprocess.PIPE)
         for line in pipe.stdout.read().splitlines():
             try:
                 os.kill(int(line.split()[0]), 9)
@@ -744,8 +774,8 @@ class TwisterClientService(rpyc.Service):
                             with open(childPath, 'w') as _f:
                                 json.dump(sut, _f, indent=4)
                 else:
-                     with open(childPath, 'w') as _f:
-                         json.dump(sut, _f, indent=4)
+                    with open(childPath, 'w') as _f:
+                        json.dump(sut, _f, indent=4)
             except IOError:
                 return "Cannot save SUT file"
             except Exception as e:
@@ -763,7 +793,8 @@ class TwisterClientService(rpyc.Service):
             sutsPath = self._conn.root.getUserVariable('sut_path')
             if not sutsPath:
                 sutsPath = '{}/config/sut/'.format(TWISTER_PATH)
-            sutPaths = [p for p in os.listdir(sutsPath) if os.path.isfile(os.path.join(sutsPath, p)) and p.split('.')[-1] == 'json']
+            sutPaths = [p for p in os.listdir(sutsPath) if os.path.isfile(os.path.join(sutsPath, p))
+                        and p.split('.')[-1] == 'json']
 
             for sutPath in sutPaths:
                 try:
@@ -789,7 +820,8 @@ class TwisterClientService(rpyc.Service):
             sutsPath = self._conn.root.getUserVariable('sut_path')
             if not sutsPath:
                 sutsPath = '{}/config/sut/'.format(TWISTER_PATH)
-            sutPaths = [p for p in os.listdir(sutsPath) if os.path.isfile(os.path.join(sutsPath, p)) and p.split('.')[-1] == 'json']
+            sutPaths = [p for p in os.listdir(sutsPath) if os.path.isfile(os.path.join(sutsPath, p))
+                        and p.split('.')[-1] == 'json']
             sutsLen = len(sutPaths)
         except Exception as e:
             trace = traceback.format_exc()[34:].strip()
@@ -820,7 +852,8 @@ class TwisterClientService(rpyc.Service):
             sutsPath = self._conn.root.getUserVariable('sut_path')
             if not sutsPath:
                 sutsPath = '{}/config/sut/'.format(TWISTER_PATH)
-            sutPaths = [p for p in os.listdir(sutsPath) if os.path.isfile(os.path.join(sutsPath, p)) and p.split('.')[-1] == 'json']
+            sutPaths = [p for p in os.listdir(sutsPath) if os.path.isfile(os.path.join(sutsPath, p))
+                        and p.split('.')[-1] == 'json']
 
             for sutPath in sutPaths:
                 sutName = '.'.join(['.'.join(sutPath.split('.')[:-1]  + ['user'])])

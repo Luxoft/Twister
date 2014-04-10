@@ -1,6 +1,6 @@
 /*
 File: SuitaDetails.java ; This file is part of Twister.
-Version: 2.0018
+Version: 2.0020
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -233,7 +233,7 @@ public class SuitaDetails extends JPanel {
                 if(RunnerRepository.container!=null)c = RunnerRepository.container.getParent();
                 else c = RunnerRepository.window;
                 try{
-                    new MySftpBrowser(RunnerRepository.host,RunnerRepository.user,RunnerRepository.password,tprescript,c,false);
+                    new MySftpBrowser(RunnerRepository.host,RunnerRepository.user,RunnerRepository.password,RunnerRepository.CENTRALENGINEPORT,tprescript,c,false);
                 }catch(Exception e){
                     System.out.println("There was a problem in opening sftp browser!");
                     e.printStackTrace();
@@ -247,7 +247,7 @@ public class SuitaDetails extends JPanel {
                 if(RunnerRepository.container!=null)c = RunnerRepository.container.getParent();
                 else c = RunnerRepository.window;
                 try{
-                    new MySftpBrowser(RunnerRepository.host,RunnerRepository.user,RunnerRepository.password,tpostscript,c,false);
+                    new MySftpBrowser(RunnerRepository.host,RunnerRepository.user,RunnerRepository.password,RunnerRepository.CENTRALENGINEPORT,tpostscript,c,false);
                 }catch(Exception e){
                     System.out.println("There was a problem in opening sftp browser!");
                     e.printStackTrace();
@@ -1297,7 +1297,7 @@ class DefPanel extends JPanel{
                     try{
 //                         String passwd = RunnerRepository.getRPCClient().execute("sendFile", new Object[]{"/etc/passwd"}).toString();
 //                         new MySftpBrowser(RunnerRepository.host,RunnerRepository.user,RunnerRepository.password,userDefinition,c,passwd);
-                        new MySftpBrowser(RunnerRepository.host,RunnerRepository.user,RunnerRepository.password,userDefinition,c,false);
+                        new MySftpBrowser(RunnerRepository.host,RunnerRepository.user,RunnerRepository.password,RunnerRepository.CENTRALENGINEPORT,userDefinition,c,false);
                     }catch(Exception e){
                             System.out.println("There was a problem in opening sftp browser!");
                             e.printStackTrace();

@@ -1,6 +1,6 @@
 /*
 File: Starter.java ; This file is part of Twister.
-Version: 2.011
+Version: 2.012
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -39,7 +39,7 @@ public class Starter implements TwisterPluginInterface{
     public CommonInterface maincomp;
     
     public void init(ArrayList<Item> suite, ArrayList<Item> suitetest,
-            final Hashtable<String, String> variables,
+            Hashtable<String, String> variables,
             final Document pluginsConfig,Applet container) {
                 RunnerRepository.starter = this;
                 URL url = null;
@@ -56,6 +56,7 @@ public class Starter implements TwisterPluginInterface{
                 RunnerRepository.user = variables.get("user");
                 RunnerRepository.password = variables.get("password");
                 RunnerRepository.host = variables.get("host");
+                RunnerRepository.CENTRALENGINEPORT = variables.get("centralengineport");
                 container.removeAll();
                 container.revalidate();
                 container.repaint();
@@ -108,25 +109,8 @@ public class Starter implements TwisterPluginInterface{
                 System.out.println(RunnerRepository.temp+" deleted successfull");
             else System.out.println("Could not delete: "+RunnerRepository.temp);}
         RunnerRepository.run = false;
-        RunnerRepository.session.disconnect();
-        RunnerRepository.connection.disconnect();        
-        RunnerRepository.window.mainpanel.p1.ep.session.disconnect();
-        RunnerRepository.window.mainpanel.p1.ep.connection.disconnect();
-        RunnerRepository.window.mainpanel.p1.lp.session.disconnect();
-        RunnerRepository.window.mainpanel.p1.lp.connection.disconnect();
-        RunnerRepository.window.mainpanel.p4.getPlugins().session.disconnect();
-        RunnerRepository.window.mainpanel.p4.getPlugins().ch.disconnect();
-        RunnerRepository.window.mainpanel.p4.getGlobals().session.disconnect();
-        RunnerRepository.window.mainpanel.p4.getGlobals().ch.disconnect();
-        RunnerRepository.window.mainpanel.p4.getTestConfig().tree.disconnect();
-//         RunnerRepository.window.mainpanel.p4.getTestConfig().cfgedit.disconnect();
-        RunnerRepository.window.mainpanel.p4.getSut().sut.disconnect();
         RunnerRepository.window.mainpanel.p4.getTB().releaseAllResources();
         RunnerRepository.window.mainpanel.p4.getSut().sut.getSutTree().releaseAllSuts();
-        RunnerRepository.window.mainpanel.p4.getTestConfig().tree.session.disconnect();
-        RunnerRepository.window.mainpanel.p4.getTestConfig().tree.connection.disconnect();
-//         RunnerRepository.window.mainpanel.p4.getTestConfig().cfgedit.session.disconnect();
-//         RunnerRepository.window.mainpanel.p4.getTestConfig().cfgedit.ch.disconnect();
         RunnerRepository.window.mainpanel.p4.getTestConfig().cfgedit.cfgtree.releaseAll();
     }
     

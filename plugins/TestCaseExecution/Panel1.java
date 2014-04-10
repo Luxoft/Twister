@@ -1,6 +1,6 @@
 /*
 File: Panel1.java ; This file is part of Twister.
-Version: 2.0017
+Version: 2.0024
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -240,7 +240,6 @@ public class Panel1 extends JPanel{
         JMenu filemenu = new JMenu("File");
         filemenu.setBounds(10,0,40,20);
         item = new JMenuItem("New project file");
-//         JMenuItem newuser = new JMenuItem("New project file");
         item.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 addSuiteFile();}});
@@ -248,14 +247,12 @@ public class Panel1 extends JPanel{
         if(!PermissionValidator.canCreateProject()){
             item.setEnabled(false);
         }
-//         JMenuItem changeuser = new JMenuItem("Open project file");
         item = new JMenuItem("Open project file");
         item.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 RunnerRepository.openProjectFile();
             }});
         filemenu.add(item);
-//         JMenuItem saveuser = new JMenuItem("Save project file");
         item = new JMenuItem("Save project file");
         item.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent ev){
@@ -264,8 +261,6 @@ public class Panel1 extends JPanel{
         if(!PermissionValidator.canChangeProject()){
             item.setEnabled(false);
         }
-        
-//         JMenuItem saveuseras = new JMenuItem("Save project as");
         item = new JMenuItem("Save project as");
         item.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent ev){
@@ -282,7 +277,6 @@ public class Panel1 extends JPanel{
         if(!PermissionValidator.canCreateProject()){
             item.setEnabled(false);
         }
-//         JMenuItem deleteuser = new JMenuItem("Delete project file");
         item = new JMenuItem("Delete project file");
         item.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent ev){
@@ -291,13 +285,11 @@ public class Panel1 extends JPanel{
         if(!PermissionValidator.canDeleteProject()){
             item.setEnabled(false);
         }
-//         JMenuItem openlocalXML = new JMenuItem("Open from local");
         item = new JMenuItem("Open from local");
         item.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent ev){
                 openLocalFile();}});
         filemenu.add(item);
-//         JMenuItem savelocalXML = new JMenuItem("Save to local");
         item = new JMenuItem("Save to local");
         item.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent ev){
@@ -312,13 +304,10 @@ public class Panel1 extends JPanel{
         sc = new ScrollGrafic(10, 32, tdtl, user, applet);
         ep = new ExplorerPanel(applet);
         lp = new LibrariesPanel();
-        //cp = new ClearCasePanel();
-        //ep = new ExplorerPanel(470, 32, tdtl, applet, RunnerRepository.c);
         setLayout(null); 
         tabs = new JTabbedPane();
         tabs.add("Test Case", new JScrollPane(ep.tree));
         tabs.add("Predefined Suites", new JScrollPane(lp.tree));
-        //tabs.add("ClearCase Tests", new JScrollPane(cp.tree));
         splitPane2 = new JSplitPane(JSplitPane.VERTICAL_SPLIT,
                                                 tabs,
                                                 tcdetails);
@@ -334,8 +323,6 @@ public class Panel1 extends JPanel{
         }           
         splitPane3 = new JSplitPane(JSplitPane.VERTICAL_SPLIT,
                                                 sc.pane,suitaDetails);
-//         splitPane3 = new JSplitPane(JSplitPane.VERTICAL_SPLIT,
-//                                                 new JScrollPane(),suitaDetails);
         try{
             SwingUtilities.invokeLater(new Runnable() {
                 public void run() {
@@ -350,7 +337,6 @@ public class Panel1 extends JPanel{
                                     splitPane3,splitPane2);
         Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
         splitPane.setBounds(10,45,(int)screenSize.getWidth()-80,600);
-        
         try{
             SwingUtilities.invokeLater(new Runnable() {
                 public void run() {
@@ -408,7 +394,8 @@ public class Panel1 extends JPanel{
                                                     "File Name", "Please enter suite file name");
             
             if(user!=null&&!user.equals("")){
-                if(sc.g.printXML(user+".xml", false,false,
+                if(sc.g.printXML(RunnerRepository.temp+RunnerRepository.getBar()+"Twister"+RunnerRepository.getBar()+"Users"+RunnerRepository.getBar()+user+".xml",
+                             false,false,
                              RunnerRepository.window.mainpanel.p1.suitaDetails.stopOnFail(),
                              RunnerRepository.window.mainpanel.p1.suitaDetails.preStopOnFail(),
                              RunnerRepository.window.mainpanel.p1.suitaDetails.saveDB(),
@@ -442,8 +429,7 @@ public class Panel1 extends JPanel{
                 }
                 user+=".xml";
                 if(!PermissionValidator.canChangeProject()){
-                    String [] files = RunnerRepository.getRemoteFolderContent(RunnerRepository.getRemoteUsersDirectory());
-                    for(String st:files){
+                    for(String st:RunnerRepository.getProjectsFiles()){
                         if(st.equals(user)){
                             CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, 
                                                 RunnerRepository.window, "Warning",
@@ -452,7 +438,8 @@ public class Panel1 extends JPanel{
                         }
                     }
                 }
-                if(sc.g.printXML(user, false,false,
+                if(sc.g.printXML(RunnerRepository.temp+RunnerRepository.getBar()+"Twister"+RunnerRepository.getBar()+"Users"+RunnerRepository.getBar()+user
+                             ,false,false,
                              RunnerRepository.window.mainpanel.p1.suitaDetails.stopOnFail(),
                              RunnerRepository.window.mainpanel.p1.suitaDetails.preStopOnFail(),
                              RunnerRepository.window.mainpanel.p1.suitaDetails.saveDB(),
@@ -678,9 +665,6 @@ public class Panel1 extends JPanel{
     public void edit(boolean openlast){
         final int loc = splitPane3.getDividerLocation();
         splitPane3.setLeftComponent(sc.pane);
-//         JScrollPane sp = new JScrollPane();
-//         sp.setPreferredSize(new Dimension(800,600));
-//         splitPane3.setLeftComponent(sp);
         try{
             SwingUtilities.invokeLater(new Runnable(){
                 public void run() {
@@ -708,19 +692,18 @@ public class Panel1 extends JPanel{
                 if(RunnerRepository.window.mainpanel.p1.sc.g.getUser()==null&&
                    RunnerRepository.window.mainpanel.p1.sc.g.getUser().equals("")){
                       RunnerRepository.window.mainpanel.p1.sc.g.setUser(RunnerRepository.getUsersDirectory()+
-                                                                    RunnerRepository.getBar()+user);
+                                                                        RunnerRepository.getBar()+user);
                 }
                 File file = new File(RunnerRepository.temp+RunnerRepository.getBar()+"Twister"+RunnerRepository.getBar()+"Users"+RunnerRepository.getBar()+user);
                 BufferedWriter writer = new BufferedWriter(new FileWriter(file));
-                String content = RunnerRepository.getRemoteFileContent(RunnerRepository.getRemoteUsersDirectory()+"/"+user);
+                String content = new String(RunnerRepository.readProjectFile(user));
                 writer.write(content);
                 writer.close();
                 RunnerRepository.window.mainpanel.p1.sc.g.parseXML(new File(RunnerRepository.getUsersDirectory()+
                                                                               RunnerRepository.getBar()+user));
             } catch (Exception e){
                 e.printStackTrace();
-            }
-            
+            }            
         }
         if(RunnerRepository.getSuiteNr() > 0){
             RunnerRepository.window.mainpanel.p1.sc.g.updateLocations(RunnerRepository.getSuita(0));}
@@ -733,13 +716,24 @@ public class Panel1 extends JPanel{
      * generate master suites XML
      */
     private void generate(){
+        //check CE has clients started
+        try{
+            String resp = RunnerRepository.getRPCClient().execute("findAnonimEp", new Object[]{RunnerRepository.user}).toString();
+            if(resp=="false"){
+                CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE, RunnerRepository.window,
+                                        "ERROR","There are no clients started, please start client to run tests.");
+                return;
+            }
+        } catch (Exception e){
+            e.printStackTrace();
+        }
         RunnerRepository.window.mainpanel.getP2().setSaveDB(suitaDetails.saveDB());
         int defsNr = suitaDetails.getDefsNr();
         boolean execute=true;
+         /*
+          * check if mandatory fields are set
+          */
         for(int i=0;i<RunnerRepository.getSuiteNr();i++){
-            /*
-             * check if mandatory fields are set
-             */
             for(int j=0;j<defsNr;j++){
                 if( RunnerRepository.getDatabaseUserFields().get(j)[RunnerRepository.MANDATORY].equals("true") &&
                 (RunnerRepository.getSuita(i).getUserDefNr()-1<j||RunnerRepository.getSuita(i).getUserDef(j)[1].length()==0)){
@@ -748,7 +742,7 @@ public class Panel1 extends JPanel{
                                             RunnerRepository.getDatabaseUserFields().get(j)[RunnerRepository.LABEL]+
                                             " for: "+RunnerRepository.getSuita(i).getName());
                     execute = false;
-                    break;}}
+                    return;}}
         }
         
         /*
@@ -761,15 +755,59 @@ public class Panel1 extends JPanel{
                 CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, RunnerRepository.window,
                                         "Warning","Please set project defined field for "+projectdefined[i][2]);
                 execute = false;
-                break;
+                return;
             }
         }
         
+        /*
+         * chech that there are tc'es to run
+         */
+        for(Item i:RunnerRepository.getSuite()){
+            if(!findRunnableTC(i)){
+                CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, RunnerRepository.window,"Warning","Please add test cases to your suite");
+                execute = false;
+                return;
+            }
+        }
         
+        /*
+         * check tc/suite for names
+         */
+        Item temp = null;
+        for(Item i:RunnerRepository.getSuite()){
+            temp = RunnerRepository.hasEmptyName(i);
+            if(temp!=null){
+                CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE, RunnerRepository.window,"ERROR","There is an item with an empty name, please set name!");
+                execute = false;
+                return;
+            }
+        }
         
-        
-        
-        
+        /*
+         * check that SUT set on suites exist
+         */
+        String [] vecresult =  RunnerRepository.window.mainpanel.p4.getSut().sut.getSutTree().getSutsName();
+        if(vecresult!=null){
+            int size = vecresult.length;
+            for(int i=0;i<size;i++){
+                vecresult[i] = vecresult[i].replace(".user", "(user)");
+                vecresult[i] = vecresult[i].replace(".system", "(system)");
+            }
+            for(Item i:RunnerRepository.getSuite()){
+                boolean found = false;
+                for(String item:i.getEpId()){
+                    for(String sut:vecresult){
+                        if(item.equals(sut)){
+                            found = true;
+                        }
+                    }
+                    if(!found){
+                        CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE, RunnerRepository.window,"Error","SUT file"+item+" cannot be read");
+                        return;
+                    }
+                }
+            }
+        }
         
         if(execute){
             String [] s = sc.g.getUser().split("\\\\");
@@ -803,18 +841,34 @@ public class Panel1 extends JPanel{
             File xml = new File(RunnerRepository.getTestXMLDirectory());
             int size = RunnerRepository.getLogs().size();
             for(int i=5;i<size;i++){RunnerRepository.getLogs().remove(5);}
-//             new XMLReader(xml).parseXML(sc.g.getGraphics(), true);
             new XMLReader(xml).parseXML(sc.g.getGraphics(), true,RunnerRepository.getTestSuite(),false);
             setRunning();
         }
     }
     
+    
+    
+    
+    /*
+     * find if there is a tc set to be executed
+     */
+    private boolean findRunnableTC(Item i){
+        if(i.getType()==1&&i.getCheck()){
+            return true;
+        }
+        if(i.getType()==2){
+            for(int j=0;j<i.getSubItemsNr();j++){
+                if(findRunnableTC(i.getSubItem(j))){
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+    
     public void setRunning(){
         final int loc = splitPane3.getDividerLocation();
         splitPane3.setLeftComponent(RunnerRepository.window.mainpanel.getP2().sc.pane);
-//         JScrollPane sp = new JScrollPane();
-//         sp.setPreferredSize(new Dimension(800,600));
-//         splitPane3.setLeftComponent(sc);
         try{
             SwingUtilities.invokeLater(new Runnable(){
                 public void run() {
@@ -833,11 +887,10 @@ public class Panel1 extends JPanel{
         add(RunnerRepository.window.mainpanel.getP2().play);
         add(RunnerRepository.window.mainpanel.getP2().stop);        
         add(RunnerRepository.window.mainpanel.getP2().cestatus);
-        RunnerRepository.window.mainpanel.getP2().play.doClick();
         suitaDetails.setEnabled(false);
         tcdetails.logs.doClick();
+        RunnerRepository.window.mainpanel.getP2().play.doClick();
         repaint();
-        
     }
         
     /*
@@ -852,55 +905,10 @@ public class Panel1 extends JPanel{
                                                             "Delete", null);
         if(r == JOptionPane.OK_OPTION){
             RunnerRepository.emptySuites();
-            try{new File(sc.g.getUser()).delete();
-                if(!RunnerRepository.removeRemoteFile(RunnerRepository.getRemoteUsersDirectory()+"/"+(new File(sc.g.getUser()).getName()))){
-                    System.out.println("Could not delete "+new File(sc.g.getUser()).getName()+
-                                        " from "+RunnerRepository.getRemoteUsersDirectory());
-                }
-//                 try{RunnerRepository.c.cd(RunnerRepository.getRemoteUsersDirectory());
-//                     RunnerRepository.c.rm(new File(sc.g.getUser()).getName());}
-//                 catch(Exception e){
-//                     System.out.println("Could not delete "+new File(sc.g.getUser()).getName()+
-//                                         " from "+RunnerRepository.getRemoteUsersDirectory());
-//                     e.printStackTrace();}
+            try{RunnerRepository.deleteProjectFile(new File(sc.g.getUser()).getName());
+                new File(sc.g.getUser()).delete();
             }
-            catch(Exception e){e.printStackTrace();}
-//             File usersdirectory = new File(RunnerRepository.getUsersDirectory());
-//             String users[] = new String[usersdirectory.list().length + 1];
-//             System.arraycopy(usersdirectory.list(), 0, users, 0, usersdirectory.list().length);
-//             users[users.length - 1] = "New File";
-//             JComboBox combo = new JComboBox(users);
-//             int resp = (Integer)CustomDialog.showDialog(combo,JOptionPane.INFORMATION_MESSAGE,
-//                                                         JOptionPane.OK_CANCEL_OPTION,Panel1.this,
-//                                                         "File Name",null);
-//             if(resp==JOptionPane.OK_OPTION){
-//                 String user = combo.getSelectedItem().toString();
-//                 if(user.equals("New File")){
-//                     user = CustomDialog.showInputDialog(JOptionPane.QUESTION_MESSAGE, JOptionPane.OK_CANCEL_OPTION,
-//                                                         Panel1.this, "File Name", "Please enter file name");
-//                     if(!user.equals("NULL")){
-//                         RunnerRepository.emptySuites();
-//                         sc.g.getSelectedCollection().clear();
-//                         (new XMLBuilder(RunnerRepository.getSuite())).writeXMLFile((new StringBuilder()).
-//                                                                append(RunnerRepository.getUsersDirectory()).
-//                                                                append(System.getProperty("file.separator"))
-//                                                                .append(user).append(".xml").toString(),false,false,false);
-//                         sc.g.setUser((new StringBuilder()).append(RunnerRepository.getUsersDirectory()).
-//                                                                     append(System.getProperty("file.separator")).
-//                                                                     append(user).append(".xml").toString());
-//                         sc.g.printXML(sc.g.getUser(),false,false,false,false,"",false,null);}}
-//                 else if(user != null){
-//                     sc.g.setUser((new StringBuilder()).append(RunnerRepository.getUsersDirectory()).
-//                                                                 append(System.getProperty("file.separator")).
-//                                                                 append(user).toString());
-//                     sc.g.parseXML(new File((new StringBuilder()).append(RunnerRepository.getUsersDirectory()).
-//                                                                 append(System.getProperty("file.separator")).
-//                                                                 append(user).toString()));}}
-//             else RunnerRepository.window.mainpanel.p1.sc.g.setUser("");
-//             if(RunnerRepository.getSuiteNr() > 0)RunnerRepository.window.mainpanel.p1.sc.g.updateLocations(RunnerRepository.getSuita(0));
-//             RunnerRepository.window.mainpanel.p1.sc.g.repaint();
-//             RunnerRepository.window.mainpanel.p1.sc.g.repaint();
-        }
+            catch(Exception e){e.printStackTrace();}}
             RunnerRepository.openProjectFile();
         
         

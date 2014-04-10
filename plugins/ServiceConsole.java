@@ -1,6 +1,6 @@
 /*
 File: ServiceConsole.java ; This file is part of Twister.
-Version: 2.003
+Version: 2.004
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -26,13 +26,9 @@ import java.awt.Component;
 import java.awt.Font;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.io.File;
-import java.io.FileInputStream;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Hashtable;
-import java.util.Properties;
-
 import javax.swing.JCheckBox;
 import javax.swing.JDesktopPane;
 import javax.swing.JInternalFrame;
@@ -43,31 +39,18 @@ import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.event.InternalFrameAdapter;
 import javax.swing.event.InternalFrameEvent;
-
-import com.jcraft.jsch.Channel;
-import com.jcraft.jsch.ChannelSftp;
-import com.jcraft.jsch.JSch;
-import com.jcraft.jsch.Session;
 import com.twister.Item;
 import com.twister.plugin.baseplugin.BasePlugin;
 import com.twister.plugin.twisterinterface.TwisterPluginInterface;
-
 import org.apache.xmlrpc.XmlRpcException;
 import org.apache.xmlrpc.client.XmlRpcClient;
 import org.apache.xmlrpc.client.XmlRpcClientConfigImpl;
 import org.w3c.dom.Document;
-import javax.xml.transform.OutputKeys;
-import javax.xml.transform.Result;
-import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerFactory;
-import javax.xml.transform.dom.DOMSource;
-import javax.xml.transform.stream.StreamResult;
 import javax.xml.bind.DatatypeConverter;
 
 public class ServiceConsole extends BasePlugin implements TwisterPluginInterface {
 	private static final long serialVersionUID = 1L;
 	private JPanel p;
-	private ChannelSftp c;
 	private XmlRpcClient client;
 	private JCheckBox [] services;
 

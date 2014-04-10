@@ -1,9 +1,9 @@
 
 # File: xmlparser.py ; This file is part of Twister.
 
-# version: 3.010
+# version: 3.017
 
-# Copyright (C) 2012-2013 , Luxoft
+# Copyright (C) 2012-2014 , Luxoft
 
 # Authors:
 #    Andrei Costachi <acostachi@luxoft.com>
@@ -45,13 +45,43 @@ from common.tsclogging import *
 from common.suitesmanager import *
 from common.constants import FWMCONFIG_TAGS, PROJECTCONFIG_TAGS
 from common.constants import SUITES_TAGS, TESTS_TAGS
+from CeFs import LocalFS
 
-__all__ = ['TSCParser', 'DBParser', 'PluginParser']
+parser = etree.XMLParser(ns_clean=True, remove_blank_text=True)
+etree.set_default_parser(parser)
+
+localFs = LocalFS() # Singleton
+
+__all__ = ['TSCParser', 'DBParser', 'PluginParser', 'ClearCaseParser']
 
 
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# # #
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # #   Helpers   # # #
+
+
+def parseXML(user, fname):
+    """
+    Read 1 XML file via remote client and parse the content.
+    """
+    data = localFs.readUserFile(user, fname)
+    try:
+        return etree.fromstring(data)
+    except Exception as e:
+        logError('Error parsing file `{}`, for user `{}`: `{}`!'.format(fname, user, e))
+        return None
+
+def dumpXML(user, fname, tree):
+    """
+    Write 1 XML file via remote client.
+    """
+    data = etree.tostring(tree, pretty_print=True)
+    try:
+        return localFs.writeUserFile(user, fname, data)
+    except Exception as e:
+        logError('Error dumping XML into file `{}`, for user `{}`: `{}`!'.format(fname, user, e))
+        return None
+
+
+# # #   Main  Parser   # # #
 
 
 class TSCParser:
@@ -67,8 +97,11 @@ class TSCParser:
 
     def __init__(self, user, base_config='', files_config=''):
 
+        self.user = user
+        self.user_home = userHome(user)
+
         if os.path.isfile(base_config):
-            base_config = open(base_config).read()
+            base_config = localFs.readUserFile(user, base_config)
         elif base_config and ( type(base_config)==type('') or type(base_config)==type(u'') ) \
                 and ( base_config[0] == '<' and base_config[-1] == '>' ):
             pass
@@ -77,15 +110,16 @@ class TSCParser:
 
         try:
             self.xmlDict = etree.fromstring(base_config)
-        except:
-            raise Exception('Parser ERROR: Cannot access XML config data!')
+        except Exception as e:
+            raise Exception('Parser ERROR: Cannot access XML config! `{}`'.format(e))
 
-        self.user = user
-        self.user_home = userHome(user)
 
         self.configTS = None
         self.configHash = None
         self.project_globals = {}
+        self.file_no = 1000
+        self.suite_no = 100
+        self.files_config = ''
 
         self.updateConfigTS(files_config)
         self.updateProjectGlobals()
@@ -98,9 +132,6 @@ class TSCParser:
         The file number and suite number have to be unique.
         """
         logFull('xmlparser:updateConfigTS')
-        self.file_no = 1000
-        self.suite_no = 100
-        self.files_config = ''
 
         if files_config and ( type(files_config)==type('') or type(files_config)==type(u'') ) \
                 and ( files_config[0] == '<' and files_config[-1] == '>' ):
@@ -119,24 +150,24 @@ class TSCParser:
             if files_config.startswith('~/'):
                 files_config = userHome(self.user) + files_config[1:]
             if not os.path.isfile(files_config):
-                logError('Parser: Test-Suites XML file `{}` does not exist! Please check framework config XML file!'.format(files_config))
+                logError('User {}: Parser: Test-Suites XML file `{}` does not exist! Please check framework config XML file!'.format(self.user,files_config))
                 self.configTS = None
                 return -1
             else:
-                config_ts = open(files_config).read()
+                config_ts = localFs.readUserFile(self.user, files_config)
 
             # Hash check the XML file, to see if is changed
             newConfigHash = hashlib.md5(config_ts).hexdigest()
 
         if self.configHash != newConfigHash:
-            logDebug('Parser: Test-Suites XML file changed, rebuilding internal structure...\n')
+            logDebug('User {}: Parser: Test-Suites XML file changed, rebuilding internal structure...\n'.format(self.user))
             # Use the new hash
             self.configHash = newConfigHash
             # Create XML Soup from the new XML file
             try:
                 self.configTS = etree.fromstring(config_ts)
-            except:
-                logError('Parser ERROR: Cannot access Test-Suites XML data!')
+            except Exception:
+                logError('User {}: Parser ERROR: Cannot access Test-Suites XML data!'.format(self.user))
                 self.configTS = None
                 return -1
 
@@ -149,7 +180,7 @@ class TSCParser:
         """
         logFull('xmlparser:updateProjectGlobals')
         if self.configTS is None:
-            logError('Parser: Cannot get project globals, because Test-Suites XML is invalid!')
+            logError('User {}: Parser: Cannot get project globals, because Test-Suites XML is invalid!'.format(self.user))
             return False
 
         # Reset globals
@@ -194,7 +225,7 @@ class TSCParser:
         """
         logFull('xmlparser:getActiveEps')
         if self.configTS is None:
-            logError('Parser ERROR: Cannot get active EPs, because Test-Suites XML is invalid!')
+            logError('User {}: Parser ERROR: Cannot get active EPs, because Test-Suites XML is invalid!'.format(self.user))
             return []
 
         activeEPs = []
@@ -215,9 +246,11 @@ class TSCParser:
         """
         logFull('xmlparser:listSettings')
         if not os.path.isfile(xmlFile):
-            logError('Parse settings error! File path `{}` does not exist!'.format(xmlFile))
+            logError('User {}: Parse settings error! File path `{}` does not exist!'.format(self.user,xmlFile))
             return False
-        xmlSoup = etree.parse(xmlFile)
+        xmlSoup = parseXML(self.user, xmlFile)
+        if xmlSoup is None:
+            return []
         if xFilter:
             return [x.tag for x in xmlSoup.xpath('//*') if xFilter in x.tag]
         else:
@@ -230,14 +263,15 @@ class TSCParser:
         """
         logFull('xmlparser:getSettingsValue')
         if not os.path.isfile(xmlFile):
-            logError('Parse settings error! File path `{}` does not exist!'.format(xmlFile))
+            logError('User {}: Parse settings error! File path `{}` does not exist!'.format(self.user,xmlFile))
             return False
         if not key:
             return False
         else:
             key = str(key)
-
-        xmlSoup = etree.parse(xmlFile)
+        xmlSoup = parseXML(self.user, xmlFile)
+        if xmlSoup is None:
+            return False
         if xmlSoup.xpath(key):
             txt = xmlSoup.xpath(key)[0].text
             return (txt or '')
@@ -251,7 +285,7 @@ class TSCParser:
         """
         logFull('xmlparser:setSettingsValue')
         if not os.path.isfile(xmlFile):
-            logError('Parse settings error! File path `{}` does not exist!'.format(xmlFile))
+            logError('User {}: Parse settings error! File path `{}` does not exist!'.format(self.user,xmlFile))
             return False
         if not key:
             return False
@@ -262,7 +296,9 @@ class TSCParser:
         else:
             value = str(value)
 
-        xmlSoup = etree.parse(xmlFile)
+        xmlSoup = parseXML(self.user, xmlFile)
+        if xmlSoup is None:
+            return False
         xml_key = xmlSoup.xpath(key)
 
         # If the key is found, update it
@@ -287,8 +323,7 @@ class TSCParser:
             node.tail = '\n'
             parent[0].insert(-1, node)
 
-        xmlSoup.write(xmlFile, pretty_print=True)
-        return True
+        return dumpXML(self.user, xmlFile, xmlSoup)
 
 
     def delSettingsKey(self, xmlFile, key, index=0):
@@ -300,7 +335,7 @@ class TSCParser:
         """
         logFull('xmlparser:delSettingsKey')
         if not os.path.isfile(xmlFile):
-            logError('Parse settings error! File path `{}` does not exist!'.format(xmlFile))
+            logError('User {}: Parse settings error! File path `{}` does not exist!'.format(self.user,xmlFile))
             return False
         # The key must be string
         if not (isinstance(key, str) or isinstance(key, unicode)):
@@ -314,10 +349,12 @@ class TSCParser:
         else:
             key = str(key)
 
-        xmlSoup = etree.parse(xmlFile)
+        xmlSoup = parseXML(self.user, xmlFile)
+        if xmlSoup is None:
+            return False
         xml_key = xmlSoup.xpath(key)
 
-        if not len(xml_key):
+        if xml_key is None:
             return False
 
         # For index -1, delete all matches
@@ -328,13 +365,12 @@ class TSCParser:
         else:
             # Use the index-th occurence, or, if the index is wrong, exit
             try: xml_key = xml_key[index]
-            except: return False
+            except Exception: return False
 
             xml_parent = xml_key.getparent()
             xml_parent.remove(xml_key)
 
-        xmlSoup.write(xmlFile, pretty_print=True)
-        return True
+        return dumpXML(self.user, xmlFile, xmlSoup)
 
 
     def setPersistentSuite(self, xmlFile, suite, info={}, order=-1):
@@ -343,19 +379,21 @@ class TSCParser:
         """
         logFull('xmlparser:setPersistentSuite')
         if not os.path.isfile(xmlFile):
-            logError('Parse settings error! File path `{}` does not exist!'.format(xmlFile))
+            logError('User {}: Parse settings error! File path `{}` does not exist!'.format(self.user,xmlFile))
             return False
         if not suite:
             return False
         else:
             suite = str(suite)
         try: order = int(order)
-        except: return False
+        except Exception: return False
 
         # Root element from Project XML
-        xmlSoup = etree.parse(xmlFile)
-        xml_root = xmlSoup.getroot()
-        suites_index = [xml_root.index(s) for s in xml_root.xpath('/Root/TestSuite')]
+        xmlSoup = parseXML(self.user, xmlFile)
+        if xmlSoup is None:
+            return False
+
+        suites_index = [xmlSoup.index(s) for s in xmlSoup.xpath('/Root/TestSuite')]
 
         if order == 0:
             # Add before the first suite
@@ -378,13 +416,13 @@ class TSCParser:
         tsName = etree.SubElement(suite_xml, 'tsName')
         tsName.text = suite
         epName = etree.SubElement(suite_xml, 'EpId')
-        epName.text = info.get('ep', ' ') ; epName.tail = '\n'
+        epName.text = info.get('ep', ' ')
         try: del info['ep']
-        except: pass
+        except Exception: pass
         sutName = etree.SubElement(suite_xml, 'SutName')
-        sutName.text = info.get('sut', ' ') ; sutName.tail = '\n'
+        sutName.text = info.get('sut', ' ')
         try: del info['sut']
-        except: pass
+        except Exception: pass
 
         for k, v in info.iteritems():
             tag = etree.SubElement(suite_xml, 'UserDefined')
@@ -394,9 +432,9 @@ class TSCParser:
             val.text = str(v)
 
         # Insert the new suite and save
-        xml_root.insert(insert_pos, suite_xml)
-        xmlSoup.write(xmlFile, pretty_print=True)
-        return True
+        xmlSoup.insert(insert_pos, suite_xml)
+
+        return dumpXML(self.user, xmlFile, xmlSoup)
 
 
     def setPersistentFile(self, xmlFile, suite, fname, info={}, order=-1):
@@ -405,7 +443,7 @@ class TSCParser:
         """
         logFull('xmlparser:setPersistentFile')
         if not os.path.isfile(xmlFile):
-            logError('Parse settings error! File path `{}` does not exist!'.format(xmlFile))
+            logError('User {}: Parse settings error! File path `{}` does not exist!'.format(self.user,xmlFile))
             return False
         if not suite:
             return False
@@ -416,13 +454,14 @@ class TSCParser:
         else:
             fname = str(fname)
         try: order = int(order)
-        except: return False
+        except Exception: return False
 
         # Root element from Project XML
-        xmlSoup = etree.parse(xmlFile)
-        xml_root = xmlSoup.getroot()
+        xmlSoup = parseXML(self.user, xmlFile)
+        if xmlSoup is None:
+            return False
 
-        suite_xml = xml_root.xpath('/Root/TestSuite[tsName="{0}"]'.format(suite))
+        suite_xml = xmlSoup.xpath('/Root/TestSuite[tsName="{0}"]'.format(suite))
         if not suite_xml: return False
         else: suite_xml = suite_xml[0]
 
@@ -447,22 +486,20 @@ class TSCParser:
 
         # File XML object
         file_xml = etree.Element('TestCase')
-        file_xml.text = '\n' ; file_xml.tail = '\n'
         tcName = etree.SubElement(file_xml, 'tcName')
-        tcName.text = fname ; tcName.tail = '\n'
+        tcName.text = fname
 
         for k, v in info.iteritems():
             tag = etree.SubElement(file_xml, 'Property')
-            tag.text = '\n' ; tag.tail = '\n'
             prop = etree.SubElement(tag, 'propName')
-            prop.text = str(k) ; prop.tail = '\n'
+            prop.text = str(k)
             val  = etree.SubElement(tag, 'propValue')
-            val.text = str(v) ; val.tail = '\n'
+            val.text = str(v)
 
         # Insert the new file and save
         suite_xml.insert(insert_pos, file_xml)
-        xmlSoup.write(xmlFile, pretty_print=True)
-        return True
+
+        return dumpXML(self.user, xmlFile, xmlSoup)
 
 # # #
 
@@ -501,7 +538,7 @@ class TSCParser:
         logs_path = self.project_globals['logs_path']
 
         if not logs_path:
-            logError('Parser: Logs path is not defined! Please check framework config XML file!')
+            logError('User {}: Parser: Logs path is not defined! Please check framework config XML file!'.format(self.user))
             return {}
 
         logType = self._fixLogType(logType)
@@ -523,13 +560,11 @@ class TSCParser:
             eml_file = self.project_globals['eml_config']
 
         if not os.path.isfile(eml_file):
-            logError('Parser: E-mail Config file `{}` does not exist!'.format(eml_file))
+            logError('User {}: Parser: E-mail Config file `{}` does not exist!'.format(self.user,eml_file))
             return {}
 
-        try:
-            econfig = etree.parse(eml_file)
-        except:
-            logError('Parser: Cannot parse e-mail Config file `{}`!'.format(eml_file))
+        econfig = parseXML(self.user, eml_file)
+        if econfig is None:
             return {}
 
         res = {}
@@ -571,18 +606,22 @@ class TSCParser:
         cfg_file = '{}/twister/config/bindings.xml'.format(userHome(self.user))
 
         if not os.path.isfile(cfg_file):
-            err = '*ERROR* Bindings Config file `{}` does not exist!'.format(cfg_file)
+            err = '*ERROR* Bindings Config file `{}`, for user `{}` does not exist!'.format(cfg_file, self.user)
             logError(err)
             return err
 
-        bind_xml = etree.parse(cfg_file)
+        bind_xml = parseXML(self.user, cfg_file)
+        if bind_xml is None:
+            err = '*ERROR* Config file `{}`, for user `{}` cannot be parsed!'.format(cfg_file, self.user)
+            return err
+        # Find the old binding
         found = bind_xml.xpath('/root/binding/name[text()="{}"]/..'.format(fpath))
 
         if found:
             xml_string = etree.tostring(found[0])
             return xml_string.replace('binding>', 'root>')
         else:
-            logWarning('*ERROR* Cannot find binding name `{}`!'.format(fpath))
+            logWarning('*ERROR* Cannot find binding name `{}` for user {}!'.format(fpath,self.user))
             return False
 
 
@@ -595,12 +634,14 @@ class TSCParser:
         cfg_file = '{}/twister/config/bindings.xml'.format(userHome(self.user))
 
         if not os.path.isfile(cfg_file):
-            err = '*ERROR* Bindings Config file `{}` does not exist!'.format(cfg_file)
+            err = '*ERROR* Bindings Config file `{}`, for user `{}` does not exist!'.format(cfg_file, self.user)
             logError(err)
             return err
 
-        parser = etree.XMLParser(ns_clean=True, remove_blank_text=True)
-        bind_xml = etree.parse(cfg_file, parser)
+        bind_xml = parseXML(self.user, cfg_file)
+        if bind_xml is None:
+            err = '*ERROR* Config file `{}`, for user `{}` cannot be parsed!'.format(cfg_file, self.user)
+            return err
         # Find the old binding
         found = bind_xml.xpath('/root/binding/name[text()="{}"]/..'.format(fpath))
 
@@ -610,15 +651,15 @@ class TSCParser:
             found.clear()
         # Or create it
         else:
-            found = etree.SubElement(bind_xml.getroot(), 'binding')
+            found = etree.SubElement(bind_xml, 'binding')
 
         name  = etree.SubElement(found, 'name')
         name.text = fpath
 
         try:
-            replace_xml = etree.XML(content, parser)
-        except:
-            err = '*ERROR* Invalid XML content! Cannot parse!'
+            replace_xml = etree.fromstring(content, parser)
+        except Exception:
+            err = '*ERROR* Invalid XML content, user {}! Cannot parse!'.format(self.user)
             logWarning(err)
             return err
 
@@ -627,6 +668,38 @@ class TSCParser:
 
         # Beautify XML ?
         return etree.tostring(bind_xml, pretty_print=True)
+
+
+    def delBinding(self, fpath):
+        """
+        Delete a binding between a CFG and a SUT.
+        Return True/ False.
+        """
+        logFull('xmlparser:delBinding')
+        cfg_file = '{}/twister/config/bindings.xml'.format(userHome(self.user))
+
+        if not os.path.isfile(cfg_file):
+            err = '*ERROR* Bindings Config file `{}`, for user `{}` does not exist!'.format(cfg_file, self.user)
+            logError(err)
+            return err
+
+        bind_xml = parseXML(self.user, cfg_file)
+        if bind_xml is None:
+            err = '*ERROR* Config file `{}`, for user `{}` cannot be parsed!'.format(cfg_file, self.user)
+            return err
+        # Find the binding
+        found = bind_xml.xpath('/root/binding/name[text()="{}"]/..'.format(fpath))
+
+        # If found, delete it
+        if found:
+            bind_xml.remove(found[0])
+            logDebug('Removed binding `{}`, for user `{}`.'.format(fpath, self.user))
+        else:
+            err = '*WARN* Invalid binding `{}`, user `{}`! Cannot unbind!'.format(fpath, self.user)
+            # logDebug(err)
+            return False
+
+        return dumpXML(self.user, cfg_file, bind_xml)
 
 
     def getBindingsConfig(self):
@@ -638,11 +711,14 @@ class TSCParser:
         bindings = {}
 
         if not os.path.isfile(cfg_file):
-            err = '*ERROR* Bindings Config file `{}` does not exist!'.format(cfg_file)
+            err = '*ERROR* Bindings Config file `{}`, for user `{}` does not exist!'.format(cfg_file, self.user)
             logError(err)
             return err
 
-        bind_xml = etree.parse(cfg_file)
+        bind_xml = parseXML(self.user, cfg_file)
+        if bind_xml is None:
+            err = '*ERROR* Config file `{}`, for user `{}` cannot be parsed!'.format(cfg_file, self.user)
+            return err
 
         for binding in bind_xml.xpath('/root/binding'):
             name = binding.find('name')
@@ -668,7 +744,7 @@ class TSCParser:
         """
         Create recursive list of folders and files from Tests path.
         """
-        if (not len(xml_object)) or (not epName):
+        if (xml_object is None) or (not epName):
             return {}
 
         # For each testsuite from current xml object
@@ -797,13 +873,15 @@ class TSCParser:
             globs_file = self.project_globals['glob_params']
         # Second check, the user config file
         if not globs_file:
-            logError('Get Globals: Globals Config file is not defined! Please check framework config XML file!')
+            logError('User {}: Get Globals: Globals Config file is not defined! Please check framework config XML file!'.format(self.user))
             return {}
         if not os.path.isfile(globs_file):
-            logError('Get Globals: Globals Config file `{}` does not exist!'.format(globs_file))
+            logError('User {}: Get Globals: Globals Config file `{}` does not exist!'.format(self.user,globs_file))
             return {}
 
-        params_xml = etree.parse(globs_file)
+        params_xml = parseXML(self.user, globs_file)
+        if params_xml is None:
+            return {}
 
         def recursive(xml, gparams):
             for folder in xml.xpath('folder'):
@@ -816,21 +894,21 @@ class TSCParser:
         return gparams
 
 
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# # # Database XML parser
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # #   Database Parser   # # #
 
 
-class DBParser():
+class DBParser(object):
     """
     Requirements: LXML.
     This parser will read DB.xml.
     """
 
-    def __init__(self, config_data):
+    def __init__(self, user, config_data):
 
+        self.user = user
         self.db_config = {}
         self.config_data = config_data
+        self.xmlDict = None
         self.updateConfig()
 
 
@@ -840,11 +918,12 @@ class DBParser():
         config_data = self.config_data
 
         if os.path.isfile(config_data):
-            try: self.xmlDict = etree.fromstring(open(config_data).read())
-            except: raise Exception('Db Parser: Invalid DB config file `{}`!'.format(config_data))
+            data = localFs.readUserFile(self.user, config_data)
+            try: self.xmlDict = etree.fromstring(data)
+            except Exception: raise Exception('Db Parser: Invalid DB config file `{}`!'.format(config_data))
         elif config_data and type(config_data)==type('') or type(config_data)==type(u''):
             try: self.xmlDict = etree.fromstring(config_data)
-            except: raise Exception('Db Parser: Cannot parse DB config file!')
+            except Exception: raise Exception('Db Parser: Cannot parse DB config file!')
         else:
             raise Exception('Db Parser: Invalid config data type: `{}`!'.format( type(config_data) ))
 
@@ -876,7 +955,7 @@ class DBParser():
         fields = self.xmlDict.xpath('insert_section/field')
 
         if not fields:
-            logWarning('Db Parser: Cannot load the reports fields section!')
+            logWarning('User {}: Db Parser: Cannot load the reports fields section!'.format(self.user))
             return {}
 
         res = OrderedDict()
@@ -897,7 +976,7 @@ class DBParser():
         logFull('xmlparser:getQuery')
         res =  self.xmlDict.xpath('insert_section/field[@ID="%s"]' % field_id)
         if not res:
-            logWarning('Db Parser: Cannot find field ID `{}`!'.format(field_id))
+            logWarning('User {}: Db Parser: Cannot find field ID `{}`!'.format(self.user,field_id))
             return False
 
         query = res[0].get('SQLQuery')
@@ -915,7 +994,7 @@ class DBParser():
         fields = self.xmlDict.xpath('reports_section/field')
 
         if not fields:
-            logWarning('Db Parser: Cannot load the reports fields section!')
+            logWarning('User {}: Db Parser: Cannot load the reports fields section!'.format(self.user))
             return {}
 
         res = OrderedDict()
@@ -932,14 +1011,14 @@ class DBParser():
 
 
     def getReports(self):
-        logFull('xmlparser:getReports')
         """ Used by HTTP Server. """
+        logFull('xmlparser:getReports')
         self.updateConfig()
 
         reports = self.xmlDict.xpath('reports_section/report')
 
         if not reports:
-            logWarning('Db Parser: Cannot load the database reports section!')
+            logWarning('User {}: Db Parser: Cannot load the database reports section!'.format(self.user))
             return {}
 
         res = OrderedDict()
@@ -966,7 +1045,7 @@ class DBParser():
         redirects = self.xmlDict.xpath('reports_section/redirect')
 
         if not redirects:
-            logWarning('Db Parser: Cannot load the database redirects section!')
+            logWarning('User {}: Db Parser: Cannot load the database redirects section!'.format(self.user))
             return {}
 
         res = OrderedDict()
@@ -980,78 +1059,67 @@ class DBParser():
         return res
 
 
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# # # Plugins XML parser
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # #   Plugins   # # #
 
 
-class PluginParser:
+class PluginParser(object):
     """
     Requirements: LXML.
-    This parser will read Plugins.xml.
+    This parser will read user's Plugins.xml.
     """
 
     def __init__(self, user):
 
+        self.user = user
         user_home = userHome(user)
 
-        if not os.path.exists('{}/twister'.format(user_home)):
-            raise Exception('PluginParser ERROR: Cannot find Twister for user `{}`, '\
+        if not os.path.isdir('{}/twister'.format(user_home)):
+            raise Exception('PluginParser: Cannot find Twister for user `{}`, '\
                 'in path `{}/twister`!'.format(user, user_home))
 
         config_data = '{}/twister/config/plugins.xml'.format(user_home)
-        if not os.path.exists(config_data):
-            raise Exception('PluginParser ERROR: Cannot find Plugins for user `{}`, '\
+        if not os.path.isfile(config_data):
+            raise Exception('PluginParser: Cannot find Plugins for user `{}`, '\
                 'in path `{}/twister/config`!'.format(user, user_home))
 
-        self.config_data = config_data
-        self.configHash = None
-        self.p_config = OrderedDict()
-        self.updateConfig()
+        # Read directly from CE
+        xml_data = localFs.readSystemFile(config_data)
+        self.config = OrderedDict()
 
+        try:
+            self.xmlTree = etree.fromstring(xml_data)
+        except Exception:
+            raise Exception('PluginParser: Cannot access plugins XML data!')
 
-    def updateConfig(self):
-        """ Reload all Plugins Xml info """
-        logFull('xmlparser:updateConfig')
+        for plugin in self.xmlTree.xpath('Plugin'):
 
-        config_data = open(self.config_data).read()
-        newConfigHash = hashlib.md5(config_data).hexdigest()
+            if not (plugin.xpath('name/text()') and plugin.xpath('pyfile') and plugin.xpath('jarfile')):
+                logWarning('User {}: PluginParser: Invalid config for plugin: `{}`!'.format(self.user,plugin))
+                continue
 
-        if self.configHash != newConfigHash:
-            self.configHash = newConfigHash
+            prop_keys = plugin.xpath('property/propname')
+            prop_vals = plugin.xpath('property/propvalue')
+            res = dict(zip([k.text for k in prop_keys], [v.text for v in prop_vals])) # Pack Name + Value
 
-            try:
-                self.xmlDict = etree.fromstring(config_data)
-            except:
-                logError('PluginParser ERROR: Cannot access plugins XML data!')
-                return False
+            name = plugin.xpath('name')[0].text
 
-            for plugin in self.xmlDict.xpath('Plugin'):
+            self.config[name] = res
 
-                if (not plugin.xpath('name/text()')) or (not plugin.xpath('pyfile')) or (not plugin.xpath('jarfile')):
-                    logWarning('PluginParser WARN: Invalid config for plugin: `{}`!'.format(plugin))
-                    continue
-                name = plugin.xpath('name')[0].text
-
-                prop_keys = plugin.xpath('property/propname')
-                prop_vals = plugin.xpath('property/propvalue')
-                res = dict(zip([k.text for k in prop_keys], [v.text for v in prop_vals])) # Pack Key + Value
-
-                self.p_config[name] = res
-
-                self.p_config[name]['jarfile'] = plugin.xpath('jarfile')[0].text.strip() if plugin.xpath('jarfile/text()') else ''
-                self.p_config[name]['pyfile']  = plugin.xpath('pyfile')[0].text.strip()  if plugin.xpath('pyfile/text()') else ''
-                self.p_config[name]['status']  = plugin.xpath('status')[0].text.strip()  if plugin.xpath('status/text()') else ''
+            self.config[name]['jarfile'] = plugin.xpath('jarfile')[0].text.strip() \
+                                             if plugin.xpath('jarfile/text()') else ''
+            self.config[name]['pyfile']  = plugin.xpath('pyfile')[0].text.strip() \
+                                             if plugin.xpath('pyfile/text()') else ''
+            self.config[name]['status']  = plugin.xpath('status')[0].text.strip() \
+                                             if plugin.xpath('status/text()') else ''
 
 
     def getPlugins(self):
         """ Return all plugins info """
         logFull('xmlparser:getPlugins')
 
-        self.updateConfig()
         Base = BasePlugin.BasePlugin
-        py_modules = [k +'::'+ os.path.splitext(self.p_config[k]['pyfile'])[0]
-                      for k in self.p_config if self.p_config[k]['status'] == 'enabled']
+        py_modules = [k +'::'+ os.path.splitext(self.config[k]['pyfile'])[0]
+                      for k in self.config if self.config[k]['status'] == 'enabled']
         plugins = {}
 
         for module in py_modules:
@@ -1070,23 +1138,85 @@ class PluginParser:
                 mm = reload(mm)
                 plug = mm.Plugin
             except Exception, e:
-                logWarning('PluginParser ERROR: Unhandled exception in plugin file `{}`! Exception: {}!'.format(mod, e))
+                logWarning('User {}: PluginParser ERROR: Unhandled exception in plugin file `{}`! Exception: {}!'.format(self.user,mod, e))
                 continue
 
             if not plug:
-                logWarning('PluginParser ERROR: Plugin `{}` cannot be Null!'.format(plug))
+                logWarning('User {}: PluginParser ERROR: Plugin `{}` cannot be Null!'.format(self.user,plug))
                 continue
             # Check plugin parent. Must be Base Plugin.
             if not issubclass(plug, Base):
-                logWarning('PluginParser ERROR: Plugin `{}` must be inherited from Base Plugin!'.format(plug))
+                logWarning('User {}: PluginParser ERROR: Plugin `{}` must be inherited from Base Plugin!'.format(self.user,plug))
                 continue
 
             # Append plugin classes to plugins list
-            d = self.p_config[name]
+            d = self.config[name]
             d['plugin'] = plug
             plugins[name] = d
 
         return plugins
+
+
+# # #   ClearCase   # # #
+
+
+class ClearCaseParser(object):
+    """
+    Requirements: LXML.
+    This parser will read user's Clearcase.xml.
+    """
+
+    def __init__(self, user):
+
+        self.user = user
+        user_home = userHome(user)
+        self.user_home = user_home
+        self.config = {}
+
+        if not os.path.isdir('{}/twister'.format(user_home)):
+            raise Exception('ClearCaseParser: Cannot find Twister for user `{}`, '\
+                'in path `{}/twister`!'.format(user, user_home))
+
+        config_data = '{}/twister/config/clearcaseconfig.xml'.format(user_home)
+        if not os.path.isfile(config_data):
+            raise Exception('ClearCaseParser: Cannot find Clearcase XML for user `{}`, '\
+                'in path `{}/twister/config`!'.format(user, user_home))
+
+        # Read directly from CE
+        xml_data = localFs.readSystemFile(config_data)
+
+        try:
+            self.xmlTree = etree.fromstring(xml_data)
+        except Exception:
+            raise Exception('ClearCaseParser: Cannot access Clearcase XML data!')
+
+
+    def getConfigs(self, filter_tag=None):
+        """ Return all ClearCase info. """
+        filter_name = False
+
+        # Parse all known FWMCONFIG tags
+        for tag_dict in FWMCONFIG_TAGS:
+            tag  = tag_dict['tag']
+            name = tag_dict['name']
+            # Filter ?
+            if filter_tag and filter_tag != tag:
+                continue
+            # Found filter ?
+            filter_name = name
+            xobj = self.xmlTree.xpath('/Root/' + tag)
+            # If the tag is active, get the View and the Path
+            if len(xobj) >= 1:
+                xobj = xobj[0]
+                if xobj.get('active') == 'true':
+                    path = xobj.get('path')
+                    view = xobj.get('view')
+                    self.config[name] = {'path': path, 'view': view}
+
+        if filter_tag and filter_name:
+            return self.config.get(filter_name, {})
+        else:
+            return self.config
 
 
 # Eof()

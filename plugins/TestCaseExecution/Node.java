@@ -1,6 +1,6 @@
 /*
 File: Node.java ; This file is part of Twister.
-Version: 2.005
+Version: 2.006
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -30,8 +30,8 @@ public class Node{
     private HashMap<String,String> properties = new HashMap<String,String>();
     private Node parent;
     private String eps;
-    private byte type;//0 -tb;1module
-    private boolean lastsaved = true;
+    private byte type;//0 -tb;1 module
+    private boolean lastsaved = true;//tracks changes
     private String locked = "";
     
 

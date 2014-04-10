@@ -127,7 +127,6 @@ def calcMemory():
     """
     Calculate used memory percentage.
     """
-    logFull('helpers:calcMemory')
     memLine = subprocess.check_output(['free', '-o']).split('\n')[1]
     memUsed  = int(memLine.split()[2])
     mebBuff  = int(memLine.split()[-2])
@@ -148,7 +147,6 @@ def calcCpu():
     """
     Calculate used CPU percentage.
     """
-    logFull('helpers:calcCpu')
     x = _getCpuData()
     time.sleep(0.5)
     y = _getCpuData()

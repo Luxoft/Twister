@@ -24,6 +24,7 @@ import javax.swing.GroupLayout.Alignment;
 import javax.swing.AbstractAction;
 import javax.swing.JCheckBox;
 import javax.swing.JFrame;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JButton;
@@ -44,8 +45,9 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URL;
 
-import com.jcraft.jsch.Channel;
+//import com.jcraft.jsch.Channel;
 
 import javax.imageio.ImageIO;
 import javax.swing.SwingConstants;
@@ -60,18 +62,23 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
-import com.jcraft.jsch.ChannelSftp;
+//import com.jcraft.jsch.ChannelSftp;
 import javax.swing.GroupLayout;
 import javax.swing.LayoutStyle.ComponentPlacement;
 
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.Properties;
-import java.util.Vector;
-import com.jcraft.jsch.ChannelSftp.LsEntry;
-import com.jcraft.jsch.JSch;
-import com.jcraft.jsch.Session;
+import org.apache.xmlrpc.XmlRpcException;
+import org.apache.xmlrpc.client.XmlRpcClient;
+import org.apache.xmlrpc.client.XmlRpcClientConfigImpl;
+
+//import java.text.DateFormat;
+//import java.text.SimpleDateFormat;
+//import java.util.Date;
+import java.util.HashMap;
+//import java.util.Properties;
+//import java.util.Vector;
+//import com.jcraft.jsch.ChannelSftp.LsEntry;
+//import com.jcraft.jsch.JSch;
+//import com.jcraft.jsch.Session;
 import java.util.Collections;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
@@ -88,14 +95,14 @@ public class MySftpBrowser extends JFrame {
 	private JLabel look;
 	private JTextField tfilename;
 	private JComboBox tree;
-	private ChannelSftp c;
+	//private ChannelSftp c;
 	private JButton up;
 	private JTextField text;
 	private ItemListener listener;
 	private Container container;
 	private Image suitaicon, tcicon, upicon;
 	private boolean visible;
-	private Session session;
+	//private Session session;
 	private JCheckBox author = new JCheckBox("author");
 	private JCheckBox group = new JCheckBox("group");
 	private JCheckBox date = new JCheckBox("date");
@@ -103,24 +110,27 @@ public class MySftpBrowser extends JFrame {
 	private JTable table;
 	private boolean onlyfolders;
 	private AbstractAction action;//action to perform on open button trigger
-//	private DataOutputStream dataOut;
-//	private DataInputStream dataIn;
-//	private Channel ssh;
+	private XmlRpcClient client;
+	private String currentlocation;//location on server to modify and pass to different methods
+	private String host;//server host 
 
 	/*
 	 * c - SFTP connection initialized in repository text - the jtextfield that
 	 * holds the path container - the parent for sftp browser
 	 */
-	public MySftpBrowser(String host, String user, String passwd,
+	public MySftpBrowser(String host, String user, String passwd, String port,
 			JTextField text, final Container container, boolean onlyfolders) {
 		this.onlyfolders = onlyfolders;
 		this.text = text;
 		this.container = container;
+		this.host = host;
 		author.setSelected(true);
 		group.setSelected(true);
 		date.setSelected(true);
 		size.setSelected(true);
-		initializeSftp(user, host, passwd);
+		//initializeSftp(user, host, passwd);
+		initializeRPC(user, host, passwd, port);
+		currentlocation = getUserHome();
 		getIcons();
 		initComponents();
 		add(main);
@@ -166,9 +176,9 @@ public class MySftpBrowser extends JFrame {
 					ex.printStackTrace();
 				}
 				visible = false;
-				c.quit();
-				c.disconnect();
-				session.disconnect();
+				//c.quit();
+				//c.disconnect();
+				//session.disconnect();
 				dispose();
 			}
 		});
@@ -184,7 +194,8 @@ public class MySftpBrowser extends JFrame {
 		}
 		if (path != null && !path.equals("")) {
 			try {
-				c.cd(path);
+				currentlocation = path;
+				//c.cd(path);
 				populateTree();
 				populateBrowser();
 			} catch (Exception e) {
@@ -214,26 +225,43 @@ public class MySftpBrowser extends JFrame {
 			col.setPreferredWidth(100);
 		}
 	}
-
+	
 	/*
-	 * method to initialize sftp connection used to browse server
-	 */
-	private void initializeSftp(String user, String host, String passwd) {
-		try {
-			JSch jsch = new JSch();
-			session = jsch.getSession(user, host, 22);
-			session.setPassword(passwd);
-			Properties config = new Properties();
-			config.put("StrictHostKeyChecking", "no");
-			session.setConfig(config);
-			session.connect();
-			Channel channel = session.openChannel("sftp");
-			channel.connect();
-			c = (ChannelSftp) channel;
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-	}
+     * XmlRpc main connection used by Twister framework
+     */
+    public void initializeRPC(String user, String host, String passwd, String port){
+        try{XmlRpcClientConfigImpl configuration = new XmlRpcClientConfigImpl();
+            configuration.setBasicPassword(passwd);
+            configuration.setBasicUserName(user);
+            configuration.setServerURL(new URL("http://"+user+":"+passwd+"@"+host+
+                                        ":"+port+"/"));
+            client = new XmlRpcClient();
+            client.setConfig(configuration);
+            System.out.println("Client initialized: "+client);}
+        catch(Exception e){System.out.println("Could not conect to "+
+                            host+" :"+port+
+                            "for RPC client initialization");}
+    }
+
+//	/*
+//	 * method to initialize sftp connection used to browse server
+//	 */
+//	private void initializeSftp(String user, String host, String passwd) {
+//		try {
+//			JSch jsch = new JSch();
+//			session = jsch.getSession(user, host, 22);
+//			session.setPassword(passwd);
+//			Properties config = new Properties();
+//			config.put("StrictHostKeyChecking", "no");
+//			session.setConfig(config);
+//			session.connect();
+//			Channel channel = session.openChannel("sftp");
+//			channel.connect();
+//			c = (ChannelSftp) channel;
+//		} catch (Exception e) {
+//			e.printStackTrace();
+//		}
+//	}
 
 	/*
 	 * method to initialize icons used in browser window
@@ -261,8 +289,10 @@ public class MySftpBrowser extends JFrame {
 				tree.removeItemListener(it);
 			}
 			tree.removeAllItems();
-			String[] home = c.pwd().split("/");
-			tree.addItem("sftp://" + c.getSession().getHost() + "/");
+			//String[] home = c.pwd().split("/");
+			String[] home = currentlocation.split("/");
+			//tree.addItem("sftp://" + c.getSession().getHost() + "/");
+			tree.addItem("sftp://" + host + "/");
 			for (String s : home) {
 				if (!s.equals("")) {
 					tree.addItem(s);
@@ -279,81 +309,237 @@ public class MySftpBrowser extends JFrame {
 	 * method to populate the main window with files and folders according to
 	 * current location of sftp connection
 	 */
+//	private void populateBrowser() {
+//		try {
+//			DefaultTableModel model = (DefaultTableModel)table.getModel();
+//			model.setRowCount(0);
+//			Vector<LsEntry> vector1 = c.ls(".");
+//			Vector<LsEntry> folders = new Vector<LsEntry>();
+//			Vector<LsEntry> files = new Vector<LsEntry>();
+//			int lssize = vector1.size();
+//			if(lssize==2)return;
+//			for (int i = 0; i < lssize; i++) {
+//				if (vector1.get(i).getFilename().split("\\.").length == 0) {
+//					continue;
+//				}
+//				if(vector1.get(i).getAttrs().isDir()){
+//					folders.add(vector1.get(i));
+//				} else {
+//					files.add(vector1.get(i));
+//				}
+//			}
+//			Collections.sort(folders);
+//			Collections.sort(files);
+//			long d;
+//			DateFormat format = new SimpleDateFormat("yyyy.MM.dd HH:mm:ss");
+//			Date date;
+//			String data [], user, group;
+//			for (LsEntry s : folders) {
+//				d= s.getAttrs().getMTime();
+//				d*=1000;
+//				date = new Date(d);
+//				data = s.getLongname().split("\\s+");
+//				user = data[2];
+//				group = data [3];
+//				model.addRow(new Object[] {
+//						new MyLabel(s.getFilename(), null,
+//								SwingConstants.LEFT, 0),
+//						new MyLabel(user, null,
+//								SwingConstants.LEFT, 2),
+//						new MyLabel(group, null,
+//								SwingConstants.LEFT, 2),
+//								0l
+//						,
+//						new MyLabel(format.format(date), null,
+//								SwingConstants.LEFT, 2), });
+//			}
+//			if(!onlyfolders){
+//				for (LsEntry s : files) {
+//					d= s.getAttrs().getMTime();
+//					d*=1000;
+//					date = new Date(d);
+//					
+//					data = s.getLongname().split("\\s+");
+//					user = data[2];
+//					group = data [3];
+//					
+//					model.addRow(new Object[] {
+//							new MyLabel(s.getFilename(), null,
+//									SwingConstants.LEFT, 1),
+//							new MyLabel(user, null,
+//									SwingConstants.LEFT, 2),
+//							new MyLabel(group, null,
+//									SwingConstants.LEFT, 2),
+////							new MyLabel(s.getAttrs().getSize() + "", null,
+////									SwingConstants.LEFT, 2)
+//									s.getAttrs().getSize(),
+//							new MyLabel(format.format(date), null,
+//									SwingConstants.LEFT, 2), });
+//				}
+//			}
+//			model.fireTableDataChanged();
+//			table.revalidate();
+//			table.repaint();
+//		} catch (Exception e) {
+//			e.printStackTrace();
+//		}
+//	}
+	
+	//get user home on server
+	private String getUserHome(){
+		Object ob;
+		try {
+			ob = client.execute("getUserHome", new Object[]{});
+			if(ob.toString().indexOf("*ERROR*")!=-1){
+	            CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,this,"ERROR", ob.toString());
+	            return "";
+	        }
+			return ob.toString();
+		} catch (XmlRpcException e) {
+			e.printStackTrace();
+			return "";
+		}
+        
+	}
+	
+	
+	/*
+	 * method to populate the main window with files and folders according to
+	 * current location of sftp connection
+	 */
 	private void populateBrowser() {
 		try {
 			DefaultTableModel model = (DefaultTableModel)table.getModel();
 			model.setRowCount(0);
-			Vector<LsEntry> vector1 = c.ls(".");
-			Vector<LsEntry> folders = new Vector<LsEntry>();
-			Vector<LsEntry> files = new Vector<LsEntry>();
-			int lssize = vector1.size();
-			if(lssize==2)return;
-			for (int i = 0; i < lssize; i++) {
-				if (vector1.get(i).getFilename().split("\\.").length == 0) {
-					continue;
-				}
-				if(vector1.get(i).getAttrs().isDir()){
-					folders.add(vector1.get(i));
-				} else {
-					files.add(vector1.get(i));
-				}
-			}
-			Collections.sort(folders);
-			Collections.sort(files);
-			long d;
-			DateFormat format = new SimpleDateFormat("yyyy.MM.dd HH:mm:ss");
-			Date date;
-			String data [], user, group;
-			for (LsEntry s : folders) {
-				d= s.getAttrs().getMTime();
-				d*=1000;
-				date = new Date(d);
-				data = s.getLongname().split("\\s+");
-				user = data[2];
-				group = data [3];
-				model.addRow(new Object[] {
-						new MyLabel(s.getFilename(), null,
-								SwingConstants.LEFT, 0),
-						new MyLabel(user, null,
-								SwingConstants.LEFT, 2),
-						new MyLabel(group, null,
-								SwingConstants.LEFT, 2),
-								0l
-						,
-						new MyLabel(format.format(date), null,
-								SwingConstants.LEFT, 2), });
-			}
-			if(!onlyfolders){
-				for (LsEntry s : files) {
-					d= s.getAttrs().getMTime();
-					d*=1000;
-					date = new Date(d);
-					
-					data = s.getLongname().split("\\s+");
-					user = data[2];
-					group = data [3];
-					
-					model.addRow(new Object[] {
-							new MyLabel(s.getFilename(), null,
-									SwingConstants.LEFT, 1),
-							new MyLabel(user, null,
-									SwingConstants.LEFT, 2),
-							new MyLabel(group, null,
-									SwingConstants.LEFT, 2),
-//							new MyLabel(s.getAttrs().getSize() + "", null,
-//									SwingConstants.LEFT, 2)
-									s.getAttrs().getSize(),
-							new MyLabel(format.format(date), null,
-									SwingConstants.LEFT, 2), });
-				}
-			}
-			model.fireTableDataChanged();
+			
+			
+			//Vector<LsEntry> vector1 = c.ls(".");
+			//Vector<LsEntry> folders = new Vector<LsEntry>();
+			//Vector<LsEntry> files = new Vector<LsEntry>();
+			
+			Object ob =client.execute("listFiles", new Object[]{currentlocation});
+            if(ob.toString().indexOf("*ERROR*")!=-1){
+                CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,this,"ERROR", ob.toString());
+            }
+            
+            HashMap struct = (HashMap)ob;
+            
+            Object [] vector1 = (Object [])struct.get("children");
+            if(vector1!=null&&vector1.length>0){
+            	String author,group,size,date,attr[],name;
+            	HashMap currentelem;
+            	for(Object subchild:vector1){
+            		currentelem = (HashMap)subchild;
+            		attr = currentelem.get("meta").toString().split("\\|");
+        			author = attr[0];
+        			group = attr[1];
+        			size = attr[2];
+        			date = attr[3];
+        			name = currentelem.get("data").toString();
+            		if(currentelem.get("folder")==null){//here we have files
+            			if(!onlyfolders){            					
+            					model.addRow(new Object[] {
+            							new MyLabel(name, null,
+            									SwingConstants.LEFT, 1),
+            							new MyLabel(author, null,
+            									SwingConstants.LEFT, 2),
+            							new MyLabel(group, null,
+            									SwingConstants.LEFT, 2),
+            									size,
+            							new MyLabel(date, null,
+            									SwingConstants.LEFT, 2), });
+            			}
+            		} else {//here we have folders
+            			model.addRow(new Object[] {
+        						new MyLabel(name, null,
+        								SwingConstants.LEFT, 0),
+        						new MyLabel(author, null,
+        								SwingConstants.LEFT, 2),
+        						new MyLabel(group, null,
+        								SwingConstants.LEFT, 2),
+        								0l
+        						,
+        						new MyLabel(date, null,
+        								SwingConstants.LEFT, 2), });
+            		}
+                }
+            	
+            }
+            model.fireTableDataChanged();
 			table.revalidate();
 			table.repaint();
+			
+			
+			//int lssize = vector1.size();
+			//if(lssize==2)return;
+			//for (int i = 0; i < lssize; i++) {
+			//	if (vector1.get(i).getFilename().split("\\.").length == 0) {
+			//		continue;
+			//	}
+			//	if(vector1.get(i).getAttrs().isDir()){
+			//		folders.add(vector1.get(i));
+			//	} else {
+			//		files.add(vector1.get(i));
+			//	}
+			//}
+			//Collections.sort(folders);
+			//Collections.sort(files);
+//			long d;
+//			DateFormat format = new SimpleDateFormat("yyyy.MM.dd HH:mm:ss");
+//			Date date;
+//			String data [], user, group;
+//			for (LsEntry s : folders) {
+//				d= s.getAttrs().getMTime();
+//				d*=1000;
+//				date = new Date(d);
+//				data = s.getLongname().split("\\s+");
+//				user = data[2];
+//				group = data [3];
+//				model.addRow(new Object[] {
+//						new MyLabel(s.getFilename(), null,
+//								SwingConstants.LEFT, 0),
+//						new MyLabel(user, null,
+//								SwingConstants.LEFT, 2),
+//						new MyLabel(group, null,
+//								SwingConstants.LEFT, 2),
+//								0l
+//						,
+//						new MyLabel(format.format(date), null,
+//								SwingConstants.LEFT, 2), });
+//			}
+//			if(!onlyfolders){
+//				for (LsEntry s : files) {
+//					d= s.getAttrs().getMTime();
+//					d*=1000;
+//					date = new Date(d);
+//					
+//					data = s.getLongname().split("\\s+");
+//					user = data[2];
+//					group = data [3];
+//					
+//					model.addRow(new Object[] {
+//							new MyLabel(s.getFilename(), null,
+//									SwingConstants.LEFT, 1),
+//							new MyLabel(user, null,
+//									SwingConstants.LEFT, 2),
+//							new MyLabel(group, null,
+//									SwingConstants.LEFT, 2),
+////							new MyLabel(s.getAttrs().getSize() + "", null,
+////									SwingConstants.LEFT, 2)
+//									s.getAttrs().getSize(),
+//							new MyLabel(format.format(date), null,
+//									SwingConstants.LEFT, 2), });
+//				}
+//			}
+//			model.fireTableDataChanged();
+//			table.revalidate();
+//			table.repaint();
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
 	}
+	
+	
 
 	public boolean isVisible() {
 		return visible;
@@ -419,11 +605,15 @@ public class MySftpBrowser extends JFrame {
 				try {
 					StringBuilder s = new StringBuilder();
 					s.append("/");
-					for (int i = 1; i < tree.getItemCount(); i++) {
+					//for (int i = 1; i < tree.getItemCount(); i++) {
+					//	s.append(tree.getItemAt(i) + "/");
+					//}
+					for (int i = 1; i < tree.getItemCount()-1; i++) {
 						s.append(tree.getItemAt(i) + "/");
 					}
-					c.cd(s.toString());
-					c.cd("..");
+					currentlocation = s.toString();
+					//c.cd(s.toString());
+					//c.cd("..");
 					populateTree();
 					populateBrowser();
 					tfilename.setText("");
@@ -446,7 +636,8 @@ public class MySftpBrowser extends JFrame {
 						for (int i = 1; i < tree.getItemCount(); i++) {
 							s.append(tree.getItemAt(i) + "/");
 						}
-						c.cd(s.toString());
+						//c.cd(s.toString());
+						currentlocation = s.toString();
 						populateTree();
 						populateBrowser();
 						tfilename.setText("");
@@ -471,8 +662,8 @@ public class MySftpBrowser extends JFrame {
 				try {
 					container.setEnabled(true);
 				} catch (Exception e) {}
-				c.disconnect();
-				session.disconnect();
+				//c.disconnect();
+				//session.disconnect();
 			}
 		});
 
@@ -485,8 +676,8 @@ public class MySftpBrowser extends JFrame {
 					container.setEnabled(true);
 				} catch (Exception e) {
 				}
-				c.disconnect();
-				session.disconnect();
+				//c.disconnect();
+				//session.disconnect();
 			}
 		});
 		
@@ -496,22 +687,8 @@ public class MySftpBrowser extends JFrame {
 		DefaultTableModel model = new DefaultTableModel(data, columnnames)
 		{
 			public Class getColumnClass(int columnIndex) {
-//				switch(columnIndex){
-//					case 3:
-//						System.out.println("3");
-//						return MyLabel.class;
-//					default: 
-//						System.out.println("else");
-//						return Long.class;
-//						
-//				}
 				if(columnIndex==3)return Long.class;
 				return MyLabel.class;
-		        //try{return getValueAt(0, columnIndex).getClass();}
-		        //catch(Exception e){
-		        //	e.printStackTrace();
-		        //	return String.class;
-		        //}
 		    }
 		};
 		table = new JTable(model) {
@@ -538,7 +715,8 @@ public class MySftpBrowser extends JFrame {
 				if (ev.getClickCount() == 2) {
 					if (selected.getType() == 0) {
 						try {
-							c.cd(selected.toString());
+							//c.cd(selected.toString());
+							currentlocation += "/"+selected.toString();
 						} catch (Exception e) {
 							e.printStackTrace();
 						}

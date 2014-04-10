@@ -1,6 +1,6 @@
 /*
 File: Globals.java ; This file is part of Twister.
-Version: 2.007
+Version: 2.011
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -59,10 +59,10 @@ import javax.swing.JLabel;
 import javax.swing.BoxLayout;
 import java.awt.BorderLayout;
 import java.io.FileInputStream;
-import com.jcraft.jsch.ChannelSftp;
-import com.jcraft.jsch.JSch;
-import com.jcraft.jsch.Session;
-import com.jcraft.jsch.Channel;
+// import com.jcraft.jsch.ChannelSftp;
+// import com.jcraft.jsch.JSch;
+// import com.jcraft.jsch.Session;
+// import com.jcraft.jsch.Channel;
 import java.util.Properties;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
@@ -97,16 +97,16 @@ import java.awt.event.FocusListener;
 import java.awt.Color;
 
 public class Globals {
-    public ChannelSftp ch ;
-    public Session session;
+//     public ChannelSftp ch ;
+//     public Session session;
     public JScrollPane panel;
     public JPanel main, pdesc;
     private JTree tree;
     private XPath xpath;
     private Document doc;
-    private DefaultMutableTreeNode root;
+    public DefaultMutableTreeNode root;
     private File globalsfile;
-    private boolean finished = true;
+//     private boolean finished = true;
     private JButton addconf,addparam,remove;
     private JLabel cname;
     private JTextArea tdescription;
@@ -116,10 +116,10 @@ public class Globals {
     private MyFocusAdapter focusadapter;
     
     public Globals(){
-        initSftp();
-        parseDocument();
+//         initSftp();
+        //parseDocument();
         init();
-        buildTree();
+//         buildTree();
     }
     
     public void refresh(){
@@ -197,7 +197,8 @@ public class Globals {
                             .addComponent(tvalue, GroupLayout.Alignment.TRAILING)
                             .addComponent(ttype, GroupLayout.Alignment.TRAILING, 0, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
                     .addComponent(tdescription, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                .addContainerGap())
+//                 .addContainerGap()
+                )
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(GroupLayout.Alignment.LEADING)
@@ -218,7 +219,8 @@ public class Globals {
                 .addComponent(description)
                 .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(tdescription, GroupLayout.DEFAULT_SIZE, 104, Short.MAX_VALUE)
-                .addContainerGap())
+//                 .addContainerGap()
+                )
         );
     }
 
@@ -242,7 +244,7 @@ public class Globals {
             remove.setEnabled(false);
         }
         
-        addconf.setBounds(0,5,120,20);
+        //addconf.setBounds(0,5,120,20);
         buttonPanel.add(addconf);
         addconf.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
@@ -250,7 +252,7 @@ public class Globals {
             }
         });
         
-        addparam.setBounds(130,5,140,20);
+        //addparam.setBounds(130,5,140,20);
         buttonPanel.add(addparam);
         addparam.setEnabled(false);
         addparam.addActionListener(new ActionListener(){
@@ -259,7 +261,7 @@ public class Globals {
             }
         });
 
-        remove.setBounds(280,5,100,20);
+        //remove.setBounds(280,5,100,20);
         remove.setEnabled(false);
         buttonPanel.add(remove);
         remove.addActionListener(new ActionListener(){
@@ -273,16 +275,16 @@ public class Globals {
         main.add(panel,BorderLayout.CENTER);
         main.add(buttonPanel,BorderLayout.SOUTH);
         main.add(pdesc,BorderLayout.EAST);
-        GroupLayout buttonPanelLayout = new GroupLayout(buttonPanel);
-        buttonPanel.setLayout(buttonPanelLayout);
-        buttonPanelLayout.setHorizontalGroup(
-            buttonPanelLayout.createParallelGroup(GroupLayout.Alignment.LEADING)
-            .addGap(0, 0, Short.MAX_VALUE)
-        );
-        buttonPanelLayout.setVerticalGroup(
-            buttonPanelLayout.createParallelGroup(GroupLayout.Alignment.LEADING)
-            .addGap(0, 50, Short.MAX_VALUE)
-        );
+//         GroupLayout buttonPanelLayout = new GroupLayout(buttonPanel);
+//         buttonPanel.setLayout(buttonPanelLayout);
+//         buttonPanelLayout.setHorizontalGroup(
+//             buttonPanelLayout.createParallelGroup(GroupLayout.Alignment.LEADING)
+//             .addGap(0, 0, Short.MAX_VALUE)
+//         );
+//         buttonPanelLayout.setVerticalGroup(
+//             buttonPanelLayout.createParallelGroup(GroupLayout.Alignment.LEADING)
+//             .addGap(0, 50, Short.MAX_VALUE)
+//         );
         tree.addKeyListener(new KeyAdapter(){
             public void keyReleased(KeyEvent ev){
                 if(ev.getKeyCode()==KeyEvent.VK_DELETE){
@@ -1018,7 +1020,7 @@ public class Globals {
         File file = new File(RunnerRepository.temp+RunnerRepository.getBar()+
                              "Twister"+RunnerRepository.getBar()+"config"+
                              RunnerRepository.getBar()+"globals.xml");
-        try{String content = RunnerRepository.getRemoteFileContent(RunnerRepository.GLOBALSREMOTEFILE);
+        try{String content = new String((RunnerRepository.getRemoteFileContent(RunnerRepository.GLOBALSREMOTEFILE,false,null)));
             try{BufferedWriter writer = new BufferedWriter(new FileWriter(file));
                 writer.write(content);
                 writer.close();
@@ -1149,46 +1151,12 @@ public class Globals {
             path.delete(0, 1);
             String location = path.toString();
             FileInputStream in = new FileInputStream(globalsfile);
-            try{
-                while(!finished){
-                    try{Thread.sleep(100);}
-                    catch(Exception e){e.printStackTrace();}
-                }
-                finished = false;
-                ch.cd(location);
-                ch.put(in, filename);
-                in.close();
-                finished = true;}
-            catch(Exception e){
-                e.printStackTrace();
-                finished = true;
-            }
+            RunnerRepository.uploadRemoteFile(location, in,null, filename, false,null);
         } catch (Exception e){
             e.printStackTrace();
         }
     }
     
-    /*
-     * initialize SFTP connection used
-     * for plugins and configuration files transfer
-     */
-    public void initSftp(){
-        try{
-            JSch jsch = new JSch();
-            session = jsch.getSession(RunnerRepository.user, RunnerRepository.host, 22);
-            session.setPassword(RunnerRepository.password);
-            Properties config = new Properties();
-            config.put("StrictHostKeyChecking", "no");
-            session.setConfig(config);
-            session.connect();
-            Channel channel = session.openChannel("sftp");
-            channel.connect();
-            ch = (ChannelSftp)channel;
-        } catch (Exception e){
-            System.out.println("ERROR: Could not initialize SFTP for plugins");
-            e.printStackTrace();
-        }
-    }
     class MyFocusAdapter extends FocusAdapter{
         private Node name;
         private DefaultMutableTreeNode treenode;

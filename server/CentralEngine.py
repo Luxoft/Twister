@@ -1,10 +1,10 @@
 #!/usr/bin/env python2.7
 
-# version: 3.002
+# version: 3.003
 
 # File: CentralEngine.py ; This file is part of Twister.
 
-# Copyright (C) 2012-2013 , Luxoft
+# Copyright (C) 2012-2014 , Luxoft
 
 # Authors:
 #    Andrei Costachi <acostachi@luxoft.com>
@@ -59,6 +59,8 @@ from server.CeProject  import Project
 from server.CeXmlRpc   import CeXmlRpc
 from server.CeRpyc     import CeRpycService
 from common import iniparser
+from CeFs import LocalFS
+from CeClearCaseFs import ClearCaseFs
 
 #
 
@@ -76,7 +78,7 @@ if __name__ == "__main__":
     else:
         try:
             serverPort = int(serverPort[0])
-        except:
+        except Exception:
             logCritical('Twister Server: Must start with parameter PORT number!')
             exit(1)
 
@@ -89,7 +91,8 @@ if __name__ == "__main__":
         del cfg
 
     r = setLogLevel(verbosity)
-    if not r: logError('Log: The Log level will default to INFO.')
+    if not r:
+        logError('Log: The Log level will default to INFO.')
 
     # RPyc config
     config = {
@@ -105,18 +108,20 @@ if __name__ == "__main__":
     try:
         rpycServer = ThreadPoolServer(CeRpycService, port=rpycPort, protocol_config=config)
         rpycServer.logger.setLevel(30)
-    except:
+    except Exception:
         logCritical('Twister Server: Cannot launch the RPyc server on port `{}`!'.format(rpycPort))
         exit(1)
 
     # Project manager does everything
     proj = Project()
     proj.rsrv = rpycServer
+    proj.localFs = LocalFS(proj)
+    proj.clearFs = ClearCaseFs(proj)
     # CE is the XML-RPC interface
     ce = CeXmlRpc(proj)
 
     def close():
-        global proj, rpycServer
+        """ Close server. """
         rpycServer.close()
         del proj.manager
 

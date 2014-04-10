@@ -1,6 +1,6 @@
 /*
 File: XMLBuilder.java ; This file is part of Twister.
-Version: 2.015
+Version: 2.019
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -39,6 +39,7 @@ import com.twister.CustomDialog;
 import javax.swing.tree.DefaultMutableTreeNode;
 import java.util.HashMap;
 import java.io.StringWriter;
+import java.util.Scanner;
 
 public class XMLBuilder{
     private DocumentBuilderFactory documentBuilderFactory;
@@ -81,6 +82,18 @@ public class XMLBuilder{
                           boolean prestoponfail,
                           boolean temp, String prescript, String postscript,
                           boolean savedb, String delay, String[] globallibs, String [][] projectdefined){//skip checks if it is user or test xml
+        int nrsuite = suite.size();
+        Item current =null;
+        if(!skip){
+            //check for items without name
+            for(int i=0;i<nrsuite;i++){
+                current = RunnerRepository.hasEmptyName(suite.get(i));
+                if(current!=null){
+                    CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE, RunnerRepository.window,"ERROR","There is an item with an empty name, please set name!");
+                    return false;
+                }
+            }
+        }
         this.skip = skip;
         Element root = document.createElement("Root");
         document.appendChild(root);
@@ -139,13 +152,12 @@ public class XMLBuilder{
         em2 = document.createElement("tcdelay");
         em2.appendChild(document.createTextNode(delay));
         root.appendChild(em2);
-        int nrsuite = suite.size();
         if(skip && nrsuite>0){
             ArrayList <Item> temporary = new <Item> ArrayList();
             String [] EPS;
             for(int i=0;i<nrsuite;i++){
                 sb.setLength(0);
-                Item current = suite.get(i);
+                current = suite.get(i);
                 if(current.getEpId().length == 0){
                     CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE, 
                                            RunnerRepository.window, "ERROR", 
@@ -318,9 +330,7 @@ public class XMLBuilder{
                     em3.appendChild(document.createTextNode(RunnerRepository.getTestSuitePath()+
                                         item.getFileLocation()));
                 }
-                
             }
-            
             tc.appendChild(em3);
             if(item.isClearcase()){
                 em3 = document.createElement("ClearCase");
@@ -464,8 +474,7 @@ public class XMLBuilder{
             for(int i=0;i<item.getSubItemsNr();i++){
                 addSubElement(rootElement2,item.getSubItem(i),skip,temp);
                 
-            }}}
-                    
+            }}}     
     public void printXML(){        
         StreamResult result =  new StreamResult(System.out);
         try{transformer.transform(source, result);}
@@ -479,11 +488,11 @@ public class XMLBuilder{
         try{transformer.transform(source, result);}
         catch(Exception e){
             e.printStackTrace();
-            System.out.println("Could not write to file");
+            System.out.println("Could not write to file: "+file.getAbsolutePath());
             return false;}
         if(!local){
             try{
-                if(temp || skip){
+                if(temp || skip){//testsuites.xml
                     String dir = RunnerRepository.getXMLRemoteDir();
                     String [] path = dir.split("/");
                     StringBuffer result2 = new StringBuffer();
@@ -492,15 +501,13 @@ public class XMLBuilder{
                             result2.append(path[i]);
                             result2.append("/");}}
                     FileInputStream in = new FileInputStream(file);
-                    return RunnerRepository.uploadRemoteFile(result2.toString(), in, file.getName());
-                }
-                else{
-                    if(lib){
-                        FileInputStream in = new FileInputStream(file);
-                        return RunnerRepository.uploadRemoteFile(RunnerRepository.getPredefinedSuitesPath(), in, file.getName());
-                    } else {
-                        FileInputStream in = new FileInputStream(file);
-                        return RunnerRepository.uploadRemoteFile(RunnerRepository.getRemoteUsersDirectory(), in, file.getName());
+                    return RunnerRepository.uploadRemoteFile(result2.toString(), in,null, file.getName(),false,null);
+                }else{
+                    FileInputStream in = new FileInputStream(file);
+                    if(lib){ //predefined suites  
+                        return RunnerRepository.savePredefinedProjectFile(file.getName(),new Scanner(file).useDelimiter("\\A").next());
+                    } else {//normal suites                        
+                        RunnerRepository.saveProjectFile(file.getName(),new Scanner(file).useDelimiter("\\A").next());
                     }
                 }}
             catch(Exception e){e.printStackTrace();

@@ -1,7 +1,7 @@
 
 # File: UserService.py ; This file is part of Twister.
 
-# version: 3.001
+# version: 3.005
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -28,11 +28,16 @@ User Service, based on RPyc.
 This process runs in the Twister Client folder.
 """
 
-import os, sys
+import os
+import sys
+import pwd
+import grp
 import time
 import shutil
 import subprocess
 import logging
+import tarfile
+import cStringIO
 
 import rpyc
 from rpyc.utils.server import ThreadedServer
@@ -40,11 +45,18 @@ from rpyc.utils.server import ThreadedServer
 
 log = logging.getLogger(__name__)
 
+TYPE = sys.argv[2:3]
+
+if TYPE == ['ClearCase']:
+    log_file = 'clear_srv.log'
+else:
+    log_file = 'usr_srv.log'
+
 logging.basicConfig(
     level=logging.NOTSET,
     format='%(asctime)s  %(levelname)-8s %(message)s',
     datefmt='%y-%m-%d %H:%M:%S',
-    filename='usr_srv.log',
+    filename=log_file,
     filemode='w')
 
 console = logging.StreamHandler()
@@ -58,10 +70,10 @@ if sys.version < '2.7':
 
 try:
     userName = os.getenv('USER') or os.getenv('USERNAME')
-    if userName=='root':
+    if userName == 'root':
         userName = os.getenv('SUDO_USER') or userName
     log.debug('Hello username `{}`!'.format(userName))
-except:
+except Exception:
     userName = ''
 if not userName:
     log.error('Cannot guess user name for the User Service! Exiting!')
@@ -71,61 +83,120 @@ def userHome():
     """
     Find the home folder for a given user.
     """
-    global userName
-    return subprocess.check_output('echo ~' + userName, shell=True).strip()
+    return subprocess.check_output('echo ~' + userName, shell=True).strip().rstrip('/')
+
+lastMsg = ''
 
 #
 
 class UserService(rpyc.Service):
 
     def __init__(self, conn):
-        log.debug('Warming up the User Service...')
+        log.debug('Warming up the User Service ({})...'.format(TYPE))
         self._conn = conn
 
 
     def on_connect(self):
         client_addr = self._conn._config['endpoints'][1]
-        log.debug('Connected from `{}`.'.format(client_addr))
+        log.debug('User Service: Connected from endpoint `{}`.'.format(client_addr))
 
 
     def on_disconnect(self):
         client_addr = self._conn._config['endpoints'][1]
-        log.debug('Disconnected from `{}`.'.format(client_addr))
+        log.debug('User Service: Disconnected from endpoint `{}`.'.format(client_addr))
 
 
-    def exposed_hello(self):
+    @staticmethod
+    def exposed_hello():
+        """
+        Say hello to server.
+        """
         return True
 
 
-    def exposed_read_file(self, fpath):
+    @staticmethod
+    def exposed_file_size(fpath):
         """
-        Read 1 file.
+        Get file size for 1 file.
+        Less spam, please.
         """
+        global lastMsg
         if fpath[0] == '~':
             fpath = userHome() + fpath[1:]
         try:
-            with open(fpath, 'r') as f:
-                return f.read()
+            fsize = os.stat(fpath).st_size
+            msg = 'File `{}` is size `{}`.'.format(fpath, fsize)
+            if msg != lastMsg:
+                log.debug(msg)
+                lastMsg = msg
+            return fsize
+        except Exception as e:
+            err = '*ERROR* Cannot find file `{}`! {}'.format(fpath, e)
+            log.warning(err)
+            return err
+
+
+    @staticmethod
+    def exposed_read_file(fpath, flag='r', fstart=0):
+        """
+        Read 1 file.
+        Less spam, please.
+        """
+        global lastMsg
+        if fpath[0] == '~':
+            fpath = userHome() + fpath[1:]
+        if flag not in ['r', 'rb']:
+            err = '*ERROR* Invalid flag `{}`! Cannot read!'.format(flag)
+            log.warning(err)
+            return err
+        if not os.path.isfile(fpath):
+            err = '*ERROR* No such file `{}`!'.format(fpath)
+            log.warning(err)
+            return err
+        try:
+            with open(fpath, flag) as f:
+                msg = 'Reading file `{}`, flag `{}`.'.format(fpath, flag)
+                if msg != lastMsg:
+                    log.debug(msg)
+                    lastMsg = msg
+                if fstart:
+                    f.seek(fstart)
+                fdata = f.read()
+                if len(fdata) > 20*1000*1000:
+                    err = '*ERROR* File data too long `{}`: {}!'.format(fpath, len(fdata))
+                    logWarning(err)
+                    return err
+                return fdata
         except Exception as e:
             err = '*ERROR* Cannot read file `{}`! {}'.format(fpath, e)
             log.warning(err)
             return err
 
 
-    def exposed_write_file(self, fpath, fdata, mode='w'):
+    @staticmethod
+    def exposed_write_file(fpath, fdata, flag='a'):
         """
         Write data in a file.
-        Overwrite, or append.
+        Overwrite or append, ascii or binary.
+        Show me the spam.
         """
         if fpath[0] == '~':
             fpath = userHome() + fpath[1:]
+        if flag not in ['w', 'wb', 'a', 'ab']:
+            err = '*ERROR* Invalid flag `{}`! Cannot read!'.format(flag)
+            log.warning(err)
+            return err
         try:
-            with open(fpath, mode) as f:
+            with open(fpath, flag) as f:
                 f.write(fdata)
-            if mode == 'a':
-                log.debug('Appended `{}` chars in file `{}`.'.format(len(fdata), fpath))
+            if flag == 'w':
+                log.debug('Written `{}` chars in ascii file `{}`.'.format(len(fdata), fpath))
+            elif flag == 'wb':
+                log.debug('Written `{}` chars in binary file `{}`.'.format(len(fdata), fpath))
+            elif flag == 'a':
+                log.debug('Appended `{}` chars in ascii file `{}`.'.format(len(fdata), fpath))
             else:
-                log.debug('Written `{}` chars in file `{}`.'.format(len(fdata), fpath))
+                log.debug('Appended `{}` chars in binary file `{}`.'.format(len(fdata), fpath))
             return True
         except Exception as e:
             err = '*ERROR* Cannot write into file `{}`! {}'.format(fpath, e)
@@ -133,7 +204,8 @@ class UserService(rpyc.Service):
             return err
 
 
-    def exposed_copy_file(self, fpath, newpath):
+    @staticmethod
+    def exposed_copy_file(fpath, newpath):
         """
         Copy 1 file.
         """
@@ -151,7 +223,8 @@ class UserService(rpyc.Service):
             return err
 
 
-    def exposed_move_file(self, fpath, newpath):
+    @staticmethod
+    def exposed_move_file(fpath, newpath):
         """
         Move 1 file.
         """
@@ -169,7 +242,8 @@ class UserService(rpyc.Service):
             return err
 
 
-    def exposed_delete_file(self, fpath):
+    @staticmethod
+    def exposed_delete_file(fpath):
         """
         Delete a file. This is IREVERSIBLE!
         """
@@ -185,7 +259,8 @@ class UserService(rpyc.Service):
             return err
 
 
-    def exposed_create_folder(self, folder):
+    @staticmethod
+    def exposed_create_folder(folder):
         """
         Create a new folder.
         """
@@ -201,12 +276,16 @@ class UserService(rpyc.Service):
             return err
 
 
-    def exposed_list_files(self, folder):
+    @staticmethod
+    def exposed_list_files(folder, hidden=True, recursive=True):
         """
         List all files, recursively.
         """
         if folder[0] == '~':
             folder = userHome() + folder[1:]
+        if folder == '/':
+            log.warning('*WARN* Listing folders from system ROOT.')
+            recursive = False
 
         def dirList(base_path, path, new_dict):
             """
@@ -218,9 +297,24 @@ class UserService(rpyc.Service):
                 dlist = [] # Folders list
                 flist = [] # Files list
                 for fname in sorted(os.listdir(path), key=str.lower):
-                    short_path = (path + os.sep + fname)[len_path:]
-                    nd = {'path': short_path, 'data': fname}
-                    if os.path.isdir(path + os.sep + fname):
+                    # Ignore hidden files
+                    if hidden and fname[0] == '.':
+                        continue
+                    long_path  = path + os.sep + fname
+                    short_path = (long_path)[len_path:]
+                    fstat = os.stat(long_path)
+                    try:
+                        uname = pwd.getpwuid(fstat.st_uid).pw_name
+                    except Exception:
+                        uname = fstat.st_uid
+                    try:
+                        gname = grp.getgrgid(fstat.st_gid).gr_name
+                    except Exception:
+                        gname = fstat.st_gid
+                    meta_info = '{}|{}|{}|{}'.format(uname, gname, fstat.st_size,
+                        time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(fstat.st_mtime)))
+                    nd = {'path': short_path, 'data': fname, 'meta': meta_info}
+                    if os.path.isdir(long_path):
                         nd['folder'] = True
                         nd['children'] = []
                         dlist.append(nd)
@@ -230,19 +324,25 @@ class UserService(rpyc.Service):
                 new_dict['children'] = dlist + flist
             for nitem in new_dict.get('children', []):
                 # Recursive !
-                dirList(base_path, base_path + os.sep + nitem['path'], nitem)
+                if recursive:
+                    dirList(base_path, base_path + os.sep + nitem['path'], nitem)
+                else:
+                    return None
 
         if not os.path.isdir(folder):
-            err = '*ERROR* Invalid config path `{}`!'.format(folder)
+            err = '*ERROR* Invalid folder path `{}`!'.format(folder)
             log.warning(err)
             return err
 
         paths = {'path':'/', 'data':folder, 'folder':True, 'children':[]}
         dirList(folder, folder, paths)
+        clen = len(paths['children'])
+        log.debug('Listing dir `{}`, it has `{}` direct children.'.format(folder, clen))
         return paths
 
 
-    def exposed_delete_folder(self, folder):
+    @staticmethod
+    def exposed_delete_folder(folder):
         """
         Create a user folder.
         """
@@ -258,9 +358,29 @@ class UserService(rpyc.Service):
             return err
 
 
-    def exposed_exit(self):
+    @staticmethod
+    def exposed_targz_folder(folder):
+        """
+        Compress a folder in memory and return the result.
+        """
+        if folder[0] == '~':
+            folder = userHome() + folder[1:]
+        if not os.path.isdir(folder):
+            err = '*ERROR* Invalid folder path `{}`!'.format(folder)
+            log.warning(err)
+            return err
+        root, name = os.path.split(folder)
+        os.chdir(root)
+        io = cStringIO.StringIO()
+        # Write the folder tar.gz into memory
+        with tarfile.open(fileobj=io, mode='w:gz') as binary:
+            binary.add(name=name, recursive=True)
+        return io.getvalue()
+
+
+    @staticmethod
+    def exposed_exit():
         """ Must Exit """
-        global t, log
         log.warning('User Service: *sigh* received EXIT signal...')
         t.close()
         # Reply to client.
@@ -283,7 +403,7 @@ if __name__ == '__main__':
         'allow_delattr': True
     }
 
-    t = ThreadedServer(UserService, port=int(PORT[0]), protocol_config=config)
+    t = ThreadedServer(UserService, port=int(PORT[0]), protocol_config=config, listener_timeout=1)
     t.start()
 
     log.warning('User Service: Bye bye.')

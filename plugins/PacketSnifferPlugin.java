@@ -1,6 +1,6 @@
 /*
 File: PacketSnifferPlugin.java ; This file is part of Twister.
-Version: 2.003
+Version: 2.004
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -19,7 +19,6 @@ limitations under the License.
  */
 
 import java.applet.Applet;
-import java.awt.Color;
 import java.awt.Component;
 import java.awt.Cursor;
 import java.awt.Dimension;
@@ -54,6 +53,7 @@ import javax.swing.JCheckBox;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
@@ -73,10 +73,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import com.jcraft.jsch.Channel;
-import com.jcraft.jsch.ChannelSftp;
-import com.jcraft.jsch.JSch;
-import com.jcraft.jsch.Session;
+import com.twister.CustomDialog;
 import com.twister.Item;
 import com.twister.plugin.baseplugin.BasePlugin;
 import com.twister.plugin.twisterinterface.TwisterPluginInterface;
@@ -85,6 +82,8 @@ import org.apache.xmlrpc.XmlRpcException;
 import org.apache.xmlrpc.client.XmlRpcClient;
 import org.apache.xmlrpc.client.XmlRpcClientConfigImpl;
 import org.w3c.dom.Document;
+
+import javax.xml.bind.DatatypeConverter;
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Result;
 import javax.xml.transform.Transformer;
@@ -97,7 +96,6 @@ public class PacketSnifferPlugin extends BasePlugin implements
 	private static final long serialVersionUID = 1L;
 	private JPanel p;
 	public XmlRpcClient client;
-	private ChannelSftp c;
 	private String index = "0";
 	// private JLabel sniff, reset;
 	private JTable jTable1;
@@ -662,17 +660,40 @@ public class PacketSnifferPlugin extends BasePlugin implements
 						new Object[] { variables.get("user"), getName(),
 								"command=savepcap" }).toString();
 				System.out.println("Remote pcap file: "+location);
-				InputStream in = c.get(location);
+				
+				
+				
+				
+				
+				//InputStream in = c.get(location);
 				OutputStream out = new FileOutputStream(
 						new File(file + ".pcap"));
-				int read = 0;
-				byte[] bytes = new byte[1024];
-				while ((read = in.read(bytes)) != -1) {
-					out.write(bytes, 0, read);
-				}
-				in.close();
-				out.flush();
+				//int read = 0;
+				//byte[] bytes = new byte[1024];
+				//while ((read = in.read(bytes)) != -1) {
+				//	out.write(bytes, 0, read);
+				//}
+				//in.close();
+//				out.flush();
+//				out.close();
+				
+				System.out.println("Getting "+file+" from CE ");
+			    try{
+			       String response = client.execute("readFile", new Object[]{location,"rb"}).toString();
+			       byte [] content =  DatatypeConverter.parseBase64Binary(response);
+			       response = new String(DatatypeConverter.parseBase64Binary(response));
+			       if(response.indexOf("*ERROR*")!=-1){
+			           CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,p,"ERROR", response);
+			       }
+			       out.write(content);
+			    }catch (Exception e){
+			    	e.printStackTrace();
+			        CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,p,"ERROR", "Could not get file: "+location+" from CE!");
+			    }
+			    
+			    out.flush();
 				out.close();
+				
 				System.out.println("location: " + location);
 			}
 
@@ -710,7 +731,6 @@ public class PacketSnifferPlugin extends BasePlugin implements
 		super.terminate();
 		p = null;
 		client = null;
-		c = null;
 		go = false;
 		index = null;
 		bstart = null;
