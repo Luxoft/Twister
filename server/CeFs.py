@@ -135,7 +135,7 @@ class LocalFS(object):
             proc = subprocess.Popen(p_cmd, cwd='{}/twister'.format(userHome(user)), shell=True,
                    close_fds=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             proc.poll()
-            time.sleep(1.0)
+            time.sleep(2.0)
 
             config = {
                 'allow_pickle': True,

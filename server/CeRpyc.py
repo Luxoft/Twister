@@ -1,7 +1,7 @@
 
 # File: CeRpyc.py ; This file is part of Twister.
 
-# version: 3.008
+# version: 3.009
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -705,7 +705,7 @@ class CeRpycService(rpyc.Service):
 
             self.conns[str_addr]['eps'] = eps
 
-        logDebug('Registered client manager for user `{}`\n\t-> Client from `{}` ++ {}.'.format(user, str_addr, eps))
+        logInfo('Registered client manager for user `{}`\n\t-> Client from `{}` ++ {}.'.format(user, str_addr, eps))
         return True
 
 
@@ -742,10 +742,10 @@ class CeRpycService(rpyc.Service):
 
         remaining = self.exposed_registeredEps(user)
         if remaining == ee:
-            logDebug('Un-registered all EPs for user `{}`\n\t-> Client from `{}` -- {}.'\
+            logInfo('Un-registered all EPs for user `{}`\n\t-> Client from `{}` -- {}.'\
                     ' No more EPs left for `{}` !'.format(user, str_addr, ee, user))
         else:
-            logDebug('Un-registered EPs for user `{}`\n\t-> Client from `{}` -- {} !'.format(user, str_addr, ee))
+            logInfo('Un-registered EPs for user `{}`\n\t-> Client from `{}` -- {} !'.format(user, str_addr, ee))
         return True
 
 

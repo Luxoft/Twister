@@ -1,7 +1,7 @@
 
 # File: CeProject.py ; This file is part of Twister.
 
-# version: 3.031
+# version: 3.033
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -3324,23 +3324,30 @@ class Project(object):
         """
         logFull('CeProject:resetLogs user `{}`.'.format(user))
         logsPath = self.getUserInfo(user, 'logs_path')
-        logTypes = self.getUserInfo(user, 'log_types')
-        r1 = self.localFs.deleteUserFolder(user, logsPath)
-        r2 = self.localFs.createUserFolder(user, logsPath)
 
-        for logType, logPath in logTypes.iteritems():
-            # This will overwrite the file completely
-            ret = self.localFs.writeUserFile(user, logPath, '')
-            if ret is True:
-                logDebug('Log `{}` reset for user `{}`.'.format(logPath, user))
-            else:
-                logWarning('Could not reset log `{}`, for `{}`! UserService returned: `{}`!'.format(logPath, user, ret))
+        # Find all user log files. Validate first.
+        logs = self.localFs.listUserFiles(user, logsPath)
+        if not (logs and isinstance(logs, dict) and logs.get('children')):
+            logError('Cannot list user logs for `{}`!'.format(user))
+            return False
 
-        if r1 and r2:
+        # Filter log files
+        logs = [log['path'] for log in logs['children'] if log['data'].endswith('.log')]
+        logDebug('Found `{}` logs to reset: {}.'.format(len(logs), logs))
+
+        success = True
+
+        for log in logs:
+            ret = self.localFs.writeUserFile(user, logsPath +os.sep+ log, "")
+            if not ret:
+                success = False
+                logError('Cannot reset log `{}` in `{}`! Error `{}`!'.format(log, archiveLogsPath, ret))
+
+        if success:
             logDebug('All logs reset for user `{}`.'.format(user))
             return True
         else:
-            logError('Could not reset logs for `{}`! {} ; {}'.format(user, r1, r2))
+            logError('Could not reset all logs for `{}`!'.format(user))
             return False
 
 
