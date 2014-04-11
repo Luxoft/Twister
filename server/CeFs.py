@@ -116,7 +116,7 @@ class LocalFS(object):
             if conn:
                 try:
                     conn.ping(data='Hello', timeout=5.0)
-                    logDebug('Reuse old {} User Service connection for `{}` OK.'.format(op, user))
+                    # logDebug('Reuse old {} User Service connection for `{}` OK.'.format(op, user))
                     return conn
                 except Exception as e:
                     logWarning('Cannot reuse {} User Service for `{}`: `{}`.'.format(op, user, e))
