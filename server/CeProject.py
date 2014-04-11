@@ -3303,7 +3303,7 @@ class Project(object):
 
             # Filter log files
             logs = [log['data'] for log in logs['children'] if log['data'].endswith('.log')]
-            logDebug('Found `{}` logs to archive: {}.'.format(len(logs), logs))
+            logDebug('Found `{}` logs to archive: {} for user {}.'.format(len(logs), logs, user))
 
             for log in logs:
                 archPath = '{}/{}.{}'.format(archiveLogsPath, log, start_time)
@@ -3333,7 +3333,7 @@ class Project(object):
 
         # Filter log files
         logs = [log['path'] for log in logs['children'] if log['data'].endswith('.log')]
-        logDebug('Found `{}` logs to reset: {}.'.format(len(logs), logs))
+        logDebug('Found `{}` logs to reset: {} for user {}.'.format(len(logs), logs, user))
 
         success = True
 

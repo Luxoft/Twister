@@ -123,7 +123,7 @@ class ClearCaseFs(object):
             conn = self._services.get(user_view, {}).get('conn', None)
             if conn:
                 try:
-                    conn.ping(data='Hello', timeout=5.0)
+                    conn.ping(data='Hello', timeout=30.0)
                     # logDebug('Reuse old ClearCase Service connection for `{}` OK.'.format(user))
                     return conn
                 except Exception as e:
