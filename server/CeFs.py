@@ -1,7 +1,7 @@
 
 # File: CeFs.py ; This file is part of Twister.
 
-# version: 3.012
+# version: 3.013
 
 # Copyright (C) 2012-2014, Luxoft
 
@@ -100,23 +100,26 @@ class LocalFS(object):
                 pass
 
 
-    def _usrService(self, user):
+    def _usrService(self, user, op='read'):
         """
         Launch a user service.
         """
+        if op not in ['read', 'write']:
+            logWarning('Invalid FS operation `{}`, for user `{}`! Will reset to "read".'.format(op, user))
+            op = 'read'
 
         # Must block here, so more users cannot launch Logs at the same time and lose the PID
         with self._srv_lock:
 
             # Try to re-use the logger server, if available
-            conn = self._services.get(user, {}).get('conn', None)
+            conn = self._services.get(user, {}).get('conn_' + op, None)
             if conn:
                 try:
                     conn.ping(data='Hello', timeout=5.0)
-                    # logDebug('Reuse old User Service connection for `{}` OK.'.format(user))
+                    logDebug('Reuse old {} User Service connection for `{}` OK.'.format(op, user))
                     return conn
                 except Exception as e:
-                    logWarning('Cannot reuse User Service for `{}`: `{}`.'.format(user, e))
+                    logWarning('Cannot reuse {} User Service for `{}`: `{}`.'.format(op, user, e))
                     self._kill(user)
             else:
                 logInfo('Launching a User Service for `{}`, the first time...'.format(user))
@@ -153,15 +156,25 @@ class LocalFS(object):
                     break
 
                 try:
-                    stream = rpyc.SocketStream.connect('127.0.0.1', port, timeout=5.0)
-                    conn = rpyc.connect_stream(stream, config=config)
-                    conn.root.hello()
+                    stream_r = rpyc.SocketStream.connect('127.0.0.1', port, timeout=5.0)
+                    conn_read = rpyc.connect_stream(stream_r, config=config)
+                    conn_read.root.hello()
                     logDebug('Connected to User Service for `{}`.'.format(user))
                     success = True
-                    break
                 except Exception as e:
                     logWarning('Cannot connect to User Service for `{}` - Exception: `{}`! '
                             'Wait {}s...'.format(user, e, delay))
+
+                if success:
+                    try:
+                        stream_w = rpyc.SocketStream.connect('127.0.0.1', port, timeout=5.0)
+                        conn_write = rpyc.connect_stream(stream_w, config=config)
+                        conn_write.root.hello()
+                        break
+                    except Exception as e:
+                        logWarning('Cannot connect to User Service for `{}` - Exception: `{}`! '
+                                'Wait {}s...'.format(user, e, delay))
+                        success = False
 
                 time.sleep(delay)
                 retry -= 1
@@ -172,10 +185,11 @@ class LocalFS(object):
                 return False
 
             # Save the process inside the block.  99% of the time, this block is executed instantly!
-            self._services[user] = {'proc': proc, 'conn': conn, 'port': port}
+            self._services[user] = {'proc': proc, 'conn_read': conn_read, 'conn_write': conn_write, 'port': port}
 
         logDebug('User Service for `{}` launched on `127.0.0.1:{}` - PID `{}`.'.format(user, port, proc.pid))
-        return conn
+
+        return self._services[user].get('conn_' + op, None)
 
 
     # ----- USER ---------------------------------------------------------------
@@ -221,7 +235,7 @@ class LocalFS(object):
         """
         if not fpath:
             return False
-        srvr = self._usrService(user)
+        srvr = self._usrService(user, 'write')
         if len(fdata) > 20*1000*1000:
             err = '*ERROR* File data too long `{}`: {}; User {}!'.format(fpath, len(fdata),user)
             logWarning(err)
@@ -240,7 +254,7 @@ class LocalFS(object):
     def copyUserFile(self, user, fpath, newpath):
         if not fpath:
             return False
-        srvr = self._usrService(user)
+        srvr = self._usrService(user, 'write')
         if srvr:
             return srvr.root.copy_file(fpath, newpath)
         else:
@@ -250,7 +264,7 @@ class LocalFS(object):
     def moveUserFile(self, user, fpath, newpath):
         if not fpath:
             return False
-        srvr = self._usrService(user)
+        srvr = self._usrService(user, 'write')
         if srvr:
             return srvr.root.move_file(fpath, newpath)
         else:
