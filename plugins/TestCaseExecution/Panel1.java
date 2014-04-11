@@ -1,6 +1,6 @@
 /*
 File: Panel1.java ; This file is part of Twister.
-Version: 2.0024
+Version: 2.0025
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -153,17 +153,6 @@ public class Panel1 extends JPanel{
             public void actionPerformed(ActionEvent ev){
                 sc.g.addSuiteFromButton();}});
         suitemenu.add(item);
-        item = new JMenuItem("Set TB");
-        suitemenu.add(item);
-        item.addActionListener(new ActionListener(){
-            public void actionPerformed(ActionEvent ev){
-                 setEP();
-            }});
-        item = new JMenuItem("Rename");
-        suitemenu.add(item);
-        item.addActionListener(new ActionListener(){
-            public void actionPerformed(ActionEvent ev){
-                renameSuite();}});
         item = new JMenuItem("Expand");
         suitemenu.add(item);
         item.addActionListener(new ActionListener(){
@@ -173,7 +162,12 @@ public class Panel1 extends JPanel{
         suitemenu.add(item);
         item.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
-                contractSuite();}});
+                expandContract(false);}});
+        item = new JMenuItem("Export");
+        suitemenu.add(item);
+        item.addActionListener(new ActionListener(){
+            public void actionPerformed(ActionEvent ev){
+                sc.g.exportSuiteToPredefined(getItem());}});
         item = new JMenuItem("Remove");
         suitemenu.add(item);
         item.addActionListener(new ActionListener(){
@@ -202,16 +196,6 @@ public class Panel1 extends JPanel{
         item.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 renameTC();}});
-        item = new JMenuItem("Expand");
-        tcmenu.add(item);
-        item.addActionListener(new ActionListener(){
-            public void actionPerformed(ActionEvent ev){
-                expandContract(true);}});
-        item = new JMenuItem("Contract");
-        tcmenu.add(item);
-        item.addActionListener(new ActionListener(){
-            public void actionPerformed(ActionEvent ev){
-                expandContract(false);}});
         item = new JMenuItem("Switch Runnable");
         tcmenu.add(item);
         item.addActionListener(new ActionListener(){
@@ -443,14 +427,17 @@ public class Panel1 extends JPanel{
                              RunnerRepository.window.mainpanel.p1.suitaDetails.stopOnFail(),
                              RunnerRepository.window.mainpanel.p1.suitaDetails.preStopOnFail(),
                              RunnerRepository.window.mainpanel.p1.suitaDetails.saveDB(),
-                             RunnerRepository.window.mainpanel.p1.suitaDetails.getDelay(),false,null,RunnerRepository.window.mainpanel.p1.suitaDetails.getProjectDefs()))
+                             RunnerRepository.window.mainpanel.p1.suitaDetails.getDelay(),false,null,RunnerRepository.window.mainpanel.p1.suitaDetails.getProjectDefs())){
                     CustomDialog.showInfo(JOptionPane.PLAIN_MESSAGE, 
                                             RunnerRepository.window, "Success",
                                             "File successfully saved");
-                else CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, 
+                    //open new saved file
+                    sc.g.setUser(user);//just need to rename to new file name
+                }
+                else {CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, 
                                             RunnerRepository.window, "Warning", 
                                             "Warning, file not saved");}}
-//                                         }
+                                        }
         
     /*
      * save opened suite file
@@ -585,7 +572,10 @@ public class Panel1 extends JPanel{
      * selected item
      */
     private void expandContract(boolean expand){
-        final Item theone = getItem();
+        Item theone = getItem();
+        int nr = theone.getSubItemsNr();
+        for(int i=0;i<nr;i++){
+            theone.getSubItem(i).setVisible(expand);}
         theone.setVisible(expand);
         sc.g.updateLocations(theone);
         sc.g.repaint();}
@@ -744,7 +734,6 @@ public class Panel1 extends JPanel{
                     execute = false;
                     return;}}
         }
-        
         /*
          * check if mandatory project fields are set
          */
@@ -758,7 +747,6 @@ public class Panel1 extends JPanel{
                 return;
             }
         }
-        
         /*
          * chech that there are tc'es to run
          */
@@ -769,7 +757,6 @@ public class Panel1 extends JPanel{
                 return;
             }
         }
-        
         /*
          * check tc/suite for names
          */
@@ -782,7 +769,6 @@ public class Panel1 extends JPanel{
                 return;
             }
         }
-        
         /*
          * check that SUT set on suites exist
          */
@@ -808,7 +794,6 @@ public class Panel1 extends JPanel{
                 }
             }
         }
-        
         if(execute){
             String [] s = sc.g.getUser().split("\\\\");
             if(s.length>0){
@@ -910,8 +895,6 @@ public class Panel1 extends JPanel{
             }
             catch(Exception e){e.printStackTrace();}}
             RunnerRepository.openProjectFile();
-        
-        
     }
         
     /*
@@ -1004,31 +987,7 @@ public class Panel1 extends JPanel{
             suitaDetails.setSaveDB(false);
             sc.g.getSelectedCollection().clear();
             RunnerRepository.emptySuites();
-        
-        
         }}
-    
-    /*
-     * open existing suite file
-     */
-//     private void openSuiteFile(){
-//         File usersdirectory = new File(RunnerRepository.getUsersDirectory());
-//         String users[] = new String[usersdirectory.list().length];
-//         System.arraycopy(usersdirectory.list(), 0, users, 0, usersdirectory.list().length);
-//         JComboBox combo = new JComboBox(users);
-//         int resp = (Integer)CustomDialog.showDialog(combo,JOptionPane.INFORMATION_MESSAGE,
-//                                                     JOptionPane.OK_CANCEL_OPTION,sc.g,
-//                                                     "Select project file",null);
-//         if(resp==JOptionPane.OK_OPTION){
-//             String user = combo.getSelectedItem().toString();
-//             RunnerRepository.emptySuites();
-//             RunnerRepository.window.mainpanel.p1.sc.g.setUser(RunnerRepository.getUsersDirectory()+
-//                                                         RunnerRepository.getBar()+user);
-//             RunnerRepository.window.mainpanel.p1.sc.g.parseXML(new File(RunnerRepository.getUsersDirectory()+
-//                                                                     RunnerRepository.getBar()+user));}
-//         if(RunnerRepository.getSuiteNr() > 0){
-//             RunnerRepository.window.mainpanel.p1.sc.g.updateLocations(RunnerRepository.getSuita(0));}
-//         RunnerRepository.window.mainpanel.p1.sc.g.repaint();}
         
     /*
      * set EP for selected
@@ -1039,22 +998,6 @@ public class Panel1 extends JPanel{
             /*
              * get EP's from EP's file
              */
-            
-//             File f = new File(RunnerRepository.temp+System.getProperty("file.separator")+
-//                             "Twister"+System.getProperty("file.separator")+"EpID.txt");
-//             String line = null;  
-//             InputStream in = RunnerRepository.c.get(RunnerRepository.REMOTEEPIDDIR);
-//             InputStreamReader inputStreamReader = new InputStreamReader(in);
-//             BufferedReader bufferedReader = new BufferedReader(inputStreamReader);  
-//             StringBuffer b=new StringBuffer("");
-//             while ((line=bufferedReader.readLine())!= null){b.append(line+";");}                        
-//             bufferedReader.close();
-//             inputStreamReader.close();
-//             in.close();
-//             String result = b.toString();
-//             String  [] vecresult = result.split(";");//EP's list
-
-
                 StringBuilder b = new StringBuilder();
                 Node parentnode = RunnerRepository.window.mainpanel.p4.getTB().getParentNode();
                 HashMap children =  parentnode.getChildren();
@@ -1068,36 +1011,15 @@ public class Panel1 extends JPanel{
                         b.append(";");
                     }
                 }
-                String [] vecresult = b.toString().split(";");   
-
-
-
-                //String  [] vecresult = RunnerRepository.getRemoteFileContent(RunnerRepository.REMOTEEPIDDIR).split("\n");
-            
-            
-//             try{JComboBox combo = new JComboBox(vecresult);
-//                 int resp = (Integer)CustomDialog.showDialog(combo,JOptionPane.INFORMATION_MESSAGE,
-//                                                             JOptionPane.OK_CANCEL_OPTION,sc.g,
-//                                                             "Please select an Ep name",null);
-//                 if(resp==JOptionPane.OK_OPTION){
-//                     String ID = combo.getSelectedItem().toString();
-//                     theone.setEpId(ID);
-//                     for(int i=0;i<theone.getSubItemsNr();i++){
-//                         sc.g.assignEpID(theone.getSubItem(i),ID);}
-//                     repaint();}}
+                String [] vecresult = b.toString().split(";");
             try{JList combo = new JList(vecresult);
-                
                 String [] strings = theone.getEpId();
                 ArrayList<String> array = new ArrayList<String>(Arrays.asList(vecresult));
                 int [] sel = new int[strings.length];
                 for(int i=0;i<strings.length;i++){
                     sel[i]=array.indexOf(strings[i]);
                 }
-                
-                
                 combo.setSelectedIndices(sel);
-                
-                
                 int resp = (Integer)CustomDialog.showDialog(new JScrollPane(combo),JOptionPane.INFORMATION_MESSAGE,
                                                             JOptionPane.OK_CANCEL_OPTION,sc.g,
                                                             "Please select TB to run on",null);
@@ -1172,10 +1094,7 @@ class TreeDropTargetListener implements DropTargetListener {
                     e.printStackTrace();
                     System.out.println("Could not get folder location");}
             }
-            
-            
         } catch (Exception e){
             e.printStackTrace();
         }
-        
-        }}
+    }}
