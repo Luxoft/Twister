@@ -109,25 +109,8 @@ public class Starter implements TwisterPluginInterface{
                 System.out.println(RunnerRepository.temp+" deleted successfull");
             else System.out.println("Could not delete: "+RunnerRepository.temp);}
         RunnerRepository.run = false;
-//         RunnerRepository.session.disconnect();
-//         RunnerRepository.connection.disconnect();        
-//         RunnerRepository.window.mainpanel.p1.ep.session.disconnect();
-//         RunnerRepository.window.mainpanel.p1.ep.connection.disconnect();
-//         RunnerRepository.window.mainpanel.p1.lp.session.disconnect();
-//         RunnerRepository.window.mainpanel.p1.lp.connection.disconnect();
-//         RunnerRepository.window.mainpanel.p4.getPlugins().session.disconnect();
-//         RunnerRepository.window.mainpanel.p4.getPlugins().ch.disconnect();
-//         RunnerRepository.window.mainpanel.p4.getGlobals().session.disconnect();
-//         RunnerRepository.window.mainpanel.p4.getGlobals().ch.disconnect();
-//         RunnerRepository.window.mainpanel.p4.getTestConfig().tree.disconnect();
-//         RunnerRepository.window.mainpanel.p4.getTestConfig().cfgedit.disconnect();
-//         RunnerRepository.window.mainpanel.p4.getSut().sut.disconnect();
         RunnerRepository.window.mainpanel.p4.getTB().releaseAllResources();
         RunnerRepository.window.mainpanel.p4.getSut().sut.getSutTree().releaseAllSuts();
-//         RunnerRepository.window.mainpanel.p4.getTestConfig().tree.session.disconnect();
-//         RunnerRepository.window.mainpanel.p4.getTestConfig().tree.connection.disconnect();
-//         RunnerRepository.window.mainpanel.p4.getTestConfig().cfgedit.session.disconnect();
-//         RunnerRepository.window.mainpanel.p4.getTestConfig().cfgedit.ch.disconnect();
         RunnerRepository.window.mainpanel.p4.getTestConfig().cfgedit.cfgtree.releaseAll();
     }
     

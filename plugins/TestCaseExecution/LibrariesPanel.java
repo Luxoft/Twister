@@ -623,11 +623,13 @@ public class LibrariesPanel{
     }
     
     public void refreshStructure(){
-        try{HashMap hash = RunnerRepository.getPredefinedSuites();
-            DefaultMutableTreeNode child = getList(hash,hash.get("data").toString());
-            if(child!=null){
-                if(root.getChildCount()>0)root.remove(0);
-                root.add(child);
+        try{if(root.getChildCount()>0)root.remove(0);
+            HashMap hash = RunnerRepository.getPredefinedSuites();
+            if(hash!=null){
+                DefaultMutableTreeNode child = getList(hash,hash.get("data").toString());
+                if(child!=null){
+                    root.add(child);
+                }
             }
         }catch(Exception e){
             e.printStackTrace();

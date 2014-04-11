@@ -1,6 +1,6 @@
 /*
 File: SutTree.java ; This file is part of Twister.
-Version: 2.014
+Version: 2.015
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -199,7 +199,6 @@ public class SutTree extends JPanel{
             deletefile.setEnabled(false);
             exportxml.setEnabled(false);
         }
-    
     }
     
     public void releaseAllSuts(){
@@ -209,13 +208,9 @@ public class SutTree extends JPanel{
             DefaultMutableTreeNode treenode = (DefaultMutableTreeNode)en.nextElement();
             sut = (SUT)(treenode).getUserObject();
             if(sut.getReserved().equals(RunnerRepository.user)){
-                try{System.out.println("discarding: "+"/"+sut.getName()+".user");
+                try{
                     String resp = client.execute("discardAndReleaseReservedSut", new Object[]{"/"+sut.getName()+".user",RunnerRepository.user}).toString();
-                    System.out.println("CE response: "+resp);
                     sut.setReserved("");
-//                     if(resp.indexOf("*ERROR*")!=-1){
-//                         CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SutTree.this,"ERROR", resp);
-//                     }
                 }
                 catch(Exception e){
                     System.out.println("Could not release sut: "+sut.getName());
@@ -227,13 +222,8 @@ public class SutTree extends JPanel{
             DefaultMutableTreeNode treenode = (DefaultMutableTreeNode)en.nextElement();
             sut = (SUT)(treenode).getUserObject();
             if(sut.getReserved().equals(RunnerRepository.user)){
-                try{System.out.println("discarding: "+"/"+sut.getName()+".system");
-                    String resp = client.execute("discardAndReleaseReservedSut", new Object[]{"/"+sut.getName()+".system",RunnerRepository.user}).toString();
-                    System.out.println("CE response: "+resp);                    
+                try{String resp = client.execute("discardAndReleaseReservedSut", new Object[]{"/"+sut.getName()+".system",RunnerRepository.user}).toString();
                     sut.setReserved("");
-//                     if(resp.indexOf("*ERROR*")!=-1){
-//                         CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SutTree.this,"ERROR", resp);
-//                     }
                 }
                 catch(Exception e){
                     System.out.println("Could not release sut: "+sut.getName());
@@ -275,11 +265,11 @@ public class SutTree extends JPanel{
                             JOptionPane.OK_CANCEL_OPTION, SutTree.this, "New SUT",null);
                             
                 if(resp == JOptionPane.OK_OPTION&&!tsut.getText().equals("")){
-                    if(add.equals(".user")&&RunnerRepository.window.mainpanel.p4.getSut().sut.checkExistingName(userroot, tsut.getText(), null)){
+                    if(add.equals(".user")&&RunnerRepository.window.mainpanel.p4.getSut().sut.checkExistingName(userroot, tsut.getText(), null)!=null){
                         CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,SutTree.this,"Warning", 
                                         "This name is already used, please use different name.");
                          return;
-                    } else if(add.equals(".system")&&RunnerRepository.window.mainpanel.p4.getSut().sut.checkExistingName(globalroot, tsut.getText(), null)){
+                    } else if(add.equals(".system")&&RunnerRepository.window.mainpanel.p4.getSut().sut.checkExistingName(globalroot, tsut.getText(), null)!=null){
                         CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,SutTree.this,"Warning", 
                                         "This name is already used, please use different name.");
                          return;
@@ -391,11 +381,11 @@ public class SutTree extends JPanel{
                                          ,SutTree.this,
                                          "Sut Name", "Please enter sut name");
                     if(filename!=null&&!filename.equals("NULL")){
-                        if(add.equals(".user")&&RunnerRepository.window.mainpanel.p4.getSut().sut.checkExistingName(userroot, filename, null)){
+                        if(add.equals(".user")&&RunnerRepository.window.mainpanel.p4.getSut().sut.checkExistingName(userroot, filename, null)!=null){
                             CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,SutTree.this,"Warning", 
                                             "This name is already used, please use different name.");
                              return;
-                        } else if(add.equals(".system")&&RunnerRepository.window.mainpanel.p4.getSut().sut.checkExistingName(globalroot, filename, null)){
+                        } else if(add.equals(".system")&&RunnerRepository.window.mainpanel.p4.getSut().sut.checkExistingName(globalroot, filename, null)!=null){
                             CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,SutTree.this,"Warning", 
                                             "This name is already used, please use different name.");
                              return;

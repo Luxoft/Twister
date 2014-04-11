@@ -1,6 +1,6 @@
 /*
 File: RunnerRepository.java ; This file is part of Twister.
-Version: 2.0051
+Version: 2.0052
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -151,8 +151,8 @@ public class RunnerRepository {
     public static Container container;
     public static Applet applet;
     private static Document pluginsconfig;
-    private static String version = "3.008";
-    private static String builddate = "04.04.2014";
+    private static String version = "3.011";
+    private static String builddate = "10.04.2014";
     public static String logotxt,os,python;
     private static int remotefiletries = 0;
     
@@ -1437,7 +1437,6 @@ public class RunnerRepository {
         Object ob = null;
         try{
             ob = RunnerRepository.getRPCClient().execute("listProjects", new Object[]{});
-            System.out.println("listProjects server respons: "+ob.toString());
             if(ob.toString().indexOf("*ERROR*")!=-1){
                 CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,window,"ERROR", ob.toString());
                 return new String[]{};
@@ -1523,10 +1522,8 @@ public class RunnerRepository {
      * save project file from CE
      */
     public static boolean savePredefinedProjectFile(String file,String content){
-        System.out.println("Saving "+getPredefinedSuitesPath()+"/"+file+" with CE");
         try{
-           return uploadRemoteFile(getPredefinedSuitesPath(),null, content,file, false,null);
-           
+            return uploadRemoteFile(getPredefinedSuitesPath(),null, content,file, false,null);
         }catch (Exception e){
             e.printStackTrace();
             CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,window,"ERROR", "Could not save file: "+file+" with CE!");
@@ -1584,7 +1581,12 @@ public class RunnerRepository {
                 CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,window,"ERROR", ob.toString());
                 return null;
             }
-            return (HashMap)ob;
+            if(ob instanceof HashMap){
+                return (HashMap)ob;
+            } else {
+                System.out.println("ERROR! CE returned:"+ob.toString()+" for listProjects(predefined). RunnerRepository->getPredefinedSuites()");
+                return null;
+            }
         } catch (Exception e) {
             if(ob!=null)System.out.println("Server response: "+ob.toString());
             e.printStackTrace();

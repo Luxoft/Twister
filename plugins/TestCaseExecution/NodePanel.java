@@ -1,6 +1,6 @@
 /*
 File: NodePanel.java ; This file is part of Twister.
-Version: 2.010
+Version: 2.011
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -183,10 +183,14 @@ public class NodePanel extends JPanel{
                 if(tname.getText().equals(""))return;
                 if(parent.getName().equals(tname.getText()))return;
                 try{
-                    String [] buttons = {"Continue","Cancel"};
-                    String resp = CustomDialog.showButtons(NodePanel.this, JOptionPane.QUESTION_MESSAGE,
+                    String resp = "Continue";
+                    if(parent.getType() == 0){//prmpt only on tb's
+                        String [] buttons = {"Continue","Cancel"};
+                        resp = CustomDialog.showButtons(NodePanel.this, JOptionPane.QUESTION_MESSAGE,
                                                             JOptionPane.DEFAULT_OPTION, null,buttons ,
                                                             "Confirmation","The TB changes will be saved; do you want to continue ?");
+                    }
+                    
                     if (!resp.equals("NULL")) {
                         if(resp.equals("Continue")){
                             if(!checkExistingName(parent, tname.getText())){
@@ -199,8 +203,10 @@ public class NodePanel extends JPanel{
                                     ((DefaultTreeModel)tree.getModel()).nodeChanged(treenode);
                                     RunnerRepository.window.mainpanel.p4.getTB().setSavedState(treenode,false);
                                     update.setEnabled(false);
-                                    if(RunnerRepository.window.mainpanel.p4.getTB().saveChanges("/"+parent.getName())){
-                                        RunnerRepository.window.mainpanel.p4.getTB().setSavedState(treenode,true);
+                                    if(parent.getType() == 0){//save only tb's
+                                        if(RunnerRepository.window.mainpanel.p4.getTB().saveChanges("/"+parent.getName())){
+                                            RunnerRepository.window.mainpanel.p4.getTB().setSavedState(treenode,true);
+                                        }
                                     }
                                 } else {
                                     System.out.println("There was an error: "+query);
