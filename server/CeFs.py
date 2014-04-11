@@ -115,7 +115,7 @@ class LocalFS(object):
             conn = self._services.get(user, {}).get('conn_' + op, None)
             if conn:
                 try:
-                    conn.ping(data='Hello', timeout=5.0)
+                    conn.ping(data='Hello', timeout=30.0)
                     # logDebug('Reuse old {} User Service connection for `{}` OK.'.format(op, user))
                     return conn
                 except Exception as e:
