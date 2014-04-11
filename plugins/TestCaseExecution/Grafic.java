@@ -1,6 +1,6 @@
 /*
 File: Grafic.java ; This file is part of Twister.
-Version: 2.0024
+Version: 2.0025
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -1587,9 +1587,7 @@ public class Grafic extends JPanel{
         p.add(item);
         item.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
-                tc.setVisible(false);
-                updateLocations(tc);
-                repaint();}});
+                setConfigurations(true);}});
         item = new JMenuItem("Remove");
         p.add(item);
         item.addActionListener(new ActionListener(){
