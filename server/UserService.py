@@ -1,7 +1,7 @@
 
 # File: UserService.py ; This file is part of Twister.
 
-# version: 3.005
+# version: 3.006
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -53,14 +53,14 @@ else:
     log_file = 'usr_srv.log'
 
 logging.basicConfig(
-    level=logging.NOTSET,
+    level=logging.INFO,
     format='%(asctime)s  %(levelname)-8s %(message)s',
     datefmt='%y-%m-%d %H:%M:%S',
     filename=log_file,
     filemode='w')
 
 console = logging.StreamHandler()
-console.setLevel(logging.NOTSET)
+console.setLevel(logging.INFO)
 log.addHandler(console)
 
 

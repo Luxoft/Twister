@@ -1,6 +1,6 @@
 /*
 File: RunnerRepository.java ; This file is part of Twister.
-Version: 2.0052
+Version: 2.0053
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -151,8 +151,8 @@ public class RunnerRepository {
     public static Container container;
     public static Applet applet;
     private static Document pluginsconfig;
-    private static String version = "3.011";
-    private static String builddate = "10.04.2014";
+    private static String version = "3.012";
+    private static String builddate = "11.04.2014";
     public static String logotxt,os,python;
     private static int remotefiletries = 0;
     
@@ -189,7 +189,7 @@ public class RunnerRepository {
             File g1 = new File(temp);
             if(g1.mkdir()){
                 System.out.println(temp+" successfully created");}
-            else System.out.println(temp+" could not be created ");
+            else System.out.println(temp+" could not be created");
             g1 = new File(temp+bar+host);
             if(g1.mkdir()){
                 System.out.println(temp+bar+host+" successfully created");}
@@ -245,9 +245,7 @@ public class RunnerRepository {
         
         
         try{
-//             if(userpassword(user,password,host)){
             if(true){
-//                 ssh(user,password,host);
                 /*
                  * create directory structure
                  * for twister resources localy
@@ -326,7 +324,6 @@ public class RunnerRepository {
                 if(Window.deleteTemp(file))
                     System.out.println(RunnerRepository.temp+bar+"Twister deleted successful");
                 else System.out.println("Could not delete: "+temp+bar+"Twister");
-//                 introscreen.dispose();
                 run = false;
                 if(!RunnerRepository.isapplet)System.exit(0);}
             }

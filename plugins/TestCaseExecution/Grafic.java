@@ -1,6 +1,6 @@
 /*
 File: Grafic.java ; This file is part of Twister.
-Version: 2.0023
+Version: 2.0024
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -1583,79 +1583,18 @@ public class Grafic extends JPanel{
         item.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 setParam(tc);}});
-//         item = new JMenuItem("Rename");
-//         p.add(item);
-//         item.addActionListener(new ActionListener(){
-//             public void actionPerformed(ActionEvent ev){
-//                 String name = CustomDialog.showInputDialog(JOptionPane.QUESTION_MESSAGE,
-//                                                             JOptionPane.OK_CANCEL_OPTION, 
-//                                                             Grafic.this, "TC Name", 
-//                                                             "Please enter the TC name");
-//                 if(name!=null){
-//                     FontMetrics metrics = getGraphics().getFontMetrics(
-//                                 new Font("TimesRoman", Font.BOLD, 13));
-//                     int width = metrics.stringWidth(name);
-//                     tc.setName(name);
-//                     tc.getRectangle().setSize(width+50,(int)tc.getRectangle().getHeight());
-//                     updateLocations(tc);
-//                     repaint();}}});
         item = new JMenuItem("Set Configurations");
-        p.add(item);
-        item.addActionListener(new ActionListener(){
-            public void actionPerformed(ActionEvent ev){
-                setConfigurations(true);}});
-        item = new JMenuItem("Expand");
-        p.add(item);
-        item.addActionListener(new ActionListener(){
-            public void actionPerformed(ActionEvent ev){
-                tc.setVisible(true);
-                updateLocations(tc);
-                repaint();}});
-        item = new JMenuItem("Contract");
         p.add(item);
         item.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 tc.setVisible(false);
                 updateLocations(tc);
                 repaint();}});
-//         item = new JMenuItem("Switch Runnable");
-//         p.add(item);
-//         item.addActionListener(new ActionListener(){
-//             public void actionPerformed(ActionEvent ev){
-//                 tc.switchRunnable();
-//                 repaint();}});
-//         if(tc.isOptional()){
-//             item = new JMenuItem("Unset optional");
-//             p.add(item);
-//             item.addActionListener(new ActionListener(){
-//                 public void actionPerformed(ActionEvent ev){
-//                     setOptional(tc);}});}
-//         else if(!tc.isPrerequisite()){
-//             item = new JMenuItem("Set optional");
-//             p.add(item);
-//             item.addActionListener(new ActionListener(){
-//                 public void actionPerformed(ActionEvent ev){
-//                     setOptional(tc);}});}
-//         if(!tc.isPrerequisite()){
-//             item = new JMenuItem("Set pre-requisites");
-//             p.add(item);
-//             item.addActionListener(new ActionListener(){
-//                 public void actionPerformed(ActionEvent ev){
-//                     setPreRequisites(tc);}});}
-//         if(tc.isPrerequisite()){
-//             item = new JMenuItem("Unset pre-requisites");
-//             p.add(item);
-//             item.addActionListener(new ActionListener(){
-//                 public void actionPerformed(ActionEvent ev){
-//                     tc.setPrerequisite(false);
-//                     repaint();}});}
         item = new JMenuItem("Remove");
         p.add(item);
         item.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 removeSelected();
-//                 removeTC(tc);
-//                 selectedcollection.clear();
             }});
         p.show(this,ev.getX(),ev.getY());}
        
@@ -1684,6 +1623,7 @@ public class Grafic extends JPanel{
                 int nr = suita.getSubItemsNr();
                 for(int i=0;i<nr;i++){
                     suita.getSubItem(i).setVisible(false);}
+                suita.setVisible(false);
                 updateLocations(suita);
                 repaint();}});
         item = new JMenuItem("Export");
@@ -1733,7 +1673,8 @@ public class Grafic extends JPanel{
         if(user!=null&&!user.equals("")){
             ArrayList<Item>array = new ArrayList<Item>();
             array.add(suite);
-            if(printXML(user+".xml", false,false,
+            if(printXML(RunnerRepository.temp+RunnerRepository.getBar()+"Twister"+RunnerRepository.getBar()+"Users"+RunnerRepository.getBar()+user+".xml",
+                         false,false,
                          RunnerRepository.window.mainpanel.p1.suitaDetails.stopOnFail(),
                          RunnerRepository.window.mainpanel.p1.suitaDetails.preStopOnFail(),
                          RunnerRepository.window.mainpanel.p1.suitaDetails.saveDB(),

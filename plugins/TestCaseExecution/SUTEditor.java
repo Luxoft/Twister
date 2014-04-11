@@ -1,6 +1,6 @@
 /*
 File: SutEditor.java ; This file is part of Twister.
-Version: 2.017
+Version: 2.018
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -259,7 +259,6 @@ public class SutEditor extends JPanel{
                         }
                         HashMap <String,String>hm = new <String,String>HashMap();
                         hm.put("_id","");
-                        System.out.println(parentid+" - "+name+" - "+hm.toString()+" - "+RunnerRepository.user);
                         String resp = client.execute("setSut", new Object[]{parentid,name,hm,RunnerRepository.user}).toString();
                         if(resp.indexOf("ERROR")==-1){
                             DefaultTreeModel model = (DefaultTreeModel)tree.getModel();
@@ -270,13 +269,13 @@ public class SutEditor extends JPanel{
                         }
                     } else if (userobj instanceof Comp) {
                         torem = ((Comp)userobj).getID();
-                        String s = client.execute("deleteSut", new Object[]{torem,RunnerRepository.user}).toString();
+                        String s = client.execute("deleteResource", new Object[]{torem,"{}",2,RunnerRepository.user}).toString();
                         if(s.indexOf("ERROR")==-1){
-                        ((DefaultTreeModel)tree.getModel()).removeNodeFromParent(treenode);
-                        selectedSUT(null);                        
-                        if(!(userobj instanceof Node)&&!(userobj instanceof Comp)){
-                            RunnerRepository.window.mainpanel.p1.suitaDetails.setComboTBs();
-                        }
+                            ((DefaultTreeModel)tree.getModel()).removeNodeFromParent(treenode);
+                            selectedSUT(null);                        
+                            if(!(userobj instanceof Node)&&!(userobj instanceof Comp)){
+                                RunnerRepository.window.mainpanel.p1.suitaDetails.setComboTBs();
+                            }
                             lastsaved = false;
                         } else {
                             CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SutEditor.this,"Error", s);

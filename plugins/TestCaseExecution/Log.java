@@ -1,6 +1,6 @@
 /*
 File: Log.java ; This file is part of Twister.
-Version: 2.008
+Version: 2.009
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -129,7 +129,7 @@ public class Log extends JPanel{
     public void updateLog(){
         String result;
         while(RunnerRepository.run){
-            try{Thread.sleep(500);
+            try{Thread.sleep(1000);
                 if(container.isShowing()){
                     if(response==length){
                         result = RunnerRepository.getRPCClient().execute("getLogFile",
