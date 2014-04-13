@@ -89,13 +89,13 @@ public class Main{
                     RunnerRepository.window.mainpanel.p4.getSut().sut.getSutTree().releaseAllSuts();
                     System.exit(0);}});
         f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        RunnerRepository.host = "127.0.0.1";
-        RunnerRepository.user = "user";
-        RunnerRepository.password = "password";
+//         RunnerRepository.host = "127.0.0.1";
+//         RunnerRepository.user = "user";
+//         RunnerRepository.password = "password";
         RunnerRepository.CENTRALENGINEPORT = "8000";
-//         RunnerRepository.host = "11.126.32.9";
-//         RunnerRepository.user = "tscguest";
-//         RunnerRepository.password = "tscguest";
+        RunnerRepository.host = "11.126.32.9";
+        RunnerRepository.user = "tscguest";
+        RunnerRepository.password = "tscguest";
         RunnerRepository.initialize("false",RunnerRepository.host,f.getContentPane(),null);
     }
 
