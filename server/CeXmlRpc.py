@@ -1,7 +1,7 @@
 
 # File: CeXmlRpc.py ; This file is part of Twister.
 
-# version: 2.043
+# version: 2.044
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -669,8 +669,8 @@ class CeXmlRpc(_cptools.XMLRPCController):
         Returns all EPs for current user.
         """
         logFull('CeXmlRpc:listEPs user `{}`.'.format(user))
-        epList = self.project.getUserInfo(user, 'eps').keys()
-        return ','.join(epList)
+        epList = self.project.getUserInfo(user, 'eps') or {}
+        return ','.join(epList.keys())
 
 
     @cherrypy.expose
