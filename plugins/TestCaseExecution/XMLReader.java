@@ -1,6 +1,6 @@
 /*
 File: XMLReader.java ; This file is part of Twister.
-Version: 2.018
+Version: 2.019
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -217,7 +217,8 @@ public class XMLReader{
             trdNmElmntLst = ((Element)node).getElementsByTagName("propName");
             trdNmElmnt = (Element)trdNmElmntLst.item(0);
             trdNm = trdNmElmnt.getChildNodes();
-            name = trdNm.item(0).getNodeValue().toString();
+            if(trdNm.getLength()>0)name = trdNm.item(0).getNodeValue().toString();
+            else name = "";
             if(name.equals("Runnable")){
                 trdNmElmntLst2 = ((Element)node).getElementsByTagName("propValue");
                 Element trdNmElmnt2 = (Element)trdNmElmntLst2.item(0);
@@ -237,9 +238,10 @@ public class XMLReader{
             trdNmElmntLst2 = ((Element)node).getElementsByTagName("propValue");
             Element trdNmElmnt2 = (Element)trdNmElmntLst2.item(0);
             trdNm2 = trdNmElmnt2.getChildNodes();
-            value = trdNm2.item(0).getNodeValue().toString();
+            if(trdNm2.getLength()>0)value = trdNm2.item(0).getNodeValue().toString();
+            else value = "";
             if(name.equals("Running")){
-                item.setCheck(Boolean.parseBoolean(value));
+                item.setCheck(Boolean.parseBoolean(value),true);
                 return;
             }
             FontMetrics metrics = g.getFontMetrics(new Font("TimesRoman", 0, 11));
@@ -298,8 +300,8 @@ public class XMLReader{
                     String delay = "";
                     try{delay = fstNode.getChildNodes().item(0).getNodeValue().toString();}
                     catch(Exception e){
-						delay = "";
-					}
+                        delay = "";
+                    }
                     RunnerRepository.window.mainpanel.p1.suitaDetails.setDelay(delay);
                     
                     continue;

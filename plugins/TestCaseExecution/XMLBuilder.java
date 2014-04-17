@@ -1,6 +1,6 @@
 /*
 File: XMLBuilder.java ; This file is part of Twister.
-Version: 2.019
+Version: 2.020
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -357,8 +357,8 @@ public class XMLBuilder{
                 Element em9 = document.createElement("Priority");
                 em9.appendChild(document.createTextNode("Medium"));
                 tc.appendChild(em9);
-                Element em10 = document.createElement("Dependancy");
-                em10.appendChild(document.createTextNode(" "));
+                Element em10 = document.createElement("Dependency");
+                em10.appendChild(document.createTextNode(""));
                 tc.appendChild(em10);
             }
             if(item.isPrerequisite()){

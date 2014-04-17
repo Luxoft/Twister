@@ -1,6 +1,6 @@
 /*
 File: Panel1.java ; This file is part of Twister.
-Version: 2.0025
+Version: 2.0026
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -649,8 +649,8 @@ public class Panel1 extends JPanel{
                     for(int j=0;j<tcmenu.getMenuComponentCount();j++){
                         tcmenu.getMenuComponent(j).setEnabled(true);}
                     if(!theone.isPrerequisite()){
-                        tcmenu.getMenuComponent(7).setEnabled(false);}
-                    else tcmenu.getMenuComponent(6).setEnabled(false);}}}}
+                        tcmenu.getMenuComponent(5).setEnabled(false);}
+                    else tcmenu.getMenuComponent(4).setEnabled(false);}}}}
                     
     public void edit(boolean openlast){
         final int loc = splitPane3.getDividerLocation();
@@ -750,13 +750,19 @@ public class Panel1 extends JPanel{
         /*
          * chech that there are tc'es to run
          */
+        boolean found = false;
         for(Item i:RunnerRepository.getSuite()){
-            if(!findRunnableTC(i)){
-                CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, RunnerRepository.window,"Warning","Please add test cases to your suite");
-                execute = false;
-                return;
+            if(i.getCheck()&&findRunnableTC(i)){
+                found = true;
+                break;
             }
         }
+        if(!found){
+            CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, RunnerRepository.window,"Warning","Please add test cases to your suite");
+            execute = false;
+            return;
+        }
+        
         /*
          * check tc/suite for names
          */
@@ -780,7 +786,7 @@ public class Panel1 extends JPanel{
                 vecresult[i] = vecresult[i].replace(".system", "(system)");
             }
             for(Item i:RunnerRepository.getSuite()){
-                boolean found = false;
+                found = false;
                 for(String item:i.getEpId()){
                     for(String sut:vecresult){
                         if(item.equals(sut)){
@@ -789,11 +795,27 @@ public class Panel1 extends JPanel{
                     }
                     if(!found){
                         CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE, RunnerRepository.window,"Error","SUT file"+item+" cannot be read");
+                        execute = false;
                         return;
                     }
                 }
             }
         }
+        
+        /*
+         * check all properties and parameters are valid
+         */
+        for(Item i:RunnerRepository.getSuite()){
+            Item item = hasInvalidParams(i);
+            if(item!=null){
+                Item tcparent = sc.g.getTcParent(item,false);
+                Item suiteparent = sc.g.getFirstSuitaParent(item,false);                
+                CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE, RunnerRepository.window,"Error","Please enter Name, and Value for all Properties/Parameters on tc: "+tcparent.getName()+" on suite:"+suiteparent.getName());
+                execute = false;
+                return;
+            }
+        }
+        
         if(execute){
             String [] s = sc.g.getUser().split("\\\\");
             if(s.length>0){
@@ -831,6 +853,29 @@ public class Panel1 extends JPanel{
         }
     }
     
+    /*
+     * check if an item or subitem has 
+     * parameters with name or value not set
+     */
+    private Item hasInvalidParams(Item item){
+        if(item.getType()==2){
+            for(Item i:item.getSubItems()){
+                item = hasInvalidParams(i);
+                if(item!=null){
+                    return item;
+                }
+            }
+        } else {
+            int size = item.getSubItemsNr();
+            for(Item i:item.getSubItems()){
+                if(i.getName().equals("")||(!i.getName().equals("Running")&&i.getValue().equals(""))){
+                    return i;  
+                }
+            }
+        }
+        return null;
+    }
+    
     
     
     
@@ -841,7 +886,7 @@ public class Panel1 extends JPanel{
         if(i.getType()==1&&i.getCheck()){
             return true;
         }
-        if(i.getType()==2){
+        if(i.getType()==2&&i.getCheck()){
             for(int j=0;j<i.getSubItemsNr();j++){
                 if(findRunnableTC(i.getSubItem(j))){
                     return true;

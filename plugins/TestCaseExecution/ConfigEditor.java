@@ -1,6 +1,6 @@
 /*
 File: ConfigEditor.java ; This file is part of Twister.
-Version: 2.016
+Version: 2.017
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -173,7 +173,7 @@ public class ConfigEditor extends JPanel{
     private void initParamDesc(){
         pdesc = new JPanel();
         JLabel name = new JLabel("Name:");
-        JLabel description = new JLabel("Description:");
+        JLabel description = new JLabel("Description: (256 chars max)");
         tname = new JTextField();
         focusadapter = new MyFocusAdapter();
         tname.addFocusListener(focusadapter);
@@ -239,7 +239,6 @@ public class ConfigEditor extends JPanel{
                 .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(tdescription, GroupLayout.DEFAULT_SIZE, 104, Short.MAX_VALUE)
                 .addGap(2, 2, 2)
-                //.addContainerGap()
                 )
         );
     }
@@ -1061,8 +1060,8 @@ public class ConfigEditor extends JPanel{
                 tdescription.addKeyListener(new KeyAdapter(){
                     public void keyReleased(KeyEvent ev){
                         String dsc = tdescription.getText();
-                        if(dsc.length()>60){
-                            dsc = dsc.substring(0,60);
+                        if(dsc.length()>256){
+                            dsc = dsc.substring(0,256);
                             tdescription.setText(dsc);
                         }
                         desc.setNodeValue(dsc);
@@ -1071,6 +1070,8 @@ public class ConfigEditor extends JPanel{
                     }
                 });
             }
+        } else {
+            tdescription.setText("");
         }
         if(comp){
             tvalue.setEnabled(false);
