@@ -1,6 +1,6 @@
 /*
 File: Item.java ; This file is part of Twister.
-Version: 2.006
+Version: 2.007
 Copyright (C) 2012 , Luxoft
 
 Authors: Andrei Costachi <acostachi@luxoft.com>
@@ -31,9 +31,9 @@ public class Item implements Cloneable{
     private ArrayList <Item> subitems = new ArrayList<Item>();
     private ArrayList <Integer> indexpos;//the index of this item in suite tree
     private boolean check = true;
-    private String [] EpID;
+    private String [] EpID = {};
     private boolean runnable = true;
-    private ArrayList<String[]> userDefined = new ArrayList<String[]>();
+    private ArrayList<String[]> userDefined = new ArrayList<String[]>();//name value pair
     private boolean prerequisite = false;
     private boolean teardown = false;
     private boolean optional = false;
@@ -73,13 +73,13 @@ public class Item implements Cloneable{
     public void setPrerequisite(boolean prerequisite){
         this.prerequisite = prerequisite;
         if(prerequisite){
-            setCheck(true);
+            setCheck(true,true);
             setRunnable(true);}}
     
     public void setTeardown(boolean teardown){
         this.teardown = teardown;
         if(teardown){
-            setCheck(true);
+            setCheck(true,true);
             setRunnable(true);}}
     
     public boolean isTeardown(){
@@ -184,12 +184,12 @@ public class Item implements Cloneable{
         for(Item item:subitems){
             if(item.getType()==2)item.setEpId(EpID);}}
     
-    public void setCheck(boolean check){
+    public void setCheck(boolean check, boolean propagate){
         this.check = check;
-        if(type==2){
+        if(type==2&&propagate){
             int nr = subitems.size();
             for(int i=0;i<nr;i++){
-                subitems.get(i).setCheck(check);}}
+                subitems.get(i).setCheck(check,propagate);}}
         else{
             if(getSubItemsNr()>0) subitems.get(0).setValue(check+"");}}
         

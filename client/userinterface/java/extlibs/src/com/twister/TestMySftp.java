@@ -26,6 +26,7 @@ public class TestMySftp {
 	public static void main(String [] args){
 		JFrame f = new JFrame();
 		JTextField field = new JTextField();
+		field.setText("/home/tscguest//twister/config/email.xml");
 		f.add(field);
 		f.setVisible(true);
 		MySftpBrowser sftpbrows = new MySftpBrowser("tsc-server", "tscguest", "tscguest","8000", field, f,false);
