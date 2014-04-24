@@ -273,14 +273,16 @@ class Project(object):
         user_passwd = binascii.hexlify(user+':'+passwd)
 
         with usr_pwds_lock:
+            sess_user = cherrypy.session.get('username')
             if cherrypy.session.get('user_passwd') == user_passwd:
                 return True
             elif user in usrs_and_pwds and usrs_and_pwds.get(user) == passwd:
-                if not cherrypy.session.get('username'):
+                if not sess_user or sess_user != user:
                     cherrypy.session['username'] = user
+                    cherrypy.session['user_passwd'] = user_passwd
                 return True
             elif passwd == 'EP':
-                if not cherrypy.session.get('username'):
+                if not sess_user or sess_user != user:
                     cherrypy.session['username'] = user
                 return True
 
