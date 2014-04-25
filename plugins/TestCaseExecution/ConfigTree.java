@@ -198,9 +198,7 @@ public class ConfigTree extends JPanel{
         tree = new JTree(root);
         tree.addTreeSelectionListener(new TreeSelectionListener(){
             public void valueChanged(TreeSelectionEvent ev){
-                
                 TreePath newPath = ev.getNewLeadSelectionPath(); 
-                
                 DefaultMutableTreeNode newNode = null;  
                 if(newPath != null){
                     remfile.setEnabled(true);

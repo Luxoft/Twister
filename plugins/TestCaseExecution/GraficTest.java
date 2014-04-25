@@ -210,14 +210,14 @@ public class GraficTest extends JPanel{
      * method to display popup
      */
     public void popUp(MouseEvent ev){
-        JPopupMenu p = new JPopupMenu();
-        JMenuItem item = new JMenuItem("Run separately");        
-        p.add(item);
-        item.addActionListener(new ActionListener(){
-            public void actionPerformed(ActionEvent ev2){
-                runSeparately();
-            }});
-        p.show(this,ev.getX(),ev.getY());
+//         JPopupMenu p = new JPopupMenu();
+//         JMenuItem item = new JMenuItem("Run separately");        
+//         p.add(item);
+//         item.addActionListener(new ActionListener(){
+//             public void actionPerformed(ActionEvent ev2){
+//                 runSeparately();
+//             }});
+//         p.show(this,ev.getX(),ev.getY());
     }
     
 

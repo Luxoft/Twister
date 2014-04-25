@@ -58,8 +58,8 @@ public class Services extends JPanel{
         }
         new Thread(){
             public void run (){
-                ArrayList<String> sarray = new<String> ArrayList();
-                ArrayList <String>rarray = new<String> ArrayList();
+                ArrayList<String> sarray = new ArrayList();
+                ArrayList <String>rarray = new ArrayList();
                 String [] services;
                 while(RunnerRepository.run){
                     try{

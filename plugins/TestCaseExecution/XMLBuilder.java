@@ -1,6 +1,6 @@
 /*
 File: XMLBuilder.java ; This file is part of Twister.
-Version: 2.019
+Version: 2.021
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -33,12 +33,9 @@ import java.io.File;
 import javax.xml.transform.stream.StreamResult;
 import javax.xml.transform.Result;
 import java.io.FileInputStream;
-import java.util.Iterator;
 import javax.swing.JOptionPane;
 import com.twister.CustomDialog;
 import javax.swing.tree.DefaultMutableTreeNode;
-import java.util.HashMap;
-import java.io.StringWriter;
 import java.util.Scanner;
 
 public class XMLBuilder{
@@ -154,7 +151,6 @@ public class XMLBuilder{
         root.appendChild(em2);
         if(skip && nrsuite>0){
             ArrayList <Item> temporary = new <Item> ArrayList();
-            String [] EPS;
             for(int i=0;i<nrsuite;i++){
                 sb.setLength(0);
                 current = suite.get(i);
@@ -187,7 +183,6 @@ public class XMLBuilder{
                                temporary.add(item);
                            }
                        }
-                       
                    }
                 }
              }
@@ -256,7 +251,6 @@ public class XMLBuilder{
                     EP.appendChild(document.createTextNode(b.toString()));
                     rootElement.appendChild(EP);
                     EP = document.createElement("EpId");
-                    Node parent = RunnerRepository.window.mainpanel.p4.getTB().getParentNode();
                     b.setLength(0);
                     for(String s:suite.get(i).getEpId()){
                         DefaultMutableTreeNode noderoot =null;
@@ -357,8 +351,8 @@ public class XMLBuilder{
                 Element em9 = document.createElement("Priority");
                 em9.appendChild(document.createTextNode("Medium"));
                 tc.appendChild(em9);
-                Element em10 = document.createElement("Dependancy");
-                em10.appendChild(document.createTextNode(" "));
+                Element em10 = document.createElement("Dependency");
+                em10.appendChild(document.createTextNode(""));
                 tc.appendChild(em10);
             }
             if(item.isPrerequisite()){
@@ -431,7 +425,6 @@ public class XMLBuilder{
                     EP.appendChild(document.createTextNode(b.toString()));
                     rootElement2.appendChild(EP);
                     EP = document.createElement("EpId");
-                    Node parent = RunnerRepository.window.mainpanel.p4.getTB().getParentNode();
                     b.setLength(0);
                     DefaultMutableTreeNode noderoot =null;
                     for(String s:item.getEpId()){
@@ -503,7 +496,6 @@ public class XMLBuilder{
                     FileInputStream in = new FileInputStream(file);
                     return RunnerRepository.uploadRemoteFile(result2.toString(), in,null, file.getName(),false,null);
                 }else{
-                    FileInputStream in = new FileInputStream(file);
                     if(lib){ //predefined suites  
                         return RunnerRepository.savePredefinedProjectFile(file.getName(),new Scanner(file).useDelimiter("\\A").next());
                     } else {//normal suites                        

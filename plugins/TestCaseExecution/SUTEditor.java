@@ -1,6 +1,6 @@
 /*
 File: SutEditor.java ; This file is part of Twister.
-Version: 2.018
+Version: 2.019
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -625,11 +625,17 @@ public class SutEditor extends JPanel{
     
     public String getEpsFromSut(String sutname){
         String eps = "";
-        try{HashMap hash= (HashMap)client.execute("getSut", new Object[]{sutname,RunnerRepository.user,RunnerRepository.user});
-            try{eps = ((HashMap)hash.get("meta")).get("_epnames_"+RunnerRepository.user).toString();}
+        try{//HashMap hash= (HashMap)client.execute("getSut", new Object[]{sutname,RunnerRepository.user,RunnerRepository.user});
+            Object ob = client.execute("getSutByName", new Object[]{sutname,RunnerRepository.user});
+            if(ob.toString().indexOf("*ERROR*")!=-1){
+                CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SutEditor.this,"ERROR", ob.toString());
+                return "";
+            }
+            try{HashMap hash = (HashMap)ob;
+                eps = ((HashMap)hash.get("meta")).get("_epnames_"+RunnerRepository.user).toString();}
             catch(Exception e){
                 //System.out.println("Error in getting _epnames_"+RunnerRepository.user+" from meta in: "+hash.toString()+" . Called in SutEditor->getEpsFromSut");
-                eps = "";
+                eps = "";                
             }
         }
         catch(Exception e){

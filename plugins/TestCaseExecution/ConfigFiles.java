@@ -1,6 +1,6 @@
 /*
 File: ConfigFiles.java ; This file is part of Twister.
-Version: 2.024
+Version: 2.025
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -17,65 +17,48 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-import javax.swing.JPanel;
+import java.awt.Color;
+import java.awt.Container;
+import java.awt.Dimension;
+import java.awt.Font;
+import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import javax.swing.JButton;
-import org.apache.commons.vfs.FileObject;
-import javax.swing.JLabel;
-import javax.swing.JTextField;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.DocumentBuilder;
-import org.w3c.dom.Document;
-import javax.xml.transform.TransformerFactory;
-import javax.xml.transform.Transformer;
-import javax.xml.transform.OutputKeys;
-import javax.xml.transform.dom.DOMSource;
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.transform.TransformerConfigurationException;
-import org.w3c.dom.Element;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
-import javax.xml.transform.Result;
-import javax.xml.transform.stream.StreamResult;
-import org.w3c.dom.Comment;
-import javax.swing.JOptionPane;
-import java.util.ArrayList;
-import java.io.InputStream;
-import java.io.FileOutputStream;
-import java.io.ByteArrayOutputStream;
-import org.w3c.dom.NodeList;
-import org.w3c.dom.Node;
-import java.awt.Component;
-import java.awt.HeadlessException;
-import javax.swing.JDialog;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
-import java.awt.Container;
-import java.awt.Color;
-import javax.swing.plaf.ComponentUI;
-import java.awt.GridLayout;
+import java.io.FileWriter;
+import javax.swing.AbstractAction;
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
-import java.awt.Font;
-import javax.swing.border.TitledBorder;
-import javax.swing.JTextArea;
-import java.awt.Dimension;
-import javax.swing.Box;
-import javax.swing.BorderFactory;
-import javax.swing.border.BevelBorder;
-import java.awt.BorderLayout;
-import javax.swing.SwingUtilities;
-import javax.swing.AbstractAction;
-import javax.swing.JFrame;
-import javax.swing.JProgressBar;
-import javax.swing.JComboBox;
+import javax.swing.JButton;
 import javax.swing.JCheckBox;
-import java.util.Arrays;
-import com.twister.MySftpBrowser;
+import javax.swing.JComboBox;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JProgressBar;
+import javax.swing.JTextArea;
+import javax.swing.JTextField;
+import javax.swing.border.TitledBorder;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.OutputKeys;
+import javax.xml.transform.Result;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerConfigurationException;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
+import org.w3c.dom.Comment;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 import com.twister.CustomDialog;
-import java.io.BufferedWriter;
-import java.io.FileWriter;
+import com.twister.MySftpBrowser;
 
 public class ConfigFiles extends JPanel{
     public static JTextField ttcpath,tMasterXML,tUsers,

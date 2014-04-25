@@ -243,7 +243,6 @@ public class UserManagement implements TwisterPluginInterface {
 			HashMap hm = (HashMap<String, HashMap>) client
 					.execute("usersAndGroupsManager",
 							new Object[] { "list groups" });
-			//Object[] groups = hm.keySet().toArray();
 			Object[] groups = (Object[])hm.get("_sorted_groups"); 
 			DefaultListModel listModel = new DefaultListModel();
 			for (Object o : groups) {
@@ -710,10 +709,11 @@ public class UserManagement implements TwisterPluginInterface {
 
 	private void addUser() {
 		try {
-			HashMap<String, HashMap> hm = (HashMap<String, HashMap>) client
+			HashMap hm = (HashMap<String, HashMap>) client
 					.execute("usersAndGroupsManager",
 							new Object[] { "list groups" });
-			Object[] resp = hm.keySet().toArray();
+			Object[] resp = (Object[])hm.get("_sorted_groups");
+			//Object[] resp = hm.keySet().toArray();
 			String[] groups = new String[resp.length];
 			for (int i = 0; i < resp.length; i++) {
 				groups[i] = resp[i].toString();

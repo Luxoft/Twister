@@ -1,6 +1,6 @@
 /*
 File: Grafic.java ; This file is part of Twister.
-Version: 2.0025
+Version: 2.0026
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -1095,18 +1095,6 @@ public class Grafic extends JPanel{
     }
         
         
-//     /*
-//      * returns last visible element after 
-//      * element at pos
-//      */    
-//     public Item lastVisible(ArrayList <Integer> pos){//last visible elem under pos
-//         Item item = getItem(pos,false);
-//         if(item.getType()==2&&item.getSubItemsNr()>0&&item.getSubItem(0).isVisible()){
-//             pos.add(new Integer(item.getSubItemsNr()-1));
-//             return lastVisible(pos);}        
-//         return item;}
-        
-        
      
       
     /*
@@ -1119,9 +1107,6 @@ public class Grafic extends JPanel{
             for(int i=0;i<item.getPos().size();i++){
                 System.out.print(item.getPos().get(i));}
             System.out.println();}
-//         if(item.getType()==1){
-//             for(int i=0;i<item.getSubItemsNr();i++){
-//                 printPos(item.getSubItem(i));}}
         if(item.getType()==1||item.getType()==2){
             for(int i=0;i<item.getSubItemsNr();i++){
                 printPos(item.getSubItem(i));}}}
@@ -1171,7 +1156,18 @@ public class Grafic extends JPanel{
                     }
                     if(getItem(selected,false).getCheckRectangle().intersects(
                                   new Rectangle(ev.getX()-1,ev.getY()-1,2,2))){
-                        getItem(selected,false).setCheck(!getItem(selected,false).getCheck());}
+                        Item select = getItem(selected,false);
+                        select.setCheck(!select.getCheck(),true);
+                        
+                        if(select.getCheck()&&select.getType()==1){//if element is tc and selected, select all upper suites
+                            Item suita = getFirstSuitaParent(select, false);
+                            while(suita!=null){
+                                suita.setCheck(true, false);
+                                suita = getFirstSuitaParent(suita, false);
+                            }
+                        }
+//                         getItem(selected,false).setCheck(!getItem(selected,false).getCheck());
+                    }
                     else if(getItem(selected,false).getSubItemsNr()>0&&ev.getClickCount()==2 &&
                             getItem(selected,false).getType()!=1){
                         if(getItem(selected,false).getType()==2 &&
@@ -1564,7 +1560,7 @@ public class Grafic extends JPanel{
             int [] indices = selectedcollection.get(i);
             for(int j=0;j<indices.length;j++)temp.add(new Integer(indices[j]));
             item = getItem(temp,false);
-            item.setCheck(!item.getCheck());}
+            item.setCheck(!item.getCheck(),true);}
         repaint();}
             
     /*
@@ -1703,16 +1699,6 @@ public class Grafic extends JPanel{
         selectItem(tc.getPos());
         RunnerRepository.window.mainpanel.p1.suitaDetails.setParent(tc);
         RunnerRepository.window.mainpanel.p1.suitaDetails.setTCDetails();
-//         Item theone2 = tc.clone(); 
-//         theone2.setPrerequisite(true);
-//         theone2.setTeardown(false);
-//         clone.add(theone2);
-//         removeSelected();
-//         dropFirstInSuita(getFirstSuitaParent(theone2,false));
-//         selectItem(theone2.getPos());
-//         RunnerRepository.window.mainpanel.p1.suitaDetails.setParent(theone2);
-//         RunnerRepository.window.mainpanel.p1.suitaDetails.setTCDetails();
-//         updateLocations(RunnerRepository.getSuita(0));
         repaint();}
         
     public void unsetPrerequisite(Item tc){
@@ -1733,14 +1719,6 @@ public class Grafic extends JPanel{
         Item i = getFirstSuitaParent(tc, false);
         tc.setTeardown(true);
         tc.setPrerequisite(false);
-//         Item theone2 = tc.clone();       
-//         clone.add(theone2);
-//         removeSelected();
-//         dropLastInSuita(getFirstSuitaParent(theone2,false));
-//         selectItem(theone2.getPos());
-//         RunnerRepository.window.mainpanel.p1.suitaDetails.setParent(theone2);
-//         RunnerRepository.window.mainpanel.p1.suitaDetails.setTCDetails();
-//         updateLocations(RunnerRepository.getSuita(0));
         sortTearSetup(i);
         updateLocations(i);
         deselectAll();
@@ -1817,8 +1795,6 @@ public class Grafic extends JPanel{
         if(resp == JOptionPane.OK_OPTION){
             ArrayList <Integer> indexpos3 = (ArrayList <Integer>)tc.getPos().clone();
             indexpos3.add(new Integer(tc.getSubItemsNr()));
-//             FontMetrics metrics = getGraphics().getFontMetrics(new Font("TimesRoman", 0, 11));
-//             int width = metrics.stringWidth(name.getText()+":  "+value.getText()) + 38;
             Item property = new Item(name.getText(),0,-1,-1,0,20,indexpos3);
             property.setValue(value.getText());
             if(!tc.getSubItem(0).isVisible())property.setSubItemVisible(false);
@@ -1826,7 +1802,6 @@ public class Grafic extends JPanel{
             updateLocations(tc);
             RunnerRepository.window.mainpanel.p1.suitaDetails.setParent(tc);
             RunnerRepository.window.mainpanel.p1.suitaDetails.setTCDetails();
-//             repaint();
         }}
     
     /*
@@ -2417,11 +2392,6 @@ public class Grafic extends JPanel{
                         subtreeTC((TreeNode)RunnerRepository.window.mainpanel.p1.cp.getSelected()[i].getLastPathComponent(),null,0,"clearcase");}}
                 handleMouseDroped(y);
             }
-            
-            
-            
-            
-            
         }
     }
     

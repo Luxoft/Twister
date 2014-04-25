@@ -1,7 +1,7 @@
 
 # File: CeResources.py ; This file is part of Twister.
 
-# version: 2.047
+# version: 2.049
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -1163,6 +1163,12 @@ class ResourceAllocator(_cptools.XMLRPCController):
                 retDict['meta'] = sutContent['meta']
                 retDict['id'] = sutContent['id']
                 retDict['children'] = _recursive_build_comp(sutContent.get('children'),retDict['path'],recursiveList)
+
+                # make sure that self.systems is in sync with the opened
+                # content
+                if self.systems['children'].get(query) is not None:
+                    self.systems['children'][query] = sutContent
+
                 return retDict
 
         # if we get here, we cannot get read access to the SUT directory
@@ -1707,6 +1713,13 @@ class ResourceAllocator(_cptools.XMLRPCController):
         '''
         logFull('CeResources:deleteSut {}'.format(res_query))
 
+        # temporary fix; the SUT must be removed from self.systems
+        def deleteSutMemory(sut_to_remove):
+            parent_p = _get_res_pointer(self.systems, '/')
+            if parent_p is not None and parent_p['children'].get(sut_to_remove) is not None:
+                parent_p['children'].pop(sut_to_remove)
+        # end temporary fix
+
         # SUT file can be user or system file
         if res_query.split('.')[-1] == 'system':
             sutsPath = self.project.getUserInfo(self.getUserName(), 'sys_sut_path')
@@ -1714,6 +1727,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
                 sutsPath = '{}/config/sut/'.format(TWISTER_PATH)
             try:
                 os.remove(sutsPath + res_query.split('.')[0] + '.json')
+                deleteSutMemory(res_query.split('/')[-1])
                 return True
             except Exception as e:
                 msg = 'User {}: Cannot delete SUT file: `{}` !'.format(self.getUserName(),res_query.split('.')[0] + '.json')
@@ -1724,6 +1738,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
             usrSutPath = self.project.getUserInfo(self.getUserName(), 'sut_path')
             if not usrSutPath:
                 usrSutPath = '{}/twister/config/sut/'.format(usrHome)
+            deleteSutMemory(res_query.split('/')[-1])
             return self.project.localFs.deleteUserFile(self.getUserName(), usrSutPath + res_query.split('.')[0] + '.json')
 
 

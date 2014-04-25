@@ -1,7 +1,7 @@
 
 # File: CeProject.py ; This file is part of Twister.
 
-# version: 3.033
+# version: 3.034
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -273,14 +273,16 @@ class Project(object):
         user_passwd = binascii.hexlify(user+':'+passwd)
 
         with usr_pwds_lock:
+            sess_user = cherrypy.session.get('username')
             if cherrypy.session.get('user_passwd') == user_passwd:
                 return True
             elif user in usrs_and_pwds and usrs_and_pwds.get(user) == passwd:
-                if not cherrypy.session.get('username'):
+                if not sess_user or sess_user != user:
                     cherrypy.session['username'] = user
+                    cherrypy.session['user_passwd'] = user_passwd
                 return True
             elif passwd == 'EP':
-                if not cherrypy.session.get('username'):
+                if not sess_user or sess_user != user:
                     cherrypy.session['username'] = user
                 return True
 
@@ -1776,6 +1778,7 @@ class Project(object):
             # All project EPs ... There are NO duplicates.
             project_eps = self.parsers[user].getActiveEps()
 
+            differ_eps = sorted(set(project_eps) - set(real_eps))
             intersect_eps = sorted(set(real_eps) & set(project_eps))
 
             if not intersect_eps:
@@ -1784,10 +1787,15 @@ class Project(object):
                 logError(msg)
                 return msg
 
+            if differ_eps:
+                msg = '*ERROR* User `{}` has invalid EPs: {} !!'.format(user, differ_eps)
+                logError(msg)
+                return msg
+
             # Find Anonimous EP in the active EPs
             anonim_ep = self._find_anonim_ep(user)
 
-            for epname in project_eps:
+            for epname in intersect_eps:
                 if epname == '__anonymous__' and anonim_ep:
                     self._registerEp(user, epname)
                     # Rename the Anon EP
@@ -1796,8 +1804,6 @@ class Project(object):
                         del self.users[user]['eps'][epname]
                     # The new name
                     epname = anonim_ep
-                elif epname not in real_eps:
-                    continue
                 # Set the NEW EP status
                 self.setEpInfo(user, epname, 'status', new_status)
                 # Send START to EP Manager
@@ -1873,12 +1879,7 @@ class Project(object):
 
         # All active EPs for this project, refresh after all settings...
         project_eps = self.parsers[user].getActiveEps()
-
-        differ_eps = sorted(set(project_eps) - set(real_eps))
         intersect_eps = sorted(set(real_eps) & set(project_eps))
-
-        if differ_eps:
-            logWarning('WARNING! User `{}` has invalid EPs: {} !!'.format(user, differ_eps))
 
         # Update status for User
         self.setUserInfo(user, 'status', new_status)

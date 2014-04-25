@@ -1,6 +1,6 @@
 /*
 File: ClearCase.java ; This file is part of Twister.
-Version: 2.020
+Version: 2.022
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -18,56 +18,43 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import javax.swing.JTree;
-import javax.swing.tree.MutableTreeNode;
-import javax.swing.tree.DefaultTreeModel;
-import javax.swing.tree.DefaultMutableTreeNode;
-import java.io.InputStream;
-import java.io.PipedInputStream;
-import java.io.PipedOutputStream;
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.OutputStream;
-import java.io.PrintStream;
-import javax.swing.JButton;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JList;
-import javax.swing.JLabel;
-import javax.swing.JFrame;
-import javax.swing.JTextArea;
-import javax.swing.JCheckBox;
-import java.awt.event.ActionListener;
-import java.awt.event.ActionEvent;
-import javax.swing.ListSelectionModel;
-import javax.swing.GroupLayout;
-import javax.swing.DefaultComboBoxModel;
-import javax.swing.JOptionPane;
-import javax.swing.JTextField;
-import com.twister.CustomDialog;
-import java.util.Vector;
+import java.awt.BorderLayout;
 import java.awt.Dimension;
-import javax.swing.JComboBox;
-import java.awt.event.ItemListener;
-import java.awt.event.ItemEvent;
+import java.awt.MouseInfo;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
+import java.awt.event.ItemEvent;
+import java.awt.event.ItemListener;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
+import java.io.BufferedReader;
+import java.io.PrintStream;
 import java.util.HashMap;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
-import com.google.gson.JsonArray;
 import java.util.Iterator;
 import java.util.Map;
-import java.awt.MouseInfo;
+
+import javax.swing.DefaultComboBoxModel;
+import javax.swing.JButton;
+import javax.swing.JCheckBox;
+import javax.swing.JComboBox;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JList;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
 import javax.swing.JProgressBar;
-import java.awt.EventQueue;
+import javax.swing.JScrollPane;
 import javax.swing.JTabbedPane;
-import java.awt.BorderLayout;
+import javax.swing.JTextArea;
+import javax.swing.JTextField;
+import javax.swing.tree.DefaultMutableTreeNode;
+
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.twister.CustomDialog;
 
 public class ClearCase extends JPanel{
     private BufferedReader in;
@@ -75,7 +62,7 @@ public class ClearCase extends JPanel{
     public String root="";
     private static String view="";
     private PrintStream ps;
-    private JLabel lview, vob;
+    private JLabel lview, vob, lactivity;
     private JButton showconf,mkelem,rmelem,mklabel,mkattr,mkview,describe;
     private String prompt = "twister_prompt#";
     private String shell;
@@ -161,6 +148,7 @@ public class ClearCase extends JPanel{
         refresh.setEnabled(false);
         JLabel views = new JLabel();
         JLabel filter = new JLabel("Filter: ");
+        lactivity = new JLabel("Activity: ");
         tfilter.addKeyListener(new KeyAdapter(){
             public void keyReleased(KeyEvent ev){
                 if(ev.getKeyCode()==KeyEvent.VK_ENTER){
@@ -384,7 +372,7 @@ public class ClearCase extends JPanel{
                 p.add(lbtype);
                 p.add(tlbtype);
                 
-                JLabel vob = new JLabel("Vob: ");
+                JLabel vob = new JLabel("Path: ");
                 vob.setBounds(10,130,80,25);
                 tvob.addFocusListener(new FocusAdapter(){
                     public void focusGained(FocusEvent ev){
@@ -777,51 +765,93 @@ public class ClearCase extends JPanel{
 
         listviews.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
-                
                     new Thread(){
                         public void run(){
                             tfilter.setText(RunnerRepository.user);
-                            String command = "";
+                            HashMap<String, String> hash = new HashMap<String, String>();
                             if(conf.getType()!=BASE){
-                                command = " cleartool lsactivity";
+                                String view = conf.listViews(null);
+                                if(!view.equals("")){
+                                    hash.put("view", view);
+                                    hash.put("command", "lsactivity");
+                                } else {
+                                    CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,ClearCase.this,"Error", "No view selected");
+                                    return;
+                                }
                             } else {
-                                command = " cleartool lsview";
+                                String command = "cleartool lsview";
                                 if(cshort.isSelected()){
                                     command+=" -short";
                                 } else if(clong.isSelected()){
                                     command+=" -long";
                                 }
+                                hash.put("command", command+" | grep "+RunnerRepository.user);
                             }
                             
-                            HashMap<String, String> hash = new HashMap<String, String>();
-                            hash.put("command", command+" | grep "+RunnerRepository.user);
                             String resp = sendCommand(hash,false);
+//                             if(conf.getType()!=BASE){
+//                                 resp = "one\ntwo\nthree\nfour";
+//                             }
+                            if(resp.indexOf("*ERROR*")!=-1){
+                                CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,ClearCase.this,"Error", resp);
+                                return;
+                            }
                             tviews.setText(resp);
                             refresh.setEnabled(true);
                             tfilter.setEnabled(true);
                         }
                     }.start();
-                
             }
         });
         setview.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
-                
                     new Thread(){
                         public void run(){
                             refresh.setEnabled(false);
                             tfilter.setEnabled(false);
-                            HashMap<String, String> hash = new HashMap<String, String>();
                             if(conf.getType()==BASE){
+                                HashMap<String, String> hash = new HashMap<String, String>();
                                 hash.put("command", " cleartool lsview -short | grep "+RunnerRepository.user);
+                                String [] resp = sendCommand(hash,false).split("\n");
+                                showViews(resp);
                             } else {
-                                hash.put("command", " cleartool lsactivity | grep "+RunnerRepository.user);
+                                String view = conf.listViews(null);
+                                if(view.equals(""))return;
+                                HashMap<String, String> hash = new HashMap<String, String>();
+                                hash.put("view", view);
+                                hash.put("command", "lsactivity");
+                                String resp = sendCommand(hash,false).toString();
+                                if(resp.indexOf("*ERROR*")!=-1){
+                                    CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,ClearCase.this,
+                                                                "Error", resp);
+                                    return ;
+                                }
+//                                 resp = "one\ntwo\nthree\nfour";
+                                String [] activities = resp.split("\n");
+                                showActivities(activities,view);
+//                                 String activity = conf.listActivities(view, null);
+//                                 if(activity.equals(""))return;
+//                                 hash = new HashMap<String, String>();
+//                                 hash.put("command", "cleartool setactivity "+view);
+//                                 sendCommand(hash,false);
+//                                 root = jTextField1.getText();
+//                                 RunnerRepository.window.mainpanel.p1.cp.refreshStructure();
+//                                 lview.setText("View: "+view);
+//                                 vob.setText("Path: "+root);
+//                                 lactivity.setText("Activity: "+activity);
+//                                 showconf.setEnabled(true);
+//                                 mkelem.setEnabled(true);
+//                                 rmelem.setEnabled(true);
+//                                 mklabel.setEnabled(true);
+//                                 mkattr.setEnabled(true);
+//                                 mkview.setEnabled(true);
+//                                 describe.setEnabled(true);
+                                //hash.put("view", view);
+                                //hash.put("command", "lsactivity");
+                                //hash.put("command", " cleartool lsactivity | grep "+RunnerRepository.user);
                             }
-                            String [] resp = sendCommand(hash,false).split("\n");
-                            showViews(resp);
                         }
                     }.start();
-                
             }
         });
         views.setText("Views:");
@@ -907,7 +937,7 @@ public class ClearCase extends JPanel{
 
         lview.setText("View:");
 
-        vob.setText("Vob:");
+        vob.setText("Path:");
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(clearcasecmd);
         clearcasecmd.setLayout(layout);
@@ -920,6 +950,7 @@ public class ClearCase extends JPanel{
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addComponent(jScrollPane2, javax.swing.GroupLayout.DEFAULT_SIZE, 475, Short.MAX_VALUE)
                     .addComponent(vob, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(lactivity, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addComponent(lview, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addGroup(layout.createSequentialGroup()
                         .addComponent(filter)
@@ -938,6 +969,8 @@ public class ClearCase extends JPanel{
                     .addGroup(layout.createSequentialGroup()
                         .addComponent(lview)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(lactivity)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                         .addComponent(vob)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                         .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
@@ -951,6 +984,77 @@ public class ClearCase extends JPanel{
         );
         
         layout.linkSize(javax.swing.SwingConstants.VERTICAL, new java.awt.Component[] {refresh, tfilter});
+    }
+    
+    
+    
+    /*
+     * displays views and sets view
+     * and vob on ClearCase server
+     */
+    public void showActivities(String [] activities,String view){
+        JPanel libraries = new JPanel();
+        JLabel jLabel1 = new JLabel();
+        JTextField jTextField1 = new JTextField();
+        JScrollPane jScrollPane1 = new JScrollPane();
+        final JList jList1 = new JList();
+        jLabel1.setText("VOB Path:");
+        jScrollPane1.setViewportView(jList1);
+        javax.swing.GroupLayout layout = new javax.swing.GroupLayout(libraries);
+        libraries.setLayout(layout);
+        layout.setHorizontalGroup(
+            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(layout.createSequentialGroup()
+                .addContainerGap()
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(jScrollPane1)
+                    .addGroup(layout.createSequentialGroup()
+                        .addComponent(jLabel1)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(jTextField1, javax.swing.GroupLayout.DEFAULT_SIZE, 327, Short.MAX_VALUE)))
+                .addContainerGap())
+        );
+        layout.setVerticalGroup(
+            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
+                .addContainerGap()
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 247, Short.MAX_VALUE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jLabel1)
+                    .addComponent(jTextField1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addContainerGap())
+        );
+        jList1.setModel(new DefaultComboBoxModel(activities));
+        int resp = (Integer)CustomDialog.showDialog(libraries,JOptionPane.PLAIN_MESSAGE,
+                                                        JOptionPane.OK_CANCEL_OPTION, 
+                                                        RunnerRepository.window, "Activites",
+                                                        null);
+        if(resp == JOptionPane.OK_OPTION){
+            if(jList1.getSelectedIndex()==-1||jTextField1.getText().equals("")){
+                CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,ClearCase.this,
+                                        "Error", "Please select one activities and input vob location");
+                return ;
+            }
+            String activity = jList1.getSelectedValue().toString();
+            HashMap<String, String> hash = new HashMap<String, String>();
+            hash.put("view", view);
+            hash.put("command", "cleartool setactivity "+activity);
+            sendCommand(hash,false);
+            root = jTextField1.getText();
+            RunnerRepository.window.mainpanel.p1.cp.refreshStructure();
+            lview.setText("View: "+view);
+            vob.setText("Path: "+root);
+            lactivity.setText("Activity: ");
+            showconf.setEnabled(true);
+            mkelem.setEnabled(true);
+            rmelem.setEnabled(true);
+            mklabel.setEnabled(true);
+            mkattr.setEnabled(true);
+            mkview.setEnabled(true);
+            describe.setEnabled(true);
+        }
     }
     
     /*
@@ -1048,17 +1152,13 @@ public class ClearCase extends JPanel{
             }
             view = jList1.getSelectedValue().toString();
             HashMap<String, String> hash = new HashMap<String, String>();
-            if(conf.getType()!=BASE){
-                hash.put("command", "cleartool setactivity "+view);
-            } else {
-                hash.put("command", "cleartool setview "+view);
-            }
-            
+            hash.put("command", "cleartool setview "+view);
             sendCommand(hash,false);
             root = jTextField1.getText();
             RunnerRepository.window.mainpanel.p1.cp.refreshStructure();
             lview.setText("View: "+view);
-            vob.setText("Vob: "+root);
+            vob.setText("Path: "+root);
+            lactivity.setText("Activity: ");
             showconf.setEnabled(true);
             mkelem.setEnabled(true);
             rmelem.setEnabled(true);
