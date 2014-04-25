@@ -1,7 +1,7 @@
 
 # File: CeResources.py ; This file is part of Twister.
 
-# version: 2.048
+# version: 2.049
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -1163,6 +1163,12 @@ class ResourceAllocator(_cptools.XMLRPCController):
                 retDict['meta'] = sutContent['meta']
                 retDict['id'] = sutContent['id']
                 retDict['children'] = _recursive_build_comp(sutContent.get('children'),retDict['path'],recursiveList)
+
+                # make sure that self.systems is in sync with the opened
+                # content
+                if self.systems['children'].get(query) is not None:
+                    self.systems['children'][query] = sutContent
+
                 return retDict
 
         # if we get here, we cannot get read access to the SUT directory
