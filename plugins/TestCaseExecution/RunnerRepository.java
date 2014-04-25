@@ -757,10 +757,7 @@ public class RunnerRepository {
                 run = false;
                 if(!isapplet)System.exit(0);
             }
-                
-             
             String content = new String(RunnerRepository.getRemoteFileContent(USERHOME+"/twister/config/fwmconfig.xml",false,null));
-            System.out.println("Content for:"+USERHOME+"/twister/config/fwmconfig.xml is: "+content);
             if(content==null){
                 CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, RunnerRepository.window,
                                         "Warning","Could not get fwmconfig.xml from "
