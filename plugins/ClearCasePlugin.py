@@ -1,7 +1,7 @@
 
 # File: ClearCasePlugin.py ; This file is part of Twister.
 
-# version: 3.001
+# version: 3.002
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -373,6 +373,49 @@ class CC(object):
         except Exception as e:
             return ''
 
+    def lsactivity(self, args):
+        """
+        Send lsactivity command.
+        """
+
+        try:
+            # we have to extract the view name from sent command
+            command = 'cleartool lsview'
+            viewname = ''
+            for key in args:
+                if key == 'view':
+                    viewname = args[key]
+                    command += ' ' + viewname
+
+            # check if the view exists using lsview
+            response = self.cleartoolSsh.write(command)
+            response = self.parseSshResponse(command, response)
+            response = '\n'.join(response)
+            if 'cleartool: Error:' in response:
+                return '*ERROR* View `{}` doesn\'t exist !'.format(viewname)
+
+            # set the view
+            command = 'cleartool setview ' + viewname
+            response = self.cleartoolSsh.write(command)
+            response = self.parseSshResponse(command, response)
+            response = '\n'.join(response)
+            if 'cleartool: Error:' in response:
+                return '*ERROR* View `{}` cannot be set !'.format(viewname)
+
+            # list the activities
+            command = 'cleartool lsactivity -cview -short'
+            response = self.cleartoolSsh.write(command)
+            response = self.parseSshResponse(command, response)
+            response = '\n'.join(response)
+
+            # exit from view
+            response1 = self.cleartoolSsh.write('exit')
+            response1 = self.parseSshResponse(command, response1)
+
+            return response
+        except Exception as e:
+            return ''
+
 
 # # #
 
@@ -447,6 +490,9 @@ class Plugin(BasePlugin):
 
         elif args['command'] == 'describe':
             return self.conn.describe(args)
+
+        elif args['command'] == 'lsactivity':
+            return self.conn.lsactivity(args)
 
         try:
             resp = self.conn.cmd(args)
