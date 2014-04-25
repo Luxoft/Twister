@@ -1,6 +1,6 @@
 /*
 File: SutTree.java ; This file is part of Twister.
-Version: 2.015
+Version: 2.016
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -50,6 +50,8 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import javax.swing.JPopupMenu;
 import javax.swing.JMenuItem;
+import javax.swing.event.AncestorEvent;
+import javax.swing.event.AncestorListener;
 
 public class SutTree extends JPanel{
     public JTree filestree;
@@ -240,17 +242,32 @@ public class SutTree extends JPanel{
                 p.setPreferredSize(new Dimension(250,200));
                 JLabel sut = new JLabel("SUT name: ");
                 sut.setBounds(5,5,80,25);
-                JTextField tsut = new JTextField();
+                final JTextField tsut = new JTextField();
+                tsut.setFocusable(true);
+                tsut.addAncestorListener(new AncestorListener() {
+        			@Override
+        			public void ancestorRemoved(AncestorEvent arg0) {
+        			}
+        			
+        			@Override
+        			public void ancestorMoved(AncestorEvent arg0) {
+        			}
+        			
+        			@Override
+        			public void ancestorAdded(AncestorEvent arg0) {
+        				tsut.requestFocusInWindow();
+        			}
+        		});
                 tsut.setBounds(90,5,155,25);
                 JLabel ep = new JLabel("Run on EP's: ");
                 ep.setBounds(5,35,80,25);
                 JList tep = new JList();
                 JScrollPane scep = new JScrollPane(tep);
                 scep.setBounds(90,35,155,150);
-                p.add(sut);
                 p.add(tsut);
                 p.add(ep);
                 p.add(scep);
+                p.add(sut);
                 populateEPs(tep,null);
                 TreePath tp = filestree.getSelectionPath();
                 DefaultMutableTreeNode selected = (DefaultMutableTreeNode)tp.getLastPathComponent();

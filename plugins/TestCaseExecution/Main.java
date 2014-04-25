@@ -17,31 +17,21 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-import javax.swing.UIManager;
-import javax.swing.UIManager.LookAndFeelInfo;
-import javax.swing.SwingUtilities;
-import javax.imageio.ImageIO;
-import java.awt.BorderLayout;
-import java.awt.EventQueue;
-import java.awt.event.ActionEvent;
-import java.net.URLClassLoader;
-import java.rmi.RMISecurityManager;
-import java.net.URL;
 import java.awt.Image;
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JButton;
-import java.awt.event.ActionListener;
-import java.awt.event.ActionEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-import javax.swing.JOptionPane;
-import com.twister.CustomDialog;
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.InputStreamReader;
+import java.net.URL;
+import javax.imageio.ImageIO;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+
+import com.twister.CustomDialog;
 
 /*
  * main method for starting Twister local
@@ -67,7 +57,6 @@ public class Main{
                 if(RunnerRepository.window!=null){
                     RunnerRepository.setSize(f.getWidth(), f.getHeight());
                 }}});
-                
         f.addWindowListener(new WindowAdapter(){
                 public void windowClosing(WindowEvent e){
                     RunnerRepository.saveMainLayout();
@@ -89,13 +78,15 @@ public class Main{
                     RunnerRepository.window.mainpanel.p4.getSut().sut.getSutTree().releaseAllSuts();
                     System.exit(0);}});
         f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        RunnerRepository.host = "11.126.32.21";
-        RunnerRepository.user = "user";
-        RunnerRepository.password = "password";
+        RunnerRepository.host = "11.126.32.9";
+        RunnerRepository.user = "tscguest";
+        RunnerRepository.password = "tscguest";
+//         RunnerRepository.user = "guest";
+//         RunnerRepository.password = "guest";
         RunnerRepository.CENTRALENGINEPORT = "8000";
-//         RunnerRepository.host = "11.126.32.9";
-//         RunnerRepository.user = "tscguest";
-//         RunnerRepository.password = "tscguest";
+//         RunnerRepository.host = "11.126.32.20";
+//         RunnerRepository.user = "nisuser";
+//         RunnerRepository.password = "nispass";
         RunnerRepository.initialize("false",RunnerRepository.host,f.getContentPane(),null);
     }
 

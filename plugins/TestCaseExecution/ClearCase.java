@@ -1,6 +1,6 @@
 /*
 File: ClearCase.java ; This file is part of Twister.
-Version: 2.021
+Version: 2.022
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -18,56 +18,43 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import javax.swing.JTree;
-import javax.swing.tree.MutableTreeNode;
-import javax.swing.tree.DefaultTreeModel;
-import javax.swing.tree.DefaultMutableTreeNode;
-import java.io.InputStream;
-import java.io.PipedInputStream;
-import java.io.PipedOutputStream;
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.OutputStream;
-import java.io.PrintStream;
-import javax.swing.JButton;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JList;
-import javax.swing.JLabel;
-import javax.swing.JFrame;
-import javax.swing.JTextArea;
-import javax.swing.JCheckBox;
-import java.awt.event.ActionListener;
-import java.awt.event.ActionEvent;
-import javax.swing.ListSelectionModel;
-import javax.swing.GroupLayout;
-import javax.swing.DefaultComboBoxModel;
-import javax.swing.JOptionPane;
-import javax.swing.JTextField;
-import com.twister.CustomDialog;
-import java.util.Vector;
+import java.awt.BorderLayout;
 import java.awt.Dimension;
-import javax.swing.JComboBox;
-import java.awt.event.ItemListener;
-import java.awt.event.ItemEvent;
+import java.awt.MouseInfo;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
+import java.awt.event.ItemEvent;
+import java.awt.event.ItemListener;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
+import java.io.BufferedReader;
+import java.io.PrintStream;
 import java.util.HashMap;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
-import com.google.gson.JsonArray;
 import java.util.Iterator;
 import java.util.Map;
-import java.awt.MouseInfo;
+
+import javax.swing.DefaultComboBoxModel;
+import javax.swing.JButton;
+import javax.swing.JCheckBox;
+import javax.swing.JComboBox;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JList;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
 import javax.swing.JProgressBar;
-import java.awt.EventQueue;
+import javax.swing.JScrollPane;
 import javax.swing.JTabbedPane;
-import java.awt.BorderLayout;
+import javax.swing.JTextArea;
+import javax.swing.JTextField;
+import javax.swing.tree.DefaultMutableTreeNode;
+
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.twister.CustomDialog;
 
 public class ClearCase extends JPanel{
     private BufferedReader in;

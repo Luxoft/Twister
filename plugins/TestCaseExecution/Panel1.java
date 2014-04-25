@@ -1,6 +1,6 @@
 /*
 File: Panel1.java ; This file is part of Twister.
-Version: 2.0026
+Version: 2.0027
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -17,11 +17,15 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-import java.awt.datatransfer.StringSelection;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+
 import javax.swing.event.MenuListener;
 import java.io.File;
+
+import javax.swing.JDialog;
 import javax.swing.JPanel;
 import javax.swing.JMenuBar;
 import javax.swing.JMenu;
@@ -34,34 +38,19 @@ import java.awt.dnd.DropTargetDropEvent;
 import javax.swing.JSplitPane;
 import java.awt.Dimension;
 import javax.swing.JScrollPane;
-import java.beans.PropertyChangeListener;
-import java.beans.PropertyChangeEvent; 
 import javax.swing.JButton;
-import java.awt.BorderLayout;
-import java.awt.Color;
 import java.awt.Toolkit;
-import javax.swing.JDesktopPane;
-import javax.swing.JInternalFrame;
-import java.awt.Container;
-import java.awt.DefaultKeyboardFocusManager;
 import javax.swing.JLabel;
 import javax.swing.JFileChooser;
 import javax.swing.event.MenuEvent;
-import javax.swing.MenuSelectionManager;
 import java.util.ArrayList;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.BufferedReader;
 import java.awt.FontMetrics;
 import java.awt.Font;
 import javax.swing.JTextField;
 import javax.swing.ImageIcon;
 import javax.swing.ToolTipManager;
-import javax.swing.JComboBox;
-import javax.swing.JCheckBox;
 import com.twister.Item;
 import java.awt.Cursor;
-import java.awt.Component;
 import javax.swing.JList;
 import java.util.Arrays;
 import javax.swing.SwingUtilities;
@@ -73,9 +62,7 @@ import java.util.Set;
 import java.util.Iterator;
 import javax.swing.JTabbedPane;
 import java.awt.datatransfer.DataFlavor;
-import java.awt.datatransfer.Transferable;
 import java.awt.dnd.DnDConstants;
-import javax.swing.tree.DefaultMutableTreeNode;
 
 /*
  * Suites generation panel
@@ -94,6 +81,7 @@ public class Panel1 extends JPanel{
     public LibrariesPanel lp;
     public ClearCasePanel cp;
     public JTabbedPane tabs;
+    public JMenuBar menu;
     
     public Panel1(String user, final boolean applet, int width){
         RunnerRepository.introscreen.setStatus("Started Suites interface initialization");
@@ -141,13 +129,74 @@ public class Panel1 extends JPanel{
             public void actionPerformed(ActionEvent ev){
                 generate();}});
         this.applet = applet;
-        JMenuBar menu = new JMenuBar();
+        menu = new JMenuBar();
         menu.setLayout(null);
         menu.setBounds(0, 0, width, 20);
+        JMenu filemenu = new JMenu("File");
+        filemenu.setBounds(10,0,40,20);
+        JMenuItem item = new JMenuItem("New project files");
+        item.addActionListener(new ActionListener(){
+            public void actionPerformed(ActionEvent ev){
+                addSuiteFile();}});
+        filemenu.add(item);
+        if(!PermissionValidator.canCreateProject()){
+            item.setEnabled(false);
+        }
+        item = new JMenuItem("Open project file");
+        item.addActionListener(new ActionListener(){
+            public void actionPerformed(ActionEvent ev){
+                RunnerRepository.openProjectFile();
+            }});
+        filemenu.add(item);
+        item = new JMenuItem("Save project file");
+        item.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent ev){
+                saveSuiteFile();}});
+        filemenu.add(item);
+        if(!PermissionValidator.canChangeProject()){
+            item.setEnabled(false);
+        }
+        item = new JMenuItem("Save project as");
+        item.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent ev){
+                saveSuiteAs();}});
+        filemenu.add(item);
+        if(!PermissionValidator.canCreateProject()){
+            item.setEnabled(false);
+        }
+        item = new JMenuItem("Export project");
+        item.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent ev){
+                exportAsSuite();}});
+        filemenu.add(item);
+        if(!PermissionValidator.canCreateProject()){
+            item.setEnabled(false);
+        }
+        item = new JMenuItem("Delete project file");
+        item.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent ev){
+                deleteSuiteFile();}});
+        filemenu.add(item);
+        if(!PermissionValidator.canDeleteProject()){
+            item.setEnabled(false);
+        }
+        item = new JMenuItem("Open from local");
+        item.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent ev){
+                openLocalFile();}});
+        filemenu.add(item);
+        item = new JMenuItem("Save to local");
+        item.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent ev){
+                saveLocalXML();}});
+        filemenu.add(item);
+        if(!PermissionValidator.canCreateProject()){
+            item.setEnabled(false);
+        }
+        menu.add(filemenu);
         final JMenu suitemenu = new JMenu("Suite");
         suitemenu.setBounds(50,0,50,20);
         menu.add(suitemenu);
-        JMenuItem item ;
         item = new JMenuItem("Add Suite");
         item.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
@@ -221,68 +270,6 @@ public class Panel1 extends JPanel{
             public void menuDeselected(MenuEvent ev){}
             public void menuSelected(MenuEvent ev){
                 enableTCMenu(tcmenu);}});
-        JMenu filemenu = new JMenu("File");
-        filemenu.setBounds(10,0,40,20);
-        item = new JMenuItem("New project file");
-        item.addActionListener(new ActionListener(){
-            public void actionPerformed(ActionEvent ev){
-                addSuiteFile();}});
-        filemenu.add(item);
-        if(!PermissionValidator.canCreateProject()){
-            item.setEnabled(false);
-        }
-        item = new JMenuItem("Open project file");
-        item.addActionListener(new ActionListener(){
-            public void actionPerformed(ActionEvent ev){
-                RunnerRepository.openProjectFile();
-            }});
-        filemenu.add(item);
-        item = new JMenuItem("Save project file");
-        item.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent ev){
-                saveSuiteFile();}});
-        filemenu.add(item);
-        if(!PermissionValidator.canChangeProject()){
-            item.setEnabled(false);
-        }
-        item = new JMenuItem("Save project as");
-        item.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent ev){
-                saveSuiteAs();}});
-        filemenu.add(item);
-        if(!PermissionValidator.canCreateProject()){
-            item.setEnabled(false);
-        }
-        item = new JMenuItem("Export project");
-        item.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent ev){
-                exportAsSuite();}});
-        filemenu.add(item);
-        if(!PermissionValidator.canCreateProject()){
-            item.setEnabled(false);
-        }
-        item = new JMenuItem("Delete project file");
-        item.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent ev){
-                deleteSuiteFile();}});
-        filemenu.add(item);
-        if(!PermissionValidator.canDeleteProject()){
-            item.setEnabled(false);
-        }
-        item = new JMenuItem("Open from local");
-        item.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent ev){
-                openLocalFile();}});
-        filemenu.add(item);
-        item = new JMenuItem("Save to local");
-        item.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent ev){
-                saveLocalXML();}});
-        filemenu.add(item);
-        if(!PermissionValidator.canCreateProject()){
-            item.setEnabled(false);
-        }
-        menu.add(filemenu);
         add(menu);
         tdtl = new TreeDropTargetListener();        
         sc = new ScrollGrafic(10, 32, tdtl, user, applet);
@@ -376,7 +363,6 @@ public class Panel1 extends JPanel{
             String user = CustomDialog.showInputDialog(JOptionPane.QUESTION_MESSAGE,
                                                     JOptionPane.OK_CANCEL_OPTION, RunnerRepository.window,
                                                     "File Name", "Please enter suite file name");
-            
             if(user!=null&&!user.equals("")){
                 if(sc.g.printXML(RunnerRepository.temp+RunnerRepository.getBar()+"Twister"+RunnerRepository.getBar()+"Users"+RunnerRepository.getBar()+user+".xml",
                              false,false,
@@ -389,11 +375,9 @@ public class Panel1 extends JPanel{
                                             "File successfully saved");
                     lp.refreshTree(100,100);
                 }
-                    
                 else CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, 
                                             RunnerRepository.window, "Warning", 
                                             "Warning, file not saved");}}
-        
     }
     
     
@@ -402,9 +386,40 @@ public class Panel1 extends JPanel{
      * on server with name provided by user
      */
     private void saveSuiteAs(){
-            String user = CustomDialog.showInputDialog(JOptionPane.QUESTION_MESSAGE,
-                                                    JOptionPane.OK_CANCEL_OPTION, RunnerRepository.window,
-                                                    "File Name", "Please enter project file name");
+          final JTextField tf = new JTextField();
+          JButton ok = new JButton("OK");
+          JButton cancel = new JButton("Cancel");
+          final JDialog dialog = CustomDialog.getDialog(tf, new JButton[]{ok,cancel},
+        		  										JOptionPane.PLAIN_MESSAGE,
+        		  										JOptionPane.OK_CANCEL_OPTION,
+        		  										RunnerRepository.window,
+        		  										"Please enter project file name", null);
+          dialog.addWindowListener(new WindowAdapter(){
+        	  public void windowClosing(WindowEvent e){
+        		  tf.setText("");
+        	  }
+          });
+          ok.addActionListener(new ActionListener() {
+              @Override
+              public void actionPerformed(ActionEvent arg0) {
+                  dialog.setVisible(false);
+                  dialog.dispose();
+              }
+          });
+          cancel.addActionListener(new ActionListener() {
+              @Override
+              public void actionPerformed(ActionEvent arg0) {
+                  tf.setText("");
+                  dialog.setVisible(false);
+                  dialog.dispose();
+              }
+          });
+          dialog.setVisible(true);          
+          String user = tf.getText();
+        
+//            String user = CustomDialog.showInputDialog(JOptionPane.QUESTION_MESSAGE,
+//                                                   JOptionPane.OK_CANCEL_OPTION, RunnerRepository.window,
+//                                                   "File Name", "Please enter project file name");
             
             if(user!=null&&!user.equals("")){
                 if(user.toLowerCase().indexOf(".xml")!=-1){

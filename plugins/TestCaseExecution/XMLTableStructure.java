@@ -1,6 +1,6 @@
 /*
 File: XMLTableStructure.java ; This file is part of Twister.
-Version: 2.001
+Version: 2.002
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -37,14 +37,9 @@ public class XMLTableStructure{
     private DocumentBuilderFactory dbf;
     private DocumentBuilder db;
     private Document doc;
-    private Node fstNode,secNode,trdNode;
-    private Element fstElmnt,fstNmElmnt,secElmnt,
-                    secNmElmnt,trdElmnt,trdNmElmnt;
-    private NodeList fstNmElmntLst,fstNm,fstNmElmntLst2,
-                     secNmElmntLst,secNm,secNmElmntLst2,
-                     trdNmElmntLst,trdNm,trdNmElmntLst2,trdNm2;
-    private File f;
-    private String name,value;
+    private Node fstNode;
+    private Element fstElmnt,fstNmElmnt;
+    private NodeList fstNmElmntLst,fstNm;
     private ArrayList<Integer > editable = new ArrayList<Integer>();
     private ArrayList<String> columns = new ArrayList<String>();
     

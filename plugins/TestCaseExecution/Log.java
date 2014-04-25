@@ -1,6 +1,6 @@
 /*
 File: Log.java ; This file is part of Twister.
-Version: 2.009
+Version: 2.010
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -132,9 +132,13 @@ public class Log extends JPanel{
             try{Thread.sleep(1000);
                 if(container.isShowing()){
                     if(response==length){
-                        result = RunnerRepository.getRPCClient().execute("getLogFile",
+                        try{result = RunnerRepository.getRPCClient().execute("getLogFile",
                                                                     new Object[]{RunnerRepository.getUser(),
                                                                                     "0","0",log}).toString();
+                        } catch (Exception e){
+                            System.out.println("Could not get log content(getLogFile) from CE! Log->updateLog()");
+                            continue;
+                        }
                         if(result.indexOf("*ERROR*")!=-1){
                             //System.out.println("CE ERROR: "+result);
                             continue;

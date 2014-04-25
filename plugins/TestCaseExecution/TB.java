@@ -1,6 +1,6 @@
 /*
 File: TB.java ; This file is part of Twister.
-Version: 2.024
+Version: 2.025
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -21,13 +21,11 @@ limitations under the License.
 import java.util.List;
 import java.util.ArrayList;
 import java.awt.datatransfer.UnsupportedFlavorException;
-import javax.swing.tree.TreeNode;
 import java.awt.datatransfer.Transferable;
 import javax.swing.JComponent;
 import java.awt.datatransfer.DataFlavor;
 import javax.swing.TransferHandler;
 import javax.swing.JPanel;
-import java.awt.Color;
 import java.util.HashMap;
 import org.apache.xmlrpc.client.XmlRpcClient;
 import org.apache.xmlrpc.client.XmlRpcClientConfigImpl;
@@ -56,9 +54,6 @@ import javax.swing.JOptionPane;
 import javax.swing.JLabel;
 import javax.swing.JTextField;
 import javax.swing.JButton;
-import javax.swing.JMenuBar;
-import javax.swing.JMenu;
-import javax.swing.JMenuItem;
 import java.awt.BorderLayout;
 import java.awt.Container;
 import javax.swing.AbstractAction;
@@ -66,9 +61,6 @@ import com.twister.MySftpBrowser;
 import java.awt.Toolkit;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.StringSelection;
-import java.awt.event.HierarchyListener;
-import java.awt.event.HierarchyEvent;
-import javax.swing.DropMode;
 import java.util.Enumeration;
 import javax.swing.JFrame;
 import javax.swing.JProgressBar;

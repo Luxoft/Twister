@@ -1,6 +1,6 @@
 /*
 File: Panel2.java ; This file is part of Twister.
-Version: 2.0017
+Version: 2.0018
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -19,45 +19,21 @@ limitations under the License.
 */
 import com.twister.Item;
 import java.io.File;
-import java.io.PrintStream;
 import javax.swing.JPanel;
 import javax.swing.JButton;
-import java.awt.image.BufferedImage;
-import javax.imageio.ImageIO;
-import java.io.IOException;
 import javax.swing.ImageIcon;
 import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
-import javax.swing.BorderFactory;
 import javax.swing.JSplitPane;
-import java.awt.Dimension;
-import java.beans.PropertyChangeListener;
-import java.beans.PropertyChangeEvent;
-import java.net.URL;
-import java.net.URLConnection;
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
 import javax.swing.JTabbedPane;
 import java.util.ArrayList;
-import java.net.URL;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
-import javax.swing.JPopupMenu;
-import javax.swing.JMenuItem;
-import java.awt.Toolkit;
-import java.io.FileInputStream;
-import java.io.FileWriter;
 import javax.swing.JFileChooser;
 import javax.swing.JLabel;
 import java.awt.Color;
 import javax.swing.JOptionPane;
-import javax.swing.JFrame;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
 import jxl.write.Label;
 import jxl.write.WritableWorkbook;
 import jxl.write.WritableSheet;
-import java.io.File;
 import jxl.Workbook;
 import jxl.CellView;
 import javax.swing.SwingUtilities;
@@ -123,9 +99,13 @@ public class Panel2 extends JPanel{
      * and adjust accordingly
      */
     private void askCE(JButton play){
-        try{String result;
+        try{String result="";
             Thread.sleep(1000);
-            result = RunnerRepository.getRPCClient().execute("getExecStatusAll",new Object[]{RunnerRepository.getUser()})+" ";
+            try{result = RunnerRepository.getRPCClient().execute("getExecStatusAll",new Object[]{RunnerRepository.getUser()})+" ";}
+            catch(Exception e){
+                System.out.println("Could not get running status(getExecStatusAll) from CE! Panel2->askCE()");
+                return;
+            }
             String startedtime = "   Started : "+result.split(";")[1];
             String elapsedtime = "   Elapsed time: "+result.split(";")[2];
             String user = "   Started by: "+result.split(";")[3];
@@ -227,7 +207,6 @@ public class Panel2 extends JPanel{
                 else{
                     String[] result2 = {(String)result1};
                     updateStatuses(result2);}}
-//                     }
             }
         catch(Exception e){
             e.printStackTrace();

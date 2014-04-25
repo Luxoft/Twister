@@ -1,6 +1,6 @@
 /*
 File: PanicDetect.java ; This file is part of Twister.
-Version: 2.003
+Version: 2.004
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -25,24 +25,17 @@ import javax.swing.JButton;
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.KeyEvent;
-import java.awt.event.KeyAdapter;
 import java.awt.Container;
-import java.util.HashMap;
 import javax.swing.JLabel;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonArray;
 import java.util.Iterator;
 import java.util.Map;
 import javax.swing.JOptionPane;
 import com.twister.CustomDialog;
 import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
-import javax.swing.event.DocumentListener;
-import javax.swing.event.DocumentEvent;
-import javax.swing.BorderFactory;
 import java.awt.Color;
 
 public class PanicDetect extends JPanel{

@@ -1,6 +1,6 @@
 /*
 File: XMLReader.java ; This file is part of Twister.
-Version: 2.019
+Version: 2.020
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -37,19 +37,16 @@ public class XMLReader{
 //     private DocumentBuilderFactory dbf;
 //     private DocumentBuilder db;
     private Document doc;
-    private Node fstNode,secNode,trdNode;
-    private Element fstNmElmnt,secElmnt,
-                    secNmElmnt,trdElmnt,trdNmElmnt;
+    private Element fstNmElmnt,
+                    secNmElmnt,trdNmElmnt;
 //                     fstElmnt,
-    private NodeList fstNmElmntLst,fstNm,fstNmElmntLst2,
-                     secNmElmntLst,secNm,secNmElmntLst2,
+    private NodeList fstNmElmntLst,fstNm,secNmElmntLst,secNm,
                      trdNmElmntLst,trdNm,trdNmElmntLst2,trdNm2;
     private File f;
     private String name,value;
     private int index = 1001;
     
     public XMLReader (File file){
-        final File f = file;
         DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
         DocumentBuilder db = null;
         try{db = dbf.newDocumentBuilder();}
@@ -477,28 +474,7 @@ public class XMLReader{
                     suitatemp.addUserDef(new String[]{prop,val});
                 }
             }
-            //temp solution for CE
-            
-            
-            
-//             fstNmElmntLst = fstElmnt.getElementsByTagName("UserDefined");
-//             int userdefinitions = fstNmElmntLst.getLength();            
-//             for(int l=0;l<userdefinitions;l++){
-//                 Element element = (Element)fstNmElmntLst.item(l);                
-//                 NodeList propname = element.getElementsByTagName("propName");
-//                 Element el1 = (Element)propname.item(0);
-//                 fstNm = el1.getChildNodes();
-//                 String prop ;
-//                 if(fstNm.getLength()>0)prop= fstNm.item(0).getNodeValue();
-//                 else prop = "";
-//                 NodeList propvalue = element.getElementsByTagName("propValue");
-//                 Element el2 = (Element)propvalue.item(0);
-//                 fstNm = el2.getChildNodes();
-//                 String val ;
-//                 if(fstNm.getLength()>0)val = fstNm.item(0).getNodeValue();
-//                 else val = "";
-//                 suitatemp.addUserDef(new String[]{prop,val});}
-                
+            //temp solution for CE                
                 
                 
             int subchildren = fstElmnt.getChildNodes().getLength();

@@ -1795,8 +1795,6 @@ public class Grafic extends JPanel{
         if(resp == JOptionPane.OK_OPTION){
             ArrayList <Integer> indexpos3 = (ArrayList <Integer>)tc.getPos().clone();
             indexpos3.add(new Integer(tc.getSubItemsNr()));
-//             FontMetrics metrics = getGraphics().getFontMetrics(new Font("TimesRoman", 0, 11));
-//             int width = metrics.stringWidth(name.getText()+":  "+value.getText()) + 38;
             Item property = new Item(name.getText(),0,-1,-1,0,20,indexpos3);
             property.setValue(value.getText());
             if(!tc.getSubItem(0).isVisible())property.setSubItemVisible(false);
@@ -1804,7 +1802,6 @@ public class Grafic extends JPanel{
             updateLocations(tc);
             RunnerRepository.window.mainpanel.p1.suitaDetails.setParent(tc);
             RunnerRepository.window.mainpanel.p1.suitaDetails.setTCDetails();
-//             repaint();
         }}
     
     /*
@@ -2395,11 +2392,6 @@ public class Grafic extends JPanel{
                         subtreeTC((TreeNode)RunnerRepository.window.mainpanel.p1.cp.getSelected()[i].getLastPathComponent(),null,0,"clearcase");}}
                 handleMouseDroped(y);
             }
-            
-            
-            
-            
-            
         }
     }
     

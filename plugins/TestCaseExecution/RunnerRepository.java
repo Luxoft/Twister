@@ -1,6 +1,6 @@
 /*
 File: RunnerRepository.java ; This file is part of Twister.
-Version: 2.0053
+Version: 2.0054
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -17,8 +17,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-import java.io.DataOutputStream;
-import java.io.DataInputStream;
 import java.applet.Applet;
 import java.util.ArrayList;
 import java.io.File;
@@ -31,7 +29,6 @@ import java.io.FileWriter;
 import java.io.ByteArrayOutputStream;
 import java.io.OutputStream;
 import java.io.FileOutputStream;
-import java.util.Properties;
 import java.awt.Image;
 import javax.imageio.ImageIO;
 import javax.swing.ImageIcon;
@@ -41,10 +38,6 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
-import javax.xml.parsers.ParserConfigurationException;
-import org.xml.sax.SAXException;
-import java.io.IOException;
-import java.util.Arrays;
 import javax.swing.JTextField;
 import javax.swing.JPasswordField;
 import javax.swing.JOptionPane;
@@ -63,9 +56,7 @@ import java.io.Writer;
 import java.io.OutputStreamWriter;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import javax.swing.JDialog;
 import javax.swing.JPanel;
-import java.awt.Color;
 import javax.swing.BoxLayout;
 import javax.swing.JLabel;
 import java.awt.BorderLayout;
@@ -78,7 +69,6 @@ import java.awt.event.ActionEvent;
 import javax.swing.UIManager;
 import javax.swing.SwingUtilities;
 import java.awt.Dimension;
-import java.util.Vector;
 import java.util.Hashtable;
 import com.twister.Item;
 import javax.xml.transform.Result;
@@ -87,21 +77,13 @@ import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.OutputKeys;
-import java.net.URLClassLoader;
 import java.awt.Point;
 import com.twister.CustomDialog;
-import com.twister.plugin.twisterinterface.TwisterPluginInterface;
-import com.twister.plugin.twisterinterface.CommonInterface;
-import com.twister.plugin.baseplugin.BasePlugin;
-import java.awt.Component;
 import java.awt.Container;
-import javax.swing.JFrame;
 import java.awt.GridBagLayout;
 import java.awt.GridBagConstraints;
 import javax.xml.bind.DatatypeConverter;
 import java.util.HashMap;
-import java.nio.charset.Charset;
-import java.io.FileReader;
 
 /*
  * static class to hold
@@ -151,10 +133,9 @@ public class RunnerRepository {
     public static Container container;
     public static Applet applet;
     private static Document pluginsconfig;
-    private static String version = "3.014";
-    private static String builddate = "17.04.2014";
+    private static String version = "3.015";
+    private static String builddate = "25.04.2014";
     public static String logotxt,os,python;
-    private static int remotefiletries = 0;
     
     public static void setStarter(Starter starter){
         RunnerRepository.starter = starter;
@@ -764,15 +745,7 @@ public class RunnerRepository {
      * parse main fwmconfig file
      */
     public static void parseConfig(){ 
-        try{InputStream in = null;
-            byte[] data = new byte[100]; 
-            int nRead;
-            ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-            OutputStream out=null;
-            InputStreamReader inputStreamReader = null;
-            BufferedReader bufferedReader = null;
-            String line = null;
-            String name = null;
+        try{
             if(RunnerRepository.getRemoteFolderContent(USERHOME+"/twister/config/",null).length==0){
                 System.out.println("Could not get config folder from:"+USERHOME+"/twister/config/");
                 CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,RunnerRepository.window,
@@ -785,8 +758,9 @@ public class RunnerRepository {
                 if(!isapplet)System.exit(0);
             }
                 
-                
+             
             String content = new String(RunnerRepository.getRemoteFileContent(USERHOME+"/twister/config/fwmconfig.xml",false,null));
+            System.out.println("Content for:"+USERHOME+"/twister/config/fwmconfig.xml is: "+content);
             if(content==null){
                 CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, RunnerRepository.window,
                                         "Warning","Could not get fwmconfig.xml from "
@@ -1938,17 +1912,8 @@ public class RunnerRepository {
      * localy 
      */
     public static boolean getPluginsFile(){
-        try{InputStream in = null;
-            byte[] data = new byte[100]; 
-            int nRead;
-            ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-            OutputStream out=null;
-            InputStreamReader inputStreamReader = null;
-            BufferedReader bufferedReader = null;  
-            BufferedWriter writer=null;
+        try{BufferedWriter writer=null;
             File file;
-            String line = null;
-            String name = null;
             System.out.println("Starting getting plugins.xml from "+USERHOME+"/twister/config/");
             
             if(RunnerRepository.getRemoteFolderContent(USERHOME+"/twister/config/",null).length==0){
