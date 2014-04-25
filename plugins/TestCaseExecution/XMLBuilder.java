@@ -101,7 +101,7 @@ public class XMLBuilder{
             em2.appendChild(document.createTextNode("false"));
         }
         root.appendChild(em2);
-        em2 = document.createElement("PrePostMandatory");;
+        em2 = document.createElement("PrePostMandatory");
         if(prestoponfail){
             em2.appendChild(document.createTextNode("true"));
         } else {
@@ -139,7 +139,7 @@ public class XMLBuilder{
         em2.appendChild(document.createTextNode(postscript));
         root.appendChild(em2);
         
-        em2 = document.createElement("dbautosave");;
+        em2 = document.createElement("dbautosave");
         if(savedb){
             em2.appendChild(document.createTextNode("true"));
         } else {
