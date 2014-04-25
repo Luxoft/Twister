@@ -1,6 +1,6 @@
 /*
 File: Panel1.java ; This file is part of Twister.
-Version: 2.0027
+Version: 2.0028
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -21,10 +21,8 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-
 import javax.swing.event.MenuListener;
 import java.io.File;
-
 import javax.swing.JDialog;
 import javax.swing.JPanel;
 import javax.swing.JMenuBar;
@@ -1030,15 +1028,6 @@ public class Panel1 extends JPanel{
         String user = CustomDialog.showInputDialog(JOptionPane.PLAIN_MESSAGE, JOptionPane.OK_CANCEL_OPTION,
                                                     sc.g, "File Name", "Please enter file name");
         if(user!=null){
-            (new XMLBuilder(RunnerRepository.getSuite())).writeXMLFile(RunnerRepository.getUsersDirectory()+
-                                                                System.getProperty("file.separator")+
-                                                                user+".xml",false,false,false);
-            RunnerRepository.window.mainpanel.p1.sc.g.setUser(RunnerRepository.getUsersDirectory()+
-                                                                System.getProperty("file.separator")+
-                                                                user+".xml");
-            sc.g.printXML(sc.g.getUser(),false,false,false,false,false,"",false,null,RunnerRepository.window.mainpanel.p1.suitaDetails.getProjectDefs());
-            sc.g.updateScroll();
-            sc.g.repaint();
             suitaDetails.setPreScript("");
             suitaDetails.setPostScript("");
             suitaDetails.setGlobalLibs(null);
@@ -1047,6 +1036,16 @@ public class Panel1 extends JPanel{
             suitaDetails.setSaveDB(false);
             sc.g.getSelectedCollection().clear();
             RunnerRepository.emptySuites();
+            
+            sc.g.updateScroll();
+            sc.g.repaint();
+            RunnerRepository.window.mainpanel.p1.sc.g.setUser(RunnerRepository.getUsersDirectory()+
+                                                                System.getProperty("file.separator")+
+                                                                user+".xml");
+            sc.g.printXML(sc.g.getUser(),false,false,false,false,false,"",false,null,null);
+//             (new XMLBuilder(RunnerRepository.getSuite())).writeXMLFile(RunnerRepository.getUsersDirectory()+
+//                                                                 System.getProperty("file.separator")+
+//                                                                 user+".xml",false,false,false);
         }}
         
     /*
