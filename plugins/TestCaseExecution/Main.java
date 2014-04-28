@@ -78,16 +78,17 @@ public class Main{
                     RunnerRepository.window.mainpanel.p4.getSut().sut.getSutTree().releaseAllSuts();
                     System.exit(0);}});
         f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        RunnerRepository.host = "11.126.32.9";
-        RunnerRepository.user = "tscguest";
-        RunnerRepository.password = "tscguest";
+//         RunnerRepository.host = "11.126.32.9";
+//         RunnerRepository.user = "tscguest";
+//         RunnerRepository.password = "tscguest";
 //         RunnerRepository.user = "guest";
 //         RunnerRepository.password = "guest";
         RunnerRepository.CENTRALENGINEPORT = "8000";
-//         RunnerRepository.host = "11.126.32.20";
-//         RunnerRepository.user = "nisuser";
-//         RunnerRepository.password = "nispass";
+        RunnerRepository.host = "11.126.32.20";
+        RunnerRepository.user = "nisuser";
+        RunnerRepository.password = "nispass";
         RunnerRepository.initialize("false",RunnerRepository.host,f.getContentPane(),null);
+        //TestGui tg = new TestGui();
     }
 
     public static void readLogoTxt(){
