@@ -1,6 +1,6 @@
 /*
 File: NodePanel.java ; This file is part of Twister.
-Version: 2.011
+Version: 2.012
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -350,7 +350,7 @@ public class NodePanel extends JPanel{
                         String value = jTextField2.getText();
                         String path = "";
                         if(parent.getParent()!=null){
-                            path = "/"+parent.getParent().getName();                        
+                            path = "/"+parent.getParent().getPath().getPath();                        
                         } else {
                             path = "/";
                         }
