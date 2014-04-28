@@ -1,7 +1,7 @@
 
 # File: xmlparser.py ; This file is part of Twister.
 
-# version: 3.017
+# version: 3.018
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -1211,7 +1211,8 @@ class ClearCaseParser(object):
                 if xobj.get('active') == 'true':
                     path = xobj.get('path')
                     view = xobj.get('view')
-                    self.config[name] = {'path': path, 'view': view}
+                    actv = xobj.get('activity')
+                    self.config[name] = {'path': path, 'view': view, 'actv': actv}
 
         if filter_tag and filter_name:
             return self.config.get(filter_name, {})
