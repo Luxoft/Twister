@@ -4,6 +4,8 @@
 # <title>Test Connect</title>
 # <description>This suite checks the most basic functionality of Twister.<br>
 # It checks if the EPs are running the tests successfully and it calls all CE functions, to ensure they work as expected.</description>
+# <test>connect</test>
+# <smoke>yes</smoke>
 #
 
 # `PROXY`, `USER`, `SUITE_NAME` and `FILE_NAME` are magic variables, injected by Twister.

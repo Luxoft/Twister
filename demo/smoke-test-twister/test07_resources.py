@@ -5,6 +5,8 @@
 # <description>This suite checks the most basic functionality of Twister.<br>
 # Functions `getResource`, `setResource` and *the rest* are included in the interpreter!</description>
 # <tags>testbed, resources, devices</tags>
+# <test>resource</test>
+# <smoke>yes</smoke>
 #
 
 from os import urandom

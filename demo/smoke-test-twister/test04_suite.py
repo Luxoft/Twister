@@ -4,6 +4,8 @@
 # <title>Test the Suites</title>
 # <description>This suite checks the most basic functionality of Twister.<br>
 # It checks if the EPs are running the tests successfully and it calls all CE functions, to ensure they work as expected.</description>
+# <test>suite</test>
+# <smoke>yes</smoke>
 #
 
 import time
