@@ -1,7 +1,7 @@
 
 # File: CeProject.py ; This file is part of Twister.
 
-# version: 3.035
+# version: 3.036
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -2473,6 +2473,8 @@ class Project(object):
                 view = ccConfig['view']
                 actv = ccConfig['actv']
                 path = ccConfig['path']
+                if not path:
+                    return '*ERROR* User `{}` did not set ClearCase Libraries Path!'.format(user)
                 user_view_actv = '{}:{}:{}'.format(user, view, actv)
                 user_libs_all = self.clearFs.listUserFiles(user_view_actv, path, False, False)
             else:

@@ -1,7 +1,7 @@
 
 # File: CeXmlRpc.py ; This file is part of Twister.
 
-# version: 2.044
+# version: 2.045
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -329,7 +329,7 @@ class CeXmlRpc(_cptools.XMLRPCController):
                 actv = ccConfig['actv']
                 fdir = ccConfig['path']
                 if not fdir:
-                    return '*ERROR* Empty path for CC `{}:{}:{}`!'.format(user, view, actv)
+                    return '*ERROR* User `{}` did not set ClearCase Project Path!'.format(user)
                 user_view_actv = '{}:{}:{}'.format(user, view, actv)
                 resp = self.project.clearFs.listUserFiles(user_view_actv, fdir)
             else:
@@ -368,7 +368,7 @@ class CeXmlRpc(_cptools.XMLRPCController):
             actv = ccConfig['actv']
             path = ccConfig['path'].rstrip('/')
             if not path:
-                return '*ERROR* Empty path for CC `{}:{}:{}`!'.format(user, view, actv)
+                return '*ERROR* User `{}` did not set ClearCase Project Path!'.format(user)
             user_view_actv = '{}:{}:{}'.format(user, view, actv)
             return self.project.clearFs.readUserFile(user_view_actv, path +'/'+ fpath)
         else:
@@ -389,7 +389,7 @@ class CeXmlRpc(_cptools.XMLRPCController):
             actv = ccConfig['actv']
             path = ccConfig['path'].rstrip('/')
             if not path:
-                return '*ERROR* Empty path for CC `{}:{}:{}`!'.format(user, view, actv)
+                return '*ERROR* User `{}` did not set ClearCase Project Path!'.format(user)
             user_view_actv = '{}:{}:{}'.format(user, view, actv)
             return self.project.clearFs.writeUserFile(user_view_actv, path +'/'+ fpath, content)
         else:
@@ -410,7 +410,7 @@ class CeXmlRpc(_cptools.XMLRPCController):
             actv = ccConfig['actv']
             path = ccConfig['path'].rstrip('/')
             if not path:
-                return '*ERROR* Empty path for CC `{}:{}:{}`!'.format(user, view, actv)
+                return '*ERROR* User `{}` did not set ClearCase Project Path!'.format(user)
             user_view_actv = '{}:{}:{}'.format(user, view, actv)
             return self.project.clearFs.deleteUserFile(user_view_actv, path +'/'+ fpath)
         else:
@@ -440,7 +440,7 @@ class CeXmlRpc(_cptools.XMLRPCController):
                 actv = ccConfig['actv']
                 path = ccConfig['path']
                 if not path:
-                    return '*ERROR* Empty path for CC `{}:{}:{}`!'.format(user, view, actv)
+                    return '*ERROR* User `{}` did not set ClearCase Tests Path!'.format(user)
                 user_view_actv = '{}:{}:{}'.format(user, view, actv)
                 return self.project.clearFs.listUserFiles(user_view_actv, path)
             else:
