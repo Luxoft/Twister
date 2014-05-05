@@ -897,6 +897,8 @@ class TwisterClientService(rpyc.Service):
     def exposed_parse_index(self, query):
         """
         Search for a query in the file index
+        Example: searchIndex('filename=*.tcl')
+                 searchIndex('description=Test status&title=init file')
         """
 
         ti = time.time()
@@ -911,18 +913,22 @@ class TwisterClientService(rpyc.Service):
         except:
             msg = 'Cannot search having the arguments {} !'.format(query)
             return msg
+        len_args = len(args)
         result = []
         with open('{}/config/file_tags.json'.format(TWISTER_PATH)) as data_file:
             data = json.load(data_file)
         for key, value in data.items():
+            match = []
             short_fname = key[key.rfind('/')+1:]
-            if fname and (fname.startswith('*') and key.endswith(fname[1:]) or fname.endswith('*') and
-                    short_fname.startswith(fname[:-1]) or fname.replace('*', '') in short_fname):
-                match = [key for k, v in args.items() if v[0] in value.get(k, "None")]
+            if fname:
+                if fname.startswith('*') and key.endswith(fname[1:]) or fname.endswith('*') and short_fname.startswith(fname[:-1]) or fname.replace('*', '') in short_fname:
+                    if not len_args:
+                        result.append(key)
+                    match = [key for k, v in args.items() if v[0] in value.get(k, "None")]
             else:
                 match = [key for k, v in args.items() if v[0] in value.get(k, "None")]
-            if len(match) == len(args):
-                result.extend(match)
+            if len_args and len(match) == len_args:
+                result.append(key)
 
         logPrint('TOOK `{:.4f}` SECONDS FOR {} elements and found {} entries that match'.format(time.time()-ti, len(data), len(result)))
         return result
