@@ -1,7 +1,7 @@
 
 # File: UserService.py ; This file is part of Twister.
 
-# version: 3.006
+# version: 3.007
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -302,17 +302,22 @@ class UserService(rpyc.Service):
                         continue
                     long_path  = path + os.sep + fname
                     short_path = (long_path)[len_path:]
-                    fstat = os.stat(long_path)
+                    # Meta info
                     try:
-                        uname = pwd.getpwuid(fstat.st_uid).pw_name
-                    except Exception:
-                        uname = fstat.st_uid
-                    try:
-                        gname = grp.getgrgid(fstat.st_gid).gr_name
-                    except Exception:
-                        gname = fstat.st_gid
-                    meta_info = '{}|{}|{}|{}'.format(uname, gname, fstat.st_size,
-                        time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(fstat.st_mtime)))
+                        fstat = os.stat(long_path)
+                        try:
+                            uname = pwd.getpwuid(fstat.st_uid).pw_name
+                        except Exception:
+                            uname = fstat.st_uid
+                        try:
+                            gname = grp.getgrgid(fstat.st_gid).gr_name
+                        except Exception:
+                            gname = fstat.st_gid
+                        meta_info = '{}|{}|{}|{}'.format(uname, gname, fstat.st_size,
+                            time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(fstat.st_mtime)))
+                    except:
+                        meta_info = ''
+                    # Data to append
                     nd = {'path': short_path, 'data': fname, 'meta': meta_info}
                     if os.path.isdir(long_path):
                         nd['folder'] = True
