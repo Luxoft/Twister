@@ -904,18 +904,20 @@ class TwisterClientService(rpyc.Service):
             args = urlparse.parse_qs(query)
             logPrint('Searching for query {}'.format(args))
             try:
-                filename = args.get('filename')[0]
+                fname = args.get('filename')[0]
                 del args['filename']
             except:
-                filename = None
+                fname = None
         except:
-            msg = 'Cannot search having the arguments {} !'.format(args)
+            msg = 'Cannot search having the arguments {} !'.format(query)
             return msg
         result = []
         with open('{}/config/file_tags.json'.format(TWISTER_PATH)) as data_file:
             data = json.load(data_file)
         for key, value in data.items():
-            if filename and filename in key:
+            short_fname = key[key.rfind('/')+1:]
+            if fname and (fname.startswith('*') and key.endswith(fname[1:]) or fname.endswith('*') and
+                    short_fname.startswith(fname[:-1]) or fname.replace('*', '') in short_fname):
                 match = [key for k, v in args.items() if v[0] in value.get(k, "None")]
             else:
                 match = [key for k, v in args.items() if v[0] in value.get(k, "None")]
