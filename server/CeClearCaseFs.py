@@ -118,12 +118,19 @@ class ClearCaseFs(object):
             user, view, actv = user_view_actv.split(':')
         except Exception:
             # We don't really know the user in here !
-            logWarning('Invalid ClearCase user-view-activity parameter: `{}`!'.format(user_view_actv))
-            return False
+            msg = 'Invalid ClearCase user-view-activity parameter: `{}`!'.format(user_view_actv)
+            logWarning(msg)
+            return '*ERROR* ' + msg
 
         view = view.strip()
         actv = actv.strip()
         user_view = user + ':' + view
+
+        if not view:
+            # We don't know the view in here !
+            msg = 'Empty view in `{}`!'.format(user_view_actv)
+            logWarning(msg)
+            return '*ERROR* ' + msg
 
         # Must block here, so more users cannot launch Logs at the same time and lose the PID
         with self._srv_lock:

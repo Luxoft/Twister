@@ -39,6 +39,7 @@ from __future__ import with_statement
 import os
 import sys
 import re
+import copy
 import time
 import datetime
 import traceback
@@ -182,6 +183,34 @@ class CeXmlRpc(_cptools.XMLRPCController):
         return self.project.decryptText(cherry_user, text)
 
 
+    @cherrypy.expose
+    def generateIndex(self):
+        """
+        Store in a json file the tags from each test case file
+        """
+        user = cherrypy.session.get('username')
+        userConn = self.project._find_local_client(user)
+        try:
+            result = userConn.root.generate_index()
+        except Exception as e:
+            return '*ERROR* Cannot generate index for user `{}`: `{}`!'.format(user, e)
+        return result
+
+
+    @cherrypy.expose
+    def searchIndex(self, query):
+        """
+        Search for a query in the file index
+        """
+        user = cherrypy.session.get('username')
+        userConn = self.project._find_local_client(user)
+        try:
+            result = copy.deepcopy(userConn.root.parse_index(query))
+        except Exception as e:
+            return '*ERROR* Cannot search index for user `{}`: `{}`!'.format(user, e)
+        return result
+
+
 # # #
 
 
@@ -299,6 +328,8 @@ class CeXmlRpc(_cptools.XMLRPCController):
                 view = ccConfig['view']
                 actv = ccConfig['actv']
                 fdir = ccConfig['path']
+                if not fdir:
+                    return '*ERROR* Empty path for CC `{}:{}:{}`!'.format(user, view, actv)
                 user_view_actv = '{}:{}:{}'.format(user, view, actv)
                 resp = self.project.clearFs.listUserFiles(user_view_actv, fdir)
             else:
@@ -313,6 +344,8 @@ class CeXmlRpc(_cptools.XMLRPCController):
                 view = ccConfig['view']
                 actv = ccConfig['actv']
                 fdir = ccConfig['path']
+                if not fdir:
+                    return '*ERROR* Empty path for CC `{}:{}:{}`!'.format(user, view, actv)
                 user_view_actv = '{}:{}:{}'.format(user, view, actv)
                 resp = self.project.clearFs.listUserFiles(user_view_actv, fdir)
             else:
@@ -334,6 +367,8 @@ class CeXmlRpc(_cptools.XMLRPCController):
             view = ccConfig['view']
             actv = ccConfig['actv']
             path = ccConfig['path'].rstrip('/')
+            if not path:
+                return '*ERROR* Empty path for CC `{}:{}:{}`!'.format(user, view, actv)
             user_view_actv = '{}:{}:{}'.format(user, view, actv)
             return self.project.clearFs.readUserFile(user_view_actv, path +'/'+ fpath)
         else:
@@ -353,6 +388,8 @@ class CeXmlRpc(_cptools.XMLRPCController):
             view = ccConfig['view']
             actv = ccConfig['actv']
             path = ccConfig['path'].rstrip('/')
+            if not path:
+                return '*ERROR* Empty path for CC `{}:{}:{}`!'.format(user, view, actv)
             user_view_actv = '{}:{}:{}'.format(user, view, actv)
             return self.project.clearFs.writeUserFile(user_view_actv, path +'/'+ fpath, content)
         else:
@@ -372,6 +409,8 @@ class CeXmlRpc(_cptools.XMLRPCController):
             view = ccConfig['view']
             actv = ccConfig['actv']
             path = ccConfig['path'].rstrip('/')
+            if not path:
+                return '*ERROR* Empty path for CC `{}:{}:{}`!'.format(user, view, actv)
             user_view_actv = '{}:{}:{}'.format(user, view, actv)
             return self.project.clearFs.deleteUserFile(user_view_actv, path +'/'+ fpath)
         else:
@@ -400,6 +439,8 @@ class CeXmlRpc(_cptools.XMLRPCController):
                 view = ccConfig['view']
                 actv = ccConfig['actv']
                 path = ccConfig['path']
+                if not path:
+                    return '*ERROR* Empty path for CC `{}:{}:{}`!'.format(user, view, actv)
                 user_view_actv = '{}:{}:{}'.format(user, view, actv)
                 return self.project.clearFs.listUserFiles(user_view_actv, path)
             else:
