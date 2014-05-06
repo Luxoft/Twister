@@ -291,13 +291,13 @@ class LocalFS(object):
             return False
 
 
-    def listUserFiles(self, user, fdir, hidden=True, recursive=True):
+    def listUserFiles(self, user, fdir, hidden=True, recursive=True, filter=[]):
         if not fdir:
             return False
         srvr = self._usrService(user)
         if srvr:
             try:
-                files = srvr.root.list_files(fdir, hidden, recursive)
+                files = srvr.root.list_files(fdir, hidden, recursive, filter)
                 return copy.copy(files)
             except Exception as e:
                 err = '*ERROR* Cannot list files `{}`, user `{}`! {}'.format(fdir, user, e)
