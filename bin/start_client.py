@@ -890,7 +890,7 @@ class TwisterClientService(rpyc.Service):
         with open('{}/config/file_tags.json'.format(TWISTER_PATH), 'w') as file_tags:
             json.dump(globalDict, file_tags, indent=2)
 
-        logPrint('TOOK `{:.4f}` SECONDS FOR {}.'.format(time.time()-ti, len(globalDict)))
+        logPrint('TOOK `{:.4f}` SECONDS TO GENERATE INDEX FOR {}.'.format(time.time()-ti, len(globalDict)))
         return True
 
 
@@ -901,6 +901,8 @@ class TwisterClientService(rpyc.Service):
                  searchIndex('description=Test status&title=init file')
         """
 
+        if not os.path.isfile('{}/config/file_tags.json'):
+            return '*ERROR* You must generate the file tags!'
         ti = time.time()
         try:
             args = urlparse.parse_qs(query)
