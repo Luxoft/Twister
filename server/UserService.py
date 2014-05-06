@@ -277,7 +277,7 @@ class UserService(rpyc.Service):
 
 
     @staticmethod
-    def exposed_list_files(folder, hidden=True, recursive=True):
+    def exposed_list_files(folder, hidden=True, recursive=True, filter=[]):
         """
         List all files, recursively.
         """
@@ -287,62 +287,81 @@ class UserService(rpyc.Service):
             log.warning('*WARN* Listing folders from system ROOT.')
             recursive = False
 
-        def dirList(base_path, path, new_dict):
-            """
-            Create recursive list of folders and files from base path.
-            The format of a node is: {"path": "/..." "data": "name", "folder":true|false, "children": []}
-            """
-            len_path = len(base_path) + 1
-            if os.path.isdir(path):
-                dlist = [] # Folders list
-                flist = [] # Files list
-                for fname in sorted(os.listdir(path), key=str.lower):
-                    # Ignore hidden files
-                    if hidden and fname[0] == '.':
-                        continue
-                    long_path  = path + os.sep + fname
-                    short_path = (long_path)[len_path:]
-                    # Meta info
-                    try:
-                        fstat = os.stat(long_path)
-                        try:
-                            uname = pwd.getpwuid(fstat.st_uid).pw_name
-                        except Exception:
-                            uname = fstat.st_uid
-                        try:
-                            gname = grp.getgrgid(fstat.st_gid).gr_name
-                        except Exception:
-                            gname = fstat.st_gid
-                        meta_info = '{}|{}|{}|{}'.format(uname, gname, fstat.st_size,
-                            time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(fstat.st_mtime)))
-                    except:
-                        meta_info = ''
-                    # Data to append
-                    nd = {'path': short_path, 'data': fname, 'meta': meta_info}
-                    if os.path.isdir(long_path):
-                        nd['folder'] = True
-                        nd['children'] = []
-                        dlist.append(nd)
-                    else:
-                        flist.append(nd)
-                # Folders first, files second
-                new_dict['children'] = dlist + flist
-            for nitem in new_dict.get('children', []):
-                # Recursive !
-                if recursive:
-                    dirList(base_path, base_path + os.sep + nitem['path'], nitem)
-                else:
-                    return None
-
         if not os.path.isdir(folder):
             err = '*ERROR* Invalid folder path `{}`!'.format(folder)
             log.warning(err)
             return err
 
-        paths = {'path':'/', 'data':folder, 'folder':True, 'children':[]}
-        dirList(folder, folder, paths)
+        base_path = folder.rstrip('/')
+
+        def dirList(path):
+            """
+            Create recursive list of folders and files from base path.
+            The format of a node is: {"path": "/..." "data": "name", "folder":true|false, "children": []}
+            """
+            # The node is valid ?
+            if not path:
+                return False
+            path = path.rstrip('/')
+            # This is folder ?
+            if os.path.isfile(path):
+                return False
+
+            len_path = len(base_path) + 1
+            dlist = [] # Folders list
+            flist = [] # Files list
+
+            # Cycle a folder
+            for fname in sorted(os.listdir(path), key=str.lower):
+                long_path  = path + os.sep + fname
+                # If filter is active and file doesn't match, ignore
+                if filter and os.path.isfile(long_path) and long_path not in filter:
+                    continue
+                # Ignore hidden files
+                if hidden and fname[0] == '.':
+                    continue
+                # Meta info
+                try:
+                    fstat = os.stat(long_path)
+                    try:
+                        uname = pwd.getpwuid(fstat.st_uid).pw_name
+                    except Exception:
+                        uname = fstat.st_uid
+                    try:
+                        gname = grp.getgrgid(fstat.st_gid).gr_name
+                    except Exception:
+                        gname = fstat.st_gid
+                    meta_info = '{}|{}|{}|{}'.format(uname, gname, fstat.st_size,
+                        time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(fstat.st_mtime)))
+                except:
+                    meta_info = ''
+                # Semi long path
+                short_path = long_path[len_path:]
+                # Data to append
+                nd = {'path': short_path, 'data': fname, 'meta': meta_info}
+                if os.path.isdir(long_path):
+                    nd['folder'] = True
+                    children = dirList(long_path)
+                    if not children:
+                        continue
+                    nd['children'] = children
+                    dlist.append(nd)
+                else:
+                    flist.append(nd)
+
+            # Folders first, files second
+            return dlist + flist
+
+
+        paths = {
+            'path' : '/',
+            'data' : base_path,
+            'folder' : True,
+            'children' : dirList(base_path)
+        }
+
         clen = len(paths['children'])
-        log.debug('Listing dir `{}`, it has `{}` direct children.'.format(folder, clen))
+        log.debug('Listing dir `{}`, it has `{}` direct children.'.format(base_path, clen))
         return paths
 
 
