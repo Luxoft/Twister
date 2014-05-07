@@ -208,6 +208,9 @@ class CeXmlRpc(_cptools.XMLRPCController):
             result = copy.deepcopy(userConn.root.parse_index(query))
         except Exception as e:
             return '*ERROR* Cannot search index for user `{}`: `{}`!'.format(user, e)
+        if isinstance(result, str):
+            logWarning(result)
+            return result
 
         tests_path = self.project.getUserInfo(user, 'tests_path')
         if not result:

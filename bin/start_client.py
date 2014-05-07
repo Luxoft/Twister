@@ -2,7 +2,7 @@
 
 # File: start_client.py ; This file is part of Twister.
 
-# version: 3.015
+# version: 3.016
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -890,7 +890,7 @@ class TwisterClientService(rpyc.Service):
         with open('{}/config/file_tags.json'.format(TWISTER_PATH), 'w') as file_tags:
             json.dump(globalDict, file_tags, indent=2)
 
-        logPrint('TOOK `{:.4f}` SECONDS TO GENERATE INDEX FOR {}.'.format(time.time()-ti, len(globalDict)))
+        logPrint('Took `{:.4f}` seconds to generate index for {}.'.format(time.time()-ti, len(globalDict)))
         return True
 
 
@@ -901,7 +901,7 @@ class TwisterClientService(rpyc.Service):
                  searchIndex('description=Test status&title=init file')
         """
 
-        if not os.path.isfile('{}/config/file_tags.json'):
+        if not os.path.isfile('{}/config/file_tags.json'.format(TWISTER_PATH)):
             return '*ERROR* You must generate the file tags!'
         ti = time.time()
         try:
@@ -932,7 +932,7 @@ class TwisterClientService(rpyc.Service):
             if len_args and len(match) == len_args:
                 result.append(key)
 
-        logPrint('TOOK `{:.4f}` SECONDS FOR {} elements and found {} entries that match'.format(time.time()-ti, len(data), len(result)))
+        logPrint('Took `{:.4f}` seconds for {} elements and found {} entries that match.'.format(time.time()-ti, len(data), len(result)))
         return result
 
 
