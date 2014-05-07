@@ -1,6 +1,6 @@
 /*
 File: ConfigFiles.java ; This file is part of Twister.
-Version: 2.025
+Version: 2.026
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -84,10 +84,18 @@ public class ConfigFiles extends JPanel{
         paths.setMaximumSize(new Dimension(930,1144));
         setLayout(null);
         ttcpath = new JTextField();
-        addPanel("TestCase Source Path",
+        JButton index = new JButton("Generate Tags");
+        index.addActionListener(new ActionListener(){
+            public void actionPerformed(ActionEvent ev){
+                RunnerRepository.window.mainpanel.p1.ep.generateIndex();
+            }
+        });
+        index.setPreferredSize(new Dimension(120,20));
+        JPanel p = addPanel("TestCase Source Path",
                 "Master directory with the test cases that can"+
                 " be run by the framework",
                 ttcpath,RunnerRepository.TESTSUITEPATH,10,true,null);
+        p.add(index);
         tMasterXML = new JTextField();
         tUsers = new JTextField();
         
@@ -120,7 +128,7 @@ public class ConfigFiles extends JPanel{
                 tlog,RunnerRepository.LOGSPATH,740,true,null);
         tsecondarylog = new JTextField(); 
         
-        JPanel p = addPanel("Secondary Logs Path","Location of the directory that archives copies of the most recent log files, with"+
+        p = addPanel("Secondary Logs Path","Location of the directory that archives copies of the most recent log files, with"+
                                                   " original file names appended with <.epoch time>",
                 tsecondarylog,RunnerRepository.SECONDARYLOGSPATH,1003,true,null);
         logsenabled.setSelected(Boolean.parseBoolean(RunnerRepository.PATHENABLED));
@@ -328,7 +336,7 @@ public class ConfigFiles extends JPanel{
                             System.out.println("Changes successfully applied in CE");
                         }
                         RunnerRepository.window.mainpanel.getP2().init(RunnerRepository.isapplet);
-                        RunnerRepository.window.mainpanel.p1.ep.refreshStructure();
+                        RunnerRepository.window.mainpanel.p1.ep.refreshStructure(RunnerRepository.getServerTCStructure(false));
                         RunnerRepository.window.mainpanel.p1.lp.refreshStructure();
                         RunnerRepository.window.mainpanel.p4.getDBConfig().refresh();
                         RunnerRepository.window.mainpanel.p4.getGlobals().refresh();

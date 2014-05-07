@@ -1,6 +1,6 @@
 /*
 File: Panel1.java ; This file is part of Twister.
-Version: 2.0028
+Version: 2.0029
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -275,7 +275,7 @@ public class Panel1 extends JPanel{
         lp = new LibrariesPanel();
         setLayout(null); 
         tabs = new JTabbedPane();
-        tabs.add("Test Case", new JScrollPane(ep.tree));
+        tabs.add("Test Case", ep);
         tabs.add("Predefined Suites", new JScrollPane(lp.tree));
         splitPane2 = new JSplitPane(JSplitPane.VERTICAL_SPLIT,
                                                 tabs,
@@ -289,9 +289,12 @@ public class Panel1 extends JPanel{
             });
         } catch(Exception e){
             splitPane2.setDividerLocation(0.5);
-        }           
+        }  
+        JTabbedPane optionstabs = new JTabbedPane();
+        optionstabs.add("Selection Options", suitaDetails);
+        //optionstabs.add("Dependencie", new Dependencie());
         splitPane3 = new JSplitPane(JSplitPane.VERTICAL_SPLIT,
-                                                sc.pane,suitaDetails);
+                                                sc.pane,optionstabs);
         try{
             SwingUtilities.invokeLater(new Runnable() {
                 public void run() {

@@ -1,6 +1,6 @@
 /*
 File: Grafic.java ; This file is part of Twister.
-Version: 2.0026
+Version: 2.0027
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -290,9 +290,7 @@ public class Grafic extends JPanel{
                 for(int j=0;j<selectedcollection.get(i).length;j++){
                     temp.add(new Integer(selectedcollection.get(i)[j]));}
                 Item theone2 = getItem(temp,false).clone();  
-                if(theone2.getType()==0
-//                 ||theone2.isPrerequisite()
-                ){
+                if(theone2.getType()==0){
                     getItem(temp,false).select(false);
                     selectedcollection.remove(i);
                     temp.clear();
@@ -483,10 +481,6 @@ public class Grafic extends JPanel{
                 else if(upper.getType()==2){//inserted under suite
                     int Y = mouseY;
                     if((upper.getSubItemsNr()>0&&upper.getSubItem(0).isVisible())){//suite is expander||has no children,must insert into it
-//                         if(upper.getSubItem(0).isPrerequisite()){//first element is prerequisiste, must insert after him
-//                             int index = upper.getSubItem(0).getPos().get(upper.getPos().size()-1).intValue();
-//                             int position = upper.getSubItem(0).getPos().size()-1;
-//                             dropNextInLine(upper.getSubItem(0), upper, index, position);}
                         dropFirstInSuita(upper);}//Should be inserted in suita
                     else if(Y<upper.getRectangle().y+upper.getRectangle().getHeight()+5||//closer to upper half 
                     (Y>upper.getRectangle().y+upper.getRectangle().getHeight()+5&&upper.getPos().size()>1 //farther from 5px half but suite is not last in parent
@@ -522,7 +516,6 @@ public class Grafic extends JPanel{
                     if(parent.getType()==1){dropOnFirstLevel(upper);}  //parent on level 0 because it is tc=>will not have paremt
                     else{ // parent is not tc=>not on level 0, must ad to parent or after parent
                         if(Grafic.getTcParent(prop,false).getSubItemsNr()-1==prop.getPos().get(prop.getPos().size()-1) &&
-//                         getTcParent(prop,false)
                             parent.getSubItemsNr()-1==upper.getPos().get(upper.getPos().size()-1)){//if prop is last in tc and tc is last in suite
                             if(Y<upper.getRectangle().y+upper.getRectangle().getHeight()+5){
                                 dropNextInLine(upper, parent, index, position);}//Should be inserted in upper parent
@@ -536,12 +529,6 @@ public class Grafic extends JPanel{
             else{dropFirstElement();}}//upper is null
         else{//inserted in element
             if(getItem(selected,false).getType()==2){//inserted in suita
-//                 if(getItem(selected,false).getSubItemsNr()>0&&
-//                     getItem(selected,false).getSubItem(0).isPrerequisite()){//first element is prerequisite should insert after
-//                     int index = getItem(selected,false).getSubItem(0).getPos().
-//                                     get(getItem(selected,false).getPos().size()-1).intValue();
-//                     int position = getItem(selected,false).getSubItem(0).getPos().size()-1;
-//                     dropNextInLine(getItem(selected,false).getSubItem(0), getItem(selected,false), index, position);}
                 dropFirstInSuita(getItem(selected,false));}//first element is not prerequisite, can insert on first level
             else if(getItem(selected,false).getType()==1){//inserted in tc
                 Item item = getItem(selected,false);
@@ -1504,9 +1491,9 @@ public class Grafic extends JPanel{
         int resp = (Integer)CustomDialog.showDialog(p,JOptionPane.PLAIN_MESSAGE, 
                             JOptionPane.OK_CANCEL_OPTION, Grafic.this, "Test Configurations Files",null);
         if(resp == JOptionPane.OK_OPTION){
-            String configs[] = new String[tep.getSelectedValues().length];
+            String configs[] = new String[tep.getSelectedValuesList().size()];
             for(int i=0;i<configs.length;i++){
-                configs[i] = tep.getSelectedValues()[i].toString();
+                configs[i] = tep.getSelectedValuesList().get(i).toString();
             }
             Item item=null;
             int nr = selectedcollection.size();
@@ -2328,24 +2315,7 @@ public class Grafic extends JPanel{
                             } catch (Exception e){
                                 e.printStackTrace();
                             }
-                            
-                            
-                            
-//                         FontMetrics metrics = getGraphics().getFontMetrics(new Font("TimesRoman", Font.PLAIN, 13));
-//                         Item newItem = new Item(name,1, -1, -1, metrics.stringWidth(name)+48, 20, null);
-//                         ArrayList<Integer> pos = new ArrayList <Integer>();
-//                         pos.add(new Integer(0));
-//                         ArrayList<Integer> pos2 = (ArrayList <Integer>)pos.clone();
-//                         pos2.add(new Integer(0));
-//                         Item property = new Item("Running",0,-1,-1,(metrics.stringWidth("Running:  true"))+28,20,pos2);
-//                         property.setValue("true");
-//                         property.setSubItemVisible(false);
-//                         newItem.addSubItem(property);
-//                         newItem.setVisible(false);
-//                         clone.add(newItem);
                     }
-//                     else{
-//                         subtreeTC((TreeNode)RunnerRepository.window.mainpanel.p1.lp.getSelected()[i].getLastPathComponent(),null,0);}
                 }
                 handleMouseDroped(y);
                 Item parent = getFirstSuitaParent(list.get(0), false);
@@ -2370,11 +2340,6 @@ public class Grafic extends JPanel{
                                                                     getPathCount()-2]+"/"+RunnerRepository.window.mainpanel.p1.
                                                                     cp.getSelected()[i].getPath()[RunnerRepository.window.
                                                                     mainpanel.p1.cp.getSelected()[i].getPathCount()-1];
-                        
-//                         try{name = name.split(RunnerRepository.window.mainpanel.getP5().root)[1];}
-//                         catch(Exception e){
-//                             System.out.println("Could not find projects path:"+RunnerRepository.window.mainpanel.getP5().root+" in filename:"+name);
-//                             e.printStackTrace();}
                         FontMetrics metrics = getGraphics().getFontMetrics(new Font("TimesRoman", Font.PLAIN, 13));
                         Item newItem = new Item(name,1, -1, -1, metrics.stringWidth(name)+48, 20, null);
                         newItem.setClearcase(true);
