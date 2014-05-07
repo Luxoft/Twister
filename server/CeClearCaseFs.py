@@ -1,7 +1,7 @@
 
 # File: CeClearCaseFs.py ; This file is part of Twister.
 
-# version: 3.009
+# version: 3.010
 
 # Copyright (C) 2012-2014, Luxoft
 
@@ -109,22 +109,57 @@ class ClearCaseFs(object):
                 pass
 
 
-    def _usrService(self, user_view):
+    def _usrService(self, user_view_actv):
         """
         Launch a user service.
         Open a ClearCase view first.
         """
-        user, view = user_view.split(':')
+        try:
+            user, view, actv = user_view_actv.split(':')
+        except Exception:
+            # We don't really know the user in here !
+            msg = 'Invalid ClearCase user-view-activity parameter: `{}`!'.format(user_view_actv)
+            logWarning(msg)
+            return '*ERROR* ' + msg
+
+        view = view.strip()
+        actv = actv.strip()
+        user_view = user + ':' + view
+
+        if not view:
+            # We don't know the view in here !
+            msg = 'Empty view in `{}`!'.format(user_view_actv)
+            logWarning(msg)
+            return '*ERROR* ' + msg
 
         # Must block here, so more users cannot launch Logs at the same time and lose the PID
         with self._srv_lock:
 
-            # Try to re-use the logger server, if available
+            def pread():
+                while 1:
+                    try:
+                        line = proc.readline().strip()
+                        if not line:
+                            continue
+                        plog.append(line)
+                    except:
+                        break
+
+            # Try to re-use the FS, if available
             conn = self._services.get(user_view, {}).get('conn', None)
             if conn:
                 try:
                     conn.ping(data='Hello', timeout=30.0)
                     # logDebug('Reuse old ClearCase Service connection for `{}` OK.'.format(user))
+                    proc = self._services.get(user_view, {}).get('proc', None)
+                    old_actv = self._services.get(user_view, {}).get('actv', None)
+                    if actv != old_actv:
+                        logInfo('Changing activity to `{}`, for `{}`.'.format(actv, user_view))
+                        # Set cc activity again !
+                        proc.sendline('cleartool setactivity {}'.format(actv))
+                        time.sleep(1.0)
+                        pread()
+                        self._services.get(user_view, {})['actv'] = actv
                     return conn
                 except Exception as e:
                     logWarning('Cannot connect to ClearCase Service for `{}`: `{}`.'.format(user_view, e))
@@ -140,16 +175,6 @@ class ClearCaseFs(object):
             time.sleep(2.0)
             plog = []
 
-            def pread():
-                while 1:
-                    try:
-                        line = proc.readline().strip()
-                        if not line:
-                            continue
-                        plog.append(line)
-                    except:
-                        break
-
             proc.sendline('su {}'.format(user))
             time.sleep(2.0)
             pread()
@@ -163,6 +188,12 @@ class ClearCaseFs(object):
             # Empty line after set view
             proc.sendline('')
             pread()
+
+            if actv:
+                # Set cc activity for the first time !
+                proc.sendline('cleartool setactivity {}'.format(actv))
+                time.sleep(1.0)
+                pread()
 
             port = None
 
@@ -216,7 +247,7 @@ class ClearCaseFs(object):
                 return False
 
             # Save the process inside the block.
-            self._services[user_view] = {'proc': proc, 'conn': conn, 'port': port}
+            self._services[user_view] = {'proc': proc, 'conn': conn, 'port': port, 'actv': actv}
 
         logDebug('ClearCase Service for `{}` launched on `127.0.0.1:{}`.'.format(user_view, port))
         return conn

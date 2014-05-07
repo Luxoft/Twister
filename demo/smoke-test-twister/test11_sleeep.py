@@ -4,6 +4,9 @@
 # <title>Test long sleep</title>
 # <description>This suite checks the most basic functionality of Twister.<br>
 # </description>
+# <tags>test, delay, sleep</tags>
+# <test>sleep</test>
+# <smoke>yes</smoke>
 #
 
 import time

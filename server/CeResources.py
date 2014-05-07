@@ -868,7 +868,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
         # to extract the last string after /, remove extension and add .json
         sut_file = xml_file.split('/')[-1].split('.')[0]
         sut_file = sut_file + '.json'
-        
+
         sutPath = None
         if sutType == 'system':
             # System SUT path
@@ -1126,6 +1126,8 @@ class ResourceAllocator(_cptools.XMLRPCController):
         sutFile = sutPath + fileName
 
         sutContent = False
+        user = self.getUserName()
+
         if os.path.isdir(sutPath):
             if sutType == 'system':
                 # system SUT file
@@ -1134,19 +1136,21 @@ class ResourceAllocator(_cptools.XMLRPCController):
                     sutContent = json.load(f)
                     f.close() ; del f
                 except Exception as e:
-                    return '*ERROR* Cannot get access to SUT path for user {} Exception {}'.format(self.getUserName(),e)
+                    return '*ERROR* Cannot get access to SUT path for user {} Exception {}'.format(user, e)
             else:
                 # user SUT file; we have to check if the cleacase plugin
                 # is activated; if so, use it to read the SUT file; else
                 # use the UserService to read it
-                ccConfig = self.project.getClearCaseConfig(self.getUserName(), 'sut_path')
+                ccConfig = self.project.getClearCaseConfig(user, 'sut_path')
                 if ccConfig:
                     view = ccConfig['view']
+                    actv = ccConfig['actv']
                     path = ccConfig['path']
-                    resp = self.project.clearFs.readUserFile(self.getUserName() +':'+ view, path +'/'+ fileName)
+                    user_view_actv = '{}:{}:{}'.format(user, view, actv)
+                    resp = self.project.clearFs.readUserFile(user_view_actv, path +'/'+ fileName)
                     sutContent = json.loads(resp)
                 else:
-                    resp = self.project.localFs.readUserFile(self.getUserName(), sutPath + fileName)
+                    resp = self.project.localFs.readUserFile(user, sutPath + fileName)
                     sutContent = json.loads(resp)
 
             if sutContent is False or (isinstance(sutContent, str) and sutContent.startswith('*ERROR*')):
@@ -1483,7 +1487,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
             exec_string = 'res_p'
 
         with self.ren_lock:
-            
+
             # If must rename a Meta info
             if meta:
                 exec( 'val = {}["meta"].get("{}")'.format(exec_string, meta) )
@@ -2055,7 +2059,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
         res_path = _get_res_path(resources, res_query)
         res_pointer = _get_res_pointer(resources, ''.join('/' + res_path[0]))
         # the res_pointer not found; this might happen if the
-        # resource was renamed; if so, the new name should be in 
+        # resource was renamed; if so, the new name should be in
         # reservedResources; get the ID from there and search again
         if not res_pointer:
             res_path,res_pointer = self._get_reserved_res_pointer(res_query)
@@ -2152,7 +2156,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
         res_path = _get_res_path(resources, res_query)
         res_pointer = _get_res_pointer(resources, ''.join('/' + res_path[0]))
         # the res_pointer not found; this might happen if the
-        # resource was renamed; if so, the new name should be in 
+        # resource was renamed; if so, the new name should be in
         # reservedResources; get the ID from there and search again
         if not res_pointer:
             res_path,res_pointer = self._get_reserved_res_pointer(res_query)
@@ -2575,8 +2579,10 @@ class ResourceAllocator(_cptools.XMLRPCController):
         ccConfig = self.project.getClearCaseConfig(user, 'sut_path')
         if ccConfig:
             view = ccConfig['view']
+            actv = ccConfig['actv']
             path = ccConfig['path']
-            resp = self.project.clearFs.listUserFiles(user +':'+ view, path, False, False)
+            user_view_actv = '{}:{}:{}'.format(user, view, actv)
+            resp = self.project.clearFs.listUserFiles(user_view_actv, path, False, False)
             if isinstance(resp, str):
                 logWarning(resp)
             for file in resp['children']:

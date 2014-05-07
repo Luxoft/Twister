@@ -1,7 +1,7 @@
 
 # File: CeXmlRpc.py ; This file is part of Twister.
 
-# version: 2.044
+# version: 2.045
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -39,6 +39,7 @@ from __future__ import with_statement
 import os
 import sys
 import re
+import copy
 import time
 import datetime
 import traceback
@@ -182,6 +183,43 @@ class CeXmlRpc(_cptools.XMLRPCController):
         return self.project.decryptText(cherry_user, text)
 
 
+    @cherrypy.expose
+    def generateIndex(self):
+        """
+        Store in a json file the tags from each test case file
+        """
+        user = cherrypy.session.get('username')
+        userConn = self.project._find_local_client(user)
+        try:
+            result = userConn.root.generate_index()
+        except Exception as e:
+            return '*ERROR* Cannot generate index for user `{}`: `{}`!'.format(user, e)
+        return result
+
+
+    @cherrypy.expose
+    def searchIndex(self, query):
+        """
+        Search for a query in the file index
+        """
+        user = cherrypy.session.get('username')
+        userConn = self.project._find_local_client(user)
+        try:
+            result = copy.deepcopy(userConn.root.parse_index(query))
+        except Exception as e:
+            return '*ERROR* Cannot search index for user `{}`: `{}`!'.format(user, e)
+        if isinstance(result, str):
+            logWarning(result)
+            return result
+
+        tests_path = self.project.getUserInfo(user, 'tests_path')
+        if not result:
+            return {'path':tests_path, 'data':'tests', 'folder':True, 'children':[]}
+
+        allFiles = self.project.localFs.listUserFiles(user, tests_path, True, True, result)
+        return allFiles
+
+
 # # #
 
 
@@ -192,8 +230,8 @@ class CeXmlRpc(_cptools.XMLRPCController):
         """
         user = cherrypy.session.get('username')
         ccConfigs = ClearCaseParser(user).getConfigs(TagOrView)
-        if ccConfigs and 'view' in ccConfigs:
-            return ccConfigs['view'] + ':' + ccConfigs['path']
+        if ccConfigs and 'view' in ccConfigs and 'actv' in ccConfigs:
+            return ccConfigs['view'] + ':' + ccConfigs['actv']
         else:
             return False
 
@@ -297,8 +335,12 @@ class CeXmlRpc(_cptools.XMLRPCController):
             ccConfig = self.project.getClearCaseConfig(user, 'predefined_path')
             if ccConfig:
                 view = ccConfig['view']
+                actv = ccConfig['actv']
                 fdir = ccConfig['path']
-                resp = self.project.clearFs.listUserFiles(user +':'+ view, fdir)
+                if not fdir:
+                    return '*ERROR* User `{}` did not set ClearCase Project Path!'.format(user)
+                user_view_actv = '{}:{}:{}'.format(user, view, actv)
+                resp = self.project.clearFs.listUserFiles(user_view_actv, fdir)
             else:
                 fdir = self.project.getUserInfo(user, 'predefined_path')
                 resp = self.project.localFs.listUserFiles(user, fdir)
@@ -309,8 +351,12 @@ class CeXmlRpc(_cptools.XMLRPCController):
             ccConfig = self.project.getClearCaseConfig(user, 'projects_path')
             if ccConfig:
                 view = ccConfig['view']
+                actv = ccConfig['actv']
                 fdir = ccConfig['path']
-                resp = self.project.clearFs.listUserFiles(user +':'+ view, fdir)
+                if not fdir:
+                    return '*ERROR* Empty path for CC `{}:{}:{}`!'.format(user, view, actv)
+                user_view_actv = '{}:{}:{}'.format(user, view, actv)
+                resp = self.project.clearFs.listUserFiles(user_view_actv, fdir)
             else:
                 fdir = self.project.getUserInfo(user, 'projects_path')
                 resp = self.project.localFs.listUserFiles(user, fdir)
@@ -328,8 +374,12 @@ class CeXmlRpc(_cptools.XMLRPCController):
         ccConfig = self.project.getClearCaseConfig(user, 'projects_path')
         if ccConfig:
             view = ccConfig['view']
+            actv = ccConfig['actv']
             path = ccConfig['path'].rstrip('/')
-            return self.project.clearFs.readUserFile(user +':'+ view, path +'/'+ fpath)
+            if not path:
+                return '*ERROR* User `{}` did not set ClearCase Project Path!'.format(user)
+            user_view_actv = '{}:{}:{}'.format(user, view, actv)
+            return self.project.clearFs.readUserFile(user_view_actv, path +'/'+ fpath)
         else:
             dpath = self.project.getUserInfo(user, 'projects_path').rstrip('/')
             return self.project.localFs.readUserFile(user, dpath +'/'+ fpath)
@@ -345,8 +395,12 @@ class CeXmlRpc(_cptools.XMLRPCController):
         ccConfig = self.project.getClearCaseConfig(user, 'projects_path')
         if ccConfig:
             view = ccConfig['view']
+            actv = ccConfig['actv']
             path = ccConfig['path'].rstrip('/')
-            return self.project.clearFs.writeUserFile(user +':'+ view, path +'/'+ fpath, content)
+            if not path:
+                return '*ERROR* User `{}` did not set ClearCase Project Path!'.format(user)
+            user_view_actv = '{}:{}:{}'.format(user, view, actv)
+            return self.project.clearFs.writeUserFile(user_view_actv, path +'/'+ fpath, content)
         else:
             dpath = self.project.getUserInfo(user, 'projects_path').rstrip('/')
             return self.project.localFs.writeUserFile(user, dpath +'/'+ fpath, content)
@@ -362,8 +416,12 @@ class CeXmlRpc(_cptools.XMLRPCController):
         ccConfig = self.project.getClearCaseConfig(user, 'projects_path')
         if ccConfig:
             view = ccConfig['view']
+            actv = ccConfig['actv']
             path = ccConfig['path'].rstrip('/')
-            return self.project.clearFs.deleteUserFile(user +':'+ view, path +'/'+ fpath)
+            if not path:
+                return '*ERROR* User `{}` did not set ClearCase Project Path!'.format(user)
+            user_view_actv = '{}:{}:{}'.format(user, view, actv)
+            return self.project.clearFs.deleteUserFile(user_view_actv, path +'/'+ fpath)
         else:
             dpath = self.project.getUserInfo(user, 'projects_path').rstrip('/')
             return self.project.localFs.deleteUserFile(user, dpath +'/'+ fpath)
@@ -385,10 +443,15 @@ class CeXmlRpc(_cptools.XMLRPCController):
                     err = '*ERROR* User `{}` did not activate ClearCase Tests Path!'.format(user)
                     logWarning(err)
                     return err
-                logDebug('CC tests data: {}'.format(ccConfigs['tests_path']))
-                view = ccConfigs['tests_path']['view']
-                path = ccConfigs['tests_path']['path']
-                return self.project.clearFs.listUserFiles(user + ':' + view, path)
+                ccConfig = ccConfigs['tests_path']
+                logDebug('CC tests data: {}'.format(ccConfig))
+                view = ccConfig['view']
+                actv = ccConfig['actv']
+                path = ccConfig['path']
+                if not path:
+                    return '*ERROR* User `{}` did not set ClearCase Tests Path!'.format(user)
+                user_view_actv = '{}:{}:{}'.format(user, view, actv)
+                return self.project.clearFs.listUserFiles(user_view_actv, path)
             else:
                 err = '*ERROR* User `{}` is trying to list a ClearCase path, but plug-in is not enabled!'.format(user)
                 logWarning(err)
@@ -825,8 +888,10 @@ class CeXmlRpc(_cptools.XMLRPCController):
         ccConfig = self.project.getClearCaseConfig(user, 'tcfg_path')
         if ccConfig:
             view = ccConfig['view']
+            actv = ccConfig['actv']
             path = ccConfig['path']
-            return self.project.clearFs.listUserFiles(user +':'+ view, path)
+            user_view_actv = '{}:{}:{}'.format(user, view, actv)
+            return self.project.clearFs.listUserFiles(user_view_actv, path)
         else:
             dirpath = self.project.getUserInfo(user, 'tcfg_path')
             return self.project.localFs.listUserFiles(user, dirpath)
@@ -872,8 +937,10 @@ class CeXmlRpc(_cptools.XMLRPCController):
         ccConfig = self.project.getClearCaseConfig(user, 'tcfg_path')
         if ccConfig:
             view = ccConfig['view']
+            actv = ccConfig['actv']
             path = ccConfig['path']
-            return self.readFile(path +'/'+ fpath, type='clearcase:' + view)
+            view_actv = view + ':' + actv
+            return self.readFile(path +'/'+ fpath, type='clearcase:' + view_actv)
         else:
             dirpath = self.project.getUserInfo(user, 'tcfg_path')
             return self.readFile(dirpath + '/' + fpath)
@@ -900,8 +967,10 @@ class CeXmlRpc(_cptools.XMLRPCController):
         ccConfig = self.project.getClearCaseConfig(user, 'tcfg_path')
         if ccConfig:
             view = ccConfig['view']
+            actv = ccConfig['actv']
             path = ccConfig['path']
-            return self.writeFile(path +'/'+ fpath, content, 'w', type='clearcase:' + view)
+            view_actv = view + ':' + actv
+            return self.writeFile(path +'/'+ fpath, content, 'w', type='clearcase:' + view_actv)
         else:
             dirpath = self.project.getUserInfo(user, 'tcfg_path')
             return self.writeFile(dirpath + '/' + fpath, content)
@@ -927,8 +996,10 @@ class CeXmlRpc(_cptools.XMLRPCController):
         ccConfig = self.project.getClearCaseConfig(user, 'tcfg_path')
         if ccConfig:
             view = ccConfig['view']
+            actv = ccConfig['actv']
             path = ccConfig['path']
-            return self.project.clearFs.deleteUserFile(user +':'+ view, path +'/'+ fpath)
+            user_view_actv = '{}:{}:{}'.format(user, view, actv)
+            return self.project.clearFs.deleteUserFile(user_view_actv, path +'/'+ fpath)
         else:
             dirpath = self.project.getUserInfo(user, 'tcfg_path')
             return self.project.localFs.deleteUserFile(user, dirpath +'/'+ fpath)
@@ -968,8 +1039,10 @@ class CeXmlRpc(_cptools.XMLRPCController):
         ccConfig = self.project.getClearCaseConfig(user, 'tcfg_path')
         if ccConfig:
             view = ccConfig['view']
+            actv = ccConfig['actv']
             path = ccConfig['path']
-            return self.project.clearFs.deleteUserFolder(user +':'+ view, path +'/'+ fpath)
+            user_view_actv = '{}:{}:{}'.format(user, view, actv)
+            return self.project.clearFs.deleteUserFolder(user_view_actv, path +'/'+ fpath)
         else:
             dirpath = self.project.getUserInfo(user, 'tcfg_path')
             return self.project.localFs.deleteUserFolder(user, dirpath +'/'+ fpath)
@@ -1283,11 +1356,13 @@ class CeXmlRpc(_cptools.XMLRPCController):
         ccConfig = self.project.getClearCaseConfig(user, 'tests_path')
         if user_roles and ccConfig:
             view = ccConfig['view']
+            actv = ccConfig['actv']
             text = self.project.readFile(user, fname, type='clearcase:' + view)
             tags = re.findall('^[ ]*?[#]*?[ ]*?<(?P<tag>\w+)>([ -~\n]+?)</(?P=tag)>', text, re.MULTILINE)
             result = '<br>\n'.join(['<b>' + title + '</b> : ' + descr.replace('<', '&lt;') for title, descr in tags])
             # Hack `cleartool ls` data
-            data = self.project.clearFs.systemCommand(user +':'+ view, 'cleartool ls {}'.format(fname))
+            user_view_actv = '{}:{}:{}'.format(user, view, actv)
+            data = self.project.clearFs.systemCommand(user_view_actv, 'cleartool ls {}'.format(fname))
             if data:
                 cctag = re.search('@@(.+?)\s', data)
                 if cctag:

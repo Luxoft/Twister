@@ -2,7 +2,7 @@
 
 # File: start_client.py ; This file is part of Twister.
 
-# version: 3.015
+# version: 3.016
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -35,6 +35,7 @@ from __future__ import with_statement
 
 import os
 import sys
+import re
 import shutil
 import time
 import signal
@@ -51,6 +52,7 @@ import json
 import copy
 import rpyc
 import datetime
+import urlparse
 
 from pprint import pformat
 from rpyc import BgServingThread
@@ -864,6 +866,75 @@ class TwisterClientService(rpyc.Service):
             suts = None
 
         return suts
+
+
+    def exposed_generate_index(self):
+        """
+        Store in a json file the tags from each test case file
+        """
+
+        ti = time.time()
+        globalDict = {}
+        with open('{}/config/fwmconfig.xml'.format(TWISTER_PATH)) as data_file:
+            try: testCasesPath = re.search('TestCaseSourcePath>(.*)<', data_file.read()).group(1)
+            except: return '*ERROR* Cannot find the test cases source path !'
+        for path, subdirs, files in os.walk(testCasesPath):
+            for name in files:
+                fname = os.path.join(path, name)
+                try: text = open(fname,'rb').read()
+                except: return '*ERROR* Cannot find file name `%s` !' % (fname)
+                tags = re.findall('^[ ]*?[#]*?[ ]*?<(?P<tag>\w+)>([ -~\n]+?)</(?P=tag)>', text, re.MULTILINE)
+                tagsDict = {title:descr for title, descr in tags}
+                if tagsDict:
+                    globalDict[fname] = tagsDict
+        with open('{}/config/file_tags.json'.format(TWISTER_PATH), 'w') as file_tags:
+            json.dump(globalDict, file_tags, indent=2)
+
+        logPrint('Took `{:.4f}` seconds to generate index for {}.'.format(time.time()-ti, len(globalDict)))
+        return True
+
+
+    def exposed_parse_index(self, query):
+        """
+        Search for a query in the file index
+        Example: searchIndex('filename=*.tcl')
+                 searchIndex('description=Test status&title=init file')
+        """
+
+        if not os.path.isfile('{}/config/file_tags.json'.format(TWISTER_PATH)):
+            return '*ERROR* You must generate the file tags!'
+        ti = time.time()
+        try:
+            args = urlparse.parse_qs(query)
+            logPrint('Searching for query {}'.format(args))
+            try:
+                fname = args.get('filename')[0]
+                del args['filename']
+            except:
+                fname = None
+        except:
+            msg = 'Cannot search having the arguments {} !'.format(query)
+            return msg
+        len_args = len(args)
+        result = []
+        with open('{}/config/file_tags.json'.format(TWISTER_PATH)) as data_file:
+            data = json.load(data_file)
+        for key, value in data.items():
+            match = []
+            short_fname = key[key.rfind('/')+1:]
+            if fname:
+                if fname.startswith('*') and key.endswith(fname[1:]) or fname.endswith('*') and short_fname.startswith(fname[:-1]) or fname.replace('*', '') in short_fname:
+                    if not len_args:
+                        result.append(key)
+                    match = [key for k, v in args.items() if v[0] in value.get(k, "None")]
+            else:
+                match = [key for k, v in args.items() if v[0] in value.get(k, "None")]
+            if len_args and len(match) == len_args:
+                result.append(key)
+
+        logPrint('Took `{:.4f}` seconds for {} elements and found {} entries that match.'.format(time.time()-ti, len(data), len(result)))
+        return result
+
 
 # # #
 

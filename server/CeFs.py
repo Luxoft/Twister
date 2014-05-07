@@ -1,7 +1,7 @@
 
 # File: CeFs.py ; This file is part of Twister.
 
-# version: 3.013
+# version: 3.014
 
 # Copyright (C) 2012-2014, Luxoft
 
@@ -222,7 +222,7 @@ class LocalFS(object):
             try:
                 return srvr.root.read_file(fpath, flag, fstart)
             except Exception as e:
-                err = '*ERROR* Cannot read file `{}`! {}'.format(fpath, e)
+                err = '*ERROR* Cannot read file `{}`, user `{}`! {}'.format(fpath, user, e)
                 logWarning(err)
                 return err
         else:
@@ -237,14 +237,14 @@ class LocalFS(object):
             return False
         srvr = self._usrService(user, 'write')
         if len(fdata) > 20*1000*1000:
-            err = '*ERROR* File data too long `{}`: {}; User {}!'.format(fpath, len(fdata),user)
+            err = '*ERROR* File data too long `{}`: {}; User {}.'.format(fpath, len(fdata), user)
             logWarning(err)
             return err
         if srvr:
             try:
                 return srvr.root.write_file(fpath, fdata, flag)
             except Exception as e:
-                err = '*ERROR* Cannot write into file `{}`! {}'.format(fpath, e)
+                err = '*ERROR* Cannot write into file `{}`, user `{}`! {}'.format(fpath, user, e)
                 logWarning(err)
                 return err
         else:
@@ -291,13 +291,18 @@ class LocalFS(object):
             return False
 
 
-    def listUserFiles(self, user, fdir, hidden=True, recursive=True):
+    def listUserFiles(self, user, fdir, hidden=True, recursive=True, filter=[]):
         if not fdir:
             return False
         srvr = self._usrService(user)
         if srvr:
-            files = srvr.root.list_files(fdir, hidden, recursive)
-            return copy.copy(files)
+            try:
+                files = srvr.root.list_files(fdir, hidden, recursive, filter)
+                return copy.copy(files)
+            except Exception as e:
+                err = '*ERROR* Cannot list files `{}`, user `{}`! {}'.format(fdir, user, e)
+                logWarning(err)
+                return err
         else:
             return False
 

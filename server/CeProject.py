@@ -1,7 +1,7 @@
 
 # File: CeProject.py ; This file is part of Twister.
 
-# version: 3.034
+# version: 3.036
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -1011,8 +1011,9 @@ class Project(object):
             key = self.localFs.readUserFile(user, '~/twister/config/twister.key')
             # Fix key in case of error
             if not key or '*ERROR*' in key:
-                logWarning('Cannot encrypt! Cannot fetch users key!')
-                return False
+                logWarning('Cannot fetch key for `{}`! Fallback to default key!'.format(user))
+                # Use common key from server_init, or "Twister"
+                key = self.server_init.get('common_key', 'Twister')
         return encrypt(text, key)
 
 
@@ -1030,8 +1031,9 @@ class Project(object):
             key = self.localFs.readUserFile(user, '~/twister/config/twister.key')
             # Fix key in case of error
             if not key or '*ERROR*' in key:
-                logWarning('Cannot decrypt! Cannot fetch users key!')
-                return False
+                logWarning('Cannot fetch key for `{}`! Fallback to default key!'.format(user))
+                # Use common key from server_init, or "Twister"
+                key = self.server_init.get('common_key', 'Twister')
         return decrypt(text, key)
 
 
@@ -1041,11 +1043,11 @@ class Project(object):
     @staticmethod
     def _fixCcXmlTag(user, TagOrView):
         """
-        Transform 1 ClearCase.XML tag name into a ClearCase view.
+        Transform 1 ClearCase.XML tag name into a ClearCase view and activity.
         """
         ccConfigs = ClearCaseParser(user).getConfigs(TagOrView)
-        if ccConfigs and 'view' in ccConfigs:
-            return ccConfigs['view']
+        if ccConfigs and 'view' in ccConfigs and 'actv' in ccConfigs:
+            return ccConfigs['view'] + ':' + ccConfigs['actv']
         else:
             return TagOrView
 
@@ -1078,10 +1080,10 @@ class Project(object):
         else:
             if type.startswith('clearcase:'):
                 # ClearCase parameter is `clearcase:view`, or `clearcase:XmlTag`
-                view_or_tag = type.split(':')[1]
-                view = self._fixCcXmlTag(user, view_or_tag)
-                # logDebug('File size CC {} : {} : {}.'.format(user, view, fpath))
-                return self.clearFs.fileSize(user +':'+ view, fpath)
+                view_or_tag = ':'.join(type.split(':')[1:])
+                view_actv = self._fixCcXmlTag(user, view_or_tag)
+                # logDebug('File size CC {} : {} : {}.'.format(user, view_actv, fpath))
+                return self.clearFs.fileSize(user +':'+ view_actv, fpath)
             else:
                 return self.localFs.fileSize(user, fpath)
 
@@ -1096,10 +1098,10 @@ class Project(object):
         else:
             if type.startswith('clearcase:'):
                 # ClearCase parameter is `clearcase:view`, or `clearcase:XmlTag`
-                view_or_tag = type.split(':')[1]
-                view = self._fixCcXmlTag(user, view_or_tag)
-                logDebug('Read CC {} : {} : {}.'.format(user, view, fpath))
-                return self.clearFs.readUserFile(user +':'+ view, fpath, flag, fstart)
+                view_or_tag = ':'.join(type.split(':')[1:])
+                view_actv = self._fixCcXmlTag(user, view_or_tag)
+                logDebug('Read CC {} : {} : {}.'.format(user, view_actv, fpath))
+                return self.clearFs.readUserFile(user +':'+ view_actv, fpath, flag, fstart)
             else:
                 return self.localFs.readUserFile(user, fpath, flag, fstart)
 
@@ -1111,10 +1113,10 @@ class Project(object):
         """
         if type.startswith('clearcase:'):
             # ClearCase parameter is `clearcase:view`, or `clearcase:XmlTag`
-            view_or_tag = type.split(':')[1]
-            view = self._fixCcXmlTag(user, view_or_tag)
-            logDebug('Write CC {} : {} : {}.'.format(user, view, fpath))
-            return self.clearFs.writeUserFile(user +':'+ view, fpath, fdata, flag)
+            view_or_tag = ':'.join(type.split(':')[1:])
+            view_actv = self._fixCcXmlTag(user, view_or_tag)
+            logDebug('Write CC {} : {} : {}.'.format(user, view_actv, fpath))
+            return self.clearFs.writeUserFile(user +':'+ view_actv, fpath, fdata, flag)
         else:
             return self.localFs.writeUserFile(user, fpath, fdata, flag)
 
@@ -1125,10 +1127,10 @@ class Project(object):
         """
         if type.startswith('clearcase:'):
             # ClearCase parameter is `clearcase:view`, or `clearcase:XmlTag`
-            view_or_tag = type.split(':')[1]
-            view = self._fixCcXmlTag(user, view_or_tag)
-            logDebug('Delete CC file {} : {} : {}.'.format(user, view, fpath))
-            return self.clearFs.deleteUserFile(user +':'+ view, fpath)
+            view_or_tag = ':'.join(type.split(':')[1:])
+            view_actv = self._fixCcXmlTag(user, view_or_tag)
+            logDebug('Delete CC file {} : {} : {}.'.format(user, view_actv, fpath))
+            return self.clearFs.deleteUserFile(user +':'+ view_actv, fpath)
         else:
             return self.localFs.deleteUserFile(user, fpath)
 
@@ -1139,10 +1141,10 @@ class Project(object):
         """
         if type.startswith('clearcase:'):
             # ClearCase parameter is `clearcase:view`, or `clearcase:XmlTag`
-            view_or_tag = type.split(':')[1]
-            view = self._fixCcXmlTag(user, view_or_tag)
-            logDebug('Create CC folder {} : {} : {}.'.format(user, view, fdir))
-            return self.clearFs.createUserFolder(user +':'+ view, fdir)
+            view_or_tag = ':'.join(type.split(':')[1:])
+            view_actv = self._fixCcXmlTag(user, view_or_tag)
+            logDebug('Create CC folder {} : {} : {}.'.format(user, view_actv, fdir))
+            return self.clearFs.createUserFolder(user +':'+ view_actv, fdir)
         else:
             return self.localFs.createUserFolder(user, fdir)
 
@@ -1153,10 +1155,10 @@ class Project(object):
         """
         if type.startswith('clearcase:'):
             # ClearCase parameter is `clearcase:view`, or `clearcase:XmlTag`
-            view_or_tag = type.split(':')[1]
-            view = self._fixCcXmlTag(user, view_or_tag)
-            logDebug('List CC files {} : {} : {}.'.format(user, view, fdir))
-            return self.clearFs.listUserFiles(user +':'+ view, fdir, hidden, recursive)
+            view_or_tag = ':'.join(type.split(':')[1:])
+            view_actv = self._fixCcXmlTag(user, view_or_tag)
+            logDebug('List CC files {} : {} : {}.'.format(user, view_actv, fdir))
+            return self.clearFs.listUserFiles(user +':'+ view_actv, fdir, hidden, recursive)
         else:
             return self.localFs.listUserFiles(user, fdir, hidden, recursive)
 
@@ -1167,10 +1169,10 @@ class Project(object):
         """
         if type.startswith('clearcase:'):
             # ClearCase parameter is `clearcase:view`, or `clearcase:XmlTag`
-            view_or_tag = type.split(':')[1]
-            view = self._fixCcXmlTag(user, view_or_tag)
-            logDebug('Delete CC folder {} : {} : {}.'.format(user, view, fdir))
-            return self.clearFs.deleteUserFolder(user +':'+ view, fdir)
+            view_or_tag = ':'.join(type.split(':')[1:])
+            view_actv = self._fixCcXmlTag(user, view_or_tag)
+            logDebug('Delete CC folder {} : {} : {}.'.format(user, view_actv, fdir))
+            return self.clearFs.deleteUserFolder(user +':'+ view_actv, fdir)
         else:
             return self.localFs.deleteUserFolder(user, fdir)
 
@@ -2469,8 +2471,12 @@ class Project(object):
             ccConfig = self.getClearCaseConfig(user, 'libs_path')
             if ccConfig:
                 view = ccConfig['view']
+                actv = ccConfig['actv']
                 path = ccConfig['path']
-                user_libs_all = self.clearFs.listUserFiles(user +':'+ view, path, False, False)
+                if not path:
+                    return '*ERROR* User `{}` did not set ClearCase Libraries Path!'.format(user)
+                user_view_actv = '{}:{}:{}'.format(user, view, actv)
+                user_libs_all = self.clearFs.listUserFiles(user_view_actv, path, False, False)
             else:
                 user_libs_all = self.localFs.listUserFiles(user, user_path, False, False)
 

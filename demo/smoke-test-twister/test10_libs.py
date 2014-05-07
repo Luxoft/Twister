@@ -4,6 +4,9 @@
 # <title>Test libraries</title>
 # <description>This suite checks the most basic functionality of Twister.<br>
 # </description>
+# <tags>libs, userlibs</tags>
+# <test>lib</test>
+# <smoke>yes</smoke>
 #
 
 sid = SUITE_ID
