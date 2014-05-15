@@ -1,6 +1,6 @@
 #!/usr/bin/env python2.7
 
-# version: 3.005
+# version: 3.006
 
 # File: ExecutionProcess.py ; This file is part of Twister.
 
@@ -112,6 +112,13 @@ STATUS_NOT_EXEC = 6
 STATUS_TIMEOUT  = 7
 STATUS_INVALID  = 8
 STATUS_WAITING  = 9
+
+testStatus = {'pending':STATUS_PENDING,
+    'working':STATUS_WORKING, 'pass':STATUS_PASS, 'fail':STATUS_FAIL,
+    'skipped':STATUS_SKIPPED, 'aborted':STATUS_ABORTED,
+    'not executed':STATUS_NOT_EXEC, 'timeout':STATUS_TIMEOUT,
+    'invalid':STATUS_INVALID, 'waiting':STATUS_WAITING}
+reversedStatus = dict((v,k) for k,v in testStatus.iteritems())
 
 # ------------------------------------------------------------------------------
 
@@ -716,24 +723,48 @@ class TwisterRunner(cli.Application):
                         return self.exit(timer_f=diff_time, stop=False)
 
             if dependency:
-                try:
-                    (dependency_id, dependency_status) = dependency.split(':')
-                except Exception as e:
-                    (dependency_id, dependency_status) = (dependency.split(':')[0], None)
-                if str(file_id) > str(dependency_id):
-                    if dependency_status != str(proxy().getFileVariable(self.epName, dependency_id, 'status')):
-                        print('EP Debug: File `{}` will be skipped (dependency).\n'.format(filename))
+                # Dependencies are separated by semi-colon
+                for dep in dependency.split(';'):
+                    dep = dep.strip()
+                    if not dep:
+                        continue
+                    try:
+                        (dep_id, dep_status) = dep.split(':')
+                        dep_status = dep_status.lower()
+                        if dep_status not in testStatus:
+                            dep_status = 'invalid'
+                    except Exception:
+                        print('Invalid dependency `{}` will be ignored!'.format(dep))
+                        continue
+                    # Dependency file information
+                    dep_info = proxy().getDependencyInfo(dep_id)
+                    dep_curr_status = reversedStatus.get(dep_info.get('status', -1), 'invalid')
+
+                    # Wait for dependency to run
+                    if  dep_curr_status in ['invalid', 'pending', 'working']:
+                        print('\nWaiting for file `{}::{}` to finish execution...\n'.format(dep_info['id'], dep_info['file']))
+                        while 1:
+                            time.sleep(2)
+                            dep_info['status'] = proxy().getFileVariable(dep_info['ep'], dep_info['id'], 'status')
+                            dep_curr_status = reversedStatus.get(dep_info.get('status', -1), 'invalid')
+                            # Reload info about dependency file
+                            if  dep_curr_status not in ['invalid', 'pending', 'working']:
+                                print('Dependency `{}::{}` ended with `{}`.\n'.format(dep_info['id'], dep_info['file'], dep_curr_status))
+                                break
+                    else:
+                        print('Dependency `{}::{}` ended with `{}`.\n'.format(dep_info['id'], dep_info['file'], dep_curr_status))
+
+                    if  dep_status != dep_curr_status:
+                        print('Test file will be skipped (dependency required status to be `{}`) !\n'.format(dep_status))
                         try:
                             proxy().setFileStatus(self.epName, file_id, STATUS_SKIPPED, 0.0)
-                        except:
+                        except Exception:
                             trace = traceback.format_exc()[34:].strip()
                             print('Exception on dependency change file status `{}`!\n'.format(trace))
                         print('<<< END filename: `{}:{}` >>>\n'.format(file_id, filename))
-                        continue
                     else:
-                        print('Dependency status {} matches, the test will run!\n'.format(dependency_status))
-                else:
-                    print('Invalid dependency id: {}.\n'.format(dependency_id))
+                        print('Dependency matched with success: `{}`.\n'.format(dep_status))
+
 
             # Download file from Central Engine!
             str_to_execute = proxy().downloadFile(self.epName, file_id)

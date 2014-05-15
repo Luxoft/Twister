@@ -1,7 +1,7 @@
 
 # File: CeProject.py ; This file is part of Twister.
 
-# version: 3.036
+# version: 3.037
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -1478,6 +1478,31 @@ class Project(object):
         file_node[key] = value
         self._dump()
         return True
+
+
+    def getDependencyInfo(self, user, dep_id):
+        """
+        Retrieve all info available, about one Test File.\n
+        """
+        logFull('CeProject:getDependencyInfo user `{}`.'.format(user))
+        r = self.authenticate(user)
+        if not r: return {}
+        found = False
+
+        # Cycle all EPs to find the dependency
+        for epname, epinfo in self.users[user]['eps'].iteritems():
+            # Cycle all files
+            for file_id in epinfo['suites'].getFiles():
+                file_node = epinfo['suites'].findId(file_id)
+                if not file_node:
+                    continue
+                if file_node.get('dep_id') == dep_id:
+                    found = dict(file_node)
+                    found['ep'] = epname
+                    found['id'] = file_id
+                    break
+
+        return found
 
 
 # # #

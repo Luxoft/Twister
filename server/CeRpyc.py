@@ -1,7 +1,7 @@
 
 # File: CeRpyc.py ; This file is part of Twister.
 
-# version: 3.009
+# version: 3.010
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -458,6 +458,13 @@ class CeRpycService(rpyc.Service):
         user = self._check_login()
         if not user: return False
         return self.project.setFileInfo(user, epname, filename, variable, value)
+
+
+    def exposed_getDependencyInfo(self, dep_id):
+        logFull('CeRpyc:exposed_getDependencyInfo')
+        user = self._check_login()
+        if not user: return False
+        return self.project.getDependencyInfo(user, dep_id)
 
 
 # # #   Persistence   # # #

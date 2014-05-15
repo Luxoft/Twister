@@ -104,6 +104,7 @@ SUITES_TAGS = (
 
 TESTS_TAGS = (
 	{'name':'file',			'tag':'tcName',				'default':''},
+	{'name':'dep_id',		'tag':'ID',					'default':''},
 	{'name':'config_files',	'tag':'ConfigFiles',		'default':''},
 	{'name':'dependency',	'tag':'Dependency',			'default':''},
 	{'name':'clearcase',	'tag':'ClearCase',			'default':''},
