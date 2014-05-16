@@ -191,6 +191,10 @@ class CeRpycService(rpyc.Service):
                     if eps and epname in eps:
                         found = str_addr
                         break
+                # Check Hello
+                elif hello and data['hello'] == hello:
+                    found = str_addr
+                    break
                 # All filters are null! Return the first conn for this user!
                 elif not addr and not hello and not epname:
                     found = str_addr
@@ -276,9 +280,8 @@ class CeRpycService(rpyc.Service):
         if 'user' in extra:     del extra['user']
         if 'checked' in extra:  del extra['checked']
         if 'eps' in extra:
-            # Only register the VALID eps...
+            # Register the VALID eps...
             self.registerEps(extra['eps'])
-            # and delete the invalid ones.
             del extra['eps']
 
         with self.conn_lock:
@@ -674,14 +677,7 @@ class CeRpycService(rpyc.Service):
             # Send a Hello and this IP to the remote proxy Service
             hello = self._conn.root.hello(self.project.ip_port[0])
         except Exception as e:
-            trace = traceback.format_exc()[34:].strip()
-            logError('Error: Register client error: {}'.format(trace))
-            hello = False
-
-        # If the Hello from the other end of the connection returned False...
-        if not hello:
-            logDebug('Could not send Hello to the Client Manager `{}` for user `{}`!'.format(str_addr, user))
-            return False
+            logWarning('Error: Register client error: {}'.format(e))
 
         # Register the EPs to this unique client address.
         # On disconnect, this client address will be deleted

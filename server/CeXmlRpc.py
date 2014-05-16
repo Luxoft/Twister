@@ -708,6 +708,18 @@ class CeXmlRpc(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
+    def hasClients(self, user):
+        """
+        Find local, or remote clients.
+        """
+        logFull('CeXmlRpc:hasClients user `{}`.'.format(user))
+        if self.project.rsrv.service._findConnection(usr=user, hello='client'):
+            return True
+        else:
+            return False
+
+
+    @cherrypy.expose
     def searchEP(self, user, epname):
         """
         Search one EP and return True or False.
