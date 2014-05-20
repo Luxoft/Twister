@@ -14,4 +14,4 @@ Please check the [Wiki] (https://github.com/Luxoft/Twister/wiki) page for the fe
   
 Luxoft Twister is available under the [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0.html).
  
-For any questions, you can contact us at bpopescu@luxoft.com.
+For any questions, you can contact us at twister_support@luxoft.com.
