@@ -192,7 +192,7 @@ class CeRpycService(rpyc.Service):
                         found = str_addr
                         break
                 # Check Hello
-                elif hello and data['hello'] == hello:
+                elif hello and data.get('hello') == hello:
                     found = str_addr
                     break
                 # All filters are null! Return the first conn for this user!
@@ -201,51 +201,6 @@ class CeRpycService(rpyc.Service):
                     break
 
         return found
-
-
-    def on_connect(self):
-        """
-        On client connect
-        """
-        logFull('CeRpyc:on_connect')
-        str_addr = self._get_addr()
-
-        # Add this connection in the list of connections,
-        # If this connection CAN be added!
-        try:
-            with self.conn_lock:
-                self.conns[str_addr] = {'conn': self._conn, 'time': time.time()}
-        except Exception as e:
-            logError('EE: Connect error: {}.'.format(e))
-
-        logDebug('EE: Connected from `{}`.'.format(str_addr))
-
-
-    def on_disconnect(self):
-        """
-        On client disconnect
-        """
-        logFull('CeRpyc:on_disconnect')
-        str_addr = self._get_addr()
-
-        hello = self.conns[str_addr].get('hello', '')
-        stime = self.conns[str_addr].get('time', time.time())
-        if hello: hello += ' - '
-
-        # Unregister the eventual EPs for this connection
-        if self.conns[str_addr].get('checked') and self.conns[str_addr].get('user'):
-            eps = self.conns[str_addr].get('eps')
-            if eps: self.unregisterEps(eps)
-
-        # Delete everything for this address
-        try:
-            with self.conn_lock:
-                del self.conns[str_addr]
-        except Exception as e:
-            logError('EE: Disconnect error: {}.'.format(e))
-
-        logDebug('EE: Disconnected from `{}{}`, after `{:.2f}` seconds.'.format(
-            hello, str_addr, (time.time() - stime)))
 
 
     def exposed_cherryAddr(self):

@@ -50,13 +50,13 @@ import platform
 import subprocess
 import traceback
 import tarfile
+import argparse
 
 from string import Template
 from threading import Thread
 from thread import allocate_lock
 
 import rpyc
-from plumbum import cli
 from rpyc import BgServingThread
 
 # The path when run from ./start_client
@@ -82,6 +82,7 @@ PORTABLE = False
 EP_CACHE, EP_LOG = None, None
 proxyLock = allocate_lock() # Lock the connection access
 ceProxy   = None # Used to keep the current Central Engine connection
+bgServer  = None # Background serving server
 userName  = None # Used to check the Central Engine connection
 epName    = None # Used by the logger when sending the Live Log
 
@@ -124,13 +125,33 @@ reversedStatus = dict((v,k) for k,v in testStatus.iteritems())
 
 # ------------------------------------------------------------------------------
 
+class EpService(rpyc.Service):
+
+    def exposed_hello(self, param=None):
+        """
+        For testing connection.
+        """
+        return True
+
+    def exposed_start_ep(self, *arg, **kw):
+        """
+        Fake function.
+        """
+        return True
+
+    def exposed_stop_ep(self, *arg, **kw):
+        """
+        Fake function.
+        """
+        return True
+
 
 def proxy():
     """
     Dinamically connect to the Central Engine.
     """
     global userName, epName, cePath
-    global ceProxy, proxyLock
+    global ceProxy, bgServer, proxyLock
 
     # RPyc config
     config = {
@@ -146,11 +167,11 @@ def proxy():
         ce_ip, ce_port = cePath.split(':')
 
         # Try to reuse the old connection
-        if ceProxy:
+        if  ceProxy is not None:
             try:
                 ceProxy.ping(data='Hello', timeout=5.0)
                 return ceProxy.root
-            except:
+            except Exception:
                 ceProxy = None
                 print('EP Warn: Disconnected from the Central Engine...\n')
         else:
@@ -161,45 +182,57 @@ def proxy():
 
         try:
             # Transform XML-RPC port into RPyc Port; RPyc port = XML-RPC port + 10 !
-            p = rpyc.connect(ce_ip, int(ce_port) + 10, config=config)
+            p = rpyc.connect(ce_ip, int(ce_port) + 10, service=EpService, config=config)
             p.root.hello('ep::{}'.format(epName))
-        except:
+        except Exception:
             print('*ERROR* Cannot connect to CE path `{}`! Exiting!'.format(cePath))
+            ceProxy = None
             return None
 
         # Authenticate on RPyc server
         try:
             p.root.login(userName, 'EP')
             ceProxy = p
-            bg = BgServingThread(p)
-            print('EP Debug: Connected and authenticated to CE at `{}`.\n'.format(cePath))
-            if not PORTABLE:
-                return ceProxy.root
-        except:
+        except Exception:
             print('*ERROR* Cannot authenticate on CE path `{}`! Exiting!'.format(cePath))
+            ceProxy = None
+            return None
+
+        print('EP Debug: Connected and authenticated to CE at `{}`.\n'.format(cePath))
+
+        # Launch bg server
+        try:
+            bgServer = BgServingThread(ceProxy)
+        except Exception:
+            print('*ERROR* Cannot launch Bg serving thread! Exiting!'.format(cePath))
+            ceProxy = None
             return None
 
         if PORTABLE:
+            print('EP Debug: Must register the EP...')
             try:
                 # Register this EP to the Central Engine
                 p.root.hello('client', {'eps': [epName]})
-                print('EP Debug: Register EP successful!')
+                print('EP Debug: Register EP successful!\n')
                 return ceProxy.root
-            except:
+            except Exception:
                 print('*ERROR* Cannot register this EP! Exiting!')
                 return None
-
-    return None
+        else:
+            return ceProxy.root
 
 #
 
 class Logger(object):
 
-    def __init__(self, filename):
-        self.buffer = ''   # The text buffer
+    def __init__(self):
+        self.closed = False
+        self.buffer = ''  # The text buffer
         self.timer = 0    # Last time the log was sent to CE
-        self.fname = filename
-        open(self.fname, 'w').close()
+        sys.__stdout__.write('EP Debug: Creating a portable logger...')
+        sys.__stdout__.flush()
+        sys.stdout = self
+
 
     def write(self, text):
         """
@@ -209,10 +242,10 @@ class Logger(object):
         sys.__stdout__.write(text)
         sys.__stdout__.flush()
         # Write in the file
-        with open(self.fname, 'a') as logfile:
+        with open(EP_LOG, 'a') as logfile:
             logfile.write(text)
         # Send the message to the Central Engine
-        if  ceProxy:
+        if  ceProxy is not None:
             self.logLive(text)
 
     def logLive(self, text):
@@ -220,9 +253,11 @@ class Logger(object):
         If the time is right and the buffer is large enough,
         send the text to the Central Engine.
         """
-        global epName
+        if  ceProxy is None:
+            return
         ctimer = time.time()
         self.buffer += text
+
         if ((ctimer - self.timer) > 1.5) and len(self.buffer):
             proxy().logLIVE(epName, binascii.b2a_base64(self.buffer))
             self.timer = ctimer
@@ -235,16 +270,19 @@ class Logger(object):
         """
         Close the logger.
         """
-        global epName
+        # Restore the normal stdout
+        sys.stdout = sys.__stdout__
+        # Send last chunk
         if self.buffer:
             proxy().logLIVE(epName, binascii.b2a_base64(self.buffer))
             self.buffer = ''
+        self.closed = True
 
 #
 
 class ThreadedLogger(Thread):
 
-    def __init__(self, filename):
+    def __init__(self):
         """
         Mock Logger.
         """
@@ -253,19 +291,18 @@ class ThreadedLogger(Thread):
         self.buffer = ''   # The text buffer
         self.read_len = 0  # Read file position
         self.timer  = 0    # Last time the log was sent to CE
-        self.logfile = filename
-        self.exiting = False
+        self.closed = False
         self.acc_lock = allocate_lock()
+        print('EP Debug: Creating a threaded logger...')
 
     def run(self):
         """
         Watch file changes.
+        The log files will be reset by CE.
         """
-        with open(self.logfile, 'wb') as f:
-            f.write('')
         # Wait a little, before enter the cycle
-        time.sleep(0.5)
-        while not self.exiting:
+        time.sleep(1)
+        while not self.closed:
             with self.acc_lock:
                 data = self.tail()
                 self.logLive(data)
@@ -281,7 +318,7 @@ class ThreadedLogger(Thread):
         Tail on a file.
         """
         vString = ''
-        with open(self.logfile, 'rb') as f:
+        with open(EP_LOG, 'r') as f:
             # Go at "current position"
             f.seek(self.read_len, 0)
             vString = f.read()
@@ -298,9 +335,11 @@ class ThreadedLogger(Thread):
         If the time is right and the buffer is large enough,
         send the text to the Central Engine.
         """
-        global epName, proxy
+        if  ceProxy is None:
+            return
         ctimer = time.time()
         self.buffer += text
+
         if ((ctimer - self.timer) > 1.5) and len(self.buffer):
             proxy().logLIVE(epName, binascii.b2a_base64(self.buffer))
             self.timer = ctimer
@@ -310,63 +349,73 @@ class ThreadedLogger(Thread):
             self.buffer = ''
 
     def write(self, text):
+        # The write is from nohup, not here
         pass
 
     def close(self, *args, **kw):
         """
         This will force the thread to exit.
         """
-        # last read to make sure all CLI.log is captured
+        # Last read to make sure all CLI.log is captured
         data = self.tail()
         self.logLive(data, force=True)
-        self.exiting = True
+        self.closed = True
 
 
 # # #
 
 
-class TwisterRunner(cli.Application):
+class TwisterRunner(object):
 
-    userName = cli.SwitchAttr(['-u', '--user'],          str, default='',
-               help='The username')
-    epName   = cli.SwitchAttr(['-e', '-ep', '--epname'], str, default='',
-               help='The Execution Process name')
-    cePath   = cli.SwitchAttr(['-s', '--server'],        str, default='',
-               help='The Central Engine RPyc IP:Port')
+    def __init__(self, userName, epName, cePath):
+        self.epName   = epName
+        self.userName = userName
+        self.cePath   = cePath
 
 
     def __del__(self):
         self.exit()
 
 
+    def stop(self, timer_f=0.0, *args, **kw):
+        """
+        Send stop status.
+        """
+        print('\n~ Stop the Execution Process ~\n')
+        # Send the STOP signal? Default, yes.
+        stop = kw.get('stop', True)
+        if stop:
+            try:
+                proxy().setEpStatus(self.epName, 0, msg='Execution finished in `{:.2f}` seconds.'.format(timer_f))
+            except Exception as e:
+                print('Exception on change status: `{}`!'.format(e))
+        return True
+
+
+    def exit(self, timer_f=0.0, *args, **kw):
+        """
+        Exit safely.
+        """
+        # Wait a while...
+        if not PORTABLE:
+            time.sleep(1)
+        # Send stop status
+        self.stop(timer_f, args, kw)
+        # Flush all messages
+        logger.close()
+        # Close everything
+        ceProxy.close()
+        bgServer.stop()
+        # Ok to exit
+        return True
+
+
     def main(self):
-
-        global userName, epName, cePath
-        epName   = self.epName
-        userName = self.userName
-        cePath   = self.cePath
-
-        global TWISTER_PATH, EP_CACHE, EP_LOG
-
-        EP_CACHE = TWISTER_PATH + '/.twister_cache/' + self.epName
-        EP_LOG = '{}/.twister_cache/{}_LIVE.log'.format(TWISTER_PATH, self.epName)
-
-        try: os.makedirs(EP_CACHE)
-        except Exception as e: pass
 
         ce = proxy()
         if not ce:
-            print('Cannot connect to server! Farewell!\n')
-            sys.exit()
-
-        if  PORTABLE:
-            self.logger = Logger(EP_LOG)
-            sys.stdout = self.logger
-            print('EP Debug: Created a portable logger.\n')
-        else:
-            self.logger = ThreadedLogger(EP_LOG)
-            self.logger.start()
-            print('EP Debug: Created a threaded logger.\n')
+            print('*ERROR* Cannot connect to server! Farewell!\n')
+            exit(1)
 
         print('~ Start the Execution Process ~')
         print('~ User: {} ; EP: {} ; CE path: {} ~\n'.format(self.userName, self.epName, self.cePath))
@@ -419,35 +468,22 @@ class TwisterRunner(cli.Application):
             self.exit()
 
         # Run the tests!
-        self.tests()
+        try:
+            while 1:
+                r = self.tests()
+                if not PORTABLE:
+                    break
+        except Exception:
+            trace = traceback.format_exc()[34:].strip()
+            print('Break cycle: `{}`'.format(trace))
 
-
-    def exit(self, timer_f=0.0, *args, **kw):
-        """
-        Exit safely.
-        """
-        # Flush all messages
-        self.logger.close()
-        # Wait a while...
-        time.sleep(1)
-        print('\n~ Stop the Execution Process ~\n')
-        stop = kw.get('stop', True)
-        # Send the STOP signal?
-        if stop:
-            try:
-                proxy().setEpStatus(self.epName, 0, msg='Execution finished in `{:.2f}` seconds.'.format(timer_f))
-            except Exception as e:
-                print('Exception on change status: `{}`!'.format(e))
-        # ! #
-        return
+        return True
 
 
     def makeCeLibs(self, suite_id='', suite_name='', file_id='', file_name=''):
         """
         Re-create the ce_libs library file.
         """
-        global EP_CACHE
-
         libs_path = '{}/ce_libs'.format(EP_CACHE)
 
         # Create ce_libs library file
@@ -468,9 +504,6 @@ class TwisterRunner(cli.Application):
         """
         Downloads all libraries from Central Engine.
         """
-
-        global TWISTER_PATH, EP_CACHE
-
         libs_path = '{}/ce_libs'.format(EP_CACHE)
         reset_libs = False
 
@@ -600,7 +633,7 @@ class TwisterRunner(cli.Application):
         abort_suite = False # Abort suite X, when setup file fails.
 
 
-        for id, node in SuitesManager.iterNodes():
+        for id, node in SuitesManager.iterNodes(None, []):
 
             # When starting a new suite or sub-suite ...
             # Some files don't belong to this suite, they might belong to the parent of this suite,
@@ -1028,28 +1061,26 @@ class TwisterRunner(cli.Application):
 
         # Print the final message
         diff_time = time.time() - glob_time
-        return self.exit(timer_f=diff_time)
 
+        if PORTABLE:
+            return self.stop(timer_f=diff_time)
+        else:
+            return self.exit(timer_f=diff_time)
 
-def signal_handler(*arg, **kw):
-    print('~ Shut down ~\n')
-    ceProxy.close()
-    sys.exit()
+#
 
+def warmup():
+    """
+    Main function.
+    """
+    global EP_CACHE, EP_LOG, PORTABLE, logger
 
-# # #
+    EP_CACHE = TWISTER_PATH + '/.twister_cache/' + epName
+    EP_LOG = '{}/.twister_cache/{}_LIVE.log'.format(TWISTER_PATH, epName)
 
-
-if __name__=='__main__':
-
-    #
-    # python -B -u ExecutionProcess.py -u user -e Windows-EP -s 127.0.0.1:8000
-    #
-
-    if len(sys.argv) < 3:
-        print('*ERROR* EP must start with 3 parameters!')
-        print(' usage : python -B ExecutionProcess.py -u User -e Ep_Name -s Host:Port')
-        exit(1)
+    # Create the EP folder
+    try: os.makedirs(EP_CACHE)
+    except Exception: pass
 
     # If this scripts is running Portable from twister/client/exec ...
     path = TWISTER_PATH
@@ -1074,16 +1105,81 @@ if __name__=='__main__':
         print('Portable mode: Appending `{}` to python path.\n'.format(path))
         sys.path.append(path)
 
+    # Reset the "portable log" file. If done here, the EP messages will be logged
+    if PORTABLE:
+        open(EP_LOG, 'w').close()
+
+    # Launch a connection before the logger
+    ce = proxy()
+    if not ce:
+        print('Cannot connect to server! Farewell!\n')
+        exit(1)
+
+    if  PORTABLE:
+        # This will redirect all print into the EP log file
+        logger = Logger()
+    else:
+        logger = ThreadedLogger()
+        logger.start()
+
+    print('EP Debug: Created the logger.\n')
+
+
+def signal_handler(*arg, **kw):
+    global runner
+    del runner
+    ceProxy.close()
+    bgServer.stop()
+    sys.exit()
+
+
+# # #
+
+
+if __name__=='__main__':
+
+    #
+    # python -Bu ExecutionProcess.py -u user -e Windows-EP -s 127.0.0.1:8000
+    #
+
+    pars = argparse.ArgumentParser(prog='Execution Process', description='Linux/ Windows test runner for Twister.')
+    pars.add_argument('-u', '--user',   type=str, help='The username')
+    pars.add_argument('-e', '--epname', type=str, help='The Execution Process name')
+    pars.add_argument('-s', '--server', type=str, help='The Central Engine IP:Port', default='127.0.0.1:8000')
+    argv = pars.parse_args()
+
+    if not argv.user:
+        print('Must specify an user ! Exiting !\n')
+        exit(1)
+    else:
+        userName = argv.user
+
+    if not argv.epname:
+        print('Must specify an EP Name ! Exiting !\n')
+        exit(1)
+    else:
+        epName = argv.epname
+
+    # Central Engine
+    cePath = argv.server
+
     if os.name == "nt":
         try:
             import win32api
             win32api.SetConsoleCtrlHandler(signal_handler, True)
+            print('Catching `Ctrl + C` signal OK.\n')
         except ImportError:
             raise Exception('Cannot import `win32api`!\n')
     else:
         signal.signal(signal.SIGINT, signal_handler)
 
-    TwisterRunner.run()
+    # Prepare everything
+    warmup()
+
+    # Launch !
+    runner = TwisterRunner(userName, epName, cePath)
+    runner.main()
+    del runner
 
 
 # Eof()

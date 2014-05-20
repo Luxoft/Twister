@@ -1,7 +1,7 @@
 
 # File: CeProject.py ; This file is part of Twister.
 
-# version: 3.037
+# version: 3.038
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -438,9 +438,13 @@ class Project(object):
         if not epList:
             logWarning('User `{}` doesn\'t have any registered EPs to run the tests!'.format(user))
 
+        # List with all sorted EPs
+        projectEps = self.parsers[user].getActiveEps()
+
         # Generate the list of EPs in order
-        for epname in epList:
-            self._registerEp(user, epname)
+        for epname in projectEps:
+            if epname in epList:
+                self._registerEp(user, epname)
 
         # Add framework config info to default user
         self.users[user]['config_path']  = base_config
@@ -1950,24 +1954,26 @@ class Project(object):
 
             if epname:
                 if suite_id:
-                    files = eps[epname]['suites'].getFiles(suite_id)
+                    files = eps[epname]['suites'].getFiles(suite_id=suite_id, recursive=True)
                 else:
-                    files = eps[epname]['suites'].getFiles()
+                    files = eps[epname]['suites'].getFiles(suite_id=None, recursive=True)
                 for file_id in files:
                     s = self.getFileInfo(user, epname, file_id)
                     if s: s = s.get('status', 10)
                     else: s = 10
+                    # Unordered
                     statuses[file_id] = str(s)
             # Default case, no EP and no Suite
             else:
                 for epname in eps:
                     if not 'suites' in eps[epname]:
                         continue
-                    files = eps[epname]['suites'].getFiles()
+                    files = eps[epname]['suites'].getFiles(suite_id=None, recursive=True)
                     for file_id in files:
                         s = self.getFileInfo(user, epname, file_id)
                         if s: s = s.get('status', 10)
                         else: s = 10
+                        # Unordered
                         statuses[file_id] = str(s)
 
         for tcid in self.test_ids[user]:
@@ -2369,7 +2375,7 @@ class Project(object):
         if not rest:
             # All files from EP
             suite_id = None
-            files = SuitesManager.getFiles()
+            files = SuitesManager.getFiles(None, True)
 
             if not files:
                 log = '*ERROR* No files left to unqueue!'
@@ -2388,7 +2394,7 @@ class Project(object):
                 return log
 
             suite_node = SuitesManager.findId(suite_id)
-            files = SuitesManager.getFiles(suite_id)
+            files = SuitesManager.getFiles(suite_id, True)
             logDebug('Removing file IDs `{}` from `{}:{}`...'.format(', '.join(files), epname, suite_id))
 
         elif len(rest) == 4:
@@ -2396,7 +2402,7 @@ class Project(object):
             file_id = rest
             suite_id = None
 
-            if file_id not in SuitesManager.getFiles():
+            if file_id not in SuitesManager.getFiles(None, True):
                 log = '*ERROR* Invalid File ID `{}` !'.format(file_id)
                 logError(log)
                 return log
@@ -2408,12 +2414,12 @@ class Project(object):
             suite_id = None
             suite_node = None
 
-            if not SuitesManager.getFiles():
+            if not SuitesManager.getFiles(None, True):
                 log = '*ERROR* No files left to unqueue!'
                 logError(log)
                 return log
 
-            for id, node in SuitesManager.iterNodes():
+            for id, node in SuitesManager.iterNodes(None, []):
                 if node['type'] == 'suite' and node['name'] == rest:
                     suite_id = id
                     suite_node = node
@@ -2423,7 +2429,7 @@ class Project(object):
                 logError(log)
                 return log
 
-            files = SuitesManager.getFiles(suite_id)
+            files = SuitesManager.getFiles(suite_id, True)
             logDebug('Removing file IDs `{}` from `{}:{}`...'.format(', '.join(files), epname, rest))
 
 
