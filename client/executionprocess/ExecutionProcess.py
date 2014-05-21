@@ -204,7 +204,7 @@ def proxy():
         try:
             bgServer = BgServingThread(ceProxy)
         except Exception:
-            print('*ERROR* Cannot launch Bg serving thread! Exiting!'.format(cePath))
+            print('*ERROR* Cannot launch Bg serving thread! Exiting!')
             ceProxy = None
             return None
 
@@ -946,7 +946,7 @@ class TwisterRunner(object):
                 'FILE_NAME' : filename,
                 'PROPERTIES': props,
                 'CONFIG'    : config_files,
-                'PROXY'     : ceProxy.root
+                'PROXY'     : proxy()
             }
 
             # Find all functions from commonLib

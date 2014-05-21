@@ -1,7 +1,7 @@
 
 # File: TscCommonLib.py ; This file is part of Twister.
 
-# version: 3.005
+# version: 3.006
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -41,7 +41,7 @@ from rpyc import BgServingThread
 # This will work, because TWISTER_PATH is appended to sys.path.
 try:
     from ce_libs import *
-except:
+except Exception:
     raise Exception('CommonLib must run from Twister!\n')
 
 TWISTER_PATH = os.getenv('TWISTER_PATH')
@@ -108,14 +108,14 @@ class TscCommonLib(object):
             # The EP stack is always the last
             ep_code = stack[-1][0]
             # It's impossible to access the globals from the EP any other way
-            return ep_code.f_globals.get('ceProxy')
+            return ep_code.f_globals.get('ceProxy').root
         del stack, stack_fpath
 
         # Try to reuse the old connection
         try:
             cls.__ce_proxy.echo('ping')
             return cls.__ce_proxy
-        except:
+        except Exception:
             pass
 
         # RPyc config
@@ -128,28 +128,33 @@ class TscCommonLib(object):
             }
         proxy = None
 
+        ce_ip, ce_port = cls.proxy_path.split(':')
+
         # If the old connection is broken, connect to the RPyc server
         try:
-            ce_ip, ce_port = cls.proxy_path.split(':')
             # Transform XML-RPC port into RPyc Port; RPyc port = XML-RPC port + 10 !
             ce_port = int(ce_port) + 10
             proxy = rpyc.connect(ce_ip, ce_port, config=config)
             proxy.root.hello('lib::{}'.format(cls.epName))
-        except:
+        except Exception:
             print('*ERROR* Cannot connect to CE path `{}`! Exiting!'.format(cls.proxy_path))
-            raise Exception
+            raise Exception('Cannot connect to CE')
 
         # Authenticate on RPyc server
         try:
             proxy.root.login(cls.userName, 'EP')
+        except Exception:
+            print('*ERROR* Cannot authenticate on CE path `{}`! Exiting!'.format(cls.proxy_path))
+            raise Exception('Cannot authenticate on CE')
+
+        # Launch bg server
+        try:
             bg = BgServingThread(proxy)
             cls.__ce_proxy = proxy.root
             return cls.__ce_proxy
-        except:
-            print('*ERROR* Cannot authenticate on CE path `{}`! Exiting!'.format(cls.proxy_path))
-            raise Exception
-
-        return proxy
+        except Exception:
+            print('*ERROR* Cannot launch Bg serving thread! Exiting!')
+            raise Exception('Cannot launch Bg thread')
 
 
     @property
@@ -190,7 +195,7 @@ class TscCommonLib(object):
             marshal.dumps(value)
             ce = cls._ce_proxy()
             return cls.ce_proxy.setGlobalVariable(var, value)
-        except:
+        except Exception:
             cls.global_vars[var] = value
             return True
 
@@ -260,7 +265,7 @@ class TscCommonLib(object):
         SuitesManager = copy.deepcopy(data)
         files = SuitesManager.getFiles(recursive=True)
         try: return files.index(self.FILE_ID)
-        except: return -1
+        except Exception: return -1
 
 
     def countSuiteFiles(self):
@@ -283,7 +288,7 @@ class TscCommonLib(object):
         SuitesManager = copy.deepcopy(data)
         files = SuitesManager.keys() # First level of files, depth=1
         try: return files.index(self.FILE_ID)
-        except: return -1
+        except Exception: return -1
 
 
     def py_exec(self, code_string):
@@ -327,17 +332,17 @@ class TscCommonLib(object):
 
     def setResource(self, name, parent=None, props={}):
         try: return self.ce_proxy.setResource(name, parent, props)
-        except: return None
+        except Exception: return None
 
 
     def renameResource(self, res_query, new_name):
         try: return self.ce_proxy.renameResource(res_query, new_name)
-        except: return None
+        except Exception: return None
 
 
     def deleteResource(self, query):
         try: return self.ce_proxy.deleteResource(query)
-        except: return None
+        except Exception: return None
 
 
     def getSut(self, query, type=unicode):
@@ -354,37 +359,37 @@ class TscCommonLib(object):
 
     def setSut(self, name, parent=None, props={}):
         try: return self.ce_proxy.setSut(name, parent, props)
-        except: return None
+        except Exception: return None
 
 
     def renameSut(self, res_query, new_name):
         try: return self.ce_proxy.renameSut(res_query, new_name)
-        except: return None
+        except Exception: return None
 
 
     def deleteSut(self, query):
         try: return self.ce_proxy.deleteSut(query)
-        except: return None
+        except Exception: return None
 
 
     def getResourceStatus(self, query):
         try: return self.ce_proxy.getResourceStatus(query)
-        except: return None
+        except Exception: return None
 
 
     def allocResource(self, query):
         try: return self.ce_proxy.allocResource(query)
-        except: return None
+        except Exception: return None
 
 
     def reserveResource(self, query):
         try: return self.ce_proxy.reserveResource(query)
-        except: return None
+        except Exception: return None
 
 
     def freeResource(self, query):
         try: return self.ce_proxy.freeResource(query)
-        except: return None
+        except Exception: return None
 
 
 # Eof()
