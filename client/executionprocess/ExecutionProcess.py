@@ -1,6 +1,6 @@
 #!/usr/bin/env python2.7
 
-# version: 3.007
+# version: 3.008
 
 # File: ExecutionProcess.py ; This file is part of Twister.
 
@@ -777,6 +777,8 @@ class TwisterRunner(object):
                         return self.exit(timer_f=diff_time, stop=False)
 
             if dependency:
+                dep_ok = True
+
                 # Dependencies are separated by semi-colon
                 for dep in dependency.split(';'):
                     dep = dep.strip()
@@ -785,11 +787,12 @@ class TwisterRunner(object):
                     try:
                         (dep_id, dep_status) = dep.split(':')
                         dep_status = dep_status.lower()
-                        if dep_status not in testStatus:
+                        if dep_status != 'any' and dep_status not in testStatus:
                             dep_status = 'invalid'
                     except Exception:
                         print('Invalid dependency `{}` will be ignored!'.format(dep))
                         continue
+
                     # Dependency file information
                     dep_info = proxy().getDependencyInfo(dep_id)
                     if not dep_info:
@@ -812,16 +815,24 @@ class TwisterRunner(object):
                     else:
                         print('Dependency `{}::{}` ended with `{}`.\n'.format(dep_info['id'], dep_info['file'], dep_curr_status))
 
-                    if  dep_status != dep_curr_status:
+                    if  dep_status == 'any':
+                        print('Dependency `any` is ok.\n')
+                    elif  dep_status != dep_curr_status:
                         print('Test file will be skipped (dependency required status to be `{}`) !\n'.format(dep_status))
-                        try:
-                            proxy().setFileStatus(self.epName, file_id, STATUS_SKIPPED, 0.0)
-                        except Exception:
-                            trace = traceback.format_exc()[34:].strip()
-                            print('Exception on dependency change file status `{}`!\n'.format(trace))
-                        print('<<< END filename: `{}:{}` >>>\n'.format(file_id, filename))
+                        dep_ok = False
+                        break
                     else:
                         print('Dependency matched with success: `{}`.\n'.format(dep_status))
+
+                if not dep_ok:
+                    try:
+                        # Send status SKIP
+                        proxy().setFileStatus(self.epName, file_id, STATUS_SKIPPED, 0.0)
+                    except Exception:
+                        trace = traceback.format_exc()[34:].strip()
+                        print('Exception on dependency change file status `{}`!\n'.format(trace))
+                    print('<<< END filename: `{}:{}` >>>\n'.format(file_id, filename))
+                    continue
 
 
             # Download file from Central Engine!
