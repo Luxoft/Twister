@@ -1,6 +1,6 @@
 /*
 File: TB.java ; This file is part of Twister.
-Version: 2.025
+Version: 2.026
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -64,6 +64,9 @@ import java.awt.datatransfer.StringSelection;
 import java.util.Enumeration;
 import javax.swing.JFrame;
 import javax.swing.JProgressBar;
+import java.util.Comparator;
+import javax.swing.tree.MutableTreeNode;
+import java.util.Arrays;
 
 public class TB extends JPanel{
     private XmlRpcClient client;
@@ -126,6 +129,7 @@ public class TB extends JPanel{
                     TreePath tp = tree.getPathForLocation(ev.getX(), ev.getY());
                     final DefaultMutableTreeNode tn = (DefaultMutableTreeNode)tp.getLastPathComponent();
                     if(tn.getChildCount()>0&&!tree.isExpanded(tp))return;
+                    if(!(tn.getUserObject() instanceof Node))return;
                     if(((Node)tn.getUserObject()).getReserved().equals(RunnerRepository.user))return;
                     if(tn.getLevel()==1){
                         new Thread(){
@@ -348,14 +352,25 @@ public class TB extends JPanel{
                         }
                     }
                 } else {
-                    add.setText("Add TB");
-                    remove.setEnabled(false);
-                    add.setEnabled(true);
-                    tree.setSelectionPath(null);
-                    optpan.setParent(null,null,false);
+                    clearParent();
+//                     add.setText("Add TB");
+//                     remove.setEnabled(false);
+//                     add.setEnabled(true);
+//                     tree.setSelectionPath(null);
+//                     optpan.setParent(null,null,false);
                     if(ev.getButton() == MouseEvent.BUTTON3){
                         addRootNodePopUp(ev);
                     }}}});}
+                    
+    
+    //clear parent and selections
+    public void clearParent(){
+        add.setText("Add TB");
+        remove.setEnabled(false);
+        add.setEnabled(true);
+        tree.setSelectionPath(null);
+        optpan.setParent(null,null,false);
+    }
                     
     /*
      * release all reserved TB's
@@ -436,6 +451,7 @@ public class TB extends JPanel{
             }
             optpan.setParent(null,null,false);
             model.reload();
+//             sort2(root);
         } catch (Exception e){
             e.printStackTrace();
         }
@@ -783,7 +799,23 @@ public class TB extends JPanel{
                     newnode.setID(resp);
                     DefaultMutableTreeNode treechild = new DefaultMutableTreeNode(newnode);
                     DefaultMutableTreeNode root = (DefaultMutableTreeNode)((DefaultTreeModel)tree.getModel()).getRoot();
-                    ((DefaultTreeModel)tree.getModel()).insertNodeInto(treechild, root,root.getChildCount());
+                    
+                    size = root.getChildCount();//prepare for sorting
+                    String [] names = new String[size+1];//names to sort
+                    DefaultMutableTreeNode childnode;
+                    for(int i=0;i<size;i++){
+                        childnode = (DefaultMutableTreeNode)root.getChildAt(i);
+                        names[i] = ((Node)childnode.getUserObject()).getName();
+                    }
+                    names[size] = newnode.getName();
+                    Arrays.sort(names);
+                    for(int i=0;i<size+1;i++){
+                        if(names[i].equals(newnode.getName())){
+                            ((DefaultTreeModel)tree.getModel()).insertNodeInto(treechild, root, i);
+                            break;
+                        }
+                    }
+                    
                     DefaultMutableTreeNode temp = new DefaultMutableTreeNode("ID: "+newnode.getID());
                     ((DefaultTreeModel)tree.getModel()).insertNodeInto(temp, treechild,0);
                     DefaultMutableTreeNode temp2 = new DefaultMutableTreeNode(newnode.getPath());
@@ -855,10 +887,26 @@ public class TB extends JPanel{
                         setSavedState(treenode,false);
                         newnode.setID(resp);
                         DefaultMutableTreeNode treechild = new DefaultMutableTreeNode(newnode);
-                        ((DefaultTreeModel)tree.getModel()).insertNodeInto(treechild, treenode,treenode.getChildCount());
+                        
+                        int size = treenode.getChildCount();//prepare for sorting
+                        String [] names = new String[size+1];//names to sort
+                        DefaultMutableTreeNode childnode;
+                        for(int i=0;i<size;i++){
+                            childnode = (DefaultMutableTreeNode)treenode.getChildAt(i);
+                            if(!(childnode.getUserObject() instanceof Node)) names[i]="";
+                            else names[i] = ((Node)childnode.getUserObject()).getName();
+                        }
+                        names[size] = newnode.getName();
+                        Arrays.sort(names);
+                        for(int i=0;i<size+1;i++){
+                            if(names[i].equals(newnode.getName())){
+                                ((DefaultTreeModel)tree.getModel()).insertNodeInto(treechild, treenode, i);
+                                break;
+                            }
+                        }
+                        
                         DefaultMutableTreeNode temp = new DefaultMutableTreeNode("ID: "+newnode.getID());
                         ((DefaultTreeModel)tree.getModel()).insertNodeInto(temp, treechild,0);
-                        
                         DefaultMutableTreeNode temp2 = new DefaultMutableTreeNode(newnode.getPath());
                         ((DefaultTreeModel)tree.getModel()).insertNodeInto(temp2, treechild,1);
                     } else {
@@ -919,10 +967,23 @@ public class TB extends JPanel{
      */
     public void buildTree(Node node, DefaultMutableTreeNode treenode,boolean onlyfirstlevel){
         try{
+            //construct hash and array for sorting
             Iterator iter = node.getChildren().keySet().iterator();
+            String nodesnames [] = new String[node.getChildren().keySet().size()];//names array
+            HashMap <String, Node> hash = new HashMap();//hash with name -> nodes
+            int index = 0;
+            Node child;
             while(iter.hasNext()){
                 String childid = iter.next().toString();
-                Node child = getTB(childid,node);
+                child = getTB(childid,node);
+                nodesnames[index] = child.getName();
+                hash.put(nodesnames[index], child);
+                index++;
+            }
+            Arrays.sort(nodesnames);//sort by name
+            for(String name:nodesnames){
+                child = hash.get(name);
+                String childid = child.getID();
                 node.addChild(childid, child);
                 DefaultMutableTreeNode treechild = new DefaultMutableTreeNode(child);
                 ((DefaultTreeModel)tree.getModel()).insertNodeInto(treechild, treenode,treenode.getChildCount());
@@ -934,6 +995,21 @@ public class TB extends JPanel{
                     buildTree(child,treechild,onlyfirstlevel);
                 }
             }
+//             Iterator iter = node.getChildren().keySet().iterator();
+//             while(iter.hasNext()){
+//                 String childid = iter.next().toString();
+//                 Node child = getTB(childid,node);
+//                 node.addChild(childid, child);
+//                 DefaultMutableTreeNode treechild = new DefaultMutableTreeNode(child);
+//                 ((DefaultTreeModel)tree.getModel()).insertNodeInto(treechild, treenode,treenode.getChildCount());
+//                 if(!onlyfirstlevel){
+//                     DefaultMutableTreeNode temp = new DefaultMutableTreeNode("ID: "+child.getID());
+//                     ((DefaultTreeModel)tree.getModel()).insertNodeInto(temp, treechild,0);
+//                     DefaultMutableTreeNode temp2 = new DefaultMutableTreeNode(child.getPath());
+//                     ((DefaultTreeModel)tree.getModel()).insertNodeInto(temp2, treechild,1);
+//                     buildTree(child,treechild,onlyfirstlevel);
+//                 }
+//             }
         } catch(Exception e){
             e.printStackTrace();
         }
@@ -1009,7 +1085,77 @@ public class TB extends JPanel{
                             RunnerRepository.host+" :"+RunnerRepository.getCentralEnginePort()+"/ra/"+
                             "for RPC client initialization");}
     }
+    
+    
+//     private void sortTree(DefaultMutableTreeNode root) {
+//         Enumeration e = root.depthFirstEnumeration();
+//         while(e.hasMoreElements()) {
+//             DefaultMutableTreeNode node = (DefaultMutableTreeNode)e.nextElement();
+//             if(!node.isLeaf()) {
+//                 sort2(node);   //selection sort
+//               //sort3(node); //iterative merge sort
+//             }
+//         }
+//     }
+    
+//     Comparator tnc = new Comparator();
+//         
+//         @Override public int compare(DefaultMutableTreeNode a, DefaultMutableTreeNode b) {
+//             //Sort the parent and child nodes separately:
+//             if(a.isLeaf() && !b.isLeaf()) {
+//                 return 1;
+//             }else if(!a.isLeaf() && b.isLeaf()) {
+//                 return -1;
+//             }else{
+//                 String sa = a.getUserObject().toString();
+//                 String sb = b.getUserObject().toString();
+//                 return sa.compareToIgnoreCase(sb);
+//             }
+//         }
+//     };
+    
+//     public static void sort2(DefaultMutableTreeNode parent) {
+//         TNC tnc = new TNC();
+//         int n = parent.getChildCount();
+//         for(int i=0;i< n-1;i++) {
+//             int min = i;
+//             for(int j=i+1;j< n;j++) {
+//                 if(tnc.compare((DefaultMutableTreeNode)parent.getChildAt(min),
+//                              (DefaultMutableTreeNode)parent.getChildAt(j))>0) {
+//                 min = j;
+//                 }
+//             }
+//             if(i!=min) {
+//                 MutableTreeNode a = (MutableTreeNode)parent.getChildAt(i);
+//                 MutableTreeNode b = (MutableTreeNode)parent.getChildAt(min);
+//                 parent.insert(b, i);
+//                 parent.insert(a, min);
+//             }
+//         }
+//     }
+    
+    
 }
+
+// class TNC implements Comparator{
+//     
+//     public int compare(DefaultMutableTreeNode a, DefaultMutableTreeNode b) {
+//         //Sort the parent and child nodes separately:
+//         if(a.isLeaf() && !b.isLeaf()) {
+//             return 1;
+//         }else if(!a.isLeaf() && b.isLeaf()) {
+//             return -1;
+//         }else{
+//             String sa = a.getUserObject().toString();
+//             String sb = b.getUserObject().toString();
+//             return sa.compareToIgnoreCase(sb);
+//         }
+//     }
+//     
+//     public int compare(Object ob1,Object ob2){
+//         return -1;
+//     }
+// }
 
 
 class TreeTransferHandler extends TransferHandler {

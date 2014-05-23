@@ -1,6 +1,6 @@
 /*
 File: SuitaDetails.java ; This file is part of Twister.
-Version: 2.0021
+Version: 2.0022
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -717,7 +717,7 @@ public class SuitaDetails extends JPanel {
     public void setParent(Item parent){
         this.parent = parent;
         //handle dependencie parent
-        
+        RunnerRepository.window.mainpanel.p1.dependency.setParent(parent);
         if(parent!=null&&parent.getType()==2){
             try{
                 setComboTBs();

@@ -1,6 +1,6 @@
 /*
 File: Item.java ; This file is part of Twister.
-Version: 2.008
+Version: 2.009
 Copyright (C) 2012 , Luxoft
 
 Authors: Andrei Costachi <acostachi@luxoft.com>
@@ -21,6 +21,7 @@ package com.twister;
 import java.awt.Rectangle;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.UUID;
 
 public class Item implements Cloneable{
     private int type;//2-suite,1-tc,0-prop 
@@ -43,10 +44,19 @@ public class Item implements Cloneable{
     private boolean panicdetect = false;
     private int ceindex;
     private boolean clearcase = false;
-    private HashMap <Item, Boolean> dependencie = new  HashMap();
+    private HashMap <Item, String> dependencie = new  HashMap();
+    private String ID;
     
     
-    public int getCEindex() {
+    public String getID() {
+		return ID;
+	}
+
+	public void setID(String iD) {
+		ID = iD;
+	}
+
+	public int getCEindex() {
 		return ceindex;
 	}
 
@@ -70,7 +80,9 @@ public class Item implements Cloneable{
         rectangle.setSize(width,height);
         if(type!=0){
             checkrectangle.setLocation(x+3,y+3);
-            checkrectangle.setSize(height-6,height-6);}}
+            checkrectangle.setSize(height-6,height-6);}
+        ID = UUID.randomUUID().toString();
+    }
             
     public void setPrerequisite(boolean prerequisite){
         this.prerequisite = prerequisite;
@@ -301,11 +313,11 @@ public class Item implements Cloneable{
 		this.panicdetect = panicdetect;
 	}
 
-	public HashMap<Item, Boolean> getDependencies() {
+	public HashMap<Item, String> getDependencies() {
 		return dependencie;
 	}
 
-	public void setDependencies(HashMap<Item, Boolean> dependencie) {
+	public void setDependencies(HashMap<Item, String> dependencie) {
 		this.dependencie = dependencie;
 	}
 }

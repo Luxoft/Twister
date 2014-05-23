@@ -1,6 +1,6 @@
 /*
 File: Grafic.java ; This file is part of Twister.
-Version: 2.0027
+Version: 2.0028
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -270,7 +270,9 @@ public class Grafic extends JPanel{
 //                         )){//must not be prerequisite
                             handleDraggedItems();}}}}}
 //                         }
-                            
+
+
+
     /*
      * Dragged items method
      * handles dragged items
@@ -289,17 +291,17 @@ public class Grafic extends JPanel{
             for(int i=selectedcollection.size()-1;i>=0;i--){
                 for(int j=0;j<selectedcollection.get(i).length;j++){
                     temp.add(new Integer(selectedcollection.get(i)[j]));}
-                Item theone2 = getItem(temp,false).clone();  
-                if(theone2.getType()==0){
-                    getItem(temp,false).select(false);
-                    selectedcollection.remove(i);
-                    temp.clear();
-                    continue;}
+                Item theone2 = getItem(temp,false);  
+//                 if(theone2.getType()==0){
+//                     getItem(temp,false).select(false);
+//                     selectedcollection.remove(i);
+//                     temp.clear();
+//                     continue;}
                 clone.add(theone2);
                 temp.clear();}                                
             removeSelected();
             dragging = true;}
-        ArrayList<Item> unnecessary = new ArrayList<Item>();                        
+        ArrayList<Item> unnecessary = new ArrayList<Item>();//remove from clone children of parents already selected                  
         for(int i=0;i<clone.size();i++){
             Item one = clone.get(i);
             ArrayList<Integer>pos = (ArrayList<Integer>)one.getPos().clone();
@@ -315,6 +317,51 @@ public class Grafic extends JPanel{
                         break;}}
                 if(found)break;}}
         for(int i=0;i<unnecessary.size();i++){clone.remove(unnecessary.get(i));}}
+                            
+//     /*
+//      * Dragged items method
+//      * handles dragged items
+//      * and puts them in a clone array
+//      */                      
+//     public void handleDraggedItems(){
+//         if(getItem(selected,false).getType()!=0){
+//             setCursor(DragSource.DefaultCopyDrop);
+//             if(!getItem(selected,false).isSelected()){
+//                 deselectAll();
+//                 int [] temporary = new int[selected.size()];
+//                 for(int m=0;m<temporary.length;m++){
+//                     temporary[m]=selected.get(m).intValue();}
+//                 selectedcollection.add(temporary);}
+//             ArrayList <Integer> temp = new ArrayList <Integer>();
+//             for(int i=selectedcollection.size()-1;i>=0;i--){
+//                 for(int j=0;j<selectedcollection.get(i).length;j++){
+//                     temp.add(new Integer(selectedcollection.get(i)[j]));}
+//                 Item theone2 = getItem(temp,false).clone();  
+//                 if(theone2.getType()==0){
+//                     getItem(temp,false).select(false);
+//                     selectedcollection.remove(i);
+//                     temp.clear();
+//                     continue;}
+//                 clone.add(theone2);
+//                 temp.clear();}                                
+//             removeSelected();
+//             dragging = true;}
+//         ArrayList<Item> unnecessary = new ArrayList<Item>();                        
+//         for(int i=0;i<clone.size();i++){
+//             Item one = clone.get(i);
+//             ArrayList<Integer>pos = (ArrayList<Integer>)one.getPos().clone();
+//             while(pos.size()>1){
+//                 pos.remove(pos.size()-1);
+//                 boolean found = false;
+//                 for(int j=0;j<clone.size();j++){
+//                     Item one2 = clone.get(j);
+//                     ArrayList<Integer>pos2 = (ArrayList<Integer>)one2.getPos().clone();
+//                     if(compareArrays(pos,pos2)){
+//                         unnecessary.add(clone.get(i));
+//                         found = true;
+//                         break;}}
+//                 if(found)break;}}
+//         for(int i=0;i<unnecessary.size();i++){clone.remove(unnecessary.get(i));}}
             
     /*
      * handle automatic scrolling
@@ -568,8 +615,7 @@ public class Grafic extends JPanel{
                 if(temp.size()>1)temp.remove(temp.size()-1);
                 Item parent = getItem(temp,false);
                 if(parent.getType()==1)dropOnFirstLevel(upper);//parent is tc=>on level 0
-                else dropNextInLine(upper, parent, index, position);}}
-            
+                else dropNextInLine(upper, parent, index, position);}}            
         for(Item item:RunnerRepository.getSuite()){
             if(item.getType()==2){
                 sortTearSetup(item);
@@ -1816,10 +1862,13 @@ public class Grafic extends JPanel{
             
     public void setCanRequestFocus(boolean canrequestfocus){
         this.canrequestfocus = canrequestfocus;}
+        
            
     /*
      * remove selected items from
      * RunnerRepository suites array
+     * update indexes for next elements after removed
+     * update position in graph
      */
     public void removeSelected(){      
         if(selectedcollection.size()>0){
@@ -2095,7 +2144,13 @@ public class Grafic extends JPanel{
             g.drawString(item.getName(),(int)item.getRectangle().getX()+45,
                         (int)item.getRectangle().getY()+18);
             g.drawImage(RunnerRepository.getSuitaIcon(),(int)item.getRectangle().getX()+25,
-                        (int)item.getRectangle().getY()+1,null);}
+                        (int)item.getRectangle().getY()+1,null);
+            //draw dependency icon if necesary
+            if(item.getDependencies().size()>0){
+                g.drawImage(RunnerRepository.getDependencyIcon(),(int)item.getRectangle().getX()+28,
+                        (int)item.getRectangle().getY()+4,null);
+            }
+        }
         else if(item.getType()==1){
             if(item.isPrerequisite()||item.isTeardown())g.setColor(Color.RED);
             else if(!item.isRunnable())g.setColor(Color.GRAY);
@@ -2103,10 +2158,15 @@ public class Grafic extends JPanel{
                         (int)item.getRectangle().getY()+15);
             g.setColor(Color.BLACK);
             g.drawImage(RunnerRepository.getTCIcon(),(int)item.getRectangle().getX()+25,
-                        (int)item.getRectangle().getY()+1,null);
+                        (int)item.getRectangle().getY()+2,null);
             if(item.isOptional()){
                 g.drawImage(RunnerRepository.optional,(int)item.getRectangle().getX()+43,
                         (int)item.getRectangle().getY()+1,null);
+            }
+            //draw dependency icon if necesary
+            if(item.getDependencies().size()>0){
+                g.drawImage(RunnerRepository.getDependencyIcon(),(int)item.getRectangle().getX()+28,
+                        (int)item.getRectangle().getY()+2,null);
             }
             StringBuilder sb = new StringBuilder();
             sb.append("- ");
@@ -2628,6 +2688,69 @@ public class Grafic extends JPanel{
         else if(item.getType()==2){
             for(int i=0;i<item.getSubItemsNr();i++){
                 showOptionals(item.getSubItem(i));}}}
+                
+    /*
+     * gets the first upper suite parent
+     */    
+    public static Item getFirstSuitaParent(Item item, boolean test){
+        ArrayList <Integer> temp = (ArrayList <Integer>)item.getPos().clone();
+        if(temp.size()==1)return null;
+        if(item.getType()!=0){
+            temp.remove(temp.size()-1);
+            return getItem(temp,test);}
+        else{
+            temp.remove(temp.size()-1);
+            temp.remove(temp.size()-1);
+            return getItem(temp,test);}}
+            
+            
+    public static Item getTcParent(Item item, boolean test){
+        ArrayList <Integer> temp = (ArrayList <Integer>)item.getPos().clone();
+        if(item.getType()==0){
+            temp.remove(temp.size()-1);
+            return getItem(temp,test);}
+        return null;}
+        
+    /*
+     * gets the first suite parent
+     * at the head of the Hierarchy
+     */
+    public static Item getParent(Item item, boolean test){
+        if(item.getPos().size()>1){
+            ArrayList <Integer> temp = new ArrayList <Integer>();
+            temp.add(item.getPos().get(0));
+            return getItem(temp,test);}
+        else return null;}
+        
+    /*
+     * check if item is available in suites array(maybe it was deleted)
+     */
+    public static boolean chekItemInArray(Item item, boolean test){
+        ArrayList <Integer> temp = (ArrayList <Integer>)item.getPos().clone();
+        Item suiteitem;
+        if(temp.size()==1){
+            if(test){
+                suiteitem =  RunnerRepository.getTestSuite().get(temp.get(0));
+            } else {
+                suiteitem = RunnerRepository.getSuita(temp.get(0));
+            }
+        } else {
+            if(item.getType()==0){//property
+                temp.remove(temp.size()-1);
+                temp.remove(temp.size()-1);
+                suiteitem = getItem(temp,test);
+                suiteitem = suiteitem.getSubItem(item.getPos().get(item.getPos().size()-2));
+                suiteitem = suiteitem.getSubItem(item.getPos().get(item.getPos().size()-1));
+            } else if(item.getType()==1){//tc
+                temp.remove(temp.size()-1);
+                suiteitem = getItem(temp,test);
+                suiteitem = suiteitem.getSubItem(item.getPos().get(item.getPos().size()-1));
+            } else {//suite
+                suiteitem = getItem(temp,test);
+            }
+        }
+        return suiteitem==item;
+    }
         
     class AddSuiteFrame extends JFrame{
         private static final long serialVersionUID = 1L;
@@ -2765,40 +2888,8 @@ public class Grafic extends JPanel{
             setBounds(400,300,300,400);
             setVisible(true);
             namefield.requestFocus();
-        }}
-            
-    /*
-     * gets the first upper suite parent
-     */    
-    public static Item getFirstSuitaParent(Item item, boolean test){
-        ArrayList <Integer> temp = (ArrayList <Integer>)item.getPos().clone();
-        if(temp.size()==1)return null;
-        if(item.getType()==1||item.getType()==2){
-            temp.remove(temp.size()-1);
-            return getItem(temp,test);}
-        else{
-            temp.remove(temp.size()-1);
-            temp.remove(temp.size()-1);
-            return getItem(temp,test);}}
-            
-            
-    public static Item getTcParent(Item item, boolean test){
-        ArrayList <Integer> temp = (ArrayList <Integer>)item.getPos().clone();
-        if(item.getType()==0){
-            temp.remove(temp.size()-1);
-            return getItem(temp,test);}
-        return null;}
-        
-    /*
-     * gets the first suite parent
-     * at the head of the Hierarchy
-     */
-    public static Item getParent(Item item, boolean test){
-        if(item.getPos().size()>1){
-            ArrayList <Integer> temp = new ArrayList <Integer>();
-            temp.add(item.getPos().get(0));
-            return getItem(temp,test);}
-        else return null;}
+        }
+    }
 }
             
 class CompareItems implements Comparator{   
