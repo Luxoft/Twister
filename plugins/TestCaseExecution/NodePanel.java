@@ -1,6 +1,6 @@
 /*
 File: NodePanel.java ; This file is part of Twister.
-Version: 2.012
+Version: 2.013
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -34,6 +34,7 @@ import java.awt.event.ActionListener;
 import javax.swing.JTree;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.DefaultMutableTreeNode;
+import javax.swing.tree.TreeNode;
 import com.twister.CustomDialog;
 import javax.swing.JOptionPane;
 import org.apache.xmlrpc.client.XmlRpcClient;
@@ -190,16 +191,38 @@ public class NodePanel extends JPanel{
                                                             JOptionPane.DEFAULT_OPTION, null,buttons ,
                                                             "Confirmation","The TB changes will be saved; do you want to continue ?");
                     }
-                    
                     if (!resp.equals("NULL")) {
                         if(resp.equals("Continue")){
                             if(!checkExistingName(parent, tname.getText())){
-                                String query = client.execute("renameResource", new Object[]{parent.getID(),
+                                String query = "";
+                                try{query = client.execute("renameResource", new Object[]{parent.getID(),
                                                                                             tname.getText()}).toString();
+                                } catch(Exception e){
+                                    CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,NodePanel.this,
+                                                          "ERROR", "There was an error while renaming resource in CE! Please check log.");
+                                    e.printStackTrace();
+                                }
                                 if(query.equals("true")){
                                     updatePaths(treenode, parent);
                                     parent.setName(tname.getText());
                                     tpath.setText(parent.getPath().getPath());
+                                    DefaultMutableTreeNode parentnode = (DefaultMutableTreeNode)treenode.getParent();
+                                    int size = parentnode.getChildCount();//prepare for sorting
+                                    String [] names = new String[size];//names to sort
+                                    DefaultMutableTreeNode childnode;
+                                    for(int i=0;i<size;i++){
+                                        childnode = (DefaultMutableTreeNode)parentnode.getChildAt(i);
+                                        if(!(childnode.getUserObject() instanceof Node)) names[i]="";
+                                        else names[i] = ((Node)childnode.getUserObject()).getName();
+                                    }
+                                    Arrays.sort(names);
+                                    for(int i=0;i<size;i++){
+                                        if(names[i].equals(parent.getName())){
+                                            ((DefaultTreeModel)tree.getModel()).removeNodeFromParent(treenode);
+                                            ((DefaultTreeModel)tree.getModel()).insertNodeInto(treenode, parentnode, i);
+                                            break;
+                                        }
+                                    }
                                     ((DefaultTreeModel)tree.getModel()).nodeChanged(treenode);
                                     RunnerRepository.window.mainpanel.p4.getTB().setSavedState(treenode,false);
                                     update.setEnabled(false);
@@ -208,8 +231,8 @@ public class NodePanel extends JPanel{
                                             RunnerRepository.window.mainpanel.p4.getTB().setSavedState(treenode,true);
                                         }
                                     }
+                                    RunnerRepository.window.mainpanel.p4.getTB().clearParent();
                                 } else {
-                                    System.out.println("There was an error: "+query);
                                     CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,NodePanel.this,
                                                           "Warning", query);
                                 }
@@ -291,6 +314,7 @@ public class NodePanel extends JPanel{
         if(parent!=null){
             int size = parent.getProperties().size();
             Object [] keys = parent.getProperties().keySet().toArray();
+            Arrays.sort(keys);
             Object [] values = parent.getProperties().values().toArray();
             for(int i=0;i<size;i++){
                 final JButton update = new JButton("Update");
@@ -334,6 +358,7 @@ public class NodePanel extends JPanel{
                                         jTextField1.setOldValue(jTextField1.getText());
                                         RunnerRepository.window.mainpanel.p4.getTB().setSavedState(treenode,false);
                                         update.setEnabled(false);
+                                        updateProperties(true);
                                     } else {
                                         jTextField1.setText(jTextField1.getOldValue());
                                         CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,NodePanel.this,"ERROR", resp);
@@ -378,9 +403,9 @@ public class NodePanel extends JPanel{
                                                                     jTextField1.getText()}).toString();
                             if(s.equals("true")){
                                 parent.getProperties().remove(jTextField1.getText());
-                                System.out.println(parent.getProperties().toString());
                                 updateProperties(true);
                                 RunnerRepository.window.mainpanel.p4.getTB().setSavedState(treenode,false);
+                                
                             }
                         } catch(Exception e){
                             e.printStackTrace();

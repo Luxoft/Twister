@@ -1,7 +1,7 @@
 
 # File: CeProject.py ; This file is part of Twister.
 
-# version: 3.034
+# version: 3.038
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -438,9 +438,13 @@ class Project(object):
         if not epList:
             logWarning('User `{}` doesn\'t have any registered EPs to run the tests!'.format(user))
 
+        # List with all sorted EPs
+        projectEps = self.parsers[user].getActiveEps()
+
         # Generate the list of EPs in order
-        for epname in epList:
-            self._registerEp(user, epname)
+        for epname in projectEps:
+            if epname in epList:
+                self._registerEp(user, epname)
 
         # Add framework config info to default user
         self.users[user]['config_path']  = base_config
@@ -1011,8 +1015,9 @@ class Project(object):
             key = self.localFs.readUserFile(user, '~/twister/config/twister.key')
             # Fix key in case of error
             if not key or '*ERROR*' in key:
-                logWarning('Cannot encrypt! Cannot fetch users key!')
-                return False
+                logWarning('Cannot fetch key for `{}`! Fallback to default key!'.format(user))
+                # Use common key from server_init, or "Twister"
+                key = self.server_init.get('common_key', 'Twister')
         return encrypt(text, key)
 
 
@@ -1030,8 +1035,9 @@ class Project(object):
             key = self.localFs.readUserFile(user, '~/twister/config/twister.key')
             # Fix key in case of error
             if not key or '*ERROR*' in key:
-                logWarning('Cannot decrypt! Cannot fetch users key!')
-                return False
+                logWarning('Cannot fetch key for `{}`! Fallback to default key!'.format(user))
+                # Use common key from server_init, or "Twister"
+                key = self.server_init.get('common_key', 'Twister')
         return decrypt(text, key)
 
 
@@ -1041,11 +1047,11 @@ class Project(object):
     @staticmethod
     def _fixCcXmlTag(user, TagOrView):
         """
-        Transform 1 ClearCase.XML tag name into a ClearCase view.
+        Transform 1 ClearCase.XML tag name into a ClearCase view and activity.
         """
         ccConfigs = ClearCaseParser(user).getConfigs(TagOrView)
-        if ccConfigs and 'view' in ccConfigs:
-            return ccConfigs['view']
+        if ccConfigs and 'view' in ccConfigs and 'actv' in ccConfigs:
+            return ccConfigs['view'] + ':' + ccConfigs['actv']
         else:
             return TagOrView
 
@@ -1078,10 +1084,10 @@ class Project(object):
         else:
             if type.startswith('clearcase:'):
                 # ClearCase parameter is `clearcase:view`, or `clearcase:XmlTag`
-                view_or_tag = type.split(':')[1]
-                view = self._fixCcXmlTag(user, view_or_tag)
-                # logDebug('File size CC {} : {} : {}.'.format(user, view, fpath))
-                return self.clearFs.fileSize(user +':'+ view, fpath)
+                view_or_tag = ':'.join(type.split(':')[1:])
+                view_actv = self._fixCcXmlTag(user, view_or_tag)
+                # logDebug('File size CC {} : {} : {}.'.format(user, view_actv, fpath))
+                return self.clearFs.fileSize(user +':'+ view_actv, fpath)
             else:
                 return self.localFs.fileSize(user, fpath)
 
@@ -1096,10 +1102,10 @@ class Project(object):
         else:
             if type.startswith('clearcase:'):
                 # ClearCase parameter is `clearcase:view`, or `clearcase:XmlTag`
-                view_or_tag = type.split(':')[1]
-                view = self._fixCcXmlTag(user, view_or_tag)
-                logDebug('Read CC {} : {} : {}.'.format(user, view, fpath))
-                return self.clearFs.readUserFile(user +':'+ view, fpath, flag, fstart)
+                view_or_tag = ':'.join(type.split(':')[1:])
+                view_actv = self._fixCcXmlTag(user, view_or_tag)
+                logDebug('Read CC {} : {} : {}.'.format(user, view_actv, fpath))
+                return self.clearFs.readUserFile(user +':'+ view_actv, fpath, flag, fstart)
             else:
                 return self.localFs.readUserFile(user, fpath, flag, fstart)
 
@@ -1111,10 +1117,10 @@ class Project(object):
         """
         if type.startswith('clearcase:'):
             # ClearCase parameter is `clearcase:view`, or `clearcase:XmlTag`
-            view_or_tag = type.split(':')[1]
-            view = self._fixCcXmlTag(user, view_or_tag)
-            logDebug('Write CC {} : {} : {}.'.format(user, view, fpath))
-            return self.clearFs.writeUserFile(user +':'+ view, fpath, fdata, flag)
+            view_or_tag = ':'.join(type.split(':')[1:])
+            view_actv = self._fixCcXmlTag(user, view_or_tag)
+            logDebug('Write CC {} : {} : {}.'.format(user, view_actv, fpath))
+            return self.clearFs.writeUserFile(user +':'+ view_actv, fpath, fdata, flag)
         else:
             return self.localFs.writeUserFile(user, fpath, fdata, flag)
 
@@ -1125,10 +1131,10 @@ class Project(object):
         """
         if type.startswith('clearcase:'):
             # ClearCase parameter is `clearcase:view`, or `clearcase:XmlTag`
-            view_or_tag = type.split(':')[1]
-            view = self._fixCcXmlTag(user, view_or_tag)
-            logDebug('Delete CC file {} : {} : {}.'.format(user, view, fpath))
-            return self.clearFs.deleteUserFile(user +':'+ view, fpath)
+            view_or_tag = ':'.join(type.split(':')[1:])
+            view_actv = self._fixCcXmlTag(user, view_or_tag)
+            logDebug('Delete CC file {} : {} : {}.'.format(user, view_actv, fpath))
+            return self.clearFs.deleteUserFile(user +':'+ view_actv, fpath)
         else:
             return self.localFs.deleteUserFile(user, fpath)
 
@@ -1139,10 +1145,10 @@ class Project(object):
         """
         if type.startswith('clearcase:'):
             # ClearCase parameter is `clearcase:view`, or `clearcase:XmlTag`
-            view_or_tag = type.split(':')[1]
-            view = self._fixCcXmlTag(user, view_or_tag)
-            logDebug('Create CC folder {} : {} : {}.'.format(user, view, fdir))
-            return self.clearFs.createUserFolder(user +':'+ view, fdir)
+            view_or_tag = ':'.join(type.split(':')[1:])
+            view_actv = self._fixCcXmlTag(user, view_or_tag)
+            logDebug('Create CC folder {} : {} : {}.'.format(user, view_actv, fdir))
+            return self.clearFs.createUserFolder(user +':'+ view_actv, fdir)
         else:
             return self.localFs.createUserFolder(user, fdir)
 
@@ -1153,10 +1159,10 @@ class Project(object):
         """
         if type.startswith('clearcase:'):
             # ClearCase parameter is `clearcase:view`, or `clearcase:XmlTag`
-            view_or_tag = type.split(':')[1]
-            view = self._fixCcXmlTag(user, view_or_tag)
-            logDebug('List CC files {} : {} : {}.'.format(user, view, fdir))
-            return self.clearFs.listUserFiles(user +':'+ view, fdir, hidden, recursive)
+            view_or_tag = ':'.join(type.split(':')[1:])
+            view_actv = self._fixCcXmlTag(user, view_or_tag)
+            logDebug('List CC files {} : {} : {}.'.format(user, view_actv, fdir))
+            return self.clearFs.listUserFiles(user +':'+ view_actv, fdir, hidden, recursive)
         else:
             return self.localFs.listUserFiles(user, fdir, hidden, recursive)
 
@@ -1167,10 +1173,10 @@ class Project(object):
         """
         if type.startswith('clearcase:'):
             # ClearCase parameter is `clearcase:view`, or `clearcase:XmlTag`
-            view_or_tag = type.split(':')[1]
-            view = self._fixCcXmlTag(user, view_or_tag)
-            logDebug('Delete CC folder {} : {} : {}.'.format(user, view, fdir))
-            return self.clearFs.deleteUserFolder(user +':'+ view, fdir)
+            view_or_tag = ':'.join(type.split(':')[1:])
+            view_actv = self._fixCcXmlTag(user, view_or_tag)
+            logDebug('Delete CC folder {} : {} : {}.'.format(user, view_actv, fdir))
+            return self.clearFs.deleteUserFolder(user +':'+ view_actv, fdir)
         else:
             return self.localFs.deleteUserFolder(user, fdir)
 
@@ -1476,6 +1482,31 @@ class Project(object):
         file_node[key] = value
         self._dump()
         return True
+
+
+    def getDependencyInfo(self, user, dep_id):
+        """
+        Retrieve all info available, about one Test File.\n
+        """
+        logFull('CeProject:getDependencyInfo user `{}`.'.format(user))
+        r = self.authenticate(user)
+        if not r: return {}
+        found = False
+
+        # Cycle all EPs to find the dependency
+        for epname, epinfo in self.users[user]['eps'].iteritems():
+            # Cycle all files
+            for file_id in epinfo['suites'].getFiles():
+                file_node = epinfo['suites'].findId(file_id)
+                if not file_node:
+                    continue
+                if file_node.get('dep_id') == dep_id:
+                    found = dict(file_node)
+                    found['ep'] = epname
+                    found['id'] = file_id
+                    break
+
+        return found
 
 
 # # #
@@ -1923,24 +1954,26 @@ class Project(object):
 
             if epname:
                 if suite_id:
-                    files = eps[epname]['suites'].getFiles(suite_id)
+                    files = eps[epname]['suites'].getFiles(suite_id=suite_id, recursive=True)
                 else:
-                    files = eps[epname]['suites'].getFiles()
+                    files = eps[epname]['suites'].getFiles(suite_id=None, recursive=True)
                 for file_id in files:
                     s = self.getFileInfo(user, epname, file_id)
                     if s: s = s.get('status', 10)
                     else: s = 10
+                    # Unordered
                     statuses[file_id] = str(s)
             # Default case, no EP and no Suite
             else:
                 for epname in eps:
                     if not 'suites' in eps[epname]:
                         continue
-                    files = eps[epname]['suites'].getFiles()
+                    files = eps[epname]['suites'].getFiles(suite_id=None, recursive=True)
                     for file_id in files:
                         s = self.getFileInfo(user, epname, file_id)
                         if s: s = s.get('status', 10)
                         else: s = 10
+                        # Unordered
                         statuses[file_id] = str(s)
 
         for tcid in self.test_ids[user]:
@@ -2342,7 +2375,7 @@ class Project(object):
         if not rest:
             # All files from EP
             suite_id = None
-            files = SuitesManager.getFiles()
+            files = SuitesManager.getFiles(None, True)
 
             if not files:
                 log = '*ERROR* No files left to unqueue!'
@@ -2361,7 +2394,7 @@ class Project(object):
                 return log
 
             suite_node = SuitesManager.findId(suite_id)
-            files = SuitesManager.getFiles(suite_id)
+            files = SuitesManager.getFiles(suite_id, True)
             logDebug('Removing file IDs `{}` from `{}:{}`...'.format(', '.join(files), epname, suite_id))
 
         elif len(rest) == 4:
@@ -2369,7 +2402,7 @@ class Project(object):
             file_id = rest
             suite_id = None
 
-            if file_id not in SuitesManager.getFiles():
+            if file_id not in SuitesManager.getFiles(None, True):
                 log = '*ERROR* Invalid File ID `{}` !'.format(file_id)
                 logError(log)
                 return log
@@ -2381,12 +2414,12 @@ class Project(object):
             suite_id = None
             suite_node = None
 
-            if not SuitesManager.getFiles():
+            if not SuitesManager.getFiles(None, True):
                 log = '*ERROR* No files left to unqueue!'
                 logError(log)
                 return log
 
-            for id, node in SuitesManager.iterNodes():
+            for id, node in SuitesManager.iterNodes(None, []):
                 if node['type'] == 'suite' and node['name'] == rest:
                     suite_id = id
                     suite_node = node
@@ -2396,7 +2429,7 @@ class Project(object):
                 logError(log)
                 return log
 
-            files = SuitesManager.getFiles(suite_id)
+            files = SuitesManager.getFiles(suite_id, True)
             logDebug('Removing file IDs `{}` from `{}:{}`...'.format(', '.join(files), epname, rest))
 
 
@@ -2469,8 +2502,12 @@ class Project(object):
             ccConfig = self.getClearCaseConfig(user, 'libs_path')
             if ccConfig:
                 view = ccConfig['view']
+                actv = ccConfig['actv']
                 path = ccConfig['path']
-                user_libs_all = self.clearFs.listUserFiles(user +':'+ view, path, False, False)
+                if not path:
+                    return '*ERROR* User `{}` did not set ClearCase Libraries Path!'.format(user)
+                user_view_actv = '{}:{}:{}'.format(user, view, actv)
+                user_libs_all = self.clearFs.listUserFiles(user_view_actv, path, False, False)
             else:
                 user_libs_all = self.localFs.listUserFiles(user, user_path, False, False)
 

@@ -1,6 +1,6 @@
 /*
 File: SuitaDetails.java ; This file is part of Twister.
-Version: 2.0020
+Version: 2.0022
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -382,10 +382,10 @@ public class SuitaDetails extends JPanel {
                                                         RunnerRepository.window, "Libraries",
                                                         null);
         if(resp == JOptionPane.OK_OPTION){
-            Object[] val = jList1.getSelectedValues();
-            String [] libs = new String[val.length];
-            for(int s=0;s<val.length;s++){
-                libs[s]=val[s].toString();
+            List val = jList1.getSelectedValuesList();
+            String [] libs = new String[val.size()];
+            for(int s=0;s<val.size();s++){
+                libs[s]=val.get(s).toString();
             }
             parent.setLibs(libs);
         }
@@ -438,10 +438,10 @@ public class SuitaDetails extends JPanel {
                                                         RunnerRepository.window, "Libraries",
                                                         null);
         if(resp == JOptionPane.OK_OPTION){
-            Object[] val = jList1.getSelectedValues();
-            globallib = new String[val.length];
-            for(int s=0;s<val.length;s++){
-                globallib[s]=val[s].toString();
+            List val = jList1.getSelectedValuesList();
+            globallib = new String[val.size()];
+            for(int s=0;s<val.size();s++){
+                globallib[s]=val.get(s).toString();
             }
         }
         
@@ -714,9 +714,10 @@ public class SuitaDetails extends JPanel {
     /*
      * set options according to new selected item
      */
-    public void setParent(Item parent){ 
-        //if(this.parent==parent)return;
+    public void setParent(Item parent){
         this.parent = parent;
+        //handle dependencie parent
+        RunnerRepository.window.mainpanel.p1.dependency.setParent(parent);
         if(parent!=null&&parent.getType()==2){
             try{
                 setComboTBs();

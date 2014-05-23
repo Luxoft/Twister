@@ -1,6 +1,6 @@
 /*
 File: XMLReader.java ; This file is part of Twister.
-Version: 2.020
+Version: 2.021
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -32,10 +32,12 @@ import java.awt.Graphics;
 import java.awt.FontMetrics;
 import java.awt.Font;
 import java.util.ArrayList;
+import java.util.HashMap;
 
 public class XMLReader{
 //     private DocumentBuilderFactory dbf;
 //     private DocumentBuilder db;
+    private int preprop = 10;//properties in xml available before Property tag
     private Document doc;
     private Element fstNmElmnt,
                     secNmElmnt,trdNmElmnt;
@@ -45,8 +47,13 @@ public class XMLReader{
     private File f;
     private String name,value;
     private int index = 1001;
+    private HashMap <String, Item> projectitems;
+    private HashMap <Item, String> dependencies;
+    
     
     public XMLReader (File file){
+        dependencies = new HashMap();
+        projectitems = new HashMap();
         DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
         DocumentBuilder db = null;
         try{db = dbf.newDocumentBuilder();}
@@ -81,6 +88,23 @@ public class XMLReader{
                 else{
                     theone = new Item(fstNm.item(0).getNodeValue(),2,
                                         -1,10, width+50,25,indexes);}
+                                        
+                fstNmElmntLst = ((Element)node).getElementsByTagName("ID");
+                if(fstNmElmntLst.getLength()>0){
+                    fstNmElmnt = (Element)fstNmElmntLst.item(0);
+                    fstNm = fstNmElmnt.getChildNodes();
+                    theone.setID(fstNm.item(0).getNodeValue().toString());
+                    projectitems.put(theone.getID(), theone);
+                }
+                
+                fstNmElmntLst = ((Element)node).getElementsByTagName("Dependency");
+                if(fstNmElmntLst.getLength()>0){
+                    fstNmElmnt = (Element)fstNmElmntLst.item(0);
+                    fstNm = fstNmElmnt.getChildNodes();
+                    if(fstNm.getLength()>0)dependencies.put(theone, fstNm.item(0).getNodeValue().toString());
+                }
+                
+                
                 if(test){
                     String []text={""};
                     try{                          
@@ -97,7 +121,6 @@ public class XMLReader{
                         sut = sut.replace(".system","(system)");
                         sut = sut.replace(".user","(user)");
                         sut = sut.substring(1);
-//                         text[0] += fstNm.item(0).getNodeValue();
                         text[0] += sut;
                     } catch(Exception e){ e.printStackTrace();}
                     theone.setEpId(text);
@@ -111,14 +134,12 @@ public class XMLReader{
                             ex.printStackTrace();
                         }
                     theone.setEpId(fstNm.item(0).getNodeValue().split(";"));
-                    
-                    
                 }
                 
                 //temporary solution for CE
                 if(test){
                    try{
-                       k=6;
+                       k=preprop;
                        NodeList list = ((Element)node).getChildNodes();
                        for(int i=0;i<list.getLength();i++){
                            if(list.item(i).getNodeName().equals("UserDefined")){
@@ -127,10 +148,10 @@ public class XMLReader{
                         }
                     } catch(Exception e){
                         e.printStackTrace();
-                        k=6;
+                        k=preprop;
                     } 
                 } else {
-                    k=6;    
+                    k=preprop;    
                 }
                 //temporary solution for CE
                 
@@ -152,10 +173,12 @@ public class XMLReader{
                         e.printStackTrace();
                     }
                     k=2;
+//                     k=6;
                 } else {
                     f = secNm.item(0).getNodeValue().toString();
                     isclearcase = true;
                     k=4;
+//                     k=8;
                 }
                 
                 int width = metrics.stringWidth(f) + 8;
@@ -163,6 +186,22 @@ public class XMLReader{
                 theone = new Item(f,1,-1,-1,width+40,20,indexes);
                 theone.setClearcase(isclearcase);
                 theone.setCEindex(index++);
+                
+                
+                secNmElmntLst = ((Element)node).getElementsByTagName("ID");
+                if(secNmElmntLst.getLength()!=0){
+                    secNmElmnt = (Element)secNmElmntLst.item(0);
+                    secNm = secNmElmnt.getChildNodes();
+                    theone.setID(secNm.item(0).getNodeValue().toString());
+                    projectitems.put(theone.getID(), theone);
+                }
+                
+                fstNmElmntLst = ((Element)node).getElementsByTagName("Dependency");
+                if(fstNmElmntLst.getLength()>0){
+                    fstNmElmnt = (Element)fstNmElmntLst.item(0);
+                    fstNm = fstNmElmnt.getChildNodes();
+                    if(fstNm.getLength()>0)dependencies.put(theone, fstNm.item(0).getNodeValue().toString());
+                }
                 
                 secNmElmntLst = ((Element)node).getElementsByTagName("ConfigFiles");
                 if(secNmElmntLst.getLength()>0){
@@ -197,7 +236,6 @@ public class XMLReader{
                     property.setSubItemVisible(false);
                     property.setValue(value);
                     theone.addSubItem(property);}
-//                 k=4;
             }
 //            if(!(test&&theone.getType()==1)){//if it is test the props should not be read further
                 int subchildren = node.getChildNodes().getLength();
@@ -385,7 +423,7 @@ public class XMLReader{
                                          2,-1,10, width+50,25,indexpos);
             else suitatemp=  new Item(name,
                                       2,-1,10, width+120,25,indexpos);
-            int k=6;
+            int k=preprop;
                                       
             fstNmElmntLst = fstElmnt.getElementsByTagName("libraries");
             if(fstNmElmntLst.getLength()>0){
@@ -393,6 +431,21 @@ public class XMLReader{
                 fstNm = fstNmElmnt.getChildNodes();
                 suitatemp.setLibs(fstNm.item(0).getNodeValue().split(";"));
                 k+=2;
+            }
+            
+            fstNmElmntLst = fstElmnt.getElementsByTagName("ID");
+            if(fstNmElmntLst.getLength()>0){
+                fstNmElmnt = (Element)fstNmElmntLst.item(0);
+                fstNm = fstNmElmnt.getChildNodes();
+                suitatemp.setID(fstNm.item(0).getNodeValue());
+                projectitems.put(suitatemp.getID(), suitatemp);
+            }
+            
+            fstNmElmntLst = fstElmnt.getElementsByTagName("Dependency");
+            if(fstNmElmntLst.getLength()>0){
+                fstNmElmnt = (Element)fstNmElmntLst.item(0);
+                fstNm = fstNmElmnt.getChildNodes();
+                if(fstNm.getLength()>0)dependencies.put(suitatemp, fstNm.item(0).getNodeValue().toString());
             }
             
             try{fstNmElmntLst = fstElmnt.getElementsByTagName("PanicDetect");
@@ -422,9 +475,6 @@ public class XMLReader{
                     sut = sut.replace(".user","(user)");
                     sut = sut.substring(1);
                     text[0] += sut;
-                    
-                    
-                    
                 } catch(Exception e){ e.printStackTrace();}
                 suitatemp.setEpId(text);
             } else{                
@@ -510,6 +560,18 @@ public class XMLReader{
             System.out.println("Warning, project has "+userDefined.size()+" fields while in db.xml are defined "+size+" fields");
         }
         RunnerRepository.window.mainpanel.p1.suitaDetails.setProjectUserDefined(userDefined);
+        //manage defined dependencie
+        for(Item item:dependencies.keySet()){
+            String values = dependencies.get(item);
+            String dependencie [] = values.split(";");
+            for(String value:dependencie){
+                String id = value.split(":")[0];
+                String status = value.split(":")[1];
+                Item el = projectitems.get(id);
+                item.getDependencies().put(el, status);
+            }
+        }
+        
         if(!test){
             if(RunnerRepository.getSuiteNr()>0){
                 while(RunnerRepository.window.mainpanel.p1.sc.g==null){

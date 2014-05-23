@@ -1,6 +1,6 @@
 /*
 File: RunnerRepository.java ; This file is part of Twister.
-Version: 2.0054
+Version: 2.0056
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -70,7 +70,7 @@ import javax.swing.UIManager;
 import javax.swing.SwingUtilities;
 import java.awt.Dimension;
 import java.util.Hashtable;
-import com.twister.Item;
+import com.twister.Item;//2-suite,1-tc,0-prop
 import javax.xml.transform.Result;
 import javax.xml.transform.stream.StreamResult;
 import javax.xml.transform.dom.DOMSource;
@@ -111,7 +111,7 @@ public class RunnerRepository {
                          PLUGINSLOCALGENERALCONF, GLOBALSREMOTEFILE,SUTPATH,SYSSUTPATH,
                          SECONDARYLOGSPATH,PATHENABLED,TESTCONFIGPATH;
     public static Image passicon,testbedicon,porticon,suitaicon, tcicon, propicon,
-                        failicon, passwordicon, playicon, stopicon, pauseicon,logo,
+                        failicon, passwordicon, playicon, stopicon, pauseicon,logo,dependencyicon,
                         background,notexecicon,pendingicon,skipicon,stoppedicon,
                         timeouticon,waiticon,workingicon,moduleicon,deviceicon,upicon,
                         addsuitaicon,removeicon,vlcclient,vlcserver,switche,optional,
@@ -133,8 +133,8 @@ public class RunnerRepository {
     public static Container container;
     public static Applet applet;
     private static Document pluginsconfig;
-    private static String version = "3.016";
-    private static String builddate = "28.04.2014";
+    private static String version = "3.018";
+    private static String builddate = "23.05.2014";
     public static String logotxt,os,python;
     
     public static void setStarter(Starter starter){
@@ -413,6 +413,7 @@ public class RunnerRepository {
             RunnerRepository.propicon = loadIcon("prop.png");
             RunnerRepository.vlcclient = loadIcon("vlcclient.png");
             RunnerRepository.failicon = loadIcon("fail.png");
+            RunnerRepository.dependencyicon = loadIcon("dependency.png");            
             RunnerRepository.passicon = loadIcon("pass.png");
             RunnerRepository.stopicon = loadIcon("stop.png");
             RunnerRepository.switche = loadIcon("switch.png");
@@ -1174,6 +1175,12 @@ public class RunnerRepository {
     /*
      * Twister icons
      */    
+    public static Image getDependencyIcon(){
+        return dependencyicon;}
+        
+    /*
+     * Twister icons
+     */    
     public static Image getSuitaIcon(){
         return suitaicon;}
     
@@ -1434,7 +1441,7 @@ public class RunnerRepository {
     //returns only non hidden files in folder
     public static String [] getRemoteFolderContent(String folder,String tag){
         Object ob = null;
-        try{System.out.println("Getting folder: "+folder+"content");
+        try{System.out.println("Getting folder: "+folder+" content");
             if(tag==null){
                 ob = RunnerRepository.getRPCClient().execute("listFiles", new Object[]{folder});
             } else {

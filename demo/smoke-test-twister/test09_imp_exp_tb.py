@@ -4,6 +4,9 @@
 # <title>Test Import/ Export XML</title>
 # <description>This suite checks the most basic functionality of Twister.<br>
 # This test tries to export the TB as XML, then import it again to see if the data is the same.</description>
+# <tags>testbed, SUT, import, export</tags>
+# <test>import & export</test>
+# <smoke>yes</smoke>
 #
 
 import os

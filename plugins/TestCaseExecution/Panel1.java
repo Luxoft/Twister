@@ -1,6 +1,6 @@
 /*
 File: Panel1.java ; This file is part of Twister.
-Version: 2.0028
+Version: 2.0030
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -80,6 +80,8 @@ public class Panel1 extends JPanel{
     public ClearCasePanel cp;
     public JTabbedPane tabs;
     public JMenuBar menu;
+    public Dependency dependency;
+    private JTabbedPane optionstabs;
     
     public Panel1(String user, final boolean applet, int width){
         RunnerRepository.introscreen.setStatus("Started Suites interface initialization");
@@ -275,7 +277,7 @@ public class Panel1 extends JPanel{
         lp = new LibrariesPanel();
         setLayout(null); 
         tabs = new JTabbedPane();
-        tabs.add("Test Case", new JScrollPane(ep.tree));
+        tabs.add("Test Case", ep);
         tabs.add("Predefined Suites", new JScrollPane(lp.tree));
         splitPane2 = new JSplitPane(JSplitPane.VERTICAL_SPLIT,
                                                 tabs,
@@ -289,9 +291,13 @@ public class Panel1 extends JPanel{
             });
         } catch(Exception e){
             splitPane2.setDividerLocation(0.5);
-        }           
+        } 
+        dependency = new Dependency();
+        optionstabs = new JTabbedPane();
+        optionstabs.add("Selection Options", suitaDetails);
+        optionstabs.add("Dependencies", dependency);
         splitPane3 = new JSplitPane(JSplitPane.VERTICAL_SPLIT,
-                                                sc.pane,suitaDetails);
+                                                sc.pane,optionstabs);
         try{
             SwingUtilities.invokeLater(new Runnable() {
                 public void run() {
@@ -388,14 +394,14 @@ public class Panel1 extends JPanel{
           JButton ok = new JButton("OK");
           JButton cancel = new JButton("Cancel");
           final JDialog dialog = CustomDialog.getDialog(tf, new JButton[]{ok,cancel},
-        		  										JOptionPane.PLAIN_MESSAGE,
-        		  										JOptionPane.OK_CANCEL_OPTION,
-        		  										RunnerRepository.window,
-        		  										"Please enter project file name", null);
+                                                        JOptionPane.PLAIN_MESSAGE,
+                                                        JOptionPane.OK_CANCEL_OPTION,
+                                                        RunnerRepository.window,
+                                                        "Please enter project file name", null);
           dialog.addWindowListener(new WindowAdapter(){
-        	  public void windowClosing(WindowEvent e){
-        		  tf.setText("");
-        	  }
+              public void windowClosing(WindowEvent e){
+                  tf.setText("");
+              }
           });
           ok.addActionListener(new ActionListener() {
               @Override
@@ -668,6 +674,10 @@ public class Panel1 extends JPanel{
     public void edit(boolean openlast){
         final int loc = splitPane3.getDividerLocation();
         splitPane3.setLeftComponent(sc.pane);
+        optionstabs.insertTab("Selection Options", null, suitaDetails, null, 0);
+        optionstabs.setSelectedIndex(0);
+        System.out.println(optionstabs.getTabCount());
+        splitPane3.setRightComponent(optionstabs);
         try{
             SwingUtilities.invokeLater(new Runnable(){
                 public void run() {
@@ -721,7 +731,7 @@ public class Panel1 extends JPanel{
     private void generate(){
         //check CE has clients started
         try{
-            String resp = RunnerRepository.getRPCClient().execute("findAnonimEp", new Object[]{RunnerRepository.user}).toString();
+            String resp = RunnerRepository.getRPCClient().execute("hasClients", new Object[]{RunnerRepository.user}).toString();
             if(resp=="false"){
                 CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE, RunnerRepository.window,
                                         "ERROR","There are no clients started, please start client to run tests.");
@@ -823,7 +833,18 @@ public class Panel1 extends JPanel{
             if(item!=null){
                 Item tcparent = sc.g.getTcParent(item,false);
                 Item suiteparent = sc.g.getFirstSuitaParent(item,false);                
-                CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE, RunnerRepository.window,"Error","Please enter Name, and Value for all Properties/Parameters on tc: "+tcparent.getName()+" on suite:"+suiteparent.getName());
+                CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE, RunnerRepository.window,"Error","Please enter Name, and Value for all "+
+                                                                                                  "Properties/Parameters on tc: "+tcparent.getName()+" on suite:"+suiteparent.getName());
+                execute = false;
+                return;
+            }
+        }
+        
+        /*
+         * check dependencies
+         */
+        for(Item i:RunnerRepository.getSuite()){
+            if(!checkDependency(i)){
                 execute = false;
                 return;
             }
@@ -862,8 +883,64 @@ public class Panel1 extends JPanel{
             int size = RunnerRepository.getLogs().size();
             for(int i=5;i<size;i++){RunnerRepository.getLogs().remove(5);}
             new XMLReader(xml).parseXML(sc.g.getGraphics(), true,RunnerRepository.getTestSuite(),false);
+            dependency.setParent(null);
             setRunning();
         }
+    }
+    
+    
+    
+    private boolean checkDependency(Item current){
+        HashMap <Item,String> hash = current.getDependencies();
+        int currentindex = current.getPos().get(0);
+        ArrayList<Integer> currentpos = current.getPos();
+        for(Item dependency:hash.keySet()){
+            if(dependency==null){
+                System.out.println("ERROR! "+current.getFileLocation()+" has invalid dependecies in project");
+                continue;
+            }
+            ArrayList<Integer> dependencypos = dependency.getPos();
+            int dependencyidnex = dependency.getPos().get(0);  
+            if(current.getType()==2){//check for dependency inside suite
+                if(dependency.getPos().size()>current.getPos().size()){//check if tc could be inside suite
+                    int size = currentpos.size();
+                    boolean equals = true;
+                    for(int i=0;i<size;i++){
+                        if(currentpos.get(i)!=dependencypos.get(i)){//found different index, dependency is in different suite
+                            equals = false;
+                            break;
+                        }
+                    }
+                    if(equals){
+                        CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE, 
+                                                RunnerRepository.window, "ERROR", 
+                                                "Dependency is inside suite, please check order"); 
+                        return false;
+                    }
+                }
+            }
+            if(dependencyidnex==currentindex){//in the same suite
+                //check that dependency is after current
+                int size = dependencypos.size();
+                if(currentpos.size()<size) size = currentpos.size();
+                for(int i=0;i<size;i++){
+                    if(dependencypos.get(i)>currentpos.get(i)){
+                        CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE, 
+                                            RunnerRepository.window, "ERROR", 
+                                            "Dependency is after tc: "+current.getFileLocation()+", please check order"); 
+                        return false;
+                    }
+                }
+            } else {//different suites
+                
+            }
+        }
+        for(Item subitem:current.getSubItems()){
+            if(!checkDependency(subitem)){
+                return false;
+            }
+        }
+        return true;
     }
     
     /*
@@ -912,6 +989,7 @@ public class Panel1 extends JPanel{
     public void setRunning(){
         final int loc = splitPane3.getDividerLocation();
         splitPane3.setLeftComponent(RunnerRepository.window.mainpanel.getP2().sc.pane);
+        splitPane3.setRightComponent(suitaDetails);
         try{
             SwingUtilities.invokeLater(new Runnable(){
                 public void run() {

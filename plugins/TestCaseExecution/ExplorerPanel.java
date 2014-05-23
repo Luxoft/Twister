@@ -1,6 +1,6 @@
 /*
 File: ExplorerPanel.java ; This file is part of Twister.
-Version: 2.015
+Version: 2.016
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -125,8 +125,9 @@ import java.util.ArrayList;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreePath;
 import java.util.HashMap;
+import java.awt.Font;
 
-public class ExplorerPanel {
+public class ExplorerPanel extends JPanel{
 
     private static final long serialVersionUID = 1L;
     public JTree tree;
@@ -135,9 +136,11 @@ public class ExplorerPanel {
     private TreePath[] selected;
     private DefaultMutableTreeNode child2;
     private JEditTextArea textarea;
-    public DragSource ds;
+    public  DragSource ds;
+    private JTextField filenamefield,tagfield;
     
     public ExplorerPanel(boolean applet) {
+        setLayout(new BorderLayout());
         RunnerRepository.introscreen.setStatus("Started Explorer interface initialization");
         RunnerRepository.introscreen.addPercent(0.035);
         RunnerRepository.introscreen.repaint();
@@ -154,13 +157,12 @@ public class ExplorerPanel {
             public int getSourceActions(JComponent c){
                 return TransferHandler.COPY_OR_MOVE;
             }
-            
         });
         try {
             RunnerRepository.introscreen.setStatus("Started retrieving tc directories");
             RunnerRepository.introscreen.addPercent(0.035);
             RunnerRepository.introscreen.repaint();
-            refreshStructure();
+            refreshStructure(RunnerRepository.getServerTCStructure(false));
             RunnerRepository.introscreen.setStatus("Finished retrieving tc directories");
             RunnerRepository.introscreen.addPercent(0.035);
             RunnerRepository.introscreen.repaint();
@@ -176,10 +178,88 @@ public class ExplorerPanel {
             }
         });
         tree.setRootVisible(false);
-        tree.expandRow(0);        
+        tree.expandRow(0);    
+        add(new JScrollPane(tree),BorderLayout.CENTER);
+        JPanel findpanel = new JPanel();
+        add(findpanel,BorderLayout.SOUTH);
+        JLabel tagl = new JLabel("Tags");
+        tagfield = new JTextField();
+        tagfield.setPreferredSize(new Dimension(160,25));
+        JLabel filenamel = new JLabel("Filename");
+        filenamefield = new JTextField();
+        filenamefield.setPreferredSize(new Dimension(160,25));
+        final JButton filter = new JButton("Search");
+        filter.addActionListener(new ActionListener(){
+            public void actionPerformed(ActionEvent ev){
+                filterTC((int)filter.getLocationOnScreen().getX()-200,(int)filter.getLocationOnScreen().getY()-100);
+            }
+        });
+        filter.setFont(new Font("TimesRoman", Font.PLAIN, 10));
+        final JButton reset = new JButton("Clear");   
+        reset.addActionListener(new ActionListener(){
+            public void actionPerformed(ActionEvent ev){
+                refreshTree((int)reset.getLocationOnScreen().getX()-200,(int)reset.getLocationOnScreen().getY()-100);
+            }
+        });
+        reset.setFont(new Font("TimesRoman", Font.PLAIN, 10));
+        findpanel.add(filenamel);
+        findpanel.add(filenamefield);
+        findpanel.add(tagl);
+        findpanel.add(tagfield);
+        findpanel.add(filter);
+        findpanel.add(reset);
         RunnerRepository.introscreen.setStatus("Finished Explorer interface initialization");                
         RunnerRepository.introscreen.addPercent(0.035);
         RunnerRepository.introscreen.repaint();
+    }
+    
+    //call CE to generate index based on tc tags.
+    public void generateIndex(){
+        try{String result = RunnerRepository.getRPCClient().execute(
+                                "generateIndex", new Object[] {}).toString();
+            if(result.indexOf("*ERROR*")!=-1){
+                CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,this,"ERROR", result);
+            }
+        } catch(Exception e){
+            System.out.println("Could not generate index for filter");
+            e.printStackTrace();
+        }
+    }
+    
+    //call CE to filter TC based on filename and/or tag
+    private void filterTC(int X, int Y){
+        if(filenamefield.getText().equals("")&&tagfield.getText().equals("")){
+            CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,this,"ERROR", "Please input values to filter!");
+            return;
+        }
+        String filename = "filename="+filenamefield.getText();
+        String tags = tagfield.getText();
+        JFrame progress = new JFrame();
+        progress.setAlwaysOnTop(true);
+        progress.setLocation(X, Y);
+        progress.setUndecorated(true);
+        JProgressBar bar = new JProgressBar();
+        bar.setIndeterminate(true);
+        progress.add(bar);
+        progress.pack();
+        progress.setVisible(true);
+        try{Object result = RunnerRepository.getRPCClient().execute(
+                                "searchIndex", new Object[] {filename+"&"+tags});
+            if(result.toString().indexOf("*ERROR*")!=-1){
+                CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,this,"ERROR", result.toString());
+                progress.dispose();
+                setEnabledTabs(true);
+                return;
+            }
+            setEnabledTabs(false);
+            refreshStructure((HashMap)result);
+            progress.dispose();
+            setEnabledTabs(true);
+        } catch(Exception e){
+            e.printStackTrace();
+            progress.dispose();
+            setEnabledTabs(true);
+        }
     }
 
     /*
@@ -258,7 +338,7 @@ public class ExplorerPanel {
         p.add(item);
         item.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent evnt) {
-                refreshTree(ev);
+                refreshTree(ev.getXOnScreen(),ev.getYOnScreen());
             }   
         });
         final String editable;
@@ -507,20 +587,20 @@ public class ExplorerPanel {
     /*
      * refresh tree structure
      */
-    public void refreshTree(final MouseEvent ev) {
+    public void refreshTree(final int X,final int Y) {
         new Thread() {
             public void run() {
                 setEnabledTabs(false);
                 JFrame progress = new JFrame();
                 progress.setAlwaysOnTop(true);
-                progress.setLocation(ev.getXOnScreen(), ev.getYOnScreen());
+                progress.setLocation(X, Y);
                 progress.setUndecorated(true);
                 JProgressBar bar = new JProgressBar();
                 bar.setIndeterminate(true);
                 progress.add(bar);
                 progress.pack();
                 progress.setVisible(true);
-                refreshStructure();
+                refreshStructure(RunnerRepository.getServerTCStructure(false));
                 progress.dispose();
                 setEnabledTabs(true);
             }
@@ -538,7 +618,6 @@ public class ExplorerPanel {
             System.out.println("Executing " + command + " command");
             Process p = Runtime.getRuntime().exec(new String[]{command,arg});
             p.waitFor();
-            System.out.println(p.exitValue());
         } catch (Exception err) {
             System.out.println("Error in executing " + command + " command");
             err.printStackTrace();
@@ -680,9 +759,8 @@ public class ExplorerPanel {
         }
     }
 
-    public void refreshStructure() {
-        try {HashMap hash = RunnerRepository.getServerTCStructure(false);
-            DefaultMutableTreeNode child = getList(hash,RunnerRepository.getTestSuitePath());
+    public void refreshStructure(HashMap hash) {
+        try {DefaultMutableTreeNode child = getList(hash,RunnerRepository.getTestSuitePath());
             if(child!=null){
                 if(root.getChildCount()>0)root.remove(0);
                 root.add(child);
@@ -690,7 +768,6 @@ public class ExplorerPanel {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        
         ((DefaultTreeModel) tree.getModel()).reload();
         tree.expandRow(0);
         selected = null;
