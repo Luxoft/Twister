@@ -1,7 +1,7 @@
 
 # File: CeRpyc.py ; This file is part of Twister.
 
-# version: 3.009
+# version: 3.010
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -191,57 +191,16 @@ class CeRpycService(rpyc.Service):
                     if eps and epname in eps:
                         found = str_addr
                         break
+                # Check Hello
+                elif hello and data.get('hello') == hello:
+                    found = str_addr
+                    break
                 # All filters are null! Return the first conn for this user!
                 elif not addr and not hello and not epname:
                     found = str_addr
                     break
 
         return found
-
-
-    def on_connect(self):
-        """
-        On client connect
-        """
-        logFull('CeRpyc:on_connect')
-        str_addr = self._get_addr()
-
-        # Add this connection in the list of connections,
-        # If this connection CAN be added!
-        try:
-            with self.conn_lock:
-                self.conns[str_addr] = {'conn': self._conn, 'time': time.time()}
-        except Exception as e:
-            logError('EE: Connect error: {}.'.format(e))
-
-        logDebug('EE: Connected from `{}`.'.format(str_addr))
-
-
-    def on_disconnect(self):
-        """
-        On client disconnect
-        """
-        logFull('CeRpyc:on_disconnect')
-        str_addr = self._get_addr()
-
-        hello = self.conns[str_addr].get('hello', '')
-        stime = self.conns[str_addr].get('time', time.time())
-        if hello: hello += ' - '
-
-        # Unregister the eventual EPs for this connection
-        if self.conns[str_addr].get('checked') and self.conns[str_addr].get('user'):
-            eps = self.conns[str_addr].get('eps')
-            if eps: self.unregisterEps(eps)
-
-        # Delete everything for this address
-        try:
-            with self.conn_lock:
-                del self.conns[str_addr]
-        except Exception as e:
-            logError('EE: Disconnect error: {}.'.format(e))
-
-        logDebug('EE: Disconnected from `{}{}`, after `{:.2f}` seconds.'.format(
-            hello, str_addr, (time.time() - stime)))
 
 
     def exposed_cherryAddr(self):
@@ -276,9 +235,8 @@ class CeRpycService(rpyc.Service):
         if 'user' in extra:     del extra['user']
         if 'checked' in extra:  del extra['checked']
         if 'eps' in extra:
-            # Only register the VALID eps...
+            # Register the VALID eps...
             self.registerEps(extra['eps'])
-            # and delete the invalid ones.
             del extra['eps']
 
         with self.conn_lock:
@@ -460,6 +418,13 @@ class CeRpycService(rpyc.Service):
         return self.project.setFileInfo(user, epname, filename, variable, value)
 
 
+    def exposed_getDependencyInfo(self, dep_id):
+        logFull('CeRpyc:exposed_getDependencyInfo')
+        user = self._check_login()
+        if not user: return False
+        return self.project.getDependencyInfo(user, dep_id)
+
+
 # # #   Persistence   # # #
 
 
@@ -632,7 +597,7 @@ class CeRpycService(rpyc.Service):
         for str_addr, data in self.conns.iteritems():
             # There might be more clients for a user...
             # And this Addr might be an EP, not a client
-            if user is not None and user == data['user'] and data['checked']:
+            if user is not None and user == data.get('user') and data.get('checked'):
                 # If this connection has registered EPs, append them
                 e = data.get('eps')
                 if e: eps.extend(e)
@@ -667,14 +632,7 @@ class CeRpycService(rpyc.Service):
             # Send a Hello and this IP to the remote proxy Service
             hello = self._conn.root.hello(self.project.ip_port[0])
         except Exception as e:
-            trace = traceback.format_exc()[34:].strip()
-            logError('Error: Register client error: {}'.format(trace))
-            hello = False
-
-        # If the Hello from the other end of the connection returned False...
-        if not hello:
-            logDebug('Could not send Hello to the Client Manager `{}` for user `{}`!'.format(str_addr, user))
-            return False
+            logWarning('Error: Register client error: {}'.format(e))
 
         # Register the EPs to this unique client address.
         # On disconnect, this client address will be deleted

@@ -1,7 +1,7 @@
 
 # File: xmlparser.py ; This file is part of Twister.
 
-# version: 3.018
+# version: 3.019
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -229,13 +229,17 @@ class TSCParser:
             return []
 
         activeEPs = []
-        for epname in self.configTS.xpath('//EpId/text()'):
-            activeEPs.append( str(epname) )
 
-        activeEPs = (';'.join(activeEPs)).split(';')
-        activeEPs = list(set(activeEPs))
-        # Ignore the empty EP names
-        activeEPs = [ep.strip() for ep in activeEPs if ep.strip()]
+        for epname in self.configTS.xpath('//EpId/text()'):
+            ep = str(epname).strip()
+            # Ignore the empty EP names
+            if not ep:
+                continue
+            # Don't add EP twice
+            if ep in activeEPs:
+                continue
+            activeEPs.append(ep)
+
         return activeEPs
 
 # # #
