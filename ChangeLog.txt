@@ -1,3 +1,16 @@
+23rd May 2014
+
+- issue #61 : added mechanism for test cases dependencies; user can define in GUI if a test case 
+  execution depends on result of a previous test case execution; test case is executed 
+  if a previous test returned PASS or FAIL; multiple dependencies can be defined and in
+  this case all conditions must be met; if the dependency is from a suite that runs
+  on a different EP, the test case will wait so a synchronisation mechanism is present; 
+  for synchronisation, the state ANY can be used for dependency
+- fixed EP for Windows 
+- support for common encryption key for all users; if the user DOESN NOT have the file
+  twister_key defined in $HOME/twister/config , Twister will use the key defined in
+  /opt/twister/config/server_init.ini in common_key field
+  
 11th April 2014
 
 - bug fixes
