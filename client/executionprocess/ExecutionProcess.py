@@ -1,6 +1,6 @@
 #!/usr/bin/env python2.7
 
-# version: 3.008
+# version: 3.009
 
 # File: ExecutionProcess.py ; This file is part of Twister.
 
@@ -1017,9 +1017,11 @@ class TwisterRunner(object):
 
             print('Test statistics: Start time {} -- End time {} -- {:0.2f} sec.\n'.format(start_time, end_time, timer_f))
 
+            try: result = int(result)
+            except: pass
 
             try:
-                if result==STATUS_PASS or result == 'PASS':
+                if  result==0 or result==STATUS_PASS or result == 'PASS':
                     proxy().setFileStatus(self.epName, file_id, STATUS_PASS, timer_f) # File status PASS
                 elif result==STATUS_SKIPPED or result in ['SKIP', 'SKIPPED']:
                     proxy().setFileStatus(self.epName, file_id, STATUS_SKIPPED, timer_f) # File status SKIPPED
