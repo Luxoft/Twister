@@ -1,7 +1,7 @@
 
 # File: CeProject.py ; This file is part of Twister.
 
-# version: 3.038
+# version: 3.039
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -142,10 +142,17 @@ def cache_users():
 
     lines = open('/etc/passwd').readlines()
     users = []
-    for line in lines:
-        path = line.split(':')[5]
-        if os.path.isdir(path + '/twister/config'):
-            users.append(line.split(':')[0])
+
+    try:
+        for line in lines:
+            user = line.split(':')[0]
+            path = line.split(':')[5].rstrip('/')
+            if not user or not path:
+                continue
+            if os.path.exists(path + '/twister/config'):
+                users.append(user)
+    except Exception as e:
+        logWarning('Exception on cache PASSWD users: `{}` !'.format(e))
 
     # Check if the machine has NIS users.
     # This operation CAN TAKE A LOT OF TIME!
@@ -154,10 +161,10 @@ def cache_users():
         u = subprocess.check_output("ypcat passwd | awk -F : '{print $1}'", shell=True)
         for user in u.split():
             home = userHome(user)
-            if os.path.isdir(home + '/twister/config'):
+            if os.path.exists(home + '/twister/config'):
                 users.append(user)
-    except Exception:
-        pass
+    except Exception as e:
+        logWarning('Exception on cache NIS users: `{}` !'.format(e))
 
     # Eliminate duplicates
     users = sorted( set(users) )
@@ -170,7 +177,7 @@ def cache_users():
             return False
 
     tf = time.time()
-    logInfo('Cache Users operation took `{:.2f}` seconds...'.format( (tf-ti) ))
+    logInfo('Cache Users operation took `{:.2f}` seconds. Found `{}` Twister users...'.format( (tf-ti), len(users) ))
 
     threading.Timer(60*60, cache_users, ()).start()
 
