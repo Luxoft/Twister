@@ -1,7 +1,7 @@
 
 # File: CeResources.py ; This file is part of Twister.
 
-# version: 2.049
+# version: 2.050
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -1463,14 +1463,51 @@ class ResourceAllocator(_cptools.XMLRPCController):
             logError(msg)
             return '*ERROR* ' + msg
 
-        # Correct node path
-        res_path = _get_res_path(resources, res_query)
+        res_path = None
+        # if the renamed resource is the testbed itself, it must be renamed
+        # in self.resources location; check if the res_query is a testbed; that
+        # means it has to be at first level of self.resources and it's
+        # id is equal with the res_query
+        for tb_res in self.resources['children']:
+            if res_query == self.resources['children'][tb_res]['id']:
+                res_path = _get_res_path(resources, res_query)
+                # found the resource; break out from loop
+                break;
+        
+        if res_path == None:
+            # find the resource path in reserved resources
+            try:
+                for res in self.reservedResources[user]:
+                    res_path = _get_res_path(self.reservedResources[user][res], res_query)
+                    if res_path:
+                        res_pointer = self.reservedResources[user][res]
+                        res_path.insert(0,res)
+                        break
+
+                    # it can be a meta parameter for the TB; we need to
+                    # check this case because get_res_path doesn't return
+                    # correct in this case
+                    if res == res_query:
+                        res_pointer = self.reservedResources[user][res]
+                        res_path = res_pointer.get('path')
+                        res_path.insert(0,res)
+                        break;
+            except Exception, e:
+                res_path = None
+
+        if res_path == None:
+            msg = 'User {}: Rename {}: Cannot access resource `{}` !'\
+                  .format(self.getUserName(),root_name, res_query)
+            logError(msg)
+            return '*ERROR* ' + msg
+
         node_path = [p for p in res_path if p]
-        # Renamed node path
+        # Renamed node path; applicable for SUT only
         if (not meta and len(node_path) == 1 and root_id == ROOT_SUT and
                     (not new_name.split('.')[-1] == 'user' and not new_name.split('.')[-1] == 'system')):
             new_name = '.'.join([new_name, 'user'])
-        new_path = list(node_path) ; new_path[-1] = new_name
+        new_path = list(node_path)
+        new_path[-1] = new_name
 
         if not node_path:
             msg = 'User {}: Rename {}: Cannot find resource node path `{}` !'.format(self.getUserName(),root_name, node_path)
@@ -1504,11 +1541,12 @@ class ResourceAllocator(_cptools.XMLRPCController):
             # If must rename a normal node
             else:
                 if new_path[1:]:
+                    # update a component; first update the component name
                     new_string = 'res_p["children"]["{}"]'.format('"]["children"]["'.join(new_path[1:]))
                     exec( new_string + ' = ' + exec_string )
                     exec( 'del ' + exec_string )
                 else:
-                    #res_p['path'] = new_name
+                    # update the path for a TB
                     res_p.update([('path', [new_name]), ])
 
                 logDebug('User {}: Renamed {} path `{}` to `{}`.'.format(self.getUserName(),root_name, '/'.join(node_path), '/'.join(new_path)))
@@ -1927,7 +1965,9 @@ class ResourceAllocator(_cptools.XMLRPCController):
             logError(msg)
             return False
 
-        res_pointer.update([('path', res_path), ])
+        if root_id == ROOT_DEVICE and '/' in res_query:
+            res_pointer.update([('path', res_path), ])
+
         join_path = self.reservedResources[user][res_pointer['id']].get('path', '')
         if isinstance(join_path, str):
             join_path = [join_path]
@@ -2794,6 +2834,9 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
         return False
 
+    @cherrypy.expose
+    def getMyRes(self):
+        return self.resources
 #
 
 # Eof()
