@@ -1,7 +1,7 @@
 
 # File: TestCaseRunnerClasses.py ; This file is part of Twister.
 
-# version: 3.001
+# version: 3.002
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -322,8 +322,7 @@ def TWISTER_EP():
     return x
 
 def TWISTER_SUT():
-    from ce_libs import SUT as x
-    return x
+    return commonLib.SUT
 
 def TWISTER_SUITE_NAME():
     return commonLib.SUITE_NAME
