@@ -1,6 +1,6 @@
 #!/usr/bin/env python2.7
 
-# version: 3.008
+# version: 3.010
 
 # File: ExecutionProcess.py ; This file is part of Twister.
 
@@ -371,6 +371,7 @@ class TwisterRunner(object):
         self.epName   = epName
         self.userName = userName
         self.cePath   = cePath
+        self.sut      = ''
 
 
     def __del__(self):
@@ -442,8 +443,6 @@ class TwisterRunner(object):
         ce.setEpVariable(self.epName, 'twister_ep_python_revision', '.'.join([str(v) for v in sys.version_info]) )
         ce.setEpVariable(self.epName, 'last_seen_alive', time.strftime('%Y-%m-%d %H:%M:%S'))
 
-        # The SUT name. Common for all files in this EP.
-        self.Sut = ce.getEpVariable(self.epName, 'sut')
         # Get the `exit on test Fail` value
         self.exit_on_test_fail = ce.getUserVariable('exit_on_test_fail')
         # Get tests delay
@@ -491,7 +490,7 @@ class TwisterRunner(object):
         tmpl = Template(TMPL_LIB)
         data = {
             'proxy': self.cePath, 'user': self.userName, 'ep': self.epName,
-            'sut': self.Sut, 'suite_id': suite_id, 'suite_name': suite_name,
+            'sut': self.sut, 'suite_id': suite_id, 'suite_name': suite_name,
             'file_id': file_id, 'file_name': file_name,
         }
         __init.write(tmpl.substitute(**data))
@@ -644,6 +643,7 @@ class TwisterRunner(object):
                     print('TC warning: Nothing to do in suite `{}`!\n'.format(suite_str))
                     continue
 
+                self.sut = node['sut']
                 suite_id   = id
                 suite_data = node
                 suite_name = node['name']
@@ -950,7 +950,7 @@ class TwisterRunner(object):
             globs = {
                 'USER'      : self.userName,
                 'EP'        : self.epName,
-                'SUT'       : self.Sut,
+                'SUT'       : self.sut,
                 'SUITE_ID'  : suite_id,
                 'SUITE_NAME': suite_name,
                 'FILE_ID'   : file_id,
@@ -1017,9 +1017,11 @@ class TwisterRunner(object):
 
             print('Test statistics: Start time {} -- End time {} -- {:0.2f} sec.\n'.format(start_time, end_time, timer_f))
 
+            try: result = int(result)
+            except: pass
 
             try:
-                if result==STATUS_PASS or result == 'PASS':
+                if  result==0 or result==STATUS_PASS or result == 'PASS':
                     proxy().setFileStatus(self.epName, file_id, STATUS_PASS, timer_f) # File status PASS
                 elif result==STATUS_SKIPPED or result in ['SKIP', 'SKIPPED']:
                     proxy().setFileStatus(self.epName, file_id, STATUS_SKIPPED, timer_f) # File status SKIPPED
