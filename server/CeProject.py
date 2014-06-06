@@ -1,7 +1,7 @@
 
 # File: CeProject.py ; This file is part of Twister.
 
-# version: 3.039
+# version: 3.040
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -431,8 +431,10 @@ class Project(object):
 
         logDebug('Common Project Reset for `{}` with params:\n\t`{}` & `{}`.'.format(user, base_config, files_config))
 
-        # Create EP list
-        self.users[user]['eps'] = OrderedDict()
+        # Create EP list if it doesn't exist already
+        eps = self.users[user].get('eps')
+        if not eps:
+            self.users[user]['eps'] = OrderedDict()
 
         # Ordered list with all suite IDs, for all EPs
         self.suite_ids[user] = []
