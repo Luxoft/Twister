@@ -1,3 +1,10 @@
+06th June
+
+- code changes to fix issue #130
+- code changes to fix issue #129
+- code changes to fix issue #128
+- code to sort the test bed components alphabetically ( related to issue #32 )
+
 23rd May 2014
 
 - issue #61 : added mechanism for test cases dependencies; user can define in GUI if a test case 
