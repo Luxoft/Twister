@@ -1,7 +1,7 @@
 
 # File: TscCommonLib.py ; This file is part of Twister.
 
-# version: 3.006
+# version: 3.008
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -61,7 +61,6 @@ class TscCommonLib(object):
     proxy_path = PROXY_ADDR
     userName = USER
     epName   = EP
-    sutName  = SUT
     global_vars = {}
 
 
@@ -92,6 +91,27 @@ class TscCommonLib(object):
         return self._FILE_ID
 
 
+    @property
+    def SUITE_NAME(self):
+        self._reload_libs()
+        name = self.ce_proxy.getSuiteVariable(self.epName, self._SUITE_ID, 'name')
+        return name
+
+    @property
+    def SUT(self):
+        self._reload_libs()
+        name = self.ce_proxy.getSuiteVariable(self.epName, self._SUITE_ID, 'sut')
+        return name
+
+
+    @property
+    def FILE_NAME(self):
+        self._reload_libs()
+        name = self.ce_proxy.getFileVariable(self.epName, self._FILE_ID, 'file')
+        if name: name = os.path.split(name)[1]
+        return name
+
+
     @classmethod
     def _ce_proxy(cls):
         """
@@ -102,13 +122,15 @@ class TscCommonLib(object):
         # The upper stack is either the EP, or the library that derives this
         stack_fpath = stack[1][1]
         stack_fname = os.path.split(stack_fpath)[1]
+        proxy = None
 
         # If the upper stack is not ExecutionProcess, the library is derived
         if stack_fname != 'ExecutionProcess.py':
             # The EP stack is always the last
             ep_code = stack[-1][0]
             # It's impossible to access the globals from the EP any other way
-            return ep_code.f_globals.get('ceProxy').root
+            p = ep_code.f_globals.get('ceProxy')
+            if p: return p.root
         del stack, stack_fpath
 
         # Try to reuse the old connection
@@ -126,7 +148,6 @@ class TscCommonLib(object):
             'allow_delattr': True,
             'allow_all_attrs': True,
             }
-        proxy = None
 
         ce_ip, ce_port = cls.proxy_path.split(':')
 

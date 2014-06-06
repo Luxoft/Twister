@@ -1,6 +1,6 @@
 /*
 File: Item.java ; This file is part of Twister.
-Version: 2.009
+Version: 2.010
 Copyright (C) 2012 , Luxoft
 
 Authors: Andrei Costachi <acostachi@luxoft.com>
@@ -44,11 +44,22 @@ public class Item implements Cloneable{
     private boolean panicdetect = false;
     private int ceindex;
     private boolean clearcase = false;
-    private HashMap <Item, String> dependencie = new  HashMap();
+    private HashMap <Item, String> dependencie;
     private String ID;
+    private int repeat = 1;
     
     
-    public String getID() {
+    
+    
+    public int getRepeat() {
+		return repeat;
+	}
+
+	public void setRepeat(int repeat) {
+		this.repeat = repeat;
+	}
+
+	public String getID() {
 		return ID;
 	}
 
@@ -76,12 +87,13 @@ public class Item implements Cloneable{
         this.indexpos = indexpos;
         this.type = type;
         this.name = name;
-        rectangle.setLocation(x,y);
-        rectangle.setSize(width,height);
+        this.rectangle.setLocation(x,y);
+        this.rectangle.setSize(width,height);
         if(type!=0){
-            checkrectangle.setLocation(x+3,y+3);
-            checkrectangle.setSize(height-6,height-6);}
-        ID = UUID.randomUUID().toString();
+            this.checkrectangle.setLocation(x+3,y+3);
+            this.checkrectangle.setSize(height-6,height-6);}
+        this.ID = UUID.randomUUID().toString();
+        this.dependencie = new  HashMap();
     }
             
     public void setPrerequisite(boolean prerequisite){
@@ -111,6 +123,8 @@ public class Item implements Cloneable{
     @SuppressWarnings("unchecked")
 	public Item clone(){
         try{Item clone = (Item)super.clone();
+        	clone.setPos((ArrayList <Integer>)getPos().clone());
+        	clone.setDependencies((HashMap<Item,String>)dependencie.clone());
             clone.subitems = (ArrayList <Item>)subitems.clone();
             for(int i=0;i<clone.getSubItemsNr();i++){clone.subitems.set(i, clone.getSubItem(i).clone());}
             return clone;}

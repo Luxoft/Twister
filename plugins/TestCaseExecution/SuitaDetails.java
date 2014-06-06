@@ -1,6 +1,6 @@
 /*
 File: SuitaDetails.java ; This file is part of Twister.
-Version: 2.0022
+Version: 2.0023
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -731,6 +731,7 @@ public class SuitaDetails extends JPanel {
                         String name = tsuite.getText();
                         FontMetrics metrics = getGraphics().getFontMetrics(new Font("TimesRoman", Font.BOLD, 14));
                         int width = metrics.stringWidth(name)+40;
+                        if(getItemParent().getRepeat()>1) width = metrics.stringWidth(getItemParent().getRepeat()+"X "+name)+40;
                         getItemParent().setName(name);
                         getItemParent().getRectangle().setSize(width,(int)getItemParent().getRectangle().getHeight());
                         if(getItemParent().isVisible())RunnerRepository.window.mainpanel.p1.sc.g.updateLocations(getItemParent());
@@ -770,6 +771,7 @@ public class SuitaDetails extends JPanel {
                     String name = ttcname.getText();
                     FontMetrics metrics = getGraphics().getFontMetrics(new Font("TimesRoman", Font.BOLD, 14));
                     int width = metrics.stringWidth(name)+20;
+                    if(getItemParent().getRepeat()>1) width = metrics.stringWidth(getItemParent().getRepeat()+"X "+name)+20;
                     getItemParent().setName(name);
                     getItemParent().getRectangle().setSize(width,(int)getItemParent().getRectangle().getHeight());
                     if(getItemParent().isVisible())RunnerRepository.window.mainpanel.p1.sc.g.updateLocations(getItemParent());

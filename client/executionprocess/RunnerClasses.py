@@ -1,7 +1,7 @@
 
 # File: TestCaseRunnerClasses.py ; This file is part of Twister.
 
-# version: 2.005
+# version: 3.002
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -48,19 +48,19 @@ if not TWISTER_PATH:
 
 #
 
-class TCRunTcl:
+class TCRunTcl(object):
 
     def __init__(self):
 
         try:
             import Tkinter
-        except:
+        except Exception:
             print('*ERROR* Cannot import Python Tkinter! Exiting!')
             exit(1)
 
         try:
             tcl = Tkinter.Tcl()
-        except:
+        except Exception:
             print('*ERROR* Cannot create TCL console! Exiting!')
             exit(1)
 
@@ -93,13 +93,13 @@ class TCRunTcl:
         del self.tcl
         open(os.getcwd()+'/__recomposed.tcl', 'w').close()
         try: os.remove('__recomposed.tcl')
-        except: pass
+        except Exception: pass
         global TWISTER_PATH
         fnames = '{}/.twister_cache/{}/*.tcl'.format(TWISTER_PATH, self.epname)
         for fname in glob.glob(fnames):
             # print 'Cleanup TCL file:', fname
             try: os.remove(fname)
-            except: pass
+            except Exception: pass
         #
 
     def _eval(self, str_to_execute, globs={}, params=[]):
@@ -166,7 +166,7 @@ class TCRunTcl:
                 else:
                     print 'TC Dump Warning: Cannot get value for var `%s`!' % var
                     try: tcl.eval('puts $'+var)
-                    except: pass
+                    except Exception: pass
                     v = ''
 
             self.all_vars_values[var] = v
@@ -217,15 +217,13 @@ class TCRunTcl:
 
 #
 
-class TCRunPython:
+class TCRunPython(object):
 
     def _eval(self, str_to_execute, globs={}, params=[]):
-        '''
+        """
         Variable `_RESULT` must be injected inside the exec,
         or else the return will always be None.
-        '''
-        #
-        global TWISTER_PATH
+        """
         self.epname = globs['EP']
         self.filename = os.path.split(globs['FILE_NAME'])[1]
         fpath = '{}/.twister_cache/{}/{}'.format(TWISTER_PATH, self.epname, self.filename)
@@ -261,40 +259,135 @@ sys.argv = %s
         for fname in glob.glob(fnames):
             # print 'Cleanup Python file:', fname
             try: os.remove(fname)
-            except: pass
+            except Exception: pass
         #
 
 #
 
-class TCRunPerl:
+class TCRunPerl(object):
+    """
+    Perl test runner.
+    """
 
     def _eval(self, str_to_execute, globs={}, params=[]):
-        '''
-        Perl test runner.
-        '''
-        #
-        _RESULT = None
-        to_execute = str_to_execute
-        #
-        f = open('__to_execute.plx', 'wb')
-        f.write(to_execute)
+        """
+        Variable `_RESULT` must be injected inside the exec,
+        or else the return will always be None.
+        """
+        self.epname = globs['EP']
+        self.filename = os.path.split(globs['FILE_NAME'])[1]
+        fdir  = '{}/.twister_cache/{}'.format(TWISTER_PATH, self.epname)
+        fpath = fdir + os.sep + self.filename
+
+        # String begins with #!/usr/bin/perl ?
+        if  str_to_execute[0] == '#':
+            str_to_execute = '\n'.join( str_to_execute.split('\n')[1:] )
+
+        text_head = r"""#!/usr/bin/perl
+
+$STATUS_PASS     = 0;
+$STATUS_FAIL     = 3;
+$STATUS_SKIPPED  = 4;
+$STATUS_ABORTED  = 5;
+$STATUS_NOT_EXEC = 6;
+$STATUS_TIMEOUT  = 7;
+$STATUS_INVALID  = 8;
+
+$EP  = TWISTER_EP();
+$SUT = TWISTER_SUT();
+$USER = TWISTER_USER();
+$SUITE_NAME = TWISTER_SUITE_NAME();
+$FILE_NAME  = TWISTER_FILE_NAME();
+
+"""
+
+        text_tail = r"""
+use Inline Python => <<"END_OF_PYTHON_CODE";
+
+import os, sys
+__file__ = '%s'
+sys.argv = %s
+sys.path.append('%s')
+sys.path.append('%s/ce_libs')
+from TscCommonLib import TscCommonLib
+
+commonLib = TscCommonLib()
+
+def TWISTER_USER():
+    from ce_libs import USER as x
+    return x
+
+def TWISTER_EP():
+    from ce_libs import EP as x
+    return x
+
+def TWISTER_SUT():
+    return commonLib.SUT
+
+def TWISTER_SUITE_NAME():
+    return commonLib.SUITE_NAME
+
+def TWISTER_FILE_NAME():
+    return commonLib.FILE_NAME
+
+def logMsg(*arg, **kw):
+    return commonLib.logMsg(*arg, **kw)
+
+def getGlobal(*arg, **kw):
+    return commonLib.getGlobal(*arg, **kw)
+
+def setGlobal(*arg, **kw):
+    return commonLib.setGlobal(*arg, **kw)
+
+def getConfig(*arg, **kw):
+    return commonLib.getConfig(*arg, **kw)
+
+def getBinding(*arg, **kw):
+    return commonLib.getBinding(*arg, **kw)
+
+def getResource(*arg, **kw):
+    return commonLib.getResource(*arg, **kw)
+
+def setResource(*arg, **kw):
+    return commonLib.setResource(*arg, **kw)
+
+def getSut(*arg, **kw):
+    return commonLib.getSut(*arg, **kw)
+
+def setSut(*arg, **kw):
+    return commonLib.setSut(*arg, **kw)
+
+END_OF_PYTHON_CODE
+"""  %  (fpath, str([self.filename] + params), TWISTER_PATH, fdir)
+
+        f = open(fpath, 'wb')
+        f.write(text_head)
+        f.write(str_to_execute)
+        f.write(text_tail)
         f.close() ; del f
-        #
-        proc = subprocess.Popen('perl' + ' __to_execute.plx', shell=True, bufsize=1)
+
+        env = os.environ
+        env.update({'TWISTER_PATH': TWISTER_PATH})
+
+        print('~ Perl ~ Compiling Inline::Python ~\n')
+        proc = subprocess.Popen('perl '+ fpath, env=env, shell=True, bufsize=1)
         ret = proc.communicate()
         time.sleep(0.5)
-        #
-        try: os.remove('__to_execute.plx')
-        except: pass
-        #
+
+        try: os.remove(fpath)
+        except Exception: pass
+
         # The _RESULT must be injected from within the perl script
-        return _RESULT
+        print('\n~ Perl returned code `{}` ~'.format(proc.returncode))
+        return proc.returncode
         #
 
 #
 
-class TCRunJava:
-    """ Java Runner """
+class TCRunJava(object):
+    """
+    Java Runner.
+    """
 
     def _eval(self, str_to_execute, globs={}, params=[]):
         """ Java test runner """
@@ -380,7 +473,7 @@ class TCRunJava:
             # print 'Cleanup Java file: filePath
             try:
                 os.remove(filePath)
-            except:
+            except Exception:
                 pass
 
 # Eof()
