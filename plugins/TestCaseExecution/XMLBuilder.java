@@ -1,6 +1,6 @@
 /*
 File: XMLBuilder.java ; This file is part of Twister.
-Version: 2.022
+Version: 2.023
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -50,7 +50,7 @@ public class XMLBuilder{
     private Transformer transformer;
     private DOMSource source;
     private ArrayList <Item> suite;
-    private boolean skip;
+    public boolean skip;
     private HashMap <String,ArrayList<String>> elements = new HashMap();//hash with initial id and list with final id's, if element was clone array contains multiple elements, first elem in array is first elem index
     private HashMap <Text,String> dependenciestags = new HashMap();//store dependecies tag and element first index+":"+ep
 
@@ -221,6 +221,12 @@ public class XMLBuilder{
             em2 = document.createElement("tsName");
             em2.appendChild(document.createTextNode(suite.get(i).getName()));
             rootElement.appendChild(em2);
+            
+            if(!skip){
+                em2 = document.createElement("Repeat");
+                em2.appendChild(document.createTextNode(suite.get(i).getRepeat()+""));
+                rootElement.appendChild(em2);
+            }
             
             
             em2 = document.createElement("PanicDetect");
@@ -429,6 +435,12 @@ public class XMLBuilder{
             }
             tc.appendChild(em3);
             
+            if(!skip){
+                em3 = document.createElement("Repeat");
+                em3.appendChild(document.createTextNode(item.getRepeat()+""));  
+                tc.appendChild(em3);
+            }
+            
             em3 = document.createElement("ID");
             Text idtext = document.createTextNode(item.getID());
             em3.appendChild(idtext);
@@ -536,6 +548,12 @@ public class XMLBuilder{
             Element em2 = document.createElement("tsName");
             em2.appendChild(document.createTextNode(item.getName()));
             rootElement2.appendChild(em2);
+            if(!skip){
+                em2 = document.createElement("Repeat");
+                em2.appendChild(document.createTextNode(item.getRepeat()+""));
+                rootElement2.appendChild(em2);
+            }
+            
             em2 = document.createElement("ID");
             Text idtext = document.createTextNode(item.getID());
             em2.appendChild(idtext);
@@ -652,7 +670,10 @@ public class XMLBuilder{
                     if(lib){ //predefined suites  
                         return RunnerRepository.savePredefinedProjectFile(file.getName(),new Scanner(file).useDelimiter("\\A").next());
                     } else {//normal suites                        
-                        RunnerRepository.saveProjectFile(file.getName(),new Scanner(file).useDelimiter("\\A").next());
+                        if(RunnerRepository.saveProjectFile(file.getName(),new Scanner(file).useDelimiter("\\A").next())==null){
+                            return false;
+                        }
+                        return true;
                     }
                 }}
             catch(Exception e){e.printStackTrace();

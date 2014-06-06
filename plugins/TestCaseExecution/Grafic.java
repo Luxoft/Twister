@@ -1,6 +1,6 @@
 /*
 File: Grafic.java ; This file is part of Twister.
-Version: 2.0028
+Version: 2.0029
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -1134,7 +1134,7 @@ public class Grafic extends JPanel{
      * prints this item and his 
      * subitems indices on screen
      */
-    public void printPos(Item item){
+    public static void printPos(Item item){
         if(item.getType()==0||item.getType()==1||item.getType()==2){
             System.out.print(item.getName()+" - ");
             for(int i=0;i<item.getPos().size();i++){
@@ -1617,6 +1617,12 @@ public class Grafic extends JPanel{
         item.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 setConfigurations(true);}});
+        item = new JMenuItem("Repeat");
+        p.add(item);
+        item.addActionListener(new ActionListener(){
+            public void actionPerformed(ActionEvent ev){
+                reapeatItem(tc);
+            }});
         item = new JMenuItem("Remove");
         p.add(item);
         item.addActionListener(new ActionListener(){
@@ -1659,6 +1665,12 @@ public class Grafic extends JPanel{
             public void actionPerformed(ActionEvent ev){
                 exportSuiteToPredefined(suita);
             }});
+        item = new JMenuItem("Repeat");
+        p.add(item);
+        item.addActionListener(new ActionListener(){
+            public void actionPerformed(ActionEvent ev){
+                reapeatItem(suita);
+            }});
         item = new JMenuItem("Remove");
         p.add(item);
         item.addActionListener(new ActionListener(){
@@ -1689,6 +1701,28 @@ public class Grafic extends JPanel{
                     repaint();
                     selectedcollection.clear();}}});     
         p.show(this,ev.getX(),ev.getY());}
+        
+    //repeat item window
+    public void reapeatItem(Item item){
+        String respons = CustomDialog.showInputDialog(JOptionPane.INFORMATION_MESSAGE, 
+                                                            JOptionPane.OK_CANCEL_OPTION, 
+                                                            Grafic.this, "", "Number of times:");
+        int times;
+        try{times = Integer.parseInt(respons);}//exit if respons is not integer
+        catch(Exception e){
+            return;
+        }
+        if(times==0)times=1;//cannot set 0 as repeat
+        item.setRepeat(times);
+        
+        FontMetrics metrics = getGraphics().getFontMetrics(new Font("TimesRoman", Font.BOLD, 14));
+        int width = metrics.stringWidth(times+"X "+item.getName())+40;
+        item.getRectangle().setSize(width,(int)item.getRectangle().getHeight());
+        if(item.isVisible())updateLocations(item);
+        repaint();
+        
+        
+    }
         
     /*
      * export this suite in predefined suites
@@ -2141,8 +2175,14 @@ public class Grafic extends JPanel{
             g.drawRect((int)item.getRectangle().getX(),(int)item.getRectangle().getY(),
                         (int)item.getRectangle().getWidth(),(int)item.getRectangle().getHeight());}
         if(item.getType()==2){
-            g.drawString(item.getName(),(int)item.getRectangle().getX()+45,
+            //draw repeat
+            if(item.getRepeat()>1){
+                g.drawString(item.getRepeat()+"X "+item.getName(),(int)item.getRectangle().getX()+45,
                         (int)item.getRectangle().getY()+18);
+            } else {
+                g.drawString(item.getName(),(int)item.getRectangle().getX()+45,
+                        (int)item.getRectangle().getY()+18);
+            }
             g.drawImage(RunnerRepository.getSuitaIcon(),(int)item.getRectangle().getX()+25,
                         (int)item.getRectangle().getY()+1,null);
             //draw dependency icon if necesary
@@ -2154,8 +2194,15 @@ public class Grafic extends JPanel{
         else if(item.getType()==1){
             if(item.isPrerequisite()||item.isTeardown())g.setColor(Color.RED);
             else if(!item.isRunnable())g.setColor(Color.GRAY);
-            g.drawString(item.getName(),(int)item.getRectangle().getX()+50,
+            //draw repeat
+            if(item.getRepeat()>1){
+                g.drawString(item.getRepeat()+"X "+item.getName(),(int)item.getRectangle().getX()+50,
                         (int)item.getRectangle().getY()+15);
+            } else {
+                g.drawString(item.getName(),(int)item.getRectangle().getX()+50,
+                        (int)item.getRectangle().getY()+15);
+            }
+            
             g.setColor(Color.BLACK);
             g.drawImage(RunnerRepository.getTCIcon(),(int)item.getRectangle().getX()+25,
                         (int)item.getRectangle().getY()+2,null);
@@ -2268,7 +2315,7 @@ public class Grafic extends JPanel{
      */
     public boolean printXML(String user, boolean skip,
                             boolean local, boolean stoponfail,boolean prestoponfail,
-                            boolean savedb, String delay,boolean lib, ArrayList<Item> array,String [][] preojdefined){
+                            boolean savedb, String delay,boolean lib, ArrayList<Item> array,String [][] projdefined){
         //skip = true
         try{if(array==null)array = RunnerRepository.getSuite();
             XMLBuilder xml = new XMLBuilder(array);
@@ -2276,7 +2323,7 @@ public class Grafic extends JPanel{
                           RunnerRepository.window.mainpanel.p1.suitaDetails.getPreScript(),
                           RunnerRepository.window.mainpanel.p1.suitaDetails.getPostScript(),
                           savedb,delay,RunnerRepository.window.mainpanel.p1.suitaDetails.getGlobalLibs(),
-                          preojdefined)){
+                          projdefined)){
                 return false;
             }
             return xml.writeXMLFile(user,local,false,lib);}

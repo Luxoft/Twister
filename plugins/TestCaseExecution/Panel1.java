@@ -1,6 +1,6 @@
 /*
 File: Panel1.java ; This file is part of Twister.
-Version: 2.0030
+Version: 2.0031
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -61,6 +61,7 @@ import java.util.Iterator;
 import javax.swing.JTabbedPane;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.dnd.DnDConstants;
+import java.util.UUID;
 
 /*
  * Suites generation panel
@@ -127,7 +128,7 @@ public class Panel1 extends JPanel{
         suitaDetails = new SuitaDetails(RunnerRepository.getDatabaseUserFields(),RunnerRepository.getProjectUserFields());
         generate.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
-                generate();}});
+                generate(false);}});
         this.applet = applet;
         menu = new JMenuBar();
         menu.setLayout(null);
@@ -160,6 +161,14 @@ public class Panel1 extends JPanel{
         item.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent ev){
                 saveSuiteAs();}});
+        filemenu.add(item);
+        if(!PermissionValidator.canCreateProject()){
+            item.setEnabled(false);
+        }
+        item = new JMenuItem("Save for CLI");
+        item.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent ev){
+                generate(true);}});
         filemenu.add(item);
         if(!PermissionValidator.canCreateProject()){
             item.setEnabled(false);
@@ -384,42 +393,103 @@ public class Panel1 extends JPanel{
                                             "Warning, file not saved");}}
     }
     
+    /*
+     * generate opened project file
+     * and save it for CLI
+     */
+    private void saveForCLI(){
+        final JTextField tf = new JTextField();
+        JButton ok = new JButton("OK");
+        JButton cancel = new JButton("Cancel");
+        final JDialog dialog = CustomDialog.getDialog(tf, new JButton[]{ok,cancel},
+                                                    JOptionPane.PLAIN_MESSAGE,
+                                                    JOptionPane.OK_CANCEL_OPTION,
+                                                    RunnerRepository.window,
+                                                    "Please enter file name", null);
+        dialog.addWindowListener(new WindowAdapter(){
+          public void windowClosing(WindowEvent e){
+              tf.setText("");
+          }
+        });
+        ok.addActionListener(new ActionListener() {
+          @Override
+          public void actionPerformed(ActionEvent arg0) {
+              dialog.setVisible(false);
+              dialog.dispose();
+          }
+        });
+        cancel.addActionListener(new ActionListener() {
+          @Override
+          public void actionPerformed(ActionEvent arg0) {
+              tf.setText("");
+              dialog.setVisible(false);
+              dialog.dispose();
+          }
+        });
+        dialog.setVisible(true);          
+        String user = tf.getText();
+        if(user!=null&&!user.equals("")){
+            if(user.toLowerCase().indexOf(".xml")!=-1){
+                int index = user.toLowerCase().indexOf(".xml");
+                user = user.substring(0, index);
+            }
+            user+=".xml";
+                          
+            XMLBuilder xml = new XMLBuilder(RunnerRepository.getSuite());
+            xml.createXML(true,suitaDetails.stopOnFail(),suitaDetails.preStopOnFail(),false,
+                          RunnerRepository.window.mainpanel.p1.suitaDetails.getPreScript(),
+                          RunnerRepository.window.mainpanel.p1.suitaDetails.getPostScript(),
+                          suitaDetails.saveDB(),suitaDetails.getDelay(),RunnerRepository.window.mainpanel.p1.suitaDetails.getGlobalLibs(),
+                          RunnerRepository.window.mainpanel.p1.suitaDetails.getProjectDefs());
+            xml.skip = false;//must set to true to save generate file as suite file
+            if(xml.writeXMLFile(RunnerRepository.temp+RunnerRepository.getBar()+"Twister"+RunnerRepository.getBar()+"Users"+RunnerRepository.getBar()+user,
+                             false, false, false)){
+                    CustomDialog.showInfo(JOptionPane.PLAIN_MESSAGE, 
+                                            RunnerRepository.window, "Success",
+                                            "File successfully saved");
+            } else {CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, 
+                                            RunnerRepository.window, "Warning", 
+                                            "Warning, file not saved");
+            }
+        }
+    }
+    
     
     /*
      * save opened project file
      * on server with name provided by user
      */
     private void saveSuiteAs(){
-          final JTextField tf = new JTextField();
-          JButton ok = new JButton("OK");
-          JButton cancel = new JButton("Cancel");
-          final JDialog dialog = CustomDialog.getDialog(tf, new JButton[]{ok,cancel},
+            final JTextField tf = new JTextField();
+            JButton ok = new JButton("OK");
+            JButton cancel = new JButton("Cancel");
+            final JDialog dialog = CustomDialog.getDialog(tf, new JButton[]{ok,cancel},
                                                         JOptionPane.PLAIN_MESSAGE,
                                                         JOptionPane.OK_CANCEL_OPTION,
                                                         RunnerRepository.window,
                                                         "Please enter project file name", null);
-          dialog.addWindowListener(new WindowAdapter(){
+            dialog.addWindowListener(new WindowAdapter(){
               public void windowClosing(WindowEvent e){
                   tf.setText("");
               }
-          });
-          ok.addActionListener(new ActionListener() {
+            });
+            ok.addActionListener(new ActionListener() {
               @Override
               public void actionPerformed(ActionEvent arg0) {
                   dialog.setVisible(false);
                   dialog.dispose();
               }
-          });
-          cancel.addActionListener(new ActionListener() {
+            });
+            cancel.addActionListener(new ActionListener() {
               @Override
               public void actionPerformed(ActionEvent arg0) {
                   tf.setText("");
                   dialog.setVisible(false);
                   dialog.dispose();
               }
-          });
-          dialog.setVisible(true);          
-          String user = tf.getText();
+            });
+            dialog.setVisible(true);          
+            String user = tf.getText();
         
 //            String user = CustomDialog.showInputDialog(JOptionPane.QUESTION_MESSAGE,
 //                                                   JOptionPane.OK_CANCEL_OPTION, RunnerRepository.window,
@@ -676,7 +746,6 @@ public class Panel1 extends JPanel{
         splitPane3.setLeftComponent(sc.pane);
         optionstabs.insertTab("Selection Options", null, suitaDetails, null, 0);
         optionstabs.setSelectedIndex(0);
-        System.out.println(optionstabs.getTabCount());
         splitPane3.setRightComponent(optionstabs);
         try{
             SwingUtilities.invokeLater(new Runnable(){
@@ -728,7 +797,7 @@ public class Panel1 extends JPanel{
     /*
      * generate master suites XML
      */
-    private void generate(){
+    private void generate(boolean cli){
         //check CE has clients started
         try{
             String resp = RunnerRepository.getRPCClient().execute("hasClients", new Object[]{RunnerRepository.user}).toString();
@@ -850,41 +919,277 @@ public class Panel1 extends JPanel{
             }
         }
         
-        if(execute){
-            String [] s = sc.g.getUser().split("\\\\");
-            if(s.length>0){
-                s[s.length-1] = "last_edited.xml";
-                StringBuilder st = new StringBuilder();
-                for(String i:s){
-                    st.append(i);
-                    st.append("\\");
+        if(execute){//all conditions are respected, start generating the file
+            if(!cli){//if not for cli create last edited file
+                String [] s = sc.g.getUser().split("\\\\");
+                if(s.length>0){
+                    s[s.length-1] = "last_edited.xml";
+                    StringBuilder st = new StringBuilder();
+                    for(String i:s){
+                        st.append(i);
+                        st.append("\\");
+                    }
+                    st.deleteCharAt(st.length()-1);
+                    String user = st.toString();
+                    if(sc.g.printXML(user, false,false,
+                                     suitaDetails.stopOnFail(),
+                                     suitaDetails.preStopOnFail(),
+                                     suitaDetails.saveDB(),
+                                     suitaDetails.getDelay(),false,null,RunnerRepository.window.mainpanel.p1.suitaDetails.getProjectDefs())){}
+                    else CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, 
+                                                RunnerRepository.window, "Warning", 
+                                                "Warning, temp file not saved");                    
                 }
-                st.deleteCharAt(st.length()-1);
-                String user = st.toString();
-                if(sc.g.printXML(user, false,false,
-                                 suitaDetails.stopOnFail(),
-                                 suitaDetails.preStopOnFail(),
-                                 suitaDetails.saveDB(),
-                                 suitaDetails.getDelay(),false,null,RunnerRepository.window.mainpanel.p1.suitaDetails.getProjectDefs())){}
-                else CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, 
-                                            RunnerRepository.window, "Warning", 
-                                            "Warning, temp file not saved");                    
             }
-            if(!sc.g.printXML(RunnerRepository.getTestXMLDirectory(),true,false,
-                          suitaDetails.stopOnFail(),suitaDetails.preStopOnFail(),suitaDetails.saveDB(),
-                          suitaDetails.getDelay(),false,null,RunnerRepository.window.mainpanel.p1.suitaDetails.getProjectDefs())){
-                CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE, 
-                                            RunnerRepository.window, "ERROR", 
-                                            "Could not generate XML, please check log!");  
-                return;
+            
+            
+            //duplicate repeating items
+            ArrayList<Item> clone = new ArrayList<Item>();//array to hold the new created suites after duplicating
+            for(Item i:RunnerRepository.getSuite()){
+                multiplicateItem(i,clone);
             }
-            RunnerRepository.emptyTestRunnerRepository();
-            File xml = new File(RunnerRepository.getTestXMLDirectory());
-            int size = RunnerRepository.getLogs().size();
-            for(int i=5;i<size;i++){RunnerRepository.getLogs().remove(5);}
-            new XMLReader(xml).parseXML(sc.g.getGraphics(), true,RunnerRepository.getTestSuite(),false);
-            dependency.setParent(null);
-            setRunning();
+            
+            //adjust items indexes in array
+            for(Item i:clone){
+                adjustIndex(i,clone.indexOf(i));
+            }
+            
+            if(!cli){// if not for cli populate runner suite with the new created suites and continue generating file
+                RunnerRepository.getSuite().clear();//populate the suites array with the new duplicated suites
+                for(Item i:clone){
+                    RunnerRepository.addSuita(i);
+                }
+                HashMap<String,ArrayList<Item>> duplicate = new HashMap();
+                for(Item i:RunnerRepository.getSuite()){//store duplicates based on id
+                    saveID(i,duplicate);
+                }
+                for(Item i:RunnerRepository.getSuite()){//remap dependencies
+                    remapDependency(i,duplicate);
+                }
+                if(!sc.g.printXML(RunnerRepository.getTestXMLDirectory(),true,false,
+                                  suitaDetails.stopOnFail(),suitaDetails.preStopOnFail(),suitaDetails.saveDB(),
+                                  suitaDetails.getDelay(),false,null,RunnerRepository.window.mainpanel.p1.suitaDetails.getProjectDefs())){
+                    CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE, 
+                                                RunnerRepository.window, "ERROR", 
+                                                "Could not generate XML, please check log!");
+                    return;
+                }
+                RunnerRepository.emptyTestRunnerRepository();
+                File xml = new File(RunnerRepository.getTestXMLDirectory());
+                int size = RunnerRepository.getLogs().size();
+                for(int i=5;i<size;i++){RunnerRepository.getLogs().remove(5);}
+                new XMLReader(xml).parseXML(sc.g.getGraphics(), true,RunnerRepository.getTestSuite(),false);
+                dependency.setParent(null);
+                setRunning();
+            } else {//cli file must be generated
+                HashMap<String,ArrayList<Item>> duplicate = new HashMap();//store duplicates based on id
+                for(Item i:clone){
+                    saveID(i,duplicate);
+                }   
+                for(Item i:clone){//remap dependencies
+                    remapDependency(i,duplicate);
+                }
+                
+                final JTextField tf = new JTextField();
+                JButton ok = new JButton("OK");
+                JButton cancel = new JButton("Cancel");
+                final JDialog dialog = CustomDialog.getDialog(tf, new JButton[]{ok,cancel},
+                                                            JOptionPane.PLAIN_MESSAGE,
+                                                            JOptionPane.OK_CANCEL_OPTION,
+                                                            RunnerRepository.window,
+                                                            "Please enter file name", null);
+                dialog.addWindowListener(new WindowAdapter(){
+                  public void windowClosing(WindowEvent e){
+                      tf.setText("");
+                  }
+                });
+                ok.addActionListener(new ActionListener() {
+                  @Override
+                  public void actionPerformed(ActionEvent arg0) {
+                      dialog.setVisible(false);
+                      dialog.dispose();
+                  }
+                });
+                cancel.addActionListener(new ActionListener() {
+                  @Override
+                  public void actionPerformed(ActionEvent arg0) {
+                      tf.setText("");
+                      dialog.setVisible(false);
+                      dialog.dispose();
+                  }
+                });
+                dialog.setVisible(true);          
+                String user = tf.getText();
+                if(user!=null&&!user.equals("")){
+                    if(user.toLowerCase().indexOf(".xml")!=-1){
+                        int index = user.toLowerCase().indexOf(".xml");
+                        user = user.substring(0, index);
+                    }
+                    user+=".xml";
+                                  
+                    XMLBuilder xml = new XMLBuilder(clone);
+                    xml.createXML(true,suitaDetails.stopOnFail(),suitaDetails.preStopOnFail(),false,
+                                  RunnerRepository.window.mainpanel.p1.suitaDetails.getPreScript(),
+                                  RunnerRepository.window.mainpanel.p1.suitaDetails.getPostScript(),
+                                  suitaDetails.saveDB(),suitaDetails.getDelay(),RunnerRepository.window.mainpanel.p1.suitaDetails.getGlobalLibs(),
+                                  RunnerRepository.window.mainpanel.p1.suitaDetails.getProjectDefs());
+                    xml.skip = false;//must set to true to save generate file as suite file
+                    if(xml.writeXMLFile(RunnerRepository.temp+RunnerRepository.getBar()+"Twister"+RunnerRepository.getBar()+"Users"+RunnerRepository.getBar()+user,
+                                     false, false, false)){
+                            CustomDialog.showInfo(JOptionPane.PLAIN_MESSAGE, 
+                                                    RunnerRepository.window, "Success",
+                                                    "File successfully saved");
+                    } else {CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, 
+                                                    RunnerRepository.window, "Warning", 
+                                                    "Warning, file not saved");
+                    }
+                }                
+            }
+        }
+    }
+    
+    private void printItems(Item item){
+        System.out.println(item.getFileLocation());
+        if(item.getType()==2){
+            for(Item i:item.getSubItems()){
+                printItems(i);
+            }
+        }
+    }
+    
+    private void adjustIndex(Item i, int value){
+        i.updatePos(i.getPos().size()-1, value);
+        if(i.getType()==2){
+            for(Item item: i.getSubItems()){
+                adjustIndex(item,i.getSubItems().indexOf(item));
+            }
+        }        
+    }
+    
+    private void remapDependency(Item i, HashMap<String,ArrayList<Item>> duplicates){
+        if(i.getDependencies().size()>0){
+            ArrayList<Item>torem = new ArrayList();
+            HashMap<Item,String> add = new HashMap();
+            for(Item dependency:i.getDependencies().keySet()){
+                if(duplicates.get(dependency.getID())!=null && duplicates.get(dependency.getID()).size()>1){
+                    String status = i.getDependencies().get(dependency);
+                    //i.getDependencies().remove(dependency);
+                    torem.add(dependency);
+                    //check they are on the same suite
+                    boolean onsamesuite = false;
+                    for(Item duplicate:duplicates.get(dependency.getID())){
+                        if(duplicate.getPos().get(0)==i.getPos().get(0)){
+                            onsamesuite = true;
+                            break;
+                        }
+                    }                    
+                    if(!onsamesuite){//not on same suite, must add all dependencies
+                        for(Item duplicate:duplicates.get(dependency.getID())){
+                            //i.getDependencies().put(duplicate, status);
+                            add.put(duplicate, status);
+                            
+                        }
+                    }else { //on same suite, must add only the ones that are on same suite
+                        for(Item duplicate:duplicates.get(dependency.getID())){
+                            if(duplicate.getPos().get(0)==i.getPos().get(0)){
+                                //i.getDependencies().put(duplicate, status);
+                                add.put(duplicate, status);
+                            }
+                        }
+                    }
+                }
+            }
+            for(Item rem:torem){
+                i.getDependencies().remove(rem);
+            }
+            for(Item dependency:add.keySet()){
+                i.getDependencies().put(dependency, add.get(dependency));
+            }
+        }
+        if(i.getType()==2){
+            for(Item item:i.getSubItems()){
+                remapDependency(item,duplicates);
+            }
+        }
+    }
+    
+    private void printDependencySize(Item i){
+        if(i.getType()==2){
+            for(Item item:i.getSubItems()){
+                printDependencySize(item);
+            }
+        }
+    }
+    
+    private void saveID(Item i,HashMap<String,ArrayList<Item>> duplicate){
+        ArrayList<Item> array = duplicate.get(i.getID());
+        if(array==null){
+            array = new ArrayList<Item>();
+        }
+        array.add(i);
+        duplicate.put(i.getID(), array);
+        i.setID(UUID.randomUUID().toString());//generate new ID for duplicated items
+        if(i.getType()==2){
+            for(Item item:i.getSubItems()){
+                saveID(item,duplicate);
+            }
+        }
+    }
+    
+    //manage duplicating items
+    private void multiplicateItem(Item item, ArrayList<Item> array){
+        ArrayList <Item> clonearray = new ArrayList();
+        if(item.getRepeat()>1){
+            for(int nr=0;nr<item.getRepeat();nr++){
+                Item clone  = item.clone();
+                for(Item i:item.getDependencies().keySet()){
+                    clone.getDependencies().put(i, item.getDependencies().get(i));
+                }
+                if(clone.getType()==1){
+                    ArrayList <Integer> indexpos3 = (ArrayList <Integer>)clone.getPos().clone();
+                    indexpos3.add(new Integer(clone.getSubItemsNr()));
+                    Item property = new Item("Iteration",0,-1,-1,0,20,indexpos3);
+                    property.setValue(nr+1+"");
+                    clone.addSubItem(property);
+                }
+                array.add(clone);
+                if(clone.getType()==2){
+                    clonearray.clear();
+                    for(Item i:clone.getSubItems()){
+                        multiplicateItem(i, clonearray);
+                    }
+                    clone.getSubItems().clear();
+                    for(Item i:clonearray){
+                        clone.addSubItem(i);
+                    }
+                }
+            }
+        } else {
+//             array.add(item);
+//             if(item.getType()==2){
+//                 for(Item i:item.getSubItems()){
+//                     multiplicateItem(i, clonearray);
+//                 }
+//                 item.getSubItems().clear();
+//                 for(Item i:clonearray){
+//                     item.addSubItem(i);
+//                 }
+//             }
+            
+            Item clone = item.clone();
+            for(Item i:item.getDependencies().keySet()){
+                clone.getDependencies().put(i, item.getDependencies().get(i));
+            }
+            array.add(clone);
+            if(clone.getType()==2){
+                for(Item i:clone.getSubItems()){
+                    multiplicateItem(i, clonearray);
+                }
+                clone.getSubItems().clear();
+                for(Item i:clonearray){
+                    clone.addSubItem(i);
+                }
+            }
         }
     }
     
@@ -1207,7 +1512,6 @@ class TreeDropTargetListener implements DropTargetListener {
                     System.out.println("Could not get folder location");
                 }
             } else if(str.equals("tc")){//drop called from tc
-                System.out.println("tc");
                 try{g.setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
                     if(!g.getOnlyOptionals()){
                         g.clearDraggingLine();
@@ -1219,7 +1523,6 @@ class TreeDropTargetListener implements DropTargetListener {
                     e.printStackTrace();
                     System.out.println("Could not get folder location");}
             } else if(str.equals("clearcase")){//drop called from clearcase
-                System.out.println("clearcase");
                 try{g.setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
                     if(!g.getOnlyOptionals()){
                         g.clearDraggingLine();

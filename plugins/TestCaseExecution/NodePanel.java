@@ -203,6 +203,11 @@ public class NodePanel extends JPanel{
                                     e.printStackTrace();
                                 }
                                 if(query.equals("true")){
+                                    if(parent.getType() == 0){//save only tb's
+                                        if(RunnerRepository.window.mainpanel.p4.getTB().saveChanges("/"+parent.getName())){
+                                            RunnerRepository.window.mainpanel.p4.getTB().setSavedState(treenode,true);
+                                        }
+                                    }
                                     updatePaths(treenode, parent);
                                     parent.setName(tname.getText());
                                     tpath.setText(parent.getPath().getPath());
@@ -226,11 +231,6 @@ public class NodePanel extends JPanel{
                                     ((DefaultTreeModel)tree.getModel()).nodeChanged(treenode);
                                     RunnerRepository.window.mainpanel.p4.getTB().setSavedState(treenode,false);
                                     update.setEnabled(false);
-                                    if(parent.getType() == 0){//save only tb's
-                                        if(RunnerRepository.window.mainpanel.p4.getTB().saveChanges("/"+parent.getName())){
-                                            RunnerRepository.window.mainpanel.p4.getTB().setSavedState(treenode,true);
-                                        }
-                                    }
                                     RunnerRepository.window.mainpanel.p4.getTB().clearParent();
                                 } else {
                                     CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,NodePanel.this,
@@ -292,7 +292,13 @@ public class NodePanel extends JPanel{
      */
     private void updatePaths(DefaultMutableTreeNode tnode, Node node){
         try{
-            HashMap hash= (HashMap)client.execute("getResource", new Object[]{node.getID()});
+            Object respons = client.execute("getResource", new Object[]{node.getID()});
+            if(!(respons instanceof HashMap)){
+                CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,NodePanel.this,
+                                                  "ERROR", respons.toString());
+                return;
+            }
+            HashMap hash= (HashMap)respons;
             String path = hash.get("path").toString();
             node.setPath(path);
             Enumeration e = tnode.children();
@@ -343,7 +349,8 @@ public class NodePanel extends JPanel{
                 jLabel2.setBounds(160, i*30+5, 45, 14);
                 proppanel.add(jTextField2);
                 jTextField2.setBounds(205, i*30+2, 100, 20);
-                jTextField2.setText(values[i].toString());
+                //jTextField2.setText(values[i].toString());
+                jTextField2.setText(parent.getProperties().get(keys[i].toString()).toString());
                 update.setBounds(310, i*30+2, 90, 20);
                 update.addActionListener(new ActionListener(){
                     public void actionPerformed(ActionEvent ev){
@@ -351,7 +358,7 @@ public class NodePanel extends JPanel{
                         try{
                             if(!jTextField1.getOldValue().equals(jTextField1.getText())){
                                 if(parent.getPropery(jTextField1.getText())==null){
-                                    String resp = client.execute("renameResource", new Object[]{"/"+parent.getName()+":"+jTextField1.getOldValue(),
+                                    String resp = client.execute("renameResource", new Object[]{parent.getID()+":"+jTextField1.getOldValue(),
                                                                                                 jTextField1.getText()}).toString();
                                     if(resp.equals("true")){
                                         parent.addProperty(jTextField1.getText(), parent.getProperties().remove(jTextField1.getOldValue()).toString());

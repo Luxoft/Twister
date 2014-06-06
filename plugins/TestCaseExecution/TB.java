@@ -1,6 +1,6 @@
 /*
 File: TB.java ; This file is part of Twister.
-Version: 2.026
+Version: 2.027
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -67,6 +67,7 @@ import javax.swing.JProgressBar;
 import java.util.Comparator;
 import javax.swing.tree.MutableTreeNode;
 import java.util.Arrays;
+import java.util.ArrayList;
 
 public class TB extends JPanel{
     private XmlRpcClient client;
@@ -182,6 +183,35 @@ public class TB extends JPanel{
         activetbusers.add(refreshtb);
         refreshtb.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
+                Enumeration en = root.children();
+                while(en.hasMoreElements()){//check for not saved tb's
+                    DefaultMutableTreeNode treenode = (DefaultMutableTreeNode)en.nextElement();
+                    if(!((Node)(treenode).getUserObject()).getLastSaved()){
+                        String [] buttons = {"Continue","Cancel"};
+                        String resp = CustomDialog.showButtons(TB.this, JOptionPane.QUESTION_MESSAGE,
+                                                                    JOptionPane.DEFAULT_OPTION, null,buttons ,
+                                                                    "Confirmation","All changes will be lost, do you want to continue ?");
+                        if (!resp.equals("NULL")) {
+                            if(resp.equals("Continue")){
+                                ArrayList<String>reserved = new ArrayList();//initial reserved tb's
+                                en = root.children();
+                                while(en.hasMoreElements()){
+                                    treenode = (DefaultMutableTreeNode)en.nextElement();
+                                    Node node = (Node)(treenode).getUserObject();
+                                    if(isReservedByUser("/"+((Node)(treenode).getUserObject()).getName())){
+                                        reserved.add(node.getID());
+                                    }
+                                }
+                                releaseAllResources();//discard all changes and release
+                                for(String id:reserved){//reserve the initial reserved tb's
+                                    reserve(id);
+                                }
+                                buildFirstLevelTB();
+                            }
+                            return;
+                        }
+                    }
+                }
                 buildFirstLevelTB();
         }});
         JButton importxml = new JButton("Import XML");
@@ -927,7 +957,8 @@ public class TB extends JPanel{
      */
     public boolean removeNode(Node node,DefaultMutableTreeNode treenode){
         try{
-            String id = "/"+node.getName();
+            //String id = "/"+node.getName();
+            String id = node.getID();
             String s = client.execute("deleteResource", new Object[]{id}).toString();
             if(s.indexOf("*ERROR*")==-1){
                 Node parent = node.getParent();
