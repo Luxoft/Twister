@@ -4,6 +4,7 @@
 - code changes to fix issue #129
 - code changes to fix issue #128
 - code to sort the test bed components alphabetically ( related to issue #32 )
+- added GUI code to save projects for CLI run ( issue #127 )
 
 23rd May 2014
 

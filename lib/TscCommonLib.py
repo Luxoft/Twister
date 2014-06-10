@@ -1,7 +1,7 @@
 
 # File: TscCommonLib.py ; This file is part of Twister.
 
-# version: 3.008
+# version: 3.009
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -80,6 +80,20 @@ class TscCommonLib(object):
 
 
     @property
+    def sutName(self):
+        self._reload_libs()
+        name = self.ce_proxy.getSuiteVariable(self.epName, self._SUITE_ID, 'sut')
+        return name
+
+
+    @property
+    def SUT(self):
+        self._reload_libs()
+        name = self.ce_proxy.getSuiteVariable(self.epName, self._SUITE_ID, 'sut')
+        return name
+
+
+    @property
     def SUITE_ID(self):
         self._reload_libs()
         return self._SUITE_ID
@@ -95,12 +109,6 @@ class TscCommonLib(object):
     def SUITE_NAME(self):
         self._reload_libs()
         name = self.ce_proxy.getSuiteVariable(self.epName, self._SUITE_ID, 'name')
-        return name
-
-    @property
-    def SUT(self):
-        self._reload_libs()
-        name = self.ce_proxy.getSuiteVariable(self.epName, self._SUITE_ID, 'sut')
         return name
 
 
