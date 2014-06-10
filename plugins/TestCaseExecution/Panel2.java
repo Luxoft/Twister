@@ -1,6 +1,6 @@
 /*
 File: Panel2.java ; This file is part of Twister.
-Version: 2.0018
+Version: 2.0019
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -138,22 +138,23 @@ public class Panel2 extends JPanel{
                 RunnerRepository.window.mainpanel.p1.edit.setEnabled(true);
                 play.setText("Run");
                 play.setIcon(new ImageIcon(RunnerRepository.playicon));
-                if(runned && !savedb){
-                    new Thread(){
-                        public void run(){
-                            try{
-                                Thread.sleep(200);
-                                userOptions();
-                            } catch(Exception e){
-                                e.printStackTrace();
+                if(runned){
+                    if(!savedb){
+                        new Thread(){
+                            public void run(){
+                                try{
+                                    Thread.sleep(200);
+                                    userOptions();
+                                } catch(Exception e){
+                                    e.printStackTrace();
+                                }
                             }
-                        }
-                    }.start();
+                        }.start();
+                    }
                     runned = false;
                 }
                 stoppushed = false;}
             else if(result.equals("running")){
-                
                 if(first){
                     while(!RunnerRepository.initialized){
                         try{Thread.sleep(1000);}

@@ -1,7 +1,7 @@
 
 # File: CeProject.py ; This file is part of Twister.
 
-# version: 3.040
+# version: 3.041
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -435,6 +435,11 @@ class Project(object):
         eps = self.users[user].get('eps')
         if not eps:
             self.users[user]['eps'] = OrderedDict()
+        else:
+            # Empty the EP structure
+            for epname in eps:
+                self.users[user]['eps'][epname] = OrderedDict()
+                self.users[user]['eps'][epname]['status'] = STATUS_STOP
 
         # Ordered list with all suite IDs, for all EPs
         self.suite_ids[user] = []
