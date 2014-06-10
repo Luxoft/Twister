@@ -1,6 +1,6 @@
 #!/usr/bin/env python2.7
 
-# version: 3.011
+# version: 3.012
 
 # File: ExecutionProcess.py ; This file is part of Twister.
 
@@ -614,6 +614,8 @@ class TwisterRunner(object):
                 # Running !
                 if proxy().getEpStatus(self.epName) == 'running':
                     break
+            # Must re-check the libraries !
+            self.saveLibraries()
         else:
             print('EP Warn: EP name `{}` is NOT running! Exiting!\n'.format(self.epName))
             return self.exit(timer_f=0.0, stop=False)
