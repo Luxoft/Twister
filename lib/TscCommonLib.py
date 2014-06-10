@@ -1,7 +1,7 @@
 
 # File: TscCommonLib.py ; This file is part of Twister.
 
-# version: 3.008
+# version: 3.009
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -60,8 +60,7 @@ class TscCommonLib(object):
     __ce_proxy = None
     proxy_path = PROXY_ADDR
     userName = USER
-    epName   = EP  # The EP doesn't change
-    sutName  = SUT # The initial SUT
+    epName   = EP
     global_vars = {}
 
 
@@ -81,11 +80,16 @@ class TscCommonLib(object):
 
 
     @property
+    def sutName(self):
+        self._reload_libs()
+        name = self.ce_proxy.getSuiteVariable(self.epName, self._SUITE_ID, 'sut')
+        return name
+
+
+    @property
     def SUT(self):
         self._reload_libs()
         name = self.ce_proxy.getSuiteVariable(self.epName, self._SUITE_ID, 'sut')
-        # Update the SUT name !
-        self.sutName = name
         return name
 
 
