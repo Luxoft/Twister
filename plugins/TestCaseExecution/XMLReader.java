@@ -1,6 +1,6 @@
 /*
 File: XMLReader.java ; This file is part of Twister.
-Version: 2.022
+Version: 2.023
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -35,13 +35,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 public class XMLReader{
-//     private DocumentBuilderFactory dbf;
-//     private DocumentBuilder db;
     private int preprop = 12;//properties in xml available before Property tag, in testsuites repeat tag is not present, we will substract 2
     private Document doc;
     private Element fstNmElmnt,
                     secNmElmnt,trdNmElmnt;
-//                     fstElmnt,
     private NodeList fstNmElmntLst,fstNm,secNmElmntLst,secNm,
                      trdNmElmntLst,trdNm,trdNmElmntLst2,trdNm2;
     private File f;
@@ -77,11 +74,15 @@ public class XMLReader{
             Item theone;
             int k = 0;
             if(node.getNodeName().equals("TestSuite")){
+                
+                
+                
                 fstNmElmntLst = ((Element)node).getElementsByTagName("tsName");
                 fstNmElmnt = (Element)fstNmElmntLst.item(0);
                 fstNm = fstNmElmnt.getChildNodes();
                 FontMetrics metrics = g.getFontMetrics(new Font("TimesRoman", 1, 13));
                 int width = metrics.stringWidth(fstNm.item(0).getNodeValue().toString());
+                
                 if(test){
                     theone = new Item(fstNm.item(0).getNodeValue(),2,
                                         -1,10, width+120,25,indexes);}
@@ -103,7 +104,6 @@ public class XMLReader{
                     fstNm = fstNmElmnt.getChildNodes();
                     if(fstNm.getLength()>0)dependencies.put(theone, fstNm.item(0).getNodeValue().toString());
                 }
-                
                 
                 fstNmElmntLst = ((Element)node).getElementsByTagName("Repeat");
                 if(fstNmElmntLst.getLength()>0){
@@ -169,6 +169,8 @@ public class XMLReader{
                 
             }
             else{
+                
+                
                 secNmElmntLst = ((Element)node).getElementsByTagName("tcName");
                 if(secNmElmntLst.getLength()==0)return;
                 secNmElmnt = (Element)secNmElmntLst.item(0);
@@ -463,6 +465,8 @@ public class XMLReader{
                 fstNm = fstNmElmnt.getChildNodes();
                 suitatemp.setID(fstNm.item(0).getNodeValue());
                 projectitems.put(suitatemp.getID(), suitatemp);
+            } else {
+                if(!test)k-=2;
             }
             
             fstNmElmntLst = fstElmnt.getElementsByTagName("Dependency");
@@ -470,6 +474,8 @@ public class XMLReader{
                 fstNmElmnt = (Element)fstNmElmntLst.item(0);
                 fstNm = fstNmElmnt.getChildNodes();
                 if(fstNm.getLength()>0)dependencies.put(suitatemp, fstNm.item(0).getNodeValue().toString());
+            }else {
+                if(!test)k-=2;
             }
             
             fstNmElmntLst = fstElmnt.getElementsByTagName("Repeat");
@@ -481,6 +487,8 @@ public class XMLReader{
                     width = metrics.stringWidth(suitatemp.getRepeat()+"X "+suitatemp.getName())+40;
                     suitatemp.getRectangle().setSize(width,(int)suitatemp.getRectangle().getHeight());
                 }
+            }else {
+                if(!test)k-=2;
             }
             
             try{fstNmElmntLst = fstElmnt.getElementsByTagName("PanicDetect");
