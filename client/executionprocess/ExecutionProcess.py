@@ -1,6 +1,6 @@
 #!/usr/bin/env python2.7
 
-# version: 3.010
+# version: 3.011
 
 # File: ExecutionProcess.py ; This file is part of Twister.
 
@@ -670,6 +670,8 @@ class TwisterRunner(object):
             # Files section
             file_id  = id
             suite_id = node['suite']
+            # Update suite name from CE
+            suite_name = proxy().getSuiteVariable(self.epName, suite_id, 'name')
             status   = node.get('status', STATUS_INVALID)
 
             # The name of the file

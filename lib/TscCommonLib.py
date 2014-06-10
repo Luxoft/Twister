@@ -60,7 +60,8 @@ class TscCommonLib(object):
     __ce_proxy = None
     proxy_path = PROXY_ADDR
     userName = USER
-    epName   = EP
+    epName   = EP  # The EP doesn't change
+    sutName  = SUT # The initial SUT
     global_vars = {}
 
 
@@ -80,6 +81,15 @@ class TscCommonLib(object):
 
 
     @property
+    def SUT(self):
+        self._reload_libs()
+        name = self.ce_proxy.getSuiteVariable(self.epName, self._SUITE_ID, 'sut')
+        # Update the SUT name !
+        self.sutName = name
+        return name
+
+
+    @property
     def SUITE_ID(self):
         self._reload_libs()
         return self._SUITE_ID
@@ -95,12 +105,6 @@ class TscCommonLib(object):
     def SUITE_NAME(self):
         self._reload_libs()
         name = self.ce_proxy.getSuiteVariable(self.epName, self._SUITE_ID, 'name')
-        return name
-
-    @property
-    def SUT(self):
-        self._reload_libs()
-        name = self.ce_proxy.getSuiteVariable(self.epName, self._SUITE_ID, 'sut')
         return name
 
 
