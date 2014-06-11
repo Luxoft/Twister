@@ -1,6 +1,6 @@
 #!/usr/bin/env python2.7
 
-# version: 3.012
+# version: 3.013
 
 # File: ExecutionProcess.py ; This file is part of Twister.
 
@@ -36,7 +36,6 @@ All the hard work is made by the Runner.
 """
 from __future__ import print_function
 from __future__ import with_statement
-from collections import OrderedDict
 
 import os
 import sys
@@ -47,7 +46,6 @@ import signal
 import shutil
 import binascii
 import platform
-import subprocess
 import traceback
 import tarfile
 import argparse
@@ -81,6 +79,8 @@ sys.path.append(TWISTER_PATH)
 PORTABLE = False
 EP_CACHE, EP_LOG = None, None
 proxyLock = allocate_lock() # Lock the connection access
+RUNNER = None
+LOGGER = None
 ceProxy   = None # Used to keep the current Central Engine connection
 bgServer  = None # Background serving server
 userName  = None # Used to check the Central Engine connection
@@ -115,18 +115,20 @@ STATUS_TIMEOUT  = 7
 STATUS_INVALID  = 8
 STATUS_WAITING  = 9
 
-testStatus = { 'pending':STATUS_PENDING,
+testStatus = {'pending':STATUS_PENDING,
     'working':STATUS_WORKING, 'pass':STATUS_PASS, 'fail':STATUS_FAIL,
     'skipped':STATUS_SKIPPED, 'aborted':STATUS_ABORTED,
     'not executed':STATUS_NOT_EXEC, 'timeout':STATUS_TIMEOUT,
-    'invalid':STATUS_INVALID, 'waiting':STATUS_WAITING }
+    'invalid':STATUS_INVALID, 'waiting':STATUS_WAITING}
 
-reversedStatus = dict((v,k) for k,v in testStatus.iteritems())
+reversedStatus = dict((v, k) for k, v in testStatus.iteritems())
 
 # ------------------------------------------------------------------------------
 
 class EpService(rpyc.Service):
-
+    """
+    Dummy service.
+    """
     def exposed_hello(self, param=None):
         """
         For testing connection.
@@ -151,7 +153,7 @@ def proxy():
     Dinamically connect to the Central Engine.
     """
     global userName, epName, cePath
-    global ceProxy, bgServer, proxyLock
+    global ceProxy, bgServer
 
     # RPyc config
     config = {
@@ -373,6 +375,12 @@ class TwisterRunner(object):
         self.cePath   = cePath
         self.sut      = ''
 
+        self.runners = {}
+        self.libs_list = []
+        self.commonLib = None
+        self.exit_on_test_fail = False
+        self.tc_delay = 0
+
 
     def __del__(self):
         self.exit()
@@ -403,7 +411,7 @@ class TwisterRunner(object):
         # Send stop status
         self.stop(timer_f, args, kw)
         # Flush all messages
-        logger.close()
+        LOGGER.close()
         # Close everything
         ceProxy.close()
         bgServer.stop()
@@ -432,7 +440,7 @@ class TwisterRunner(object):
         # Inject all known info about this EP
         ep_host = socket.gethostname()
         try: ep_ip = socket.gethostbyname(ep_host)
-        except: ep_ip = ''
+        except Exception: ep_ip = ''
         if platform.system().lower() == 'windows':
             system = platform.machine() +' '+ platform.system() +', '+ platform.release()
         else:
@@ -469,7 +477,7 @@ class TwisterRunner(object):
         # Run the tests!
         try:
             while 1:
-                r = self.tests()
+                self.tests()
                 if not PORTABLE:
                     break
         except Exception:
@@ -593,8 +601,6 @@ class TwisterRunner(object):
         """
         Cycle in all files, run each file, in order.
         """
-        global ceProxy
-
         # Count the time
         glob_time = time.time()
         last_time = glob_time
@@ -623,18 +629,17 @@ class TwisterRunner(object):
         # Download the Suites Manager structure from Central Engine!
         # This is the initial structure, created from the Project.XML file.
         data = proxy().getEpVariable(self.epName, 'suites')
-        SuitesManager = copy.deepcopy(data)
+        suitesManager = copy.deepcopy(data)
         del data
 
         # Used by all files
         suite_id    = None
         suite_data  = None
         suite_name  = None # Suite name string. This varies for each file.
-        suite_files = None # All files from current suite.
         abort_suite = False # Abort suite X, when setup file fails.
 
 
-        for id, node in SuitesManager.iterNodes(None, []):
+        for id, node in suitesManager.iterNodes(None, []):
 
             # When starting a new suite or sub-suite ...
             # Some files don't belong to this suite, they might belong to the parent of this suite,
@@ -642,7 +647,7 @@ class TwisterRunner(object):
             if node['type'] == 'suite':
 
                 if not node['children']:
-                    print('TC warning: Nothing to do in suite `{}`!\n'.format(suite_str))
+                    print('TC warning: Nothing to do in suite `{}`!\n'.format(id))
                     continue
 
                 self.sut = node['sut']
@@ -652,7 +657,7 @@ class TwisterRunner(object):
                 suite_str  = suite_id +' - '+ suite_name
 
                 # If this is a top level suite, set current_suite flag in EP Variables
-                if suite_id in SuitesManager:
+                if suite_id in suitesManager:
                     proxy().setEpVariable(self.epName, 'curent_suite', suite_id)
 
                 print('\n===== ===== ===== ===== =====')
@@ -670,11 +675,10 @@ class TwisterRunner(object):
 
 
             # Files section
-            file_id  = id
+            file_id = id
             suite_id = node['suite']
             # Update suite name from CE
             suite_name = proxy().getSuiteVariable(self.epName, suite_id, 'name')
-            status   = node.get('status', STATUS_INVALID)
 
             # The name of the file
             filename = node['file']
@@ -704,8 +708,10 @@ class TwisterRunner(object):
                         'status', 'file', 'suite', 'dependancy', 'Runnable',
                         'setup_file', 'teardown_file', 'Optional', 'config_files', 'param']:
                 # Removing all known File properties
-                try: del props[prop]
-                except: pass
+                try:
+                    del props[prop]
+                except Exception:
+                    pass
 
             # Re-create the ce_libs file
             self.makeCeLibs(suite_id, suite_name, file_id, os.path.split(filename)[1])
@@ -721,8 +727,8 @@ class TwisterRunner(object):
             # unless it's another setup, or teardown file from the current suite!
             # Abort_suite flag is set by the setup files from the beggining of a suite.
             if abort_suite:
-                aborted_ids = SuitesManager.getFiles(suite_id=abort_suite, recursive=True)
-                current_ids = SuitesManager.getFiles(suite_id=abort_suite, recursive=False)
+                aborted_ids = suitesManager.getFiles(suite_id=abort_suite, recursive=True)
+                current_ids = suitesManager.getFiles(suite_id=abort_suite, recursive=False)
                 if aborted_ids and (file_id in aborted_ids):
                     # If it's a teardown file from current level suite, run it
                     if teardown_file and (file_id in current_ids):
@@ -736,7 +742,7 @@ class TwisterRunner(object):
 
             try:
                 STATUS = proxy().getEpStatus(self.epName)
-            except:
+            except Exception:
                 print('Cannot connect to the Central Engine! Exiting!\n')
                 return False
 
@@ -763,7 +769,7 @@ class TwisterRunner(object):
 
                     try:
                         STATUS = proxy().getEpStatus(self.epName)
-                    except:
+                    except Exception:
                         print('~ NOT EXECUTED: Connection lost, while waiting for resume ! ~\n')
                         return False
 
@@ -849,7 +855,7 @@ class TwisterRunner(object):
                     abort_suite = suite_id
                     print('*ERROR* Setup file for suite `{}` cannot run! No such file! All suite will be ABORTED!\n\n'.format(suite_name))
                 try: proxy().setFileStatus(self.epName, file_id, STATUS_SKIPPED, 0.0) # Status SKIPPED
-                except:
+                except Exception:
                     trace = traceback.format_exc()[34:].strip()
                     print('Exception on change file status `{}`!\n'.format(trace))
                 print('<<< END filename: `{}:{}` >>>\n'.format(file_id, filename))
@@ -859,7 +865,7 @@ class TwisterRunner(object):
                 print('EP Debug: File `{}` will be skipped.\n'.format(filename))
                 # Skipped setup files are ok, no need to abort.
                 try: proxy().setFileStatus(self.epName, file_id, STATUS_SKIPPED, 0.0) # Status SKIPPED
-                except:
+                except Exception:
                     trace = traceback.format_exc()[34:].strip()
                     print('Exception on change file status `{}`!\n'.format(trace))
                 print('<<< END filename: `{}:{}` >>>\n'.format(file_id, filename))
@@ -873,7 +879,7 @@ class TwisterRunner(object):
                 f.write(str_to_execute)
                 f.close() ; del f
                 try: proxy().setFileStatus(self.epName, file_id, STATUS_SKIPPED, 0.0) # Status SKIPPED
-                except:
+                except Exception:
                     trace = traceback.format_exc()[34:].strip()
                     print('Exception on change file status `{}`!\n'.format(trace))
                 print('<<< END filename: `{}:{}` >>>\n'.format(file_id, filename))
@@ -913,7 +919,7 @@ class TwisterRunner(object):
                     abort_suite = suite_id
                     print('*ERROR* Setup file for suite `{}` cannot run! Unknown extension file! All suite will be ABORTED!\n\n'.format(suite_name))
                 try: proxy().setFileStatus(self.epName, file_id, STATUS_NOT_EXEC, 0.0) # Status NOT_EXEC
-                except:
+                except Exception:
                     trace = traceback.format_exc()[34:].strip()
                     print('Exception on change file status `{}`!\n'.format(trace))
                 print('<<< END filename: `{}:{}` >>>\n'.format(file_id, filename))
@@ -932,13 +938,13 @@ class TwisterRunner(object):
                     # Exit the cycle
                     diff_time = time.time() - glob_time
                     return self.exit(timer_f=diff_time, stop=False)
-            except:
+            except Exception:
                 print('Cannot connect to the Central Engine! Exiting!\n')
                 return False
 
             # The file is preparing
             try: proxy().setFileStatus(self.epName, file_id, STATUS_WORKING, 0.0) # Status WORKING
-            except:
+            except Exception:
                 trace = traceback.format_exc()[34:].strip()
                 print('Exception on change file status `{}`!\n'.format(trace))
 
@@ -965,7 +971,7 @@ class TwisterRunner(object):
             }
 
             # Find all functions from commonLib
-            to_inject = [ f for f in dir(self.commonLib) if callable(getattr(self.commonLib, f)) ]
+            to_inject = [f for f in dir(self.commonLib) if callable(getattr(self.commonLib, f))]
             # Expose all known function in tests
             for f in to_inject:
                 # print('DEBUG: Exposing Python command `{}` into TCL...'.format(f))
@@ -984,7 +990,7 @@ class TwisterRunner(object):
 
                 proxy().echo('*ERROR* Error executing file `{}`!'.format(filename))
                 try: proxy().setFileStatus(self.epName, file_id, STATUS_FAIL, (time.time() - timer_i))
-                except:
+                except Exception:
                     trace = traceback.format_exc()[34:].strip()
                     print('Exception on change file status `{}`!\n'.format(trace))
 
@@ -1022,31 +1028,31 @@ class TwisterRunner(object):
             print('Test statistics: Start time {} -- End time {} -- {:0.2f} sec.\n'.format(start_time, end_time, timer_f))
 
             try: result = int(result)
-            except: pass
+            except Exception: pass
 
             try:
-                if  result==0 or result==STATUS_PASS or result == 'PASS':
+                if  result == 0 or result == STATUS_PASS or result == 'PASS':
                     proxy().setFileStatus(self.epName, file_id, STATUS_PASS, timer_f) # File status PASS
-                elif result==STATUS_SKIPPED or result in ['SKIP', 'SKIPPED']:
+                elif result == STATUS_SKIPPED or result in ['SKIP', 'SKIPPED']:
                     proxy().setFileStatus(self.epName, file_id, STATUS_SKIPPED, timer_f) # File status SKIPPED
-                elif result==STATUS_ABORTED or result in ['ABORT', 'ABORTED']:
+                elif result == STATUS_ABORTED or result in ['ABORT', 'ABORTED']:
                     proxy().setFileStatus(self.epName, file_id, STATUS_ABORTED, timer_f) # File status ABORTED
-                elif result==STATUS_NOT_EXEC or result in ['NOT-EXEC', 'NOT EXEC', 'NOT EXECUTED']:
+                elif result == STATUS_NOT_EXEC or result in ['NOT-EXEC', 'NOT EXEC', 'NOT EXECUTED']:
                     proxy().setFileStatus(self.epName, file_id, STATUS_NOT_EXEC, timer_f) # File status NOT_EXEC
-                elif result==STATUS_TIMEOUT or result == 'TIMEOUT':
+                elif result == STATUS_TIMEOUT or result == 'TIMEOUT':
                     proxy().setFileStatus(self.epName, file_id, STATUS_TIMEOUT, timer_f) # File status TIMEOUT
-                elif result==STATUS_INVALID or result == 'INVALID':
+                elif result == STATUS_INVALID or result == 'INVALID':
                     proxy().setFileStatus(self.epName, file_id, STATUS_INVALID, timer_f) # File status INVALID
                 else:
                     result = STATUS_FAIL
                     proxy().setFileStatus(self.epName, file_id, STATUS_FAIL, timer_f) # File status FAIL
-            except:
+            except Exception:
                 trace = traceback.format_exc()[34:].strip()
                 print('EXCEPTION on final change file status `{}`!'.format(trace))
 
 
             # If status is not PASS
-            if (result!=STATUS_PASS and result!='PASS'):
+            if result != STATUS_PASS and result != 'PASS':
 
                 # If status is FAIL and the file is not Optional and Exit on test fail is ON, CLOSE the EP
                 if not optional_test and self.exit_on_test_fail:
@@ -1074,7 +1080,7 @@ class TwisterRunner(object):
         print('==========================\n')
 
 
-        del SuitesManager
+        del suitesManager
 
         # Print the final message
         diff_time = time.time() - glob_time
@@ -1090,7 +1096,7 @@ def warmup():
     """
     Main function.
     """
-    global EP_CACHE, EP_LOG, PORTABLE, logger
+    global EP_CACHE, EP_LOG, PORTABLE, LOGGER
 
     EP_CACHE = TWISTER_PATH + '/.twister_cache/' + epName
     EP_LOG = '{}/.twister_cache/{}_LIVE.log'.format(TWISTER_PATH, epName)
@@ -1134,17 +1140,17 @@ def warmup():
 
     if  PORTABLE:
         # This will redirect all print into the EP log file
-        logger = Logger()
+        LOGGER = Logger()
     else:
-        logger = ThreadedLogger()
-        logger.start()
+        LOGGER = ThreadedLogger()
+        LOGGER.start()
 
     print('EP Debug: Created the logger.\n')
 
 
 def signal_handler(*arg, **kw):
-    global runner
-    del runner
+    global RUNNER
+    del RUNNER
     ceProxy.close()
     bgServer.stop()
     sys.exit()
@@ -1153,14 +1159,14 @@ def signal_handler(*arg, **kw):
 # # #
 
 
-if __name__=='__main__':
+if __name__ == '__main__':
 
     #
     # python -Bu ExecutionProcess.py -u user -e Windows-EP -s 127.0.0.1:8000
     #
 
     pars = argparse.ArgumentParser(prog='Execution Process', description='Linux/ Windows test runner for Twister.')
-    pars.add_argument('-u', '--user',   type=str, help='The username')
+    pars.add_argument('-u', '--user', type=str, help='The username')
     pars.add_argument('-e', '--epname', type=str, help='The Execution Process name')
     pars.add_argument('-s', '--server', type=str, help='The Central Engine IP:Port', default='127.0.0.1:8000')
     argv = pars.parse_args()
@@ -1194,9 +1200,9 @@ if __name__=='__main__':
     warmup()
 
     # Launch !
-    runner = TwisterRunner(userName, epName, cePath)
-    runner.main()
-    del runner
+    RUNNER = TwisterRunner(userName, epName, cePath)
+    RUNNER.main()
+    del RUNNER
 
 
 # Eof()
