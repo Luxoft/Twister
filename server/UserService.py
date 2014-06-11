@@ -1,7 +1,7 @@
 
 # File: UserService.py ; This file is part of Twister.
 
-# version: 3.007
+# version: 3.008
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -311,8 +311,14 @@ class UserService(rpyc.Service):
             dlist = [] # Folders list
             flist = [] # Files list
 
+            try:
+                names = sorted(os.listdir(path), key=str.lower)
+            except Exception as e:
+                log.warning('*WARN* Cannot list folder `{}`: `{}`!'.format(path, e))
+                return []
+
             # Cycle a folder
-            for fname in sorted(os.listdir(path), key=str.lower):
+            for fname in names:
                 long_path  = path + os.sep + fname
                 # If filter is active and file doesn't match, ignore
                 if filter and os.path.isfile(long_path) and long_path not in filter:
@@ -339,10 +345,15 @@ class UserService(rpyc.Service):
                 short_path = long_path[len_path:]
                 # Data to append
                 nd = {'path': short_path, 'data': fname, 'meta': meta_info}
+
                 if os.path.isdir(long_path):
                     nd['folder'] = True
-                    children = dirList(long_path)
-                    if not children:
+                    # Recursive !
+                    if recursive:
+                        children = dirList(long_path)
+                    else:
+                        children = []
+                    if children in [False, None]:
                         continue
                     nd['children'] = children
                     dlist.append(nd)
