@@ -1,16 +1,15 @@
 
 # File: TestCaseRunnerClasses.py ; This file is part of Twister.
 
-# version: 3.002
+# version: 3.003
 
-# Copyright (C) 2012-2013 , Luxoft
+# Copyright (C) 2012-2014, Luxoft
 
 # Authors:
-#    Adrian Toader <adtoader@luxoft.com>
 #    Andrei Costachi <acostachi@luxoft.com>
-#    Andrei Toma <atoma@luxoft.com>
 #    Cristi Constantin <crconstantin@luxoft.com>
 #    Daniel Cioata <dcioata@luxoft.com>
+#    Mihai Tudoran <mtudoran@luxoft.com>
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -49,36 +48,26 @@ if not TWISTER_PATH:
 #
 
 class TCRunTcl(object):
+    """
+    TCL runner class.
+    """
+    epname = ''
+    all_vars = 0
+    all_vars_values = 0
+    all_procs = 0
+    all_procs_values = 0
 
     def __init__(self):
 
         try:
             import Tkinter
         except Exception:
-            print('*ERROR* Cannot import Python Tkinter! Exiting!')
-            exit(1)
+            raise Exception('*ERROR* Cannot import Python Tkinter! Exiting!')
 
         try:
-            tcl = Tkinter.Tcl()
+            self.tcl = Tkinter.Tcl()
         except Exception:
-            print('*ERROR* Cannot create TCL console! Exiting!')
-            exit(1)
-
-        DEFAULT_INFO_VARS = ['_tkinter_skip_tk_init', 'argc', 'argv', 'argv0', 'auto_index', 'auto_oldpath',
-            'auto_path', 'env', 'errorCode', 'errorInfo', 'tcl_interactive', 'tcl_libPath', 'tcl_library',
-            'tcl_patchLevel', 'tcl_pkgPath', 'tcl_platform', 'tcl_rcFileName', 'tcl_version', 'exp_library',
-            'expect_library', 'exp_exec_library']
-
-        DEFAULT_INFO_PROCS = ['auto_execok', 'auto_import', 'auto_load', 'auto_load_index', 'auto_qualify',
-            'clock', 'history', 'tclLog', 'unknown', 'pkg_mkIndex']
-
-        self.epname = ''
-        self.all_vars = 0
-        self.all_vars_values = 0
-        self.all_procs = 0
-        self.all_procs_values = 0
-
-        self.tcl = Tkinter.Tcl()
+            raise Exception('*ERROR* Cannot create TCL console! Exiting!')
 
         if os.path.exists(os.getcwd()+'/__recomposed.tcl'):
             # Restore all variables and functions
@@ -88,19 +77,22 @@ class TCRunTcl(object):
         # self.tcl.eval('package require Expect')
 
     def __del__(self):
-        #
-        # On exit delete all recomposed and Tcl files
+        """
+        On exit delete all recomposed and Tcl files
+        """
         del self.tcl
         open(os.getcwd()+'/__recomposed.tcl', 'w').close()
-        try: os.remove('__recomposed.tcl')
-        except Exception: pass
-        global TWISTER_PATH
+        try:
+            os.remove('__recomposed.tcl')
+        except Exception:
+            pass
         fnames = '{}/.twister_cache/{}/*.tcl'.format(TWISTER_PATH, self.epname)
         for fname in glob.glob(fnames):
             # print 'Cleanup TCL file:', fname
-            try: os.remove(fname)
-            except Exception: pass
-        #
+            try:
+                os.remove(fname)
+            except Exception:
+                pass
 
     def _eval(self, str_to_execute, globs={}, params=[]):
         '''
@@ -110,73 +102,99 @@ class TCRunTcl(object):
         self.epname = globs['EP']
 
         # Inject variables
-        self.tcl.setvar('USER',       globs['USER'])
-        self.tcl.setvar('EP',         globs['EP'])
-        self.tcl.setvar('SUT',        globs['SUT'])
-        self.tcl.setvar('SUITE_ID',   globs['SUITE_ID'])
-        self.tcl.setvar('SUITE_NAME', globs['SUITE_NAME'])
-        self.tcl.setvar('FILE_ID',    globs['FILE_ID'])
-        self.tcl.setvar('FILE_NAME',  globs['FILE_NAME'])
-        self.tcl.setvar('CONFIG', ';'.join(globs['CONFIG']))
+        self.tcl.setvar('USER',
+            globs['USER'])
+        self.tcl.setvar('EP',
+            globs['EP'])
+        self.tcl.setvar('SUT',
+            globs['SUT'])
+        self.tcl.setvar('SUITE_ID',
+            globs['SUITE_ID'])
+        self.tcl.setvar('SUITE_NAME',
+            globs['SUITE_NAME'])
+        self.tcl.setvar('FILE_ID',
+            globs['FILE_ID'])
+        self.tcl.setvar('FILE_NAME',
+            globs['FILE_NAME'])
+        self.tcl.setvar('CONFIG',
+            ';'.join(globs['CONFIG']))
 
         # Inject common functions
-        self.tcl.createcommand('logMessage',  globs['logMsg'])
-        self.tcl.createcommand('getGlobal',   globs['getGlobal'])
-        self.tcl.createcommand('setGlobal',   globs['setGlobal'])
-        self.tcl.createcommand('py_exec',     globs['py_exec'])
+        self.tcl.createcommand('logMessage',
+            globs['logMsg'])
+        self.tcl.createcommand('getGlobal',
+            globs['getGlobal'])
+        self.tcl.createcommand('setGlobal',
+            globs['setGlobal'])
+        self.tcl.createcommand('py_exec',
+            globs['py_exec'])
 
-        self.tcl.createcommand('getResource',    globs['getResource'])
-        self.tcl.createcommand('setResource',    globs['setResource'])
-        self.tcl.createcommand('renameResource', globs['renameResource'])
-        self.tcl.createcommand('deleteResource', globs['deleteResource'])
-        self.tcl.createcommand('getResourceStatus', globs['getResourceStatus'])
-        self.tcl.createcommand('allocResource',     globs['allocResource'])
-        self.tcl.createcommand('reserveResource',   globs['reserveResource'])
-        self.tcl.createcommand('freeResource',      globs['freeResource'])
+        self.tcl.createcommand('getResource',
+            globs['getResource'])
+        self.tcl.createcommand('setResource',
+            globs['setResource'])
+        self.tcl.createcommand('renameResource',
+            globs['renameResource'])
+        self.tcl.createcommand('deleteResource',
+            globs['deleteResource'])
+        self.tcl.createcommand('getResourceStatus',
+            globs['getResourceStatus'])
+        self.tcl.createcommand('allocResource',
+            globs['allocResource'])
+        self.tcl.createcommand('reserveResource',
+            globs['reserveResource'])
+        self.tcl.createcommand('freeResource',
+            globs['freeResource'])
 
-        to_execute = str_to_execute
-        to_execute = '\nset argc %i\n' % len(params) + to_execute
+        to_execute = '\nset argc %i\n' % len(params) + str_to_execute
         to_execute = 'set argv {%s}\n' % str(params)[1:-1] + to_execute
 
-        _RESULT = self.tcl.eval(to_execute)
-        return _RESULT
+        return self.tcl.eval(to_execute)
         #
 
-    def dump_tcl(tcl):
-        '''
+    def dump_tcl(self, tcl):
+        """
         Dumps all TCL Variables and Procedures in a file called "__recomposed.tcl".
         This file can be executed later; all vars and procs should be restored correctly.
         Default variables like "argc", "argv", "tcl_platform", etc are ignored.
         Default procedures like "clock", "history", etc are also ignored.
-        '''
+        """
+
+        default_info_vars = ['_tkinter_skip_tk_init', 'argc', 'argv', 'argv0', 'auto_index', 'auto_oldpath',
+            'auto_path', 'env', 'errorCode', 'errorInfo', 'tcl_interactive', 'tcl_libPath', 'tcl_library',
+            'tcl_patchLevel', 'tcl_pkgPath', 'tcl_platform', 'tcl_rcFileName', 'tcl_version', 'exp_library',
+            'expect_library', 'exp_exec_library']
+
+        default_info_procs = ['auto_execok', 'auto_import', 'auto_load', 'auto_load_index', 'auto_qualify',
+            'clock', 'history', 'tclLog', 'unknown', 'pkg_mkIndex']
 
         # Find all TCL variables !
-        self.all_vars = [var0 for var0 in tcl.eval('info vars').split() if var0 not in DEFAULT_INFO_VARS]
+        self.all_vars = [var0 for var0 in tcl.eval('info vars').split() if var0 not in default_info_vars]
         # Everything must be restored in order
         self.all_vars_values = OrderedDict()
 
         for var in self.all_vars:
-            #
             try:
-                v = tcl.getvar(var)
-            except Tkinter.TclError, e:
+                val = tcl.getvar(var)
+            except Tkinter.TclError as e:
                 if str(e).endswith('variable is array'):
                     # Recomposed arrays
-                    v = tcl.eval('array get %s' % var)
+                    val = tcl.eval('array get %s' % var)
                 else:
                     print 'TC Dump Warning: Cannot get value for var `%s`!' % var
-                    try: tcl.eval('puts $'+var)
-                    except Exception: pass
-                    v = ''
+                    try:
+                        tcl.eval('puts $'+var)
+                    except Exception:
+                        pass
+                    val = ''
 
-            self.all_vars_values[var] = v
-            #
+            self.all_vars_values[var] = val
 
         #print('\nProcessing variables...')
         #print(self.all_vars_values)
 
         # Find all TCL functions !
-        self.all_procs = [proc0 for proc0 in tcl.eval('info procs').split() if proc0 not in DEFAULT_INFO_PROCS]
+        self.all_procs = [proc0 for proc0 in tcl.eval('info procs').split() if proc0 not in default_info_procs]
         # Everything must be restored in order
         self.all_procs_values = OrderedDict()
         tcl.eval('set vDefaultArg ""')
@@ -205,19 +223,24 @@ class TCRunTcl(object):
         #print('\nProcessesing functions...')
         #print(self.all_procs_values)
 
-        f = open(os.getcwd()+'/__recomposed.tcl', 'w')
-        f.write('\n# Recomposed...\n\n')
+        fname = open(os.getcwd()+'/__recomposed.tcl', 'w')
+        fname.write('\n# Recomposed...\n\n')
         for var in self.all_vars_values:
-            f.write('variable %s {%s}\n' % (var, self.all_vars_values[var]))
+            fname.write('variable %s {%s}\n' % (var, self.all_vars_values[var]))
         for proc in self.all_procs_values:
-            f.write('\n')
-            f.write(self.all_procs_values[proc])
-            f.write('\n')
-        f.close() ; del f
+            fname.write('\n')
+            fname.write(self.all_procs_values[proc])
+            fname.write('\n')
+        fname.close()
 
 #
 
 class TCRunPython(object):
+    """
+    Python runner class.
+    """
+    epname = ''
+    filename = ''
 
     def _eval(self, str_to_execute, globs={}, params=[]):
         """
@@ -230,8 +253,8 @@ class TCRunPython(object):
 
         # Start injecting inside tests
         globs_copy = dict(globs)
-        globs_copy['os']   = os
-        globs_copy['sys']  = sys
+        globs_copy['os'] = os
+        globs_copy['sys'] = sys
         globs_copy['time'] = time
 
         to_execute = r"""
@@ -239,10 +262,10 @@ __file__ = '%s'
 sys.argv = %s
 """ % (fpath, str([self.filename] + params))
 
-        f = open(fpath, 'wb')
-        f.write(to_execute)
-        f.write(str_to_execute)
-        f.close() ; del f
+        fname = open(fpath, 'wb')
+        fname.write(to_execute)
+        fname.write(str_to_execute)
+        fname.close()
 
         execfile(fpath, globs_copy)
 
@@ -252,15 +275,16 @@ sys.argv = %s
 
 
     def __del__(self):
-        #
-        # On exit delete all Python files
-        global TWISTER_PATH
+        """
+        On exit, delete all Python files.
+        """
         fnames = '{}/.twister_cache/{}/*.py*'.format(TWISTER_PATH, self.epname)
         for fname in glob.glob(fnames):
             # print 'Cleanup Python file:', fname
-            try: os.remove(fname)
-            except Exception: pass
-        #
+            try:
+                os.remove(fname)
+            except Exception:
+                pass
 
 #
 
@@ -268,6 +292,8 @@ class TCRunPerl(object):
     """
     Perl test runner.
     """
+    epname = ''
+    filename = ''
 
     def _eval(self, str_to_execute, globs={}, params=[]):
         """
@@ -276,12 +302,12 @@ class TCRunPerl(object):
         """
         self.epname = globs['EP']
         self.filename = os.path.split(globs['FILE_NAME'])[1]
-        fdir  = '{}/.twister_cache/{}'.format(TWISTER_PATH, self.epname)
+        fdir = '{}/.twister_cache/{}'.format(TWISTER_PATH, self.epname)
         fpath = fdir + os.sep + self.filename
 
         # String begins with #!/usr/bin/perl ?
         if  str_to_execute[0] == '#':
-            str_to_execute = '\n'.join( str_to_execute.split('\n')[1:] )
+            str_to_execute = '\n'.join(str_to_execute.split('\n')[1:])
 
         text_head = r"""#!/usr/bin/perl
 
@@ -360,22 +386,24 @@ def setSut(*arg, **kw):
 END_OF_PYTHON_CODE
 """  %  (fpath, str([self.filename] + params), TWISTER_PATH, fdir)
 
-        f = open(fpath, 'wb')
-        f.write(text_head)
-        f.write(str_to_execute)
-        f.write(text_tail)
-        f.close() ; del f
+        fname = open(fpath, 'wb')
+        fname.write(text_head)
+        fname.write(str_to_execute)
+        fname.write(text_tail)
+        fname.close()
 
         env = os.environ
         env.update({'TWISTER_PATH': TWISTER_PATH})
 
         print('~ Perl ~ Compiling Inline::Python ~\n')
         proc = subprocess.Popen('perl '+ fpath, env=env, shell=True, bufsize=1)
-        ret = proc.communicate()
+        proc.communicate()
         time.sleep(0.5)
 
-        try: os.remove(fpath)
-        except Exception: pass
+        try:
+            os.remove(fpath)
+        except Exception:
+            pass
 
         # The _RESULT must be injected from within the perl script
         print('\n~ Perl returned code `{}` ~'.format(proc.returncode))
@@ -386,13 +414,14 @@ END_OF_PYTHON_CODE
 
 class TCRunJava(object):
     """
-    Java Runner.
+    Java runner class.
     """
+    epname = None
 
     def _eval(self, str_to_execute, globs={}, params=[]):
-        """ Java test runner """
-
-        global TWISTER_PATH
+        """
+        Java test runner.
+        """
         self.epname = globs['EP']
 
         _RESULT = None
@@ -420,41 +449,37 @@ class TCRunJava(object):
                 '{0}/.twister_cache/{1}/ce_libs/tscJython.jar'.format(TWISTER_PATH, self.epname))
             tscJythonPath = '{0}/.twister_cache/{1}/ce_libs/tscJython.jar'.format(
                                                                     TWISTER_PATH, self.epname)
-        except Exception, e:
+        except Exception as e:
             print 'Error: Compiler path not found'
             print 'Error: {er}'.format(er=e)
-
-            return _RESULT
+            return None
 
         # create test
         fileName = os.path.split(globs['FILE_NAME'])[1]
         filesPath = '{}/.twister_cache/{}'.format(TWISTER_PATH, self.epname)
         filePath = os.path.join(filesPath, fileName)
 
-        with open(filePath, 'wb+') as f:
-            f.write(str_to_execute)
+        with open(filePath, 'wb') as fname:
+            fname.write(str_to_execute)
 
 
-        # compile java test
-        #command = [javaCompilerPath, '-classpath', junitClassPath, testFile]
-        javacProcess = subprocess.Popen('{jc} -classpath "{cl0}:{cl1}:{cl2}" {fl}'.format(
+        # Compile java test
+        subprocess.Popen('{jc} -classpath "{cl0}:{cl1}:{cl2}" {fl}'.format(
                         jc=javaCompilerPath, cl0=junitClassPath, cl1=tscJythonPath,
                         cl2=jythonClassPath, fl=filePath), shell=True)
 
 
-        # run test
-        compiledFilePath = os.path.join(filesPath,
-                            '{fn}.class'.format(fn=os.path.splitext(fileName)[0]))
+        # Run test
+        compiledFilePath = os.path.join(filesPath, '{fn}.class'.format(fn=os.path.splitext(fileName)[0]))
         jythonRunner = os.path.join(TWISTER_PATH, 'common/jython/jythonRunner.jpy')
-        #command = [jythonRunner, '--testFilePath', testFile]
         jythonProcess = subprocess.Popen('jython {jp} --classFilePath {cf} '\
             '--testFilePath {fl}'.format(jp=jythonRunner,
             cf=junitClassPath, fl=compiledFilePath), shell=True)
         jythonProcess.wait()
-        if not jythonProcess.returncode in returnCode:
-            print 'unknown return code'
 
-            return _RESULT
+        if not jythonProcess.returncode in returnCode:
+            print 'Unknown return code'
+            return None
 
         _RESULT = returnCode[jythonProcess.returncode]
 
@@ -463,11 +488,9 @@ class TCRunJava(object):
 
 
     def __del__(self):
-        """ cleanup """
-
-        global TWISTER_PATH
-
-        # On exit delete all Java files
+        """
+        On exit, cleanup.
+        """
         fileNames = '{}/.twister_cache/{}/*.java*'.format(TWISTER_PATH, self.epname)
         for filePath in glob.glob(fileNames):
             # print 'Cleanup Java file: filePath
@@ -475,5 +498,6 @@ class TCRunJava(object):
                 os.remove(filePath)
             except Exception:
                 pass
+
 
 # Eof()
