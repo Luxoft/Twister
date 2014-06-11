@@ -1,7 +1,7 @@
 
 # File: UserService.py ; This file is part of Twister.
 
-# version: 3.008
+# version: 3.009
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -284,15 +284,16 @@ class UserService(rpyc.Service):
         if folder[0] == '~':
             folder = userHome() + folder[1:]
         if folder == '/':
+            base_path = '/'
             log.warning('*WARN* Listing folders from system ROOT.')
             recursive = False
+        else:
+            base_path = folder.rstrip('/')
 
         if not os.path.isdir(folder):
             err = '*ERROR* Invalid folder path `{}`!'.format(folder)
             log.warning(err)
             return err
-
-        base_path = folder.rstrip('/')
 
         def dirList(path):
             """
@@ -302,7 +303,9 @@ class UserService(rpyc.Service):
             # The node is valid ?
             if not path:
                 return False
-            path = path.rstrip('/')
+            # Cleanup '/'
+            if path != '/':
+                path = path.rstrip('/')
             # This is folder ?
             if os.path.isfile(path):
                 return False
@@ -326,6 +329,7 @@ class UserService(rpyc.Service):
                 # Ignore hidden files
                 if hidden and fname[0] == '.':
                     continue
+                log.warning( long_path )
                 # Meta info
                 try:
                     fstat = os.stat(long_path)
@@ -339,8 +343,9 @@ class UserService(rpyc.Service):
                         gname = fstat.st_gid
                     meta_info = '{}|{}|{}|{}'.format(uname, gname, fstat.st_size,
                         time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(fstat.st_mtime)))
-                except:
+                except Exception:
                     meta_info = ''
+
                 # Semi long path
                 short_path = long_path[len_path:]
                 # Data to append
@@ -368,7 +373,7 @@ class UserService(rpyc.Service):
             'path' : '/',
             'data' : base_path,
             'folder' : True,
-            'children' : dirList(base_path)
+            'children' : dirList(base_path) or []
         }
 
         clen = len(paths['children'])
