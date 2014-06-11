@@ -1,6 +1,6 @@
 /*
 File: Panel1.java ; This file is part of Twister.
-Version: 2.0031
+Version: 2.0032
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -809,7 +809,7 @@ public class Panel1 extends JPanel{
         } catch (Exception e){
             e.printStackTrace();
         }
-        RunnerRepository.window.mainpanel.getP2().setSaveDB(suitaDetails.saveDB());
+        
         int defsNr = suitaDetails.getDefsNr();
         boolean execute=true;
          /*
@@ -1292,6 +1292,7 @@ public class Panel1 extends JPanel{
     }
     
     public void setRunning(){
+        RunnerRepository.window.mainpanel.getP2().setSaveDB(suitaDetails.saveDB());
         final int loc = splitPane3.getDividerLocation();
         splitPane3.setLeftComponent(RunnerRepository.window.mainpanel.getP2().sc.pane);
         splitPane3.setRightComponent(suitaDetails);
