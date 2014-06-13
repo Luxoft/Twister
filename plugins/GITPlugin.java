@@ -2,7 +2,7 @@
 File: GITPlugin.java ; This file is part of Twister.
 
 Copyright (C) 2012 , Luxoft
-Version: 2.006
+Version: 2.007
 Authors: Andrei Costachi <acostachi@luxoft.com>
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -230,8 +230,13 @@ public class GITPlugin extends BasePlugin implements TwisterPluginInterface {
             e.printStackTrace();
             if(ob!=null)System.out.println("Server response: "+ob.toString());
         }
-		HashMap hash = (HashMap)ob;
-        getList(root, hash,dir);
+        if(ob instanceof HashMap){
+        	HashMap hash = (HashMap)ob;
+            getList(root, hash,dir);
+        } else {
+        	System.out.println("listFiles"+ob.toString()+" --- "+dir);
+        }
+		
         
         
         
@@ -322,27 +327,6 @@ public class GITPlugin extends BasePlugin implements TwisterPluginInterface {
 		progress.setVisible(true);
 		return progress;
 	}
-	
-//	public void initializeSFTP(){
-//		try{
-//			JSch jsch = new JSch();
-//            String user = variables.get("user");
-//            Session session = jsch.getSession(user, variables.get("host"), 22);
-//            session.setPassword(variables.get("password"));
-//            Properties config = new Properties();
-//            config.put("StrictHostKeyChecking", "no");
-//            session.setConfig(config);
-//            session.connect();
-//            Channel channel = session.openChannel("sftp");
-//            channel.connect();
-//            c = (ChannelSftp)channel;
-//            System.out.println("SFTP successfully initialized");
-//		}
-//		catch(Exception e){
-//			System.out.println("SFTP could not be initialized");
-//			e.printStackTrace();
-//		}
-//	}
 	
 	public void initializeRPC(){
 		try{XmlRpcClientConfigImpl configuration = new XmlRpcClientConfigImpl();
